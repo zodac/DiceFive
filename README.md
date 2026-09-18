@@ -1,6 +1,6 @@
-# Yahtzee
+# DiceFive
 
-Android Yahtzee game.
+Android DiceFive game.
 
 ## Stack
 
@@ -12,7 +12,7 @@ Android Yahtzee game.
 ## Structure
 
 ```
-app/src/main/kotlin/net/zodac/yahtzee/
+app/src/main/kotlin/net/zodac/dicefive/
   model/       game state and domain types (dice, score categories)
   ui/game/     screen composable + ViewModel
   ui/theme/    Compose theme (color, typography)

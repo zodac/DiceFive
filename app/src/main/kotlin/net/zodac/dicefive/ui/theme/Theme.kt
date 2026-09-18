@@ -1,4 +1,4 @@
-package net.zodac.yahtzee.ui.theme
+package net.zodac.dicefive.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -7,21 +7,21 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
 private val LightColors = lightColorScheme(
-    primary = YahtzeeGreen,
-    secondary = YahtzeeGreenLight,
-    background = YahtzeeIvory,
-    surface = YahtzeeIvory,
+    primary = DiceFiveGreen,
+    secondary = DiceFiveGreenLight,
+    background = DiceFiveIvory,
+    surface = DiceFiveIvory,
 )
 
 private val DarkColors = darkColorScheme(
-    primary = YahtzeeGreenLight,
-    secondary = YahtzeeGreen,
-    background = YahtzeeCharcoal,
-    surface = YahtzeeCharcoal,
+    primary = DiceFiveGreenLight,
+    secondary = DiceFiveGreen,
+    background = DiceFiveCharcoal,
+    surface = DiceFiveCharcoal,
 )
 
 @Composable
-fun YahtzeeTheme(
+fun DiceFiveTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {

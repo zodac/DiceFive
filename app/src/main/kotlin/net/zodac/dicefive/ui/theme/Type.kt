@@ -1,4 +1,4 @@
-package net.zodac.yahtzee.ui.theme
+package net.zodac.dicefive.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

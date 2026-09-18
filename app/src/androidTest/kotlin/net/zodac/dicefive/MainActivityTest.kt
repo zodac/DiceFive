@@ -1,4 +1,4 @@
-package net.zodac.yahtzee
+package net.zodac.dicefive
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -12,6 +12,6 @@ class MainActivityTest {
 
     @Test
     fun titleIsDisplayed() {
-        composeTestRule.onNodeWithText("Yahtzee").assertExists()
+        composeTestRule.onNodeWithText("DiceFive").assertExists()
     }
 }

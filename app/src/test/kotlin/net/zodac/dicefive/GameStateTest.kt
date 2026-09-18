@@ -1,6 +1,6 @@
-package net.zodac.yahtzee
+package net.zodac.dicefive
 
-import net.zodac.yahtzee.model.GameState
+import net.zodac.dicefive.model.GameState
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

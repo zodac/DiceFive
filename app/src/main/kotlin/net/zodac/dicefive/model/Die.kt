@@ -1,4 +1,4 @@
-package net.zodac.yahtzee.model
+package net.zodac.dicefive.model
 
 /**
  * A single six-sided die in the player's roll.

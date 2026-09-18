@@ -1,7 +1,7 @@
-package net.zodac.yahtzee.model
+package net.zodac.dicefive.model
 
 /**
- * The scoring categories on a standard Yahtzee scorecard.
+ * The dice-poker scoring categories this game supports.
  * Scoring rules for each category will be implemented once game requirements are finalized.
  */
 enum class ScoreCategory {
@@ -16,6 +16,6 @@ enum class ScoreCategory {
     FULL_HOUSE,
     SMALL_STRAIGHT,
     LARGE_STRAIGHT,
-    YAHTZEE,
+    FIVE_OF_A_KIND,
     CHANCE,
 }

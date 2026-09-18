@@ -1,3 +1,3 @@
 <resources>
-    <style name="Theme.Yahtzee" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.DiceFive" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

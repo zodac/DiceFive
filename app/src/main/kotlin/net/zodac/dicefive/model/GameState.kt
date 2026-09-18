@@ -1,4 +1,4 @@
-package net.zodac.yahtzee.model
+package net.zodac.dicefive.model
 
 /**
  * Placeholder top-level game state. Will grow to include scorecard entries,

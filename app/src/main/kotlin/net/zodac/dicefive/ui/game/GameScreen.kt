@@ -1,4 +1,4 @@
-package net.zodac.yahtzee.ui.game
+package net.zodac.dicefive.ui.game
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,7 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import net.zodac.yahtzee.ui.theme.YahtzeeTheme
+import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 @Composable
 fun GameScreen(
@@ -28,7 +28,7 @@ fun GameScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = "Yahtzee")
+        Text(text = "DiceFive")
         Text(text = "Rolls remaining: ${state.rollsRemaining}")
     }
 }
@@ -36,7 +36,7 @@ fun GameScreen(
 @Preview(showBackground = true)
 @Composable
 private fun GameScreenPreview() {
-    YahtzeeTheme {
+    DiceFiveTheme {
         GameScreen(viewModel = GameViewModel())
     }
 }
