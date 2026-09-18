@@ -499,3 +499,21 @@ dependencies — most unit tests live here.
       depend on version number. Once `VERSION` reaches `1.0.0`, the full
       build+sign+attach path resumes and releases stop being marked
       pre-release.
+- [x] **Automatic patch-version bump**: `scripts/set-version.sh <version>`
+      is the one designated place that writes the app version everywhere
+      it's referenced - today that's just the `VERSION` file (Gradle
+      already single-sources from it, and no doc hardcodes a "live"
+      version number), but it's the extension point if that ever changes.
+      `scripts/bump-patch-version.sh` reads the current version and calls
+      `set-version.sh` with its patch component incremented
+      (`0.1.0 -> 0.1.1`) - it never touches major/minor; those are only
+      ever changed by hand (edit `VERSION` directly, or run
+      `set-version.sh` with an exact value) to start a new minor/major
+      line. The release workflow's last step runs `bump-patch-version.sh`
+      after every successful release (re-syncing with `origin/main` first
+      in case it moved mid-run) and commits+pushes the bump with the
+      default `GITHUB_TOKEN`, which GitHub does not use to re-trigger
+      workflows on push - so this can't create an infinite loop. Verified
+      both scripts locally (patch bump, manual set to a new minor line,
+      resumed patch-bumping from there, and invalid-input rejection) in an
+      isolated temp directory before wiring them into CI.

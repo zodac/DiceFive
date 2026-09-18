@@ -1,9 +1,15 @@
 name: Release
 
 # Every push to main builds, tests, and publishes a GitHub Release for the
-# version currently in the root VERSION file. Re-pushing without bumping
-# VERSION updates that same release rather than failing - only bump VERSION
-# when you actually want a new release entry.
+# version currently in the root VERSION file, then commits VERSION bumped
+# to the next patch version back to main (e.g. 0.0.1 -> 0.0.2) so
+# development always continues one patch ahead of the last release. That
+# bump-commit is pushed with the default GITHUB_TOKEN, which GitHub does
+# not use to re-trigger workflows, so this can't loop.
+#
+# For a minor/major bump (e.g. starting a 0.1.0 line), edit VERSION by hand
+# (or run scripts/set-version.sh) and push that - the next run releases
+# that version, then resumes patch-bumping from it (0.1.0 -> 0.1.1 -> ...).
 #
 # Versions below 1.0.0 are pre-1.0 milestones, not real releases: they're
 # marked as GitHub pre-releases and get no APK asset - just a version bump
@@ -87,3 +93,19 @@ jobs:
           prerelease: ${{ steps.version.outputs.stable != 'true' }}
           files: ${{ steps.apk.outputs.path }}
           generate_release_notes: true
+
+      # Only reached once everything above has succeeded, so a failed build
+      # never bumps the version. Re-syncs with the current main tip first in
+      # case it moved during this run, since `concurrency` only serializes
+      # this workflow's own runs, not unrelated pushes from elsewhere.
+      - name: Bump version for next development iteration
+        run: |
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          ./scripts/bump-patch-version.sh
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add VERSION
+          git commit -m "Bump version to $(cat VERSION) [skip ci]"
+          git push origin main
