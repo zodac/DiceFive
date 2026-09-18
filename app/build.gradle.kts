@@ -7,6 +7,9 @@ plugins {
 android {
     namespace = "net.zodac.yahtzee"
     compileSdk = 35
+    // Pinned to match the build-tools baked into the sandbox image (sandbox/Dockerfile) so a
+    // build never needs to fetch a different version over the network.
+    buildToolsVersion = "35.0.0"
 
     defaultConfig {
         applicationId = "net.zodac.yahtzee"
