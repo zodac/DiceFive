@@ -209,11 +209,11 @@ dependencies — most unit tests live here.
 ## Phases
 
 ### Phase 0 — Build setup
-- [ ] Add Navigation Compose, Room (+ KSP), DataStore dependencies to
+- [x] Add Navigation Compose, Room (+ KSP), DataStore dependencies to
       `gradle/libs.versions.toml`, `app/build.gradle.kts`,
       `settings.gradle.kts` / root `build.gradle.kts`.
-- [ ] Confirm `./gradlew assembleDebug` still builds with no app changes yet
-      (dependency wiring only).
+- [x] Confirm `./gradlew assembleDebug` still builds with no app changes yet
+      (dependency wiring only). `./gradlew testDebugUnitTest` also green.
 
 ### Phase 1 — Domain models & pure game logic
 - [ ] `model/GameType.kt`, `model/PlayerType.kt`, `model/Difficulty.kt`,
