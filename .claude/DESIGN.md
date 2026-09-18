@@ -216,17 +216,22 @@ dependencies — most unit tests live here.
       (dependency wiring only). `./gradlew testDebugUnitTest` also green.
 
 ### Phase 1 — Domain models & pure game logic
-- [ ] `model/GameType.kt`, `model/PlayerType.kt`, `model/Difficulty.kt`,
-      `model/PlayerConfig.kt`, `model/PlayerState.kt`.
-- [ ] Rewrite `model/GameState.kt` for multi-player/turn/phase shape.
-- [ ] `game/YahtzeeScoring.kt` — per-category scoring functions.
-- [ ] `game/ScoreCalculator.kt` — upper bonus + Yahtzee joker rule.
-- [ ] `game/GameEngine.kt` — rollDice/toggleHold/commitScore/advanceTurn
-      reducers.
-- [ ] `game/AiTurnPlayer.kt` — basic auto-play strategy.
-- [ ] `game/AiNameGenerator.kt` — themed name pool.
-- [ ] Unit tests: `YahtzeeScoringTest`, `GameEngineTest`, `AiTurnPlayerTest`.
-- [ ] Update `GameStateTest` for new shape.
+- [x] `model/GameType.kt`, `model/PlayerType.kt`, `model/Difficulty.kt`,
+      `model/PlayerConfig.kt`, `model/PlayerState.kt`, `model/TurnPhase.kt`.
+      Renamed `ScoreCategory.FIVE_OF_A_KIND` → `YAHTZEE`.
+- [x] Rewrite `model/GameState.kt` for multi-player/turn/phase shape.
+- [x] `game/YahtzeeScoring.kt` — per-category scoring functions.
+- [x] `game/ScoreCalculator.kt` — upper bonus (via `PlayerState`) + Yahtzee
+      joker rule (available categories + scoring + bonus-chip eligibility).
+- [x] `game/GameEngine.kt` — newGame/rollDice/toggleHold/commitScore
+      reducers (commitScore calls advanceTurn internally).
+- [x] `game/AiTurnPlayer.kt` — basic auto-play strategy + pure `playTurn`
+      helper for tests.
+- [x] `game/AiNameGenerator.kt` — themed name pool (12 names).
+- [x] Unit tests: `YahtzeeScoringTest` (9), `ScoreCalculatorTest` (4, joker
+      rule branches), `GameEngineTest` (10), `AiTurnPlayerTest` (3),
+      `AiNameGeneratorTest` (2). All 30 tests pass; `assembleDebug` green.
+- [x] Update `GameStateTest` for new shape.
 
 ### Phase 2 — Navigation scaffold & Menu
 - [ ] `navigation/Screen.kt` route constants.

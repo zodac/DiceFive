@@ -1,0 +1,120 @@
+package net.zodac.dicefive.game
+
+import net.zodac.dicefive.model.Die
+import net.zodac.dicefive.model.GameState
+import net.zodac.dicefive.model.PlayerConfig
+import net.zodac.dicefive.model.PlayerState
+import net.zodac.dicefive.model.PlayerType
+import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.TurnPhase
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class GameEngineTest {
+
+    private val onePlayer = listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Player 1"))
+    private val twoPlayers = listOf(
+        PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Player 1"),
+        PlayerConfig(slot = 2, type = PlayerType.AI, name = "Bot"),
+    )
+
+    @Test
+    fun `newGame rejects an empty player list`() {
+        assertThrows(IllegalArgumentException::class.java) { GameEngine.newGame(emptyList()) }
+    }
+
+    @Test
+    fun `rollDice decrements rolls remaining and marks the turn rolled`() {
+        val state = GameEngine.newGame(onePlayer)
+
+        val rolled = GameEngine.rollDice(state)
+
+        assertEquals(2, rolled.rollsRemaining)
+        assertEquals(TurnPhase.ROLLED, rolled.phase)
+    }
+
+    @Test
+    fun `rollDice fails once no rolls remain`() {
+        var state = GameEngine.newGame(onePlayer)
+        repeat(3) { state = GameEngine.rollDice(state) }
+
+        assertThrows(IllegalStateException::class.java) { GameEngine.rollDice(state) }
+    }
+
+    @Test
+    fun `held dice keep their value across a re-roll`() {
+        var state = GameEngine.rollDice(GameEngine.newGame(onePlayer))
+        state = GameEngine.toggleHold(state, dieIndex = 0)
+        val heldValue = state.dice[0].value
+
+        state = GameEngine.rollDice(state)
+
+        assertEquals(heldValue, state.dice[0].value)
+        assertTrue(state.dice[0].isHeld)
+    }
+
+    @Test
+    fun `toggleHold before any roll fails`() {
+        val state = GameEngine.newGame(onePlayer)
+
+        assertThrows(IllegalStateException::class.java) { GameEngine.toggleHold(state, dieIndex = 0) }
+    }
+
+    @Test
+    fun `toggleHold after the final roll fails`() {
+        var state = GameEngine.newGame(onePlayer)
+        repeat(3) { state = GameEngine.rollDice(state) }
+
+        assertThrows(IllegalStateException::class.java) { GameEngine.toggleHold(state, dieIndex = 0) }
+    }
+
+    @Test
+    fun `commitScore before rolling fails`() {
+        val state = GameEngine.newGame(onePlayer)
+
+        assertThrows(IllegalStateException::class.java) { GameEngine.commitScore(state, ScoreCategory.CHANCE) }
+    }
+
+    @Test
+    fun `commitScore rejects an already-filled category`() {
+        var state = GameEngine.rollDice(GameEngine.newGame(onePlayer))
+        state = GameEngine.commitScore(state, ScoreCategory.CHANCE)
+        // Second player's turn now (there is only one, so it's back to the same player) with a fresh scorecard slot.
+        state = GameEngine.rollDice(state)
+
+        assertThrows(IllegalStateException::class.java) { GameEngine.commitScore(state, ScoreCategory.CHANCE) }
+    }
+
+    @Test
+    fun `commitScore advances to the next player and resets the turn`() {
+        var state = GameEngine.rollDice(GameEngine.newGame(twoPlayers))
+
+        state = GameEngine.commitScore(state, ScoreCategory.CHANCE)
+
+        assertEquals(1, state.currentPlayerIndex)
+        assertEquals(3, state.rollsRemaining)
+        assertEquals(TurnPhase.AWAITING_ROLL, state.phase)
+        assertTrue(state.dice.none { it.isHeld })
+    }
+
+    @Test
+    fun `game ends once every player's scorecard is full`() {
+        val almostFullScorecard: Map<ScoreCategory, Int?> = ScoreCategory.entries
+            .associateWith { category -> if (category == ScoreCategory.CHANCE) null else 0 }
+
+        val state = GameState(
+            players = listOf(
+                PlayerState(name = "Player 1", type = PlayerType.HUMAN, scorecard = almostFullScorecard),
+            ),
+            dice = List(5) { Die(value = 4) },
+            rollsRemaining = 1,
+            phase = TurnPhase.ROLLED,
+        )
+
+        val result = GameEngine.commitScore(state, ScoreCategory.CHANCE)
+
+        assertTrue(result.isGameOver)
+    }
+}

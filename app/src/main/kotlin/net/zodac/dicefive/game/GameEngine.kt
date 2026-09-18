@@ -1,0 +1,79 @@
+package net.zodac.dicefive.game
+
+import kotlin.random.Random
+import net.zodac.dicefive.model.Die
+import net.zodac.dicefive.model.GameState
+import net.zodac.dicefive.model.GameType
+import net.zodac.dicefive.model.PlayerConfig
+import net.zodac.dicefive.model.PlayerState
+import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.TurnPhase
+
+/**
+ * Pure reducers for the Yahtzee turn flow. None of these touch Android APIs
+ * or persistence — [net.zodac.dicefive.ui.game.GameViewModel] is the only
+ * caller and owns all side effects (AI pacing, score persistence).
+ */
+object GameEngine {
+
+    private const val DICE_COUNT = 5
+    private const val ROLLS_PER_TURN = 3
+
+    fun newGame(players: List<PlayerConfig>, gameType: GameType = GameType.CLASSIC): GameState {
+        require(players.isNotEmpty()) { "At least one player is required" }
+        return GameState(
+            gameType = gameType,
+            players = players.map { PlayerState(name = it.name, type = it.type, difficulty = it.difficulty) },
+        )
+    }
+
+    fun rollDice(state: GameState, random: Random = Random.Default): GameState {
+        check(state.rollsRemaining > 0) { "No rolls remaining this turn" }
+        val newDice = state.dice.map { die ->
+            if (die.isHeld) die else die.copy(value = random.nextInt(1, 7))
+        }
+        return state.copy(
+            dice = newDice,
+            rollsRemaining = state.rollsRemaining - 1,
+            phase = TurnPhase.ROLLED,
+        )
+    }
+
+    fun toggleHold(state: GameState, dieIndex: Int): GameState {
+        check(state.phase == TurnPhase.ROLLED) { "Cannot hold dice before rolling" }
+        check(state.rollsRemaining > 0) { "Cannot change holds after the final roll" }
+        val newDice = state.dice.mapIndexed { index, die ->
+            if (index == dieIndex) die.copy(isHeld = !die.isHeld) else die
+        }
+        return state.copy(dice = newDice)
+    }
+
+    fun commitScore(state: GameState, category: ScoreCategory): GameState {
+        check(state.phase == TurnPhase.ROLLED) { "Cannot score before rolling" }
+        val player = requireNotNull(state.currentPlayer) { "No current player" }
+        check(category in ScoreCalculator.availableCategories(player, state.dice)) {
+            "$category is not available for the current dice"
+        }
+
+        val value = ScoreCalculator.scoreFor(player, category, state.dice)
+        val bonus = ScoreCalculator.awardsYahtzeeBonus(player, state.dice)
+        val updatedPlayer = player.copy(
+            scorecard = player.scorecard + (category to value),
+            yahtzeeBonusCount = player.yahtzeeBonusCount + if (bonus) 1 else 0,
+        )
+        val updatedPlayers = state.players.toMutableList().apply { this[state.currentPlayerIndex] = updatedPlayer }
+        return advanceTurn(state.copy(players = updatedPlayers))
+    }
+
+    private fun advanceTurn(state: GameState): GameState {
+        if (state.players.all { it.isScorecardComplete }) {
+            return state.copy(isGameOver = true)
+        }
+        return state.copy(
+            currentPlayerIndex = (state.currentPlayerIndex + 1) % state.players.size,
+            dice = List(DICE_COUNT) { Die() },
+            rollsRemaining = ROLLS_PER_TURN,
+            phase = TurnPhase.AWAITING_ROLL,
+        )
+    }
+}
