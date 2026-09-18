@@ -234,13 +234,21 @@ dependencies — most unit tests live here.
 - [x] Update `GameStateTest` for new shape.
 
 ### Phase 2 — Navigation scaffold & Menu
-- [ ] `navigation/Screen.kt` route constants.
-- [ ] `navigation/DiceFiveNavHost.kt` with all destinations wired (screens
-      can be stubs initially).
-- [ ] `ui/menu/MenuScreen.kt` (Play/Scores/Achievements/Settings/About).
-- [ ] `MainActivity.kt` hosts `DiceFiveNavHost` instead of `GameScreen`
+- [x] `navigation/Screen.kt` route constants.
+- [x] `navigation/DiceFiveNavHost.kt` with all destinations wired: menu,
+      nested "play" graph (play/setup -> play/game), scores, achievements,
+      settings, about. Setup/scores/achievements/settings/about are thin
+      stub screens for now (each notes which later phase fills it in).
+- [x] `ui/menu/MenuScreen.kt` (Play/Scores/Achievements/Settings/About),
+      "DiceFive" as the header text.
+- [x] `MainActivity.kt` hosts `DiceFiveNavHost` instead of `GameScreen`
       directly.
-- [ ] Update `MainActivityTest` to match ("DiceFive" on menu header).
+- [x] `MainActivityTest` needed no change - menu header text is still
+      "DiceFive" so `onNodeWithText("DiceFive")` keeps passing; confirmed
+      `compileDebugAndroidTestKotlin` + `assembleDebug` + unit tests green.
+      (The "play" nested graph doesn't yet share a scoped `GameViewModel`
+      across setup/game - that lands in Phase 3 when setup actually has
+      state worth sharing.)
 
 ### Phase 3 — Game setup screen
 - [ ] `GameViewModel` CONFIGURING phase: player count, per-slot type/name/
