@@ -26,8 +26,8 @@ import net.zodac.dicefive.ui.theme.DiceFiveTheme
 @Composable
 fun GameScreen(
     viewModel: GameViewModel,
-    onBackToMenu: () -> Unit = {},
     modifier: Modifier = Modifier,
+    onBackToMenu: () -> Unit = {},
 ) {
     val state by viewModel.game.collectAsState()
     val currentState = state ?: return

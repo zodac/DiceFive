@@ -361,8 +361,17 @@ dependencies — most unit tests live here.
       all green (37 unit tests, unchanged).
 
 ### Phase 10 — Final verification
-- [ ] `./gradlew test` green.
-- [ ] `./gradlew assembleDebug` green.
-- [ ] Manual smoke pass via `run` skill (see Verification above).
-- [ ] Update `README.md` structure section to match the final package
-      layout.
+- [x] `./gradlew clean assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lint`
+      all green (37 unit tests, 0 failures).
+- [x] Ran `./gradlew lint`: fixed the one finding introduced by this work
+      (`ModifierParameter` in `GameScreen.kt` - `modifier` wasn't the first
+      optional param; reordered ahead of `onBackToMenu`). The remaining ~22
+      warnings (GradleDependency/NewerVersionAvailable/AGP-version nags,
+      plus a few pre-existing launcher-icon/target-SDK findings from the
+      original skeleton) are pre-existing or out of scope - not touched.
+- [x] Manual smoke pass via `run` skill: **not possible** - no
+      emulator/AVD/device in this sandbox (see Verification above);
+      substituted with full unit test coverage of the pure logic and a
+      careful reading of every screen.
+- [x] Updated `README.md`'s Structure section to match the final package
+      layout, and pointed it at this file for the full design/phase log.
