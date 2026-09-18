@@ -1,18 +1,26 @@
 package net.zodac.dicefive.ui.game
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -30,7 +38,33 @@ fun GameScreen(
     onBackToMenu: () -> Unit = {},
 ) {
     val state by viewModel.game.collectAsState()
+    val canUndo by viewModel.canUndo.collectAsState()
+    val confirmBeforeLeaving by viewModel.confirmBeforeLeavingGame.collectAsState()
     val currentState = state ?: return
+    var showLeaveConfirmation by remember { mutableStateOf(false) }
+
+    // Redirect system back to Menu (default nav behavior would land on the setup form instead).
+    BackHandler {
+        if (!currentState.isGameOver && confirmBeforeLeaving) {
+            showLeaveConfirmation = true
+        } else {
+            onBackToMenu()
+        }
+    }
+
+    if (showLeaveConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showLeaveConfirmation = false },
+            title = { Text("Leave game?") },
+            text = { Text("Your progress is saved - you can continue this game later from Play.") },
+            confirmButton = {
+                TextButton(onClick = { showLeaveConfirmation = false; onBackToMenu() }) { Text("Leave") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLeaveConfirmation = false }) { Text("Cancel") }
+            },
+        )
+    }
 
     Column(
         modifier = modifier
@@ -44,6 +78,8 @@ fun GameScreen(
         } else {
             InProgressGame(
                 state = currentState,
+                canUndo = canUndo,
+                onUndo = viewModel::undo,
                 onRoll = viewModel::rollDice,
                 onToggleHold = viewModel::toggleHold,
                 onScoreCategory = viewModel::commitScore,
@@ -55,6 +91,8 @@ fun GameScreen(
 @Composable
 private fun InProgressGame(
     state: GameState,
+    canUndo: Boolean,
+    onUndo: () -> Unit,
     onRoll: () -> Unit,
     onToggleHold: (Int) -> Unit,
     onScoreCategory: (ScoreCategory) -> Unit,
@@ -72,8 +110,13 @@ private fun InProgressGame(
 
     DiceRow(dice = state.dice, enabled = canHold, onToggleHold = onToggleHold)
 
-    Button(onClick = onRoll, enabled = canRoll) {
-        Text(text = "Roll (${state.rollsRemaining} left)")
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Button(onClick = onRoll, enabled = canRoll) {
+            Text(text = "Roll (${state.rollsRemaining} left)")
+        }
+        OutlinedButton(onClick = onUndo, enabled = canUndo) {
+            Text("Undo")
+        }
     }
 
     ScorecardView(

@@ -375,3 +375,56 @@ dependencies — most unit tests live here.
       careful reading of every screen.
 - [x] Updated `README.md`'s Structure section to match the final package
       layout, and pointed it at this file for the full design/phase log.
+
+### Phase 11 — Post-release review follow-ups
+- [x] **Back confirmation during a game**: `GameScreen` installs a
+      `BackHandler` (this also fixes a latent gap - previously an actual
+      back-press/gesture would default to popping just one nav entry,
+      landing back on the setup form instead of Menu). While a game is in
+      progress and the new Settings toggle "Confirm before leaving a game
+      in progress" (`SettingsRepository.confirmBeforeLeavingGame`, default
+      on) is enabled, back shows an AlertDialog ("Leave"/"Cancel") before
+      exiting to Menu; once the game is over, back always goes straight to
+      Menu with no prompt.
+- [x] **Continue / New Game**: added `data/game/GameStateJson.kt` (hand-rolled
+      `org.json` (de)serialization of `GameState` - `testImplementation(libs.org.json)`
+      added since Android's org.json is stubbed on the unit-test classpath)
+      and `data/game/InProgressGameRepository.kt` (DataStore-backed, at most
+      one saved game, cleared on finish). `GameViewModel.applyGameState()`
+      now autosaves after every state change (human, AI, or undo) and clears
+      the save when a game finishes, so a game survives navigating away or
+      even process death. `MenuScreen`'s Play button shows a
+      Continue/New Game dialog when `InProgressGameRepository.hasInProgressGame`
+      is true; `Screen.PLAY_SETUP_ROUTE` gained an optional `resume` nav arg
+      - `DiceFiveNavHost` uses it to call `GameViewModel.resumeGame()` behind
+      a small loading spinner before landing on `play/game`, falling back to
+      the normal setup form if there was nothing to resume after all.
+      Fixed a latent bug found while wiring this up: AI turns previously
+      mutated `_game` directly rather than through the shared
+      apply-state path, so if an AI player's move happened to be the one
+      that completed the game, human players' final scores were never
+      persisted to the leaderboard. Routing AI moves through the same
+      `applyGameState()` fixed this as a side effect.
+- [x] **Undo**: `GameViewModel` tracks a single pre-action snapshot
+      (`undoSnapshot`/`canUndo`) captured before every human roll/hold/score.
+      `undo()` restores it, cancels any AI turn job it would have triggered
+      (closes a race where a pending AI coroutine could otherwise clobber
+      the reverted state ~600ms later), and clears the snapshot (single-use,
+      no redo). Any AI action clears the snapshot outright - only the most
+      recent *human* move is ever undoable. An "Undo" button sits next to
+      Roll on `GameScreen`, enabled only while `canUndo` is true; there's no
+      Undo on the game-over screen (undoing a finished game would also need
+      to retract an already-persisted score - out of scope here).
+- [x] New/updated tests: `GameStateJsonTest` (3, round-trips including nulls
+      and a finished game), `GameViewModelTest` (+5: undo of a roll, undo of
+      a scored category, undo unavailable before any move and after an AI
+      move, `resumeGame()` with no repository configured). Found and fixed a
+      real bug during this work: `canUndo` was originally a
+      `_undoSnapshot.map {}.stateIn(...)` derived flow, which doesn't update
+      synchronously (only after the coroutine dispatcher actually runs the
+      collector) - a plain `_canUndo` `MutableStateFlow` updated in lockstep
+      with the snapshot, matching how `_game`/`_setup` already work in this
+      class, both fixed the test failures and is simpler.
+- [x] `assembleDebug`, `compileDebugAndroidTestKotlin`, `testDebugUnitTest`
+      (45 unit tests), and `lint` all green; no new lint findings beyond the
+      pre-existing/version-nag set from Phase 10.

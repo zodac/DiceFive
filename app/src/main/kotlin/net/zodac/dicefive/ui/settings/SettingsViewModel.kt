@@ -20,9 +20,17 @@ class SettingsViewModel(private val settingsRepository: SettingsRepository? = nu
     val theme: StateFlow<Theme> = (settingsRepository?.theme ?: flowOf(Theme.SYSTEM))
         .stateIn(viewModelScope, SharingStarted.Eagerly, Theme.SYSTEM)
 
+    val confirmBeforeLeavingGame: StateFlow<Boolean> = (settingsRepository?.confirmBeforeLeavingGame ?: flowOf(true))
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
     fun setTheme(theme: Theme) {
         val repository = settingsRepository ?: return
         viewModelScope.launch { repository.setTheme(theme) }
+    }
+
+    fun setConfirmBeforeLeavingGame(confirm: Boolean) {
+        val repository = settingsRepository ?: return
+        viewModelScope.launch { repository.setConfirmBeforeLeavingGame(confirm) }
     }
 
     companion object {

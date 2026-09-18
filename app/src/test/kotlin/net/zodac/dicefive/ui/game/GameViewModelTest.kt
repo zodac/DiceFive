@@ -12,6 +12,7 @@ import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -89,5 +90,70 @@ class GameViewModelTest {
         val state = viewModel.game.value!!
         assertEquals(0, state.currentPlayerIndex)
         assertTrue(state.players[1].scorecard.values.any { it != null })
+    }
+
+    @Test
+    fun `undo is unavailable until a human action has happened`() {
+        val viewModel = GameViewModel()
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        assertFalse(viewModel.canUndo.value)
+    }
+
+    @Test
+    fun `undo reverts the most recent roll`() {
+        val viewModel = GameViewModel()
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        assertTrue(viewModel.canUndo.value)
+
+        viewModel.undo()
+
+        val state = viewModel.game.value!!
+        assertEquals(TurnPhase.AWAITING_ROLL, state.phase)
+        assertEquals(3, state.rollsRemaining)
+        assertFalse(viewModel.canUndo.value)
+    }
+
+    @Test
+    fun `undo reverts a scored category`() {
+        val viewModel = GameViewModel()
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+        viewModel.rollDice()
+
+        viewModel.commitScore(ScoreCategory.CHANCE)
+        assertEquals(1, viewModel.game.value!!.players.single().scorecard.values.count { it != null })
+
+        viewModel.undo()
+
+        val state = viewModel.game.value!!
+        assertEquals(TurnPhase.ROLLED, state.phase)
+        assertEquals(0, state.players.single().scorecard.values.count { it != null })
+    }
+
+    @Test
+    fun `undo is unavailable once an AI player has acted`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel()
+        viewModel.setPlayerCount(2)
+        viewModel.setPlayerType(2, PlayerType.AI)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.CHANCE)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.canUndo.value)
+    }
+
+    @Test
+    fun `resumeGame returns false when no repository is configured`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel()
+
+        assertFalse(viewModel.resumeGame())
+        assertNull(viewModel.game.value)
     }
 }

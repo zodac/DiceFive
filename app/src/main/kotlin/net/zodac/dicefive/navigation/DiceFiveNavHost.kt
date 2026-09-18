@@ -1,14 +1,27 @@
 package net.zodac.dicefive.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
+import androidx.navigation.navArgument
 import androidx.navigation.compose.rememberNavController
+import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.ui.about.AboutScreen
 import net.zodac.dicefive.ui.achievements.AchievementsScreen
 import net.zodac.dicefive.ui.game.GameScreen
@@ -24,8 +37,13 @@ import net.zodac.dicefive.ui.setup.GameSetupScreen
 fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) {
     NavHost(navController = navController, startDestination = Screen.MENU) {
         composable(Screen.MENU) {
+            val context = LocalContext.current
+            val inProgressGameRepository = remember { InProgressGameRepository(context) }
+            val hasInProgressGame by inProgressGameRepository.hasInProgressGame.collectAsState(initial = false)
             MenuScreen(
-                onPlay = { navController.navigate(Screen.PLAY_GRAPH) },
+                hasInProgressGame = hasInProgressGame,
+                onContinue = { navController.navigate(Screen.playSetup(resume = true)) },
+                onNewGame = { navController.navigate(Screen.PLAY_GRAPH) },
                 onScores = { navController.navigate(Screen.SCORES) },
                 onAchievements = { navController.navigate(Screen.ACHIEVEMENTS) },
                 onSettings = { navController.navigate(Screen.SETTINGS) },
@@ -33,14 +51,37 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
             )
         }
 
-        navigation(startDestination = Screen.PLAY_SETUP, route = Screen.PLAY_GRAPH) {
-            composable(Screen.PLAY_SETUP) { backStackEntry ->
+        navigation(startDestination = Screen.PLAY_SETUP_ROUTE, route = Screen.PLAY_GRAPH) {
+            composable(
+                route = Screen.PLAY_SETUP_ROUTE,
+                arguments = listOf(navArgument("resume") { type = NavType.BoolType; defaultValue = false }),
+            ) { backStackEntry ->
                 val context = LocalContext.current
                 val playGraphEntry = remember(backStackEntry) { navController.getBackStackEntry(Screen.PLAY_GRAPH) }
-                GameSetupScreen(
-                    viewModel = viewModel(playGraphEntry, factory = GameViewModel.factory(context)),
-                    onStartGame = { navController.navigate(Screen.PLAY_GAME) },
-                )
+                val viewModel = viewModel<GameViewModel>(playGraphEntry, factory = GameViewModel.factory(context))
+                val resume = backStackEntry.arguments?.getBoolean("resume") ?: false
+
+                if (!resume) {
+                    GameSetupScreen(
+                        viewModel = viewModel,
+                        onStartGame = { navController.navigate(Screen.PLAY_GAME) },
+                    )
+                } else {
+                    var resumed by remember { mutableStateOf<Boolean?>(null) }
+                    LaunchedEffect(Unit) { resumed = viewModel.resumeGame() }
+
+                    when (resumed) {
+                        true -> LaunchedEffect(Unit) { navController.navigate(Screen.PLAY_GAME) }
+                        // Nothing was actually found to resume (e.g. the save was cleared elsewhere) - fall back to setup.
+                        false -> GameSetupScreen(
+                            viewModel = viewModel,
+                            onStartGame = { navController.navigate(Screen.PLAY_GAME) },
+                        )
+                        null -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
             }
             composable(Screen.PLAY_GAME) { backStackEntry ->
                 val context = LocalContext.current

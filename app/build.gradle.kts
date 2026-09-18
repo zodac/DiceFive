@@ -78,6 +78,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.runtime)
     testImplementation(libs.kotlinx.coroutines.test)
+    // org.json is part of the Android SDK, but unit tests run against a stub version of it
+    // (every method throws) - this brings in a real implementation for JVM tests only.
+    testImplementation(libs.org.json)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.junit)

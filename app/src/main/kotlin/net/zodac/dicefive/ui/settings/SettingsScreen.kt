@@ -4,9 +4,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -22,6 +24,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val theme by viewModel.theme.collectAsState()
+    val confirmBeforeLeavingGame by viewModel.confirmBeforeLeavingGame.collectAsState()
 
     Column(
         modifier = modifier
@@ -39,6 +42,15 @@ fun SettingsScreen(
                     Text(text = option.name.lowercase().replaceFirstChar(Char::uppercase))
                 }
             }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(text = "Confirm before leaving a game in progress", style = MaterialTheme.typography.titleMedium)
+            Switch(checked = confirmBeforeLeavingGame, onCheckedChange = viewModel::setConfirmBeforeLeavingGame)
         }
     }
 }

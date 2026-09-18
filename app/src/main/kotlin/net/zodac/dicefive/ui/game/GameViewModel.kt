@@ -9,11 +9,15 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
@@ -54,14 +58,16 @@ data class GameSetupState(
  * scoped to the "play" nav graph so [net.zodac.dicefive.ui.setup.GameSetupScreen]
  * and [GameScreen] share one instance across navigation.
  *
- * [scoreRepository] and [settingsRepository] are optional so this class
- * stays constructible (and testable) on a plain JVM with no Android
- * `Context` - [Factory] supplies the real ones. When absent, remembered
- * names and score history are silently skipped.
+ * [scoreRepository], [settingsRepository] and [inProgressGameRepository] are
+ * optional so this class stays constructible (and testable) on a plain JVM
+ * with no Android `Context` - [factory] supplies the real ones. When
+ * absent, remembered names, score history, and game resumption are
+ * silently skipped.
  */
 class GameViewModel(
     private val scoreRepository: ScoreRepository? = null,
     private val settingsRepository: SettingsRepository? = null,
+    private val inProgressGameRepository: InProgressGameRepository? = null,
 ) : ViewModel() {
 
     private val _setup = MutableStateFlow(GameSetupState())
@@ -69,6 +75,14 @@ class GameViewModel(
 
     private val _game = MutableStateFlow<GameState?>(null)
     val game: StateFlow<GameState?> = _game.asStateFlow()
+
+    /** The state to restore if [undo] is called - the pre-action snapshot of the most recent HUMAN move only. */
+    private var undoSnapshot: GameState? = null
+    private val _canUndo = MutableStateFlow(false)
+    val canUndo: StateFlow<Boolean> = _canUndo.asStateFlow()
+
+    val confirmBeforeLeavingGame: StateFlow<Boolean> = (settingsRepository?.confirmBeforeLeavingGame ?: flowOf(true))
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     init {
         settingsRepository?.let { repository ->
@@ -115,7 +129,17 @@ class GameViewModel(
             PlayerConfig(slot = slot.slot, type = slot.type, name = name, difficulty = slot.difficulty)
         }
         persistHumanNames(activeSlots)
-        setGameState(GameEngine.newGame(playerConfigs, setupState.gameType))
+        setUndoSnapshot(null)
+        applyGameState(GameEngine.newGame(playerConfigs, setupState.gameType))
+    }
+
+    /** Loads a previously in-progress game, if any. Returns whether one was found and resumed. */
+    suspend fun resumeGame(): Boolean {
+        val repository = inProgressGameRepository ?: return false
+        val loaded = repository.load() ?: return false
+        setUndoSnapshot(null)
+        applyGameState(loaded)
+        return true
     }
 
     fun rollDice() = onHumanAction { GameEngine.rollDice(it) }
@@ -124,10 +148,25 @@ class GameViewModel(
 
     fun commitScore(category: ScoreCategory) = onHumanAction { GameEngine.commitScore(it, category) }
 
+    /** Reverts just the most recent human move, if there is one to undo. Cancels any pending AI turn it would have triggered. */
+    fun undo() {
+        val snapshot = undoSnapshot ?: return
+        aiTurnJob?.cancel()
+        aiTurnJob = null
+        setUndoSnapshot(null)
+        applyGameState(snapshot, checkForAiTurn = false)
+    }
+
     private fun onHumanAction(transform: (GameState) -> GameState) {
         val state = _game.value ?: return
         if (state.currentPlayer?.type != PlayerType.HUMAN) return
-        setGameState(transform(state))
+        setUndoSnapshot(state)
+        applyGameState(transform(state))
+    }
+
+    private fun setUndoSnapshot(snapshot: GameState?) {
+        undoSnapshot = snapshot
+        _canUndo.value = snapshot != null
     }
 
     private fun updateSlot(slot: Int, transform: (PlayerSetupSlot) -> PlayerSetupSlot) {
@@ -136,13 +175,14 @@ class GameViewModel(
         }
     }
 
-    private fun setGameState(newState: GameState) {
+    private fun applyGameState(newState: GameState, checkForAiTurn: Boolean = true) {
         val wasGameOver = _game.value?.isGameOver ?: false
         _game.value = newState
+        persistInProgressGame(newState)
         if (!wasGameOver && newState.isGameOver) {
             persistHumanScores(newState)
         }
-        maybeStartAiTurn()
+        if (checkForAiTurn) maybeStartAiTurn()
     }
 
     private fun persistHumanNames(slots: List<PlayerSetupSlot>) {
@@ -167,6 +207,13 @@ class GameViewModel(
         }
     }
 
+    private fun persistInProgressGame(state: GameState) {
+        val repository = inProgressGameRepository ?: return
+        viewModelScope.launch {
+            if (state.isGameOver) repository.clear() else repository.save(state)
+        }
+    }
+
     private var aiTurnJob: Job? = null
 
     private fun maybeStartAiTurn() {
@@ -181,11 +228,13 @@ class GameViewModel(
             while (current.rollsRemaining > 0) {
                 delay(AI_STEP_DELAY_MS)
                 current = GameEngine.rollDice(current)
-                _game.value = current
+                setUndoSnapshot(null)
+                applyGameState(current, checkForAiTurn = false)
             }
             delay(AI_STEP_DELAY_MS)
             current = GameEngine.commitScore(current, AiTurnPlayer.chooseCategory(current))
-            _game.value = current
+            setUndoSnapshot(null)
+            applyGameState(current, checkForAiTurn = false)
             maybeStartAiTurn()
         }
     }
@@ -200,6 +249,7 @@ class GameViewModel(
                 GameViewModel(
                     scoreRepository = ScoreRepository(AppDatabase.getInstance(appContext).scoreDao()),
                     settingsRepository = SettingsRepository(appContext),
+                    inProgressGameRepository = InProgressGameRepository(appContext),
                 )
             }
         }
