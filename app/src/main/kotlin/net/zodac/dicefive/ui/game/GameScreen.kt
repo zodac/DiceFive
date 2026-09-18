@@ -14,12 +14,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
+/**
+ * Renders the in-progress game held by [GameViewModel.game]. Dice tray,
+ * hold toggles, scorecard grid, and AI auto-play land in Phase 4 - see
+ * .claude/DESIGN.md; for now this just proves the setup -> game hand-off.
+ */
 @Composable
 fun GameScreen(
     viewModel: GameViewModel,
     modifier: Modifier = Modifier,
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.game.collectAsState()
+    val currentState = state ?: return
 
     Column(
         modifier = modifier
@@ -29,14 +35,16 @@ fun GameScreen(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(text = "DiceFive")
-        Text(text = "Rolls remaining: ${state.rollsRemaining}")
+        Text(text = "Current player: ${currentState.currentPlayer?.name}")
+        Text(text = "Rolls remaining: ${currentState.rollsRemaining}")
     }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun GameScreenPreview() {
+    val viewModel = GameViewModel().apply { startGame() }
     DiceFiveTheme {
-        GameScreen(viewModel = GameViewModel())
+        GameScreen(viewModel = viewModel)
     }
 }

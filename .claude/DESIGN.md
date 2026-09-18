@@ -199,10 +199,16 @@ dependencies — most unit tests live here.
 - `./gradlew test` — all unit tests pass.
 - `./gradlew assembleDebug` — builds with new dependencies (Room/KSP,
   Navigation, DataStore).
-- Manual smoke check via the `run` skill: play a full 1P game to completion,
-  verify score saved and shown on Scores screen; play a 2-4P game mixing
-  Human/AI, confirm AI auto-play; toggle theme in Settings; confirm About
-  link opens the GitHub repo.
+- `./gradlew compileDebugAndroidTestKotlin` — androidTest sources compile
+  against the current screens/ViewModels.
+- **No emulator available in this sandbox**: no `emulator` package, no AVD
+  system images, no connected device, and `/dev/kvm` alone isn't enough to
+  stand one up without a multi-GB download outside this pre-baked image.
+  So there is no manual/screenshot smoke test per phase — verification is
+  compile + full unit test coverage of the pure logic (`game`/`model`
+  packages) plus careful reading of each screen's Compose code. If the user
+  runs this on a real device/emulator later and finds a UI issue, fix it
+  then.
 
 ---
 
@@ -251,11 +257,21 @@ dependencies — most unit tests live here.
       state worth sharing.)
 
 ### Phase 3 — Game setup screen
-- [ ] `GameViewModel` CONFIGURING phase: player count, per-slot type/name/
-      difficulty, game type selection state.
-- [ ] `ui/setup/GameSetupScreen.kt` UI per the setup rules above.
-- [ ] Wire "Start Game" → build initial `GameState` → phase flips to
-      PLAYING → nav to `play/game`.
+- [x] `GameViewModel`: `GameSetupState`/`PlayerSetupSlot` (player count 1-4,
+      per-slot type/name/difficulty, game type), plus a nullable
+      `game: StateFlow<GameState?>` populated by `startGame()`. Slot 1 is
+      hardcoded Human (setPlayerType rejects slot 1).
+- [x] `ui/setup/GameSetupScreen.kt`: player count stepper, per-slot
+      Human/AI toggle (slot 1 fixed) + name field or disabled difficulty
+      row, Classic/Extended (disabled) radio group, Start Game button.
+- [x] `DiceFiveNavHost` now scopes one `GameViewModel` to the "play" nav
+      graph entry (`navController.getBackStackEntry(Screen.PLAY_GRAPH)`),
+      shared by both `play/setup` and `play/game` — Start Game populates
+      `game`, then navigates; `GameScreen` reads the same instance's `game`
+      state. `GameScreen` itself is still a minimal placeholder (full UI in
+      Phase 4).
+- [x] `assembleDebug`, `compileDebugAndroidTestKotlin`, and
+      `testDebugUnitTest` all green.
 
 ### Phase 4 — Game screen & turn flow
 - [ ] `ui/game/DiceRow.kt`, `ui/game/ScorecardView.kt`.
