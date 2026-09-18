@@ -15,6 +15,7 @@ import net.zodac.dicefive.ui.game.GameScreen
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.menu.MenuScreen
 import net.zodac.dicefive.ui.scores.ScoresScreen
+import net.zodac.dicefive.ui.scores.ScoresViewModel
 import net.zodac.dicefive.ui.settings.SettingsScreen
 import net.zodac.dicefive.ui.setup.GameSetupScreen
 
@@ -50,7 +51,10 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
             }
         }
 
-        composable(Screen.SCORES) { ScoresScreen() }
+        composable(Screen.SCORES) {
+            val context = LocalContext.current
+            ScoresScreen(viewModel = viewModel(factory = ScoresViewModel.factory(context)))
+        }
         composable(Screen.ACHIEVEMENTS) { AchievementsScreen() }
         composable(Screen.SETTINGS) { SettingsScreen() }
         composable(Screen.ABOUT) { AboutScreen() }

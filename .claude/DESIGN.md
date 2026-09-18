@@ -317,9 +317,20 @@ dependencies — most unit tests live here.
       all green (37 unit tests total).
 
 ### Phase 6 — Scores screen
-- [ ] `ui/scores/ScoresViewModel.kt` (pagination state).
-- [ ] `ui/scores/ScoresScreen.kt` (table, long-press date tooltip, page
-      controls).
+- [x] `ui/scores/ScoresViewModel.kt`: `ScoresUiState` (entries/pageIndex/
+      totalCount/isLoading + derived totalPages/hasNext/hasPrevious),
+      nullable `ScoreRepository` ctor param + `factory(context)` (same
+      pattern as `GameViewModel`).
+- [x] `ui/scores/ScoresScreen.kt`: rank/name/score `LazyColumn` (100/page),
+      Previous/Next + "Page X of Y" controls, empty state. Each row is
+      wrapped in a Material3 `TooltipBox` (`PlainTooltip`, built-in
+      long-press-to-show on touch) showing the game's date - the date
+      column itself stays hidden per the clarified requirement. Date
+      formatted with `java.time` (available unshimmed at minSdk 26).
+- [x] Wired into `DiceFiveNavHost` via `ScoresViewModel.factory(LocalContext.current)`.
+- [x] `assembleDebug`, `compileDebugAndroidTestKotlin`, `testDebugUnitTest`
+      all green (37 unit tests, unchanged - no new pure-logic surface here
+      beyond what Phase 5's `ScoreRepositoryTest` already covers).
 
 ### Phase 7 — Settings screen
 - [ ] `ui/settings/SettingsViewModel.kt`.
