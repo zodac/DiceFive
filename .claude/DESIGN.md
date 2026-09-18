@@ -28,7 +28,7 @@ revisited across sessions without re-deriving the plan.
 - **Scores screen**: one global leaderboard (not split by player or game
   type), sorted score-descending, paginated 100/page. No date column — date
   is shown via a long-press tooltip.
-- **About link**: `https://github.com/zodac/dicefive`.
+- **About link**: `https://github.com/zodac/DiceFive`.
 - **Game type**: only `CLASSIC` is playable in v1; `EXTENDED` exists as an
   enum value shown disabled in the UI.
 - **Achievements**: v1 is a placeholder screen only — no trigger/persistence
@@ -181,7 +181,7 @@ dependencies — most unit tests live here.
 
 - `AchievementsScreen`: placeholder "Coming soon" empty state only.
 - `AboutScreen`: app name + version (from `BuildConfig`), text link to
-  `https://github.com/zodac/dicefive` opened via Compose's `UriHandler`.
+  `https://github.com/zodac/DiceFive` opened via Compose's `UriHandler`.
 
 ## Tests
 
@@ -354,7 +354,7 @@ dependencies — most unit tests live here.
 ### Phase 9 — About screen
 - [x] `ui/about/AboutScreen.kt`: app name, `BuildConfig.VERSION_NAME`, and a
       clickable "View on GitHub" text opening
-      `https://github.com/zodac/dicefive` via `LocalUriHandler`. Enabled
+      `https://github.com/zodac/DiceFive` via `LocalUriHandler`. Enabled
       `buildFeatures.buildConfig = true` in `app/build.gradle.kts` for the
       version string.
 - [x] `assembleDebug`, `compileDebugAndroidTestKotlin`, `testDebugUnitTest`

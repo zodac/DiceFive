@@ -15,7 +15,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.BuildConfig
 
-private const val GITHUB_URL = "https://github.com/zodac/dicefive"
+private const val GITHUB_URL = "https://github.com/zodac/DiceFive"
 
 @Composable
 fun AboutScreen(modifier: Modifier = Modifier) {
