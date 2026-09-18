@@ -469,3 +469,18 @@ dependencies — most unit tests live here.
       on what "release" needs: correctness gate + build + publish - lint
       is a code-quality check already exercised in Phase 10, not a release
       gate the user asked for).
+- [x] **Secrets scope**: recommended repository (not organization) secrets
+      - this keystore signs only this one app's identity, no other repo
+        should ever need it.
+- [x] **Pre-1.0 releases**: a "Read version" step derives `stable` (major
+      version `>= 1`) alongside the version string. While `stable != true`:
+      the keystore-decode/`assembleRelease`/APK-rename steps are skipped
+      entirely (`if: steps.version.outputs.stable == 'true'`) - no signing,
+      no build, just the version bump - and the GitHub Release is created
+      with `prerelease: true` and no file attached (`files:` sourced from
+      the skipped rename step's now-empty output, which
+      `softprops/action-gh-release` treats as "no assets"). Unit tests
+      still run regardless of stability, since correctness gating shouldn't
+      depend on version number. Once `VERSION` reaches `1.0.0`, the full
+      build+sign+attach path resumes and releases stop being marked
+      pre-release.

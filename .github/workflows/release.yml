@@ -2,8 +2,13 @@ name: Release
 
 # Every push to main builds, tests, and publishes a GitHub Release for the
 # version currently in the root VERSION file. Re-pushing without bumping
-# VERSION updates that same release's APK rather than failing - only bump
-# VERSION when you actually want a new release entry.
+# VERSION updates that same release rather than failing - only bump VERSION
+# when you actually want a new release entry.
+#
+# Versions below 1.0.0 are pre-1.0 milestones, not real releases: they're
+# marked as GitHub pre-releases and get no APK asset - just a version bump
+# recorded as a tagged release. Signing/building only happens once VERSION
+# reaches 1.0.0.
 on:
   push:
     branches: [main]
@@ -39,15 +44,22 @@ jobs:
 
       - name: Read version
         id: version
-        run: echo "name=$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_OUTPUT"
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          major="${version%%.*}"
+          if [ "$major" -ge 1 ]; then stable=true; else stable=false; fi
+          echo "name=$version" >> "$GITHUB_OUTPUT"
+          echo "stable=$stable" >> "$GITHUB_OUTPUT"
 
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --console=plain
 
       - name: Decode release keystore
+        if: steps.version.outputs.stable == 'true'
         run: echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore.jks"
 
       - name: Build release APK
+        if: steps.version.outputs.stable == 'true'
         env:
           ANDROID_RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore.jks
           ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
@@ -56,12 +68,18 @@ jobs:
         run: ./gradlew assembleRelease --console=plain
 
       - name: Rename APK for release
-        run: cp app/build/outputs/apk/release/app-release.apk "DiceFive-${{ steps.version.outputs.name }}.apk"
+        if: steps.version.outputs.stable == 'true'
+        id: apk
+        run: |
+          path="DiceFive-${{ steps.version.outputs.name }}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$path"
+          echo "path=$path" >> "$GITHUB_OUTPUT"
 
       - name: Create/update GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.name }}
           name: DiceFive v${{ steps.version.outputs.name }}
-          files: DiceFive-${{ steps.version.outputs.name }}.apk
+          prerelease: ${{ steps.version.outputs.stable != 'true' }}
+          files: ${{ steps.apk.outputs.path }}
           generate_release_notes: true
