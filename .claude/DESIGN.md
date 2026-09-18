@@ -295,13 +295,26 @@ dependencies — most unit tests live here.
       `testDebugUnitTest` all green.
 
 ### Phase 5 — Persistence
-- [ ] `data/settings/Theme.kt`, `data/settings/SettingsRepository.kt`
-      (DataStore).
-- [ ] `data/scores/ScoreEntry.kt`, `ScoreDao.kt`, `AppDatabase.kt`,
+- [x] `data/settings/Theme.kt`, `data/settings/SettingsRepository.kt`
+      (DataStore: `theme` + per-slot `playerNameFor(slot)`/`setPlayerName`).
+- [x] `data/scores/ScoreEntry.kt`, `ScoreDao.kt`, `AppDatabase.kt`,
       `ScoreRepository.kt` (Room).
-- [ ] Wire `GameViewModel` game-over path to `ScoreRepository` (human scores
-      only) and to `SettingsRepository` (remembered player names).
-- [ ] Unit tests: `ScoreDaoTest`/`ScoreRepositoryTest` (in-memory Room).
+- [x] `GameViewModel` now takes `scoreRepository`/`settingsRepository` as
+      **nullable constructor params** (not `AndroidViewModel`) so it stays
+      constructible/testable on a plain JVM with no `Context`; a
+      `GameViewModel.factory(context)` (via `viewModelFactory { initializer {...} }`)
+      builds the real ones and is passed at both `play/setup` and
+      `play/game` call sites in `DiceFiveNavHost` (`LocalContext.current`).
+      `startGame()` persists human slot names; `setGameState()` persists
+      each human player's final score exactly once, on the not-over ->
+      over transition.
+- [x] Unit tests: `ScoreRepositoryTest` (3 tests) against a hand-written
+      `FakeScoreDao` rather than a real Room/SQLite instance - no
+      Robolectric/emulator available in this sandbox (see Verification).
+      Room's own `@Query` SQL (ORDER BY/LIMIT/OFFSET/COUNT) is simple and
+      low-risk; worth double-checking on a real device later.
+- [x] `assembleDebug`, `compileDebugAndroidTestKotlin`, `testDebugUnitTest`
+      all green (37 unit tests total).
 
 ### Phase 6 — Scores screen
 - [ ] `ui/scores/ScoresViewModel.kt` (pagination state).

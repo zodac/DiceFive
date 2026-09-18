@@ -1,14 +1,22 @@
 package net.zodac.dicefive.ui.game
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.data.scores.AppDatabase
+import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.AiNameGenerator
 import net.zodac.dicefive.game.AiTurnPlayer
 import net.zodac.dicefive.game.GameEngine
@@ -45,14 +53,33 @@ data class GameSetupState(
  * Owns both the pre-game setup form and the live [GameState] once started,
  * scoped to the "play" nav graph so [net.zodac.dicefive.ui.setup.GameSetupScreen]
  * and [GameScreen] share one instance across navigation.
+ *
+ * [scoreRepository] and [settingsRepository] are optional so this class
+ * stays constructible (and testable) on a plain JVM with no Android
+ * `Context` - [Factory] supplies the real ones. When absent, remembered
+ * names and score history are silently skipped.
  */
-class GameViewModel : ViewModel() {
+class GameViewModel(
+    private val scoreRepository: ScoreRepository? = null,
+    private val settingsRepository: SettingsRepository? = null,
+) : ViewModel() {
 
     private val _setup = MutableStateFlow(GameSetupState())
     val setup: StateFlow<GameSetupState> = _setup.asStateFlow()
 
     private val _game = MutableStateFlow<GameState?>(null)
     val game: StateFlow<GameState?> = _game.asStateFlow()
+
+    init {
+        settingsRepository?.let { repository ->
+            viewModelScope.launch {
+                for (slot in 1..GameSetupState.MAX_PLAYERS) {
+                    val savedName = repository.playerNameFor(slot).first() ?: continue
+                    updateSlot(slot) { it.copy(name = savedName) }
+                }
+            }
+        }
+    }
 
     fun setPlayerCount(count: Int) {
         _setup.update { it.copy(playerCount = count.coerceIn(GameSetupState.MIN_PLAYERS, GameSetupState.MAX_PLAYERS)) }
@@ -87,6 +114,7 @@ class GameViewModel : ViewModel() {
             }
             PlayerConfig(slot = slot.slot, type = slot.type, name = name, difficulty = slot.difficulty)
         }
+        persistHumanNames(activeSlots)
         setGameState(GameEngine.newGame(playerConfigs, setupState.gameType))
     }
 
@@ -109,8 +137,34 @@ class GameViewModel : ViewModel() {
     }
 
     private fun setGameState(newState: GameState) {
+        val wasGameOver = _game.value?.isGameOver ?: false
         _game.value = newState
+        if (!wasGameOver && newState.isGameOver) {
+            persistHumanScores(newState)
+        }
         maybeStartAiTurn()
+    }
+
+    private fun persistHumanNames(slots: List<PlayerSetupSlot>) {
+        val repository = settingsRepository ?: return
+        viewModelScope.launch {
+            for (slot in slots) {
+                if (slot.type == PlayerType.HUMAN) {
+                    repository.setPlayerName(slot.slot, slot.name.ifBlank { "Player ${slot.slot}" })
+                }
+            }
+        }
+    }
+
+    private fun persistHumanScores(state: GameState) {
+        val repository = scoreRepository ?: return
+        viewModelScope.launch {
+            for (player in state.players) {
+                if (player.type == PlayerType.HUMAN) {
+                    repository.recordScore(player.name, player.totalScore)
+                }
+            }
+        }
     }
 
     private var aiTurnJob: Job? = null
@@ -136,7 +190,18 @@ class GameViewModel : ViewModel() {
         }
     }
 
-    private companion object {
-        const val AI_STEP_DELAY_MS = 600L
+    companion object {
+        private const val AI_STEP_DELAY_MS = 600L
+
+        /** Builds a [GameViewModel] backed by real Room/DataStore persistence. */
+        fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val appContext = context.applicationContext
+                GameViewModel(
+                    scoreRepository = ScoreRepository(AppDatabase.getInstance(appContext).scoreDao()),
+                    settingsRepository = SettingsRepository(appContext),
+                )
+            }
+        }
     }
 }

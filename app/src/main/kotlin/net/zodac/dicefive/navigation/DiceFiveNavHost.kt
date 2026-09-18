@@ -2,6 +2,7 @@ package net.zodac.dicefive.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -32,16 +33,18 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
 
         navigation(startDestination = Screen.PLAY_SETUP, route = Screen.PLAY_GRAPH) {
             composable(Screen.PLAY_SETUP) { backStackEntry ->
+                val context = LocalContext.current
                 val playGraphEntry = remember(backStackEntry) { navController.getBackStackEntry(Screen.PLAY_GRAPH) }
                 GameSetupScreen(
-                    viewModel = viewModel(playGraphEntry),
+                    viewModel = viewModel(playGraphEntry, factory = GameViewModel.factory(context)),
                     onStartGame = { navController.navigate(Screen.PLAY_GAME) },
                 )
             }
             composable(Screen.PLAY_GAME) { backStackEntry ->
+                val context = LocalContext.current
                 val playGraphEntry = remember(backStackEntry) { navController.getBackStackEntry(Screen.PLAY_GRAPH) }
                 GameScreen(
-                    viewModel = viewModel<GameViewModel>(playGraphEntry),
+                    viewModel = viewModel<GameViewModel>(playGraphEntry, factory = GameViewModel.factory(context)),
                     onBackToMenu = { navController.popBackStack(Screen.MENU, inclusive = false) },
                 )
             }
