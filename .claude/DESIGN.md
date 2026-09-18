@@ -333,9 +333,16 @@ dependencies — most unit tests live here.
       beyond what Phase 5's `ScoreRepositoryTest` already covers).
 
 ### Phase 7 — Settings screen
-- [ ] `ui/settings/SettingsViewModel.kt`.
-- [ ] `ui/settings/SettingsScreen.kt` (theme radio group).
-- [ ] `MainActivity` resolves `darkTheme` from `SettingsRepository.theme`.
+- [x] `ui/settings/SettingsViewModel.kt`: `theme: StateFlow<Theme>` (default
+      SYSTEM), `setTheme()`; same nullable-repository + `factory(context)`
+      pattern.
+- [x] `ui/settings/SettingsScreen.kt`: Light/Dark/System radio group.
+- [x] `MainActivity` now builds a `SettingsRepository` directly (not via a
+      ViewModel - it's a simple top-level read, and Activity recreation
+      re-reads DataStore fresh anyway) and resolves `darkTheme` for
+      `DiceFiveTheme`: LIGHT->false, DARK->true, SYSTEM->`isSystemInDarkTheme()`.
+- [x] `assembleDebug`, `compileDebugAndroidTestKotlin`, `testDebugUnitTest`
+      all green (37 unit tests, unchanged).
 
 ### Phase 8 — Achievements screen (stub)
 - [ ] `ui/achievements/AchievementsScreen.kt` placeholder screen wired into
