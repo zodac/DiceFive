@@ -453,8 +453,9 @@ dependencies — most unit tests live here.
       via `aapt dump badging`).
 - [x] `.github/workflows/release.yml`: triggers on every push to `main`.
       Steps: checkout, JDK 21 (matches the sandbox's pin), Android SDK
-      (`android-actions/setup-android@v3` + explicit `platforms;android-35`
-      / `build-tools;35.0.0` install to match the project's pins), Gradle
+      (explicit `sdkmanager` call installing `platforms;android-35` /
+      `build-tools;35.0.0` against the SDK already on the `ubuntu-latest`
+      runner - see the CI-failure fix note below), Gradle
       caching (`gradle/actions/setup-gradle@v4`), run `testDebugUnitTest`
       as a release gate (a broken build never gets published), decode the
       keystore secret to `$RUNNER_TEMP` (outside the checkout, never
@@ -472,6 +473,20 @@ dependencies — most unit tests live here.
 - [x] **Secrets scope**: recommended repository (not organization) secrets
       - this keystore signs only this one app's identity, no other repo
         should ever need it.
+- [x] **CI failure fix (first real run)**: `android-actions/setup-android@v3`
+      failed on the "Set up Android SDK" step with `Failed to find package
+      'tools'` - that action always tries to install the legacy monolithic
+      "tools" SDK package, which Google removed from the repository years
+      ago (superseded by cmdline-tools), so it now fails on every fresh
+      install. GitHub's `ubuntu-latest` runners already ship a full Android
+      SDK pre-installed with licenses accepted (confirmed by the failure
+      log itself - the broken action found and ran `sdkmanager` from
+      `/usr/local/lib/android/sdk/...`, the runner image's standard
+      location), so the action added no value anyway. Replaced both the
+      "Set up Android SDK" and "Install required SDK packages" steps with
+      one step that calls `$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager`
+      directly to accept licenses and install just the two packages this
+      project pins.
 - [x] **Pre-1.0 releases**: a "Read version" step derives `stable` (major
       version `>= 1`) alongside the version string. While `stable != true`:
       the keystore-decode/`assembleRelease`/APK-rename steps are skipped

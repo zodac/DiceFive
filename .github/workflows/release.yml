@@ -33,11 +33,15 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install required SDK packages
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      # ubuntu-latest runners ship a full Android SDK pre-installed (cmdline-tools,
+      # licenses already accepted) - just install the specific packages this project
+      # pins. (android-actions/setup-android@v3 was tried here but fails on current
+      # runners: it also tries to install the long-removed legacy "tools" package.)
+      - name: Install required Android SDK packages
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
