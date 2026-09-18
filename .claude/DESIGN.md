@@ -274,15 +274,25 @@ dependencies — most unit tests live here.
       `testDebugUnitTest` all green.
 
 ### Phase 4 — Game screen & turn flow
-- [ ] `ui/game/DiceRow.kt`, `ui/game/ScorecardView.kt`.
-- [ ] `GameScreen.kt`: dice tray, hold toggles, roll button, scorecard grid,
-      current player banner, game-over results summary.
-- [ ] `GameViewModel` PLAYING phase: wire roll/hold/score actions to
-      `GameEngine`.
-- [ ] AI auto-play coroutine driver in `GameViewModel` using
-      `AiTurnPlayer`.
-- [ ] Game-over → persist human scores (stub call until Phase 5 repo
-      exists, or sequence Phase 5 first if easier).
+- [x] `ui/game/DiceRow.kt` (tappable hold toggles), `ui/game/ScorecardView.kt`
+      (category x player grid; current human player's open, available
+      boxes are tappable score-preview buttons, others show a dash).
+- [x] `GameScreen.kt`: current player banner, dice tray, roll button
+      ("Roll (n left)"), scorecard grid, game-over ranked results summary
+      with a Back to Menu button.
+- [x] `GameViewModel`: `rollDice()`/`toggleHold()`/`commitScore()` call
+      `GameEngine`, gated to a no-op unless it's the human's turn.
+- [x] AI auto-play: `maybeStartAiTurn()` launches a `viewModelScope`
+      coroutine (600ms/step) that rolls 3x then scores via `AiTurnPlayer`,
+      re-checking itself afterward so back-to-back AI players chain
+      automatically.
+- [ ] Game-over → persist human scores: **deferred to Phase 5** (no
+      `ScoreRepository` yet) - `GameScreen` already renders the ranked
+      results screen once `isGameOver`.
+- [x] New tests: `GameViewModelTest` (4 tests, incl. AI auto-play via
+      `kotlinx-coroutines-test`'s `StandardTestDispatcher` +
+      `advanceUntilIdle`). `assembleDebug`, `compileDebugAndroidTestKotlin`,
+      `testDebugUnitTest` all green.
 
 ### Phase 5 — Persistence
 - [ ] `data/settings/Theme.kt`, `data/settings/SettingsRepository.kt`

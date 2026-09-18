@@ -40,7 +40,10 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
             }
             composable(Screen.PLAY_GAME) { backStackEntry ->
                 val playGraphEntry = remember(backStackEntry) { navController.getBackStackEntry(Screen.PLAY_GRAPH) }
-                GameScreen(viewModel = viewModel<GameViewModel>(playGraphEntry))
+                GameScreen(
+                    viewModel = viewModel<GameViewModel>(playGraphEntry),
+                    onBackToMenu = { navController.popBackStack(Screen.MENU, inclusive = false) },
+                )
             }
         }
 
