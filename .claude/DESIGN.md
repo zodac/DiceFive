@@ -345,12 +345,20 @@ dependencies — most unit tests live here.
       all green (37 unit tests, unchanged).
 
 ### Phase 8 — Achievements screen (stub)
-- [ ] `ui/achievements/AchievementsScreen.kt` placeholder screen wired into
-      nav.
+- [x] `ui/achievements/AchievementsScreen.kt` placeholder screen wired into
+      nav - already built and wired in Phase 2 (it never needed a
+      ViewModel or later-phase rework), so there's nothing further to do
+      here. No trigger/persistence infrastructure, per the task's own
+      "TBC later".
 
 ### Phase 9 — About screen
-- [ ] `ui/about/AboutScreen.kt` with GitHub link
-      (`https://github.com/zodac/dicefive`).
+- [x] `ui/about/AboutScreen.kt`: app name, `BuildConfig.VERSION_NAME`, and a
+      clickable "View on GitHub" text opening
+      `https://github.com/zodac/dicefive` via `LocalUriHandler`. Enabled
+      `buildFeatures.buildConfig = true` in `app/build.gradle.kts` for the
+      version string.
+- [x] `assembleDebug`, `compileDebugAndroidTestKotlin`, `testDebugUnitTest`
+      all green (37 unit tests, unchanged).
 
 ### Phase 10 — Final verification
 - [ ] `./gradlew test` green.
