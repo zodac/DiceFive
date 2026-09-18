@@ -5,6 +5,22 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Single source of truth for the app version - bump the root VERSION file to release a new one.
+val appVersionName = rootProject.file("VERSION").readText().trim()
+val appVersionCode = appVersionName.split(".").map { it.toInt() }
+    .let { (major, minor, patch) -> major * 10_000 + minor * 100 + patch }
+
+// Release signing is optional locally (assembleRelease then produces an unsigned APK) but
+// required in CI, which supplies these via secrets - see .github/workflows/release.yml.
+val releaseKeystorePath = System.getenv("ANDROID_RELEASE_KEYSTORE_PATH")
+val releaseKeystorePassword = System.getenv("ANDROID_RELEASE_KEYSTORE_PASSWORD")
+val releaseKeyAlias = System.getenv("ANDROID_RELEASE_KEY_ALIAS")
+val releaseKeyPassword = System.getenv("ANDROID_RELEASE_KEY_PASSWORD")
+val hasReleaseSigningConfig = !releaseKeystorePath.isNullOrBlank() &&
+    !releaseKeystorePassword.isNullOrBlank() &&
+    !releaseKeyAlias.isNullOrBlank() &&
+    !releaseKeyPassword.isNullOrBlank()
+
 android {
     namespace = "net.zodac.dicefive"
     compileSdk = 35
@@ -16,10 +32,21 @@ android {
         applicationId = "net.zodac.dicefive"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        if (hasReleaseSigningConfig) {
+            create("release") {
+                storeFile = file(releaseKeystorePath!!)
+                storePassword = releaseKeystorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
     }
 
     buildTypes {
@@ -29,6 +56,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

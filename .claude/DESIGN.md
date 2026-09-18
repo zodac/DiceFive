@@ -428,3 +428,44 @@ dependencies — most unit tests live here.
 - [x] `assembleDebug`, `compileDebugAndroidTestKotlin`, `testDebugUnitTest`
       (45 unit tests), and `lint` all green; no new lint findings beyond the
       pre-existing/version-nag set from Phase 10.
+
+### Phase 12 — Release pipeline
+- [x] Root `VERSION` file (currently `0.0.1`) is the single source of truth
+      for the app version. `app/build.gradle.kts` reads it at configure
+      time: `versionName` = the file's contents, `versionCode` =
+      `major*10_000 + minor*100 + patch` (deterministic, reproducible
+      locally and in CI, no extra state to track).
+- [x] Release signing: `app/build.gradle.kts` builds a `release`
+      `signingConfig` from four env vars (`ANDROID_RELEASE_KEYSTORE_PATH`,
+      `_KEYSTORE_PASSWORD`, `_KEY_ALIAS`, `_KEY_PASSWORD`). If any are
+      unset, the `release` build type simply gets no signing config
+      (`./gradlew assembleRelease` still works locally, producing an
+      unsigned APK) - CI supplies all four from repository secrets.
+      Generated a real release keystore (`keytool`, RSA 2048, 10000-day
+      validity, alias `dicefive-release`) - **not committed**; handed to
+      the user out-of-band (base64 + passwords) with instructions to add
+      as repo secrets (`RELEASE_KEYSTORE_BASE64`, `RELEASE_KEYSTORE_PASSWORD`,
+      `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`). `.gitignore` gained
+      `*.jks`/`*.keystore`/`keystore.properties` as a defensive backstop.
+      Verified end-to-end locally: `assembleRelease` with these env vars
+      set produces an APK whose signing cert SHA-256 matches the generated
+      keystore's, and `versionCode`/`versionName` land correctly (verified
+      via `aapt dump badging`).
+- [x] `.github/workflows/release.yml`: triggers on every push to `main`.
+      Steps: checkout, JDK 21 (matches the sandbox's pin), Android SDK
+      (`android-actions/setup-android@v3` + explicit `platforms;android-35`
+      / `build-tools;35.0.0` install to match the project's pins), Gradle
+      caching (`gradle/actions/setup-gradle@v4`), run `testDebugUnitTest`
+      as a release gate (a broken build never gets published), decode the
+      keystore secret to `$RUNNER_TEMP` (outside the checkout, never
+      persisted), `assembleRelease`, then `softprops/action-gh-release@v2`
+      creates/updates the GitHub Release tagged `v<VERSION>` with the APK
+      attached. Re-pushing without bumping `VERSION` updates that same
+      release (idempotent) rather than failing on a duplicate tag - only
+      bump `VERSION` when a new release entry is actually wanted.
+      `concurrency: group: release` prevents two overlapping runs from
+      racing on the same release.
+- [x] Scope note: no lint step in this workflow (kept the pipeline focused
+      on what "release" needs: correctness gate + build + publish - lint
+      is a code-quality check already exercised in Phase 10, not a release
+      gate the user asked for).

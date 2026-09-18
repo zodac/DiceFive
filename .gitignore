@@ -11,3 +11,8 @@ local.properties
 app/build/
 build/
 *.hprof
+
+# Release signing material must never be committed - CI decodes it from secrets at build time.
+*.jks
+*.keystore
+keystore.properties

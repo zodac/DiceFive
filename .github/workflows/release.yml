@@ -1,0 +1,67 @@
+name: Release
+
+# Every push to main builds, tests, and publishes a GitHub Release for the
+# version currently in the root VERSION file. Re-pushing without bumping
+# VERSION updates that same release's APK rather than failing - only bump
+# VERSION when you actually want a new release entry.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install required SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Read version
+        id: version
+        run: echo "name=$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest --console=plain
+
+      - name: Decode release keystore
+        run: echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore.jks"
+
+      - name: Build release APK
+        env:
+          ANDROID_RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore.jks
+          ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --console=plain
+
+      - name: Rename APK for release
+        run: cp app/build/outputs/apk/release/app-release.apk "DiceFive-${{ steps.version.outputs.name }}.apk"
+
+      - name: Create/update GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.name }}
+          name: DiceFive v${{ steps.version.outputs.name }}
+          files: DiceFive-${{ steps.version.outputs.name }}.apk
+          generate_release_notes: true
