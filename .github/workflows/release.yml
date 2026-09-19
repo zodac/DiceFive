@@ -82,7 +82,7 @@ jobs:
         id: apk
         run: |
           path="DiceFive-${{ steps.version.outputs.name }}.apk"
-          cp app/build/outputs/apk/release/app-release.apk "$path"
+          cp app/build/outputs/apk/release/DiceFive-release.apk "$path"
           echo "path=$path" >> "$GITHUB_OUTPUT"
 
       - name: Create/update GitHub release

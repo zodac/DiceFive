@@ -517,3 +517,13 @@ dependencies — most unit tests live here.
       both scripts locally (patch bump, manual set to a new minor line,
       resumed patch-bumping from there, and invalid-input rejection) in an
       isolated temp directory before wiring them into CI.
+- [x] **Output APK naming**: `app/build.gradle.kts` sets
+      `android.base.archivesName = "DiceFive"`, so output filenames are
+      `DiceFive-debug.apk` / `DiceFive-release.apk` (or
+      `DiceFive-release-unsigned.apk` when built locally with no signing
+      env vars set) instead of AGP's `app-*.apk` default. Updated the
+      release workflow's "Rename APK for release" step to copy from the
+      new `DiceFive-release.apk` path - it was still referencing the old
+      `app-release.apk`, which would have broken that step on the next
+      full (>=1.0.0) release. Verified both `assembleDebug` and
+      `assembleRelease` locally produce the expected filenames.

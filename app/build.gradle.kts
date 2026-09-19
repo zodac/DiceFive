@@ -28,6 +28,11 @@ android {
     // build never needs to fetch a different version over the network.
     buildToolsVersion = "35.0.0"
 
+    // Output APK names: DiceFive-debug.apk / DiceFive-release.apk instead of the app-*.apk default.
+    base {
+        archivesName = "DiceFive"
+    }
+
     defaultConfig {
         applicationId = "net.zodac.dicefive"
         minSdk = 26
