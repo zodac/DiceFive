@@ -70,7 +70,7 @@ A launch rebuilds first, so this is rarely needed on its own.
 ```
 
 **A launch replaces any sandbox that is already running.** Two of them cannot coexist — they share the
-container name, the published port and the named volumes, in particular `/home/dev/.claude`, whose
+container name, the published port and the persisted state, in particular `/home/dev/.claude`, whose
 login/session state Claude rewrites in place — so starting a second one used to take *both* down. A
 launch therefore stops and removes the running container before starting its own, and waits for the
 name to actually be free (`--rm` removal is asynchronous, so `docker run --name` can otherwise lose the
@@ -174,16 +174,18 @@ and no `.claude/hooks/`, so setup reports `(not applicable)` and gets out of the
 ## Reusing this sandbox in another project
 
 Copy the `sandbox/` folder in, and launch. Nothing needs renaming: the container, image, hostname and
-all five volumes are derived from the project directory's name (see *Persistence*), and the image is
-built from **this folder alone** — the `Dockerfile` `COPY`s only `entrypoint.sh`, `launch.sh` and
-`setup.sh`, never any project file — so the build context carries no assumption about the project.
+the four cache volumes are derived from the project directory's name (see *Persistence*), and
+`~/.claude` bind-mounts to a directory inside the copied `sandbox/` folder itself, so it's already
+scoped to the new project with nothing to set. The image is built from **this folder alone** — the
+`Dockerfile` `COPY`s only `entrypoint.sh`, `launch.sh` and `setup.sh`, never any project file — so the
+build context carries no assumption about the project.
 
 What the new project may want to set:
 
 | Variable           | Default         | When to change it                                                                                                |
 |--------------------|-----------------|------------------------------------------------------------------------------------------------------------------|
 | `SANDBOX_PORTS`    | *(empty)*       | space-separated `host:container` pairs; empty publishes nothing. Two sandboxes cannot both hold the same host port |
-| `SANDBOX_NAME`     | the project dir | two checkouts of the *same* repo that must not share state                                                       |
+| `SANDBOX_NAME`     | the project dir | two checkouts of the *same* repo that must not share caches                                                      |
 | `SANDBOX_NPM_DIRS` | `frontend .`    | the Node project lives somewhere else                                                                            |
 | `SANDBOX_PW_DIRS`  | `tests .`       | the Playwright suite lives somewhere else                                                                        |
 | `PROJECT_DIR`      | the parent dir  | the folder is not at `<project>/sandbox/`                                                                        |
@@ -199,30 +201,39 @@ because the image is already built and trimming them has a rebuild cost of its o
 
 ## Persistence
 
-Named volumes survive across runs (so you don't re-pull/re-download each time):
+Two mechanisms survive across runs (so you don't re-pull/re-download, or lose Claude's session
+history, each time):
 
 `<project>` below is the project directory's name — `home-theatre` for this repo.
 
-| Volume                     | Holds                                                                      |
-|----------------------------|----------------------------------------------------------------------------|
-| `<project>-sandbox-claude` | Claude auth, history **and** onboarding/terminal-setup state (`~/.claude`) |
-| `<project>-sandbox-docker` | nested Docker images/layers (`/var/lib/docker`)                            |
-| `<project>-sandbox-gradle` | the Gradle distribution + dependency cache (`~/.gradle`) — AGP/Kotlin/AndroidX/Compose land here on first build |
-| `<project>-sandbox-m2`     | the Maven repository (`~/.m2`) — unused here, stays empty                  |
-| `<project>-sandbox-pw`     | Playwright browsers — unused here, stays empty                             |
+| Mount                      | Kind             | Holds                                                                      |
+|-----------------------------|------------------|-----------------------------------------------------------------------------|
+| `sandbox/.claude-history/`  | bind-mounted dir | Claude auth, session transcripts/memory **and** onboarding/terminal-setup state (`~/.claude`) |
+| `<project>-sandbox-docker`  | named volume     | nested Docker images/layers (`/var/lib/docker`)                            |
+| `<project>-sandbox-gradle`  | named volume     | the Gradle distribution + dependency cache (`~/.gradle`) — AGP/Kotlin/AndroidX/Compose land here on first build |
+| `<project>-sandbox-m2`      | named volume     | the Maven repository (`~/.m2`) — unused here, stays empty                  |
+| `<project>-sandbox-pw`      | named volume     | Playwright browsers — unused here, stays empty                             |
+
+`sandbox/.claude-history/` is a plain directory in this checkout (created on first launch,
+git-ignored), not an opaque Docker-managed volume. That means it's fully contained in the project —
+inspect it with `ls`, back it up with `cp -r`, or wipe it with `rm -rf` — and it survives the sandbox
+container being torn down and rebuilt (by the host's Docker restarting, the IDE closing, or a crash),
+since its lifetime is tied to files on disk rather than to Docker's volume store. The other four stay
+named volumes: they're pure rebuildable caches (a lost one just means the next build re-downloads),
+so there's no benefit to making them inspectable the same way.
 
 ### Disk usage — the `-docker` volume is the one that matters
 
 Measured on a two-month-old sandbox of a build-heavy JVM project — an upper bound, and far more than
 this repo will produce:
 
-| Volume                     | Size      | Bounded?                                                            |
-|----------------------------|-----------|---------------------------------------------------------------------|
-| `<project>-sandbox-docker` | **77 GB** | **no** - 61 GB of it BuildKit cache, 21 GB images, from every build |
-| `<project>-sandbox-gradle` | *(not yet measured on this repo)* | grows slowly with dependency churn, similar profile to `-m2` |
-| `<project>-sandbox-m2`     | 598 MB    | grows slowly with dependency churn                                  |
-| `<project>-sandbox-claude` | 279 MB    | yes - Claude prunes transcripts (and their side-car dirs) at 30 days|
-| `<project>-sandbox-pw`     | small     | yes - one browser build                                             |
+| Mount                        | Size      | Bounded?                                                            |
+|-------------------------------|-----------|---------------------------------------------------------------------|
+| `<project>-sandbox-docker`    | **77 GB** | **no** - 61 GB of it BuildKit cache, 21 GB images, from every build |
+| `<project>-sandbox-gradle`    | *(not yet measured on this repo)* | grows slowly with dependency churn, similar profile to `-m2` |
+| `<project>-sandbox-m2`        | 598 MB    | grows slowly with dependency churn                                  |
+| `sandbox/.claude-history/`    | 279 MB    | yes - Claude prunes transcripts (and their side-car dirs) at 30 days|
+| `<project>-sandbox-pw`        | small     | yes - one browser build                                             |
 
 The image now ships `/etc/docker/daemon.json` with a BuildKit GC policy (`maxUsedSpace: 20GB`,
 `keepDuration: 168h`), so the build cache self-limits from here on — a copied sandbox inherits the
@@ -236,25 +247,30 @@ reclaim them (and force a cache sweep now) with:
 It prefers `docker exec` into a running sandbox, so it will not interrupt a live Claude session.
 The trade-off is the obvious one: a pruned build cache makes the next `docker` gate run cold.
 
-Transcript retention on the `-claude` volume is Claude's own `cleanupPeriodDays` (default 30) — set it
-in `~/.claude/settings.json` inside the sandbox if a month of `/resume` history is more than you want.
+Transcript retention on `sandbox/.claude-history/` is Claude's own `cleanupPeriodDays` (default 30) —
+set it in `~/.claude/settings.json` inside the sandbox if a month of `/resume` history is more than you
+want.
 
-> **Those names are derived, not hardcoded.** `sandbox.sh` builds every docker name - container, image,
-> hostname and all four volumes - from the *project directory's* name: `<project>-sandbox[-claude|-docker|-m2|-pw]`.
-> This matters when you **copy this launcher into another repo**, which is the expected way to reuse it. A hardcoded
-> name travels with the copy, and the copy would then mount its own project at `/work` while attaching *these*
-> volumes - so both repos would share one `~/.claude`: one prompt history (the up-arrow shows the other project's
-> prompts), one memory directory, one set of transcripts offered by `/resume`. Nothing warns you, because the project
-> key Claude derives from the mount point (`-work`) is identical for every project. A copied launcher scopes itself on
-> its first launch instead. Set `SANDBOX_NAME` to pin a name explicitly - e.g. two checkouts of the *same* repo that
-> must not share state.
+> **The four cache volume names are derived, not hardcoded** — `sandbox.sh` builds every docker name -
+> container, image, hostname and the four cache volumes - from the *project directory's* name:
+> `<project>-sandbox[-docker|-m2|-gradle|-pw]`. This matters when you **copy this launcher into another
+> repo**, which is the expected way to reuse it. A hardcoded name travels with the copy, and the copy
+> would then mount its own project at `/work` while attaching *these* volumes - so both repos would
+> share one Gradle/Maven/Playwright cache. Nothing warns you, because the project key Claude derives
+> from the mount point (`-work`) is identical for every project. A copied launcher scopes itself on its
+> first launch instead. Set `SANDBOX_NAME` to pin a name explicitly - e.g. two checkouts of the *same*
+> repo that must not share caches.
+>
+> `~/.claude` doesn't need this at all: it's bind-mounted from `sandbox/.claude-history/`, a path
+> *inside the checkout itself*, so two different repos (or two checkouts of the same one, each with
+> their own `sandbox/` copy) can never end up sharing one `~/.claude` — there's no name to collide on.
 
 > **Why login + terminal setup persist:** Claude Code normally splits its state between the
 > `~/.claude/` directory and a separate `~/.claude.json` file in the home root (onboarding /
 > terminal-setup state + login *account*; the OAuth *tokens* live in `~/.claude/.credentials.json`).
-> Only the directory is volume-mounted, so the loose `.claude.json` would be lost every run. The image
+> Only the directory is mounted, so the loose `.claude.json` would be lost every run. The image
 > sets `CLAUDE_CONFIG_DIR=/home/dev/.claude` (forwarded to the `dev` user by `entrypoint.sh`), which
-> redirects `.claude.json` and credentials **into** the persisted volume — so you configure the
+> redirects `.claude.json` and credentials **into** the persisted directory — so you configure the
 > terminal and log in once, not every launch.
 >
 > **Why a login could still be lost (and how it's recovered):** Login depends on **two** files —
@@ -286,16 +302,18 @@ in `~/.claude/settings.json` inside the sandbox if a month of `/resume` history 
 Full reset (wipe all sandbox state):
 
 ```bash
-docker volume rm home-theatre-sandbox-{claude,docker,gradle,m2,pw}
+docker volume rm home-theatre-sandbox-{docker,gradle,m2,pw}
+rm -rf sandbox/.claude-history
 ```
 
-> **This destroys Claude's memory directory, which is not in git.** Everything else on those volumes is
-> regenerable (images re-pull, `node_modules` reinstall, a login is re-entered), but
-> `<claude volume>/projects/-work/memory/` holds the accumulated `MEMORY.md` notes for this project and
-> exists nowhere else. Copy it out first if you mean to keep it:
+> **`rm -rf sandbox/.claude-history` destroys Claude's memory directory, which is not in git.**
+> Everything on the named volumes is regenerable (images re-pull, `node_modules` reinstall), and a login
+> is just re-entered, but `sandbox/.claude-history/projects/-work/memory/` holds the accumulated
+> `MEMORY.md` notes for this project and exists nowhere else. Since it's a plain directory now, no sandbox
+> invocation is needed to get it out — copy it directly if you mean to keep it:
 >
 > ```bash
-> ./sandbox/sandbox.sh run tar cf - -C /home/dev/.claude/projects/-work memory > claude-memory.tar
+> cp -r sandbox/.claude-history/projects/-work/memory ./claude-memory
 > ```
 
 ## Notes

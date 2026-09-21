@@ -24,9 +24,12 @@ until docker info >/dev/null 2>&1; do
 done
 echo "[sandbox] nested dockerd is up."
 
-# ── Hand the persistent named volumes to `dev` ───────────────────────────────
-# Docker mounts named volumes root-owned; chown the mount points (non-recursive,
-# so existing contents are untouched) so the dev user can write into them.
+# ── Hand the persisted mount points to `dev` ─────────────────────────────────
+# Docker mounts named volumes root-owned, and a bind-mounted host directory can
+# also land root-owned if it didn't already exist when the mount was set up.
+# chown the mount points (non-recursive, so existing contents are untouched) so
+# the dev user can write into them. /home/dev/.claude is a bind mount to a
+# project-local directory (see sandbox.sh); the other two are named volumes.
 mkdir -p /home/dev/.cache/ms-playwright
 chown dev:dev /home/dev/.claude /home/dev/.cache /home/dev/.cache/ms-playwright 2>/dev/null || true
 

@@ -9,8 +9,9 @@
 #   ./sandbox.sh prune          # reclaim disk in the nested docker (build cache, images, volumes)
 #
 # A launch REPLACES any sandbox that is already running (they cannot coexist — same name, same port,
-# same ~/.claude volume), stopping it only once the new image has been built. Every docker name is derived
-# from the project directory (see SLUG below), so a DIFFERENT project's sandbox shares none of that state.
+# same ~/.claude bind mount), stopping it only once the new image has been built. Every docker name is
+# derived from the project directory (see SLUG below), so a DIFFERENT project's sandbox shares none of
+# that state.
 #
 # Only the project directory is mounted from the host. No $HOME, no SSH keys,
 # no other projects, and NOT the host Docker socket. The sandbox runs its own
@@ -21,14 +22,19 @@ set -euo pipefail
 # This script lives in <project>/sandbox/, so the project root is its parent dir.
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="${PROJECT_DIR:-$(dirname "${HERE}")}"
-# EVERY docker name below is DERIVED from the project directory, never hardcoded - the container, the
-# image, the hostname and all four volumes. This launcher gets copied into other repos, and a hardcoded
-# name travels with the copy: the copy mounts ITS OWN project at /work but attaches THE ORIGINAL
-# project's volumes, so two unrelated repos end up sharing one ~/.claude - one prompt history (visible
-# on the up-arrow), one memory directory, one set of transcripts offered by /resume, one allowedTools.
-# Nothing warns you, because the project KEY Claude derives from the mount point ("-work") is identical
-# for every project by construction. Deriving the names makes a copy self-scoping on its first launch.
-# Set SANDBOX_NAME to pin one explicitly (e.g. two checkouts of the SAME repo that must not share).
+# Claude's own state (~/.claude — auth, history, memory) is bind-mounted from a plain directory INSIDE
+# this sandbox folder (see CLAUDE_HISTORY_DIR below), not a named volume. That directory lives at a path
+# under THIS checkout, so it is inherently scoped per checkout with no naming to get right — copying this
+# launcher into another repo, or checking out the same repo twice, can never make two sandboxes share one
+# ~/.claude by accident the way a name-derived volume could.
+#
+# EVERY docker name below is still DERIVED from the project directory, never hardcoded - the container,
+# the image, the hostname and the four remaining CACHE volumes (docker/m2/gradle/pw). This launcher gets
+# copied into other repos, and a hardcoded name travels with the copy: the copy mounts ITS OWN project at
+# /work but attaches THE ORIGINAL project's cache volumes. Deriving the names makes a copy self-scoping on
+# its first launch. Set SANDBOX_NAME to pin one explicitly (e.g. two checkouts of the SAME repo that must
+# not share caches).
+CLAUDE_HISTORY_DIR="${HERE}/.claude-history"
 SLUG="$(basename "${PROJECT_DIR}")"
 SLUG="${SLUG,,}"                     # docker image names must be lowercase
 SLUG="${SLUG//[^a-z0-9_.-]/-}"       # ... and hold only [a-z0-9_.-]
@@ -107,8 +113,9 @@ build() {
 # `set -e` disabled, which the docker calls in here should not.
 #
 # Two sandboxes CANNOT coexist: they share the container name, the published port and — worst of all —
-# the named volumes, including /home/dev/.claude, whose login/session state Claude rewrites in place.
-# Starting a second one while the first is up therefore takes BOTH down. So a launch does not compete
+# the persisted state, including /home/dev/.claude (bind-mounted from CLAUDE_HISTORY_DIR), whose
+# login/session state Claude rewrites in place. Starting a second one while the first is up therefore
+# takes BOTH down. So a launch does not compete
 # with the running sandbox, it replaces it: the old one is killed here, deliberately AFTER build() has
 # finished, so the outgoing session stays usable for the whole rebuild and the gap between the two is
 # only the teardown itself.
@@ -225,6 +232,15 @@ run() {
   # works unchanged when copied elsewhere. -gradle is the one that matters here: it holds the Gradle
   # distribution itself plus every AGP/Kotlin/AndroidX/Compose dependency, so a second launch does not
   # redownload them.
+  #
+  # /home/dev/.claude is different: it is a BIND MOUNT to CLAUDE_HISTORY_DIR, a plain directory inside
+  # this sandbox folder, not a named (opaque, `docker volume`-only) volume like the four above. That
+  # keeps Claude's auth, session transcripts and memory fully contained in the project checkout — visible
+  # with a normal `ls`/`cp`/`tar`, backed up by copying a directory, wiped with `rm -rf`, and inherently
+  # scoped to this one checkout with no name to collide on. mkdir it first: an unprivileged bind mount
+  # source must already exist, or the daemon creates it root-owned and the in-container chown (see
+  # entrypoint.sh) becomes the only thing standing between a fresh sandbox and a permission error.
+  mkdir -p "${CLAUDE_HISTORY_DIR}"
   docker run "${tty[@]}" --rm \
     --name "${CONTAINER}" \
     --cidfile "${CIDFILE}" \
@@ -232,7 +248,7 @@ run() {
     --hostname "${NAME}" \
     -v "${PROJECT_DIR}":/work \
     -v "${NAME}-docker":/var/lib/docker \
-    -v "${NAME}-claude":/home/dev/.claude \
+    -v "${CLAUDE_HISTORY_DIR}":/home/dev/.claude \
     -v "${NAME}-m2":/home/dev/.m2 \
     -v "${NAME}-gradle":/home/dev/.gradle \
     -v "${NAME}-pw":/home/dev/.cache/ms-playwright \
