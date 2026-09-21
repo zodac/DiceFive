@@ -44,6 +44,22 @@ android {
     }
 
     signingConfigs {
+        // Explicit, repo-committed debug key (app/debug.keystore) rather than Android Gradle
+        // Plugin's default of auto-creating ~/.android/debug.keystore on first use. That default
+        // lives outside the repo and outside any of this project's persisted caches, so a fresh
+        // machine or throwaway build environment (a CI runner, a new sandbox container) generates
+        // its OWN random debug key - silently breaking the "debug builds always signed identically"
+        // assumption the versionCode comment below depends on: installing a debug build from a
+        // different environment than the one already on the device fails with "conflicts with an
+        // existing package" (a signature mismatch), even though both are just debug builds.
+        // Standard AGP debug-key values (alias/passwords/DN) so this behaves exactly like the
+        // default it replaces - only its storage location changes.
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (hasReleaseSigningConfig) {
             create("release") {
                 storeFile = file(releaseKeystorePath!!)

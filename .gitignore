@@ -17,6 +17,12 @@ build/
 *.keystore
 keystore.properties
 
+# ...except the debug key, which IS committed on purpose: it holds no real signing authority (Play
+# Store rejects a debug-signed upload outright), and committing it is what lets every debug build -
+# Android Studio, CI, a throwaway sandbox container - share one signature so they can always install
+# over each other. See the signingConfigs comment in app/build.gradle.kts.
+!/app/debug.keystore
+
 # Claude Code's ~/.claude bind-mounted into the sandbox container - auth tokens, session
 # transcripts and memory. See sandbox/README.md's Persistence section.
 /sandbox/.claude-history/
