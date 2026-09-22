@@ -3,17 +3,20 @@ package net.zodac.dicefive.data.settings
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import net.zodac.dicefive.model.PlayerType
 
 private val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
 /**
- * DataStore-backed settings: the display theme, the last-used name for each
- * human player slot (1-4) so returning to setup pre-fills it, and whether
- * leaving an in-progress game needs a confirmation.
+ * DataStore-backed settings: the display theme, the last-used name and
+ * player type (Human/AI) for each player slot (1-4) plus the last-used
+ * player count, so returning to setup pre-fills it, and whether leaving an
+ * in-progress game needs a confirmation.
  */
 class SettingsRepository(private val context: Context) {
 
@@ -32,6 +35,20 @@ class SettingsRepository(private val context: Context) {
         context.settingsDataStore.edit { it[playerNameKey(slot)] = name }
     }
 
+    fun playerTypeFor(slot: Int): Flow<PlayerType?> = context.settingsDataStore.data.map { prefs ->
+        prefs[playerTypeKey(slot)]?.let { raw -> runCatching { PlayerType.valueOf(raw) }.getOrNull() }
+    }
+
+    suspend fun setPlayerType(slot: Int, type: PlayerType) {
+        context.settingsDataStore.edit { it[playerTypeKey(slot)] = type.name }
+    }
+
+    val playerCount: Flow<Int?> = context.settingsDataStore.data.map { prefs -> prefs[PLAYER_COUNT_KEY] }
+
+    suspend fun setPlayerCount(count: Int) {
+        context.settingsDataStore.edit { it[PLAYER_COUNT_KEY] = count }
+    }
+
     val confirmBeforeLeavingGame: Flow<Boolean> =
         context.settingsDataStore.data.map { prefs -> prefs[CONFIRM_BEFORE_LEAVING_GAME_KEY] ?: true }
 
@@ -42,6 +59,8 @@ class SettingsRepository(private val context: Context) {
     private companion object {
         val THEME_KEY = stringPreferencesKey("theme")
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
+        val PLAYER_COUNT_KEY = intPreferencesKey("player_count")
         fun playerNameKey(slot: Int) = stringPreferencesKey("player_name_$slot")
+        fun playerTypeKey(slot: Int) = stringPreferencesKey("player_type_$slot")
     }
 }

@@ -115,6 +115,12 @@ class GameViewModel(
                     val savedName = repository.playerNameFor(slot).first() ?: continue
                     updateSlot(slot) { it.copy(name = savedName) }
                 }
+                // Slot 1 is always Human, so its type is never saved/restored.
+                for (slot in 2..GameSetupState.MAX_PLAYERS) {
+                    val savedType = repository.playerTypeFor(slot).first() ?: continue
+                    updateSlot(slot) { it.copy(type = savedType) }
+                }
+                repository.playerCount.first()?.let { savedCount -> setPlayerCount(savedCount) }
             }
         }
     }
@@ -153,6 +159,7 @@ class GameViewModel(
             PlayerConfig(slot = slot.slot, type = slot.type, name = name, difficulty = slot.difficulty)
         }
         persistHumanNames(activeSlots)
+        persistGameConfig(setupState.playerCount, activeSlots)
         setUndoSnapshot(null)
         resetSuperuserMode()
         applyGameState(GameEngine.newGame(playerConfigs, setupState.gameType))
@@ -298,6 +305,17 @@ class GameViewModel(
                 if (slot.type == PlayerType.HUMAN) {
                     repository.setPlayerName(slot.slot, slot.name.ifBlank { "Player ${slot.slot}" })
                 }
+            }
+        }
+    }
+
+    private fun persistGameConfig(playerCount: Int, slots: List<PlayerSetupSlot>) {
+        val repository = settingsRepository ?: return
+        viewModelScope.launch {
+            repository.setPlayerCount(playerCount)
+            for (slot in slots) {
+                // Slot 1 is always Human, so its type isn't worth persisting.
+                if (slot.slot != 1) repository.setPlayerType(slot.slot, slot.type)
             }
         }
     }
