@@ -36,7 +36,7 @@ decisions behind it. Read that before changing anything visual.
 - **About link**: `https://github.com/zodac/DiceFive`.
 - **Game type**: only `CLASSIC` is playable in v1; `EXTENDED` exists as an
   enum value shown disabled in the UI.
-- **Achievements**: 40 of them, **per device rather than per player**, local
+- **Achievements**: 46 of them, **per device rather than per player**, local
   only for now but shaped so each maps onto a Google Play Games achievement
   later (see Phase 13).
 - **The trademarked name is banned from the application entirely** - source,
@@ -592,7 +592,7 @@ install-over-existing succeeds:
       `assembleRelease` locally produce the expected filenames.
 
 ### Phase 13 — Achievements
-- [x] **Scope**: 40 achievements, replacing the Phase 8 placeholder screen.
+- [x] **Scope**: 46 achievements, replacing the Phase 8 placeholder screen.
       Local only for now, but every piece is shaped for a later Google Play
       Games migration: `Achievement.id` is a stable snake_case external key
       (**never change one** — it is the storage key and will be the Play
@@ -723,6 +723,26 @@ install-over-existing succeeds:
       `InProgressGameRepository.load` already swallows a decode failure and
       falls back to the setup form, so it degrades to "Continue does
       nothing" rather than crashing.
+- [x] **Score collection** (`AchievementCategory.SCORE_SETS`): six achievements
+      for having recorded *every* score in a 50-point band on the
+      leaderboard - 5-50 (46 scores, since the band is inclusive and 5 is the
+      lowest total the rules allow), then 51-100, 101-150, 151-200, 201-250,
+      251-300 (50 each). Scavenger → Hoarder → Collector → Archivist →
+      Curator → Completist.
+      These are the one group **not** backed by a stored counter: progress is
+      derived from the scores table via `ScoreDao.distinctScores()`, so they
+      are retroactive (scores already on the leaderboard count the moment the
+      next game finishes) and the progress bar can never disagree with what
+      the Scores screen shows. `GameViewModel.finishGame` reads the distinct
+      scores *before* inserting, for the same reason it reads the best score
+      there, and `AchievementEngine` adds the finished game's own human
+      totals itself - one read gives it both the before and after state of a
+      band, which is what the quarter-mark progress banner needs.
+      Two consequences worth knowing: a reset re-locks them but the
+      underlying scores remain, so they re-earn on the next qualifying game
+      (the same is already true of `PERSONAL_BEST`); and they count toward
+      `COMPLETIONIST`, which makes that achievement a ~296-game commitment -
+      flip `countsTowardCompletion` on the six if that is not wanted.
 - [ ] **Google Play Games**: not started. The mapping is designed for, not
       built — no Play Games SDK dependency, no sign-in, no server-side
       achievement definitions.

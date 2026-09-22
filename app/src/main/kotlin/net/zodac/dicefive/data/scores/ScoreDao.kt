@@ -19,4 +19,8 @@ interface ScoreDao {
     /** Null when nothing has been recorded yet - MAX over no rows. */
     @Query("SELECT MAX(score) FROM scores")
     suspend fun bestScore(): Int?
+
+    /** Every score that has ever been recorded, once each - what the score-collection achievements count. */
+    @Query("SELECT DISTINCT score FROM scores")
+    suspend fun distinctScores(): List<Int>
 }

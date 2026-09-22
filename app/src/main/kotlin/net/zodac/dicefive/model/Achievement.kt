@@ -21,6 +21,7 @@ enum class AchievementCategory(val label: String) {
     MILESTONES("Milestones"),
     DICE("Dice feats"),
     SCORING("Scoring"),
+    SCORE_SETS("Score collection"),
     WINNING("Winning"),
     STREAKS("Streaks"),
     MISFORTUNE("Misfortune"),
@@ -63,6 +64,12 @@ enum class Achievement(
     val category: AchievementCategory,
     val counter: AchievementCounter? = null,
     val target: Int = 1,
+    /**
+     * For the "collect every score in this range" achievements: the band of final scores that
+     * must each have been recorded on the leaderboard at least once. [target] is the number of
+     * scores in the band, which `AchievementEngineTest` keeps in step.
+     */
+    val scoreBand: IntRange? = null,
     /**
      * Whether [COMPLETIONIST] waits on this one. False for [COMPLETIONIST] itself, and for
      * anything that cannot currently be earned at all - see [I_ROBOT].
@@ -175,6 +182,35 @@ enum class Achievement(
         AchievementCategory.SCORING,
     ),
 
+    // ---- Score collection: every single score in a band, logged on the leaderboard -------------
+    // Derived from the scores table rather than a stored counter, so they are retroactive - scores
+    // already on the leaderboard count - and so the progress bar always agrees with what the
+    // Scores screen shows. Only human scores are ever recorded there, which is also the rule here.
+    SCAVENGER(
+        "scores_5_50", "Scavenger", "Record every score from 5 to 50 on the leaderboard",
+        AchievementCategory.SCORE_SETS, target = 46, scoreBand = 5..50,
+    ),
+    HOARDER(
+        "scores_51_100", "Hoarder", "Record every score from 51 to 100 on the leaderboard",
+        AchievementCategory.SCORE_SETS, target = 50, scoreBand = 51..100,
+    ),
+    COLLECTOR(
+        "scores_101_150", "Collector", "Record every score from 101 to 150 on the leaderboard",
+        AchievementCategory.SCORE_SETS, target = 50, scoreBand = 101..150,
+    ),
+    ARCHIVIST(
+        "scores_151_200", "Archivist", "Record every score from 151 to 200 on the leaderboard",
+        AchievementCategory.SCORE_SETS, target = 50, scoreBand = 151..200,
+    ),
+    CURATOR(
+        "scores_201_250", "Curator", "Record every score from 201 to 250 on the leaderboard",
+        AchievementCategory.SCORE_SETS, target = 50, scoreBand = 201..250,
+    ),
+    COMPLETIST(
+        "scores_251_300", "Completist", "Record every score from 251 to 300 on the leaderboard",
+        AchievementCategory.SCORE_SETS, target = 50, scoreBand = 251..300,
+    ),
+
     // ---- Winning: beating whoever else was at the table ---------------------------------------
     FIRST_WIN(
         "win_first", "First Victory", "Win a game against at least one opponent",
@@ -263,6 +299,8 @@ enum class Achievement(
 
     val progressStyle: ProgressStyle
         get() = when {
+            // A band only ever gains scores, so it climbs like any other running total.
+            scoreBand != null -> ProgressStyle.CUMULATIVE
             // A target of 1 is a plain unlock that happens to be driven by a counter: a "0 of 1"
             // progress bar says nothing the locked state doesn't already.
             counter == null || target <= 1 -> ProgressStyle.NONE

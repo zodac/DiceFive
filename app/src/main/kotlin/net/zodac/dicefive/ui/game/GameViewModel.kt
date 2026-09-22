@@ -379,9 +379,13 @@ class GameViewModel(
         viewModelScope.launch {
             // Guarded so a leaderboard problem costs only the leaderboard: before this, a throw
             // from either call took the achievement evaluation down with it, silently.
+            // Both reads happen BEFORE the insert - "New Personal Best" compares against the board
+            // as it was, and the score-collection bands need the before state to measure progress
+            // against (the engine adds this game's own scores itself).
             val previousBestScore = runCatching { scoreRepository?.bestScore() }.getOrNull()
+            val previousScores = runCatching { scoreRepository?.distinctScores() }.getOrNull().orEmpty()
             runCatching { persistHumanScores(state) }
-            recordEndOfGameAchievements(state, previousBestScore)
+            recordEndOfGameAchievements(state, previousBestScore, previousScores)
         }
     }
 
@@ -406,10 +410,15 @@ class GameViewModel(
         }
     }
 
-    private suspend fun recordEndOfGameAchievements(state: GameState, previousBestScore: Int?) {
+    private suspend fun recordEndOfGameAchievements(
+        state: GameState,
+        previousBestScore: Int?,
+        previousDistinctScores: Set<Int>,
+    ) {
         val repository = achievementsRepository ?: return
         val context = GameAchievementContext(
             previousBestScore = previousBestScore,
+            previousDistinctScores = previousDistinctScores,
             trailedIntoFinalRound = trailedIntoFinalRound,
             diceRolledByHumans = diceRolledByHumans,
         )

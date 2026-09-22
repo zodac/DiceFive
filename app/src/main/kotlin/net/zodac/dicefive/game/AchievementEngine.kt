@@ -21,6 +21,13 @@ data class GameAchievementContext(
     val trailedIntoFinalRound: Boolean = false,
     /** How many dice a human actually re-rolled across the game. AI rolls don't count. */
     val diceRolledByHumans: Int = 0,
+    /**
+     * Every distinct score already on the leaderboard *before* this game's rows were inserted.
+     * Read pre-insert for the same reason [previousBestScore] is, and because the engine adds
+     * this game's own human totals itself - that way it knows both the before and after states
+     * of a score band from one read.
+     */
+    val previousDistinctScores: Set<Int> = emptySet(),
 )
 
 /** One "getting closer" banner: [achievement] is now at [current] out of its target. */
@@ -91,9 +98,12 @@ object AchievementEngine {
         val humans = state.players.filter { it.type == PlayerType.HUMAN }
         if (humans.isEmpty()) return AchievementUpdate()
 
+        val scoresBefore = context.previousDistinctScores
+        val scoresAfter = scoresBefore + humans.map { it.totalScore }
+
         val counters = countersAfter(state, humans, context, before)
-        val earned = earnedBy(state, humans, context, counters)
-        return update(earned, counters, before, now)
+        val earned = earnedBy(state, humans, context, counters, scoresAfter)
+        return update(earned, counters, before, now, scoresBefore, scoresAfter)
     }
 
     /**
@@ -122,6 +132,21 @@ object AchievementEngine {
      */
     fun unlockNow(achievements: Set<Achievement>, before: AchievementsState, now: Long): AchievementUpdate =
         update(achievements, before.counters, before, now)
+
+    /**
+     * How far along [achievement] is, for the progress bar on the achievements screen. Counter
+     * achievements read their stored total; score-band ones are measured against the leaderboard
+     * itself, which is why [distinctScores] has to be passed in rather than stored.
+     */
+    fun progressOf(
+        achievement: Achievement,
+        counters: Map<AchievementCounter, Int>,
+        distinctScores: Set<Int>,
+    ): Int = when {
+        achievement.scoreBand != null -> distinctScores.count { it in achievement.scoreBand }
+        achievement.counter != null -> (counters[achievement.counter] ?: 0).coerceAtMost(achievement.target)
+        else -> 0
+    }
 
     private fun countersAfter(
         state: GameState,
@@ -198,6 +223,7 @@ object AchievementEngine {
         humans: List<PlayerState>,
         context: GameAchievementContext,
         counters: Map<AchievementCounter, Int>,
+        distinctScores: Set<Int>,
     ): Set<Achievement> {
         val players = state.players
         val earned = earnedDuringPlay(players, humans).toMutableSet()
@@ -244,6 +270,12 @@ object AchievementEngine {
 
         award(Achievement.SOLO_GAME, players.size == 1)
 
+        // Score collection: every single score in the band has to have been recorded at least once.
+        for (achievement in Achievement.entries) {
+            val band = achievement.scoreBand ?: continue
+            award(achievement, band.all { it in distinctScores })
+        }
+
         return earned
     }
 
@@ -257,6 +289,8 @@ object AchievementEngine {
         counters: Map<AchievementCounter, Int>,
         before: AchievementsState,
         now: Long,
+        scoresBefore: Set<Int> = emptySet(),
+        scoresAfter: Set<Int> = emptySet(),
     ): AchievementUpdate {
         // Catalogue order, so a burst of banners always arrives in the same, grouped order.
         val newlyUnlocked = Achievement.entries
@@ -269,7 +303,7 @@ object AchievementEngine {
         }
 
         val progressed = Achievement.entries.mapNotNull { achievement ->
-            progressEvent(achievement, counters, before, newlyUnlocked)
+            progressEvent(achievement, counters, before, newlyUnlocked, scoresBefore, scoresAfter)
         }
 
         return AchievementUpdate(
@@ -285,14 +319,28 @@ object AchievementEngine {
         counters: Map<AchievementCounter, Int>,
         before: AchievementsState,
         newlyUnlocked: List<Achievement>,
+        scoresBefore: Set<Int>,
+        scoresAfter: Set<Int>,
     ): AchievementProgress? {
         if (!achievement.hasProgressBar) return null
         // Nothing to nudge someone towards once they've got there - the unlock banner says it all.
         if (before.isUnlocked(achievement) || achievement in newlyUnlocked) return null
 
-        val counter = achievement.counter ?: return null
-        val previous = before.progress(achievement)
-        val current = (counters[counter] ?: 0).coerceAtMost(achievement.target)
+        val previous: Int
+        val current: Int
+        when {
+            achievement.scoreBand != null -> {
+                previous = progressOf(achievement, counters, scoresBefore)
+                current = progressOf(achievement, counters, scoresAfter)
+            }
+
+            achievement.counter != null -> {
+                previous = before.progress(achievement)
+                current = progressOf(achievement, counters, scoresAfter)
+            }
+
+            else -> return null
+        }
         if (current <= previous) return null
 
         val worthShowing = when (achievement.progressStyle) {

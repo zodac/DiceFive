@@ -16,6 +16,9 @@ import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsRepository
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.scores.AppDatabase
+import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
 
@@ -40,14 +43,35 @@ data class AchievementsUiState(
     val totalCount: Int get() = lockedCount + unlocked.size
 }
 
-/** [achievementsRepository] is nullable so this stays constructible/testable without a Context - see [factory]. */
-class AchievementsViewModel(private val achievementsRepository: AchievementStore? = null) : ViewModel() {
+/**
+ * Both repositories are nullable so this stays constructible/testable without a Context - see
+ * [factory]. [scoreRepository] is here for the score-collection achievements, whose progress is
+ * measured against the leaderboard itself rather than a stored counter.
+ */
+class AchievementsViewModel(
+    private val achievementsRepository: AchievementStore? = null,
+    private val scoreRepository: ScoreRepository? = null,
+) : ViewModel() {
 
     private val hideUnlocked = MutableStateFlow(false)
 
+    // Read once: the leaderboard only changes when a game finishes, which can't happen while this
+    // screen is open.
+    private val distinctScores = MutableStateFlow<Set<Int>>(emptySet())
+
     val uiState: StateFlow<AchievementsUiState> =
-        combine(achievementsRepository?.state ?: flowOf(AchievementsState()), hideUnlocked, ::toUiState)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), AchievementsUiState())
+        combine(
+            achievementsRepository?.state ?: flowOf(AchievementsState()),
+            hideUnlocked,
+            distinctScores,
+            ::toUiState,
+        ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), AchievementsUiState())
+
+    init {
+        scoreRepository?.let { repository ->
+            viewModelScope.launch { distinctScores.value = repository.distinctScores() }
+        }
+    }
 
     fun setHideUnlocked(hide: Boolean) {
         hideUnlocked.value = hide
@@ -58,9 +82,13 @@ class AchievementsViewModel(private val achievementsRepository: AchievementStore
         viewModelScope.launch { repository.resetAll() }
     }
 
-    private fun toUiState(state: AchievementsState, hideUnlocked: Boolean): AchievementsUiState {
+    private fun toUiState(
+        state: AchievementsState,
+        hideUnlocked: Boolean,
+        distinctScores: Set<Int>,
+    ): AchievementsUiState {
         val (unlocked, locked) = Achievement.entries
-            .map { AchievementItem(it, state.unlockedAt[it], state.progress(it)) }
+            .map { AchievementItem(it, state.unlockedAt[it], AchievementEngine.progressOf(it, state.counters, distinctScores)) }
             .partition { it.unlockedAt != null }
 
         return AchievementsUiState(
@@ -79,7 +107,13 @@ class AchievementsViewModel(private val achievementsRepository: AchievementStore
 
     companion object {
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
-            initializer { AchievementsViewModel(AchievementsRepository(context.applicationContext)) }
+            initializer {
+                val appContext = context.applicationContext
+                AchievementsViewModel(
+                    achievementsRepository = AchievementsRepository(appContext),
+                    scoreRepository = ScoreRepository(AppDatabase.getInstance(appContext).scoreDao()),
+                )
+            }
         }
     }
 }

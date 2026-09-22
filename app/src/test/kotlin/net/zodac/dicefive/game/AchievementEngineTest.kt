@@ -371,6 +371,80 @@ class AchievementEngineTest {
         assertTrue(visible.none { it.contains("yahtzee", ignoreCase = true) })
     }
 
+    // ---- Score collection -------------------------------------------------------------------
+
+    @Test
+    fun `a score band unlocks only once every score in it has been recorded`() {
+        val allButOne = ((5..50) - 42).toSet()
+        val finalGame = finishedGame(player(total = 42))
+
+        val short = evaluate(
+            finishedGame(player(total = 300)),
+            context = GameAchievementContext(previousDistinctScores = allButOne),
+        )
+        val complete = evaluate(finalGame, context = GameAchievementContext(previousDistinctScores = allButOne))
+
+        assertFalse(Achievement.SCAVENGER in short.newlyUnlocked)
+        assertTrue(Achievement.SCAVENGER in complete.newlyUnlocked)
+    }
+
+    @Test
+    fun `this game's own score counts towards its band`() {
+        // The leaderboard read happens before the insert, so the engine has to add it itself.
+        val context = GameAchievementContext(previousDistinctScores = (5..49).toSet())
+
+        val update = evaluate(finishedGame(player(total = 50)), context = context)
+
+        assertTrue(Achievement.SCAVENGER in update.newlyUnlocked)
+    }
+
+    @Test
+    fun `bands only count scores inside their own range`() {
+        val context = GameAchievementContext(previousDistinctScores = (5..50).toSet())
+
+        val update = evaluate(finishedGame(player(total = 300)), context = context)
+
+        assertTrue(Achievement.SCAVENGER in update.newlyUnlocked)
+        assertFalse(Achievement.HOARDER in update.newlyUnlocked)
+        assertFalse(Achievement.COMPLETIST in update.newlyUnlocked)
+    }
+
+    @Test
+    fun `band progress is measured against the leaderboard, not a stored counter`() {
+        val scores = (5..27).toSet()
+
+        assertEquals(23, AchievementEngine.progressOf(Achievement.SCAVENGER, emptyMap(), scores))
+        assertEquals(0, AchievementEngine.progressOf(Achievement.HOARDER, emptyMap(), scores))
+        assertEquals(46, AchievementEngine.progressOf(Achievement.SCAVENGER, emptyMap(), (5..50).toSet()))
+    }
+
+    @Test
+    fun `a band announces progress at its quarter marks`() {
+        // 11 of 46 is under the first quarter; 12 crosses it.
+        val context = GameAchievementContext(previousDistinctScores = (5..15).toSet())
+
+        val update = evaluate(finishedGame(player(total = 16)), context = context)
+
+        assertTrue(update.progressed.any { it.achievement == Achievement.SCAVENGER && it.current == 12 })
+    }
+
+    @Test
+    fun `every band's target matches the size of its range`() {
+        val bands = Achievement.entries.filter { it.scoreBand != null }
+
+        assertEquals(6, bands.size)
+        bands.forEach { assertEquals(it.title, it.scoreBand!!.count(), it.target) }
+        assertEquals(46, Achievement.SCAVENGER.target)
+        assertEquals(50, Achievement.HOARDER.target)
+    }
+
+    @Test
+    fun `the bands tile the whole 5 to 300 range without gaps or overlap`() {
+        val covered = Achievement.entries.mapNotNull { it.scoreBand }.flatten().toSet()
+
+        assertEquals((5..300).toSet(), covered)
+    }
+
     @Test
     fun `a score ladder is listed in ascending order`() {
         val scoring = Achievement.entries.filter { it.category == AchievementCategory.SCORING }

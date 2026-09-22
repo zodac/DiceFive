@@ -26,6 +26,8 @@ private class FakeScoreDao : ScoreDao {
     override suspend fun count(): Int = entries.size
 
     override suspend fun bestScore(): Int? = entries.maxOfOrNull { it.score }
+
+    override suspend fun distinctScores(): List<Int> = entries.map { it.score }.distinct()
 }
 
 class ScoreRepositoryTest {

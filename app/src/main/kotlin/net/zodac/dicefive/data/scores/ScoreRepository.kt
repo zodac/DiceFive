@@ -20,4 +20,11 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
      * score against itself - see `GameViewModel.finishGame`.
      */
     suspend fun bestScore(): Int? = scoreDao.bestScore()
+
+    /**
+     * Every distinct score on the leaderboard. The score-collection achievements are measured
+     * against this rather than a stored counter, so they are retroactive and always agree with
+     * what the Scores screen actually shows.
+     */
+    suspend fun distinctScores(): Set<Int> = scoreDao.distinctScores().toSet()
 }
