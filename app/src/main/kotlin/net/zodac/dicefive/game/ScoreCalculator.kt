@@ -5,12 +5,16 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 
 /**
- * Resolves what a player may score with their current dice, applying the
- * Yahtzee joker rule: rolling a second (or later) Yahtzee after the
- * YAHTZEE box already shows 50 always earns a +100 bonus chip, and forces
- * the player into the matching upper-section box if it's still open —
- * otherwise they may free-fill Full House/Small Straight/Large Straight at
- * full value, or zero any other open box.
+ * Resolves what a player may score with their current dice, applying the official Yahtzee joker
+ * rule: once a player's YAHTZEE box already shows 50, rolling another Yahtzee earns a +100 bonus
+ * chip unconditionally, and dictates - not just previews - which box the roll must go in:
+ *   1. The matching upper-section box, if it's still open - mandatory, no other choice.
+ *   2. Otherwise, any still-open LOWER-section box - the player's choice, and Full House/Small
+ *      Straight/Large Straight score their full value (25/30/40) regardless of what the dice
+ *      actually show.
+ *   3. Otherwise (every matching upper and lower box already filled), any remaining open box -
+ *      the player's choice of which one eats the zero (an upper box scores 0 there naturally,
+ *      since none of the dice match a different number).
  */
 object ScoreCalculator {
 
@@ -29,13 +33,16 @@ object ScoreCalculator {
         ScoreCategory.LARGE_STRAIGHT to 40,
     )
 
-    /** Categories the player may legally choose for their current dice. */
+    /** Categories the player may legally choose for their current dice - see the class doc for the joker rule's forcing order. */
     fun availableCategories(player: PlayerState, dice: List<Die>): List<ScoreCategory> {
         val open = ScoreCategory.entries.filter { player.scorecard[it] == null }
         if (!isJokerSituation(player, dice)) return open
 
-        val forced = UPPER_CATEGORY_FOR_VALUE[dice.first().value]?.takeIf { it in open }
-        return forced?.let { listOf(it) } ?: open
+        val forcedUpper = UPPER_CATEGORY_FOR_VALUE.getValue(dice.first().value).takeIf { it in open }
+        if (forcedUpper != null) return listOf(forcedUpper)
+
+        val openLower = open.filterNot { it in PlayerState.UPPER_CATEGORIES }
+        return openLower.ifEmpty { open }
     }
 
     /** The scorecard cell value for [category] with the current [dice] (excludes any Yahtzee bonus chip). */
@@ -46,9 +53,8 @@ object ScoreCalculator {
             YahtzeeScoring.score(category, dice)
         }
 
-    /** Whether scoring the current [dice] earns this player a +100 Yahtzee bonus chip. */
-    fun awardsYahtzeeBonus(player: PlayerState, dice: List<Die>): Boolean =
-        isJokerSituation(player, dice)
+    /** Whether committing this roll (in whichever category ends up chosen) earns the +100 Yahtzee bonus chip. */
+    fun awardsYahtzeeBonus(player: PlayerState, dice: List<Die>): Boolean = isJokerSituation(player, dice)
 
     private fun isJokerSituation(player: PlayerState, dice: List<Die>): Boolean =
         YahtzeeScoring.isYahtzee(dice) && player.scorecard[ScoreCategory.YAHTZEE] == 50

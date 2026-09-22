@@ -34,7 +34,7 @@ class ScoreCalculatorTest {
     }
 
     @Test
-    fun `second yahtzee free-fills a straight box once the matching upper box is used`() {
+    fun `second yahtzee offers a choice among lower boxes once the matching upper box is used`() {
         val scorecard = freshPlayer.scorecard + mapOf(
             ScoreCategory.YAHTZEE to 50,
             ScoreCategory.FOURS to 16,
@@ -44,8 +44,36 @@ class ScoreCalculatorTest {
 
         val available = ScoreCalculator.availableCategories(player, dice)
 
+        // Restricted to the lower section - other open upper boxes are not a legal choice here.
         assertTrue(ScoreCategory.SMALL_STRAIGHT in available)
+        assertFalse(ScoreCategory.TWOS in available)
         assertEquals(30, ScoreCalculator.scoreFor(player, ScoreCategory.SMALL_STRAIGHT, dice))
+        // The bonus is unconditional once a repeat Yahtzee is rolled - it doesn't matter which
+        // open (lower) box the player then picks.
+        assertTrue(ScoreCalculator.awardsYahtzeeBonus(player, dice))
+    }
+
+    @Test
+    fun `once every matching upper and lower box is filled, any remaining open box may be zeroed`() {
+        val scorecard = freshPlayer.scorecard + mapOf(
+            ScoreCategory.YAHTZEE to 50,
+            ScoreCategory.FOURS to 16,
+            ScoreCategory.THREE_OF_A_KIND to 20,
+            ScoreCategory.FOUR_OF_A_KIND to 20,
+            ScoreCategory.FULL_HOUSE to 25,
+            ScoreCategory.SMALL_STRAIGHT to 30,
+            ScoreCategory.LARGE_STRAIGHT to 40,
+            ScoreCategory.CHANCE to 20,
+        )
+        val player = freshPlayer.copy(scorecard = scorecard)
+        val dice = diceOf(4, 4, 4, 4, 4)
+
+        val available = ScoreCalculator.availableCategories(player, dice)
+
+        // Every lower box (and the matching upper box) is filled, so any other open upper box is
+        // now a legal - if wasteful - choice, per the "score zero in any remaining open box" rule.
+        assertTrue(ScoreCategory.TWOS in available)
+        assertEquals(0, ScoreCalculator.scoreFor(player, ScoreCategory.TWOS, dice))
         assertTrue(ScoreCalculator.awardsYahtzeeBonus(player, dice))
     }
 

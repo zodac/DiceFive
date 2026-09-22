@@ -92,45 +92,58 @@ internal fun CategoryCell(
     // entry itself (which stays 50) - see PlayerState.yahtzeeBonusCount/Total and
     // ScoreCalculator.awardsYahtzeeBonus. Zero for every other category.
     val yahtzeeBonusCount = if (category == ScoreCategory.YAHTZEE) player?.yahtzeeBonusCount ?: 0 else 0
+    // Whether this roll would earn the +100 bonus - unconditional on which category ends up
+    // chosen, per the official joker rule (see ScoreCalculator's class doc): a repeat Yahtzee
+    // always pays the bonus, it only dictates/restricts which box the roll can go in.
+    val bonusThisTurn = player != null && canScore && ScoreCalculator.awardsYahtzeeBonus(player, dice)
     // The Yahtzee box itself is never a "legal choice" again once filled (it's not in `available`,
-    // so isGoodChoice above is always false for it) - but the +100 bonus applies automatically to
-    // whichever OTHER category gets committed this turn, so without this, rolling a second (or
-    // later) Yahtzee gave no visual sign anything special was about to happen.
-    val awardsBonusPreview = category == ScoreCategory.YAHTZEE && canScore && player != null &&
-        ScoreCalculator.awardsYahtzeeBonus(player, dice)
-    val pendingBonusTotal = (player?.yahtzeeBonusTotal ?: 0) + if (awardsBonusPreview) 100 else 0
+    // so isGoodChoice above is always false for it) - but a repeat Yahtzee still means the bonus
+    // will be earned this turn, so without this, rolling one gave no visual sign anything special
+    // was about to happen. This preview only ever shows on the Yahtzee tile - not on whichever
+    // category the roll ends up scored in - since the bonus is a Yahtzee-box concept, and showing
+    // it a second time on the scoring category tile implied it depended on that specific category,
+    // when per the official joker rule it doesn't (see ScoreCalculator's class doc).
+    val yahtzeeTileBonusPreview = category == ScoreCategory.YAHTZEE && bonusThisTurn
+    val pendingBonusAmount = if (category == ScoreCategory.YAHTZEE) {
+        (player?.yahtzeeBonusTotal ?: 0) + if (yahtzeeTileBonusPreview) 100 else 0
+    } else {
+        0
+    }
 
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         CategoryTile(
             category = category,
-            // Not `|| awardsBonusPreview`: the tile itself is never actually pickable again once
-            // scored (it isn't a legal choice), so glowing it like an open, scorable box would be
-            // misleading - the +score line below is the preview, the tile's look doesn't change.
+            // Not `|| yahtzeeTileBonusPreview`: the Yahtzee tile is never actually pickable again
+            // once scored (it isn't a legal choice), so glowing it like an open, scorable box
+            // would be misleading - the +score line below is the preview, the tile's look doesn't
+            // change.
             highlighted = isGoodChoice,
             prominent = prominent,
             scored = filled != null,
             yahtzeeBonusCount = yahtzeeBonusCount,
             onClick = if (isLegalChoice) { { onScoreCategory(category) } } else null,
         )
-        if (yahtzeeBonusCount > 0 || awardsBonusPreview) {
+        if (yahtzeeBonusCount > 0 || yahtzeeTileBonusPreview) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = filled.toString(),
-                    color = TileIconColor,
-                    style = MaterialTheme.typography.titleMedium,
+                    text = (filled ?: previewScore ?: 0).toString(),
+                    color = if (isGoodChoice) GoldAccent else TileIconColor,
+                    fontWeight = if (isGoodChoice) FontWeight.Bold else FontWeight.Normal,
+                    style = if (prominent) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Visible,
                     softWrap = false,
                 )
                 Text(
-                    // The total bonus, not one line per extra Yahtzee - ten of them is still just
-                    // one "+900" line here, not ten "+100"s. While awardsBonusPreview, this is the
-                    // pending total (what it'll become once ANY category is committed this turn),
-                    // not just what's already been earned.
-                    text = "+$pendingBonusTotal",
+                    // The total bonus on the Yahtzee tile, not one line per extra Yahtzee - ten of
+                    // them is still just one "+900" line, not ten "+100"s.
+                    text = "+$pendingBonusAmount",
                     color = GoldAccent,
                     fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodySmall,
+                    // Smaller than the Yahtzee tile's own bonus line for a regular (non-prominent)
+                    // category cell - those rows are much shorter, with far less vertical room to
+                    // spare for a second line than the big prominent Yahtzee tile has.
+                    style = if (prominent) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Visible,
                     softWrap = false,
