@@ -5,8 +5,8 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 
 /**
- * Resolves what a player may score with their current dice, applying the official Yahtzee joker
- * rule: once a player's YAHTZEE box already shows 50, rolling another Yahtzee earns a +100 bonus
+ * Resolves what a player may score with their current dice, applying the official joker
+ * rule: once a player's FIVE_OF_A_KIND box already shows 50, rolling another 5x earns a +100 bonus
  * chip unconditionally, and dictates - not just previews - which box the roll must go in:
  *   1. The matching upper-section box, if it's still open - mandatory, no other choice.
  *   2. Otherwise, any still-open LOWER-section box - the player's choice, and Full House/Small
@@ -45,17 +45,17 @@ object ScoreCalculator {
         return openLower.ifEmpty { open }
     }
 
-    /** The scorecard cell value for [category] with the current [dice] (excludes any Yahtzee bonus chip). */
+    /** The scorecard cell value for [category] with the current [dice] (excludes any 5x bonus chip). */
     fun scoreFor(player: PlayerState, category: ScoreCategory, dice: List<Die>): Int =
         if (isJokerSituation(player, dice) && category in JOKER_FREE_SCORES) {
             JOKER_FREE_SCORES.getValue(category)
         } else {
-            YahtzeeScoring.score(category, dice)
+            DiceScoring.score(category, dice)
         }
 
-    /** Whether committing this roll (in whichever category ends up chosen) earns the +100 Yahtzee bonus chip. */
-    fun awardsYahtzeeBonus(player: PlayerState, dice: List<Die>): Boolean = isJokerSituation(player, dice)
+    /** Whether committing this roll (in whichever category ends up chosen) earns the +100 5x bonus chip. */
+    fun awardsFiveOfAKindBonus(player: PlayerState, dice: List<Die>): Boolean = isJokerSituation(player, dice)
 
     private fun isJokerSituation(player: PlayerState, dice: List<Die>): Boolean =
-        YahtzeeScoring.isYahtzee(dice) && player.scorecard[ScoreCategory.YAHTZEE] == 50
+        DiceScoring.isFiveOfAKind(dice) && player.scorecard[ScoreCategory.FIVE_OF_A_KIND] == 50
 }

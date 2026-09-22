@@ -40,9 +40,9 @@ fun CategoryIcon(
     // with the rest of a scored icon. Separate from [color] so the badge can follow the
     // scored-dim state without also following the highlighted-gold state - see StairsWithRunBadge.
     dimmed: Boolean = false,
-    // Extra Yahtzees beyond the first (see PlayerState.yahtzeeBonusCount) - only ever nonzero for
-    // ScoreCategory.YAHTZEE, so a corner badge can show the total count once there's more than one.
-    yahtzeeBonusCount: Int = 0,
+    // Extra 5x beyond the first (see PlayerState.fiveOfAKindBonusCount) - only ever nonzero for
+    // ScoreCategory.FIVE_OF_A_KIND, so a corner badge can show the total count once there's more than one.
+    fiveOfAKindBonusCount: Int = 0,
 ) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         when (category) {
@@ -53,7 +53,7 @@ fun CategoryIcon(
 
             ScoreCategory.THREE_OF_A_KIND -> BadgeLabel("3x", color, labelFontSize)
             ScoreCategory.FOUR_OF_A_KIND -> BadgeLabel("4x", color, labelFontSize)
-            ScoreCategory.YAHTZEE -> YahtzeeIcon(color, labelFontSize, yahtzeeBonusCount)
+            ScoreCategory.FIVE_OF_A_KIND -> FiveOfAKindIcon(color, labelFontSize, fiveOfAKindBonusCount)
             ScoreCategory.CHANCE -> BadgeLabel("?", color, labelFontSize)
             // A stock glyph rather than a hand-drawn one (a previous roof/body Canvas silhouette
             // read as too tall for the tile). The tile itself is always square (CategoryTile sizes
@@ -75,10 +75,10 @@ fun CategoryIcon(
     }
 }
 
-// Both corner badges (run-length and Yahtzee count) size and inset themselves as a fraction of
+// Both corner badges (run-length and 5x count) size and inset themselves as a fraction of
 // their OWN tile's rendered width, not a fixed dp value - a fixed 2dp/14dp reads as generous
 // clearance on a 48dp regular tile but sits nearly flush with the edge on the 76dp prominent
-// Yahtzee tile, since the same absolute gap is proportionally much smaller there. Fractions are
+// 5x tile, since the same absolute gap is proportionally much smaller there. Fractions are
 // of the REGULAR_TILE_SIZE case (see CategoryTile.kt) - the original hand-tuned 2dp inset / 14dp
 // badge size on a 48dp tile - so both badges keep the same relative position and weight at any
 // tile size.
@@ -96,22 +96,22 @@ private fun BadgeLabel(text: String, color: Color, fontSize: TextUnit, modifier:
 }
 
 /**
- * The "5x" badge, plus - once a player has rolled more than one Yahtzee this game - a small corner
+ * The "5x" badge, plus - once a player has rolled more than one 5x this game - a small corner
  * badge showing the total count. Unlike the straight run-length badge, this one can safely share
  * [color] with the main glyph: it only ever appears once the box is already scored (the bonus
- * requires a genuine 50 already on the card - see ScoreCalculator.awardsYahtzeeBonus), a stable
+ * requires a genuine 50 already on the card - see ScoreCalculator.awardsFiveOfAKindBonus), a stable
  * state for the rest of the game, not one that flips between two categories independently the way
  * highlighted/scored does for Small vs Large Straight.
  */
 @Composable
-private fun YahtzeeIcon(color: Color, fontSize: TextUnit, bonusCount: Int) {
+private fun FiveOfAKindIcon(color: Color, fontSize: TextUnit, bonusCount: Int) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         BadgeLabel("5x", color, fontSize, modifier = Modifier.align(Alignment.Center))
         if (bonusCount > 0) {
             val inset = maxWidth * BADGE_EDGE_INSET_FRACTION
             val badgeSize = maxWidth * BADGE_SIZE_FRACTION
             SegmentBadge(
-                // Total Yahtzees, not just the bonus count: the first one (the 50 itself) counts
+                // Total 5x, not just the bonus count: the first one (the 50 itself) counts
                 // too.
                 count = bonusCount + 1,
                 color = color,

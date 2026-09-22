@@ -1,7 +1,7 @@
 package net.zodac.dicefive.model
 
 /**
- * The Yahtzee scorecard categories: the upper section (ONES..SIXES) followed
+ * The scorecard categories: the upper section (ONES..SIXES) followed
  * by the lower section.
  */
 enum class ScoreCategory {
@@ -16,6 +16,6 @@ enum class ScoreCategory {
     FULL_HOUSE,
     SMALL_STRAIGHT,
     LARGE_STRAIGHT,
-    YAHTZEE,
+    FIVE_OF_A_KIND,
     CHANCE,
 }

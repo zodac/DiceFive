@@ -27,11 +27,11 @@ import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 
 /**
- * The right-hand column beside the category grid: the prominent Yahtzee tile, the (tappable)
+ * The right-hand column beside the category grid: the prominent 5x tile, the (tappable)
  * dice cup with its remaining-rolls count, and the upper-section bonus tracker with undo.
  */
 @Composable
-fun YahtzeeCupPanel(
+fun DiceCupPanel(
     player: PlayerState?,
     dice: List<Die>,
     canScore: Boolean,
@@ -50,7 +50,7 @@ fun YahtzeeCupPanel(
 
     Column(modifier = modifier.fillMaxHeight()) {
         CategoryCell(
-            category = ScoreCategory.YAHTZEE,
+            category = ScoreCategory.FIVE_OF_A_KIND,
             player = player,
             canScore = canScore,
             available = available,
@@ -116,7 +116,7 @@ fun YahtzeeCupPanel(
             // Clearance from the score grid's rightmost column - which can render a 2-digit score
             // past its own column's edge - comes from GameBoard's inter-panel gap and weight split,
             // not from padding here specifically, so every row of this panel (this one, the cup, the
-            // Yahtzee tile above) gets the same protection instead of just this one.
+            // 5x tile above) gets the same protection instead of just this one.
             Column {
                 Text(text = "Upper: $upperTotal", color = TileIconColor, style = MaterialTheme.typography.bodyMedium)
                 Text(

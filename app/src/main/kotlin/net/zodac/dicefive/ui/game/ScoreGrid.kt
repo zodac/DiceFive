@@ -20,14 +20,14 @@ import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 
-/** Lower-section categories excluding Yahtzee, which gets its own prominent tile beside the cup. */
+/** Lower-section categories excluding 5x, which gets its own prominent tile beside the cup. */
 private val GRID_LOWER_CATEGORIES = ScoreCategory.entries
-    .filterNot { it in PlayerState.UPPER_CATEGORIES || it == ScoreCategory.YAHTZEE }
+    .filterNot { it in PlayerState.UPPER_CATEGORIES || it == ScoreCategory.FIVE_OF_A_KIND }
 
 /**
  * The two-column scorecard grid for the active player only - other players' progress is
  * summarized in the header tabs instead, matching the reference layout. [canScore] and
- * [available] are precomputed once by the caller and shared with the Yahtzee tile beside the cup.
+ * [available] are precomputed once by the caller and shared with the 5x tile beside the cup.
  */
 @Composable
 fun ScoreGrid(
@@ -82,30 +82,30 @@ internal fun CategoryCell(
     prominent: Boolean = false,
 ) {
     val filled = player?.scorecard?.get(category)
-    // "Legal to pick" (any open box - Yahtzee rules let you zero one deliberately) is distinct
+    // "Legal to pick" (any open box - the rules let you zero one deliberately) is distinct
     // from "worth picking" (glows gold): only a non-zero preview earns the highlight, so rolling
     // the dice doesn't light up every open box regardless of whether it'd actually score.
     val isLegalChoice = player != null && canScore && category in available
     val previewScore = if (isLegalChoice) ScoreCalculator.scoreFor(player!!, category, dice) else null
     val isGoodChoice = previewScore != null && previewScore > 0
-    // Every Yahtzee after the first earns a +100 bonus chip tracked separately from the scorecard
-    // entry itself (which stays 50) - see PlayerState.yahtzeeBonusCount/Total and
-    // ScoreCalculator.awardsYahtzeeBonus. Zero for every other category.
-    val yahtzeeBonusCount = if (category == ScoreCategory.YAHTZEE) player?.yahtzeeBonusCount ?: 0 else 0
+    // Every 5x after the first earns a +100 bonus chip tracked separately from the scorecard
+    // entry itself (which stays 50) - see PlayerState.fiveOfAKindBonusCount/Total and
+    // ScoreCalculator.awardsFiveOfAKindBonus. Zero for every other category.
+    val fiveOfAKindBonusCount = if (category == ScoreCategory.FIVE_OF_A_KIND) player?.fiveOfAKindBonusCount ?: 0 else 0
     // Whether this roll would earn the +100 bonus - unconditional on which category ends up
-    // chosen, per the official joker rule (see ScoreCalculator's class doc): a repeat Yahtzee
+    // chosen, per the official joker rule (see ScoreCalculator's class doc): a repeat 5x
     // always pays the bonus, it only dictates/restricts which box the roll can go in.
-    val bonusThisTurn = player != null && canScore && ScoreCalculator.awardsYahtzeeBonus(player, dice)
-    // The Yahtzee box itself is never a "legal choice" again once filled (it's not in `available`,
-    // so isGoodChoice above is always false for it) - but a repeat Yahtzee still means the bonus
+    val bonusThisTurn = player != null && canScore && ScoreCalculator.awardsFiveOfAKindBonus(player, dice)
+    // The 5x box itself is never a "legal choice" again once filled (it's not in `available`,
+    // so isGoodChoice above is always false for it) - but a repeat 5x still means the bonus
     // will be earned this turn, so without this, rolling one gave no visual sign anything special
-    // was about to happen. This preview only ever shows on the Yahtzee tile - not on whichever
-    // category the roll ends up scored in - since the bonus is a Yahtzee-box concept, and showing
+    // was about to happen. This preview only ever shows on the 5x tile - not on whichever
+    // category the roll ends up scored in - since the bonus is a 5x-box concept, and showing
     // it a second time on the scoring category tile implied it depended on that specific category,
     // when per the official joker rule it doesn't (see ScoreCalculator's class doc).
-    val yahtzeeTileBonusPreview = category == ScoreCategory.YAHTZEE && bonusThisTurn
-    val pendingBonusAmount = if (category == ScoreCategory.YAHTZEE) {
-        (player?.yahtzeeBonusTotal ?: 0) + if (yahtzeeTileBonusPreview) 100 else 0
+    val fiveOfAKindTileBonusPreview = category == ScoreCategory.FIVE_OF_A_KIND && bonusThisTurn
+    val pendingBonusAmount = if (category == ScoreCategory.FIVE_OF_A_KIND) {
+        (player?.fiveOfAKindBonusTotal ?: 0) + if (fiveOfAKindTileBonusPreview) 100 else 0
     } else {
         0
     }
@@ -113,17 +113,17 @@ internal fun CategoryCell(
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         CategoryTile(
             category = category,
-            // Not `|| yahtzeeTileBonusPreview`: the Yahtzee tile is never actually pickable again
+            // Not `|| fiveOfAKindTileBonusPreview`: the 5x tile is never actually pickable again
             // once scored (it isn't a legal choice), so glowing it like an open, scorable box
             // would be misleading - the +score line below is the preview, the tile's look doesn't
             // change.
             highlighted = isGoodChoice,
             prominent = prominent,
             scored = filled != null,
-            yahtzeeBonusCount = yahtzeeBonusCount,
+            fiveOfAKindBonusCount = fiveOfAKindBonusCount,
             onClick = if (isLegalChoice) { { onScoreCategory(category) } } else null,
         )
-        if (yahtzeeBonusCount > 0 || yahtzeeTileBonusPreview) {
+        if (fiveOfAKindBonusCount > 0 || fiveOfAKindTileBonusPreview) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = (filled ?: previewScore ?: 0).toString(),
@@ -135,14 +135,14 @@ internal fun CategoryCell(
                     softWrap = false,
                 )
                 Text(
-                    // The total bonus on the Yahtzee tile, not one line per extra Yahtzee - ten of
+                    // The total bonus on the 5x tile, not one line per extra 5x - ten of
                     // them is still just one "+900" line, not ten "+100"s.
                     text = "+$pendingBonusAmount",
                     color = GoldAccent,
                     fontWeight = FontWeight.Bold,
-                    // Smaller than the Yahtzee tile's own bonus line for a regular (non-prominent)
+                    // Smaller than the 5x tile's own bonus line for a regular (non-prominent)
                     // category cell - those rows are much shorter, with far less vertical room to
-                    // spare for a second line than the big prominent Yahtzee tile has.
+                    // spare for a second line than the big prominent 5x tile has.
                     style = if (prominent) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Visible,

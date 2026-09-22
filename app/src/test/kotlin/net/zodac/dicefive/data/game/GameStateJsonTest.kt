@@ -43,7 +43,7 @@ class GameStateJsonTest {
             }
         }
         val state = GameState(
-            players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, scorecard = scorecard, yahtzeeBonusCount = 2)),
+            players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, scorecard = scorecard, fiveOfAKindBonusCount = 2)),
         )
 
         val decoded = GameStateJson.decode(GameStateJson.encode(state))

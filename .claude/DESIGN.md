@@ -38,6 +38,12 @@ decisions behind it. Read that before changing anything visual.
   enum value shown disabled in the UI.
 - **Achievements**: v1 is a placeholder screen only — no trigger/persistence
   infrastructure yet (nothing defined to trigger on).
+- **The trademarked name is banned from the application** - source, comments,
+  identifiers, filenames and anything a player can see. See the rule in
+  `CLAUDE.md`. The term is **"5x"** in user-facing text (what the scorecard
+  tile has always shown) and **`FIVE_OF_A_KIND`/`fiveOfAKind`** in code.
+  These `.claude/*.md` files are the one exception, because explaining what
+  the game is requires the word; `README.md` is public and is not.
 
 ## New Gradle dependencies
 
@@ -71,11 +77,11 @@ net.zodac.dicefive/
     PlayerType.kt                      — HUMAN, AI
     Difficulty.kt                      — EASY, MEDIUM, HARD (stored, UI disabled)
     PlayerConfig.kt                    — setup-time: slot, type, name, difficulty
-    PlayerState.kt                     — in-game: name, type, difficulty, scorecard (Map<ScoreCategory, Int?>), yahtzeeBonusCount
+    PlayerState.kt                     — in-game: name, type, difficulty, scorecard (Map<ScoreCategory, Int?>), fiveOfAKindBonusCount
     GameState.kt                       — rewritten: gameType, players: List<PlayerState>, currentPlayerIndex,
                                           dice: List<Die>, rollsRemaining, phase (AWAITING_ROLL / ROLLED), isGameOver
   game/
-    YahtzeeScoring.kt                  — pure functions: score(category, dice) and isUpperBonusEligible etc.
+    DiceScoring.kt                     — pure functions: score(category, dice), isFiveOfAKind etc.
     ScoreCalculator.kt                 — resolves a category pick against current scorecard incl. upper bonus (63+ => +35)
                                           and Yahtzee joker rule (extra Yahtzee => +100 bonus, forced placement rules)
     GameEngine.kt                      — pure reducer-style functions: rollDice, toggleHold, commitScore, advanceTurn
@@ -166,7 +172,7 @@ nav arguments or introducing a singleton holder.
   human player; AI scores are not saved) and sets `isGameOver = true` so
   `GameScreen` shows a results summary.
 
-`YahtzeeScoring`/`GameEngine` are pure functions with no Android
+`DiceScoring`/`GameEngine` are pure functions with no Android
 dependencies — most unit tests live here.
 
 ## Scores screen

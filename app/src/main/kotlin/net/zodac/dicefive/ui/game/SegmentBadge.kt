@@ -17,10 +17,10 @@ import androidx.compose.ui.unit.dp
 
 /**
  * A small circular badge showing 1-2 digits, drawn as seven-segment "LCD" glyphs rather than a
- * real font - used for both the Small/Large Straight run-length badge and the Yahtzee bonus-count
+ * real font - used for both the Small/Large Straight run-length badge and the 5x bonus-count
  * badge, so the two look like one shared design instead of a hand-drawn digit next to a system
  * font one (which is what happened before this existed: the straight badges were flattened vector
- * assets with their own blocky digit shapes, and the Yahtzee badge was a plain Compose `Text` in
+ * assets with their own blocky digit shapes, and the 5x badge was a plain Compose `Text` in
  * the ambient font - visibly different typefaces side by side).
  */
 @Composable

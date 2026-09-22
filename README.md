@@ -1,6 +1,6 @@
 # DiceFive
 
-Android DiceFive game - a local (no netplay) Yahtzee-based dice game for
+Android DiceFive game - a local (no netplay) five-dice scorecard game for
 1-4 players, human and/or AI.
 
 ## Stack
@@ -17,8 +17,8 @@ Android DiceFive game - a local (no netplay) Yahtzee-based dice game for
 app/src/main/kotlin/net/zodac/dicefive/
   model/            game domain types: GameState, PlayerState/PlayerConfig,
                     Die, ScoreCategory, GameType, PlayerType, Difficulty, TurnPhase
-  game/             pure Yahtzee rules engine (no Android dependencies):
-                    YahtzeeScoring, ScoreCalculator (joker rule), GameEngine
+  game/             pure rules engine (no Android dependencies):
+                    DiceScoring, ScoreCalculator (joker rule), GameEngine
                     (roll/hold/score/turn-advance reducers), AiTurnPlayer,
                     AiNameGenerator
   data/

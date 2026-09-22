@@ -34,7 +34,7 @@ import net.zodac.dicefive.ui.theme.TileTealBottom
 import net.zodac.dicefive.ui.theme.TileTealTop
 
 /** Fixed intrinsic sizes - deliberately NOT derived from ambient row height/aspectRatio, which
- * blew up unpredictably (the Yahtzee tile filling the screen, the grid starving its score text). */
+ * blew up unpredictably (the 5x tile filling the screen, the grid starving its score text). */
 private val REGULAR_TILE_SIZE = 48.dp
 private val PROMINENT_TILE_SIZE = 76.dp
 
@@ -49,7 +49,7 @@ fun CategoryTile(
     modifier: Modifier = Modifier,
     prominent: Boolean = false,
     scored: Boolean = false,
-    yahtzeeBonusCount: Int = 0,
+    fiveOfAKindBonusCount: Int = 0,
     onClick: (() -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(if (prominent) 16.dp else 10.dp)
@@ -97,7 +97,7 @@ fun CategoryTile(
             modifier = Modifier.fillMaxSize(),
             labelFontSize = if (prominent) 30.sp else 18.sp,
             dimmed = scored,
-            yahtzeeBonusCount = yahtzeeBonusCount,
+            fiveOfAKindBonusCount = fiveOfAKindBonusCount,
         )
     }
 }

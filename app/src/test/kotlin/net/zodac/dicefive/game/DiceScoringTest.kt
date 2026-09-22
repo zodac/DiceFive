@@ -1,0 +1,90 @@
+package net.zodac.dicefive.game
+
+import net.zodac.dicefive.model.Die
+import net.zodac.dicefive.model.ScoreCategory
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+private fun diceOf(vararg values: Int): List<Die> = values.map { Die(value = it) }
+
+class DiceScoringTest {
+
+    @Test
+    fun `upper section sums only matching dice`() {
+        val dice = diceOf(3, 3, 5, 3, 6)
+
+        assertEquals(9, DiceScoring.score(ScoreCategory.THREES, dice))
+        assertEquals(5, DiceScoring.score(ScoreCategory.FIVES, dice))
+        assertEquals(0, DiceScoring.score(ScoreCategory.TWOS, dice))
+    }
+
+    @Test
+    fun `three of a kind sums all dice when at least three match`() {
+        val dice = diceOf(4, 4, 4, 2, 6)
+
+        assertEquals(20, DiceScoring.score(ScoreCategory.THREE_OF_A_KIND, dice))
+    }
+
+    @Test
+    fun `three of a kind scores zero without a triple`() {
+        val dice = diceOf(4, 4, 3, 2, 6)
+
+        assertEquals(0, DiceScoring.score(ScoreCategory.THREE_OF_A_KIND, dice))
+    }
+
+    @Test
+    fun `four of a kind requires four matching dice`() {
+        val four = diceOf(5, 5, 5, 5, 2)
+        val three = diceOf(5, 5, 5, 2, 2)
+
+        assertEquals(22, DiceScoring.score(ScoreCategory.FOUR_OF_A_KIND, four))
+        assertEquals(0, DiceScoring.score(ScoreCategory.FOUR_OF_A_KIND, three))
+    }
+
+    @Test
+    fun `full house requires exactly a three and two split`() {
+        val fullHouse = diceOf(2, 2, 5, 5, 5)
+        val fiveOfAKind = diceOf(6, 6, 6, 6, 6)
+        val fourAndOne = diceOf(2, 2, 2, 2, 5)
+
+        assertEquals(25, DiceScoring.score(ScoreCategory.FULL_HOUSE, fullHouse))
+        assertEquals(0, DiceScoring.score(ScoreCategory.FULL_HOUSE, fiveOfAKind))
+        assertEquals(0, DiceScoring.score(ScoreCategory.FULL_HOUSE, fourAndOne))
+    }
+
+    @Test
+    fun `small straight needs four sequential distinct values`() {
+        val straight = diceOf(1, 2, 3, 4, 4)
+        val notStraight = diceOf(1, 2, 3, 6, 6)
+
+        assertEquals(30, DiceScoring.score(ScoreCategory.SMALL_STRAIGHT, straight))
+        assertEquals(0, DiceScoring.score(ScoreCategory.SMALL_STRAIGHT, notStraight))
+    }
+
+    @Test
+    fun `large straight needs five sequential distinct values`() {
+        val straight = diceOf(2, 3, 4, 5, 6)
+        val notStraight = diceOf(1, 2, 3, 4, 4)
+
+        assertEquals(40, DiceScoring.score(ScoreCategory.LARGE_STRAIGHT, straight))
+        assertEquals(0, DiceScoring.score(ScoreCategory.LARGE_STRAIGHT, notStraight))
+    }
+
+    @Test
+    fun `five of a kind requires all five dice matching`() {
+        val fiveOfAKind = diceOf(3, 3, 3, 3, 3)
+        val notFiveOfAKind = diceOf(3, 3, 3, 3, 4)
+
+        assertEquals(50, DiceScoring.score(ScoreCategory.FIVE_OF_A_KIND, fiveOfAKind))
+        assertEquals(0, DiceScoring.score(ScoreCategory.FIVE_OF_A_KIND, notFiveOfAKind))
+        assertEquals(true, DiceScoring.isFiveOfAKind(fiveOfAKind))
+        assertEquals(false, DiceScoring.isFiveOfAKind(notFiveOfAKind))
+    }
+
+    @Test
+    fun `chance sums every die`() {
+        val dice = diceOf(1, 2, 3, 4, 5)
+
+        assertEquals(15, DiceScoring.score(ScoreCategory.CHANCE, dice))
+    }
+}

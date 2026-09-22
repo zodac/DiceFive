@@ -23,7 +23,7 @@ import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 private val BOARD_HEIGHT = 380.dp
 
 /**
- * The scoring area: the active player's category grid on the left, the Yahtzee tile / dice cup /
+ * The scoring area: the active player's category grid on the left, the 5x tile / dice cup /
  * upper-bonus tracker on the right. Uses [LocalGameVisualTheme]'s scoreAreaBrush for its
  * background - swap that theme value to re-skin it independently of the dice tray below.
  */
@@ -67,7 +67,7 @@ fun GameBoard(
         // Text in ScoreGrid.kt) - this gap doubles as the dead space that spillover lands in
         // harmlessly, before it would otherwise reach the cup panel's content.
         Spacer(modifier = Modifier.width(20.dp))
-        YahtzeeCupPanel(
+        DiceCupPanel(
             player = player,
             dice = state.dice,
             canScore = canScore,

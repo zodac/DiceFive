@@ -24,12 +24,12 @@ class AiTurnPlayerTest {
             phase = TurnPhase.ROLLED,
         )
 
-        assertEquals(ScoreCategory.YAHTZEE, AiTurnPlayer.chooseCategory(state))
+        assertEquals(ScoreCategory.FIVE_OF_A_KIND, AiTurnPlayer.chooseCategory(state))
     }
 
     @Test
     fun `chooseCategory never picks an already-filled category`() {
-        val scorecard = PlayerState(name = "Bot", type = PlayerType.AI).scorecard + (ScoreCategory.YAHTZEE to 50)
+        val scorecard = PlayerState(name = "Bot", type = PlayerType.AI).scorecard + (ScoreCategory.FIVE_OF_A_KIND to 50)
         val state = GameState(
             players = listOf(PlayerState(name = "Bot", type = PlayerType.AI, scorecard = scorecard)),
             dice = List(5) { Die(value = 6) },
@@ -37,7 +37,7 @@ class AiTurnPlayerTest {
             phase = TurnPhase.ROLLED,
         )
 
-        assertFalse(AiTurnPlayer.chooseCategory(state) == ScoreCategory.YAHTZEE)
+        assertFalse(AiTurnPlayer.chooseCategory(state) == ScoreCategory.FIVE_OF_A_KIND)
     }
 
     @Test

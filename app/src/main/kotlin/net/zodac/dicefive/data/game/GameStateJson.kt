@@ -48,7 +48,7 @@ object GameStateJson {
         put("name", player.name)
         put("type", player.type.name)
         put("difficulty", player.difficulty.name)
-        put("yahtzeeBonusCount", player.yahtzeeBonusCount)
+        put("fiveOfAKindBonusCount", player.fiveOfAKindBonusCount)
         put(
             "scorecard",
             JSONObject().apply {
@@ -69,7 +69,7 @@ object GameStateJson {
             type = PlayerType.valueOf(obj.getString("type")),
             difficulty = Difficulty.valueOf(obj.getString("difficulty")),
             scorecard = scorecard,
-            yahtzeeBonusCount = obj.getInt("yahtzeeBonusCount"),
+            fiveOfAKindBonusCount = obj.getInt("fiveOfAKindBonusCount"),
         )
     }
 

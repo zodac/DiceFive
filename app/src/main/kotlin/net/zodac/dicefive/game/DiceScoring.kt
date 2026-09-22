@@ -5,10 +5,10 @@ import net.zodac.dicefive.model.ScoreCategory
 
 /**
  * Stateless scoring rules for a single dice roll. Does not know about a
- * player's scorecard — see [ScoreCalculator] for the Yahtzee joker rule,
+ * player's scorecard — see [ScoreCalculator] for the joker rule,
  * which depends on what's already been scored.
  */
-object YahtzeeScoring {
+object DiceScoring {
 
     private val STRAIGHT_RUN = listOf(1, 2, 3, 4, 5, 6)
 
@@ -27,12 +27,12 @@ object YahtzeeScoring {
             ScoreCategory.FULL_HOUSE -> if (isFullHouse(counts)) 25 else 0
             ScoreCategory.SMALL_STRAIGHT -> if (hasStraight(values.toSet(), 4)) 30 else 0
             ScoreCategory.LARGE_STRAIGHT -> if (hasStraight(values.toSet(), 5)) 40 else 0
-            ScoreCategory.YAHTZEE -> if (counts.values.any { it == 5 }) 50 else 0
+            ScoreCategory.FIVE_OF_A_KIND -> if (counts.values.any { it == 5 }) 50 else 0
             ScoreCategory.CHANCE -> values.sum()
         }
     }
 
-    fun isYahtzee(dice: List<Die>): Boolean =
+    fun isFiveOfAKind(dice: List<Die>): Boolean =
         dice.map { it.value }.groupingBy { it }.eachCount().values.any { it == 5 }
 
     private fun scoreUpper(values: List<Int>, target: Int): Int =

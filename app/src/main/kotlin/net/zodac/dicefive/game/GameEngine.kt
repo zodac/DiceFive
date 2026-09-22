@@ -10,7 +10,7 @@ import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 
 /**
- * Pure reducers for the Yahtzee turn flow. None of these touch Android APIs
+ * Pure reducers for the turn flow. None of these touch Android APIs
  * or persistence — [net.zodac.dicefive.ui.game.GameViewModel] is the only
  * caller and owns all side effects (AI pacing, score persistence).
  */
@@ -74,10 +74,10 @@ object GameEngine {
         }
 
         val value = ScoreCalculator.scoreFor(player, category, state.dice)
-        val bonus = ScoreCalculator.awardsYahtzeeBonus(player, state.dice)
+        val bonus = ScoreCalculator.awardsFiveOfAKindBonus(player, state.dice)
         val updatedPlayer = player.copy(
             scorecard = player.scorecard + (category to value),
-            yahtzeeBonusCount = player.yahtzeeBonusCount + if (bonus) 1 else 0,
+            fiveOfAKindBonusCount = player.fiveOfAKindBonusCount + if (bonus) 1 else 0,
         )
         val updatedPlayers = state.players.toMutableList().apply { this[state.currentPlayerIndex] = updatedPlayer }
         return advanceTurn(state.copy(players = updatedPlayers))

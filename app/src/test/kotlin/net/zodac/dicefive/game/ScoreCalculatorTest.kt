@@ -16,27 +16,27 @@ class ScoreCalculatorTest {
     private val freshPlayer = PlayerState(name = "Player 1", type = PlayerType.HUMAN)
 
     @Test
-    fun `first yahtzee is not a joker situation`() {
+    fun `a first five of a kind is not a joker situation`() {
         val dice = diceOf(4, 4, 4, 4, 4)
 
-        assertFalse(ScoreCalculator.awardsYahtzeeBonus(freshPlayer, dice))
+        assertFalse(ScoreCalculator.awardsFiveOfAKindBonus(freshPlayer, dice))
         assertEquals(ScoreCategory.entries.filter { freshPlayer.scorecard[it] == null }, ScoreCalculator.availableCategories(freshPlayer, dice))
     }
 
     @Test
-    fun `second yahtzee is forced into the matching open upper box`() {
-        val player = freshPlayer.copy(scorecard = freshPlayer.scorecard + (ScoreCategory.YAHTZEE to 50))
+    fun `a second five of a kind is forced into the matching open upper box`() {
+        val player = freshPlayer.copy(scorecard = freshPlayer.scorecard + (ScoreCategory.FIVE_OF_A_KIND to 50))
         val dice = diceOf(4, 4, 4, 4, 4)
 
         assertEquals(listOf(ScoreCategory.FOURS), ScoreCalculator.availableCategories(player, dice))
-        assertTrue(ScoreCalculator.awardsYahtzeeBonus(player, dice))
+        assertTrue(ScoreCalculator.awardsFiveOfAKindBonus(player, dice))
         assertEquals(20, ScoreCalculator.scoreFor(player, ScoreCategory.FOURS, dice))
     }
 
     @Test
-    fun `second yahtzee offers a choice among lower boxes once the matching upper box is used`() {
+    fun `a second five of a kind offers a choice among lower boxes once the matching upper box is used`() {
         val scorecard = freshPlayer.scorecard + mapOf(
-            ScoreCategory.YAHTZEE to 50,
+            ScoreCategory.FIVE_OF_A_KIND to 50,
             ScoreCategory.FOURS to 16,
         )
         val player = freshPlayer.copy(scorecard = scorecard)
@@ -48,15 +48,15 @@ class ScoreCalculatorTest {
         assertTrue(ScoreCategory.SMALL_STRAIGHT in available)
         assertFalse(ScoreCategory.TWOS in available)
         assertEquals(30, ScoreCalculator.scoreFor(player, ScoreCategory.SMALL_STRAIGHT, dice))
-        // The bonus is unconditional once a repeat Yahtzee is rolled - it doesn't matter which
+        // The bonus is unconditional once a repeat 5x is rolled - it doesn't matter which
         // open (lower) box the player then picks.
-        assertTrue(ScoreCalculator.awardsYahtzeeBonus(player, dice))
+        assertTrue(ScoreCalculator.awardsFiveOfAKindBonus(player, dice))
     }
 
     @Test
     fun `once every matching upper and lower box is filled, any remaining open box may be zeroed`() {
         val scorecard = freshPlayer.scorecard + mapOf(
-            ScoreCategory.YAHTZEE to 50,
+            ScoreCategory.FIVE_OF_A_KIND to 50,
             ScoreCategory.FOURS to 16,
             ScoreCategory.THREE_OF_A_KIND to 20,
             ScoreCategory.FOUR_OF_A_KIND to 20,
@@ -74,15 +74,15 @@ class ScoreCalculatorTest {
         // now a legal - if wasteful - choice, per the "score zero in any remaining open box" rule.
         assertTrue(ScoreCategory.TWOS in available)
         assertEquals(0, ScoreCalculator.scoreFor(player, ScoreCategory.TWOS, dice))
-        assertTrue(ScoreCalculator.awardsYahtzeeBonus(player, dice))
+        assertTrue(ScoreCalculator.awardsFiveOfAKindBonus(player, dice))
     }
 
     @Test
-    fun `a yahtzee scored as zero does not unlock the joker rule`() {
-        val player = freshPlayer.copy(scorecard = freshPlayer.scorecard + (ScoreCategory.YAHTZEE to 0))
+    fun `a five of a kind scored as zero does not unlock the joker rule`() {
+        val player = freshPlayer.copy(scorecard = freshPlayer.scorecard + (ScoreCategory.FIVE_OF_A_KIND to 0))
         val dice = diceOf(2, 2, 2, 2, 2)
 
-        assertFalse(ScoreCalculator.awardsYahtzeeBonus(player, dice))
+        assertFalse(ScoreCalculator.awardsFiveOfAKindBonus(player, dice))
         // Not forced into TWOS - all still-open categories remain available.
         assertTrue(ScoreCalculator.availableCategories(player, dice).size > 1)
     }

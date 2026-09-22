@@ -41,7 +41,7 @@ fun AchievementsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
                 Text(text = "Coming soon", style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    text = "Trophies for big Yahtzees, perfect upper sections and long win streaks will be tracked here.",
+                    text = "Trophies for big 5x rolls, perfect upper sections and long win streaks will be tracked here.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
