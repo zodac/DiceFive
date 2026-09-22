@@ -31,7 +31,12 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import net.zodac.dicefive.ui.common.ScreenScaffold
 
-private val UNLOCKED_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy")
+/**
+ * Date *and* time: the unlocked half sorts newest-first, and several achievements usually land in
+ * the same burst at the end of a game, so a date alone can't explain the order they're listed in.
+ * Deliberately the same pattern the Leaderboard uses for a score's timestamp.
+ */
+private val UNLOCKED_AT_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a")
 
 /**
  * Every achievement the app tracks, locked ones first: those are the ones there's still something
@@ -173,7 +178,7 @@ private fun AchievementRow(item: AchievementItem) {
 
                 when {
                     item.unlockedAt != null -> Text(
-                        text = "Unlocked ${formatUnlockDate(item.unlockedAt)}",
+                        text = "Unlocked ${formatUnlockedAt(item.unlockedAt)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp),
@@ -203,5 +208,5 @@ private fun ProgressRow(item: AchievementItem) {
     }
 }
 
-private fun formatUnlockDate(epochMillis: Long): String =
-    UNLOCKED_DATE_FORMATTER.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
+private fun formatUnlockedAt(epochMillis: Long): String =
+    UNLOCKED_AT_FORMATTER.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
