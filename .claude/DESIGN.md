@@ -723,12 +723,14 @@ install-over-existing succeeds:
       `InProgressGameRepository.load` already swallows a decode failure and
       falls back to the setup form, so it degrades to "Continue does
       nothing" rather than crashing.
-- [x] **Score collection** (`AchievementCategory.SCORE_SETS`): six achievements
+- [x] **Grinding** (`AchievementCategory.GRINDING`): six achievements
       for having recorded *every* score in a 50-point band on the
       leaderboard - 5-50 (46 scores, since the band is inclusive and 5 is the
       lowest total the rules allow), then 51-100, 101-150, 151-200, 201-250,
-      251-300 (50 each). Scavenger → Hoarder → Collector → Archivist →
-      Curator → Completist.
+      251-300 (50 each). Second-from-bottom in the category order, above only
+      Collection, since they are the longest haul in the game. "Practice
+      Makes Perfect" and "Full Table" moved out of Collection and into
+      Milestones, which left Collection holding only Completionist.
       These are the one group **not** backed by a stored counter: progress is
       derived from the scores table via `ScoreDao.distinctScores()`, so they
       are retroactive (scores already on the leaderboard count the moment the

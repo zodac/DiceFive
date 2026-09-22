@@ -21,10 +21,10 @@ enum class AchievementCategory(val label: String) {
     MILESTONES("Milestones"),
     DICE("Dice feats"),
     SCORING("Scoring"),
-    SCORE_SETS("Score collection"),
     WINNING("Winning"),
     STREAKS("Streaks"),
     MISFORTUNE("Misfortune"),
+    GRINDING("Grinding"),
     COLLECTION("Collection"),
 }
 
@@ -81,6 +81,14 @@ enum class Achievement(
     FIRST_GAME(
         "games_first", "First Game", "Finish your first game",
         AchievementCategory.MILESTONES, AchievementCounter.GAMES_PLAYED,
+    ),
+    SOLO_GAME(
+        "solo_game", "Practice Makes Perfect", "Finish a solo game",
+        AchievementCategory.MILESTONES,
+    ),
+    FULL_TABLE(
+        "full_table", "Full Table", "Play a four-player game",
+        AchievementCategory.MILESTONES,
     ),
     GAMES_10(
         "games_10", "Getting Comfortable", "Finish 10 games",
@@ -182,35 +190,6 @@ enum class Achievement(
         AchievementCategory.SCORING,
     ),
 
-    // ---- Score collection: every single score in a band, logged on the leaderboard -------------
-    // Derived from the scores table rather than a stored counter, so they are retroactive - scores
-    // already on the leaderboard count - and so the progress bar always agrees with what the
-    // Scores screen shows. Only human scores are ever recorded there, which is also the rule here.
-    SCAVENGER(
-        "scores_5_50", "Scavenger", "Record every score from 5 to 50 on the leaderboard",
-        AchievementCategory.SCORE_SETS, target = 46, scoreBand = 5..50,
-    ),
-    HOARDER(
-        "scores_51_100", "Hoarder", "Record every score from 51 to 100 on the leaderboard",
-        AchievementCategory.SCORE_SETS, target = 50, scoreBand = 51..100,
-    ),
-    COLLECTOR(
-        "scores_101_150", "Collector", "Record every score from 101 to 150 on the leaderboard",
-        AchievementCategory.SCORE_SETS, target = 50, scoreBand = 101..150,
-    ),
-    ARCHIVIST(
-        "scores_151_200", "Archivist", "Record every score from 151 to 200 on the leaderboard",
-        AchievementCategory.SCORE_SETS, target = 50, scoreBand = 151..200,
-    ),
-    CURATOR(
-        "scores_201_250", "Curator", "Record every score from 201 to 250 on the leaderboard",
-        AchievementCategory.SCORE_SETS, target = 50, scoreBand = 201..250,
-    ),
-    COMPLETIST(
-        "scores_251_300", "Completist", "Record every score from 251 to 300 on the leaderboard",
-        AchievementCategory.SCORE_SETS, target = 50, scoreBand = 251..300,
-    ),
-
     // ---- Winning: beating whoever else was at the table ---------------------------------------
     FIRST_WIN(
         "win_first", "First Victory", "Win a game against at least one opponent",
@@ -282,15 +261,36 @@ enum class Achievement(
         AchievementCategory.MISFORTUNE,
     ),
 
-    // ---- Collection: the shape of what's been played, and the set itself ----------------------
-    SOLO_GAME(
-        "solo_game", "Practice Makes Perfect", "Finish a solo game",
-        AchievementCategory.COLLECTION,
+    // ---- Grinding: every single score in a band, logged on the leaderboard ---------------------
+    // Derived from the scores table rather than a stored counter, so they are retroactive - scores
+    // already on the leaderboard count - and so the progress bar always agrees with what the
+    // Scores screen shows. Only human scores are ever recorded there, which is also the rule here.
+    SCAVENGER(
+        "scores_5_50", "Scavenger", "Record every score from 5 to 50 on the leaderboard",
+        AchievementCategory.GRINDING, target = 46, scoreBand = 5..50,
     ),
-    FULL_TABLE(
-        "full_table", "Full Table", "Play a four-player game",
-        AchievementCategory.COLLECTION,
+    HOARDER(
+        "scores_51_100", "Hoarder", "Record every score from 51 to 100 on the leaderboard",
+        AchievementCategory.GRINDING, target = 50, scoreBand = 51..100,
     ),
+    COLLECTOR(
+        "scores_101_150", "Collector", "Record every score from 101 to 150 on the leaderboard",
+        AchievementCategory.GRINDING, target = 50, scoreBand = 101..150,
+    ),
+    ARCHIVIST(
+        "scores_151_200", "Archivist", "Record every score from 151 to 200 on the leaderboard",
+        AchievementCategory.GRINDING, target = 50, scoreBand = 151..200,
+    ),
+    CURATOR(
+        "scores_201_250", "Curator", "Record every score from 201 to 250 on the leaderboard",
+        AchievementCategory.GRINDING, target = 50, scoreBand = 201..250,
+    ),
+    COMPLETIST(
+        "scores_251_300", "Completist", "Record every score from 251 to 300 on the leaderboard",
+        AchievementCategory.GRINDING, target = 50, scoreBand = 251..300,
+    ),
+
+    // ---- Collection: the set itself ------------------------------------------------------------
     COMPLETIONIST(
         "completionist", "Completionist", "Unlock every other achievement",
         AchievementCategory.COLLECTION, countsTowardCompletion = false,
