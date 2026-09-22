@@ -384,8 +384,8 @@ class AchievementEngineTest {
         )
         val complete = evaluate(finalGame, context = GameAchievementContext(previousDistinctScores = allButOne))
 
-        assertFalse(Achievement.SCAVENGER in short.newlyUnlocked)
-        assertTrue(Achievement.SCAVENGER in complete.newlyUnlocked)
+        assertFalse(Achievement.TALLY in short.newlyUnlocked)
+        assertTrue(Achievement.TALLY in complete.newlyUnlocked)
     }
 
     @Test
@@ -395,7 +395,7 @@ class AchievementEngineTest {
 
         val update = evaluate(finishedGame(player(total = 50)), context = context)
 
-        assertTrue(Achievement.SCAVENGER in update.newlyUnlocked)
+        assertTrue(Achievement.TALLY in update.newlyUnlocked)
     }
 
     @Test
@@ -404,18 +404,18 @@ class AchievementEngineTest {
 
         val update = evaluate(finishedGame(player(total = 300)), context = context)
 
-        assertTrue(Achievement.SCAVENGER in update.newlyUnlocked)
-        assertFalse(Achievement.HOARDER in update.newlyUnlocked)
-        assertFalse(Achievement.COMPLETIST in update.newlyUnlocked)
+        assertTrue(Achievement.TALLY in update.newlyUnlocked)
+        assertFalse(Achievement.BOOKKEEPER in update.newlyUnlocked)
+        assertFalse(Achievement.HISTORIAN in update.newlyUnlocked)
     }
 
     @Test
     fun `band progress is measured against the leaderboard, not a stored counter`() {
         val scores = (5..27).toSet()
 
-        assertEquals(23, AchievementEngine.progressOf(Achievement.SCAVENGER, emptyMap(), scores))
-        assertEquals(0, AchievementEngine.progressOf(Achievement.HOARDER, emptyMap(), scores))
-        assertEquals(46, AchievementEngine.progressOf(Achievement.SCAVENGER, emptyMap(), (5..50).toSet()))
+        assertEquals(23, AchievementEngine.progressOf(Achievement.TALLY, emptyMap(), scores))
+        assertEquals(0, AchievementEngine.progressOf(Achievement.BOOKKEEPER, emptyMap(), scores))
+        assertEquals(46, AchievementEngine.progressOf(Achievement.TALLY, emptyMap(), (5..50).toSet()))
     }
 
     @Test
@@ -425,7 +425,7 @@ class AchievementEngineTest {
 
         val update = evaluate(finishedGame(player(total = 16)), context = context)
 
-        assertTrue(update.progressed.any { it.achievement == Achievement.SCAVENGER && it.current == 12 })
+        assertTrue(update.progressed.any { it.achievement == Achievement.TALLY && it.current == 12 })
     }
 
     @Test
@@ -434,8 +434,8 @@ class AchievementEngineTest {
 
         assertEquals(6, bands.size)
         bands.forEach { assertEquals(it.title, it.scoreBand!!.count(), it.target) }
-        assertEquals(46, Achievement.SCAVENGER.target)
-        assertEquals(50, Achievement.HOARDER.target)
+        assertEquals(46, Achievement.TALLY.target)
+        assertEquals(50, Achievement.BOOKKEEPER.target)
     }
 
     @Test

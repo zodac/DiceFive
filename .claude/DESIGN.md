@@ -723,14 +723,16 @@ install-over-existing succeeds:
       `InProgressGameRepository.load` already swallows a decode failure and
       falls back to the setup form, so it degrades to "Continue does
       nothing" rather than crashing.
-- [x] **Grinding** (`AchievementCategory.GRINDING`): six achievements
+- [x] **The ledger** (the tail of `AchievementCategory.COLLECTION`): six achievements
       for having recorded *every* score in a 50-point band on the
       leaderboard - 5-50 (46 scores, since the band is inclusive and 5 is the
       lowest total the rules allow), then 51-100, 101-150, 151-200, 201-250,
-      251-300 (50 each). Second-from-bottom in the category order, above only
-      Collection, since they are the longest haul in the game. "Practice
-      Makes Perfect" and "Full Table" moved out of Collection and into
-      Milestones, which left Collection holding only Completionist.
+      251-300 (50 each). Tally → Bookkeeper → Registrar → Auditor →
+      Archivist → Historian, then Completionist after them: they are the
+      longest haul in the game, so the whole group sits at the very end of
+      the list. "Practice Makes Perfect" and "Full Table" moved the other
+      way, out of Collection and into Milestones, where the rest of the
+      "shape of a game you played" achievements already live.
       These are the one group **not** backed by a stored counter: progress is
       derived from the scores table via `ScoreDao.distinctScores()`, so they
       are retroactive (scores already on the leaderboard count the moment the
