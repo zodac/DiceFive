@@ -146,7 +146,10 @@ class GameViewModel(
 
     fun toggleHold(dieIndex: Int) = onHumanAction { GameEngine.toggleHold(it, dieIndex) }
 
-    fun commitScore(category: ScoreCategory) = onHumanAction { GameEngine.commitScore(it, category) }
+    // Not undoable: committing a score always ends the current player's turn (advanceTurn in
+    // GameEngine), so an undo snapshot taken here would let the NEXT player's turn open with
+    // "Undo" wired to reopen the previous player's already-finished turn.
+    fun commitScore(category: ScoreCategory) = onHumanAction(undoable = false) { GameEngine.commitScore(it, category) }
 
     /** Reverts just the most recent human move, if there is one to undo. Cancels any pending AI turn it would have triggered. */
     fun undo() {
@@ -157,10 +160,10 @@ class GameViewModel(
         applyGameState(snapshot, checkForAiTurn = false)
     }
 
-    private fun onHumanAction(transform: (GameState) -> GameState) {
+    private fun onHumanAction(undoable: Boolean = true, transform: (GameState) -> GameState) {
         val state = _game.value ?: return
         if (state.currentPlayer?.type != PlayerType.HUMAN) return
-        setUndoSnapshot(state)
+        setUndoSnapshot(if (undoable) state else null)
         applyGameState(transform(state))
     }
 

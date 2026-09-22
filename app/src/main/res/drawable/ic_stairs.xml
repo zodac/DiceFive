@@ -1,0 +1,18 @@
+<!--
+  A plain ascending-staircase silhouette for Small/Large Straight, used instead of Material's
+  Icons.Filled/Outlined.Stairs: that glyph comes from the wayfinding/signage icon family and draws
+  the pictogram framed inside its own square outline (mimicking real accessibility signage), which
+  looked like a stray border around the icon once placed inside this app's own tile chrome. This
+  shape has no frame, so it can fill the tile the same way the other category icons do.
+
+  Tintable: fillColor is a plain placeholder: CategoryIcon.kt overrides it via Icon's `tint`.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M0,24 L0,18 L6,18 L6,12 L12,12 L12,6 L18,6 L18,0 L24,0 L24,24 Z"
+        android:fillColor="#FF000000" />
+</vector>

@@ -119,20 +119,24 @@ class GameViewModelTest {
     }
 
     @Test
-    fun `undo reverts a scored category`() {
+    fun `committing a score is not undoable`() {
+        // A committed score always ends the turn (see GameEngine#advanceTurn), so undo must not be
+        // able to reopen a turn that has already finished - otherwise the button stays enabled into
+        // the next player's turn and lets them reach back into the previous one.
         val viewModel = GameViewModel()
         viewModel.setPlayerCount(1)
         viewModel.startGame()
         viewModel.rollDice()
 
         viewModel.commitScore(ScoreCategory.CHANCE)
+
         assertEquals(1, viewModel.game.value!!.players.single().scorecard.values.count { it != null })
+        assertFalse(viewModel.canUndo.value)
 
         viewModel.undo()
 
         val state = viewModel.game.value!!
-        assertEquals(TurnPhase.ROLLED, state.phase)
-        assertEquals(0, state.players.single().scorecard.values.count { it != null })
+        assertEquals(1, state.players.single().scorecard.values.count { it != null })
     }
 
     @Test

@@ -1,0 +1,36 @@
+<!--
+  A small, fixed circular badge showing the digit "4" (a seven-segment style numeral, built from
+  plain rectangles rather than a font glyph) - baked as one flattened vector so it renders
+  identically at every size and text-scale setting, instead of a Compose Text whose inherited
+  line-height made the digit sit off-center inside a 14dp circle (see CategoryIcon.kt). Colors are
+  fixed intentionally: this badge never re-tints for the highlighted/gold state, only fades via
+  alpha when its category is scored - see StairsWithRunBadge.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Circle background -->
+    <path
+        android:pathData="M12,1 A11,11 0 1,0 12,23 A11,11 0 1,0 12,1 Z"
+        android:fillColor="#0F211D" />
+
+    <!-- Circle ring -->
+    <path
+        android:pathData="M12,1 A11,11 0 1,0 12,23 A11,11 0 1,0 12,1 Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#E7F3EF"
+        android:strokeAlpha="0.6"
+        android:strokeWidth="1" />
+
+    <!-- "4": top-left vertical, top-right vertical, middle, bottom-right vertical -->
+    <path
+        android:pathData="
+            M8,7 L10,7 L10,11 L8,11 Z
+            M14,7 L16,7 L16,11 L14,11 Z
+            M8,11 L16,11 L16,13 L8,13 Z
+            M14,13 L16,13 L16,17 L14,17 Z"
+        android:fillColor="#E7F3EF" />
+</vector>

@@ -120,6 +120,9 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    // Just for Icons.AutoMirrored.Filled.Undo (see UndoButton.kt) - material3 alone only ships the
+    // small default icon set, which doesn't include Undo.
+    implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
