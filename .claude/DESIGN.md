@@ -29,7 +29,7 @@ decisions behind it. Read that before changing anything visual.
   out. AI always rolls all 3 times holding nothing, then scores the
   highest-value open category on its last roll. Real difficulty logic is
   future work.
-- **Scores screen**: one global leaderboard (not split by player or game
+- **Leaderboard screen**: one global leaderboard (not split by player or game
   type), sorted score-descending, paginated 50/page (originally 100; halved
   alongside a compact row style, so a page is a shorter scroll). No date
   column — date is shown via a long-press tooltip.
@@ -98,7 +98,7 @@ net.zodac.dicefive/
     Screen.kt                          — sealed route constants (menu, play/setup, play/game, scores, achievements, settings, about)
     DiceFiveNavHost.kt                 — NavHost wiring, "play" nested graph shares GameViewModel via getBackStackEntry
   ui/
-    menu/MenuScreen.kt                 — Play / Scores / Achievements / Settings / About buttons
+    menu/MenuScreen.kt                 — Play / Leaderboard / Achievements / Settings / About buttons
     setup/
       GameSetupScreen.kt               — player count 1-4, per-slot human/AI + name field, game type radio (Extended disabled)
     game/

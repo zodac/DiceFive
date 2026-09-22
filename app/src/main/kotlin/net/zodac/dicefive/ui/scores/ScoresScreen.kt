@@ -59,7 +59,7 @@ fun ScoresScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    ScreenScaffold(title = "Scores", onBack = onBack, modifier = modifier) {
+    ScreenScaffold(title = "Leaderboard", onBack = onBack, modifier = modifier) {
         if (state.entries.isEmpty()) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Text(

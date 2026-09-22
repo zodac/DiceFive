@@ -266,7 +266,7 @@ enum class Achievement(
     //
     // They are the one group not backed by a stored counter: progress is derived from the scores
     // table, so they are retroactive - scores already on the leaderboard count - and the progress
-    // bar always agrees with what the Scores screen shows. Only human scores are ever recorded
+    // bar always agrees with what the Leaderboard screen shows. Only human scores are ever recorded
     // there, which is also the rule here.
     TALLY(
         "scores_5_50", "Tally", "Record every score from 5 to 50 on the leaderboard",

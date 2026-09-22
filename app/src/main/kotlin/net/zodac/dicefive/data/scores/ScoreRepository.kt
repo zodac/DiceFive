@@ -24,7 +24,7 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
     /**
      * Every distinct score on the leaderboard. The score-collection achievements are measured
      * against this rather than a stored counter, so they are retroactive and always agree with
-     * what the Scores screen actually shows.
+     * what the Leaderboard screen actually shows.
      */
     suspend fun distinctScores(): Set<Int> = scoreDao.distinctScores().toSet()
 }
