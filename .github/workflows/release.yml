@@ -18,6 +18,12 @@ name: Release
 on:
   push:
     branches: [main]
+  # Lets a release for the VERSION currently on main be triggered on demand
+  # (Actions tab, or `gh workflow run release.yml`) instead of only ever
+  # firing from a push - useful when a push-triggered run failed partway
+  # (e.g. a red unit-test run) and left main sitting on an unreleased
+  # VERSION with nothing to re-trigger it.
+  workflow_dispatch:
 
 permissions:
   contents: write
