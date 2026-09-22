@@ -48,6 +48,20 @@ object GameEngine {
         return state.copy(dice = newDice)
     }
 
+    /**
+     * Superuser-mode-only: advances a single held die to the next face (wrapping 6 back to 1),
+     * ignoring the normal "already rolled this turn" / "rolls remaining" rules that [rollDice]
+     * enforces. Held state, every other die, and rolls-remaining are all left untouched - this
+     * only ever changes the one die's value. Deterministic (not random) so holding down cycles
+     * through every face in a predictable order.
+     */
+    fun cycleDieValue(state: GameState, dieIndex: Int): GameState {
+        val newDice = state.dice.mapIndexed { index, die ->
+            if (index == dieIndex) die.copy(value = if (die.value >= 6) 1 else die.value + 1) else die
+        }
+        return state.copy(dice = newDice)
+    }
+
     fun commitScore(state: GameState, category: ScoreCategory): GameState {
         check(state.phase == TurnPhase.ROLLED) { "Cannot score before rolling" }
         val player = requireNotNull(state.currentPlayer) { "No current player" }

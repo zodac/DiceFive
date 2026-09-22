@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui.game
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -50,8 +53,16 @@ fun GameScreen(
     val state by viewModel.game.collectAsState()
     val canUndo by viewModel.canUndo.collectAsState()
     val confirmBeforeLeaving by viewModel.confirmBeforeLeavingGame.collectAsState()
+    val superuserModeActive by viewModel.superuserModeActive.collectAsState()
     val currentState = state ?: return
     var showLeaveConfirmation by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    LaunchedEffect(viewModel) {
+        viewModel.toastMessages.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // Redirect system back to Menu (default nav behavior would land on the setup form instead).
     BackHandler {
@@ -97,9 +108,11 @@ fun GameScreen(
                 InProgressGame(
                     state = currentState,
                     canUndo = canUndo,
+                    superuserModeActive = superuserModeActive,
                     onUndo = viewModel::undo,
                     onRoll = viewModel::rollDice,
                     onToggleHold = viewModel::toggleHold,
+                    onCycleValue = viewModel::cycleHeldDieValue,
                     onScoreCategory = viewModel::commitScore,
                 )
             }
@@ -111,9 +124,11 @@ fun GameScreen(
 private fun InProgressGame(
     state: GameState,
     canUndo: Boolean,
+    superuserModeActive: Boolean,
     onUndo: () -> Unit,
     onRoll: () -> Unit,
     onToggleHold: (Int) -> Unit,
+    onCycleValue: (Int) -> Unit,
     onScoreCategory: (ScoreCategory) -> Unit,
 ) {
     val currentPlayer = state.currentPlayer
@@ -156,6 +171,8 @@ private fun InProgressGame(
         showDice = showDice,
         rolling = isRolling,
         onToggleHold = onToggleHold,
+        superuserModeActive = superuserModeActive,
+        onCycleValue = onCycleValue,
         modifier = Modifier.fillMaxWidth(),
     )
 }

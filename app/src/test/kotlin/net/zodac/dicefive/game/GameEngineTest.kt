@@ -100,6 +100,45 @@ class GameEngineTest {
     }
 
     @Test
+    fun `cycleDieValue advances only the target die to the next face`() {
+        var state = GameEngine.rollDice(GameEngine.newGame(onePlayer))
+        state = GameEngine.toggleHold(state, dieIndex = 0)
+        state = state.copy(dice = state.dice.mapIndexed { i, die -> if (i == 0) die.copy(value = 3) else die })
+        val otherDiceBefore = state.dice.drop(1)
+        val rollsBefore = state.rollsRemaining
+        val phaseBefore = state.phase
+
+        val result = GameEngine.cycleDieValue(state, dieIndex = 0)
+
+        assertEquals(4, result.dice[0].value)
+        assertTrue(result.dice[0].isHeld)
+        assertEquals(otherDiceBefore, result.dice.drop(1))
+        assertEquals(rollsBefore, result.rollsRemaining)
+        assertEquals(phaseBefore, result.phase)
+    }
+
+    @Test
+    fun `cycleDieValue wraps 6 back to 1`() {
+        var state = GameEngine.rollDice(GameEngine.newGame(onePlayer))
+        state = state.copy(dice = state.dice.mapIndexed { i, die -> if (i == 0) die.copy(value = 6) else die })
+
+        val result = GameEngine.cycleDieValue(state, dieIndex = 0)
+
+        assertEquals(1, result.dice[0].value)
+    }
+
+    @Test
+    fun `cycleDieValue ignores the normal rolls-remaining rule`() {
+        var state = GameEngine.newGame(onePlayer)
+        repeat(3) { state = GameEngine.rollDice(state) }
+        val before = state.dice[0].value
+
+        val result = GameEngine.cycleDieValue(state, dieIndex = 0)
+
+        assertEquals(if (before >= 6) 1 else before + 1, result.dice[0].value)
+    }
+
+    @Test
     fun `game ends once every player's scorecard is full`() {
         val almostFullScorecard: Map<ScoreCategory, Int?> = ScoreCategory.entries
             .associateWith { category -> if (category == ScoreCategory.CHANCE) null else 0 }

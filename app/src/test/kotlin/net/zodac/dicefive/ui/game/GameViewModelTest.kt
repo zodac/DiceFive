@@ -2,11 +2,14 @@ package net.zodac.dicefive.ui.game
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import net.zodac.dicefive.BuildConfig
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
@@ -16,6 +19,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -159,5 +163,108 @@ class GameViewModelTest {
 
         assertFalse(viewModel.resumeGame())
         assertNull(viewModel.game.value)
+    }
+
+    @Test
+    fun `holding and unholding all five dice in order activates superuser mode`() = runTest(testDispatcher) {
+        // The whole feature is gated on BuildConfig.DEBUG (never available in a release build -
+        // see GameViewModel.trackSuperuserSequence); skip rather than fail under a variant where
+        // that's false, since a release variant correctly refusing to activate isn't a test failure.
+        assumeTrue(BuildConfig.DEBUG)
+        val viewModel = GameViewModel()
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+        viewModel.rollDice()
+
+        var toastMessage: String? = null
+        val collectJob = launch { toastMessage = viewModel.toastMessages.first() }
+
+        for (dieIndex in 0..4) {
+            viewModel.toggleHold(dieIndex)
+            viewModel.toggleHold(dieIndex)
+        }
+        advanceUntilIdle()
+
+        assertTrue(viewModel.superuserModeActive.value)
+        assertEquals("Superuser mode activated!", toastMessage)
+        collectJob.cancel()
+    }
+
+    @Test
+    fun `toggling dice out of order does not activate superuser mode`() {
+        val viewModel = GameViewModel()
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+        viewModel.rollDice()
+
+        viewModel.toggleHold(0)
+        viewModel.toggleHold(0)
+        viewModel.toggleHold(2) // skips die 1 - breaks the required order
+        viewModel.toggleHold(2)
+        viewModel.toggleHold(1)
+        viewModel.toggleHold(1)
+        viewModel.toggleHold(3)
+        viewModel.toggleHold(3)
+        viewModel.toggleHold(4)
+        viewModel.toggleHold(4)
+
+        assertFalse(viewModel.superuserModeActive.value)
+    }
+
+    @Test
+    fun `superuser sequence activates on a later turn, not just the first`() {
+        assumeTrue(BuildConfig.DEBUG)
+        val viewModel = GameViewModel()
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.CHANCE)
+        viewModel.rollDice() // the same (only) player's second turn
+
+        for (dieIndex in 0..4) {
+            viewModel.toggleHold(dieIndex)
+            viewModel.toggleHold(dieIndex)
+        }
+
+        assertTrue(viewModel.superuserModeActive.value)
+    }
+
+    @Test
+    fun `cycleHeldDieValue does nothing before superuser mode is activated`() {
+        val viewModel = GameViewModel()
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+        viewModel.rollDice()
+        viewModel.toggleHold(0)
+        val before = viewModel.game.value!!
+
+        viewModel.cycleHeldDieValue(0)
+
+        assertEquals(before, viewModel.game.value)
+    }
+
+    @Test
+    fun `cycleHeldDieValue advances the die's face once superuser mode is active`() = runTest(testDispatcher) {
+        // See the comment on the activation test above - this needs the feature reachable at all.
+        assumeTrue(BuildConfig.DEBUG)
+        val viewModel = GameViewModel()
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+        viewModel.rollDice()
+
+        for (dieIndex in 0..4) {
+            viewModel.toggleHold(dieIndex)
+            viewModel.toggleHold(dieIndex)
+        }
+        assertTrue(viewModel.superuserModeActive.value)
+
+        viewModel.toggleHold(0) // hold die 0 so it's eligible to cycle
+        val before = viewModel.game.value!!.dice[0].value
+
+        viewModel.cycleHeldDieValue(0)
+
+        val after = viewModel.game.value!!.dice[0]
+        assertEquals(if (before >= 6) 1 else before + 1, after.value)
+        assertTrue(after.isHeld)
     }
 }
