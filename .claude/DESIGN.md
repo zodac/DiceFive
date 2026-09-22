@@ -36,14 +36,15 @@ decisions behind it. Read that before changing anything visual.
 - **About link**: `https://github.com/zodac/DiceFive`.
 - **Game type**: only `CLASSIC` is playable in v1; `EXTENDED` exists as an
   enum value shown disabled in the UI.
-- **Achievements**: v1 is a placeholder screen only — no trigger/persistence
-  infrastructure yet (nothing defined to trigger on).
-- **The trademarked name is banned from the application** - source, comments,
-  identifiers, filenames and anything a player can see. See the rule in
-  `CLAUDE.md`. The term is **"5x"** in user-facing text (what the scorecard
-  tile has always shown) and **`FIVE_OF_A_KIND`/`fiveOfAKind`** in code.
-  These `.claude/*.md` files are the one exception, because explaining what
-  the game is requires the word; `README.md` is public and is not.
+- **Achievements**: 40 of them, **per device rather than per player**, local
+  only for now but shaped so each maps onto a Google Play Games achievement
+  later (see Phase 13).
+- **The trademarked name is banned from the application entirely** - source,
+  comments, identifiers, filenames and anything a player can see. See the
+  rule in `CLAUDE.md`. The term is **"5x"** in user-facing text (what the
+  scorecard tile has always shown) and **`FIVE_OF_A_KIND`/`fiveOfAKind`** in
+  code. These `.claude/*.md` files are the one exception, because explaining
+  what the game is requires the word; `README.md` is public and is not.
 
 ## New Gradle dependencies
 
@@ -67,9 +68,14 @@ net.zodac.dicefive/
       SettingsRepository.kt            — DataStore-backed: theme Flow, remembered player names (slots 1-4)
     scores/
       ScoreEntry.kt (Room @Entity)     — id, playerName, score, timestampEpochMillis
-      ScoreDao.kt                      — pagedScores(limit, offset), count(), insert()
+      ScoreDao.kt                      — pagedScores(limit, offset), count(), bestScore(), insert()
       AppDatabase.kt                   — Room database, singleton via Application
       ScoreRepository.kt               — wraps DAO, exposes page loads
+    achievements/
+      AchievementsState.kt             — unlock timestamps + counters, as read back
+      AchievementsRepository.kt        — own DataStore file, so a reset can't touch settings
+      AchievementEvents.kt             — process-wide SharedFlow feeding the banner host
+      AchievementStore.kt              — the interface GameViewModel depends on, so the path is testable
   model/
     Die.kt                             — existing, unchanged
     ScoreCategory.kt                   — existing enum, unchanged
@@ -87,6 +93,7 @@ net.zodac.dicefive/
     GameEngine.kt                      — pure reducer-style functions: rollDice, toggleHold, commitScore, advanceTurn
     AiTurnPlayer.kt                    — basic auto-play: roll x3 (no holds) then pick max-scoring open category
     AiNameGenerator.kt                 — static themed name pool, random pick without duplicates per game
+    AchievementEngine.kt               — pure: what a game has earned so far (mid-game) and at the end
   navigation/
     Screen.kt                          — sealed route constants (menu, play/setup, play/game, scores, achievements, settings, about)
     DiceFiveNavHost.kt                 — NavHost wiring, "play" nested graph shares GameViewModel via getBackStackEntry
@@ -102,7 +109,9 @@ net.zodac.dicefive/
     scores/
       ScoresScreen.kt                  — paginated table (50/page), long-press row shows date tooltip
       ScoresViewModel.kt               — talks to ScoreRepository, tracks current page
-    achievements/AchievementsScreen.kt — thin placeholder ("Coming soon"), no trigger infrastructure yet
+    achievements/                       — AchievementsScreen (locked-first list + "Hide unlocked"),
+                                          AchievementsViewModel, AchievementBannerHost (the overlay
+                                          above the whole NavHost - see .claude/UI.md)
     settings/
       SettingsScreen.kt                — theme radio group (Light/Dark/System)
       SettingsViewModel.kt             — reads/writes SettingsRepository.theme
@@ -198,7 +207,8 @@ dependencies — most unit tests live here.
 
 ## Achievements & About
 
-- `AchievementsScreen`: placeholder "Coming soon" empty state only.
+- `AchievementsScreen`: the full catalogue, locked first. See Phase 13 for
+  the rules, storage and banner behaviour.
 - `AboutScreen`: app name + version (from `BuildConfig`), text link to
   `https://github.com/zodac/DiceFive` opened via Compose's `UriHandler`.
 
@@ -580,3 +590,139 @@ install-over-existing succeeds:
       `app-release.apk`, which would have broken that step on the next
       full (>=1.0.0) release. Verified both `assembleDebug` and
       `assembleRelease` locally produce the expected filenames.
+
+### Phase 13 — Achievements
+- [x] **Scope**: 40 achievements, replacing the Phase 8 placeholder screen.
+      Local only for now, but every piece is shaped for a later Google Play
+      Games migration: `Achievement.id` is a stable snake_case external key
+      (**never change one** — it is the storage key and will be the Play
+      achievement key; rename `title`/`description` instead), and the
+      incremental ones carry a `counter` + `target` that map onto Play's
+      incremental type. `ProgressStyle.STREAK` ones deliberately do *not*
+      map — Play's `setSteps` can't go backwards — so they become plain
+      unlock-only achievements there and keep their progress bar locally.
+- [x] `model/Achievement.kt` — the catalogue, plus `AchievementCounter`
+      (the five device-wide running totals) and `ProgressStyle`. Counters
+      are shared, not per-achievement: "finish 10 / 50 / 100 games" is one
+      stored number, not three.
+- [x] `data/achievements/` — `AchievementsRepository` on its **own**
+      DataStore file (`achievements`), so "Reset achievements" is a
+      `clear()` that can't take the theme or the remembered player names
+      with it; `AchievementsState` (unlock timestamps + counters); and
+      `AchievementEvents`, a process-wide `SharedFlow` the banner host
+      listens on.
+- [x] `game/AchievementEngine.kt` — pure, no Android/persistence/clock, in
+      the same style as `GameEngine`: `GameViewModel` reads the stored
+      state, calls `evaluate`, writes the result back. `unlockNow` handles
+      the achievements earned mid-turn (a full house, large straight or 5x
+      rolled straight out of the cup).
+- [x] **Rules that needed deciding** (all documented on the engine):
+      - *Per device, not per player*: any human at the table satisfies an
+        achievement; AI results only ever count as the opposition. A
+        consequence worth knowing: in an **all-human** game the device
+        always "wins", so win streaks keep climbing — that's what a
+        device-scoped streak means.
+      - *Solo games* count for games played, feats and score thresholds,
+        but neither extend nor break a win streak (nobody to beat).
+      - *A tie at the top counts as a win* for the human — nobody beat them.
+      - *Cheating disqualifies the whole game*: if superuser mode was
+        activated, nothing at all is counted, not even games played.
+      - *Undo can't inflate anything*: end-of-game achievements are derived
+        from the final scorecard, and the only live counter (dice rolled)
+        is only ever incremented by a human roll, which is itself not
+        undoable.
+      - *`PERSONAL_BEST` reads the leaderboard before this game's own rows
+        are inserted* — hence `ScoreDao.bestScore()` and the reordering of
+        `GameViewModel.finishGame`, which now sequences read → persist →
+        evaluate in one coroutine instead of firing persistence and
+        forgetting about it.
+      - *`I_ROBOT` is not currently earnable* (AI difficulty is deferred and
+        every AI plays the same strategy), so it is excluded from
+        `COMPLETIONIST`'s requirements via `countsTowardCompletion = false`.
+        Flip that back when difficulty lands.
+      - *`EXTREME_LOW_ROLLS` (finish on exactly 5) is* earnable: five 1s
+        taken as Chance is legal play, and holding 1s makes it grindable.
+        It stays a `COMPLETIONIST` requirement.
+- [x] **When achievements are evaluated**: three moments, not one.
+      `AchievementEngine.evaluateInProgress` runs after **every scored
+      category** (and at game start, for "Full Table"), so a maxed Sixes box
+      or a second Yahtzee lands the instant it happens rather than on the
+      results screen. It only judges what a later turn cannot take away — a
+      filled box, a banked bonus, a running total past a threshold (a total
+      only ever grows), which is why the score-threshold wording is "Score
+      200 or more in a game", not "Finish a game with". `evaluate` runs at
+      game over for everything else (a complete card, a final score, a
+      result, every counter). `unlockNow` covers the moment-in-time ones -
+      a full house, a large straight or a 5x on the first of a turn's three
+      rolls, which is the only thing a scorecard can't show after the fact.
+      Counters stay **end-of-game only** so an undo can't inflate them, and
+      the in-progress pass is skipped once the game is over so it can't race
+      the final one into double-popping the same banner. A `Mutex` in
+      `GameViewModel` serialises all three paths' read-decide-write cycles
+      for the same reason.
+- [x] **Progress banners**: `STREAK` achievements announce every single step
+      (a streak is fragile and slow to build); `CUMULATIVE` ones only at
+      quarter marks, or a 10,000-dice total would pop a banner every game.
+      Neither fires for something already unlocked, or for one being
+      unlocked in the same breath — the unlock banner says it all.
+- [x] **Ordering**: `Achievement`'s own declaration order *is* the display
+      order — grouped by `AchievementCategory`, and easiest-first within a
+      category so a ladder's rungs stay adjacent and ascending
+      ("Sharpshooter" → "High Roller" → "Dice Deity"). This replaced an
+      alphabetical locked list, which scattered every ladder. Streaks are
+      their own category rather than part of Winning, being the only ones
+      that can fall back to zero. A new achievement therefore goes where it
+      belongs in that reading order, not on the end;
+      `AchievementEngineTest` fails the build if a category ends up split
+      across the list. Nothing reads the ordinal and storage is keyed by
+      `id`, so reordering never disturbs stored unlocks.
+- [x] `ui/achievements/` — `AchievementsViewModel` (locked grouped by theme,
+      unlocked newest-first and flat, "Hide unlocked" toggle), the rewritten
+      `AchievementsScreen`, and `AchievementBannerHost` (see `.claude/UI.md`
+      for why it sits above the `NavHost` and how the stack behaves).
+- [x] Settings gained a "Reset achievements" row behind a `DiceFiveDialog`
+      confirmation.
+- [x] **Isolating the side effects**: `finishGame` wraps the leaderboard
+      read and write in `runCatching`. They used to be sequential and
+      unguarded, so a throw from either silently took the achievement
+      evaluation down with it — the kind of failure that leaves no trace at
+      all. `AchievementStore` was extracted from `AchievementsRepository`
+      for the same reason: the path from a finished game to a stored unlock
+      now has JVM tests (`GameAchievementsWiringTest`), where before only
+      the pure engine did and the wiring was unverified.
+- [x] Tests: `AchievementEngineTest` (25, covering win/loss/tie, streak
+      reset, margins, per-device feats, cheat disqualification, both
+      progress-banner policies, the Completionist cascade and id
+      uniqueness). `ScoreRepositoryTest`'s `FakeScoreDao` gained
+      `bestScore()`. 81 unit tests total, all green; `assembleDebug`,
+      `compileDebugAndroidTestKotlin` and `lint` also green, with no new
+      lint findings (the three in `DiceTray.kt` are pre-existing).
+      Later grown to 95 tests total with the mid-game evaluation and the
+      `GameAchievementsWiringTest` suite.
+- [x] **"5x", not the trademark**: `Achievement`'s titles, descriptions and
+      ids were renamed off the word ("5x!", `5x_first`, `SCRATCHED_5X`,
+      `AchievementCounter.SCORED_5X`), matching what the scorecard tile has
+      always shown. A test asserts no title, description or category label
+      contains it, so it can't creep back in. The ids changed, which resets
+      those unlocks on any device that already had them - acceptable
+      pre-release, and the reason the "never change an id" rule starts
+      properly from here.
+- [x] **Renamed the word out of the source entirely** - landed as its own
+      commit *ahead of* this phase, so it could ship without waiting for
+      achievements: `ScoreCategory.YAHTZEE`
+      → `FIVE_OF_A_KIND` (its original Phase 1 name, reverted),
+      `YahtzeeScoring.kt` → `DiceScoring.kt`, `YahtzeeCupPanel.kt` →
+      `DiceCupPanel.kt`, `isYahtzee` → `isFiveOfAKind`,
+      `PlayerState.yahtzeeBonusCount` → `fiveOfAKindBonusCount`,
+      `awardsYahtzeeBonus` → `awardsFiveOfAKindBonus`, plus every comment.
+      `README.md` too - it is public, so it is not covered by the
+      reference-documentation exception.
+      **Known cost, accepted:** `GameStateJson` writes scorecard keys and
+      the bonus count by their enum/property names, so any game that was
+      in progress across this upgrade no longer resumes.
+      `InProgressGameRepository.load` already swallows a decode failure and
+      falls back to the setup form, so it degrades to "Continue does
+      nothing" rather than crashing.
+- [ ] **Google Play Games**: not started. The mapping is designed for, not
+      built — no Play Games SDK dependency, no sign-in, no server-side
+      achievement definitions.

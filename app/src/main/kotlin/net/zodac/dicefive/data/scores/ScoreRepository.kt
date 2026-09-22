@@ -13,4 +13,11 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
         scoreDao.pagedScores(limit = pageSize, offset = pageIndex * pageSize)
 
     suspend fun totalCount(): Int = scoreDao.count()
+
+    /**
+     * The highest score on the leaderboard, or null if there isn't one yet. Read *before* a
+     * finished game's own rows are inserted, or "beat your best score" would be comparing the new
+     * score against itself - see `GameViewModel.finishGame`.
+     */
+    suspend fun bestScore(): Int? = scoreDao.bestScore()
 }

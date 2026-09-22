@@ -14,8 +14,10 @@
   scorecard tile has always shown) and **`FIVE_OF_A_KIND` / `fiveOfAKind`** in code. Where the
   game's rules need naming generically, say "the rules" or "a five-dice scorecard game".
 
-  The only permitted exception is the `.claude/*.md` reference documentation, which needs the
-  word to explain what the game is. `README.md` is public and is **not** an exception.
+  The only permitted exceptions are `.claude/*.md` reference documentation, which needs the word
+  to explain what the game is, and the single guard assertion in `AchievementEngineTest` that
+  checks no achievement title, description or category label contains it. `README.md` is public
+  and is **not** an exception.
 
 - After implementing a code change (a fix, feature, or refactor the user asked for), build a
   debug APK with `./gradlew assembleDebug` and send the resulting `.apk` from

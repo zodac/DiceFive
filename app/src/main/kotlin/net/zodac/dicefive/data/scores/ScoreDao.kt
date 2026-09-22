@@ -15,4 +15,8 @@ interface ScoreDao {
 
     @Query("SELECT COUNT(*) FROM scores")
     suspend fun count(): Int
+
+    /** Null when nothing has been recorded yet - MAX over no rows. */
+    @Query("SELECT MAX(score) FROM scores")
+    suspend fun bestScore(): Int?
 }

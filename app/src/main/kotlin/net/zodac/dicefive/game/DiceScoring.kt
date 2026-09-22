@@ -10,6 +10,13 @@ import net.zodac.dicefive.model.ScoreCategory
  */
 object DiceScoring {
 
+    /**
+     * What a filled FIVE_OF_A_KIND box is worth. Also how "this player rolled one" is recognised after
+     * the fact, since a scorecard only stores the value - see [ScoreCalculator]'s joker rule and
+     * [AchievementEngine].
+     */
+    const val FIVE_OF_A_KIND_SCORE = 50
+
     private val STRAIGHT_RUN = listOf(1, 2, 3, 4, 5, 6)
 
     fun score(category: ScoreCategory, dice: List<Die>): Int {
@@ -27,7 +34,7 @@ object DiceScoring {
             ScoreCategory.FULL_HOUSE -> if (isFullHouse(counts)) 25 else 0
             ScoreCategory.SMALL_STRAIGHT -> if (hasStraight(values.toSet(), 4)) 30 else 0
             ScoreCategory.LARGE_STRAIGHT -> if (hasStraight(values.toSet(), 5)) 40 else 0
-            ScoreCategory.FIVE_OF_A_KIND -> if (counts.values.any { it == 5 }) 50 else 0
+            ScoreCategory.FIVE_OF_A_KIND -> if (counts.values.any { it == 5 }) FIVE_OF_A_KIND_SCORE else 0
             ScoreCategory.CHANCE -> values.sum()
         }
     }

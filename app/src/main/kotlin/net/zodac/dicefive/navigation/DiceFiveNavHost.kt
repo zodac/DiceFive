@@ -27,6 +27,7 @@ import androidx.navigation.compose.rememberNavController
 import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.ui.about.AboutScreen
 import net.zodac.dicefive.ui.achievements.AchievementsScreen
+import net.zodac.dicefive.ui.achievements.AchievementsViewModel
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.game.GameScreen
 import net.zodac.dicefive.ui.game.GameViewModel
@@ -125,7 +126,13 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                 onBack = { navController.navigateUp() },
             )
         }
-        composable(Screen.ACHIEVEMENTS) { AchievementsScreen(onBack = { navController.navigateUp() }) }
+        composable(Screen.ACHIEVEMENTS) {
+            val context = LocalContext.current
+            AchievementsScreen(
+                viewModel = viewModel(factory = AchievementsViewModel.factory(context)),
+                onBack = { navController.navigateUp() },
+            )
+        }
         composable(Screen.SETTINGS) {
             val context = LocalContext.current
             SettingsScreen(

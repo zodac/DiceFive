@@ -3,6 +3,9 @@ package net.zodac.dicefive.ui.settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -12,13 +15,18 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.data.settings.Theme
+import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.ScreenScaffold
 
 @Composable
@@ -29,6 +37,8 @@ fun SettingsScreen(
 ) {
     val theme by viewModel.theme.collectAsState()
     val confirmBeforeLeavingGame by viewModel.confirmBeforeLeavingGame.collectAsState()
+    // Saveable: a rotation mid-confirmation shouldn't silently drop the question.
+    var showResetConfirmation by rememberSaveable { mutableStateOf(false) }
 
     ScreenScaffold(title = "Settings", onBack = onBack, modifier = modifier, scrollable = true) {
         Card(modifier = Modifier.fillMaxWidth()) {
@@ -57,6 +67,44 @@ fun SettingsScreen(
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
         }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Achievements",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
+            )
+            ListItem(
+                headlineContent = { Text("Reset achievements") },
+                supportingContent = { Text("Clear every unlock and all progress on this device") },
+                trailingContent = {
+                    TextButton(
+                        onClick = { showResetConfirmation = true },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    ) {
+                        Text("Reset")
+                    }
+                },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            )
+        }
+    }
+
+    if (showResetConfirmation) {
+        DiceFiveDialog(
+            icon = Icons.Filled.RestartAlt,
+            title = "Reset achievements?",
+            message = "Every achievement will be locked again and all progress towards them lost. " +
+                "This can't be undone. Your scores and settings are not affected.",
+            confirmLabel = "Reset",
+            onConfirm = {
+                viewModel.resetAchievements()
+                showResetConfirmation = false
+            },
+            dismissLabel = "Cancel",
+            onDismiss = { showResetConfirmation = false },
+            onDismissRequest = { showResetConfirmation = false },
+        )
     }
 }
 

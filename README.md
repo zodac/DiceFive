@@ -19,10 +19,11 @@ app/src/main/kotlin/net/zodac/dicefive/
                     Die, ScoreCategory, GameType, PlayerType, Difficulty, TurnPhase
   game/             pure rules engine (no Android dependencies):
                     DiceScoring, ScoreCalculator (joker rule), GameEngine
-                    (roll/hold/score/turn-advance reducers), AiTurnPlayer,
-                    AiNameGenerator
+                    (roll/hold/score/turn-advance reducers), AchievementEngine,
+                    AiTurnPlayer, AiNameGenerator
   data/
     scores/         Room: ScoreEntry, ScoreDao, AppDatabase, ScoreRepository
+    achievements/   DataStore: AchievementStore/AchievementsRepository, AchievementEvents
     settings/       DataStore: Theme, SettingsRepository
   navigation/       Screen route constants + DiceFiveNavHost
   ui/
@@ -31,7 +32,7 @@ app/src/main/kotlin/net/zodac/dicefive/
     game/           GameScreen + GameViewModel (setup form + live game state,
                     AI auto-play), DiceRow, ScorecardView
     scores/         ScoresScreen + ScoresViewModel (paginated leaderboard)
-    achievements/   AchievementsScreen (placeholder - TBC)
+    achievements/   AchievementsScreen + AchievementsViewModel, AchievementBannerHost
     settings/       SettingsScreen + SettingsViewModel (theme picker)
     about/          AboutScreen (GitHub link)
     theme/          Compose theme (color, typography)

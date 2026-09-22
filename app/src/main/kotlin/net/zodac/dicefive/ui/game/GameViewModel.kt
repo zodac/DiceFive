@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlin.random.Random
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -20,20 +21,32 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import net.zodac.dicefive.BuildConfig
+import net.zodac.dicefive.data.achievements.AchievementEvent
+import net.zodac.dicefive.data.achievements.AchievementEvents
+import net.zodac.dicefive.data.achievements.AchievementStore
+import net.zodac.dicefive.data.achievements.AchievementsRepository
 import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
+import net.zodac.dicefive.game.AchievementEngine
+import net.zodac.dicefive.game.AchievementUpdate
 import net.zodac.dicefive.game.AiNameGenerator
 import net.zodac.dicefive.game.AiTurnPlayer
+import net.zodac.dicefive.game.GameAchievementContext
 import net.zodac.dicefive.game.GameEngine
+import net.zodac.dicefive.game.DiceScoring
+import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.GameType
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.TurnPhase
 
 /**
  * A configured-but-not-yet-started player slot on the setup screen. Slot 1
@@ -70,16 +83,18 @@ data class GameSetupState(
  * scoped to the "play" nav graph so [net.zodac.dicefive.ui.setup.GameSetupScreen]
  * and [GameScreen] share one instance across navigation.
  *
- * [scoreRepository], [settingsRepository] and [inProgressGameRepository] are
- * optional so this class stays constructible (and testable) on a plain JVM
- * with no Android `Context` - [factory] supplies the real ones. When
- * absent, remembered names, score history, and game resumption are
- * silently skipped.
+ * Every repository is optional so this class stays constructible (and
+ * testable) on a plain JVM with no Android `Context` - [factory] supplies
+ * the real ones. When absent, remembered names, score history, game
+ * resumption and achievements are silently skipped.
  */
 class GameViewModel(
     private val scoreRepository: ScoreRepository? = null,
     private val settingsRepository: SettingsRepository? = null,
     private val inProgressGameRepository: InProgressGameRepository? = null,
+    private val achievementsRepository: AchievementStore? = null,
+    /** The dice. Injectable for the same reason [GameEngine.rollDice] takes one: so a test can deal a known hand. */
+    private val random: Random = Random.Default,
 ) : ViewModel() {
 
     private val _setup = MutableStateFlow(GameSetupState())
@@ -115,6 +130,14 @@ class GameViewModel(
     val toastMessages: Flow<String> = _toastMessages.receiveAsFlow()
     private var superuserSequenceDieIndex = 0
     private var superuserSequenceAwaitingUnhold = false
+
+    // Per-game achievement tracking: the two things the final GameState can't tell us afterwards.
+    // Both are reset by startGame/resumeGame, and a resumed game starts its dice count from zero -
+    // the dice rolled before the app was closed are simply not counted, which costs a little
+    // progress on a 10,000-dice total rather than justifying persisting a counter mid-game.
+    private var diceRolledByHumans = 0
+    private var trailedIntoFinalRound = false
+    private val achievementLock = Mutex()
 
     init {
         settingsRepository?.let { repository ->
@@ -176,7 +199,10 @@ class GameViewModel(
         persistGameConfig(setupState.playerCount, activeSlots)
         setUndoSnapshot(null)
         resetSuperuserMode()
+        resetAchievementTracking()
         applyGameState(GameEngine.newGame(playerConfigs, setupState.gameType))
+        // "Full Table" is settled the moment four seats are taken - no need to make them play it out.
+        checkInProgressAchievements()
     }
 
     /** Loads a previously in-progress game, if any. Returns whether one was found and resumed. */
@@ -185,13 +211,23 @@ class GameViewModel(
         val loaded = repository.load() ?: return false
         setUndoSnapshot(null)
         resetSuperuserMode()
+        resetAchievementTracking()
         applyGameState(loaded)
+        checkInProgressAchievements()
         return true
     }
 
     // Not undoable: rolling has no scoring consequence of its own to undo - only a committed
     // score does (see commitScore below).
-    fun rollDice() = onHumanAction(undoable = false) { GameEngine.rollDice(it) }
+    fun rollDice() {
+        val state = _game.value ?: return
+        if (state.currentPlayer?.type != PlayerType.HUMAN) return
+        // Counted before the roll, while it's still clear which dice are actually going to move.
+        diceRolledByHumans += state.dice.count { !it.isHeld }
+
+        onHumanAction(undoable = false) { GameEngine.rollDice(it, random) }
+        checkFirstRollAchievements()
+    }
 
     // Not undoable, same reasoning as rollDice: holding/unholding just selects what a future roll
     // will touch, it doesn't itself score anything.
@@ -220,7 +256,12 @@ class GameViewModel(
     // "Undo" at that point reaches back into the previous player's already-finished turn. Revisit
     // this if that turns out to matter more in practice than being able to undo a bad category
     // pick.
-    fun commitScore(category: ScoreCategory) = onHumanAction(undoable = true) { GameEngine.commitScore(it, category) }
+    fun commitScore(category: ScoreCategory) {
+        onHumanAction(undoable = true) { GameEngine.commitScore(it, category) }
+        // Only human commits are checked: every mid-game achievement reads human scorecards, which
+        // an AI's turn can't change.
+        checkInProgressAchievements()
+    }
 
     /** Reverts just the most recent human move, if there is one to undo. Cancels any pending AI turn it would have triggered. */
     fun undo() {
@@ -306,10 +347,126 @@ class GameViewModel(
         val wasGameOver = _game.value?.isGameOver ?: false
         _game.value = newState
         persistInProgressGame(newState)
+        trackFinalRoundPosition(newState)
         if (!wasGameOver && newState.isGameOver) {
-            persistHumanScores(newState)
+            finishGame(newState)
         }
         if (checkForAiTurn) maybeStartAiTurn()
+    }
+
+    /**
+     * Notes whether a human went into their last turn of the game behind everyone else, which is
+     * the half of "Comeback Kid" that the final scorecard can no longer show.
+     */
+    private fun trackFinalRoundPosition(state: GameState) {
+        if (trailedIntoFinalRound || state.isGameOver || state.phase != TurnPhase.AWAITING_ROLL) return
+        val player = state.currentPlayer ?: return
+        if (player.type != PlayerType.HUMAN) return
+        if (player.scorecard.values.count { it == null } != 1) return
+
+        val bestOther = state.players
+            .filterIndexed { index, _ -> index != state.currentPlayerIndex }
+            .maxOfOrNull { it.totalScore } ?: return
+        if (player.totalScore < bestOther) trailedIntoFinalRound = true
+    }
+
+    /**
+     * The one place a finished game's side effects happen, in order: the leaderboard's previous
+     * high score is read *first*, because "New Personal Best" compares against the board as it was
+     * before this game's own rows were added to it.
+     */
+    private fun finishGame(state: GameState) {
+        viewModelScope.launch {
+            // Guarded so a leaderboard problem costs only the leaderboard: before this, a throw
+            // from either call took the achievement evaluation down with it, silently.
+            val previousBestScore = runCatching { scoreRepository?.bestScore() }.getOrNull()
+            runCatching { persistHumanScores(state) }
+            recordEndOfGameAchievements(state, previousBestScore)
+        }
+    }
+
+    /**
+     * Checks what the game has earned **so far**, after every scored category - a maxed-out Sixes
+     * box or a second 5x is worth saying so at the moment it happens, not on the results
+     * screen twenty minutes later.
+     *
+     * Skipped once the game is over, where [finishGame] evaluates the same things (and more) -
+     * running both would race to unlock the same achievement and pop it twice.
+     */
+    private fun checkInProgressAchievements() {
+        val repository = achievementsRepository ?: return
+        val state = _game.value ?: return
+        if (state.isGameOver) return
+
+        viewModelScope.launch {
+            withAchievementLock {
+                val update = AchievementEngine.evaluateInProgress(state, repository.current(), System.currentTimeMillis())
+                persistAndAnnounce(repository, update)
+            }
+        }
+    }
+
+    private suspend fun recordEndOfGameAchievements(state: GameState, previousBestScore: Int?) {
+        val repository = achievementsRepository ?: return
+        val context = GameAchievementContext(
+            previousBestScore = previousBestScore,
+            trailedIntoFinalRound = trailedIntoFinalRound,
+            diceRolledByHumans = diceRolledByHumans,
+        )
+        withAchievementLock {
+            val update = AchievementEngine.evaluate(state, context, repository.current(), System.currentTimeMillis())
+            persistAndAnnounce(repository, update)
+        }
+    }
+
+    /**
+     * Serialises every read-decide-write cycle. Three separate triggers can run one - a scored
+     * category, a feat off the first roll, and the end of the game - and two overlapping would
+     * each read "not unlocked yet" and both announce the same achievement.
+     */
+    private suspend fun <T> withAchievementLock(block: suspend () -> T): T = achievementLock.withLock { block() }
+
+    /**
+     * The feats rolled straight out of the cup, earned mid-turn rather than off a scorecard: a
+     * full house, a large straight or a 5x on the first of a turn's three rolls. They're mutually
+     * exclusive on any given throw, but all three are checked rather than assuming that.
+     */
+    private fun checkFirstRollAchievements() {
+        val state = _game.value ?: return
+        if (state.rollsRemaining != ROLLS_REMAINING_AFTER_FIRST) return
+
+        val dice = state.dice
+        val earned = buildSet {
+            if (DiceScoring.score(ScoreCategory.FULL_HOUSE, dice) > 0) add(Achievement.FIRST_ROLL_FULL_HOUSE)
+            if (DiceScoring.score(ScoreCategory.LARGE_STRAIGHT, dice) > 0) add(Achievement.FIRST_ROLL_LARGE_STRAIGHT)
+            if (DiceScoring.isFiveOfAKind(dice)) add(Achievement.FIRST_ROLL_5X)
+        }
+        unlockAchievements(earned)
+    }
+
+    private fun unlockAchievements(achievements: Set<Achievement>) {
+        val repository = achievementsRepository ?: return
+        if (achievements.isEmpty()) return
+        viewModelScope.launch {
+            withAchievementLock {
+                val before = repository.current()
+                val update = AchievementEngine.unlockNow(achievements, before, System.currentTimeMillis())
+                persistAndAnnounce(repository, update)
+            }
+        }
+    }
+
+    private suspend fun persistAndAnnounce(repository: AchievementStore, update: AchievementUpdate) {
+        if (update.isEmpty) return
+        // Stored before anything is announced, so a banner can never outlive its unlock.
+        repository.record(update.unlockedAt(), update.counters)
+        update.newlyUnlocked.forEach { AchievementEvents.emit(AchievementEvent.Unlocked(it)) }
+        update.progressed.forEach { AchievementEvents.emit(AchievementEvent.Progressed(it.achievement, it.current)) }
+    }
+
+    private fun resetAchievementTracking() {
+        diceRolledByHumans = 0
+        trailedIntoFinalRound = false
     }
 
     private fun persistHumanNames(slots: List<PlayerSetupSlot>) {
@@ -334,13 +491,13 @@ class GameViewModel(
         }
     }
 
-    private fun persistHumanScores(state: GameState) {
+    // Suspending rather than launching its own coroutine: finishGame sequences this against the
+    // leaderboard read that has to happen before it.
+    private suspend fun persistHumanScores(state: GameState) {
         val repository = scoreRepository ?: return
-        viewModelScope.launch {
-            for (player in state.players) {
-                if (player.type == PlayerType.HUMAN) {
-                    repository.recordScore(player.name, player.totalScore)
-                }
+        for (player in state.players) {
+            if (player.type == PlayerType.HUMAN) {
+                repository.recordScore(player.name, player.totalScore)
             }
         }
     }
@@ -365,7 +522,7 @@ class GameViewModel(
             var current = state
             while (current.rollsRemaining > 0) {
                 delay(AI_STEP_DELAY_MS)
-                current = GameEngine.rollDice(current)
+                current = GameEngine.rollDice(current, random)
                 setUndoSnapshot(null)
                 applyGameState(current, checkForAiTurn = false)
             }
@@ -380,6 +537,9 @@ class GameViewModel(
     companion object {
         private const val AI_STEP_DELAY_MS = 600L
 
+        /** What `rollsRemaining` reads once the first of a turn's three rolls has been used. */
+        private const val ROLLS_REMAINING_AFTER_FIRST = 2
+
         /** Builds a [GameViewModel] backed by real Room/DataStore persistence. */
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -388,6 +548,7 @@ class GameViewModel(
                     scoreRepository = ScoreRepository(AppDatabase.getInstance(appContext).scoreDao()),
                     settingsRepository = SettingsRepository(appContext),
                     inProgressGameRepository = InProgressGameRepository(appContext),
+                    achievementsRepository = AchievementsRepository(appContext),
                 )
             }
         }

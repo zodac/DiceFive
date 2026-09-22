@@ -24,6 +24,8 @@ private class FakeScoreDao : ScoreDao {
         entries.sortedByDescending { it.score }.drop(offset).take(limit)
 
     override suspend fun count(): Int = entries.size
+
+    override suspend fun bestScore(): Int? = entries.maxOfOrNull { it.score }
 }
 
 class ScoreRepositoryTest {

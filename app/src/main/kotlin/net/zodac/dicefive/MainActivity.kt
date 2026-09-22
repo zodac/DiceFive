@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.Theme
 import net.zodac.dicefive.navigation.DiceFiveNavHost
+import net.zodac.dicefive.ui.achievements.AchievementBannerHost
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 class MainActivity : ComponentActivity() {
@@ -35,7 +36,12 @@ class MainActivity : ComponentActivity() {
 
             DiceFiveTheme(darkTheme = darkTheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    DiceFiveNavHost()
+                    // Above the NavHost, not inside it: the burst of banners at the end of a game
+                    // has to survive the move from the board to the results screen and on to the
+                    // menu, which a per-destination overlay wouldn't.
+                    AchievementBannerHost(modifier = Modifier.fillMaxSize()) {
+                        DiceFiveNavHost()
+                    }
                 }
             }
         }

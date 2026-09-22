@@ -119,6 +119,44 @@ expected to.
   line on a tablet.
 - **Back navigation is on screen**, via the top app bar - not the system gesture alone.
 
+## The achievements list
+
+Two levels of grouping, and they answer different questions. **Locked vs unlocked** is the outer
+split: locked comes first because it's the half with something still to do about it. Inside the
+locked half, achievements are grouped by theme with a quiet all-caps subheader, and run
+easiest-first within each theme — which is just `Achievement`'s declaration order, so the
+catalogue is the single place that ordering is decided. The unlocked half stays flat and
+newest-first: it's a history, not a to-do list, and a theme it would need re-reading.
+
+Don't sort either half alphabetically. That was the first version, and it put "Dice Deity" nine
+rows from "High Roller".
+
+## Achievement banners
+
+`AchievementBannerHost` wraps the **whole app** in `MainActivity`, outside the `NavHost` rather
+than inside a destination. That placement is the point: the end of a game can unlock a dozen at
+once, and the burst has to keep playing as the player moves from the board to the results screen
+and on to the menu. A per-screen overlay would cut it off at the first navigation.
+
+It listens on `AchievementEvents`, a process-wide `SharedFlow` — the two ends have no scope in
+common (a "play"-graph-scoped `GameViewModel` raises them; an overlay above the `NavHost` shows
+them), and achievements are per device, which is the same scope as the process.
+
+The stack behaviour, and why each number is what it is:
+
+| | Value | Why |
+|---|---|---|
+| Position | bottom half only, stacked upward | keeps the board, the dice tray and the scorecard clear |
+| Hold | 1.5s at full opacity | long enough to read a title, short enough not to sit in the way |
+| Fade out | 900ms | a snap-out in the middle of a burst reads as a glitch |
+| Stagger | 300ms between arrivals | a burst deals like cards instead of landing as a wall |
+| Cap | 4 on screen | the rest **wait** rather than being dropped — the collector suspends on `snapshotFlow { banners.size }` until a slot frees |
+| Swipe | 25% of the banner's width, either direction | clears one early; the event flow's buffer holds the backlog meanwhile |
+
+Two variants, deliberately unequal: an **unlock** banner is `primaryContainer` with a trophy and
+a two-line body; a **progress** banner is quieter (`surfaceContainerHigh`, one line plus a thin
+`LinearProgressIndicator`), so a run of "2 of 3" nudges can never be mistaken for the real thing.
+
 ## Motion
 
 Screen transitions are 350ms fades, set on the `NavHost` for all four directions. Navigation
