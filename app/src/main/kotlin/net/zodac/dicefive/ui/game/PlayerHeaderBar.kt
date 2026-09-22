@@ -31,6 +31,11 @@ import net.zodac.dicefive.ui.theme.PlayerColors
  */
 @Composable
 fun PlayerHeaderBar(players: List<PlayerState>, currentPlayerIndex: Int, modifier: Modifier = Modifier) {
+    // Three or four tabs leave roughly a quarter of the screen each, which a name at labelLarge
+    // can outgrow even at the setup screen's length cap - so the name (not the score) steps down
+    // a size, rather than every full-length name arriving pre-ellipsised.
+    val compactNames = players.size > 2
+
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         players.forEachIndexed { index, player ->
             PlayerTab(
@@ -38,6 +43,7 @@ fun PlayerHeaderBar(players: List<PlayerState>, currentPlayerIndex: Int, modifie
                 score = player.totalScore,
                 color = PlayerColors[index % PlayerColors.size],
                 active = index == currentPlayerIndex,
+                compactName = compactNames,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -45,7 +51,14 @@ fun PlayerHeaderBar(players: List<PlayerState>, currentPlayerIndex: Int, modifie
 }
 
 @Composable
-private fun PlayerTab(name: String, score: Int, color: Color, active: Boolean, modifier: Modifier = Modifier) {
+private fun PlayerTab(
+    name: String,
+    score: Int,
+    color: Color,
+    active: Boolean,
+    compactName: Boolean,
+    modifier: Modifier = Modifier,
+) {
     val shape = RoundedCornerShape(10.dp)
     Column(
         modifier = modifier
@@ -61,7 +74,7 @@ private fun PlayerTab(name: String, score: Int, color: Color, active: Boolean, m
             fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.labelLarge,
+            style = if (compactName) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
         )
         Text(
             text = score.toString(),

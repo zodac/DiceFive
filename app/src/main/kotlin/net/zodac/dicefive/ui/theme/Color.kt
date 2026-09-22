@@ -2,14 +2,103 @@ package net.zodac.dicefive.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val DiceFiveGreen = Color(0xFF1B5E20)
-val DiceFiveGreenLight = Color(0xFF4C8C4A)
-val DiceFiveIvory = Color(0xFFFFFBF0)
-val DiceFiveCharcoal = Color(0xFF1C1B1F)
+// ---------------------------------------------------------------------------------------------
+// Material 3 colour roles.
+//
+// These are tonal-palette values, not hand-picked hexes: each palette holds one hue at a fixed
+// chroma across the standard M3 tones (0-100, where the number is CIELAB lightness), and every
+// role below is one tone from one palette, following M3's own role->tone mapping. That's what
+// makes the contrast pairs (primary/onPrimary, surface/onSurface, ...) reliable rather than
+// eyeballed, and it's what any Material Theme Builder export would give you.
+//
+// Generated from three brand seeds:
+//   primary   #FFC14D - the gold the game board already uses for "this is the thing to press"
+//   secondary #1E4B86 - the felt blue of the table
+//   tertiary  #1B5E20 - DiceFive's original brand green
+// Neutrals are the same blue held at very low chroma, so greys read slightly cool rather than
+// dead, which is what keeps the app feeling like one piece with the board.
+//
+// To re-generate after a seed change, see the tonal-palette maths in M3's spec (or Material
+// Theme Builder) - do not nudge individual values by hand, or the contrast guarantees go with it.
+// ---------------------------------------------------------------------------------------------
+
+val LightPrimary = Color(0xFF7C5800)
+val LightOnPrimary = Color(0xFFFFFFFF)
+val LightPrimaryContainer = Color(0xFFFFDEAD)
+val LightOnPrimaryContainer = Color(0xFF261A00)
+val LightSecondary = Color(0xFF4D5E85)
+val LightOnSecondary = Color(0xFFFFFFFF)
+val LightSecondaryContainer = Color(0xFFD9E2FF)
+val LightOnSecondaryContainer = Color(0xFF001C3B)
+val LightTertiary = Color(0xFF2A6B2C)
+val LightOnTertiary = Color(0xFFFFFFFF)
+val LightTertiaryContainer = Color(0xFFB0F3AA)
+val LightOnTertiaryContainer = Color(0xFF062100)
+val LightBackground = Color(0xFFF8F9FF)
+val LightOnBackground = Color(0xFF191B22)
+val LightSurface = Color(0xFFF8F9FF)
+val LightOnSurface = Color(0xFF191B22)
+val LightSurfaceVariant = Color(0xFFDDE2F5)
+val LightOnSurfaceVariant = Color(0xFF414656)
+val LightSurfaceDim = Color(0xFFD7DAE3)
+val LightSurfaceBright = Color(0xFFF8F9FF)
+val LightSurfaceContainerLowest = Color(0xFFFFFFFF)
+val LightSurfaceContainerLow = Color(0xFFF1F3FD)
+val LightSurfaceContainer = Color(0xFFEBEEF7)
+val LightSurfaceContainerHigh = Color(0xFFE5E8F1)
+val LightSurfaceContainerHighest = Color(0xFFE0E2EC)
+val LightOutline = Color(0xFF717788)
+val LightOutlineVariant = Color(0xFFC1C6D9)
+val LightInverseSurface = Color(0xFF2E3037)
+val LightInverseOnSurface = Color(0xFFEEF0FA)
+val LightInversePrimary = Color(0xFFF9BC48)
+
+val DarkPrimary = Color(0xFFF9BC48)
+val DarkOnPrimary = Color(0xFF412D00)
+val DarkPrimaryContainer = Color(0xFF5E4200)
+val DarkOnPrimaryContainer = Color(0xFFFFDEAD)
+val DarkSecondary = Color(0xFFB6C6F2)
+val DarkOnSecondary = Color(0xFF1B3053)
+val DarkSecondaryContainer = Color(0xFF34466B)
+val DarkOnSecondaryContainer = Color(0xFFD9E2FF)
+val DarkTertiary = Color(0xFF94D78F)
+val DarkOnTertiary = Color(0xFF003908)
+val DarkTertiaryContainer = Color(0xFF0A5315)
+val DarkOnTertiaryContainer = Color(0xFFB0F3AA)
+val DarkBackground = Color(0xFF11131A)
+val DarkOnBackground = Color(0xFFE0E2EC)
+val DarkSurface = Color(0xFF11131A)
+val DarkOnSurface = Color(0xFFE0E2EC)
+val DarkSurfaceVariant = Color(0xFF414656)
+val DarkOnSurfaceVariant = Color(0xFFC1C6D9)
+val DarkSurfaceDim = Color(0xFF11131A)
+val DarkSurfaceBright = Color(0xFF373940)
+val DarkSurfaceContainerLowest = Color(0xFF0B0E16)
+val DarkSurfaceContainerLow = Color(0xFF191B22)
+val DarkSurfaceContainer = Color(0xFF1D1F26)
+val DarkSurfaceContainerHigh = Color(0xFF282A31)
+val DarkSurfaceContainerHighest = Color(0xFF32353C)
+val DarkOutline = Color(0xFF8B90A2)
+val DarkOutlineVariant = Color(0xFF414656)
+val DarkInverseSurface = Color(0xFFE0E2EC)
+val DarkInverseOnSurface = Color(0xFF2E3037)
+val DarkInversePrimary = Color(0xFF7C5800)
+
+// M3's baseline error palette, used as-is: there's no reason to brand "something went wrong".
+val LightError = Color(0xFFB3261E)
+val LightOnError = Color(0xFFFFFFFF)
+val LightErrorContainer = Color(0xFFF9DEDC)
+val LightOnErrorContainer = Color(0xFF410E0B)
+val DarkError = Color(0xFFF2B8B5)
+val DarkOnError = Color(0xFF601410)
+val DarkErrorContainer = Color(0xFF8C1D18)
+val DarkOnErrorContainer = Color(0xFFF9DEDC)
 
 // Game-table palette: the tavern felt/parchment look of the in-game board, kept separate from
-// the app chrome colors above. Referenced by the default GameVisualTheme implementations in
-// ui.game.style, which is the layer to swap out for alternate dice/cup/background art.
+// the Material roles above. Referenced by the default GameVisualTheme implementations in
+// ui.game.style, which is the layer to swap out for alternate dice/cup/background art. These are
+// deliberately NOT colour roles - the board is a rendered object, not app chrome, and it looks
+// the same whichever theme the app is in.
 val FeltNavyTop = Color(0xFF1C3D66)
 val FeltNavyBottom = Color(0xFF0B1E3A)
 val TrayBlueTop = Color(0xFF3574C4)

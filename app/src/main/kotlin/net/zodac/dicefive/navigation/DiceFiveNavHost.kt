@@ -1,5 +1,8 @@
 package net.zodac.dicefive.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,6 +27,7 @@ import androidx.navigation.compose.rememberNavController
 import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.ui.about.AboutScreen
 import net.zodac.dicefive.ui.achievements.AchievementsScreen
+import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.game.GameScreen
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.menu.MenuScreen
@@ -33,9 +37,26 @@ import net.zodac.dicefive.ui.settings.SettingsScreen
 import net.zodac.dicefive.ui.settings.SettingsViewModel
 import net.zodac.dicefive.ui.setup.GameSetupScreen
 
+/**
+ * Half of Navigation Compose's own default (a 700ms cross-fade), which is slow enough to feel like
+ * the app is thinking between a menu tap and the screen arriving. Applied at the [NavHost] so every
+ * destination moves at the same speed rather than each one setting its own.
+ */
+private const val SCREEN_TRANSITION_MILLIS = 350
+
 @Composable
 fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) {
-    NavHost(navController = navController, startDestination = Screen.MENU) {
+    val fadeIn = fadeIn(animationSpec = tween(SCREEN_TRANSITION_MILLIS))
+    val fadeOut = fadeOut(animationSpec = tween(SCREEN_TRANSITION_MILLIS))
+
+    NavHost(
+        navController = navController,
+        startDestination = Screen.MENU,
+        enterTransition = { fadeIn },
+        exitTransition = { fadeOut },
+        popEnterTransition = { fadeIn },
+        popExitTransition = { fadeOut },
+    ) {
         composable(Screen.MENU) {
             val context = LocalContext.current
             val inProgressGameRepository = remember { InProgressGameRepository(context) }
@@ -65,6 +86,7 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                     GameSetupScreen(
                         viewModel = viewModel,
                         onStartGame = { navController.navigate(Screen.PLAY_GAME) },
+                        onBack = { navController.navigateUp() },
                     )
                 } else {
                     var resumed by remember { mutableStateOf<Boolean?>(null) }
@@ -76,9 +98,12 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                         false -> GameSetupScreen(
                             viewModel = viewModel,
                             onStartGame = { navController.navigate(Screen.PLAY_GAME) },
+                            onBack = { navController.navigateUp() },
                         )
-                        null -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
+                        null -> BrandBackdrop {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
                         }
                     }
                 }
@@ -95,13 +120,19 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
 
         composable(Screen.SCORES) {
             val context = LocalContext.current
-            ScoresScreen(viewModel = viewModel(factory = ScoresViewModel.factory(context)))
+            ScoresScreen(
+                viewModel = viewModel(factory = ScoresViewModel.factory(context)),
+                onBack = { navController.navigateUp() },
+            )
         }
-        composable(Screen.ACHIEVEMENTS) { AchievementsScreen() }
+        composable(Screen.ACHIEVEMENTS) { AchievementsScreen(onBack = { navController.navigateUp() }) }
         composable(Screen.SETTINGS) {
             val context = LocalContext.current
-            SettingsScreen(viewModel = viewModel(factory = SettingsViewModel.factory(context)))
+            SettingsScreen(
+                viewModel = viewModel(factory = SettingsViewModel.factory(context)),
+                onBack = { navController.navigateUp() },
+            )
         }
-        composable(Screen.ABOUT) { AboutScreen() }
+        composable(Screen.ABOUT) { AboutScreen(onBack = { navController.navigateUp() }) }
     }
 }

@@ -1,95 +1,178 @@
 package net.zodac.dicefive.ui.scores
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
+import net.zodac.dicefive.ui.common.ScreenScaffold
 
 private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a")
+
+/** Ranks worth calling out on the leaderboard, whichever page they happen to fall on. */
+private const val PODIUM_RANKS = 3
+
+/** A text button's own height - the space the pagination row occupies, filled or not. */
+private val PAGINATION_ROW_HEIGHT = 40.dp
 
 @Composable
 fun ScoresScreen(
     viewModel: ScoresViewModel,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(text = "Scores", style = MaterialTheme.typography.headlineMedium)
-
+    ScreenScaffold(title = "Scores", onBack = onBack, modifier = modifier) {
         if (state.entries.isEmpty()) {
-            Text(text = "No scores yet - play a game!")
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "No scores yet - play a game!",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                )
+            }
         } else {
-            HeaderRow()
-            HorizontalDivider()
-            LazyColumn(modifier = Modifier.weight(1f)) {
-                itemsIndexed(state.entries, key = { _, entry -> entry.id }) { index, entry ->
-                    val rank = state.pageIndex * SCORES_PAGE_SIZE + index + 1
-                    ScoreRow(rank = rank, entry = entry)
+            Card(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    HeaderRow()
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    LazyColumn(modifier = Modifier.weight(1f)) {
+                        itemsIndexed(state.entries, key = { _, entry -> entry.id }) { index, entry ->
+                            val rank = state.pageIndex * SCORES_PAGE_SIZE + index + 1
+                            ScoreRow(rank = rank, entry = entry, striped = index % 2 == 1)
+                        }
+                    }
                 }
             }
-            PaginationControls(
-                pageIndex = state.pageIndex,
-                totalPages = state.totalPages,
-                hasPrevious = state.hasPreviousPage,
-                hasNext = state.hasNextPage,
-                onPrevious = viewModel::previousPage,
-                onNext = viewModel::nextPage,
-            )
+            // The row's height is reserved whether or not anything fills it: the controls are only
+            // worth showing when there's somewhere to page to ("Page 1 of 1" between two dead
+            // buttons is furniture), but letting the table grow into the gap would mean the card
+            // ended in a different place on a one-page leaderboard than on a two-page one.
+            Box(
+                modifier = Modifier.fillMaxWidth().height(PAGINATION_ROW_HEIGHT),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (state.totalPages > 1) {
+                    PaginationControls(
+                        pageIndex = state.pageIndex,
+                        totalPages = state.totalPages,
+                        hasPrevious = state.hasPreviousPage,
+                        hasNext = state.hasNextPage,
+                        onPrevious = viewModel::previousPage,
+                        onNext = viewModel::nextPage,
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun HeaderRow() {
-    Row(modifier = Modifier.fillMaxWidth()) {
-        Text(text = "#", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-        Text(text = "Player", modifier = Modifier.weight(3f), style = MaterialTheme.typography.labelLarge)
-        Text(text = "Score", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp)) {
+        HeaderCell(text = "#", weight = 1f)
+        HeaderCell(text = "Player", weight = 4f)
+        HeaderCell(text = "Score", weight = 1.5f, align = TextAlign.End)
     }
 }
 
+@Composable
+private fun RowScope.HeaderCell(text: String, weight: Float, align: TextAlign = TextAlign.Start) {
+    Text(
+        text = text,
+        modifier = Modifier.weight(weight),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = align,
+    )
+}
+
+// rememberPlainTooltipPositionProvider is deprecated in favour of rememberTooltipPositionProvider,
+// which doesn't exist yet in material3 1.4.0 - it arrives with the 1.5.0 line. Swap it over then.
+@Suppress("DEPRECATION")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScoreRow(rank: Int, entry: ScoreEntry) {
+private fun ScoreRow(rank: Int, entry: ScoreEntry, striped: Boolean) {
+    val onPodium = rank <= PODIUM_RANKS
+    val accent = MaterialTheme.colorScheme.primary
+
     val tooltipState = rememberTooltipState()
     TooltipBox(
         positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
         tooltip = { PlainTooltip { Text(text = formatDate(entry.timestampEpochMillis)) } },
         state = tooltipState,
     ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            Text(text = rank.toString(), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-            Text(text = entry.playerName, modifier = Modifier.weight(3f), style = MaterialTheme.typography.bodyMedium)
-            Text(text = entry.score.toString(), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.small)
+                // Zebra striping instead of a divider per row: at 100 rows a page, lines turn the
+                // table into a grid, while alternating fills stay quiet.
+                .background(if (striped) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent)
+                .padding(horizontal = 8.dp, vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = rank.toString(),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (onPodium) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (onPodium) FontWeight.Bold else FontWeight.Normal,
+            )
+            Text(
+                text = entry.playerName,
+                modifier = Modifier.weight(4f),
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = entry.score.toString(),
+                modifier = Modifier.weight(1.5f),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (onPodium) accent else MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.End,
+            )
         }
     }
 }
@@ -106,10 +189,29 @@ private fun PaginationControls(
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        OutlinedButton(onClick = onPrevious, enabled = hasPrevious) { Text("Previous") }
-        Text(text = "Page ${pageIndex + 1} of $totalPages", style = MaterialTheme.typography.bodyMedium)
-        OutlinedButton(onClick = onNext, enabled = hasNext) { Text("Next") }
+        TextButton(onClick = onPrevious, enabled = hasPrevious) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = null,
+                modifier = Modifier.padding(end = 4.dp),
+            )
+            Text("Previous")
+        }
+        Text(
+            text = "Page ${pageIndex + 1} of $totalPages",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        TextButton(onClick = onNext, enabled = hasNext) {
+            Text("Next")
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.padding(start = 4.dp),
+            )
+        }
     }
 }
 

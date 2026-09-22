@@ -3,6 +3,7 @@ package net.zodac.dicefive
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
@@ -18,6 +19,10 @@ import net.zodac.dicefive.ui.theme.DiceFiveTheme
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Draws behind the system bars, which is the platform default from Android 15 (targetSdk
+        // 35) onwards rather than an opt-in: screens handle the insets themselves, via Scaffold or
+        // windowInsetsPadding, so the backdrop runs edge to edge under a transparent status bar.
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
             val settingsRepository = remember { SettingsRepository(applicationContext) }

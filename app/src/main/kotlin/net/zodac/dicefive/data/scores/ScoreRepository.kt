@@ -1,6 +1,7 @@
 package net.zodac.dicefive.data.scores
 
-const val SCORES_PAGE_SIZE = 100
+/** How many leaderboard rows make up one page. Was 100; halved so a page is a shorter scroll. */
+const val SCORES_PAGE_SIZE = 50
 
 class ScoreRepository(private val scoreDao: ScoreDao) {
 

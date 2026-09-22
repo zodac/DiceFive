@@ -15,6 +15,10 @@ the GitHub repo.
 Update this file's checkboxes as work lands, so the build can be resumed or
 revisited across sessions without re-deriving the plan.
 
+The interface itself is documented separately in `.claude/UI.md` — the
+Material 3 colour system, the shared chrome in `ui/common/`, and the layout
+decisions behind it. Read that before changing anything visual.
+
 ## Decisions (locked in)
 
 - **Persistence**: Room DB for score history, Jetpack DataStore
@@ -26,8 +30,9 @@ revisited across sessions without re-deriving the plan.
   highest-value open category on its last roll. Real difficulty logic is
   future work.
 - **Scores screen**: one global leaderboard (not split by player or game
-  type), sorted score-descending, paginated 100/page. No date column — date
-  is shown via a long-press tooltip.
+  type), sorted score-descending, paginated 50/page (originally 100; halved
+  alongside a compact row style, so a page is a shorter scroll). No date
+  column — date is shown via a long-press tooltip.
 - **About link**: `https://github.com/zodac/DiceFive`.
 - **Game type**: only `CLASSIC` is playable in v1; `EXTENDED` exists as an
   enum value shown disabled in the UI.
@@ -39,7 +44,8 @@ revisited across sessions without re-deriving the plan.
 - `androidx.navigation:navigation-compose`
 - Room: `androidx.room:room-runtime`, `androidx.room:room-ktx`, plus
   `androidx.room:room-compiler` via the **KSP** plugin
-  (`com.google.devtools.ksp`, version matched to Kotlin 2.0.20).
+  (`com.google.devtools.ksp`, version matched to the Kotlin version in
+  `gradle/libs.versions.toml`).
 - `androidx.datastore:datastore-preferences`
 - No kotlinx.serialization — settings are individual Preference keys, not
   serialized JSON.
@@ -88,15 +94,19 @@ net.zodac.dicefive/
                                           drives AI auto-play via viewModelScope coroutine with short delays between steps
       ScorecardView.kt / DiceRow.kt    — shared composables for the scorecard grid and dice display
     scores/
-      ScoresScreen.kt                  — paginated table (100/page), long-press row shows date tooltip
+      ScoresScreen.kt                  — paginated table (50/page), long-press row shows date tooltip
       ScoresViewModel.kt               — talks to ScoreRepository, tracks current page
     achievements/AchievementsScreen.kt — thin placeholder ("Coming soon"), no trigger infrastructure yet
     settings/
       SettingsScreen.kt                — theme radio group (Light/Dark/System)
       SettingsViewModel.kt             — reads/writes SettingsRepository.theme
     about/AboutScreen.kt               — app name/version + GitHub link via UriHandler
-    theme/                             — existing Theme.kt/Color.kt/Type.kt, unchanged except MainActivity now
-                                          passes darkTheme resolved from the stored Theme setting
+    theme/                             — Theme.kt (M3 colour schemes, no dynamic colour) + Color.kt (tonal-palette
+                                          roles, plus the separate game-table palette). MainActivity passes
+                                          darkTheme resolved from the stored Theme setting. No Type.kt: the M3
+                                          type scale is used as-is rather than overridden.
+    common/                            — chrome shared by the menu and every non-game page: BrandBackdrop,
+                                          ScreenScaffold (top app bar + back), PageColumn, AppLogo
 ```
 
 ## Screen flow (Navigation Compose)
@@ -163,10 +173,13 @@ dependencies — most unit tests live here.
 
 - `ScoreDao`: `ORDER BY score DESC LIMIT :limit OFFSET :offset`, plus a
   `COUNT(*)` query for total pages.
-- `ScoresViewModel`: current page index (0-based), 100 rows/page, next/prev
-  availability.
-- `ScoresScreen`: scrollable rank/name/score table; long-press a row shows a
-  popup/tooltip with the formatted date from `timestampEpochMillis`.
+- `ScoresViewModel`: current page index (0-based), `SCORES_PAGE_SIZE` rows
+  per page (50), next/prev availability.
+- `ScoresScreen`: scrollable rank/name/score table in a compact row style;
+  long-press a row shows a popup/tooltip with the formatted date from
+  `timestampEpochMillis`. The next/prev controls only render when there is
+  more than one page, but their height is always reserved, so the table ends
+  in the same place either way.
 
 ## Settings & theme
 

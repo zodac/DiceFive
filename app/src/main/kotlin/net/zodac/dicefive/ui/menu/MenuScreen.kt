@@ -2,24 +2,36 @@ package net.zodac.dicefive.ui.menu
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import net.zodac.dicefive.ui.common.AppLogo
+import net.zodac.dicefive.ui.common.BrandBackdrop
+import net.zodac.dicefive.ui.common.DiceFiveDialog
+import net.zodac.dicefive.ui.common.PageColumn
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
+
+/**
+ * Taller than a default M3 button (40dp), which reads as a form control rather than a menu
+ * destination at this size. Still a stock `Button` in every other respect - shape, colour roles,
+ * ripple, state layers and typography all come from the theme.
+ */
+private val MENU_BUTTON_HEIGHT = 56.dp
 
 @Composable
 fun MenuScreen(
@@ -35,41 +47,59 @@ fun MenuScreen(
     var showResumeDialog by remember { mutableStateOf(false) }
 
     if (showResumeDialog) {
-        AlertDialog(
+        DiceFiveDialog(
+            icon = Icons.Filled.RestartAlt,
+            title = "Resume game?",
+            message = "You have a game in progress. Continue where you left off, or start fresh?",
+            confirmLabel = "Continue",
+            onConfirm = { showResumeDialog = false; onContinue() },
+            dismissLabel = "New Game",
+            onDismiss = { showResumeDialog = false; onNewGame() },
+            // Backing out must not silently discard the saved game by starting a new one.
             onDismissRequest = { showResumeDialog = false },
-            title = { Text("Resume game?") },
-            text = { Text("You have a game in progress.") },
-            confirmButton = {
-                TextButton(onClick = { showResumeDialog = false; onContinue() }) { Text("Continue") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showResumeDialog = false; onNewGame() }) { Text("New Game") }
-            },
         )
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(text = "DiceFive", style = MaterialTheme.typography.headlineLarge)
+    BrandBackdrop(modifier = modifier) {
+        PageColumn(horizontalPadding = 28.dp) {
+            // Weighted spacers rather than fixed padding: the logo sits in the lit upper third and
+            // the button stack just below the middle, on a tall phone and a short one alike.
+            Spacer(modifier = Modifier.weight(0.22f))
 
-        Column(
-            modifier = Modifier.padding(top = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Button(
-                onClick = { if (hasInProgressGame) showResumeDialog = true else onNewGame() },
+            AppLogo()
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Play") }
-            Button(onClick = onScores, modifier = Modifier.fillMaxWidth()) { Text("Scores") }
-            Button(onClick = onAchievements, modifier = Modifier.fillMaxWidth()) { Text("Achievements") }
-            Button(onClick = onSettings, modifier = Modifier.fillMaxWidth()) { Text("Settings") }
-            Button(onClick = onAbout, modifier = Modifier.fillMaxWidth()) { Text("About") }
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                // One filled button for the primary action and tonal buttons for the rest: M3's
+                // emphasis hierarchy, which also stops five identical slabs competing for the eye.
+                Button(
+                    onClick = { if (hasInProgressGame) showResumeDialog = true else onNewGame() },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = MENU_BUTTON_HEIGHT),
+                ) {
+                    Text(text = "Play", style = MaterialTheme.typography.titleMedium)
+                }
+                MenuDestinationButton(label = "Scores", onClick = onScores)
+                MenuDestinationButton(label = "Achievements", onClick = onAchievements)
+                MenuDestinationButton(label = "Settings", onClick = onSettings)
+                MenuDestinationButton(label = "About", onClick = onAbout)
+            }
+
+            Spacer(modifier = Modifier.weight(0.38f))
         }
+    }
+}
+
+@Composable
+private fun MenuDestinationButton(label: String, onClick: () -> Unit) {
+    FilledTonalButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().heightIn(min = MENU_BUTTON_HEIGHT),
+    ) {
+        Text(text = label, style = MaterialTheme.typography.titleMedium)
     }
 }
 

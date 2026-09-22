@@ -54,6 +54,14 @@ data class GameSetupState(
     companion object {
         const val MIN_PLAYERS = 1
         const val MAX_PLAYERS = 4
+
+        /**
+         * Sized by where names are tightest: the in-game header, where [MAX_PLAYERS] tabs share one
+         * row. At four players a tab is about a quarter of the screen - roughly 72dp of text on a
+         * 360dp-wide phone - and a 10-character name fits that at the header's own type size
+         * without being ellipsised. It is not a database or gameplay limit; it is a layout one.
+         */
+        const val MAX_PLAYER_NAME_LENGTH = 10
     }
 }
 
@@ -113,7 +121,9 @@ class GameViewModel(
             viewModelScope.launch {
                 for (slot in 1..GameSetupState.MAX_PLAYERS) {
                     val savedName = repository.playerNameFor(slot).first() ?: continue
-                    updateSlot(slot) { it.copy(name = savedName) }
+                    // Via setPlayerName, so a name saved before the length cap existed is trimmed
+                    // to it on the way back in rather than reappearing over-long.
+                    setPlayerName(slot, savedName)
                 }
                 // Slot 1 is always Human, so its type is never saved/restored.
                 for (slot in 2..GameSetupState.MAX_PLAYERS) {
@@ -134,8 +144,12 @@ class GameViewModel(
         updateSlot(slot) { it.copy(type = type) }
     }
 
+    /**
+     * Enforced here rather than only in the text field, so the cap holds for every path into a
+     * name - including a longer one restored from a previous version's saved preferences.
+     */
     fun setPlayerName(slot: Int, name: String) {
-        updateSlot(slot) { it.copy(name = name) }
+        updateSlot(slot) { it.copy(name = name.take(GameSetupState.MAX_PLAYER_NAME_LENGTH)) }
     }
 
     fun setPlayerDifficulty(slot: Int, difficulty: Difficulty) {
