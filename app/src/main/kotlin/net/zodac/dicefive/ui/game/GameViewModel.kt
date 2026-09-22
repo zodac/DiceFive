@@ -80,7 +80,9 @@ class GameViewModel(
     private val _game = MutableStateFlow<GameState?>(null)
     val game: StateFlow<GameState?> = _game.asStateFlow()
 
-    /** The state to restore if [undo] is called - the pre-action snapshot of the most recent HUMAN move only. */
+    /** The state to restore if [undo] is called - the pre-commit snapshot of the most recent
+     * scoring action only. Rolling and holding/unholding dice are pure exploration/selection with
+     * no result of their own to undo; only commitScore actually changes the scorecard. */
     private var undoSnapshot: GameState? = null
     private val _canUndo = MutableStateFlow(false)
     val canUndo: StateFlow<Boolean> = _canUndo.asStateFlow()
@@ -166,11 +168,15 @@ class GameViewModel(
         return true
     }
 
-    fun rollDice() = onHumanAction { GameEngine.rollDice(it) }
+    // Not undoable: rolling has no scoring consequence of its own to undo - only a committed
+    // score does (see commitScore below).
+    fun rollDice() = onHumanAction(undoable = false) { GameEngine.rollDice(it) }
 
+    // Not undoable, same reasoning as rollDice: holding/unholding just selects what a future roll
+    // will touch, it doesn't itself score anything.
     fun toggleHold(dieIndex: Int) {
         trackSuperuserSequence(dieIndex)
-        onHumanAction { GameEngine.toggleHold(it, dieIndex) }
+        onHumanAction(undoable = false) { GameEngine.toggleHold(it, dieIndex) }
     }
 
     /** One cycle step (see [GameEngine.cycleDieValue]), called once per second while a held die is
@@ -185,10 +191,15 @@ class GameViewModel(
         applyGameState(GameEngine.cycleDieValue(state, dieIndex), checkForAiTurn = false)
     }
 
-    // Not undoable: committing a score always ends the current player's turn (advanceTurn in
-    // GameEngine), so an undo snapshot taken here would let the NEXT player's turn open with
-    // "Undo" wired to reopen the previous player's already-finished turn.
-    fun commitScore(category: ScoreCategory) = onHumanAction(undoable = false) { GameEngine.commitScore(it, category) }
+    // The only undoable action: committing a category is the only one of the three human actions
+    // that actually records a score. Note the trade-off versus the old "not undoable" rule this
+    // replaces: committing a score always ends the current player's turn (advanceTurn in
+    // GameEngine), so this snapshot is still live when the NEXT player's turn opens - if nobody
+    // has rolled or held anything yet (both now non-undoable and don't touch this snapshot),
+    // "Undo" at that point reaches back into the previous player's already-finished turn. Revisit
+    // this if that turns out to matter more in practice than being able to undo a bad category
+    // pick.
+    fun commitScore(category: ScoreCategory) = onHumanAction(undoable = true) { GameEngine.commitScore(it, category) }
 
     /** Reverts just the most recent human move, if there is one to undo. Cancels any pending AI turn it would have triggered. */
     fun undo() {

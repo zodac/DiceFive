@@ -39,9 +39,13 @@ object GameEngine {
         )
     }
 
+    // No rollsRemaining check (there used to be one, forbidding it after the final roll): holding
+    // has no effect on a roll that will never happen, but forbidding it bought nothing either -
+    // it just made the UI look broken (dice suddenly stop responding to taps) for zero functional
+    // reason, and blocked superuser cycling at exactly the point in a turn it's most likely to be
+    // used (right after seeing the final roll).
     fun toggleHold(state: GameState, dieIndex: Int): GameState {
         check(state.phase == TurnPhase.ROLLED) { "Cannot hold dice before rolling" }
-        check(state.rollsRemaining > 0) { "Cannot change holds after the final roll" }
         val newDice = state.dice.mapIndexed { index, die ->
             if (index == dieIndex) die.copy(isHeld = !die.isHeld) else die
         }

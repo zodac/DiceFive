@@ -88,29 +88,70 @@ internal fun CategoryCell(
     val isLegalChoice = player != null && canScore && category in available
     val previewScore = if (isLegalChoice) ScoreCalculator.scoreFor(player!!, category, dice) else null
     val isGoodChoice = previewScore != null && previewScore > 0
+    // Every Yahtzee after the first earns a +100 bonus chip tracked separately from the scorecard
+    // entry itself (which stays 50) - see PlayerState.yahtzeeBonusCount/Total and
+    // ScoreCalculator.awardsYahtzeeBonus. Zero for every other category.
+    val yahtzeeBonusCount = if (category == ScoreCategory.YAHTZEE) player?.yahtzeeBonusCount ?: 0 else 0
+    // The Yahtzee box itself is never a "legal choice" again once filled (it's not in `available`,
+    // so isGoodChoice above is always false for it) - but the +100 bonus applies automatically to
+    // whichever OTHER category gets committed this turn, so without this, rolling a second (or
+    // later) Yahtzee gave no visual sign anything special was about to happen.
+    val awardsBonusPreview = category == ScoreCategory.YAHTZEE && canScore && player != null &&
+        ScoreCalculator.awardsYahtzeeBonus(player, dice)
+    val pendingBonusTotal = (player?.yahtzeeBonusTotal ?: 0) + if (awardsBonusPreview) 100 else 0
 
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         CategoryTile(
             category = category,
+            // Not `|| awardsBonusPreview`: the tile itself is never actually pickable again once
+            // scored (it isn't a legal choice), so glowing it like an open, scorable box would be
+            // misleading - the +score line below is the preview, the tile's look doesn't change.
             highlighted = isGoodChoice,
             prominent = prominent,
             scored = filled != null,
+            yahtzeeBonusCount = yahtzeeBonusCount,
             onClick = if (isLegalChoice) { { onScoreCategory(category) } } else null,
         )
-        val text = filled?.toString() ?: previewScore?.toString() ?: "-"
-        Text(
-            text = text,
-            color = if (isGoodChoice) GoldAccent else TileIconColor.copy(alpha = if (filled != null) 1f else 0.55f),
-            fontWeight = if (isGoodChoice) FontWeight.Bold else FontWeight.Normal,
-            style = if (prominent) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            // The weighted width here is razor-thin by design (see the Row's spacedBy comment
-            // above) - just enough for a single digit. Clip was hard-cropping the second digit of
-            // any score above 9 (Fives, Chance, ...); Visible lets it spill into that reserved gap
-            // instead of being cut off.
-            overflow = TextOverflow.Visible,
-            softWrap = false,
-            modifier = Modifier.weight(1f),
-        )
+        if (yahtzeeBonusCount > 0 || awardsBonusPreview) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = filled.toString(),
+                    color = TileIconColor,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Visible,
+                    softWrap = false,
+                )
+                Text(
+                    // The total bonus, not one line per extra Yahtzee - ten of them is still just
+                    // one "+900" line here, not ten "+100"s. While awardsBonusPreview, this is the
+                    // pending total (what it'll become once ANY category is committed this turn),
+                    // not just what's already been earned.
+                    text = "+$pendingBonusTotal",
+                    color = GoldAccent,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Visible,
+                    softWrap = false,
+                )
+            }
+        } else {
+            val text = filled?.toString() ?: previewScore?.toString() ?: "-"
+            Text(
+                text = text,
+                color = if (isGoodChoice) GoldAccent else TileIconColor.copy(alpha = if (filled != null) 1f else 0.55f),
+                fontWeight = if (isGoodChoice) FontWeight.Bold else FontWeight.Normal,
+                style = if (prominent) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                // The weighted width here is razor-thin by design (see the Row's spacedBy comment
+                // above) - just enough for a single digit. Clip was hard-cropping the second digit
+                // of any score above 9 (Fives, Chance, ...); Visible lets it spill into that
+                // reserved gap instead of being cut off.
+                overflow = TextOverflow.Visible,
+                softWrap = false,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }

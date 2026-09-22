@@ -134,7 +134,11 @@ private fun InProgressGame(
     val currentPlayer = state.currentPlayer
     val isHumanTurn = currentPlayer?.type == PlayerType.HUMAN
     val canRoll = isHumanTurn && state.rollsRemaining > 0
-    val canHold = isHumanTurn && state.phase == TurnPhase.ROLLED && state.rollsRemaining > 0
+    // No rollsRemaining condition here (see GameEngine.toggleHold): holding still has no effect on
+    // a roll that won't happen after the last one, but disabling the dice entirely once it hits 0
+    // looked like the tray had broken, and it blocked superuser cycling right when it's most
+    // likely to be used - right after seeing the final roll.
+    val canHold = isHumanTurn && state.phase == TurnPhase.ROLLED
 
     var isRolling by remember { mutableStateOf(false) }
     // Scattered dice (and their scramble animation) should appear the instant the cup is tapped,

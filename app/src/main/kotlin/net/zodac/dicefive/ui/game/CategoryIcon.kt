@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.game
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,6 +24,7 @@ import net.zodac.dicefive.R
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.ui.game.style.PipFace
+import net.zodac.dicefive.ui.theme.TileIconColor
 
 /**
  * The small glyph shown inside a [CategoryTile]: dice pips for the upper section, and a bespoke
@@ -38,6 +40,9 @@ fun CategoryIcon(
     // with the rest of a scored icon. Separate from [color] so the badge can follow the
     // scored-dim state without also following the highlighted-gold state - see StairsWithRunBadge.
     dimmed: Boolean = false,
+    // Extra Yahtzees beyond the first (see PlayerState.yahtzeeBonusCount) - only ever nonzero for
+    // ScoreCategory.YAHTZEE, so a corner badge can show the total count once there's more than one.
+    yahtzeeBonusCount: Int = 0,
 ) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         when (category) {
@@ -48,7 +53,7 @@ fun CategoryIcon(
 
             ScoreCategory.THREE_OF_A_KIND -> BadgeLabel("3x", color, labelFontSize)
             ScoreCategory.FOUR_OF_A_KIND -> BadgeLabel("4x", color, labelFontSize)
-            ScoreCategory.YAHTZEE -> BadgeLabel("5x", color, labelFontSize)
+            ScoreCategory.YAHTZEE -> YahtzeeIcon(color, labelFontSize, yahtzeeBonusCount)
             ScoreCategory.CHANCE -> BadgeLabel("?", color, labelFontSize)
             // A stock glyph rather than a hand-drawn one (a previous roof/body Canvas silhouette
             // read as too tall for the tile). The tile itself is always square (CategoryTile sizes
@@ -70,33 +75,71 @@ fun CategoryIcon(
     }
 }
 
+// Both corner badges (run-length and Yahtzee count) size and inset themselves as a fraction of
+// their OWN tile's rendered width, not a fixed dp value - a fixed 2dp/14dp reads as generous
+// clearance on a 48dp regular tile but sits nearly flush with the edge on the 76dp prominent
+// Yahtzee tile, since the same absolute gap is proportionally much smaller there. Fractions are
+// of the REGULAR_TILE_SIZE case (see CategoryTile.kt) - the original hand-tuned 2dp inset / 14dp
+// badge size on a 48dp tile - so both badges keep the same relative position and weight at any
+// tile size.
+private const val BADGE_EDGE_INSET_FRACTION = 2f / 48f
+private const val BADGE_SIZE_FRACTION = 14f / 48f
+
 @Composable
-private fun BadgeLabel(text: String, color: Color, fontSize: TextUnit) {
+private fun BadgeLabel(text: String, color: Color, fontSize: TextUnit, modifier: Modifier = Modifier) {
     Text(
         text = text,
         color = color,
         style = TextStyle(fontWeight = FontWeight.Black, fontSize = fontSize, textAlign = TextAlign.Center),
+        modifier = modifier,
     )
 }
 
 /**
+ * The "5x" badge, plus - once a player has rolled more than one Yahtzee this game - a small corner
+ * badge showing the total count. Unlike the straight run-length badge, this one can safely share
+ * [color] with the main glyph: it only ever appears once the box is already scored (the bonus
+ * requires a genuine 50 already on the card - see ScoreCalculator.awardsYahtzeeBonus), a stable
+ * state for the rest of the game, not one that flips between two categories independently the way
+ * highlighted/scored does for Small vs Large Straight.
+ */
+@Composable
+private fun YahtzeeIcon(color: Color, fontSize: TextUnit, bonusCount: Int) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        BadgeLabel("5x", color, fontSize, modifier = Modifier.align(Alignment.Center))
+        if (bonusCount > 0) {
+            val inset = maxWidth * BADGE_EDGE_INSET_FRACTION
+            val badgeSize = maxWidth * BADGE_SIZE_FRACTION
+            SegmentBadge(
+                // Total Yahtzees, not just the bonus count: the first one (the 50 itself) counts
+                // too.
+                count = bonusCount + 1,
+                color = color,
+                // Top-left, matching the Small/Large Straight run-length badge's position (see
+                // StairsWithRunBadge) - same proportional clearance off the tile edge, scaled up
+                // for this tile being PROMINENT-sized (76dp) rather than regular (48dp).
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = inset, start = inset)
+                    .size(badgeSize),
+            )
+        }
+    }
+}
+
+/**
  * The stairs icon itself still dims/glows with [color] like every other tile (scored,
- * highlighted). The run-length badge is different in two ways:
- * - Its colors are fixed, baked into `ic_run_badge_4`/`_5` rather than driven by [color]: tying it
- *   to [color] meant Small and Large Straight could show different badge colors at the same
- *   moment purely because the current dice happen to qualify one but not the other, which read as
- *   the two categories having inconsistent, unrelated badge styling rather than one shared design.
- * - It's a flattened vector asset, not a Compose `Text` in a circle: a single digit at 8sp inside
- *   a 14dp circle inherited an ambient line-height much taller than the glyph itself, so it never
- *   sat centered in the circle - a font-metrics problem a real graphic doesn't have, and one that
- *   would only get worse under a user's larger system font-scale setting.
- * It still needs to fade when scored, like the rest of the icon - [dimmed] drives that alpha,
- * independently of [color], so it fades on "scored" but not on "highlighted".
+ * highlighted). The run-length badge is different: its color is fixed (always [color] at full
+ * strength, only ever faded via [dimmed]) rather than driven by whatever [color] the icon itself
+ * currently has - tying it directly to that would let Small and Large Straight show different
+ * badge colors at the same moment purely because the current dice happen to qualify one but not
+ * the other, which read as the two categories having inconsistent, unrelated badge styling rather
+ * than one shared design. It still needs to fade when scored, like the rest of the icon - [dimmed]
+ * drives that alpha, independently of [color], so it fades on "scored" but not on "highlighted".
  */
 @Composable
 private fun StairsWithRunBadge(color: Color, runLength: Int, dimmed: Boolean) {
-    val badgeRes = if (runLength == 4) R.drawable.ic_run_badge_4 else R.drawable.ic_run_badge_5
-    Box(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         Icon(
             // A plain custom shape (ic_stairs.xml), not Icons.Filled/Outlined.Stairs: both of
             // Material's variants come from its wayfinding/signage icon family and draw the
@@ -109,18 +152,17 @@ private fun StairsWithRunBadge(color: Color, runLength: Int, dimmed: Boolean) {
             tint = color,
             modifier = Modifier.fillMaxSize().padding(8.dp),
         )
-        Icon(
-            painter = painterResource(badgeRes),
-            contentDescription = null,
-            // Unspecified, not `color`: preserves the asset's own two-tone circle+digit colors
-            // instead of Icon flattening them to a single tint.
-            tint = Color.Unspecified,
+        SegmentBadge(
+            count = runLength,
+            color = TileIconColor,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 // Clears the tile's own edge/border - without it the badge's ring sat flush
-                // against the tile boundary with no breathing room.
-                .padding(top = 2.dp, start = 2.dp)
-                .size(14.dp)
+                // against the tile boundary with no breathing room. This is a REGULAR (48dp)
+                // tile, so this is exactly the reference 2dp/14dp the proportional fractions above
+                // were derived from.
+                .padding(top = maxWidth * BADGE_EDGE_INSET_FRACTION, start = maxWidth * BADGE_EDGE_INSET_FRACTION)
+                .size(maxWidth * BADGE_SIZE_FRACTION)
                 .alpha(if (dimmed) 0.4f else 1f),
         )
     }

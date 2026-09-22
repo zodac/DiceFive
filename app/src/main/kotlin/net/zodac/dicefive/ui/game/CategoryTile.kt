@@ -49,6 +49,7 @@ fun CategoryTile(
     modifier: Modifier = Modifier,
     prominent: Boolean = false,
     scored: Boolean = false,
+    yahtzeeBonusCount: Int = 0,
     onClick: (() -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(if (prominent) 16.dp else 10.dp)
@@ -96,6 +97,7 @@ fun CategoryTile(
             modifier = Modifier.fillMaxSize(),
             labelFontSize = if (prominent) 30.sp else 18.sp,
             dimmed = scored,
+            yahtzeeBonusCount = yahtzeeBonusCount,
         )
     }
 }

@@ -74,8 +74,14 @@ private const val CYCLE_INTERVAL_MILLIS = 1_000L
  * A die's clickable area is its ENTIRE column, top to bottom - not just the small slot or
  * scattered die graphic - so a tap anywhere from the hold spot down to the bottom of the tray
  * toggles that die's hold state, and (once [superuserModeActive]) holding a finger anywhere in an
- * already-held die's column cycles its face. Uses [LocalGameVisualTheme] for both the die art and
- * the background.
+ * already-held die's column cycles its face. The touch tracking is owned by this whole row, not
+ * each column individually: Compose locks a pointer's move/up events to whichever node first
+ * hit-tested its down event, so a per-column handler could never see a finger that started on a
+ * sibling column and slid over - dragging across the mat has to be handled at the one shared level
+ * that's under the finger the whole time. Sliding into another die's column cancels whatever the
+ * previous column was doing (a pending click, or superuser cycling) and starts fresh on the new
+ * one; only the column the finger is actually released over can register a click or leave cycling
+ * in effect. Uses [LocalGameVisualTheme] for both the die art and the background.
  */
 @Composable
 fun DiceTray(
@@ -86,9 +92,9 @@ fun DiceTray(
     onToggleHold: (Int) -> Unit,
     // Superuser mode (a hidden cheat - see GameViewModel.trackSuperuserSequence): once unlocked,
     // holding a finger anywhere in an already-held die's column cycles its face once a second,
-    // until released. onCycleValue is always wired; it's a no-op in the ViewModel until
-    // superuserModeActive is true, same as it being false (or the die not being held) here just
-    // means DiceColumn never attaches the press-and-hold handler in the first place.
+    // until released or the finger slides into a different column. onCycleValue is always wired;
+    // it's a no-op in the ViewModel until superuserModeActive is true, same as it being false (or
+    // a given die not being held) here just means that column is never eligible to cycle.
     superuserModeActive: Boolean = false,
     onCycleValue: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -103,64 +109,23 @@ fun DiceTray(
         }
     }
 
+    // rememberUpdatedState, not the raw parameters: `dice` (including whichever die is currently
+    // cycling) recomposes this composable every tick, which would otherwise hand the gesture
+    // handler a stale closure over `dice`/`onToggleHold`/`onCycleValue` from whenever it started.
+    // The handler itself is keyed only on `enabled` (see the pointerInput call below) so a
+    // value-only recomposition never restarts a press already in progress - reading everything
+    // through these keeps it current regardless.
+    val currentDice by rememberUpdatedState(dice)
+    val currentOnToggleHold by rememberUpdatedState(onToggleHold)
+    val currentOnCycleValue by rememberUpdatedState(onCycleValue)
+    val currentSuperuserModeActive by rememberUpdatedState(superuserModeActive)
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(visualTheme.background.diceTrayBrush)
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        dice.forEachIndexed { index, die ->
-            DiceColumn(
-                die = die,
-                show = showDice,
-                enabled = enabled,
-                rolling = rolling,
-                scrambleTick = scrambleTick,
-                scatter = SCATTER_OFFSETS[index % SCATTER_OFFSETS.size],
-                seed = index,
-                diceStyle = visualTheme.diceStyle,
-                onClick = { onToggleHold(index) },
-                onCycleValue = if (superuserModeActive && die.isHeld) { { onCycleValue(index) } } else null,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-/**
- * One die's full column: the slot (top) and its scattered position (below), both driven by the
- * same [die] and both inside one clickable/press-trackable region spanning the whole column - see
- * [DiceTray]'s doc comment for why.
- */
-@Composable
-private fun DiceColumn(
-    die: Die,
-    show: Boolean,
-    enabled: Boolean,
-    rolling: Boolean,
-    scrambleTick: Int,
-    scatter: ScatterOffset,
-    seed: Int,
-    diceStyle: DiceStyle,
-    onClick: () -> Unit,
-    // Null (not just a no-op lambda) so a plain tap-to-toggle is the only thing wired up when
-    // superuser mode isn't active (or this die isn't held), rather than every column silently
-    // paying for the press-tracking below whether or not it can ever do anything.
-    onCycleValue: (() -> Unit)?,
-    modifier: Modifier = Modifier,
-) {
-    // rememberUpdatedState, not the raw parameters: dice (including this one's own value, while
-    // cycling) recomposes DiceTray every tick, which hands DiceColumn a BRAND NEW onClick/
-    // onCycleValue lambda instance each time. The gesture handler below is keyed only on
-    // `enabled` (see the pointerInput call) so a value-only recomposition never restarts a
-    // press already in progress - reading the callbacks through this keeps them current anyway.
-    val currentOnClick by rememberUpdatedState(onClick)
-    val currentOnCycleValue by rememberUpdatedState(onCycleValue)
-
-    Column(
-        modifier = modifier
+            .padding(16.dp)
             .then(
                 if (enabled) {
                     // No indication/ripple here on purpose: at the size of a whole column it
@@ -168,12 +133,12 @@ private fun DiceColumn(
                     // not a per-die press effect.
                     //
                     // Hand-rolled instead of Modifier.clickable: a plain clickable's gesture
-                    // recognizer treats enough drag as a cancel, which handed off to this
-                    // screen's enclosing verticalScroll on the slightest finger movement - even
-                    // movement that stayed well inside this same column - cancelling the press
-                    // (and the superuser cycling with it). Consuming every pointer change for as
-                    // long as any pointer here stays down denies the scroll container that drag
-                    // delta, so it never has grounds to steal the gesture.
+                    // recognizer treats enough drag as a cancel, which handed off to this screen's
+                    // enclosing verticalScroll on the slightest finger movement - even movement
+                    // that stayed well inside one column - cancelling the press (and the superuser
+                    // cycling with it). Consuming every pointer change for as long as any pointer
+                    // here stays down denies the scroll container that drag delta, so it never has
+                    // grounds to steal the gesture.
                     Modifier.pointerInput(enabled) {
                         // coroutineScope for a real CoroutineScope to launch the concurrent
                         // cycle-ticking coroutine on (PointerInputScope itself isn't one). Two
@@ -184,23 +149,48 @@ private fun DiceColumn(
                         // restricted block tracks movement/up.
                         coroutineScope {
                             while (true) {
-                                awaitPointerEventScope { awaitFirstDown(requireUnconsumed = false).consume() }
-
-                                var cycled = false
-                                val cycleJob = currentOnCycleValue?.let { cycle ->
-                                    launch {
-                                        while (isActive) {
-                                            delay(CYCLE_INTERVAL_MILLIS)
-                                            cycled = true
-                                            cycle()
-                                        }
-                                    }
+                                val down = awaitPointerEventScope {
+                                    awaitFirstDown(requireUnconsumed = false).also { it.consume() }
                                 }
+                                val columnCount = currentDice.size
+                                var activeIndex = columnIndexForX(down.position.x, size.width, columnCount)
+                                var cycled = false
+
+                                fun cycleEligible(index: Int) =
+                                    currentSuperuserModeActive && currentDice.getOrNull(index)?.isHeld == true
+
+                                fun startCycling() =
+                                    if (cycleEligible(activeIndex)) {
+                                        val index = activeIndex
+                                        launch {
+                                            while (isActive) {
+                                                delay(CYCLE_INTERVAL_MILLIS)
+                                                cycled = true
+                                                currentOnCycleValue(index)
+                                            }
+                                        }
+                                    } else {
+                                        null
+                                    }
+
+                                var cycleJob = startCycling()
 
                                 awaitPointerEventScope {
                                     do {
                                         val event = awaitPointerEvent()
                                         event.changes.forEach { it.consume() }
+                                        val pointer = event.changes.firstOrNull { it.id == down.id }
+                                        val newIndex = pointer?.let { columnIndexForX(it.position.x, size.width, columnCount) }
+                                        if (newIndex != null && newIndex != activeIndex) {
+                                            // Crossed into a different die's column: whatever the
+                                            // previous one was doing (a pending click, or cycling)
+                                            // is abandoned, not completed - only the column the
+                                            // finger actually settles on and releases over acts.
+                                            cycleJob?.cancel()
+                                            activeIndex = newIndex
+                                            cycled = false
+                                            cycleJob = startCycling()
+                                        }
                                     } while (event.changes.any { it.pressed })
                                 }
                                 cycleJob?.cancel()
@@ -210,7 +200,7 @@ private fun DiceColumn(
                                 // first 1s cycle tick) still toggles hold as normal, and releasing
                                 // right after cycling doesn't ALSO immediately toggle the value
                                 // just picked.
-                                if (!cycled) currentOnClick()
+                                if (!cycled) currentOnToggleHold(activeIndex)
                             }
                         }
                     }
@@ -218,8 +208,48 @@ private fun DiceColumn(
                     Modifier
                 },
             ),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        dice.forEachIndexed { index, die ->
+            DiceColumn(
+                die = die,
+                show = showDice,
+                rolling = rolling,
+                scrambleTick = scrambleTick,
+                scatter = SCATTER_OFFSETS[index % SCATTER_OFFSETS.size],
+                seed = index,
+                diceStyle = visualTheme.diceStyle,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/** Which of [columnCount] equal-width columns a touch at local x-position [x] (within a row of
+ * [totalWidthPx] pixels) falls in. Approximate - it divides the row's full width evenly rather
+ * than accounting for the small gaps Arrangement.spacedBy leaves between columns - which only
+ * shifts a column boundary by a couple of dp right where the gap itself already is, not somewhere
+ * that reads as a wrong die. */
+private fun columnIndexForX(x: Float, totalWidthPx: Int, columnCount: Int): Int =
+    (x / totalWidthPx.toFloat() * columnCount).toInt().coerceIn(0, columnCount - 1)
+
+/**
+ * One die's full column: the slot (top) and its scattered position (below), both driven by the
+ * same [die]. Purely visual - [DiceTray] owns all touch handling for the whole row (see its doc
+ * comment for why a per-column handler can't support sliding between dice).
+ */
+@Composable
+private fun DiceColumn(
+    die: Die,
+    show: Boolean,
+    rolling: Boolean,
+    scrambleTick: Int,
+    scatter: ScatterOffset,
+    seed: Int,
+    diceStyle: DiceStyle,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         val shape = RoundedCornerShape(10.dp)
         Box(
             modifier = Modifier

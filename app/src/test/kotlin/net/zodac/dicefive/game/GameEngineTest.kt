@@ -63,11 +63,15 @@ class GameEngineTest {
     }
 
     @Test
-    fun `toggleHold after the final roll fails`() {
+    fun `toggleHold still works after the final roll`() {
+        // Holding has no effect on a roll that won't happen after the last one, but there's no
+        // reason to actually forbid it - see the comment on GameEngine.toggleHold.
         var state = GameEngine.newGame(onePlayer)
         repeat(3) { state = GameEngine.rollDice(state) }
 
-        assertThrows(IllegalStateException::class.java) { GameEngine.toggleHold(state, dieIndex = 0) }
+        val result = GameEngine.toggleHold(state, dieIndex = 0)
+
+        assertTrue(result.dice[0].isHeld)
     }
 
     @Test
