@@ -210,6 +210,40 @@ dependencies — most unit tests live here.
   runs this on a real device/emulator later and finds a UI issue, fix it
   then.
 
+## Ad hoc debug build versioning
+
+When handing the user a `DiceFive-debug.apk` directly (e.g. attached in chat, to sideload over
+whatever debug build they already have installed), two separate things determine whether that
+install-over-existing succeeds:
+
+- **Signing certificate** — must match exactly, or Android refuses the install outright
+  ("conflicts with an existing package") regardless of version numbers. All debug builds are
+  signed with the local Gradle-managed `~/.android/debug.keystore`, which is created once and
+  reused for every build afterwards - so this holds automatically *unless* that keystore file is
+  deleted/regenerated between builds (e.g. a fresh container/sandbox). Sanity-check with
+  `keytool -list -keystore ~/.android/debug.keystore -storepass android` and compare the SHA-256
+  fingerprint to the previous build if there's any doubt.
+- **`versionCode`** — must be >= whatever's currently installed, or Android refuses the install as
+  a downgrade. The release scheme (`major*10000 + minor*100 + patch`, from the root `VERSION`
+  file) is usually *unchanged* between two ad hoc debug builds in the same chat session, since
+  bumping `VERSION` is part of the release flow, not something to do just to hand over a debug
+  build. Reusing that scheme for debug builds would give repeated builds the *same* versionCode,
+  which is a same-version reinstall (works today, but is one accidental `VERSION` edit away from
+  becoming a refused downgrade).
+
+  Fix: `app/build.gradle.kts` gives the `debug` build type its own `versionCode`/`versionName` via
+  `androidComponents { onVariants(selector().withBuildType("debug")) { ... } }`, derived from
+  wall-clock minutes-since-epoch instead of the `VERSION` file. Every fresh `assembleDebug` this
+  way gets a strictly-increasing versionCode independent of whether `VERSION` changed, so handing
+  over a new debug APK always installs cleanly over the last one. This only touches the `debug`
+  variant - `assembleRelease` (what CI/the release workflow uses) still gets the clean
+  `VERSION`-derived versionCode/versionName untouched.
+
+  **Rule of thumb**: never hand-edit `VERSION` just to make an ad hoc debug build installable -
+  that file is the release pipeline's source of truth (see Phase 12) and bumping it outside a
+  real release desyncs it from the patch-bump automation. The debug versionCode scheme above
+  already handles it.
+
 ---
 
 ## Phases

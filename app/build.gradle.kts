@@ -1,3 +1,5 @@
+import org.gradle.api.Action
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -109,6 +111,47 @@ android {
         }
     }
 }
+
+// Ad hoc debug builds are handed straight to testers (not distributed via Play, and not tied to
+// the VERSION-file release flow release/CI uses), so give every debug build its own
+// always-increasing versionCode. Otherwise two debug builds sharing one VERSION-derived versionCode
+// (the common case: nothing bumped VERSION between them) are logged by Android as the "same"
+// version but signed identically, and re-signing per build is what actually determines whether an
+// install-over-existing succeeds - the versionCode/name below just makes each one unambiguous.
+// Computed once at script-eval time (not inside onVariants) so the applicationVariants block below
+// can reuse the exact same string for the output filename without reading it back off the variant.
+val debugVersionCode = (System.currentTimeMillis() / 60_000L).toInt()
+val debugVersionName = "$appVersionName-dev$debugVersionCode"
+
+androidComponents {
+    onVariants(selector().withBuildType("debug")) { variant ->
+        variant.outputs.forEach { output ->
+            output.versionCode.set(debugVersionCode)
+            output.versionName.set(debugVersionName)
+        }
+    }
+}
+
+// Bake the version into the output filename too, so a debug APK handed to a tester is
+// self-describing (which build they're on) without needing to open Settings > App info.
+// Action<T> { ... } below is the Gradle Kotlin DSL's *receiver-style* SAM helper (`this` = T, no
+// declared parameter) - not a plain SAM-converted lambda - because DomainObjectCollection.all(Action)
+// otherwise loses overload resolution to Kotlin's Iterable<T>.all(predicate: (T) -> Boolean).
+android.applicationVariants.all(
+    Action<com.android.build.gradle.api.ApplicationVariant> {
+        val variant = this
+        val versionLabel = if (variant.buildType.name == "debug") debugVersionName else appVersionName
+        val unsignedSuffix = if (variant.buildType.name == "release" && !hasReleaseSigningConfig) "-unsigned" else ""
+        variant.outputs.all(
+            Action<com.android.build.gradle.api.BaseVariantOutput> {
+                val output = this
+                if (output is com.android.build.gradle.api.ApkVariantOutput) {
+                    output.outputFileName = "DiceFive-$versionLabel-${variant.buildType.name}$unsignedSuffix.apk"
+                }
+            },
+        )
+    },
+)
 
 dependencies {
     implementation(libs.androidx.core.ktx)

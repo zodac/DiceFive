@@ -11,6 +11,9 @@ local.properties
 app/build/
 build/
 *.hprof
+*.jpg
+*.jpeg
+*.webp
 
 # Release signing material must never be committed - CI decodes it from secrets at build time.
 *.jks
