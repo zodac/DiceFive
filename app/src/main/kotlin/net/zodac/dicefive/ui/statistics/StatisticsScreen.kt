@@ -31,7 +31,10 @@ import net.zodac.dicefive.data.scores.PlayerStatistics
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
 
-private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm")
+private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
+
+/** Most games top out at 3 digits; `padStart` never truncates, so a rarer 4-digit score still shows in full. */
+private const val MAX_SCORE_DISPLAY_WIDTH = 3
 
 @Composable
 fun StatisticsScreen(
@@ -77,28 +80,34 @@ fun StatisticsScreen(
 private fun PlayerStatsCard(player: PlayerStatistics) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Name, first-played timestamp, and max score share one baseline - sized down from
+            // their old solo-row/captioned style so a max-length (10-character) name, a date, and
+            // a 3-digit score all fit on one line without wrapping or crowding into each other.
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = player.playerName,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = player.maxScore.toString(),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = "Max score",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Text(
+                    text = formatDateTime(player.firstPlayedEpochMillis),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    // Space-padded to a fixed width: the name before it fills whatever's left in
+                    // the row, so a shorter score (fewer digits) would otherwise let the name grow
+                    // into that space and shove the timestamp sideways, card to card.
+                    text = player.maxScore.toString().padStart(MAX_SCORE_DISPLAY_WIDTH),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -110,12 +119,6 @@ private fun PlayerStatsCard(player: PlayerStatistics) {
                 StatCell(label = "Streak", value = player.currentWinStreak.toString())
                 StatCell(label = "Best", value = player.bestWinStreak.toString())
             }
-
-            Text(
-                text = "First played ${formatDateTime(player.firstPlayedEpochMillis)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }

@@ -37,7 +37,7 @@ import net.zodac.dicefive.ui.common.ScreenScaffold
  * alone wouldn't tell two rows in the same burst apart. Deliberately the same pattern the
  * Leaderboard uses for a score's timestamp.
  */
-private val UNLOCKED_AT_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm")
+private val UNLOCKED_AT_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
 
 /**
  * Every achievement the app tracks, in one list - grouped by theme and, within a theme,

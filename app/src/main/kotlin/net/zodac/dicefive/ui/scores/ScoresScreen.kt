@@ -47,7 +47,7 @@ import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
 
-private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm")
+private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
 
 /** Ranks worth calling out on the leaderboard, whichever page they happen to fall on. */
 private const val PODIUM_RANKS = 3
