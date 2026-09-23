@@ -41,6 +41,7 @@ fun MenuScreen(
     onScores: () -> Unit,
     onStatistics: () -> Unit,
     onAchievements: () -> Unit,
+    onStyles: () -> Unit,
     onSettings: () -> Unit,
     onAbout: () -> Unit,
     modifier: Modifier = Modifier,
@@ -86,6 +87,7 @@ fun MenuScreen(
                 MenuDestinationButton(label = "Leaderboard", onClick = onScores)
                 MenuDestinationButton(label = "Statistics", onClick = onStatistics)
                 MenuDestinationButton(label = "Achievements", onClick = onAchievements)
+                MenuDestinationButton(label = "Styles", onClick = onStyles)
                 MenuDestinationButton(label = "Settings", onClick = onSettings)
                 MenuDestinationButton(label = "About", onClick = onAbout)
             }
@@ -116,6 +118,7 @@ private fun MenuScreenPreview() {
             onScores = {},
             onStatistics = {},
             onAchievements = {},
+            onStyles = {},
             onSettings = {},
             onAbout = {},
         )

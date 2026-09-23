@@ -1,8 +1,11 @@
 package net.zodac.dicefive.ui.common
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.MaterialTheme
@@ -17,8 +20,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.dp
 
-/** How much of the list's right edge the scrollbar track occupies. */
-private val SCROLLBAR_WIDTH = 4.dp
+/** How much of the track's cross-axis the scrollbar occupies - the track's width when the bar runs
+ * vertically, its height when the bar runs horizontally. */
+private val SCROLLBAR_THICKNESS = 4.dp
 
 /** The thumb never shrinks below this fraction of the track, however long the list gets. */
 private const val MIN_THUMB_FRACTION = 0.08f
@@ -122,7 +126,7 @@ fun BoxScope.LazyListScrollbar(listState: LazyListState, modifier: Modifier = Mo
         modifier = modifier
             .align(Alignment.CenterEnd)
             .fillMaxHeight()
-            .width(SCROLLBAR_WIDTH),
+            .width(SCROLLBAR_THICKNESS),
     ) {
         drawRoundRect(color = trackColor, cornerRadius = CornerRadius(size.width / 2))
 
@@ -179,6 +183,56 @@ fun BoxScope.LazyListScrollbar(listState: LazyListState, modifier: Modifier = Mo
             topLeft = Offset(0f, thumbOffsetY),
             size = Size(size.width, thumbHeight),
             cornerRadius = CornerRadius(size.width / 2),
+        )
+    }
+}
+
+/**
+ * A minimal drawn scrollbar for a plain (non-lazy) horizontally-scrolling `Row` - the same gap
+ * [LazyListScrollbar] fills for a `LazyColumn`, for a row like the Styles screen's preview tiles,
+ * which scrolls a handful of `Modifier.horizontalScroll` children rather than a lazily-composed list.
+ *
+ * A [ScrollState]-backed row already reports its scroll position and total scrollable extent as
+ * exact pixel values ([ScrollState.value], [ScrollState.maxValue]), so none of [LazyListScrollbar]'s
+ * per-item size estimation is needed - the thumb's size and position come straight from those, and
+ * [ScrollState.canScrollForward]/[ScrollState.canScrollBackward] gate whether it draws at all.
+ *
+ * A plain composable rather than a [BoxScope] overlay, unlike [LazyListScrollbar]: that one has to
+ * sit over the list's trailing edge without displacing its content, but this bar is meant to sit as
+ * its own row underneath the scrollable content - the usual place for a horizontal scrollbar - so it
+ * belongs as an ordinary sibling placed right after the `Row` it measures. It emits no layout node at
+ * all (not even a zero-sized one) while there's nothing to scroll, so a category with only one tile
+ * doesn't reserve dead space for a bar it isn't showing.
+ */
+@Composable
+fun HorizontalScrollbar(scrollState: ScrollState, modifier: Modifier = Modifier) {
+    val showScrollbar by remember { derivedStateOf { scrollState.canScrollForward || scrollState.canScrollBackward } }
+    if (!showScrollbar) return
+
+    val thumbColor = MaterialTheme.colorScheme.primary
+    val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(SCROLLBAR_THICKNESS),
+    ) {
+        drawRoundRect(color = trackColor, cornerRadius = CornerRadius(size.height / 2))
+
+        // Exact, not estimated: a ScrollState already knows its full scrollable extent up front,
+        // unlike a LazyColumn which only measures items as they're scrolled into view.
+        val viewportSize = size.width
+        val contentSize = viewportSize + scrollState.maxValue
+        val thumbFraction = (viewportSize / contentSize).coerceIn(MIN_THUMB_FRACTION, 1f)
+        val thumbWidth = size.width * thumbFraction
+        val scrollFraction = if (scrollState.maxValue == 0) 0f else scrollState.value.toFloat() / scrollState.maxValue
+        val thumbOffsetX = (size.width - thumbWidth) * scrollFraction
+
+        drawRoundRect(
+            color = thumbColor,
+            topLeft = Offset(thumbOffsetX, 0f),
+            size = Size(thumbWidth, size.height),
+            cornerRadius = CornerRadius(size.height / 2),
         )
     }
 }
