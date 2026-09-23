@@ -77,6 +77,7 @@ which needs compileSdk 37). Revisit when 1.5.0 is stable.
 | `DiceFiveDialog.kt` | the app's one dialog shape, so the menu and the board ask questions the same way. |
 | `AppLogo.kt` | placeholder app mark, built from the game's own dice via `IvoryDiceStyle`. |
 | `Scrollbar.kt` | `LazyListScrollbar`, a `BoxScope` extension drawing a minimal scroll indicator over a `LazyColumn` - stock Compose has none for Android. Shared by the Leaderboard and Statistics screens. |
+| `SegmentedChoiceRow.kt` | the app's one segmented-button row, generic over the option type. Every use drops the stock M3 checkmark-on-select icon (`icon = {}`) - reserving space for it crowded a label out at some of the widths this app uses it at (AI difficulty, three options in a third-width column). Used by theme, player count, and AI difficulty. |
 
 ### PageColumn
 
@@ -110,9 +111,9 @@ expected to.
   disabled colours worse than the framework does.
 - **One filled button per screen**, tonal for the rest (the menu: filled Play, tonal
   destinations). That's M3's emphasis hierarchy, and it stops five identical slabs competing.
-- **Segmented buttons** for small exclusive sets that fit one line: theme choice, player count
-  1-4, Human/AI. Radio rows are for options that need a visible disabled state, like
-  "Extended (coming soon)".
+- **Segmented buttons** (`ui/common/SegmentedChoiceRow.kt`) for small exclusive sets that fit one
+  line: theme choice, player count 1-4, AI difficulty. Radio rows are for options that need a
+  visible disabled state, like "Extended (coming soon)".
 - **Cards** group a section. A `ListItem` inside a Card needs
   `ListItemDefaults.colors(containerColor = Color.Transparent)`, or it paints a second,
   slightly different surface on top of the card's.

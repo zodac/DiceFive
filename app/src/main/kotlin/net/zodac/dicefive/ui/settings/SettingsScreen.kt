@@ -10,9 +10,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.data.settings.Theme
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.ScreenScaffold
+import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 
 @Composable
 fun SettingsScreen(
@@ -146,19 +144,13 @@ fun SettingsScreen(
  */
 @Composable
 private fun ThemeSelector(selected: Theme, onSelect: (Theme) -> Unit) {
-    val options = Theme.entries
-
     Column(modifier = Modifier.padding(16.dp)) {
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            options.forEachIndexed { index, option ->
-                SegmentedButton(
-                    selected = option == selected,
-                    onClick = { onSelect(option) },
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                ) {
-                    Text(text = option.name.lowercase().replaceFirstChar(Char::uppercase))
-                }
-            }
-        }
+        SegmentedChoiceRow(
+            options = Theme.entries,
+            selected = selected,
+            onSelect = onSelect,
+            label = { it.name.lowercase().replaceFirstChar(Char::uppercase) },
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }

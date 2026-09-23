@@ -28,13 +28,14 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import net.zodac.dicefive.data.scores.PlayerStatistics
+import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
 
 private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
 
-/** Most games top out at 3 digits; `padStart` never truncates, so a rarer 4-digit score still shows in full. */
-private const val MAX_SCORE_DISPLAY_WIDTH = 3
+/** [PlayerState.MAX_POSSIBLE_SCORE] (1575, a perfect game) is the longest a score can ever be. */
+private val MAX_SCORE_DISPLAY_WIDTH = PlayerState.MAX_POSSIBLE_SCORE.toString().length
 
 @Composable
 fun StatisticsScreen(
@@ -82,7 +83,7 @@ private fun PlayerStatsCard(player: PlayerStatistics) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             // Name, first-played timestamp, and max score share one baseline - sized down from
             // their old solo-row/captioned style so a max-length (10-character) name, a date, and
-            // a 3-digit score all fit on one line without wrapping or crowding into each other.
+            // a 4-digit score all fit on one line without wrapping or crowding into each other.
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = player.playerName,

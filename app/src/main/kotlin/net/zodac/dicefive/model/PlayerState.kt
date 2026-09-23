@@ -37,6 +37,21 @@ data class PlayerState(
         const val UPPER_BONUS_AMOUNT = 35
         const val FIVE_OF_A_KIND_BONUS_AMOUNT = 100
 
+        /**
+         * The highest [totalScore] the rules allow - the "perfect game." One turn banks the
+         * actual 5x box (50); every other turn also rolls a 5x, each earning the +100 bonus chip
+         * on top of whichever box it fills (an upper box via a same-value 5x, THREE_OF_A_KIND/
+         * FOUR_OF_A_KIND/CHANCE via the dice's own sum, FULL_HOUSE/SMALL_STRAIGHT/LARGE_STRAIGHT
+         * via the joker free-fill - see [net.zodac.dicefive.game.ScoreCalculator]):
+         *
+         * `5*(1+2+3+4+5+6)` upper, maxed = 105, `+35` upper bonus, `+50` the 5x box itself,
+         * `+30+30+25+30+40+30` the other six lower boxes maxed = 185, `+12*100` every one of the
+         * other 12 turns also being a 5x = 1200. `105+35+50+185+1200 = 1575`.
+         *
+         * Used to size the fixed-width score columns on the Leaderboard and Statistics screens.
+         */
+        const val MAX_POSSIBLE_SCORE = 1575
+
         val UPPER_CATEGORIES = listOf(
             ScoreCategory.ONES,
             ScoreCategory.TWOS,

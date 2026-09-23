@@ -76,6 +76,12 @@ enum class Achievement(
      * anything that cannot currently be earned at all - see [I_ROBOT].
      */
     val countsTowardCompletion: Boolean = true,
+    /**
+     * Absent from the achievements list - and from its unlocked/total counts - entirely until
+     * unlocked, rather than shown locked like everything else. For a surprise, not a checklist
+     * item: see [CHEATER_CHEATER].
+     */
+    val isSecret: Boolean = false,
 ) {
 
     // ---- Milestones: simply playing the game -------------------------------------------------
@@ -203,6 +209,15 @@ enum class Achievement(
         "score_500", "Dice Deity", "Score 500 or more in a game",
         AchievementCategory.SCORING,
     ),
+    // A hidden one-off above the ladder, not another rung of it: not shown, let alone attempted,
+    // until it's already done. 1575 (PlayerState.MAX_POSSIBLE_SCORE) is the absolute ceiling the
+    // rules allow, so this is excluded from COMPLETIONIST the same way I_ROBOT was while it
+    // couldn't be earned - it's not that it's unearnable, it's that requiring every player to
+    // stumble into a literally perfect game would make COMPLETIONIST itself absurd.
+    CHEATER_CHEATER(
+        "cheater_cheater", "Cheater, Cheater!", "Finish a game with the maximum possible score - 1575",
+        AchievementCategory.SCORING, countsTowardCompletion = false, isSecret = true,
+    ),
 
     // ---- Winning: beating whoever else was at the table ---------------------------------------
     FIRST_WIN(
@@ -227,17 +242,9 @@ enum class Achievement(
         AchievementCategory.WINNING,
     ),
 
-    /**
-     * Not currently earnable: the difficulty selector is deferred (see `.claude/UI.md`) and every
-     * AI plays the same strategy whatever their stored [Difficulty], so no game can ever present
-     * three genuinely Hard opponents. Listed so it's visible as something coming, last in its
-     * category as the hardest thing there, and excluded from [COMPLETIONIST] so it doesn't make
-     * that unobtainable in the meantime - flip `countsTowardCompletion` back on when AI difficulty
-     * actually lands.
-     */
     I_ROBOT(
         "i_robot", "I, Robot", "Win a four-player game against three Hard AI",
-        AchievementCategory.WINNING, countsTowardCompletion = false,
+        AchievementCategory.WINNING,
     ),
 
     // ---- Streaks: their own theme, because they're the ones that can fall back to zero --------

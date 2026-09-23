@@ -269,6 +269,26 @@ class AchievementEngineTest {
     }
 
     @Test
+    fun `Cheater, Cheater! only unlocks on a literal perfect game`() {
+        val perfect = evaluate(finishedGame(player(total = PlayerState.MAX_POSSIBLE_SCORE)))
+        val oneShort = evaluate(finishedGame(player(total = PlayerState.MAX_POSSIBLE_SCORE - 1)))
+        val greatButNotPerfect = evaluate(finishedGame(player(total = 500)))
+
+        assertTrue(Achievement.CHEATER_CHEATER in perfect.newlyUnlocked)
+        assertFalse(Achievement.CHEATER_CHEATER in oneShort.newlyUnlocked)
+        assertFalse(Achievement.CHEATER_CHEATER in greatButNotPerfect.newlyUnlocked)
+    }
+
+    @Test
+    fun `Cheater, Cheater! is secret and does not gate Completionist`() {
+        assertTrue(Achievement.CHEATER_CHEATER.isSecret)
+        assertFalse(Achievement.CHEATER_CHEATER in Achievement.COMPLETION_REQUIREMENTS)
+        // Every non-secret achievement stays visible from the start - secrecy is the exception,
+        // not the rule.
+        assertEquals(listOf(Achievement.CHEATER_CHEATER), Achievement.entries.filter { it.isSecret })
+    }
+
+    @Test
     fun `an already-unlocked achievement is not unlocked again`() {
         val before = AchievementsState(unlockedAt = mapOf(Achievement.SOLO_GAME to 1L))
 
@@ -348,8 +368,8 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `I Robot is excluded from Completionist while it cannot be earned`() {
-        assertFalse(Achievement.I_ROBOT in Achievement.COMPLETION_REQUIREMENTS)
+    fun `I Robot counts toward Completionist, Completionist does not count toward itself`() {
+        assertTrue(Achievement.I_ROBOT in Achievement.COMPLETION_REQUIREMENTS)
         assertFalse(Achievement.COMPLETIONIST in Achievement.COMPLETION_REQUIREMENTS)
     }
 
@@ -542,6 +562,7 @@ class AchievementEngineTest {
                 Achievement.SCORE_300,
                 Achievement.SCORE_400,
                 Achievement.SCORE_500,
+                Achievement.CHEATER_CHEATER,
             ),
             scoring,
         )

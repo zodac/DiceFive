@@ -527,26 +527,42 @@ class GameViewModel(
 
     private var aiTurnJob: Job? = null
 
+    /**
+     * Starts a job that plays out every AI turn in a row from here (not just one) - e.g. with a
+     * human followed by three AI, this single job carries players 2, 3 and 4 through their whole
+     * turns before handing back to the human. Looping in place rather than recursively re-launching
+     * itself matters: `aiTurnJob` isn't reassigned - and so isn't `isActive` - until this whole
+     * coroutine returns, so a self re-launch from its own tail would see itself as still active and
+     * bail out, silently dropping every AI turn after the first.
+     */
     private fun maybeStartAiTurn() {
         val state = _game.value ?: return
         if (state.isGameOver) return
-        val player = state.currentPlayer ?: return
-        if (player.type != PlayerType.AI) return
+        if (state.currentPlayer?.type != PlayerType.AI) return
         if (aiTurnJob?.isActive == true) return
 
         aiTurnJob = viewModelScope.launch {
             var current = state
-            while (current.rollsRemaining > 0) {
+            while (!current.isGameOver && current.currentPlayer?.type == PlayerType.AI) {
+                while (current.rollsRemaining > 0) {
+                    delay(AI_STEP_DELAY_MS)
+                    current = GameEngine.rollDice(current, random)
+                    if (current.rollsRemaining > 0) {
+                        val holds = AiTurnPlayer.chooseHolds(current)
+                        current = AiTurnPlayer.applyHolds(current, holds)
+                        // Every die is being kept - the rolls still "remaining" would only ever
+                        // reroll nothing (GameEngine.rollDice skips held dice), so there's no
+                        // reason to sit through their delay for an animation that changes nothing.
+                        if (holds.size == current.dice.size) current = current.copy(rollsRemaining = 0)
+                    }
+                    setUndoSnapshot(null)
+                    applyGameState(current, checkForAiTurn = false)
+                }
                 delay(AI_STEP_DELAY_MS)
-                current = GameEngine.rollDice(current, random)
+                current = GameEngine.commitScore(current, AiTurnPlayer.chooseCategory(current))
                 setUndoSnapshot(null)
                 applyGameState(current, checkForAiTurn = false)
             }
-            delay(AI_STEP_DELAY_MS)
-            current = GameEngine.commitScore(current, AiTurnPlayer.chooseCategory(current))
-            setUndoSnapshot(null)
-            applyGameState(current, checkForAiTurn = false)
-            maybeStartAiTurn()
         }
     }
 

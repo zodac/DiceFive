@@ -232,6 +232,7 @@ object AchievementEngine {
         award(Achievement.SCORE_300, bestHumanScore >= 300)
         award(Achievement.SCORE_400, bestHumanScore >= 400)
         award(Achievement.SCORE_500, bestHumanScore >= 500)
+        award(Achievement.CHEATER_CHEATER, bestHumanScore >= PlayerState.MAX_POSSIBLE_SCORE)
 
         // Known the moment the table is set.
         award(Achievement.FULL_TABLE, players.size == FULL_TABLE_SIZE)

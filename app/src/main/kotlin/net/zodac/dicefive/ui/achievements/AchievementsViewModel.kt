@@ -86,9 +86,13 @@ class AchievementsViewModel(
         hideUnlocked: Boolean,
         leaderboard: LeaderboardTotals,
     ): AchievementsUiState {
-        val items = Achievement.entries.map {
-            AchievementItem(it, state.unlockedAt[it], AchievementEngine.progressOf(it, state.counters, leaderboard))
-        }
+        val items = Achievement.entries
+            // A secret achievement doesn't exist as far as the list (or its counts) is concerned
+            // until it's actually been earned - that's the whole point of it being secret.
+            .filterNot { it.isSecret && state.unlockedAt[it] == null }
+            .map {
+                AchievementItem(it, state.unlockedAt[it], AchievementEngine.progressOf(it, state.counters, leaderboard))
+            }
         val visible = if (hideUnlocked) items.filter { it.unlockedAt == null } else items
 
         return AchievementsUiState(

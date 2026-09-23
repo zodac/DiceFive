@@ -1,6 +1,7 @@
 package net.zodac.dicefive.game
 
 import kotlin.random.Random
+import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerConfig
@@ -14,6 +15,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AiTurnPlayerTest {
+
+    private fun bot(difficulty: Difficulty, scorecard: Map<ScoreCategory, Int?> = PlayerState(name = "Bot", type = PlayerType.AI).scorecard) =
+        PlayerState(name = "Bot", type = PlayerType.AI, difficulty = difficulty, scorecard = scorecard)
+
+    private fun rolledState(player: PlayerState, values: List<Int>, rollsRemaining: Int = 1) = GameState(
+        players = listOf(player),
+        dice = values.map { Die(value = it) },
+        rollsRemaining = rollsRemaining,
+        phase = TurnPhase.ROLLED,
+    )
 
     @Test
     fun `chooseCategory picks the highest-scoring open category`() {
@@ -51,5 +62,73 @@ class AiTurnPlayerTest {
         assertEquals(TurnPhase.AWAITING_ROLL, result.phase)
         assertEquals(3, result.rollsRemaining)
         assertTrue(result.dice.none { it.isHeld })
+    }
+
+    @Test
+    fun `Easy never holds dice between rolls`() {
+        val state = rolledState(bot(Difficulty.EASY), values = listOf(6, 6, 6, 1, 2))
+
+        assertEquals(emptySet<Int>(), AiTurnPlayer.chooseHolds(state))
+    }
+
+    @Test
+    fun `Medium holds a forming straight over a smaller matching group`() {
+        val state = rolledState(bot(Difficulty.MEDIUM), values = listOf(1, 2, 3, 4, 4))
+
+        // Distinct run 1-2-3-4 (four dice) beats holding just the pair of 4s.
+        val holds = AiTurnPlayer.chooseHolds(state)
+        val heldValues = holds.map { state.dice[it].value }.sorted()
+        assertEquals(4, holds.size)
+        assertEquals(listOf(1, 2, 3, 4), heldValues)
+    }
+
+    @Test
+    fun `Medium holds the largest matching group when no straight is forming`() {
+        val state = rolledState(bot(Difficulty.MEDIUM), values = listOf(6, 6, 6, 1, 2))
+
+        assertEquals(setOf(0, 1, 2), AiTurnPlayer.chooseHolds(state))
+    }
+
+    @Test
+    fun `Medium does not hold a lone die or a single pair`() {
+        val single = rolledState(bot(Difficulty.MEDIUM), values = listOf(6, 1, 2, 3, 3))
+        // 3,3 pair and no 4-length run present (1,2,3 is only length 3) - holds the pair.
+        assertEquals(setOf(3, 4), AiTurnPlayer.chooseHolds(single))
+    }
+
+    @Test
+    fun `Medium breaks a category tie toward the more restrictive box`() {
+        // Four matching 3s plus a 1: FOUR_OF_A_KIND, THREE_OF_A_KIND and CHANCE all score the same
+        // sum (13) - Medium should prefer the hardest-to-get one rather than enum order.
+        val state = rolledState(bot(Difficulty.MEDIUM), values = listOf(3, 3, 3, 3, 1))
+
+        assertEquals(ScoreCategory.FOUR_OF_A_KIND, AiTurnPlayer.chooseCategory(state))
+    }
+
+    @Test
+    fun `Hard holds a four-of-a-kind and rerolls only the odd die out`() {
+        val state = rolledState(bot(Difficulty.HARD), values = listOf(6, 6, 6, 6, 2))
+
+        assertEquals(setOf(0, 1, 2, 3), AiTurnPlayer.chooseHolds(state))
+    }
+
+    @Test
+    fun `Hard sacrifices raw score to bank the rarer Full House, unlike Easy or Medium`() {
+        // [5,5,5,6,6] is a Full House (25) but Three of a Kind/Chance both score higher (27).
+        // Full House is much rarer than either, so Hard's opportunity-cost math should take it now.
+        val values = listOf(5, 5, 5, 6, 6)
+
+        assertEquals(ScoreCategory.THREE_OF_A_KIND, AiTurnPlayer.chooseCategory(rolledState(bot(Difficulty.EASY), values)))
+        assertEquals(ScoreCategory.THREE_OF_A_KIND, AiTurnPlayer.chooseCategory(rolledState(bot(Difficulty.MEDIUM), values)))
+        assertEquals(ScoreCategory.FULL_HOUSE, AiTurnPlayer.chooseCategory(rolledState(bot(Difficulty.HARD), values)))
+    }
+
+    @Test
+    fun `Hard's playTurn always ends with exactly one newly filled category`() {
+        val initial = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.AI, name = "Bot", difficulty = Difficulty.HARD)))
+
+        val result = AiTurnPlayer.playTurn(initial, random = Random(7))
+
+        assertEquals(1, result.players.single().scorecard.values.count { it != null })
     }
 }

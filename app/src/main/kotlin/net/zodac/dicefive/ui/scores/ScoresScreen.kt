@@ -44,10 +44,14 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
+import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
 
 private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
+
+/** [PlayerState.MAX_POSSIBLE_SCORE] (1575, a perfect game) is the longest a score can ever be. */
+private val SCORE_DISPLAY_WIDTH = PlayerState.MAX_POSSIBLE_SCORE.toString().length
 
 /** Ranks worth calling out on the leaderboard, whichever page they happen to fall on. */
 private const val PODIUM_RANKS = 3
@@ -179,7 +183,9 @@ private fun ScoreRow(rank: Int, entry: ScoreEntry, striped: Boolean) {
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = entry.score.toString(),
+                // Space-padded to a fixed width, same reasoning as Statistics' max score: keeps
+                // every row's score the same width regardless of digit count.
+                text = entry.score.toString().padStart(SCORE_DISPLAY_WIDTH),
                 modifier = Modifier.weight(1.5f),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,

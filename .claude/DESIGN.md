@@ -25,10 +25,14 @@ decisions behind it. Read that before changing anything visual.
   (Preferences) for settings (theme) and remembered human player names.
 - **Navigation**: Navigation Compose (`NavHost`), with a nested "play" graph
   sharing one scoped `GameViewModel` across the setup and in-game screens.
-- **AI v1 behavior**: difficulty selector is present but disabled/greyed
-  out. AI always rolls all 3 times holding nothing, then scores the
-  highest-value open category on its last roll. Real difficulty logic is
-  future work.
+- **AI difficulty**: the setup-screen selector is live (Easy/Medium/Hard per AI slot). `AiTurnPlayer`
+  strategy per tier - EASY: rolls all 3 times holding nothing, scores the highest-value open
+  category. MEDIUM: holds dice by rule of thumb (a forming straight, else the largest matching
+  group) between rolls; ties in category choice toward an upper box "on pace" for the 63-point
+  bonus. HARD: exhaustively evaluates all 32 hold/reroll subsets each roll via exact expected value
+  (every possible outcome of the freed dice, weighted equally), and picks the open category whose
+  score most exceeds its own average value on a single random roll (so a rare category like Full
+  House can beat a nominally higher-scoring but easy-to-satisfy-later one like Chance).
 - **Leaderboard screen**: one global leaderboard (not split by player or game
   type), sorted score-descending, paginated 50/page (originally 100; halved
   alongside a compact row style, so a page is a shorter scroll). No date
@@ -42,9 +46,12 @@ decisions behind it. Read that before changing anything visual.
 - **About link**: `https://github.com/zodac/DiceFive`.
 - **Game type**: only `CLASSIC` is playable in v1; `EXTENDED` exists as an
   enum value shown disabled in the UI.
-- **Achievements**: 50 of them, **per device rather than per player**, local
+- **Achievements**: 51 of them, **per device rather than per player**, local
   only for now but shaped so each maps onto a Google Play Games achievement
-  later (see Phase 13).
+  later (see Phase 13). One (`CHEATER_CHEATER`) is secret: `Achievement.isSecret`
+  keeps it out of the list - and its unlocked/total counts - until it's
+  actually earned, since seeing "finish with the maximum possible score"
+  sitting on the to-do list would rather give the game away.
 - **The trademarked name is banned from the application entirely** - source,
   comments, identifiers, filenames and anything a player can see. See the
   rule in `CLAUDE.md`. The term is **"5x"** in user-facing text (what the
@@ -201,6 +208,15 @@ nav arguments or introducing a singleton holder.
 
 `DiceScoring`/`GameEngine` are pure functions with no Android
 dependencies — most unit tests live here.
+
+- **Maximum possible score: 1575** (`PlayerState.MAX_POSSIBLE_SCORE`, with the derivation as a doc
+  comment there and a locking test in `PlayerStateTest`) — the "perfect game": every upper box
+  maxed plus the 63+ bonus, every other lower box maxed, and every one of the other 12 turns also
+  landing a 5x for its +100 bonus chip. Every screen that shows a score (Leaderboard, Statistics'
+  max score) pads it to this constant's digit width (4) so the column stays a fixed width
+  regardless of how many digits a given score has; current-game score displays (`PlayerHeaderBar`,
+  `GameOverScreen`) don't need this — the player-name column next to them is already capped at 10
+  characters, so there's nothing there for a short score to let grow sideways.
 
 ## Scores screen
 
@@ -610,7 +626,8 @@ install-over-existing succeeds:
       `assembleRelease` locally produce the expected filenames.
 
 ### Phase 13 — Achievements
-- [x] **Scope**: 50 achievements, replacing the Phase 8 placeholder screen.
+- [x] **Scope**: 51 achievements (50 + the later-added secret `CHEATER_CHEATER`),
+      replacing the Phase 8 placeholder screen.
       Local only for now, but every piece is shaped for a later Google Play
       Games migration: `Achievement.id` is a stable snake_case external key
       (**never change one** — it is the storage key and will be the Play

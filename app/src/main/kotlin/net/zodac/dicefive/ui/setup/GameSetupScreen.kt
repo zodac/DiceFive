@@ -16,9 +16,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -27,12 +24,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameType
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.ui.common.PinnedActionBar
 import net.zodac.dicefive.ui.common.ScreenScaffold
+import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.game.GameSetupState
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.game.PlayerSetupSlot
@@ -89,6 +87,7 @@ fun GameSetupScreen(
                     slot = slot,
                     onTypeChange = { type -> viewModel.setPlayerType(slot.slot, type) },
                     onNameChange = { name -> viewModel.setPlayerName(slot.slot, name) },
+                    onDifficultyChange = { difficulty -> viewModel.setPlayerDifficulty(slot.slot, difficulty) },
                 )
             }
         }
@@ -134,19 +133,13 @@ private fun SetupCard(
  */
 @Composable
 private fun PlayerCountSelector(count: Int, onCountChange: (Int) -> Unit) {
-    val options = GameSetupState.MIN_PLAYERS..GameSetupState.MAX_PLAYERS
-
-    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-        options.forEachIndexed { index, option ->
-            SegmentedButton(
-                selected = option == count,
-                onClick = { onCountChange(option) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.count()),
-            ) {
-                Text(text = option.toString())
-            }
-        }
-    }
+    SegmentedChoiceRow(
+        options = (GameSetupState.MIN_PLAYERS..GameSetupState.MAX_PLAYERS).toList(),
+        selected = count,
+        onSelect = onCountChange,
+        label = Int::toString,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 /**
@@ -158,6 +151,7 @@ private fun PlayerRow(
     slot: PlayerSetupSlot,
     onTypeChange: (PlayerType) -> Unit,
     onNameChange: (String) -> Unit,
+    onDifficultyChange: (Difficulty) -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -180,21 +174,10 @@ private fun PlayerRow(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(
-                    text = "Named at game start",
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                // The difficulty control was a whole extra row per player and every option in it is
-                // disabled until the AI actually has difficulty levels - so it's one line of text
-                // until it does something.
-                Text(
-                    text = "Medium difficulty (coming soon)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                DifficultySelector(
+                    selected = slot.difficulty,
+                    onSelect = onDifficultyChange,
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
         }
@@ -219,6 +202,29 @@ private fun PlayerRow(
         }
     }
 }
+
+/**
+ * Compact Easy/Medium/Hard picker for one AI slot - a segmented row rather than a full row of
+ * chips, since it has to fit inside the player row alongside the name column.
+ */
+@Composable
+private fun DifficultySelector(selected: Difficulty, onSelect: (Difficulty) -> Unit, modifier: Modifier = Modifier) {
+    SegmentedChoiceRow(
+        options = Difficulty.entries,
+        selected = selected,
+        onSelect = onSelect,
+        label = { it.label },
+        modifier = modifier,
+        labelStyle = MaterialTheme.typography.labelSmall,
+    )
+}
+
+private val Difficulty.label: String
+    get() = when (this) {
+        Difficulty.EASY -> "Easy"
+        Difficulty.MEDIUM -> "Medium"
+        Difficulty.HARD -> "Hard"
+    }
 
 @Composable
 private fun GameTypeSelector(selected: GameType, onSelect: (GameType) -> Unit) {
