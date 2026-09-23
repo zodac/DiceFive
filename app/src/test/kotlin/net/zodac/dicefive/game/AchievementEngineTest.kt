@@ -4,6 +4,7 @@ import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.AchievementCounter
+import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
@@ -381,11 +382,14 @@ class AchievementEngineTest {
 
     @Test
     fun `Cheater, Cheater! is secret and does not gate Completionist`() {
-        assertTrue(Achievement.CHEATER_CHEATER.isSecret)
+        assertEquals(AchievementVisibility.SECRET, Achievement.CHEATER_CHEATER.visibility)
         assertFalse(Achievement.CHEATER_CHEATER in Achievement.COMPLETION_REQUIREMENTS)
-        // Every non-secret achievement stays visible from the start - secrecy is the exception,
-        // not the rule.
-        assertEquals(listOf(Achievement.CHEATER_CHEATER), Achievement.entries.filter { it.isSecret })
+        // Every other achievement stays at least title-visible from the start - secrecy is the
+        // exception, not the rule.
+        assertEquals(
+            listOf(Achievement.CHEATER_CHEATER),
+            Achievement.entries.filter { it.visibility == AchievementVisibility.SECRET },
+        )
     }
 
     @Test

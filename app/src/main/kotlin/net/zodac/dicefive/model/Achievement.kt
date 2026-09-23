@@ -40,6 +40,28 @@ enum class ProgressStyle {
 }
 
 /**
+ * How much of a locked achievement is shown before it's earned, and how (if at all) it maps onto
+ * a Google Play Games achievement in future.
+ */
+enum class AchievementVisibility {
+    /** Title and description both visible from the start. Maps to a Play "revealed" achievement. */
+    NORMAL,
+
+    /**
+     * Title visible, description hidden (shown as "???") until earned. Maps to a Play "hidden"
+     * achievement, which Play itself blanks out the description of until revealed/unlocked.
+     */
+    HIDDEN,
+
+    /**
+     * Absent entirely - no entry, title, or description - until earned, and never counted
+     * towards the unlocked/total tallies, earned or not. Local only: never synced to Play Games.
+     * An easter egg, not a checklist item.
+     */
+    SECRET,
+}
+
+/**
  * Every achievement the app tracks. Achievements are **per device, not per player**: any human
  * player at this device contributes, and AI results never do (they only ever count as opponents).
  *
@@ -76,12 +98,8 @@ enum class Achievement(
      * anything that cannot currently be earned at all - see [I_ROBOT].
      */
     val countsTowardCompletion: Boolean = true,
-    /**
-     * Absent from the achievements list - and from its unlocked/total counts - entirely until
-     * unlocked, rather than shown locked like everything else. For a surprise, not a checklist
-     * item: see [CHEATER_CHEATER].
-     */
-    val isSecret: Boolean = false,
+    /** See [AchievementVisibility]. Defaults to fully visible, which is the vast majority. */
+    val visibility: AchievementVisibility = AchievementVisibility.NORMAL,
 ) {
 
     // ---- Milestones: simply playing the game -------------------------------------------------
@@ -317,7 +335,7 @@ enum class Achievement(
     // stumble into a literally perfect game would make COMPLETIONIST itself absurd.
     CHEATER_CHEATER(
         "cheater_cheater", "Cheater, Cheater!", "Finish a game with the maximum possible score - 1575",
-        AchievementCategory.SCORING, countsTowardCompletion = false, isSecret = true,
+        AchievementCategory.SCORING, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
 
     // ---- Winning: beating whoever else was at the table ---------------------------------------

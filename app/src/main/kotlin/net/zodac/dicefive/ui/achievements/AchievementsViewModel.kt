@@ -22,6 +22,7 @@ import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
+import net.zodac.dicefive.model.AchievementVisibility
 
 /** One row on the achievements list. [unlockedAt] is null while it's still locked. */
 data class AchievementItem(
@@ -89,7 +90,7 @@ class AchievementsViewModel(
         val items = Achievement.entries
             // A secret achievement doesn't exist as far as the list (or its counts) is concerned
             // until it's actually been earned - that's the whole point of it being secret.
-            .filterNot { it.isSecret && state.unlockedAt[it] == null }
+            .filterNot { it.visibility == AchievementVisibility.SECRET && state.unlockedAt[it] == null }
             .map {
                 AchievementItem(it, state.unlockedAt[it], AchievementEngine.progressOf(it, state.counters, leaderboard))
             }

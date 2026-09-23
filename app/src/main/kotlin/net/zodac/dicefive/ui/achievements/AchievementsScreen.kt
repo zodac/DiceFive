@@ -30,6 +30,7 @@ import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.ui.common.ScreenScaffold
 
 /**
@@ -46,9 +47,10 @@ private val UNLOCKED_AT_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH
  * raised card) so what's already been earned is still obvious at a glance. The chip hides
  * unlocked ones entirely, for a pure to-do view.
  *
- * A secret achievement (`Achievement.isSecret`) is filtered out of [AchievementsViewModel]'s
- * state - and its unlocked/total counts - while still locked, so it never appears here (or
- * anywhere else) until it's already been earned.
+ * `Achievement.visibility` gates how much of a locked row is shown: a secret achievement is
+ * filtered out of [AchievementsViewModel]'s state entirely - and its unlocked/total counts -
+ * while still locked, so it never appears here (or anywhere else) until it's already been
+ * earned; a hidden one still appears, title and all, but its description reads "???" until then.
  *
  * Achievements are per device - there is no per-player breakdown here because there is no
  * per-player record. Resetting them lives in Settings, with the other destructive controls.
@@ -153,7 +155,11 @@ private fun AchievementRow(item: AchievementItem) {
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(text = item.achievement.title, style = MaterialTheme.typography.titleSmall)
                 Text(
-                    text = item.achievement.description,
+                    text = if (item.achievement.visibility == AchievementVisibility.HIDDEN && !unlocked) {
+                        "???"
+                    } else {
+                        item.achievement.description
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
