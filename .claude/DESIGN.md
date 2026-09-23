@@ -36,7 +36,7 @@ decisions behind it. Read that before changing anything visual.
 - **About link**: `https://github.com/zodac/DiceFive`.
 - **Game type**: only `CLASSIC` is playable in v1; `EXTENDED` exists as an
   enum value shown disabled in the UI.
-- **Achievements**: 46 of them, **per device rather than per player**, local
+- **Achievements**: 47 of them, **per device rather than per player**, local
   only for now but shaped so each maps onto a Google Play Games achievement
   later (see Phase 13).
 - **The trademarked name is banned from the application entirely** - source,
@@ -592,7 +592,7 @@ install-over-existing succeeds:
       `assembleRelease` locally produce the expected filenames.
 
 ### Phase 13 — Achievements
-- [x] **Scope**: 46 achievements, replacing the Phase 8 placeholder screen.
+- [x] **Scope**: 47 achievements, replacing the Phase 8 placeholder screen.
       Local only for now, but every piece is shaped for a later Google Play
       Games migration: `Achievement.id` is a stable snake_case external key
       (**never change one** — it is the storage key and will be the Play

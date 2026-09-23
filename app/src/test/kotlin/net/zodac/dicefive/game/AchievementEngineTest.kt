@@ -176,6 +176,36 @@ class AchievementEngineTest {
     }
 
     @Test
+    fun `zeroing everything but Chance is its own achievement`() {
+        // Chance is the one box that cannot be zeroed, so it is the one exception.
+        val allZeroed = evaluate(finishedGame(player(total = 30)))
+        val oneBoxScored = evaluate(
+            finishedGame(player(total = 35, overrides = mapOf(ScoreCategory.FIVES to 5))),
+        )
+
+        assertTrue(Achievement.ALL_ZEROES in allZeroed.newlyUnlocked)
+        assertFalse(Achievement.ALL_ZEROES in oneBoxScored.newlyUnlocked)
+    }
+
+    @Test
+    fun `the lowest possible score also zeroes everything but Chance`() {
+        val update = evaluate(finishedGame(player(total = 5)))
+
+        assertTrue(Achievement.ALL_ZEROES in update.newlyUnlocked)
+        assertTrue(Achievement.EXTREME_LOW_ROLLS in update.newlyUnlocked)
+    }
+
+    @Test
+    fun `Spotless and How Do You Play This Game are mutually exclusive`() {
+        val spotless = evaluate(
+            finishedGame(player(total = 250, overrides = ScoreCategory.entries.associateWith { 10 })),
+        )
+
+        assertTrue(Achievement.NO_ZEROES in spotless.newlyUnlocked)
+        assertFalse(Achievement.ALL_ZEROES in spotless.newlyUnlocked)
+    }
+
+    @Test
     fun `Low Rolls is a range but Extreme Low Rolls is exactly 5`() {
         val nineteen = evaluate(finishedGame(player(total = 19)))
         val twenty = evaluate(finishedGame(player(total = 20)))

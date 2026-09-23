@@ -101,6 +101,10 @@ enum class Achievement(
         "games_100", "Centurion", "Finish 100 games",
         AchievementCategory.MILESTONES, AchievementCounter.GAMES_PLAYED, target = 100,
     ),
+    WINS_25(
+        "wins_25", "Hall of Famer", "Win 25 games",
+        AchievementCategory.MILESTONES, AchievementCounter.GAMES_WON, target = 25,
+    ),
     DICE_10000(
         "dice_10000", "Well Rolled", "Roll 10,000 dice",
         AchievementCategory.MILESTONES, AchievementCounter.DICE_ROLLED, target = 10_000,
@@ -113,16 +117,16 @@ enum class Achievement(
         "upper_bonus", "Bonus Round", "Earn the 35-point upper section bonus",
         AchievementCategory.DICE,
     ),
+    FIRST_5X(
+        "5x_first", "5x!", "Score your first 5x",
+        AchievementCategory.DICE,
+    ),
     NO_ZEROES(
         "no_zeroes", "Spotless", "Finish a game without a zero on your scorecard",
         AchievementCategory.DICE,
     ),
     BOTH_STRAIGHTS(
         "straights_both", "Straight Talker", "Score both straights in the same game",
-        AchievementCategory.DICE,
-    ),
-    FIRST_5X(
-        "5x_first", "5x!", "Score your first 5x",
         AchievementCategory.DICE,
     ),
     UPPER_84(
@@ -198,10 +202,6 @@ enum class Achievement(
         "win_by_100", "Landslide", "Win by 100 points or more",
         AchievementCategory.WINNING,
     ),
-    BEAT_THREE_AI(
-        "beat_three_ai", "Last Human Standing", "Win a four-player game against three AI",
-        AchievementCategory.WINNING,
-    ),
     WIN_BY_5(
         "win_by_5", "Photo Finish", "Win by 5 points or fewer",
         AchievementCategory.WINNING,
@@ -210,9 +210,10 @@ enum class Achievement(
         "comeback", "Comeback Kid", "Win after trailing at the start of the final round",
         AchievementCategory.WINNING,
     ),
-    WINS_25(
-        "wins_25", "Hall of Famer", "Win 25 games",
-        AchievementCategory.WINNING, AchievementCounter.GAMES_WON, target = 25,
+
+    BEAT_THREE_AI(
+        "beat_three_ai", "Last Human Standing", "Win a four-player game against three AI",
+        AchievementCategory.WINNING,
     ),
 
     /**
@@ -253,6 +254,11 @@ enum class Achievement(
     ),
     LOW_ROLLS(
         "low_rolls", "Low Rolls", "Finish a game with under 20 points",
+        AchievementCategory.MISFORTUNE,
+    ),
+    ALL_ZEROES(
+        "zeroes_except_chance", "How Do You Play This Game?",
+        "Score zero in every category except Chance",
         AchievementCategory.MISFORTUNE,
     ),
     EXTREME_LOW_ROLLS(

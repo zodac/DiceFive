@@ -265,6 +265,13 @@ object AchievementEngine {
         // Misfortune that only a finished score can settle.
         award(Achievement.SCORE_UNDER_100, anyHuman { it.totalScore < COLD_DICE_SCORE })
         award(Achievement.LOW_ROLLS, anyHuman { it.totalScore < LOW_ROLLS_SCORE })
+        // Chance is excluded because it cannot be zeroed - five dice always sum to at least 5.
+        award(
+            Achievement.ALL_ZEROES,
+            anyHuman { player ->
+                ScoreCategory.entries.filter { it != ScoreCategory.CHANCE }.all { player.scorecard[it] == 0 }
+            },
+        )
         award(Achievement.EXTREME_LOW_ROLLS, anyHuman { it.totalScore == LOWEST_POSSIBLE_SCORE })
         award(Achievement.SINGULARITY, multiplayer && !humanWon)
 
