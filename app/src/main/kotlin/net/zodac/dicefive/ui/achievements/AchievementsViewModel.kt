@@ -19,6 +19,7 @@ import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.game.AchievementEngine
+import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
 
@@ -57,19 +58,19 @@ class AchievementsViewModel(
 
     // Read once: the leaderboard only changes when a game finishes, which can't happen while this
     // screen is open.
-    private val distinctScores = MutableStateFlow<Set<Int>>(emptySet())
+    private val leaderboard = MutableStateFlow(LeaderboardTotals())
 
     val uiState: StateFlow<AchievementsUiState> =
         combine(
             achievementsRepository?.state ?: flowOf(AchievementsState()),
             hideUnlocked,
-            distinctScores,
+            leaderboard,
             ::toUiState,
         ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), AchievementsUiState())
 
     init {
         scoreRepository?.let { repository ->
-            viewModelScope.launch { distinctScores.value = repository.distinctScores() }
+            viewModelScope.launch { leaderboard.value = repository.leaderboardTotals() }
         }
     }
 
@@ -85,10 +86,10 @@ class AchievementsViewModel(
     private fun toUiState(
         state: AchievementsState,
         hideUnlocked: Boolean,
-        distinctScores: Set<Int>,
+        leaderboard: LeaderboardTotals,
     ): AchievementsUiState {
         val (unlocked, locked) = Achievement.entries
-            .map { AchievementItem(it, state.unlockedAt[it], AchievementEngine.progressOf(it, state.counters, distinctScores)) }
+            .map { AchievementItem(it, state.unlockedAt[it], AchievementEngine.progressOf(it, state.counters, leaderboard)) }
             .partition { it.unlockedAt != null }
 
         return AchievementsUiState(

@@ -410,9 +410,9 @@ class AchievementEngineTest {
 
         val short = evaluate(
             finishedGame(player(total = 300)),
-            context = GameAchievementContext(previousDistinctScores = allButOne),
+            context = GameAchievementContext(previousLeaderboard = LeaderboardTotals(distinctScores = allButOne)),
         )
-        val complete = evaluate(finalGame, context = GameAchievementContext(previousDistinctScores = allButOne))
+        val complete = evaluate(finalGame, context = GameAchievementContext(previousLeaderboard = LeaderboardTotals(distinctScores = allButOne)))
 
         assertFalse(Achievement.TALLY in short.newlyUnlocked)
         assertTrue(Achievement.TALLY in complete.newlyUnlocked)
@@ -421,7 +421,7 @@ class AchievementEngineTest {
     @Test
     fun `this game's own score counts towards its band`() {
         // The leaderboard read happens before the insert, so the engine has to add it itself.
-        val context = GameAchievementContext(previousDistinctScores = (5..49).toSet())
+        val context = GameAchievementContext(previousLeaderboard = LeaderboardTotals(distinctScores = (5..49).toSet()))
 
         val update = evaluate(finishedGame(player(total = 50)), context = context)
 
@@ -430,7 +430,7 @@ class AchievementEngineTest {
 
     @Test
     fun `bands only count scores inside their own range`() {
-        val context = GameAchievementContext(previousDistinctScores = (5..50).toSet())
+        val context = GameAchievementContext(previousLeaderboard = LeaderboardTotals(distinctScores = (5..50).toSet()))
 
         val update = evaluate(finishedGame(player(total = 300)), context = context)
 
@@ -443,15 +443,15 @@ class AchievementEngineTest {
     fun `band progress is measured against the leaderboard, not a stored counter`() {
         val scores = (5..27).toSet()
 
-        assertEquals(23, AchievementEngine.progressOf(Achievement.TALLY, emptyMap(), scores))
-        assertEquals(0, AchievementEngine.progressOf(Achievement.BOOKKEEPER, emptyMap(), scores))
-        assertEquals(46, AchievementEngine.progressOf(Achievement.TALLY, emptyMap(), (5..50).toSet()))
+        assertEquals(23, AchievementEngine.progressOf(Achievement.TALLY, emptyMap(), LeaderboardTotals(distinctScores = scores)))
+        assertEquals(0, AchievementEngine.progressOf(Achievement.BOOKKEEPER, emptyMap(), LeaderboardTotals(distinctScores = scores)))
+        assertEquals(46, AchievementEngine.progressOf(Achievement.TALLY, emptyMap(), LeaderboardTotals(distinctScores = (5..50).toSet())))
     }
 
     @Test
     fun `a band announces progress at its quarter marks`() {
         // 11 of 46 is under the first quarter; 12 crosses it.
-        val context = GameAchievementContext(previousDistinctScores = (5..15).toSet())
+        val context = GameAchievementContext(previousLeaderboard = LeaderboardTotals(distinctScores = (5..15).toSet()))
 
         val update = evaluate(finishedGame(player(total = 16)), context = context)
 
@@ -476,12 +476,68 @@ class AchievementEngineTest {
     }
 
     @Test
+    fun `Lower Class reads the lower section, and lands mid-game`() {
+        val lower = mapOf(
+            ScoreCategory.THREE_OF_A_KIND to 25,
+            ScoreCategory.FOUR_OF_A_KIND to 25,
+            ScoreCategory.FULL_HOUSE to 25,
+            ScoreCategory.SMALL_STRAIGHT to 30,
+            ScoreCategory.LARGE_STRAIGHT to 40,
+            ScoreCategory.CHANCE to 25,
+        )
+        val state = inProgress(midGamePlayer(lower))
+
+        val update = AchievementEngine.evaluateInProgress(state, AchievementsState(), NOW)
+
+        // 170 in the lower boxes, and nothing later can take it away.
+        assertTrue(Achievement.LOWER_150 in update.newlyUnlocked)
+        assertFalse(Achievement.UPPER_84 in update.newlyUnlocked)
+    }
+
+    @Test
+    fun `Ton is exactly 100, and only a finished game can say so`() {
+        val exactly = evaluate(finishedGame(player(total = 100)))
+        val over = evaluate(finishedGame(player(total = 101)))
+        val midGame = AchievementEngine.evaluateInProgress(
+            inProgress(midGamePlayer(mapOf(ScoreCategory.CHANCE to 100))),
+            AchievementsState(),
+            NOW,
+        )
+
+        assertTrue(Achievement.TON in exactly.newlyUnlocked)
+        assertFalse(Achievement.TON in over.newlyUnlocked)
+        assertFalse("a running total can still climb past 100", Achievement.TON in midGame.newlyUnlocked)
+    }
+
+    @Test
+    fun `career points accumulate across every game on the leaderboard`() {
+        val nearly = LeaderboardTotals(totalPoints = 99_800)
+
+        val short = evaluate(finishedGame(player(total = 150)), context = GameAchievementContext(previousLeaderboard = nearly))
+        val over = evaluate(finishedGame(player(total = 250)), context = GameAchievementContext(previousLeaderboard = nearly))
+
+        assertFalse(Achievement.PROFESSIONAL_ROLLER in short.newlyUnlocked)
+        assertTrue(Achievement.PROFESSIONAL_ROLLER in over.newlyUnlocked)
+        assertEquals(100_000, AchievementEngine.progressOf(Achievement.PROFESSIONAL_ROLLER, emptyMap(), LeaderboardTotals(totalPoints = 120_000)))
+    }
+
+    @Test
+    fun `every human at the table adds to career points`() {
+        val context = GameAchievementContext(previousLeaderboard = LeaderboardTotals(totalPoints = 99_000))
+
+        val update = evaluate(finishedGame(player(name = "A", total = 500), player(name = "B", total = 500)), context)
+
+        assertTrue(Achievement.PROFESSIONAL_ROLLER in update.newlyUnlocked)
+    }
+
+    @Test
     fun `a score ladder is listed in ascending order`() {
         val scoring = Achievement.entries.filter { it.category == AchievementCategory.SCORING }
 
         assertEquals(
             listOf(
                 Achievement.PERSONAL_BEST,
+                Achievement.TON,
                 Achievement.SCORE_200,
                 Achievement.SCORE_300,
                 Achievement.SCORE_400,

@@ -239,7 +239,7 @@ private fun ProgressBanner(achievement: Achievement, current: Int) {
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     Text(
-                        text = "$current of ${achievement.target}",
+                        text = "${current.grouped()} of ${achievement.target.grouped()}",
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }

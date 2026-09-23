@@ -38,6 +38,7 @@ import net.zodac.dicefive.game.AiNameGenerator
 import net.zodac.dicefive.game.AiTurnPlayer
 import net.zodac.dicefive.game.GameAchievementContext
 import net.zodac.dicefive.game.GameEngine
+import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.game.DiceScoring
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.Difficulty
@@ -383,9 +384,10 @@ class GameViewModel(
             // as it was, and the score-collection bands need the before state to measure progress
             // against (the engine adds this game's own scores itself).
             val previousBestScore = runCatching { scoreRepository?.bestScore() }.getOrNull()
-            val previousScores = runCatching { scoreRepository?.distinctScores() }.getOrNull().orEmpty()
+            val previousLeaderboard = runCatching { scoreRepository?.leaderboardTotals() }.getOrNull()
+                ?: LeaderboardTotals()
             runCatching { persistHumanScores(state) }
-            recordEndOfGameAchievements(state, previousBestScore, previousScores)
+            recordEndOfGameAchievements(state, previousBestScore, previousLeaderboard)
         }
     }
 
@@ -413,12 +415,12 @@ class GameViewModel(
     private suspend fun recordEndOfGameAchievements(
         state: GameState,
         previousBestScore: Int?,
-        previousDistinctScores: Set<Int>,
+        previousLeaderboard: LeaderboardTotals,
     ) {
         val repository = achievementsRepository ?: return
         val context = GameAchievementContext(
             previousBestScore = previousBestScore,
-            previousDistinctScores = previousDistinctScores,
+            previousLeaderboard = previousLeaderboard,
             trailedIntoFinalRound = trailedIntoFinalRound,
             diceRolledByHumans = diceRolledByHumans,
         )

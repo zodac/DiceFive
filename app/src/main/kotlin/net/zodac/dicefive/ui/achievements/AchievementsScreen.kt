@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -200,13 +201,16 @@ private fun ProgressRow(item: AchievementItem) {
             modifier = Modifier.fillMaxWidth(),
         )
         Text(
-            text = "${item.progress} of ${item.achievement.target}",
+            text = "${item.progress.grouped()} of ${item.achievement.target.grouped()}",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp),
         )
     }
 }
+
+/** Thousand separators, so "34,521 of 100,000" doesn't have to be counted digit by digit. */
+internal fun Int.grouped(): String = NumberFormat.getIntegerInstance().format(this)
 
 private fun formatUnlockedAt(epochMillis: Long): String =
     UNLOCKED_AT_FORMATTER.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))

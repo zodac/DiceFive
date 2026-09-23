@@ -69,6 +69,8 @@ enum class Achievement(
      * scores in the band, which `AchievementEngineTest` keeps in step.
      */
     val scoreBand: IntRange? = null,
+    /** True for the one achievement measured against every point ever scored, rather than a counter. */
+    val isCareerPoints: Boolean = false,
     /**
      * Whether [COMPLETIONIST] waits on this one. False for [COMPLETIONIST] itself, and for
      * anything that cannot currently be earned at all - see [I_ROBOT].
@@ -134,6 +136,11 @@ enum class Achievement(
         AchievementCategory.DICE,
     ),
 
+    LOWER_150(
+        "lower_150", "Lower Class", "Score 150 or more in the lower section",
+        AchievementCategory.DICE,
+    ),
+
     // The three "straight out of the cup" feats, in ascending order of how unlikely they are on a
     // single throw of five dice: a full house is 300 of the 7776 outcomes, a large straight 240,
     // and five of a kind just 6.
@@ -174,6 +181,10 @@ enum class Achievement(
     // ---- Scoring: one ladder, so the rungs must stay adjacent and in order --------------------
     PERSONAL_BEST(
         "personal_best", "New Personal Best", "Beat your best score on the leaderboard",
+        AchievementCategory.SCORING,
+    ),
+    TON(
+        "score_exactly_100", "Ton!", "Finish a game on exactly 100",
         AchievementCategory.SCORING,
     ),
     SCORE_200(
@@ -298,6 +309,10 @@ enum class Achievement(
         "scores_251_300", "Historian", "Record every score from 251 to 300 on the leaderboard",
         AchievementCategory.COLLECTION, target = 50, scoreBand = 251..300,
     ),
+    PROFESSIONAL_ROLLER(
+        "career_points_100k", "Professional Roller", "Score 100,000 points across all your games",
+        AchievementCategory.COLLECTION, target = 100_000, isCareerPoints = true,
+    ),
     COMPLETIONIST(
         "completionist", "Completionist", "Unlock every other achievement",
         AchievementCategory.COLLECTION, countsTowardCompletion = false,
@@ -306,8 +321,9 @@ enum class Achievement(
 
     val progressStyle: ProgressStyle
         get() = when {
-            // A band only ever gains scores, so it climbs like any other running total.
-            scoreBand != null -> ProgressStyle.CUMULATIVE
+            // A band only ever gains scores, and career points only ever go up, so both climb
+            // like any other running total.
+            scoreBand != null || isCareerPoints -> ProgressStyle.CUMULATIVE
             // A target of 1 is a plain unlock that happens to be driven by a counter: a "0 of 1"
             // progress bar says nothing the locked state doesn't already.
             counter == null || target <= 1 -> ProgressStyle.NONE

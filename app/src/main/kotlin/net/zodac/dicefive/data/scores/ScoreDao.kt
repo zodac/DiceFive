@@ -23,4 +23,8 @@ interface ScoreDao {
     /** Every score that has ever been recorded, once each - what the score-collection achievements count. */
     @Query("SELECT DISTINCT score FROM scores")
     suspend fun distinctScores(): List<Int>
+
+    /** Every point ever scored, added up. Null when nothing has been recorded yet - SUM over no rows. */
+    @Query("SELECT SUM(score) FROM scores")
+    suspend fun totalPoints(): Int?
 }

@@ -22,13 +22,28 @@ data class GameAchievementContext(
     /** How many dice a human actually re-rolled across the game. AI rolls don't count. */
     val diceRolledByHumans: Int = 0,
     /**
-     * Every distinct score already on the leaderboard *before* this game's rows were inserted.
-     * Read pre-insert for the same reason [previousBestScore] is, and because the engine adds
-     * this game's own human totals itself - that way it knows both the before and after states
-     * of a score band from one read.
+     * What the leaderboard said *before* this game's rows were inserted. Read pre-insert for the
+     * same reason [previousBestScore] is, and because the engine adds this game's own human totals
+     * itself - that way one read gives it both the before and after state of everything measured
+     * against the board.
      */
-    val previousDistinctScores: Set<Int> = emptySet(),
+    val previousLeaderboard: LeaderboardTotals = LeaderboardTotals(),
 )
+
+/**
+ * The parts of the leaderboard that achievements are scored against, for the ones measured by what
+ * has actually been recorded rather than by a stored counter: the score bands, and career points.
+ */
+data class LeaderboardTotals(
+    val distinctScores: Set<Int> = emptySet(),
+    val totalPoints: Int = 0,
+) {
+    /** The same totals with [scores] added - what the board will say once a finished game is saved. */
+    operator fun plus(scores: List<Int>) = LeaderboardTotals(
+        distinctScores = distinctScores + scores,
+        totalPoints = totalPoints + scores.sum(),
+    )
+}
 
 /** One "getting closer" banner: [achievement] is now at [current] out of its target. */
 data class AchievementProgress(val achievement: Achievement, val current: Int)
@@ -63,6 +78,10 @@ data class AchievementUpdate(
 object AchievementEngine {
 
     private const val UPPER_CLASS_THRESHOLD = 84
+
+    /** Out of a 235-point maximum across the lower boxes, so a high bar without being the ceiling. */
+    private const val LOWER_CLASS_THRESHOLD = 150
+    private const val TON_SCORE = 100
     private const val LANDSLIDE_MARGIN = 100
     private const val PHOTO_FINISH_MARGIN = 5
     private const val COLD_DICE_SCORE = 100
@@ -98,12 +117,12 @@ object AchievementEngine {
         val humans = state.players.filter { it.type == PlayerType.HUMAN }
         if (humans.isEmpty()) return AchievementUpdate()
 
-        val scoresBefore = context.previousDistinctScores
-        val scoresAfter = scoresBefore + humans.map { it.totalScore }
+        val leaderboardBefore = context.previousLeaderboard
+        val leaderboardAfter = leaderboardBefore + humans.map { it.totalScore }
 
         val counters = countersAfter(state, humans, context, before)
-        val earned = earnedBy(state, humans, context, counters, scoresAfter)
-        return update(earned, counters, before, now, scoresBefore, scoresAfter)
+        val earned = earnedBy(state, humans, context, counters, leaderboardAfter)
+        return update(earned, counters, before, now, leaderboardBefore, leaderboardAfter)
     }
 
     /**
@@ -141,9 +160,10 @@ object AchievementEngine {
     fun progressOf(
         achievement: Achievement,
         counters: Map<AchievementCounter, Int>,
-        distinctScores: Set<Int>,
+        leaderboard: LeaderboardTotals,
     ): Int = when {
-        achievement.scoreBand != null -> distinctScores.count { it in achievement.scoreBand }
+        achievement.scoreBand != null -> leaderboard.distinctScores.count { it in achievement.scoreBand }
+        achievement.isCareerPoints -> leaderboard.totalPoints.coerceAtMost(achievement.target)
         achievement.counter != null -> (counters[achievement.counter] ?: 0).coerceAtMost(achievement.target)
         else -> 0
     }
@@ -204,6 +224,7 @@ object AchievementEngine {
         award(Achievement.SIXES_30, anyHuman { it.scorecard[ScoreCategory.SIXES] == MAX_SIXES })
         award(Achievement.UPPER_BONUS, anyHuman { it.upperSectionBonus > 0 })
         award(Achievement.UPPER_84, anyHuman { it.upperSectionTotal >= UPPER_CLASS_THRESHOLD })
+        award(Achievement.LOWER_150, anyHuman { it.lowerSectionTotal >= LOWER_CLASS_THRESHOLD })
         award(Achievement.SCRATCHED_5X, anyHuman { it.scorecard[ScoreCategory.FIVE_OF_A_KIND] == 0 })
 
         // Score thresholds: a total only ever grows, so passing one mid-game is already final.
@@ -223,7 +244,7 @@ object AchievementEngine {
         humans: List<PlayerState>,
         context: GameAchievementContext,
         counters: Map<AchievementCounter, Int>,
-        distinctScores: Set<Int>,
+        leaderboard: LeaderboardTotals,
     ): Set<Achievement> {
         val players = state.players
         val earned = earnedDuringPlay(players, humans).toMutableSet()
@@ -277,11 +298,15 @@ object AchievementEngine {
 
         award(Achievement.SOLO_GAME, players.size == 1)
 
+        // Exactly 100 - a threshold the running total can overshoot, so it can only be judged now.
+        award(Achievement.TON, anyHuman { it.totalScore == TON_SCORE })
+
         // Score collection: every single score in the band has to have been recorded at least once.
         for (achievement in Achievement.entries) {
             val band = achievement.scoreBand ?: continue
-            award(achievement, band.all { it in distinctScores })
+            award(achievement, band.all { it in leaderboard.distinctScores })
         }
+        award(Achievement.PROFESSIONAL_ROLLER, leaderboard.totalPoints >= Achievement.PROFESSIONAL_ROLLER.target)
 
         return earned
     }
@@ -296,8 +321,8 @@ object AchievementEngine {
         counters: Map<AchievementCounter, Int>,
         before: AchievementsState,
         now: Long,
-        scoresBefore: Set<Int> = emptySet(),
-        scoresAfter: Set<Int> = emptySet(),
+        leaderboardBefore: LeaderboardTotals = LeaderboardTotals(),
+        leaderboardAfter: LeaderboardTotals = LeaderboardTotals(),
     ): AchievementUpdate {
         // Catalogue order, so a burst of banners always arrives in the same, grouped order.
         val newlyUnlocked = Achievement.entries
@@ -310,7 +335,7 @@ object AchievementEngine {
         }
 
         val progressed = Achievement.entries.mapNotNull { achievement ->
-            progressEvent(achievement, counters, before, newlyUnlocked, scoresBefore, scoresAfter)
+            progressEvent(achievement, counters, before, newlyUnlocked, leaderboardBefore, leaderboardAfter)
         }
 
         return AchievementUpdate(
@@ -326,8 +351,8 @@ object AchievementEngine {
         counters: Map<AchievementCounter, Int>,
         before: AchievementsState,
         newlyUnlocked: List<Achievement>,
-        scoresBefore: Set<Int>,
-        scoresAfter: Set<Int>,
+        leaderboardBefore: LeaderboardTotals,
+        leaderboardAfter: LeaderboardTotals,
     ): AchievementProgress? {
         if (!achievement.hasProgressBar) return null
         // Nothing to nudge someone towards once they've got there - the unlock banner says it all.
@@ -336,14 +361,14 @@ object AchievementEngine {
         val previous: Int
         val current: Int
         when {
-            achievement.scoreBand != null -> {
-                previous = progressOf(achievement, counters, scoresBefore)
-                current = progressOf(achievement, counters, scoresAfter)
+            achievement.scoreBand != null || achievement.isCareerPoints -> {
+                previous = progressOf(achievement, counters, leaderboardBefore)
+                current = progressOf(achievement, counters, leaderboardAfter)
             }
 
             achievement.counter != null -> {
                 previous = before.progress(achievement)
-                current = progressOf(achievement, counters, scoresAfter)
+                current = progressOf(achievement, counters, leaderboardAfter)
             }
 
             else -> return null
