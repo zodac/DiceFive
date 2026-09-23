@@ -118,7 +118,15 @@ expected to.
   slightly different surface on top of the card's.
 - **`CONTENT_MAX_WIDTH` (460dp)** caps page width so text doesn't stretch into an unreadable
   line on a tablet.
-- **Back navigation is on screen**, via the top app bar - not the system gesture alone.
+- **Back navigation is on screen**, via the top app bar - not the system gesture alone. That's
+  for sub-screens pushed onto the stack. The Menu is the nav graph's start destination and
+  intentionally has no `BackHandler`: with nothing left on the stack, the system gesture/button
+  falls through to closing the app, which is standard Android/Material behaviour for a root
+  screen (a confirmation dialog or an in-app "Quit" button on the root are both explicitly
+  discouraged by Android's back-navigation guidance - the gesture/button/home already do that
+  job). Don't add either. The one in-game exception (`GameScreen`'s `BackHandler`) confirms
+  before *leaving a game*, not before exiting the app - it's guarding against losing in-progress
+  state, which the Menu has none of.
 
 ## The achievements list
 

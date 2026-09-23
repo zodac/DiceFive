@@ -38,7 +38,8 @@ fun SettingsScreen(
     val theme by viewModel.theme.collectAsState()
     val confirmBeforeLeavingGame by viewModel.confirmBeforeLeavingGame.collectAsState()
     // Saveable: a rotation mid-confirmation shouldn't silently drop the question.
-    var showResetConfirmation by rememberSaveable { mutableStateOf(false) }
+    var showResetAchievementsConfirmation by rememberSaveable { mutableStateOf(false) }
+    var showResetScoresConfirmation by rememberSaveable { mutableStateOf(false) }
 
     ScreenScaffold(title = "Settings", onBack = onBack, modifier = modifier, scrollable = true) {
         Card(modifier = Modifier.fillMaxWidth()) {
@@ -70,7 +71,7 @@ fun SettingsScreen(
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "Achievements",
+                text = "Reset",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
             )
@@ -79,7 +80,20 @@ fun SettingsScreen(
                 supportingContent = { Text("Clear every unlock and all progress on this device") },
                 trailingContent = {
                     TextButton(
-                        onClick = { showResetConfirmation = true },
+                        onClick = { showResetAchievementsConfirmation = true },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    ) {
+                        Text("Reset")
+                    }
+                },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            )
+            ListItem(
+                headlineContent = { Text("Reset leaderboard & statistics") },
+                supportingContent = { Text("Clear every recorded score on this device") },
+                trailingContent = {
+                    TextButton(
+                        onClick = { showResetScoresConfirmation = true },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     ) {
                         Text("Reset")
@@ -90,7 +104,7 @@ fun SettingsScreen(
         }
     }
 
-    if (showResetConfirmation) {
+    if (showResetAchievementsConfirmation) {
         DiceFiveDialog(
             icon = Icons.Filled.RestartAlt,
             title = "Reset achievements?",
@@ -99,11 +113,29 @@ fun SettingsScreen(
             confirmLabel = "Reset",
             onConfirm = {
                 viewModel.resetAchievements()
-                showResetConfirmation = false
+                showResetAchievementsConfirmation = false
             },
             dismissLabel = "Cancel",
-            onDismiss = { showResetConfirmation = false },
-            onDismissRequest = { showResetConfirmation = false },
+            onDismiss = { showResetAchievementsConfirmation = false },
+            onDismissRequest = { showResetAchievementsConfirmation = false },
+        )
+    }
+
+    if (showResetScoresConfirmation) {
+        DiceFiveDialog(
+            icon = Icons.Filled.RestartAlt,
+            title = "Reset leaderboard & statistics?",
+            message = "Every recorded score will be deleted, clearing the Leaderboard and Statistics screens. " +
+                "This can't be undone. Achievements and settings are not affected, though any achievement " +
+                "progress measured against the leaderboard will start over.",
+            confirmLabel = "Reset",
+            onConfirm = {
+                viewModel.resetScores()
+                showResetScoresConfirmation = false
+            },
+            dismissLabel = "Cancel",
+            onDismiss = { showResetScoresConfirmation = false },
+            onDismissRequest = { showResetScoresConfirmation = false },
         )
     }
 }

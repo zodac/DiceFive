@@ -22,6 +22,12 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
     suspend fun totalCount(): Int = scoreDao.count()
 
     /**
+     * Wipes every recorded score. The Leaderboard and Statistics screens are both just different
+     * views over this same table, so there's no way to clear one without the other.
+     */
+    suspend fun clearAll() = scoreDao.clearAll()
+
+    /**
      * The highest score on the leaderboard, or null if there isn't one yet. Read *before* a
      * finished game's own rows are inserted, or "beat your best score" would be comparing the new
      * score against itself - see `GameViewModel.finishGame`.

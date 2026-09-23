@@ -47,4 +47,8 @@ interface ScoreDao {
     /** One player's win/loss history, most recent game first - walked to find their current streak. */
     @Query("SELECT won FROM scores WHERE playerName = :playerName ORDER BY timestampEpochMillis DESC")
     suspend fun outcomesForPlayer(playerName: String): List<Boolean?>
+
+    /** Wipes every recorded score - the Leaderboard and Statistics screens share this one table. */
+    @Query("DELETE FROM scores")
+    suspend fun clearAll()
 }

@@ -49,6 +49,10 @@ private class FakeScoreDao : ScoreDao {
         entries.filter { it.playerName == playerName }
             .sortedByDescending { it.timestampEpochMillis }
             .map { it.won }
+
+    override suspend fun clearAll() {
+        entries.clear()
+    }
 }
 
 class ScoreRepositoryTest {
@@ -168,5 +172,16 @@ class ScoreRepositoryTest {
         val alice = repository.playerStatistics().single { it.playerName == "Alice" }
 
         assertEquals(2, alice.bestWinStreak)
+    }
+
+    @Test
+    fun `clearAll removes every recorded score`() = runTest {
+        val repository = ScoreRepository(FakeScoreDao())
+        repository.recordScore("Alice", 150)
+        repository.recordScore("Bob", 300)
+
+        repository.clearAll()
+
+        assertEquals(0, repository.totalCount())
     }
 }

@@ -13,13 +13,16 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsRepository
+import net.zodac.dicefive.data.scores.AppDatabase
+import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.Theme
 
-/** Both repositories are nullable so this stays constructible/testable without a Context - see [factory]. */
+/** All repositories are nullable so this stays constructible/testable without a Context - see [factory]. */
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository? = null,
     private val achievementsRepository: AchievementStore? = null,
+    private val scoreRepository: ScoreRepository? = null,
 ) : ViewModel() {
 
     val theme: StateFlow<Theme> = (settingsRepository?.theme ?: flowOf(Theme.SYSTEM))
@@ -48,6 +51,17 @@ class SettingsViewModel(
         viewModelScope.launch { repository.resetAll() }
     }
 
+    /**
+     * Wipes every recorded score. The Leaderboard and Statistics screens are both read from this
+     * one table, so there's no way to reset one without the other - achievements measured live
+     * against the board (the score-collection ones) lose their progress too, though their unlock
+     * timestamps live in the separate achievements DataStore and are untouched.
+     */
+    fun resetScores() {
+        val repository = scoreRepository ?: return
+        viewModelScope.launch { repository.clearAll() }
+    }
+
     companion object {
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -55,6 +69,7 @@ class SettingsViewModel(
                 SettingsViewModel(
                     settingsRepository = SettingsRepository(appContext),
                     achievementsRepository = AchievementsRepository(appContext),
+                    scoreRepository = ScoreRepository(AppDatabase.getInstance(appContext).scoreDao()),
                 )
             }
         }
