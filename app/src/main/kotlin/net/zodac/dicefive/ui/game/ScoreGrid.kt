@@ -34,6 +34,7 @@ fun ScoreGrid(
     player: PlayerState?,
     dice: List<Die>,
     canScore: Boolean,
+    showPreview: Boolean,
     available: Set<ScoreCategory>,
     onScoreCategory: (ScoreCategory) -> Unit,
     modifier: Modifier = Modifier,
@@ -51,6 +52,7 @@ fun ScoreGrid(
                     category = PlayerState.UPPER_CATEGORIES[row],
                     player = player,
                     canScore = canScore,
+                    showPreview = showPreview,
                     available = available,
                     dice = dice,
                     onScoreCategory = onScoreCategory,
@@ -60,6 +62,7 @@ fun ScoreGrid(
                     category = GRID_LOWER_CATEGORIES[row],
                     player = player,
                     canScore = canScore,
+                    showPreview = showPreview,
                     available = available,
                     dice = dice,
                     onScoreCategory = onScoreCategory,
@@ -75,6 +78,7 @@ internal fun CategoryCell(
     category: ScoreCategory,
     player: PlayerState?,
     canScore: Boolean,
+    showPreview: Boolean,
     available: Set<ScoreCategory>,
     dice: List<Die>,
     onScoreCategory: (ScoreCategory) -> Unit,
@@ -82,11 +86,14 @@ internal fun CategoryCell(
     prominent: Boolean = false,
 ) {
     val filled = player?.scorecard?.get(category)
-    // "Legal to pick" (any open box - the rules let you zero one deliberately) is distinct
-    // from "worth picking" (glows gold): only a non-zero preview earns the highlight, so rolling
-    // the dice doesn't light up every open box regardless of whether it'd actually score.
+    // Legal-to-tap (canScore, human-only) and legal-to-preview (showPreview, any player whose
+    // dice have actually been rolled) are deliberately separate: tapping a box to score it only
+    // ever makes sense for the human at the controls, but the gold "worth picking" glow and the
+    // number preview are just information about the dice that already landed - an AI's own roll
+    // is exactly as previewable as a human's, it's just never the human tapping it in.
     val isLegalChoice = player != null && canScore && category in available
-    val previewScore = if (isLegalChoice) ScoreCalculator.scoreFor(player!!, category, dice) else null
+    val canPreview = player != null && showPreview && category in available
+    val previewScore = if (canPreview) ScoreCalculator.scoreFor(player!!, category, dice) else null
     val isGoodChoice = previewScore != null && previewScore > 0
     // Every 5x after the first earns a +100 bonus chip tracked separately from the scorecard
     // entry itself (which stays 50) - see PlayerState.fiveOfAKindBonusCount/Total and
@@ -95,7 +102,7 @@ internal fun CategoryCell(
     // Whether this roll would earn the +100 bonus - unconditional on which category ends up
     // chosen, per the official joker rule (see ScoreCalculator's class doc): a repeat 5x
     // always pays the bonus, it only dictates/restricts which box the roll can go in.
-    val bonusThisTurn = player != null && canScore && ScoreCalculator.awardsFiveOfAKindBonus(player, dice)
+    val bonusThisTurn = player != null && showPreview && ScoreCalculator.awardsFiveOfAKindBonus(player, dice)
     // The 5x box itself is never a "legal choice" again once filled (it's not in `available`,
     // so isGoodChoice above is always false for it) - but a repeat 5x still means the bonus
     // will be earned this turn, so without this, rolling one gave no visual sign anything special

@@ -173,6 +173,15 @@ private fun InProgressGame(
     // not only once the real roll has resolved a few hundred ms later.
     val showDice = state.phase == TurnPhase.ROLLED || isRolling
 
+    // Which other player's scorecard the active player has tapped into viewing, if any - keyed on
+    // currentPlayerIndex so it's forgotten automatically the moment the turn moves on, rather than
+    // leaving a stale view pinned once it's someone else's turn to look at.
+    var viewedPlayerIndex by remember(state.currentPlayerIndex) { mutableStateOf<Int?>(null) }
+    val viewedPlayer = viewedPlayerIndex?.let { state.players.getOrNull(it) }
+    val onPlayerTap = { index: Int ->
+        viewedPlayerIndex = if (index == state.currentPlayerIndex || index == viewedPlayerIndex) null else index
+    }
+
     val coroutineScope = rememberCoroutineScope()
     // Two independent ifs, not if/else - "No More Rolls" is the mutually-exclusive fallback case
     // (rollsRemaining hit 0, the tap does nothing for the game itself), and keeping them separate
@@ -191,27 +200,37 @@ private fun InProgressGame(
         }
     }
 
-    PlayerHeaderBar(players = state.players, currentPlayerIndex = state.currentPlayerIndex)
-
-    GameBoard(
-        state = state,
-        rolling = isRolling,
-        canUndo = canUndo,
-        onScoreCategory = onScoreCategory,
-        onCupTap = onCupTap,
-        onUndo = onUndo,
+    PlayerHeaderBar(
+        players = state.players,
+        currentPlayerIndex = state.currentPlayerIndex,
+        viewedPlayerIndex = viewedPlayerIndex,
+        onPlayerTap = onPlayerTap,
     )
 
-    DiceTray(
-        dice = state.dice,
-        enabled = canHold,
-        showDice = showDice,
-        rolling = isRolling,
-        onToggleHold = onToggleHold,
-        superuserModeActive = superuserModeActive,
-        onCycleValue = onCycleValue,
-        modifier = Modifier.fillMaxWidth(),
-    )
+    if (viewedPlayer != null) {
+        // Read-only: no mat, dice or cup for a turn that isn't actually happening.
+        ReadOnlyScoreboard(player = viewedPlayer)
+    } else {
+        GameBoard(
+            state = state,
+            rolling = isRolling,
+            canUndo = canUndo,
+            onScoreCategory = onScoreCategory,
+            onCupTap = onCupTap,
+            onUndo = onUndo,
+        )
+
+        DiceTray(
+            dice = state.dice,
+            enabled = canHold,
+            showDice = showDice,
+            rolling = isRolling,
+            onToggleHold = onToggleHold,
+            superuserModeActive = superuserModeActive,
+            onCycleValue = onCycleValue,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 // The lint check exists because a real screen must scope its view model to the host, not build one
