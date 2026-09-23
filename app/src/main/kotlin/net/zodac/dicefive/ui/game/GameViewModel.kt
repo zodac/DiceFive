@@ -38,16 +38,23 @@ import net.zodac.dicefive.game.AiNameGenerator
 import net.zodac.dicefive.game.AiTurnPlayer
 import net.zodac.dicefive.game.GameAchievementContext
 import net.zodac.dicefive.game.GameEngine
+import net.zodac.dicefive.game.GameStartContext
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.game.DiceScoring
+import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.GameType
 import net.zodac.dicefive.model.PlayerConfig
+import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
+import net.zodac.dicefive.ui.game.style.DiceCupStyles
+import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.game.style.TableBackgrounds
 
 /**
  * A configured-but-not-yet-started player slot on the setup screen. Slot 1
@@ -132,13 +139,59 @@ class GameViewModel(
     private var superuserSequenceDieIndex = 0
     private var superuserSequenceAwaitingUnhold = false
 
-    // Per-game achievement tracking: the two things the final GameState can't tell us afterwards.
-    // Both are reset by startGame/resumeGame, and a resumed game starts its dice count from zero -
-    // the dice rolled before the app was closed are simply not counted, which costs a little
-    // progress on a 10,000-dice total rather than justifying persisting a counter mid-game.
+    // Per-game achievement tracking: things the final GameState can't tell us afterwards. All of
+    // it is reset by startGame/resumeGame, and a resumed game starts its counters from zero - the
+    // dice rolled before the app was closed are simply not counted, which costs a little progress
+    // on a 10,000-dice total rather than justifying persisting a counter mid-game.
     private var diceRolledByHumans = 0
     private var trailedIntoFinalRound = false
+    private var ledIntoFinalRound = false
+
+    /** Indices of players who have used a 2nd or 3rd roll on at least one of their own turns this
+     * game - see [Achievement.IMPATIENT]/[Achievement.NATURALLY_GIFTED]. */
+    private var extraRollPlayerIndices = mutableSetOf<Int>()
+
+    /** Whether each player's most recently COMPLETED turn scored a genuine 5x, keyed by player
+     * index - see [Achievement.TWICE_IN_A_LIFETIME]. Only ever written for human commits (AI turns
+     * don't go through [commitScore]), which is exactly right: a player's own streak of turns is
+     * what matters, and other seats' entries are simply never read. */
+    private var previousTurnFiveOfAKindByPlayer = mutableMapOf<Int, Boolean>()
+
     private val achievementLock = Mutex()
+
+    // Per-turn achievement tracking: how THIS turn's rolls and holds actually played out, which a
+    // finished scorecard can't reconstruct afterwards. Reset at the start of every human turn (its
+    // first roll - see resetPerTurnTracking, called from rollDice). AI turns never touch any of
+    // this: they roll and commit straight through GameEngine, bypassing every method below.
+    private var previousRollDiceValues: List<Int>? = null
+    private var heldChangedSinceLastRoll = false
+    private var hadFourOfAKindOnFirstRoll = false
+    private var fiveOfAKindSeenThisTurn = false
+    private var diceValuesAfterFirstRoll: List<Int>? = null
+    private var loadedDiceHeldIndices: Set<Int>? = null
+    private var loadedDiceMatchedSecondRoll = false
+    private var heldIndicesBeforeSecondRoll: Set<Int>? = null
+    private var heldThroughBothRerolls: Set<Int> = emptySet()
+    private var everHeldAllFiveThisTurn = false
+    private var holdUnholdCyclesByDieIndex = IntArray(5)
+    private var hadScoringOptionAfterSecondRoll = false
+
+    /** The value, and die indices, of an exact matching group (1-4 dice, all the same value,
+     * nothing else held) currently or most recently held - see [Achievement.COMMITMENT_ISSUES]'s
+     * doc comment on [checkPostHoldAchievements]. */
+    private var pendingCommitmentGroupValue: Int? = null
+    private var pendingCommitmentGroupIndices: Set<Int> = emptySet()
+
+    /** Whether the currently-tracked group passed through a full 5-of-a-kind at some point since it
+     * was last fresh - a real 5x is not indecision, so it disqualifies crediting the release even
+     * once the held set has shrunk back down to looking like a plain group again. */
+    private var commitmentGroupTainted = false
+
+    /** The value of the exact matching group most recently held-then-fully-released this turn. */
+    private var lastReleasedCommitmentGroupValue: Int? = null
+    private var lastCommittedCategory: ScoreCategory? = null
+    private var pendingUndoneCategory: ScoreCategory? = null
+    private var outOfRollsCupTaps = 0
 
     init {
         settingsRepository?.let { repository ->
@@ -186,6 +239,10 @@ class GameViewModel(
 
     /** Builds the initial [GameState] from the current setup form, generating AI names now. */
     fun startGame() {
+        // Read before anything below overwrites it: "One More Time" is about the game THIS call is
+        // replacing, not the one it's about to create.
+        val previousGame = _game.value
+
         val setupState = _setup.value
         val activeSlots = setupState.playerSlots.take(setupState.playerCount)
         val aiNames = AiNameGenerator.generateNames(activeSlots.count { it.type == PlayerType.AI }).iterator()
@@ -204,6 +261,11 @@ class GameViewModel(
         applyGameState(GameEngine.newGame(playerConfigs, setupState.gameType))
         // "Full Table" is settled the moment four seats are taken - no need to make them play it out.
         checkInProgressAchievements()
+        checkGameStartAchievements()
+
+        if (previousGame != null && previousGame.isGameOver && !humanWonGame(previousGame)) {
+            unlockAchievements(setOf(Achievement.REPLAY_AFTER_LOSS))
+        }
     }
 
     /** Loads a previously in-progress game, if any. Returns whether one was found and resumed. */
@@ -215,6 +277,8 @@ class GameViewModel(
         resetAchievementTracking()
         applyGameState(loaded)
         checkInProgressAchievements()
+        checkGameStartAchievements()
+        unlockAchievements(setOf(Achievement.CONTINUED_GAME))
         return true
     }
 
@@ -223,18 +287,44 @@ class GameViewModel(
     fun rollDice() {
         val state = _game.value ?: return
         if (state.currentPlayer?.type != PlayerType.HUMAN) return
+
+        if (state.dice.all { it.isHeld }) unlockAchievements(setOf(Achievement.POINTLESS_ROLL))
+        if (state.rollsRemaining == FULL_ROLLS_REMAINING) resetPerTurnTracking()
+        if (state.rollsRemaining < FULL_ROLLS_REMAINING) extraRollPlayerIndices += state.currentPlayerIndex
+
+        // Loaded Dice: the held set right before the 2nd roll, and whether it's still the held set
+        // right before the 3rd - a proper, non-empty, non-full subset only, both times.
+        if (state.rollsRemaining == ROLLS_REMAINING_AFTER_FIRST) {
+            val held = state.dice.withIndex().filter { it.value.isHeld }.map { it.index }.toSet()
+            heldIndicesBeforeSecondRoll = held
+            loadedDiceHeldIndices = held.takeIf { it.isNotEmpty() && it.size < state.dice.size }
+        } else if (state.rollsRemaining == ROLLS_REMAINING_AFTER_SECOND) {
+            val heldNow = state.dice.withIndex().filter { it.value.isHeld }.map { it.index }.toSet()
+            if (heldNow != heldIndicesBeforeSecondRoll) loadedDiceHeldIndices = null
+            heldThroughBothRerolls = (heldIndicesBeforeSecondRoll ?: emptySet()).intersect(heldNow)
+        }
+
+        val diceBeforeRoll = state.dice
+        val rollsRemainingBeforeRoll = state.rollsRemaining
         // Counted before the roll, while it's still clear which dice are actually going to move.
-        diceRolledByHumans += state.dice.count { !it.isHeld }
+        diceRolledByHumans += diceBeforeRoll.count { !it.isHeld }
 
         onHumanAction(undoable = false) { GameEngine.rollDice(it, random) }
         checkFirstRollAchievements()
+        checkPostRollAchievements(rollsRemainingBeforeRoll, diceBeforeRoll)
     }
 
     // Not undoable, same reasoning as rollDice: holding/unholding just selects what a future roll
     // will touch, it doesn't itself score anything.
     fun toggleHold(dieIndex: Int) {
         trackSuperuserSequence(dieIndex)
+        val state = _game.value
+        val wasHeld = state?.dice?.getOrNull(dieIndex)?.isHeld == true
+        val isHumanTurn = state?.currentPlayer?.type == PlayerType.HUMAN
+
         onHumanAction(undoable = false) { GameEngine.toggleHold(it, dieIndex) }
+
+        if (isHumanTurn) checkPostHoldAchievements(dieIndex, wasHeld)
     }
 
     /** One cycle step (see [GameEngine.cycleDieValue]), called once per second while a held die is
@@ -258,7 +348,17 @@ class GameViewModel(
     // this if that turns out to matter more in practice than being able to undo a bad category
     // pick.
     fun commitScore(category: ScoreCategory) {
+        checkWastedFiveOfAKind(category)
+        checkPreCommitAchievements(category)
+        val categoryJustUndone = pendingUndoneCategory
+
         onHumanAction(undoable = true) { GameEngine.commitScore(it, category) }
+
+        if (categoryJustUndone != null && category != categoryJustUndone) {
+            unlockAchievements(setOf(Achievement.UNDO_DIFFERENT_CATEGORY))
+        }
+        pendingUndoneCategory = null
+        lastCommittedCategory = category
         // Only human commits are checked: every mid-game achievement reads human scorecards, which
         // an AI's turn can't change.
         checkInProgressAchievements()
@@ -267,10 +367,23 @@ class GameViewModel(
     /** Reverts just the most recent human move, if there is one to undo. Cancels any pending AI turn it would have triggered. */
     fun undo() {
         val snapshot = undoSnapshot ?: return
+        pendingUndoneCategory = lastCommittedCategory
         aiTurnJob?.cancel()
         aiTurnJob = null
         setUndoSnapshot(null)
         applyGameState(snapshot, checkForAiTurn = false)
+    }
+
+    /** A tap on the dice cup once a turn's last roll is already spent - it does nothing for the
+     * game, but it's counted anyway for [Achievement.NO_MORE_ROLLS]. */
+    fun tapCupWithNoRollsLeft() {
+        val state = _game.value ?: return
+        if (state.currentPlayer?.type != PlayerType.HUMAN) return
+        if (state.rollsRemaining != 0) return
+        outOfRollsCupTaps++
+        if (outOfRollsCupTaps >= NO_MORE_ROLLS_TAP_TARGET) {
+            unlockAchievements(setOf(Achievement.NO_MORE_ROLLS))
+        }
     }
 
     private fun onHumanAction(undoable: Boolean = true, transform: (GameState) -> GameState) {
@@ -290,14 +403,14 @@ class GameViewModel(
      * hold/unhold BEFORE it's applied - piggybacking on ordinary play rather than a separate
      * input mode, so the cheat stays hidden until it triggers.
      *
-     * Gated on [BuildConfig.DEBUG] - a release build's copy of this class has that constant
-     * inlined to `false`, so this returns immediately and [_superuserModeActive] can never
-     * become true no matter what a player does. That's the ONLY gate the whole feature needs:
-     * [cycleHeldDieValue] already requires [_superuserModeActive], and every UI entry point
-     * (DiceTray's onCycleValue wiring) is itself conditional on that same flag.
+     * Tracked in every build, debug or release: [Achievement.TIME_WASTING] rewards performing the
+     * sequence itself, whether or not it actually goes on to do anything. Only the effect it has
+     * once completed - flipping [_superuserModeActive] and the toast - stays behind
+     * [BuildConfig.DEBUG], which is the only gate the cheat itself needs: [cycleHeldDieValue]
+     * already requires [_superuserModeActive], and every UI entry point (DiceTray's onCycleValue
+     * wiring) is itself conditional on that same flag.
      */
     private fun trackSuperuserSequence(dieIndex: Int) {
-        if (!BuildConfig.DEBUG) return
         if (_superuserModeActive.value) return
         val state = _game.value ?: return
         val willBeHeld = state.dice.getOrNull(dieIndex)?.isHeld == false
@@ -319,9 +432,12 @@ class GameViewModel(
             superuserSequenceDieIndex++
             superuserSequenceAwaitingUnhold = false
             if (superuserSequenceDieIndex == state.dice.size) {
-                _superuserModeActive.value = true
                 resetSuperuserSequence()
-                _toastMessages.trySend("Superuser mode activated!")
+                unlockAchievements(setOf(Achievement.TIME_WASTING))
+                if (BuildConfig.DEBUG) {
+                    _superuserModeActive.value = true
+                    _toastMessages.trySend("Superuser mode activated!")
+                }
             }
         } else {
             superuserSequenceAwaitingUnhold = true
@@ -356,11 +472,13 @@ class GameViewModel(
     }
 
     /**
-     * Notes whether a human went into their last turn of the game behind everyone else, which is
-     * the half of "Comeback Kid" that the final scorecard can no longer show.
+     * Notes whether a human went into their last turn of the game ahead of, or behind, everyone
+     * else - the half of "Comeback Kid"/"Defeat From the Jaws of Victory" that the final scorecard
+     * can no longer show once the game moves on.
      */
     private fun trackFinalRoundPosition(state: GameState) {
-        if (trailedIntoFinalRound || state.isGameOver || state.phase != TurnPhase.AWAITING_ROLL) return
+        if (trailedIntoFinalRound && ledIntoFinalRound) return
+        if (state.isGameOver || state.phase != TurnPhase.AWAITING_ROLL) return
         val player = state.currentPlayer ?: return
         if (player.type != PlayerType.HUMAN) return
         if (player.scorecard.values.count { it == null } != 1) return
@@ -369,6 +487,7 @@ class GameViewModel(
             .filterIndexed { index, _ -> index != state.currentPlayerIndex }
             .maxOfOrNull { it.totalScore } ?: return
         if (player.totalScore < bestOther) trailedIntoFinalRound = true
+        if (player.totalScore > bestOther) ledIntoFinalRound = true
     }
 
     /**
@@ -388,6 +507,33 @@ class GameViewModel(
                 ?: LeaderboardTotals()
             runCatching { persistHumanScores(state) }
             recordEndOfGameAchievements(state, previousBestScore, previousLeaderboard)
+        }
+    }
+
+    /**
+     * Everything decided the moment a game begins - checked from [startGame]/[resumeGame], not the
+     * end: whatever's true here was already true before a single die was rolled, so there's no
+     * reason to make the player finish a game to hear about it. Delegates the actual "what counts
+     * as earned" decision to [AchievementEngine.evaluateAtGameStart], same as [checkInProgressAchievements]/
+     * [recordEndOfGameAchievements] do for their own moments - this is only responsible for
+     * gathering [GameStartContext]'s inputs (async, since the style ids live in
+     * [SettingsRepository]'s DataStore, not [_game]) and persisting/announcing the result. A future
+     * game-start achievement is a new field on [GameStartContext] and a line in that engine
+     * function, not a new method here.
+     */
+    private fun checkGameStartAchievements() {
+        val repository = achievementsRepository ?: return
+        val settings = settingsRepository ?: return
+        viewModelScope.launch {
+            val context = GameStartContext(
+                playedNonDefaultDiceStyle = isNonDefaultStyle(settings.diceStyleId, DiceStyles.default.id),
+                playedNonDefaultDiceCupStyle = isNonDefaultStyle(settings.diceCupStyleId, DiceCupStyles.default.id),
+                playedNonDefaultTableBackground = isNonDefaultStyle(settings.tableBackgroundId, TableBackgrounds.default.id),
+            )
+            withAchievementLock {
+                val update = AchievementEngine.evaluateAtGameStart(context, repository.current(), System.currentTimeMillis())
+                persistAndAnnounce(repository, update)
+            }
         }
     }
 
@@ -422,13 +568,20 @@ class GameViewModel(
             previousBestScore = previousBestScore,
             previousLeaderboard = previousLeaderboard,
             trailedIntoFinalRound = trailedIntoFinalRound,
+            ledIntoFinalRound = ledIntoFinalRound,
             diceRolledByHumans = diceRolledByHumans,
+            extraRollPlayerIndices = extraRollPlayerIndices,
         )
         withAchievementLock {
             val update = AchievementEngine.evaluate(state, context, repository.current(), System.currentTimeMillis())
             persistAndAnnounce(repository, update)
         }
     }
+
+    /** Whether [styleIdFlow]'s current value is anything other than [defaultId] - false (not "yes,
+     * non-default") when there's no repository to read at all, e.g. in a test with no Context. */
+    private suspend fun isNonDefaultStyle(styleIdFlow: Flow<String>?, defaultId: String): Boolean =
+        styleIdFlow?.first()?.let { it != defaultId } ?: false
 
     /**
      * Serialises every read-decide-write cycle. Three separate triggers can run one - a scored
@@ -455,6 +608,215 @@ class GameViewModel(
         unlockAchievements(earned)
     }
 
+    /**
+     * Everything about a roll that can only be judged from the roll itself, not the finished
+     * scorecard - checked once the roll has landed in [_game], using [rollsRemainingBeforeRoll]
+     * (the value from just before it, so `== FULL_ROLLS_REMAINING` means "this was roll 1") and
+     * [diceBeforeRoll] (so held-vs-unheld can be read as it was going INTO this roll).
+     */
+    private fun checkPostRollAchievements(rollsRemainingBeforeRoll: Int, diceBeforeRoll: List<Die>) {
+        val state = _game.value ?: return
+        val player = state.currentPlayer ?: return
+        val dice = state.dice
+        val values = dice.map { it.value }
+
+        // Déjà Vu: the same result as the immediately previous roll THIS turn, no holds toggled
+        // in between - heldChangedSinceLastRoll is cleared here and set by every toggleHold.
+        if (previousRollDiceValues != null && !heldChangedSinceLastRoll && values == previousRollDiceValues) {
+            unlockAchievements(setOf(Achievement.DEJA_VU))
+        }
+        previousRollDiceValues = values
+        heldChangedSinceLastRoll = false
+
+        // I Can Count!: 1,2,3,4,5 in that order, first roll of the turn only.
+        if (rollsRemainingBeforeRoll == FULL_ROLLS_REMAINING && values == COUNTING_DICE_VALUES) {
+            unlockAchievements(setOf(Achievement.I_CAN_COUNT))
+        }
+        // Product Placement: the menu logo's own dice, in its own order - any roll of any turn.
+        if (values == LOGO_DICE_VALUES) {
+            unlockAchievements(setOf(Achievement.PRODUCT_PLACEMENT))
+        }
+
+        // Natural 5x: landed without holding anything for this roll, and it wasn't the first one
+        // (rolling nothing-held on roll 1 is just how every turn starts).
+        if (rollsRemainingBeforeRoll < FULL_ROLLS_REMAINING && diceBeforeRoll.none { it.isHeld } && DiceScoring.isFiveOfAKind(dice)) {
+            unlockAchievements(setOf(Achievement.NATURAL_5X))
+        }
+
+        // Almost Famous: remember a first-roll four of a kind, and whether a real 5x ever follows.
+        if (rollsRemainingBeforeRoll == FULL_ROLLS_REMAINING) {
+            hadFourOfAKindOnFirstRoll = values.groupingBy { it }.eachCount().values.any { it == FOUR_OF_A_KIND_COUNT }
+            diceValuesAfterFirstRoll = values
+        }
+        if (DiceScoring.isFiveOfAKind(dice)) fiveOfAKindSeenThisTurn = true
+
+        // The Dice Hate Me: a real (non-zero) scoring option existed after roll 2, but none at all
+        // after roll 3.
+        if (rollsRemainingBeforeRoll == ROLLS_REMAINING_AFTER_FIRST) {
+            hadScoringOptionAfterSecondRoll = hasScoringOption(player, dice)
+        } else if (rollsRemainingBeforeRoll == ROLLS_REMAINING_AFTER_SECOND) {
+            if (hadScoringOptionAfterSecondRoll && !hasScoringOption(player, dice)) {
+                unlockAchievements(setOf(Achievement.DICE_HATE_ME))
+            }
+        }
+
+        // Are These Loaded Dice?: the dice NOT held since roll 1 keep landing on exactly the same
+        // values, roll after roll. heldIndicesBeforeSecondRoll/loadedDiceHeldIndices were captured
+        // in rollDice, before this roll happened.
+        val firstRollValues = diceValuesAfterFirstRoll
+        val heldIndices = loadedDiceHeldIndices
+        if (firstRollValues != null && heldIndices != null && rollsRemainingBeforeRoll < FULL_ROLLS_REMAINING) {
+            val unheldStillMatches = values.indices.filter { it !in heldIndices }.all { values[it] == firstRollValues[it] }
+            when {
+                !unheldStillMatches -> loadedDiceHeldIndices = null
+                rollsRemainingBeforeRoll == ROLLS_REMAINING_AFTER_FIRST -> loadedDiceMatchedSecondRoll = true
+                rollsRemainingBeforeRoll == ROLLS_REMAINING_AFTER_SECOND && loadedDiceMatchedSecondRoll ->
+                    unlockAchievements(setOf(Achievement.LOADED_DICE))
+            }
+        }
+    }
+
+    private fun hasScoringOption(player: PlayerState, dice: List<Die>): Boolean =
+        ScoreCalculator.availableCategories(player, dice).any { ScoreCalculator.scoreFor(player, it, dice) > 0 }
+
+    /**
+     * Everything about holding/unholding that can only be judged as it happens, checked once
+     * [_game] reflects the toggle - [wasHeld] is the die's state just before it, so `wasHeld &&
+     * (now unheld)` identifies an unhold specifically, not a hold.
+     *
+     * Commitment Issues' state machine lives here: [pendingCommitmentGroupValue] is the value of an
+     * EXACT matching group - 1 to 4 dice, all one value, nothing else held (5 is a 5x, not
+     * indecision, so it's excluded) - currently or most recently held, tracked alongside the dice
+     * that make it up ([pendingCommitmentGroupIndices]) so *releasing that same group one tap at a
+     * time* - the only way the real UI can unhold more than one die, since each is its own tap
+     * target - doesn't lose it the instant the first die of it lets go and the held set stops being
+     * an exact group of its own. Only holding something that ISN'T a subset of the group being
+     * released - an unrelated die, or a fresh group before this one finished clearing - breaks the
+     * chain early. The moment the held set reaches empty having been released from a real group,
+     * that group's value moves into [lastReleasedCommitmentGroupValue] as the baseline the next
+     * group has to differ from. [checkPreCommitAchievements] is what actually awards it, once a
+     * category is committed for the matching upper box.
+     */
+    private fun checkPostHoldAchievements(dieIndex: Int, wasHeld: Boolean) {
+        val state = _game.value ?: return
+        val dice = state.dice
+        val heldIndices = dice.withIndex().filter { it.value.isHeld }.map { it.index }.toSet()
+        val justUnheld = wasHeld
+
+        // Breaks any pending Déjà Vu comparison for the next roll, whichever direction this toggle went.
+        heldChangedSinceLastRoll = true
+
+        if (justUnheld) {
+            holdUnholdCyclesByDieIndex[dieIndex]++
+            if (holdUnholdCyclesByDieIndex[dieIndex] >= HOLD_UNHOLD_CYCLE_TARGET) {
+                unlockAchievements(setOf(Achievement.DECISIONS_DECISIONS))
+            }
+            if (state.rollsRemaining == 0 && dieIndex in heldThroughBothRerolls) {
+                unlockAchievements(setOf(Achievement.TIME_TO_LET_IT_GO))
+            }
+        }
+
+        // A Cunning Strategy: reached all-five-held at some point this turn, then all-none-held afterward.
+        when {
+            heldIndices.size == dice.size -> everHeldAllFiveThisTurn = true
+            heldIndices.isEmpty() && everHeldAllFiveThisTurn -> unlockAchievements(setOf(Achievement.CUNNING_STRATEGY))
+        }
+
+        val heldValues = heldIndices.map { dice[it].value }
+        val allOneValue = heldValues.isNotEmpty() && heldValues.toSet().size == 1
+        when {
+            heldIndices.isEmpty() -> {
+                // Only credited if it never passed through a full 5-of-a-kind on the way here -
+                // shrinking down from one taints the whole release, even once it looks like a plain
+                // group again at 4, 3, 2, 1 held (commitmentGroupTainted carries over below).
+                if (pendingCommitmentGroupValue != null && !commitmentGroupTainted) {
+                    lastReleasedCommitmentGroupValue = pendingCommitmentGroupValue
+                }
+                pendingCommitmentGroupValue = null
+                pendingCommitmentGroupIndices = emptySet()
+                commitmentGroupTainted = false
+            }
+            allOneValue -> {
+                // Building up, or shrinking back down, WITHIN the same tracked group keeps its taint;
+                // anything else (nothing tracked yet, or this isn't a subset of what was) starts fresh.
+                val continuingSameGroup = pendingCommitmentGroupIndices.isNotEmpty() && heldIndices.all { it in pendingCommitmentGroupIndices }
+                if (!continuingSameGroup) {
+                    pendingCommitmentGroupValue = heldValues.first()
+                    commitmentGroupTainted = false
+                }
+                pendingCommitmentGroupIndices = heldIndices
+                // A real 5x - not indecision - taints it: crediting whatever this shrinks back down
+                // through afterwards would call rolling a genuine 5x "holding a group", which it isn't.
+                if (heldIndices.size == dice.size) commitmentGroupTainted = true
+            }
+            else -> {
+                pendingCommitmentGroupValue = null
+                pendingCommitmentGroupIndices = emptySet()
+                commitmentGroupTainted = false
+            }
+        }
+    }
+
+    /**
+     * The dice a human is about to commit, checked BEFORE [GameEngine.commitScore] changes
+     * anything: a genuine 5x roll (all five dice matching) that's about to be scored as a zero
+     * anyway, whether that's a deliberate waste or the joker rule's forced-zero fallback once every
+     * matching box is already full. [ScoreCalculator.scoreFor] is joker-aware, so it already
+     * accounts for both.
+     */
+    private fun checkWastedFiveOfAKind(category: ScoreCategory) {
+        val state = _game.value ?: return
+        val player = state.currentPlayer ?: return
+        if (player.type != PlayerType.HUMAN) return
+        val dice = state.dice
+        if (!DiceScoring.isFiveOfAKind(dice)) return
+        if (ScoreCalculator.scoreFor(player, category, dice) != 0) return
+        unlockAchievements(setOf(Achievement.WASTED_5X))
+    }
+
+    /** Everything else that has to be judged at the moment of commit, against the dice and
+     * category about to be used - also called before [GameEngine.commitScore] changes anything. */
+    private fun checkPreCommitAchievements(category: ScoreCategory) {
+        val state = _game.value ?: return
+        val player = state.currentPlayer ?: return
+        if (player.type != PlayerType.HUMAN) return
+        val dice = state.dice
+
+        // Why Did You Do That?: the small straight scored while the large straight sat right
+        // there, open and legal.
+        if (category == ScoreCategory.SMALL_STRAIGHT &&
+            ScoreCategory.LARGE_STRAIGHT in ScoreCalculator.availableCategories(player, dice) &&
+            DiceScoring.score(ScoreCategory.LARGE_STRAIGHT, dice) > 0
+        ) {
+            unlockAchievements(setOf(Achievement.WHY_DID_YOU_DO_THAT))
+        }
+
+        // Almost Famous: this turn had a first-roll four of a kind that never became a real 5x.
+        if (hadFourOfAKindOnFirstRoll && !fiveOfAKindSeenThisTurn) {
+            unlockAchievements(setOf(Achievement.ALMOST_FAMOUS))
+        }
+
+        // Commitment Issues: committing the upper box that matches the second, different exact group.
+        val committingValue = pendingCommitmentGroupValue
+        if (lastReleasedCommitmentGroupValue != null &&
+            committingValue != null &&
+            committingValue != lastReleasedCommitmentGroupValue &&
+            category == PlayerState.UPPER_CATEGORIES[committingValue - 1]
+        ) {
+            unlockAchievements(setOf(Achievement.COMMITMENT_ISSUES))
+        }
+
+        // Twice in a Lifetime: this turn scores a 5x, and so did this same player's last one -
+        // matches the SCORED_5X counter's own definition of "scored a 5x" (the box, or a bonus chip).
+        val scoresFiveOfAKindNow = (category == ScoreCategory.FIVE_OF_A_KIND && DiceScoring.isFiveOfAKind(dice)) ||
+            ScoreCalculator.awardsFiveOfAKindBonus(player, dice)
+        val playerIndex = state.currentPlayerIndex
+        if (previousTurnFiveOfAKindByPlayer[playerIndex] == true && scoresFiveOfAKindNow) {
+            unlockAchievements(setOf(Achievement.TWICE_IN_A_LIFETIME))
+        }
+        previousTurnFiveOfAKindByPlayer[playerIndex] = scoresFiveOfAKindNow
+    }
+
     private fun unlockAchievements(achievements: Set<Achievement>) {
         val repository = achievementsRepository ?: return
         if (achievements.isEmpty()) return
@@ -478,7 +840,38 @@ class GameViewModel(
     private fun resetAchievementTracking() {
         diceRolledByHumans = 0
         trailedIntoFinalRound = false
+        ledIntoFinalRound = false
+        extraRollPlayerIndices = mutableSetOf()
+        previousTurnFiveOfAKindByPlayer = mutableMapOf()
+        outOfRollsCupTaps = 0
+        resetPerTurnTracking()
     }
+
+    private fun resetPerTurnTracking() {
+        previousRollDiceValues = null
+        heldChangedSinceLastRoll = false
+        hadFourOfAKindOnFirstRoll = false
+        fiveOfAKindSeenThisTurn = false
+        diceValuesAfterFirstRoll = null
+        loadedDiceHeldIndices = null
+        loadedDiceMatchedSecondRoll = false
+        heldIndicesBeforeSecondRoll = null
+        heldThroughBothRerolls = emptySet()
+        everHeldAllFiveThisTurn = false
+        holdUnholdCyclesByDieIndex = IntArray(holdUnholdCyclesByDieIndex.size)
+        hadScoringOptionAfterSecondRoll = false
+        pendingCommitmentGroupValue = null
+        pendingCommitmentGroupIndices = emptySet()
+        commitmentGroupTainted = false
+        lastReleasedCommitmentGroupValue = null
+        outOfRollsCupTaps = 0
+    }
+
+    /** Whether any human at the table finished [state] with the top score - "One More Time" reads
+     * this off the game [startGame] is about to replace, mirroring how [AchievementEngine] itself
+     * treats a tie at the top as a win. */
+    private fun humanWonGame(state: GameState): Boolean =
+        state.players.any { it.type == PlayerType.HUMAN && it.totalScore == state.topScore }
 
     private fun persistHumanNames(slots: List<PlayerSetupSlot>) {
         val repository = settingsRepository ?: return
@@ -569,8 +962,24 @@ class GameViewModel(
     companion object {
         private const val AI_STEP_DELAY_MS = 600L
 
+        /** What `rollsRemaining` reads before any roll has happened this turn. */
+        private const val FULL_ROLLS_REMAINING = 3
+
         /** What `rollsRemaining` reads once the first of a turn's three rolls has been used. */
         private const val ROLLS_REMAINING_AFTER_FIRST = 2
+
+        /** What `rollsRemaining` reads once the second of a turn's three rolls has been used. */
+        private const val ROLLS_REMAINING_AFTER_SECOND = 1
+
+        private const val FOUR_OF_A_KIND_COUNT = 4
+        private const val HOLD_UNHOLD_CYCLE_TARGET = 3
+        private const val NO_MORE_ROLLS_TAP_TARGET = 3
+
+        /** The exact roll "I Can Count!" is named for. */
+        private val COUNTING_DICE_VALUES = listOf(1, 2, 3, 4, 5)
+
+        /** [net.zodac.dicefive.ui.common.AppLogo]'s own dice, in its own order - "Product Placement". */
+        private val LOGO_DICE_VALUES = listOf(2, 4, 5, 3, 6)
 
         /** Builds a [GameViewModel] backed by real Room/DataStore persistence. */
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {

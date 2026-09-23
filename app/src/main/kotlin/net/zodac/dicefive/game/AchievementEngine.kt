@@ -19,8 +19,17 @@ data class GameAchievementContext(
     val previousBestScore: Int? = null,
     /** Whether a human went into their final turn behind every other player. */
     val trailedIntoFinalRound: Boolean = false,
+    /** Whether a human went into their final turn AHEAD of every other player - [JAWS_OF_VICTORY]'s
+     * precondition, the mirror image of [trailedIntoFinalRound]. */
+    val ledIntoFinalRound: Boolean = false,
     /** How many dice a human actually re-rolled across the game. AI rolls don't count. */
     val diceRolledByHumans: Int = 0,
+    /**
+     * Indices (into [GameState.players]) of every player who rolled more than once on at least one
+     * of their own turns this game - [Achievement.IMPATIENT]/[Achievement.NATURALLY_GIFTED] need a
+     * human index that's absent from this set, i.e. one whose every turn was a single roll.
+     */
+    val extraRollPlayerIndices: Set<Int> = emptySet(),
     /**
      * What the leaderboard said *before* this game's rows were inserted. Read pre-insert for the
      * same reason [previousBestScore] is, and because the engine adds this game's own human totals
@@ -28,6 +37,24 @@ data class GameAchievementContext(
      * against the board.
      */
     val previousLeaderboard: LeaderboardTotals = LeaderboardTotals(),
+)
+
+/**
+ * What's already decided the moment a game begins, before a single die is rolled - today, just
+ * which table-art style is in play, but the natural home for anything else `GameViewModel` can
+ * only answer by reading outside the [GameState] itself (settings, persisted history, ...) at
+ * `startGame`/`resumeGame` time. See [AchievementEngine.evaluateAtGameStart].
+ */
+data class GameStartContext(
+    /**
+     * Whether the dice/dice-cup/mat-and-background style in effect for this game is something
+     * other than that category's shipped default (`ui.game.style`'s per-category `default`) - a
+     * boolean, not a style id, so this pure engine never has to import the UI-layer style catalog
+     * just to compare a string.
+     */
+    val playedNonDefaultDiceStyle: Boolean = false,
+    val playedNonDefaultDiceCupStyle: Boolean = false,
+    val playedNonDefaultTableBackground: Boolean = false,
 )
 
 /**
@@ -81,9 +108,14 @@ object AchievementEngine {
 
     /** Out of a 235-point maximum across the lower boxes, so a high bar without being the ceiling. */
     private const val LOWER_CLASS_THRESHOLD = 150
+    private const val NICE_SCORE = 69
     private const val TON_SCORE = 100
+    private const val DOUBLE_TON_SCORE = 200
+    private const val TRIPLE_TON_SCORE = 300
     private const val LANDSLIDE_MARGIN = 100
     private const val PHOTO_FINISH_MARGIN = 5
+    private const val PIPPED_MARGIN = 1
+    private const val ZEROES_FOR_HERO = 3
     private const val COLD_DICE_SCORE = 100
     private const val LOW_ROLLS_SCORE = 20
 
@@ -151,6 +183,22 @@ object AchievementEngine {
      */
     fun unlockNow(achievements: Set<Achievement>, before: AchievementsState, now: Long): AchievementUpdate =
         update(achievements, before.counters, before, now)
+
+    /**
+     * Everything [context] already earns before a single die is rolled. Add a new game-start
+     * achievement here - and a field on [GameStartContext] for whatever `GameViewModel` needs to
+     * answer it - rather than deciding it ad hoc at the call site: this is the one place "what
+     * counts as earned" is decided, same as [evaluate]/[evaluateInProgress] for the rest of a game.
+     * Counters are untouched, same as [unlockNow] - nothing here is a running total.
+     */
+    fun evaluateAtGameStart(context: GameStartContext, before: AchievementsState, now: Long): AchievementUpdate {
+        val earned = buildSet {
+            if (context.playedNonDefaultDiceStyle) add(Achievement.STYLE_DICE)
+            if (context.playedNonDefaultDiceCupStyle) add(Achievement.STYLE_CUP)
+            if (context.playedNonDefaultTableBackground) add(Achievement.STYLE_BACKGROUND)
+        }
+        return update(earned, before.counters, before, now)
+    }
 
     /**
      * How far along [achievement] is, for the progress bar on the achievements screen. Counter
@@ -275,6 +323,12 @@ object AchievementEngine {
         award(Achievement.WIN_BY_5, multiplayer && humanWon && margin != null && margin <= PHOTO_FINISH_MARGIN)
         award(Achievement.COMEBACK, multiplayer && humanWon && context.trailedIntoFinalRound)
         award(
+            Achievement.ZERO_TO_HERO,
+            multiplayer && humanWon && humans.any { it.totalScore == state.topScore && it.scorecard.values.count { v -> v == 0 } >= ZEROES_FOR_HERO },
+        )
+        award(Achievement.PIPPED_TO_THE_POST, multiplayer && !humanWon && state.topScore - bestHumanScore == PIPPED_MARGIN)
+        award(Achievement.JAWS_OF_VICTORY, multiplayer && !humanWon && context.ledIntoFinalRound)
+        award(
             Achievement.BEAT_THREE_AI,
             humanWon && players.size == FULL_TABLE_SIZE && aiPlayers.size == FULL_TABLE_SIZE - 1,
         )
@@ -299,8 +353,26 @@ object AchievementEngine {
 
         award(Achievement.SOLO_GAME, players.size == 1)
 
-        // Exactly 100 - a threshold the running total can overshoot, so it can only be judged now.
+        // Impatient/Naturally Gifted: a human index absent from extraRollPlayerIndices took every
+        // one of their own turns on a single roll.
+        val firstRollOnlyHumanIndices = players.indices
+            .filter { players[it].type == PlayerType.HUMAN && it !in context.extraRollPlayerIndices }
+        award(Achievement.IMPATIENT, firstRollOnlyHumanIndices.isNotEmpty())
+        award(
+            Achievement.NATURALLY_GIFTED,
+            multiplayer && firstRollOnlyHumanIndices.any { players[it].totalScore == state.topScore },
+        )
+
+        // Exactly 69/100/200/300 - thresholds the running total can overshoot, so they can only be
+        // judged now, unlike the 200-or-more/300-or-more rungs right next to them on the ladder.
+        award(Achievement.NICE, anyHuman { it.totalScore == NICE_SCORE })
         award(Achievement.TON, anyHuman { it.totalScore == TON_SCORE })
+        award(Achievement.DOUBLE_TON, anyHuman { it.totalScore == DOUBLE_TON_SCORE })
+        award(Achievement.TRIPLE_TON, anyHuman { it.totalScore == TRIPLE_TON_SCORE })
+
+        // The upper section filled with exactly the matching pip count in every box, in this one
+        // game - can only be judged once every upper box is actually filled in.
+        award(Achievement.EXACT_CHANGE, anyHuman { it.matchesExactUpperLadder() })
 
         // Score collection: every single score in the band has to have been recorded at least once.
         for (achievement in Achievement.entries) {
@@ -404,6 +476,11 @@ object AchievementEngine {
     }
 
     private fun PlayerState.scored(category: ScoreCategory): Boolean = (scorecard[category] ?: 0) > 0
+
+    /** ONES holds exactly 1, TWOS exactly 2, ... SIXES exactly 6 - [PlayerState.UPPER_CATEGORIES]
+     * is already declared in that order, so its index doubles as the target value. */
+    private fun PlayerState.matchesExactUpperLadder(): Boolean =
+        PlayerState.UPPER_CATEGORIES.withIndex().all { (index, category) -> scorecard[category] == index + 1 }
 
     /** 5x actually rolled: the box itself, plus a bonus chip for every one after it. */
     private val PlayerState.fiveOfAKindCount: Int

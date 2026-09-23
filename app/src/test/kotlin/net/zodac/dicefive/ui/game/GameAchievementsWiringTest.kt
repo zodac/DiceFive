@@ -67,6 +67,17 @@ private class CountingDice(values: IntRange) : Random() {
     override fun nextInt(from: Int, until: Int): Int = sequence[index++ % sequence.size]
 }
 
+/** Dice that land on an exact, explicit [values] script in order, cycling once exhausted - for
+ * tests that need to control several different rolls (not just one repeated hand) precisely,
+ * e.g. a roll with holds where only some dice are re-rolled. A `values` sized to a whole multiple
+ * of 5 with nothing held never actually needs to cycle; it's there so a short script can't run out. */
+private class ScriptedDice(private val values: List<Int>) : Random() {
+    private var index = 0
+
+    override fun nextBits(bitCount: Int): Int = 0
+    override fun nextInt(from: Int, until: Int): Int = values[index++ % values.size]
+}
+
 /** Enough of [ScoreDao] for the leaderboard read/write that `finishGame` sequences around. */
 private class FakeScoreDao : ScoreDao {
     private val entries = mutableListOf<ScoreEntry>()
@@ -187,6 +198,35 @@ class GameAchievementsWiringTest {
     }
 
     @Test
+    fun `rolling a 5x but scoring it as a zero elsewhere unlocks Wasted Fortune`() = runTest {
+        val store = FakeAchievementStore()
+        // Every die comes up 6: a genuine 5x, but committed to Ones - no die shows a 1, so it scores 0.
+        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.ONES)
+        advanceUntilIdle()
+
+        assertTrue("WASTED_5X should pop on the commit itself, got ${store.unlocked}", Achievement.WASTED_5X in store.unlocked)
+    }
+
+    @Test
+    fun `scoring the 5x box itself with a real 5x does not count as wasting it`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.FIVE_OF_A_KIND)
+        advanceUntilIdle()
+
+        assertFalse("scoring 50 in the 5x box is not a waste, got ${store.unlocked}", Achievement.WASTED_5X in store.unlocked)
+    }
+
+    @Test
     fun `superuser mode no longer disqualifies a game - the cheat has to stay debuggable`() = runTest {
         // The cheat is compiled out of release builds, so there is nothing to assert there.
         assumeTrue(BuildConfig.DEBUG)
@@ -297,5 +337,413 @@ class GameAchievementsWiringTest {
         val actual = dao.recorded().associate { it.playerName to it.won }
 
         assertEquals(expected, actual)
+    }
+
+    // ---- The interaction-driven batch: rolls, holds and commits watched as they happen ---------
+
+    @Test
+    fun `performing the hidden hold sequence unlocks Time Wasting regardless`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        repeat(5) { die ->
+            viewModel.toggleHold(die)
+            viewModel.toggleHold(die)
+        }
+        advanceUntilIdle()
+
+        assertTrue("TIME_WASTING should pop, got ${store.unlocked}", Achievement.TIME_WASTING in store.unlocked)
+    }
+
+    @Test
+    fun `rolling the exact same result twice in a row with no holds in between unlocks Deja Vu`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(3, 1, 4, 1, 5)))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.rollDice()
+        advanceUntilIdle()
+
+        assertTrue("DEJA_VU should pop, got ${store.unlocked}", Achievement.DEJA_VU in store.unlocked)
+    }
+
+    @Test
+    fun `holding a die between two identical rolls breaks Deja Vu`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(3, 1, 4, 1, 5)))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.toggleHold(0)
+        viewModel.toggleHold(0)
+        viewModel.rollDice()
+        advanceUntilIdle()
+
+        assertFalse("a hold in between should disqualify it, got ${store.unlocked}", Achievement.DEJA_VU in store.unlocked)
+    }
+
+    @Test
+    fun `unheld dice landing on the same values through both re-rolls unlocks Are These Loaded Dice`() = runTest {
+        val store = FakeAchievementStore()
+        // Roll 1: [1,2,2,2,3]; hold the three 2s; rolls 2 and 3 land the same 1 and 3 in the gaps.
+        val dice = ScriptedDice(listOf(1, 2, 2, 2, 3, 1, 3, 1, 3))
+        val viewModel = GameViewModel(achievementsRepository = store, random = dice)
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.toggleHold(1)
+        viewModel.toggleHold(2)
+        viewModel.toggleHold(3)
+        viewModel.rollDice()
+        viewModel.rollDice()
+        advanceUntilIdle()
+
+        assertTrue("LOADED_DICE should pop, got ${store.unlocked}", Achievement.LOADED_DICE in store.unlocked)
+    }
+
+    @Test
+    fun `scoring a 5x on two turns in a row unlocks Twice in a Lifetime`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(2))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.FIVE_OF_A_KIND)
+        viewModel.rollDice()
+        // Forced by the joker rule (Twos is the matching upper box) - still a genuine bonus 5x.
+        viewModel.commitScore(ScoreCategory.TWOS)
+        advanceUntilIdle()
+
+        assertTrue("TWICE_IN_A_LIFETIME should pop, got ${store.unlocked}", Achievement.TWICE_IN_A_LIFETIME in store.unlocked)
+    }
+
+    @Test
+    fun `rolling a 5x on the 2nd roll without holding anything unlocks Natural 5x`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.rollDice()
+        advanceUntilIdle()
+
+        assertTrue("NATURAL_5X should pop, got ${store.unlocked}", Achievement.NATURAL_5X in store.unlocked)
+    }
+
+    @Test
+    fun `rolling the menu logo's exact dice unlocks Product Placement`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(2, 4, 5, 3, 6)))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        advanceUntilIdle()
+
+        assertTrue("PRODUCT_PLACEMENT should pop, got ${store.unlocked}", Achievement.PRODUCT_PLACEMENT in store.unlocked)
+    }
+
+    @Test
+    fun `rolling 1,2,3,4,5 on the first roll unlocks I Can Count`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = CountingDice(1..5))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        advanceUntilIdle()
+
+        assertTrue("I_CAN_COUNT should pop, got ${store.unlocked}", Achievement.I_CAN_COUNT in store.unlocked)
+    }
+
+    @Test
+    fun `switching from one held matching pair to a different one and scoring it unlocks Commitment Issues`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 1, 3, 3)))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice() // [6,6,1,3,3]
+        viewModel.toggleHold(0)
+        viewModel.toggleHold(1) // holding exactly the two 6s
+        viewModel.toggleHold(0)
+        viewModel.toggleHold(1) // released
+        viewModel.toggleHold(3)
+        viewModel.toggleHold(4) // holding exactly the two 3s
+        viewModel.commitScore(ScoreCategory.THREES)
+        advanceUntilIdle()
+
+        assertTrue("COMMITMENT_ISSUES should pop, got ${store.unlocked}", Achievement.COMMITMENT_ISSUES in store.unlocked)
+    }
+
+    @Test
+    fun `a single held die switching to a different single die still unlocks Commitment Issues`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(6, 1, 2, 3, 4)))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice() // [6,1,2,3,4]
+        viewModel.toggleHold(0) // holding exactly the single 6
+        viewModel.toggleHold(0) // released
+        viewModel.toggleHold(1) // holding exactly the single 1
+        viewModel.commitScore(ScoreCategory.ONES)
+        advanceUntilIdle()
+
+        assertTrue("a single die counts as a group too, got ${store.unlocked}", Achievement.COMMITMENT_ISSUES in store.unlocked)
+    }
+
+    @Test
+    fun `a four of a kind switching to a different value still unlocks Commitment Issues`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 6, 3)))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice() // [6,6,6,6,3]
+        repeat(4) { viewModel.toggleHold(it) } // holding exactly the four 6s
+        repeat(4) { viewModel.toggleHold(it) } // released
+        viewModel.toggleHold(4) // holding exactly the single 3
+        viewModel.commitScore(ScoreCategory.THREES)
+        advanceUntilIdle()
+
+        assertTrue("a four of a kind counts as a group too, got ${store.unlocked}", Achievement.COMMITMENT_ISSUES in store.unlocked)
+    }
+
+    @Test
+    fun `holding all five of the same value is a 5x, not a Commitment Issues group`() = runTest {
+        val store = FakeAchievementStore()
+        // Roll 1: five 6s. Once released (however far it shrinks back down first), that's a 5x, not
+        // indecision - it must not become the baseline the later group of 3s is compared against.
+        val script = listOf(6, 6, 6, 6, 6) + listOf(3, 3, 3, 3, 3)
+        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(script))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice() // [6,6,6,6,6]
+        repeat(5) { viewModel.toggleHold(it) } // all five held - a genuine 5x
+        repeat(5) { viewModel.toggleHold(it) } // released again
+        viewModel.rollDice() // the (now unheld) dice reroll to [3,3,3,3,3]
+        repeat(4) { viewModel.toggleHold(it) } // holding exactly four of the five 3s
+        viewModel.commitScore(ScoreCategory.THREES)
+        advanceUntilIdle()
+
+        assertFalse(
+            "the only thing ever released was a 5x, so there's no baseline to differ from",
+            Achievement.COMMITMENT_ISSUES in store.unlocked,
+        )
+    }
+
+    @Test
+    fun `holding and unholding the same die three times unlocks Decisions Decisions`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(4))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        repeat(3) {
+            viewModel.toggleHold(0)
+            viewModel.toggleHold(0)
+        }
+        advanceUntilIdle()
+
+        assertTrue("DECISIONS_DECISIONS should pop, got ${store.unlocked}", Achievement.DECISIONS_DECISIONS in store.unlocked)
+    }
+
+    @Test
+    fun `holding a die through both re-rolls then releasing it with none left unlocks Time to Let It Go`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(4))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.toggleHold(0)
+        viewModel.rollDice()
+        viewModel.rollDice()
+        viewModel.toggleHold(0)
+        advanceUntilIdle()
+
+        assertTrue("TIME_TO_LET_IT_GO should pop, got ${store.unlocked}", Achievement.TIME_TO_LET_IT_GO in store.unlocked)
+    }
+
+    @Test
+    fun `holding all five dice then rolling anyway unlocks What Was the Point of That`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(4))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        repeat(5) { viewModel.toggleHold(it) }
+        viewModel.rollDice()
+        advanceUntilIdle()
+
+        assertTrue("POINTLESS_ROLL should pop, got ${store.unlocked}", Achievement.POINTLESS_ROLL in store.unlocked)
+    }
+
+    @Test
+    fun `holding all five dice then releasing every one unlocks A Cunning Strategy`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(4))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        repeat(5) { viewModel.toggleHold(it) }
+        repeat(5) { viewModel.toggleHold(it) }
+        advanceUntilIdle()
+
+        assertTrue("CUNNING_STRATEGY should pop, got ${store.unlocked}", Achievement.CUNNING_STRATEGY in store.unlocked)
+    }
+
+    @Test
+    fun `tapping the cup three times with no rolls left unlocks No More Rolls`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(3))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.rollDice()
+        viewModel.rollDice()
+        viewModel.tapCupWithNoRollsLeft()
+        viewModel.tapCupWithNoRollsLeft()
+        viewModel.tapCupWithNoRollsLeft()
+        advanceUntilIdle()
+
+        assertTrue("NO_MORE_ROLLS should pop, got ${store.unlocked}", Achievement.NO_MORE_ROLLS in store.unlocked)
+    }
+
+    @Test
+    fun `four of a kind on the first roll that never becomes a 5x unlocks Almost Famous`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 6, 1)))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.SIXES)
+        advanceUntilIdle()
+
+        assertTrue("ALMOST_FAMOUS should pop, got ${store.unlocked}", Achievement.ALMOST_FAMOUS in store.unlocked)
+    }
+
+    @Test
+    fun `scoring the small straight while the large straight was also available unlocks Why Did You Do That`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = CountingDice(1..5))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.SMALL_STRAIGHT)
+        advanceUntilIdle()
+
+        assertTrue("WHY_DID_YOU_DO_THAT should pop, got ${store.unlocked}", Achievement.WHY_DID_YOU_DO_THAT in store.unlocked)
+    }
+
+    @Test
+    fun `undoing a score and choosing a different category unlocks I Didn't Mean That`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(3))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.THREES)
+        viewModel.undo()
+        viewModel.commitScore(ScoreCategory.CHANCE)
+        advanceUntilIdle()
+
+        assertTrue("UNDO_DIFFERENT_CATEGORY should pop, got ${store.unlocked}", Achievement.UNDO_DIFFERENT_CATEGORY in store.unlocked)
+    }
+
+    @Test
+    fun `undoing a score and recommitting the same category does not unlock I Didn't Mean That`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(3))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.THREES)
+        viewModel.undo()
+        viewModel.commitScore(ScoreCategory.THREES)
+        advanceUntilIdle()
+
+        assertFalse(Achievement.UNDO_DIFFERENT_CATEGORY in store.unlocked)
+    }
+
+    @Test
+    fun `a real scoring option after roll 2 that's gone after roll 3 unlocks The Dice Hate Me`() = runTest {
+        val store = FakeAchievementStore()
+        // 12 filler turns (every category but Ones) rolling all-2s, then a final turn on Ones:
+        // roll 2 shows a 1 (a real option), roll 3 doesn't (no option left at all).
+        val script = List(65) { 2 } + listOf(1, 2, 2, 2, 2) + List(5) { 2 }
+        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(script))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        for (category in ScoreCategory.entries.filter { it != ScoreCategory.ONES }) {
+            viewModel.rollDice()
+            viewModel.commitScore(category)
+        }
+        viewModel.rollDice()
+        viewModel.rollDice()
+        viewModel.rollDice()
+        advanceUntilIdle()
+
+        assertTrue("DICE_HATE_ME should pop, got ${store.unlocked}", Achievement.DICE_HATE_ME in store.unlocked)
+    }
+
+    @Test
+    fun `starting a new game right after finishing one that wasn't lost does not unlock One More Time`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store)
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+        viewModel.playToCompletion()
+        advanceUntilIdle()
+
+        // A solo game is never "lost" - nobody to lose to - so replaying it must not count.
+        viewModel.startGame()
+        advanceUntilIdle()
+
+        assertFalse(Achievement.REPLAY_AFTER_LOSS in store.unlocked)
+    }
+
+    /**
+     * The real "picked a non-default style" -> unlock path needs [net.zodac.dicefive.data.settings.SettingsRepository],
+     * which - unlike [AchievementStore]/[ScoreDao] - is a concrete DataStore-backed class with no
+     * fake to substitute here (see `.claude/DESIGN.md`'s note on the same gap for CONTINUED_GAME).
+     * What IS covered on a plain JVM: starting (or resuming) a game with no settings repository at
+     * all doesn't unlock a style achievement out of nowhere, and doesn't crash - `checkGameStartAchievements`
+     * returning early on a null repository is the only thing standing in for a real style pick here.
+     * `AchievementEngineTest` covers the actual "non-default -> unlocked" decision, which now lives
+     * in the pure `AchievementEngine.evaluateAtGameStart` rather than here.
+     */
+    @Test
+    fun `starting a game with no settings repository does not unlock a style achievement`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store)
+        viewModel.setPlayerCount(1)
+
+        viewModel.startGame()
+        advanceUntilIdle()
+
+        assertFalse(Achievement.STYLE_DICE in store.unlocked)
+        assertFalse(Achievement.STYLE_CUP in store.unlocked)
+        assertFalse(Achievement.STYLE_BACKGROUND in store.unlocked)
     }
 }

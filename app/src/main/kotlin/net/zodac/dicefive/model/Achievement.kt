@@ -97,6 +97,38 @@ enum class Achievement(
         "full_table", "Full Table", "Play a four-player game",
         AchievementCategory.MILESTONES,
     ),
+    STYLE_DICE(
+        "style_dice", "Fresh Set", "Play a game with a non-default dice style",
+        AchievementCategory.MILESTONES,
+    ),
+    STYLE_CUP(
+        "style_cup", "Shake It Up", "Play a game with a non-default dice cup style",
+        AchievementCategory.MILESTONES,
+    ),
+    STYLE_BACKGROUND(
+        "style_background", "Change of Scenery", "Play a game with a non-default mat or background style",
+        AchievementCategory.MILESTONES,
+    ),
+    NOT_THOSE_DICE(
+        "not_those_dice", "Not Those Dice!", "Tap the dice on the main menu",
+        AchievementCategory.MILESTONES,
+    ),
+    TIME_WASTING(
+        "time_wasting", "Time Wasting", "Perform the hidden hold sequence, whether or not it actually unlocks anything",
+        AchievementCategory.MILESTONES,
+    ),
+    UNDO_DIFFERENT_CATEGORY(
+        "undo_different_category", "I Didn't Mean That", "Undo a score and commit it to a different category instead",
+        AchievementCategory.MILESTONES,
+    ),
+    CONTINUED_GAME(
+        "continued_game", "Let's Finish This", "Leave a game in progress and come back to finish it",
+        AchievementCategory.MILESTONES,
+    ),
+    REPLAY_AFTER_LOSS(
+        "replay_after_loss", "One More Time", "Start a new game immediately after losing one",
+        AchievementCategory.MILESTONES,
+    ),
     GAMES_10(
         "games_10", "Getting Comfortable", "Finish 10 games",
         AchievementCategory.MILESTONES, AchievementCounter.GAMES_PLAYED, target = 10,
@@ -184,9 +216,68 @@ enum class Achievement(
         AchievementCategory.DICE,
     ),
 
+    // ---- Dice feats continued: interaction quirks, not just what the dice show ----------------
+    DEJA_VU(
+        "deja_vu", "Déjà Vu", "Roll the exact same result twice in a row, without holding any dice in between",
+        AchievementCategory.DICE,
+    ),
+    LOADED_DICE(
+        "loaded_dice", "Are These Loaded Dice?", "After holding some dice, have the rest come up exactly the same on both re-rolls",
+        AchievementCategory.DICE,
+    ),
+    TWICE_IN_A_LIFETIME(
+        "5x_twice_in_a_row", "Twice in a Lifetime", "Score a 5x on two of your turns in a row",
+        AchievementCategory.DICE,
+    ),
+    NATURAL_5X(
+        "5x_natural", "Natural 5x", "Roll a 5x on the 2nd or 3rd roll without holding any dice",
+        AchievementCategory.DICE,
+    ),
+    PRODUCT_PLACEMENT(
+        "product_placement", "Product Placement", "Roll 2, 4, 5, 3, 6 - the exact dice on the main menu, in that order",
+        AchievementCategory.DICE,
+    ),
+    I_CAN_COUNT(
+        "i_can_count", "I Can Count!", "Roll 1, 2, 3, 4, 5 in that order on the first roll of a turn",
+        AchievementCategory.DICE,
+    ),
+    COMMITMENT_ISSUES(
+        "commitment_issues", "Commitment Issues",
+        "Hold dice of one number, let them go, then hold and score dice of a different number instead",
+        AchievementCategory.DICE,
+    ),
+    DECISIONS_DECISIONS(
+        "decisions_decisions", "Decisions, Decisions", "Hold and unhold the same die three times before rolling again",
+        AchievementCategory.DICE,
+    ),
+    TIME_TO_LET_IT_GO(
+        "time_to_let_it_go", "Time to Let It Go", "Hold the same die through two rolls, then unhold it with none left to take",
+        AchievementCategory.DICE,
+    ),
+    POINTLESS_ROLL(
+        "pointless_roll", "What Was the Point of That?!", "Hold all five dice, then roll anyway",
+        AchievementCategory.DICE,
+    ),
+    CUNNING_STRATEGY(
+        "cunning_strategy", "A Cunning Strategy", "Hold all five dice, then unhold every one of them",
+        AchievementCategory.DICE,
+    ),
+    NO_MORE_ROLLS(
+        "no_more_rolls", "No More Rolls", "Tap the dice cup three times after your last roll of a turn",
+        AchievementCategory.DICE,
+    ),
+    IMPATIENT(
+        "impatient", "Impatient", "Finish a game never rolling more than once in any turn",
+        AchievementCategory.DICE,
+    ),
+
     // ---- Scoring: one ladder, so the rungs must stay adjacent and in order --------------------
     PERSONAL_BEST(
         "personal_best", "New Personal Best", "Beat your best score on the leaderboard",
+        AchievementCategory.SCORING,
+    ),
+    NICE(
+        "score_exactly_69", "Nice", "Finish a game on exactly 69",
         AchievementCategory.SCORING,
     ),
     TON(
@@ -197,8 +288,18 @@ enum class Achievement(
         "score_200", "Solid Round", "Score 200 or more in a game",
         AchievementCategory.SCORING,
     ),
+    // Harder than SOLID_ROUND despite the same threshold: any score from 200 up satisfies that one,
+    // but only the single value 200 satisfies this - so it sits right after it, not before.
+    DOUBLE_TON(
+        "score_exactly_200", "Double Ton", "Finish a game on exactly 200",
+        AchievementCategory.SCORING,
+    ),
     SCORE_300(
         "score_300", "Sharpshooter", "Score 300 or more in a game",
+        AchievementCategory.SCORING,
+    ),
+    TRIPLE_TON(
+        "score_exactly_300", "Triple Ton", "Finish a game on exactly 300",
         AchievementCategory.SCORING,
     ),
     SCORE_400(
@@ -236,6 +337,10 @@ enum class Achievement(
         "comeback", "Comeback Kid", "Win after trailing at the start of the final round",
         AchievementCategory.WINNING,
     ),
+    ZERO_TO_HERO(
+        "zero_to_hero", "Zero to Hero", "Win a game after scoring zero at least three times",
+        AchievementCategory.WINNING,
+    ),
 
     BEAT_THREE_AI(
         "beat_three_ai", "Last Human Standing", "Win a four-player game against three AI",
@@ -244,6 +349,10 @@ enum class Achievement(
 
     I_ROBOT(
         "i_robot", "I, Robot", "Win a four-player game against three Hard AI",
+        AchievementCategory.WINNING,
+    ),
+    NATURALLY_GIFTED(
+        "naturally_gifted", "Naturally Gifted", "Win a game never rolling more than once in any turn",
         AchievementCategory.WINNING,
     ),
 
@@ -262,8 +371,31 @@ enum class Achievement(
         "5x_scratched", "Scratched", "Take a zero in the 5x box",
         AchievementCategory.MISFORTUNE,
     ),
+    // Harder and more specific than Scratched: that one just needs a zero sitting in the 5x box
+    // (from dice that never matched at all), this needs the dice to have genuinely been a 5x at
+    // the moment a zero was committed anyway.
+    WASTED_5X(
+        "5x_wasted", "Wasted Fortune", "Roll a 5x but score a zero with it anyway",
+        AchievementCategory.MISFORTUNE,
+    ),
+    DICE_HATE_ME(
+        "dice_hate_me", "The Dice Hate Me", "Have a real scoring option after the 2nd roll, then leave yourself with none after the 3rd",
+        AchievementCategory.MISFORTUNE,
+    ),
+    ALMOST_FAMOUS(
+        "almost_famous", "Almost Famous", "Roll four of a kind on the first roll, then never turn it into a 5x",
+        AchievementCategory.MISFORTUNE,
+    ),
     SINGULARITY(
         "singularity", "Singularity", "Lose a game to an AI",
+        AchievementCategory.MISFORTUNE,
+    ),
+    PIPPED_TO_THE_POST(
+        "pipped_to_the_post", "Pipped to the Post", "Lose a game by a single point",
+        AchievementCategory.MISFORTUNE,
+    ),
+    JAWS_OF_VICTORY(
+        "jaws_of_victory", "Defeat From the Jaws of Victory", "Lead going into the final round, then lose",
         AchievementCategory.MISFORTUNE,
     ),
     SCORE_UNDER_100(
@@ -274,9 +406,18 @@ enum class Achievement(
         "low_rolls", "Low Rolls", "Finish a game with under 20 points",
         AchievementCategory.MISFORTUNE,
     ),
+    WHY_DID_YOU_DO_THAT(
+        "why_did_you_do_that", "Why Did You Do That?", "Score the small straight when the large straight was also available",
+        AchievementCategory.MISFORTUNE,
+    ),
     ALL_ZEROES(
         "zeroes_except_chance", "How Do You Play This Game?",
         "Score zero in every category except Chance",
+        AchievementCategory.MISFORTUNE,
+    ),
+    EXACT_CHANGE(
+        "upper_exact_ladder", "Exact Change",
+        "Score exactly 1 in Ones, 2 in Twos, and so on up to 6 in Sixes, all in the same game",
         AchievementCategory.MISFORTUNE,
     ),
     EXTREME_LOW_ROLLS(

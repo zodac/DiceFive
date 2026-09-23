@@ -31,6 +31,7 @@ import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.game.GameScreen
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.menu.MenuScreen
+import net.zodac.dicefive.ui.menu.MenuViewModel
 import net.zodac.dicefive.ui.scores.ScoresScreen
 import net.zodac.dicefive.ui.scores.ScoresViewModel
 import net.zodac.dicefive.ui.settings.SettingsScreen
@@ -65,6 +66,7 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
             val context = LocalContext.current
             val inProgressGameRepository = remember { InProgressGameRepository(context) }
             val hasInProgressGame by inProgressGameRepository.hasInProgressGame.collectAsState(initial = false)
+            val menuViewModel = viewModel<MenuViewModel>(factory = MenuViewModel.factory(context))
             MenuScreen(
                 hasInProgressGame = hasInProgressGame,
                 onContinue = { navController.navigate(Screen.playSetup(resume = true)) },
@@ -74,6 +76,7 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                 onAchievements = { navController.navigate(Screen.ACHIEVEMENTS) },
                 onStyles = { navController.navigate(Screen.STYLES) },
                 onSettings = { navController.navigate(Screen.SETTINGS) },
+                onDiceTap = menuViewModel::onDiceTapped,
             )
         }
 

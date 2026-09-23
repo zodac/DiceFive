@@ -39,7 +39,6 @@ fun DiceCupPanel(
     rollsRemaining: Int,
     tilted: Boolean,
     rolling: Boolean,
-    canRoll: Boolean,
     canUndo: Boolean,
     onScoreCategory: (ScoreCategory) -> Unit,
     onCupTap: () -> Unit,
@@ -78,10 +77,13 @@ fun DiceCupPanel(
                 // indication = null drops the default ripple: at this size it painted as an
                 // obvious translucent white rectangle over the whole tap target on press, which
                 // read as a rendering glitch rather than a press effect.
+                //
+                // Always enabled, even with no rolls left: onCupTap itself decides what a tap does
+                // in that case (see GameScreen) - counting it towards "No More Rolls" rather than
+                // the cup simply going dead once the useful taps run out.
                 .clickable(
                     interactionSource = cupInteractionSource,
                     indication = null,
-                    enabled = canRoll,
                     onClick = onCupTap,
                 ),
         ) {

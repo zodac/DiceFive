@@ -31,7 +31,6 @@ private val BOARD_HEIGHT = 380.dp
 fun GameBoard(
     state: GameState,
     rolling: Boolean,
-    canRoll: Boolean,
     canUndo: Boolean,
     onScoreCategory: (ScoreCategory) -> Unit,
     onCupTap: () -> Unit,
@@ -81,7 +80,6 @@ fun GameBoard(
             // starts, whatever `tilted` was beforehand (see LeatherDiceCupStyle).
             tilted = state.phase == TurnPhase.ROLLED,
             rolling = rolling,
-            canRoll = canRoll,
             canUndo = canUndo,
             onScoreCategory = onScoreCategory,
             onCupTap = onCupTap,

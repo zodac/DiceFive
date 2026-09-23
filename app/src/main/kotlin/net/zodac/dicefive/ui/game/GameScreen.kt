@@ -135,6 +135,7 @@ fun GameScreen(
                 onToggleHold = viewModel::toggleHold,
                 onCycleValue = viewModel::cycleHeldDieValue,
                 onScoreCategory = viewModel::commitScore,
+                onTapCupWithNoRollsLeft = viewModel::tapCupWithNoRollsLeft,
             )
         }
     }
@@ -150,6 +151,7 @@ private fun InProgressGame(
     onToggleHold: (Int) -> Unit,
     onCycleValue: (Int) -> Unit,
     onScoreCategory: (ScoreCategory) -> Unit,
+    onTapCupWithNoRollsLeft: () -> Unit,
 ) {
     val currentPlayer = state.currentPlayer
     val isHumanTurn = currentPlayer?.type == PlayerType.HUMAN
@@ -166,6 +168,9 @@ private fun InProgressGame(
     val showDice = state.phase == TurnPhase.ROLLED || isRolling
 
     val coroutineScope = rememberCoroutineScope()
+    // Two independent ifs, not if/else - "No More Rolls" is the mutually-exclusive fallback case
+    // (rollsRemaining hit 0, the tap does nothing for the game itself), and keeping them separate
+    // avoids Kotlin inferring this lambda's type from the join of a Job (the launch) and Unit.
     val onCupTap = {
         if (canRoll && !isRolling) {
             coroutineScope.launch {
@@ -175,6 +180,9 @@ private fun InProgressGame(
                 isRolling = false
             }
         }
+        if (!canRoll && isHumanTurn && state.rollsRemaining == 0 && !isRolling) {
+            onTapCupWithNoRollsLeft()
+        }
     }
 
     PlayerHeaderBar(players = state.players, currentPlayerIndex = state.currentPlayerIndex)
@@ -182,7 +190,6 @@ private fun InProgressGame(
     GameBoard(
         state = state,
         rolling = isRolling,
-        canRoll = canRoll && !isRolling,
         canUndo = canUndo,
         onScoreCategory = onScoreCategory,
         onCupTap = onCupTap,

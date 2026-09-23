@@ -43,6 +43,7 @@ fun MenuScreen(
     onAchievements: () -> Unit,
     onStyles: () -> Unit,
     onSettings: () -> Unit,
+    onDiceTap: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var showResumeDialog by remember { mutableStateOf(false) }
@@ -67,7 +68,7 @@ fun MenuScreen(
             // the button stack just below the middle, on a tall phone and a short one alike.
             Spacer(modifier = Modifier.weight(0.22f))
 
-            AppLogo()
+            AppLogo(onDiceTap = onDiceTap)
 
             Spacer(modifier = Modifier.height(48.dp))
 

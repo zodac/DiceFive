@@ -253,6 +253,82 @@ class AchievementEngineTest {
         assertFalse(Achievement.COMEBACK in evaluate(won).newlyUnlocked)
     }
 
+    @Test
+    fun `Defeat From the Jaws of Victory needs both the lead and the loss`() {
+        val lost = finishedGame(player(total = 190), player(name = "Bot", type = PlayerType.AI, total = 200))
+        val won = finishedGame(player(total = 200), player(name = "Bot", type = PlayerType.AI, total = 190))
+        val context = GameAchievementContext(ledIntoFinalRound = true)
+
+        assertTrue(Achievement.JAWS_OF_VICTORY in evaluate(lost, context).newlyUnlocked)
+        assertFalse(Achievement.JAWS_OF_VICTORY in evaluate(won, context).newlyUnlocked)
+        assertFalse(Achievement.JAWS_OF_VICTORY in evaluate(lost).newlyUnlocked)
+    }
+
+    @Test
+    fun `losing by exactly one point is Pipped to the Post, losing by more is not`() {
+        val byOne = evaluate(finishedGame(player(total = 199), player(name = "Bot", type = PlayerType.AI, total = 200)))
+        val byFive = evaluate(finishedGame(player(total = 195), player(name = "Bot", type = PlayerType.AI, total = 200)))
+
+        assertTrue(Achievement.PIPPED_TO_THE_POST in byOne.newlyUnlocked)
+        assertFalse(Achievement.PIPPED_TO_THE_POST in byFive.newlyUnlocked)
+    }
+
+    @Test
+    fun `winning with at least three zeroes on the winning scorecard is Zero to Hero`() {
+        // player()'s own defaults are 0 for anything not overridden and not Chance, so every OTHER
+        // category needs an explicit non-zero override here - otherwise both scorecards below would
+        // already be all zeroes except Chance, and the "only two" case couldn't exist to compare against.
+        val nonZeroElsewhere = mapOf(
+            ScoreCategory.FOURS to 4,
+            ScoreCategory.FIVES to 5,
+            ScoreCategory.SIXES to 6,
+            ScoreCategory.THREE_OF_A_KIND to 10,
+            ScoreCategory.FOUR_OF_A_KIND to 10,
+            ScoreCategory.FULL_HOUSE to 25,
+            ScoreCategory.SMALL_STRAIGHT to 30,
+            ScoreCategory.LARGE_STRAIGHT to 40,
+            ScoreCategory.FIVE_OF_A_KIND to 50,
+        )
+        val threeZeroes = evaluate(
+            finishedGame(
+                player(
+                    total = 200,
+                    overrides = nonZeroElsewhere + mapOf(ScoreCategory.ONES to 0, ScoreCategory.TWOS to 0, ScoreCategory.THREES to 0),
+                ),
+                player(name = "Bot", type = PlayerType.AI, total = 150),
+            ),
+        )
+        val onlyTwoZeroes = evaluate(
+            finishedGame(
+                player(
+                    total = 200,
+                    overrides = nonZeroElsewhere + mapOf(ScoreCategory.ONES to 0, ScoreCategory.TWOS to 0, ScoreCategory.THREES to 3),
+                ),
+                player(name = "Bot", type = PlayerType.AI, total = 150),
+            ),
+        )
+
+        assertTrue(Achievement.ZERO_TO_HERO in threeZeroes.newlyUnlocked)
+        assertFalse(Achievement.ZERO_TO_HERO in onlyTwoZeroes.newlyUnlocked)
+    }
+
+    @Test
+    fun `a human absent from extraRollPlayerIndices played first-roll-only - Impatient, and Naturally Gifted if they also won`() {
+        val won = finishedGame(player(total = 200), player(name = "Bot", type = PlayerType.AI, total = 150))
+        val lost = finishedGame(player(total = 100), player(name = "Bot", type = PlayerType.AI, total = 150))
+
+        val wonFirstRollOnly = evaluate(won, context = GameAchievementContext(extraRollPlayerIndices = emptySet()))
+        val wonWithExtraRolls = evaluate(won, context = GameAchievementContext(extraRollPlayerIndices = setOf(0)))
+        val lostFirstRollOnly = evaluate(lost, context = GameAchievementContext(extraRollPlayerIndices = emptySet()))
+
+        assertTrue(Achievement.IMPATIENT in wonFirstRollOnly.newlyUnlocked)
+        assertTrue(Achievement.NATURALLY_GIFTED in wonFirstRollOnly.newlyUnlocked)
+        assertFalse(Achievement.IMPATIENT in wonWithExtraRolls.newlyUnlocked)
+        assertFalse(Achievement.NATURALLY_GIFTED in wonWithExtraRolls.newlyUnlocked)
+        assertTrue("first-roll-only but lost - Impatient still applies", Achievement.IMPATIENT in lostFirstRollOnly.newlyUnlocked)
+        assertFalse("first-roll-only but lost - not a win", Achievement.NATURALLY_GIFTED in lostFirstRollOnly.newlyUnlocked)
+    }
+
     /**
      * Superuser mode used to disqualify a game outright. It no longer does: the cheat is gated on
      * a debug build, so the rule protected nobody, and it made the one tool best placed to test
@@ -530,6 +606,17 @@ class AchievementEngineTest {
     }
 
     @Test
+    fun `Nice is exactly 69`() {
+        val exactly = evaluate(finishedGame(player(total = 69)))
+        val over = evaluate(finishedGame(player(total = 70)))
+        val under = evaluate(finishedGame(player(total = 68)))
+
+        assertTrue(Achievement.NICE in exactly.newlyUnlocked)
+        assertFalse(Achievement.NICE in over.newlyUnlocked)
+        assertFalse(Achievement.NICE in under.newlyUnlocked)
+    }
+
+    @Test
     fun `career points accumulate across every game on the leaderboard`() {
         val nearly = LeaderboardTotals(totalPoints = 99_800)
 
@@ -557,15 +644,99 @@ class AchievementEngineTest {
         assertEquals(
             listOf(
                 Achievement.PERSONAL_BEST,
+                Achievement.NICE,
                 Achievement.TON,
                 Achievement.SCORE_200,
+                Achievement.DOUBLE_TON,
                 Achievement.SCORE_300,
+                Achievement.TRIPLE_TON,
                 Achievement.SCORE_400,
                 Achievement.SCORE_500,
                 Achievement.CHEATER_CHEATER,
             ),
             scoring,
         )
+    }
+
+    @Test
+    fun `Double Ton and Triple Ton are exact, unlike the or-more rungs next to them`() {
+        val exactly200 = evaluate(finishedGame(player(total = 200)))
+        val over200 = evaluate(finishedGame(player(total = 250)))
+        val exactly300 = evaluate(finishedGame(player(total = 300)))
+
+        assertTrue(Achievement.DOUBLE_TON in exactly200.newlyUnlocked)
+        assertTrue("200 or more should still unlock Solid Round", Achievement.SCORE_200 in exactly200.newlyUnlocked)
+        assertFalse(Achievement.DOUBLE_TON in over200.newlyUnlocked)
+        assertTrue(Achievement.TRIPLE_TON in exactly300.newlyUnlocked)
+        assertFalse(Achievement.DOUBLE_TON in exactly300.newlyUnlocked)
+    }
+
+    @Test
+    fun `Exact Change needs every upper box to hold precisely its own pip count`() {
+        val exact = evaluate(
+            finishedGame(
+                player(
+                    total = 21,
+                    overrides = mapOf(
+                        ScoreCategory.ONES to 1,
+                        ScoreCategory.TWOS to 2,
+                        ScoreCategory.THREES to 3,
+                        ScoreCategory.FOURS to 4,
+                        ScoreCategory.FIVES to 5,
+                        ScoreCategory.SIXES to 6,
+                    ),
+                ),
+            ),
+        )
+        // One box over its target - two 2s in Twos instead of one - should not count.
+        val oneOff = evaluate(
+            finishedGame(
+                player(
+                    total = 22,
+                    overrides = mapOf(
+                        ScoreCategory.ONES to 1,
+                        ScoreCategory.TWOS to 4,
+                        ScoreCategory.THREES to 3,
+                        ScoreCategory.FOURS to 4,
+                        ScoreCategory.FIVES to 5,
+                        ScoreCategory.SIXES to 6,
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(Achievement.EXACT_CHANGE in exact.newlyUnlocked)
+        assertFalse(Achievement.EXACT_CHANGE in oneOff.newlyUnlocked)
+    }
+
+    // ---- Game start ----------------------------------------------------------------------------
+    // Gathering GameStartContext's booleans needs an async SettingsRepository read only
+    // GameViewModel can do (see checkGameStartAchievements), but deciding what they earn is this
+    // pure engine's job, same as evaluate/evaluateInProgress for the rest of a game.
+
+    @Test
+    fun `a non-default style earns its own milestone at game start, per swappable category`() {
+        val before = AchievementsState()
+
+        val allDefault = AchievementEngine.evaluateAtGameStart(GameStartContext(), before, NOW)
+        val customDice = AchievementEngine.evaluateAtGameStart(GameStartContext(playedNonDefaultDiceStyle = true), before, NOW)
+        val customCup = AchievementEngine.evaluateAtGameStart(GameStartContext(playedNonDefaultDiceCupStyle = true), before, NOW)
+        val customBackground = AchievementEngine.evaluateAtGameStart(GameStartContext(playedNonDefaultTableBackground = true), before, NOW)
+
+        assertTrue(allDefault.isEmpty)
+        assertEquals(listOf(Achievement.STYLE_DICE), customDice.newlyUnlocked)
+        assertEquals(listOf(Achievement.STYLE_CUP), customCup.newlyUnlocked)
+        assertEquals(listOf(Achievement.STYLE_BACKGROUND), customBackground.newlyUnlocked)
+    }
+
+    @Test
+    fun `game start touches no counters and skips an already-unlocked style`() {
+        val before = AchievementsState(unlockedAt = mapOf(Achievement.STYLE_DICE to 1L), counters = mapOf(AchievementCounter.GAMES_PLAYED to 7))
+
+        val update = AchievementEngine.evaluateAtGameStart(GameStartContext(playedNonDefaultDiceStyle = true), before, NOW)
+
+        assertTrue(Achievement.STYLE_DICE !in update.newlyUnlocked)
+        assertEquals(7, update.counters[AchievementCounter.GAMES_PLAYED])
     }
 
     @Test

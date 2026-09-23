@@ -60,12 +60,93 @@ decisions behind it. Read that before changing anything visual.
   others - a fire die can sit in a leather cup on a midnight felt mat.
 - **Game type**: only `CLASSIC` is playable in v1; `EXTENDED` exists as an
   enum value shown disabled in the UI.
-- **Achievements**: 51 of them, **per device rather than per player**, local
+- **Achievements**: 84 of them, **per device rather than per player**, local
   only for now but shaped so each maps onto a Google Play Games achievement
   later (see Phase 13). One (`CHEATER_CHEATER`) is secret: `Achievement.isSecret`
   keeps it out of the list - and its unlocked/total counts - until it's
   actually earned, since seeing "finish with the maximum possible score"
   sitting on the to-do list would rather give the game away.
+  Table-art style ones (`STYLE_DICE`/`STYLE_CUP`/`STYLE_BACKGROUND`) are judged at game START, not
+  the end - the player picked the style before a die was ever rolled, so there's no reason to make
+  them finish playing to hear about it. This is its own evaluation entry point,
+  `AchievementEngine.evaluateAtGameStart(context: GameStartContext, ...)`, alongside `evaluate`/
+  `evaluateInProgress`/`unlockNow` - added when the first game-start achievement showed the ad hoc
+  `unlockAchievements(buildSet {...})` GameViewModel had been doing inline wasn't going to scale to
+  a second one: **the engine, not the call site, decides what counts as earned**, everywhere else
+  in this file, and game-start achievements are no exception. `GameStartContext` carries a plain
+  boolean per style category rather than a style id, so `game/`'s pure engine never has to import
+  the UI-layer style catalog just to compare a string; `GameViewModel.checkGameStartAchievements`
+  (called from `startGame`/`resumeGame`) is only responsible for the async `SettingsRepository`
+  read that builds that context and for persisting/announcing whatever the engine decides. A future
+  game-start achievement is a new field on `GameStartContext` and a line in `evaluateAtGameStart` -
+  never a new ad hoc check at a `GameViewModel` call site. `WASTED_5X` ("Roll a 5x but score a zero
+  with it anyway") is checked at the moment of `commitScore`, not from the finished scorecard: a
+  filled-in `FIVE_OF_A_KIND` box already answers "was it ever a real 5x", but not "were the dice a
+  5x right when THIS zero went in" - that needs the dice and the chosen category together, which
+  only `GameViewModel` sees before the commit changes anything. `DOUBLE_TON`/`TRIPLE_TON` (exactly
+  200/300) sit right after `SCORE_200`/`SCORE_300` on the Scoring ladder, not before - despite the
+  same threshold, hitting it exactly is harder than clearing it by any margin. `EXACT_CHANGE` needs
+  every upper box scored with precisely its own pip count (1 in Ones, ..., 6 in Sixes) in one game.
+  A second, much larger batch (25 more) covers interaction patterns a finished scorecard can't
+  reconstruct at all - rolls, holds and commits watched turn-by-turn - so `GameViewModel` grew a
+  large block of per-turn tracking state (reset in `resetPerTurnTracking`, called from `rollDice`
+  whenever `rollsRemaining == FULL_ROLLS_REMAINING`) alongside the existing per-game fields.
+  Highlights, and the traps found building them:
+  - **`COMMITMENT_ISSUES` is "hold N of one number (1-4, not a 5x), let it go, then hold M of a
+    different number (1-4) and score it"** - not specifically a pair, despite the name (a single
+    die or a four of a kind both count, as long as every held die shares that one value and nothing
+    else is held alongside it). Its state machine has to survive releasing a held group ONE TAP AT
+    A TIME, since the real UI can only unhold one die per tap (each is its own tap target): "hold a
+    group, then let it go" passes through intermediate states that aren't themselves an exact group
+    of the SAME size - a first version treated any such intermediate state as "not holding an exact
+    group anymore" and cleared the tracked value right there, before the last tap ever arrived, so
+    the achievement could never fire from real play (a test written to release the group the same
+    way a finger would caught this immediately). The fix tracks the group's own die indices
+    (`pendingCommitmentGroupIndices`) and only clears the pending value when the held set stops
+    being a SUBSET of that group - shrinking down one die at a time doesn't count as "different",
+    only holding something outside the original group does.
+    A held group of all 5 dice sharing a value is a real 5x, not indecision, and must never become
+    the baseline the next group is compared against - even once it's *released* back down through
+    4, 3, 2, 1 held, which looks identical, held-set-wise, to shrinking a plain 4-group. A
+    `commitmentGroupTainted` flag set the instant the held set ever reaches all 5 (and cleared only
+    once the held set returns to genuinely empty, or a fresh, unrelated group starts) is what tells
+    the empty-handed moment not to credit that release.
+  - **`TWICE_IN_A_LIFETIME`/streak-style per-player state is keyed by player index, not "any
+    human"**, because "two turns in a row" means one player's own consecutive turns, which in a
+    2+ player game are never chronologically adjacent (opponents go in between) - only that
+    player's own map entry is ever written or read, so an intervening AI or other human's turn
+    can't accidentally reset or fake the streak.
+  - **`IMPATIENT`/`NATURALLY_GIFTED` track a `Set<Int>` of player indices that used an extra roll**,
+    not a boolean - a human index absent from that set means every one of THEIR turns was a single
+    roll, checked at game end against `state.players` by index rather than by name (names aren't
+    unique, human vs AI matters, and the set is built purely from `GameViewModel.rollDice` noticing
+    `rollsRemaining < FULL_ROLLS_REMAINING`).
+  - **`WHY_DID_YOU_DO_THAT`, `ALMOST_FAMOUS`, `DICE_HATE_ME` and `COMMITMENT_ISSUES` all fire from
+    `checkPreCommitAchievements`, called before `GameEngine.commitScore` changes anything** - same
+    reasoning as `WASTED_5X`: the dice and the chosen category have to be read together, at the
+    exact moment of commit, before the scorecard and turn move on.
+  - **The dice cup stays clickable even with zero rolls left** (`DiceCupPanel`'s `enabled` was
+    `canRoll`, now unconditional) purely so `NO_MORE_ROLLS` has a tap to count - `onCupTap` itself
+    (in `GameScreen`) decides whether a tap rolls the dice or just increments the counter, as two
+    separate `if`s rather than an `if`/`else if`: chaining them as `else if` made Kotlin infer the
+    whole lambda's type as the join of `Job` (from `launch`) and `Unit`, i.e. `Any` - a type the
+    `() -> Unit` callback slot doesn't accept.
+  - **`Achievement.TIME_WASTING` is tracked in every build, debug or release** - only the actual
+    superuser-mode effect (`GameViewModel.trackSuperuserSequence`'s `_superuserModeActive.value =
+    true` and its toast) stays behind `BuildConfig.DEBUG`, so the achievement rewards performing
+    the hidden hold sequence itself, whether or not this build lets it do anything.
+  - **`NOT_THOSE_DICE` (tapping the menu's own logo dice) needed a `MenuViewModel`** purely to hold
+    the one-line achievement unlock `MenuScreen` otherwise has no repository to reach - `AppLogo`
+    gained an `onDiceTap` callback wrapping just the dice `Row`, not the wordmark below it.
+  - Not covered by an automated test: `CONTINUED_GAME` ("leave a game, come back to finish it") and
+    the real, end-to-end "picked a non-default style" path for `STYLE_DICE`/`STYLE_CUP`/
+    `STYLE_BACKGROUND` - specifically the `SettingsRepository` read that feeds `GameStartContext`.
+    Both need `SettingsRepository`/`InProgressGameRepository` - concrete DataStore-backed classes,
+    not interfaces, so neither can be faked on the plain-JVM test setup the way
+    `AchievementStore`/`ScoreDao` are. What tests do cover on that setup: `checkGameStartAchievements`
+    returning early (no unlock, no crash) when there's no settings repository at all, and - fully,
+    since it needs no repository - `AchievementEngine.evaluateAtGameStart`'s own decision logic
+    once `GameStartContext`'s booleans are already known (`AchievementEngineTest`).
 - **The trademarked name is banned from the application entirely** - source,
   comments, identifiers, filenames and anything a player can see. See the
   rule in `CLAUDE.md`. The term is **"5x"** in user-facing text (what the

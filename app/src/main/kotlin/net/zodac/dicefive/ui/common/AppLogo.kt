@@ -1,5 +1,7 @@
 package net.zodac.dicefive.ui.common
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -46,17 +49,28 @@ private val LOGO_DICE = listOf(
  * The wordmark uses `displayMedium` from the type scale rather than a hand-set size, so it stays
  * in proportion with everything else if the scale is ever restyled; [titleSize] only exists for
  * the About page, which wants the same mark at a supporting size.
+ *
+ * [onDiceTap] is the "Not Those Dice!" easter egg - only the dice fan itself is the tap target, not
+ * the wordmark below it. No ripple: at this size (five dice sharing one row) a ripple reads as the
+ * whole logo flashing, not a considered tap target, the same call [DiceCupPanel] makes for its cup.
  */
 @Composable
 fun AppLogo(
     modifier: Modifier = Modifier,
     dieSize: Dp = 34.dp,
     titleSize: TextUnit = TextUnit.Unspecified,
+    onDiceTap: () -> Unit = {},
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        val diceInteractionSource = remember { MutableInteractionSource() }
         Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.clickable(
+                interactionSource = diceInteractionSource,
+                indication = null,
+                onClick = onDiceTap,
+            ),
         ) {
             for (die in LOGO_DICE) {
                 IvoryDiceStyle.Die(
