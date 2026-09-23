@@ -58,6 +58,9 @@ data class GameStartContext(
     val playedNonDefaultDiceStyle: Boolean = false,
     val playedNonDefaultDiceCupStyle: Boolean = false,
     val playedNonDefaultTableBackground: Boolean = false,
+    /** Whether one of the *other* seats - P2, P3, or P4, never P1 - is a human named exactly
+     * "zodac" (case-sensitive) - [Achievement.BIG_FAN]'s trigger. */
+    val hasHumanPlayerNamedZodac: Boolean = false,
 )
 
 /**
@@ -208,6 +211,7 @@ object AchievementEngine {
             if (context.playedNonDefaultDiceStyle) add(Achievement.STYLE_DICE)
             if (context.playedNonDefaultDiceCupStyle) add(Achievement.STYLE_CUP)
             if (context.playedNonDefaultTableBackground) add(Achievement.STYLE_BACKGROUND)
+            if (context.hasHumanPlayerNamedZodac) add(Achievement.BIG_FAN)
         }
         return update(earned, before.counters, before, now)
     }

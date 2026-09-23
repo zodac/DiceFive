@@ -770,6 +770,17 @@ class AchievementEngineTest {
     }
 
     @Test
+    fun `a human P2, P3, or P4 named zodac unlocks Big Fan`() {
+        val before = AchievementsState(unlockedAt = mapOf(Achievement.THE_JOURNEY_BEGINS to 1L))
+
+        val withZodac = AchievementEngine.evaluateAtGameStart(GameStartContext(hasHumanPlayerNamedZodac = true), before, NOW)
+        val without = AchievementEngine.evaluateAtGameStart(GameStartContext(hasHumanPlayerNamedZodac = false), before, NOW)
+
+        assertEquals(listOf(Achievement.BIG_FAN), withZodac.newlyUnlocked)
+        assertTrue(without.isEmpty)
+    }
+
+    @Test
     fun `game start touches no counters and skips an already-unlocked style`() {
         val before = AchievementsState(unlockedAt = mapOf(Achievement.STYLE_DICE to 1L), counters = mapOf(AchievementCounter.GAMES_PLAYED to 7))
 

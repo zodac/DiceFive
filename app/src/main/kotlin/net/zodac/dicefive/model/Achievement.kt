@@ -21,10 +21,10 @@ enum class AchievementCategory(val label: String) {
     MILESTONES("Milestones"),
     THEMES("Themes"),
     DICE("Dice feats"),
-    MISCELLANEOUS("Miscellaneous"),
     SCORING("Scoring"),
     WINNING("Winning"),
     MISFORTUNE("Misfortune"),
+    MISCELLANEOUS("Miscellaneous"),
     COLLECTION("Collection"),
 }
 
@@ -238,11 +238,11 @@ enum class Achievement(
     ),
     SIXES_30(
         "sixes_30", "Six Appeal", "Score the maximum 30 in Sixes",
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
     ),
     CHANCE_30(
         "chance_30", "Taking A Chance", "Score the maximum 30 in Chance",
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
     ),
     HAT_TRICK_5X(
         "5x_hat_trick", "Hat Trick", "Score three or more 5x in a single game",
@@ -276,7 +276,7 @@ enum class Achievement(
     ),
     POINTLESS_ROLL(
         "pointless_roll", "What Was The Point Of That?", "Hold all five dice, then roll anyway",
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
     ),
     CUNNING_STRATEGY(
         "cunning_strategy", "A Cunning Strategy", "Hold all five dice, then unhold every one of them",
@@ -288,41 +288,6 @@ enum class Achievement(
         AchievementCategory.DICE,
     ),
 
-    // ---- Miscellaneous: interaction quirks that aren't about the dice or the scorecard --------
-    COMMITMENT_ISSUES(
-        "commitment_issues", "Commitment Issues",
-        "Hold dice of one number, then change your mind and hold and score with another number",
-        AchievementCategory.MISCELLANEOUS,
-    ),
-    DECISIONS_DECISIONS(
-        "decisions_decisions", "Decisions, Decisions", "Hold and unhold the same die three times before rolling again",
-        AchievementCategory.MISCELLANEOUS,
-    ),
-    TIME_TO_LET_IT_GO(
-        "time_to_let_it_go", "Time To Let It Go", "Hold the same die through two rolls, then unhold it with none left to take",
-        AchievementCategory.MISCELLANEOUS,
-    ),
-    TIME_WASTING(
-        "time_wasting", "Time Wasting", "Hold then unhold each die in sequence",
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
-    ),
-    UNDO_DIFFERENT_CATEGORY(
-        "undo_different_category", "I Didn't Mean That", "Undo a score and score a different category",
-        AchievementCategory.MISCELLANEOUS,
-    ),
-    NOT_THOSE_DICE(
-        "not_those_dice", "Not Those Dice!", "Tap the dice on the main menu",
-        AchievementCategory.MISCELLANEOUS,
-    ),
-    NO_MORE_ROLLS(
-        "no_more_rolls", "No More Rolls", "Tap the dice cup three times after your last roll of a turn",
-        AchievementCategory.MISCELLANEOUS,
-    ),
-    IMPATIENT(
-        "impatient", "Impatient", "Finish a game never rolling more than once in any turn",
-        AchievementCategory.MISCELLANEOUS,
-    ),
-
     // ---- Scoring: one ladder, so the rungs must stay adjacent and in order --------------------
     PERSONAL_BEST(
         "personal_best", "New Personal Best", "Beat your best score on the leaderboard",
@@ -330,7 +295,7 @@ enum class Achievement(
     ),
     NICE(
         "score_exactly_69", "Nice", "Finish a game on exactly 69",
-        AchievementCategory.SCORING,
+        AchievementCategory.SCORING, visibility = AchievementVisibility.HIDDEN,
     ),
     TON(
         "score_exactly_100", "Ton!", "Finish a game on exactly 100",
@@ -391,7 +356,7 @@ enum class Achievement(
     ),
     ZERO_TO_HERO(
         "zero_to_hero", "Zero To Hero", "Win a game after scoring zero at least three times",
-        AchievementCategory.WINNING,
+        AchievementCategory.WINNING, visibility = AchievementVisibility.HIDDEN,
     ),
 
     BEAT_THREE_AI(
@@ -418,7 +383,7 @@ enum class Achievement(
     // the moment a zero was committed anyway.
     WASTED_5X(
         "5x_wasted", "Wasted Fortune", "Roll a 5x but score a zero with it anyway",
-        AchievementCategory.MISFORTUNE,
+        AchievementCategory.MISFORTUNE, visibility = AchievementVisibility.HIDDEN,
     ),
     DICE_HATE_ME(
         "dice_hate_me", "The Dice Hate Me", "Have a real scoring option after the 2nd roll, then leave yourself with none after the 3rd",
@@ -449,17 +414,58 @@ enum class Achievement(
         AchievementCategory.MISFORTUNE,
     ),
     WHY_DID_YOU_DO_THAT(
-        "why_did_you_do_that", "Why Did You Do That?", "Score the small straight when the large straight was also available",
-        AchievementCategory.MISFORTUNE,
+        "why_did_you_do_that", "Size Isn't Everything", "Score the small straight when the large straight was also available",
+        AchievementCategory.MISFORTUNE, visibility = AchievementVisibility.HIDDEN,
     ),
     ALL_ZEROES(
         "zeroes_except_chance", "How Do You Play This Game?",
         "Score zero in every category except Chance",
-        AchievementCategory.MISFORTUNE,
+        AchievementCategory.MISFORTUNE, visibility = AchievementVisibility.HIDDEN,
     ),
     EXTREME_LOW_ROLLS(
         "low_rolls_extreme", "Rock Bottom", "Finish a game on exactly 5 - the lowest score the rules allow",
-        AchievementCategory.MISFORTUNE,
+        AchievementCategory.MISFORTUNE, visibility = AchievementVisibility.HIDDEN,
+    ),
+
+    // ---- Miscellaneous: interaction quirks that aren't about the dice or the scorecard --------
+    COMMITMENT_ISSUES(
+        "commitment_issues", "Commitment Issues",
+        "Hold dice of one number, then change your mind and hold and score with another number",
+        AchievementCategory.MISCELLANEOUS,
+    ),
+    DECISIONS_DECISIONS(
+        "decisions_decisions", "Decisions, Decisions", "Hold and unhold the same die three times before rolling again",
+        AchievementCategory.MISCELLANEOUS,
+    ),
+    TIME_TO_LET_IT_GO(
+        "time_to_let_it_go", "Time To Let It Go", "Hold the same die through two rolls, then unhold it with none left to take",
+        AchievementCategory.MISCELLANEOUS,
+    ),
+    TIME_WASTING(
+        "time_wasting", "Time Wasting", "Hold then unhold each die in sequence",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    UNDO_DIFFERENT_CATEGORY(
+        "undo_different_category", "I Didn't Mean That", "Undo a score and score a different category",
+        AchievementCategory.MISCELLANEOUS,
+    ),
+    NOT_THOSE_DICE(
+        "not_those_dice", "Not Those Dice!", "Tap the dice on the main menu",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    NO_MORE_ROLLS(
+        "no_more_rolls", "No More Rolls", "Tap the dice cup three times after your last roll of a turn",
+        AchievementCategory.MISCELLANEOUS,
+    ),
+    IMPATIENT(
+        "impatient", "Impatient", "Finish a game never rolling more than once in any turn",
+        AchievementCategory.MISCELLANEOUS,
+    ),
+    // Earned by having a human P2/P3/P4 named exactly "zodac" - the one name this checks for,
+    // case-sensitively - never P1, who's always "You".
+    BIG_FAN(
+        "big_fan", "Big Fan", "Play a game with the creator",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
 
     // ---- Collection: filling in every score there is, and the set of achievements itself ------

@@ -555,10 +555,13 @@ class GameViewModel(
         val repository = achievementsRepository ?: return
         val settings = settingsRepository ?: return
         viewModelScope.launch {
+            // Never P1 - "You" is always index 0, so this only ever looks at the other seats.
+            val otherHumans = _game.value?.players.orEmpty().drop(1).filter { it.type == PlayerType.HUMAN }
             val context = GameStartContext(
                 playedNonDefaultDiceStyle = isNonDefaultStyle(settings.diceStyleId, DiceStyles.default.id),
                 playedNonDefaultDiceCupStyle = isNonDefaultStyle(settings.diceCupStyleId, DiceCupStyles.default.id),
                 playedNonDefaultTableBackground = isNonDefaultStyle(settings.tableBackgroundId, TableBackgrounds.default.id),
+                hasHumanPlayerNamedZodac = otherHumans.any { it.name == ZODAC_PLAYER_NAME },
             )
             withAchievementLock {
                 val update = AchievementEngine.evaluateAtGameStart(context, repository.current(), System.currentTimeMillis())
@@ -1020,6 +1023,9 @@ class GameViewModel(
 
         /** Three 6s and two 5s, sorted - the exact roll "Fuller House" is named for. */
         private val FULLER_HOUSE_VALUES = listOf(5, 5, 6, 6, 6)
+
+        /** Case-sensitive - "Big Fan"'s exact match, not just a case-insensitive namesake. */
+        private const val ZODAC_PLAYER_NAME = "zodac"
 
         /** Builds a [GameViewModel] backed by real Room/DataStore persistence. */
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
