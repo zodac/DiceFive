@@ -122,7 +122,7 @@ net.zodac.dicefive/
     statistics/
       StatisticsScreen.kt              — one card per distinct human player name: max score, games
                                           played/won/lost, current/best win streak, first-played date
-                                          + time
+                                          + time; a drawn scrollbar hints at cards below the fold
       StatisticsViewModel.kt           — talks to ScoreRepository.playerStatistics()
     achievements/                       — AchievementsScreen (locked-first list + "Hide unlocked"),
                                           AchievementsViewModel, AchievementBannerHost (the overlay

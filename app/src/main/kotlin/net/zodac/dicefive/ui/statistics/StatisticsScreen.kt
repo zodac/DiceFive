@@ -1,12 +1,16 @@
 package net.zodac.dicefive.ui.statistics
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +28,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import net.zodac.dicefive.data.scores.PlayerStatistics
+import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
 
 private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a")
@@ -48,13 +53,21 @@ fun StatisticsScreen(
                 )
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(state.players, key = { it.playerName }) { player ->
-                    PlayerStatsCard(player)
+            val listState = rememberLazyListState()
+
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    // Room on the right for the scrollbar so it doesn't sit on top of a card's edge.
+                    contentPadding = PaddingValues(end = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(state.players, key = { it.playerName }) { player ->
+                        PlayerStatsCard(player)
+                    }
                 }
+                LazyListScrollbar(listState = listState)
             }
         }
     }

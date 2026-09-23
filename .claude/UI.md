@@ -76,6 +76,7 @@ which needs compileSdk 37). Revisit when 1.5.0 is stable.
 | `ScreenScaffold.kt` | the frame for every non-menu page: backdrop + M3 top app bar with a back arrow + optional pinned bottom bar. Also holds `PageColumn` and `PinnedActionBar`. |
 | `DiceFiveDialog.kt` | the app's one dialog shape, so the menu and the board ask questions the same way. |
 | `AppLogo.kt` | placeholder app mark, built from the game's own dice via `IvoryDiceStyle`. |
+| `Scrollbar.kt` | `LazyListScrollbar`, a `BoxScope` extension drawing a minimal scroll indicator over a `LazyColumn` - stock Compose has none for Android. Shared by the Leaderboard, Achievements and Statistics screens. |
 
 ### PageColumn
 
@@ -181,6 +182,82 @@ Two consequences:
 
 `PlayerHeaderBar` also steps names down to `labelMedium` at 3+ players, which is what makes
 the cap actually deliver a full name on one line on a narrow phone.
+
+## Scrollbars on long lists
+
+Every page with a `LazyColumn` that can outgrow the screen (Leaderboard, Achievements,
+Statistics) wraps it in a `Box` and overlays `ui/common/Scrollbar.kt`'s `LazyListScrollbar` -
+written once and shared, rather than each screen drawing its own. It's `primary` (the app's
+gold) on a `surfaceContainerHighest` track, both colour roles rather than hardcoded values.
+
+**Show/hide is driven by `LazyListState.canScrollForward`/`canScrollBackward`, never by
+comparing `layoutInfo.visibleItemsInfo.size` to `totalItemsCount`.** The item-count comparison
+looks reasonable but is wrong: once scrolling has prefetched items past the viewport edge, a
+shortish list can end up with every item simultaneously present in `visibleItemsInfo`, which
+makes that check hide the bar partway through a scroll and never bring it back. `canScrollForward`
+/`canScrollBackward` answer the actual question ("is there more this way") regardless of how many
+items happen to be composed at once.
+
+**The thumb's size and position are pixel-based, not item-count-based, for the same family of
+reason.** An early version sized the thumb as `visibleItemCount / totalItemCount` and moved it by
+`firstVisibleItemIndex / scrollableItemCount` - on the Statistics screen (a handful of cards, each
+taller than half the viewport), that meant the thumb only updated once per whole card scrolled
+past: it looked pinned near the top, then ballooned to nearly the full track as more cards entered
+`visibleItemsInfo`, and the discrete jumps read as the whole screen scrolling janky rather than the
+indicator being wrong. `LazyListScrollbar` reads each visible item's pixel `size` and `offset`, so
+the thumb tracks the actual scroll position continuously - see the doc comment for the formula.
+
+**Item sizes used for that estimate are remembered per index, not re-averaged from the current
+viewport every frame.** A second version averaged `visibleItemsInfo`'s sizes fresh each frame,
+which is fine for a uniform list (every Leaderboard row or Statistics card is about the same
+height) but broke on Achievements: section headers, group headers, and cards with or without a
+progress bar are all different-sized items in the same `LazyColumn`, so the average - and with it
+the thumb's size - swung every time the mix of item types on screen changed, which read as the
+thumb resizing while scrolling rather than just moving. `LazyListScrollbar` now keeps a
+`remember`ed `index -> size` map that only ever grows: an item's size is fixed the first time it's
+seen, so the running average firms up as more of the list is scrolled through instead of lurching
+frame to frame.
+
+**Even that running average never fully settles on Achievements**, because a card's own height
+varies continuously - not just "with progress bar or without," but with however many lines its
+description happens to wrap to - so every newly-seen card nudges the average a little. A first
+attempt froze the *size* estimate (what sets the thumb's height) once a sample of items had been
+seen - but on a page where only a handful of items fit on screen at rest, that sample was only
+reached partway into the user's *first scroll*, so all the convergence meant to be spread out
+happened at once, right when scrolling started, and read as a single jarring resize rather than
+gradual settling. `LazyListScrollbar` instead freezes the size estimate from the very first layout,
+before any scrolling at all, trading a bit of proportional accuracy (the first screenful may not
+represent the whole list) for there being nothing left to converge once the user actually starts
+scrolling. The thumb's *position* is unaffected by the freeze - it's still computed from the exact
+remembered size of every item actually scrolled past, for the whole list, so it keeps tracking the
+finger precisely throughout.
+
+**All of that remembered state resets when `totalItemsCount` changes, not just when the
+`LazyListState` instance does.** The same `LazyListState` survives Achievements' "Hide unlocked"
+toggle and the Leaderboard's page navigation - only the *shape* of the list changes, so the cached
+per-index sizes (and the frozen size estimate built from them) would otherwise keep describing a
+list that no longer exists. A first version detected this via `derivedStateOf { listState.layoutInfo
+.totalItemsCount }` read at the composable level, keying `remember(listState, totalItems) {...}` -
+which worked at first, but wasn't reliable: `LazyListScrollbar`'s own parameters (`listState`,
+`modifier`) never change across a toggle, only what it reads from `listState` internally does, and
+that left the reset exposed to whether Compose happened to recompose a stable-parameter composable.
+It eventually got stuck holding a stale frozen estimate after a hide/unhide cycle. The check now
+lives as plain imperative code inside the `Canvas` draw phase instead - a `ScrollbarMemory` object
+(`remember(listState) {...}` only) with a `totalItemsAtLastCheck` field, compared and reset on every
+draw call. That draw phase already has to read every item's live pixel `offset` on every frame
+regardless, for the *position* math - piggybacking the shape check on that same guaranteed-fresh
+path removes the reliability question entirely rather than depending on it.
+
+**The two endpoints are pinned to `canScrollForward`/`canScrollBackward`, not left to the pixel
+estimate.** The estimate is extrapolated from a small early sample on a list whose real item
+heights vary continuously, so it can end up a little larger than the list's true content size -
+left alone, that shows up as the thumb never quite reaching the bottom (or top) of the track even
+once the list genuinely has, and it gets worse each time Achievements' "Hide unlocked" toggle
+re-freezes the estimate from a different, possibly differently-biased sample. Since
+`canScrollForward`/`canScrollBackward` are exact (not estimated), `LazyListScrollbar` overrides the
+calculated `scrollFraction` with `1f`/`0f` whenever Compose says there's genuinely nothing left to
+scroll in that direction - the pixel math still governs everything in between, only the two true
+edges are pinned.
 
 ## Gotchas hit while building this
 

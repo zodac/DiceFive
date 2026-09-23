@@ -4,13 +4,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -41,6 +44,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
+import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
 
 private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a")
@@ -75,11 +79,20 @@ fun ScoresScreen(
                 Column(modifier = Modifier.padding(8.dp)) {
                     HeaderRow()
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    LazyColumn(modifier = Modifier.weight(1f)) {
-                        itemsIndexed(state.entries, key = { _, entry -> entry.id }) { index, entry ->
-                            val rank = state.pageIndex * SCORES_PAGE_SIZE + index + 1
-                            ScoreRow(rank = rank, entry = entry, striped = index % 2 == 1)
+                    val listState = rememberLazyListState()
+                    Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            // Room on the right for the scrollbar so it doesn't sit on top of a row's score.
+                            contentPadding = PaddingValues(end = 12.dp),
+                        ) {
+                            itemsIndexed(state.entries, key = { _, entry -> entry.id }) { index, entry ->
+                                val rank = state.pageIndex * SCORES_PAGE_SIZE + index + 1
+                                ScoreRow(rank = rank, entry = entry, striped = index % 2 == 1)
+                            }
                         }
+                        LazyListScrollbar(listState = listState)
                     }
                 }
             }
