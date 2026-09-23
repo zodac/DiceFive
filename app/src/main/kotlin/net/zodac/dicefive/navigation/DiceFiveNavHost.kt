@@ -37,6 +37,8 @@ import net.zodac.dicefive.ui.scores.ScoresViewModel
 import net.zodac.dicefive.ui.settings.SettingsScreen
 import net.zodac.dicefive.ui.settings.SettingsViewModel
 import net.zodac.dicefive.ui.setup.GameSetupScreen
+import net.zodac.dicefive.ui.statistics.StatisticsScreen
+import net.zodac.dicefive.ui.statistics.StatisticsViewModel
 
 /**
  * Half of Navigation Compose's own default (a 700ms cross-fade), which is slow enough to feel like
@@ -67,6 +69,7 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                 onContinue = { navController.navigate(Screen.playSetup(resume = true)) },
                 onNewGame = { navController.navigate(Screen.PLAY_GRAPH) },
                 onScores = { navController.navigate(Screen.SCORES) },
+                onStatistics = { navController.navigate(Screen.STATISTICS) },
                 onAchievements = { navController.navigate(Screen.ACHIEVEMENTS) },
                 onSettings = { navController.navigate(Screen.SETTINGS) },
                 onAbout = { navController.navigate(Screen.ABOUT) },
@@ -123,6 +126,13 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
             val context = LocalContext.current
             ScoresScreen(
                 viewModel = viewModel(factory = ScoresViewModel.factory(context)),
+                onBack = { navController.navigateUp() },
+            )
+        }
+        composable(Screen.STATISTICS) {
+            val context = LocalContext.current
+            StatisticsScreen(
+                viewModel = viewModel(factory = StatisticsViewModel.factory(context)),
                 onBack = { navController.navigateUp() },
             )
         }

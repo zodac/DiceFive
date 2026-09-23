@@ -33,6 +33,12 @@ decisions behind it. Read that before changing anything visual.
   type), sorted score-descending, paginated 50/page (originally 100; halved
   alongside a compact row style, so a page is a shorter scroll). No date
   column — date is shown via a long-press tooltip.
+- **Statistics screen**: one card per distinct human player *name* (a rename starts a new "user",
+  same as the leaderboard). Win/loss and the current win streak are only tracked for multiplayer
+  games — a solo game has nobody to beat, so it's recorded with a null outcome that counts toward
+  games played but neither wins, losses, nor breaks a streak, mirroring the existing
+  `WIN_STREAK`/`GAMES_WON` achievement counters. Rows recorded before this feature shipped get the
+  same null treatment, since their outcome was never captured.
 - **About link**: `https://github.com/zodac/DiceFive`.
 - **Game type**: only `CLASSIC` is playable in v1; `EXTENDED` exists as an
   enum value shown disabled in the UI.
@@ -67,10 +73,14 @@ net.zodac.dicefive/
       Theme.kt                         — enum LIGHT/DARK/SYSTEM
       SettingsRepository.kt            — DataStore-backed: theme Flow, remembered player names (slots 1-4)
     scores/
-      ScoreEntry.kt (Room @Entity)     — id, playerName, score, timestampEpochMillis
-      ScoreDao.kt                      — pagedScores(limit, offset), count(), bestScore(), insert()
-      AppDatabase.kt                   — Room database, singleton via Application
-      ScoreRepository.kt               — wraps DAO, exposes page loads
+      ScoreEntry.kt (Room @Entity)     — id, playerName, score, timestampEpochMillis, won (nullable;
+                                          null for a solo game or a pre-migration row)
+      ScoreDao.kt                      — pagedScores(limit, offset), count(), bestScore(), insert(),
+                                          playerSummaries() (GROUP BY playerName), outcomesForPlayer(name)
+      AppDatabase.kt                   — Room database, singleton via Application; MIGRATION_1_2 adds `won`
+      ScoreRepository.kt               — wraps DAO, exposes page loads and playerStatistics() (adds the
+                                          per-player current/best win streaks, walked separately from
+                                          the SQL aggregate)
     achievements/
       AchievementsState.kt             — unlock timestamps + counters, as read back
       AchievementsRepository.kt        — own DataStore file, so a reset can't touch settings
@@ -98,7 +108,7 @@ net.zodac.dicefive/
     Screen.kt                          — sealed route constants (menu, play/setup, play/game, scores, achievements, settings, about)
     DiceFiveNavHost.kt                 — NavHost wiring, "play" nested graph shares GameViewModel via getBackStackEntry
   ui/
-    menu/MenuScreen.kt                 — Play / Leaderboard / Achievements / Settings / About buttons
+    menu/MenuScreen.kt                 — Play / Leaderboard / Statistics / Achievements / Settings / About buttons
     setup/
       GameSetupScreen.kt               — player count 1-4, per-slot human/AI + name field, game type radio (Extended disabled)
     game/
@@ -109,6 +119,11 @@ net.zodac.dicefive/
     scores/
       ScoresScreen.kt                  — paginated table (50/page), long-press row shows date tooltip
       ScoresViewModel.kt               — talks to ScoreRepository, tracks current page
+    statistics/
+      StatisticsScreen.kt              — one card per distinct human player name: max score, games
+                                          played/won/lost, current/best win streak, first-played date
+                                          + time
+      StatisticsViewModel.kt           — talks to ScoreRepository.playerStatistics()
     achievements/                       — AchievementsScreen (locked-first list + "Hide unlocked"),
                                           AchievementsViewModel, AchievementBannerHost (the overlay
                                           above the whole NavHost - see .claude/UI.md)
@@ -134,6 +149,7 @@ NavHost(start = "menu")
     "play/game"             -> GameScreen (same scoped GameViewModel)
   }
   "scores"                  -> ScoresScreen
+  "statistics"              -> StatisticsScreen
   "achievements"            -> AchievementsScreen
   "settings"                -> SettingsScreen
   "about"                   -> AboutScreen

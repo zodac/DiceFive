@@ -506,9 +506,14 @@ class GameViewModel(
     // leaderboard read that has to happen before it.
     private suspend fun persistHumanScores(state: GameState) {
         val repository = scoreRepository ?: return
+        // A solo game has nobody to beat, so it's recorded with no outcome at all - the same
+        // "doesn't count toward win/loss" treatment AchievementEngine gives the WIN_STREAK counter.
+        val multiplayer = state.players.size > 1
+        val topScore = state.topScore
         for (player in state.players) {
             if (player.type == PlayerType.HUMAN) {
-                repository.recordScore(player.name, player.totalScore)
+                val won = if (multiplayer) player.totalScore == topScore else null
+                repository.recordScore(player.name, player.totalScore, won = won)
             }
         }
     }

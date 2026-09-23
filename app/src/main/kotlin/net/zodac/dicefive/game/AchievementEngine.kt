@@ -388,10 +388,8 @@ object AchievementEngine {
     private fun milestone(value: Int, target: Int): Int = value * PROGRESS_MILESTONES / target
 
     /** A tie at the top counts as a win for the human - nobody beat them. */
-    private fun humanWon(state: GameState, humans: List<PlayerState>): Boolean {
-        val topScore = state.players.maxOf { it.totalScore }
-        return humans.any { it.totalScore == topScore }
-    }
+    private fun humanWon(state: GameState, humans: List<PlayerState>): Boolean =
+        humans.any { it.totalScore == state.topScore }
 
     /**
      * How far the leading human finished ahead of the next player along, or null in a solo game.

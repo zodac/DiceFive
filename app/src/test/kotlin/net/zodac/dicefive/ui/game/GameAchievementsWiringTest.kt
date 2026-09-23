@@ -13,6 +13,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.scores.PlayerScoreSummary
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.data.scores.ScoreRepository
@@ -84,6 +85,13 @@ private class FakeScoreDao : ScoreDao {
     override suspend fun distinctScores(): List<Int> = entries.map { it.score }.distinct()
 
     override suspend fun totalPoints(): Int? = entries.map { it.score }.sum().takeIf { entries.isNotEmpty() }
+
+    override suspend fun playerSummaries(): List<PlayerScoreSummary> = emptyList()
+
+    override suspend fun outcomesForPlayer(playerName: String): List<Boolean?> = emptyList()
+
+    /** For tests that need to inspect what was actually recorded, not just Score repository totals. */
+    fun recorded(): List<ScoreEntry> = entries.toList()
 }
 
 /**
@@ -253,5 +261,37 @@ class GameAchievementsWiringTest {
 
         assertTrue("game should be over", viewModel.game.value?.isGameOver == true)
         assertTrue("FIRST_GAME should unlock, got ${store.unlocked}", Achievement.FIRST_GAME in store.unlocked)
+    }
+
+    @Test
+    fun `a solo game records no win outcome - there's nobody to beat`() = runTest {
+        val dao = FakeScoreDao()
+        val viewModel = GameViewModel(scoreRepository = ScoreRepository(dao))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.playToCompletion()
+        advanceUntilIdle()
+
+        assertEquals(1, dao.recorded().size)
+        assertEquals(null, dao.recorded().single().won)
+    }
+
+    @Test
+    fun `a two-human game records each player's win outcome against the top score`() = runTest {
+        val dao = FakeScoreDao()
+        val viewModel = GameViewModel(scoreRepository = ScoreRepository(dao))
+        viewModel.setPlayerCount(2)
+        viewModel.startGame()
+
+        viewModel.playToCompletion()
+        advanceUntilIdle()
+
+        val finalState = viewModel.game.value!!
+        val topScore = finalState.topScore
+        val expected = finalState.players.associate { it.name to (it.totalScore == topScore) }
+        val actual = dao.recorded().associate { it.playerName to it.won }
+
+        assertEquals(expected, actual)
     }
 }

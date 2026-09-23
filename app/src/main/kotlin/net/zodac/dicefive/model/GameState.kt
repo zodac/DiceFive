@@ -17,4 +17,8 @@ data class GameState(
 
     val currentPlayer: PlayerState?
         get() = players.getOrNull(currentPlayerIndex)
+
+    /** The highest total score among every player, including AI - what "winning" is measured against. */
+    val topScore: Int
+        get() = players.maxOf { it.totalScore }
 }

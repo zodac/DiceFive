@@ -39,6 +39,7 @@ fun MenuScreen(
     onContinue: () -> Unit,
     onNewGame: () -> Unit,
     onScores: () -> Unit,
+    onStatistics: () -> Unit,
     onAchievements: () -> Unit,
     onSettings: () -> Unit,
     onAbout: () -> Unit,
@@ -83,6 +84,7 @@ fun MenuScreen(
                     Text(text = "Play", style = MaterialTheme.typography.titleMedium)
                 }
                 MenuDestinationButton(label = "Leaderboard", onClick = onScores)
+                MenuDestinationButton(label = "Statistics", onClick = onStatistics)
                 MenuDestinationButton(label = "Achievements", onClick = onAchievements)
                 MenuDestinationButton(label = "Settings", onClick = onSettings)
                 MenuDestinationButton(label = "About", onClick = onAbout)
@@ -112,6 +114,7 @@ private fun MenuScreenPreview() {
             onContinue = {},
             onNewGame = {},
             onScores = {},
+            onStatistics = {},
             onAchievements = {},
             onSettings = {},
             onAbout = {},

@@ -10,4 +10,11 @@ data class ScoreEntry(
     val playerName: String,
     val score: Int,
     val timestampEpochMillis: Long,
+    /**
+     * Whether this player had the top score (ties included) in this game. Null for a solo game -
+     * there's nobody to beat - and for a row recorded before this column existed; both are
+     * treated alike by [ScoreRepository.playerStatistics]: counted as played, but not counted
+     * toward wins, losses or a win streak.
+     */
+    val won: Boolean? = null,
 )

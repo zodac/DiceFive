@@ -10,6 +10,7 @@ object Screen {
     const val PLAY_GAME = "play/game"
 
     const val SCORES = "scores"
+    const val STATISTICS = "statistics"
     const val ACHIEVEMENTS = "achievements"
     const val SETTINGS = "settings"
     const val ABOUT = "about"
