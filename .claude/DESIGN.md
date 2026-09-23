@@ -60,9 +60,13 @@ decisions behind it. Read that before changing anything visual.
   others - a fire die can sit in a leather cup on a midnight felt mat.
 - **Game type**: only `CLASSIC` is playable in v1; `EXTENDED` exists as an
   enum value shown disabled in the UI.
-- **Achievements**: 84 of them, **per device rather than per player**, local
-  only for now but shaped so each maps onto a Google Play Games achievement
-  later (see Phase 13). One (`CHEATER_CHEATER`) is secret: `Achievement.isSecret`
+- **Achievements**: 84 of them, **player 1 only** (`state.players[0]`, "You" on the setup
+  screen) rather than any human at the table - the one exception is the ledger (the score-band and
+  career-points achievements at the tail of `AchievementCategory.COLLECTION`), which stays measured
+  against the leaderboard as a whole, i.e. every human who has played on this device, not just
+  player 1 - see the "Player 1 only" phase entry below for why, and for the Google Play Games
+  question this raises. Local only for now but shaped so each maps onto a Google Play Games
+  achievement later (see Phase 13). One (`CHEATER_CHEATER`) is secret: `Achievement.isSecret`
   keeps it out of the list - and its unlocked/total counts - until it's
   actually earned, since seeing "finish with the maximum possible score"
   sitting on the to-do list would rather give the game away.
@@ -885,6 +889,77 @@ install-over-existing succeeds:
       (the same is already true of `PERSONAL_BEST`); and they count toward
       `COMPLETIONIST`, which makes that achievement a ~296-game commitment -
       flip `countsTowardCompletion` on the six if that is not wanted.
+- [x] **Player 1 only, not any human**: achievements used to be per-device -
+      any human at the table satisfied one. Now only `state.players[0]` -
+      "You" on the setup screen, always `HUMAN` - earns anything at all;
+      another human seat is just an opponent, same as AI. This is
+      `AchievementEngine`'s first rule now, replacing the old "per device"
+      one, and it touches three layers:
+      - `AchievementEngine.evaluate`/`evaluateInProgress` bail out entirely
+        unless `players[0]` is human, then build their `humans` list from
+        just that one player - almost every existing check (`anyHuman`,
+        `bestHumanScore`, `humanWon`, `winningMargin`) needed no further
+        change, since they already just walked whatever list they were
+        given.
+      - `GameAchievementContext.extraRollPlayerIndices` (a `Set<Int>`) and
+        `diceRolledByHumans` shrank to `playerOneTookExtraRoll: Boolean` and
+        `diceRolledByPlayerOne`, since only one player's index was ever
+        going to matter again. `GameViewModel` now guards every mid-turn
+        achievement check (`rollDice`/`toggleHold`/`commitScore`/
+        `tapCupWithNoRollsLeft`/`trackFinalRoundPosition`) with an
+        `isPlayerOneTurn` (`currentPlayerIndex == 0`) check - the underlying
+        game actions themselves stay ungated, so a second human seat still
+        plays normally, it just earns nothing. `TIME_WASTING` is the one
+        partial exception: the hidden hold sequence and superuser-mode
+        activation itself still work "any player's turn" (that cheat's own
+        design), only the achievement unlock is now player-1-gated.
+        `previousTurnFiveOfAKindByPlayer` (keyed by player index, for
+        `TWICE_IN_A_LIFETIME`) collapsed to a plain
+        `playerOnePreviousTurnWasFiveOfAKind: Boolean` for the same reason.
+      - **`SINGULARITY` needed an explicit fix, not just a narrower `humans`
+        list**: it's the one Misfortune achievement whose description names
+        an opponent type ("Lose a game to an AI"), but its condition was
+        just `!humanWon`. Under the old "any human" rule that was safe -
+        in an all-human game *someone* human is always at the top, so
+        `!humanWon` could only be true when an AI actually won. Restricting
+        `humans` to player 1 alone breaks that: player 1 losing to a
+        *second human* now also makes `humanWon` false. Fixed by requiring
+        an AI to actually hold `topScore` (`aiWon`) before awarding it.
+        `PIPPED_TO_THE_POST`/`JAWS_OF_VICTORY` needed no such fix - their
+        own descriptions never named an opponent type, so "player 1 simply
+        lost" was already the right reading.
+      - **`PERSONAL_BEST` needed a data-layer change**: "beat your best
+        score" only makes sense per-name once a second human at the table
+        stops counting as "you". `ScoreDao.bestScore()`/
+        `ScoreRepository.bestScore()` (a global `MAX(score)` across every
+        recorded human, its one and only caller) were replaced with
+        `bestScoreForPlayer(playerName)` (`WHERE playerName = :playerName`),
+        and `GameViewModel.finishGame` now reads player 1's own name before
+        looking it up. Same rule as `PlayerStatistics` already followed:
+        renaming player 1 between games starts a fresh "personal best"
+        under the new name.
+      - **The one exception, confirmed rather than changed**: the ledger
+        (`TALLY`...`HISTORIAN`, `PROFESSIONAL_ROLLER`) already measured
+        itself against `LeaderboardTotals`, built from *every* human's
+        score via `ScoreRepository.leaderboardTotals()` and
+        `GameViewModel.persistHumanScores` - both untouched. `evaluate` now
+        computes that from a separate `allHumans` list, kept apart from the
+        player-1-only `humans` used everywhere else.
 - [ ] **Google Play Games**: not started. The mapping is designed for, not
       built — no Play Games SDK dependency, no sign-in, no server-side
       achievement definitions.
+      **Decided, to apply once sync is actually wired up**:
+      - The ledger keeps reading the whole device's leaderboard (`ScoreRepository.leaderboardTotals()`,
+        every human's recorded score, not just player 1's) - unchanged from today's behaviour, and
+        matching how the Leaderboard/Statistics screens already work. What changes is only *who* the
+        unlock is reported to: even though a second human's games can contribute to `TALLY`/
+        `PROFESSIONAL_ROLLER`/etc. reaching their target, the resulting unlock still pops on
+        whichever Google account is signed in as player 1 - the same account every other achievement
+        already reports to, since only one account is ever signed in per device. Nothing about the
+        engine changes for this; it only matters for whatever thin syncing layer eventually calls
+        the Play Games SDK off `AchievementUpdate.newlyUnlocked`.
+      - Secret achievements (`Achievement.isSecret` - today just `CHEATER_CHEATER`) are **not**
+        registered as Google Play Games achievements at all, hidden or otherwise - they stay a
+        local-only surprise. Whatever mapping table eventually pairs `Achievement.id` with a Play
+        Games achievement id should simply omit every `isSecret` entry, and the sync call that
+        reports `newlyUnlocked` achievements needs to skip them too.

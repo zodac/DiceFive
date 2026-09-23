@@ -91,7 +91,8 @@ private class FakeScoreDao : ScoreDao {
 
     override suspend fun count(): Int = entries.size
 
-    override suspend fun bestScore(): Int? = entries.maxOfOrNull { it.score }
+    override suspend fun bestScoreForPlayer(playerName: String): Int? =
+        entries.filter { it.playerName == playerName }.maxOfOrNull { it.score }
 
     override suspend fun distinctScores(): List<Int> = entries.map { it.score }.distinct()
 
@@ -145,7 +146,8 @@ class GameAchievementsWiringTest {
     /**
      * With a real score repository in play, `finishGame` actually suspends on the leaderboard read
      * before it ever reaches the achievement evaluation - which the no-repository tests above skip
-     * entirely, since `scoreRepository?.bestScore()` on a null repository never suspends at all.
+     * entirely, since `scoreRepository?.bestScoreForPlayer(name)` on a null repository never
+     * suspends at all.
      */
     @Test
     fun `achievements are still recorded when the leaderboard read suspends first`() = runTest {
@@ -227,6 +229,28 @@ class GameAchievementsWiringTest {
     }
 
     @Test
+    fun `wasting a 5x on player 2's turn does not unlock Wasted Fortune - only player 1 earns achievements`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
+        viewModel.setPlayerCount(2)
+        viewModel.startGame()
+
+        // Player 1's turn: commit the 5x itself, so nothing of theirs is wasted.
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.FIVE_OF_A_KIND)
+        // Player 2's turn: a genuine 5x, deliberately wasted on Ones - would unlock WASTED_5X if it
+        // were player 1's own turn.
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.ONES)
+        advanceUntilIdle()
+
+        assertFalse(
+            "wasting a 5x on another human's turn must not unlock an achievement, got ${store.unlocked}",
+            Achievement.WASTED_5X in store.unlocked,
+        )
+    }
+
+    @Test
     fun `superuser mode no longer disqualifies a game - the cheat has to stay debuggable`() = runTest {
         // The cheat is compiled out of release builds, so there is nothing to assert there.
         assumeTrue(BuildConfig.DEBUG)
@@ -253,7 +277,11 @@ class GameAchievementsWiringTest {
     @Test
     fun `finishing a two-human game records achievements`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store)
+        // Every die comes up 6, so both players fill identical scorecards in the same order - a
+        // tie, which counts as a win for player 1 (the only player whose achievements this test can
+        // rely on - see AchievementEngine's player-1-only rule) - keeping this test deterministic
+        // rather than depending on which of the two humans happens to roll better.
+        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
         viewModel.setPlayerCount(2)
         viewModel.startGame()
 
@@ -356,6 +384,31 @@ class GameAchievementsWiringTest {
         advanceUntilIdle()
 
         assertTrue("TIME_WASTING should pop, got ${store.unlocked}", Achievement.TIME_WASTING in store.unlocked)
+    }
+
+    @Test
+    fun `the hidden hold sequence on player 2's turn still activates the cheat but not Time Wasting`() = runTest {
+        // The cheat itself stays "any player's turn" - only the achievement is player 1's alone.
+        assumeTrue(BuildConfig.DEBUG)
+
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
+        viewModel.setPlayerCount(2)
+        viewModel.startGame()
+
+        // Player 1's turn: pass without touching the sequence.
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.ONES)
+        // Player 2's turn: perform the real unlock sequence - hold then unhold every die, in order.
+        viewModel.rollDice()
+        repeat(5) { die ->
+            viewModel.toggleHold(die)
+            viewModel.toggleHold(die)
+        }
+        advanceUntilIdle()
+
+        assertTrue("the cheat itself still works on any seat's turn", viewModel.superuserModeActive.value)
+        assertFalse("TIME_WASTING is player 1's alone, got ${store.unlocked}", Achievement.TIME_WASTING in store.unlocked)
     }
 
     @Test

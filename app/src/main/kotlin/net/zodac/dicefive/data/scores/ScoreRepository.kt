@@ -28,11 +28,13 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
     suspend fun clearAll() = scoreDao.clearAll()
 
     /**
-     * The highest score on the leaderboard, or null if there isn't one yet. Read *before* a
-     * finished game's own rows are inserted, or "beat your best score" would be comparing the new
-     * score against itself - see `GameViewModel.finishGame`.
+     * [playerName]'s own highest score on the leaderboard, or null if they haven't recorded one.
+     * Read *before* a finished game's own rows are inserted, or "beat your best score" would be
+     * comparing the new score against itself - see `GameViewModel.finishGame`. Scoped to the name
+     * specifically because only player 1 earns "New Personal Best": someone else's high score on
+     * the same device must not count as beating *your* best.
      */
-    suspend fun bestScore(): Int? = scoreDao.bestScore()
+    suspend fun bestScoreForPlayer(playerName: String): Int? = scoreDao.bestScoreForPlayer(playerName)
 
     /**
      * Every distinct score on the leaderboard. The score-collection achievements are measured

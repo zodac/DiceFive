@@ -143,26 +143,28 @@ class GameViewModel(
     // it is reset by startGame/resumeGame, and a resumed game starts its counters from zero - the
     // dice rolled before the app was closed are simply not counted, which costs a little progress
     // on a 10,000-dice total rather than justifying persisting a counter mid-game.
-    private var diceRolledByHumans = 0
+    // Only player 1's own turns feed any of this - see AchievementEngine's class doc - so every
+    // one of these is only ever touched while state.currentPlayerIndex == 0.
+    private var diceRolledByPlayerOne = 0
     private var trailedIntoFinalRound = false
     private var ledIntoFinalRound = false
 
-    /** Indices of players who have used a 2nd or 3rd roll on at least one of their own turns this
-     * game - see [Achievement.IMPATIENT]/[Achievement.NATURALLY_GIFTED]. */
-    private var extraRollPlayerIndices = mutableSetOf<Int>()
+    /** Whether player 1 has used a 2nd or 3rd roll on at least one of their own turns this game -
+     * see [Achievement.IMPATIENT]/[Achievement.NATURALLY_GIFTED]. */
+    private var playerOneTookExtraRoll = false
 
-    /** Whether each player's most recently COMPLETED turn scored a genuine 5x, keyed by player
-     * index - see [Achievement.TWICE_IN_A_LIFETIME]. Only ever written for human commits (AI turns
-     * don't go through [commitScore]), which is exactly right: a player's own streak of turns is
-     * what matters, and other seats' entries are simply never read. */
-    private var previousTurnFiveOfAKindByPlayer = mutableMapOf<Int, Boolean>()
+    /** Whether player 1's most recently completed turn scored a genuine 5x - see
+     * [Achievement.TWICE_IN_A_LIFETIME]. */
+    private var playerOnePreviousTurnWasFiveOfAKind = false
 
     private val achievementLock = Mutex()
 
     // Per-turn achievement tracking: how THIS turn's rolls and holds actually played out, which a
-    // finished scorecard can't reconstruct afterwards. Reset at the start of every human turn (its
-    // first roll - see resetPerTurnTracking, called from rollDice). AI turns never touch any of
-    // this: they roll and commit straight through GameEngine, bypassing every method below.
+    // finished scorecard can't reconstruct afterwards. Reset at the start of every one of player
+    // 1's own turns (its first roll - see resetPerTurnTracking, called from rollDice). Nobody
+    // else's turns touch any of this: AI turns roll and commit straight through GameEngine,
+    // bypassing every method below, and turns belonging to a human in another seat are skipped by
+    // the same isPlayerOneTurn checks that guard rollDice/toggleHold/commitScore.
     private var previousRollDiceValues: List<Int>? = null
     private var heldChangedSinceLastRoll = false
     private var hadFourOfAKindOnFirstRoll = false
@@ -288,30 +290,38 @@ class GameViewModel(
         val state = _game.value ?: return
         if (state.currentPlayer?.type != PlayerType.HUMAN) return
 
-        if (state.dice.all { it.isHeld }) unlockAchievements(setOf(Achievement.POINTLESS_ROLL))
-        if (state.rollsRemaining == FULL_ROLLS_REMAINING) resetPerTurnTracking()
-        if (state.rollsRemaining < FULL_ROLLS_REMAINING) extraRollPlayerIndices += state.currentPlayerIndex
+        // Only player 1 - "You" - earns achievements; another human seat still plays normally
+        // below, it just doesn't feed any of the tracking that leads to one.
+        val isPlayerOneTurn = state.currentPlayerIndex == 0
 
-        // Loaded Dice: the held set right before the 2nd roll, and whether it's still the held set
-        // right before the 3rd - a proper, non-empty, non-full subset only, both times.
-        if (state.rollsRemaining == ROLLS_REMAINING_AFTER_FIRST) {
-            val held = state.dice.withIndex().filter { it.value.isHeld }.map { it.index }.toSet()
-            heldIndicesBeforeSecondRoll = held
-            loadedDiceHeldIndices = held.takeIf { it.isNotEmpty() && it.size < state.dice.size }
-        } else if (state.rollsRemaining == ROLLS_REMAINING_AFTER_SECOND) {
-            val heldNow = state.dice.withIndex().filter { it.value.isHeld }.map { it.index }.toSet()
-            if (heldNow != heldIndicesBeforeSecondRoll) loadedDiceHeldIndices = null
-            heldThroughBothRerolls = (heldIndicesBeforeSecondRoll ?: emptySet()).intersect(heldNow)
+        if (isPlayerOneTurn) {
+            if (state.dice.all { it.isHeld }) unlockAchievements(setOf(Achievement.POINTLESS_ROLL))
+            if (state.rollsRemaining == FULL_ROLLS_REMAINING) resetPerTurnTracking()
+            if (state.rollsRemaining < FULL_ROLLS_REMAINING) playerOneTookExtraRoll = true
+
+            // Loaded Dice: the held set right before the 2nd roll, and whether it's still the held
+            // set right before the 3rd - a proper, non-empty, non-full subset only, both times.
+            if (state.rollsRemaining == ROLLS_REMAINING_AFTER_FIRST) {
+                val held = state.dice.withIndex().filter { it.value.isHeld }.map { it.index }.toSet()
+                heldIndicesBeforeSecondRoll = held
+                loadedDiceHeldIndices = held.takeIf { it.isNotEmpty() && it.size < state.dice.size }
+            } else if (state.rollsRemaining == ROLLS_REMAINING_AFTER_SECOND) {
+                val heldNow = state.dice.withIndex().filter { it.value.isHeld }.map { it.index }.toSet()
+                if (heldNow != heldIndicesBeforeSecondRoll) loadedDiceHeldIndices = null
+                heldThroughBothRerolls = (heldIndicesBeforeSecondRoll ?: emptySet()).intersect(heldNow)
+            }
         }
 
         val diceBeforeRoll = state.dice
         val rollsRemainingBeforeRoll = state.rollsRemaining
         // Counted before the roll, while it's still clear which dice are actually going to move.
-        diceRolledByHumans += diceBeforeRoll.count { !it.isHeld }
+        if (isPlayerOneTurn) diceRolledByPlayerOne += diceBeforeRoll.count { !it.isHeld }
 
         onHumanAction(undoable = false) { GameEngine.rollDice(it, random) }
-        checkFirstRollAchievements()
-        checkPostRollAchievements(rollsRemainingBeforeRoll, diceBeforeRoll)
+        if (isPlayerOneTurn) {
+            checkFirstRollAchievements()
+            checkPostRollAchievements(rollsRemainingBeforeRoll, diceBeforeRoll)
+        }
     }
 
     // Not undoable, same reasoning as rollDice: holding/unholding just selects what a future roll
@@ -320,11 +330,13 @@ class GameViewModel(
         trackSuperuserSequence(dieIndex)
         val state = _game.value
         val wasHeld = state?.dice?.getOrNull(dieIndex)?.isHeld == true
-        val isHumanTurn = state?.currentPlayer?.type == PlayerType.HUMAN
+        // Only player 1 - "You" - earns achievements; another human seat can still toggle holds,
+        // it just doesn't feed Achievement tracking.
+        val isPlayerOneTurn = state?.currentPlayer?.type == PlayerType.HUMAN && state.currentPlayerIndex == 0
 
         onHumanAction(undoable = false) { GameEngine.toggleHold(it, dieIndex) }
 
-        if (isHumanTurn) checkPostHoldAchievements(dieIndex, wasHeld)
+        if (isPlayerOneTurn) checkPostHoldAchievements(dieIndex, wasHeld)
     }
 
     /** One cycle step (see [GameEngine.cycleDieValue]), called once per second while a held die is
@@ -348,20 +360,27 @@ class GameViewModel(
     // this if that turns out to matter more in practice than being able to undo a bad category
     // pick.
     fun commitScore(category: ScoreCategory) {
-        checkWastedFiveOfAKind(category)
-        checkPreCommitAchievements(category)
+        // Only player 1 - "You" - earns achievements; another human seat can still commit a score
+        // normally, it just doesn't feed any Achievement tracking. Read before onHumanAction below,
+        // which ends this player's turn and advances currentPlayerIndex to the next seat.
+        val isPlayerOneTurn = _game.value?.currentPlayerIndex == 0
+
+        if (isPlayerOneTurn) {
+            checkWastedFiveOfAKind(category)
+            checkPreCommitAchievements(category)
+        }
         val categoryJustUndone = pendingUndoneCategory
 
         onHumanAction(undoable = true) { GameEngine.commitScore(it, category) }
 
-        if (categoryJustUndone != null && category != categoryJustUndone) {
+        if (isPlayerOneTurn && categoryJustUndone != null && category != categoryJustUndone) {
             unlockAchievements(setOf(Achievement.UNDO_DIFFERENT_CATEGORY))
         }
         pendingUndoneCategory = null
         lastCommittedCategory = category
-        // Only human commits are checked: every mid-game achievement reads human scorecards, which
-        // an AI's turn can't change.
-        checkInProgressAchievements()
+        // Only player 1's own commits are checked: every mid-game achievement reads player 1's
+        // scorecard, which nobody else's turn can change.
+        if (isPlayerOneTurn) checkInProgressAchievements()
     }
 
     /** Reverts just the most recent human move, if there is one to undo. Cancels any pending AI turn it would have triggered. */
@@ -379,6 +398,8 @@ class GameViewModel(
     fun tapCupWithNoRollsLeft() {
         val state = _game.value ?: return
         if (state.currentPlayer?.type != PlayerType.HUMAN) return
+        // Only player 1 - "You" - earns achievements.
+        if (state.currentPlayerIndex != 0) return
         if (state.rollsRemaining != 0) return
         outOfRollsCupTaps++
         if (outOfRollsCupTaps >= NO_MORE_ROLLS_TAP_TARGET) {
@@ -403,12 +424,14 @@ class GameViewModel(
      * hold/unhold BEFORE it's applied - piggybacking on ordinary play rather than a separate
      * input mode, so the cheat stays hidden until it triggers.
      *
-     * Tracked in every build, debug or release: [Achievement.TIME_WASTING] rewards performing the
-     * sequence itself, whether or not it actually goes on to do anything. Only the effect it has
-     * once completed - flipping [_superuserModeActive] and the toast - stays behind
-     * [BuildConfig.DEBUG], which is the only gate the cheat itself needs: [cycleHeldDieValue]
-     * already requires [_superuserModeActive], and every UI entry point (DiceTray's onCycleValue
-     * wiring) is itself conditional on that same flag.
+     * Tracked in every build, debug or release, on any seat's turn - the cheat itself stays "any
+     * player's", per its own doc comment above. [Achievement.TIME_WASTING] is the one part of this
+     * gated to player 1: it rewards performing the sequence itself, whether or not it actually goes
+     * on to do anything, but only when player 1 is the one doing it. Only the cheat's effect once
+     * completed - flipping [_superuserModeActive] and the toast - stays behind [BuildConfig.DEBUG],
+     * which is the only gate the cheat itself needs: [cycleHeldDieValue] already requires
+     * [_superuserModeActive], and every UI entry point (DiceTray's onCycleValue wiring) is itself
+     * conditional on that same flag.
      */
     private fun trackSuperuserSequence(dieIndex: Int) {
         if (_superuserModeActive.value) return
@@ -433,7 +456,7 @@ class GameViewModel(
             superuserSequenceAwaitingUnhold = false
             if (superuserSequenceDieIndex == state.dice.size) {
                 resetSuperuserSequence()
-                unlockAchievements(setOf(Achievement.TIME_WASTING))
+                if (state.currentPlayerIndex == 0) unlockAchievements(setOf(Achievement.TIME_WASTING))
                 if (BuildConfig.DEBUG) {
                     _superuserModeActive.value = true
                     _toastMessages.trySend("Superuser mode activated!")
@@ -472,13 +495,15 @@ class GameViewModel(
     }
 
     /**
-     * Notes whether a human went into their last turn of the game ahead of, or behind, everyone
+     * Notes whether player 1 went into their last turn of the game ahead of, or behind, everyone
      * else - the half of "Comeback Kid"/"Defeat From the Jaws of Victory" that the final scorecard
-     * can no longer show once the game moves on.
+     * can no longer show once the game moves on. Only player 1 - "You" - earns achievements, so
+     * another human seat reaching their own final turn is irrelevant here.
      */
     private fun trackFinalRoundPosition(state: GameState) {
         if (trailedIntoFinalRound && ledIntoFinalRound) return
         if (state.isGameOver || state.phase != TurnPhase.AWAITING_ROLL) return
+        if (state.currentPlayerIndex != 0) return
         val player = state.currentPlayer ?: return
         if (player.type != PlayerType.HUMAN) return
         if (player.scorecard.values.count { it == null } != 1) return
@@ -502,7 +527,12 @@ class GameViewModel(
             // Both reads happen BEFORE the insert - "New Personal Best" compares against the board
             // as it was, and the score-collection bands need the before state to measure progress
             // against (the engine adds this game's own scores itself).
-            val previousBestScore = runCatching { scoreRepository?.bestScore() }.getOrNull()
+            // By name, and only player 1's: someone else's high score at the same table must not
+            // count as beating YOUR best, now that achievements are player 1's alone.
+            val playerOneName = state.players.firstOrNull()?.takeIf { it.type == PlayerType.HUMAN }?.name
+            val previousBestScore = playerOneName?.let { name ->
+                runCatching { scoreRepository?.bestScoreForPlayer(name) }.getOrNull()
+            }
             val previousLeaderboard = runCatching { scoreRepository?.leaderboardTotals() }.getOrNull()
                 ?: LeaderboardTotals()
             runCatching { persistHumanScores(state) }
@@ -569,8 +599,8 @@ class GameViewModel(
             previousLeaderboard = previousLeaderboard,
             trailedIntoFinalRound = trailedIntoFinalRound,
             ledIntoFinalRound = ledIntoFinalRound,
-            diceRolledByHumans = diceRolledByHumans,
-            extraRollPlayerIndices = extraRollPlayerIndices,
+            diceRolledByPlayerOne = diceRolledByPlayerOne,
+            playerOneTookExtraRoll = playerOneTookExtraRoll,
         )
         withAchievementLock {
             val update = AchievementEngine.evaluate(state, context, repository.current(), System.currentTimeMillis())
@@ -806,15 +836,14 @@ class GameViewModel(
             unlockAchievements(setOf(Achievement.COMMITMENT_ISSUES))
         }
 
-        // Twice in a Lifetime: this turn scores a 5x, and so did this same player's last one -
-        // matches the SCORED_5X counter's own definition of "scored a 5x" (the box, or a bonus chip).
+        // Twice in a Lifetime: this turn scores a 5x, and so did player 1's last one - matches the
+        // SCORED_5X counter's own definition of "scored a 5x" (the box, or a bonus chip).
         val scoresFiveOfAKindNow = (category == ScoreCategory.FIVE_OF_A_KIND && DiceScoring.isFiveOfAKind(dice)) ||
             ScoreCalculator.awardsFiveOfAKindBonus(player, dice)
-        val playerIndex = state.currentPlayerIndex
-        if (previousTurnFiveOfAKindByPlayer[playerIndex] == true && scoresFiveOfAKindNow) {
+        if (playerOnePreviousTurnWasFiveOfAKind && scoresFiveOfAKindNow) {
             unlockAchievements(setOf(Achievement.TWICE_IN_A_LIFETIME))
         }
-        previousTurnFiveOfAKindByPlayer[playerIndex] = scoresFiveOfAKindNow
+        playerOnePreviousTurnWasFiveOfAKind = scoresFiveOfAKindNow
     }
 
     private fun unlockAchievements(achievements: Set<Achievement>) {
@@ -838,11 +867,11 @@ class GameViewModel(
     }
 
     private fun resetAchievementTracking() {
-        diceRolledByHumans = 0
+        diceRolledByPlayerOne = 0
         trailedIntoFinalRound = false
         ledIntoFinalRound = false
-        extraRollPlayerIndices = mutableSetOf()
-        previousTurnFiveOfAKindByPlayer = mutableMapOf()
+        playerOneTookExtraRoll = false
+        playerOnePreviousTurnWasFiveOfAKind = false
         outOfRollsCupTaps = 0
         resetPerTurnTracking()
     }
@@ -867,11 +896,13 @@ class GameViewModel(
         outOfRollsCupTaps = 0
     }
 
-    /** Whether any human at the table finished [state] with the top score - "One More Time" reads
-     * this off the game [startGame] is about to replace, mirroring how [AchievementEngine] itself
-     * treats a tie at the top as a win. */
-    private fun humanWonGame(state: GameState): Boolean =
-        state.players.any { it.type == PlayerType.HUMAN && it.totalScore == state.topScore }
+    /** Whether player 1 finished [state] with the top score - "One More Time" reads this off the
+     * game [startGame] is about to replace, mirroring how [AchievementEngine] itself treats a tie
+     * at the top as a win, and its player-1-only rule. */
+    private fun humanWonGame(state: GameState): Boolean {
+        val playerOne = state.players.firstOrNull()?.takeIf { it.type == PlayerType.HUMAN } ?: return false
+        return playerOne.totalScore == state.topScore
+    }
 
     private fun persistHumanNames(slots: List<PlayerSetupSlot>) {
         val repository = settingsRepository ?: return

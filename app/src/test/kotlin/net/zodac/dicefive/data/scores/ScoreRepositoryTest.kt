@@ -25,7 +25,8 @@ private class FakeScoreDao : ScoreDao {
 
     override suspend fun count(): Int = entries.size
 
-    override suspend fun bestScore(): Int? = entries.maxOfOrNull { it.score }
+    override suspend fun bestScoreForPlayer(playerName: String): Int? =
+        entries.filter { it.playerName == playerName }.maxOfOrNull { it.score }
 
     override suspend fun distinctScores(): List<Int> = entries.map { it.score }.distinct()
 
@@ -172,6 +173,18 @@ class ScoreRepositoryTest {
         val alice = repository.playerStatistics().single { it.playerName == "Alice" }
 
         assertEquals(2, alice.bestWinStreak)
+    }
+
+    @Test
+    fun `bestScoreForPlayer is scoped to that name, not the whole leaderboard`() = runTest {
+        val repository = ScoreRepository(FakeScoreDao())
+        repository.recordScore("Alice", 150)
+        repository.recordScore("Alice", 300)
+        repository.recordScore("Bob", 500)
+
+        assertEquals(300, repository.bestScoreForPlayer("Alice"))
+        assertEquals(500, repository.bestScoreForPlayer("Bob"))
+        assertEquals(null, repository.bestScoreForPlayer("Carol"))
     }
 
     @Test

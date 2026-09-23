@@ -98,6 +98,28 @@ class AchievementEngineTest {
     }
 
     @Test
+    fun `only player 1 earns achievements - another human player's win and score don't count`() {
+        // Player 2 (the second player passed in - never player 1) wins big; player 1 barely scores.
+        val state = finishedGame(player(name = "P1", total = 60), player(name = "P2", total = 500))
+
+        val update = evaluate(state)
+
+        assertFalse("player 2 winning must not earn player 1 a win", Achievement.FIRST_WIN in update.newlyUnlocked)
+        assertFalse("player 2's score must not earn player 1 Sharpshooter", Achievement.SCORE_300 in update.newlyUnlocked)
+        assertEquals(0, update.counters[AchievementCounter.GAMES_WON])
+    }
+
+    @Test
+    fun `losing to another human is not Singularity - that achievement is specifically about an AI`() {
+        // Player 1 loses, but the winner is a second human, not an AI - no AI at this table at all.
+        val state = finishedGame(player(name = "P1", total = 120), player(name = "P2", total = 300))
+
+        val update = evaluate(state)
+
+        assertFalse(Achievement.SINGULARITY in update.newlyUnlocked)
+    }
+
+    @Test
     fun `winning margins pick out Landslide and Photo Finish`() {
         val landslide = evaluate(
             finishedGame(player(total = 300), player(name = "Bot", type = PlayerType.AI, total = 150)),
@@ -216,16 +238,18 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `any human at the table can earn a feat - achievements are per device`() {
+    fun `only player 1's own feats and scorecard earn achievements, not a second human's`() {
         val state = finishedGame(
+            // Player 1 (first in the list): under 100, no 5x.
             player(name = "Alice", total = 90),
+            // Player 2: over 300, a genuine 5x - neither should count towards Alice's achievements.
             player(name = "Bob", total = 320, overrides = mapOf(ScoreCategory.FIVE_OF_A_KIND to 50)),
         )
 
         val update = evaluate(state)
 
-        assertTrue(Achievement.SCORE_300 in update.newlyUnlocked)
-        assertTrue(Achievement.FIRST_5X in update.newlyUnlocked)
+        assertFalse(Achievement.SCORE_300 in update.newlyUnlocked)
+        assertFalse(Achievement.FIRST_5X in update.newlyUnlocked)
         assertTrue(Achievement.SCORE_UNDER_100 in update.newlyUnlocked)
     }
 
@@ -313,13 +337,13 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `a human absent from extraRollPlayerIndices played first-roll-only - Impatient, and Naturally Gifted if they also won`() {
+    fun `player 1 playing first-roll-only unlocks Impatient, and Naturally Gifted if they also won`() {
         val won = finishedGame(player(total = 200), player(name = "Bot", type = PlayerType.AI, total = 150))
         val lost = finishedGame(player(total = 100), player(name = "Bot", type = PlayerType.AI, total = 150))
 
-        val wonFirstRollOnly = evaluate(won, context = GameAchievementContext(extraRollPlayerIndices = emptySet()))
-        val wonWithExtraRolls = evaluate(won, context = GameAchievementContext(extraRollPlayerIndices = setOf(0)))
-        val lostFirstRollOnly = evaluate(lost, context = GameAchievementContext(extraRollPlayerIndices = emptySet()))
+        val wonFirstRollOnly = evaluate(won, context = GameAchievementContext(playerOneTookExtraRoll = false))
+        val wonWithExtraRolls = evaluate(won, context = GameAchievementContext(playerOneTookExtraRoll = true))
+        val lostFirstRollOnly = evaluate(lost, context = GameAchievementContext(playerOneTookExtraRoll = false))
 
         assertTrue(Achievement.IMPATIENT in wonFirstRollOnly.newlyUnlocked)
         assertTrue(Achievement.NATURALLY_GIFTED in wonFirstRollOnly.newlyUnlocked)
@@ -378,10 +402,10 @@ class AchievementEngineTest {
     fun `dice rolled accumulate towards Well Rolled`() {
         val before = AchievementsState(counters = mapOf(AchievementCounter.DICE_ROLLED to 40))
 
-        val update = evaluate(finishedGame(player()), context = GameAchievementContext(diceRolledByHumans = 25))
+        val update = evaluate(finishedGame(player()), context = GameAchievementContext(diceRolledByPlayerOne = 25))
 
         assertEquals(25, update.counters[AchievementCounter.DICE_ROLLED])
-        assertEquals(65, evaluate(finishedGame(player()), GameAchievementContext(diceRolledByHumans = 25), before)
+        assertEquals(65, evaluate(finishedGame(player()), GameAchievementContext(diceRolledByPlayerOne = 25), before)
             .counters[AchievementCounter.DICE_ROLLED])
     }
 

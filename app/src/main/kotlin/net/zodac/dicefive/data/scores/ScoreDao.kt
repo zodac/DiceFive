@@ -16,9 +16,11 @@ interface ScoreDao {
     @Query("SELECT COUNT(*) FROM scores")
     suspend fun count(): Int
 
-    /** Null when nothing has been recorded yet - MAX over no rows. */
-    @Query("SELECT MAX(score) FROM scores")
-    suspend fun bestScore(): Int?
+    /** One player's best score, by name - null if that name has never recorded one. Used for the
+     * "New Personal Best" achievement, which is player 1's own best, not the leaderboard's overall
+     * best. */
+    @Query("SELECT MAX(score) FROM scores WHERE playerName = :playerName")
+    suspend fun bestScoreForPlayer(playerName: String): Int?
 
     /** Every score that has ever been recorded, once each - what the score-collection achievements count. */
     @Query("SELECT DISTINCT score FROM scores")

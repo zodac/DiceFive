@@ -2,6 +2,7 @@ package net.zodac.dicefive.game
 
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.AchievementCounter
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameState
@@ -15,21 +16,23 @@ import net.zodac.dicefive.model.ScoreCategory
  * by `GameViewModel` while the game is played.
  */
 data class GameAchievementContext(
-    /** The best leaderboard score *before* this game's rows were inserted, or null if there were none. */
+    /** Player 1's own best leaderboard score (by name) *before* this game's rows were inserted, or
+     * null if they hadn't recorded one yet - see `ScoreRepository.bestScoreForPlayer`. */
     val previousBestScore: Int? = null,
     /** Whether a human went into their final turn behind every other player. */
     val trailedIntoFinalRound: Boolean = false,
     /** Whether a human went into their final turn AHEAD of every other player - [JAWS_OF_VICTORY]'s
      * precondition, the mirror image of [trailedIntoFinalRound]. */
     val ledIntoFinalRound: Boolean = false,
-    /** How many dice a human actually re-rolled across the game. AI rolls don't count. */
-    val diceRolledByHumans: Int = 0,
+    /** How many dice player 1 actually re-rolled across the game. Nobody else's rolls count -
+     * see [AchievementEngine]'s class doc. */
+    val diceRolledByPlayerOne: Int = 0,
     /**
-     * Indices (into [GameState.players]) of every player who rolled more than once on at least one
-     * of their own turns this game - [Achievement.IMPATIENT]/[Achievement.NATURALLY_GIFTED] need a
-     * human index that's absent from this set, i.e. one whose every turn was a single roll.
+     * Whether player 1 rolled more than once on at least one of their own turns this game -
+     * [Achievement.IMPATIENT]/[Achievement.NATURALLY_GIFTED] need this false, i.e. every one of
+     * their turns was a single roll.
      */
-    val extraRollPlayerIndices: Set<Int> = emptySet(),
+    val playerOneTookExtraRoll: Boolean = false,
     /**
      * What the leaderboard said *before* this game's rows were inserted. Read pre-insert for the
      * same reason [previousBestScore] is, and because the engine adds this game's own human totals
@@ -93,10 +96,12 @@ data class AchievementUpdate(
  * back, exactly as it does with [GameEngine] for the game itself.
  *
  * Two rules run through all of it:
- *  - **Per device, not per player.** Every human at the table contributes; an achievement asking
- *    what "you" scored is satisfied if *any* human did. AI results never earn anything - they are
- *    only ever the opposition. In an all-human game the device therefore always wins, which is
- *    what device-scoped win streaks mean.
+ *  - **Player 1 only, not any human.** `state.players[0]` - "You" on the setup screen, always
+ *    HUMAN - is the only seat whose turns and scorecard earn achievements; every other seat,
+ *    human or AI, is only ever the opposition. The one exception is the ledger - the score-band
+ *    and career-points achievements at the tail of [AchievementCategory.COLLECTION] - which stay
+ *    measured against the leaderboard as a whole (every human's score, not just player 1's) via
+ *    [LeaderboardTotals], since that's what the Leaderboard screen itself shows.
  *  - **Superuser mode still earns.** Hand-setting dice used to disqualify a game outright, which
  *    made the debug cheat useless for testing the very thing it was best placed to test. It also
  *    protected nobody: superuser mode is gated on `BuildConfig.DEBUG`, so a release build cannot
@@ -146,11 +151,14 @@ object AchievementEngine {
     ): AchievementUpdate {
         if (!state.isGameOver) return AchievementUpdate()
 
-        val humans = state.players.filter { it.type == PlayerType.HUMAN }
-        if (humans.isEmpty()) return AchievementUpdate()
+        // Player 1 only - see the class doc's first rule. The ledger is the one exception: it's
+        // measured against the leaderboard as a whole, which already carries every human's score.
+        if (state.players.firstOrNull()?.type != PlayerType.HUMAN) return AchievementUpdate()
+        val humans = listOf(state.players.first())
+        val allHumans = state.players.filter { it.type == PlayerType.HUMAN }
 
         val leaderboardBefore = context.previousLeaderboard
-        val leaderboardAfter = leaderboardBefore + humans.map { it.totalScore }
+        val leaderboardAfter = leaderboardBefore + allHumans.map { it.totalScore }
 
         val counters = countersAfter(state, humans, context, before)
         val earned = earnedBy(state, humans, context, counters, leaderboardAfter)
@@ -171,8 +179,9 @@ object AchievementEngine {
     ): AchievementUpdate {
         if (state.isGameOver) return AchievementUpdate()
 
-        val humans = state.players.filter { it.type == PlayerType.HUMAN }
-        if (humans.isEmpty()) return AchievementUpdate()
+        // Player 1 only - see the class doc's first rule.
+        if (state.players.firstOrNull()?.type != PlayerType.HUMAN) return AchievementUpdate()
+        val humans = listOf(state.players.first())
 
         return update(earnedDuringPlay(state.players, humans), emptyMap(), before, now)
     }
@@ -229,7 +238,7 @@ object AchievementEngine {
         return mapOf(
             AchievementCounter.GAMES_PLAYED to before.counter(AchievementCounter.GAMES_PLAYED) + 1,
             AchievementCounter.SCORED_5X to before.counter(AchievementCounter.SCORED_5X) + fiveOfAKindsThisGame,
-            AchievementCounter.DICE_ROLLED to before.counter(AchievementCounter.DICE_ROLLED) + context.diceRolledByHumans,
+            AchievementCounter.DICE_ROLLED to before.counter(AchievementCounter.DICE_ROLLED) + context.diceRolledByPlayerOne,
             AchievementCounter.GAMES_WON to before.counter(AchievementCounter.GAMES_WON) +
                 if (multiplayer && humanWon) 1 else 0,
             // A solo game has nobody to beat, so it neither extends nor breaks a streak.
@@ -349,18 +358,21 @@ object AchievementEngine {
             },
         )
         award(Achievement.EXTREME_LOW_ROLLS, anyHuman { it.totalScore == LOWEST_POSSIBLE_SCORE })
-        award(Achievement.SINGULARITY, multiplayer && !humanWon)
+        // "Lose a game to an AI" specifically - not just any loss. Losing to another human seat is
+        // still a loss (PIPPED_TO_THE_POST/JAWS_OF_VICTORY don't care who won), but with only
+        // player 1 earning achievements now, `!humanWon` alone would also fire whenever another
+        // human player at the table beat player 1, which isn't what this achievement means.
+        val aiWon = players.any { it.type == PlayerType.AI && it.totalScore == state.topScore }
+        award(Achievement.SINGULARITY, multiplayer && !humanWon && aiWon)
 
         award(Achievement.SOLO_GAME, players.size == 1)
 
-        // Impatient/Naturally Gifted: a human index absent from extraRollPlayerIndices took every
-        // one of their own turns on a single roll.
-        val firstRollOnlyHumanIndices = players.indices
-            .filter { players[it].type == PlayerType.HUMAN && it !in context.extraRollPlayerIndices }
-        award(Achievement.IMPATIENT, firstRollOnlyHumanIndices.isNotEmpty())
+        // Impatient/Naturally Gifted: player 1 took every one of their own turns on a single roll.
+        val playerOneNeverRolledTwice = !context.playerOneTookExtraRoll
+        award(Achievement.IMPATIENT, playerOneNeverRolledTwice)
         award(
             Achievement.NATURALLY_GIFTED,
-            multiplayer && firstRollOnlyHumanIndices.any { players[it].totalScore == state.topScore },
+            multiplayer && playerOneNeverRolledTwice && humans.first().totalScore == state.topScore,
         )
 
         // Exactly 69/100/200/300 - thresholds the running total can overshoot, so they can only be
