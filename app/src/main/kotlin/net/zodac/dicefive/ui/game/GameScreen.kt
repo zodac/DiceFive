@@ -89,7 +89,12 @@ fun GameScreen(
         // Once the game is over the board isn't what anyone is looking at, so the results get the
         // whole screen as their own themed page rather than being appended under the felt.
         if (currentState.isGameOver) {
-            GameOverScreen(state = currentState, onBackToMenu = onBackToMenu, modifier = modifier)
+            GameOverScreen(
+                state = currentState,
+                onBackToMenu = onBackToMenu,
+                onPlayAgain = viewModel::startGame,
+                modifier = modifier,
+            )
             return@CompositionLocalProvider
         }
 

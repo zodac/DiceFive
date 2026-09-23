@@ -16,6 +16,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -41,6 +42,7 @@ import net.zodac.dicefive.ui.common.PageColumn
 fun GameOverScreen(
     state: GameState,
     onBackToMenu: () -> Unit,
+    onPlayAgain: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val ranked = state.players.sortedByDescending { it.totalScore }
@@ -87,11 +89,22 @@ fun GameOverScreen(
 
             Spacer(modifier = Modifier.weight(0.2f))
 
-            Button(
-                onClick = onBackToMenu,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(text = "Back to Menu", style = MaterialTheme.typography.titleMedium)
+                OutlinedButton(
+                    onClick = onBackToMenu,
+                    modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                ) {
+                    Text(text = "Back to Menu", style = MaterialTheme.typography.titleMedium)
+                }
+                Button(
+                    onClick = onPlayAgain,
+                    modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                ) {
+                    Text(text = "Play Again", style = MaterialTheme.typography.titleMedium)
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
