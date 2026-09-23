@@ -202,6 +202,9 @@ object AchievementEngine {
      */
     fun evaluateAtGameStart(context: GameStartContext, before: AchievementsState, now: Long): AchievementUpdate {
         val earned = buildSet {
+            // Unconditional: every game start satisfies it, but `update()` only ever reports it
+            // as newly unlocked once, which is exactly "the very first time" means here.
+            add(Achievement.THE_JOURNEY_BEGINS)
             if (context.playedNonDefaultDiceStyle) add(Achievement.STYLE_DICE)
             if (context.playedNonDefaultDiceCupStyle) add(Achievement.STYLE_CUP)
             if (context.playedNonDefaultTableBackground) add(Achievement.STYLE_BACKGROUND)

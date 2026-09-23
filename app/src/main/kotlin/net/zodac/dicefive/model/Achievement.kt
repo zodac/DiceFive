@@ -19,10 +19,11 @@ enum class AchievementCounter {
  */
 enum class AchievementCategory(val label: String) {
     MILESTONES("Milestones"),
+    THEMES("Themes"),
     DICE("Dice feats"),
+    MISCELLANEOUS("Miscellaneous"),
     SCORING("Scoring"),
     WINNING("Winning"),
-    STREAKS("Streaks"),
     MISFORTUNE("Misfortune"),
     COLLECTION("Collection"),
 }
@@ -103,6 +104,10 @@ enum class Achievement(
 ) {
 
     // ---- Milestones: simply playing the game -------------------------------------------------
+    THE_JOURNEY_BEGINS(
+        "journey_begins", "The Journey Begins", "Start your first game",
+        AchievementCategory.MILESTONES,
+    ),
     FIRST_GAME(
         "games_first", "First Game", "Finish your first game",
         AchievementCategory.MILESTONES, AchievementCounter.GAMES_PLAYED,
@@ -115,32 +120,8 @@ enum class Achievement(
         "full_table", "Full Table", "Play a four-player game",
         AchievementCategory.MILESTONES,
     ),
-    STYLE_DICE(
-        "style_dice", "Fresh Set", "Play a game with a non-default dice style",
-        AchievementCategory.MILESTONES,
-    ),
-    STYLE_CUP(
-        "style_cup", "Shake It Up", "Play a game with a non-default dice cup style",
-        AchievementCategory.MILESTONES,
-    ),
-    STYLE_BACKGROUND(
-        "style_background", "Change of Scenery", "Play a game with a non-default mat or background style",
-        AchievementCategory.MILESTONES,
-    ),
-    NOT_THOSE_DICE(
-        "not_those_dice", "Not Those Dice!", "Tap the dice on the main menu",
-        AchievementCategory.MILESTONES,
-    ),
-    TIME_WASTING(
-        "time_wasting", "Time Wasting", "Perform the hidden hold sequence, whether or not it actually unlocks anything",
-        AchievementCategory.MILESTONES,
-    ),
-    UNDO_DIFFERENT_CATEGORY(
-        "undo_different_category", "I Didn't Mean That", "Undo a score and commit it to a different category instead",
-        AchievementCategory.MILESTONES,
-    ),
     CONTINUED_GAME(
-        "continued_game", "Let's Finish This", "Leave a game in progress and come back to finish it",
+        "continued_game", "Let's Finish This", "Leave a game then resume it",
         AchievementCategory.MILESTONES,
     ),
     REPLAY_AFTER_LOSS(
@@ -160,12 +141,38 @@ enum class Achievement(
         AchievementCategory.MILESTONES, AchievementCounter.GAMES_PLAYED, target = 100,
     ),
     WINS_25(
-        "wins_25", "Hall of Famer", "Win 25 games",
+        "wins_25", "Hall Of Famer", "Win 25 games",
         AchievementCategory.MILESTONES, AchievementCounter.GAMES_WON, target = 25,
     ),
     DICE_10000(
         "dice_10000", "Well Rolled", "Roll 10,000 dice",
         AchievementCategory.MILESTONES, AchievementCounter.DICE_ROLLED, target = 10_000,
+    ),
+    STREAK_3(
+        "streak_3", "On A Roll", "Win 3 games in a row",
+        AchievementCategory.MILESTONES, AchievementCounter.WIN_STREAK, target = 3,
+    ),
+    STREAK_10(
+        "streak_10", "Untouchable", "Win 10 games in a row",
+        AchievementCategory.MILESTONES, AchievementCounter.WIN_STREAK, target = 10,
+    ),
+    PROFESSIONAL_ROLLER(
+        "career_points_100k", "Professional Roller", "Score 100,000 points across all your games",
+        AchievementCategory.MILESTONES, target = 100_000, isCareerPoints = true,
+    ),
+
+    // ---- Themes: playing dress-up with the table itself ---------------------------------------
+    STYLE_DICE(
+        "style_dice", "Fresh Set", "Start a game with a non-default dice style",
+        AchievementCategory.THEMES,
+    ),
+    STYLE_CUP(
+        "style_cup", "Shake It Up", "Start a game with a non-default dice cup style",
+        AchievementCategory.THEMES,
+    ),
+    STYLE_BACKGROUND(
+        "style_background", "Change Of Scenery", "Start a game with a non-default mat",
+        AchievementCategory.THEMES,
     ),
 
     // ---- Dice feats: what the dice themselves did --------------------------------------------
@@ -197,20 +204,28 @@ enum class Achievement(
         AchievementCategory.DICE,
     ),
 
+    // The best full house there is - three 6s and two 5s specifically, never the joker rule's
+    // five-of-a-kind bent into the box instead. Sits right above House Call, the more general
+    // "any full house, first roll" feat.
+    FULLER_HOUSE(
+        "fuller_house", "Fuller House", "Score the best Full House (three 6s and two 5s)",
+        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
+    ),
+
     // The three "straight out of the cup" feats, in ascending order of how unlikely they are on a
     // single throw of five dice: a full house is 300 of the 7776 outcomes, a large straight 240,
     // and five of a kind just 6.
     FIRST_ROLL_FULL_HOUSE(
         "first_roll_full_house", "House Call", "Roll a full house on the first roll of a turn",
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
     ),
     FIRST_ROLL_LARGE_STRAIGHT(
         "first_roll_large_straight", "Straight Away", "Roll a large straight on the first roll of a turn",
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
     ),
     FIRST_ROLL_5X(
-        "5x_first_roll", "Straight Out of the Cup", "Roll a 5x on the first roll of a turn",
-        AchievementCategory.DICE,
+        "5x_first_roll", "Straight Out Of The Cup", "Roll a 5x on the first roll of a turn",
+        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
     ),
 
     ENCORE_5X(
@@ -226,7 +241,7 @@ enum class Achievement(
         AchievementCategory.DICE,
     ),
     CHANCE_30(
-        "chance_30", "Taking a Chance", "Score the maximum 30 in Chance",
+        "chance_30", "Taking A Chance", "Score the maximum 30 in Chance",
         AchievementCategory.DICE,
     ),
     HAT_TRICK_5X(
@@ -237,14 +252,14 @@ enum class Achievement(
     // ---- Dice feats continued: interaction quirks, not just what the dice show ----------------
     DEJA_VU(
         "deja_vu", "Déjà Vu", "Roll the exact same result twice in a row, without holding any dice in between",
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
     ),
     LOADED_DICE(
         "loaded_dice", "Are These Loaded Dice?", "After holding some dice, have the rest come up exactly the same on both re-rolls",
         AchievementCategory.DICE,
     ),
     TWICE_IN_A_LIFETIME(
-        "5x_twice_in_a_row", "Twice in a Lifetime", "Score a 5x on two of your turns in a row",
+        "5x_twice_in_a_row", "Twice In A Lifetime", "Score a 5x on two of your turns in a row",
         AchievementCategory.DICE,
     ),
     NATURAL_5X(
@@ -253,40 +268,59 @@ enum class Achievement(
     ),
     PRODUCT_PLACEMENT(
         "product_placement", "Product Placement", "Roll 2, 4, 5, 3, 6 - the exact dice on the main menu, in that order",
-        AchievementCategory.DICE,
+        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
     ),
     I_CAN_COUNT(
         "i_can_count", "I Can Count!", "Roll 1, 2, 3, 4, 5 in that order on the first roll of a turn",
         AchievementCategory.DICE,
     ),
-    COMMITMENT_ISSUES(
-        "commitment_issues", "Commitment Issues",
-        "Hold dice of one number, let them go, then hold and score dice of a different number instead",
-        AchievementCategory.DICE,
-    ),
-    DECISIONS_DECISIONS(
-        "decisions_decisions", "Decisions, Decisions", "Hold and unhold the same die three times before rolling again",
-        AchievementCategory.DICE,
-    ),
-    TIME_TO_LET_IT_GO(
-        "time_to_let_it_go", "Time to Let It Go", "Hold the same die through two rolls, then unhold it with none left to take",
-        AchievementCategory.DICE,
-    ),
     POINTLESS_ROLL(
-        "pointless_roll", "What Was the Point of That?!", "Hold all five dice, then roll anyway",
+        "pointless_roll", "What Was The Point Of That?", "Hold all five dice, then roll anyway",
         AchievementCategory.DICE,
     ),
     CUNNING_STRATEGY(
         "cunning_strategy", "A Cunning Strategy", "Hold all five dice, then unhold every one of them",
         AchievementCategory.DICE,
     ),
+    EXACT_CHANGE(
+        "upper_exact_ladder", "Exact Change",
+        "Score exactly 1 in Ones, 2 in Twos, and so on up to 6 in Sixes, all in the same game",
+        AchievementCategory.DICE,
+    ),
+
+    // ---- Miscellaneous: interaction quirks that aren't about the dice or the scorecard --------
+    COMMITMENT_ISSUES(
+        "commitment_issues", "Commitment Issues",
+        "Hold dice of one number, then change your mind and hold and score with another number",
+        AchievementCategory.MISCELLANEOUS,
+    ),
+    DECISIONS_DECISIONS(
+        "decisions_decisions", "Decisions, Decisions", "Hold and unhold the same die three times before rolling again",
+        AchievementCategory.MISCELLANEOUS,
+    ),
+    TIME_TO_LET_IT_GO(
+        "time_to_let_it_go", "Time To Let It Go", "Hold the same die through two rolls, then unhold it with none left to take",
+        AchievementCategory.MISCELLANEOUS,
+    ),
+    TIME_WASTING(
+        "time_wasting", "Time Wasting", "Hold then unhold each die in sequence",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    UNDO_DIFFERENT_CATEGORY(
+        "undo_different_category", "I Didn't Mean That", "Undo a score and score a different category",
+        AchievementCategory.MISCELLANEOUS,
+    ),
+    NOT_THOSE_DICE(
+        "not_those_dice", "Not Those Dice!", "Tap the dice on the main menu",
+        AchievementCategory.MISCELLANEOUS,
+    ),
     NO_MORE_ROLLS(
         "no_more_rolls", "No More Rolls", "Tap the dice cup three times after your last roll of a turn",
-        AchievementCategory.DICE,
+        AchievementCategory.MISCELLANEOUS,
     ),
     IMPATIENT(
         "impatient", "Impatient", "Finish a game never rolling more than once in any turn",
-        AchievementCategory.DICE,
+        AchievementCategory.MISCELLANEOUS,
     ),
 
     // ---- Scoring: one ladder, so the rungs must stay adjacent and in order --------------------
@@ -356,7 +390,7 @@ enum class Achievement(
         AchievementCategory.WINNING,
     ),
     ZERO_TO_HERO(
-        "zero_to_hero", "Zero to Hero", "Win a game after scoring zero at least three times",
+        "zero_to_hero", "Zero To Hero", "Win a game after scoring zero at least three times",
         AchievementCategory.WINNING,
     ),
 
@@ -372,16 +406,6 @@ enum class Achievement(
     NATURALLY_GIFTED(
         "naturally_gifted", "Naturally Gifted", "Win a game never rolling more than once in any turn",
         AchievementCategory.WINNING,
-    ),
-
-    // ---- Streaks: their own theme, because they're the ones that can fall back to zero --------
-    STREAK_3(
-        "streak_3", "On a Roll", "Win 3 games in a row",
-        AchievementCategory.STREAKS, AchievementCounter.WIN_STREAK, target = 3,
-    ),
-    STREAK_10(
-        "streak_10", "Untouchable", "Win 10 games in a row",
-        AchievementCategory.STREAKS, AchievementCounter.WIN_STREAK, target = 10,
     ),
 
     // ---- Misfortune: going badly, on purpose or otherwise --------------------------------------
@@ -409,11 +433,11 @@ enum class Achievement(
         AchievementCategory.MISFORTUNE,
     ),
     PIPPED_TO_THE_POST(
-        "pipped_to_the_post", "Pipped to the Post", "Lose a game by a single point",
+        "pipped_to_the_post", "Pipped To The Post", "Lose a game by a single point",
         AchievementCategory.MISFORTUNE,
     ),
     JAWS_OF_VICTORY(
-        "jaws_of_victory", "Defeat From the Jaws of Victory", "Lead going into the final round, then lose",
+        "jaws_of_victory", "Defeat From The Jaws Of Victory", "Lead going into the final round, then lose",
         AchievementCategory.MISFORTUNE,
     ),
     SCORE_UNDER_100(
@@ -433,13 +457,8 @@ enum class Achievement(
         "Score zero in every category except Chance",
         AchievementCategory.MISFORTUNE,
     ),
-    EXACT_CHANGE(
-        "upper_exact_ladder", "Exact Change",
-        "Score exactly 1 in Ones, 2 in Twos, and so on up to 6 in Sixes, all in the same game",
-        AchievementCategory.MISFORTUNE,
-    ),
     EXTREME_LOW_ROLLS(
-        "low_rolls_extreme", "Extreme Low Rolls", "Finish a game on exactly 5 - the lowest score the rules allow",
+        "low_rolls_extreme", "Rock Bottom", "Finish a game on exactly 5 - the lowest score the rules allow",
         AchievementCategory.MISFORTUNE,
     ),
 
@@ -474,10 +493,6 @@ enum class Achievement(
     HISTORIAN(
         "scores_251_300", "Historian", "Record every score from 251 to 300 on the leaderboard",
         AchievementCategory.COLLECTION, target = 50, scoreBand = 251..300,
-    ),
-    PROFESSIONAL_ROLLER(
-        "career_points_100k", "Professional Roller", "Score 100,000 points across all your games",
-        AchievementCategory.COLLECTION, target = 100_000, isCareerPoints = true,
     ),
     COMPLETIONIST(
         "completionist", "Completionist", "Unlock every other achievement",

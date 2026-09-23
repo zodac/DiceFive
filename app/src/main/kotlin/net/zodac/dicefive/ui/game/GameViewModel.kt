@@ -826,6 +826,12 @@ class GameViewModel(
             unlockAchievements(setOf(Achievement.ALMOST_FAMOUS))
         }
 
+        // Fuller House: the best full house there is - three 6s and two 5s specifically, which a
+        // 5x-as-joker full house (all five dice the same value) can never produce.
+        if (category == ScoreCategory.FULL_HOUSE && dice.map { it.value }.sorted() == FULLER_HOUSE_VALUES) {
+            unlockAchievements(setOf(Achievement.FULLER_HOUSE))
+        }
+
         // Commitment Issues: committing the upper box that matches the second, different exact group.
         val committingValue = pendingCommitmentGroupValue
         if (lastReleasedCommitmentGroupValue != null &&
@@ -1011,6 +1017,9 @@ class GameViewModel(
 
         /** [net.zodac.dicefive.ui.common.AppLogo]'s own dice, in its own order - "Product Placement". */
         private val LOGO_DICE_VALUES = listOf(2, 4, 5, 3, 6)
+
+        /** Three 6s and two 5s, sorted - the exact roll "Fuller House" is named for. */
+        private val FULLER_HOUSE_VALUES = listOf(5, 5, 6, 6, 6)
 
         /** Builds a [GameViewModel] backed by real Room/DataStore persistence. */
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {

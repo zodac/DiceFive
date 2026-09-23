@@ -743,8 +743,20 @@ class AchievementEngineTest {
     // pure engine's job, same as evaluate/evaluateInProgress for the rest of a game.
 
     @Test
-    fun `a non-default style earns its own milestone at game start, per swappable category`() {
+    fun `The Journey Begins unlocks the first time a game starts, never again`() {
         val before = AchievementsState()
+
+        val first = AchievementEngine.evaluateAtGameStart(GameStartContext(), before, NOW)
+        val second = AchievementEngine.evaluateAtGameStart(GameStartContext(), AchievementsState(unlockedAt = first.unlockedAt()), NOW)
+
+        assertEquals(listOf(Achievement.THE_JOURNEY_BEGINS), first.newlyUnlocked)
+        assertTrue(second.isEmpty)
+    }
+
+    @Test
+    fun `a non-default style earns its own milestone at game start, per swappable category`() {
+        // Already past The Journey Begins, so it doesn't muddy the per-category assertions below.
+        val before = AchievementsState(unlockedAt = mapOf(Achievement.THE_JOURNEY_BEGINS to 1L))
 
         val allDefault = AchievementEngine.evaluateAtGameStart(GameStartContext(), before, NOW)
         val customDice = AchievementEngine.evaluateAtGameStart(GameStartContext(playedNonDefaultDiceStyle = true), before, NOW)

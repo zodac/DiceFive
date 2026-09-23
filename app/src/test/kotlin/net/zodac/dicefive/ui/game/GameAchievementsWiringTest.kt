@@ -200,6 +200,59 @@ class GameAchievementsWiringTest {
     }
 
     @Test
+    fun `scoring three 6s and two 5s in Full House unlocks Fuller House`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 5, 5)))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.FULL_HOUSE)
+        advanceUntilIdle()
+
+        assertTrue("FULLER_HOUSE should pop, got ${store.unlocked}", Achievement.FULLER_HOUSE in store.unlocked)
+    }
+
+    @Test
+    fun `a full house of other values does not unlock Fuller House`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(3, 3, 3, 2, 2)))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.FULL_HOUSE)
+        advanceUntilIdle()
+
+        assertFalse(Achievement.FULLER_HOUSE in store.unlocked)
+    }
+
+    @Test
+    fun `a 5x used as a joker to fill Full House does not unlock Fuller House`() = runTest {
+        val store = FakeAchievementStore()
+        // Turn 1: an all-1s roll closes Sixes at 0, so the joker rule can't force it later. Turns
+        // 2 and 3: an all-6s roll banks the 5x box, then the same-shaped roll fills Full House via
+        // the joker rule instead - not a genuine three-and-two split.
+        val script = List(5) { 1 } + List(5) { 6 } + List(5) { 6 }
+        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(script))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.SIXES)
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.FIVE_OF_A_KIND)
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.FULL_HOUSE)
+        advanceUntilIdle()
+
+        assertFalse(
+            "a joker-rule full house should not unlock Fuller House, got ${store.unlocked}",
+            Achievement.FULLER_HOUSE in store.unlocked,
+        )
+    }
+
+    @Test
     fun `rolling a 5x but scoring it as a zero elsewhere unlocks Wasted Fortune`() = runTest {
         val store = FakeAchievementStore()
         // Every die comes up 6: a genuine 5x, but committed to Ones - no die shows a 1, so it scores 0.
