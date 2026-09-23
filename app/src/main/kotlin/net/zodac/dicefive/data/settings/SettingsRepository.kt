@@ -56,10 +56,35 @@ class SettingsRepository(private val context: Context) {
         context.settingsDataStore.edit { it[CONFIRM_BEFORE_LEAVING_GAME_KEY] = confirm }
     }
 
+    // Style ids, not the ui.game.style types themselves - this is the data layer, and resolving an
+    // id to a concrete DiceStyle/DiceCupStyle/TableBackground is the Styles screen's job (via its
+    // catalog). The literal defaults below must match ui.game.style's DiceStyles/DiceCupStyles/
+    // TableBackgrounds.default ids.
+    val diceStyleId: Flow<String> = context.settingsDataStore.data.map { prefs -> prefs[DICE_STYLE_ID_KEY] ?: "ivory" }
+
+    suspend fun setDiceStyleId(id: String) {
+        context.settingsDataStore.edit { it[DICE_STYLE_ID_KEY] = id }
+    }
+
+    val diceCupStyleId: Flow<String> = context.settingsDataStore.data.map { prefs -> prefs[DICE_CUP_STYLE_ID_KEY] ?: "leather" }
+
+    suspend fun setDiceCupStyleId(id: String) {
+        context.settingsDataStore.edit { it[DICE_CUP_STYLE_ID_KEY] = id }
+    }
+
+    val tableBackgroundId: Flow<String> = context.settingsDataStore.data.map { prefs -> prefs[TABLE_BACKGROUND_ID_KEY] ?: "midnight_felt" }
+
+    suspend fun setTableBackgroundId(id: String) {
+        context.settingsDataStore.edit { it[TABLE_BACKGROUND_ID_KEY] = id }
+    }
+
     private companion object {
         val THEME_KEY = stringPreferencesKey("theme")
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
         val PLAYER_COUNT_KEY = intPreferencesKey("player_count")
+        val DICE_STYLE_ID_KEY = stringPreferencesKey("dice_style_id")
+        val DICE_CUP_STYLE_ID_KEY = stringPreferencesKey("dice_cup_style_id")
+        val TABLE_BACKGROUND_ID_KEY = stringPreferencesKey("table_background_id")
         fun playerNameKey(slot: Int) = stringPreferencesKey("player_name_$slot")
         fun playerTypeKey(slot: Int) = stringPreferencesKey("player_type_$slot")
     }

@@ -33,9 +33,13 @@ import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
+import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.ui.common.DiceFiveDialog
+import net.zodac.dicefive.ui.game.style.DiceCupStyles
+import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.GameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
+import net.zodac.dicefive.ui.game.style.TableBackgrounds
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /** How long the cup shakes before the roll result is revealed - purely a presentation delay. */
@@ -83,9 +87,21 @@ fun GameScreen(
         )
     }
 
-    // A single injection point for the pluggable dice/cup/background art - swap this value for a
-    // user-selected GameVisualTheme once that setting exists.
-    CompositionLocalProvider(LocalGameVisualTheme provides GameVisualTheme()) {
+    // A single injection point for the pluggable dice/cup/background art, built from whatever the
+    // Styles screen last persisted (each id resolved through its own catalog's byId, which falls
+    // back to that category's default for an id nothing recognizes).
+    val settingsRepository = remember { SettingsRepository(context) }
+    val diceStyleId by settingsRepository.diceStyleId.collectAsState(initial = DiceStyles.default.id)
+    val diceCupStyleId by settingsRepository.diceCupStyleId.collectAsState(initial = DiceCupStyles.default.id)
+    val tableBackgroundId by settingsRepository.tableBackgroundId.collectAsState(initial = TableBackgrounds.default.id)
+    val visualTheme = remember(diceStyleId, diceCupStyleId, tableBackgroundId) {
+        GameVisualTheme(
+            diceStyle = DiceStyles.byId(diceStyleId),
+            diceCupStyle = DiceCupStyles.byId(diceCupStyleId),
+            background = TableBackgrounds.byId(tableBackgroundId),
+        )
+    }
+    CompositionLocalProvider(LocalGameVisualTheme provides visualTheme) {
         // Once the game is over the board isn't what anyone is looking at, so the results get the
         // whole screen as their own themed page rather than being appended under the felt.
         if (currentState.isGameOver) {

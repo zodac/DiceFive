@@ -120,107 +120,118 @@ fun DiceTray(
     val currentOnCycleValue by rememberUpdatedState(onCycleValue)
     val currentSuperuserModeActive by rememberUpdatedState(superuserModeActive)
 
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(visualTheme.background.diceTrayBrush)
-            .padding(16.dp)
-            .then(
-                if (enabled) {
-                    // No indication/ripple here on purpose: at the size of a whole column it
-                    // painted as an obvious translucent rectangle over the entire clickable area,
-                    // not a per-die press effect.
-                    //
-                    // Hand-rolled instead of Modifier.clickable: a plain clickable's gesture
-                    // recognizer treats enough drag as a cancel, which handed off to this screen's
-                    // enclosing verticalScroll on the slightest finger movement - even movement
-                    // that stayed well inside one column - cancelling the press (and the superuser
-                    // cycling with it). Consuming every pointer change for as long as any pointer
-                    // here stays down denies the scroll container that drag delta, so it never has
-                    // grounds to steal the gesture.
-                    Modifier.pointerInput(enabled) {
-                        // coroutineScope for a real CoroutineScope to launch the concurrent
-                        // cycle-ticking coroutine on (PointerInputScope itself isn't one). Two
-                        // separate awaitPointerEventScope calls within it, not one: that scope is
-                        // `@RestrictsSuspension` and can't itself launch/cancel a coroutine, so the
-                        // down is detected in one restricted block, the launch/cancel bookkeeping
-                        // happens back in the plain coroutineScope in between, then a second
-                        // restricted block tracks movement/up.
-                        coroutineScope {
-                            while (true) {
-                                val down = awaitPointerEventScope {
-                                    awaitFirstDown(requireUnconsumed = false).also { it.consume() }
-                                }
-                                val columnCount = currentDice.size
-                                var activeIndex = columnIndexForX(down.position.x, size.width, columnCount)
-                                var cycled = false
+            .background(visualTheme.background.diceTrayBrush),
+    ) {
+        // The background's own decoration (e.g. the fire theme's flame trim) sits between the
+        // brush and the dice - matchParentSize so it fills whatever height the Row below ends up
+        // with.
+        visualTheme.background.DiceTrayDecoration(modifier = Modifier.matchParentSize())
 
-                                fun cycleEligible(index: Int) =
-                                    currentSuperuserModeActive && currentDice.getOrNull(index)?.isHeld == true
-
-                                fun startCycling() =
-                                    if (cycleEligible(activeIndex)) {
-                                        val index = activeIndex
-                                        launch {
-                                            while (isActive) {
-                                                delay(CYCLE_INTERVAL_MILLIS)
-                                                cycled = true
-                                                currentOnCycleValue(index)
-                                            }
-                                        }
-                                    } else {
-                                        null
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .then(
+                    if (enabled) {
+                        // No indication/ripple here on purpose: at the size of a whole column it
+                        // painted as an obvious translucent rectangle over the entire clickable
+                        // area, not a per-die press effect.
+                        //
+                        // Hand-rolled instead of Modifier.clickable: a plain clickable's gesture
+                        // recognizer treats enough drag as a cancel, which handed off to this
+                        // screen's enclosing verticalScroll on the slightest finger movement -
+                        // even movement that stayed well inside one column - cancelling the press
+                        // (and the superuser cycling with it). Consuming every pointer change for
+                        // as long as any pointer here stays down denies the scroll container that
+                        // drag delta, so it never has grounds to steal the gesture.
+                        Modifier.pointerInput(enabled) {
+                            // coroutineScope for a real CoroutineScope to launch the concurrent
+                            // cycle-ticking coroutine on (PointerInputScope itself isn't one). Two
+                            // separate awaitPointerEventScope calls within it, not one: that scope
+                            // is `@RestrictsSuspension` and can't itself launch/cancel a coroutine,
+                            // so the down is detected in one restricted block, the launch/cancel
+                            // bookkeeping happens back in the plain coroutineScope in between,
+                            // then a second restricted block tracks movement/up.
+                            coroutineScope {
+                                while (true) {
+                                    val down = awaitPointerEventScope {
+                                        awaitFirstDown(requireUnconsumed = false).also { it.consume() }
                                     }
+                                    val columnCount = currentDice.size
+                                    var activeIndex = columnIndexForX(down.position.x, size.width, columnCount)
+                                    var cycled = false
 
-                                var cycleJob = startCycling()
+                                    fun cycleEligible(index: Int) =
+                                        currentSuperuserModeActive && currentDice.getOrNull(index)?.isHeld == true
 
-                                awaitPointerEventScope {
-                                    do {
-                                        val event = awaitPointerEvent()
-                                        event.changes.forEach { it.consume() }
-                                        val pointer = event.changes.firstOrNull { it.id == down.id }
-                                        val newIndex = pointer?.let { columnIndexForX(it.position.x, size.width, columnCount) }
-                                        if (newIndex != null && newIndex != activeIndex) {
-                                            // Crossed into a different die's column: whatever the
-                                            // previous one was doing (a pending click, or cycling)
-                                            // is abandoned, not completed - only the column the
-                                            // finger actually settles on and releases over acts.
-                                            cycleJob?.cancel()
-                                            activeIndex = newIndex
-                                            cycled = false
-                                            cycleJob = startCycling()
+                                    fun startCycling() =
+                                        if (cycleEligible(activeIndex)) {
+                                            val index = activeIndex
+                                            launch {
+                                                while (isActive) {
+                                                    delay(CYCLE_INTERVAL_MILLIS)
+                                                    cycled = true
+                                                    currentOnCycleValue(index)
+                                                }
+                                            }
+                                        } else {
+                                            null
                                         }
-                                    } while (event.changes.any { it.pressed })
-                                }
-                                cycleJob?.cancel()
 
-                                // Only a press that lasted long enough to actually change the
-                                // die's face suppresses the tap - a quick tap (released before the
-                                // first 1s cycle tick) still toggles hold as normal, and releasing
-                                // right after cycling doesn't ALSO immediately toggle the value
-                                // just picked.
-                                if (!cycled) currentOnToggleHold(activeIndex)
+                                    var cycleJob = startCycling()
+
+                                    awaitPointerEventScope {
+                                        do {
+                                            val event = awaitPointerEvent()
+                                            event.changes.forEach { it.consume() }
+                                            val pointer = event.changes.firstOrNull { it.id == down.id }
+                                            val newIndex = pointer?.let { columnIndexForX(it.position.x, size.width, columnCount) }
+                                            if (newIndex != null && newIndex != activeIndex) {
+                                                // Crossed into a different die's column: whatever
+                                                // the previous one was doing (a pending click, or
+                                                // cycling) is abandoned, not completed - only the
+                                                // column the finger actually settles on and
+                                                // releases over acts.
+                                                cycleJob?.cancel()
+                                                activeIndex = newIndex
+                                                cycled = false
+                                                cycleJob = startCycling()
+                                            }
+                                        } while (event.changes.any { it.pressed })
+                                    }
+                                    cycleJob?.cancel()
+
+                                    // Only a press that lasted long enough to actually change the
+                                    // die's face suppresses the tap - a quick tap (released before
+                                    // the first 1s cycle tick) still toggles hold as normal, and
+                                    // releasing right after cycling doesn't ALSO immediately
+                                    // toggle the value just picked.
+                                    if (!cycled) currentOnToggleHold(activeIndex)
+                                }
                             }
                         }
-                    }
-                } else {
-                    Modifier
-                },
-            ),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        dice.forEachIndexed { index, die ->
-            DiceColumn(
-                die = die,
-                show = showDice,
-                rolling = rolling,
-                scrambleTick = scrambleTick,
-                scatter = SCATTER_OFFSETS[index % SCATTER_OFFSETS.size],
-                seed = index,
-                diceStyle = visualTheme.diceStyle,
-                modifier = Modifier.weight(1f),
-            )
+                    } else {
+                        Modifier
+                    },
+                ),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            dice.forEachIndexed { index, die ->
+                DiceColumn(
+                    die = die,
+                    show = showDice,
+                    rolling = rolling,
+                    scrambleTick = scrambleTick,
+                    scatter = SCATTER_OFFSETS[index % SCATTER_OFFSETS.size],
+                    seed = index,
+                    diceStyle = visualTheme.diceStyle,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }

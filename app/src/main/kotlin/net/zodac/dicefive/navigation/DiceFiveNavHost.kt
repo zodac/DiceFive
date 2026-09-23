@@ -39,6 +39,7 @@ import net.zodac.dicefive.ui.setup.GameSetupScreen
 import net.zodac.dicefive.ui.statistics.StatisticsScreen
 import net.zodac.dicefive.ui.statistics.StatisticsViewModel
 import net.zodac.dicefive.ui.styles.StylesScreen
+import net.zodac.dicefive.ui.styles.StylesViewModel
 
 /**
  * Half of Navigation Compose's own default (a 700ms cross-fade), which is slow enough to feel like
@@ -150,6 +151,12 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                 onBack = { navController.navigateUp() },
             )
         }
-        composable(Screen.STYLES) { StylesScreen(onBack = { navController.navigateUp() }) }
+        composable(Screen.STYLES) {
+            val context = LocalContext.current
+            StylesScreen(
+                viewModel = viewModel(factory = StylesViewModel.factory(context)),
+                onBack = { navController.navigateUp() },
+            )
+        }
     }
 }

@@ -44,6 +44,20 @@ decisions behind it. Read that before changing anything visual.
   same null treatment, since their outcome was never captured.
 - **GitHub link**: shown with the app version, in a footer at the bottom of
   the Settings screen (there is no separate About screen); `https://github.com/zodac/DiceFive`.
+- **Table art styles**: `ui/game/style/DiceStyle`/`DiceCupStyle`/`TableBackground` are
+  independently swappable and independently persisted (`SettingsRepository.diceStyleId`/
+  `diceCupStyleId`/`tableBackgroundId`, plain string ids, defaulted and resolved through each
+  category's own catalog object in `ui/game/style/StyleCatalog.kt` - `DiceStyles`/`DiceCupStyles`/
+  `TableBackgrounds`, each a `byId` lookup falling back to that category's `default`). The Styles
+  screen (`ui/styles/`) is the picker; `GameScreen` reads the three ids and builds the active
+  `GameVisualTheme` from them on every recomposition. Shipped skins: Ivory/Leather/Midnight Felt
+  (the originals) and a second, fully independent "fire" skin per category - a red die with orange
+  pips (`FireDiceStyle`), a plain straight-tapered cup with two flame licks (`FireDiceCupStyle`,
+  no flared foot or brass bands, unlike Leather), and a red felt/tray background trimmed with a
+  band of pointed flame tongues along the tray's bottom third (`FireTableBackground`, drawn as two
+  overlapping wavy bands offset half a cycle apart - see its `flameTongueLift` doc comment for why
+  a plain sine reads as a dune, not flame). Picking "fire" for one category doesn't imply the
+  others - a fire die can sit in a leather cup on a midnight felt mat.
 - **Game type**: only `CLASSIC` is playable in v1; `EXTENDED` exists as an
   enum value shown disabled in the UI.
 - **Achievements**: 51 of them, **per device rather than per player**, local

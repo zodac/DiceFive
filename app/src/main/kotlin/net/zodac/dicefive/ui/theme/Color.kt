@@ -134,6 +134,26 @@ val CupBodyBottom = Color(0xFF14100D)
 val CupRimGold = Color(0xFFC79A4B)
 val CupShadow = Color(0xFF06101F)
 
+// Fire theme: a red-and-orange skin for the die, dice cup and table mat - see FireDiceStyle,
+// FireDiceCupStyle and FireTableBackground. Same "not a colour role" rule as the rest of this block.
+val FireDiceTop = Color(0xFFFF6B4A)
+val FireDiceBottom = Color(0xFFA6180C)
+val FireDicePipColor = Color(0xFFFFB347)
+
+val FireCupBodyTop = Color(0xFFB3261B)
+val FireCupBodyBottom = Color(0xFF4A0D08)
+val FireCupRim = Color(0xFF2B0705)
+val FireCupShadow = Color(0xFF1A0503)
+
+val FlameOrange = Color(0xFFFF8A1E)
+val FlameOrangeLight = Color(0xFFFFC24D)
+
+val FireBackgroundTop = Color(0xFF7A130D)
+val FireBackgroundBottom = Color(0xFF3D0805)
+val FireTrayTop = Color(0xFFB2231A)
+val FireTrayBottom = Color(0xFF6E120A)
+val FireWaveBack = Color(0xFFD2410F)
+
 /** Cycled by player-tab index; extend if more than 4 players are ever supported. */
 val PlayerColors = listOf(
     Color(0xFF4FD6E8),
