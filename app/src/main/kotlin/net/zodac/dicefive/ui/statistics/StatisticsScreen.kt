@@ -31,7 +31,7 @@ import net.zodac.dicefive.data.scores.PlayerStatistics
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
 
-private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a")
+private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm")
 
 @Composable
 fun StatisticsScreen(
