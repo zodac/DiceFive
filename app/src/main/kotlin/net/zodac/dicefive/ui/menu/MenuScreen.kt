@@ -43,7 +43,6 @@ fun MenuScreen(
     onAchievements: () -> Unit,
     onStyles: () -> Unit,
     onSettings: () -> Unit,
-    onAbout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showResumeDialog by remember { mutableStateOf(false) }
@@ -89,7 +88,6 @@ fun MenuScreen(
                 MenuDestinationButton(label = "Achievements", onClick = onAchievements)
                 MenuDestinationButton(label = "Styles", onClick = onStyles)
                 MenuDestinationButton(label = "Settings", onClick = onSettings)
-                MenuDestinationButton(label = "About", onClick = onAbout)
             }
 
             Spacer(modifier = Modifier.weight(0.38f))
@@ -120,7 +118,6 @@ private fun MenuScreenPreview() {
             onAchievements = {},
             onStyles = {},
             onSettings = {},
-            onAbout = {},
         )
     }
 }

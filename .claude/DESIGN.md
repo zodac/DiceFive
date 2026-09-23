@@ -8,9 +8,8 @@ The repo started as a skeleton: a single `GameScreen` showing "DiceFive" and
 "Rolls remaining: 3", a `GameState` with no scoring/turn logic, and no
 navigation, persistence, or other screens. This document tracks the full v1
 build: a menu-driven Android app implementing local (no netplay) Yahtzee for
-1-4 players (human and AI), with score history, a settings screen (theme
-only for now), a stub achievements screen, and an about screen linking to
-the GitHub repo.
+1-4 players (human and AI), with score history, a settings screen (theme,
+plus a version + GitHub link footer), and a stub achievements screen.
 
 Update this file's checkboxes as work lands, so the build can be resumed or
 revisited across sessions without re-deriving the plan.
@@ -43,7 +42,8 @@ decisions behind it. Read that before changing anything visual.
   games played but neither wins, losses, nor breaks a streak, mirroring the existing
   `WIN_STREAK`/`GAMES_WON` achievement counters. Rows recorded before this feature shipped get the
   same null treatment, since their outcome was never captured.
-- **About link**: `https://github.com/zodac/DiceFive`.
+- **GitHub link**: shown with the app version, in a footer at the bottom of
+  the Settings screen (there is no separate About screen); `https://github.com/zodac/DiceFive`.
 - **Game type**: only `CLASSIC` is playable in v1; `EXTENDED` exists as an
   enum value shown disabled in the UI.
 - **Achievements**: 51 of them, **per device rather than per player**, local
@@ -112,10 +112,10 @@ net.zodac.dicefive/
     AiNameGenerator.kt                 — static themed name pool, random pick without duplicates per game
     AchievementEngine.kt               — pure: what a game has earned so far (mid-game) and at the end
   navigation/
-    Screen.kt                          — sealed route constants (menu, play/setup, play/game, scores, achievements, settings, about)
+    Screen.kt                          — sealed route constants (menu, play/setup, play/game, scores, achievements, styles, settings)
     DiceFiveNavHost.kt                 — NavHost wiring, "play" nested graph shares GameViewModel via getBackStackEntry
   ui/
-    menu/MenuScreen.kt                 — Play / Leaderboard / Statistics / Achievements / Settings / About buttons
+    menu/MenuScreen.kt                 — Play / Leaderboard / Statistics / Achievements / Styles / Settings buttons
     setup/
       GameSetupScreen.kt               — player count 1-4, per-slot human/AI + name field, game type radio (Extended disabled)
     game/
@@ -136,10 +136,12 @@ net.zodac.dicefive/
                                           split out + "Hide unlocked"), AchievementsViewModel,
                                           AchievementBannerHost (the overlay above the whole
                                           NavHost - see .claude/UI.md)
+    styles/StylesScreen.kt             — preview tiles (dice / dice cup / mat & background),
+                                          one horizontally-scrolling row per category
     settings/
-      SettingsScreen.kt                — theme radio group (Light/Dark/System)
+      SettingsScreen.kt                — theme radio group (Light/Dark/System); footer shows
+                                          app version + GitHub link via UriHandler
       SettingsViewModel.kt             — reads/writes SettingsRepository.theme
-    about/AboutScreen.kt               — app name/version + GitHub link via UriHandler
     theme/                             — Theme.kt (M3 colour schemes, no dynamic colour) + Color.kt (tonal-palette
                                           roles, plus the separate game-table palette). MainActivity passes
                                           darkTheme resolved from the stored Theme setting. No Type.kt: the M3
@@ -160,8 +162,8 @@ NavHost(start = "menu")
   "scores"                  -> ScoresScreen
   "statistics"              -> StatisticsScreen
   "achievements"            -> AchievementsScreen
+  "styles"                  -> StylesScreen
   "settings"                -> SettingsScreen
-  "about"                   -> AboutScreen
 ```
 
 Sharing one `GameViewModel` across `play/setup` and `play/game` (scoped to
@@ -237,14 +239,16 @@ dependencies — most unit tests live here.
 - `MainActivity` collects this at the top and passes resolved
   `darkTheme: Boolean` into `DiceFiveTheme` — SYSTEM defers to
   `isSystemInDarkTheme()`.
-- `SettingsScreen`: radio group writing back to the repository.
+- `SettingsScreen`: radio group writing back to the repository. A quiet
+  footer below the Reset card shows the app version (from `BuildConfig`)
+  and a "View on GitHub" link to `https://github.com/zodac/DiceFive`,
+  opened via Compose's `UriHandler` - this used to be its own `AboutScreen`,
+  folded in here so the menu has one less destination.
 
-## Achievements & About
+## Achievements
 
 - `AchievementsScreen`: the full catalogue, locked first. See Phase 13 for
   the rules, storage and banner behaviour.
-- `AboutScreen`: app name + version (from `BuildConfig`), text link to
-  `https://github.com/zodac/DiceFive` opened via Compose's `UriHandler`.
 
 ## Tests
 
