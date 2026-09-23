@@ -33,9 +33,15 @@ private class ScrollbarMemory {
 
 /**
  * A minimal drawn scrollbar for a [androidx.compose.foundation.lazy.LazyColumn] - stock Compose
- * has no built-in one for Android. Shared by every page long enough to scroll (the Leaderboard,
- * Achievements and Statistics), so the affordance looks and behaves the same everywhere rather
- * than being reinvented per screen.
+ * has no built-in one for Android. Shared by every page long enough to scroll (the Leaderboard and
+ * Statistics), so the affordance looks and behaves the same everywhere rather than being
+ * reinvented per screen.
+ *
+ * Achievements used this too, and is why several of the design notes below talk about a
+ * "mixed-height list" - it's what exposed the bugs these decisions fix. The scrollbar was later
+ * dropped from that screen specifically (its locked/unlocked split was also replaced by one themed
+ * list with unlocked items highlighted in place), but the fixes below stay relevant to whatever
+ * heterogeneous list this is next used on.
  *
  * Call from inside the `Box` that also holds the `LazyColumn`, with the same [listState], so the
  * bar overlays as a sibling pinned to the viewport edge instead of scrolling away with the list's

@@ -124,9 +124,11 @@ net.zodac.dicefive/
                                           played/won/lost, current/best win streak, first-played date
                                           + time; a drawn scrollbar hints at cards below the fold
       StatisticsViewModel.kt           — talks to ScoreRepository.playerStatistics()
-    achievements/                       — AchievementsScreen (locked-first list + "Hide unlocked"),
-                                          AchievementsViewModel, AchievementBannerHost (the overlay
-                                          above the whole NavHost - see .claude/UI.md)
+    achievements/                       — AchievementsScreen (one themed list, easiest-first per
+                                          theme; unlocked ones highlighted in place rather than
+                                          split out + "Hide unlocked"), AchievementsViewModel,
+                                          AchievementBannerHost (the overlay above the whole
+                                          NavHost - see .claude/UI.md)
     settings/
       SettingsScreen.kt                — theme radio group (Light/Dark/System)
       SettingsViewModel.kt             — reads/writes SettingsRepository.theme

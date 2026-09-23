@@ -1,17 +1,13 @@
 package net.zodac.dicefive.ui.achievements
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -34,23 +30,21 @@ import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
 
 /**
- * Date *and* time: the unlocked half sorts newest-first, and several achievements usually land in
- * the same burst at the end of a game, so a date alone can't explain the order they're listed in.
- * Deliberately the same pattern the Leaderboard uses for a score's timestamp.
+ * Date *and* time: several achievements can land in the same burst at the end of a game, so a date
+ * alone wouldn't tell two rows in the same burst apart. Deliberately the same pattern the
+ * Leaderboard uses for a score's timestamp.
  */
 private val UNLOCKED_AT_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a")
 
 /**
- * Every achievement the app tracks, locked ones first: those are the ones there's still something
- * to do about, and burying them under a growing list of trophies would be the wrong way round.
- *
- * The locked half is grouped by theme and runs easiest-first within each - the catalogue's own
- * order - so a ladder reads as a ladder. The unlocked half is a history instead, so it's flat and
- * newest-first. The chip hides it entirely.
+ * Every achievement the app tracks, in one list - grouped by theme and, within a theme,
+ * easiest-first, exactly as the catalogue declares them. An unlocked achievement stays in its
+ * ladder rather than jumping to a separate section; it's just highlighted (a trophy icon, a
+ * raised card) so what's already been earned is still obvious at a glance. The chip hides
+ * unlocked ones entirely, for a pure to-do view.
  *
  * Achievements are per device - there is no per-player breakdown here because there is no
  * per-player record. Resetting them lives in Settings, with the other destructive controls.
@@ -71,7 +65,7 @@ fun AchievementsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = "${state.unlocked.size} of ${state.totalCount} unlocked",
+                    text = "${state.unlockedCount} of ${state.totalCount} unlocked",
                     style = MaterialTheme.typography.titleMedium,
                 )
                 FilterChip(
@@ -87,60 +81,31 @@ fun AchievementsScreen(
             }
         }
 
-        val listState = rememberLazyListState()
-        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                // Room on the right for the scrollbar so it doesn't sit on top of a card's edge.
-                contentPadding = PaddingValues(end = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (state.lockedGroups.isNotEmpty()) {
-                    item(key = "locked-header") { SectionHeader("Locked (${state.lockedCount})") }
-                    for (group in state.lockedGroups) {
-                        item(key = "group-${group.category.name}") { GroupHeader(group.category.label) }
-                        items(group.items, key = { it.achievement.id }) { AchievementRow(it) }
-                    }
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (state.groups.isEmpty()) {
+                item(key = "empty") {
+                    Text(
+                        text = "Everything's unlocked. Nothing left to chase!",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(24.dp),
+                    )
                 }
-
-                if (!state.hideUnlocked && state.unlocked.isNotEmpty()) {
-                    item(key = "unlocked-header") { SectionHeader("Unlocked (${state.unlocked.size})") }
-                    items(state.unlocked, key = { it.achievement.id }) { AchievementRow(it) }
-                }
-
-                if (state.lockedGroups.isEmpty() && (state.hideUnlocked || state.unlocked.isEmpty())) {
-                    item(key = "empty") {
-                        Text(
-                            text = if (state.hideUnlocked) {
-                                "Everything's unlocked. Nothing left to chase!"
-                            } else {
-                                "No achievements yet - play a game!"
-                            },
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth().padding(24.dp),
-                        )
-                    }
+            } else {
+                for (group in state.groups) {
+                    item(key = "group-${group.category.name}") { GroupHeader(group.category.label) }
+                    items(group.items, key = { it.achievement.id }) { AchievementRow(it) }
                 }
             }
-            LazyListScrollbar(listState = listState)
         }
     }
 }
 
-@Composable
-private fun SectionHeader(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
-    )
-}
-
-/** A theme within the locked half - quieter than the Locked/Unlocked split it sits under. */
+/** A theme's subheader - quiet, since the catalogue's own order is what does the real organising. */
 @Composable
 private fun GroupHeader(text: String) {
     Text(

@@ -32,17 +32,15 @@ data class AchievementItem(
     val progressFraction: Float get() = progress.toFloat() / achievement.target
 }
 
-/** A themed run of still-locked achievements, in the order they should be attempted. */
+/** A themed run of achievements, in the order they should be attempted. */
 data class AchievementGroup(val category: AchievementCategory, val items: List<AchievementItem>)
 
 data class AchievementsUiState(
-    val lockedGroups: List<AchievementGroup> = emptyList(),
-    val unlocked: List<AchievementItem> = emptyList(),
+    val groups: List<AchievementGroup> = emptyList(),
     val hideUnlocked: Boolean = false,
-) {
-    val lockedCount: Int get() = lockedGroups.sumOf { it.items.size }
-    val totalCount: Int get() = lockedCount + unlocked.size
-}
+    val unlockedCount: Int = 0,
+    val totalCount: Int = 0,
+)
 
 /**
  * Both repositories are nullable so this stays constructible/testable without a Context - see
@@ -88,21 +86,23 @@ class AchievementsViewModel(
         hideUnlocked: Boolean,
         leaderboard: LeaderboardTotals,
     ): AchievementsUiState {
-        val (unlocked, locked) = Achievement.entries
-            .map { AchievementItem(it, state.unlockedAt[it], AchievementEngine.progressOf(it, state.counters, leaderboard)) }
-            .partition { it.unlockedAt != null }
+        val items = Achievement.entries.map {
+            AchievementItem(it, state.unlockedAt[it], AchievementEngine.progressOf(it, state.counters, leaderboard))
+        }
+        val visible = if (hideUnlocked) items.filter { it.unlockedAt == null } else items
 
         return AchievementsUiState(
-            // Still to do: grouped by theme and, within a theme, easiest first - which is just
-            // the catalogue's own declaration order, so the ladders stay intact. Alphabetical
-            // would scatter "Sharpshooter", "High Roller" and "Dice Deity" across the list.
-            lockedGroups = locked
+            // Grouped by theme and, within a theme, easiest first - which is just the catalogue's
+            // own declaration order, so a ladder stays a ladder whether its achievements are
+            // earned yet or not. Alphabetical would scatter "Sharpshooter", "High Roller" and
+            // "Dice Deity" across the list; splitting earned ones into their own section would
+            // scatter the ladders themselves.
+            groups = visible
                 .groupBy { it.achievement.category }
-                .map { (category, items) -> AchievementGroup(category, items) },
-            // Already done: most recent first, so what just happened is at the top. No themes
-            // here - this half is a history, not a to-do list.
-            unlocked = unlocked.sortedByDescending { it.unlockedAt },
+                .map { (category, categoryItems) -> AchievementGroup(category, categoryItems) },
             hideUnlocked = hideUnlocked,
+            unlockedCount = items.count { it.unlockedAt != null },
+            totalCount = items.size,
         )
     }
 

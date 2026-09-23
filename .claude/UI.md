@@ -76,7 +76,7 @@ which needs compileSdk 37). Revisit when 1.5.0 is stable.
 | `ScreenScaffold.kt` | the frame for every non-menu page: backdrop + M3 top app bar with a back arrow + optional pinned bottom bar. Also holds `PageColumn` and `PinnedActionBar`. |
 | `DiceFiveDialog.kt` | the app's one dialog shape, so the menu and the board ask questions the same way. |
 | `AppLogo.kt` | placeholder app mark, built from the game's own dice via `IvoryDiceStyle`. |
-| `Scrollbar.kt` | `LazyListScrollbar`, a `BoxScope` extension drawing a minimal scroll indicator over a `LazyColumn` - stock Compose has none for Android. Shared by the Leaderboard, Achievements and Statistics screens. |
+| `Scrollbar.kt` | `LazyListScrollbar`, a `BoxScope` extension drawing a minimal scroll indicator over a `LazyColumn` - stock Compose has none for Android. Shared by the Leaderboard and Statistics screens. |
 
 ### PageColumn
 
@@ -122,14 +122,20 @@ expected to.
 
 ## The achievements list
 
-Two levels of grouping, and they answer different questions. **Locked vs unlocked** is the outer
-split: locked comes first because it's the half with something still to do about it. Inside the
-locked half, achievements are grouped by theme with a quiet all-caps subheader, and run
+One list, not two. Achievements are grouped by theme with a quiet all-caps subheader, and run
 easiest-first within each theme — which is just `Achievement`'s declaration order, so the
-catalogue is the single place that ordering is decided. The unlocked half stays flat and
-newest-first: it's a history, not a to-do list, and a theme it would need re-reading.
+catalogue is the single place that ordering is decided. Unlocking one doesn't move it: it stays in
+its ladder and is highlighted in place instead (a trophy icon, a raised `secondaryContainer` card),
+so a ladder always reads as a ladder, earned rungs and all, rather than the earned ones jumping out
+to a separate section. The "Hide unlocked" chip filters them out of their groups rather than
+un-splitting anything, since there's no split left to undo.
 
-Don't sort either half alphabetically. That was the first version, and it put "Dice Deity" nine
+An earlier version *did* split locked-first/unlocked-after (unlocked flat and newest-first, a
+history rather than a to-do list) - reverted because it scattered a themed ladder in two: an
+earned achievement disappeared from its group into an unrelated timeline, so seeing "how far along
+this ladder am I" meant checking two different parts of the screen.
+
+Don't sort the list alphabetically. That was the very first version, and it put "Dice Deity" nine
 rows from "High Roller".
 
 ## Achievement banners
@@ -185,10 +191,16 @@ the cap actually deliver a full name on one line on a narrow phone.
 
 ## Scrollbars on long lists
 
-Every page with a `LazyColumn` that can outgrow the screen (Leaderboard, Achievements,
-Statistics) wraps it in a `Box` and overlays `ui/common/Scrollbar.kt`'s `LazyListScrollbar` -
-written once and shared, rather than each screen drawing its own. It's `primary` (the app's
-gold) on a `surfaceContainerHighest` track, both colour roles rather than hardcoded values.
+Every page with a `LazyColumn` that can outgrow the screen (the Leaderboard, Statistics) wraps it
+in a `Box` and overlays `ui/common/Scrollbar.kt`'s `LazyListScrollbar` - written once and shared,
+rather than each screen drawing its own. It's `primary` (the app's gold) on a
+`surfaceContainerHighest` track, both colour roles rather than hardcoded values.
+
+Achievements used it too until its list was unified (see "The achievements list" above) and the
+scrollbar was dropped from that screen specifically. It's still the reason the notes below mention
+Achievements by name: that mixed-height list (section headers, group headers, cards with and
+without a progress bar) is what exposed the bugs these design decisions fix, and the fixes remain
+relevant to whatever heterogeneous list `LazyListScrollbar` is next used on.
 
 **Show/hide is driven by `LazyListState.canScrollForward`/`canScrollBackward`, never by
 comparing `layoutInfo.visibleItemsInfo.size` to `totalItemsCount`.** The item-count comparison
