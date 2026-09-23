@@ -55,6 +55,7 @@ fun GameScreen(
     val canUndo by viewModel.canUndo.collectAsState()
     val confirmBeforeLeaving by viewModel.confirmBeforeLeavingGame.collectAsState()
     val superuserModeActive by viewModel.superuserModeActive.collectAsState()
+    val aiRolling by viewModel.aiRolling.collectAsState()
     val currentState = state ?: return
     var showLeaveConfirmation by remember { mutableStateOf(false) }
 
@@ -130,6 +131,7 @@ fun GameScreen(
                 state = currentState,
                 canUndo = canUndo,
                 superuserModeActive = superuserModeActive,
+                aiRolling = aiRolling,
                 onUndo = viewModel::undo,
                 onRoll = viewModel::rollDice,
                 onToggleHold = viewModel::toggleHold,
@@ -146,6 +148,7 @@ private fun InProgressGame(
     state: GameState,
     canUndo: Boolean,
     superuserModeActive: Boolean,
+    aiRolling: Boolean,
     onUndo: () -> Unit,
     onRoll: () -> Unit,
     onToggleHold: (Int) -> Unit,
@@ -162,7 +165,10 @@ private fun InProgressGame(
     // likely to be used - right after seeing the final roll.
     val canHold = isHumanTurn && state.phase == TurnPhase.ROLLED
 
-    var isRolling by remember { mutableStateOf(false) }
+    var isTapRolling by remember { mutableStateOf(false) }
+    // The cup/tray don't care whether the shake was kicked off by a human tap or the ViewModel's
+    // own AI-turn loop (GameViewModel.aiRolling) - either way it's the same "rolling" pose.
+    val isRolling = isTapRolling || aiRolling
     // Scattered dice (and their scramble animation) should appear the instant the cup is tapped,
     // not only once the real roll has resolved a few hundred ms later.
     val showDice = state.phase == TurnPhase.ROLLED || isRolling
@@ -174,10 +180,10 @@ private fun InProgressGame(
     val onCupTap = {
         if (canRoll && !isRolling) {
             coroutineScope.launch {
-                isRolling = true
+                isTapRolling = true
                 delay(CUP_SHAKE_MILLIS)
                 onRoll()
-                isRolling = false
+                isTapRolling = false
             }
         }
         if (!canRoll && isHumanTurn && state.rollsRemaining == 0 && !isRolling) {

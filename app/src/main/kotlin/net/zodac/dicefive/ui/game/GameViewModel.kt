@@ -111,6 +111,12 @@ class GameViewModel(
     private val _game = MutableStateFlow<GameState?>(null)
     val game: StateFlow<GameState?> = _game.asStateFlow()
 
+    /** Mirrors the human dice cup's tap-driven shake animation for AI turns: unlike [rollDice],
+     * [maybeStartAiTurn] updates dice directly rather than through a UI click handler, so nothing
+     * would otherwise flip the cup/tray into their "rolling" pose for an AI player's rolls. */
+    private val _aiRolling = MutableStateFlow(false)
+    val aiRolling: StateFlow<Boolean> = _aiRolling.asStateFlow()
+
     /** The state to restore if [undo] is called - the pre-commit snapshot of the most recent
      * scoring action only. Rolling and holding/unholding dice are pure exploration/selection with
      * no result of their own to undo; only commitScore actually changes the scorecard. */
@@ -389,6 +395,7 @@ class GameViewModel(
         pendingUndoneCategory = lastCommittedCategory
         aiTurnJob?.cancel()
         aiTurnJob = null
+        _aiRolling.value = false
         setUndoSnapshot(null)
         applyGameState(snapshot, checkForAiTurn = false)
     }
@@ -978,18 +985,26 @@ class GameViewModel(
             var current = state
             while (!current.isGameOver && current.currentPlayer?.type == PlayerType.AI) {
                 while (current.rollsRemaining > 0) {
-                    delay(AI_STEP_DELAY_MS)
-                    current = GameEngine.rollDice(current, random)
-                    if (current.rollsRemaining > 0) {
-                        val holds = AiTurnPlayer.chooseHolds(current)
-                        current = AiTurnPlayer.applyHolds(current, holds)
-                        // Every die is being kept - the rolls still "remaining" would only ever
-                        // reroll nothing (GameEngine.rollDice skips held dice), so there's no
-                        // reason to sit through their delay for an animation that changes nothing.
-                        if (holds.size == current.dice.size) current = current.copy(rollsRemaining = 0)
+                    // The delay doubles as the cup's shake animation window, same as the human tap
+                    // handler in GameScreen - true for its whole span, then false once the new dice
+                    // values are published, so the shake plays out before the result is revealed.
+                    _aiRolling.value = true
+                    try {
+                        delay(AI_STEP_DELAY_MS)
+                        current = GameEngine.rollDice(current, random)
+                        if (current.rollsRemaining > 0) {
+                            val holds = AiTurnPlayer.chooseHolds(current)
+                            current = AiTurnPlayer.applyHolds(current, holds)
+                            // Every die is being kept - the rolls still "remaining" would only ever
+                            // reroll nothing (GameEngine.rollDice skips held dice), so there's no
+                            // reason to sit through their delay for an animation that changes nothing.
+                            if (holds.size == current.dice.size) current = current.copy(rollsRemaining = 0)
+                        }
+                        setUndoSnapshot(null)
+                        applyGameState(current, checkForAiTurn = false)
+                    } finally {
+                        _aiRolling.value = false
                     }
-                    setUndoSnapshot(null)
-                    applyGameState(current, checkForAiTurn = false)
                 }
                 delay(AI_STEP_DELAY_MS)
                 current = GameEngine.commitScore(current, AiTurnPlayer.chooseCategory(current))
