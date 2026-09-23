@@ -214,6 +214,21 @@ class GameAchievementsWiringTest {
     }
 
     @Test
+    fun `Fuller House does not care what order the dice landed in`() = runTest {
+        val store = FakeAchievementStore()
+        // Same three 6s and two 5s as above, interleaved rather than grouped.
+        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(6, 5, 6, 5, 6)))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.FULL_HOUSE)
+        advanceUntilIdle()
+
+        assertTrue("FULLER_HOUSE should pop regardless of dice order, got ${store.unlocked}", Achievement.FULLER_HOUSE in store.unlocked)
+    }
+
+    @Test
     fun `a full house of other values does not unlock Fuller House`() = runTest {
         val store = FakeAchievementStore()
         val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(3, 3, 3, 2, 2)))
