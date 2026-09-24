@@ -330,6 +330,14 @@ class GameViewModel(
             if (state.rollsRemaining == FULL_ROLLS_REMAINING) resetPerTurnTracking()
             if (state.rollsRemaining < FULL_ROLLS_REMAINING) playerOneTookExtraRoll = true
 
+            // Decisions, Decisions: "three times before rolling again" means all three hold/unhold
+            // cycles on a die have to land in the same gap between rolls - progress made before
+            // this roll doesn't carry over into the gap after it, on any die, same bug class as
+            // Almost Famous requiring every roll be spent. resetPerTurnTracking above only clears
+            // this at the START of a turn (the first roll), which left a 2nd/3rd roll mid-turn free
+            // to bridge two otherwise-unrelated partial cycles into one.
+            holdUnholdCyclesByDieIndex = IntArray(holdUnholdCyclesByDieIndex.size)
+
             // Loaded Dice: the held set right before the 2nd roll, and whether it's still the held
             // set right before the 3rd - a proper, non-empty, non-full subset only, both times.
             if (state.rollsRemaining == ROLLS_REMAINING_AFTER_FIRST) {
@@ -738,19 +746,42 @@ class GameViewModel(
      * The feats rolled straight out of the cup, earned mid-turn rather than off a scorecard: a
      * full house, a large straight or a 5x on the first of a turn's three rolls. They're mutually
      * exclusive on any given throw, but all three are checked rather than assuming that.
+     *
+     * Each one also requires that category still be a genuine, legal option - not just that the
+     * dice happen to match the pattern. A full house/large straight rolled after that box is
+     * already filled (scored or zeroed) isn't a real choice, so it doesn't count; see
+     * [fiveOfAKindScorable] for the 5x case specifically.
      */
     private fun checkFirstRollAchievements() {
         val state = _game.value ?: return
         if (state.rollsRemaining != ROLLS_REMAINING_AFTER_FIRST) return
+        val player = state.currentPlayer ?: return
 
         val dice = state.dice
+        val available = ScoreCalculator.availableCategories(player, dice)
         val earned = buildSet {
-            if (DiceScoring.score(ScoreCategory.FULL_HOUSE, dice) > 0) add(Achievement.FIRST_ROLL_FULL_HOUSE)
-            if (DiceScoring.score(ScoreCategory.LARGE_STRAIGHT, dice) > 0) add(Achievement.FIRST_ROLL_LARGE_STRAIGHT)
-            if (DiceScoring.isFiveOfAKind(dice)) add(Achievement.FIRST_ROLL_5X)
+            if (ScoreCategory.FULL_HOUSE in available && DiceScoring.score(ScoreCategory.FULL_HOUSE, dice) > 0) {
+                add(Achievement.FIRST_ROLL_FULL_HOUSE)
+            }
+            if (ScoreCategory.LARGE_STRAIGHT in available && DiceScoring.score(ScoreCategory.LARGE_STRAIGHT, dice) > 0) {
+                add(Achievement.FIRST_ROLL_LARGE_STRAIGHT)
+            }
+            if (DiceScoring.isFiveOfAKind(dice) && fiveOfAKindScorable(player, dice, available)) {
+                add(Achievement.FIRST_ROLL_5X)
+            }
         }
         unlockAchievements(earned)
     }
+
+    /**
+     * Whether a 5x just rolled could actually be scored as one - either the FIVE_OF_A_KIND box is
+     * still open (the genuine 50), or it's already showing a genuine 50 and this roll earns the
+     * +100 joker bonus instead (see [ScoreCalculator.awardsFiveOfAKindBonus]). False once that box
+     * has been zeroed - at that point neither path is available any more, so a 5x roll from here
+     * on is never a real scoring option, just a shape the dice happened to land in.
+     */
+    private fun fiveOfAKindScorable(player: PlayerState, dice: List<Die>, available: List<ScoreCategory>): Boolean =
+        ScoreCategory.FIVE_OF_A_KIND in available || ScoreCalculator.awardsFiveOfAKindBonus(player, dice)
 
     /**
      * Everything about a roll that can only be judged from the roll itself, not the finished
@@ -782,8 +813,13 @@ class GameViewModel(
         }
 
         // Natural 5x: landed without holding anything for this roll, and it wasn't the first one
-        // (rolling nothing-held on roll 1 is just how every turn starts).
-        if (rollsRemainingBeforeRoll < FULL_ROLLS_REMAINING && diceBeforeRoll.none { it.isHeld } && DiceScoring.isFiveOfAKind(dice)) {
+        // (rolling nothing-held on roll 1 is just how every turn starts) - and, same as First
+        // Roll 5x, only if the 5x could actually be scored as one (see fiveOfAKindScorable).
+        if (rollsRemainingBeforeRoll < FULL_ROLLS_REMAINING &&
+            diceBeforeRoll.none { it.isHeld } &&
+            DiceScoring.isFiveOfAKind(dice) &&
+            fiveOfAKindScorable(player, dice, ScoreCalculator.availableCategories(player, dice))
+        ) {
             unlockAchievements(setOf(Achievement.NATURAL_5X))
         }
 
@@ -935,8 +971,11 @@ class GameViewModel(
             unlockAchievements(setOf(Achievement.WHY_DID_YOU_DO_THAT))
         }
 
-        // Almost Famous: this turn had a first-roll four of a kind that never became a real 5x.
-        if (hadFourOfAKindOnFirstRoll && !fiveOfAKindSeenThisTurn) {
+        // Almost Famous: this turn had a first-roll four of a kind that never became a real 5x -
+        // and the player actually used every chance to turn it into one. Committing after only
+        // one or two rolls isn't "almost" anything; rollsRemaining == 0 here means all three rolls
+        // this turn were spent (see the FULL_ROLLS_REMAINING/ROLLS_REMAINING_AFTER_* constants).
+        if (hadFourOfAKindOnFirstRoll && !fiveOfAKindSeenThisTurn && state.rollsRemaining == 0) {
             unlockAchievements(setOf(Achievement.ALMOST_FAMOUS))
         }
 

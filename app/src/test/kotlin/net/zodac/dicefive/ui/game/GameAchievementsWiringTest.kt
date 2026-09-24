@@ -200,6 +200,56 @@ class GameAchievementsWiringTest {
     }
 
     @Test
+    fun `rolling a full house on the first roll does not unlock House Call once Full House is already zeroed`() = runTest {
+        val store = FakeAchievementStore()
+        // Turn 1: a pair with no triple - no full house at all - zeroes Full House. Turn 2: three
+        // 6s and two 5s, a genuine full house, but the box is no longer a real option.
+        val viewModel = GameViewModel(
+            aiDispatcher = testDispatcher,
+            achievementsRepository = store,
+            random = ScriptedDice(listOf(1, 1, 2, 3, 4, 6, 6, 6, 5, 5)),
+        )
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.FULL_HOUSE)
+
+        viewModel.rollDice()
+        advanceUntilIdle()
+
+        assertFalse(
+            "FIRST_ROLL_FULL_HOUSE should not pop once Full House is zeroed, got ${store.unlocked}",
+            Achievement.FIRST_ROLL_FULL_HOUSE in store.unlocked,
+        )
+    }
+
+    @Test
+    fun `rolling a large straight on the first roll does not unlock Straight Away once Large Straight is already zeroed`() = runTest {
+        val store = FakeAchievementStore()
+        // Turn 1: five 6s - no straight at all - zeroes Large Straight. Turn 2: 1-2-3-4-5, a
+        // genuine large straight, but the box is no longer a real option.
+        val viewModel = GameViewModel(
+            aiDispatcher = testDispatcher,
+            achievementsRepository = store,
+            random = ScriptedDice(listOf(6, 6, 6, 6, 6, 1, 2, 3, 4, 5)),
+        )
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.LARGE_STRAIGHT)
+
+        viewModel.rollDice()
+        advanceUntilIdle()
+
+        assertFalse(
+            "FIRST_ROLL_LARGE_STRAIGHT should not pop once Large Straight is zeroed, got ${store.unlocked}",
+            Achievement.FIRST_ROLL_LARGE_STRAIGHT in store.unlocked,
+        )
+    }
+
+    @Test
     fun `scoring three 6s and two 5s in Full House unlocks Fuller House`() = runTest {
         val store = FakeAchievementStore()
         val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 5, 5)))
@@ -561,6 +611,37 @@ class GameAchievementsWiringTest {
     }
 
     @Test
+    fun `rolling a 5x does not unlock First Roll 5x or Natural 5x once Five Of A Kind is already zeroed`() = runTest {
+        val store = FakeAchievementStore()
+        // Turn 1: no 5x at all - zeroes Five Of A Kind. Turn 2: five 6s on both rolls - a genuine
+        // 5x on the first roll and (nothing held) the second, but the box is no longer a real
+        // option, and it hasn't shown a genuine 50 for the joker bonus to kick in either.
+        val viewModel = GameViewModel(
+            aiDispatcher = testDispatcher,
+            achievementsRepository = store,
+            random = ScriptedDice(listOf(1, 2, 3, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6)),
+        )
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.FIVE_OF_A_KIND)
+
+        viewModel.rollDice()
+        viewModel.rollDice()
+        advanceUntilIdle()
+
+        assertFalse(
+            "FIRST_ROLL_5X should not pop once Five Of A Kind is zeroed, got ${store.unlocked}",
+            Achievement.FIRST_ROLL_5X in store.unlocked,
+        )
+        assertFalse(
+            "NATURAL_5X should not pop once Five Of A Kind is zeroed, got ${store.unlocked}",
+            Achievement.NATURAL_5X in store.unlocked,
+        )
+    }
+
+    @Test
     fun `rolling the menu logo's exact dice unlocks Product Placement`() = runTest {
         val store = FakeAchievementStore()
         val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(2, 4, 5, 3, 6)))
@@ -682,6 +763,59 @@ class GameAchievementsWiringTest {
     }
 
     @Test
+    fun `holding and unholding split across a roll does not unlock Decisions Decisions`() = runTest {
+        val store = FakeAchievementStore()
+        // Two cycles, a roll, then one more cycle - three total, but "before rolling again" means
+        // rolling in between should wipe the first two rather than letting them carry over.
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(4))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        repeat(2) {
+            viewModel.toggleHold(0)
+            viewModel.toggleHold(0)
+        }
+        viewModel.rollDice()
+        viewModel.toggleHold(0)
+        viewModel.toggleHold(0)
+        advanceUntilIdle()
+
+        assertFalse(
+            "DECISIONS_DECISIONS should not pop when cycles are split across a roll, got ${store.unlocked}",
+            Achievement.DECISIONS_DECISIONS in store.unlocked,
+        )
+    }
+
+    @Test
+    fun `holding and unholding split across turns does not unlock Decisions Decisions`() = runTest {
+        val store = FakeAchievementStore()
+        // Two cycles in turn 1, committed without a third; turn 2 (same solo player) does one more
+        // - a turn boundary has to wipe partial progress the same as a mid-turn roll does, not let
+        // it "travel" into the next turn just because it's the same player again.
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(4))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        repeat(2) {
+            viewModel.toggleHold(0)
+            viewModel.toggleHold(0)
+        }
+        viewModel.commitScore(ScoreCategory.FOURS)
+
+        viewModel.rollDice()
+        viewModel.toggleHold(0)
+        viewModel.toggleHold(0)
+        advanceUntilIdle()
+
+        assertFalse(
+            "DECISIONS_DECISIONS should not pop when cycles are split across turns, got ${store.unlocked}",
+            Achievement.DECISIONS_DECISIONS in store.unlocked,
+        )
+    }
+
+    @Test
     fun `holding a die through both re-rolls then releasing it with none left unlocks Time to Let It Go`() = runTest {
         val store = FakeAchievementStore()
         val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(4))
@@ -747,8 +881,29 @@ class GameAchievementsWiringTest {
     }
 
     @Test
-    fun `four of a kind on the first roll that never becomes a 5x unlocks Almost Famous`() = runTest {
+    fun `four of a kind on the first roll that never becomes a 5x across all three rolls unlocks Almost Famous`() = runTest {
         val store = FakeAchievementStore()
+        // Same four 6s and a 1 on every roll (ScriptedDice cycles) - never a 5x, on any of the
+        // three rolls this turn actually uses.
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 6, 1)))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.rollDice()
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.SIXES)
+        advanceUntilIdle()
+
+        assertTrue("ALMOST_FAMOUS should pop, got ${store.unlocked}", Achievement.ALMOST_FAMOUS in store.unlocked)
+    }
+
+    @Test
+    fun `committing after only one roll does not unlock Almost Famous`() = runTest {
+        val store = FakeAchievementStore()
+        // Four of a kind on the first roll, same as above, but committed straight away - the
+        // player never got a real chance (2nd/3rd roll) to try turning it into a 5x, so this
+        // isn't "almost" anything.
         val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 6, 1)))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
@@ -757,7 +912,37 @@ class GameAchievementsWiringTest {
         viewModel.commitScore(ScoreCategory.SIXES)
         advanceUntilIdle()
 
-        assertTrue("ALMOST_FAMOUS should pop, got ${store.unlocked}", Achievement.ALMOST_FAMOUS in store.unlocked)
+        assertFalse("ALMOST_FAMOUS should not pop after only one roll, got ${store.unlocked}", Achievement.ALMOST_FAMOUS in store.unlocked)
+    }
+
+    @Test
+    fun `a four of a kind flag from an abandoned turn does not leak into the next turn's Almost Famous`() = runTest {
+        val store = FakeAchievementStore()
+        // Turn 1: four 6s on the first roll, committed immediately - not "almost" anything (see
+        // the test above), but the flag that sets must not survive into turn 2. Turn 2 (same solo
+        // player): no four of a kind at all, but all three rolls get used and committed - if the
+        // flag leaked, this would wrongly unlock too.
+        val viewModel = GameViewModel(
+            aiDispatcher = testDispatcher,
+            achievementsRepository = store,
+            random = ScriptedDice(listOf(6, 6, 6, 6, 1) + listOf(1, 2, 3, 4, 6) + listOf(1, 2, 3, 4, 6) + listOf(1, 2, 3, 4, 6)),
+        )
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.SIXES)
+
+        viewModel.rollDice()
+        viewModel.rollDice()
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.CHANCE)
+        advanceUntilIdle()
+
+        assertFalse(
+            "ALMOST_FAMOUS should not leak a stale four-of-a-kind flag into the next turn, got ${store.unlocked}",
+            Achievement.ALMOST_FAMOUS in store.unlocked,
+        )
     }
 
     @Test
