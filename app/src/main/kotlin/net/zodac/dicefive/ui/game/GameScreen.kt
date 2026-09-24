@@ -193,6 +193,22 @@ private fun InProgressGame(
     // not only once the real roll has resolved a few hundred ms later.
     val showDice = state.phase == TurnPhase.ROLLED || isRolling
 
+    // The shake sound starts the instant isRolling goes true (human tap or an AI turn kicking
+    // off), and the landing sound plays the instant it goes false again, whichever side started
+    // it - mirroring the cup/tray's own rolling pose above. previousRolling starts false in step
+    // with isRolling, so mounting this screen mid-turn (already settled) doesn't fire a landing
+    // sound with no shake before it.
+    val soundEffects = rememberSoundEffects()
+    var previousRolling by remember { mutableStateOf(false) }
+    LaunchedEffect(isRolling) {
+        if (isRolling && !previousRolling) {
+            soundEffects.playShake()
+        } else if (!isRolling && previousRolling) {
+            soundEffects.playRoll()
+        }
+        previousRolling = isRolling
+    }
+
     // Which other player's scorecard the active player has tapped into viewing, if any - keyed on
     // currentPlayerIndex so it's forgotten automatically the moment the turn moves on, rather than
     // leaving a stale view pinned once it's someone else's turn to look at. Only offered on a human
