@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.RestartAlt
@@ -27,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.BuildConfig
 import net.zodac.dicefive.data.settings.Theme
@@ -63,6 +65,10 @@ fun SettingsScreen(
                 label = { Text("Your name") },
                 placeholder = { Text("Player 1") },
                 singleLine = true,
+                // Same reasoning as CompactNameField in GameSetupScreen: names read as
+                // Capitalized Words, and this keeps the keyboard's shift state matching that
+                // even after the field is cleared back to empty.
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
             )
         }

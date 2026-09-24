@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.model.Difficulty
@@ -227,6 +229,11 @@ private fun CompactNameField(value: String, onValueChange: (String) -> Unit, mod
         modifier = modifier,
         textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
         singleLine = true,
+        // Names read as Capitalized Words, not lowercase - and this keeps the keyboard's own
+        // shift state in sync with that after the field is cleared back to empty, which a plain
+        // default keyboard doesn't do on its own (it just keeps whatever case the last edit left
+        // it in).
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         interactionSource = interactionSource,
     ) { innerTextField ->
