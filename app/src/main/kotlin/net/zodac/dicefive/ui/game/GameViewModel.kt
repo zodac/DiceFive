@@ -1011,6 +1011,12 @@ class GameViewModel(
                     } finally {
                         _aiRolling.value = false
                     }
+                    // A beat with the cup settled and the result visible before the next roll's
+                    // shake starts - without it, back-to-back rolls (routine for Easy, which never
+                    // holds anything and so never gets to skip a roll) read as one continuous blur
+                    // rather than distinct rolls. Only between rolls: the delay before the very
+                    // first roll and before scoring are already paced by AI_STEP_DELAY_MS above/below.
+                    if (current.rollsRemaining > 0) delay(ROLL_GAP_MS)
                 }
                 delay(AI_STEP_DELAY_MS)
                 current = GameEngine.commitScore(current, AiTurnPlayer.chooseCategory(current))
@@ -1022,6 +1028,9 @@ class GameViewModel(
 
     companion object {
         private const val AI_STEP_DELAY_MS = 600L
+
+        /** Pause between one roll settling and the next one's shake starting, within the same AI turn. */
+        private const val ROLL_GAP_MS = 250L
 
         /** What `rollsRemaining` reads before any roll has happened this turn. */
         private const val FULL_ROLLS_REMAINING = 3
