@@ -102,14 +102,18 @@ private data class BannerItem(val key: Long, val event: AchievementEvent)
  * Wraps the whole app so achievement banners can outlive the screen that raised them - the burst
  * at the end of a game starts on the board and carries on over the results screen.
  *
- * Banners sit in a bottom-anchored overlapping stack, newest in front and nearest the thumb, each
- * older one peeking out by [STACK_PEEK_DP] above the one in front of it rather than getting a full
- * row of its own - a burst of several no longer fills the screen. Only the front banner is
- * interactive (swipe or long press); the ones peeking out behind it are inert until it clears, so
- * a swipe can never accidentally land on the wrong one underneath. An unlock always takes the
- * front position over a progress nudge, regardless of which arrived first - see [displayOrder].
- * Each banner leaves on its own: a hold, then a slow fade. A horizontal swipe in either direction,
- * or clearing its long-press description dialog, doesn't wait for that.
+ * Banners sit in a bottom-anchored overlapping stack, the longest-queued one in front and nearest
+ * the thumb, each newer arrival peeking out by [STACK_PEEK_DP] further back - a burst of several no
+ * longer fills the screen. Only the front banner is interactive (swipe or long press); the ones
+ * peeking out behind it are inert until it clears, so a swipe can never accidentally land on the
+ * wrong one underneath. An unlock always takes the front position over a progress nudge, regardless
+ * of which arrived first - see [displayOrder] - but otherwise clearing the front always promotes
+ * whichever banner was peeking right behind it, never a fresher arrival that only just got admitted
+ * off the backlog: see the `add(0, ...)` in the collector below, and [displayOrder]'s comment, for
+ * why a brand new banner has to join the *back* of the stack rather than the front, or it would cut
+ * the queue the instant a slot freed up for it. Each banner leaves on its own: a hold, then a slow
+ * fade. A horizontal swipe in either direction, or clearing its long-press description dialog,
+ * doesn't wait for that.
  */
 @Composable
 fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
@@ -126,7 +130,12 @@ fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable ()
             // Wait for a free slot rather than evicting a banner that's still being read. The
             // event flow buffers the backlog, and suspending here applies the back-pressure.
             snapshotFlow { banners.size }.first { it < MAX_VISIBLE_BANNERS }
-            banners += BannerItem(key = nextKey++, event = event)
+            // Index 0, not appended - see displayOrder just below. A banner just admitted off the
+            // backlog is the newest thing that's happened to this list, but it still has to queue
+            // behind whatever's already visible; appending it would instead make it the new last
+            // element, which is the front slot, letting it cut in front of a banner the player can
+            // already see peeking out behind the one they're about to swipe away.
+            banners.add(0, BannerItem(key = nextKey++, event = event))
             delay(STAGGER_MILLIS)
         }
     }
@@ -147,10 +156,13 @@ fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable ()
             // Display order only, not the underlying list (removal below still targets `banners`
             // directly) - a real unlock always sits in front of a progress nudge, wherever in the
             // arrival order it actually landed. sortedBy is stable, so within each of the two
-            // groups arrival order is preserved.
+            // groups, `banners`' own order - oldest-still-queued first, since new arrivals are
+            // inserted at the front of it, not appended (see the collector above) - is preserved.
+            // Front is always the *last* element of this list, so within a type group it's always
+            // the one that's been waiting longest, never one that only just joined the back.
             val displayOrder = banners.sortedBy { it.event is AchievementEvent.Unlocked }
             displayOrder.forEachIndexed { index, item ->
-                // 0 for the newest (frontmost, drawn last so it's on top), climbing for each one
+                // 0 for the front (frontmost, drawn last so it's on top), climbing for each one
                 // further back in the stack.
                 val depthFromFront = displayOrder.lastIndex - index
                 key(item.key) {
