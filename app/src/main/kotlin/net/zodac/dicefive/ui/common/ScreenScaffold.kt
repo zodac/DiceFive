@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -51,6 +52,10 @@ val CONTENT_MAX_WIDTH = 460.dp
  *
  * [bottomBar] pins content to the foot of the screen, outside the scroll - for a page whose main
  * action must stay reachable however long its form gets. Use [PinnedActionBar] for the usual case.
+ *
+ * The app bar carries a `primaryContainer` tint and a bold title, rather than sitting fully
+ * transparent over the backdrop like a bare `CenterAlignedTopAppBar` would - every page otherwise
+ * opened with the same faint, unbranded strip the system default gives you for free.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,13 +75,23 @@ fun ScreenScaffold(
             bottomBar = bottomBar,
             topBar = {
                 CenterAlignedTopAppBar(
-                    title = { Text(text = title) },
+                    title = {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
                 )
             },
         ) { innerPadding ->
