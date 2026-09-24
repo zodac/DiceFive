@@ -56,6 +56,17 @@ that's how an app quietly loses the system's sizing, tracking and optical correc
 Per-use deviations (`style = MaterialTheme.typography.titleMedium` on a button label) belong
 at the call site.
 
+**`primary` is the one brand accent, and it means "this is gold" everywhere it's used** - the
+Statistics max score, the Leaderboard/Statistics scrollbar thumb, the backdrop's spotlight, a
+page title (`ScreenScaffold`'s top app bar). When something needs to read as "branded" or
+"emphasised," reach for `colorScheme.primary` (text/icon tint) before anything else - not
+`primaryContainer` as a background fill, which is a *different, paler* tone meant to sit behind
+`onPrimaryContainer` content, not to read as "the gold." Using it for something plain like a
+title's own container just introduces a second, unfamiliar accent tone next to the one the rest
+of the app already uses - two brand colours where there should be one. If gold-as-background is
+ever wanted somewhere, match an existing use (a filled button, the unlock achievement banner)
+rather than inventing a new container/tint combination for it.
+
 ### Material 3 Expressive: why we're not on it
 
 `material3` 1.4.0 is the newest **stable** release and ships the Expressive-era components,
@@ -73,7 +84,7 @@ which needs compileSdk 37). Revisit when 1.5.0 is stable.
 | File | What it is |
 |---|---|
 | `BrandBackdrop.kt` | the app's one piece of scenery: surface gradient, `primary` spotlight, faint dice watermark. Built from colour roles, so it tracks the theme. Quiet enough that ordinary components sit on it unmodified. |
-| `ScreenScaffold.kt` | the frame for every non-menu page: backdrop + M3 top app bar with a back arrow + optional pinned bottom bar. Also holds `PageColumn` and `PinnedActionBar`. |
+| `ScreenScaffold.kt` | the frame for every non-menu page: backdrop + M3 top app bar with a back arrow + optional pinned bottom bar. The bar itself stays transparent over the backdrop; its title is bold and tinted `primary` (see "Colour" above) rather than left at the M3 default. Also holds `PageColumn` and `PinnedActionBar`. |
 | `DiceFiveDialog.kt` | the app's one dialog shape, so the menu and the board ask questions the same way. |
 | `AppLogo.kt` | placeholder app mark, built from the game's own dice via `IvoryDiceStyle`. |
 | `Scrollbar.kt` | `LazyListScrollbar`, a `BoxScope` extension drawing a minimal scroll indicator over a `LazyColumn` - stock Compose has none for Android. Shared by the Leaderboard and Statistics screens. |
@@ -131,13 +142,16 @@ expected to.
 
 ## The achievements list
 
-One list, not two. Achievements are grouped by theme with a quiet all-caps subheader, and run
-easiest-first within each theme — which is just `Achievement`'s declaration order, so the
-catalogue is the single place that ordering is decided. Unlocking one doesn't move it: it stays in
-its ladder and is highlighted in place instead (a trophy icon, a raised `secondaryContainer` card),
-so a ladder always reads as a ladder, earned rungs and all, rather than the earned ones jumping out
-to a separate section. The "Hide unlocked" chip filters them out of their groups rather than
-un-splitting anything, since there's no split left to undo.
+One list, not two. Achievements are grouped by theme with a quiet all-caps subheader - pinned to
+the top of the list as a `stickyHeader` while its group scrolls by, styled as a plain `Card` like
+everything else on the screen rather than a bare `Surface` (which has no default shape, hence
+square corners if you reach for it) - and run easiest-first within each theme, which is just
+`Achievement`'s declaration order, so the catalogue is the single place that ordering is decided.
+Unlocking one doesn't move it: it stays in its ladder and is highlighted in place instead (a
+trophy icon, a raised `secondaryContainer` card), so a ladder always reads as a ladder, earned
+rungs and all, rather than the earned ones jumping out to a separate section. There is no "hide
+unlocked" filter - it was tried and removed; the unlocked/total count above the list is centred
+now that nothing else shares that row.
 
 An earlier version *did* split locked-first/unlocked-after (unlocked flat and newest-first, a
 history rather than a to-do list) - reverted because it scattered a themed ladder in two: an
