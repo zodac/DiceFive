@@ -20,3 +20,10 @@ object TableBackgrounds {
     val default: TableBackground = MidnightFeltBackground
     fun byId(id: String): TableBackground = all.firstOrNull { it.id == id } ?: default
 }
+
+/** Every available [DiceMat], in the order they're offered on the Styles screen. */
+object DiceMats {
+    val all: List<DiceMat> = listOf(TrayBlueMat, FireDiceMat)
+    val default: DiceMat = TrayBlueMat
+    fun byId(id: String): DiceMat = all.firstOrNull { it.id == id } ?: default
+}

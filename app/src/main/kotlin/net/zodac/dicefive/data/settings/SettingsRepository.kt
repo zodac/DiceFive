@@ -101,6 +101,12 @@ class SettingsRepository(private val context: Context) {
         context.settingsDataStore.edit { it[TABLE_BACKGROUND_ID_KEY] = id }
     }
 
+    val diceMatId: Flow<String> = context.settingsDataStore.data.map { prefs -> prefs[DICE_MAT_ID_KEY] ?: "tray_blue" }
+
+    suspend fun setDiceMatId(id: String) {
+        context.settingsDataStore.edit { it[DICE_MAT_ID_KEY] = id }
+    }
+
     private companion object {
         val THEME_KEY = stringPreferencesKey("theme")
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
@@ -109,6 +115,7 @@ class SettingsRepository(private val context: Context) {
         val DICE_STYLE_ID_KEY = stringPreferencesKey("dice_style_id")
         val DICE_CUP_STYLE_ID_KEY = stringPreferencesKey("dice_cup_style_id")
         val TABLE_BACKGROUND_ID_KEY = stringPreferencesKey("table_background_id")
+        val DICE_MAT_ID_KEY = stringPreferencesKey("dice_mat_id")
         fun playerNameKey(slot: Int) = stringPreferencesKey("player_name_$slot")
         fun playerTypeKey(slot: Int) = stringPreferencesKey("player_type_$slot")
         fun playerDifficultyKey(slot: Int) = stringPreferencesKey("player_difficulty_$slot")

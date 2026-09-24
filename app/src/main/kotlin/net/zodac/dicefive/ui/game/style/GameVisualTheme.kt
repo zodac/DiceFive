@@ -32,19 +32,24 @@ interface DiceCupStyle {
 }
 
 /**
- * Supplies the (independently swappable) backgrounds for the scoring area
- * and the dice-tray area. Deliberately excludes the player header, which
- * always uses the app's base theme background.
+ * Supplies the background for the scoring area. Deliberately excludes the player header, which
+ * always uses the app's base theme background. Independently swappable from [DiceMat], which
+ * covers the dice-tray area below it.
  */
 interface TableBackground {
     val id: String
     val scoreAreaBrush: Brush
+}
+
+/** Supplies the (independently swappable) dice-tray mat, separate from [TableBackground]. */
+interface DiceMat {
+    val id: String
     val diceTrayBrush: Brush
 
     /**
      * An optional decorative overlay drawn on top of [diceTrayBrush], e.g. the fire theme's flame
-     * trim licking up from the tray's bottom edge. Most backgrounds don't need one, so it's a
-     * no-op by default rather than every implementation repeating an empty override.
+     * trim licking up from the tray's bottom edge. Most mats don't need one, so it's a no-op by
+     * default rather than every implementation repeating an empty override.
      */
     @Composable
     fun DiceTrayDecoration(modifier: Modifier) {}
@@ -55,6 +60,7 @@ data class GameVisualTheme(
     val diceStyle: DiceStyle = DiceStyles.default,
     val diceCupStyle: DiceCupStyle = DiceCupStyles.default,
     val background: TableBackground = TableBackgrounds.default,
+    val mat: DiceMat = DiceMats.default,
 )
 
 val LocalGameVisualTheme = staticCompositionLocalOf { GameVisualTheme() }

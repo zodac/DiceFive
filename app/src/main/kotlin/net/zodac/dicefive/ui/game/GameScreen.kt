@@ -46,6 +46,7 @@ import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
+import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.GameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
@@ -113,11 +114,13 @@ fun GameScreen(
     val diceStyleId by settingsRepository.diceStyleId.collectAsState(initial = DiceStyles.default.id)
     val diceCupStyleId by settingsRepository.diceCupStyleId.collectAsState(initial = DiceCupStyles.default.id)
     val tableBackgroundId by settingsRepository.tableBackgroundId.collectAsState(initial = TableBackgrounds.default.id)
-    val visualTheme = remember(diceStyleId, diceCupStyleId, tableBackgroundId) {
+    val diceMatId by settingsRepository.diceMatId.collectAsState(initial = DiceMats.default.id)
+    val visualTheme = remember(diceStyleId, diceCupStyleId, tableBackgroundId, diceMatId) {
         GameVisualTheme(
             diceStyle = DiceStyles.byId(diceStyleId),
             diceCupStyle = DiceCupStyles.byId(diceCupStyleId),
             background = TableBackgrounds.byId(tableBackgroundId),
+            mat = DiceMats.byId(diceMatId),
         )
     }
     CompositionLocalProvider(LocalGameVisualTheme provides visualTheme) {

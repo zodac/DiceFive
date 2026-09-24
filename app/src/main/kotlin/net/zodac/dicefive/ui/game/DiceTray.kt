@@ -81,7 +81,7 @@ private const val CYCLE_INTERVAL_MILLIS = 1_000L
  * that's under the finger the whole time. Sliding into another die's column cancels whatever the
  * previous column was doing (a pending click, or superuser cycling) and starts fresh on the new
  * one; only the column the finger is actually released over can register a click or leave cycling
- * in effect. Uses [LocalGameVisualTheme] for both the die art and the background.
+ * in effect. Uses [LocalGameVisualTheme] for both the die art and the mat.
  */
 @Composable
 fun DiceTray(
@@ -124,12 +124,11 @@ fun DiceTray(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(visualTheme.background.diceTrayBrush),
+            .background(visualTheme.mat.diceTrayBrush),
     ) {
-        // The background's own decoration (e.g. the fire theme's flame trim) sits between the
-        // brush and the dice - matchParentSize so it fills whatever height the Row below ends up
-        // with.
-        visualTheme.background.DiceTrayDecoration(modifier = Modifier.matchParentSize())
+        // The mat's own decoration (e.g. the fire theme's flame trim) sits between the brush and
+        // the dice - matchParentSize so it fills whatever height the Row below ends up with.
+        visualTheme.mat.DiceTrayDecoration(modifier = Modifier.matchParentSize())
 
         Row(
             modifier = Modifier
@@ -269,7 +268,7 @@ private fun DiceColumn(
                 .sizeIn(maxWidth = MAX_SLOT_DIE_SIZE, maxHeight = MAX_SLOT_DIE_SIZE)
                 .clip(shape)
                 .background(Brush.verticalGradient(listOf(SlotSocketTop, SlotSocketBottom)))
-                .border(1.dp, SlotSocketBorder, shape),
+                .border(1.5.dp, SlotSocketBorder, shape),
         ) {
             if (show && die.isHeld) {
                 diceStyle.Die(value = die.value, held = true, modifier = Modifier.fillMaxSize().padding(3.dp))
