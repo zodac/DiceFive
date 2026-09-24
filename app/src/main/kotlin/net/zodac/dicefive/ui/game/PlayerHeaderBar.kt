@@ -39,12 +39,17 @@ import net.zodac.dicefive.ui.theme.PlayerColors
  * scorecard read-only in place of the live board (see [PlayerHeaderBar]'s `onPlayerTap`) - the
  * active player's own ring never moves for this, but the tab being viewed gets a dashed outline
  * so it's clear the board on screen isn't the current turn's.
+ *
+ * Tabs are only tappable when [enabled] - an AI's turn plays out on its own with nobody to ask it
+ * to pause, so switching away from the live board mid-turn would just hide it running rather than
+ * let anyone actually study another scorecard.
  */
 @Composable
 fun PlayerHeaderBar(
     players: List<PlayerState>,
     currentPlayerIndex: Int,
     viewedPlayerIndex: Int?,
+    enabled: Boolean,
     onPlayerTap: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -62,6 +67,7 @@ fun PlayerHeaderBar(
                 active = index == currentPlayerIndex,
                 viewed = index == viewedPlayerIndex,
                 compactName = compactNames,
+                enabled = enabled,
                 onClick = { onPlayerTap(index) },
                 modifier = Modifier.weight(1f),
             )
@@ -77,6 +83,7 @@ private fun PlayerTab(
     active: Boolean,
     viewed: Boolean,
     compactName: Boolean,
+    enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -87,7 +94,7 @@ private fun PlayerTab(
             .clip(shape)
             .then(if (active) Modifier.border(1.5.dp, color.copy(alpha = 0.85f), shape) else Modifier)
             .then(if (viewed) Modifier.dashedBorder(1.5.dp, color.copy(alpha = 0.85f), 10.dp) else Modifier)
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(vertical = 6.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

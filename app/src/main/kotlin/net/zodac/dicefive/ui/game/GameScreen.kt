@@ -175,11 +175,15 @@ private fun InProgressGame(
 
     // Which other player's scorecard the active player has tapped into viewing, if any - keyed on
     // currentPlayerIndex so it's forgotten automatically the moment the turn moves on, rather than
-    // leaving a stale view pinned once it's someone else's turn to look at.
+    // leaving a stale view pinned once it's someone else's turn to look at. Only offered on a human
+    // seat's own turn - an AI's turn plays out fully automatically, so switching away from it would
+    // just hide it running rather than let anyone actually look at another scorecard mid-decision.
     var viewedPlayerIndex by remember(state.currentPlayerIndex) { mutableStateOf<Int?>(null) }
     val viewedPlayer = viewedPlayerIndex?.let { state.players.getOrNull(it) }
     val onPlayerTap = { index: Int ->
-        viewedPlayerIndex = if (index == state.currentPlayerIndex || index == viewedPlayerIndex) null else index
+        if (isHumanTurn) {
+            viewedPlayerIndex = if (index == state.currentPlayerIndex || index == viewedPlayerIndex) null else index
+        }
     }
 
     val coroutineScope = rememberCoroutineScope()
@@ -204,6 +208,7 @@ private fun InProgressGame(
         players = state.players,
         currentPlayerIndex = state.currentPlayerIndex,
         viewedPlayerIndex = viewedPlayerIndex,
+        enabled = isHumanTurn,
         onPlayerTap = onPlayerTap,
     )
 
