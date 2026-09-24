@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
+import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 
@@ -28,6 +29,9 @@ class StylesViewModel(private val settingsRepository: SettingsRepository? = null
     val tableBackgroundId: StateFlow<String> = (settingsRepository?.tableBackgroundId ?: flowOf(TableBackgrounds.default.id))
         .stateIn(viewModelScope, SharingStarted.Eagerly, TableBackgrounds.default.id)
 
+    val diceMatId: StateFlow<String> = (settingsRepository?.diceMatId ?: flowOf(DiceMats.default.id))
+        .stateIn(viewModelScope, SharingStarted.Eagerly, DiceMats.default.id)
+
     fun setDiceStyleId(id: String) {
         val repository = settingsRepository ?: return
         viewModelScope.launch { repository.setDiceStyleId(id) }
@@ -41,6 +45,11 @@ class StylesViewModel(private val settingsRepository: SettingsRepository? = null
     fun setTableBackgroundId(id: String) {
         val repository = settingsRepository ?: return
         viewModelScope.launch { repository.setTableBackgroundId(id) }
+    }
+
+    fun setDiceMatId(id: String) {
+        val repository = settingsRepository ?: return
+        viewModelScope.launch { repository.setDiceMatId(id) }
     }
 
     companion object {

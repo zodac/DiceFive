@@ -127,7 +127,10 @@ val DicePipColor = Color(0xFF2B2118)
 
 val SlotSocketTop = Color(0xFF0D2549)
 val SlotSocketBottom = Color(0xFF081833)
-val SlotSocketBorder = Color(0xFF2A4A78)
+// Lighter than both the socket's own fill and TrayBlueTop/Bottom (the mat it sits on), so the rim
+// reads as a crisp highlight against the mat rather than just a slightly-different shade of the
+// same blue - matching how CategoryTile's border pops against its felt background.
+val SlotSocketBorder = Color(0xFF6FA3E0)
 
 val CupBodyTop = Color(0xFF35302B)
 val CupBodyBottom = Color(0xFF14100D)

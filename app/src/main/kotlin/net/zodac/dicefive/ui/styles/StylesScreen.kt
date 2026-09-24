@@ -10,9 +10,9 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -37,94 +37,104 @@ import net.zodac.dicefive.ui.common.HorizontalScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.game.style.DiceCupStyle
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
+import net.zodac.dicefive.ui.game.style.DiceMat
+import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyle
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.TableBackground
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
-private val DICE_PREVIEW_SIZE = 96.dp
-private val DIE_ART_SIZE = 60.dp
-private val CUP_PREVIEW_WIDTH = 96.dp
-private val CUP_PREVIEW_HEIGHT = 132.dp
-private val CUP_ART_SIZE_WIDTH = 58.dp
-private val CUP_ART_SIZE_HEIGHT = 84.dp
-private val MAT_PREVIEW_WIDTH = 200.dp
-private val MAT_PREVIEW_HEIGHT = 116.dp
+// Kept small enough that all four categories (Dice, Dice Cup, Mat, Background) fit on one screen
+// without needing to scroll - see StylesScreen's doc comment.
+private val DICE_PREVIEW_SIZE = 72.dp
+private val DIE_ART_SIZE = 44.dp
+private val CUP_PREVIEW_WIDTH = 72.dp
+private val CUP_PREVIEW_HEIGHT = 96.dp
+private val CUP_ART_SIZE_WIDTH = 42.dp
+private val CUP_ART_SIZE_HEIGHT = 60.dp
+private val MAT_PREVIEW_WIDTH = 108.dp
+private val MAT_PREVIEW_HEIGHT = 72.dp
+private val BACKGROUND_PREVIEW_WIDTH = 108.dp
+private val BACKGROUND_PREVIEW_HEIGHT = 72.dp
 
 /**
  * Lets a player pick, rather than read, the option for each independently swappable piece of table
- * art - [DiceStyle], [DiceCupStyle] and [TableBackground]. One [Card] per category, a horizontally
- * scrolling row of preview tiles inside it; tapping a tile persists that choice via [viewModel] and
- * marks it selected, so a category isn't stuck at whatever tile count fits one page width once more
- * options are added.
+ * art - [DiceStyle], [DiceCupStyle], [DiceMat] and [TableBackground]. One [Card] per category, a
+ * horizontally scrolling row of preview tiles inside it; tapping a tile persists that choice via
+ * [viewModel] and marks it selected, so a category isn't stuck at whatever tile count fits one page
+ * width once more options are added.
  *
- * The mat/background category previews each [TableBackground.diceTrayBrush] mat (plus its own
- * [TableBackground.DiceTrayDecoration], so a flame trim shows up in the picker too) sitting on top
- * of the [TableBackground.scoreAreaBrush] page background, the same composition `GameBoard` and
- * `DiceTray` use for the real thing. The dice and dice cup previews, by contrast, sit on a neutral
- * surface rather than the currently selected background: which mat is picked shouldn't change how
- * those two categories read.
+ * Mat and background are separate categories - each previews only its own brush (the mat's own
+ * [DiceMat.DiceTrayDecoration] shows up on its tile too), not the two composed together, since
+ * they're now independently selectable rather than a single paired option. All four categories'
+ * tiles are sized to fit on one screen without scrolling vertically; only the tile row within a
+ * category scrolls, horizontally.
  */
 @Composable
 fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val diceStyleId by viewModel.diceStyleId.collectAsState()
     val diceCupStyleId by viewModel.diceCupStyleId.collectAsState()
     val tableBackgroundId by viewModel.tableBackgroundId.collectAsState()
+    val diceMatId by viewModel.diceMatId.collectAsState()
 
-    ScreenScaffold(title = "Styles", onBack = onBack, modifier = modifier, scrollable = true) {
-        StyleCategoryCard(title = "Dice") {
-            for (style in DiceStyles.all) {
-                StylePreviewTile(
-                    label = displayName(style.id),
-                    selected = style.id == diceStyleId,
-                    onClick = { viewModel.setDiceStyleId(style.id) },
-                    backgroundBrush = SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh),
-                    modifier = Modifier.size(DICE_PREVIEW_SIZE),
-                ) {
-                    style.Die(value = 5, held = false, modifier = Modifier.size(DIE_ART_SIZE))
-                }
-            }
-        }
-
-        StyleCategoryCard(title = "Dice Cup") {
-            for (style in DiceCupStyles.all) {
-                StylePreviewTile(
-                    label = displayName(style.id),
-                    selected = style.id == diceCupStyleId,
-                    onClick = { viewModel.setDiceCupStyleId(style.id) },
-                    backgroundBrush = SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh),
-                    modifier = Modifier.size(width = CUP_PREVIEW_WIDTH, height = CUP_PREVIEW_HEIGHT),
-                ) {
-                    style.Cup(
-                        rolling = false,
-                        tilted = false,
-                        modifier = Modifier.size(width = CUP_ART_SIZE_WIDTH, height = CUP_ART_SIZE_HEIGHT),
-                    )
-                }
-            }
-        }
-
-        StyleCategoryCard(title = "Mat & Background") {
-            for (background in TableBackgrounds.all) {
-                StylePreviewTile(
-                    label = displayName(background.id),
-                    selected = background.id == tableBackgroundId,
-                    onClick = { viewModel.setTableBackgroundId(background.id) },
-                    backgroundBrush = background.scoreAreaBrush,
-                    modifier = Modifier.size(width = MAT_PREVIEW_WIDTH, height = MAT_PREVIEW_HEIGHT),
-                ) {
-                    // The dice tray "mat" as a smaller panel sitting on the felt background, the
-                    // same way GameBoard stacks the two brushes in the real game.
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.78f)
-                            .fillMaxHeight(0.6f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(background.diceTrayBrush),
+    ScreenScaffold(title = "Styles", onBack = onBack, modifier = modifier, scrollable = false) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            StyleCategoryCard(title = "Dice") {
+                for (style in DiceStyles.all) {
+                    StylePreviewTile(
+                        label = displayName(style.id),
+                        selected = style.id == diceStyleId,
+                        onClick = { viewModel.setDiceStyleId(style.id) },
+                        backgroundBrush = SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh),
+                        modifier = Modifier.size(DICE_PREVIEW_SIZE),
                     ) {
-                        background.DiceTrayDecoration(modifier = Modifier.matchParentSize())
+                        style.Die(value = 5, held = false, modifier = Modifier.size(DIE_ART_SIZE))
                     }
+                }
+            }
+
+            StyleCategoryCard(title = "Dice Cup") {
+                for (style in DiceCupStyles.all) {
+                    StylePreviewTile(
+                        label = displayName(style.id),
+                        selected = style.id == diceCupStyleId,
+                        onClick = { viewModel.setDiceCupStyleId(style.id) },
+                        backgroundBrush = SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh),
+                        modifier = Modifier.size(width = CUP_PREVIEW_WIDTH, height = CUP_PREVIEW_HEIGHT),
+                    ) {
+                        style.Cup(
+                            rolling = false,
+                            tilted = false,
+                            modifier = Modifier.size(width = CUP_ART_SIZE_WIDTH, height = CUP_ART_SIZE_HEIGHT),
+                        )
+                    }
+                }
+            }
+
+            StyleCategoryCard(title = "Mat") {
+                for (mat in DiceMats.all) {
+                    StylePreviewTile(
+                        label = displayName(mat.id),
+                        selected = mat.id == diceMatId,
+                        onClick = { viewModel.setDiceMatId(mat.id) },
+                        backgroundBrush = mat.diceTrayBrush,
+                        modifier = Modifier.size(width = MAT_PREVIEW_WIDTH, height = MAT_PREVIEW_HEIGHT),
+                    ) {
+                        mat.DiceTrayDecoration(modifier = Modifier.matchParentSize())
+                    }
+                }
+            }
+
+            StyleCategoryCard(title = "Background") {
+                for (background in TableBackgrounds.all) {
+                    StylePreviewTile(
+                        label = displayName(background.id),
+                        selected = background.id == tableBackgroundId,
+                        onClick = { viewModel.setTableBackgroundId(background.id) },
+                        backgroundBrush = background.scoreAreaBrush,
+                        modifier = Modifier.size(width = BACKGROUND_PREVIEW_WIDTH, height = BACKGROUND_PREVIEW_HEIGHT),
+                    ) {}
                 }
             }
         }
@@ -142,8 +152,8 @@ private fun StyleCategoryCard(title: String, content: @Composable RowScope.() ->
     Card(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 4.dp),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(start = 12.dp, top = 10.dp, end = 12.dp, bottom = 2.dp),
         )
 
         val scrollState = rememberScrollState()
@@ -151,15 +161,15 @@ private fun StyleCategoryCard(title: String, content: @Composable RowScope.() ->
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(scrollState)
-                .padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(start = 12.dp, top = 6.dp, end = 12.dp, bottom = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             content()
         }
 
         HorizontalScrollbar(
             scrollState = scrollState,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
         )
     }
 }
@@ -176,7 +186,7 @@ private fun StylePreviewTile(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         val shape = RoundedCornerShape(16.dp)
         Box(
             modifier = modifier
@@ -211,7 +221,7 @@ private fun StylePreviewTile(
                 }
             }
         }
-        Text(text = label, style = MaterialTheme.typography.labelMedium)
+        Text(text = label, style = MaterialTheme.typography.labelSmall)
     }
 }
 
