@@ -60,6 +60,10 @@ class AchievementsRepository(private val context: Context) : AchievementStore {
         context.achievementsDataStore.edit { it.clear() }
     }
 
+    override suspend fun forceLock(achievement: Achievement) {
+        context.achievementsDataStore.edit { prefs -> prefs.remove(unlockedKey(achievement)) }
+    }
+
     private companion object {
         fun unlockedKey(achievement: Achievement) = longPreferencesKey("unlocked_${achievement.id}")
         fun counterKey(counter: AchievementCounter) = intPreferencesKey("counter_${counter.name}")
