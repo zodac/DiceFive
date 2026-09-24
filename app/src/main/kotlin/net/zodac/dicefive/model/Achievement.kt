@@ -19,7 +19,6 @@ enum class AchievementCounter {
  */
 enum class AchievementCategory(val label: String) {
     MILESTONES("Milestones"),
-    THEMES("Themes"),
     DICE("Dice feats"),
     SCORING("Scoring"),
     WINNING("Winning"),
@@ -164,20 +163,6 @@ enum class Achievement(
     PROFESSIONAL_ROLLER(
         "career_points_100k", "Professional Roller", "Score 100,000 points across all your games",
         AchievementCategory.MILESTONES, target = 100_000, isCareerPoints = true,
-    ),
-
-    // ---- Themes: playing dress-up with the table itself ---------------------------------------
-    STYLE_DICE(
-        "style_dice", "Fresh Set", "Start a game with a non-default dice style",
-        AchievementCategory.THEMES,
-    ),
-    STYLE_CUP(
-        "style_cup", "Shake It Up", "Start a game with a non-default dice cup style",
-        AchievementCategory.THEMES,
-    ),
-    STYLE_BACKGROUND(
-        "style_background", "Change Of Scenery", "Start a game with a non-default mat",
-        AchievementCategory.THEMES,
     ),
 
     // ---- Dice feats: what the dice themselves did --------------------------------------------
@@ -410,6 +395,12 @@ enum class Achievement(
     // case-sensitively - never P1, who's always the human player at this device.
     BIG_FAN(
         "big_fan", "Big Fan", "Play a game with the creator",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+
+    // Moved from Themes.
+    FRESH_COAT_OF_PAINT(
+        "fresh_coat_of_paint", "Fresh Coat Of Paint", "Start a game with any item using a non-default style",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
 

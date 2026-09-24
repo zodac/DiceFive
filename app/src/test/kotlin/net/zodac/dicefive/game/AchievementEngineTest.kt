@@ -772,19 +772,15 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `a non-default style earns its own milestone at game start, per swappable category`() {
-        // Already past The Journey Begins, so it doesn't muddy the per-category assertions below.
+    fun `a non-default style earns Fresh Coat Of Paint at game start`() {
+        // Already past The Journey Begins, so it doesn't muddy the assertions below.
         val before = AchievementsState(unlockedAt = mapOf(Achievement.THE_JOURNEY_BEGINS to 1L))
 
         val allDefault = AchievementEngine.evaluateAtGameStart(GameStartContext(), before, NOW)
-        val customDice = AchievementEngine.evaluateAtGameStart(GameStartContext(playedNonDefaultDiceStyle = true), before, NOW)
-        val customCup = AchievementEngine.evaluateAtGameStart(GameStartContext(playedNonDefaultDiceCupStyle = true), before, NOW)
-        val customBackground = AchievementEngine.evaluateAtGameStart(GameStartContext(playedNonDefaultTableBackground = true), before, NOW)
+        val customStyle = AchievementEngine.evaluateAtGameStart(GameStartContext(playedNonDefaultStyle = true), before, NOW)
 
         assertTrue(allDefault.isEmpty)
-        assertEquals(listOf(Achievement.STYLE_DICE), customDice.newlyUnlocked)
-        assertEquals(listOf(Achievement.STYLE_CUP), customCup.newlyUnlocked)
-        assertEquals(listOf(Achievement.STYLE_BACKGROUND), customBackground.newlyUnlocked)
+        assertEquals(listOf(Achievement.FRESH_COAT_OF_PAINT), customStyle.newlyUnlocked)
     }
 
     @Test
@@ -811,11 +807,14 @@ class AchievementEngineTest {
 
     @Test
     fun `game start touches no counters and skips an already-unlocked style`() {
-        val before = AchievementsState(unlockedAt = mapOf(Achievement.STYLE_DICE to 1L), counters = mapOf(AchievementCounter.GAMES_PLAYED to 7))
+        val before = AchievementsState(
+            unlockedAt = mapOf(Achievement.FRESH_COAT_OF_PAINT to 1L),
+            counters = mapOf(AchievementCounter.GAMES_PLAYED to 7),
+        )
 
-        val update = AchievementEngine.evaluateAtGameStart(GameStartContext(playedNonDefaultDiceStyle = true), before, NOW)
+        val update = AchievementEngine.evaluateAtGameStart(GameStartContext(playedNonDefaultStyle = true), before, NOW)
 
-        assertTrue(Achievement.STYLE_DICE !in update.newlyUnlocked)
+        assertTrue(Achievement.FRESH_COAT_OF_PAINT !in update.newlyUnlocked)
         assertEquals(7, update.counters[AchievementCounter.GAMES_PLAYED])
     }
 

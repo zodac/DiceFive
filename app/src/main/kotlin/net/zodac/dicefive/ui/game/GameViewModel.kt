@@ -57,6 +57,7 @@ import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
+import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 
@@ -675,10 +676,12 @@ class GameViewModel(
         viewModelScope.launch {
             // Never P1 - "You" is always index 0, so this only ever looks at the other seats.
             val otherHumans = _game.value?.players.orEmpty().drop(1).filter { it.type == PlayerType.HUMAN }
+            val playedNonDefaultStyle = isNonDefaultStyle(settings.diceStyleId, DiceStyles.default.id) ||
+                isNonDefaultStyle(settings.diceCupStyleId, DiceCupStyles.default.id) ||
+                isNonDefaultStyle(settings.tableBackgroundId, TableBackgrounds.default.id) ||
+                isNonDefaultStyle(settings.diceMatId, DiceMats.default.id)
             val context = GameStartContext(
-                playedNonDefaultDiceStyle = isNonDefaultStyle(settings.diceStyleId, DiceStyles.default.id),
-                playedNonDefaultDiceCupStyle = isNonDefaultStyle(settings.diceCupStyleId, DiceCupStyles.default.id),
-                playedNonDefaultTableBackground = isNonDefaultStyle(settings.tableBackgroundId, TableBackgrounds.default.id),
+                playedNonDefaultStyle = playedNonDefaultStyle,
                 hasHumanPlayerNamedZodac = otherHumans.any { it.name == ZODAC_PLAYER_NAME },
                 customizedGameSettings = customizedGameSettings,
             )
