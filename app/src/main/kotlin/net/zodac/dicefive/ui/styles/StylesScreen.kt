@@ -62,15 +62,15 @@ private val MAT_PREVIEW_HEIGHT = 116.dp
  * The mat/background category previews each [TableBackground.diceTrayBrush] mat (plus its own
  * [TableBackground.DiceTrayDecoration], so a flame trim shows up in the picker too) sitting on top
  * of the [TableBackground.scoreAreaBrush] page background, the same composition `GameBoard` and
- * `DiceTray` use for the real thing. The dice cup previews sit on the CURRENTLY SELECTED
- * background's felt, since that's what the cup will actually be shown against in game.
+ * `DiceTray` use for the real thing. The dice and dice cup previews, by contrast, sit on a neutral
+ * surface rather than the currently selected background: which mat is picked shouldn't change how
+ * those two categories read.
  */
 @Composable
 fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val diceStyleId by viewModel.diceStyleId.collectAsState()
     val diceCupStyleId by viewModel.diceCupStyleId.collectAsState()
     val tableBackgroundId by viewModel.tableBackgroundId.collectAsState()
-    val selectedBackground = TableBackgrounds.byId(tableBackgroundId)
 
     ScreenScaffold(title = "Styles", onBack = onBack, modifier = modifier, scrollable = true) {
         StyleCategoryCard(title = "Dice") {
@@ -93,7 +93,7 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
                     label = displayName(style.id),
                     selected = style.id == diceCupStyleId,
                     onClick = { viewModel.setDiceCupStyleId(style.id) },
-                    backgroundBrush = selectedBackground.scoreAreaBrush,
+                    backgroundBrush = SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh),
                     modifier = Modifier.size(width = CUP_PREVIEW_WIDTH, height = CUP_PREVIEW_HEIGHT),
                 ) {
                     style.Cup(
