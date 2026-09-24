@@ -17,7 +17,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -98,21 +97,18 @@ fun AchievementsScreen(
 
 /**
  * A theme's subheader - quiet, since the catalogue's own order is what does the real organising.
- * Pinned to the top of the list while its category scrolls by, so opaque rather than the plain
- * text this would otherwise be: rows keep scrolling underneath it and would show through.
+ * Pinned to the top of the list while its category scrolls by, so it's a plain [Card] rather than
+ * the bare [Text] this would otherwise be - the same rounded, opaque shape every other surface on
+ * this screen uses - since rows now scroll directly underneath it and would show through bare text.
  */
 @Composable
 private fun GroupHeader(text: String) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 3.dp,
-    ) {
+    Card(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = text.uppercase(),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
         )
     }
 }
