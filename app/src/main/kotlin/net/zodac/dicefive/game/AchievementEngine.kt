@@ -50,14 +50,13 @@ data class GameAchievementContext(
  */
 data class GameStartContext(
     /**
-     * Whether the dice/dice-cup/mat-and-background style in effect for this game is something
-     * other than that category's shipped default (`ui.game.style`'s per-category `default`) - a
-     * boolean, not a style id, so this pure engine never has to import the UI-layer style catalog
-     * just to compare a string.
+     * Whether any of the four independently swappable table-art styles (dice, dice cup, mat,
+     * background) in effect for this game is something other than that category's shipped default
+     * (`ui.game.style`'s per-category `default`) - a single boolean, not a style id, so this pure
+     * engine never has to import the UI-layer style catalog just to compare a string.
+     * [Achievement.FRESH_COAT_OF_PAINT]'s trigger.
      */
-    val playedNonDefaultDiceStyle: Boolean = false,
-    val playedNonDefaultDiceCupStyle: Boolean = false,
-    val playedNonDefaultTableBackground: Boolean = false,
+    val playedNonDefaultStyle: Boolean = false,
     /** Whether one of the *other* seats - P2, P3, or P4, never P1 - is a human named exactly
      * "zodac" (case-sensitive) - [Achievement.BIG_FAN]'s trigger. */
     val hasHumanPlayerNamedZodac: Boolean = false,
@@ -215,9 +214,7 @@ object AchievementEngine {
             // Unconditional: every game start satisfies it, but `update()` only ever reports it
             // as newly unlocked once, which is exactly "the very first time" means here.
             add(Achievement.THE_JOURNEY_BEGINS)
-            if (context.playedNonDefaultDiceStyle) add(Achievement.STYLE_DICE)
-            if (context.playedNonDefaultDiceCupStyle) add(Achievement.STYLE_CUP)
-            if (context.playedNonDefaultTableBackground) add(Achievement.STYLE_BACKGROUND)
+            if (context.playedNonDefaultStyle) add(Achievement.FRESH_COAT_OF_PAINT)
             if (context.hasHumanPlayerNamedZodac) add(Achievement.BIG_FAN)
             if (context.customizedGameSettings) add(Achievement.I_DID_IT_MY_WAY)
         }

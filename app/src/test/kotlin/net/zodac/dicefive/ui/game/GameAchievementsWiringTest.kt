@@ -1054,8 +1054,6 @@ class GameAchievementsWiringTest {
         viewModel.startGame()
         advanceUntilIdle()
 
-        assertFalse(Achievement.STYLE_DICE in store.unlocked)
-        assertFalse(Achievement.STYLE_CUP in store.unlocked)
-        assertFalse(Achievement.STYLE_BACKGROUND in store.unlocked)
+        assertFalse(Achievement.FRESH_COAT_OF_PAINT in store.unlocked)
     }
 }
