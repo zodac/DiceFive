@@ -99,7 +99,7 @@ data class AchievementUpdate(
  * back, exactly as it does with [GameEngine] for the game itself.
  *
  * Two rules run through all of it:
- *  - **Player 1 only, not any human.** `state.players[0]` - "You" on the setup screen, always
+ *  - **Player 1 only, not any human.** `state.players[0]` - the human player at this device, always
  *    HUMAN - is the only seat whose turns and scorecard earn achievements; every other seat,
  *    human or AI, is only ever the opposition. The one exception is the ledger - the score-band
  *    and career-points achievements at the tail of [AchievementCategory.COLLECTION] - which stay
@@ -365,7 +365,7 @@ object AchievementEngine {
             },
         )
         award(Achievement.EXTREME_LOW_ROLLS, anyHuman { it.totalScore == LOWEST_POSSIBLE_SCORE })
-        // "Lose a game to an AI" specifically - not just any loss. Losing to another human seat is
+        // "Lose a game to a CPU player" specifically - not just any loss. Losing to another human seat is
         // still a loss (PIPPED_TO_THE_POST/JAWS_OF_VICTORY don't care who won), but with only
         // player 1 earning achievements now, `!humanWon` alone would also fire whenever another
         // human player at the table beat player 1, which isn't what this achievement means.

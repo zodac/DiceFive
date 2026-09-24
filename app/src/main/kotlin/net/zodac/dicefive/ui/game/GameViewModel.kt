@@ -210,10 +210,14 @@ class GameViewModel(
                     // to it on the way back in rather than reappearing over-long.
                     setPlayerName(slot, savedName)
                 }
-                // Slot 1 is always Human, so its type is never saved/restored.
+                // Slot 1 is always Human, so its type and difficulty are never saved/restored.
                 for (slot in 2..GameSetupState.MAX_PLAYERS) {
                     val savedType = repository.playerTypeFor(slot).first() ?: continue
                     updateSlot(slot) { it.copy(type = savedType) }
+                }
+                for (slot in 2..GameSetupState.MAX_PLAYERS) {
+                    val savedDifficulty = repository.playerDifficultyFor(slot).first() ?: continue
+                    updateSlot(slot) { it.copy(difficulty = savedDifficulty) }
                 }
                 repository.playerCount.first()?.let { savedCount -> setPlayerCount(savedCount) }
             }
@@ -936,8 +940,10 @@ class GameViewModel(
         viewModelScope.launch {
             repository.setPlayerCount(playerCount)
             for (slot in slots) {
-                // Slot 1 is always Human, so its type isn't worth persisting.
-                if (slot.slot != 1) repository.setPlayerType(slot.slot, slot.type)
+                // Slot 1 is always Human, so its type and difficulty aren't worth persisting.
+                if (slot.slot == 1) continue
+                repository.setPlayerType(slot.slot, slot.type)
+                if (slot.type == PlayerType.AI) repository.setPlayerDifficulty(slot.slot, slot.difficulty)
             }
         }
     }

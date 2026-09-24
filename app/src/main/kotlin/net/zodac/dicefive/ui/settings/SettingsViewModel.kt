@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementStore
@@ -17,6 +18,7 @@ import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.Theme
+import net.zodac.dicefive.ui.game.GameSetupState
 
 /** All repositories are nullable so this stays constructible/testable without a Context - see [factory]. */
 class SettingsViewModel(
@@ -31,6 +33,12 @@ class SettingsViewModel(
     val confirmBeforeLeavingGame: StateFlow<Boolean> = (settingsRepository?.confirmBeforeLeavingGame ?: flowOf(true))
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
+    /** The user's own name - blank until they set one, same as an unset [net.zodac.dicefive.ui.game.PlayerSetupSlot]'s
+     * name falls back to "Player 1" at game start rather than needing a non-empty default here. */
+    val userName: StateFlow<String> = (settingsRepository?.userName ?: flowOf(null))
+        .map { it ?: "" }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
     fun setTheme(theme: Theme) {
         val repository = settingsRepository ?: return
         viewModelScope.launch { repository.setTheme(theme) }
@@ -39,6 +47,14 @@ class SettingsViewModel(
     fun setConfirmBeforeLeavingGame(confirm: Boolean) {
         val repository = settingsRepository ?: return
         viewModelScope.launch { repository.setConfirmBeforeLeavingGame(confirm) }
+    }
+
+    /** Capped the same way [net.zodac.dicefive.ui.game.GameViewModel.setPlayerName] caps every other
+     * player's name - enforced here, not just in the text field, so a longer name saved before the
+     * cap existed is trimmed on the way back in rather than reappearing over-long. */
+    fun setUserName(name: String) {
+        val repository = settingsRepository ?: return
+        viewModelScope.launch { repository.setUserName(name.take(GameSetupState.MAX_PLAYER_NAME_LENGTH)) }
     }
 
     /**

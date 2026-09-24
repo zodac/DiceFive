@@ -13,6 +13,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,12 +44,29 @@ fun SettingsScreen(
 ) {
     val theme by viewModel.theme.collectAsState()
     val confirmBeforeLeavingGame by viewModel.confirmBeforeLeavingGame.collectAsState()
+    val userName by viewModel.userName.collectAsState()
     val uriHandler = LocalUriHandler.current
     // Saveable: a rotation mid-confirmation shouldn't silently drop the question.
     var showResetAchievementsConfirmation by rememberSaveable { mutableStateOf(false) }
     var showResetScoresConfirmation by rememberSaveable { mutableStateOf(false) }
 
     ScreenScaffold(title = "Settings", onBack = onBack, modifier = modifier, scrollable = true) {
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Profile",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
+            )
+            OutlinedTextField(
+                value = userName,
+                onValueChange = viewModel::setUserName,
+                label = { Text("Your name") },
+                placeholder = { Text("Player 1") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+            )
+        }
+
         Card(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "Appearance",

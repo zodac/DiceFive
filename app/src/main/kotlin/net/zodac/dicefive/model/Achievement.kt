@@ -360,12 +360,12 @@ enum class Achievement(
     ),
 
     BEAT_THREE_AI(
-        "beat_three_ai", "Last Human Standing", "Win a four-player game against three AI",
+        "beat_three_ai", "Last Human Standing", "Win a four-player game against three CPU players",
         AchievementCategory.WINNING,
     ),
 
     I_ROBOT(
-        "i_robot", "I, Robot", "Win a four-player game against three Hard AI",
+        "i_robot", "I, Robot", "Win a four-player game against three Hard CPU players",
         AchievementCategory.WINNING,
     ),
     NATURALLY_GIFTED(
@@ -394,7 +394,7 @@ enum class Achievement(
         AchievementCategory.MISFORTUNE,
     ),
     SINGULARITY(
-        "singularity", "Singularity", "Lose a game to an AI",
+        "singularity", "Singularity", "Lose a game to a CPU player",
         AchievementCategory.MISFORTUNE,
     ),
     PIPPED_TO_THE_POST(
@@ -462,7 +462,7 @@ enum class Achievement(
         AchievementCategory.MISCELLANEOUS,
     ),
     // Earned by having a human P2/P3/P4 named exactly "zodac" - the one name this checks for,
-    // case-sensitively - never P1, who's always "You".
+    // case-sensitively - never P1, who's always the human player at this device.
     BIG_FAN(
         "big_fan", "Big Fan", "Play a game with the creator",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,

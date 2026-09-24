@@ -8,14 +8,15 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.PlayerType
 
 private val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
 /**
- * DataStore-backed settings: the display theme, the last-used name and
- * player type (Human/AI) for each player slot (1-4) plus the last-used
- * player count, so returning to setup pre-fills it, and whether leaving an
+ * DataStore-backed settings: the display theme, the user's own name (slot 1, set from the
+ * Settings screen), the last-used name/type/difficulty (User/CPU) for each player slot (1-4)
+ * plus the last-used player count, so returning to setup pre-fills it, and whether leaving an
  * in-progress game needs a confirmation.
  */
 class SettingsRepository(private val context: Context) {
@@ -27,6 +28,11 @@ class SettingsRepository(private val context: Context) {
     suspend fun setTheme(theme: Theme) {
         context.settingsDataStore.edit { it[THEME_KEY] = theme.name }
     }
+
+    /** The primary user's own name, edited from the Settings screen - slot 1 is always them. */
+    val userName: Flow<String?> = playerNameFor(1)
+
+    suspend fun setUserName(name: String) = setPlayerName(1, name)
 
     fun playerNameFor(slot: Int): Flow<String?> =
         context.settingsDataStore.data.map { prefs -> prefs[playerNameKey(slot)] }
@@ -41,6 +47,14 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setPlayerType(slot: Int, type: PlayerType) {
         context.settingsDataStore.edit { it[playerTypeKey(slot)] = type.name }
+    }
+
+    fun playerDifficultyFor(slot: Int): Flow<Difficulty?> = context.settingsDataStore.data.map { prefs ->
+        prefs[playerDifficultyKey(slot)]?.let { raw -> runCatching { Difficulty.valueOf(raw) }.getOrNull() }
+    }
+
+    suspend fun setPlayerDifficulty(slot: Int, difficulty: Difficulty) {
+        context.settingsDataStore.edit { it[playerDifficultyKey(slot)] = difficulty.name }
     }
 
     val playerCount: Flow<Int?> = context.settingsDataStore.data.map { prefs -> prefs[PLAYER_COUNT_KEY] }
@@ -87,5 +101,6 @@ class SettingsRepository(private val context: Context) {
         val TABLE_BACKGROUND_ID_KEY = stringPreferencesKey("table_background_id")
         fun playerNameKey(slot: Int) = stringPreferencesKey("player_name_$slot")
         fun playerTypeKey(slot: Int) = stringPreferencesKey("player_type_$slot")
+        fun playerDifficultyKey(slot: Int) = stringPreferencesKey("player_difficulty_$slot")
     }
 }
