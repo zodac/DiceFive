@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 private const val SHAKE_AMPLITUDE_DEGREES = 7f
 private const val SNAP_TO_STANDING_MILLIS = 150
 private const val POUR_TILT_MILLIS = 320
+private const val WOBBLE_FADE_MILLIS = 120
 
 /**
  * The shake-then-settle rotation (in degrees) shared by every [DiceCupStyle]: standing upright most
@@ -54,5 +55,16 @@ fun rememberCupRotation(rolling: Boolean, tilted: Boolean, restingTiltDegrees: F
         ),
         label = "cupWobble",
     )
-    return restTilt + if (rolling) shakeWobble else 0f
+    // Faded in/out over WOBBLE_FADE_MILLIS rather than switched the instant `rolling` flips: the
+    // infinite transition above never resets its own phase, so cutting its contribution off
+    // abruptly could drop the rendered rotation anywhere in a +-SHAKE_AMPLITUDE_DEGREES range with
+    // nothing to smooth it out - a visible pop to a half-tilted or "wrong way" pose. Worst on a turn
+    // with only one shake to begin with (Hard AI's common one-roll-then-hold-everything turn),
+    // where there's no following shake to bury the jump in.
+    val wobbleWeight by animateFloatAsState(
+        targetValue = if (rolling) 1f else 0f,
+        animationSpec = tween(durationMillis = WOBBLE_FADE_MILLIS),
+        label = "cupWobbleFade",
+    )
+    return restTilt + shakeWobble * wobbleWeight
 }
