@@ -87,14 +87,24 @@ class SettingsViewModel(
     }
 
     /**
-     * Wipes every recorded score. The Leaderboard and Statistics screens are both read from this
-     * one table, so there's no way to reset one without the other - achievements measured live
-     * against the board (the score-collection ones) lose their progress too, though their unlock
-     * timestamps live in the separate achievements DataStore and are untouched.
+     * Wipes every recorded score, clearing both the Leaderboard and Statistics screens - the latter
+     * is computed from the same rows, so there's nothing left to show once they're gone.
+     * Achievements measured live against the board (the score-collection ones) lose their progress
+     * too, though their unlock timestamps live in the separate achievements DataStore and are
+     * untouched.
      */
-    fun resetScores() {
+    fun resetLeaderboard() {
         val repository = scoreRepository ?: return
-        viewModelScope.launch { repository.clearAll() }
+        viewModelScope.launch { repository.resetLeaderboard() }
+    }
+
+    /**
+     * Hides every player from the Statistics screen without touching a single recorded score - the
+     * Leaderboard, and anything measured against it, is completely unaffected.
+     */
+    fun resetStatistics() {
+        val repository = scoreRepository ?: return
+        viewModelScope.launch { repository.resetStatistics() }
     }
 
     companion object {

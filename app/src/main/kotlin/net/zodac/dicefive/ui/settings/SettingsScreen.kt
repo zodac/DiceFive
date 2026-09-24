@@ -56,7 +56,8 @@ fun SettingsScreen(
     val uriHandler = LocalUriHandler.current
     // Saveable: a rotation mid-confirmation shouldn't silently drop the question.
     var showResetAchievementsConfirmation by rememberSaveable { mutableStateOf(false) }
-    var showResetScoresConfirmation by rememberSaveable { mutableStateOf(false) }
+    var showResetLeaderboardConfirmation by rememberSaveable { mutableStateOf(false) }
+    var showResetStatisticsConfirmation by rememberSaveable { mutableStateOf(false) }
 
     // Opening the GitHub link backgrounds the app (a browser takes over), and Compose's own frame
     // clock - which every banner's fade-in/hold/fade-out animation runs on - keeps ticking through
@@ -133,7 +134,7 @@ fun SettingsScreen(
                 modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
             )
             ListItem(
-                headlineContent = { Text("Reset achievements") },
+                headlineContent = { Text("Reset Achievements") },
                 supportingContent = { Text("Clear every unlock and all progress on this device") },
                 trailingContent = {
                     TextButton(
@@ -146,11 +147,24 @@ fun SettingsScreen(
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
             ListItem(
-                headlineContent = { Text("Reset leaderboard & statistics") },
+                headlineContent = { Text("Reset Leaderboard & Statistics") },
                 supportingContent = { Text("Clear every recorded score on this device") },
                 trailingContent = {
                     TextButton(
-                        onClick = { showResetScoresConfirmation = true },
+                        onClick = { showResetLeaderboardConfirmation = true },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    ) {
+                        Text("Reset")
+                    }
+                },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            )
+            ListItem(
+                headlineContent = { Text("Reset Statistics") },
+                supportingContent = { Text("Remove every player from the Statistics screen") },
+                trailingContent = {
+                    TextButton(
+                        onClick = { showResetStatisticsConfirmation = true },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     ) {
                         Text("Reset")
@@ -183,7 +197,7 @@ fun SettingsScreen(
                     contentDescription = null,
                     modifier = Modifier.padding(end = 8.dp),
                 )
-                Text("View on GitHub")
+                Text("View source on GitHub")
             }
         }
     }
@@ -191,7 +205,7 @@ fun SettingsScreen(
     if (showResetAchievementsConfirmation) {
         DiceFiveDialog(
             icon = Icons.Filled.RestartAlt,
-            title = "Reset achievements?",
+            title = "Reset Achievements?",
             message = "Every achievement will be locked again and all progress towards them lost. " +
                 "This can't be undone. Your scores and settings are not affected.",
             confirmLabel = "Reset",
@@ -205,21 +219,39 @@ fun SettingsScreen(
         )
     }
 
-    if (showResetScoresConfirmation) {
+    if (showResetLeaderboardConfirmation) {
         DiceFiveDialog(
             icon = Icons.Filled.RestartAlt,
-            title = "Reset leaderboard & statistics?",
-            message = "Every recorded score will be deleted, clearing the Leaderboard and Statistics screens. " +
-                "This can't be undone. Achievements and settings are not affected, though any achievement " +
-                "progress measured against the leaderboard will start over.",
+            title = "Reset Leaderboard & Statistics?",
+            message = "Every recorded score will be deleted, clearing the Leaderboard screen - and Statistics with " +
+                "it, since it's calculated from the same scores. This can't be undone. Achievements and settings " +
+                "are not affected, though any achievement progress measured against the leaderboard will start over.",
             confirmLabel = "Reset",
             onConfirm = {
-                viewModel.resetScores()
-                showResetScoresConfirmation = false
+                viewModel.resetLeaderboard()
+                showResetLeaderboardConfirmation = false
             },
             dismissLabel = "Cancel",
-            onDismiss = { showResetScoresConfirmation = false },
-            onDismissRequest = { showResetScoresConfirmation = false },
+            onDismiss = { showResetLeaderboardConfirmation = false },
+            onDismissRequest = { showResetLeaderboardConfirmation = false },
+        )
+    }
+
+    if (showResetStatisticsConfirmation) {
+        DiceFiveDialog(
+            icon = Icons.Filled.RestartAlt,
+            title = "Reset Statistics?",
+            message = "Every player will be hidden from the Statistics screen. The Leaderboard, and every score " +
+                "it holds, is not affected - playing another game under the same name brings that player's " +
+                "Statistics card back.",
+            confirmLabel = "Reset",
+            onConfirm = {
+                viewModel.resetStatistics()
+                showResetStatisticsConfirmation = false
+            },
+            dismissLabel = "Cancel",
+            onDismiss = { showResetStatisticsConfirmation = false },
+            onDismissRequest = { showResetStatisticsConfirmation = false },
         )
     }
 }

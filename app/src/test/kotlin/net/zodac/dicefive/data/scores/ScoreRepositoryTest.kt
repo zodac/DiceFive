@@ -57,6 +57,10 @@ private class FakeScoreDao : ScoreDao {
         dismissed += playerName
     }
 
+    override suspend fun dismissAllPlayers() {
+        dismissed += entries.map { it.playerName }
+    }
+
     override suspend fun clearDismissal(playerName: String) {
         dismissed -= playerName
     }
@@ -202,14 +206,39 @@ class ScoreRepositoryTest {
     }
 
     @Test
-    fun `clearAll removes every recorded score`() = runTest {
+    fun `resetLeaderboard removes every recorded score`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
         repository.recordScore("Alice", 150)
         repository.recordScore("Bob", 300)
 
-        repository.clearAll()
+        repository.resetLeaderboard()
 
         assertEquals(0, repository.totalCount())
+    }
+
+    @Test
+    fun `resetStatistics hides every player without touching any recorded score`() = runTest {
+        val repository = ScoreRepository(FakeScoreDao())
+        repository.recordScore("Alice", 150)
+        repository.recordScore("Bob", 300)
+
+        repository.resetStatistics()
+
+        assertEquals(emptyList<String>(), repository.playerStatistics().map { it.playerName })
+        assertEquals(2, repository.totalCount())
+        assertEquals(150, repository.bestScoreForPlayer("Alice"))
+        assertEquals(300, repository.bestScoreForPlayer("Bob"))
+    }
+
+    @Test
+    fun `recording a new score for a player after resetStatistics un-hides them`() = runTest {
+        val repository = ScoreRepository(FakeScoreDao())
+        repository.recordScore("Alice", 150)
+        repository.resetStatistics()
+
+        repository.recordScore("Alice", 200)
+
+        assertEquals(listOf("Alice"), repository.playerStatistics().map { it.playerName })
     }
 
     @Test
