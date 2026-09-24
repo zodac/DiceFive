@@ -158,11 +158,20 @@ the top of the list as a `stickyHeader` while its group scrolls by, styled as a 
 everything else on the screen rather than a bare `Surface` (which has no default shape, hence
 square corners if you reach for it) - and run easiest-first within each theme, which is just
 `Achievement`'s declaration order, so the catalogue is the single place that ordering is decided.
-Unlocking one doesn't move it: it stays in its ladder and is highlighted in place instead (a
-trophy icon, a raised `secondaryContainer` card), so a ladder always reads as a ladder, earned
-rungs and all, rather than the earned ones jumping out to a separate section. There is no "hide
-unlocked" filter - it was tried and removed; the unlocked/total count above the list is centred
-now that nothing else shares that row.
+Unlocking one doesn't move it: it stays in its ladder and is highlighted in place instead (its own
+icon in place of the generic question mark every locked row shows, plus a raised
+`secondaryContainer` card), so a ladder always reads as a ladder, earned rungs and all, rather
+than the earned ones jumping out to a separate section. There is no "hide unlocked" filter - it
+was tried and removed; the unlocked/total count above the list is centred now that nothing else
+shares that row.
+
+Every achievement has its own icon (`ui/achievements/AchievementIcons.kt`, a `when` over the
+enum), picked to hint at what it's about - not a field on `Achievement` itself, so the model stays
+a plain data catalogue with no Compose dependency, the same reason `ui/game/CategoryIcon.kt` maps
+`ScoreCategory` to a glyph externally rather than the enum carrying one. Locked rows all show the
+same generic question-mark glyph regardless of which achievement they are, so a locked row is
+never a spoiler for what it takes to unlock it - only the achievement's own icon (once unlocked)
+and its title/description (gated separately by `AchievementVisibility`) reveal that.
 
 An earlier version *did* split locked-first/unlocked-after (unlocked flat and newest-first, a
 history rather than a to-do list) - reverted because it scattered a themed ladder in two: an
