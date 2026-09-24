@@ -24,13 +24,20 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
     suspend fun totalCount(): Int = scoreDao.count()
 
     /**
-     * Wipes every recorded score. The Leaderboard and Statistics screens are both just different
-     * views over this same table, so there's no way to clear one without the other.
+     * Wipes every recorded score, which necessarily empties the Statistics screen too - it's
+     * computed from these same rows (see [playerStatistics]) - so nothing is left to dismiss either.
      */
-    suspend fun clearAll() {
+    suspend fun resetLeaderboard() {
         scoreDao.clearAllScores()
         scoreDao.clearAllDismissals()
     }
+
+    /**
+     * Hides every player currently on the Leaderboard from the Statistics screen, without deleting
+     * any recorded score - the Leaderboard is untouched. The bulk version of
+     * [dismissPlayerStatistics]; playing a game un-hides that one player again, in [recordScore].
+     */
+    suspend fun resetStatistics() = scoreDao.dismissAllPlayers()
 
     /**
      * Hides [playerName] from the Statistics screen without touching their recorded scores - the

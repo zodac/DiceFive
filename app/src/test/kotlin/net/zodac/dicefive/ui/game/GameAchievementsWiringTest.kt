@@ -104,6 +104,8 @@ private class FakeScoreDao : ScoreDao {
 
     override suspend fun dismissPlayer(playerName: String) = Unit
 
+    override suspend fun dismissAllPlayers() = Unit
+
     override suspend fun clearDismissal(playerName: String) = Unit
 
     override suspend fun clearAllScores() {
