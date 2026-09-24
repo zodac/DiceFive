@@ -310,11 +310,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
 # cmdline-tools is pinned to the build Google's own repository manifest
 # (https://dl.google.com/android/repository/repository2-3.xml) currently serves as
 # `cmdline-tools;latest` (tool revision 23.0), sha1-verified against that same
-# manifest. `platform-tools`, `platforms;android-35` and `build-tools;35.0.0` are
+# manifest. `platform-tools`, `platforms;android-35` and `build-tools;36.0.0` are
 # pinned to match this project's compileSdk/targetSdk (35) and its
 # `android.buildToolsVersion` (app/build.gradle.kts) — keep those three in step if
 # either changes, or a build will reach out to the network for whatever AGP defaults
-# to instead of what is baked in here.
+# to instead of what is baked in here. build-tools is 36.0.0, one major ahead of
+# compileSdk's 35, because AGP 9.4.1 enforces build-tools >= 36.0.0 regardless of
+# compileSdk and overrides (with a network fetch) anything pinned lower.
 #
 # `yes |` answers the SDK Terms-of-Service prompt sdkmanager still shows on first
 # run (piped, not interactive, same technique as the license-acceptance pattern
@@ -340,10 +342,10 @@ RUN set -eux; \
     mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest; \
     rm -f /tmp/cmdline-tools.zip; \
     yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/opt/android-sdk \
-        "platform-tools" "platforms;android-35" "build-tools;35.0.0" >/dev/null || true; \
+        "platform-tools" "platforms;android-35" "build-tools;36.0.0" >/dev/null || true; \
     test -x /opt/android-sdk/platform-tools/adb; \
     test -d /opt/android-sdk/platforms/android-35; \
-    test -d /opt/android-sdk/build-tools/35.0.0; \
+    test -d /opt/android-sdk/build-tools/36.0.0; \
     chmod -R a+rX /opt/android-sdk
 
 # ── Playwright Chromium OS shared libs (libnspr4, libnss3, …) ────────────────
