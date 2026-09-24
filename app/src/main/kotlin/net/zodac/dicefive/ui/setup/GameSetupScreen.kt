@@ -1,6 +1,8 @@
 package net.zodac.dicefive.ui.setup
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -9,20 +11,25 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameType
@@ -152,10 +159,11 @@ private fun PlayerCountSelector(count: Int, onCountChange: (Int) -> Unit) {
  * A player on one line: their name (editable for a User, automatic for a CPU) and the control
  * that switches between the two.
  *
- * The User/CPU control sits in the same inner [Row] as the name field or difficulty picker -
- * rather than a shared trailing slot alongside a [Column] that also carries the "Player N" label
- * for a CPU - so [Alignment.CenterVertically] centers it against the actual control it toggles,
- * not against that label plus the control's combined height.
+ * The "Player N" label always sits in the same place, above the row, whichever type is selected -
+ * rather than living inside the text field (as a floating label) for a User but above the
+ * difficulty picker for a CPU - so toggling between them doesn't shift it. The User/CPU control
+ * sits in the same inner [Row] as the name field or difficulty picker, so
+ * [Alignment.CenterVertically] centers it against the actual control it toggles.
  */
 @Composable
 private fun PlayerRow(
@@ -165,27 +173,22 @@ private fun PlayerRow(
     onDifficultyChange: (Difficulty) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        if (slot.type == PlayerType.AI) {
-            Text(
-                text = "Player ${slot.slot}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 4.dp),
-            )
-        }
+        Text(
+            text = "Player ${slot.slot}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             when (slot.type) {
-                PlayerType.HUMAN -> OutlinedTextField(
+                PlayerType.HUMAN -> CompactNameField(
                     value = slot.name,
                     onValueChange = onNameChange,
-                    label = { Text("Player ${slot.slot}") },
-                    singleLine = true,
                     modifier = Modifier.weight(1f),
-                    textStyle = MaterialTheme.typography.bodyMedium,
                 )
 
                 PlayerType.AI -> DifficultySelector(
@@ -198,10 +201,53 @@ private fun PlayerRow(
             FilterChip(
                 selected = slot.type == PlayerType.AI,
                 onClick = { onTypeChange(if (slot.type == PlayerType.AI) PlayerType.HUMAN else PlayerType.AI) },
-                label = { Text(if (slot.type == PlayerType.AI) "CPU" else "User") },
+                label = {
+                    // FilterChip's own Row left-aligns its label rather than centering it, so at a
+                    // fixed chip width the leftover space all landed on one side - most visible as
+                    // "CPU" and "User" sitting at different horizontal positions. A label that fills
+                    // the whole slot and centers its own text isn't subject to that.
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(if (slot.type == PlayerType.AI) "CPU" else "User")
+                    }
+                },
                 modifier = Modifier.width(TYPE_CONTROL_WIDTH),
             )
         }
+    }
+}
+
+/**
+ * A single-line name field shrunk to [DifficultySelector]'s own height (a segmented button's
+ * ~40dp floor) so toggling User/CPU doesn't resize the whole row - the public `OutlinedTextField`
+ * composable enforces a 56dp minimum height that isn't reachable through its own
+ * modifier/parameters, so this builds the same look from [BasicTextField] plus
+ * [OutlinedTextFieldDefaults.DecorationBox], which takes an explicit
+ * [contentPadding][OutlinedTextFieldDefaults.contentPadding] instead.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CompactNameField(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val colors = OutlinedTextFieldDefaults.colors()
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+        singleLine = true,
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        interactionSource = interactionSource,
+    ) { innerTextField ->
+        OutlinedTextFieldDefaults.DecorationBox(
+            value = value,
+            innerTextField = innerTextField,
+            enabled = true,
+            singleLine = true,
+            visualTransformation = VisualTransformation.None,
+            interactionSource = interactionSource,
+            colors = colors,
+            contentPadding = OutlinedTextFieldDefaults.contentPadding(top = 10.dp, bottom = 10.dp),
+        )
     }
 }
 
