@@ -9,12 +9,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -22,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -44,8 +41,7 @@ private val UNLOCKED_AT_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH
  * Every achievement the app tracks, in one list - grouped by theme and, within a theme,
  * easiest-first, exactly as the catalogue declares them. An unlocked achievement stays in its
  * ladder rather than jumping to a separate section; it's just highlighted (a trophy icon, a
- * raised card) so what's already been earned is still obvious at a glance. The chip hides
- * unlocked ones entirely, for a pure to-do view.
+ * raised card) so what's already been earned is still obvious at a glance.
  *
  * `Achievement.visibility` gates how much of a locked row is shown: a secret achievement is
  * filtered out of [AchievementsViewModel]'s state entirely - and its unlocked/total counts -
@@ -65,26 +61,12 @@ fun AchievementsScreen(
 
     ScreenScaffold(title = "Achievements", onBack = onBack, modifier = modifier) {
         Card(modifier = Modifier.fillMaxWidth()) {
-            Row(
+            Text(
+                text = "${state.unlockedCount} of ${state.totalCount} unlocked",
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = "${state.unlockedCount} of ${state.totalCount} unlocked",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                FilterChip(
-                    selected = state.hideUnlocked,
-                    onClick = { viewModel.setHideUnlocked(!state.hideUnlocked) },
-                    label = { Text("Hide unlocked") },
-                    leadingIcon = if (state.hideUnlocked) {
-                        { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                    } else {
-                        null
-                    },
-                )
-            }
+            )
         }
 
         LazyColumn(

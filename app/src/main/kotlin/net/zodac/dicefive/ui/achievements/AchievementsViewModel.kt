@@ -38,7 +38,6 @@ data class AchievementGroup(val category: AchievementCategory, val items: List<A
 
 data class AchievementsUiState(
     val groups: List<AchievementGroup> = emptyList(),
-    val hideUnlocked: Boolean = false,
     val unlockedCount: Int = 0,
     val totalCount: Int = 0,
 )
@@ -53,8 +52,6 @@ class AchievementsViewModel(
     private val scoreRepository: ScoreRepository? = null,
 ) : ViewModel() {
 
-    private val hideUnlocked = MutableStateFlow(false)
-
     // Read once: the leaderboard only changes when a game finishes, which can't happen while this
     // screen is open.
     private val leaderboard = MutableStateFlow(LeaderboardTotals())
@@ -62,7 +59,6 @@ class AchievementsViewModel(
     val uiState: StateFlow<AchievementsUiState> =
         combine(
             achievementsRepository?.state ?: flowOf(AchievementsState()),
-            hideUnlocked,
             leaderboard,
             ::toUiState,
         ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), AchievementsUiState())
@@ -73,20 +69,12 @@ class AchievementsViewModel(
         }
     }
 
-    fun setHideUnlocked(hide: Boolean) {
-        hideUnlocked.value = hide
-    }
-
     fun resetAll() {
         val repository = achievementsRepository ?: return
         viewModelScope.launch { repository.resetAll() }
     }
 
-    private fun toUiState(
-        state: AchievementsState,
-        hideUnlocked: Boolean,
-        leaderboard: LeaderboardTotals,
-    ): AchievementsUiState {
+    private fun toUiState(state: AchievementsState, leaderboard: LeaderboardTotals): AchievementsUiState {
         val items = Achievement.entries
             // A secret achievement doesn't exist as far as the list (or its counts) is concerned
             // until it's actually been earned - that's the whole point of it being secret.
@@ -94,7 +82,6 @@ class AchievementsViewModel(
             .map {
                 AchievementItem(it, state.unlockedAt[it], AchievementEngine.progressOf(it, state.counters, leaderboard))
             }
-        val visible = if (hideUnlocked) items.filter { it.unlockedAt == null } else items
 
         return AchievementsUiState(
             // Grouped by theme and, within a theme, easiest first - which is just the catalogue's
@@ -102,10 +89,9 @@ class AchievementsViewModel(
             // earned yet or not. Alphabetical would scatter "Sharpshooter", "High Roller" and
             // "Dice Deity" across the list; splitting earned ones into their own section would
             // scatter the ladders themselves.
-            groups = visible
+            groups = items
                 .groupBy { it.achievement.category }
                 .map { (category, categoryItems) -> AchievementGroup(category, categoryItems) },
-            hideUnlocked = hideUnlocked,
             unlockedCount = items.count { it.unlockedAt != null },
             totalCount = items.size,
         )
