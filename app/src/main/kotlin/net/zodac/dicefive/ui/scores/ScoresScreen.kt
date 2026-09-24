@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,7 +20,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
@@ -61,6 +61,15 @@ private val SCORE_DISPLAY_WIDTH = PlayerState.MAX_POSSIBLE_SCORE.toString().leng
 /** Ranks worth calling out on the leaderboard, whichever page they happen to fall on. */
 private const val PODIUM_RANKS = 3
 
+/** How strong the podium row's own gold/silver/bronze background tint is - faint enough that the
+ * row's text (itself already coloured with the same accent) stays comfortably readable over it. */
+private const val PODIUM_BACKGROUND_ALPHA = 0.16f
+
+/** A small gap above the 2nd and 3rd podium rows, outside their own coloured fill, so gold doesn't
+ * visibly bleed straight into silver into bronze - three adjacent, touching tinted rows read as
+ * one shape otherwise. */
+private val PODIUM_ROW_GAP = 4.dp
+
 /** A text button's own height - the space the pagination row occupies, filled or not. */
 private val PAGINATION_ROW_HEIGHT = 40.dp
 
@@ -87,14 +96,21 @@ fun ScoresScreen(
             Card(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 Column(modifier = Modifier.padding(8.dp)) {
                     HeaderRow()
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    // No divider here any more - it sat flush against the first row with no gap,
+                    // so its line cut straight across the top of a gold/silver/bronze podium row's
+                    // own rounded background the moment one was in play. The header cells' own
+                    // colour/weight already separate them from the data below without it.
+                    Spacer(modifier = Modifier.height(4.dp))
                     val listState = rememberLazyListState()
                     Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                         LazyColumn(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
-                            // Room on the right for the scrollbar so it doesn't sit on top of a row's score.
-                            contentPadding = PaddingValues(end = 12.dp),
+                            // Matching padding on both sides, not just room on the right for the
+                            // scrollbar - reserving space on the right alone (however deliberate)
+                            // left every row's content visibly closer to the left edge than the
+                            // right, scrollbar or not.
+                            contentPadding = PaddingValues(horizontal = 12.dp),
                         ) {
                             itemsIndexed(state.entries, key = { _, entry -> entry.id }) { index, entry ->
                                 val rank = state.pageIndex * SCORES_PAGE_SIZE + index + 1
@@ -130,7 +146,14 @@ fun ScoresScreen(
 
 @Composable
 private fun HeaderRow() {
-    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp)) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            // Matches the LazyColumn's own contentPadding(horizontal = 12.dp) below on both sides -
+            // without it here too, the header's columns don't line up with where the rows' own
+            // text actually lands.
+            .padding(horizontal = 8.dp + 12.dp, vertical = 2.dp),
+    ) {
         HeaderCell(text = "#", weight = 1f)
         HeaderCell(text = "Player", weight = 4f)
         HeaderCell(text = "Score", weight = 1.5f, align = TextAlign.End)
@@ -184,33 +207,48 @@ private fun ScoreRow(rank: Int, entry: ScoreEntry, striped: Boolean) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                // Only between podium rows (2nd/3rd get it above them) - a plain divider-free row
+                // still wants to sit flush against its neighbours the way it always has.
+                .padding(top = if (rank in 2..PODIUM_RANKS) PODIUM_ROW_GAP else 0.dp)
                 .clip(MaterialTheme.shapes.small)
-                // Zebra striping instead of a divider per row: at 100 rows a page, lines turn the
-                // table into a grid, while alternating fills stay quiet.
-                .background(if (striped) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent)
+                // A podium row gets a rounded tint in its own gold/silver/bronze instead of the
+                // ordinary zebra striping - that stripe would otherwise fight with the accent
+                // colour for attention. Off the podium, striping instead of a divider per row: at
+                // 100 rows a page, lines turn the table into a grid, while alternating fills stay
+                // quiet.
+                .background(
+                    when {
+                        accent != null -> accent.copy(alpha = PODIUM_BACKGROUND_ALPHA)
+                        striped -> MaterialTheme.colorScheme.surfaceContainerHighest
+                        else -> Color.Transparent
+                    },
+                )
                 .padding(horizontal = 8.dp, vertical = if (onPodium) 6.dp else 3.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // Same style/weight on every row, podium or not - the accent colour above is already
+            // the whole distinction, a second (font) one on top of it was redundant.
             Text(
                 text = rank.toString(),
                 modifier = Modifier.weight(1f),
-                style = if (onPodium) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodySmall,
                 color = accent ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = if (onPodium) FontWeight.Bold else FontWeight.Normal,
             )
             Text(
                 text = entry.playerName,
                 modifier = Modifier.weight(4f),
-                style = if (onPodium) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 // Space-padded to a fixed width, same reasoning as Statistics' max score: keeps
-                // every row's score the same width regardless of digit count.
+                // every row's score the same width regardless of digit count. Always bodyMedium,
+                // podium or not - the row's own background tint is what calls out a podium finish
+                // now, not a second size bump on top of it.
                 text = entry.score.toString().padStart(SCORE_DISPLAY_WIDTH),
                 modifier = Modifier.weight(1.5f),
-                style = if (onPodium) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = accent ?: MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.End,
