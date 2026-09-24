@@ -490,6 +490,10 @@ enum class Achievement(
         "low_rolls_extreme", "Rock Bottom", "Finish a game on exactly 5 - the lowest score the rules allow",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
+    WHO_MADE_THIS(
+        "who_made_this", "Who Made This", "Open the GitHub link in Settings",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
 
     // ---- Collection: filling in every score there is, and the set of achievements itself ------
     // The six ledger achievements are the longest haul in the game, so they sit at the very end,

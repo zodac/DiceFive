@@ -12,12 +12,16 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.data.achievements.AchievementEvent
+import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsRepository
 import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.Theme
+import net.zodac.dicefive.game.AchievementEngine
+import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.ui.game.GameSetupState
 
 /** All repositories are nullable so this stays constructible/testable without a Context - see [factory]. */
@@ -55,6 +59,21 @@ class SettingsViewModel(
     fun setUserName(name: String) {
         val repository = settingsRepository ?: return
         viewModelScope.launch { repository.setUserName(name.take(GameSetupState.MAX_PLAYER_NAME_LENGTH)) }
+    }
+
+    /** Backs the one achievement this screen itself can earn - tapping through to the project's
+     * GitHub page ("Who Made This"). Same fire-and-check-once pattern as
+     * [net.zodac.dicefive.ui.menu.MenuViewModel.onDiceTapped]. */
+    fun onGithubLinkOpened() {
+        val repository = achievementsRepository ?: return
+        viewModelScope.launch {
+            val before = repository.current()
+            val update = AchievementEngine.unlockNow(setOf(Achievement.WHO_MADE_THIS), before, System.currentTimeMillis())
+            if (update.isEmpty) return@launch
+            // Stored before it's announced, so a banner can never outlive its unlock.
+            repository.record(update.unlockedAt(), update.counters)
+            update.newlyUnlocked.forEach { AchievementEvents.emit(AchievementEvent.Unlocked(it)) }
+        }
     }
 
     /**
