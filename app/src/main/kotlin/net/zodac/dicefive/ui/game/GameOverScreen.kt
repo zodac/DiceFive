@@ -54,7 +54,7 @@ fun GameOverScreen(
 
     BrandBackdrop(modifier = modifier) {
         PageColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Spacer(modifier = Modifier.weight(0.1f))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Text(
                 text = "Game Over",
@@ -87,7 +87,11 @@ fun GameOverScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(0.2f))
+            // A fixed gap, not one that grows to push these to the bottom of the screen - the
+            // achievement banner stack sits over the bottom half (see AchievementBannerHost), so
+            // pinning these as a footer put them right where a banner could land on top of them.
+            // They now just follow directly after the score list instead.
+            Spacer(modifier = Modifier.height(20.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
