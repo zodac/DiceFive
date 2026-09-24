@@ -55,7 +55,14 @@ fun GameBoard(
     // on who's playing - it shows for an AI's rolled dice the same as a human's, otherwise every AI
     // turn (especially Easy, which never holds anything) just changes numbers with no visual cue
     // of what's about to happen.
-    val canScore = rolled && player?.type == PlayerType.HUMAN
+    //
+    // !rolling on top of that: `rolled` alone only reflects the PREVIOUS roll's result while the
+    // cup is mid-shake for a reroll (state.phase doesn't move off ROLLED until the shake finishes
+    // and the new dice actually land), so without this a tap could score against dice about to be
+    // replaced. showPreview stays on `rolled` alone, not gated on !rolling - the preview keeps
+    // showing the previous roll's highlight right up until the new one lands, it just can't be
+    // tapped while that's still in flight.
+    val canScore = rolled && player?.type == PlayerType.HUMAN && !rolling
     val available = player?.let { ScoreCalculator.availableCategories(it, state.dice) }.orEmpty().toSet()
 
     Row(
