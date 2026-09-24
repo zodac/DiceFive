@@ -67,6 +67,17 @@ of the app already uses - two brand colours where there should be one. If gold-a
 ever wanted somewhere, match an existing use (a filled button, the unlock achievement banner)
 rather than inventing a new container/tint combination for it.
 
+**The one deliberate exception: fixed, non-role colours for a fixed meaning M3 has no role
+for.** `Color.kt`'s game-table palette (the board's felt/ivory/leather) and `PlayerColors`
+(cycled by player-tab index) are both like this already - colours that mean one specific thing
+regardless of theme, not a themeable role. The Leaderboard's podium follows the same pattern:
+1st place reuses `primary` (it already *is* the brand gold), but 2nd/3rd read as silver/bronze,
+which nothing in the M3 role set provides - so `LightSilver`/`DarkSilver` and
+`LightBronze`/`DarkBronze` exist as a fixed pair each, picked for contrast against the page
+background the same way `Primary` has a light and a dark value. Reach for this pattern only when
+a role genuinely doesn't exist for what you mean (a medal colour, a fixed player identity) -
+not as a way around picking the right *existing* role, which was the mistake above.
+
 ### Material 3 Expressive: why we're not on it
 
 `material3` 1.4.0 is the newest **stable** release and ships the Expressive-era components,

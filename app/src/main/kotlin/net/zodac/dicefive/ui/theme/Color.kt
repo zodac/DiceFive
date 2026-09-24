@@ -161,3 +161,15 @@ val PlayerColors = listOf(
     Color(0xFFA07BF0),
     Color(0xFFF2A93B),
 )
+
+// Leaderboard podium accents for 2nd/3rd place - a fixed silver/bronze pairing, same "not a
+// colour role" reasoning as the rest of this file: M3 has no role for "silver" or "bronze", and
+// there's exactly one meaning for each, not a theme-able choice. 1st place reuses `primary`
+// itself (see ScoresScreen) rather than adding a third fixed value here, since that's already
+// the brand's gold. Each has a light/dark pair, like Primary does, so the accent keeps enough
+// contrast against the page background in both themes rather than being one fixed mid-tone that
+// only really works in one of them.
+val LightSilver = Color(0xFF5B6472)
+val DarkSilver = Color(0xFFC4CCD9)
+val LightBronze = Color(0xFF8B4A1F)
+val DarkBronze = Color(0xFFE0965A)

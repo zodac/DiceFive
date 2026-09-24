@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,6 +48,10 @@ import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
+import net.zodac.dicefive.ui.theme.DarkBronze
+import net.zodac.dicefive.ui.theme.DarkSilver
+import net.zodac.dicefive.ui.theme.LightBronze
+import net.zodac.dicefive.ui.theme.LightSilver
 
 private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
 
@@ -143,6 +148,24 @@ private fun RowScope.HeaderCell(text: String, weight: Float, align: TextAlign = 
     )
 }
 
+/**
+ * The podium accent for a rank, or null off the podium. 1st place reuses `colorScheme.primary` -
+ * already the brand's gold - while 2nd/3rd reach for the fixed silver/bronze pair in `Color.kt`,
+ * since M3 has no role for either. Picked by background luminance rather than
+ * `isSystemInDarkTheme()`: the app's theme can be pinned to Light or Dark in Settings regardless
+ * of the system setting, and luminance reflects whichever scheme is actually active.
+ */
+@Composable
+private fun podiumAccent(rank: Int): Color? {
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    return when (rank) {
+        1 -> MaterialTheme.colorScheme.primary
+        2 -> if (dark) DarkSilver else LightSilver
+        3 -> if (dark) DarkBronze else LightBronze
+        else -> null
+    }
+}
+
 // rememberPlainTooltipPositionProvider is deprecated in favour of rememberTooltipPositionProvider,
 // which doesn't exist yet in material3 1.4.0 - it arrives with the 1.5.0 line. Swap it over then.
 @Suppress("DEPRECATION")
@@ -150,7 +173,7 @@ private fun RowScope.HeaderCell(text: String, weight: Float, align: TextAlign = 
 @Composable
 private fun ScoreRow(rank: Int, entry: ScoreEntry, striped: Boolean) {
     val onPodium = rank <= PODIUM_RANKS
-    val accent = MaterialTheme.colorScheme.primary
+    val accent = podiumAccent(rank)
 
     val tooltipState = rememberTooltipState()
     TooltipBox(
@@ -165,20 +188,20 @@ private fun ScoreRow(rank: Int, entry: ScoreEntry, striped: Boolean) {
                 // Zebra striping instead of a divider per row: at 100 rows a page, lines turn the
                 // table into a grid, while alternating fills stay quiet.
                 .background(if (striped) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent)
-                .padding(horizontal = 8.dp, vertical = 3.dp),
+                .padding(horizontal = 8.dp, vertical = if (onPodium) 6.dp else 3.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = rank.toString(),
                 modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodySmall,
-                color = if (onPodium) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                style = if (onPodium) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodySmall,
+                color = accent ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = if (onPodium) FontWeight.Bold else FontWeight.Normal,
             )
             Text(
                 text = entry.playerName,
                 modifier = Modifier.weight(4f),
-                style = MaterialTheme.typography.bodyMedium,
+                style = if (onPodium) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -187,9 +210,9 @@ private fun ScoreRow(rank: Int, entry: ScoreEntry, striped: Boolean) {
                 // every row's score the same width regardless of digit count.
                 text = entry.score.toString().padStart(SCORE_DISPLAY_WIDTH),
                 modifier = Modifier.weight(1.5f),
-                style = MaterialTheme.typography.bodyMedium,
+                style = if (onPodium) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                color = if (onPodium) accent else MaterialTheme.colorScheme.onSurface,
+                color = accent ?: MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.End,
             )
         }
