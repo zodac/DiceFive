@@ -15,13 +15,35 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import net.zodac.dicefive.R
 import net.zodac.dicefive.ui.game.style.IvoryDiceStyle
+
+/**
+ * The brand typeface: Sora, a variable font ([R.font.sora]), pinned to its bold instance via
+ * [FontVariation] rather than shipping a separate static weight file. Used on the logo wordmark
+ * here and on [ScreenScaffold]'s page titles - nowhere else. This is a deliberate, narrow
+ * departure from stock M3 type ([UI.md]'s "no typography overrides" rule is about the type
+ * *scale*, not a call site): these are brand marks, not body text, so they earn their own face
+ * the same way the game board earns its own palette.
+ */
+@OptIn(ExperimentalTextApi::class)
+internal val SoraFontFamily = FontFamily(
+    Font(
+        resId = R.font.sora,
+        weight = FontWeight.Bold,
+        variationSettings = FontVariation.Settings(FontVariation.weight(700)),
+    ),
+)
 
 /**
  * The five dice of the logo fan - the name's worth of dice - each with the tilt and the vertical
@@ -40,11 +62,11 @@ private val LOGO_DICE = listOf(
 )
 
 /**
- * Placeholder app mark: a fan of the game's own dice over the wordmark.
+ * The app mark: a fan of the game's own dice over the wordmark.
  *
  * Built from [IvoryDiceStyle] rather than an image so it costs no asset and always matches the
- * dice on the board - swap the whole composable's body for real artwork (a drawable) when there
- * is any, keeping the "DiceFive" text so the name is still in the view tree for tests/a11y.
+ * dice on the board - deliberately kept as live Compose dice rather than a drawable, unlike the
+ * launcher icon ([R.drawable.ic_launcher_foreground]), which is its own static artwork.
  *
  * The wordmark uses `displayMedium` from the type scale rather than a hand-set size, so it stays
  * in proportion with everything else if the scale is ever restyled; [titleSize] only exists for
@@ -88,6 +110,7 @@ fun AppLogo(
             text = "DiceFive",
             modifier = Modifier.padding(top = 16.dp),
             style = MaterialTheme.typography.displayMedium,
+            fontFamily = SoraFontFamily,
             fontSize = titleSize,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,

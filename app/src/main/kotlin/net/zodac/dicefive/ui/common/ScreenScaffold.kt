@@ -53,10 +53,11 @@ val CONTENT_MAX_WIDTH = 460.dp
  * [bottomBar] pins content to the foot of the screen, outside the scroll - for a page whose main
  * action must stay reachable however long its form gets. Use [PinnedActionBar] for the usual case.
  *
- * The app bar's title is bold and tinted `colorScheme.primary` - the app's one brand colour,
- * the same gold a Statistics max score or a game board's "press this" uses - rather than the
- * plain default `titleMedium` text a bare `CenterAlignedTopAppBar` gives you for free. The bar
- * itself stays transparent over the backdrop, same as the rest of the app's chrome.
+ * The app bar's title is bold, set in [SoraFontFamily] (the same face as the menu wordmark) and
+ * tinted `colorScheme.primary` - the app's one brand colour, the same gold a Statistics max score
+ * or a game board's "press this" uses - rather than the plain default `titleMedium` text a bare
+ * `CenterAlignedTopAppBar` gives you for free. The bar itself stays transparent over the backdrop,
+ * same as the rest of the app's chrome.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,6 +81,7 @@ fun ScreenScaffold(
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleLarge,
+                            fontFamily = SoraFontFamily,
                             fontWeight = FontWeight.Bold,
                         )
                     },

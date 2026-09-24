@@ -317,6 +317,15 @@ edges are pinned.
   successor arrives with 1.5.0. Suppressed at the call site in `ScoresScreen`.
 - **`ViewModelConstructorInComposable`** fires on `@Preview` functions that build a view model.
   Suppressed on the preview in `GameScreen` - a preview has no host to scope one to.
+- **The adaptive-icon "safe zone" is a floor, not a guarantee.** `ic_launcher_foreground.xml`'s
+  artwork was checked by hand against the spec's nominal 66dp-diameter safe circle centred in the
+  108dp canvas (and separately against a rounded-square mask), rendered and inspected both ways,
+  and cleared with margin - but a real device screenshot still showed every die flat-cut at the
+  edges. Whatever mask the actual launcher applies crops tighter than that nominal circle in
+  practice. Don't trust the spec's safe-zone math alone for icon work; get an on-device look
+  before calling it done, and when touching this file keep the real margin that's baked in now
+  (everything sits inside one outer `<group scaleX="0.8" scaleY="0.8" pivotX="54"
+  pivotY="54">`) rather than pushing content back out toward the theoretical 66dp edge.
 
 ## Verifying UI work
 
@@ -333,5 +342,6 @@ size you can't check.
 - The per-player difficulty selector on the setup screen: it cost a control row per player and
   every option in it is disabled until AI difficulty exists, so it's one line of text for now.
   `PlayerSetupSlot.difficulty` and `setPlayerDifficulty` are untouched - only the UI went.
-- Real logo artwork. `AppLogo` is a placeholder; swap its body for a drawable but keep the
-  "DiceFive" text, which `MainActivityTest` asserts on.
+- `AppLogo`'s dice fan is deliberately live `IvoryDiceStyle.Die` composables, not a drawable -
+  the launcher icon (`ic_launcher_foreground.xml`) is the app's static artwork; the in-app logo
+  is not meant to duplicate it. Keep the "DiceFive" text, which `MainActivityTest` asserts on.

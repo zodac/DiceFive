@@ -4,35 +4,178 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Die face: 52 x 52, centred in the viewport -->
-    <path
-        android:pathData="M34,28 h40 a6,6 0 0 1 6,6 v40 a6,6 0 0 1 -6,6 h-40 a6,6 0 0 1 -6,-6 v-40 a6,6 0 0 1 6,-6 z"
-        android:fillColor="#FFFFFF" />
+    <!--
+      Kept close to the 66dp "safe zone" circle centred on (54,54) - the region every
+      adaptive-icon mask (circle, squircle, rounded square, teardrop) is guaranteed not to crop.
+      Three dice sit above the cup's rim line (y=38.5), never dipping into or below the cup mouth;
+      two more flank the cup lower down, below the opening, offset from each other by one die
+      height (14 units) so they don't read as a mirrored pair.
 
-    <!-- Left column -->
-    <path
-        android:pathData="M44,38 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"
-        android:fillColor="#1B5E20" />
+      Pip positions and radius are derived from the real dice: BeveledDie.kt pads its die box by
+      6dp on each side before laying out pips, and PipFace draws them at pipRadiusFraction=0.11
+      inside that padded box (Pips.kt's PIP_LAYOUTS fractions, e.g. 0.26/0.5/0.74). Taking
+      AppLogo.kt's 34dp fan dice as the reference size, that works out to each pip corner sitting
+      at ~34.5%/65.5% of the die's own height (not 30%/70%) and each pip's radius at ~7.1% of that
+      height - scaled here to this icon's smaller 14/15-unit dice.
+    -->
 
-    <path
-        android:pathData="M44,54 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"
-        android:fillColor="#1B5E20" />
+    <!-- Everything below scaled down around the icon's centre (54,54) - a pure zoom, so every
+         internal ratio (pip fractions, die corner rounding, relative sizes) stays identical;
+         only the overall footprint shrinks. The real launcher mask crops noticeably tighter than
+         the nominal 66dp "safe zone" circle this file's math had been checked against (confirmed
+         against device screenshots showing dice flat-cut at this scale's edges) - see UI.md's
+         "adaptive-icon safe zone" gotcha. All the individual dice/cup coordinates below were also
+         shifted down 3 units on top of this scale, to pull the topmost die (the 5) clear of the
+         top edge. -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.8"
+        android:scaleY="0.8">
 
+    <!-- Dice cup. -->
     <path
-        android:pathData="M44,70 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"
-        android:fillColor="#1B5E20" />
+        android:pathData="M32,41.5 L76,41.5 L64,87.5 Q54,93.5 44,87.5 Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#C79A4B"
+        android:strokeWidth="3.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
 
-    <!-- Right column -->
+    <!-- Rim line. -->
     <path
-        android:pathData="M64,38 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"
-        android:fillColor="#1B5E20" />
+        android:pathData="M36,49.5 L72,49.5"
+        android:strokeColor="#C79A4B"
+        android:strokeWidth="1.6"
+        android:strokeAlpha="0.5" />
 
-    <path
-        android:pathData="M64,54 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"
-        android:fillColor="#1B5E20" />
+    <!-- Gold die, left of the 5, below the cup's opening - a full die height lower than the
+         white die on the other side. Showing 2, matching the menu logo's dice order (2-4-5-3-6
+         left to right). -->
+    <group
+        android:translateX="16"
+        android:translateY="60.5"
+        android:pivotX="7"
+        android:pivotY="7"
+        android:rotation="-52">
+        <path
+            android:pathData="M3.5,0 h7 a3.5,3.5 0 0 1 3.5,3.5 v7 a3.5,3.5 0 0 1 -3.5,3.5 h-7 a3.5,3.5 0 0 1 -3.5,-3.5 v-7 a3.5,3.5 0 0 1 3.5,-3.5 z"
+            android:fillColor="#FFCC55" />
+        <path
+            android:pathData="M4.83,4.83 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#2B2118" />
+        <path
+            android:pathData="M9.18,9.18 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#2B2118" />
+    </group>
 
-    <path
-        android:pathData="M64,70 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"
-        android:fillColor="#1B5E20" />
+    <!-- White die, showing 4, tumbling out above the rim - raised a little higher than the gold
+         die. Second in the menu logo's 2-4-5-3-6 order. -->
+    <group
+        android:translateX="23"
+        android:translateY="18.4"
+        android:pivotX="7.5"
+        android:pivotY="7.5"
+        android:rotation="28">
+        <path
+            android:pathData="M3.75,0 h7.5 a3.75,3.75 0 0 1 3.75,3.75 v7.5 a3.75,3.75 0 0 1 -3.75,3.75 h-7.5 a3.75,3.75 0 0 1 -3.75,-3.75 v-7.5 a3.75,3.75 0 0 1 3.75,-3.75 z"
+            android:fillColor="#FFFCF3" />
+        <path
+            android:pathData="M5.17,5.17 m-1.07,0 a1.07,1.07 0 1,0 2.14,0 a1.07,1.07 0 1,0 -2.14,0"
+            android:fillColor="#2B2118" />
+        <path
+            android:pathData="M9.83,5.17 m-1.07,0 a1.07,1.07 0 1,0 2.14,0 a1.07,1.07 0 1,0 -2.14,0"
+            android:fillColor="#2B2118" />
+        <path
+            android:pathData="M5.17,9.83 m-1.07,0 a1.07,1.07 0 1,0 2.14,0 a1.07,1.07 0 1,0 -2.14,0"
+            android:fillColor="#2B2118" />
+        <path
+            android:pathData="M9.83,9.83 m-1.07,0 a1.07,1.07 0 1,0 2.14,0 a1.07,1.07 0 1,0 -2.14,0"
+            android:fillColor="#2B2118" />
+    </group>
+
+    <!-- Blue die, showing 5, centred between the other two, above the rim - matches the menu
+         logo's own centre die. Brand blue (the secondary seed, #1E4B86) with a white outline so
+         it reads clearly against the navy background instead of blending into it. -->
+    <group
+        android:translateX="49"
+        android:translateY="13.5"
+        android:pivotX="7"
+        android:pivotY="7"
+        android:rotation="-5">
+        <path
+            android:pathData="M3.5,0 h7 a3.5,3.5 0 0 1 3.5,3.5 v7 a3.5,3.5 0 0 1 -3.5,3.5 h-7 a3.5,3.5 0 0 1 -3.5,-3.5 v-7 a3.5,3.5 0 0 1 3.5,-3.5 z"
+            android:fillColor="#1E4B86"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="0.5" />
+        <path
+            android:pathData="M4.83,4.83 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#FFFFFF" />
+        <path
+            android:pathData="M9.18,4.83 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#FFFFFF" />
+        <path
+            android:pathData="M7,7 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#FFFFFF" />
+        <path
+            android:pathData="M4.83,9.18 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#FFFFFF" />
+        <path
+            android:pathData="M9.18,9.18 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#FFFFFF" />
+    </group>
+
+    <!-- Gold die, showing 3, tumbling out above the rim - fourth in the menu logo's order. -->
+    <group
+        android:translateX="70.6"
+        android:translateY="22.9"
+        android:pivotX="7"
+        android:pivotY="7"
+        android:rotation="18">
+        <path
+            android:pathData="M3.5,0 h7 a3.5,3.5 0 0 1 3.5,3.5 v7 a3.5,3.5 0 0 1 -3.5,3.5 h-7 a3.5,3.5 0 0 1 -3.5,-3.5 v-7 a3.5,3.5 0 0 1 3.5,-3.5 z"
+            android:fillColor="#FFCC55" />
+        <path
+            android:pathData="M4.83,4.83 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#2B2118" />
+        <path
+            android:pathData="M7,7 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#2B2118" />
+        <path
+            android:pathData="M9.18,9.18 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#2B2118" />
+    </group>
+
+    <!-- White die, showing 6, below the cup's opening - last in the menu logo's order. -->
+    <group
+        android:translateX="84.25"
+        android:translateY="47.2"
+        android:pivotX="7"
+        android:pivotY="7"
+        android:rotation="-77">
+        <path
+            android:pathData="M3.5,0 h7 a3.5,3.5 0 0 1 3.5,3.5 v7 a3.5,3.5 0 0 1 -3.5,3.5 h-7 a3.5,3.5 0 0 1 -3.5,-3.5 v-7 a3.5,3.5 0 0 1 3.5,-3.5 z"
+            android:fillColor="#FFFCF3" />
+        <path
+            android:pathData="M4.83,4.46 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#2B2118" />
+        <path
+            android:pathData="M4.83,7 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#2B2118" />
+        <path
+            android:pathData="M4.83,9.54 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#2B2118" />
+        <path
+            android:pathData="M9.18,4.46 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#2B2118" />
+        <path
+            android:pathData="M9.18,7 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#2B2118" />
+        <path
+            android:pathData="M9.18,9.54 m-1.00,0 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0"
+            android:fillColor="#2B2118" />
+    </group>
+
+    </group>
 
 </vector>
