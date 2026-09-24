@@ -14,8 +14,9 @@ sealed interface AchievementEvent {
     /** Earned just now. */
     data class Unlocked(override val achievement: Achievement) : AchievementEvent
 
-    /** Moved closer to being earned. [current] is the new progress, out of the target. */
-    data class Progressed(override val achievement: Achievement, val current: Int) : AchievementEvent
+    /** Moved closer to being earned, from [previous] to [current] out of the target - both carried
+     * so the banner can animate the count climbing rather than snapping to [current]. */
+    data class Progressed(override val achievement: Achievement, val previous: Int, val current: Int) : AchievementEvent
 }
 
 /**

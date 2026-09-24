@@ -26,6 +26,10 @@ import androidx.compose.ui.unit.dp
  * [onDismissRequest] is separate from [onDismiss] on purpose: backing out of a dialog (tapping the
  * scrim, or the system back) is not the same as choosing its second option. Where a caller wants
  * them to be the same, it passes the same lambda.
+ *
+ * [dismissLabel]/[onDismiss] are both null for a purely informational dialog with nothing to
+ * confirm or decline - just the one button, [confirmLabel], to close it. Passing one without the
+ * other is a caller error.
  */
 @Composable
 fun DiceFiveDialog(
@@ -34,8 +38,8 @@ fun DiceFiveDialog(
     message: String,
     confirmLabel: String,
     onConfirm: () -> Unit,
-    dismissLabel: String,
-    onDismiss: () -> Unit,
+    dismissLabel: String? = null,
+    onDismiss: (() -> Unit)? = null,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -70,8 +74,10 @@ fun DiceFiveDialog(
         confirmButton = {
             Button(onClick = onConfirm) { Text(confirmLabel) }
         },
-        dismissButton = {
-            FilledTonalButton(onClick = onDismiss) { Text(dismissLabel) }
+        dismissButton = if (dismissLabel != null && onDismiss != null) {
+            { FilledTonalButton(onClick = onDismiss) { Text(dismissLabel) } }
+        } else {
+            null
         },
         shape = MaterialTheme.shapes.extraLarge,
         // A step above the page's own surface, so the dialog reads as sitting on top of it rather

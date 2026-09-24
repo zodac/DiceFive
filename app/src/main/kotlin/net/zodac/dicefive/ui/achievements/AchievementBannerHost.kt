@@ -2,7 +2,9 @@ package net.zodac.dicefive.ui.achievements
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,10 +38,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
@@ -49,9 +53,10 @@ import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
+import net.zodac.dicefive.ui.common.DiceFiveDialog
 
 /** How long a banner sits at full opacity before it starts to go. */
-private const val HOLD_MILLIS = 1_500L
+private const val HOLD_MILLIS = 2_000L
 
 /** Deliberately unhurried: the end of a game pops several, and a snap-out would read as a glitch. */
 private const val FADE_OUT_MILLIS = 900
@@ -60,6 +65,9 @@ private const val FADE_IN_MILLIS = 180
 
 /** A swipe leaves quickly - the player has said they're done with it. */
 private const val SWIPE_OUT_MILLIS = 180
+
+/** How long a progress banner's count and bar take to climb from the old value to the new one. */
+private const val PROGRESS_COUNT_MILLIS = 700
 
 /** The gap between two banners appearing, so a burst arrives as a stack being dealt, not a wall. */
 private const val STAGGER_MILLIS = 300L
@@ -76,18 +84,40 @@ private const val BOTTOM_HALF = 0.5f
 /** How far across itself a banner must be dragged to count as "get rid of this". */
 private const val SWIPE_DISMISS_FRACTION = 0.25f
 
+/** How much of an older banner peeks out above the one in front of it, in a stack - just enough
+ * to show it's there and to stay tappable/swipeable on its own, without the pile eating the
+ * screen the way one full-height row per banner used to. */
+private const val STACK_PEEK_DP = 14
+
+/** A faint outline on every banner, so a stack of them - which overlap with no gap between - reads
+ * as separate cards rather than one elongated shape. Plain black at low alpha rather than a theme
+ * colour: it needs to work over both the primary-container unlock banner and the
+ * surface-container-high progress one without picking a tint that clashes with either. */
+private val BANNER_BORDER_COLOR = Color.Black.copy(alpha = 0.12f)
+
 private data class BannerItem(val key: Long, val event: AchievementEvent)
 
 /**
  * Wraps the whole app so achievement banners can outlive the screen that raised them - the burst
  * at the end of a game starts on the board and carries on over the results screen.
  *
- * Banners stack upward from the bottom edge, newest nearest the thumb, and each one leaves on its
- * own: a hold, then a slow fade. A horizontal swipe in either direction clears one early.
+ * Banners sit in a bottom-anchored overlapping stack, newest in front and nearest the thumb, each
+ * older one peeking out by [STACK_PEEK_DP] above the one in front of it rather than getting a full
+ * row of its own - a burst of several no longer fills the screen. Only the front banner is
+ * interactive (swipe or long press); the ones peeking out behind it are inert until it clears, so
+ * a swipe can never accidentally land on the wrong one underneath. An unlock always takes the
+ * front position over a progress nudge, regardless of which arrived first - see [displayOrder].
+ * Each banner leaves on its own: a hold, then a slow fade. A horizontal swipe in either direction,
+ * or clearing its long-press description dialog, doesn't wait for that.
  */
 @Composable
 fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val banners = remember { mutableStateListOf<BannerItem>() }
+    // Which banner (if any) has its long-press description dialog open - only ever the front one,
+    // since only it is interactive, but read by every banner below so ALL of their hold countdowns
+    // pause together, not just the one actually showing the dialog. Otherwise a banner peeking out
+    // behind it could still time out and clear itself while the dialog was up.
+    var descriptionShownForKey by remember { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(Unit) {
         var nextKey = 0L
@@ -103,7 +133,7 @@ fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable ()
     Box(modifier = modifier) {
         content()
 
-        Column(
+        Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
@@ -111,12 +141,31 @@ fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable ()
                 .clipToBounds()
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            contentAlignment = Alignment.BottomCenter,
         ) {
-            banners.forEach { item ->
+            // Display order only, not the underlying list (removal below still targets `banners`
+            // directly) - a real unlock always sits in front of a progress nudge, wherever in the
+            // arrival order it actually landed. sortedBy is stable, so within each of the two
+            // groups arrival order is preserved.
+            val displayOrder = banners.sortedBy { it.event is AchievementEvent.Unlocked }
+            displayOrder.forEachIndexed { index, item ->
+                // 0 for the newest (frontmost, drawn last so it's on top), climbing for each one
+                // further back in the stack.
+                val depthFromFront = displayOrder.lastIndex - index
                 key(item.key) {
-                    BannerSlot(item = item, onDismissed = { banners.remove(item) })
+                    BannerSlot(
+                        item = item,
+                        interactive = depthFromFront == 0,
+                        anyDescriptionShowing = descriptionShownForKey != null,
+                        showOwnDescription = descriptionShownForKey == item.key,
+                        onRequestDescription = { descriptionShownForKey = item.key },
+                        onDismissDescription = { descriptionShownForKey = null },
+                        onDismissed = { banners.remove(item) },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .offset(y = -(depthFromFront * STACK_PEEK_DP).dp)
+                            .zIndex(index.toFloat()),
+                    )
                 }
             }
         }
@@ -126,16 +175,56 @@ fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable ()
 /**
  * One banner's lifetime and gestures. The slot owns the animation; [onDismissed] only removes it
  * from the list, and is safe to call twice if a swipe lands during the closing fade.
+ *
+ * [interactive] gates the gesture recognizer entirely - false for every banner but the front one
+ * in the stack, so a swipe or long press can only ever land on the one actually on top; the ones
+ * peeking out behind it don't so much as consume the touch.
+ *
+ * The hold countdown only runs while [interactive] is true - a banner peeking out behind the
+ * front one doesn't start timing out until it's actually promoted to the front, so a burst of
+ * several banners each get their own full [HOLD_MILLIS] once it's their turn rather than all
+ * ticking down together and clearing within moments of each other. [anyDescriptionShowing] pauses
+ * it further on top of that, for the one banner it's actually possible to open a dialog on (the
+ * front one - see [interactive]).
+ *
+ * A single gesture recognizer handles both a horizontal swipe (dismiss) and a long press (show
+ * the full description) - they have to live in the same `pointerInput` block rather than two
+ * separate ones, since both start from the same down event and only diverge once the finger
+ * either moves past touch slop (a swipe) or the long-press timeout elapses first (neither moved).
+ * A long press followed by drag is treated as a swipe, same as anywhere else in Android - the
+ * timeout is cancelled the moment real movement is seen.
  */
 @Composable
-private fun BannerSlot(item: BannerItem, onDismissed: () -> Unit) {
+private fun BannerSlot(
+    item: BannerItem,
+    interactive: Boolean,
+    anyDescriptionShowing: Boolean,
+    showOwnDescription: Boolean,
+    onRequestDescription: () -> Unit,
+    onDismissDescription: () -> Unit,
+    onDismissed: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val scope = rememberCoroutineScope()
     val alpha = remember { Animatable(0f) }
     val offsetX = remember { Animatable(0f) }
     var swipedAway by remember { mutableStateOf(false) }
 
+    // Fades in as soon as it's placed in the stack, whether or not it's the front banner yet -
+    // every banner in a burst should be visible right away, even the ones peeking out behind the
+    // front one that aren't counting down yet.
     LaunchedEffect(Unit) {
         alpha.animateTo(1f, tween(FADE_IN_MILLIS))
+    }
+
+    // Re-runs whenever this banner is promoted to/demoted from the front of the stack, or its
+    // description dialog opens/closes: becoming the front banner is what starts its hold countdown
+    // in the first place, and losing that status (shouldn't normally happen, but is handled the
+    // same way for safety) or opening its dialog cancels whatever's left of it (the
+    // `return@LaunchedEffect` below). Closing the dialog starts a fresh full-length hold rather
+    // than resuming a partial one - reading the description is itself a reason to stick around.
+    LaunchedEffect(interactive, anyDescriptionShowing, swipedAway) {
+        if (!interactive || swipedAway || anyDescriptionShowing) return@LaunchedEffect
         delay(HOLD_MILLIS)
         if (!swipedAway) {
             alpha.animateTo(0f, tween(FADE_OUT_MILLIS))
@@ -144,36 +233,81 @@ private fun BannerSlot(item: BannerItem, onDismissed: () -> Unit) {
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .widthIn(max = CONTENT_MAX_WIDTH)
             .fillMaxWidth()
             .offset { IntOffset(offsetX.value.roundToInt(), 0) }
             .alpha(alpha.value)
-            .pointerInput(item.key) {
-                detectHorizontalDragGestures(
-                    onDragEnd = {
-                        scope.launch {
-                            if (abs(offsetX.value) > size.width * SWIPE_DISMISS_FRACTION) {
-                                swipedAway = true
-                                val target = size.width.toFloat() * if (offsetX.value > 0) 1 else -1
-                                launch { alpha.animateTo(0f, tween(SWIPE_OUT_MILLIS)) }
-                                offsetX.animateTo(target, tween(SWIPE_OUT_MILLIS))
-                                onDismissed()
-                            } else {
-                                offsetX.animateTo(0f, tween(SWIPE_OUT_MILLIS))
+            .then(
+                if (!interactive) {
+                    Modifier
+                } else {
+                    Modifier.pointerInput(item.key) {
+                        val longPressTimeoutMillis = viewConfiguration.longPressTimeoutMillis
+                        val touchSlop = viewConfiguration.touchSlop
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            var dragging = false
+                            var previousX = down.position.x
+                            val longPressJob = scope.launch {
+                                delay(longPressTimeoutMillis)
+                                if (!dragging) onRequestDescription()
+                            }
+                            try {
+                                do {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                    if (!dragging) {
+                                        val totalDeltaX = change.position.x - down.position.x
+                                        if (abs(totalDeltaX) > touchSlop) {
+                                            dragging = true
+                                            longPressJob.cancel()
+                                        }
+                                    }
+                                    if (dragging) {
+                                        change.consume()
+                                        val deltaX = change.position.x - previousX
+                                        scope.launch { offsetX.snapTo(offsetX.value + deltaX) }
+                                    }
+                                    previousX = change.position.x
+                                } while (event.changes.any { it.pressed })
+                            } finally {
+                                longPressJob.cancel()
+                            }
+
+                            if (dragging) {
+                                scope.launch {
+                                    if (abs(offsetX.value) > size.width * SWIPE_DISMISS_FRACTION) {
+                                        swipedAway = true
+                                        val target = size.width.toFloat() * if (offsetX.value > 0) 1 else -1
+                                        launch { alpha.animateTo(0f, tween(SWIPE_OUT_MILLIS)) }
+                                        offsetX.animateTo(target, tween(SWIPE_OUT_MILLIS))
+                                        onDismissed()
+                                    } else {
+                                        offsetX.animateTo(0f, tween(SWIPE_OUT_MILLIS))
+                                    }
+                                }
                             }
                         }
-                    },
-                ) { change, dragAmount ->
-                    change.consume()
-                    scope.launch { offsetX.snapTo(offsetX.value + dragAmount) }
-                }
-            },
+                    }
+                },
+            ),
     ) {
         when (val event = item.event) {
             is AchievementEvent.Unlocked -> UnlockedBanner(event.achievement)
-            is AchievementEvent.Progressed -> ProgressBanner(event.achievement, event.current)
+            is AchievementEvent.Progressed -> ProgressBanner(event.achievement, event.previous, event.current)
         }
+    }
+
+    if (showOwnDescription) {
+        DiceFiveDialog(
+            icon = Icons.Filled.EmojiEvents,
+            title = item.event.achievement.title,
+            message = item.event.achievement.description,
+            confirmLabel = "Got it",
+            onConfirm = onDismissDescription,
+            onDismissRequest = onDismissDescription,
+        )
     }
 }
 
@@ -185,6 +319,7 @@ private fun UnlockedBanner(achievement: Achievement) {
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        border = BorderStroke(1.dp, BANNER_BORDER_COLOR),
         shadowElevation = 6.dp,
     ) {
         Row(
@@ -207,24 +342,35 @@ private fun UnlockedBanner(achievement: Achievement) {
 }
 
 /**
- * The quieter one: not earned yet, but closer. Lower emphasis and a shorter body than an unlock,
- * so a run of progress nudges can't be mistaken for the real thing.
+ * The quieter one: not earned yet, but closer. Same footprint as [UnlockedBanner] (padding, icon
+ * size) so the stack doesn't jump in size as progress and unlock banners mix - only the colour
+ * keeps it lower emphasis, so it still can't be mistaken for the real thing.
+ *
+ * The count and the bar both animate from [previous] to [current] rather than snapping straight
+ * to the new value, so a progress nudge visibly climbs instead of just appearing already-there.
  */
 @Composable
-private fun ProgressBanner(achievement: Achievement, current: Int) {
+private fun ProgressBanner(achievement: Achievement, previous: Int, current: Int) {
+    val animatedProgress = remember { Animatable(previous.toFloat()) }
+    LaunchedEffect(Unit) {
+        animatedProgress.animateTo(current.toFloat(), tween(PROGRESS_COUNT_MILLIS))
+    }
+    val displayedValue = animatedProgress.value.roundToInt()
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        border = BorderStroke(1.dp, BANNER_BORDER_COLOR),
         shadowElevation = 3.dp,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Icon(imageVector = Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(18.dp))
+            Icon(imageVector = Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(28.dp))
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -233,19 +379,19 @@ private fun ProgressBanner(achievement: Achievement, current: Int) {
                 ) {
                     Text(
                         text = achievement.title,
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     Text(
-                        text = "${current.grouped()} of ${achievement.target.grouped()}",
+                        text = "${displayedValue.grouped()} of ${achievement.target.grouped()}",
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }
                 LinearProgressIndicator(
-                    progress = { current.toFloat() / achievement.target },
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    progress = { (animatedProgress.value / achievement.target).coerceIn(0f, 1f) },
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
                 )
             }
         }

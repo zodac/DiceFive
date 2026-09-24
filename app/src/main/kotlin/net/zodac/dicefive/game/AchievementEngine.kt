@@ -83,8 +83,10 @@ data class LeaderboardTotals(
     )
 }
 
-/** One "getting closer" banner: [achievement] is now at [current] out of its target. */
-data class AchievementProgress(val achievement: Achievement, val current: Int)
+/** One "getting closer" banner: [achievement] moved from [previous] to [current] out of its
+ * target - both are carried (not just [current]) so the banner can animate the count climbing
+ * rather than just snapping to the new value. */
+data class AchievementProgress(val achievement: Achievement, val previous: Int, val current: Int)
 
 /** What a single evaluation changed. Empty on every count when nothing happened. */
 data class AchievementUpdate(
@@ -480,7 +482,7 @@ object AchievementEngine {
             ProgressStyle.CUMULATIVE -> milestone(previous, achievement.target) != milestone(current, achievement.target)
             ProgressStyle.NONE -> false
         }
-        return if (worthShowing) AchievementProgress(achievement, current) else null
+        return if (worthShowing) AchievementProgress(achievement, previous, current) else null
     }
 
     private fun milestone(value: Int, target: Int): Int = value * PROGRESS_MILESTONES / target

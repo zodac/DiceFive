@@ -983,7 +983,7 @@ class GameViewModel(
         // Stored before anything is announced, so a banner can never outlive its unlock.
         repository.record(update.unlockedAt(), update.counters)
         update.newlyUnlocked.forEach { AchievementEvents.emit(AchievementEvent.Unlocked(it)) }
-        update.progressed.forEach { AchievementEvents.emit(AchievementEvent.Progressed(it.achievement, it.current)) }
+        update.progressed.forEach { AchievementEvents.emit(AchievementEvent.Progressed(it.achievement, it.previous, it.current)) }
     }
 
     private fun resetAchievementTracking() {
