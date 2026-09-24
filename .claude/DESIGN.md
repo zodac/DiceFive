@@ -242,7 +242,7 @@ net.zodac.dicefive/
     Screen.kt                          — sealed route constants (menu, play/setup, play/game, scores, achievements, styles, settings)
     DiceFiveNavHost.kt                 — NavHost wiring, "play" nested graph shares GameViewModel via getBackStackEntry
   ui/
-    menu/MenuScreen.kt                 — Play / Leaderboard / Statistics / Achievements / Styles / Settings buttons
+    menu/MenuScreen.kt                 — Play / Achievements / Leaderboard / Statistics / Styles / Settings buttons
     setup/
       GameSetupScreen.kt               — player count 1-4, per-slot human/AI + name field, game type radio (Extended disabled)
     game/
