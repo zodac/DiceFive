@@ -1014,33 +1014,40 @@ class GameViewModel(
                         _aiRolling.value = false
                     }
 
-                    if (current.rollsRemaining > 0) {
-                        // Deliberately outside the block above: choosing what to hold happens once
-                        // the cup has already stopped shaking and this roll's dice are already on
-                        // screen, never while the shake itself is still playing. Hard's hold choice
-                        // is an exhaustive search over every 32 hold/reroll subsets, each averaged
-                        // over every possible reroll outcome - expensive enough that computing it
-                        // during the shake (as this used to) stretched the shake's own on-screen
-                        // duration out past Easy/Medium's, whose choices are next to free. Now every
-                        // difficulty's shake is the same fixed length, and "thinking" is just a
-                        // static pause with nothing animating - however long it takes, only the pause
-                        // before the dice's held state updates changes, not any animation.
-                        val holds = withContext(aiDispatcher) { AiTurnPlayer.chooseHolds(current) }
-                        current = AiTurnPlayer.applyHolds(current, holds)
-                        // Every die is being kept - the rolls still "remaining" would only ever
-                        // reroll nothing (GameEngine.rollDice skips held dice), so there's no reason
-                        // to sit through their delay for an animation that changes nothing.
-                        if (holds.size == current.dice.size) current = current.copy(rollsRemaining = 0)
-                        setUndoSnapshot(null)
-                        applyGameState(current, checkForAiTurn = false)
-                    }
+                    // Nothing left to decide on the turn's last roll - there's no further reroll to
+                    // hold dice FOR.
+                    if (current.rollsRemaining == 0) break
+
+                    // Deliberately outside the block above: choosing what to hold happens once
+                    // the cup has already stopped shaking and this roll's dice are already on
+                    // screen, never while the shake itself is still playing. Hard's hold choice
+                    // is an exhaustive search over every 32 hold/reroll subsets, each averaged
+                    // over every possible reroll outcome - expensive enough that computing it
+                    // during the shake (as this used to) stretched the shake's own on-screen
+                    // duration out past Easy/Medium's, whose choices are next to free. Now every
+                    // difficulty's shake is the same fixed length, and "thinking" is just a
+                    // static pause with nothing animating - however long it takes, only the pause
+                    // before the dice's held state updates changes, not any animation.
+                    val holds = withContext(aiDispatcher) { AiTurnPlayer.chooseHolds(current) }
+                    current = AiTurnPlayer.applyHolds(current, holds)
+                    setUndoSnapshot(null)
+                    applyGameState(current, checkForAiTurn = false)
+
+                    // Every die is being kept, so a further roll would only ever reroll nothing
+                    // (GameEngine.rollDice skips held dice) - stop here, same as a human choosing to
+                    // score early with rolls still legally available. `rollsRemaining` is left
+                    // exactly as the rules say: "x$rollsRemaining" on the cup means legal rolls
+                    // still available, not how many the player intends to use, so this must never
+                    // force it down to fake an early stop - it was doing exactly that before, and a
+                    // roll that still had legal rerolls left was showing as none remaining.
+                    if (holds.size == current.dice.size) break
 
                     // A beat with the cup settled and the result visible before the next roll's
                     // shake starts - without it, back-to-back rolls (routine for Easy, which never
                     // holds anything and so never gets to skip a roll) read as one continuous blur
                     // rather than distinct rolls. Only between rolls: the delay before the very
                     // first roll and before scoring are already paced by AI_STEP_DELAY_MS above/below.
-                    if (current.rollsRemaining > 0) delay(ROLL_GAP_MS)
+                    delay(ROLL_GAP_MS)
                 }
                 delay(AI_STEP_DELAY_MS)
                 // Also off the main thread: Hard's category choice compares against
