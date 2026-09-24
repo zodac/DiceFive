@@ -10,12 +10,19 @@ import net.zodac.dicefive.model.ScoreCategory
 /**
  * AI strategy, split by [Difficulty]:
  *
- * - **EASY**: always uses all 3 rolls without holding anything, then greedily scores whatever
- *   open category is worth the most right now. No lookahead at all.
+ * - **EASY**: never holds individual dice, but stops rerolling (all of them, together) as soon as
+ *   any open category would score above zero, then greedily scores the highest-value one. If
+ *   nothing scores by the third roll it's forced to take a zero somewhere, same as a human would
+ *   be. No lookahead at all.
  * - **MEDIUM**: between rolls, holds dice by a simple rule of thumb (keep a forming straight, else
  *   keep the largest matching group). Category choice is still greedy by raw score, but ties break
  *   toward the more restrictive/conditional category (e.g. Four of a Kind over Chance) via a fixed
- *   priority order - a rule of thumb, not the computed opportunity cost Hard uses.
+ *   priority order - a rule of thumb, not the computed opportunity cost Hard uses. It also doesn't
+ *   always burn every roll: a hand that's already a fixed set of "good enough" shapes (Full House,
+ *   Large Straight, a Small Straight with Large Straight no longer open, or three-plus matching 4s/
+ *   5s/6s with that upper box still open) is banked immediately rather than gambled on a reroll -
+ *   see [shouldStopEarlyMedium]. Fixed shapes, not a computed expectation, is what keeps this a
+ *   notch below Hard.
  * - **HARD**: between rolls, exhaustively evaluates every one of the 32 hold/reroll subsets and
  *   picks the one with the highest expected best-category value on the next roll (see
  *   [expectedBestValue] - a real one-ply expectation over every possible reroll, not a heuristic).
@@ -45,8 +52,8 @@ object AiTurnPlayer {
     fun chooseHolds(state: GameState): Set<Int> {
         val player = requireNotNull(state.currentPlayer) { "No current player" }
         return when (player.difficulty) {
-            Difficulty.EASY -> emptySet()
-            Difficulty.MEDIUM -> chooseHoldsMedium(state.dice.map { it.value })
+            Difficulty.EASY -> chooseHoldsEasy(player, state.dice)
+            Difficulty.MEDIUM -> chooseHoldsMedium(player, state.dice)
             Difficulty.HARD -> chooseHoldsHard(player, state.dice.map { it.value })
         }
     }
@@ -84,9 +91,26 @@ object AiTurnPlayer {
         return GameEngine.commitScore(current, chooseCategory(current))
     }
 
+    // ---- Easy: reroll everything until something scores, then take the best of it ----------------
+
+    /**
+     * Easy never holds individual dice - it's all of them or none. Once at least one open category
+     * would score above zero, there's nothing left to decide, so it holds everything (the same
+     * "stop rolling" signal Medium/Hard use) rather than spend a roll it doesn't need; while nothing
+     * scores, it holds nothing and lets every die reroll.
+     */
+    private fun chooseHoldsEasy(player: PlayerState, dice: List<Die>): Set<Int> {
+        val available = ScoreCalculator.availableCategories(player, dice)
+        val hasPossibleScore = available.any { ScoreCalculator.scoreFor(player, it, dice) > 0 }
+        return if (hasPossibleScore) dice.indices.toSet() else emptySet()
+    }
+
     // ---- Medium: rule-of-thumb holds, fixed-priority category tie-break -------------------------
 
-    private fun chooseHoldsMedium(values: List<Int>): Set<Int> {
+    private fun chooseHoldsMedium(player: PlayerState, dice: List<Die>): Set<Int> {
+        if (shouldStopEarlyMedium(player, dice)) return dice.indices.toSet()
+
+        val values = dice.map { it.value }
         val straightHold = bestStraightHoldIndices(values)
         if (straightHold.size >= SMALL_STRAIGHT_LENGTH) return straightHold
 
@@ -98,6 +122,41 @@ object AiTurnPlayer {
         val group = values.withIndex().filter { it.value == largestGroupValue }
         return if (group.size >= 2) group.map { it.index }.toSet() else emptySet()
     }
+
+    /**
+     * Whether Medium should hold every die and stop rolling outright, rather than reroll for
+     * something better - a fixed set of "good enough" shapes, not a computed expectation (that's
+     * Hard's job). Covers both halves of the rule of thumb: a strong lower-section hand already in
+     * hand (Full House, Large Straight, or a Small Straight once Large Straight is no longer worth
+     * chasing), and a 3-or-4-of-a-kind on a high upper value (4/5/6) that's worth banking in its
+     * upper box rather than gambling the rest of the roll for a fifth match.
+     */
+    private fun shouldStopEarlyMedium(player: PlayerState, dice: List<Die>): Boolean {
+        val available = ScoreCalculator.availableCategories(player, dice)
+        val counts = dice.map { it.value }.groupingBy { it }.eachCount()
+
+        if (ScoreCategory.LARGE_STRAIGHT in available && DiceScoring.score(ScoreCategory.LARGE_STRAIGHT, dice) > 0) return true
+        if (ScoreCategory.FULL_HOUSE in available && DiceScoring.score(ScoreCategory.FULL_HOUSE, dice) > 0) return true
+        if (ScoreCategory.SMALL_STRAIGHT in available && ScoreCategory.LARGE_STRAIGHT !in available &&
+            DiceScoring.score(ScoreCategory.SMALL_STRAIGHT, dice) > 0
+        ) {
+            return true
+        }
+
+        val strongUpperValue = counts.entries
+            .firstOrNull { (value, count) -> value >= STRONG_UPPER_VALUE && count >= STRONG_UPPER_GROUP_SIZE }
+            ?.key
+        return strongUpperValue != null && UPPER_CATEGORY_FOR_VALUE.getValue(strongUpperValue) in available
+    }
+
+    private val UPPER_CATEGORY_FOR_VALUE = mapOf(
+        1 to ScoreCategory.ONES,
+        2 to ScoreCategory.TWOS,
+        3 to ScoreCategory.THREES,
+        4 to ScoreCategory.FOURS,
+        5 to ScoreCategory.FIVES,
+        6 to ScoreCategory.SIXES,
+    )
 
     /** One die index per distinct value in the longest run (4- or 5-length) present in [values], preferring the longer/higher run. */
     private fun bestStraightHoldIndices(values: List<Int>): Set<Int> {
@@ -195,4 +254,8 @@ object AiTurnPlayer {
     private const val DICE_COUNT = 5
     private const val DIE_FACES = 6
     private const val SMALL_STRAIGHT_LENGTH = 4
+
+    /** Medium's early-stop threshold: a group this size or bigger, on a die face this high, is worth banking in its upper box. */
+    private const val STRONG_UPPER_VALUE = 4
+    private const val STRONG_UPPER_GROUP_SIZE = 3
 }

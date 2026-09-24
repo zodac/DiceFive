@@ -65,8 +65,20 @@ class AiTurnPlayerTest {
     }
 
     @Test
-    fun `Easy never holds dice between rolls`() {
+    fun `Easy stops rolling as soon as any open category would score`() {
         val state = rolledState(bot(Difficulty.EASY), values = listOf(6, 6, 6, 1, 2))
+
+        // CHANCE (and plenty else) is open and scores here, so Easy holds everything - the same
+        // "stop rolling" signal Medium/Hard use - rather than spending a roll it doesn't need.
+        assertEquals(setOf(0, 1, 2, 3, 4), AiTurnPlayer.chooseHolds(state))
+    }
+
+    @Test
+    fun `Easy keeps rerolling everything while no open category would score`() {
+        // Every category filled except ONES, and no 1s among the dice - the only open category
+        // scores zero here, so Easy has nothing to stop for and holds nothing.
+        val scorecard = ScoreCategory.entries.associateWith { category -> if (category == ScoreCategory.ONES) null else 0 }
+        val state = rolledState(bot(Difficulty.EASY, scorecard = scorecard), values = listOf(2, 3, 4, 5, 6))
 
         assertEquals(emptySet<Int>(), AiTurnPlayer.chooseHolds(state))
     }
@@ -84,9 +96,35 @@ class AiTurnPlayerTest {
 
     @Test
     fun `Medium holds the largest matching group when no straight is forming`() {
-        val state = rolledState(bot(Difficulty.MEDIUM), values = listOf(6, 6, 6, 1, 2))
+        // A group of low-value dice isn't "good enough" to bank early, unlike a high one below -
+        // Medium just holds the pair/triple and keeps rolling, same as before.
+        val state = rolledState(bot(Difficulty.MEDIUM), values = listOf(2, 2, 2, 6, 1))
 
         assertEquals(setOf(0, 1, 2), AiTurnPlayer.chooseHolds(state))
+    }
+
+    @Test
+    fun `Medium stops rolling once it has three-of-a-kind on a high upper value`() {
+        // Three 6s already banks well in the open SIXES box - Medium takes it rather than
+        // gambling the remaining rolls, unlike Easy (never holds) or Hard's full EV search.
+        val state = rolledState(bot(Difficulty.MEDIUM), values = listOf(6, 6, 6, 1, 2))
+
+        assertEquals(setOf(0, 1, 2, 3, 4), AiTurnPlayer.chooseHolds(state))
+    }
+
+    @Test
+    fun `Medium stops rolling once it has a Full House`() {
+        val state = rolledState(bot(Difficulty.MEDIUM), values = listOf(5, 5, 5, 6, 6))
+
+        assertEquals(setOf(0, 1, 2, 3, 4), AiTurnPlayer.chooseHolds(state))
+    }
+
+    @Test
+    fun `Medium stops rolling on a Small Straight once Large Straight is no longer available`() {
+        val scorecard = PlayerState(name = "Bot", type = PlayerType.AI).scorecard + (ScoreCategory.LARGE_STRAIGHT to 40)
+        val state = rolledState(bot(Difficulty.MEDIUM, scorecard = scorecard), values = listOf(1, 2, 3, 4, 6))
+
+        assertEquals(setOf(0, 1, 2, 3, 4), AiTurnPlayer.chooseHolds(state))
     }
 
     @Test

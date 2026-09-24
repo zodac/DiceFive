@@ -25,10 +25,14 @@ decisions behind it. Read that before changing anything visual.
 - **Navigation**: Navigation Compose (`NavHost`), with a nested "play" graph
   sharing one scoped `GameViewModel` across the setup and in-game screens.
 - **AI difficulty**: the setup-screen selector is live (Easy/Medium/Hard per AI slot). `AiTurnPlayer`
-  strategy per tier - EASY: rolls all 3 times holding nothing, scores the highest-value open
-  category. MEDIUM: holds dice by rule of thumb (a forming straight, else the largest matching
+  strategy per tier - EASY: never holds individual dice, but stops rerolling (all together) once
+  any open category scores above zero, then scores the highest-value open category. MEDIUM: holds
+  dice by rule of thumb (a forming straight, else the largest matching
   group) between rolls; ties in category choice toward an upper box "on pace" for the 63-point
-  bonus. HARD: exhaustively evaluates all 32 hold/reroll subsets each roll via exact expected value
+  bonus. It also doesn't always spend every roll: a fixed set of "good enough" shapes - Full House,
+  Large Straight, a Small Straight once Large Straight is no longer open, or three-plus dice on a
+  4/5/6 with that upper box still open - gets banked immediately instead of gambled on a reroll.
+  HARD: exhaustively evaluates all 32 hold/reroll subsets each roll via exact expected value
   (every possible outcome of the freed dice, weighted equally), and picks the open category whose
   score most exceeds its own average value on a single random roll (so a rare category like Full
   House can beat a nominally higher-scoring but easy-to-satisfy-later one like Chance).
