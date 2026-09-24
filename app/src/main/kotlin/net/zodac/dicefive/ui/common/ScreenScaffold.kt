@@ -53,9 +53,9 @@ val CONTENT_MAX_WIDTH = 460.dp
  * [bottomBar] pins content to the foot of the screen, outside the scroll - for a page whose main
  * action must stay reachable however long its form gets. Use [PinnedActionBar] for the usual case.
  *
- * The app bar carries a `primaryContainer` tint and a bold title, rather than sitting fully
- * transparent over the backdrop like a bare `CenterAlignedTopAppBar` would - every page otherwise
- * opened with the same faint, unbranded strip the system default gives you for free.
+ * The app bar's title is bold and tinted `onPrimaryContainer`, rather than the plain default
+ * `titleMedium` text a bare `CenterAlignedTopAppBar` gives you for free - the bar itself stays
+ * transparent over the backdrop, same as the rest of the app's chrome.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,9 +88,8 @@ fun ScreenScaffold(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        containerColor = Color.Transparent,
                         titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     ),
                 )
             },
