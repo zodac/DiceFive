@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlin.random.Random
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import net.zodac.dicefive.BuildConfig
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
@@ -103,6 +106,12 @@ class GameViewModel(
     private val achievementsRepository: AchievementStore? = null,
     /** The dice. Injectable for the same reason [GameEngine.rollDice] takes one: so a test can deal a known hand. */
     private val random: Random = Random.Default,
+    /** Where [AiTurnPlayer]'s (Hard, specifically) exhaustive-search hold/category choices run -
+     * off [viewModelScope]'s own Main.immediate by default, since they're expensive enough to
+     * visibly stall Compose's frame rendering otherwise. Injectable so a test using a virtual-time
+     * [kotlinx.coroutines.test.TestDispatcher] for `Dispatchers.Main` can pass that same dispatcher
+     * here too - Default's real thread pool isn't advanced by that test's `advanceUntilIdle()`. */
+    private val aiDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
     private val _setup = MutableStateFlow(GameSetupState())
@@ -999,7 +1008,16 @@ class GameViewModel(
                         delay(AI_STEP_DELAY_MS)
                         current = GameEngine.rollDice(current, random)
                         if (current.rollsRemaining > 0) {
-                            val holds = AiTurnPlayer.chooseHolds(current)
+                            // Off the main thread: Hard's hold choice is an exhaustive search over
+                            // every 32 hold/reroll subsets, each averaging over every possible
+                            // reroll outcome - expensive enough, running inline on this
+                            // Main.immediate-dispatched coroutine, to visibly block Compose from
+                            // rendering frames for its duration. That froze the shake animation
+                            // mid-motion rather than letting it play out, then dumped the finished
+                            // roll and tilt-start on the very next frame - looking like the cup
+                            // "didn't finish rolling", worst on Hard specifically since Easy/Medium's
+                            // hold choices are cheap enough not to stall a frame.
+                            val holds = withContext(aiDispatcher) { AiTurnPlayer.chooseHolds(current) }
                             current = AiTurnPlayer.applyHolds(current, holds)
                             // Every die is being kept - the rolls still "remaining" would only ever
                             // reroll nothing (GameEngine.rollDice skips held dice), so there's no
@@ -1019,7 +1037,12 @@ class GameViewModel(
                     if (current.rollsRemaining > 0) delay(ROLL_GAP_MS)
                 }
                 delay(AI_STEP_DELAY_MS)
-                current = GameEngine.commitScore(current, AiTurnPlayer.chooseCategory(current))
+                // Also off the main thread: Hard's category choice compares against
+                // CATEGORY_BASELINE, a `by lazy` average-over-every-outcome computed once per
+                // process on whichever call touches it first - same cost/rationale as the hold
+                // choice above.
+                val category = withContext(aiDispatcher) { AiTurnPlayer.chooseCategory(current) }
+                current = GameEngine.commitScore(current, category)
                 setUndoSnapshot(null)
                 applyGameState(current, checkForAiTurn = false)
             }

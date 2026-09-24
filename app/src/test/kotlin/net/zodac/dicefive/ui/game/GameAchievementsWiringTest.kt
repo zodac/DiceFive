@@ -153,7 +153,7 @@ class GameAchievementsWiringTest {
     fun `achievements are still recorded when the leaderboard read suspends first`() = runTest {
         val store = FakeAchievementStore()
         val dao = FakeScoreDao()
-        val viewModel = GameViewModel(scoreRepository = ScoreRepository(dao), achievementsRepository = store)
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, scoreRepository = ScoreRepository(dao), achievementsRepository = store)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -168,7 +168,7 @@ class GameAchievementsWiringTest {
     fun `a maxed box pops mid-game, long before the results screen`() = runTest {
         val store = FakeAchievementStore()
         // Every die comes up 6, so the first roll is five 6s: 30 in Sixes, the maximum.
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -184,7 +184,7 @@ class GameAchievementsWiringTest {
     fun `a feat rolled straight out of the cup pops on the roll itself`() = runTest {
         val store = FakeAchievementStore()
         // 1-2-3-4-5 on the first throw: a large straight, out of the cup.
-        val viewModel = GameViewModel(achievementsRepository = store, random = CountingDice(1..5))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = CountingDice(1..5))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -202,7 +202,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `scoring three 6s and two 5s in Full House unlocks Fuller House`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 5, 5)))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 5, 5)))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -217,7 +217,7 @@ class GameAchievementsWiringTest {
     fun `Fuller House does not care what order the dice landed in`() = runTest {
         val store = FakeAchievementStore()
         // Same three 6s and two 5s as above, interleaved rather than grouped.
-        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(6, 5, 6, 5, 6)))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(6, 5, 6, 5, 6)))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -231,7 +231,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `a full house of other values does not unlock Fuller House`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(3, 3, 3, 2, 2)))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(3, 3, 3, 2, 2)))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -249,7 +249,7 @@ class GameAchievementsWiringTest {
         // 2 and 3: an all-6s roll banks the 5x box, then the same-shaped roll fills Full House via
         // the joker rule instead - not a genuine three-and-two split.
         val script = List(5) { 1 } + List(5) { 6 } + List(5) { 6 }
-        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(script))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(script))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -271,7 +271,7 @@ class GameAchievementsWiringTest {
     fun `rolling a 5x but scoring it as a zero elsewhere unlocks Wasted Fortune`() = runTest {
         val store = FakeAchievementStore()
         // Every die comes up 6: a genuine 5x, but committed to Ones - no die shows a 1, so it scores 0.
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -285,7 +285,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `scoring the 5x box itself with a real 5x does not count as wasting it`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -299,7 +299,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `wasting a 5x on player 2's turn does not unlock Wasted Fortune - only player 1 earns achievements`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
         viewModel.setPlayerCount(2)
         viewModel.startGame()
 
@@ -324,7 +324,7 @@ class GameAchievementsWiringTest {
         assumeTrue(BuildConfig.DEBUG)
 
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -349,7 +349,7 @@ class GameAchievementsWiringTest {
         // tie, which counts as a win for player 1 (the only player whose achievements this test can
         // rely on - see AchievementEngine's player-1-only rule) - keeping this test deterministic
         // rather than depending on which of the two humans happens to roll better.
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
         viewModel.setPlayerCount(2)
         viewModel.startGame()
 
@@ -365,7 +365,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `dice rolled by the human are counted towards the running total`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store)
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -382,7 +382,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `a game finished by an AI still records the human's achievements`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store)
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store)
         viewModel.setPlayerCount(2)
         viewModel.setPlayerType(2, PlayerType.AI)
         viewModel.startGame()
@@ -406,7 +406,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `a solo game records no win outcome - there's nobody to beat`() = runTest {
         val dao = FakeScoreDao()
-        val viewModel = GameViewModel(scoreRepository = ScoreRepository(dao))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, scoreRepository = ScoreRepository(dao))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -420,7 +420,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `a two-human game records each player's win outcome against the top score`() = runTest {
         val dao = FakeScoreDao()
-        val viewModel = GameViewModel(scoreRepository = ScoreRepository(dao))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, scoreRepository = ScoreRepository(dao))
         viewModel.setPlayerCount(2)
         viewModel.startGame()
 
@@ -440,7 +440,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `performing the hidden hold sequence unlocks Time Wasting regardless`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -460,7 +460,7 @@ class GameAchievementsWiringTest {
         assumeTrue(BuildConfig.DEBUG)
 
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
         viewModel.setPlayerCount(2)
         viewModel.startGame()
 
@@ -482,7 +482,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `rolling the exact same result twice in a row with no holds in between unlocks Deja Vu`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(3, 1, 4, 1, 5)))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(3, 1, 4, 1, 5)))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -496,7 +496,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `holding a die between two identical rolls breaks Deja Vu`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(3, 1, 4, 1, 5)))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(3, 1, 4, 1, 5)))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -514,7 +514,7 @@ class GameAchievementsWiringTest {
         val store = FakeAchievementStore()
         // Roll 1: [1,2,2,2,3]; hold the three 2s; rolls 2 and 3 land the same 1 and 3 in the gaps.
         val dice = ScriptedDice(listOf(1, 2, 2, 2, 3, 1, 3, 1, 3))
-        val viewModel = GameViewModel(achievementsRepository = store, random = dice)
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = dice)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -532,7 +532,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `scoring a 5x on two turns in a row unlocks Twice in a Lifetime`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(2))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(2))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -549,7 +549,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `rolling a 5x on the 2nd roll without holding anything unlocks Natural 5x`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(6))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -563,7 +563,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `rolling the menu logo's exact dice unlocks Product Placement`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(2, 4, 5, 3, 6)))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(2, 4, 5, 3, 6)))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -576,7 +576,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `rolling 1,2,3,4,5 on the first roll unlocks I Can Count`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = CountingDice(1..5))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = CountingDice(1..5))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -589,7 +589,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `switching from one held matching pair to a different one and scoring it unlocks Commitment Issues`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 1, 3, 3)))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 1, 3, 3)))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -609,7 +609,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `a single held die switching to a different single die still unlocks Commitment Issues`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(6, 1, 2, 3, 4)))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(6, 1, 2, 3, 4)))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -626,7 +626,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `a four of a kind switching to a different value still unlocks Commitment Issues`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 6, 3)))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 6, 3)))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -646,7 +646,7 @@ class GameAchievementsWiringTest {
         // Roll 1: five 6s. Once released (however far it shrinks back down first), that's a 5x, not
         // indecision - it must not become the baseline the later group of 3s is compared against.
         val script = listOf(6, 6, 6, 6, 6) + listOf(3, 3, 3, 3, 3)
-        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(script))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(script))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -667,7 +667,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `holding and unholding the same die three times unlocks Decisions Decisions`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(4))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(4))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -684,7 +684,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `holding a die through both re-rolls then releasing it with none left unlocks Time to Let It Go`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(4))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(4))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -701,7 +701,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `holding all five dice then rolling anyway unlocks What Was the Point of That`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(4))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(4))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -716,7 +716,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `holding all five dice then releasing every one unlocks A Cunning Strategy`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(4))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(4))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -731,7 +731,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `tapping the cup three times with no rolls left unlocks No More Rolls`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(3))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(3))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -749,7 +749,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `four of a kind on the first roll that never becomes a 5x unlocks Almost Famous`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 6, 1)))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 6, 1)))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -763,7 +763,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `scoring the small straight while the large straight was also available unlocks Why Did You Do That`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = CountingDice(1..5))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = CountingDice(1..5))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -777,7 +777,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `undoing a score and choosing a different category unlocks I Didn't Mean That`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(3))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(3))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -793,7 +793,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `undoing a score and recommitting the same category does not unlock I Didn't Mean That`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store, random = LoadedDice(3))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(3))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -812,7 +812,7 @@ class GameAchievementsWiringTest {
         // 12 filler turns (every category but Ones) rolling all-2s, then a final turn on Ones:
         // roll 2 shows a 1 (a real option), roll 3 doesn't (no option left at all).
         val script = List(65) { 2 } + listOf(1, 2, 2, 2, 2) + List(5) { 2 }
-        val viewModel = GameViewModel(achievementsRepository = store, random = ScriptedDice(script))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(script))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -831,7 +831,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `starting a new game right after finishing one that wasn't lost does not unlock One More Time`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store)
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
         viewModel.playToCompletion()
@@ -857,7 +857,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `starting a game with no settings repository does not unlock a style achievement`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(achievementsRepository = store)
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store)
         viewModel.setPlayerCount(1)
 
         viewModel.startGame()

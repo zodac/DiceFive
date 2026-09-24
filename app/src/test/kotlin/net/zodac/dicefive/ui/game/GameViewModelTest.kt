@@ -42,7 +42,7 @@ class GameViewModelTest {
 
     @Test
     fun `startGame builds a game with the configured players`() {
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(2)
         viewModel.setPlayerType(2, PlayerType.AI)
 
@@ -57,7 +57,7 @@ class GameViewModelTest {
 
     @Test
     fun `human actions before a game has started are ignored`() {
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
 
         viewModel.rollDice()
 
@@ -66,7 +66,7 @@ class GameViewModelTest {
 
     @Test
     fun `rolling and scoring as the human player updates the game state`() {
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -83,7 +83,7 @@ class GameViewModelTest {
 
     @Test
     fun `AI players complete their turn automatically`() = runTest(testDispatcher) {
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(2)
         viewModel.setPlayerType(2, PlayerType.AI)
         viewModel.startGame()
@@ -100,7 +100,7 @@ class GameViewModelTest {
 
     @Test
     fun `three consecutive AI players all take their turn without further human input`() = runTest(testDispatcher) {
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(4)
         viewModel.setPlayerType(2, PlayerType.AI)
         viewModel.setPlayerType(3, PlayerType.AI)
@@ -121,7 +121,7 @@ class GameViewModelTest {
 
     @Test
     fun `AI turns alternating with human turns each hand back correctly`() = runTest(testDispatcher) {
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(4)
         viewModel.setPlayerType(2, PlayerType.AI)
         viewModel.setPlayerType(4, PlayerType.AI)
@@ -148,7 +148,7 @@ class GameViewModelTest {
 
     @Test
     fun `two consecutive AI players hand back to the next human correctly`() = runTest(testDispatcher) {
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(4)
         viewModel.setPlayerType(2, PlayerType.AI)
         viewModel.setPlayerType(3, PlayerType.AI)
@@ -177,7 +177,7 @@ class GameViewModelTest {
 
     @Test
     fun `AI skips the remaining rolls once a hold decision already keeps every die`() = runTest(testDispatcher) {
-        val viewModel = GameViewModel(random = FixedValueRandom(6))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, random = FixedValueRandom(6))
         viewModel.setPlayerCount(2)
         viewModel.setPlayerType(2, PlayerType.AI)
         viewModel.setPlayerDifficulty(2, Difficulty.HARD)
@@ -200,7 +200,7 @@ class GameViewModelTest {
 
     @Test
     fun `undo is unavailable until a human action has happened`() {
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -211,7 +211,7 @@ class GameViewModelTest {
     fun `rolling is not undoable`() {
         // Rolling has no scoring consequence of its own - only committing a category does (see
         // the test below) - so there's nothing for Undo to do about a roll.
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -222,7 +222,7 @@ class GameViewModelTest {
 
     @Test
     fun `holding a die is not undoable`() {
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
         viewModel.rollDice()
@@ -234,7 +234,7 @@ class GameViewModelTest {
 
     @Test
     fun `committing a score is undoable`() {
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
         viewModel.rollDice()
@@ -254,7 +254,7 @@ class GameViewModelTest {
 
     @Test
     fun `undo is unavailable once an AI player has acted`() = runTest(testDispatcher) {
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(2)
         viewModel.setPlayerType(2, PlayerType.AI)
         viewModel.startGame()
@@ -268,7 +268,7 @@ class GameViewModelTest {
 
     @Test
     fun `resumeGame returns false when no repository is configured`() = runTest(testDispatcher) {
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
 
         assertFalse(viewModel.resumeGame())
         assertNull(viewModel.game.value)
@@ -280,7 +280,7 @@ class GameViewModelTest {
         // see GameViewModel.trackSuperuserSequence); skip rather than fail under a variant where
         // that's false, since a release variant correctly refusing to activate isn't a test failure.
         assumeTrue(BuildConfig.DEBUG)
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
         viewModel.rollDice()
@@ -301,7 +301,7 @@ class GameViewModelTest {
 
     @Test
     fun `toggling dice out of order does not activate superuser mode`() {
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
         viewModel.rollDice()
@@ -323,7 +323,7 @@ class GameViewModelTest {
     @Test
     fun `superuser sequence activates on a later turn, not just the first`() {
         assumeTrue(BuildConfig.DEBUG)
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
         viewModel.rollDice()
@@ -340,7 +340,7 @@ class GameViewModelTest {
 
     @Test
     fun `cycleHeldDieValue does nothing before superuser mode is activated`() {
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
         viewModel.rollDice()
@@ -356,7 +356,7 @@ class GameViewModelTest {
     fun `cycleHeldDieValue advances the die's face once superuser mode is active`() = runTest(testDispatcher) {
         // See the comment on the activation test above - this needs the feature reachable at all.
         assumeTrue(BuildConfig.DEBUG)
-        val viewModel = GameViewModel()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
         viewModel.rollDice()
