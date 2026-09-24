@@ -146,6 +146,30 @@ decisions behind it. Read that before changing anything visual.
   - **`NOT_THOSE_DICE` (tapping the menu's own logo dice) needed a `MenuViewModel`** purely to hold
     the one-line achievement unlock `MenuScreen` otherwise has no repository to reach - `AppLogo`
     gained an `onDiceTap` callback wrapping just the dice `Row`, not the wordmark below it.
+  - **The Achievements screen has its own, unrelated superuser mode**, entirely
+    `BuildConfig.DEBUG`-gated (`AchievementsViewModel`) - unlike the in-game one, this isn't a
+    discoverable easter egg tied to an achievement, just a tester's shortcut, so nothing about it
+    runs at all in a release build. Tapping the unlocked-count banner
+    `AchievementsViewModel.SUPERUSER_TAP_TARGET` times arms it; a long press on any row then
+    (`AchievementsScreen`'s hand-rolled hold-to-repeat gesture, the same "launch a ticking
+    coroutine on down, cancel it on up" shape `DiceTray`'s die-cycling uses) toggles a plain
+    achievement locked/unlocked on the first 500ms tick, or - for one with a progress bar - adds 1
+    per tick (a real progress banner pops, same as earning it for real) until either it reaches its
+    target or the press has been held 10s, at which point it jumps straight to a full unlock -
+    `PROFESSIONAL_ROLLER`'s target is 100,000, and nobody's holding a row that long one tick at a
+    time. The bump is a purely in-memory overlay (`AchievementsViewModel.superuserProgressOverride`)
+    added on top of the real stored progress only for this display/decision, never persisted - the
+    real `AchievementCounter`s are shared across several achievements (`GAMES_PLAYED` backs
+    `GAMES_10`/`50`/`100`) and the leaderboard-backed ones (`PROFESSIONAL_ROLLER`, the score-band
+    ledger) are read from real recorded scores, so actually writing a fake counter or leaderboard
+    row would corrupt real state rather than just performing a test unlock. Locking an already
+    unlocked achievement back up needed a new `AchievementStore.forceLock`, since the only existing
+    lock-direction operation was `resetAll` - the Settings screen's all-or-nothing wipe. The banner
+    itself also carries a bulk version, a plain `combinedClickable` long press (nothing repeating
+    needed here, so no reason to reach for the row's hold-to-repeat gesture): unlocks every
+    achievement still locked in one go, and the *next* long press - once nothing is left locked -
+    relocks every one of them instead, decided fresh from what's actually locked each time rather
+    than a remembered flag.
   - Not covered by an automated test: `CONTINUED_GAME` ("leave a game, come back to finish it") and
     the real, end-to-end "picked a non-default style" path for `STYLE_DICE`/`STYLE_CUP`/
     `STYLE_BACKGROUND` - specifically the `SettingsRepository` read that feeds `GameStartContext`.

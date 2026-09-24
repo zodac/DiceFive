@@ -49,6 +49,10 @@ private class FakeAchievementStore : AchievementStore {
         _state.value = AchievementsState()
     }
 
+    override suspend fun forceLock(achievement: Achievement) {
+        _state.value = _state.value.copy(unlockedAt = _state.value.unlockedAt - achievement)
+    }
+
     val unlocked: Set<Achievement> get() = _state.value.unlockedAt.keys
 }
 

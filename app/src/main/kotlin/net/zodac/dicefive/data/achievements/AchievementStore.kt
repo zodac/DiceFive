@@ -20,4 +20,11 @@ interface AchievementStore {
 
     /** Wipes every unlock and counter - the Settings screen's "Reset achievements". */
     suspend fun resetAll()
+
+    /**
+     * Reverts a single achievement back to locked, leaving every other unlock and every counter
+     * untouched. Debug-only - see `AchievementsViewModel`'s superuser mode - there is no player
+     * facing way to re-lock one achievement without wiping the whole set via [resetAll].
+     */
+    suspend fun forceLock(achievement: Achievement)
 }
