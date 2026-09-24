@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -16,6 +17,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -51,6 +53,7 @@ private val UNLOCKED_AT_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH
  * Achievements are per device - there is no per-player breakdown here because there is no
  * per-player record. Resetting them lives in Settings, with the other destructive controls.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AchievementsScreen(
     viewModel: AchievementsViewModel,
@@ -85,7 +88,7 @@ fun AchievementsScreen(
                 }
             } else {
                 for (group in state.groups) {
-                    item(key = "group-${group.category.name}") { GroupHeader(group.category.label) }
+                    stickyHeader(key = "group-${group.category.name}") { GroupHeader(group.category.label) }
                     items(group.items, key = { it.achievement.id }) { AchievementRow(it) }
                 }
             }
@@ -93,15 +96,25 @@ fun AchievementsScreen(
     }
 }
 
-/** A theme's subheader - quiet, since the catalogue's own order is what does the real organising. */
+/**
+ * A theme's subheader - quiet, since the catalogue's own order is what does the real organising.
+ * Pinned to the top of the list while its category scrolls by, so opaque rather than the plain
+ * text this would otherwise be: rows keep scrolling underneath it and would show through.
+ */
 @Composable
 private fun GroupHeader(text: String) {
-    Text(
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 2.dp),
-    )
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 3.dp,
+    ) {
+        Text(
+            text = text.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+        )
+    }
 }
 
 @Composable
