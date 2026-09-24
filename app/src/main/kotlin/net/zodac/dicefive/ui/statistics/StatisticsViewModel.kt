@@ -39,6 +39,15 @@ class StatisticsViewModel(private val scoreRepository: ScoreRepository? = null) 
         }
     }
 
+    /** Hides [playerName]'s card from this screen - their leaderboard history is untouched. */
+    fun dismissPlayer(playerName: String) {
+        val repository = scoreRepository ?: return
+        viewModelScope.launch {
+            repository.dismissPlayerStatistics(playerName)
+            load()
+        }
+    }
+
     companion object {
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {

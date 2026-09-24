@@ -30,7 +30,11 @@ interface ScoreDao {
     @Query("SELECT SUM(score) FROM scores")
     suspend fun totalPoints(): Int?
 
-    /** One row per distinct player name that has ever recorded a score, alphabetical. */
+    /**
+     * One row per distinct player name that has ever recorded a score, alphabetical - excluding
+     * anyone dismissed from the Statistics screen (see [DismissedPlayerStats]). Their scores are
+     * still counted on the Leaderboard; this query backs Statistics only.
+     */
     @Query(
         """
         SELECT playerName,
@@ -40,6 +44,7 @@ interface ScoreDao {
                SUM(CASE WHEN won = 0 THEN 1 ELSE 0 END) AS gamesLost,
                MAX(score) AS maxScore
         FROM scores
+        WHERE playerName NOT IN (SELECT playerName FROM dismissed_player_stats)
         GROUP BY playerName
         ORDER BY playerName COLLATE NOCASE ASC
         """,
@@ -50,7 +55,19 @@ interface ScoreDao {
     @Query("SELECT won FROM scores WHERE playerName = :playerName ORDER BY timestampEpochMillis DESC")
     suspend fun outcomesForPlayer(playerName: String): List<Boolean?>
 
+    /** Hides [playerName] from the Statistics screen - see [DismissedPlayerStats]. */
+    @Query("INSERT OR REPLACE INTO dismissed_player_stats (playerName) VALUES (:playerName)")
+    suspend fun dismissPlayer(playerName: String)
+
+    /** Un-hides [playerName] from the Statistics screen, if they were dismissed. */
+    @Query("DELETE FROM dismissed_player_stats WHERE playerName = :playerName")
+    suspend fun clearDismissal(playerName: String)
+
     /** Wipes every recorded score - the Leaderboard and Statistics screens share this one table. */
     @Query("DELETE FROM scores")
-    suspend fun clearAll()
+    suspend fun clearAllScores()
+
+    /** Wipes every per-player Statistics dismissal, so `clearAllScores` starts from a clean slate. */
+    @Query("DELETE FROM dismissed_player_stats")
+    suspend fun clearAllDismissals()
 }

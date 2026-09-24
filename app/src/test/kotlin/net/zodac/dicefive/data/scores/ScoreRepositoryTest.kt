@@ -14,6 +14,7 @@ import org.junit.Test
  */
 private class FakeScoreDao : ScoreDao {
     private val entries = mutableListOf<ScoreEntry>()
+    private val dismissed = mutableSetOf<String>()
     private var nextId = 1L
 
     override suspend fun insert(entry: ScoreEntry) {
@@ -34,6 +35,7 @@ private class FakeScoreDao : ScoreDao {
 
     override suspend fun playerSummaries(): List<PlayerScoreSummary> =
         entries.groupBy { it.playerName }
+            .filterKeys { it !in dismissed }
             .toSortedMap(String.CASE_INSENSITIVE_ORDER)
             .map { (name, rows) ->
                 PlayerScoreSummary(
@@ -51,8 +53,20 @@ private class FakeScoreDao : ScoreDao {
             .sortedByDescending { it.timestampEpochMillis }
             .map { it.won }
 
-    override suspend fun clearAll() {
+    override suspend fun dismissPlayer(playerName: String) {
+        dismissed += playerName
+    }
+
+    override suspend fun clearDismissal(playerName: String) {
+        dismissed -= playerName
+    }
+
+    override suspend fun clearAllScores() {
         entries.clear()
+    }
+
+    override suspend fun clearAllDismissals() {
+        dismissed.clear()
     }
 }
 
@@ -196,5 +210,29 @@ class ScoreRepositoryTest {
         repository.clearAll()
 
         assertEquals(0, repository.totalCount())
+    }
+
+    @Test
+    fun `dismissPlayerStatistics hides a player from statistics without touching their scores`() = runTest {
+        val repository = ScoreRepository(FakeScoreDao())
+        repository.recordScore("Alice", 150)
+        repository.recordScore("Bob", 300)
+
+        repository.dismissPlayerStatistics("Alice")
+
+        assertEquals(listOf("Bob"), repository.playerStatistics().map { it.playerName })
+        assertEquals(2, repository.totalCount())
+        assertEquals(150, repository.bestScoreForPlayer("Alice"))
+    }
+
+    @Test
+    fun `recording a new score for a dismissed player un-hides their statistics`() = runTest {
+        val repository = ScoreRepository(FakeScoreDao())
+        repository.recordScore("Alice", 150)
+        repository.dismissPlayerStatistics("Alice")
+
+        repository.recordScore("Alice", 200)
+
+        assertEquals(listOf("Alice"), repository.playerStatistics().map { it.playerName })
     }
 }

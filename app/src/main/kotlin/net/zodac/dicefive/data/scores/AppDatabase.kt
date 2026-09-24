@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [ScoreEntry::class], version = 2, exportSchema = false)
+@Database(entities = [ScoreEntry::class, DismissedPlayerStats::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun scoreDao(): ScoreDao
@@ -27,10 +27,20 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds [DismissedPlayerStats], letting a player's card be removed from the Statistics
+         * screen without touching their `scores` rows - the Leaderboard keeps their full history.
+         */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS dismissed_player_stats (playerName TEXT NOT NULL PRIMARY KEY)")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "dicefive.db")
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { instance = it }
             }

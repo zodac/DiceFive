@@ -14,6 +14,8 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
         timestampEpochMillis: Long = System.currentTimeMillis(),
     ) {
         scoreDao.insert(ScoreEntry(playerName = playerName, score = score, timestampEpochMillis = timestampEpochMillis, won = won))
+        // A dismissed player who plays again clearly cares about their stats once more.
+        scoreDao.clearDismissal(playerName)
     }
 
     suspend fun page(pageIndex: Int, pageSize: Int = SCORES_PAGE_SIZE): List<ScoreEntry> =
@@ -25,7 +27,17 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
      * Wipes every recorded score. The Leaderboard and Statistics screens are both just different
      * views over this same table, so there's no way to clear one without the other.
      */
-    suspend fun clearAll() = scoreDao.clearAll()
+    suspend fun clearAll() {
+        scoreDao.clearAllScores()
+        scoreDao.clearAllDismissals()
+    }
+
+    /**
+     * Hides [playerName] from the Statistics screen without touching their recorded scores - the
+     * Leaderboard keeps their full history. Playing another game under the same name un-hides them
+     * again, in [recordScore].
+     */
+    suspend fun dismissPlayerStatistics(playerName: String) = scoreDao.dismissPlayer(playerName)
 
     /**
      * [playerName]'s own highest score on the leaderboard, or null if they haven't recorded one.

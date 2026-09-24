@@ -102,9 +102,15 @@ private class FakeScoreDao : ScoreDao {
 
     override suspend fun outcomesForPlayer(playerName: String): List<Boolean?> = emptyList()
 
-    override suspend fun clearAll() {
+    override suspend fun dismissPlayer(playerName: String) = Unit
+
+    override suspend fun clearDismissal(playerName: String) = Unit
+
+    override suspend fun clearAllScores() {
         entries.clear()
     }
+
+    override suspend fun clearAllDismissals() = Unit
 
     /** For tests that need to inspect what was actually recorded, not just Score repository totals. */
     fun recorded(): List<ScoreEntry> = entries.toList()

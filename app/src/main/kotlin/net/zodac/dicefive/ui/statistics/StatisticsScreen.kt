@@ -1,5 +1,7 @@
 package net.zodac.dicefive.ui.statistics
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +22,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +36,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import net.zodac.dicefive.data.scores.PlayerStatistics
 import net.zodac.dicefive.model.PlayerState
+import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
 
@@ -44,6 +52,7 @@ fun StatisticsScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsState()
+    var pendingDeleteName by rememberSaveable { mutableStateOf<String?>(null) }
 
     ScreenScaffold(title = "Statistics", onBack = onBack, modifier = modifier) {
         if (state.players.isEmpty()) {
@@ -68,18 +77,35 @@ fun StatisticsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(state.players, key = { it.playerName }) { player ->
-                        PlayerStatsCard(player)
+                        PlayerStatsCard(player, onLongPress = { pendingDeleteName = player.playerName })
                     }
                 }
                 LazyListScrollbar(listState = listState)
             }
         }
+
+        pendingDeleteName?.let { playerName ->
+            DiceFiveDialog(
+                icon = Icons.Filled.DeleteForever,
+                title = "Delete stats?",
+                message = "Would you like to delete $playerName's stats? Their leaderboard scores will not be affected.",
+                confirmLabel = "Delete",
+                onConfirm = {
+                    viewModel.dismissPlayer(playerName)
+                    pendingDeleteName = null
+                },
+                dismissLabel = "Cancel",
+                onDismiss = { pendingDeleteName = null },
+                onDismissRequest = { pendingDeleteName = null },
+            )
+        }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun PlayerStatsCard(player: PlayerStatistics) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+private fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = {}, onLongClick = onLongPress)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             // Name, first-played timestamp, and max score share one baseline - sized down from
             // their old solo-row/captioned style so a max-length (10-character) name, a date, and
