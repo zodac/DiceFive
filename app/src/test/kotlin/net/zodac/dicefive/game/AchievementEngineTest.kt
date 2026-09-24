@@ -497,8 +497,8 @@ class AchievementEngineTest {
 
     @Test
     fun `the three first-roll feats are listed together, least unlikely first`() {
-        val dice = Achievement.entries.filter { it.category == AchievementCategory.DICE }
-        val firstRoll = dice.filter { it.id.contains("first_roll") }
+        val misc = Achievement.entries.filter { it.category == AchievementCategory.MISCELLANEOUS }
+        val firstRoll = misc.filter { it.id.contains("first_roll") }
 
         assertEquals(
             listOf(
@@ -509,8 +509,27 @@ class AchievementEngineTest {
             firstRoll,
         )
         // Adjacent, not merely in order.
-        assertEquals(1, dice.indexOf(Achievement.FIRST_ROLL_LARGE_STRAIGHT) - dice.indexOf(Achievement.FIRST_ROLL_FULL_HOUSE))
-        assertEquals(1, dice.indexOf(Achievement.FIRST_ROLL_5X) - dice.indexOf(Achievement.FIRST_ROLL_LARGE_STRAIGHT))
+        assertEquals(1, misc.indexOf(Achievement.FIRST_ROLL_LARGE_STRAIGHT) - misc.indexOf(Achievement.FIRST_ROLL_FULL_HOUSE))
+        assertEquals(1, misc.indexOf(Achievement.FIRST_ROLL_5X) - misc.indexOf(Achievement.FIRST_ROLL_LARGE_STRAIGHT))
+    }
+
+    /**
+     * Miscellaneous is exclusive with hidden visibility, in both directions - see the class doc
+     * on [Achievement]. Guards against a new hidden achievement being filed under its subject's
+     * usual category, or a normal achievement being left in Miscellaneous.
+     */
+    @Test
+    fun `Miscellaneous category and hidden visibility are exclusive to each other`() {
+        Achievement.entries.forEach { achievement ->
+            val isMiscellaneous = achievement.category == AchievementCategory.MISCELLANEOUS
+            val isHidden = achievement.visibility == AchievementVisibility.HIDDEN
+
+            assertEquals(
+                "${achievement.name}: category=${achievement.category}, visibility=${achievement.visibility}",
+                isMiscellaneous,
+                isHidden,
+            )
+        }
     }
 
     /**
@@ -672,7 +691,6 @@ class AchievementEngineTest {
         assertEquals(
             listOf(
                 Achievement.PERSONAL_BEST,
-                Achievement.NICE,
                 Achievement.TON,
                 Achievement.SCORE_200,
                 Achievement.DOUBLE_TON,

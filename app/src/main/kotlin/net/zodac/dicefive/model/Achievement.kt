@@ -78,6 +78,11 @@ enum class AchievementVisibility {
  * goes wherever it belongs in that reading order rather than on the end; `AchievementEngineTest`
  * fails the build if a category ends up split across the list. Ids are keyed by [id], not
  * position, so reordering is safe for already-stored unlocks.
+ *
+ * [AchievementCategory.MISCELLANEOUS] is exclusive with [AchievementVisibility.HIDDEN]: every
+ * achievement with that visibility lives in that category, and everything in that category has
+ * that visibility - `AchievementEngineTest` enforces both directions. A new hidden achievement
+ * goes straight into Miscellaneous rather than its subject's usual category.
  */
 enum class Achievement(
     val id: String,
@@ -204,30 +209,6 @@ enum class Achievement(
         AchievementCategory.DICE,
     ),
 
-    // The best full house there is - three 6s and two 5s specifically, never the joker rule's
-    // five-of-a-kind bent into the box instead. Sits right above House Call, the more general
-    // "any full house, first roll" feat.
-    FULLER_HOUSE(
-        "fuller_house", "Fuller House", "Score the best Full House (three 6s and two 5s)",
-        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
-    ),
-
-    // The three "straight out of the cup" feats, in ascending order of how unlikely they are on a
-    // single throw of five dice: a full house is 300 of the 7776 outcomes, a large straight 240,
-    // and five of a kind just 6.
-    FIRST_ROLL_FULL_HOUSE(
-        "first_roll_full_house", "House Call", "Roll a full house on the first roll of a turn",
-        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
-    ),
-    FIRST_ROLL_LARGE_STRAIGHT(
-        "first_roll_large_straight", "Straight Away", "Roll a large straight on the first roll of a turn",
-        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
-    ),
-    FIRST_ROLL_5X(
-        "5x_first_roll", "Straight Out Of The Cup", "Roll a 5x on the first roll of a turn",
-        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
-    ),
-
     ENCORE_5X(
         "5x_encore", "Encore", "Score a second 5x in a single game",
         AchievementCategory.DICE,
@@ -236,24 +217,12 @@ enum class Achievement(
         "5x_total_10", "Dice Whisperer", "Score 5x ten times in total",
         AchievementCategory.DICE, AchievementCounter.SCORED_5X, target = 10,
     ),
-    SIXES_30(
-        "sixes_30", "Six Appeal", "Score the maximum 30 in Sixes",
-        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
-    ),
-    CHANCE_30(
-        "chance_30", "Taking A Chance", "Score the maximum 30 in Chance",
-        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
-    ),
     HAT_TRICK_5X(
         "5x_hat_trick", "Hat Trick", "Score three or more 5x in a single game",
         AchievementCategory.DICE,
     ),
 
     // ---- Dice feats continued: interaction quirks, not just what the dice show ----------------
-    DEJA_VU(
-        "deja_vu", "Déjà Vu", "Roll the exact same result twice in a row, without holding any dice in between",
-        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
-    ),
     LOADED_DICE(
         "loaded_dice", "Are These Loaded Dice?", "After holding some dice, have the rest come up exactly the same on both re-rolls",
         AchievementCategory.DICE,
@@ -266,17 +235,9 @@ enum class Achievement(
         "5x_natural", "Natural 5x", "Roll a 5x on the 2nd or 3rd roll without holding any dice",
         AchievementCategory.DICE,
     ),
-    PRODUCT_PLACEMENT(
-        "product_placement", "Product Placement", "Roll 2, 4, 5, 3, 6 - the exact dice on the main menu, in that order",
-        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
-    ),
     I_CAN_COUNT(
         "i_can_count", "I Can Count!", "Roll 1, 2, 3, 4, 5 in that order on the first roll of a turn",
         AchievementCategory.DICE,
-    ),
-    POINTLESS_ROLL(
-        "pointless_roll", "What Was The Point Of That?", "Hold all five dice, then roll anyway",
-        AchievementCategory.DICE, visibility = AchievementVisibility.HIDDEN,
     ),
     CUNNING_STRATEGY(
         "cunning_strategy", "A Cunning Strategy", "Hold all five dice, then unhold every one of them",
@@ -292,10 +253,6 @@ enum class Achievement(
     PERSONAL_BEST(
         "personal_best", "New Personal Best", "Beat your best score on the leaderboard",
         AchievementCategory.SCORING,
-    ),
-    NICE(
-        "score_exactly_69", "Nice", "Finish a game on exactly 69",
-        AchievementCategory.SCORING, visibility = AchievementVisibility.HIDDEN,
     ),
     TON(
         "score_exactly_100", "Ton!", "Finish a game on exactly 100",
@@ -354,11 +311,6 @@ enum class Achievement(
         "comeback", "Comeback Kid", "Win after trailing at the start of the final round",
         AchievementCategory.WINNING,
     ),
-    ZERO_TO_HERO(
-        "zero_to_hero", "Zero To Hero", "Win a game after scoring zero at least three times",
-        AchievementCategory.WINNING, visibility = AchievementVisibility.HIDDEN,
-    ),
-
     BEAT_THREE_AI(
         "beat_three_ai", "Last Human Standing", "Win a four-player game against three CPU players",
         AchievementCategory.WINNING,
@@ -377,13 +329,6 @@ enum class Achievement(
     SCRATCHED_5X(
         "5x_scratched", "Scratched", "Take a zero in the 5x box",
         AchievementCategory.MISFORTUNE,
-    ),
-    // Harder and more specific than Scratched: that one just needs a zero sitting in the 5x box
-    // (from dice that never matched at all), this needs the dice to have genuinely been a 5x at
-    // the moment a zero was committed anyway.
-    WASTED_5X(
-        "5x_wasted", "Wasted Fortune", "Roll a 5x but score a zero with it anyway",
-        AchievementCategory.MISFORTUNE, visibility = AchievementVisibility.HIDDEN,
     ),
     DICE_HATE_ME(
         "dice_hate_me", "The Dice Hate Me", "Have a real scoring option after the 2nd roll, then leave yourself with none after the 3rd",
@@ -413,19 +358,6 @@ enum class Achievement(
         "low_rolls", "Low Rolls", "Finish a game with under 20 points",
         AchievementCategory.MISFORTUNE,
     ),
-    WHY_DID_YOU_DO_THAT(
-        "why_did_you_do_that", "Size Isn't Everything", "Score the small straight when the large straight was also available",
-        AchievementCategory.MISFORTUNE, visibility = AchievementVisibility.HIDDEN,
-    ),
-    ALL_ZEROES(
-        "zeroes_except_chance", "How Do You Play This Game?",
-        "Score zero in every category except Chance",
-        AchievementCategory.MISFORTUNE, visibility = AchievementVisibility.HIDDEN,
-    ),
-    EXTREME_LOW_ROLLS(
-        "low_rolls_extreme", "Rock Bottom", "Finish a game on exactly 5 - the lowest score the rules allow",
-        AchievementCategory.MISFORTUNE, visibility = AchievementVisibility.HIDDEN,
-    ),
     // The turn timer forcing a category on you, not a bad roll - a different flavor of misfortune
     // than everything above it, so it sits last in the category rather than being slotted by rank.
     OUT_OF_TIME(
@@ -433,24 +365,26 @@ enum class Achievement(
         AchievementCategory.MISFORTUNE,
     ),
 
-    // ---- Miscellaneous: interaction quirks that aren't about the dice or the scorecard --------
-    // Easiest in the category - just touch the setup form before starting - so it leads the block.
+    // ---- Miscellaneous: every hidden achievement, whatever it's about --------------------------
+    // This category is exclusive in both directions - see AchievementEngineTest - so it isn't
+    // themed by subject the way the others are; entries below keep their original relative order
+    // from whichever theme they moved out of, grouped by that origin for a paper trail.
     I_DID_IT_MY_WAY(
         "i_did_it_my_way", "I Did It My Way", "Customise a game before starting",
-        AchievementCategory.MISCELLANEOUS,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     COMMITMENT_ISSUES(
         "commitment_issues", "Commitment Issues",
         "Hold dice of one number, then change your mind and hold and score with another number",
-        AchievementCategory.MISCELLANEOUS,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     DECISIONS_DECISIONS(
         "decisions_decisions", "Decisions, Decisions", "Hold and unhold the same die three times before rolling again",
-        AchievementCategory.MISCELLANEOUS,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     TIME_TO_LET_IT_GO(
         "time_to_let_it_go", "Time To Let It Go", "Hold the same die through two rolls, then unhold it with none left to take",
-        AchievementCategory.MISCELLANEOUS,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     TIME_WASTING(
         "time_wasting", "Time Wasting", "Hold then unhold each die in sequence",
@@ -458,7 +392,7 @@ enum class Achievement(
     ),
     UNDO_DIFFERENT_CATEGORY(
         "undo_different_category", "I Didn't Mean That", "Undo a score and score a different category",
-        AchievementCategory.MISCELLANEOUS,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     NOT_THOSE_DICE(
         "not_those_dice", "Not Those Dice!", "Tap the dice on the main menu",
@@ -466,16 +400,94 @@ enum class Achievement(
     ),
     NO_MORE_ROLLS(
         "no_more_rolls", "No More Rolls", "Tap the dice cup three times after your last roll of a turn",
-        AchievementCategory.MISCELLANEOUS,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     IMPATIENT(
         "impatient", "Impatient", "Finish a game never rolling more than once in any turn",
-        AchievementCategory.MISCELLANEOUS,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     // Earned by having a human P2/P3/P4 named exactly "zodac" - the one name this checks for,
     // case-sensitively - never P1, who's always the human player at this device.
     BIG_FAN(
         "big_fan", "Big Fan", "Play a game with the creator",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+
+    // Moved from Dice feats.
+    // The best full house there is - three 6s and two 5s specifically, never the joker rule's
+    // five-of-a-kind bent into the box instead. Sits right above House Call, the more general
+    // "any full house, first roll" feat.
+    FULLER_HOUSE(
+        "fuller_house", "Fuller House", "Score the best Full House (three 6s and two 5s)",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    // The three "straight out of the cup" feats, in ascending order of how unlikely they are on a
+    // single throw of five dice: a full house is 300 of the 7776 outcomes, a large straight 240,
+    // and five of a kind just 6.
+    FIRST_ROLL_FULL_HOUSE(
+        "first_roll_full_house", "House Call", "Roll a full house on the first roll of a turn",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    FIRST_ROLL_LARGE_STRAIGHT(
+        "first_roll_large_straight", "Straight Away", "Roll a large straight on the first roll of a turn",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    FIRST_ROLL_5X(
+        "5x_first_roll", "Straight Out Of The Cup", "Roll a 5x on the first roll of a turn",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    SIXES_30(
+        "sixes_30", "Six Appeal", "Score the maximum 30 in Sixes",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    CHANCE_30(
+        "chance_30", "Taking A Chance", "Score the maximum 30 in Chance",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    DEJA_VU(
+        "deja_vu", "Déjà Vu", "Roll the exact same result twice in a row, without holding any dice in between",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    PRODUCT_PLACEMENT(
+        "product_placement", "Product Placement", "Roll 2, 4, 5, 3, 6 - the exact dice on the main menu, in that order",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    POINTLESS_ROLL(
+        "pointless_roll", "What Was The Point Of That?", "Hold all five dice, then roll anyway",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+
+    // Moved from Scoring.
+    NICE(
+        "score_exactly_69", "Nice", "Finish a game on exactly 69",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+
+    // Moved from Winning.
+    ZERO_TO_HERO(
+        "zero_to_hero", "Zero To Hero", "Win a game after scoring zero at least three times",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+
+    // Moved from Misfortune.
+    // Harder and more specific than Scratched: that one just needs a zero sitting in the 5x box
+    // (from dice that never matched at all), this needs the dice to have genuinely been a 5x at
+    // the moment a zero was committed anyway.
+    WASTED_5X(
+        "5x_wasted", "Wasted Fortune", "Roll a 5x but score a zero with it anyway",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    WHY_DID_YOU_DO_THAT(
+        "why_did_you_do_that", "Size Isn't Everything", "Score the small straight when the large straight was also available",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    ALL_ZEROES(
+        "zeroes_except_chance", "How Do You Play This Game?",
+        "Score zero in every category except Chance",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    EXTREME_LOW_ROLLS(
+        "low_rolls_extreme", "Rock Bottom", "Finish a game on exactly 5 - the lowest score the rules allow",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
 
