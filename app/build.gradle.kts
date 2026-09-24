@@ -27,8 +27,11 @@ android {
     namespace = "net.zodac.dicefive"
     compileSdk = 35
     // Pinned to match the build-tools baked into the sandbox image (sandbox/Dockerfile) so a
-    // build never needs to fetch a different version over the network.
-    buildToolsVersion = "35.0.0"
+    // build never needs to fetch a different version over the network. Bumped to 36.0.0 for the
+    // AGP 9 upgrade - AGP 9.4.1 enforces build-tools >= 36.0.0 and silently ignores/overrides a
+    // lower pin here rather than failing on it, so this now just documents what AGP would use
+    // anyway instead of actually choosing it.
+    buildToolsVersion = "36.0.0"
 
     // Output APK names: DiceFive-debug.apk / DiceFive-release.apk instead of the app-*.apk default.
     base {
