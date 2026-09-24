@@ -5,6 +5,9 @@
   regenerate it, the shared chrome in `ui/common/`, inset and layout rules, component
   conventions, the player-name cap and why it exists, and the gotchas worth not re-learning.
   Read this before changing anything visual.
+- `.claude/PUBLISHING.md` — Play Store submission requirements not covered by the build or by
+  `DESIGN.md`'s GitHub release pipeline (Phase 12), such as the store listing's separate hi-res
+  icon. Nothing in it is done yet; it's a running checklist for when that submission happens.
 
 # Working agreements
 
