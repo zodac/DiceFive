@@ -84,9 +84,9 @@ fun MenuScreen(
                 ) {
                     Text(text = "Play", style = MaterialTheme.typography.titleMedium)
                 }
+                MenuDestinationButton(label = "Achievements", onClick = onAchievements)
                 MenuDestinationButton(label = "Leaderboard", onClick = onScores)
                 MenuDestinationButton(label = "Statistics", onClick = onStatistics)
-                MenuDestinationButton(label = "Achievements", onClick = onAchievements)
                 MenuDestinationButton(label = "Styles", onClick = onStyles)
                 MenuDestinationButton(label = "Settings", onClick = onSettings)
             }
