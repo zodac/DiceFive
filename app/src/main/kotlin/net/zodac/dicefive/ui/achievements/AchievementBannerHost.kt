@@ -81,8 +81,9 @@ private const val MAX_VISIBLE_BANNERS = 4
 /** Banners are confined to the bottom half of the screen, clear of the board and the scorecard. */
 private const val BOTTOM_HALF = 0.5f
 
-/** How far across itself a banner must be dragged to count as "get rid of this". */
-private const val SWIPE_DISMISS_FRACTION = 0.25f
+/** How far across itself a banner must be dragged to count as "get rid of this" - down from an
+ * original 0.25f, which needed too firm a swipe to register. */
+private const val SWIPE_DISMISS_FRACTION = 0.15f
 
 /** How much of an older banner peeks out above the one in front of it, in a stack - just enough
  * to show it's there and to stay tappable/swipeable on its own, without the pile eating the
