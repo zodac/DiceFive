@@ -14,7 +14,7 @@ name: Release
 # Versions below 1.0.0 are pre-1.0 milestones, not real releases: they're
 # marked as GitHub pre-releases and get no APK asset - just a version bump
 # recorded as a tagged release. Signing/building only happens once VERSION
-# reaches 1.0.0.
+# reaches 1.0.0, unless the force_apk dispatch input below overrides that.
 on:
   push:
     branches: [main]
@@ -24,6 +24,11 @@ on:
   # (e.g. a red unit-test run) and left main sitting on an unreleased
   # VERSION with nothing to re-trigger it.
   workflow_dispatch:
+    inputs:
+      force_apk:
+        description: "Build and attach the APK even if VERSION is still below 1.0.0 (release stays marked as a pre-release)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -71,11 +76,11 @@ jobs:
         run: ./gradlew testDebugUnitTest --console=plain
 
       - name: Decode release keystore
-        if: steps.version.outputs.stable == 'true'
+        if: steps.version.outputs.stable == 'true' || inputs.force_apk == true
         run: echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore.jks"
 
       - name: Build release APK
-        if: steps.version.outputs.stable == 'true'
+        if: steps.version.outputs.stable == 'true' || inputs.force_apk == true
         env:
           ANDROID_RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore.jks
           ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
@@ -84,7 +89,7 @@ jobs:
         run: ./gradlew assembleRelease --console=plain
 
       - name: Rename APK for release
-        if: steps.version.outputs.stable == 'true'
+        if: steps.version.outputs.stable == 'true' || inputs.force_apk == true
         id: apk
         run: |
           path="DiceFive-${{ steps.version.outputs.name }}.apk"
