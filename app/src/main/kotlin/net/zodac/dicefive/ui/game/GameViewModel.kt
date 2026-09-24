@@ -1001,34 +1001,40 @@ class GameViewModel(
             while (!current.isGameOver && current.currentPlayer?.type == PlayerType.AI) {
                 while (current.rollsRemaining > 0) {
                     // The delay doubles as the cup's shake animation window, same as the human tap
-                    // handler in GameScreen - true for its whole span, then false once the new dice
-                    // values are published, so the shake plays out before the result is revealed.
+                    // handler in GameScreen - always exactly AI_STEP_DELAY_MS, whatever the
+                    // difficulty, since it's true for its whole span and then false the moment the
+                    // roll itself (never the hold decision below - see that comment) is published.
                     _aiRolling.value = true
                     try {
                         delay(AI_STEP_DELAY_MS)
                         current = GameEngine.rollDice(current, random)
-                        if (current.rollsRemaining > 0) {
-                            // Off the main thread: Hard's hold choice is an exhaustive search over
-                            // every 32 hold/reroll subsets, each averaging over every possible
-                            // reroll outcome - expensive enough, running inline on this
-                            // Main.immediate-dispatched coroutine, to visibly block Compose from
-                            // rendering frames for its duration. That froze the shake animation
-                            // mid-motion rather than letting it play out, then dumped the finished
-                            // roll and tilt-start on the very next frame - looking like the cup
-                            // "didn't finish rolling", worst on Hard specifically since Easy/Medium's
-                            // hold choices are cheap enough not to stall a frame.
-                            val holds = withContext(aiDispatcher) { AiTurnPlayer.chooseHolds(current) }
-                            current = AiTurnPlayer.applyHolds(current, holds)
-                            // Every die is being kept - the rolls still "remaining" would only ever
-                            // reroll nothing (GameEngine.rollDice skips held dice), so there's no
-                            // reason to sit through their delay for an animation that changes nothing.
-                            if (holds.size == current.dice.size) current = current.copy(rollsRemaining = 0)
-                        }
                         setUndoSnapshot(null)
                         applyGameState(current, checkForAiTurn = false)
                     } finally {
                         _aiRolling.value = false
                     }
+
+                    if (current.rollsRemaining > 0) {
+                        // Deliberately outside the block above: choosing what to hold happens once
+                        // the cup has already stopped shaking and this roll's dice are already on
+                        // screen, never while the shake itself is still playing. Hard's hold choice
+                        // is an exhaustive search over every 32 hold/reroll subsets, each averaged
+                        // over every possible reroll outcome - expensive enough that computing it
+                        // during the shake (as this used to) stretched the shake's own on-screen
+                        // duration out past Easy/Medium's, whose choices are next to free. Now every
+                        // difficulty's shake is the same fixed length, and "thinking" is just a
+                        // static pause with nothing animating - however long it takes, only the pause
+                        // before the dice's held state updates changes, not any animation.
+                        val holds = withContext(aiDispatcher) { AiTurnPlayer.chooseHolds(current) }
+                        current = AiTurnPlayer.applyHolds(current, holds)
+                        // Every die is being kept - the rolls still "remaining" would only ever
+                        // reroll nothing (GameEngine.rollDice skips held dice), so there's no reason
+                        // to sit through their delay for an animation that changes nothing.
+                        if (holds.size == current.dice.size) current = current.copy(rollsRemaining = 0)
+                        setUndoSnapshot(null)
+                        applyGameState(current, checkForAiTurn = false)
+                    }
+
                     // A beat with the cup settled and the result visible before the next roll's
                     // shake starts - without it, back-to-back rolls (routine for Easy, which never
                     // holds anything and so never gets to skip a roll) read as one continuous blur
