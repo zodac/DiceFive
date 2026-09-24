@@ -157,13 +157,8 @@ private fun PlayerCountSelector(count: Int, onCountChange: (Int) -> Unit) {
 
 /**
  * A player on one line: their name (editable for a User, automatic for a CPU) and the control
- * that switches between the two.
- *
- * The "Player N" label always sits in the same place, above the row, whichever type is selected -
- * rather than living inside the text field (as a floating label) for a User but above the
- * difficulty picker for a CPU - so toggling between them doesn't shift it. The User/CPU control
- * sits in the same inner [Row] as the name field or difficulty picker, so
- * [Alignment.CenterVertically] centers it against the actual control it toggles.
+ * that switches between the two. No separate "Player N" label - the name field's own value (or,
+ * for a CPU, the difficulty picker itself) already identifies the row.
  */
 @Composable
 private fun PlayerRow(
@@ -172,47 +167,39 @@ private fun PlayerRow(
     onNameChange: (String) -> Unit,
     onDifficultyChange: (Difficulty) -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text(
-            text = "Player ${slot.slot}",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 4.dp),
-        )
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        when (slot.type) {
+            PlayerType.HUMAN -> CompactNameField(
+                value = slot.name,
+                onValueChange = onNameChange,
+                modifier = Modifier.weight(1f),
+            )
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            when (slot.type) {
-                PlayerType.HUMAN -> CompactNameField(
-                    value = slot.name,
-                    onValueChange = onNameChange,
-                    modifier = Modifier.weight(1f),
-                )
-
-                PlayerType.AI -> DifficultySelector(
-                    selected = slot.difficulty,
-                    onSelect = onDifficultyChange,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            FilterChip(
-                selected = slot.type == PlayerType.AI,
-                onClick = { onTypeChange(if (slot.type == PlayerType.AI) PlayerType.HUMAN else PlayerType.AI) },
-                label = {
-                    // FilterChip's own Row left-aligns its label rather than centering it, so at a
-                    // fixed chip width the leftover space all landed on one side - most visible as
-                    // "CPU" and "User" sitting at different horizontal positions. A label that fills
-                    // the whole slot and centers its own text isn't subject to that.
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(if (slot.type == PlayerType.AI) "CPU" else "User")
-                    }
-                },
-                modifier = Modifier.width(TYPE_CONTROL_WIDTH),
+            PlayerType.AI -> DifficultySelector(
+                selected = slot.difficulty,
+                onSelect = onDifficultyChange,
+                modifier = Modifier.weight(1f),
             )
         }
+
+        FilterChip(
+            selected = slot.type == PlayerType.AI,
+            onClick = { onTypeChange(if (slot.type == PlayerType.AI) PlayerType.HUMAN else PlayerType.AI) },
+            label = {
+                // FilterChip's own Row left-aligns its label rather than centering it, so at a
+                // fixed chip width the leftover space all landed on one side - most visible as
+                // "CPU" and "User" sitting at different horizontal positions. A label that fills
+                // the whole slot and centers its own text isn't subject to that.
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text(if (slot.type == PlayerType.AI) "CPU" else "User")
+                }
+            },
+            modifier = Modifier.width(TYPE_CONTROL_WIDTH),
+        )
     }
 }
 
