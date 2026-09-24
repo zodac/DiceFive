@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameType
 import net.zodac.dicefive.model.PlayerType
+import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.ui.common.PinnedActionBar
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
@@ -107,6 +108,10 @@ fun GameSetupScreen(
 
         SetupCard(title = "Game Type") {
             GameTypeSelector(selected = setup.gameType, onSelect = viewModel::setGameType)
+        }
+
+        SetupCard(title = "Turn Timer") {
+            TurnTimerSelector(selected = setup.turnTimer, onSelect = viewModel::setTurnTimer)
         }
     }
 }
@@ -271,6 +276,29 @@ private fun GameTypeSelector(selected: GameType, onSelect: (GameType) -> Unit) {
     )
     GameTypeOption(label = "Extended (coming soon)", selected = false, enabled = false, onSelect = {})
 }
+
+/**
+ * Whole-turn time limit: a small, always-enabled exclusive set, so this uses the same segmented
+ * row as player count and AI difficulty rather than [GameTypeOption]'s radio rows.
+ */
+@Composable
+private fun TurnTimerSelector(selected: TurnTimer, onSelect: (TurnTimer) -> Unit) {
+    SegmentedChoiceRow(
+        options = TurnTimer.entries,
+        selected = selected,
+        onSelect = onSelect,
+        label = { it.label },
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+private val TurnTimer.label: String
+    get() = when (this) {
+        TurnTimer.NONE -> "None"
+        TurnTimer.SECONDS_30 -> "30s"
+        TurnTimer.SECONDS_60 -> "60s"
+        TurnTimer.SECONDS_120 -> "120s"
+    }
 
 /**
  * The whole row is the target, not just the radio dot, and `selectable` with [Role.RadioButton] is

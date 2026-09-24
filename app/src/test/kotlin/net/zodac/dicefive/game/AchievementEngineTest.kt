@@ -781,6 +781,17 @@ class AchievementEngineTest {
     }
 
     @Test
+    fun `customizing game settings before starting unlocks I Did It My Way`() {
+        val before = AchievementsState(unlockedAt = mapOf(Achievement.THE_JOURNEY_BEGINS to 1L))
+
+        val customized = AchievementEngine.evaluateAtGameStart(GameStartContext(customizedGameSettings = true), before, NOW)
+        val default = AchievementEngine.evaluateAtGameStart(GameStartContext(customizedGameSettings = false), before, NOW)
+
+        assertEquals(listOf(Achievement.I_DID_IT_MY_WAY), customized.newlyUnlocked)
+        assertTrue(default.isEmpty)
+    }
+
+    @Test
     fun `game start touches no counters and skips an already-unlocked style`() {
         val before = AchievementsState(unlockedAt = mapOf(Achievement.STYLE_DICE to 1L), counters = mapOf(AchievementCounter.GAMES_PLAYED to 7))
 

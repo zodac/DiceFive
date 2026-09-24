@@ -8,6 +8,7 @@ import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
+import net.zodac.dicefive.model.TurnTimer
 
 /**
  * Pure reducers for the turn flow. None of these touch Android APIs
@@ -19,10 +20,15 @@ object GameEngine {
     private const val DICE_COUNT = 5
     private const val ROLLS_PER_TURN = 3
 
-    fun newGame(players: List<PlayerConfig>, gameType: GameType = GameType.CLASSIC): GameState {
+    fun newGame(
+        players: List<PlayerConfig>,
+        gameType: GameType = GameType.CLASSIC,
+        turnTimer: TurnTimer = TurnTimer.NONE,
+    ): GameState {
         require(players.isNotEmpty()) { "At least one player is required" }
         return GameState(
             gameType = gameType,
+            turnTimer = turnTimer,
             players = players.map { PlayerState(name = it.name, type = it.type, difficulty = it.difficulty) },
         )
     }

@@ -7,6 +7,7 @@ package net.zodac.dicefive.model
  */
 data class GameState(
     val gameType: GameType = GameType.CLASSIC,
+    val turnTimer: TurnTimer = TurnTimer.NONE,
     val players: List<PlayerState> = emptyList(),
     val currentPlayerIndex: Int = 0,
     val dice: List<Die> = List(5) { Die() },

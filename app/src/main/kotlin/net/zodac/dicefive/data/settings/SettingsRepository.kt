@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.PlayerType
+import net.zodac.dicefive.model.TurnTimer
 
 private val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
@@ -63,6 +64,14 @@ class SettingsRepository(private val context: Context) {
         context.settingsDataStore.edit { it[PLAYER_COUNT_KEY] = count }
     }
 
+    val turnTimer: Flow<TurnTimer> = context.settingsDataStore.data.map { prefs ->
+        prefs[TURN_TIMER_KEY]?.let { raw -> runCatching { TurnTimer.valueOf(raw) }.getOrNull() } ?: TurnTimer.NONE
+    }
+
+    suspend fun setTurnTimer(turnTimer: TurnTimer) {
+        context.settingsDataStore.edit { it[TURN_TIMER_KEY] = turnTimer.name }
+    }
+
     val confirmBeforeLeavingGame: Flow<Boolean> =
         context.settingsDataStore.data.map { prefs -> prefs[CONFIRM_BEFORE_LEAVING_GAME_KEY] ?: true }
 
@@ -96,6 +105,7 @@ class SettingsRepository(private val context: Context) {
         val THEME_KEY = stringPreferencesKey("theme")
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
         val PLAYER_COUNT_KEY = intPreferencesKey("player_count")
+        val TURN_TIMER_KEY = stringPreferencesKey("turn_timer")
         val DICE_STYLE_ID_KEY = stringPreferencesKey("dice_style_id")
         val DICE_CUP_STYLE_ID_KEY = stringPreferencesKey("dice_cup_style_id")
         val TABLE_BACKGROUND_ID_KEY = stringPreferencesKey("table_background_id")

@@ -426,8 +426,19 @@ enum class Achievement(
         "low_rolls_extreme", "Rock Bottom", "Finish a game on exactly 5 - the lowest score the rules allow",
         AchievementCategory.MISFORTUNE, visibility = AchievementVisibility.HIDDEN,
     ),
+    // The turn timer forcing a category on you, not a bad roll - a different flavor of misfortune
+    // than everything above it, so it sits last in the category rather than being slotted by rank.
+    OUT_OF_TIME(
+        "out_of_time", "Out Of Time", "Fail to score within the time limit",
+        AchievementCategory.MISFORTUNE,
+    ),
 
     // ---- Miscellaneous: interaction quirks that aren't about the dice or the scorecard --------
+    // Easiest in the category - just touch the setup form before starting - so it leads the block.
+    I_DID_IT_MY_WAY(
+        "i_did_it_my_way", "I Did It My Way", "Customise a game before starting",
+        AchievementCategory.MISCELLANEOUS,
+    ),
     COMMITMENT_ISSUES(
         "commitment_issues", "Commitment Issues",
         "Hold dice of one number, then change your mind and hold and score with another number",

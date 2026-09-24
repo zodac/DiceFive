@@ -55,6 +55,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
+import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
@@ -74,6 +75,7 @@ data class GameSetupState(
     val playerCount: Int = 2,
     val playerSlots: List<PlayerSetupSlot> = (1..MAX_PLAYERS).map { PlayerSetupSlot(slot = it) },
     val gameType: GameType = GameType.CLASSIC,
+    val turnTimer: TurnTimer = TurnTimer.NONE,
 ) {
     companion object {
         const val MIN_PLAYERS = 1
@@ -125,6 +127,11 @@ class GameViewModel(
      * would otherwise flip the cup/tray into their "rolling" pose for an AI player's rolls. */
     private val _aiRolling = MutableStateFlow(false)
     val aiRolling: StateFlow<Boolean> = _aiRolling.asStateFlow()
+
+    /** Seconds left on the current human turn's timer, or null when [GameState.turnTimer] is
+     * [TurnTimer.NONE], it's an AI's turn, or the game is over - see [syncTurnTimer]. */
+    private val _turnSecondsRemaining = MutableStateFlow<Int?>(null)
+    val turnSecondsRemaining: StateFlow<Int?> = _turnSecondsRemaining.asStateFlow()
 
     /** The state to restore if [undo] is called - the pre-commit snapshot of the most recent
      * scoring action only. Rolling and holding/unholding dice are pure exploration/selection with
@@ -229,6 +236,7 @@ class GameViewModel(
                     updateSlot(slot) { it.copy(difficulty = savedDifficulty) }
                 }
                 repository.playerCount.first()?.let { savedCount -> setPlayerCount(savedCount) }
+                setTurnTimer(repository.turnTimer.first())
             }
         }
     }
@@ -258,6 +266,10 @@ class GameViewModel(
         _setup.update { it.copy(gameType = gameType) }
     }
 
+    fun setTurnTimer(turnTimer: TurnTimer) {
+        _setup.update { it.copy(turnTimer = turnTimer) }
+    }
+
     /** Builds the initial [GameState] from the current setup form, generating AI names now. */
     fun startGame() {
         // Read before anything below overwrites it: "One More Time" is about the game THIS call is
@@ -275,14 +287,14 @@ class GameViewModel(
             PlayerConfig(slot = slot.slot, type = slot.type, name = name, difficulty = slot.difficulty)
         }
         persistHumanNames(activeSlots)
-        persistGameConfig(setupState.playerCount, activeSlots)
+        persistGameConfig(setupState.playerCount, activeSlots, setupState.turnTimer)
         setUndoSnapshot(null)
         resetSuperuserMode()
         resetAchievementTracking()
-        applyGameState(GameEngine.newGame(playerConfigs, setupState.gameType))
+        applyGameState(GameEngine.newGame(playerConfigs, setupState.gameType, setupState.turnTimer))
         // "Full Table" is settled the moment four seats are taken - no need to make them play it out.
         checkInProgressAchievements()
-        checkGameStartAchievements()
+        checkGameStartAchievements(customizedGameSettings = setupState.turnTimer != TurnTimer.NONE)
 
         if (previousGame != null && previousGame.isGameOver && !humanWonGame(previousGame)) {
             unlockAchievements(setOf(Achievement.REPLAY_AFTER_LOSS))
@@ -409,6 +421,7 @@ class GameViewModel(
         aiTurnJob?.cancel()
         aiTurnJob = null
         _aiRolling.value = false
+        cancelTurnTimer()
         setUndoSnapshot(null)
         applyGameState(snapshot, checkForAiTurn = false)
     }
@@ -511,7 +524,80 @@ class GameViewModel(
         if (!wasGameOver && newState.isGameOver) {
             finishGame(newState)
         }
+        syncTurnTimer(newState)
         if (checkForAiTurn) maybeStartAiTurn()
+    }
+
+    private var turnTimerJob: Job? = null
+
+    /** The total number of categories scored across every player as of the turn [turnTimerJob] is
+     * currently counting down for - a turn always ends by scoring exactly one category, so this
+     * strictly increases by one turn to turn and uniquely identifies "a new turn started" even in
+     * a single-player game, where [GameState.currentPlayerIndex] alone would stay 0 forever. A
+     * state update that doesn't actually change whose turn it is (e.g. a superuser die cycle,
+     * rolling, holding) leaves it unchanged, so the countdown isn't restarted mid-turn. */
+    private var turnTimerTurnSequence: Int? = null
+
+    /**
+     * Starts, restarts or cancels the per-turn countdown so it always matches [newState]: running
+     * only on a human seat's own turn, only while [GameState.turnTimer] allows one, and reset to
+     * the full duration whenever the turn it's counting down for changes (a new turn starting, or
+     * the previous turn reappearing after [undo]).
+     */
+    private fun syncTurnTimer(newState: GameState) {
+        val seconds = newState.turnTimer.seconds
+        if (newState.isGameOver || newState.currentPlayer?.type != PlayerType.HUMAN || seconds == null) {
+            cancelTurnTimer()
+            return
+        }
+        val turnSequence = newState.players.sumOf { player -> player.scorecard.values.count { it != null } }
+        if (turnTimerTurnSequence == turnSequence && turnTimerJob?.isActive == true) return
+        turnTimerTurnSequence = turnSequence
+        startTurnTimer(seconds)
+    }
+
+    private fun startTurnTimer(totalSeconds: Int) {
+        turnTimerJob?.cancel()
+        _turnSecondsRemaining.value = totalSeconds
+        turnTimerJob = viewModelScope.launch {
+            var remaining = totalSeconds
+            while (remaining > 0) {
+                delay(1_000L)
+                remaining--
+                _turnSecondsRemaining.value = remaining
+            }
+            autoScoreOnTimeout()
+        }
+    }
+
+    private fun cancelTurnTimer() {
+        turnTimerJob?.cancel()
+        turnTimerJob = null
+        turnTimerTurnSequence = null
+        _turnSecondsRemaining.value = null
+    }
+
+    /**
+     * The turn timer running out: forfeits the rest of this turn's rolls (rolling first, if the
+     * player hadn't yet, since a category can't be committed before that) and commits into
+     * whichever open category comes first, scoring zero if the current dice don't match it - a
+     * forced miss rather than picking the player's best option for them.
+     */
+    private fun autoScoreOnTimeout() {
+        var state = _game.value ?: return
+        if (state.currentPlayer?.type != PlayerType.HUMAN) return
+        // Only player 1 - "You" - earns achievements; another human seat can still be timed out,
+        // it just doesn't feed Achievement tracking.
+        val isPlayerOneTurn = state.currentPlayerIndex == 0
+
+        if (state.phase != TurnPhase.ROLLED) {
+            state = GameEngine.rollDice(state, random)
+        }
+        val player = state.currentPlayer ?: return
+        val category = ScoreCalculator.availableCategories(player, state.dice).first()
+        setUndoSnapshot(null)
+        applyGameState(GameEngine.commitScore(state, category))
+        if (isPlayerOneTurn) unlockAchievements(setOf(Achievement.OUT_OF_TIME))
     }
 
     /**
@@ -570,8 +656,12 @@ class GameViewModel(
      * [SettingsRepository]'s DataStore, not [_game]) and persisting/announcing the result. A future
      * game-start achievement is a new field on [GameStartContext] and a line in that engine
      * function, not a new method here.
+     *
+     * [customizedGameSettings] is passed in rather than read from [_setup] here: it's only true for
+     * an actual [startGame] with a non-default setup, never for [resumeGame] resuming a previously
+     * saved game, whose setup form may since have moved on to something else entirely.
      */
-    private fun checkGameStartAchievements() {
+    private fun checkGameStartAchievements(customizedGameSettings: Boolean = false) {
         val repository = achievementsRepository ?: return
         val settings = settingsRepository ?: return
         viewModelScope.launch {
@@ -582,6 +672,7 @@ class GameViewModel(
                 playedNonDefaultDiceCupStyle = isNonDefaultStyle(settings.diceCupStyleId, DiceCupStyles.default.id),
                 playedNonDefaultTableBackground = isNonDefaultStyle(settings.tableBackgroundId, TableBackgrounds.default.id),
                 hasHumanPlayerNamedZodac = otherHumans.any { it.name == ZODAC_PLAYER_NAME },
+                customizedGameSettings = customizedGameSettings,
             )
             withAchievementLock {
                 val update = AchievementEngine.evaluateAtGameStart(context, repository.current(), System.currentTimeMillis())
@@ -944,10 +1035,11 @@ class GameViewModel(
         }
     }
 
-    private fun persistGameConfig(playerCount: Int, slots: List<PlayerSetupSlot>) {
+    private fun persistGameConfig(playerCount: Int, slots: List<PlayerSetupSlot>, turnTimer: TurnTimer) {
         val repository = settingsRepository ?: return
         viewModelScope.launch {
             repository.setPlayerCount(playerCount)
+            repository.setTurnTimer(turnTimer)
             for (slot in slots) {
                 // Slot 1 is always Human, so its type and difficulty aren't worth persisting.
                 if (slot.slot == 1) continue

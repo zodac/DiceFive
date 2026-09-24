@@ -8,6 +8,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
+import net.zodac.dicefive.model.TurnTimer
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -16,6 +17,7 @@ object GameStateJson {
 
     fun encode(state: GameState): String = JSONObject().apply {
         put("gameType", state.gameType.name)
+        put("turnTimer", state.turnTimer.name)
         put("currentPlayerIndex", state.currentPlayerIndex)
         put("rollsRemaining", state.rollsRemaining)
         put("phase", state.phase.name)
@@ -28,6 +30,10 @@ object GameStateJson {
         val obj = JSONObject(json)
         return GameState(
             gameType = GameType.valueOf(obj.getString("gameType")),
+            // Absent from a game saved before this field existed - falls back to no timer rather
+            // than failing to resume it.
+            turnTimer = obj.optString("turnTimer").takeIf { it.isNotEmpty() }
+                ?.let { runCatching { TurnTimer.valueOf(it) }.getOrNull() } ?: TurnTimer.NONE,
             currentPlayerIndex = obj.getInt("currentPlayerIndex"),
             rollsRemaining = obj.getInt("rollsRemaining"),
             phase = TurnPhase.valueOf(obj.getString("phase")),

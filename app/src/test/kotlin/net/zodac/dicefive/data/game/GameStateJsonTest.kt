@@ -8,6 +8,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
+import net.zodac.dicefive.model.TurnTimer
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -31,6 +32,28 @@ class GameStateJsonTest {
         val decoded = GameStateJson.decode(GameStateJson.encode(state))
 
         assertEquals(state, decoded)
+    }
+
+    @Test
+    fun `round trips a non-default turn timer`() {
+        val state = GameState(
+            turnTimer = TurnTimer.SECONDS_60,
+            players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)),
+        )
+
+        val decoded = GameStateJson.decode(GameStateJson.encode(state))
+
+        assertEquals(TurnTimer.SECONDS_60, decoded.turnTimer)
+    }
+
+    @Test
+    fun `decodes a save from before the turn timer field existed as no timer`() {
+        val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
+        val legacyJson = org.json.JSONObject(GameStateJson.encode(state)).apply { remove("turnTimer") }.toString()
+
+        val decoded = GameStateJson.decode(legacyJson)
+
+        assertEquals(TurnTimer.NONE, decoded.turnTimer)
     }
 
     @Test

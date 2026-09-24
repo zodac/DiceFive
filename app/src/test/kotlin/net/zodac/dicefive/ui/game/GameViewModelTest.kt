@@ -6,8 +6,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.BuildConfig
@@ -15,6 +17,7 @@ import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
+import net.zodac.dicefive.model.TurnTimer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -79,6 +82,58 @@ class GameViewModelTest {
 
         val afterScore = viewModel.game.value!!
         assertEquals(1, afterScore.players.single().scorecard.values.count { it != null })
+    }
+
+    @Test
+    fun `no turn timer means no countdown is shown`() {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        assertNull(viewModel.turnSecondsRemaining.value)
+    }
+
+    @Test
+    fun `turn timer counts down once a game with one starts`() {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setPlayerCount(1)
+        viewModel.setTurnTimer(TurnTimer.SECONDS_30)
+        viewModel.startGame()
+
+        assertEquals(30, viewModel.turnSecondsRemaining.value)
+    }
+
+    @Test
+    fun `letting the turn timer expire forfeits the turn and auto-scores it`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setPlayerCount(1)
+        viewModel.setTurnTimer(TurnTimer.SECONDS_30)
+        viewModel.startGame()
+
+        // Not advanceUntilIdle: a single-player game with a timer times out its own next turn too,
+        // forever - idling here would run the whole game to completion rather than just this timeout.
+        advanceTimeBy(30_000)
+        runCurrent()
+
+        val state = viewModel.game.value!!
+        assertEquals(1, state.players.single().scorecard.values.count { it != null })
+        // The very next turn's timer (same lone player) is already ticking again by this point.
+        assertEquals(30, viewModel.turnSecondsRemaining.value)
+    }
+
+    @Test
+    fun `committing a score before the timer expires restarts it for the next player`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setPlayerCount(2)
+        viewModel.setTurnTimer(TurnTimer.SECONDS_30)
+        viewModel.startGame()
+
+        advanceTimeBy(20_000)
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.CHANCE)
+
+        assertEquals(1, viewModel.game.value!!.currentPlayerIndex)
+        assertEquals(30, viewModel.turnSecondsRemaining.value)
     }
 
     @Test

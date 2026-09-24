@@ -61,6 +61,11 @@ data class GameStartContext(
     /** Whether one of the *other* seats - P2, P3, or P4, never P1 - is a human named exactly
      * "zodac" (case-sensitive) - [Achievement.BIG_FAN]'s trigger. */
     val hasHumanPlayerNamedZodac: Boolean = false,
+    /** Whether this game was started with any setup option changed from the app's own default -
+     * today just the turn timer (`turnTimer != TurnTimer.NONE`), extend this as later setup
+     * options (game mode, etc.) gain their own default worth deviating from -
+     * [Achievement.I_DID_IT_MY_WAY]'s trigger. */
+    val customizedGameSettings: Boolean = false,
 )
 
 /**
@@ -212,6 +217,7 @@ object AchievementEngine {
             if (context.playedNonDefaultDiceCupStyle) add(Achievement.STYLE_CUP)
             if (context.playedNonDefaultTableBackground) add(Achievement.STYLE_BACKGROUND)
             if (context.hasHumanPlayerNamedZodac) add(Achievement.BIG_FAN)
+            if (context.customizedGameSettings) add(Achievement.I_DID_IT_MY_WAY)
         }
         return update(earned, before.counters, before, now)
     }

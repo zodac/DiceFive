@@ -2,6 +2,12 @@ package net.zodac.dicefive.ui.game
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateColor
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -14,6 +20,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -25,6 +33,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -45,6 +55,13 @@ import net.zodac.dicefive.ui.theme.DiceFiveTheme
 /** How long the cup shakes before the roll result is revealed - purely a presentation delay. */
 private const val CUP_SHAKE_MILLIS = 420L
 
+/** Below this many seconds left, the badge flashes between red and its normal muted color instead
+ * of sitting static. */
+private const val TURN_TIMER_FLASH_SECONDS = 5
+
+/** One full red-to-muted-to-red cycle of the flash, in milliseconds. */
+private const val TURN_TIMER_FLASH_PERIOD_MILLIS = 300
+
 @Composable
 fun GameScreen(
     viewModel: GameViewModel,
@@ -56,6 +73,7 @@ fun GameScreen(
     val confirmBeforeLeaving by viewModel.confirmBeforeLeavingGame.collectAsState()
     val superuserModeActive by viewModel.superuserModeActive.collectAsState()
     val aiRolling by viewModel.aiRolling.collectAsState()
+    val turnSecondsRemaining by viewModel.turnSecondsRemaining.collectAsState()
     val currentState = state ?: return
     var showLeaveConfirmation by remember { mutableStateOf(false) }
 
@@ -132,6 +150,7 @@ fun GameScreen(
                 canUndo = canUndo,
                 superuserModeActive = superuserModeActive,
                 aiRolling = aiRolling,
+                turnSecondsRemaining = turnSecondsRemaining,
                 onUndo = viewModel::undo,
                 onRoll = viewModel::rollDice,
                 onToggleHold = viewModel::toggleHold,
@@ -149,6 +168,7 @@ private fun InProgressGame(
     canUndo: Boolean,
     superuserModeActive: Boolean,
     aiRolling: Boolean,
+    turnSecondsRemaining: Int?,
     onUndo: () -> Unit,
     onRoll: () -> Unit,
     onToggleHold: (Int) -> Unit,
@@ -212,6 +232,11 @@ private fun InProgressGame(
         onPlayerTap = onPlayerTap,
     )
 
+    // Only shown while a timer is actually running for this turn - see GameViewModel.syncTurnTimer.
+    if (turnSecondsRemaining != null) {
+        TurnTimerBadge(secondsRemaining = turnSecondsRemaining, modifier = Modifier.fillMaxWidth())
+    }
+
     if (viewedPlayer != null) {
         // Read-only: no mat, dice or cup for a turn that isn't actually happening.
         ReadOnlyScoreboard(player = viewedPlayer)
@@ -236,6 +261,36 @@ private fun InProgressGame(
             modifier = Modifier.fillMaxWidth(),
         )
     }
+}
+
+/** The current player's remaining turn time - counts down to zero, at which point the turn is
+ * forfeited and auto-scored (see [GameViewModel.autoScoreOnTimeout]). Sits at its normal muted
+ * color until the last [TURN_TIMER_FLASH_SECONDS] seconds, when it flashes red against that same
+ * muted color instead of sitting static, so the final countdown is hard to miss even out of the
+ * corner of an eye. */
+@Composable
+private fun TurnTimerBadge(secondsRemaining: Int, modifier: Modifier = Modifier) {
+    val flashing = secondsRemaining in 1..TURN_TIMER_FLASH_SECONDS
+    val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val infiniteTransition = rememberInfiniteTransition(label = "turnTimerFlash")
+    val flashColor by infiniteTransition.animateColor(
+        initialValue = MaterialTheme.colorScheme.error,
+        targetValue = mutedColor,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = TURN_TIMER_FLASH_PERIOD_MILLIS, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "turnTimerFlashColor",
+    )
+    val color = if (flashing) flashColor else mutedColor
+    Text(
+        text = "Time left: ${secondsRemaining}s",
+        modifier = modifier,
+        textAlign = TextAlign.Center,
+        fontWeight = FontWeight.Bold,
+        color = color,
+        style = MaterialTheme.typography.labelLarge,
+    )
 }
 
 // The lint check exists because a real screen must scope its view model to the host, not build one

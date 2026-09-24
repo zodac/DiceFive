@@ -7,6 +7,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
+import net.zodac.dicefive.model.TurnTimer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -23,6 +24,12 @@ class GameEngineTest {
     @Test
     fun `newGame rejects an empty player list`() {
         assertThrows(IllegalArgumentException::class.java) { GameEngine.newGame(emptyList()) }
+    }
+
+    @Test
+    fun `newGame defaults to no turn timer but carries a chosen one`() {
+        assertEquals(TurnTimer.NONE, GameEngine.newGame(onePlayer).turnTimer)
+        assertEquals(TurnTimer.SECONDS_30, GameEngine.newGame(onePlayer, turnTimer = TurnTimer.SECONDS_30).turnTimer)
     }
 
     @Test
