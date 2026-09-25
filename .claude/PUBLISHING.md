@@ -68,7 +68,7 @@ changes in the codebase to get a submittable build.
 
 - **App Bundle, not APK.** The GitHub release pipeline (Phase 12) only ever produces a signed
   `assembleRelease` **APK** - Play has required an `.aab` for new apps' production tracks since
-  2021. Nothing in `app/build.gradle.kts` currently runs `bundleRelease`, and CI has no step for
+  2021, nothing in `app/build.gradle.kts` currently runs `bundleRelease`, and CI has no step for
   it; this needs its own build/signing path, separate from (or alongside) the GitHub one.
 - **`INTERNET` permission.** `AndroidManifest.xml` currently declares none at all - Play Games
   Services, cloud save, ads and billing all need `android.permission.INTERNET` (Games Services

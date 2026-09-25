@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import net.zodac.dicefive.R
 
 /**
  * The two dice sound effects - the cup being shaken, and the dice landing once a roll resolves -
@@ -31,8 +32,8 @@ class SoundEffects(context: Context) {
         )
         .build()
 
-    private val shakeSoundId: Int? = null
-    private val rollSoundId: Int? = null
+    private val shakeSoundId: Int? = pool.load(context, R.raw.dice_shake, 1)
+    private val rollSoundId: Int? = pool.load(context, R.raw.dice_roll, 1)
 
     fun playShake() {
         shakeSoundId?.let { pool.play(it, 1f, 1f, 0, 0, 1f) }
