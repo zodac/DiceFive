@@ -30,11 +30,4 @@
 
 # Pending
 
-- **Dice sound effects are waiting on audio files from the user.** `ui/game/SoundEffects.kt` has
-  the `SoundPool` plumbing in place (shake sound on cup tap/AI roll start, landing sound once the
-  roll resolves - wired into `GameScreen.kt`), but `shakeSoundId`/`rollSoundId` are hardcoded
-  `null` so both `playShake`/`playRoll` currently no-op. The user is sourcing their own clips and
-  will drop them in as `res/raw/dice_shake.ogg` and `res/raw/dice_roll.ogg`. Once those exist,
-  swap the two `null`s for `pool.load(context, R.raw.dice_shake, 1)` /
-  `pool.load(context, R.raw.dice_roll, 1)` - see the class doc comment on `SoundEffects` for the
-  exact lines. Don't regenerate placeholder audio for this - wait for the user's files.
+(None currently)
