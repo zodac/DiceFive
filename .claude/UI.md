@@ -99,7 +99,7 @@ which needs compileSdk 37). Revisit when 1.5.0 is stable.
 | `DiceFiveDialog.kt` | the app's one dialog shape, so the menu and the board ask questions the same way. |
 | `AppLogo.kt` | placeholder app mark, built from the game's own dice via `IvoryDiceStyle`. |
 | `Scrollbar.kt` | `LazyListScrollbar`, a `BoxScope` extension drawing a minimal scroll indicator over a `LazyColumn` - stock Compose has none for Android. Shared by the Leaderboard and Statistics screens. |
-| `SegmentedChoiceRow.kt` | the app's one segmented-button row, generic over the option type. Every use drops the stock M3 checkmark-on-select icon (`icon = {}`) - reserving space for it crowded a label out at some of the widths this app uses it at (AI difficulty, three options in a third-width column). Used by theme, player count, and AI difficulty. |
+| `SegmentedChoiceRow.kt` | the app's one segmented-button row, generic over the option type. Every use drops the stock M3 checkmark-on-select icon (`icon = {}`) - reserving space for it crowded a label out at some of the widths this app uses it at (AI difficulty, three options in a third-width column). Used by theme, player count, AI difficulty and turn timer. It takes an optional per-option glyph: the turn timer's "None" is a crossed-out timer icon with a "No timer" content description, not a word. |
 
 ### PageColumn
 
@@ -169,8 +169,9 @@ than the earned ones jumping out to a separate section. There is no "hide unlock
 was tried and removed; the unlocked/total count above the list is centred now that nothing else
 shares that row.
 
-Every achievement has its own icon (`ui/achievements/AchievementIcons.kt`, a `when` over the
-enum), picked to hint at what it's about - not a field on `Achievement` itself, so the model stays
+Every achievement has its own icon (`ui/achievements/AchievementIcons.kt`, a `@Composable` `when`
+over the enum, composable so a branch can use `ImageVector.vectorResource` for a bespoke drawable
+such as `ic_stairs` or `ic_cowboy_hat` where Material has nothing that fits), picked to hint at what it's about - not a field on `Achievement` itself, so the model stays
 a plain data catalogue with no Compose dependency, the same reason `ui/game/CategoryIcon.kt` maps
 `ScoreCategory` to a glyph externally rather than the enum carrying one. Locked rows all show the
 same generic question-mark glyph regardless of which achievement they are, so a locked row is
@@ -181,6 +182,14 @@ An earlier version *did* split locked-first/unlocked-after (unlocked flat and ne
 history rather than a to-do list) - reverted because it scattered a themed ladder in two: an
 earned achievement disappeared from its group into an unrelated timeline, so seeing "how far along
 this ladder am I" meant checking two different parts of the screen.
+
+Rows are clipped at the pinned header's bottom edge (`Modifier.hiddenUnderPinnedHeader`, read
+from `layoutInfo` in the draw pass via the `contentType` tags) instead of sliding under it:
+otherwise they show through its rounded corners. The scroll position is kept in a process-lifetime
+`object` (`AchievementsScrollMemory`), because popping the screen discards both its ViewModel and
+anything `rememberSaveable`d. It is restored only after the list has loaded, since a `LazyColumn`
+that first lays out empty clamps any requested position back to the top. The same restore
+approach applies to any other list screen that needs to remember its position.
 
 Don't sort the list alphabetically. That was the very first version, and it put "Dice Deity" nine
 rows from "High Roller".
