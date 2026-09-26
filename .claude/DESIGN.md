@@ -794,6 +794,36 @@ install-over-existing succeeds:
       full (>=1.0.0) release. Verified both `assembleDebug` and
       `assembleRelease` locally produce the expected filenames.
 
+- [x] **Release descriptions and commit format**: the GitHub release's description is no longer
+      GitHub's auto-generated notes (`generate_release_notes`), but `RELEASE_NOTES.md` - the
+      maintainer's own summary, written before pushing, skipped if empty - followed by a
+      "## Changes" section from `scripts/release-changelog.sh`: every commit since the previous
+      release, grouped by the category in its subject line. That script takes the newest `v*` tag
+      reachable from HEAD other than this release's own (so a re-run of an already-tagged release
+      lists the same changes), drops merges and the workflow's own bump commits (authored by
+      `github-actions[bot]`), sorts categories alphabetically ignoring case (grouped under the
+      first spelling seen), keeps commits oldest-first within one, and lists subjects that don't
+      follow the format under a final "Other". Checkout now uses `fetch-depth: 0` for the history
+      and tags this needs.
+      The subject format - `[Category] Short description`, anything after the first line
+      free-form - is enforced locally by `.githooks/commit-msg` (enabled per clone by
+      `scripts/install-git-hooks.sh`, which sets `core.hooksPath`; git never runs a repository's
+      hooks on its own). Merge, revert and fixup!/squash!/amend! messages git writes itself are let
+      through. Nothing enforces it server-side: a commit made without the hook installed shows up
+      under "Other".
+      The bump step empties `RELEASE_NOTES.md` along with bumping `VERSION`, and its commit is now
+      `[Release] Bump version to X [skip ci]` - but it only empties the notes if they still match
+      what this release shipped with (a copy is kept in `$RUNNER_TEMP`), so notes for the *next*
+      release pushed while a run was going aren't wiped. Claude never edits `RELEASE_NOTES.md`
+      without the user's say-so - see `CLAUDE.md`, and the guard hook in `.claude/settings.json`: a
+      file edit aimed at it asks first (a hook's "ask" holds even in bypass-permissions mode), and
+      a shell command is judged by what it did - the hook snapshots the file before every command
+      and, if it changed (edited, created, deleted), puts it back and tells Claude, unless git left
+      it matching HEAD (a pull/checkout/reset). The first version asked whenever a command merely
+      *mentioned* the name, which prompted for commit messages, doc edits and scratch repos - and
+      still missed a `sed` over a glob. `.claude/hooks/tests/run-hook-tests.sh` covers it against a
+      throwaway repo, and `sandbox/setup.sh` runs it before every session.
+
 ### Phase 13 — Achievements
 - [x] **Scope**: 51 achievements (50 + the later-added secret `CHEATER_CHEATER`),
       replacing the Phase 8 placeholder screen.

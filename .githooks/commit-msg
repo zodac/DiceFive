@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Enforces this project's commit subject format: the first line of every commit message must be
+#
+#     [Category] Short description
+#
+# e.g. "[Gameplay] Add the Tricolour game mode". Any further lines are free-form. The category is
+# what scripts/release-changelog.sh groups a release's changes by, so keep to an existing one where
+# it fits (`git log --format=%s | grep -o '^\[[^]]*\]' | sort | uniq -c` lists them).
+#
+# Messages git writes itself - merges, reverts, and fixup!/squash!/amend! commits for an autosquash
+# rebase - are let through as they are.
+#
+# Enabled per clone with scripts/install-git-hooks.sh (sets core.hooksPath to .githooks).
+set -euo pipefail
+
+message_file="$1"
+
+# The subject is the first line that isn't blank or a git comment ("#" lines are stripped from the
+# final message, and any leading blank lines are dropped).
+subject="$(grep -v '^#' "$message_file" | grep -v '^[[:space:]]*$' | head -n 1 || true)"
+
+case "$subject" in
+  "Merge "* | "Revert \""* | "fixup! "* | "squash! "* | "amend! "*) exit 0 ;;
+esac
+
+# A category of at least one character with no brackets and no space at either end, one space, then
+# a description that starts with something other than whitespace.
+if [[ "$subject" =~ ^\[[^][[:space:]]([^][]*[^][[:space:]])?\]\ [^[:space:]] ]]; then
+  exit 0
+fi
+
+cat >&2 <<MSG
+Commit rejected: the first line must be "[Category] Short description".
+
+  Got:      ${subject:-<empty message>}
+  Example:  [Gameplay] Add the Tricolour game mode
+
+Further lines can say whatever they like. (Bypass once with --no-verify if you really must.)
+MSG
+exit 1

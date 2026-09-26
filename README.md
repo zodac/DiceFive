@@ -44,6 +44,22 @@ app/src/main/kotlin/net/zodac/dicefive/
 See `.claude/DESIGN.md` for the full feature scope, design decisions, and
 phased build log.
 
+## Commits and releases
+
+Every commit's first line must be `[Category] Short description`, e.g.
+`[Gameplay] Add the Tricolour game mode` - later lines are free-form. A `commit-msg` hook enforces
+it; enable it once per clone:
+
+```
+./scripts/install-git-hooks.sh
+```
+
+Every push to `main` publishes a GitHub release for the version in `VERSION`. Its description is
+`RELEASE_NOTES.md` (a hand-written summary - fill it in before pushing a release you want
+described), followed by every commit since the previous release, grouped by category. Preview that
+list with `./scripts/release-changelog.sh`. After releasing, the workflow bumps `VERSION` and empties
+`RELEASE_NOTES.md` for the next one.
+
 ## Build
 
 ```
