@@ -42,6 +42,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.PageColumn
+import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.theme.CupRimGold
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.GoldAccentDim
@@ -90,20 +91,15 @@ fun GameOverScreen(
         PageColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Styled like every other page's title (ScreenScaffold's app bar): bold Sora in the
+            // brand gold. No "X wins" line under it - the winner card below already says so.
             Text(
                 text = "Game Over",
-                style = MaterialTheme.typography.displaySmall,
+                style = MaterialTheme.typography.titleLarge,
+                fontFamily = SoraFontFamily,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,
-            )
-
-            Text(
-                text = if (winners.size > 1) "It's a tie!" else "${winners.firstOrNull()?.name ?: "Nobody"} wins",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 4.dp),
             )
 
             for (winner in winners) {
