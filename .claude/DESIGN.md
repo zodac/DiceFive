@@ -64,12 +64,16 @@ decisions behind it. Read that before changing anything visual.
   others - a fire die can sit in a leather cup on a midnight felt mat.
 - **Game type**: only `CLASSIC` is playable in v1; `EXTENDED` exists as an
   enum value shown disabled in the UI.
-- **Achievements**: 84 of them, **player 1 only** (`state.players[0]`, "You" on the setup
+- **Achievements**: 87 of them, **player 1 only** (`state.players[0]`, "You" on the setup
   screen) rather than any human at the table - the one exception is the ledger (the score-band and
   career-points achievements at the tail of `AchievementCategory.COLLECTION`), which stays measured
   against the leaderboard as a whole, i.e. every human who has played on this device, not just
   player 1 - see the "Player 1 only" phase entry below for why, and for the Google Play Games
-  question this raises. Local only for now but shaped so each maps onto a Google Play Games
+  question this raises. Career points (`PROFESSIONAL_ROLLER`) are the exception to that exception:
+  they sum only rows with `ScoreEntry.isPrimaryPlayer` (set from the seat, never inferred from the
+  name). Score-threshold achievements (Solid Round, Sharpshooter, High Roller, Dice Deity, Cheater
+  Cheater) are judged only once a game finishes, never mid-game off a total an abandoned game
+  would throw away. Local only for now but shaped so each maps onto a Google Play Games
   achievement later (see Phase 13). One (`CHEATER_CHEATER`) is secret: `Achievement.isSecret`
   keeps it out of the list - and its unlocked/total counts - until it's
   actually earned, since seeing "finish with the maximum possible score"
@@ -208,10 +212,13 @@ net.zodac.dicefive/
       SettingsRepository.kt            — DataStore-backed: theme Flow, remembered player names (slots 1-4)
     scores/
       ScoreEntry.kt (Room @Entity)     — id, playerName, score, timestampEpochMillis, won (nullable;
-                                          null for a solo game or a pre-migration row)
+                                          null for a solo game or a pre-migration row), isPrimaryPlayer
+                                          (false for pre-migration rows)
       ScoreDao.kt                      — pagedScores(limit, offset), count(), bestScore(), insert(),
                                           playerSummaries() (GROUP BY playerName), outcomesForPlayer(name)
-      AppDatabase.kt                   — Room database, singleton via Application; MIGRATION_1_2 adds `won`
+      AppDatabase.kt                   — Room database (schema v4), singleton via Application; MIGRATION_1_2
+                                          adds `won`, MIGRATION_3_4 adds `isPrimaryPlayer`. A new column
+                                          means bumping the version and adding a migration here
       ScoreRepository.kt               — wraps DAO, exposes page loads and playerStatistics() (adds the
                                           per-player current/best win streaks, walked separately from
                                           the SQL aggregate)
@@ -371,6 +378,24 @@ dependencies — most unit tests live here.
   and a "View on GitHub" link to `https://github.com/zodac/DiceFive`,
   opened via Compose's `UriHandler` - this used to be its own `AboutScreen`,
   folded in here so the menu has one less destination.
+
+## Sound & haptics
+
+- **Source clips live in `app/src/main/rawAudioSource/*.ogg`, not `res/raw/`.** The
+  `normalizeOggAudio` task (`NormalizeOggAudioTask` in `app/build.gradle.kts`) peak-normalises
+  every clip to -0.8 dBFS with **ffmpeg** and registers the output as a generated res dir, so
+  `R.raw.<name>` still works. To add or replace a sound, drop the `.ogg` in `rawAudioSource/`.
+  Don't hand-adjust gain and don't create `res/raw/`. The build fails without `ffmpeg` on PATH
+  (`sandbox/Dockerfile` installs it).
+- Clips: `cup_shake`, `mat_landing`, `hold`, `unhold` (played at 0.35 volume), `celebration`
+  (Game Over when any human seat wins, alongside an all-gold fireworks animation).
+- `SoundEffects` (SoundPool) queues a play request made before that sample finishes decoding and
+  plays it from `setOnLoadCompleteListener`. Without this, `celebration` is silently dropped
+  because it fires on the first frame after the pool is created.
+- `Haptics.kt`: a 150ms tick on hold/unhold and a buzz for the length of the cup shake. The
+  Settings switches "Sound effects" and "Vibration" (in `SettingsRepository`) gate sound and
+  haptics separately. `SoundEffects.enabled` is a mutable flag rather than a reason to skip
+  loading, since the setting can change mid-session.
 
 ## Achievements
 
