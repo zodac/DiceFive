@@ -29,6 +29,7 @@ enum class AchievementCategory(val label: String) {
     DICE("Dice feats"),
     SCORING("Scoring"),
     WINNING("Winning"),
+    GAME_MODES("Game Modes"),
     MISFORTUNE("Misfortune"),
     MISCELLANEOUS("Miscellaneous"),
     COLLECTION("Collection"),
@@ -309,6 +310,23 @@ enum class Achievement(
         AchievementCategory.WINNING,
     ),
 
+    // ---- Game modes: playing beyond the Standard rules ------------------------------------------
+    NON_STANDARD_MODE(
+        "game_mode_non_standard", "Rules? Where We're Going, We Don't Need Rules", "Start a non-Standard game mode",
+        AchievementCategory.GAME_MODES,
+    ),
+    TRICOLOUR_WIN(
+        "tricolour_win", "Tricolourful", "Win a game of 'Tricolour' mode",
+        AchievementCategory.GAME_MODES,
+    ),
+    // Judged mid-game, the moment the fourth of the four boxes goes in with a non-zero score - not
+    // held back for the results screen.
+    TRICOLOUR_ALL_COLOURS(
+        "tricolour_all_colours", "Tricolour Me Impressed",
+        "Score all 'Tricolour' mode scores (red, yellow, blue, coloured house) in one game",
+        AchievementCategory.GAME_MODES,
+    ),
+
     // ---- Misfortune: going badly, on purpose or otherwise --------------------------------------
     SCRATCHED_5X(
         "5x_scratched", "Scratched", "Take a zero in the 5x box",
@@ -533,12 +551,12 @@ enum class Achievement(
     // under each one's subject-matter category the way CHEATER_CHEATER used to sit in Scoring) -
     // it's what keeps the "Secret" section header itself from ever appearing while empty.
     //
-    // 1575 (PlayerState.MAX_POSSIBLE_SCORE) is the absolute ceiling the rules allow, so
+    // The game mode's own maximum (GameMode.maxPossibleScore) is the absolute ceiling its rules allow, so
     // CHEATER_CHEATER is excluded from COMPLETIONIST the same way I_ROBOT was while it couldn't be
     // earned - it's not that it's unearnable, it's that requiring every player to stumble into a
     // literally perfect game would make COMPLETIONIST itself absurd.
     CHEATER_CHEATER(
-        "cheater_cheater", "Cheater, Cheater!", "Finish a game with the maximum possible score - 1575",
+        "cheater_cheater", "Cheater, Cheater!", "Finish a game with the maximum possible score for its game mode",
         AchievementCategory.SECRET, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     ;

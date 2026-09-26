@@ -9,6 +9,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import net.zodac.dicefive.model.Difficulty
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.TurnTimer
 
@@ -72,6 +73,16 @@ class SettingsRepository(private val context: Context) {
         context.settingsDataStore.edit { it[TURN_TIMER_KEY] = turnTimer.name }
     }
 
+    /** The mode the setup form last started a game in - read back by id, falling back to the default
+     * for one nothing recognises (see [GameMode.id]). */
+    val gameMode: Flow<GameMode> = context.settingsDataStore.data.map { prefs ->
+        prefs[GAME_MODE_KEY]?.let { GameMode.fromId(it) } ?: GameMode.default
+    }
+
+    suspend fun setGameMode(gameMode: GameMode) {
+        context.settingsDataStore.edit { it[GAME_MODE_KEY] = gameMode.id }
+    }
+
     val confirmBeforeLeavingGame: Flow<Boolean> =
         context.settingsDataStore.data.map { prefs -> prefs[CONFIRM_BEFORE_LEAVING_GAME_KEY] ?: true }
 
@@ -126,6 +137,7 @@ class SettingsRepository(private val context: Context) {
         val VIBRATION_ENABLED_KEY = booleanPreferencesKey("vibration_enabled")
         val PLAYER_COUNT_KEY = intPreferencesKey("player_count")
         val TURN_TIMER_KEY = stringPreferencesKey("turn_timer")
+        val GAME_MODE_KEY = stringPreferencesKey("game_mode")
         val DICE_STYLE_ID_KEY = stringPreferencesKey("dice_style_id")
         val DICE_CUP_STYLE_ID_KEY = stringPreferencesKey("dice_cup_style_id")
         val TABLE_BACKGROUND_ID_KEY = stringPreferencesKey("table_background_id")

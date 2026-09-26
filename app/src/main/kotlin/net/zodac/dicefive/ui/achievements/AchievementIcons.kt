@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.EmojiPeople
@@ -81,6 +82,7 @@ import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.TimerOff
 import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Traffic
 import androidx.compose.material.icons.filled.Upgrade
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -164,6 +166,14 @@ val Achievement.icon: ImageVector
         Achievement.BEAT_THREE_AI -> Icons.Filled.EmojiPeople
         Achievement.I_ROBOT -> Icons.Filled.SmartToy
         Achievement.NATURALLY_GIFTED -> Icons.Filled.Spa
+
+        // ---- Game modes ---------------------------------------------------------------------------
+        // A wedge-shaped sports car trailing fire - a nod to the film the title quotes, drawn from
+        // scratch rather than traced from it.
+        Achievement.NON_STANDARD_MODE -> ImageVector.vectorResource(R.drawable.ic_time_machine_car)
+        // Three lights, for three colours.
+        Achievement.TRICOLOUR_WIN -> Icons.Filled.Traffic
+        Achievement.TRICOLOUR_ALL_COLOURS -> Icons.Filled.ColorLens
 
         // ---- Misfortune -------------------------------------------------------------------------
         Achievement.SCRATCHED_5X -> Icons.Filled.Cancel

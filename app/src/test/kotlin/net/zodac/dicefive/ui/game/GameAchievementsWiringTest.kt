@@ -19,6 +19,7 @@ import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.BuildConfig
@@ -146,12 +147,12 @@ class GameAchievementsWiringTest {
 
     /** Plays every turn of every player to the end: roll once, then take the first open category. */
     private fun GameViewModel.playToCompletion() {
-        repeat(ScoreCategory.entries.size * (game.value?.players?.size ?: 1)) {
+        repeat(GameMode.STANDARD.categories.size * (game.value?.players?.size ?: 1)) {
             val state = game.value ?: return
             if (state.isGameOver) return
             rollDice()
             val player = state.currentPlayer ?: return
-            val open = ScoreCategory.entries.first { player.scorecard[it] == null }
+            val open = GameMode.STANDARD.categories.first { player.scorecard[it] == null }
             commitScore(open)
         }
     }
@@ -436,7 +437,7 @@ class GameAchievementsWiringTest {
 
         // One roll of all five dice per turn, one turn per category.
         assertEquals(
-            ScoreCategory.entries.size * 5,
+            GameMode.STANDARD.categories.size * 5,
             store.state.first().counter(AchievementCounter.DICE_ROLLED),
         )
     }
@@ -455,7 +456,7 @@ class GameAchievementsWiringTest {
         // If player 2's rolls counted too, this would be double - one roll of five dice per turn,
         // one turn per category, for player 1 alone.
         assertEquals(
-            ScoreCategory.entries.size * 5,
+            GameMode.STANDARD.categories.size * 5,
             store.state.first().counter(AchievementCounter.DICE_ROLLED),
         )
     }
@@ -469,14 +470,14 @@ class GameAchievementsWiringTest {
         viewModel.startGame()
 
         // The AI plays itself via a coroutine, so its turns interleave with advanceUntilIdle.
-        repeat(ScoreCategory.entries.size * 2) {
+        repeat(GameMode.STANDARD.categories.size * 2) {
             advanceUntilIdle()
             val state = viewModel.game.value ?: return@repeat
             if (state.isGameOver) return@repeat
             if (state.currentPlayer?.type != PlayerType.HUMAN) return@repeat
             viewModel.rollDice()
             val player = state.currentPlayer ?: return@repeat
-            viewModel.commitScore(ScoreCategory.entries.first { player.scorecard[it] == null })
+            viewModel.commitScore(GameMode.STANDARD.categories.first { player.scorecard[it] == null })
         }
         advanceUntilIdle()
 
@@ -1182,7 +1183,7 @@ class GameAchievementsWiringTest {
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
-        for (category in ScoreCategory.entries.filter { it != ScoreCategory.ONES }) {
+        for (category in GameMode.STANDARD.categories.filter { it != ScoreCategory.ONES }) {
             viewModel.rollDice()
             viewModel.commitScore(category)
         }

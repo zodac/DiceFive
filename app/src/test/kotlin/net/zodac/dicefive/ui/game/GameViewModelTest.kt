@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.BuildConfig
 import net.zodac.dicefive.model.Difficulty
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
@@ -41,6 +42,23 @@ class GameViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `startGame plays the game mode picked on the setup form, Standard by default`() {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+        assertEquals(GameMode.STANDARD, viewModel.game.value?.gameMode)
+
+        viewModel.setGameMode(GameMode.TRICOLOUR)
+        viewModel.startGame()
+        viewModel.rollDice()
+
+        val state = viewModel.game.value!!
+        assertEquals(GameMode.TRICOLOUR, state.gameMode)
+        assertEquals(GameMode.TRICOLOUR.categories, state.players.single().scorecard.keys.toList())
+        assertTrue(state.dice.all { it.colour != null })
     }
 
     @Test
@@ -244,7 +262,7 @@ class GameViewModelTest {
         advanceUntilIdle()
 
         // Every roll lands all sixes, so Hard's very first hold decision already keeps all five
-        // dice (a Yahtzee can't be improved by rerolling). The two "remaining" rolls that would
+        // dice (a 5x can't be improved by rerolling). The two "remaining" rolls that would
         // otherwise follow are pure no-ops - GameEngine.rollDice skips held dice - and should be
         // skipped rather than sitting through their delay for nothing: a full 3-roll AI turn takes
         // 4 delay steps (roll, roll, roll, score); this one should take only 2 (roll, score).

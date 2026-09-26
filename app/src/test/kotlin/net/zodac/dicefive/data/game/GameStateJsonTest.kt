@@ -2,8 +2,9 @@ package net.zodac.dicefive.data.game
 
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.Die
+import net.zodac.dicefive.model.DieColour
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
-import net.zodac.dicefive.model.GameType
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
@@ -17,7 +18,7 @@ class GameStateJsonTest {
     @Test
     fun `round trips a fresh game with open scorecards`() {
         val state = GameState(
-            gameType = GameType.CLASSIC,
+            gameMode = GameMode.STANDARD,
             players = listOf(
                 PlayerState(name = "Player 1", type = PlayerType.HUMAN),
                 PlayerState(name = "Bot", type = PlayerType.AI, difficulty = Difficulty.HARD),
@@ -58,7 +59,7 @@ class GameStateJsonTest {
 
     @Test
     fun `round trips a partially and fully filled scorecard, including zero scores`() {
-        val scorecard = ScoreCategory.entries.associateWith { category ->
+        val scorecard = GameMode.STANDARD.categories.associateWith { category ->
             when (category) {
                 ScoreCategory.ONES -> 3
                 ScoreCategory.FULL_HOUSE -> 0
@@ -79,7 +80,7 @@ class GameStateJsonTest {
 
     @Test
     fun `round trips a finished game`() {
-        val scorecard = ScoreCategory.entries.associateWith { 10 }
+        val scorecard = GameMode.STANDARD.categories.associateWith { 10 }
         val state = GameState(
             players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, scorecard = scorecard)),
             isGameOver = true,
@@ -87,6 +88,49 @@ class GameStateJsonTest {
 
         val decoded = GameStateJson.decode(GameStateJson.encode(state))
 
+        assertEquals(state, decoded)
+    }
+
+    @Test
+    fun `round trips a Tricolour game, including each die's colour and the colour boxes`() {
+        val mode = GameMode.TRICOLOUR
+        val scorecard = mode.categories.associateWith { category ->
+            when (category) {
+                ScoreCategory.REDS -> 40
+                ScoreCategory.COLOURED_HOUSE -> 0
+                else -> null
+            }
+        }
+        val state = GameState(
+            gameMode = mode,
+            players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, gameMode = mode, scorecard = scorecard)),
+            dice = listOf(
+                Die(value = 1, colour = DieColour.RED),
+                Die(value = 2, colour = DieColour.YELLOW, isHeld = true),
+                Die(value = 3, colour = DieColour.BLUE),
+                Die(value = 4, colour = DieColour.RED),
+                Die(value = 5, colour = DieColour.BLUE),
+            ),
+            phase = TurnPhase.ROLLED,
+        )
+
+        val decoded = GameStateJson.decode(GameStateJson.encode(state))
+
+        assertEquals(state, decoded)
+        assertEquals(GameMode.TRICOLOUR, decoded.players.single().gameMode)
+    }
+
+    @Test
+    fun `decodes a save from before game modes existed as Standard`() {
+        val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
+        val legacyJson = org.json.JSONObject(GameStateJson.encode(state)).apply {
+            remove("gameMode")
+            put("gameType", "CLASSIC")
+        }.toString()
+
+        val decoded = GameStateJson.decode(legacyJson)
+
+        assertEquals(GameMode.STANDARD, decoded.gameMode)
         assertEquals(state, decoded)
     }
 }

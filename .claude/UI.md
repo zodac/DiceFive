@@ -138,8 +138,10 @@ bottom once the form is too tall to fit and has to scroll.
 - **One filled button per screen**, tonal for the rest (the menu: filled Play, tonal
   destinations). That's M3's emphasis hierarchy, and it stops five identical slabs competing.
 - **Segmented buttons** (`ui/common/SegmentedChoiceRow.kt`) for small exclusive sets that fit one
-  line: theme choice, player count 1-4, AI difficulty. Radio rows are for options that need a
-  visible disabled state, like "Extended (coming soon)".
+  line: theme choice, player count 1-4, AI difficulty. Radio rows are for options that need more
+  than a word each - the setup screen's game mode, where each row carries `GameMode.description`
+  as a second line, since "Tricolour" alone doesn't say what it changes. A disabled option (a mode
+  that isn't ready yet) would also go in a radio row, for its visible disabled state.
 - **Cards** group a section. A `ListItem` inside a Card needs
   `ListItemDefaults.colors(containerColor = Color.Transparent)`, or it paints a second,
   slightly different surface on top of the card's.
@@ -225,6 +227,41 @@ a two-line body; a **progress** banner is quieter (`surfaceContainerHigh`, one l
 Screen transitions are 350ms fades, set on the `NavHost` for all four directions. Navigation
 Compose's own default is `fadeIn/fadeOut(tween(700))`, which reads as the app thinking between
 a tap and the screen arriving. Set in one place so destinations can't drift apart.
+
+## The scorecard grid and game modes
+
+`ScoreGrid` doesn't hard-code a scorecard: `scoreGridRows(gameMode)` lays out whatever
+`GameMode.categories` holds - the upper section down the left column beside the lower section
+(5x excluded, it has its own tile by the cup), then any leftovers two to a row underneath. Standard
+is the original six rows. Tricolour's four colour boxes add two more rows (Reds | Yellows, Blues |
+Coloured House).
+
+More than six rows switches every grid tile to `COMPACT_TILE_SIZE` (40dp, from 48dp) and grows the
+board to fit - `scoreBoardHeight`: one tile plus the 6dp row gap per row, inside the board's
+padding, which is 396dp for Tricolour against Standard's 380dp. The alternatives were worse: a third
+column doesn't fit (at 360dp wide each grid column is already ~60dp), and eight rows of 48dp tiles
+would push the dice tray under the fold. A 2x2 block of colour boxes under the 5x tile, beside the
+grid, was also built and tried - and reverted on review in favour of this.
+
+**The 5x tile's top is level with Ones and 3x, in every mode.** It sits top-aligned in its space
+beside the grid, `firstRowTileInset` down - worked out from the grid's own row count, tile size and
+height (rows share the height equally and centre their tile), since those differ between Standard
+(six 48dp rows, 380dp board) and Tricolour (eight 40dp rows, 396dp board), so no one hand-tuned
+offset suits both. It used to sit centred in that space, noticeably lower than the first row.
+Arithmetic only - not yet seen on a device.
+
+**Coloured dice ignore the dice style.** In a mode with `GameMode.dieColours`, each die's colour is
+part of the roll, so `DiceTray` draws it with `ColouredDie` (the same `BeveledDie` shape, in that
+colour) instead of the Styles screen's pick; the cup, mat and background still follow the player's
+styles. For the same reason, a non-default dice style doesn't count towards "Fresh Coat Of Paint"
+in such a mode (`GameMode.usesPlayerDiceStyle`).
+
+The colour-box tiles are a flat square of `DieColourPalette.swatch`; Coloured House is Full House's
+glyph over three equal-width diagonal stripes (red/yellow/blue corners-and-band, split at two-thirds
+of each edge so the diagonal is cut in thirds - equal *areas* was tried first, and left the yellow
+band looking much thinner than the corners) in the deeper `stripe` shades, with a soft shadow under
+the glyph so white or gold still reads on the yellow band. These colours live in `Color.kt`'s
+game-table block - a fixed meaning (the dice's own colours), not a theme role.
 
 ## Constraints worth knowing
 

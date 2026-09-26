@@ -101,8 +101,12 @@ val DarkOnErrorContainer = Color(0xFFF9DEDC)
 // the same whichever theme the app is in.
 val FeltNavyTop = Color(0xFF1C3D66)
 val FeltNavyBottom = Color(0xFF0B1E3A)
-val TrayBlueTop = Color(0xFF3574C4)
-val TrayBlueBottom = Color(0xFF123765)
+// A muted slate blue, not a saturated one: it was 0xFF3574C4..0xFF123765 until Tricolour's blue die
+// (TricolourBlueDiceTop/Bottom) turned up, and the two were nearly the same colour - a blue die sat
+// on the default mat like a hole in it. Still the table's navy family, just greyer and darker, so
+// every die colour (ivory, fire, red/yellow/blue) now stands off it.
+val TrayBlueTop = Color(0xFF3E5670)
+val TrayBlueBottom = Color(0xFF16222F)
 
 val TileTealTop = Color(0xFF234B47)
 val TileTealBottom = Color(0xFF122E2B)
@@ -156,6 +160,29 @@ val FireBackgroundBottom = Color(0xFF3D0805)
 val FireTrayTop = Color(0xFFB2231A)
 val FireTrayBottom = Color(0xFF6E120A)
 val FireWaveBack = Color(0xFFD2410F)
+
+// Tricolour mode: the dice's own red/yellow/blue, which replace the player's dice style in that mode
+// (see ColouredDie), and the colour-box tiles on the scorecard (see CategoryIcon/CategoryTile). A
+// fixed meaning, not a theme - same rule as the rest of this block. "Swatch" is the flat colour a
+// colour box shows; "Stripe" is a deeper shade of it for the Coloured House tile's background, dark
+// enough that the tile's white/gold house glyph still reads on top of it.
+val TricolourRedDiceTop = Color(0xFFEF5350)
+val TricolourRedDiceBottom = Color(0xFF9A1B1B)
+val TricolourRedPipColor = Color(0xFFFFF4EF)
+val TricolourYellowDiceTop = Color(0xFFFFE66B)
+val TricolourYellowDiceBottom = Color(0xFFC99A0E)
+val TricolourYellowPipColor = Color(0xFF3A2A05)
+val TricolourBlueDiceTop = Color(0xFF5C9CEB)
+val TricolourBlueDiceBottom = Color(0xFF173E8C)
+val TricolourBluePipColor = Color(0xFFF1F6FF)
+
+val TricolourRedSwatch = Color(0xFFE53935)
+val TricolourYellowSwatch = Color(0xFFFDD835)
+val TricolourBlueSwatch = Color(0xFF1E88E5)
+
+val TricolourRedStripe = Color(0xFF9E2A22)
+val TricolourYellowStripe = Color(0xFF8F7011)
+val TricolourBlueStripe = Color(0xFF1F4F9A)
 
 /** Cycled by player-tab index; extend if more than 4 players are ever supported. */
 val PlayerColors = listOf(

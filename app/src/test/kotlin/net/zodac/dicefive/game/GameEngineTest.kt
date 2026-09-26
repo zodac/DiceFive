@@ -1,6 +1,8 @@
 package net.zodac.dicefive.game
 
 import net.zodac.dicefive.model.Die
+import net.zodac.dicefive.model.DieColour
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerState
@@ -151,7 +153,7 @@ class GameEngineTest {
 
     @Test
     fun `game ends once every player's scorecard is full`() {
-        val almostFullScorecard: Map<ScoreCategory, Int?> = ScoreCategory.entries
+        val almostFullScorecard: Map<ScoreCategory, Int?> = GameMode.STANDARD.categories
             .associateWith { category -> if (category == ScoreCategory.CHANCE) null else 0 }
 
         val state = GameState(
@@ -166,5 +168,75 @@ class GameEngineTest {
         val result = GameEngine.commitScore(state, ScoreCategory.CHANCE)
 
         assertTrue(result.isGameOver)
+    }
+
+    // ---- Game modes ------------------------------------------------------------------------------
+
+    @Test
+    fun `newGame carries the chosen mode to the game and every player's scorecard`() {
+        val state = GameEngine.newGame(twoPlayers, GameMode.TRICOLOUR)
+
+        assertEquals(GameMode.TRICOLOUR, state.gameMode)
+        assertTrue(state.players.all { it.gameMode == GameMode.TRICOLOUR })
+        assertTrue(state.players.all { it.scorecard.keys.toList() == GameMode.TRICOLOUR.categories })
+        assertEquals(GameMode.TRICOLOUR.diceCount, state.dice.size)
+        assertEquals(GameMode.TRICOLOUR.rollsPerTurn, state.rollsRemaining)
+    }
+
+    @Test
+    fun `Tricolour rolls give every rolled die a colour, and Standard rolls never do`() {
+        val random = kotlin.random.Random(42)
+        repeat(20) {
+            val tricolour = GameEngine.rollDice(GameEngine.newGame(onePlayer, GameMode.TRICOLOUR), random)
+            val standard = GameEngine.rollDice(GameEngine.newGame(onePlayer, GameMode.STANDARD), random)
+
+            assertTrue(tricolour.dice.all { it.colour in GameMode.TRICOLOUR.dieColours && it.value in 1..6 })
+            assertTrue(standard.dice.all { it.colour == null })
+        }
+    }
+
+    @Test
+    fun `a held die keeps its colour through a reroll`() {
+        val state = GameEngine.newGame(onePlayer, GameMode.TRICOLOUR).copy(
+            dice = List(5) { Die(value = 2, colour = DieColour.BLUE, isHeld = it == 0) },
+            phase = TurnPhase.ROLLED,
+        )
+
+        val rolled = GameEngine.rollDice(state, kotlin.random.Random(7))
+
+        assertEquals(Die(value = 2, colour = DieColour.BLUE, isHeld = true), rolled.dice[0])
+    }
+
+    @Test
+    fun `superuser cycling in Tricolour runs 1 to 6 within a colour, then on to the next colour`() {
+        var state = GameEngine.newGame(onePlayer, GameMode.TRICOLOUR).copy(
+            dice = List(5) { Die(value = 1, colour = DieColour.RED, isHeld = true) },
+            phase = TurnPhase.ROLLED,
+        )
+        val seen = mutableListOf(state.dice[0].value to state.dice[0].colour)
+        repeat(18) {
+            state = GameEngine.cycleDieValue(state, dieIndex = 0)
+            seen += state.dice[0].value to state.dice[0].colour
+        }
+
+        val expected = listOf(DieColour.RED, DieColour.YELLOW, DieColour.BLUE)
+            .flatMap { colour -> (1..6).map { it to colour } } + (1 to DieColour.RED)
+        assertEquals(expected, seen)
+        assertTrue(state.dice.drop(1).all { it == Die(value = 1, colour = DieColour.RED, isHeld = true) })
+    }
+
+    @Test
+    fun `a Tricolour game ends once all 17 of its boxes are filled`() {
+        val mode = GameMode.TRICOLOUR
+        val almostFull = mode.categories.associateWith { category -> if (category == ScoreCategory.COLOURED_HOUSE) null else 0 }
+        val state = GameEngine.newGame(onePlayer, mode).let {
+            it.copy(
+                players = listOf(it.players.single().copy(scorecard = almostFull)),
+                dice = List(5) { index -> Die(value = index + 1, colour = DieColour.RED) },
+                phase = TurnPhase.ROLLED,
+            )
+        }
+
+        assertTrue(GameEngine.commitScore(state, ScoreCategory.COLOURED_HOUSE).isGameOver)
     }
 }

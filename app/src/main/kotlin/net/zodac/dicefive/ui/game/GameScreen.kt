@@ -295,6 +295,7 @@ private fun InProgressGame(
 
         DiceTray(
             dice = state.dice,
+            gameMode = state.gameMode,
             enabled = canHold,
             showDice = showDice,
             rolling = isRolling,

@@ -38,6 +38,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 import net.zodac.dicefive.model.Die
+import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.ui.game.style.ColouredDie
 import net.zodac.dicefive.ui.game.style.DiceStyle
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.SlotSocketBorder
@@ -81,11 +83,14 @@ private const val CYCLE_INTERVAL_MILLIS = 1_000L
  * that's under the finger the whole time. Sliding into another die's column cancels whatever the
  * previous column was doing (a pending click, or superuser cycling) and starts fresh on the new
  * one; only the column the finger is actually released over can register a click or leave cycling
- * in effect. Uses [LocalGameVisualTheme] for both the die art and the mat.
+ * in effect. Uses [LocalGameVisualTheme] for both the die art and the mat - except in a [gameMode]
+ * whose dice carry their own colour, which are drawn in that colour instead of the dice style (see
+ * [ColouredDie]).
  */
 @Composable
 fun DiceTray(
     dice: List<Die>,
+    gameMode: GameMode,
     enabled: Boolean,
     showDice: Boolean,
     rolling: Boolean,
@@ -227,6 +232,7 @@ fun DiceTray(
                     scrambleTick = scrambleTick,
                     scatter = SCATTER_OFFSETS[index % SCATTER_OFFSETS.size],
                     seed = index,
+                    gameMode = gameMode,
                     diceStyle = visualTheme.diceStyle,
                     modifier = Modifier.weight(1f),
                 )
@@ -256,6 +262,7 @@ private fun DiceColumn(
     scrambleTick: Int,
     scatter: ScatterOffset,
     seed: Int,
+    gameMode: GameMode,
     diceStyle: DiceStyle,
     modifier: Modifier = Modifier,
 ) {
@@ -271,7 +278,7 @@ private fun DiceColumn(
                 .border(1.5.dp, SlotSocketBorder, shape),
         ) {
             if (show && die.isHeld) {
-                diceStyle.Die(value = die.value, held = true, modifier = Modifier.fillMaxSize().padding(3.dp))
+                DieFace(die = die, held = true, diceStyle = diceStyle, modifier = Modifier.fillMaxSize().padding(3.dp))
             }
         }
 
@@ -280,11 +287,13 @@ private fun DiceColumn(
         Box(modifier = Modifier.fillMaxWidth().height(SCATTER_AREA_HEIGHT)) {
             if (show && !die.isHeld) {
                 // Reads scrambleTick so each tick's recomposition seeds a fresh face -
-                // deliberately not remember()'d, since a cached value wouldn't flicker.
-                val displayValue = if (rolling) Random(scrambleTick * 31 + seed).nextInt(1, 7) else die.value
-                diceStyle.Die(
-                    value = displayValue,
+                // deliberately not remember()'d, since a cached value wouldn't flicker. A coloured
+                // die tumbles through colours as well as numbers.
+                val displayDie = if (rolling) scrambledFace(Random(scrambleTick * 31 + seed), gameMode) else die
+                DieFace(
+                    die = displayDie,
                     held = false,
+                    diceStyle = diceStyle,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .size(SCATTERED_DIE_SIZE)
@@ -294,4 +303,25 @@ private fun DiceColumn(
             }
         }
     }
+}
+
+/** A die in its own colour when it has one, otherwise in the player's chosen [diceStyle]. */
+@Composable
+private fun DieFace(die: Die, held: Boolean, diceStyle: DiceStyle, modifier: Modifier) {
+    val colour = die.colour
+    if (colour != null) {
+        ColouredDie(value = die.value, colour = colour, held = held, modifier = modifier)
+    } else {
+        diceStyle.Die(value = die.value, held = held, modifier = modifier)
+    }
+}
+
+/** A random face [gameMode]'s dice could land on - its number, and its colour if it has them. */
+private fun scrambledFace(random: Random, gameMode: GameMode): Die {
+    val values = gameMode.dieValues
+    val colours = gameMode.dieColours
+    return Die(
+        value = random.nextInt(values.first, values.last + 1),
+        colour = if (colours.isEmpty()) null else colours[random.nextInt(colours.size)],
+    )
 }

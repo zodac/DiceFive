@@ -2,10 +2,13 @@ package net.zodac.dicefive.ui.game
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -29,8 +32,9 @@ import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 
-/** Fixed height for the score-grid + cup section, so its two columns line up row-for-row. */
-private val BOARD_HEIGHT = 380.dp
+/** Inset of the score-grid + cup section's content. Its height is fixed per game mode (see
+ * [scoreBoardHeight]), so its two columns line up row-for-row. */
+private val BOARD_PADDING = 14.dp
 
 /**
  * The scoring area: the active player's category grid on the left, the 5x tile / dice cup /
@@ -68,12 +72,13 @@ fun GameBoard(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(BOARD_HEIGHT)
+            .height(scoreBoardHeight(state.gameMode, BOARD_PADDING))
             .clip(RoundedCornerShape(16.dp))
             .background(visualTheme.background.scoreAreaBrush)
-            .padding(14.dp),
+            .padding(BOARD_PADDING),
     ) {
         ScoreGrid(
+            gameMode = state.gameMode,
             player = player,
             dice = state.dice,
             canScore = canScore,
@@ -91,6 +96,7 @@ fun GameBoard(
         // harmlessly, before it would otherwise reach the cup panel's content.
         Spacer(modifier = Modifier.width(20.dp))
         DiceCupPanel(
+            gameMode = state.gameMode,
             player = player,
             dice = state.dice,
             canScore = canScore,
@@ -127,12 +133,13 @@ fun ReadOnlyScoreboard(player: PlayerState, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(BOARD_HEIGHT)
+            .height(scoreBoardHeight(player.gameMode, BOARD_PADDING))
             .clip(RoundedCornerShape(16.dp))
             .background(visualTheme.background.scoreAreaBrush)
-            .padding(14.dp),
+            .padding(BOARD_PADDING),
     ) {
         ScoreGrid(
+            gameMode = player.gameMode,
             player = player,
             dice = emptyList(),
             canScore = false,
@@ -142,35 +149,41 @@ fun ReadOnlyScoreboard(player: PlayerState, modifier: Modifier = Modifier) {
             modifier = Modifier.weight(1f),
         )
         Spacer(modifier = Modifier.width(20.dp))
-        Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-            CategoryCell(
-                category = ScoreCategory.FIVE_OF_A_KIND,
-                player = player,
-                canScore = false,
-                showPreview = false,
-                available = emptySet(),
-                dice = emptyList(),
-                onScoreCategory = {},
-                prominent = true,
-                modifier = Modifier.weight(2f).fillMaxWidth(),
-            )
-            // Same weight split as DiceCupPanel's cup box + bottom row, minus the cup itself - kept
-            // empty rather than filled with a placeholder, per the read-only view's "no mat/dice/
-            // cup" requirement.
-            Spacer(modifier = Modifier.weight(3f))
-            Row(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column {
-                    Text(text = "Upper: ${player.upperSectionTotal}", color = TileIconColor, style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        text = "Bonus: ${player.upperSectionBonus}",
-                        color = if (player.upperSectionBonus > 0) GoldAccent else TileIconColor,
-                        fontWeight = if (player.upperSectionBonus > 0) FontWeight.Bold else FontWeight.Normal,
-                        style = MaterialTheme.typography.bodyMedium,
+        // Same top alignment as DiceCupPanel's 5x tile - see firstRowTileInset.
+        BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxHeight()) {
+            val topInset = firstRowTileInset(player.gameMode, maxHeight)
+            Column(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.weight(2f).fillMaxWidth()) {
+                    CategoryCell(
+                        category = ScoreCategory.FIVE_OF_A_KIND,
+                        player = player,
+                        canScore = false,
+                        showPreview = false,
+                        available = emptySet(),
+                        dice = emptyList(),
+                        onScoreCategory = {},
+                        prominent = true,
+                        modifier = Modifier.padding(top = topInset).fillMaxWidth(),
                     )
+                }
+                // Same weight split as DiceCupPanel's cup box + bottom row, minus the cup itself - kept
+                // empty rather than filled with a placeholder, per the read-only view's "no mat/dice/
+                // cup" requirement.
+                Spacer(modifier = Modifier.weight(3f))
+                Row(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column {
+                        Text(text = "Upper: ${player.upperSectionTotal}", color = TileIconColor, style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text = "Bonus: ${player.upperSectionBonus}",
+                            color = if (player.upperSectionBonus > 0) GoldAccent else TileIconColor,
+                            fontWeight = if (player.upperSectionBonus > 0) FontWeight.Bold else FontWeight.Normal,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
                 }
             }
         }

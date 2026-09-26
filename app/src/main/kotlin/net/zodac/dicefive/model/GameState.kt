@@ -6,12 +6,12 @@ package net.zodac.dicefive.model
  * reducers; see `net.zodac.dicefive.game`.
  */
 data class GameState(
-    val gameType: GameType = GameType.CLASSIC,
+    val gameMode: GameMode = GameMode.default,
     val turnTimer: TurnTimer = TurnTimer.NONE,
     val players: List<PlayerState> = emptyList(),
     val currentPlayerIndex: Int = 0,
-    val dice: List<Die> = List(5) { Die() },
-    val rollsRemaining: Int = 3,
+    val dice: List<Die> = List(gameMode.diceCount) { Die() },
+    val rollsRemaining: Int = gameMode.rollsPerTurn,
     val phase: TurnPhase = TurnPhase.AWAITING_ROLL,
     val isGameOver: Boolean = false,
 ) {

@@ -1,8 +1,10 @@
 package net.zodac.dicefive.ui.game
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -24,11 +26,13 @@ import net.zodac.dicefive.R
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.ui.game.style.PipFace
+import net.zodac.dicefive.ui.game.style.palette
 import net.zodac.dicefive.ui.theme.TileIconColor
 
 /**
  * The small glyph shown inside a [CategoryTile]: dice pips for the upper section, and a bespoke
- * mark (Nx badge, house, staircase, "?") for each lower-section category.
+ * mark (Nx badge, house, staircase, "?") for each lower-section category, and a flat colour square
+ * (or, for Coloured House, the house again) for each colour-section category.
  */
 @Composable
 fun CategoryIcon(
@@ -59,11 +63,18 @@ fun CategoryIcon(
             // read as too tall for the tile). The tile itself is always square (CategoryTile sizes
             // it with a single dp value for both dimensions), so laying this out with fillMaxSize
             // renders it within that same square automatically, with no separate aspect tuning.
-            ScoreCategory.FULL_HOUSE -> Icon(
-                imageVector = Icons.Filled.House,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.fillMaxSize().padding(8.dp),
+            ScoreCategory.FULL_HOUSE -> HouseIcon(color)
+            // The same house, over CategoryTile's red/yellow/blue stripes rather than plain teal -
+            // with a soft shadow under it, since white or gold alone washes out on the yellow band.
+            ScoreCategory.COLOURED_HOUSE -> HouseIcon(color, shadowed = true)
+            // Nothing but the colour itself: the box is about the colour, and a flat square of it
+            // says so at a glance. Fades like every other glyph once scored.
+            ScoreCategory.REDS, ScoreCategory.YELLOWS, ScoreCategory.BLUES -> Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(10.dp)
+                    .alpha(if (dimmed) 0.4f else 1f)
+                    .background(requireNotNull(category.matchingColour).palette.swatch),
             )
             // Material has one Stairs glyph, not a short-flight/long-flight pair, so both
             // categories render the same icon - a corner badge carries the run length (4 vs 5)
@@ -84,6 +95,24 @@ fun CategoryIcon(
 // tile size.
 private const val BADGE_EDGE_INSET_FRACTION = 2f / 48f
 private const val BADGE_SIZE_FRACTION = 14f / 48f
+
+@Composable
+private fun HouseIcon(color: Color, shadowed: Boolean = false) {
+    if (shadowed) {
+        Icon(
+            imageVector = Icons.Filled.House,
+            contentDescription = null,
+            tint = Color.Black.copy(alpha = 0.45f),
+            modifier = Modifier.fillMaxSize().padding(8.dp).offset(x = 1.dp, y = 1.dp),
+        )
+    }
+    Icon(
+        imageVector = Icons.Filled.House,
+        contentDescription = null,
+        tint = color,
+        modifier = Modifier.fillMaxSize().padding(8.dp),
+    )
+}
 
 @Composable
 private fun BadgeLabel(text: String, color: Color, fontSize: TextUnit, modifier: Modifier = Modifier) {

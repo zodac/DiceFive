@@ -2,8 +2,8 @@ package net.zodac.dicefive.game
 
 import kotlin.random.Random
 import net.zodac.dicefive.model.Die
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
-import net.zodac.dicefive.model.GameType
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
@@ -17,26 +17,38 @@ import net.zodac.dicefive.model.TurnTimer
  */
 object GameEngine {
 
-    private const val DICE_COUNT = 5
-    private const val ROLLS_PER_TURN = 3
-
     fun newGame(
         players: List<PlayerConfig>,
-        gameType: GameType = GameType.CLASSIC,
+        gameMode: GameMode = GameMode.default,
         turnTimer: TurnTimer = TurnTimer.NONE,
     ): GameState {
         require(players.isNotEmpty()) { "At least one player is required" }
         return GameState(
-            gameType = gameType,
+            gameMode = gameMode,
             turnTimer = turnTimer,
-            players = players.map { PlayerState(name = it.name, type = it.type, difficulty = it.difficulty) },
+            players = players.map {
+                PlayerState(name = it.name, type = it.type, difficulty = it.difficulty, gameMode = gameMode)
+            },
         )
     }
 
+    /**
+     * Rerolls every unheld die: a number from [GameMode.dieValues], then - only in a mode whose dice
+     * have colours - a colour from [GameMode.dieColours], each equally likely. A colourless mode
+     * never draws that second number, so its dice come out of [random] exactly as they always have.
+     */
     fun rollDice(state: GameState, random: Random = Random.Default): GameState {
         check(state.rollsRemaining > 0) { "No rolls remaining this turn" }
+        val values = state.gameMode.dieValues
+        val colours = state.gameMode.dieColours
         val newDice = state.dice.map { die ->
-            if (die.isHeld) die else die.copy(value = random.nextInt(1, 7))
+            if (die.isHeld) {
+                die
+            } else {
+                val value = random.nextInt(values.first, values.last + 1)
+                val colour = if (colours.isEmpty()) null else colours[random.nextInt(colours.size)]
+                die.copy(value = value, colour = colour)
+            }
         }
         return state.copy(
             dice = newDice,
@@ -59,17 +71,27 @@ object GameEngine {
     }
 
     /**
-     * Superuser-mode-only: advances a single held die to the next face (wrapping 6 back to 1),
-     * ignoring the normal "already rolled this turn" / "rolls remaining" rules that [rollDice]
-     * enforces. Held state, every other die, and rolls-remaining are all left untouched - this
-     * only ever changes the one die's value. Deterministic (not random) so holding down cycles
-     * through every face in a predictable order.
+     * Superuser-mode-only: advances a single held die to the next face, ignoring the normal
+     * "already rolled this turn" / "rolls remaining" rules that [rollDice] enforces. Held state,
+     * every other die, and rolls-remaining are all left untouched - this only ever changes the one
+     * die. Deterministic (not random) so holding down cycles through every face in a predictable
+     * order: the numbers in turn (1 to 6), and - in a mode with coloured dice - on to the next
+     * colour's 1 after its 6 (red 1..6, yellow 1..6, blue 1..6, back to red 1).
      */
     fun cycleDieValue(state: GameState, dieIndex: Int): GameState {
         val newDice = state.dice.mapIndexed { index, die ->
-            if (index == dieIndex) die.copy(value = if (die.value >= 6) 1 else die.value + 1) else die
+            if (index == dieIndex) nextFace(die, state.gameMode) else die
         }
         return state.copy(dice = newDice)
+    }
+
+    private fun nextFace(die: Die, gameMode: GameMode): Die {
+        val values = gameMode.dieValues
+        if (die.value < values.last) return die.copy(value = die.value + 1)
+
+        val colours = gameMode.dieColours
+        val nextColour = if (colours.isEmpty()) null else colours[(colours.indexOf(die.colour) + 1) % colours.size]
+        return die.copy(value = values.first, colour = nextColour)
     }
 
     fun commitScore(state: GameState, category: ScoreCategory): GameState {
@@ -95,8 +117,8 @@ object GameEngine {
         }
         return state.copy(
             currentPlayerIndex = (state.currentPlayerIndex + 1) % state.players.size,
-            dice = List(DICE_COUNT) { Die() },
-            rollsRemaining = ROLLS_PER_TURN,
+            dice = List(state.gameMode.diceCount) { Die() },
+            rollsRemaining = state.gameMode.rollsPerTurn,
             phase = TurnPhase.AWAITING_ROLL,
         )
     }

@@ -5,6 +5,7 @@ import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.AchievementCounter
 import net.zodac.dicefive.model.Difficulty
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
@@ -61,10 +62,12 @@ data class GameStartContext(
      * "zodac" (case-sensitive) - [Achievement.BIG_FAN]'s trigger. */
     val hasHumanPlayerNamedZodac: Boolean = false,
     /** Whether this game was started with any setup option changed from the app's own default -
-     * today just the turn timer (`turnTimer != TurnTimer.NONE`), extend this as later setup
-     * options (game mode, etc.) gain their own default worth deviating from -
-     * [Achievement.I_DID_IT_MY_WAY]'s trigger. */
+     * the turn timer (`turnTimer != TurnTimer.NONE`) or the game mode (anything but
+     * [GameMode.default]); extend this as later setup options gain their own default worth
+     * deviating from - [Achievement.I_DID_IT_MY_WAY]'s trigger. */
     val customizedGameSettings: Boolean = false,
+    /** The rules this game is played under - [Achievement.NON_STANDARD_MODE]'s trigger. */
+    val gameMode: GameMode = GameMode.default,
 )
 
 /**
@@ -155,6 +158,14 @@ object AchievementEngine {
     private const val MAX_SIXES = 30
     private const val FULL_TABLE_SIZE = 4
 
+    /** Every box [Achievement.TRICOLOUR_ALL_COLOURS] needs a non-zero score in. */
+    private val TRICOLOUR_SET = listOf(
+        ScoreCategory.REDS,
+        ScoreCategory.YELLOWS,
+        ScoreCategory.BLUES,
+        ScoreCategory.COLOURED_HOUSE,
+    )
+
     /** How finely a [ProgressStyle.CUMULATIVE] achievement announces itself: quarter by quarter. */
     private const val PROGRESS_MILESTONES = 4
 
@@ -230,6 +241,7 @@ object AchievementEngine {
             if (context.playedNonDefaultStyle) add(Achievement.FRESH_COAT_OF_PAINT)
             if (context.hasHumanPlayerNamedZodac) add(Achievement.BIG_FAN)
             if (context.customizedGameSettings) add(Achievement.I_DID_IT_MY_WAY)
+            if (context.gameMode != GameMode.STANDARD) add(Achievement.NON_STANDARD_MODE)
         }
         return update(earned, before.counters, before, now)
     }
@@ -312,6 +324,9 @@ object AchievementEngine {
         award(Achievement.LOWER_150, anyHuman { it.lowerSectionTotal >= LOWER_CLASS_THRESHOLD })
         award(Achievement.SCRATCHED_5X, anyHuman { it.scorecard[ScoreCategory.FIVE_OF_A_KIND] == 0 })
 
+        // Game modes. Only a Tricolour scorecard has these boxes at all, so no separate mode check.
+        award(Achievement.TRICOLOUR_ALL_COLOURS, anyHuman { player -> TRICOLOUR_SET.all { player.scored(it) } })
+
         // Known the moment the table is set.
         award(Achievement.FULL_TABLE, players.size == FULL_TABLE_SIZE)
 
@@ -356,7 +371,7 @@ object AchievementEngine {
         award(Achievement.SCORE_300, bestHumanScore > 300)
         award(Achievement.SCORE_400, bestHumanScore >= 400)
         award(Achievement.SCORE_500, bestHumanScore >= 500)
-        award(Achievement.CHEATER_CHEATER, bestHumanScore >= PlayerState.MAX_POSSIBLE_SCORE)
+        award(Achievement.CHEATER_CHEATER, bestHumanScore >= state.gameMode.maxPossibleScore)
 
         // Winning.
         award(Achievement.WIN_BY_100, multiplayer && humanWon && margin != null && margin >= LANDSLIDE_MARGIN)
@@ -366,6 +381,7 @@ object AchievementEngine {
             Achievement.ZERO_TO_HERO,
             multiplayer && humanWon && humans.any { it.totalScore == state.topScore && it.scorecard.values.count { v -> v == 0 } >= ZEROES_FOR_HERO },
         )
+        award(Achievement.TRICOLOUR_WIN, multiplayer && humanWon && state.gameMode == GameMode.TRICOLOUR)
         award(Achievement.PIPPED_TO_THE_POST, multiplayer && !humanWon && state.topScore - bestHumanScore == PIPPED_MARGIN)
         award(Achievement.JAWS_OF_VICTORY, multiplayer && !humanWon && context.ledIntoFinalRound)
         award(
@@ -385,7 +401,7 @@ object AchievementEngine {
         award(
             Achievement.ALL_ZEROES,
             anyHuman { player ->
-                ScoreCategory.entries.filter { it != ScoreCategory.CHANCE }.all { player.scorecard[it] == 0 }
+                player.gameMode.categories.filter { it != ScoreCategory.CHANCE }.all { player.scorecard[it] == 0 }
             },
         )
         award(Achievement.EXTREME_LOW_ROLLS, anyHuman { it.totalScore == LOWEST_POSSIBLE_SCORE })

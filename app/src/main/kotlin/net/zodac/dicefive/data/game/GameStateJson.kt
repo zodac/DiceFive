@@ -1,9 +1,10 @@
 package net.zodac.dicefive.data.game
 
 import net.zodac.dicefive.model.Die
+import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.Difficulty
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
-import net.zodac.dicefive.model.GameType
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
@@ -16,7 +17,7 @@ import org.json.JSONObject
 object GameStateJson {
 
     fun encode(state: GameState): String = JSONObject().apply {
-        put("gameType", state.gameType.name)
+        put("gameMode", state.gameMode.id)
         put("turnTimer", state.turnTimer.name)
         put("currentPlayerIndex", state.currentPlayerIndex)
         put("rollsRemaining", state.rollsRemaining)
@@ -28,8 +29,9 @@ object GameStateJson {
 
     fun decode(json: String): GameState {
         val obj = JSONObject(json)
+        val gameMode = decodeGameMode(obj)
         return GameState(
-            gameType = GameType.valueOf(obj.getString("gameType")),
+            gameMode = gameMode,
             // Absent from a game saved before this field existed - falls back to no timer rather
             // than failing to resume it.
             turnTimer = obj.optString("turnTimer").takeIf { it.isNotEmpty() }
@@ -39,16 +41,36 @@ object GameStateJson {
             phase = TurnPhase.valueOf(obj.getString("phase")),
             isGameOver = obj.getBoolean("isGameOver"),
             dice = obj.getJSONArray("dice").toObjectList().map(::decodeDie),
-            players = obj.getJSONArray("players").toObjectList().map(::decodePlayer),
+            players = obj.getJSONArray("players").toObjectList().map { decodePlayer(it, gameMode) },
         )
+    }
+
+    /**
+     * A game saved before modes existed has no "gameMode", only "gameType" - and the only value it
+     * could ever hold there was "CLASSIC", today's [GameMode.STANDARD]. An id nothing recognises
+     * fails the decode rather than guessing, which `InProgressGameRepository.load` already treats as
+     * "nothing to resume".
+     */
+    private fun decodeGameMode(obj: JSONObject): GameMode {
+        if (!obj.has("gameMode")) {
+            check(obj.optString("gameType") == LEGACY_CLASSIC_GAME_TYPE) { "Unknown game type" }
+            return GameMode.STANDARD
+        }
+        val id = obj.getString("gameMode")
+        return checkNotNull(GameMode.fromId(id)) { "Unknown game mode: $id" }
     }
 
     private fun encodeDie(die: Die): JSONObject = JSONObject().apply {
         put("value", die.value)
         put("isHeld", die.isHeld)
+        die.colour?.let { put("colour", it.name) }
     }
 
-    private fun decodeDie(obj: JSONObject) = Die(value = obj.getInt("value"), isHeld = obj.getBoolean("isHeld"))
+    private fun decodeDie(obj: JSONObject) = Die(
+        value = obj.getInt("value"),
+        isHeld = obj.getBoolean("isHeld"),
+        colour = obj.optString("colour").takeIf { it.isNotEmpty() }?.let { DieColour.valueOf(it) },
+    )
 
     private fun encodePlayer(player: PlayerState): JSONObject = JSONObject().apply {
         put("name", player.name)
@@ -65,19 +87,22 @@ object GameStateJson {
         )
     }
 
-    private fun decodePlayer(obj: JSONObject): PlayerState {
+    private fun decodePlayer(obj: JSONObject, gameMode: GameMode): PlayerState {
         val scorecardJson = obj.getJSONObject("scorecard")
-        val scorecard = ScoreCategory.entries.associateWith { category ->
+        val scorecard = gameMode.categories.associateWith { category ->
             if (scorecardJson.isNull(category.name)) null else scorecardJson.getInt(category.name)
         }
         return PlayerState(
             name = obj.getString("name"),
             type = PlayerType.valueOf(obj.getString("type")),
             difficulty = Difficulty.valueOf(obj.getString("difficulty")),
+            gameMode = gameMode,
             scorecard = scorecard,
             fiveOfAKindBonusCount = obj.getInt("fiveOfAKindBonusCount"),
         )
     }
+
+    private const val LEGACY_CLASSIC_GAME_TYPE = "CLASSIC"
 
     private fun JSONArray.toObjectList(): List<JSONObject> = (0 until length()).map { getJSONObject(it) }
 }

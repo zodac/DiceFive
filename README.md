@@ -16,7 +16,9 @@ Android DiceFive game - a local (no netplay) five-dice scorecard game for
 ```
 app/src/main/kotlin/net/zodac/dicefive/
   model/            game domain types: GameState, PlayerState/PlayerConfig,
-                    Die, ScoreCategory, GameType, PlayerType, Difficulty, TurnPhase
+                    Die/DieColour, ScoreCategory, GameMode (every per-mode rule:
+                    dice, rolls, scorecard, bonuses, max score), PlayerType,
+                    Difficulty, TurnPhase
   game/             pure rules engine (no Android dependencies):
                     DiceScoring, ScoreCalculator (joker rule), GameEngine
                     (roll/hold/score/turn-advance reducers), AchievementEngine,
@@ -28,7 +30,7 @@ app/src/main/kotlin/net/zodac/dicefive/
   navigation/       Screen route constants + DiceFiveNavHost
   ui/
     menu/           MenuScreen (Play/Scores/Achievements/Styles/Settings)
-    setup/          GameSetupScreen (player count/type/name, game type)
+    setup/          GameSetupScreen (player count/type/name, game mode, turn timer)
     game/           GameScreen + GameViewModel (setup form + live game state,
                     AI auto-play), DiceRow, ScorecardView
     scores/         ScoresScreen + ScoresViewModel (paginated leaderboard)

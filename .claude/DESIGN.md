@@ -62,9 +62,16 @@ decisions behind it. Read that before changing anything visual.
   overlapping wavy bands offset half a cycle apart - see its `flameTongueLift` doc comment for why
   a plain sine reads as a dune, not flame). Picking "fire" for one category doesn't imply the
   others - a fire die can sit in a leather cup on a midnight felt mat.
-- **Game type**: only `CLASSIC` is playable in v1; `EXTENDED` exists as an
-  enum value shown disabled in the UI.
-- **Achievements**: 87 of them, **player 1 only** (`state.players[0]`, "You" on the setup
+- **Game modes** (`model/GameMode.kt`, was `GameType`): `STANDARD` (the official rules, formerly
+  `CLASSIC`) and `TRICOLOUR` (see Phase 14). **Every rule that can differ between modes is a field
+  on the mode**, even where both modes agree today: dice count, rolls per turn, die faces, die
+  colours, the scorecard's categories (which is also the number of turns), the upper-bonus
+  threshold/amount, the 5x bonus chip, and the max possible score. The engine, AI, achievements,
+  persistence and board all read the rules from there - a new mode should be a new entry plus any
+  genuinely new scoring rule, and nothing else learning it exists. A category's own scoring rule is
+  fixed and mode-independent (`ScoreCategory` carries its `section`, `fixedScore`, `jokerFreeFill`
+  and `matchingColour`); a mode just chooses which categories are on its card.
+- **Achievements**: 90 of them, **player 1 only** (`state.players[0]`, "You" on the setup
   screen) rather than any human at the table - the one exception is the ledger (the score-band and
   career-points achievements at the tail of `AchievementCategory.COLLECTION`), which stays measured
   against the leaderboard as a whole, i.e. every human who has played on this device, not just
@@ -230,7 +237,8 @@ net.zodac.dicefive/
   model/
     Die.kt                             — existing, unchanged
     ScoreCategory.kt                   — existing enum, unchanged
-    GameType.kt                        — CLASSIC (usable), EXTENDED (placeholder, disabled in UI)
+    GameMode.kt                        — STANDARD, TRICOLOUR: every per-mode rule (see "Game modes" above)
+    DieColour.kt                       — RED, YELLOW, BLUE (Tricolour's die colours)
     PlayerType.kt                      — HUMAN, AI
     Difficulty.kt                      — EASY, MEDIUM, HARD (stored, UI disabled)
     PlayerConfig.kt                    — setup-time: slot, type, name, difficulty
@@ -251,7 +259,7 @@ net.zodac.dicefive/
   ui/
     menu/MenuScreen.kt                 — Play / Achievements / Leaderboard / Statistics / Styles / Settings buttons
     setup/
-      GameSetupScreen.kt               — player count 1-4, per-slot human/AI + name field, game type radio (Extended disabled)
+      GameSetupScreen.kt               — player count 1-4, per-slot human/AI + name field, game mode radio, turn timer
     game/
       GameScreen.kt                    — dice tray w/ hold toggles, roll button, scorecard grid, current player banner
       GameViewModel.kt                 — owns setup config AND live GameState; phase drives which screen renders;
@@ -314,7 +322,8 @@ nav arguments or introducing a singleton holder.
     change.
   - AI: no name field (generated at Start Game); a disabled difficulty
     selector (Easy/Medium/Hard) defaulting to Medium, greyed out.
-- Game type: radio group, Classic selectable, Extended visible but disabled.
+- Game mode: radio group, one row per `GameMode` with its one-line description. Remembered
+  between games (`SettingsRepository.gameMode`, stored by `GameMode.id`).
 - "Start Game": builds initial `GameState` — generates AI names via
   `AiNameGenerator` (no duplicates within the game) at this point — and
   flips `GameViewModel` phase from CONFIGURING to PLAYING, navigating from
@@ -345,11 +354,14 @@ nav arguments or introducing a singleton holder.
 `DiceScoring`/`GameEngine` are pure functions with no Android
 dependencies — most unit tests live here.
 
-- **Maximum possible score: 1575** (`PlayerState.MAX_POSSIBLE_SCORE`, with the derivation as a doc
-  comment there and a locking test in `PlayerStateTest`) — the "perfect game": every upper box
-  maxed plus the 63+ bonus, every other lower box maxed, and every one of the other 12 turns also
-  landing a 5x for its +100 bonus chip. Every screen that shows a score (Leaderboard, Statistics'
-  max score) pads it to this constant's digit width (4) so the column stays a fixed width
+- **Maximum possible score, per mode: 1575 Standard, 2120 Tricolour** (`GameMode.maxPossibleScore`,
+  with each derivation as a doc comment on its entry, locked by `GameModeTest` playing the perfect
+  game through the real `GameEngine`) — every upper box maxed plus the 63+ bonus, every other box
+  maxed, and every turn after the 5x box also landing a 5x for its +100 bonus chip (12 of them in
+  Standard, 16 in Tricolour, whose three colour boxes take five 6s all of one colour and whose
+  Coloured House takes the joker free-fill). Every screen that shows a score (Leaderboard,
+  Statistics' max score) pads it to the digit width of the highest of these
+  (`GameMode.HIGHEST_POSSIBLE_SCORE`, 4 digits) so the column stays a fixed width
   regardless of how many digits a given score has; current-game score displays (`PlayerHeaderBar`,
   `GameOverScreen`) don't need this — the player-name column next to them is already capped at 10
   characters, so there's nothing there for a short score to let grow sideways.
@@ -1017,3 +1029,60 @@ install-over-existing succeeds:
         local-only surprise. Whatever mapping table eventually pairs `Achievement.id` with a Play
         Games achievement id should simply omit every `isSecret` entry, and the sync call that
         reports `newlyUnlocked` achievements needs to skip them too.
+
+### Phase 14 — Game modes: Standard and Tricolour
+- [x] **`GameType` → `GameMode`**, `CLASSIC` → `STANDARD`, placeholder `EXTENDED` → `TRICOLOUR`. The
+      mode is modelled as the one home for every per-mode rule (see "Game modes" under Decisions),
+      carried on `GameState` *and* on each `PlayerState` - a scorecard's totals depend on its mode
+      (which boxes exist, the upper bonus, the chip value), so a player's totals never need the game
+      around them. A scorecard only ever holds its own mode's categories; `ScoreCalculator`,
+      `isScorecardComplete`, the section totals, `GameStateJson` and "How Do You Play This Game?"
+      all iterate `gameMode.categories`, never `ScoreCategory.entries` (which now means "every
+      category any mode could use"). Things that are the same in both modes today but were
+      hard-coded - `GameEngine`'s 5 dice / 3 rolls, `GameViewModel`'s `FULL_ROLLS_REMAINING`
+      family and 5-slot hold-cycle array, `AiTurnPlayer`'s `DICE_COUNT`, `PlayerState`'s bonus
+      constants and `MAX_POSSIBLE_SCORE` - now read the mode.
+- [x] **Tricolour rules** (beyond the official rules): every die rolls a colour (red/yellow/blue,
+      equally likely) alongside its number - `Die.colour`, null in Standard, and `GameEngine.rollDice`
+      only draws a colour in a coloured mode, so Standard's dice come out of a seeded `Random` exactly
+      as before. Four new boxes in a new `ScoreSection.COLOUR` (kept out of `LOWER`, so the lower
+      total and "Lower Class" mean the same in both modes): Reds/Yellows/Blues (40, all five dice
+      that colour) and Coloured House (25, three of one colour and two of another). Coloured House
+      is a joker free-fill like Full House (`ScoreCategory.jokerFreeFill`); the single-colour boxes
+      are open to a repeat 5x under joker step 2 but score by the dice's real colours. Scores go on
+      the one shared leaderboard like any other.
+- [x] **Superuser cycling** in a coloured mode runs 1..6 within a colour then moves to the next
+      colour's 1 (red → yellow → blue → red); Standard still wraps 6 → 1.
+- [x] **Board**: the grid is laid out from the mode's categories (`scoreGridRows`), compact tiles
+      beyond six rows (Tricolour's colour boxes are two extra rows), the 5x tile's top level with the
+      grid's first row in both modes (`firstRowTileInset`), dice drawn in their own colour
+      instead of the dice style (`ColouredDie`), and the default mat went from saturated blue to a
+      muted slate so the blue die doesn't vanish on it - see `.claude/UI.md`'s "The scorecard grid
+      and game modes" (including the side-column layout that was tried and reverted).
+- [x] **AI**: Hard's exact expectation now enumerates *unordered* outcomes with multinomial weights
+      (`forEachOutcome`), and memoises by held faces - five dice with 18 faces is 1.9M ordered rolls
+      but 26,334 distinct ones, so it stays exact in Tricolour at a similar cost to Standard's old
+      7,776. The per-category baseline is per mode, computed lazily. Medium banks any colour box
+      the dice already fill and holds four of one colour to chase the fifth (after a forming
+      straight, before a number group). Easy needed nothing new.
+- [x] **Achievements**: new `AchievementCategory.GAME_MODES` (after Winning, before Misfortune):
+      `NON_STANDARD_MODE` "Rules? Where We're Going, We Don't Need Rules" (game start, any
+      non-Standard mode, via `GameStartContext.gameMode`; its icon, `ic_time_machine_car`, is an
+      original wedge-car silhouette trailing fire - a nod to the film, not its car), `TRICOLOUR_WIN` "Tricolourful" (game end;
+      needs an opponent, like every other win), `TRICOLOUR_ALL_COLOURS` "Tricolour Me Impressed"
+      (non-zero in all four colour boxes; judged in `earnedDuringPlay`, so it lands the moment the
+      fourth one is committed). `CHEATER_CHEATER` now checks the game's own mode's maximum and no
+      longer names 1575. Picking a mode other than Standard also counts as customising the game for
+      "I Did It My Way", and a non-default *dice* style no longer counts for "Fresh Coat Of Paint"
+      in a mode that doesn't show it. "Déjà Vu" and "Are These Loaded Dice?" compare number *and*
+      colour, since that's what "the same result" means when dice have colours.
+- [x] **Persistence**: `GameMode.id` is the stable storage key (never rename one). Saved games write
+      `gameMode` plus each die's `colour`; a save from before this reads `gameType: "CLASSIC"` as
+      Standard. The setup form remembers the last mode (`SettingsRepository.gameMode`).
+- [x] Tests: `GameModeTest` (every mode's perfect game through the engine equals its declared max,
+      ids, card contents), plus Tricolour cases in `DiceScoringTest`, `ScoreCalculatorTest`,
+      `GameEngineTest`, `AiTurnPlayerTest`, `AchievementEngineTest`, `GameStateJsonTest` and
+      `GameViewModelTest`. `PlayerStateTest`'s one test is superseded by `GameModeTest`.
+- [ ] **Not yet seen on a device**: the compact 8-row grid, the striped Coloured House tile, the
+      coloured dice and the new mat colour are compile-and-read verified only (no emulator in the
+      sandbox).
