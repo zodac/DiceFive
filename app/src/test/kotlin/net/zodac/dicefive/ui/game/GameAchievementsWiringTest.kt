@@ -518,6 +518,22 @@ class GameAchievementsWiringTest {
     }
 
     @Test
+    fun `each recorded score carries how many 5x that player scored`() = runTest {
+        val dao = FakeScoreDao()
+        // Every roll is five 6s, so the game scores its 5x box and then bonus chips.
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, scoreRepository = ScoreRepository(dao), random = LoadedDice(6))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.playToCompletion()
+        advanceUntilIdle()
+
+        val player = viewModel.game.value!!.players.single()
+        assertTrue("a game of nothing but 6s should score at least one 5x", player.fiveOfAKindCount > 0)
+        assertEquals(player.fiveOfAKindCount, dao.recorded().single().fiveOfAKindCount)
+    }
+
+    @Test
     fun `only player 1's recorded score is flagged as the primary player`() = runTest {
         val dao = FakeScoreDao()
         val viewModel = GameViewModel(aiDispatcher = testDispatcher, scoreRepository = ScoreRepository(dao))

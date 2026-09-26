@@ -220,12 +220,14 @@ net.zodac.dicefive/
     scores/
       ScoreEntry.kt (Room @Entity)     — id, playerName, score, timestampEpochMillis, won (nullable;
                                           null for a solo game or a pre-migration row), isPrimaryPlayer
-                                          (false for pre-migration rows)
+                                          (false for pre-migration rows), fiveOfAKindCount (nullable;
+                                          null for a pre-migration row)
       ScoreDao.kt                      — pagedScores(limit, offset), count(), bestScore(), insert(),
                                           playerSummaries() (GROUP BY playerName), outcomesForPlayer(name)
-      AppDatabase.kt                   — Room database (schema v4), singleton via Application; MIGRATION_1_2
-                                          adds `won`, MIGRATION_3_4 adds `isPrimaryPlayer`. A new column
-                                          means bumping the version and adding a migration here
+      AppDatabase.kt                   — Room database (schema v5), singleton via Application; MIGRATION_1_2
+                                          adds `won`, MIGRATION_3_4 adds `isPrimaryPlayer`, MIGRATION_4_5
+                                          adds `fiveOfAKindCount`. A new column means bumping the version
+                                          and adding a migration here
       ScoreRepository.kt               — wraps DAO, exposes page loads and playerStatistics() (adds the
                                           per-player current/best win streaks, walked separately from
                                           the SQL aggregate)
@@ -372,7 +374,11 @@ dependencies — most unit tests live here.
   `COUNT(*)` query for total pages.
 - `ScoresViewModel`: current page index (0-based), `SCORES_PAGE_SIZE` rows
   per page (50), next/prev availability.
-- `ScoresScreen`: scrollable rank/name/score table in a compact row style;
+- `ScoresScreen`: scrollable rank/name/5x/score table in a compact row style;
+  the 5x column is how many 5x that game scored (`PlayerState.fiveOfAKindCount` - the 5x box when
+  it holds 50, plus one per bonus chip - the same definition the achievements' `SCORED_5X` counter
+  uses), shown as "-" for an entry recorded before the column existed rather than a 0 it can't
+  vouch for;
   long-press a row shows a popup/tooltip with the formatted date from
   `timestampEpochMillis`. The next/prev controls only render when there is
   more than one page, but their height is always reserved, so the table ends

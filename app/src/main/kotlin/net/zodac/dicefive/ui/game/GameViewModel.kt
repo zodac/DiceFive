@@ -1159,7 +1159,13 @@ class GameViewModel(
             if (player.type == PlayerType.HUMAN) {
                 val won = if (multiplayer) player.totalScore == topScore else null
                 // Index 0 is always the primary player ("You") - see AchievementEngine's class doc.
-                repository.recordScore(player.name, player.totalScore, won = won, isPrimaryPlayer = index == 0)
+                repository.recordScore(
+                    player.name,
+                    player.totalScore,
+                    won = won,
+                    isPrimaryPlayer = index == 0,
+                    fiveOfAKindCount = player.fiveOfAKindCount,
+                )
             }
         }
     }

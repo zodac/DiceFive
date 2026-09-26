@@ -29,4 +29,11 @@ data class ScoreEntry(
      * total rather than guessed at.
      */
     val isPrimaryPlayer: Boolean = false,
+    /**
+     * How many 5x this player scored in this game - see
+     * [net.zodac.dicefive.model.PlayerState.fiveOfAKindCount]. Null for a row recorded before this
+     * column existed: the count was never captured, and showing it as 0 would claim something that
+     * isn't known (the Leaderboard shows "-" instead).
+     */
+    val fiveOfAKindCount: Int? = null,
 )
