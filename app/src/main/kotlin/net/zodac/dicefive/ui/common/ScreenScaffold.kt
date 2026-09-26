@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.widthIn
@@ -26,7 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -50,9 +48,6 @@ val CONTENT_MAX_WIDTH = 460.dp
  * [scrollable] wraps the content in a vertical scroll; leave it false for pages that manage their
  * own scrolling (a `LazyColumn`, or anything using `Modifier.weight`).
  *
- * [bottomBar] pins content to the foot of the screen, outside the scroll - for a page whose main
- * action must stay reachable however long its form gets. Use [PinnedActionBar] for the usual case.
- *
  * The app bar's title is bold, set in [SoraFontFamily] (the same face as the menu wordmark) and
  * tinted `colorScheme.primary` - the app's one brand colour, the same gold a Statistics max score
  * or a game board's "press this" uses - rather than the plain default `titleMedium` text a bare
@@ -66,7 +61,6 @@ fun ScreenScaffold(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     scrollable: Boolean = false,
-    bottomBar: @Composable () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BrandBackdrop(modifier = modifier) {
@@ -74,7 +68,6 @@ fun ScreenScaffold(
             // The backdrop is already drawn behind; the Scaffold only supplies structure, insets
             // and the app bar, so it must not paint its own opaque container over the top.
             containerColor = Color.Transparent,
-            bottomBar = bottomBar,
             topBar = {
                 CenterAlignedTopAppBar(
                     title = {
@@ -126,31 +119,6 @@ fun ScreenScaffold(
                 }
             }
         }
-    }
-}
-
-/**
- * A footer holding a page's primary action, for [ScreenScaffold]'s `bottomBar`.
- *
- * Opaque on purpose: the page's own content scrolls underneath it, so a transparent bar would let
- * text slide through the button. It consumes the navigation bar inset itself, which a Scaffold's
- * bottom bar is expected to do.
- */
-@Composable
-fun PinnedActionBar(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 3.dp,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            content = content,
-        )
     }
 }
 

@@ -10,9 +10,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.TimerOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,7 +41,6 @@ import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameType
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.TurnTimer
-import net.zodac.dicefive.ui.common.PinnedActionBar
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.game.GameSetupState
@@ -59,62 +62,67 @@ fun GameSetupScreen(
 ) {
     val setup by viewModel.setup.collectAsState()
 
-    ScreenScaffold(
-        title = "New Game",
-        onBack = onBack,
-        modifier = modifier,
-        scrollable = true,
-        // Pinned rather than sitting at the end of the form: at four players the form is long
-        // enough that a trailing button would need a scroll before the game could be started.
-        bottomBar = {
-            PinnedActionBar {
-                Button(
-                    onClick = {
-                        viewModel.startGame()
-                        onStartGame()
-                    },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                ) {
-                    Text(text = "Start Game", style = MaterialTheme.typography.titleMedium)
+    ScreenScaffold(title = "New Game", onBack = onBack, modifier = modifier) {
+        // The form scrolls on its own, and the Start Game button sits directly after it rather than
+        // pinned to the foot of the screen, where an achievement banner can cover it. weight(1f,
+        // fill = false) gives the form at most the height left over once the button is placed, and
+        // lets it shrink to its own height when it needs less. A short form keeps the button right
+        // underneath it; a form too tall for the screen scrolls, with the button held at the bottom.
+        Column(
+            modifier = Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            SetupForm(setup = setup, viewModel = viewModel)
+        }
+
+        Button(
+            onClick = {
+                viewModel.startGame()
+                onStartGame()
+            },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+        ) {
+            Text(text = "Start Game", style = MaterialTheme.typography.titleMedium)
+        }
+    }
+}
+
+@Composable
+private fun SetupForm(setup: GameSetupState, viewModel: GameViewModel) {
+    SetupCard(title = "Players") {
+        PlayerCountSelector(count = setup.playerCount, onCountChange = viewModel::setPlayerCount)
+    }
+
+    // Player 1 is always the human at this device - their name lives in Settings now, so
+    // there's nothing to configure for them here. Only the other seats (2-4) ever need a row,
+    // and with one player there are none at all, so the whole card is skipped.
+    val otherSlots = setup.playerSlots.take(setup.playerCount).drop(1)
+    if (otherSlots.isNotEmpty()) {
+        // One card holding every other player as a single row each, rather than a card per
+        // player: three stacked cards, each with its own title, padding and controls, is what
+        // pushed the form off the screen. No card title here - every row already names its own
+        // player.
+        SetupCard {
+            otherSlots.forEachIndexed { index, slot ->
+                if (index > 0) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
-            }
-        },
-    ) {
-        SetupCard(title = "Players") {
-            PlayerCountSelector(count = setup.playerCount, onCountChange = viewModel::setPlayerCount)
-        }
-
-        // Player 1 is always the human at this device - their name lives in Settings now, so
-        // there's nothing to configure for them here. Only the other seats (2-4) ever need a row,
-        // and with one player there are none at all, so the whole card is skipped.
-        val otherSlots = setup.playerSlots.take(setup.playerCount).drop(1)
-        if (otherSlots.isNotEmpty()) {
-            // One card holding every other player as a single row each, rather than a card per
-            // player: three stacked cards, each with its own title, padding and controls, is what
-            // pushed the form off the screen. No card title here - every row already names its own
-            // player.
-            SetupCard {
-                otherSlots.forEachIndexed { index, slot ->
-                    if (index > 0) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    }
-                    PlayerRow(
-                        slot = slot,
-                        onTypeChange = { type -> viewModel.setPlayerType(slot.slot, type) },
-                        onNameChange = { name -> viewModel.setPlayerName(slot.slot, name) },
-                        onDifficultyChange = { difficulty -> viewModel.setPlayerDifficulty(slot.slot, difficulty) },
-                    )
-                }
+                PlayerRow(
+                    slot = slot,
+                    onTypeChange = { type -> viewModel.setPlayerType(slot.slot, type) },
+                    onNameChange = { name -> viewModel.setPlayerName(slot.slot, name) },
+                    onDifficultyChange = { difficulty -> viewModel.setPlayerDifficulty(slot.slot, difficulty) },
+                )
             }
         }
+    }
 
-        SetupCard(title = "Game Type") {
-            GameTypeSelector(selected = setup.gameType, onSelect = viewModel::setGameType)
-        }
+    SetupCard(title = "Game Type") {
+        GameTypeSelector(selected = setup.gameType, onSelect = viewModel::setGameType)
+    }
 
-        SetupCard(title = "Turn Timer") {
-            TurnTimerSelector(selected = setup.turnTimer, onSelect = viewModel::setTurnTimer)
-        }
+    SetupCard(title = "Turn Timer") {
+        TurnTimerSelector(selected = setup.turnTimer, onSelect = viewModel::setTurnTimer)
     }
 }
 
@@ -296,12 +304,15 @@ private fun TurnTimerSelector(selected: TurnTimer, onSelect: (TurnTimer) -> Unit
         onSelect = onSelect,
         label = { it.label },
         modifier = Modifier.fillMaxWidth(),
+        // A crossed-out timer says "no timer" at a glance next to 30s/60s/120s, where the word
+        // "None" read as just another value. The label below is still its accessibility text.
+        glyph = { if (it == TurnTimer.NONE) Icons.Filled.TimerOff else null },
     )
 }
 
 private val TurnTimer.label: String
     get() = when (this) {
-        TurnTimer.NONE -> "None"
+        TurnTimer.NONE -> "No timer"
         TurnTimer.SECONDS_30 -> "30s"
         TurnTimer.SECONDS_60 -> "60s"
         TurnTimer.SECONDS_120 -> "120s"

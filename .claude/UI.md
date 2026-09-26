@@ -95,7 +95,7 @@ which needs compileSdk 37). Revisit when 1.5.0 is stable.
 | File | What it is |
 |---|---|
 | `BrandBackdrop.kt` | the app's one piece of scenery: surface gradient, `primary` spotlight, faint dice watermark. Built from colour roles, so it tracks the theme. Quiet enough that ordinary components sit on it unmodified. |
-| `ScreenScaffold.kt` | the frame for every non-menu page: backdrop + M3 top app bar with a back arrow + optional pinned bottom bar. The bar itself stays transparent over the backdrop; its title is bold and tinted `primary` (see "Colour" above) rather than left at the M3 default. Also holds `PageColumn` and `PinnedActionBar`. |
+| `ScreenScaffold.kt` | the frame for every non-menu page: backdrop + M3 top app bar with a back arrow . The bar itself stays transparent over the backdrop; its title is bold and tinted `primary` (see "Colour" above) rather than left at the M3 default. Also holds `PageColumn`. |
 | `DiceFiveDialog.kt` | the app's one dialog shape, so the menu and the board ask questions the same way. |
 | `AppLogo.kt` | placeholder app mark, built from the game's own dice via `IvoryDiceStyle`. |
 | `Scrollbar.kt` | `LazyListScrollbar`, a `BoxScope` extension drawing a minimal scroll indicator over a `LazyColumn` - stock Compose has none for Android. Shared by the Leaderboard and Statistics screens. |
@@ -123,8 +123,12 @@ applies to any given page:
 - a standalone page (menu, results) takes `PageColumn`'s default, which is the system bars.
 
 Passing both insets it twice; passing neither puts content under the status bar clock.
-`PinnedActionBar` consumes the navigation bar inset itself, as a Scaffold bottom bar is
-expected to.
+
+No pinned bottom bar for a page's main action: a button fixed to the foot of the screen is
+exactly where an achievement banner lands on top of it. The New Game screen's Start Game button
+follows the form instead - the form scrolls inside `Modifier.weight(1f, fill = false)` with the
+button after it, so the button sits right under a short form and only ends up held at the
+bottom once the form is too tall to fit and has to scroll.
 
 ## Component conventions
 
