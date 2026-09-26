@@ -314,7 +314,12 @@ private fun BannerSlot(
 
     if (showOwnDescription) {
         DiceFiveDialog(
-            icon = Icons.Filled.EmojiEvents,
+            // The achievement's own icon for an unlock, same as its banner; a progress nudge keeps
+            // the generic trophy, since nothing has been earned yet.
+            icon = when (val event = item.event) {
+                is AchievementEvent.Unlocked -> event.achievement.icon
+                is AchievementEvent.Progressed -> Icons.Filled.EmojiEvents
+            },
             title = item.event.achievement.title,
             message = item.event.achievement.description,
             confirmLabel = "Got it",
@@ -324,7 +329,11 @@ private fun BannerSlot(
     }
 }
 
-/** The full-fat banner: something was actually earned. */
+/**
+ * The full-fat banner: something was actually earned. Shows the achievement's own icon (the one
+ * the Achievements screen shows once it's unlocked) rather than a generic trophy, so a burst of
+ * unlocks reads as distinct achievements at a glance, not a stack of identical cups.
+ */
 @Composable
 private fun UnlockedBanner(achievement: Achievement) {
     Surface(
@@ -340,7 +349,7 @@ private fun UnlockedBanner(achievement: Achievement) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Icon(imageVector = Icons.Filled.EmojiEvents, contentDescription = null, modifier = Modifier.size(28.dp))
+            Icon(imageVector = achievement.icon, contentDescription = null, modifier = Modifier.size(28.dp))
             Column {
                 Text(text = "Achievement unlocked", style = MaterialTheme.typography.labelSmall)
                 Text(
