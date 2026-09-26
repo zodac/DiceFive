@@ -1,5 +1,8 @@
 package net.zodac.dicefive.ui.game
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,6 +18,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,8 +37,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.ui.theme.PlayerColors
+
+/** How long a score takes to count up: most turns' points rise in [SCORE_RISE_MIN_MILLIS], a bigger
+ * jump gets [SCORE_RISE_MILLIS_PER_POINT] each, and past [SCORE_RISE_MAX_MILLIS] it just counts faster. */
+private const val SCORE_RISE_MIN_MILLIS = 1000
+private const val SCORE_RISE_MAX_MILLIS = 2000
+private const val SCORE_RISE_MILLIS_PER_POINT = 40
+
+internal fun scoreRiseMillis(pointsGained: Int): Int =
+    (pointsGained * SCORE_RISE_MILLIS_PER_POINT).coerceIn(SCORE_RISE_MIN_MILLIS, SCORE_RISE_MAX_MILLIS)
 
 /**
  * The top row of player tabs: name, running total, and (for the active player) a colored outline
@@ -107,7 +125,7 @@ private fun PlayerTab(
             style = if (compactName) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
         )
         Text(
-            text = score.toString(),
+            text = risingScore(score).toString(),
             color = color,
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.headlineSmall,
@@ -138,4 +156,33 @@ private fun Modifier.dashedBorder(width: Dp, color: Color, cornerRadius: Dp): Mo
             pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f)),
         ),
     )
+}
+
+/**
+ * [score] as it should read right now: counting up to a new total over [scoreRiseMillis] instead
+ * of jumping straight there. A score that lands while the previous one is still rising (a quick
+ * solo player can roll and score again inside a second) skips that one to its end first, so each
+ * rise starts from the total it was actually built on rather than from wherever the last one had
+ * got to. A total that goes down (an undo) just snaps - there's nothing to celebrate.
+ */
+@Composable
+private fun risingScore(score: Int): Int {
+    val shown = remember { Animatable(score.toFloat()) }
+    // The last total this tab was told about - where an interrupted rise was heading.
+    var lastTarget by remember { mutableIntStateOf(score) }
+    // Keyed on score, so a new total cancels the rise still running before this starts.
+    LaunchedEffect(score) {
+        val from = lastTarget
+        lastTarget = score
+        shown.snapTo(from.toFloat())
+        if (score <= from) {
+            shown.snapTo(score.toFloat())
+            return@LaunchedEffect
+        }
+        shown.animateTo(
+            targetValue = score.toFloat(),
+            animationSpec = tween(durationMillis = scoreRiseMillis(score - from), easing = LinearOutSlowInEasing),
+        )
+    }
+    return shown.value.roundToInt()
 }
