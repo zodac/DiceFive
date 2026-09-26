@@ -44,13 +44,6 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
     }
 
     /**
-     * Hides every player currently on the Leaderboard from the Statistics screen, without deleting
-     * any recorded score - the Leaderboard is untouched. The bulk version of
-     * [dismissPlayerStatistics]; playing a game un-hides that one player again, in [recordScore].
-     */
-    suspend fun resetStatistics() = scoreDao.dismissAllPlayers()
-
-    /**
      * Hides [playerName] from the Statistics screen without touching their recorded scores - the
      * Leaderboard keeps their full history. Playing another game under the same name un-hides them
      * again, in [recordScore].

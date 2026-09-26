@@ -114,15 +114,6 @@ class SettingsViewModel(
         viewModelScope.launch { repository.resetLeaderboard() }
     }
 
-    /**
-     * Hides every player from the Statistics screen without touching a single recorded score - the
-     * Leaderboard, and anything measured against it, is completely unaffected.
-     */
-    fun resetStatistics() {
-        val repository = scoreRepository ?: return
-        viewModelScope.launch { repository.resetStatistics() }
-    }
-
     companion object {
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {
