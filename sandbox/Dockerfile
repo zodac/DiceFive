@@ -250,6 +250,10 @@ RUN set -eux; \
 # matters. fonttools is the distro `python3-fonttools` package, NOT pip: the base image's Python is
 # PEP-668 "externally managed", so `pip install fonttools` is refused.
 #
+# ffmpeg joins that same asset toolchain for audio: this project ships .ogg sound effects
+# (app/src/main/res/raw/) and re-encoding/gain-adjusting one occasionally comes up (e.g. boosting a
+# clip that plays too quiet at SoundPool's volume ceiling of 1.0).
+#
 # lsof + iproute2 (`ss`) find whatever is LISTENing on a port inside the sandbox — the usual way to
 # clear a stale process holding a port before rerunning something.
 #
@@ -277,6 +281,7 @@ RUN set -eux; \
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -yqq --no-install-recommends \
         bash="5.2.37-2+b10" \
+        ffmpeg="7:7.1.5-0+deb13u1" \
         fontconfig="2.15.0-2.3" \
         gh="2.46.0-3" \
         git="1:2.47.3-0+deb13u1" \

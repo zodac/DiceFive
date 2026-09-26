@@ -52,6 +52,8 @@ fun SettingsScreen(
 ) {
     val theme by viewModel.theme.collectAsState()
     val confirmBeforeLeavingGame by viewModel.confirmBeforeLeavingGame.collectAsState()
+    val soundEnabled by viewModel.soundEnabled.collectAsState()
+    val vibrationEnabled by viewModel.vibrationEnabled.collectAsState()
     val userName by viewModel.userName.collectAsState()
     val uriHandler = LocalUriHandler.current
     // Saveable: a rotation mid-confirmation shouldn't silently drop the question.
@@ -123,6 +125,30 @@ fun SettingsScreen(
                 },
                 // The Card already supplies the surface; an opaque ListItem container would paint a
                 // second, slightly different one on top of it.
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            )
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Sound & Haptics",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
+            )
+            ListItem(
+                headlineContent = { Text("Sound effects") },
+                supportingContent = { Text("Cup shake, dice landing and hold/unhold clicks") },
+                trailingContent = {
+                    Switch(checked = soundEnabled, onCheckedChange = viewModel::setSoundEnabled)
+                },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            )
+            ListItem(
+                headlineContent = { Text("Vibration") },
+                supportingContent = { Text("A short buzz when holding or unholding a die") },
+                trailingContent = {
+                    Switch(checked = vibrationEnabled, onCheckedChange = viewModel::setVibrationEnabled)
+                },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
         }
