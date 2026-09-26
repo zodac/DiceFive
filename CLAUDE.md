@@ -41,9 +41,18 @@
 
 - **Every commit's first line is `[Category] Short description`** - enforced by
   `.githooks/commit-msg` (enable per clone with `scripts/install-git-hooks.sh`). The category is
-  what a release's changes are grouped under, so reuse an existing one where it fits (list them
-  with `git log --format=%s | grep -o '^\[[^]]*\]' | sort | uniq -c`) rather than inventing a
-  near-duplicate; later lines are free-form. The attribution trailers still go at the end.
+  what a release's changes are grouped under, so reuse one from the list below where it fits rather
+  than inventing a near-duplicate; later lines are free-form. The attribution trailers still go at
+  the end. When no category fits, pick a short, specific new one, **add it to this list in the same
+  commit**, and mention it to the user so they can rename it before it spreads.
+
+  | Category         | Covers                                                               |
+  |------------------|----------------------------------------------------------------------|
+  | `[Achievements]` | Achievement rules, the achievements list and unlock banners          |
+  | `[CI]`           | GitHub workflows, release pipeline, git hooks and changelog scripts  |
+  | `[Game Over]`    | The end-of-game results page and its celebration                     |
+  | `[Icon]`         | The app's launcher icon                                              |
+  | `[Project]`      | Repo-wide setup that isn't any one feature (initial commit, tooling) |
 
 # Pending
 
