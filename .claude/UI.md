@@ -218,8 +218,9 @@ The stack behaviour, and why each number is what it is:
 | Cap | 4 on screen | the rest **wait** rather than being dropped — the collector suspends on `snapshotFlow { banners.size }` until a slot frees |
 | Swipe | 25% of the banner's width, either direction | clears one early; the event flow's buffer holds the backlog meanwhile |
 
-Two variants, deliberately unequal: an **unlock** banner is `primaryContainer` with a trophy and
-a two-line body; a **progress** banner is quieter (`surfaceContainerHigh`, one line plus a thin
+Two variants, deliberately unequal: an **unlock** banner is `primaryContainer` with the
+achievement's own icon (`Achievement.icon`, the same one its unlocked row shows - a generic trophy
+made a burst of unlocks read as a stack of identical cups) and a two-line body; a **progress** banner is quieter (`surfaceContainerHigh`, one line plus a thin
 `LinearProgressIndicator`), so a run of "2 of 3" nudges can never be mistaken for the real thing.
 
 ## Motion
