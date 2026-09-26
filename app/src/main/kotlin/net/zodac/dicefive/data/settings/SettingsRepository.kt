@@ -17,8 +17,8 @@ private val Context.settingsDataStore by preferencesDataStore(name = "settings")
 /**
  * DataStore-backed settings: the display theme, the user's own name (slot 1, set from the
  * Settings screen), the last-used name/type/difficulty (User/CPU) for each player slot (1-4)
- * plus the last-used player count, so returning to setup pre-fills it, and whether leaving an
- * in-progress game needs a confirmation.
+ * plus the last-used player count, so returning to setup pre-fills it, whether leaving an
+ * in-progress game needs a confirmation, and whether sound effects/vibration are enabled.
  */
 class SettingsRepository(private val context: Context) {
 
@@ -79,6 +79,18 @@ class SettingsRepository(private val context: Context) {
         context.settingsDataStore.edit { it[CONFIRM_BEFORE_LEAVING_GAME_KEY] = confirm }
     }
 
+    val soundEnabled: Flow<Boolean> = context.settingsDataStore.data.map { prefs -> prefs[SOUND_ENABLED_KEY] ?: true }
+
+    suspend fun setSoundEnabled(enabled: Boolean) {
+        context.settingsDataStore.edit { it[SOUND_ENABLED_KEY] = enabled }
+    }
+
+    val vibrationEnabled: Flow<Boolean> = context.settingsDataStore.data.map { prefs -> prefs[VIBRATION_ENABLED_KEY] ?: true }
+
+    suspend fun setVibrationEnabled(enabled: Boolean) {
+        context.settingsDataStore.edit { it[VIBRATION_ENABLED_KEY] = enabled }
+    }
+
     // Style ids, not the ui.game.style types themselves - this is the data layer, and resolving an
     // id to a concrete DiceStyle/DiceCupStyle/TableBackground is the Styles screen's job (via its
     // catalog). The literal defaults below must match ui.game.style's DiceStyles/DiceCupStyles/
@@ -110,6 +122,8 @@ class SettingsRepository(private val context: Context) {
     private companion object {
         val THEME_KEY = stringPreferencesKey("theme")
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
+        val SOUND_ENABLED_KEY = booleanPreferencesKey("sound_enabled")
+        val VIBRATION_ENABLED_KEY = booleanPreferencesKey("vibration_enabled")
         val PLAYER_COUNT_KEY = intPreferencesKey("player_count")
         val TURN_TIMER_KEY = stringPreferencesKey("turn_timer")
         val DICE_STYLE_ID_KEY = stringPreferencesKey("dice_style_id")

@@ -37,6 +37,12 @@ class SettingsViewModel(
     val confirmBeforeLeavingGame: StateFlow<Boolean> = (settingsRepository?.confirmBeforeLeavingGame ?: flowOf(true))
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
+    val soundEnabled: StateFlow<Boolean> = (settingsRepository?.soundEnabled ?: flowOf(true))
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    val vibrationEnabled: StateFlow<Boolean> = (settingsRepository?.vibrationEnabled ?: flowOf(true))
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
     /** The user's own name - blank until they set one, same as an unset [net.zodac.dicefive.ui.game.PlayerSetupSlot]'s
      * name falls back to "Player 1" at game start rather than needing a non-empty default here. */
     val userName: StateFlow<String> = (settingsRepository?.userName ?: flowOf(null))
@@ -51,6 +57,16 @@ class SettingsViewModel(
     fun setConfirmBeforeLeavingGame(confirm: Boolean) {
         val repository = settingsRepository ?: return
         viewModelScope.launch { repository.setConfirmBeforeLeavingGame(confirm) }
+    }
+
+    fun setSoundEnabled(enabled: Boolean) {
+        val repository = settingsRepository ?: return
+        viewModelScope.launch { repository.setSoundEnabled(enabled) }
+    }
+
+    fun setVibrationEnabled(enabled: Boolean) {
+        val repository = settingsRepository ?: return
+        viewModelScope.launch { repository.setVibrationEnabled(enabled) }
     }
 
     /** Capped the same way [net.zodac.dicefive.ui.game.GameViewModel.setPlayerName] caps every other

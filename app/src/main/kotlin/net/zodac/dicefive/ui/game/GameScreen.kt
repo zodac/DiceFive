@@ -115,6 +115,8 @@ fun GameScreen(
     val diceCupStyleId by settingsRepository.diceCupStyleId.collectAsState(initial = DiceCupStyles.default.id)
     val tableBackgroundId by settingsRepository.tableBackgroundId.collectAsState(initial = TableBackgrounds.default.id)
     val diceMatId by settingsRepository.diceMatId.collectAsState(initial = DiceMats.default.id)
+    val soundEnabled by settingsRepository.soundEnabled.collectAsState(initial = true)
+    val vibrationEnabled by settingsRepository.vibrationEnabled.collectAsState(initial = true)
     val visualTheme = remember(diceStyleId, diceCupStyleId, tableBackgroundId, diceMatId) {
         GameVisualTheme(
             diceStyle = DiceStyles.byId(diceStyleId),
@@ -132,6 +134,7 @@ fun GameScreen(
                 onBackToMenu = onBackToMenu,
                 onPlayAgain = viewModel::startGame,
                 modifier = modifier,
+                soundEnabled = soundEnabled,
             )
             return@CompositionLocalProvider
         }
@@ -160,6 +163,8 @@ fun GameScreen(
                 onCycleValue = viewModel::cycleHeldDieValue,
                 onScoreCategory = viewModel::commitScore,
                 onTapCupWithNoRollsLeft = viewModel::tapCupWithNoRollsLeft,
+                soundEnabled = soundEnabled,
+                vibrationEnabled = vibrationEnabled,
             )
         }
     }
@@ -178,6 +183,8 @@ private fun InProgressGame(
     onCycleValue: (Int) -> Unit,
     onScoreCategory: (ScoreCategory) -> Unit,
     onTapCupWithNoRollsLeft: () -> Unit,
+    soundEnabled: Boolean,
+    vibrationEnabled: Boolean,
 ) {
     val currentPlayer = state.currentPlayer
     val isHumanTurn = currentPlayer?.type == PlayerType.HUMAN
@@ -202,14 +209,31 @@ private fun InProgressGame(
     // with isRolling, so mounting this screen mid-turn (already settled) doesn't fire a landing
     // sound with no shake before it.
     val soundEffects = rememberSoundEffects()
+    soundEffects.enabled = soundEnabled
+    val haptics = rememberDiceHaptics()
+    haptics.enabled = vibrationEnabled
     var previousRolling by remember { mutableStateOf(false) }
     LaunchedEffect(isRolling) {
         if (isRolling && !previousRolling) {
             soundEffects.playShake()
+            haptics.playShakeBuzz()
         } else if (!isRolling && previousRolling) {
             soundEffects.playRoll()
         }
         previousRolling = isRolling
+    }
+
+    // Fired from the die's own held state *before* the toggle is applied, not the toggle's
+    // result, since onToggleHold only forwards the tapped index - it doesn't report which way
+    // the hold flipped.
+    val onToggleHoldWithSound = { dieIndex: Int ->
+        if (state.dice.getOrNull(dieIndex)?.isHeld == true) {
+            soundEffects.playUnhold()
+        } else {
+            soundEffects.playHold()
+        }
+        haptics.playHoldTick()
+        onToggleHold(dieIndex)
     }
 
     // Which other player's scorecard the active player has tapped into viewing, if any - keyed on
@@ -274,7 +298,7 @@ private fun InProgressGame(
             enabled = canHold,
             showDice = showDice,
             rolling = isRolling,
-            onToggleHold = onToggleHold,
+            onToggleHold = onToggleHoldWithSound,
             superuserModeActive = superuserModeActive,
             onCycleValue = onCycleValue,
             modifier = Modifier.fillMaxWidth(),
