@@ -190,12 +190,25 @@ class GameViewModel(
     // the same isPlayerOneTurn checks that guard rollDice/toggleHold/commitScore.
     private var previousRollDiceValues: List<Int>? = null
     private var heldChangedSinceLastRoll = false
-    private var hadFourOfAKindOnFirstRoll = false
+
+    /** The die indices that made up a first-roll four of a kind this turn - null if roll 1 wasn't
+     * one. See [checkPostRollAchievements]'s Almost Famous comment. */
+    private var fourOfAKindIndicesFromFirstRoll: Set<Int>? = null
+
+    /** Whether [fourOfAKindIndicesFromFirstRoll] has been exactly the held set - no more, no less -
+     * going into every roll since (so the loose 5th die actually kept getting re-rolled). Starts
+     * true the moment a first-roll four of a kind is seen, and can only ever be knocked false. */
+    private var heldFourOfAKindThroughTurn = false
     private var fiveOfAKindSeenThisTurn = false
     private var diceValuesAfterFirstRoll: List<Int>? = null
     private var loadedDiceHeldIndices: Set<Int>? = null
     private var loadedDiceMatchedSecondRoll = false
     private var heldIndicesBeforeSecondRoll: Set<Int>? = null
+
+    /** Die indices held going into BOTH the 2nd and 3rd roll - i.e. held after the 1st roll and
+     * still held after the 2nd. Computed in [rollDice] right before the 3rd roll, since that's the
+     * only point both snapshots exist to compare - see [Achievement.TIME_TO_LET_IT_GO]'s check in
+     * [checkPreCommitAchievements]. */
     private var heldThroughBothRerolls: Set<Int> = emptySet()
     private var everHeldAllFiveThisTurn = false
     private var holdUnholdCyclesByDieIndex = IntArray(5)
@@ -798,9 +811,10 @@ class GameViewModel(
         val dice = state.dice
         val values = dice.map { it.value }
 
-        // Déjà Vu: the same result as the immediately previous roll THIS turn, no holds toggled
-        // in between - heldChangedSinceLastRoll is cleared here and set by every toggleHold.
-        if (previousRollDiceValues != null && !heldChangedSinceLastRoll && values == previousRollDiceValues) {
+        // Déjà Vu: the same result as the immediately previous roll THIS turn, with nothing held -
+        // not just unchanged since the last roll (that's Are These Loaded Dice?'s territory, the
+        // partial-hold complement of this one), but actually zero dice held right now.
+        if (previousRollDiceValues != null && !heldChangedSinceLastRoll && dice.none { it.isHeld } && values == previousRollDiceValues) {
             unlockAchievements(setOf(Achievement.DEJA_VU))
         }
         previousRollDiceValues = values
@@ -826,10 +840,22 @@ class GameViewModel(
             unlockAchievements(setOf(Achievement.NATURAL_5X))
         }
 
-        // Almost Famous: remember a first-roll four of a kind, and whether a real 5x ever follows.
+        // Almost Famous: remember a first-roll four of a kind's own die indices, whether they're
+        // still exactly what's held going into every roll since (nothing more, nothing less - so
+        // the 5th die is the one actually getting re-rolled, not sitting held alongside them), and
+        // whether a real 5x ever turns up on it anyway.
         if (rollsRemainingBeforeRoll == FULL_ROLLS_REMAINING) {
-            hadFourOfAKindOnFirstRoll = values.groupingBy { it }.eachCount().values.any { it == FOUR_OF_A_KIND_COUNT }
+            val fourOfAKindValue = values.groupingBy { it }.eachCount().entries.firstOrNull { it.value == FOUR_OF_A_KIND_COUNT }?.key
+            fourOfAKindIndicesFromFirstRoll = fourOfAKindValue?.let { value ->
+                values.withIndex().filter { it.value == value }.map { it.index }.toSet()
+            }
+            heldFourOfAKindThroughTurn = fourOfAKindIndicesFromFirstRoll != null
             diceValuesAfterFirstRoll = values
+        } else {
+            fourOfAKindIndicesFromFirstRoll?.let { required ->
+                val heldGoingIn = diceBeforeRoll.withIndex().filter { it.value.isHeld }.map { it.index }.toSet()
+                if (heldGoingIn != required) heldFourOfAKindThroughTurn = false
+            }
         }
         if (DiceScoring.isFiveOfAKind(dice)) fiveOfAKindSeenThisTurn = true
 
@@ -893,9 +919,6 @@ class GameViewModel(
             holdUnholdCyclesByDieIndex[dieIndex]++
             if (holdUnholdCyclesByDieIndex[dieIndex] >= HOLD_UNHOLD_CYCLE_TARGET) {
                 unlockAchievements(setOf(Achievement.DECISIONS_DECISIONS))
-            }
-            if (state.rollsRemaining == 0 && dieIndex in heldThroughBothRerolls) {
-                unlockAchievements(setOf(Achievement.TIME_TO_LET_IT_GO))
             }
         }
 
@@ -974,11 +997,17 @@ class GameViewModel(
             unlockAchievements(setOf(Achievement.WHY_DID_YOU_DO_THAT))
         }
 
-        // Almost Famous: this turn had a first-roll four of a kind that never became a real 5x -
-        // and the player actually used every chance to turn it into one. Committing after only
-        // one or two rolls isn't "almost" anything; rollsRemaining == 0 here means all three rolls
-        // this turn were spent (see the FULL_ROLLS_REMAINING/ROLLS_REMAINING_AFTER_* constants).
-        if (hadFourOfAKindOnFirstRoll && !fiveOfAKindSeenThisTurn && state.rollsRemaining == 0) {
+        // Almost Famous: this turn had a first-roll four of a kind, held exactly as-is (see
+        // checkPostRollAchievements) through every roll since so the 5th die actually kept
+        // getting re-rolled, and it never turned into a real 5x. Committing after only one or two
+        // rolls isn't "almost" anything; rollsRemaining == 0 here means all three rolls this turn
+        // were spent (see the FULL_ROLLS_REMAINING/ROLLS_REMAINING_AFTER_* constants). Whether the
+        // 5x could even have been scored doesn't matter - only that it was rolled for and missed.
+        if (fourOfAKindIndicesFromFirstRoll != null &&
+            heldFourOfAKindThroughTurn &&
+            !fiveOfAKindSeenThisTurn &&
+            state.rollsRemaining == 0
+        ) {
             unlockAchievements(setOf(Achievement.ALMOST_FAMOUS))
         }
 
@@ -996,6 +1025,19 @@ class GameViewModel(
             category == PlayerState.UPPER_CATEGORIES[committingValue - 1]
         ) {
             unlockAchievements(setOf(Achievement.COMMITMENT_ISSUES))
+        }
+
+        // Time To Let It Go: a die held after both the 1st and 2nd rolls (heldThroughBothRerolls,
+        // captured in rollDice) whose value the committed category never counted at all - whether
+        // that die is still held right now or was let go beforehand doesn't matter, only whether it
+        // fed the score. Only the upper section can be "not used" this way: every other category's
+        // score is built from all five dice together (a sum, or a pattern needing all of them), so
+        // there's no such thing as scoring one of those without a die still on the felt counting.
+        if (category in PlayerState.UPPER_CATEGORIES) {
+            val target = PlayerState.UPPER_CATEGORIES.indexOf(category) + 1
+            if (heldThroughBothRerolls.any { dice[it].value != target }) {
+                unlockAchievements(setOf(Achievement.TIME_TO_LET_IT_GO))
+            }
         }
 
         // Twice in a Lifetime: this turn scores a 5x, and so did player 1's last one - matches the
@@ -1041,7 +1083,8 @@ class GameViewModel(
     private fun resetPerTurnTracking() {
         previousRollDiceValues = null
         heldChangedSinceLastRoll = false
-        hadFourOfAKindOnFirstRoll = false
+        fourOfAKindIndicesFromFirstRoll = null
+        heldFourOfAKindThroughTurn = false
         fiveOfAKindSeenThisTurn = false
         diceValuesAfterFirstRoll = null
         loadedDiceHeldIndices = null
@@ -1099,10 +1142,11 @@ class GameViewModel(
         // "doesn't count toward win/loss" treatment AchievementEngine gives the WIN_STREAK counter.
         val multiplayer = state.players.size > 1
         val topScore = state.topScore
-        for (player in state.players) {
+        state.players.forEachIndexed { index, player ->
             if (player.type == PlayerType.HUMAN) {
                 val won = if (multiplayer) player.totalScore == topScore else null
-                repository.recordScore(player.name, player.totalScore, won = won)
+                // Index 0 is always the primary player ("You") - see AchievementEngine's class doc.
+                repository.recordScore(player.name, player.totalScore, won = won, isPrimaryPlayer = index == 0)
             }
         }
     }

@@ -16,6 +16,13 @@ enum class AchievementCounter {
  * What an achievement is *about*, and the order those themes are shown in. Grouping the list this
  * way is what lets one ladder's rungs sit together - "Sharpshooter" then "High Roller" then "Dice
  * Deity" - instead of being scattered across an alphabetical list.
+ *
+ * [SECRET] is last on purpose, and every achievement in it has [AchievementVisibility.SECRET]:
+ * [AchievementsViewModel][net.zodac.dicefive.ui.achievements.AchievementsViewModel] already
+ * filters a locked secret achievement out of the list entirely, so as long as this category holds
+ * nothing else, that filtering is *also* what keeps its own section header from ever appearing
+ * until something in it has actually been earned - no separate "is this section empty" check
+ * needed in the screen itself.
  */
 enum class AchievementCategory(val label: String) {
     MILESTONES("Milestones"),
@@ -25,6 +32,7 @@ enum class AchievementCategory(val label: String) {
     MISFORTUNE("Misfortune"),
     MISCELLANEOUS("Miscellaneous"),
     COLLECTION("Collection"),
+    SECRET("Secret"),
 }
 
 /** How a locked achievement shows progress, and how eagerly progress is worth announcing. */
@@ -82,6 +90,11 @@ enum class AchievementVisibility {
  * achievement with that visibility lives in that category, and everything in that category has
  * that visibility - `AchievementEngineTest` enforces both directions. A new hidden achievement
  * goes straight into Miscellaneous rather than its subject's usual category.
+ *
+ * [AchievementCategory.SECRET] is the same pairing with [AchievementVisibility.SECRET], and goes
+ * at the very end of this enum (after [COMPLETIONIST]) rather than filed under its subject's usual
+ * category - see [AchievementCategory.SECRET]'s own doc for why that placement is load-bearing,
+ * not just tidiness. `AchievementEngineTest` enforces this exclusivity too.
  */
 enum class Achievement(
     val id: String,
@@ -111,10 +124,6 @@ enum class Achievement(
     THE_JOURNEY_BEGINS(
         "journey_begins", "The Journey Begins", "Start your first game",
         AchievementCategory.MILESTONES,
-    ),
-    FIRST_GAME(
-        "games_first", "First Game", "Finish your first game",
-        AchievementCategory.MILESTONES, AchievementCounter.GAMES_PLAYED,
     ),
     SOLO_GAME(
         "solo_game", "Practice Makes Perfect", "Finish a solo game",
@@ -208,10 +217,6 @@ enum class Achievement(
     ),
 
     // ---- Dice feats continued: interaction quirks, not just what the dice show ----------------
-    LOADED_DICE(
-        "loaded_dice", "Are These Loaded Dice?", "After holding some dice, have the rest come up exactly the same on both re-rolls",
-        AchievementCategory.DICE,
-    ),
     TWICE_IN_A_LIFETIME(
         "5x_twice_in_a_row", "Twice In A Lifetime", "Score a 5x on two of your turns in a row",
         AchievementCategory.DICE,
@@ -243,18 +248,21 @@ enum class Achievement(
         "score_exactly_100", "Ton!", "Finish a game on exactly 100",
         AchievementCategory.SCORING,
     ),
+    // Strictly OVER 200, not "200 or more" - kept disjoint from DOUBLE_TON's exact 200 rather than
+    // overlapping it, so the two are genuinely distinct feats instead of one being a strict subset
+    // announced twice for the same game.
     SCORE_200(
-        "score_200", "Solid Round", "Score 200 or more in a game",
+        "score_200", "Solid Round", "Score more than 200 in a game",
         AchievementCategory.SCORING,
     ),
-    // Harder than SOLID_ROUND despite the same threshold: any score from 200 up satisfies that one,
-    // but only the single value 200 satisfies this - so it sits right after it, not before.
     DOUBLE_TON(
         "score_exactly_200", "Double Ton", "Finish a game on exactly 200",
         AchievementCategory.SCORING,
     ),
+    // Same reasoning as SCORE_200 above: strictly over, not "or more", to stay disjoint from
+    // TRIPLE_TON's exact 300.
     SCORE_300(
-        "score_300", "Sharpshooter", "Score 300 or more in a game",
+        "score_300", "Sharpshooter", "Score more than 300 in a game",
         AchievementCategory.SCORING,
     ),
     TRIPLE_TON(
@@ -269,15 +277,6 @@ enum class Achievement(
         "score_500", "Dice Deity", "Score 500 or more in a game",
         AchievementCategory.SCORING,
     ),
-    // A hidden one-off above the ladder, not another rung of it: not shown, let alone attempted,
-    // until it's already done. 1575 (PlayerState.MAX_POSSIBLE_SCORE) is the absolute ceiling the
-    // rules allow, so this is excluded from COMPLETIONIST the same way I_ROBOT was while it
-    // couldn't be earned - it's not that it's unearnable, it's that requiring every player to
-    // stumble into a literally perfect game would make COMPLETIONIST itself absurd.
-    CHEATER_CHEATER(
-        "cheater_cheater", "Cheater, Cheater!", "Finish a game with the maximum possible score - 1575",
-        AchievementCategory.SCORING, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
-    ),
 
     // ---- Winning: beating whoever else was at the table ---------------------------------------
     FIRST_WIN(
@@ -289,7 +288,7 @@ enum class Achievement(
         AchievementCategory.WINNING,
     ),
     WIN_BY_5(
-        "win_by_5", "Photo Finish", "Win by 5 points or fewer",
+        "win_by_5", "Photo Finish", "Win by a single point",
         AchievementCategory.WINNING,
     ),
     COMEBACK(
@@ -316,11 +315,11 @@ enum class Achievement(
         AchievementCategory.MISFORTUNE,
     ),
     DICE_HATE_ME(
-        "dice_hate_me", "The Dice Hate Me", "Have a real scoring option after the 2nd roll, then leave yourself with none after the 3rd",
+        "dice_hate_me", "The Dice Hate Me", "Have a scoring option after the 2nd roll, then leave yourself with none after the 3rd",
         AchievementCategory.MISFORTUNE,
     ),
     ALMOST_FAMOUS(
-        "almost_famous", "Almost Famous", "Roll four of a kind on the first roll, then never turn it into a 5x",
+        "almost_famous", "Almost Famous", "Hold a first-roll four of a kind all the way to the last roll, but never land the 5x",
         AchievementCategory.MISFORTUNE,
     ),
     SINGULARITY(
@@ -368,7 +367,7 @@ enum class Achievement(
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     TIME_TO_LET_IT_GO(
-        "time_to_let_it_go", "Time To Let It Go", "Hold the same die through two rolls, then unhold it with none left to take",
+        "time_to_let_it_go", "Time To Let It Go", "Hold the same die after the 1st and 2nd roll, then score without using it",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     TIME_WASTING(
@@ -389,12 +388,6 @@ enum class Achievement(
     ),
     IMPATIENT(
         "impatient", "Impatient", "Finish a game never rolling more than once in any turn",
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
-    ),
-    // Earned by having a human P2/P3/P4 named exactly "zodac" - the one name this checks for,
-    // case-sensitively - never P1, who's always the human player at this device.
-    BIG_FAN(
-        "big_fan", "Big Fan", "Play a game with the creator",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
 
@@ -437,6 +430,12 @@ enum class Achievement(
     ),
     DEJA_VU(
         "deja_vu", "Déjà Vu", "Roll the exact same result twice in a row, without holding any dice in between",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    // Sits right after Déjà Vu, its complement: this is the *some dice held* case of the same
+    // "the dice landed the same twice" idea, where Déjà Vu is specifically the *nothing held* one.
+    LOADED_DICE(
+        "loaded_dice", "Are These Loaded Dice?", "After holding some dice, have the rest come up exactly the same on both re-rolls",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     PRODUCT_PLACEMENT(
@@ -485,6 +484,12 @@ enum class Achievement(
         "who_made_this", "Who Made This", "Open the GitHub link in Settings",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
+    // Earned by having a human P2/P3/P4 named exactly "zodac" - the one name this checks for,
+    // case-sensitively - never P1, who's always the human player at this device.
+    BIG_FAN(
+        "big_fan", "Big Fan", "Play a game with the creator",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
 
     // ---- Collection: filling in every score there is, and the set of achievements itself ------
     // The six ledger achievements are the longest haul in the game, so they sit at the very end,
@@ -521,6 +526,20 @@ enum class Achievement(
     COMPLETIONIST(
         "completionist", "Completionist", "Unlock every other achievement",
         AchievementCategory.COLLECTION, countsTowardCompletion = false,
+    ),
+
+    // ---- Secret: not shown, let alone attempted, until already done ---------------------------
+    // See AchievementCategory.SECRET's doc for why this category exists (rather than filing these
+    // under each one's subject-matter category the way CHEATER_CHEATER used to sit in Scoring) -
+    // it's what keeps the "Secret" section header itself from ever appearing while empty.
+    //
+    // 1575 (PlayerState.MAX_POSSIBLE_SCORE) is the absolute ceiling the rules allow, so
+    // CHEATER_CHEATER is excluded from COMPLETIONIST the same way I_ROBOT was while it couldn't be
+    // earned - it's not that it's unearnable, it's that requiring every player to stumble into a
+    // literally perfect game would make COMPLETIONIST itself absurd.
+    CHEATER_CHEATER(
+        "cheater_cheater", "Cheater, Cheater!", "Finish a game with the maximum possible score - 1575",
+        AchievementCategory.SECRET, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     ;
 

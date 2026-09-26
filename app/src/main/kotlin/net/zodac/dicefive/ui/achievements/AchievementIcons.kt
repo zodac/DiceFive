@@ -74,7 +74,6 @@ import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.SportsScore
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Stairs
 import androidx.compose.material.icons.filled.Storefront
@@ -107,7 +106,6 @@ val Achievement.icon: ImageVector
     get() = when (this) {
         // ---- Milestones ---------------------------------------------------------------------
         Achievement.THE_JOURNEY_BEGINS -> Icons.Filled.RocketLaunch
-        Achievement.FIRST_GAME -> Icons.Filled.SportsScore
         Achievement.SOLO_GAME -> Icons.Filled.Person
         Achievement.FULL_TABLE -> Icons.Filled.Groups
         Achievement.CONTINUED_GAME -> Icons.Filled.Restore

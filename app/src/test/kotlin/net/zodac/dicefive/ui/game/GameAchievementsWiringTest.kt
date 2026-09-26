@@ -100,7 +100,8 @@ private class FakeScoreDao : ScoreDao {
 
     override suspend fun distinctScores(): List<Int> = entries.map { it.score }.distinct()
 
-    override suspend fun totalPoints(): Int? = entries.map { it.score }.sum().takeIf { entries.isNotEmpty() }
+    override suspend fun primaryPlayerTotalPoints(): Int? =
+        entries.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
 
     override suspend fun playerSummaries(): List<PlayerScoreSummary> = emptyList()
 
@@ -173,7 +174,7 @@ class GameAchievementsWiringTest {
         advanceUntilIdle()
 
         assertEquals("the human's score should be on the leaderboard", 1, dao.count())
-        assertTrue("FIRST_GAME should unlock, got ${store.unlocked}", Achievement.FIRST_GAME in store.unlocked)
+        assertTrue("SOLO_GAME should unlock, got ${store.unlocked}", Achievement.SOLO_GAME in store.unlocked)
     }
 
     @Test
@@ -419,7 +420,6 @@ class GameAchievementsWiringTest {
         advanceUntilIdle()
 
         assertTrue("game should be over", viewModel.game.value?.isGameOver == true)
-        assertTrue("FIRST_GAME should unlock, got ${store.unlocked}", Achievement.FIRST_GAME in store.unlocked)
         assertTrue("FIRST_WIN should unlock, got ${store.unlocked}", Achievement.FIRST_WIN in store.unlocked)
         assertEquals(1, store.state.first().counter(AchievementCounter.GAMES_PLAYED))
     }
@@ -435,6 +435,25 @@ class GameAchievementsWiringTest {
         advanceUntilIdle()
 
         // One roll of all five dice per turn, one turn per category.
+        assertEquals(
+            ScoreCategory.entries.size * 5,
+            store.state.first().counter(AchievementCounter.DICE_ROLLED),
+        )
+    }
+
+    @Test
+    fun `a second human seat's dice rolls don't count towards Well Rolled - only player 1's do`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store)
+        // Both default to HUMAN - a local pass-and-play game, not player 1 vs. the CPU.
+        viewModel.setPlayerCount(2)
+        viewModel.startGame()
+
+        viewModel.playToCompletion()
+        advanceUntilIdle()
+
+        // If player 2's rolls counted too, this would be double - one roll of five dice per turn,
+        // one turn per category, for player 1 alone.
         assertEquals(
             ScoreCategory.entries.size * 5,
             store.state.first().counter(AchievementCounter.DICE_ROLLED),
@@ -462,7 +481,7 @@ class GameAchievementsWiringTest {
         advanceUntilIdle()
 
         assertTrue("game should be over", viewModel.game.value?.isGameOver == true)
-        assertTrue("FIRST_GAME should unlock, got ${store.unlocked}", Achievement.FIRST_GAME in store.unlocked)
+        assertEquals(1, store.state.first().counter(AchievementCounter.GAMES_PLAYED))
     }
 
     @Test
@@ -495,6 +514,24 @@ class GameAchievementsWiringTest {
         val actual = dao.recorded().associate { it.playerName to it.won }
 
         assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `only player 1's recorded score is flagged as the primary player`() = runTest {
+        val dao = FakeScoreDao()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, scoreRepository = ScoreRepository(dao))
+        viewModel.setPlayerCount(2)
+        viewModel.startGame()
+
+        viewModel.playToCompletion()
+        advanceUntilIdle()
+
+        val finalState = viewModel.game.value!!
+        val playerOneName = finalState.players[0].name
+        val flaggedRows = dao.recorded().associate { it.playerName to it.isPrimaryPlayer }
+
+        assertTrue("player 1's own row should be flagged", flaggedRows.getValue(playerOneName))
+        assertEquals("no other row should be flagged as the primary player", 1, flaggedRows.values.count { it })
     }
 
     // ---- The interaction-driven batch: rolls, holds and commits watched as they happen ---------
@@ -569,6 +606,30 @@ class GameAchievementsWiringTest {
         advanceUntilIdle()
 
         assertFalse("a hold in between should disqualify it, got ${store.unlocked}", Achievement.DEJA_VU in store.unlocked)
+    }
+
+    @Test
+    fun `a die held (but unchanged) across two identical unheld results does not unlock Deja Vu`() = runTest {
+        val store = FakeAchievementStore()
+        // Roll 1: [1,2,2,2,3]; hold die 0 (value 1) and leave it held. Roll 2 lands [1,4,4,4,4].
+        // Roll 3 re-rolls the same four unheld dice back to [4,4,4,4] - the FULL five-dice result
+        // matches roll 2's exactly, and nothing was toggled in between, but die 0 is still held -
+        // this is Are These Loaded Dice?'s territory (a partial hold), not Déjà Vu's (nothing held).
+        val dice = ScriptedDice(listOf(1, 2, 2, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = dice)
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.toggleHold(0)
+        viewModel.rollDice()
+        viewModel.rollDice()
+        advanceUntilIdle()
+
+        assertFalse(
+            "a die still held right now must disqualify Deja Vu, even if the hold itself is unchanged, got ${store.unlocked}",
+            Achievement.DEJA_VU in store.unlocked,
+        )
     }
 
     @Test
@@ -828,9 +889,11 @@ class GameAchievementsWiringTest {
     }
 
     @Test
-    fun `holding a die through both re-rolls then releasing it with none left unlocks Time to Let It Go`() = runTest {
+    fun `holding a die through both re-rolls, then scoring a category it doesn't count towards, unlocks Time to Let It Go`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(4))
+        // Every die (held or not) always shows 6 - die 0 is held from right after roll 1, through
+        // both re-rolls, then Ones is scored: die 0's face is never counted towards it at all.
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -838,10 +901,72 @@ class GameAchievementsWiringTest {
         viewModel.toggleHold(0)
         viewModel.rollDice()
         viewModel.rollDice()
-        viewModel.toggleHold(0)
+        viewModel.commitScore(ScoreCategory.ONES)
         advanceUntilIdle()
 
         assertTrue("TIME_TO_LET_IT_GO should pop, got ${store.unlocked}", Achievement.TIME_TO_LET_IT_GO in store.unlocked)
+    }
+
+    @Test
+    fun `unholding the die before committing still unlocks Time to Let It Go - only whether it was used matters`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.toggleHold(0)
+        viewModel.rollDice()
+        viewModel.rollDice()
+        // Let it go before committing - its held/unheld state right now must not matter.
+        viewModel.toggleHold(0)
+        viewModel.commitScore(ScoreCategory.ONES)
+        advanceUntilIdle()
+
+        assertTrue("TIME_TO_LET_IT_GO should pop regardless of the die's final held state", Achievement.TIME_TO_LET_IT_GO in store.unlocked)
+    }
+
+    @Test
+    fun `scoring the upper category that matches the held die does not unlock Time to Let It Go`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.toggleHold(0)
+        viewModel.rollDice()
+        viewModel.rollDice()
+        // Sixes counts the held die's own face - it WAS used, so this must not pop.
+        viewModel.commitScore(ScoreCategory.SIXES)
+        advanceUntilIdle()
+
+        assertFalse(
+            "scoring the category the held die counts towards must not unlock TIME_TO_LET_IT_GO",
+            Achievement.TIME_TO_LET_IT_GO in store.unlocked,
+        )
+    }
+
+    @Test
+    fun `holding a die through only one re-roll does not unlock Time to Let It Go`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.toggleHold(0)
+        viewModel.rollDice()
+        // Released before the 3rd roll - only held through one re-roll, not both.
+        viewModel.toggleHold(0)
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.ONES)
+        advanceUntilIdle()
+
+        assertFalse(
+            "a die held through only one re-roll must not unlock TIME_TO_LET_IT_GO",
+            Achievement.TIME_TO_LET_IT_GO in store.unlocked,
+        )
     }
 
     @Test
@@ -893,21 +1018,65 @@ class GameAchievementsWiringTest {
     }
 
     @Test
-    fun `four of a kind on the first roll that never becomes a 5x across all three rolls unlocks Almost Famous`() = runTest {
+    fun `holding a first-roll four of a kind through every roll, with no 5x, unlocks Almost Famous`() = runTest {
         val store = FakeAchievementStore()
-        // Same four 6s and a 1 on every roll (ScriptedDice cycles) - never a 5x, on any of the
-        // three rolls this turn actually uses.
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 6, 1)))
+        // Roll 1: four 6s (indices 0-3) and a lone 1 (index 4). The four 6s are held from here on,
+        // so only the loose die is re-rolled for rolls 2 and 3 - landing on 2, then 3, never a
+        // matching 6.
+        val viewModel = GameViewModel(
+            aiDispatcher = testDispatcher,
+            achievementsRepository = store,
+            random = ScriptedDice(listOf(6, 6, 6, 6, 1, 2, 3)),
+        )
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
         viewModel.rollDice()
+        viewModel.toggleHold(0)
+        viewModel.toggleHold(1)
+        viewModel.toggleHold(2)
+        viewModel.toggleHold(3)
         viewModel.rollDice()
         viewModel.rollDice()
         viewModel.commitScore(ScoreCategory.SIXES)
         advanceUntilIdle()
 
         assertTrue("ALMOST_FAMOUS should pop, got ${store.unlocked}", Achievement.ALMOST_FAMOUS in store.unlocked)
+    }
+
+    @Test
+    fun `breaking the held four of a kind before the last roll does not unlock Almost Famous`() = runTest {
+        val store = FakeAchievementStore()
+        // Same first roll as above, but the four 6s are only held for roll 2, not roll 3 - all
+        // five dice are back in play for the last roll, so the loose die was never actually the
+        // only thing still being chased.
+        val viewModel = GameViewModel(
+            aiDispatcher = testDispatcher,
+            achievementsRepository = store,
+            random = ScriptedDice(listOf(6, 6, 6, 6, 1, 2, 1, 2, 3, 4)),
+        )
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.toggleHold(0)
+        viewModel.toggleHold(1)
+        viewModel.toggleHold(2)
+        viewModel.toggleHold(3)
+        viewModel.rollDice()
+        // Unhold everything before the last roll - the four 6s are no longer held going into it.
+        viewModel.toggleHold(0)
+        viewModel.toggleHold(1)
+        viewModel.toggleHold(2)
+        viewModel.toggleHold(3)
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.CHANCE)
+        advanceUntilIdle()
+
+        assertFalse(
+            "ALMOST_FAMOUS should not pop once the held four of a kind was broken up, got ${store.unlocked}",
+            Achievement.ALMOST_FAMOUS in store.unlocked,
+        )
     }
 
     @Test
