@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -43,6 +44,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -329,6 +331,33 @@ private fun BannerSlot(
     }
 }
 
+/** The smallest a banner's title shrinks to before it's ellipsised instead (titleMedium, its normal
+ * size, is 16sp), and how finely it steps down from there. */
+private val BANNER_TITLE_MIN_FONT_SIZE = 12.sp
+private val BANNER_TITLE_FONT_STEP = 0.5.sp
+
+/**
+ * An achievement's title on one line: at titleMedium when it fits, otherwise stepped down until it
+ * does - "Rules? Where We're Going, We Don't Need Rules" needs about 12.4sp on a typical phone - but
+ * never below [BANNER_TITLE_MIN_FONT_SIZE], still comfortably readable at a glance. Past that floor
+ * (a narrower screen, or a longer title) it's ellipsised rather than shrunk further.
+ */
+@Composable
+private fun BannerTitle(title: String, modifier: Modifier = Modifier) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        autoSize = TextAutoSize.StepBased(
+            minFontSize = BANNER_TITLE_MIN_FONT_SIZE,
+            maxFontSize = MaterialTheme.typography.titleMedium.fontSize,
+            stepSize = BANNER_TITLE_FONT_STEP,
+        ),
+        modifier = modifier,
+    )
+}
+
 /**
  * The full-fat banner: something was actually earned. Shows the achievement's own icon (the one
  * the Achievements screen shows once it's unlocked) rather than a generic trophy, so a burst of
@@ -352,12 +381,7 @@ private fun UnlockedBanner(achievement: Achievement) {
             Icon(imageVector = achievement.icon, contentDescription = null, modifier = Modifier.size(28.dp))
             Column {
                 Text(text = "Achievement unlocked", style = MaterialTheme.typography.labelSmall)
-                Text(
-                    text = achievement.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                BannerTitle(achievement.title)
             }
         }
     }
@@ -399,13 +423,7 @@ private fun ProgressBanner(achievement: Achievement, previous: Int, current: Int
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = achievement.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
+                    BannerTitle(achievement.title, modifier = Modifier.weight(1f, fill = false))
                     Text(
                         text = "${displayedValue.grouped()} of ${achievement.target.grouped()}",
                         style = MaterialTheme.typography.labelSmall,

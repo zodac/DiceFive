@@ -229,6 +229,12 @@ achievement's own icon (`Achievement.icon`, the same one its unlocked row shows 
 made a burst of unlocks read as a stack of identical cups) and a two-line body; a **progress** banner is quieter (`surfaceContainerHigh`, one line plus a thin
 `LinearProgressIndicator`), so a run of "2 of 3" nudges can never be mistaken for the real thing.
 
+Both show the achievement's title on one line, shrunk to fit rather than cut off (`BannerTitle`,
+Compose's `TextAutoSize.StepBased`): titleMedium's 16sp when it fits, stepping down 0.5sp at a time
+to a 12sp floor, and only ellipsised past that. The longest title - "Rules? Where We're Going, We
+Don't Need Rules" - needs ~12.4sp on a typical phone, so it fits there; a narrower screen gets the
+"…" rather than an unreadably small font.
+
 ## Motion
 
 Screen transitions are 350ms fades, set on the `NavHost` for all four directions. Navigation
