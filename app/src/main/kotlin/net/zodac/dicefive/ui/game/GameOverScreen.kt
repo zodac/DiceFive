@@ -73,8 +73,9 @@ fun GameOverScreen(
     val winners = ranked.filter { it.totalScore == topScore }
     val runnersUp = ranked.drop(winners.size)
     // Any human seat sharing the win counts - not just the primary player - so a tie between a
-    // human and the CPU still gets the celebration.
-    val humanWon = winners.any { it.type == PlayerType.HUMAN }
+    // human and the CPU still gets the celebration. A solo game has nobody to beat, so its lone
+    // player "winning" is a given and gets no fanfare.
+    val humanWon = state.players.size > 1 && winners.any { it.type == PlayerType.HUMAN }
 
     val soundEffects = rememberSoundEffects()
     soundEffects.enabled = soundEnabled
@@ -103,7 +104,7 @@ fun GameOverScreen(
             )
 
             for (winner in winners) {
-                WinnerCard(player = winner)
+                WinnerCard(player = winner, solo = state.players.size == 1)
             }
 
             if (runnersUp.isNotEmpty()) {
@@ -146,8 +147,9 @@ fun GameOverScreen(
     }
 }
 
+/** [solo] keeps the gold card but drops the trophy and "Winner" label - nobody was beaten. */
 @Composable
-private fun WinnerCard(player: PlayerState) {
+private fun WinnerCard(player: PlayerState, solo: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -161,11 +163,13 @@ private fun WinnerCard(player: PlayerState) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Icon(
-                imageVector = Icons.Filled.EmojiEvents,
-                contentDescription = "Winner",
-                modifier = Modifier.size(44.dp),
-            )
+            if (!solo) {
+                Icon(
+                    imageVector = Icons.Filled.EmojiEvents,
+                    contentDescription = "Winner",
+                    modifier = Modifier.size(44.dp),
+                )
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = player.name,
@@ -174,7 +178,9 @@ private fun WinnerCard(player: PlayerState) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(text = "Winner", style = MaterialTheme.typography.labelLarge)
+                if (!solo) {
+                    Text(text = "Winner", style = MaterialTheme.typography.labelLarge)
+                }
             }
             Text(
                 text = player.totalScore.toString(),

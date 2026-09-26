@@ -401,7 +401,8 @@ dependencies — most unit tests live here.
   (`sandbox/Dockerfile` installs it locally; the Release workflow's "Install ffmpeg" step does
   so on CI).
 - Clips: `cup_shake`, `mat_landing`, `hold`, `unhold` (played at 0.35 volume), `celebration`
-  (Game Over when any human seat wins, alongside an all-gold fireworks animation).
+  (Game Over when any human seat wins a game of two or more players, alongside an all-gold
+  fireworks animation; a solo game doesn't celebrate, as there's nobody to beat).
 - `SoundEffects` (SoundPool) queues a play request made before that sample finishes decoding and
   plays it from `setOnLoadCompleteListener`. Without this, `celebration` is silently dropped
   because it fires on the first frame after the pool is created.
