@@ -540,8 +540,4 @@ object AchievementEngine {
      * is already declared in that order, so its index doubles as the target value. */
     private fun PlayerState.matchesExactUpperLadder(): Boolean =
         PlayerState.UPPER_CATEGORIES.withIndex().all { (index, category) -> scorecard[category] == index + 1 }
-
-    /** 5x actually rolled: the box itself, plus a bonus chip for every one after it. */
-    private val PlayerState.fiveOfAKindCount: Int
-        get() = (if (scorecard[ScoreCategory.FIVE_OF_A_KIND] == DiceScoring.FIVE_OF_A_KIND_SCORE) 1 else 0) + fiveOfAKindBonusCount
 }

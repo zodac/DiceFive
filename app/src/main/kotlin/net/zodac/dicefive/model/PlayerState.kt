@@ -38,6 +38,16 @@ data class PlayerState(
     val fiveOfAKindBonusTotal: Int
         get() = fiveOfAKindBonusCount * gameMode.fiveOfAKindBonusAmount
 
+    /**
+     * How many 5x this player actually scored: the 5x box itself if it holds its full score (a
+     * zero there was never a 5x), plus one for every bonus chip, each of which is a later 5x. The
+     * one definition both the leaderboard ([net.zodac.dicefive.data.scores.ScoreEntry]) and the
+     * achievements' "scored a 5x" counter use.
+     */
+    val fiveOfAKindCount: Int
+        get() = (if (scorecard[ScoreCategory.FIVE_OF_A_KIND] == ScoreCategory.FIVE_OF_A_KIND.fixedScore) 1 else 0) +
+            fiveOfAKindBonusCount
+
     val totalScore: Int
         get() = upperSectionTotal + upperSectionBonus + lowerSectionTotal + colourSectionTotal + fiveOfAKindBonusTotal
 

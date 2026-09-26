@@ -52,6 +52,7 @@
   | `[CI]`           | GitHub workflows, release pipeline, git hooks and changelog scripts  |
   | `[Game Over]`    | The end-of-game results page and its celebration                     |
   | `[Icon]`         | The app's launcher icon                                              |
+  | `[Leaderboard]`  | The Leaderboard (scores) screen and the score records behind it      |
   | `[Project]`      | Repo-wide setup that isn't any one feature (initial commit, tooling) |
 
 # Pending

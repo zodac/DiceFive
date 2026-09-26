@@ -12,6 +12,7 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
         score: Int,
         won: Boolean? = null,
         isPrimaryPlayer: Boolean = false,
+        fiveOfAKindCount: Int? = null,
         timestampEpochMillis: Long = System.currentTimeMillis(),
     ) {
         scoreDao.insert(
@@ -21,6 +22,7 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
                 timestampEpochMillis = timestampEpochMillis,
                 won = won,
                 isPrimaryPlayer = isPrimaryPlayer,
+                fiveOfAKindCount = fiveOfAKindCount,
             ),
         )
         // A dismissed player who plays again clearly cares about their stats once more.

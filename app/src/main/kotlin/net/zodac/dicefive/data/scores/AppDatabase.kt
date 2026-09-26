@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [ScoreEntry::class, DismissedPlayerStats::class], version = 4, exportSchema = false)
+@Database(entities = [ScoreEntry::class, DismissedPlayerStats::class], version = 5, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun scoreDao(): ScoreDao
@@ -50,10 +50,21 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds [ScoreEntry.fiveOfAKindCount], the number of 5x scored in that game, shown on the
+         * Leaderboard. Nullable, so existing rows come back null - not recorded - rather than a 0
+         * that would claim they had none; same "unknown means unknown" call as [MIGRATION_1_2].
+         */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE scores ADD COLUMN fiveOfAKindCount INTEGER")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "dicefive.db")
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                     .also { instance = it }
             }

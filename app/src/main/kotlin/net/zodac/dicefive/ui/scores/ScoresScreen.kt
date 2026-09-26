@@ -156,6 +156,7 @@ private fun HeaderRow() {
     ) {
         HeaderCell(text = "#", weight = 1f)
         HeaderCell(text = "Player", weight = 4f)
+        HeaderCell(text = "5x", weight = 1f, align = TextAlign.Center)
         HeaderCell(text = "Score", weight = 1.5f, align = TextAlign.End)
     }
 }
@@ -240,6 +241,16 @@ private fun ScoreRow(rank: Int, entry: ScoreEntry, striped: Boolean) {
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+            // How many 5x that game scored - a quiet secondary column, so it takes the rank's muted
+            // colour rather than competing with the score. "-" for an entry recorded before the
+            // count was captured (see ScoreEntry.fiveOfAKindCount), not a 0 it can't vouch for.
+            Text(
+                text = entry.fiveOfAKindCount?.toString() ?: "-",
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodySmall,
+                color = accent ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
             Text(
                 // Space-padded to a fixed width, same reasoning as Statistics' max score: keeps
