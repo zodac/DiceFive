@@ -168,8 +168,9 @@ project with a stray lockfile on its first open.
 
 Scripted `run <cmd>` invocations skip setup (no TTY) so they stay fast.
 
-**On this repo all four steps are no-ops:** there are no submodules, no `package.json`, no Playwright
-and no `.claude/hooks/`, so setup reports `(not applicable)` and gets out of the way.
+**On this repo only step 4 does anything:** there are no submodules, no `package.json` and no
+Playwright, but there is a guard in `.claude/hooks/` (keeping `RELEASE_NOTES.md` for the
+maintainer - see `CLAUDE.md`), so its tests run before each session.
 
 ## Reusing this sandbox in another project
 

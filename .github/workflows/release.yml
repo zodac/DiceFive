@@ -11,6 +11,12 @@ name: Release
 # (or run scripts/set-version.sh) and push that - the next run releases
 # that version, then resumes patch-bumping from it (0.1.0 -> 0.1.1 -> ...).
 #
+# The release's description is RELEASE_NOTES.md (the maintainer's own summary, written before
+# pushing) followed by every commit since the previous release, grouped by the "[Category]" at the
+# start of its subject line (scripts/release-changelog.sh; the format is enforced locally by
+# .githooks/commit-msg). The bump commit afterwards also empties RELEASE_NOTES.md, ready for the
+# next release's notes.
+#
 # Versions below 1.0.0 are pre-1.0 milestones, not real releases: they're
 # marked as GitHub pre-releases and get no APK asset - just a version bump
 # recorded as a tagged release. Signing/building only happens once VERSION
@@ -41,8 +47,12 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      # Full history and tags: the release description lists every commit since the previous
+      # release's tag, which a shallow clone wouldn't have.
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -104,6 +114,26 @@ jobs:
           cp app/build/outputs/apk/release/DiceFive-release.apk "$path"
           echo "path=$path" >> "$GITHUB_OUTPUT"
 
+      # RELEASE_NOTES.md as written (skipped if empty), then the grouped commit list. A copy of the
+      # notes is kept aside so the bump step below can tell whether RELEASE_NOTES.md on main is
+      # still the text this release shipped with.
+      - name: Compose release description
+        id: notes
+        run: |
+          body="$RUNNER_TEMP/release-body.md"
+          cp RELEASE_NOTES.md "$RUNNER_TEMP/released-notes.md"
+          {
+            if grep -q '[^[:space:]]' RELEASE_NOTES.md; then
+              cat RELEASE_NOTES.md
+              echo
+            fi
+            echo "## Changes"
+            echo
+            ./scripts/release-changelog.sh "${{ steps.version.outputs.name }}"
+          } > "$body"
+          cat "$body"
+          echo "path=$body" >> "$GITHUB_OUTPUT"
+
       - name: Create/update GitHub release
         uses: softprops/action-gh-release@v2
         with:
@@ -111,20 +141,29 @@ jobs:
           name: DiceFive v${{ steps.version.outputs.name }}
           prerelease: ${{ steps.version.outputs.stable != 'true' }}
           files: ${{ steps.apk.outputs.path }}
-          generate_release_notes: true
+          body_path: ${{ steps.notes.outputs.path }}
 
       # Only reached once everything above has succeeded, so a failed build
       # never bumps the version. Re-syncs with the current main tip first in
       # case it moved during this run, since `concurrency` only serializes
       # this workflow's own runs, not unrelated pushes from elsewhere.
+      #
+      # RELEASE_NOTES.md is emptied for the next release - but only if it still
+      # holds exactly what this release shipped with. If notes for the next
+      # release were pushed while this run was going, they're left alone.
       - name: Bump version for next development iteration
         run: |
           git fetch origin main
           git checkout main
           git reset --hard origin/main
           ./scripts/bump-patch-version.sh
+          if cmp -s RELEASE_NOTES.md "$RUNNER_TEMP/released-notes.md"; then
+            : > RELEASE_NOTES.md
+          else
+            echo "RELEASE_NOTES.md changed on main during this run - leaving it for the next release"
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add VERSION
-          git commit -m "Bump version to $(cat VERSION) [skip ci]"
+          git add VERSION RELEASE_NOTES.md
+          git commit -m "[Release] Bump version to $(cat VERSION) [skip ci]"
           git push origin main

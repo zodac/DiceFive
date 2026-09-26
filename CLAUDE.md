@@ -28,6 +28,23 @@
   Do this once the change is verified (compiles, relevant tests pass) rather than after every
   intermediate edit.
 
+- **`RELEASE_NOTES.md` is the maintainer's, not Claude's.** It holds their own summary of the next
+  release, and becomes the top of the GitHub release description (above the grouped commit list -
+  see `DESIGN.md` Phase 12). Never create, edit, empty or rewrite it without the user's explicit
+  confirmation in the conversation - not even to "tidy" it, and not as a side effect of another
+  change. A guard hook (`.claude/hooks/guard-release-notes.sh`, registered in
+  `.claude/settings.json`) backs this up: a file edit aimed at it waits for a permission prompt, and
+  a shell command that changes it is undone afterwards (merely mentioning the name is fine). The
+  prompt is a backstop, not the permission. Once the user has agreed in the conversation, make the
+  change with Edit/Write, not the shell. Only the release workflow empties it on its own, after a
+  release ships. Tests: `.claude/hooks/tests/run-hook-tests.sh`.
+
+- **Every commit's first line is `[Category] Short description`** - enforced by
+  `.githooks/commit-msg` (enable per clone with `scripts/install-git-hooks.sh`). The category is
+  what a release's changes are grouped under, so reuse an existing one where it fits (list them
+  with `git log --format=%s | grep -o '^\[[^]]*\]' | sort | uniq -c`) rather than inventing a
+  near-duplicate; later lines are free-form. The attribution trailers still go at the end.
+
 # Pending
 
 (None currently)
