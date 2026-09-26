@@ -59,7 +59,6 @@ fun SettingsScreen(
     // Saveable: a rotation mid-confirmation shouldn't silently drop the question.
     var showResetAchievementsConfirmation by rememberSaveable { mutableStateOf(false) }
     var showResetLeaderboardConfirmation by rememberSaveable { mutableStateOf(false) }
-    var showResetStatisticsConfirmation by rememberSaveable { mutableStateOf(false) }
 
     // Opening the GitHub link backgrounds the app (a browser takes over), and Compose's own frame
     // clock - which every banner's fade-in/hold/fade-out animation runs on - keeps ticking through
@@ -160,8 +159,7 @@ fun SettingsScreen(
                 modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
             )
             ListItem(
-                headlineContent = { Text("Reset Achievements") },
-                supportingContent = { Text("Clear every unlock and all progress on this device") },
+                headlineContent = { Text("Achievements") },
                 trailingContent = {
                     TextButton(
                         onClick = { showResetAchievementsConfirmation = true },
@@ -173,24 +171,10 @@ fun SettingsScreen(
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
             ListItem(
-                headlineContent = { Text("Reset Leaderboard & Statistics") },
-                supportingContent = { Text("Clear every recorded score on this device") },
+                headlineContent = { Text("Leaderboard") },
                 trailingContent = {
                     TextButton(
                         onClick = { showResetLeaderboardConfirmation = true },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    ) {
-                        Text("Reset")
-                    }
-                },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            )
-            ListItem(
-                headlineContent = { Text("Reset Statistics") },
-                supportingContent = { Text("Remove every player from the Statistics screen") },
-                trailingContent = {
-                    TextButton(
-                        onClick = { showResetStatisticsConfirmation = true },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     ) {
                         Text("Reset")
@@ -248,7 +232,7 @@ fun SettingsScreen(
     if (showResetLeaderboardConfirmation) {
         DiceFiveDialog(
             icon = Icons.Filled.RestartAlt,
-            title = "Reset Leaderboard & Statistics?",
+            title = "Reset Leaderboard?",
             message = "Every recorded score will be deleted, clearing the Leaderboard screen - and Statistics with " +
                 "it, since it's calculated from the same scores. This can't be undone. Achievements and settings " +
                 "are not affected, though any achievement progress measured against the leaderboard will start over.",
@@ -260,24 +244,6 @@ fun SettingsScreen(
             dismissLabel = "Cancel",
             onDismiss = { showResetLeaderboardConfirmation = false },
             onDismissRequest = { showResetLeaderboardConfirmation = false },
-        )
-    }
-
-    if (showResetStatisticsConfirmation) {
-        DiceFiveDialog(
-            icon = Icons.Filled.RestartAlt,
-            title = "Reset Statistics?",
-            message = "Every player will be hidden from the Statistics screen. The Leaderboard, and every score " +
-                "it holds, is not affected - playing another game under the same name brings that player's " +
-                "Statistics card back.",
-            confirmLabel = "Reset",
-            onConfirm = {
-                viewModel.resetStatistics()
-                showResetStatisticsConfirmation = false
-            },
-            dismissLabel = "Cancel",
-            onDismiss = { showResetStatisticsConfirmation = false },
-            onDismissRequest = { showResetStatisticsConfirmation = false },
         )
     }
 }

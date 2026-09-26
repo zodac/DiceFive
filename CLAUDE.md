@@ -54,6 +54,7 @@
   | `[Icon]`         | The app's launcher icon                                              |
   | `[Leaderboard]`  | The Leaderboard (scores) screen and the score records behind it      |
   | `[Project]`      | Repo-wide setup that isn't any one feature (initial commit, tooling) |
+  | `[Settings]`     | The Settings screen and the preferences behind it                    |
 
 # Pending
 

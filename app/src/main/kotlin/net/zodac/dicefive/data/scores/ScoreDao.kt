@@ -60,14 +60,6 @@ interface ScoreDao {
     @Query("INSERT OR REPLACE INTO dismissed_player_stats (playerName) VALUES (:playerName)")
     suspend fun dismissPlayer(playerName: String)
 
-    /**
-     * Hides every player currently on the Leaderboard from the Statistics screen in one go - the
-     * bulk version of [dismissPlayer], backing "reset statistics" without touching `scores` itself,
-     * so the Leaderboard keeps every recorded row.
-     */
-    @Query("INSERT OR REPLACE INTO dismissed_player_stats (playerName) SELECT DISTINCT playerName FROM scores")
-    suspend fun dismissAllPlayers()
-
     /** Un-hides [playerName] from the Statistics screen, if they were dismissed. */
     @Query("DELETE FROM dismissed_player_stats WHERE playerName = :playerName")
     suspend fun clearDismissal(playerName: String)
