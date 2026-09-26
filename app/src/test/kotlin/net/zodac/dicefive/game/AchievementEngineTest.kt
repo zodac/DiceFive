@@ -60,7 +60,6 @@ class AchievementEngineTest {
 
         assertEquals(1, update.counters[AchievementCounter.GAMES_PLAYED])
         assertEquals(0, update.counters[AchievementCounter.GAMES_WON])
-        assertTrue(Achievement.FIRST_GAME in update.newlyUnlocked)
         assertTrue(Achievement.SOLO_GAME in update.newlyUnlocked)
         assertFalse(Achievement.FIRST_WIN in update.newlyUnlocked)
     }
@@ -126,7 +125,7 @@ class AchievementEngineTest {
             finishedGame(player(total = 300), player(name = "Bot", type = PlayerType.AI, total = 150)),
         )
         val photoFinish = evaluate(
-            finishedGame(player(total = 202), player(name = "Bot", type = PlayerType.AI, total = 200)),
+            finishedGame(player(total = 201), player(name = "Bot", type = PlayerType.AI, total = 200)),
         )
 
         assertTrue(Achievement.WIN_BY_100 in landslide.newlyUnlocked)
@@ -136,13 +135,39 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `a tie at the top counts as a win for the human`() {
+    fun `Photo Finish is exactly a one-point win, not a close-ish one`() {
+        val byTwo = evaluate(
+            finishedGame(player(total = 202), player(name = "Bot", type = PlayerType.AI, total = 200)),
+        )
+
+        assertFalse("winning by 2 is not a photo finish", Achievement.WIN_BY_5 in byTwo.newlyUnlocked)
+    }
+
+    @Test
+    fun `beating one opponent isn't a win if a third player still finished ahead`() {
+        // Player 1 outscores the weaker bot, but the strongest one still finished on top overall -
+        // "win" means finishing 1st across the whole table, not merely ahead of *someone*.
+        val state = finishedGame(
+            player(total = 200),
+            player(name = "Weak Bot", type = PlayerType.AI, total = 150),
+            player(name = "Strong Bot", type = PlayerType.AI, total = 400),
+        )
+
+        val update = evaluate(state)
+
+        assertFalse("player 1 didn't actually finish 1st, so this must not count as a win", Achievement.FIRST_WIN in update.newlyUnlocked)
+        assertEquals(0, update.counters[AchievementCounter.GAMES_WON])
+    }
+
+    @Test
+    fun `a tie at the top counts as a win for the human, but not a one-point win`() {
         val state = finishedGame(player(total = 200), player(name = "Bot", type = PlayerType.AI, total = 200))
 
         val update = evaluate(state)
 
         assertTrue(Achievement.FIRST_WIN in update.newlyUnlocked)
-        assertTrue(Achievement.WIN_BY_5 in update.newlyUnlocked)
+        // A tie is a 0-point margin, not a 1-point one - Photo Finish is exactly 1, no more no less.
+        assertFalse(Achievement.WIN_BY_5 in update.newlyUnlocked)
         assertFalse(Achievement.SINGULARITY in update.newlyUnlocked)
     }
 
@@ -399,7 +424,9 @@ class AchievementEngineTest {
         val update = evaluate(finishedGame(player()), before = before)
 
         assertFalse(Achievement.SOLO_GAME in update.newlyUnlocked)
-        assertTrue(Achievement.FIRST_GAME in update.newlyUnlocked)
+        // A different, still-locked achievement the same game also earns, to show the "already
+        // unlocked" check is per-achievement, not a blanket freeze on the whole update.
+        assertTrue(Achievement.IMPATIENT in update.newlyUnlocked)
     }
 
     @Test
@@ -528,6 +555,27 @@ class AchievementEngineTest {
                 "${achievement.name}: category=${achievement.category}, visibility=${achievement.visibility}",
                 isMiscellaneous,
                 isHidden,
+            )
+        }
+    }
+
+    /**
+     * Secret is exclusive with secret visibility, in both directions - see the class doc on
+     * [Achievement]. Guards against a new secret achievement being filed under its subject's
+     * usual category (which would defeat [AchievementCategory.SECRET]'s whole point: its header
+     * only ever appearing once something in it is unlocked), or a normal achievement being left
+     * in Secret.
+     */
+    @Test
+    fun `Secret category and secret visibility are exclusive to each other`() {
+        Achievement.entries.forEach { achievement ->
+            val isSecretCategory = achievement.category == AchievementCategory.SECRET
+            val isSecretVisibility = achievement.visibility == AchievementVisibility.SECRET
+
+            assertEquals(
+                "${achievement.name}: category=${achievement.category}, visibility=${achievement.visibility}",
+                isSecretCategory,
+                isSecretVisibility,
             )
         }
     }
@@ -676,12 +724,18 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `every human at the table adds to career points`() {
-        val context = GameAchievementContext(previousLeaderboard = LeaderboardTotals(totalPoints = 99_000))
+    fun `only player 1's score adds to career points - not every human at the table`() {
+        // Old score is 400 short of the target on player 1's own points alone (99_400 + 500 =
+        // 99_900); adding player 2's 500 as well (the bug this guards against) would have crossed
+        // it at 100_400.
+        val context = GameAchievementContext(previousLeaderboard = LeaderboardTotals(totalPoints = 99_400))
 
         val update = evaluate(finishedGame(player(name = "A", total = 500), player(name = "B", total = 500)), context)
 
-        assertTrue(Achievement.PROFESSIONAL_ROLLER in update.newlyUnlocked)
+        assertFalse(
+            "player 2's score must not count towards player 1's Professional Roller",
+            Achievement.PROFESSIONAL_ROLLER in update.newlyUnlocked,
+        )
     }
 
     @Test
@@ -698,22 +752,23 @@ class AchievementEngineTest {
                 Achievement.TRIPLE_TON,
                 Achievement.SCORE_400,
                 Achievement.SCORE_500,
-                Achievement.CHEATER_CHEATER,
             ),
             scoring,
         )
     }
 
     @Test
-    fun `Double Ton and Triple Ton are exact, unlike the or-more rungs next to them`() {
+    fun `Double Ton and Triple Ton are exact, and disjoint from the strictly-over rungs next to them`() {
         val exactly200 = evaluate(finishedGame(player(total = 200)))
         val over200 = evaluate(finishedGame(player(total = 250)))
         val exactly300 = evaluate(finishedGame(player(total = 300)))
 
         assertTrue(Achievement.DOUBLE_TON in exactly200.newlyUnlocked)
-        assertTrue("200 or more should still unlock Solid Round", Achievement.SCORE_200 in exactly200.newlyUnlocked)
+        assertFalse("exactly 200 must not also unlock Solid Round - it's for strictly over", Achievement.SCORE_200 in exactly200.newlyUnlocked)
+        assertTrue("250 is over 200, so it should unlock Solid Round", Achievement.SCORE_200 in over200.newlyUnlocked)
         assertFalse(Achievement.DOUBLE_TON in over200.newlyUnlocked)
         assertTrue(Achievement.TRIPLE_TON in exactly300.newlyUnlocked)
+        assertFalse("exactly 300 must not also unlock Sharpshooter - it's for strictly over", Achievement.SCORE_300 in exactly300.newlyUnlocked)
         assertFalse(Achievement.DOUBLE_TON in exactly300.newlyUnlocked)
     }
 
@@ -862,18 +917,21 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `a score threshold passed mid-game unlocks immediately - a total only grows`() {
+    fun `feats already banked in the scorecard unlock mid-game, but a score threshold waits for the actual result`() {
         val state = inProgress(
-            midGamePlayer(mapOf(ScoreCategory.CHANCE to 30, ScoreCategory.FIVE_OF_A_KIND to 50), fiveOfAKindBonusCount = 1),
+            // 30 + 50 + 200 bonus = 280 - already well past the 200 rung, but leaving this game
+            // now records nothing on the leaderboard, so SCORE_200 must not have fired off a total
+            // that's about to disappear.
+            midGamePlayer(mapOf(ScoreCategory.CHANCE to 30, ScoreCategory.FIVE_OF_A_KIND to 50), fiveOfAKindBonusCount = 2),
         )
 
         val update = AchievementEngine.evaluateInProgress(state, AchievementsState(), NOW)
 
         assertTrue(Achievement.FIRST_5X in update.newlyUnlocked)
         assertTrue(Achievement.ENCORE_5X in update.newlyUnlocked)
+        assertTrue(Achievement.HAT_TRICK_5X in update.newlyUnlocked)
         assertTrue(Achievement.CHANCE_30 in update.newlyUnlocked)
-        // 30 + 50 + 100 bonus = 180, so the 200 rung is not reached yet.
-        assertFalse(Achievement.SCORE_200 in update.newlyUnlocked)
+        assertFalse("a score threshold must wait for the game to actually finish", Achievement.SCORE_200 in update.newlyUnlocked)
     }
 
     @Test

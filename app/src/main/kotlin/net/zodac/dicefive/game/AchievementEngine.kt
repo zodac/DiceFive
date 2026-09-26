@@ -70,15 +70,24 @@ data class GameStartContext(
 /**
  * The parts of the leaderboard that achievements are scored against, for the ones measured by what
  * has actually been recorded rather than by a stored counter: the score bands, and career points.
+ *
+ * The two fields are deliberately scoped differently - see [AchievementEngine]'s class doc:
+ * [distinctScores] is every human's score, device-wide, but [totalPoints] is player 1's alone.
  */
 data class LeaderboardTotals(
     val distinctScores: Set<Int> = emptySet(),
     val totalPoints: Int = 0,
 ) {
-    /** The same totals with [scores] added - what the board will say once a finished game is saved. */
-    operator fun plus(scores: List<Int>) = LeaderboardTotals(
-        distinctScores = distinctScores + scores,
-        totalPoints = totalPoints + scores.sum(),
+    /**
+     * The same totals with a finished game folded in - what the board will say once it's saved.
+     * [allHumanScores] (every human at the table) feeds [distinctScores]; [primaryPlayerScore]
+     * (player 1 alone) feeds [totalPoints] - passed separately, not derived from one list, because
+     * conflating them is exactly the bug this split guards against (see git history: career points
+     * used to count every human at the table, not just the one whose achievement it is).
+     */
+    fun plusGame(allHumanScores: List<Int>, primaryPlayerScore: Int) = LeaderboardTotals(
+        distinctScores = distinctScores + allHumanScores,
+        totalPoints = totalPoints + primaryPlayerScore,
     )
 }
 
@@ -107,10 +116,13 @@ data class AchievementUpdate(
  * Two rules run through all of it:
  *  - **Player 1 only, not any human.** `state.players[0]` - the human player at this device, always
  *    HUMAN - is the only seat whose turns and scorecard earn achievements; every other seat,
- *    human or AI, is only ever the opposition. The one exception is the ledger - the score-band
- *    and career-points achievements at the tail of [AchievementCategory.COLLECTION] - which stay
- *    measured against the leaderboard as a whole (every human's score, not just player 1's) via
- *    [LeaderboardTotals], since that's what the Leaderboard screen itself shows.
+ *    human or AI, is only ever the opposition. The one exception is the score-collection ledger at
+ *    the tail of [AchievementCategory.COLLECTION] ([LeaderboardTotals.distinctScores]), which stays
+ *    measured against the leaderboard as a whole (every human's score, not just player 1's), since
+ *    that's what the Leaderboard screen itself shows. Career points
+ *    ([LeaderboardTotals.totalPoints], [Achievement.PROFESSIONAL_ROLLER]) are NOT part of that
+ *    exception, despite living on the same [LeaderboardTotals] - its own description says "your
+ *    games", so it follows the player-1-only rule like everything else.
  *  - **Superuser mode still earns.** Hand-setting dice used to disqualify a game outright, which
  *    made the debug cheat useless for testing the very thing it was best placed to test. It also
  *    protected nobody: superuser mode is gated on `BuildConfig.DEBUG`, so a release build cannot
@@ -127,7 +139,7 @@ object AchievementEngine {
     private const val DOUBLE_TON_SCORE = 200
     private const val TRIPLE_TON_SCORE = 300
     private const val LANDSLIDE_MARGIN = 100
-    private const val PHOTO_FINISH_MARGIN = 5
+    private const val PHOTO_FINISH_MARGIN = 1
     private const val PIPPED_MARGIN = 1
     private const val ZEROES_FOR_HERO = 3
     private const val COLD_DICE_SCORE = 100
@@ -160,14 +172,15 @@ object AchievementEngine {
     ): AchievementUpdate {
         if (!state.isGameOver) return AchievementUpdate()
 
-        // Player 1 only - see the class doc's first rule. The ledger is the one exception: it's
-        // measured against the leaderboard as a whole, which already carries every human's score.
+        // Player 1 only - see the class doc's first rule. The score-collection ledger is the one
+        // exception: it's measured against the leaderboard as a whole, which already carries every
+        // human's score - career points are NOT part of that exception, see plusGame below.
         if (state.players.firstOrNull()?.type != PlayerType.HUMAN) return AchievementUpdate()
         val humans = listOf(state.players.first())
         val allHumans = state.players.filter { it.type == PlayerType.HUMAN }
 
         val leaderboardBefore = context.previousLeaderboard
-        val leaderboardAfter = leaderboardBefore + allHumans.map { it.totalScore }
+        val leaderboardAfter = leaderboardBefore.plusGame(allHumans.map { it.totalScore }, humans.first().totalScore)
 
         val counters = countersAfter(state, humans, context, before)
         val earned = earnedBy(state, humans, context, counters, leaderboardAfter)
@@ -264,11 +277,16 @@ object AchievementEngine {
 
     /**
      * The achievements that can be judged from a scorecard that is still being filled in, because
-     * nothing that happens later can take them away: a box already holds 30, a bonus is already
-     * banked, a running total has already passed a threshold (a total only ever grows).
+     * nothing that happens later can take them away: a box already holds 30, or a bonus is
+     * already banked.
      *
-     * Everything else has to wait for the end - "Spotless" needs a complete card, "Cold Dice"
-     * needs a score that can no longer climb, and anything about winning needs a result.
+     * Deliberately NOT any score-total threshold, even one a running total could only ever grow
+     * past ([SCORE_200][Achievement.SCORE_200] and friends): leaving a game in progress records
+     * nothing on the leaderboard, so unlocking here off a total that's about to vanish would leave
+     * an achievement earned with no matching score anywhere to show for it. Those wait for
+     * [earnedBy] instead, same as everything else that needs an actual result - "Spotless" needs a
+     * complete card, "Cold Dice" needs a score that can no longer climb, and anything about
+     * winning needs a result.
      */
     private fun earnedDuringPlay(players: List<PlayerState>, humans: List<PlayerState>): Set<Achievement> {
         val earned = mutableSetOf<Achievement>()
@@ -278,8 +296,6 @@ object AchievementEngine {
         }
 
         fun anyHuman(predicate: (PlayerState) -> Boolean) = humans.any(predicate)
-
-        val bestHumanScore = humans.maxOf { it.totalScore }
 
         // Dice feats.
         award(Achievement.FIRST_5X, anyHuman { it.fiveOfAKindCount > 0 })
@@ -295,13 +311,6 @@ object AchievementEngine {
         award(Achievement.UPPER_84, anyHuman { it.upperSectionTotal >= UPPER_CLASS_THRESHOLD })
         award(Achievement.LOWER_150, anyHuman { it.lowerSectionTotal >= LOWER_CLASS_THRESHOLD })
         award(Achievement.SCRATCHED_5X, anyHuman { it.scorecard[ScoreCategory.FIVE_OF_A_KIND] == 0 })
-
-        // Score thresholds: a total only ever grows, so passing one mid-game is already final.
-        award(Achievement.SCORE_200, bestHumanScore >= 200)
-        award(Achievement.SCORE_300, bestHumanScore >= 300)
-        award(Achievement.SCORE_400, bestHumanScore >= 400)
-        award(Achievement.SCORE_500, bestHumanScore >= 500)
-        award(Achievement.CHEATER_CHEATER, bestHumanScore >= PlayerState.MAX_POSSIBLE_SCORE)
 
         // Known the moment the table is set.
         award(Achievement.FULL_TABLE, players.size == FULL_TABLE_SIZE)
@@ -339,9 +348,19 @@ object AchievementEngine {
         award(Achievement.NO_ZEROES, anyHuman { player -> player.scorecard.values.none { it == 0 } })
         award(Achievement.PERSONAL_BEST, context.previousBestScore != null && bestHumanScore > context.previousBestScore)
 
+        // Score thresholds - see earnedDuringPlay's doc comment for why these wait for the actual
+        // result rather than firing off a total that's already passed the mark mid-game.
+        // SCORE_200/SCORE_300 are strictly greater-than - see their doc comments in Achievement.kt
+        // for why they're kept disjoint from DOUBLE_TON/TRIPLE_TON's exact thresholds.
+        award(Achievement.SCORE_200, bestHumanScore > 200)
+        award(Achievement.SCORE_300, bestHumanScore > 300)
+        award(Achievement.SCORE_400, bestHumanScore >= 400)
+        award(Achievement.SCORE_500, bestHumanScore >= 500)
+        award(Achievement.CHEATER_CHEATER, bestHumanScore >= PlayerState.MAX_POSSIBLE_SCORE)
+
         // Winning.
         award(Achievement.WIN_BY_100, multiplayer && humanWon && margin != null && margin >= LANDSLIDE_MARGIN)
-        award(Achievement.WIN_BY_5, multiplayer && humanWon && margin != null && margin <= PHOTO_FINISH_MARGIN)
+        award(Achievement.WIN_BY_5, multiplayer && humanWon && margin == PHOTO_FINISH_MARGIN)
         award(Achievement.COMEBACK, multiplayer && humanWon && context.trailedIntoFinalRound)
         award(
             Achievement.ZERO_TO_HERO,

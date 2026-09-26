@@ -31,7 +31,8 @@ private class FakeScoreDao : ScoreDao {
 
     override suspend fun distinctScores(): List<Int> = entries.map { it.score }.distinct()
 
-    override suspend fun totalPoints(): Int? = entries.map { it.score }.sum().takeIf { entries.isNotEmpty() }
+    override suspend fun primaryPlayerTotalPoints(): Int? =
+        entries.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
 
     override suspend fun playerSummaries(): List<PlayerScoreSummary> =
         entries.groupBy { it.playerName }
@@ -263,5 +264,23 @@ class ScoreRepositoryTest {
         repository.recordScore("Alice", 200)
 
         assertEquals(listOf("Alice"), repository.playerStatistics().map { it.playerName })
+    }
+
+    @Test
+    fun `primaryPlayerTotalPoints only sums rows recorded as the primary player`() = runTest {
+        val repository = ScoreRepository(FakeScoreDao())
+        repository.recordScore("Alice", 150, isPrimaryPlayer = true)
+        // A second human seat in the same local game - must not count towards Alice's career points.
+        repository.recordScore("Bob", 300, isPrimaryPlayer = false)
+        repository.recordScore("Alice", 250, isPrimaryPlayer = true)
+
+        assertEquals(400, repository.primaryPlayerTotalPoints())
+    }
+
+    @Test
+    fun `primaryPlayerTotalPoints is zero, not null-crashing, when nothing has been recorded`() = runTest {
+        val repository = ScoreRepository(FakeScoreDao())
+
+        assertEquals(0, repository.primaryPlayerTotalPoints())
     }
 }

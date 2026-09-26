@@ -26,9 +26,10 @@ interface ScoreDao {
     @Query("SELECT DISTINCT score FROM scores")
     suspend fun distinctScores(): List<Int>
 
-    /** Every point ever scored, added up. Null when nothing has been recorded yet - SUM over no rows. */
-    @Query("SELECT SUM(score) FROM scores")
-    suspend fun totalPoints(): Int?
+    /** Every point the primary player alone has ever scored, added up - see
+     * [ScoreEntry.isPrimaryPlayer]. Null when nothing has been recorded yet - SUM over no rows. */
+    @Query("SELECT SUM(score) FROM scores WHERE isPrimaryPlayer = 1")
+    suspend fun primaryPlayerTotalPoints(): Int?
 
     /**
      * One row per distinct player name that has ever recorded a score, alphabetical - excluding

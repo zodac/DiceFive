@@ -11,9 +11,18 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
         playerName: String,
         score: Int,
         won: Boolean? = null,
+        isPrimaryPlayer: Boolean = false,
         timestampEpochMillis: Long = System.currentTimeMillis(),
     ) {
-        scoreDao.insert(ScoreEntry(playerName = playerName, score = score, timestampEpochMillis = timestampEpochMillis, won = won))
+        scoreDao.insert(
+            ScoreEntry(
+                playerName = playerName,
+                score = score,
+                timestampEpochMillis = timestampEpochMillis,
+                won = won,
+                isPrimaryPlayer = isPrimaryPlayer,
+            ),
+        )
         // A dismissed player who plays again clearly cares about their stats once more.
         scoreDao.clearDismissal(playerName)
     }
@@ -62,12 +71,13 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
      */
     suspend fun distinctScores(): Set<Int> = scoreDao.distinctScores().toSet()
 
-    /** Career points: every point ever recorded, added up. Zero when the board is empty. */
-    suspend fun totalPoints(): Int = scoreDao.totalPoints() ?: 0
+    /** Career points: every point the primary player alone has ever recorded, added up - see
+     * [ScoreEntry.isPrimaryPlayer]. Zero when the board is empty. */
+    suspend fun primaryPlayerTotalPoints(): Int = scoreDao.primaryPlayerTotalPoints() ?: 0
 
     /** Both leaderboard-derived figures in one go, for the achievements measured against the board. */
     suspend fun leaderboardTotals(): LeaderboardTotals =
-        LeaderboardTotals(distinctScores = distinctScores(), totalPoints = totalPoints())
+        LeaderboardTotals(distinctScores = distinctScores(), totalPoints = primaryPlayerTotalPoints())
 
     /** Per-player aggregate stats for the Statistics screen - see [PlayerStatistics]. */
     suspend fun playerStatistics(): List<PlayerStatistics> =

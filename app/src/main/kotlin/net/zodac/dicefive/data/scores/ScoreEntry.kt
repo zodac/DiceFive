@@ -17,4 +17,16 @@ data class ScoreEntry(
      * toward wins, losses or a win streak.
      */
     val won: Boolean? = null,
+    /**
+     * Whether this row belongs to the primary player (`state.players[0]`, "You" - see
+     * [net.zodac.dicefive.game.AchievementEngine]'s class doc), as opposed to another human seat
+     * in a local pass-and-play game. Names can be renamed/reused across players, so this is
+     * recorded directly rather than inferred from [playerName] - it's what
+     * [ScoreDao.primaryPlayerTotalPoints] filters on for
+     * [net.zodac.dicefive.model.Achievement.PROFESSIONAL_ROLLER], which is scoped to player 1
+     * alone, unlike the score-collection achievements that (correctly) count every human's score.
+     * Defaults false so a row recorded before this column existed is simply excluded from that
+     * total rather than guessed at.
+     */
+    val isPrimaryPlayer: Boolean = false,
 )
