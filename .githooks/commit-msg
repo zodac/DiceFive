@@ -5,7 +5,7 @@
 #
 # e.g. "[Gameplay] Add the Tricolour game mode". Any further lines are free-form. The category is
 # what scripts/release-changelog.sh groups a release's changes by, so keep to an existing one where
-# it fits (`git log --format=%s | grep -o '^\[[^]]*\]' | sort | uniq -c` lists them).
+# it fits - CLAUDE.md keeps the list of categories in use, and a new one gets added there.
 #
 # Messages git writes itself - merges, reverts, and fixup!/squash!/amend! commits for an autosquash
 # rebase - are let through as they are.
