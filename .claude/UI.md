@@ -185,6 +185,12 @@ history rather than a to-do list) - reverted because it scattered a themed ladde
 earned achievement disappeared from its group into an unrelated timeline, so seeing "how far along
 this ladder am I" meant checking two different parts of the screen.
 
+Each category header carries up/down arrows on its right that jump to the previous/next category's
+header (`animateScrollToItem` to that header's index, where it then pins) - the list is long enough
+that getting from Milestones to Collection was a lot of flinging. At the first/last category the
+arrow that has nowhere to go is greyed out rather than removed, so the pair never shifts. They're
+stock `IconButton`s, so the header is the 48dp minimum touch height, not the bare label's.
+
 Rows are clipped at the pinned header's bottom edge (`Modifier.hiddenUnderPinnedHeader`, read
 from `layoutInfo` in the draw pass via the `contentType` tags) instead of sliding under it:
 otherwise they show through its rounded corners. The scroll position is kept in a process-lifetime
