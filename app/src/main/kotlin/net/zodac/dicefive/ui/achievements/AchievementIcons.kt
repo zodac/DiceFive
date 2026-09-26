@@ -1,7 +1,6 @@
 package net.zodac.dicefive.ui.achievements
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.filled.Undo
@@ -47,6 +46,7 @@ import androidx.compose.material.icons.filled.HourglassFull
 import androidx.compose.material.icons.filled.House
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowUp
+import androidx.compose.material.icons.filled.Landslide
 import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Looks3
@@ -55,7 +55,6 @@ import androidx.compose.material.icons.filled.LooksTwo
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MilitaryTech
 import androidx.compose.material.icons.filled.NewReleases
-import androidx.compose.material.icons.filled.North
 import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
@@ -75,7 +74,6 @@ import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Stairs
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.SyncAlt
@@ -88,21 +86,28 @@ import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
+import net.zodac.dicefive.R
 import net.zodac.dicefive.model.Achievement
 
 /**
  * The glyph an unlocked [Achievement] shows in [AchievementsScreen]. Every achievement gets its
- * own icon rather than a single stock trophy - stock Material glyphs (this app draws no bespoke
- * per-achievement art, unlike the launcher mark), picked to hint at what the achievement is
- * actually about. [AchievementsScreen] falls back to [LOCKED_ACHIEVEMENT_ICON] until an
- * achievement is unlocked, so none of this is visible - or a spoiler - beforehand.
+ * own icon rather than a single stock trophy - almost all stock Material glyphs (a couple, where
+ * nothing in Material fit, borrow a bespoke drawable from `ui/game/CategoryIcon.kt` or a small
+ * one drawn just for this), picked to hint at what the achievement is actually about.
+ * [AchievementsScreen] falls back to [LOCKED_ACHIEVEMENT_ICON] until an achievement is unlocked,
+ * so none of this is visible - or a spoiler - beforehand.
  *
  * A `when` over the enum (not a field on [Achievement] itself) so the model stays a plain data
  * catalogue with no Compose dependency, matching how `CategoryIcon.kt` maps [net.zodac.dicefive
- * .model.ScoreCategory] to a glyph rather than the enum carrying one.
+ * .model.ScoreCategory] to a glyph rather than the enum carrying one. `@Composable` only because
+ * a couple of branches load a drawable resource via [vectorResource] - every other branch is a
+ * plain constant, unaffected by being read from a composable context.
  */
 val Achievement.icon: ImageVector
+    @Composable
     get() = when (this) {
         // ---- Milestones ---------------------------------------------------------------------
         Achievement.THE_JOURNEY_BEGINS -> Icons.Filled.RocketLaunch
@@ -123,7 +128,9 @@ val Achievement.icon: ImageVector
         Achievement.UPPER_BONUS -> Icons.Filled.Star
         Achievement.FIRST_5X -> Icons.Filled.NewReleases
         Achievement.NO_ZEROES -> Icons.Filled.CheckCircle
-        Achievement.BOTH_STRAIGHTS -> Icons.Filled.Stairs
+        // Same custom shape as Small/Large Straight's own tile icon (CategoryIcon.kt) - see
+        // ic_stairs.xml for why that's a bespoke drawable rather than Icons.Filled/Outlined.Stairs.
+        Achievement.BOTH_STRAIGHTS -> ImageVector.vectorResource(R.drawable.ic_stairs)
         Achievement.UPPER_84 -> Icons.Filled.ArrowUpward
         Achievement.LOWER_150 -> Icons.Filled.ArrowDownward
         Achievement.ENCORE_5X -> Icons.Filled.Repeat
@@ -149,9 +156,11 @@ val Achievement.icon: ImageVector
 
         // ---- Winning ----------------------------------------------------------------------------
         Achievement.FIRST_WIN -> Icons.Filled.Flag
-        Achievement.WIN_BY_100 -> Icons.Filled.North
+        Achievement.WIN_BY_100 -> Icons.Filled.Landslide
         Achievement.WIN_BY_5 -> Icons.Filled.PhotoCamera
-        Achievement.COMEBACK -> Icons.AutoMirrored.Filled.Undo
+        // No cowboy-with-twin-pistols glyph in Material (nor any hat at all) for the "quick draw"
+        // read of a last-round comeback, so this is the requested fallback: a plain cowboy hat.
+        Achievement.COMEBACK -> ImageVector.vectorResource(R.drawable.ic_cowboy_hat)
         Achievement.BEAT_THREE_AI -> Icons.Filled.EmojiPeople
         Achievement.I_ROBOT -> Icons.Filled.SmartToy
         Achievement.NATURALLY_GIFTED -> Icons.Filled.Spa
@@ -173,7 +182,9 @@ val Achievement.icon: ImageVector
         Achievement.DECISIONS_DECISIONS -> Icons.Filled.Help
         Achievement.TIME_TO_LET_IT_GO -> Icons.Filled.HourglassEmpty
         Achievement.TIME_WASTING -> Icons.Filled.HourglassFull
-        Achievement.UNDO_DIFFERENT_CATEGORY -> Icons.AutoMirrored.Filled.Redo
+        // The same glyph UndoButton.kt uses for the real undo control, not its Redo mirror image -
+        // this achievement is about undoing, not redoing.
+        Achievement.UNDO_DIFFERENT_CATEGORY -> Icons.AutoMirrored.Filled.Undo
         Achievement.NOT_THOSE_DICE -> Icons.Filled.TouchApp
         Achievement.NO_MORE_ROLLS -> Icons.Filled.Block
         Achievement.IMPATIENT -> Icons.Filled.FlashOn

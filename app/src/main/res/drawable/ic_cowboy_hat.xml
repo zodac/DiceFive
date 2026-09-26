@@ -1,0 +1,19 @@
+<!--
+  A side-profile cowboy hat silhouette for "Comeback Kid" - Material's icon set has no cowboy (with
+  or without twin raised pistols) and no hat of any kind, so this fills in as the fallback the
+  achievement was given for exactly that case. Three subpaths: a crown pinched with a centre dent,
+  a hat band separated from it by a thin gap, and a wide brim that curls up at both tips - the dent
+  and the curl are what read as "cowboy" rather than a generic hat. Same "no frame" reasoning as
+  ic_stairs.xml.
+
+  Tintable: fillColor is a plain placeholder; AchievementIcons.kt overrides it via Icon's `tint`.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M7.1,11.4 C7,8.2 7.6,5.1 9.4,4.3 C10.8,3.7 11.2,5.6 12,5.6 C12.8,5.6 13.2,3.7 14.6,4.3 C16.4,5.1 17,8.2 16.9,11.4 Z M7.05,12.6 L16.95,12.6 L16.95,14.6 L7.05,14.6 Z M0.5,12.7 C1.2,12.66 1.8,12.82 2.6,13.18 C4.5,13.9 7.2,14.3 12,14.3 C16.8,14.3 19.5,13.9 21.4,13.18 C22.2,12.82 22.8,12.66 23.5,12.7 C22.8,14.26 19.8,18 12,18 C4.2,18 1.2,14.26 0.5,12.7 Z"
+        android:fillColor="#FF000000" />
+</vector>
