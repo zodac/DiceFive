@@ -1,5 +1,7 @@
 package net.zodac.dicefive.ui.common
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -7,6 +9,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 
 /**
@@ -16,6 +19,10 @@ import androidx.compose.ui.text.TextStyle
  * reserving space for that icon crowded the label out instead (worst case, "Medium" in the AI
  * difficulty row - see `.claude/UI.md`). Selection is still clear from the segment's own
  * colour/border change, same as it is for a [androidx.compose.material3.FilterChip].
+ *
+ * [glyph] swaps an option's text for an icon, for an option a symbol says better than a word (the
+ * turn timer's "no timer"). [label] is still required for that option: it becomes the icon's
+ * content description, so a screen reader announces the same thing the text would have said.
  */
 @Composable
 fun <T> SegmentedChoiceRow(
@@ -25,15 +32,27 @@ fun <T> SegmentedChoiceRow(
     label: (T) -> String,
     modifier: Modifier = Modifier,
     labelStyle: TextStyle = LocalTextStyle.current,
+    glyph: (T) -> ImageVector? = { null },
 ) {
     SingleChoiceSegmentedButtonRow(modifier = modifier) {
         options.forEachIndexed { index, option ->
+            val optionGlyph = glyph(option)
             SegmentedButton(
                 selected = option == selected,
                 onClick = { onSelect(option) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                 icon = {},
-                label = { Text(text = label(option), style = labelStyle) },
+                label = {
+                    if (optionGlyph != null) {
+                        Icon(
+                            imageVector = optionGlyph,
+                            contentDescription = label(option),
+                            modifier = Modifier.size(SegmentedButtonDefaults.IconSize),
+                        )
+                    } else {
+                        Text(text = label(option), style = labelStyle)
+                    }
+                },
             )
         }
     }
