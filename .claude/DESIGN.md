@@ -386,7 +386,8 @@ dependencies — most unit tests live here.
   every clip to -0.8 dBFS with **ffmpeg** and registers the output as a generated res dir, so
   `R.raw.<name>` still works. To add or replace a sound, drop the `.ogg` in `rawAudioSource/`.
   Don't hand-adjust gain and don't create `res/raw/`. The build fails without `ffmpeg` on PATH
-  (`sandbox/Dockerfile` installs it).
+  (`sandbox/Dockerfile` installs it locally; the Release workflow's "Install ffmpeg" step does
+  so on CI).
 - Clips: `cup_shake`, `mat_landing`, `hold`, `unhold` (played at 0.35 volume), `celebration`
   (Game Over when any human seat wins, alongside an all-gold fireworks animation).
 - `SoundEffects` (SoundPool) queues a play request made before that sample finishes decoding and

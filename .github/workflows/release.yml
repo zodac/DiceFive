@@ -60,6 +60,14 @@ jobs:
           yes | "$SDKMANAGER" --licenses > /dev/null
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
 
+      # The normalizeOggAudio task shells out to ffmpeg to peak-normalise the
+      # .ogg clips in app/src/main/rawAudioSource/, and ubuntu-latest runners
+      # don't ship it.
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
