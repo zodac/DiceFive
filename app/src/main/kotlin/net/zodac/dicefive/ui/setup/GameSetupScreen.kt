@@ -38,7 +38,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.model.Difficulty
-import net.zodac.dicefive.model.GameType
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.ui.common.ScreenScaffold
@@ -117,8 +117,8 @@ private fun SetupForm(setup: GameSetupState, viewModel: GameViewModel) {
         }
     }
 
-    SetupCard(title = "Game Type") {
-        GameTypeSelector(selected = setup.gameType, onSelect = viewModel::setGameType)
+    SetupCard(title = "Game Mode") {
+        GameModeSelector(selected = setup.gameMode, onSelect = viewModel::setGameMode)
     }
 
     SetupCard(title = "Turn Timer") {
@@ -281,20 +281,25 @@ private val Difficulty.label: String
         Difficulty.HARD -> "Hard"
     }
 
+/**
+ * One radio row per [GameMode], each with the one-line description of what it changes - a
+ * segmented row has no room for that, and the name alone ("Tricolour") doesn't say what it means.
+ */
 @Composable
-private fun GameTypeSelector(selected: GameType, onSelect: (GameType) -> Unit) {
-    GameTypeOption(
-        label = "Classic",
-        selected = selected == GameType.CLASSIC,
-        enabled = true,
-        onSelect = { onSelect(GameType.CLASSIC) },
-    )
-    GameTypeOption(label = "Extended (coming soon)", selected = false, enabled = false, onSelect = {})
+private fun GameModeSelector(selected: GameMode, onSelect: (GameMode) -> Unit) {
+    for (mode in GameMode.entries) {
+        GameModeOption(
+            label = mode.displayName,
+            description = mode.description,
+            selected = selected == mode,
+            onSelect = { onSelect(mode) },
+        )
+    }
 }
 
 /**
  * Whole-turn time limit: a small, always-enabled exclusive set, so this uses the same segmented
- * row as player count and AI difficulty rather than [GameTypeOption]'s radio rows.
+ * row as player count and AI difficulty rather than [GameModeOption]'s radio rows.
  */
 @Composable
 private fun TurnTimerSelector(selected: TurnTimer, onSelect: (TurnTimer) -> Unit) {
@@ -323,19 +328,25 @@ private val TurnTimer.label: String
  * what tells accessibility services this is one option in a group.
  */
 @Composable
-private fun GameTypeOption(label: String, selected: Boolean, enabled: Boolean, onSelect: () -> Unit) {
+private fun GameModeOption(label: String, description: String, selected: Boolean, onSelect: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onSelect),
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onSelect),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RadioButton(selected = selected, onClick = null, enabled = enabled)
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 8.dp),
-        )
+        RadioButton(selected = selected, onClick = null)
+        Column(modifier = Modifier.padding(start = 8.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }

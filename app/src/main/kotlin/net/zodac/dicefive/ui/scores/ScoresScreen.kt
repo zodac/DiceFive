@@ -45,7 +45,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
-import net.zodac.dicefive.model.PlayerState
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.theme.DarkBronze
@@ -55,8 +55,8 @@ import net.zodac.dicefive.ui.theme.LightSilver
 
 private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
 
-/** [PlayerState.MAX_POSSIBLE_SCORE] (1575, a perfect game) is the longest a score can ever be. */
-private val SCORE_DISPLAY_WIDTH = PlayerState.MAX_POSSIBLE_SCORE.toString().length
+/** [GameMode.HIGHEST_POSSIBLE_SCORE] (a perfect game in whichever mode allows the most) is the longest a score can ever be. */
+private val SCORE_DISPLAY_WIDTH = GameMode.HIGHEST_POSSIBLE_SCORE.toString().length
 
 /** Ranks worth calling out on the leaderboard, whichever page they happen to fall on. */
 private const val PODIUM_RANKS = 3

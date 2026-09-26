@@ -1,8 +1,10 @@
 package net.zodac.dicefive.game
 
 import kotlin.random.Random
+import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.Die
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerState
@@ -77,7 +79,7 @@ class AiTurnPlayerTest {
     fun `Easy keeps rerolling everything while no open category would score`() {
         // Every category filled except ONES, and no 1s among the dice - the only open category
         // scores zero here, so Easy has nothing to stop for and holds nothing.
-        val scorecard = ScoreCategory.entries.associateWith { category -> if (category == ScoreCategory.ONES) null else 0 }
+        val scorecard = GameMode.STANDARD.categories.associateWith { category -> if (category == ScoreCategory.ONES) null else 0 }
         val state = rolledState(bot(Difficulty.EASY, scorecard = scorecard), values = listOf(2, 3, 4, 5, 6))
 
         assertEquals(emptySet<Int>(), AiTurnPlayer.chooseHolds(state))
@@ -168,5 +170,63 @@ class AiTurnPlayerTest {
         val result = AiTurnPlayer.playTurn(initial, random = Random(7))
 
         assertEquals(1, result.players.single().scorecard.values.count { it != null })
+    }
+
+    // ---- Tricolour -------------------------------------------------------------------------------
+
+    private fun tricolourBot(difficulty: Difficulty) =
+        PlayerState(name = "Bot", type = PlayerType.AI, difficulty = difficulty, gameMode = GameMode.TRICOLOUR)
+
+    @Test
+    fun `every difficulty plays a legal Tricolour turn`() {
+        for (difficulty in Difficulty.entries) {
+            val state = GameState(gameMode = GameMode.TRICOLOUR, players = listOf(tricolourBot(difficulty)))
+
+            val after = AiTurnPlayer.playTurn(state, Random(difficulty.ordinal))
+
+            assertEquals("$difficulty", 1, after.players.single().scorecard.values.count { it != null })
+        }
+    }
+
+    @Test
+    fun `Medium banks a colour set straight away rather than rerolling it`() {
+        val dice = listOf(1, 3, 4, 5, 6).map { Die(value = it, colour = DieColour.BLUE) }
+        val state = GameState(
+            gameMode = GameMode.TRICOLOUR,
+            players = listOf(tricolourBot(Difficulty.MEDIUM)),
+            dice = dice,
+            rollsRemaining = 2,
+            phase = TurnPhase.ROLLED,
+        )
+
+        assertEquals(setOf(0, 1, 2, 3, 4), AiTurnPlayer.chooseHolds(state))
+    }
+
+    @Test
+    fun `Medium holds four of one colour to chase the fifth`() {
+        val colours = listOf(DieColour.RED, DieColour.RED, DieColour.YELLOW, DieColour.RED, DieColour.RED)
+        val state = GameState(
+            gameMode = GameMode.TRICOLOUR,
+            players = listOf(tricolourBot(Difficulty.MEDIUM)),
+            dice = listOf(1, 1, 3, 5, 6).zip(colours) { value, colour -> Die(value = value, colour = colour) },
+            rollsRemaining = 2,
+            phase = TurnPhase.ROLLED,
+        )
+
+        assertEquals(setOf(0, 1, 3, 4), AiTurnPlayer.chooseHolds(state))
+    }
+
+    @Test
+    fun `Hard scores a colour set it's been dealt in its colour box`() {
+        val allBlue = listOf(2, 3, 3, 5, 6).map { Die(value = it, colour = DieColour.BLUE) }
+        val scoring = GameState(
+            gameMode = GameMode.TRICOLOUR,
+            players = listOf(tricolourBot(Difficulty.HARD)),
+            dice = allBlue,
+            rollsRemaining = 0,
+            phase = TurnPhase.ROLLED,
+        )
+
+        assertEquals(ScoreCategory.BLUES, AiTurnPlayer.chooseCategory(scoring))
     }
 }

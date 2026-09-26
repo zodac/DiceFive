@@ -1,6 +1,7 @@
 package net.zodac.dicefive.game
 
 import net.zodac.dicefive.model.Die
+import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.ScoreCategory
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -86,5 +87,41 @@ class DiceScoringTest {
         val dice = diceOf(1, 2, 3, 4, 5)
 
         assertEquals(15, DiceScoring.score(ScoreCategory.CHANCE, dice))
+    }
+
+    // ---- Tricolour's colour boxes ------------------------------------------------------------
+
+    private fun colouredDice(vararg dice: Pair<Int, DieColour>): List<Die> = dice.map { (value, colour) -> Die(value = value, colour = colour) }
+
+    @Test
+    fun `a colour box scores 40 only when all five dice are that colour, whatever the numbers`() {
+        val allRed = colouredDice(1 to DieColour.RED, 3 to DieColour.RED, 4 to DieColour.RED, 6 to DieColour.RED, 2 to DieColour.RED)
+        val fourRed = colouredDice(1 to DieColour.RED, 3 to DieColour.RED, 4 to DieColour.RED, 6 to DieColour.RED, 2 to DieColour.BLUE)
+
+        assertEquals(40, DiceScoring.score(ScoreCategory.REDS, allRed))
+        assertEquals(0, DiceScoring.score(ScoreCategory.YELLOWS, allRed))
+        assertEquals(0, DiceScoring.score(ScoreCategory.BLUES, allRed))
+        assertEquals(0, DiceScoring.score(ScoreCategory.REDS, fourRed))
+    }
+
+    @Test
+    fun `coloured house is three of one colour and two of another`() {
+        val house = colouredDice(1 to DieColour.RED, 2 to DieColour.RED, 3 to DieColour.RED, 4 to DieColour.BLUE, 5 to DieColour.BLUE)
+        val fiveOfOneColour = colouredDice(1 to DieColour.RED, 2 to DieColour.RED, 3 to DieColour.RED, 4 to DieColour.RED, 5 to DieColour.RED)
+        val threeColours = colouredDice(1 to DieColour.RED, 2 to DieColour.RED, 3 to DieColour.RED, 4 to DieColour.BLUE, 5 to DieColour.YELLOW)
+
+        assertEquals(25, DiceScoring.score(ScoreCategory.COLOURED_HOUSE, house))
+        assertEquals(0, DiceScoring.score(ScoreCategory.COLOURED_HOUSE, fiveOfOneColour))
+        assertEquals(0, DiceScoring.score(ScoreCategory.COLOURED_HOUSE, threeColours))
+        // Colour and number are independent: this is no Full House by number.
+        assertEquals(0, DiceScoring.score(ScoreCategory.FULL_HOUSE, house))
+    }
+
+    @Test
+    fun `colourless dice never score a colour box`() {
+        val dice = diceOf(2, 2, 2, 5, 5)
+
+        assertEquals(0, DiceScoring.score(ScoreCategory.COLOURED_HOUSE, dice))
+        assertEquals(0, DiceScoring.score(ScoreCategory.REDS, dice))
     }
 }

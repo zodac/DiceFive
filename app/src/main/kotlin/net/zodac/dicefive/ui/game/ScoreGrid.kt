@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.game
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
@@ -12,25 +13,74 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.Die
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 
-/** Lower-section categories excluding 5x, which gets its own prominent tile beside the cup. */
-private val GRID_LOWER_CATEGORIES = ScoreCategory.entries
-    .filterNot { it in PlayerState.UPPER_CATEGORIES || it == ScoreCategory.FIVE_OF_A_KIND }
+/** Standard's grid: six rows, upper section beside lower. More than this and the tiles go compact. */
+private const val REGULAR_GRID_ROWS = 6
+private val GRID_ROW_SPACING = 6.dp
+
+/** The board's height for a Standard-sized grid - see [scoreBoardHeight]. */
+private val REGULAR_BOARD_HEIGHT = 380.dp
+
+/**
+ * The grid's rows for [gameMode], top to bottom, each one or two categories wide: the upper section
+ * down the left column beside the lower section, then anything left over (Tricolour's colour boxes)
+ * two to a row underneath. 5x is left out - it has its own prominent tile beside the cup.
+ */
+internal fun scoreGridRows(gameMode: GameMode): List<List<ScoreCategory>> {
+    val gridCategories = gameMode.categories.filter { it != ScoreCategory.FIVE_OF_A_KIND }
+    val upper = gridCategories.filter { it.section == ScoreSection.UPPER }
+    val others = gridCategories - upper.toSet()
+    val sideBySide = upper.zip(others) { left, right -> listOf(left, right) }
+    val leftOver = upper.drop(others.size) + others.drop(upper.size)
+    return sideBySide + leftOver.chunked(2)
+}
+
+/**
+ * How tall the scoring area is for [gameMode]'s grid. Standard's six rows keep the board's original
+ * height; more rows than that switch to compact tiles (see [CategoryTile]) and grow the board just
+ * enough to fit one per row: [COMPACT_TILE_SIZE] plus the row gap each, inside [padding] top and
+ * bottom. At Tricolour's eight rows that's 396dp, only 16dp taller than Standard.
+ */
+internal fun scoreBoardHeight(gameMode: GameMode, padding: Dp): Dp {
+    val rows = scoreGridRows(gameMode).size
+    if (rows <= REGULAR_GRID_ROWS) return REGULAR_BOARD_HEIGHT
+    return maxOf(REGULAR_BOARD_HEIGHT, (COMPACT_TILE_SIZE + GRID_ROW_SPACING) * rows + padding * 2)
+}
+
+/** The grid's tile size for [rowCount] rows - regular for Standard's six, compact beyond that. */
+private fun gridTileSize(rowCount: Int): Dp = if (rowCount > REGULAR_GRID_ROWS) COMPACT_TILE_SIZE else REGULAR_TILE_SIZE
+
+/**
+ * How far below the top of [gameMode]'s [gridHeight]-tall grid its first row's tiles sit: the rows
+ * share the height equally and centre their tile vertically in it. The 5x tile beside the grid uses
+ * this to put its top level with Ones and 3x in every mode, rather than a hand-tuned nudge that would
+ * only suit one mode's row count and tile size.
+ */
+internal fun firstRowTileInset(gameMode: GameMode, gridHeight: Dp): Dp {
+    val rows = scoreGridRows(gameMode).size
+    val rowHeight = (gridHeight - GRID_ROW_SPACING * (rows - 1)) / rows
+    return ((rowHeight - gridTileSize(rows)) / 2).coerceAtLeast(0.dp)
+}
 
 /**
  * The two-column scorecard grid for the active player only - other players' progress is
  * summarized in the header tabs instead, matching the reference layout. [canScore] and
  * [available] are precomputed once by the caller and shared with the 5x tile beside the cup.
+ * Which boxes it shows, and how they're laid out, come from [gameMode] (see [scoreGridRows]).
  */
 @Composable
 fun ScoreGrid(
+    gameMode: GameMode,
     player: PlayerState?,
     dice: List<Die>,
     canScore: Boolean,
@@ -39,8 +89,10 @@ fun ScoreGrid(
     onScoreCategory: (ScoreCategory) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        for (row in PlayerState.UPPER_CATEGORIES.indices) {
+    val rows = scoreGridRows(gameMode)
+    val compact = gridTileSize(rows.size) == COMPACT_TILE_SIZE
+    Column(modifier = modifier.fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(GRID_ROW_SPACING)) {
+        for (row in rows) {
             Row(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -48,26 +100,21 @@ fun ScoreGrid(
                 // second column's tile starts - otherwise they visually touch/overlap.
                 horizontalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-                CategoryCell(
-                    category = PlayerState.UPPER_CATEGORIES[row],
-                    player = player,
-                    canScore = canScore,
-                    showPreview = showPreview,
-                    available = available,
-                    dice = dice,
-                    onScoreCategory = onScoreCategory,
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                )
-                CategoryCell(
-                    category = GRID_LOWER_CATEGORIES[row],
-                    player = player,
-                    canScore = canScore,
-                    showPreview = showPreview,
-                    available = available,
-                    dice = dice,
-                    onScoreCategory = onScoreCategory,
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                )
+                for (category in row) {
+                    CategoryCell(
+                        category = category,
+                        player = player,
+                        canScore = canScore,
+                        showPreview = showPreview,
+                        available = available,
+                        dice = dice,
+                        onScoreCategory = onScoreCategory,
+                        compact = compact,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
+                }
+                // A lone category on the last row keeps to the left column's width.
+                if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
             }
         }
     }
@@ -84,6 +131,7 @@ internal fun CategoryCell(
     onScoreCategory: (ScoreCategory) -> Unit,
     modifier: Modifier = Modifier,
     prominent: Boolean = false,
+    compact: Boolean = false,
 ) {
     val filled = player?.scorecard?.get(category)
     // Legal-to-tap (canScore, human-only) and legal-to-preview (showPreview, any player whose
@@ -112,7 +160,7 @@ internal fun CategoryCell(
     // when per the official joker rule it doesn't (see ScoreCalculator's class doc).
     val fiveOfAKindTileBonusPreview = category == ScoreCategory.FIVE_OF_A_KIND && bonusThisTurn
     val pendingBonusAmount = if (category == ScoreCategory.FIVE_OF_A_KIND) {
-        (player?.fiveOfAKindBonusTotal ?: 0) + if (fiveOfAKindTileBonusPreview) 100 else 0
+        (player?.fiveOfAKindBonusTotal ?: 0) + if (fiveOfAKindTileBonusPreview) player?.gameMode?.fiveOfAKindBonusAmount ?: 0 else 0
     } else {
         0
     }
@@ -126,6 +174,7 @@ internal fun CategoryCell(
             // change.
             highlighted = isGoodChoice,
             prominent = prominent,
+            compact = compact,
             scored = filled != null,
             fiveOfAKindBonusCount = fiveOfAKindBonusCount,
             onClick = if (isLegalChoice) { { onScoreCategory(category) } } else null,

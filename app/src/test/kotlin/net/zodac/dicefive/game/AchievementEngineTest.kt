@@ -6,6 +6,7 @@ import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.AchievementCounter
 import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.model.Difficulty
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
@@ -30,9 +31,10 @@ class AchievementEngineTest {
         fiveOfAKindBonusCount: Int = 0,
         difficulty: Difficulty = Difficulty.MEDIUM,
         overrides: Map<ScoreCategory, Int> = emptyMap(),
+        gameMode: GameMode = GameMode.STANDARD,
     ): PlayerState {
-        val filled = ScoreCategory.entries.associateWith { 0 } + overrides
-        val bonusTotal = fiveOfAKindBonusCount * PlayerState.FIVE_OF_A_KIND_BONUS_AMOUNT
+        val filled = gameMode.categories.associateWith { 0 } + overrides
+        val bonusTotal = fiveOfAKindBonusCount * gameMode.fiveOfAKindBonusAmount
         // Whatever the overrides didn't account for is parked in CHANCE to hit the asked-for total.
         val accountedFor = filled.filterKeys { it != ScoreCategory.CHANCE }.values.sum() + bonusTotal
         val scorecard = filled + (ScoreCategory.CHANCE to (total - accountedFor))
@@ -40,13 +42,14 @@ class AchievementEngineTest {
             name = name,
             type = type,
             difficulty = difficulty,
+            gameMode = gameMode,
             scorecard = scorecard,
             fiveOfAKindBonusCount = fiveOfAKindBonusCount,
         )
     }
 
     private fun finishedGame(vararg players: PlayerState) =
-        GameState(players = players.toList(), isGameOver = true)
+        GameState(gameMode = players.first().gameMode, players = players.toList(), isGameOver = true)
 
     private fun evaluate(
         state: GameState,
@@ -246,7 +249,7 @@ class AchievementEngineTest {
     @Test
     fun `Spotless and How Do You Play This Game are mutually exclusive`() {
         val spotless = evaluate(
-            finishedGame(player(total = 250, overrides = ScoreCategory.entries.associateWith { 10 })),
+            finishedGame(player(total = 250, overrides = GameMode.STANDARD.categories.associateWith { 10 })),
         )
 
         assertTrue(Achievement.NO_ZEROES in spotless.newlyUnlocked)
@@ -396,13 +399,27 @@ class AchievementEngineTest {
 
     @Test
     fun `Cheater, Cheater! only unlocks on a literal perfect game`() {
-        val perfect = evaluate(finishedGame(player(total = PlayerState.MAX_POSSIBLE_SCORE)))
-        val oneShort = evaluate(finishedGame(player(total = PlayerState.MAX_POSSIBLE_SCORE - 1)))
+        val max = GameMode.STANDARD.maxPossibleScore
+        val perfect = evaluate(finishedGame(player(total = max)))
+        val oneShort = evaluate(finishedGame(player(total = max - 1)))
         val greatButNotPerfect = evaluate(finishedGame(player(total = 500)))
 
         assertTrue(Achievement.CHEATER_CHEATER in perfect.newlyUnlocked)
         assertFalse(Achievement.CHEATER_CHEATER in oneShort.newlyUnlocked)
         assertFalse(Achievement.CHEATER_CHEATER in greatButNotPerfect.newlyUnlocked)
+    }
+
+    @Test
+    fun `Cheater, Cheater! is measured against the game's own mode's maximum`() {
+        val tricolourMax = GameMode.TRICOLOUR.maxPossibleScore
+        // Standard's ceiling is well short of perfect in Tricolour, which has four more boxes to fill.
+        val standardMaxInTricolour = evaluate(
+            finishedGame(player(total = GameMode.STANDARD.maxPossibleScore, gameMode = GameMode.TRICOLOUR)),
+        )
+        val tricolourPerfect = evaluate(finishedGame(player(total = tricolourMax, gameMode = GameMode.TRICOLOUR)))
+
+        assertFalse(Achievement.CHEATER_CHEATER in standardMaxInTricolour.newlyUnlocked)
+        assertTrue(Achievement.CHEATER_CHEATER in tricolourPerfect.newlyUnlocked)
     }
 
     @Test
@@ -897,15 +914,17 @@ class AchievementEngineTest {
         scored: Map<ScoreCategory, Int>,
         fiveOfAKindBonusCount: Int = 0,
         type: PlayerType = PlayerType.HUMAN,
+        gameMode: GameMode = GameMode.STANDARD,
     ) = PlayerState(
         name = "Player 1",
         type = type,
-        scorecard = ScoreCategory.entries.associateWith { null } + scored,
+        gameMode = gameMode,
+        scorecard = gameMode.categories.associateWith { null } + scored,
         fiveOfAKindBonusCount = fiveOfAKindBonusCount,
     )
 
     private fun inProgress(vararg players: PlayerState) =
-        GameState(players = players.toList(), isGameOver = false)
+        GameState(gameMode = players.first().gameMode, players = players.toList(), isGameOver = false)
 
     @Test
     fun `a maxed box unlocks mid-game, without waiting for the results screen`() {
@@ -977,5 +996,111 @@ class AchievementEngineTest {
         val update = AchievementEngine.evaluateInProgress(state, AchievementsState(), NOW)
 
         assertFalse(Achievement.SIXES_30 in update.newlyUnlocked)
+    }
+
+    // ---- Game modes ------------------------------------------------------------------------------
+
+    @Test
+    fun `starting any non-Standard mode unlocks Rules, and Standard does not`() {
+        val before = AchievementsState(unlockedAt = mapOf(Achievement.THE_JOURNEY_BEGINS to 1L))
+
+        val standard = AchievementEngine.evaluateAtGameStart(GameStartContext(gameMode = GameMode.STANDARD), before, NOW)
+        val tricolour = AchievementEngine.evaluateAtGameStart(GameStartContext(gameMode = GameMode.TRICOLOUR), before, NOW)
+
+        assertTrue(standard.isEmpty)
+        assertEquals(listOf(Achievement.NON_STANDARD_MODE), tricolour.newlyUnlocked)
+    }
+
+    @Test
+    fun `winning a multiplayer Tricolour game unlocks Tricolourful`() {
+        val win = evaluate(
+            finishedGame(
+                player(total = 300, gameMode = GameMode.TRICOLOUR),
+                player(name = "Bot", type = PlayerType.AI, total = 200, gameMode = GameMode.TRICOLOUR),
+            ),
+        )
+        val loss = evaluate(
+            finishedGame(
+                player(total = 200, gameMode = GameMode.TRICOLOUR),
+                player(name = "Bot", type = PlayerType.AI, total = 300, gameMode = GameMode.TRICOLOUR),
+            ),
+        )
+
+        assertTrue(Achievement.TRICOLOUR_WIN in win.newlyUnlocked)
+        assertFalse(Achievement.TRICOLOUR_WIN in loss.newlyUnlocked)
+    }
+
+    @Test
+    fun `Tricolourful needs Tricolour mode and an opponent to beat`() {
+        val standardWin = evaluate(
+            finishedGame(player(total = 300), player(name = "Bot", type = PlayerType.AI, total = 200)),
+        )
+        // Same rule as First Victory and the win counter: a solo game has nobody to beat.
+        val soloTricolour = evaluate(finishedGame(player(total = 300, gameMode = GameMode.TRICOLOUR)))
+
+        assertFalse(Achievement.TRICOLOUR_WIN in standardWin.newlyUnlocked)
+        assertFalse(Achievement.TRICOLOUR_WIN in soloTricolour.newlyUnlocked)
+    }
+
+    @Test
+    fun `scoring all four colour boxes unlocks Tricolour Me Impressed mid-game, the moment the fourth goes in`() {
+        val threeOfFour = mapOf(ScoreCategory.REDS to 40, ScoreCategory.YELLOWS to 40, ScoreCategory.BLUES to 40)
+
+        val beforeFourth = AchievementEngine.evaluateInProgress(
+            inProgress(midGamePlayer(threeOfFour, gameMode = GameMode.TRICOLOUR)),
+            AchievementsState(),
+            NOW,
+        )
+        val afterFourth = AchievementEngine.evaluateInProgress(
+            inProgress(midGamePlayer(threeOfFour + (ScoreCategory.COLOURED_HOUSE to 25), gameMode = GameMode.TRICOLOUR)),
+            AchievementsState(),
+            NOW,
+        )
+
+        assertFalse(Achievement.TRICOLOUR_ALL_COLOURS in beforeFourth.newlyUnlocked)
+        assertTrue(Achievement.TRICOLOUR_ALL_COLOURS in afterFourth.newlyUnlocked)
+    }
+
+    @Test
+    fun `a zero in any colour box doesn't count towards Tricolour Me Impressed`() {
+        val update = AchievementEngine.evaluateInProgress(
+            inProgress(
+                midGamePlayer(
+                    mapOf(
+                        ScoreCategory.REDS to 40,
+                        ScoreCategory.YELLOWS to 0,
+                        ScoreCategory.BLUES to 40,
+                        ScoreCategory.COLOURED_HOUSE to 25,
+                    ),
+                    gameMode = GameMode.TRICOLOUR,
+                ),
+            ),
+            AchievementsState(),
+            NOW,
+        )
+
+        assertFalse(Achievement.TRICOLOUR_ALL_COLOURS in update.newlyUnlocked)
+    }
+
+    @Test
+    fun `the Game Modes achievements are ordered and count towards Completionist`() {
+        val gameModes = Achievement.entries.filter { it.category == AchievementCategory.GAME_MODES }
+
+        assertEquals(
+            listOf(Achievement.NON_STANDARD_MODE, Achievement.TRICOLOUR_WIN, Achievement.TRICOLOUR_ALL_COLOURS),
+            gameModes,
+        )
+        assertTrue(gameModes.all { it in Achievement.COMPLETION_REQUIREMENTS })
+    }
+
+    @Test
+    fun `How Do You Play This Game in Tricolour needs the colour boxes zeroed too`() {
+        val zeroesButRed = evaluate(
+            finishedGame(player(total = 45, overrides = mapOf(ScoreCategory.REDS to 40), gameMode = GameMode.TRICOLOUR)),
+        )
+        val allZeroes = evaluate(finishedGame(player(total = 5, gameMode = GameMode.TRICOLOUR)))
+
+        assertFalse(Achievement.ALL_ZEROES in zeroesButRed.newlyUnlocked)
+        assertTrue(Achievement.ALL_ZEROES in allZeroes.newlyUnlocked)
     }
 }

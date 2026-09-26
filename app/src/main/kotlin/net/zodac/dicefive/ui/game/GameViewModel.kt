@@ -48,8 +48,8 @@ import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.Difficulty
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
-import net.zodac.dicefive.model.GameType
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
@@ -75,7 +75,7 @@ data class PlayerSetupSlot(
 data class GameSetupState(
     val playerCount: Int = 2,
     val playerSlots: List<PlayerSetupSlot> = (1..MAX_PLAYERS).map { PlayerSetupSlot(slot = it) },
-    val gameType: GameType = GameType.CLASSIC,
+    val gameMode: GameMode = GameMode.default,
     val turnTimer: TurnTimer = TurnTimer.NONE,
 ) {
     companion object {
@@ -188,7 +188,7 @@ class GameViewModel(
     // else's turns touch any of this: AI turns roll and commit straight through GameEngine,
     // bypassing every method below, and turns belonging to a human in another seat are skipped by
     // the same isPlayerOneTurn checks that guard rollDice/toggleHold/commitScore.
-    private var previousRollDiceValues: List<Int>? = null
+    private var previousRollFaces: List<Die>? = null
     private var heldChangedSinceLastRoll = false
 
     /** The die indices that made up a first-roll four of a kind this turn - null if roll 1 wasn't
@@ -200,7 +200,7 @@ class GameViewModel(
      * true the moment a first-roll four of a kind is seen, and can only ever be knocked false. */
     private var heldFourOfAKindThroughTurn = false
     private var fiveOfAKindSeenThisTurn = false
-    private var diceValuesAfterFirstRoll: List<Int>? = null
+    private var facesAfterFirstRoll: List<Die>? = null
     private var loadedDiceHeldIndices: Set<Int>? = null
     private var loadedDiceMatchedSecondRoll = false
     private var heldIndicesBeforeSecondRoll: Set<Int>? = null
@@ -211,7 +211,7 @@ class GameViewModel(
      * [checkPreCommitAchievements]. */
     private var heldThroughBothRerolls: Set<Int> = emptySet()
     private var everHeldAllFiveThisTurn = false
-    private var holdUnholdCyclesByDieIndex = IntArray(5)
+    private val holdUnholdCyclesByDieIndex = mutableMapOf<Int, Int>()
     private var hadScoringOptionAfterSecondRoll = false
 
     /** The value, and die indices, of an exact matching group (1-4 dice, all the same value,
@@ -251,6 +251,7 @@ class GameViewModel(
                 }
                 repository.playerCount.first()?.let { savedCount -> setPlayerCount(savedCount) }
                 setTurnTimer(repository.turnTimer.first())
+                setGameMode(repository.gameMode.first())
             }
         }
     }
@@ -276,8 +277,8 @@ class GameViewModel(
         updateSlot(slot) { it.copy(difficulty = difficulty) }
     }
 
-    fun setGameType(gameType: GameType) {
-        _setup.update { it.copy(gameType = gameType) }
+    fun setGameMode(gameMode: GameMode) {
+        _setup.update { it.copy(gameMode = gameMode) }
     }
 
     fun setTurnTimer(turnTimer: TurnTimer) {
@@ -301,14 +302,16 @@ class GameViewModel(
             PlayerConfig(slot = slot.slot, type = slot.type, name = name, difficulty = slot.difficulty)
         }
         persistHumanNames(activeSlots)
-        persistGameConfig(setupState.playerCount, activeSlots, setupState.turnTimer)
+        persistGameConfig(setupState.playerCount, activeSlots, setupState.turnTimer, setupState.gameMode)
         setUndoSnapshot(null)
         resetSuperuserMode()
         resetAchievementTracking()
-        applyGameState(GameEngine.newGame(playerConfigs, setupState.gameType, setupState.turnTimer))
+        applyGameState(GameEngine.newGame(playerConfigs, setupState.gameMode, setupState.turnTimer))
         // "Full Table" is settled the moment four seats are taken - no need to make them play it out.
         checkInProgressAchievements()
-        checkGameStartAchievements(customizedGameSettings = setupState.turnTimer != TurnTimer.NONE)
+        checkGameStartAchievements(
+            customizedGameSettings = setupState.turnTimer != TurnTimer.NONE || setupState.gameMode != GameMode.default,
+        )
 
         if (previousGame != null && previousGame.isGameOver && !humanWonGame(previousGame)) {
             unlockAchievements(setOf(Achievement.REPLAY_AFTER_LOSS))
@@ -341,8 +344,8 @@ class GameViewModel(
 
         if (isPlayerOneTurn) {
             if (state.dice.all { it.isHeld }) unlockAchievements(setOf(Achievement.POINTLESS_ROLL))
-            if (state.rollsRemaining == FULL_ROLLS_REMAINING) resetPerTurnTracking()
-            if (state.rollsRemaining < FULL_ROLLS_REMAINING) playerOneTookExtraRoll = true
+            if (state.rollsRemaining == state.fullRolls) resetPerTurnTracking()
+            if (state.rollsRemaining < state.fullRolls) playerOneTookExtraRoll = true
 
             // Decisions, Decisions: "three times before rolling again" means all three hold/unhold
             // cycles on a die have to land in the same gap between rolls - progress made before
@@ -350,15 +353,15 @@ class GameViewModel(
             // Almost Famous requiring every roll be spent. resetPerTurnTracking above only clears
             // this at the START of a turn (the first roll), which left a 2nd/3rd roll mid-turn free
             // to bridge two otherwise-unrelated partial cycles into one.
-            holdUnholdCyclesByDieIndex = IntArray(holdUnholdCyclesByDieIndex.size)
+            holdUnholdCyclesByDieIndex.clear()
 
             // Loaded Dice: the held set right before the 2nd roll, and whether it's still the held
             // set right before the 3rd - a proper, non-empty, non-full subset only, both times.
-            if (state.rollsRemaining == ROLLS_REMAINING_AFTER_FIRST) {
+            if (state.rollsRemaining == state.rollsRemainingAfterFirst) {
                 val held = state.dice.withIndex().filter { it.value.isHeld }.map { it.index }.toSet()
                 heldIndicesBeforeSecondRoll = held
                 loadedDiceHeldIndices = held.takeIf { it.isNotEmpty() && it.size < state.dice.size }
-            } else if (state.rollsRemaining == ROLLS_REMAINING_AFTER_SECOND) {
+            } else if (state.rollsRemaining == state.rollsRemainingAfterSecond) {
                 val heldNow = state.dice.withIndex().filter { it.value.isHeld }.map { it.index }.toSet()
                 if (heldNow != heldIndicesBeforeSecondRoll) loadedDiceHeldIndices = null
                 heldThroughBothRerolls = (heldIndicesBeforeSecondRoll ?: emptySet()).intersect(heldNow)
@@ -688,8 +691,13 @@ class GameViewModel(
         val settings = settingsRepository ?: return
         viewModelScope.launch {
             // Never P1 - "You" is always index 0, so this only ever looks at the other seats.
-            val otherHumans = _game.value?.players.orEmpty().drop(1).filter { it.type == PlayerType.HUMAN }
-            val playedNonDefaultStyle = isNonDefaultStyle(settings.diceStyleId, DiceStyles.default.id) ||
+            val game = _game.value
+            val otherHumans = game?.players.orEmpty().drop(1).filter { it.type == PlayerType.HUMAN }
+            val gameMode = game?.gameMode ?: GameMode.default
+            // A mode that colours its own dice never shows the dice style, so picking one can't count.
+            val playedNonDefaultDiceStyle = gameMode.usesPlayerDiceStyle &&
+                isNonDefaultStyle(settings.diceStyleId, DiceStyles.default.id)
+            val playedNonDefaultStyle = playedNonDefaultDiceStyle ||
                 isNonDefaultStyle(settings.diceCupStyleId, DiceCupStyles.default.id) ||
                 isNonDefaultStyle(settings.tableBackgroundId, TableBackgrounds.default.id) ||
                 isNonDefaultStyle(settings.diceMatId, DiceMats.default.id)
@@ -697,6 +705,7 @@ class GameViewModel(
                 playedNonDefaultStyle = playedNonDefaultStyle,
                 hasHumanPlayerNamedZodac = otherHumans.any { it.name == ZODAC_PLAYER_NAME },
                 customizedGameSettings = customizedGameSettings,
+                gameMode = gameMode,
             )
             withAchievementLock {
                 val update = AchievementEngine.evaluateAtGameStart(context, repository.current(), System.currentTimeMillis())
@@ -770,7 +779,7 @@ class GameViewModel(
      */
     private fun checkFirstRollAchievements() {
         val state = _game.value ?: return
-        if (state.rollsRemaining != ROLLS_REMAINING_AFTER_FIRST) return
+        if (state.rollsRemaining != state.rollsRemainingAfterFirst) return
         val player = state.currentPlayer ?: return
 
         val dice = state.dice
@@ -802,7 +811,7 @@ class GameViewModel(
     /**
      * Everything about a roll that can only be judged from the roll itself, not the finished
      * scorecard - checked once the roll has landed in [_game], using [rollsRemainingBeforeRoll]
-     * (the value from just before it, so `== FULL_ROLLS_REMAINING` means "this was roll 1") and
+     * (the value from just before it, so `== fullRolls` means "this was roll 1") and
      * [diceBeforeRoll] (so held-vs-unheld can be read as it was going INTO this roll).
      */
     private fun checkPostRollAchievements(rollsRemainingBeforeRoll: Int, diceBeforeRoll: List<Die>) {
@@ -810,18 +819,20 @@ class GameViewModel(
         val player = state.currentPlayer ?: return
         val dice = state.dice
         val values = dice.map { it.value }
+        // Number and colour together: in a mode with coloured dice, "the same result" means both.
+        val faces = dice.faces()
 
         // Déjà Vu: the same result as the immediately previous roll THIS turn, with nothing held -
         // not just unchanged since the last roll (that's Are These Loaded Dice?'s territory, the
         // partial-hold complement of this one), but actually zero dice held right now.
-        if (previousRollDiceValues != null && !heldChangedSinceLastRoll && dice.none { it.isHeld } && values == previousRollDiceValues) {
+        if (previousRollFaces != null && !heldChangedSinceLastRoll && dice.none { it.isHeld } && faces == previousRollFaces) {
             unlockAchievements(setOf(Achievement.DEJA_VU))
         }
-        previousRollDiceValues = values
+        previousRollFaces = faces
         heldChangedSinceLastRoll = false
 
         // I Can Count!: 1,2,3,4,5 in that order, first roll of the turn only.
-        if (rollsRemainingBeforeRoll == FULL_ROLLS_REMAINING && values == COUNTING_DICE_VALUES) {
+        if (rollsRemainingBeforeRoll == state.fullRolls && values == COUNTING_DICE_VALUES) {
             unlockAchievements(setOf(Achievement.I_CAN_COUNT))
         }
         // Product Placement: the menu logo's own dice, in its own order - any roll of any turn.
@@ -832,7 +843,7 @@ class GameViewModel(
         // Natural 5x: landed without holding anything for this roll, and it wasn't the first one
         // (rolling nothing-held on roll 1 is just how every turn starts) - and, same as First
         // Roll 5x, only if the 5x could actually be scored as one (see fiveOfAKindScorable).
-        if (rollsRemainingBeforeRoll < FULL_ROLLS_REMAINING &&
+        if (rollsRemainingBeforeRoll < state.fullRolls &&
             diceBeforeRoll.none { it.isHeld } &&
             DiceScoring.isFiveOfAKind(dice) &&
             fiveOfAKindScorable(player, dice, ScoreCalculator.availableCategories(player, dice))
@@ -844,13 +855,13 @@ class GameViewModel(
         // still exactly what's held going into every roll since (nothing more, nothing less - so
         // the 5th die is the one actually getting re-rolled, not sitting held alongside them), and
         // whether a real 5x ever turns up on it anyway.
-        if (rollsRemainingBeforeRoll == FULL_ROLLS_REMAINING) {
+        if (rollsRemainingBeforeRoll == state.fullRolls) {
             val fourOfAKindValue = values.groupingBy { it }.eachCount().entries.firstOrNull { it.value == FOUR_OF_A_KIND_COUNT }?.key
             fourOfAKindIndicesFromFirstRoll = fourOfAKindValue?.let { value ->
                 values.withIndex().filter { it.value == value }.map { it.index }.toSet()
             }
             heldFourOfAKindThroughTurn = fourOfAKindIndicesFromFirstRoll != null
-            diceValuesAfterFirstRoll = values
+            facesAfterFirstRoll = faces
         } else {
             fourOfAKindIndicesFromFirstRoll?.let { required ->
                 val heldGoingIn = diceBeforeRoll.withIndex().filter { it.value.isHeld }.map { it.index }.toSet()
@@ -861,9 +872,9 @@ class GameViewModel(
 
         // The Dice Hate Me: a real (non-zero) scoring option existed after roll 2, but none at all
         // after roll 3.
-        if (rollsRemainingBeforeRoll == ROLLS_REMAINING_AFTER_FIRST) {
+        if (rollsRemainingBeforeRoll == state.rollsRemainingAfterFirst) {
             hadScoringOptionAfterSecondRoll = hasScoringOption(player, dice)
-        } else if (rollsRemainingBeforeRoll == ROLLS_REMAINING_AFTER_SECOND) {
+        } else if (rollsRemainingBeforeRoll == state.rollsRemainingAfterSecond) {
             if (hadScoringOptionAfterSecondRoll && !hasScoringOption(player, dice)) {
                 unlockAchievements(setOf(Achievement.DICE_HATE_ME))
             }
@@ -872,14 +883,14 @@ class GameViewModel(
         // Are These Loaded Dice?: the dice NOT held since roll 1 keep landing on exactly the same
         // values, roll after roll. heldIndicesBeforeSecondRoll/loadedDiceHeldIndices were captured
         // in rollDice, before this roll happened.
-        val firstRollValues = diceValuesAfterFirstRoll
+        val firstRollFaces = facesAfterFirstRoll
         val heldIndices = loadedDiceHeldIndices
-        if (firstRollValues != null && heldIndices != null && rollsRemainingBeforeRoll < FULL_ROLLS_REMAINING) {
-            val unheldStillMatches = values.indices.filter { it !in heldIndices }.all { values[it] == firstRollValues[it] }
+        if (firstRollFaces != null && heldIndices != null && rollsRemainingBeforeRoll < state.fullRolls) {
+            val unheldStillMatches = faces.indices.filter { it !in heldIndices }.all { faces[it] == firstRollFaces[it] }
             when {
                 !unheldStillMatches -> loadedDiceHeldIndices = null
-                rollsRemainingBeforeRoll == ROLLS_REMAINING_AFTER_FIRST -> loadedDiceMatchedSecondRoll = true
-                rollsRemainingBeforeRoll == ROLLS_REMAINING_AFTER_SECOND && loadedDiceMatchedSecondRoll ->
+                rollsRemainingBeforeRoll == state.rollsRemainingAfterFirst -> loadedDiceMatchedSecondRoll = true
+                rollsRemainingBeforeRoll == state.rollsRemainingAfterSecond && loadedDiceMatchedSecondRoll ->
                     unlockAchievements(setOf(Achievement.LOADED_DICE))
             }
         }
@@ -916,8 +927,9 @@ class GameViewModel(
         heldChangedSinceLastRoll = true
 
         if (justUnheld) {
-            holdUnholdCyclesByDieIndex[dieIndex]++
-            if (holdUnholdCyclesByDieIndex[dieIndex] >= HOLD_UNHOLD_CYCLE_TARGET) {
+            val cycles = (holdUnholdCyclesByDieIndex[dieIndex] ?: 0) + 1
+            holdUnholdCyclesByDieIndex[dieIndex] = cycles
+            if (cycles >= HOLD_UNHOLD_CYCLE_TARGET) {
                 unlockAchievements(setOf(Achievement.DECISIONS_DECISIONS))
             }
         }
@@ -1001,7 +1013,7 @@ class GameViewModel(
         // checkPostRollAchievements) through every roll since so the 5th die actually kept
         // getting re-rolled, and it never turned into a real 5x. Committing after only one or two
         // rolls isn't "almost" anything; rollsRemaining == 0 here means all three rolls this turn
-        // were spent (see the FULL_ROLLS_REMAINING/ROLLS_REMAINING_AFTER_* constants). Whether the
+        // were spent (see the fullRolls/rollsRemainingAfter* helpers). Whether the
         // 5x could even have been scored doesn't matter - only that it was rolled for and missed.
         if (fourOfAKindIndicesFromFirstRoll != null &&
             heldFourOfAKindThroughTurn &&
@@ -1081,18 +1093,18 @@ class GameViewModel(
     }
 
     private fun resetPerTurnTracking() {
-        previousRollDiceValues = null
+        previousRollFaces = null
         heldChangedSinceLastRoll = false
         fourOfAKindIndicesFromFirstRoll = null
         heldFourOfAKindThroughTurn = false
         fiveOfAKindSeenThisTurn = false
-        diceValuesAfterFirstRoll = null
+        facesAfterFirstRoll = null
         loadedDiceHeldIndices = null
         loadedDiceMatchedSecondRoll = false
         heldIndicesBeforeSecondRoll = null
         heldThroughBothRerolls = emptySet()
         everHeldAllFiveThisTurn = false
-        holdUnholdCyclesByDieIndex = IntArray(holdUnholdCyclesByDieIndex.size)
+        holdUnholdCyclesByDieIndex.clear()
         hadScoringOptionAfterSecondRoll = false
         pendingCommitmentGroupValue = null
         pendingCommitmentGroupIndices = emptySet()
@@ -1120,11 +1132,12 @@ class GameViewModel(
         }
     }
 
-    private fun persistGameConfig(playerCount: Int, slots: List<PlayerSetupSlot>, turnTimer: TurnTimer) {
+    private fun persistGameConfig(playerCount: Int, slots: List<PlayerSetupSlot>, turnTimer: TurnTimer, gameMode: GameMode) {
         val repository = settingsRepository ?: return
         viewModelScope.launch {
             repository.setPlayerCount(playerCount)
             repository.setTurnTimer(turnTimer)
+            repository.setGameMode(gameMode)
             for (slot in slots) {
                 // Slot 1 is always Human, so its type and difficulty aren't worth persisting.
                 if (slot.slot == 1) continue
@@ -1246,14 +1259,20 @@ class GameViewModel(
         /** Pause between one roll settling and the next one's shake starting, within the same AI turn. */
         private const val ROLL_GAP_MS = 250L
 
-        /** What `rollsRemaining` reads before any roll has happened this turn. */
-        private const val FULL_ROLLS_REMAINING = 3
+        /** What `rollsRemaining` reads before any roll has happened this turn - the mode's full allowance. */
+        private val GameState.fullRolls: Int
+            get() = gameMode.rollsPerTurn
 
-        /** What `rollsRemaining` reads once the first of a turn's three rolls has been used. */
-        private const val ROLLS_REMAINING_AFTER_FIRST = 2
+        /** What `rollsRemaining` reads once the first of a turn's rolls has been used. */
+        private val GameState.rollsRemainingAfterFirst: Int
+            get() = gameMode.rollsPerTurn - 1
 
-        /** What `rollsRemaining` reads once the second of a turn's three rolls has been used. */
-        private const val ROLLS_REMAINING_AFTER_SECOND = 1
+        /** What `rollsRemaining` reads once the second of a turn's rolls has been used. */
+        private val GameState.rollsRemainingAfterSecond: Int
+            get() = gameMode.rollsPerTurn - 2
+
+        /** Each die's face - number and colour - without whether it's held, for comparing one roll to another. */
+        private fun List<Die>.faces(): List<Die> = map { Die(value = it.value, colour = it.colour) }
 
         private const val FOUR_OF_A_KIND_COUNT = 4
         private const val HOLD_UNHOLD_CYCLE_TARGET = 3
