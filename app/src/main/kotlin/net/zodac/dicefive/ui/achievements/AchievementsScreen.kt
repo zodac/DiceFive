@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -22,12 +24,17 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -50,6 +57,22 @@ import net.zodac.dicefive.ui.common.ScreenScaffold
  * Leaderboard uses for a score's timestamp.
  */
 private val UNLOCKED_AT_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
+
+// contentType tags, so hiddenUnderPinnedHeader can tell a category header from a row by the list's
+// own layout info rather than by parsing keys.
+private const val HEADER_CONTENT_TYPE = "header"
+private const val ROW_CONTENT_TYPE = "achievement"
+
+/**
+ * Where the list was last scrolled to. Leaving this screen pops it off the back stack, which
+ * discards both its ViewModel and anything `rememberSaveable`d, so the position has to live
+ * somewhere longer-lived to still be there on the way back in. In memory only: it survives
+ * navigating away and back for as long as the app process does, not an app restart.
+ */
+private object AchievementsScrollMemory {
+    var firstVisibleItemIndex = 0
+    var firstVisibleItemScrollOffset = 0
+}
 
 /**
  * Every achievement the app tracks, in one list - grouped by theme and, within a theme,
@@ -92,6 +115,31 @@ fun AchievementsScreen(
         }
     }
 
+    // Restored only once the real list has loaded: uiState starts out empty, and a LazyColumn that
+    // first lays out with nothing in it clamps any requested position straight back to the top.
+    // Saved on the way out only once restored, so leaving before the load finishes doesn't wipe
+    // the remembered position with that momentary top-of-list one.
+    val listState = rememberLazyListState()
+    var restoredScroll by remember { mutableStateOf(false) }
+    val listLoaded = state.groups.isNotEmpty()
+    LaunchedEffect(listLoaded) {
+        if (listLoaded && !restoredScroll) {
+            listState.scrollToItem(
+                AchievementsScrollMemory.firstVisibleItemIndex,
+                AchievementsScrollMemory.firstVisibleItemScrollOffset,
+            )
+            restoredScroll = true
+        }
+    }
+    DisposableEffect(listState) {
+        onDispose {
+            if (restoredScroll) {
+                AchievementsScrollMemory.firstVisibleItemIndex = listState.firstVisibleItemIndex
+                AchievementsScrollMemory.firstVisibleItemScrollOffset = listState.firstVisibleItemScrollOffset
+            }
+        }
+    }
+
     ScreenScaffold(title = "Achievements", onBack = onBack, modifier = modifier) {
         // No ripple, and no other visual change on tap or long press: this is the hidden entry
         // point into superuser mode (see the class doc above), and a ripple here would be an open
@@ -118,6 +166,7 @@ fun AchievementsScreen(
 
         LazyColumn(
             modifier = Modifier.fillMaxWidth().weight(1f),
+            state = listState,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (state.groups.isEmpty()) {
@@ -132,12 +181,15 @@ fun AchievementsScreen(
                 }
             } else {
                 for (group in state.groups) {
-                    stickyHeader(key = "group-${group.category.name}") { GroupHeader(group.category.label) }
-                    items(group.items, key = { it.achievement.id }) {
+                    stickyHeader(key = "group-${group.category.name}", contentType = HEADER_CONTENT_TYPE) {
+                        GroupHeader(group.category.label)
+                    }
+                    items(group.items, key = { it.achievement.id }, contentType = { ROW_CONTENT_TYPE }) {
                         AchievementRow(
                             item = it,
                             superuserModeActive = superuserModeActive,
                             onSuperuserLongPressTick = viewModel::onSuperuserLongPressTick,
+                            modifier = Modifier.hiddenUnderPinnedHeader(listState, it.achievement.id),
                         )
                     }
                 }
@@ -180,11 +232,12 @@ private fun AchievementRow(
     item: AchievementItem,
     superuserModeActive: Boolean,
     onSuperuserLongPressTick: (Achievement, Int) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val unlocked = item.unlockedAt != null
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .pointerInput(superuserModeActive, item.achievement) {
                 if (!superuserModeActive) return@pointerInput
@@ -297,6 +350,29 @@ private fun ProgressRow(item: AchievementItem) {
 
 /** Thousand separators, so "34,521 of 100,000" doesn't have to be counted digit by digit. */
 internal fun Int.grouped(): String = NumberFormat.getIntegerInstance().format(this)
+
+/**
+ * Stops a row drawing anywhere above the bottom edge of the pinned category header, so it's cut off
+ * at that edge rather than sliding underneath it. The header covers what's behind it, except at its
+ * rounded corners, where a row passing underneath still showed through; clipping the row takes it
+ * out of that area entirely. The pinned header is the topmost header in the list's layout: while
+ * the next one pushes it up, its bottom edge moves too, and the clip follows it.
+ *
+ * Only affects drawing. The header is laid out on top, so it still takes any touch in that area.
+ * Reads [LazyListState.layoutInfo] during the draw pass, so scrolling only redraws the rows and
+ * doesn't recompose them.
+ */
+private fun Modifier.hiddenUnderPinnedHeader(listState: LazyListState, key: Any): Modifier = drawWithContent {
+    val visible = listState.layoutInfo.visibleItemsInfo
+    val pinnedHeader = visible.filter { it.contentType == HEADER_CONTENT_TYPE }.minByOrNull { it.offset }
+    val self = visible.firstOrNull { it.key == key }
+    val hiddenHeight = if (pinnedHeader == null || self == null) 0f else (pinnedHeader.offset + pinnedHeader.size - self.offset).toFloat()
+    when {
+        hiddenHeight <= 0f -> drawContent()
+        hiddenHeight >= size.height -> Unit
+        else -> clipRect(top = hiddenHeight) { this@drawWithContent.drawContent() }
+    }
+}
 
 private fun formatUnlockedAt(epochMillis: Long): String =
     UNLOCKED_AT_FORMATTER.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
