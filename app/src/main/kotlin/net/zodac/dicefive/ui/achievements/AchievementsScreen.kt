@@ -19,7 +19,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,6 +34,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -120,6 +125,7 @@ fun AchievementsScreen(
     // Saved on the way out only once restored, so leaving before the load finishes doesn't wipe
     // the remembered position with that momentary top-of-list one.
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     var restoredScroll by remember { mutableStateOf(false) }
     val listLoaded = state.groups.isNotEmpty()
     LaunchedEffect(listLoaded) {
@@ -180,9 +186,19 @@ fun AchievementsScreen(
                     )
                 }
             } else {
-                for (group in state.groups) {
+                // Where each category's header sits in the list: one header item, then its rows.
+                val headerIndices = state.groups.runningFold(0) { index, group -> index + 1 + group.items.size }.dropLast(1)
+                state.groups.forEachIndexed { groupIndex, group ->
                     stickyHeader(key = "group-${group.category.name}", contentType = HEADER_CONTENT_TYPE) {
-                        GroupHeader(group.category.label)
+                        GroupHeader(
+                            text = group.category.label,
+                            onPrevious = headerIndices.getOrNull(groupIndex - 1)?.let { target ->
+                                { scope.launch { listState.animateScrollToItem(target) } }
+                            },
+                            onNext = headerIndices.getOrNull(groupIndex + 1)?.let { target ->
+                                { scope.launch { listState.animateScrollToItem(target) } }
+                            },
+                        )
                     }
                     items(group.items, key = { it.achievement.id }, contentType = { ROW_CONTENT_TYPE }) {
                         AchievementRow(
@@ -203,16 +219,30 @@ fun AchievementsScreen(
  * Pinned to the top of the list while its category scrolls by, so it's a plain [Card] rather than
  * the bare [Text] this would otherwise be - the same rounded, opaque shape every other surface on
  * this screen uses - since rows now scroll directly underneath it and would show through bare text.
+ *
+ * The up/down arrows on its right jump to the previous/next category's header, which then pins in
+ * this one's place - a long list is otherwise a lot of flinging to get from Milestones to
+ * Collection. A null [onPrevious]/[onNext] (the first/last category) greys that arrow out rather
+ * than removing it, so the pair always sits in the same place. They're stock icon buttons, so the
+ * header is the 48dp minimum touch height rather than the bare label's.
  */
 @Composable
-private fun GroupHeader(text: String) {
+private fun GroupHeader(text: String, onPrevious: (() -> Unit)?, onNext: (() -> Unit)?) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = text.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = text.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+            )
+            IconButton(onClick = { onPrevious?.invoke() }, enabled = onPrevious != null) {
+                Icon(imageVector = Icons.Filled.KeyboardArrowUp, contentDescription = "Previous category")
+            }
+            IconButton(onClick = { onNext?.invoke() }, enabled = onNext != null) {
+                Icon(imageVector = Icons.Filled.KeyboardArrowDown, contentDescription = "Next category")
+            }
+        }
     }
 }
 
