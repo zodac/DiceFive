@@ -171,13 +171,19 @@ private fun WinnerCard(player: PlayerState, solo: Boolean) {
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = player.name,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    if (player.type == PlayerType.AI) CpuPlayerIcon(size = 24.dp)
+                    Text(
+                        text = player.name,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 if (!solo) {
                     Text(text = "Winner", style = MaterialTheme.typography.labelLarge)
                 }
@@ -203,13 +209,19 @@ private fun RunnerUpRow(rank: Int, player: PlayerState) {
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Text(
-            text = player.name,
-            style = MaterialTheme.typography.bodyLarge,
+        Row(
             modifier = Modifier.weight(1f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            if (player.type == PlayerType.AI) CpuPlayerIcon(size = 18.dp)
+            Text(
+                text = player.name,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         Text(
             text = player.totalScore.toString(),
             style = MaterialTheme.typography.titleLarge,

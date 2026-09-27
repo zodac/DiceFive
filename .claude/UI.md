@@ -295,6 +295,11 @@ Two consequences:
 `PlayerHeaderBar` also steps names down to `labelMedium` at 3+ players, which is what makes
 the cap actually deliver a full name on one line on a narrow phone.
 
+CPU players carry a small processor-chip icon (`CpuPlayerIcon`, Material's `Memory` glyph) before
+their name, in the header tabs and on the results page. In a header tab it costs ~14dp of that
+~72dp, so tab names use `TextAutoSize.StepBased` (down to 9sp) and a full-length CPU name shrinks
+a little rather than arriving ellipsised.
+
 ## Scrollbars on long lists
 
 Every page with a `LazyColumn` that can outgrow the screen (the Leaderboard, Statistics) wraps it
