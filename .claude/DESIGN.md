@@ -859,6 +859,21 @@ install-over-existing succeeds:
       (no `kotlin.android` plugin); APK renaming goes through `VariantOutputImpl`, an internal AGP
       class, as there is no public API for it.
 
+- [x] **R8 shrinking/minification/obfuscation for release.** The placeholder
+      `app/proguard-rules.pro` Android Studio generates by default was renamed to
+      `app/r8-rules.pro` (the project only ever runs R8, not classic ProGuard - the old
+      filename was misleading) and `app/build.gradle.kts`'s `release` build type turned on
+      `isMinifyEnabled` and `isShrinkResources` (both were `false`). Verified against a
+      same-commit A/B: unminified `assembleRelease` produced a 14.19 MB unsigned APK: shrinking
+      alone (code + resources, no renaming) brought that to 1.91 MB, and allowing R8 to rename
+      classes/methods/fields on top of that (removing an initial `-dontobfuscate` rule) took it
+      to 1.96 MB - most of the win is shrinking unused Compose/AndroidX classes and unused
+      resource variants, not renaming, but renaming's own ~2.4% was worth keeping. `r8-rules.pro`
+      also sets `-allowaccessmodification` so R8 can merge/inline more freely. No `-keep` rules
+      were needed - the app built and its existing test suite stayed green with no missing-class
+      or reflection failures. See `PUBLISHING.md` for archiving `mapping.txt` so Play Console can
+      still deobfuscate crash traces once this ships.
+
 ### Phase 13 — Achievements
 - [x] **Scope**: 51 achievements (50 + the later-added secret `CHEATER_CHEATER`),
       replacing the Phase 8 placeholder screen.

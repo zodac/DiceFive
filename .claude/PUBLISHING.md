@@ -60,6 +60,21 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
 - **Short description** (80 chars), **full description** (4000 chars), category, and contact
   email - not yet drafted; entered directly in Play Console alongside the privacy policy URL from
   "Outside this repo" above.
+- **Open-source licenses / third-party notices page - not yet drafted, and currently a real gap.**
+  `app/build.gradle.kts`'s `packaging.resources.excludes` drops every AndroidX artifact's own
+  bundled `META-INF/androidx/**/LICENSE.txt` (a release-size optimization - each is a duplicate
+  copy of the same Apache-2.0 text), but this app has no substitute anywhere that gives recipients
+  a copy of that license, which Apache-2.0 §4(a) requires. Investigated during that change: even
+  *without* the exclusion, only 9 of the ~60-70 distinct Apache-2.0-licensed AndroidX/Kotlin/Compose
+  artifacts this app actually ships bundle their own license text in the first place (the rest -
+  Compose runtime/ui/foundation/material3, Kotlin stdlib, kotlinx.coroutines, most of Navigation and
+  Lifecycle, Activity, Window, DataStore itself, etc. - never did), so restoring the exclusion would
+  not have been a real fix either, just a partial, misleading one. The actual fix: one consolidated
+  page (Apache-2.0's text once, plus the list of artifacts it covers - nearly everything here uses
+  that one license) hosted the same way as the privacy policy (e.g. GitHub Pages), linked from
+  **both** places this app is actually distributed - the Play Store listing (once it exists) *and*
+  `README.md` (the GitHub release pipeline in `DESIGN.md` Phase 12 already publishes signed APKs
+  publicly today, independent of any Play submission). No in-app screen needed for either link.
 
 ## App build & manifest changes (in-repo)
 
@@ -77,6 +92,15 @@ changes in the codebase to get a submittable build.
   (see "Outside this repo") - not `app/debug.keystore`, and not necessarily the same keystore the
   GitHub release pipeline's `ANDROID_RELEASE_*` secrets point at either, since that key was chosen
   for a different pipeline before Play App Signing was in the picture.
+- **Archive `mapping.txt` per release.** `DESIGN.md` Phase 12 turned on R8 shrinking and renaming
+  for the `release` build type, which means `app/build/outputs/mapping/release/mapping.txt` is now
+  a real deobfuscation mapping, not an empty file - without it, a renamed-class stack trace is
+  unreadable. Play Console auto-detects and uses this mapping to deobfuscate Android vitals crash/
+  ANR reports (Google's automatic crash collection, no SDK needed) as long as it's uploaded/bundled
+  with the same build - either included in the `.aab` upload or attached manually under App
+  integrity > Deobfuscation files in Play Console. Nothing currently keeps a copy of this file past
+  a given local/CI build; the Play upload build/signing path this section describes needs to save
+  it somewhere retrievable per version before this matters.
 
 ## Google Play Games Services - achievements, cloud save, sign-in
 

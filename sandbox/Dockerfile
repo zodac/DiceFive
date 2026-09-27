@@ -251,10 +251,14 @@ RUN set -eux; \
 #
 # python3 (+pip/venv) with python3-fonttools, imagemagick, librsvg2-bin and optipng are an
 # image-asset toolchain (font/SVG rendering, PNG/ICO rasterising) carried over from the project this
-# sandbox was copied from. Nothing in THIS repo uses them; they are kept because the layer is already
-# built and python3 is generally useful in a session. Drop them from the list if the image size ever
-# matters. fonttools is the distro `python3-fonttools` package, NOT pip: the base image's Python is
-# PEP-668 "externally managed", so `pip install fonttools` is refused.
+# sandbox was copied from. fonttools now earns its keep in THIS repo too: `app/src/main/res/font/sora.ttf`
+# is a static weight-700 instance produced with `python3 -m fontTools.varLib.instancer`, subset to
+# printable ASCII with `python3 -m fontTools.subset` (see AppLogo.kt's SoraFontFamily doc) - a one-off,
+# not a build-time step, so regenerating it later still needs this package. imagemagick/librsvg2-bin/
+# optipng remain unused by this repo; kept because the layer is already built and python3 is generally
+# useful in a session. Drop them from the list if the image size ever matters. fonttools is the distro
+# `python3-fonttools` package, NOT pip: the base image's Python is PEP-668 "externally managed", so
+# `pip install fonttools` is refused.
 #
 # ffmpeg joins that same asset toolchain for audio: this project ships .ogg sound effects
 # (app/src/main/res/raw/) and re-encoding/gain-adjusting one occasionally comes up (e.g. boosting a
