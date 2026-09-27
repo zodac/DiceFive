@@ -330,7 +330,7 @@ private fun AchievementRow(
                 Icon(
                     imageVector = if (unlocked) item.achievement.icon else LOCKED_ACHIEVEMENT_ICON,
                     contentDescription = null,
-                    tint = tint,
+                    tint = if (unlocked) item.achievement.iconTintOrUnspecified(tint) else tint,
                     modifier = Modifier.size(22.dp),
                 )
             }

@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -42,6 +43,10 @@ fun DiceFiveDialog(
     onDismiss: (() -> Unit)? = null,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    // Overridable for the one icon in the app that's drawn in its own fixed colours rather than
+    // meant to be tinted - see Achievement.iconTintOrUnspecified. Every other caller leaves this at
+    // its default.
+    iconTint: Color = MaterialTheme.colorScheme.primary,
 ) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -50,7 +55,7 @@ fun DiceFiveDialog(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = iconTint,
                 modifier = Modifier.size(36.dp),
             )
         },

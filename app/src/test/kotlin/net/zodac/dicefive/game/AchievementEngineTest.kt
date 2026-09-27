@@ -429,7 +429,7 @@ class AchievementEngineTest {
         // Every other achievement stays at least title-visible from the start - secrecy is the
         // exception, not the rule.
         assertEquals(
-            listOf(Achievement.CHEATER_CHEATER),
+            listOf(Achievement.CHEATER_CHEATER, Achievement.LUCK_OF_THE_IRISH),
             Achievement.entries.filter { it.visibility == AchievementVisibility.SECRET },
         )
     }
@@ -880,6 +880,20 @@ class AchievementEngineTest {
 
         assertEquals(listOf(Achievement.BIG_FAN), withZodac.newlyUnlocked)
         assertTrue(without.isEmpty)
+    }
+
+    @Test
+    fun `Tricolour with P1 named Ireland unlocks Luck of the Irish`() {
+        // GameViewModel.checkGameStartAchievements decides this flag from GameState.isLuckOfTheIrish
+        // (see IrishEasterEggTest for the name-matching and player-1/game-mode rules) - this engine
+        // just trusts the flag it's handed, same as hasHumanPlayerNamedZodac.
+        val before = AchievementsState(unlockedAt = mapOf(Achievement.THE_JOURNEY_BEGINS to 1L))
+
+        val irish = AchievementEngine.evaluateAtGameStart(GameStartContext(hasIrishPlayerOneInTricolour = true), before, NOW)
+        val notIrish = AchievementEngine.evaluateAtGameStart(GameStartContext(hasIrishPlayerOneInTricolour = false), before, NOW)
+
+        assertEquals(listOf(Achievement.LUCK_OF_THE_IRISH), irish.newlyUnlocked)
+        assertTrue(notIrish.isEmpty)
     }
 
     @Test

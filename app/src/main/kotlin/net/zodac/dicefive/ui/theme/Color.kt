@@ -155,6 +155,36 @@ val TricolourRedStripe = Color(0xFF9E2A22)
 val TricolourYellowStripe = Color(0xFF8F7011)
 val TricolourBlueStripe = Color(0xFF1F4F9A)
 
+// Luck of the Irish: while active (see net.zodac.dicefive.model.isLuckOfTheIrish), Tricolour's
+// red/yellow/blue render in these instead - RED -> green, YELLOW -> white, BLUE -> orange, the
+// Irish flag's colours - via DieColour.palette(irish = true). Same fields, same meaning, as the
+// TricolourRed/Yellow/Blue block above; White's own top/bottom/pip follow Yellow's old "bright
+// body, dark pip, dark stripe" pattern rather than Red/Blue's "medium body, light pip" one, since
+// it's the one colour here actually as light as the flag colour it's named for.
+val IrishGreenDiceTop = Color(0xFF4CAF50)
+val IrishGreenDiceBottom = Color(0xFF1B5E20)
+val IrishGreenPipColor = Color(0xFFF1FFF3)
+val IrishWhiteDiceTop = Color(0xFFFFFFFF)
+val IrishWhiteDiceBottom = Color(0xFFD8D8D8)
+val IrishWhitePipColor = Color(0xFF262626)
+val IrishOrangeDiceTop = Color(0xFFFF8A50)
+val IrishOrangeDiceBottom = Color(0xFFC1440E)
+val IrishOrangePipColor = Color(0xFFFFF3E8)
+
+val IrishGreenSwatch = Color(0xFF169B62)
+val IrishWhiteSwatch = Color(0xFFFFFFFF)
+val IrishOrangeSwatch = Color(0xFFFF883E)
+
+// A proportional darkening of IrishGreenSwatch/IrishOrangeSwatch (same R:G:B ratio, not a
+// separately-picked hue) - a from-scratch dark shade kept drifting away from the flag's own hue
+// once darkened enough to hold the Coloured House tile's glyph.
+val IrishGreenStripe = Color(0xFF127C4E)
+val IrishOrangeStripe = Color(0xFFAD5C2A)
+// The flag's white band, full brightness - CategoryIcon's HouseIcon already drops a dark shadow
+// behind the glyph for exactly this "background too light to hold it" case (see its own doc), so
+// this doesn't need darkening down to a readable grey the way the other two stripes do.
+val IrishWhiteStripe = Color(0xFFFFFFFF)
+
 /** Cycled by player-tab index; extend if more than 4 players are ever supported. */
 val PlayerColors = listOf(
     Color(0xFF4FD6E8),
