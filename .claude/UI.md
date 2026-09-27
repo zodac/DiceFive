@@ -283,19 +283,27 @@ game-table block - a fixed meaning (the dice's own colours), not a theme role.
 
 ## Constraints worth knowing
 
-**Player names cap at 10 characters** (`GameSetupState.MAX_PLAYER_NAME_LENGTH`). The binding
-constraint is not the setup form - it's the in-game header, where four tabs share one row,
-leaving roughly 72dp of text per tab on a 360dp phone. It's a layout limit, not a gameplay or
-storage one.
+**Player names cap at a length that varies with player count** (`GameSetupState.
+maxPlayerNameLength`: 14/12/10/8 characters at 1/2/3/4 players). The binding constraint is not the
+setup form - it's the in-game header, where every seat shares one row, so the more of them there
+are the less width (and, for a CPU seat, the less width left over once its chip icon takes its
+own share) each tab - and so each name - gets. It's a layout limit, not a gameplay or storage one.
 
-Two consequences:
+Consequences:
 
-- Enforced in `GameViewModel.setPlayerName`, not just the text field, so it also applies to
-  names restored from preferences saved before the cap existed.
-- **AI names obey the same cap.** They're players in the same header. The pool in
-  `AiNameGenerator` was rewritten to fit ("The Probability Engine" was 22 characters), and
-  `AiNameGeneratorTest` sweeps the whole pool so a long one added later fails the build
-  instead of showing up ellipsised in a real game.
+- Enforced in `GameViewModel.setPlayerName` against the *current* player count, not just the text
+  field - so it also applies to names restored from preferences saved before the cap existed, or
+  saved at a different player count. `setPlayerCount` re-clamps every slot's name whenever the
+  count changes, in either direction.
+- **AI names obey a tighter version of the same cap, never truncated.** They're players in the
+  same header, but every AI tab also carries the CPU chip icon, so `GameSetupState.
+  maxAiNameLength` knocks a couple of characters off `maxPlayerNameLength` for the icon's own
+  width before `AiNameGenerator` picks a name - it holds three separate pools (one each for
+  2/3/4 players, the count that actually decides how tight the tab is), every entry already
+  short enough for that count's `maxAiNameLength`, rather than cutting a longer, shared pool down
+  to fit - half a truncated word reads as a bug, not a tight layout. `AiNameGeneratorTest` sweeps
+  each pool against its own cap so a name added later that doesn't fit fails the build instead of
+  showing up ellipsised in a real game.
 
 `PlayerHeaderBar` also steps names down to `labelMedium` at 3+ players, which is what makes
 the cap actually deliver a full name on one line on a narrow phone.

@@ -83,12 +83,27 @@ data class GameSetupState(
         const val MAX_PLAYERS = 4
 
         /**
-         * Sized by where names are tightest: the in-game header, where [MAX_PLAYERS] tabs share one
-         * row. At four players a tab is about a quarter of the screen - roughly 72dp of text on a
-         * 360dp-wide phone - and a 10-character name fits that at the header's own type size
-         * without being ellipsised. It is not a database or gameplay limit; it is a layout one.
+         * The longest name that fits its own tab in the in-game header without being ellipsised -
+         * not a database or gameplay limit, a layout one. Every seat shares that one row, so the
+         * more of them there are the less width (and, for a CPU seat, the less width left over
+         * once its chip icon takes its own share) each tab - and so each name - gets.
          */
-        const val MAX_PLAYER_NAME_LENGTH = 10
+        fun maxPlayerNameLength(playerCount: Int): Int = when (playerCount) {
+            1 -> 14
+            2 -> 12
+            3 -> 10
+            else -> 8
+        }
+
+        /** How many characters' worth of width a CPU tab's chip icon and the gap after it cost -
+         * a rough conversion, not a pixel measurement, but enough to pick a shorter [AiNameGenerator]
+         * pool for a tighter player count rather than an AI name arriving pre-ellipsised where a
+         * Human one at the same length wouldn't have been. */
+        private const val CPU_ICON_ALLOWANCE = 2
+
+        /** [maxPlayerNameLength], minus room for the CPU chip icon every AI's own tab also carries -
+         * see [CPU_ICON_ALLOWANCE]. */
+        fun maxAiNameLength(playerCount: Int): Int = maxPlayerNameLength(playerCount) - CPU_ICON_ALLOWANCE
     }
 }
 
@@ -235,10 +250,15 @@ class GameViewModel(
     init {
         settingsRepository?.let { repository ->
             viewModelScope.launch {
+                // Restored first: setPlayerName below caps every restored name to whatever length
+                // fits *this* player count's tabs, so that cap has to be in place before any name
+                // is restored, not applied against the default count of 2.
+                repository.playerCount.first()?.let { savedCount -> setPlayerCount(savedCount) }
                 for (slot in 1..GameSetupState.MAX_PLAYERS) {
                     val savedName = repository.playerNameFor(slot).first() ?: continue
-                    // Via setPlayerName, so a name saved before the length cap existed is trimmed
-                    // to it on the way back in rather than reappearing over-long.
+                    // Via setPlayerName, so a name saved before the length cap existed - or saved
+                    // at a longer-lived player count - is trimmed to it on the way back in rather
+                    // than reappearing over-long.
                     setPlayerName(slot, savedName)
                 }
                 // Slot 1 is always Human, so its type and difficulty are never saved/restored.
@@ -250,7 +270,6 @@ class GameViewModel(
                     val savedDifficulty = repository.playerDifficultyFor(slot).first() ?: continue
                     updateSlot(slot) { it.copy(difficulty = savedDifficulty) }
                 }
-                repository.playerCount.first()?.let { savedCount -> setPlayerCount(savedCount) }
                 setTurnTimer(repository.turnTimer.first())
                 setGameMode(repository.gameMode.first())
             }
@@ -258,7 +277,14 @@ class GameViewModel(
     }
 
     fun setPlayerCount(count: Int) {
-        _setup.update { it.copy(playerCount = count.coerceIn(GameSetupState.MIN_PLAYERS, GameSetupState.MAX_PLAYERS)) }
+        val newCount = count.coerceIn(GameSetupState.MIN_PLAYERS, GameSetupState.MAX_PLAYERS)
+        _setup.update { it.copy(playerCount = newCount) }
+        // A count change can only ever tighten or loosen every seat's cap at once, never just one
+        // of them - so every name (not just the seat(s) just added/removed) is reclamped here,
+        // including ones for currently-inactive seats beyond the new count, which keeps them
+        // already-valid if the count is raised back before the game starts.
+        val cap = GameSetupState.maxPlayerNameLength(newCount)
+        _setup.update { state -> state.copy(playerSlots = state.playerSlots.map { it.copy(name = it.name.take(cap)) }) }
     }
 
     fun setPlayerType(slot: Int, type: PlayerType) {
@@ -268,10 +294,13 @@ class GameViewModel(
 
     /**
      * Enforced here rather than only in the text field, so the cap holds for every path into a
-     * name - including a longer one restored from a previous version's saved preferences.
+     * name - including a longer one restored from a previous version's saved preferences - and at
+     * whatever length fits the player count in the form right now (see
+     * [GameSetupState.maxPlayerNameLength]).
      */
     fun setPlayerName(slot: Int, name: String) {
-        updateSlot(slot) { it.copy(name = name.take(GameSetupState.MAX_PLAYER_NAME_LENGTH)) }
+        val cap = GameSetupState.maxPlayerNameLength(_setup.value.playerCount)
+        updateSlot(slot) { it.copy(name = name.take(cap)) }
     }
 
     fun setPlayerDifficulty(slot: Int, difficulty: Difficulty) {
@@ -294,10 +323,13 @@ class GameViewModel(
 
         val setupState = _setup.value
         val activeSlots = setupState.playerSlots.take(setupState.playerCount)
-        val aiNames = AiNameGenerator.generateNames(activeSlots.count { it.type == PlayerType.AI }).iterator()
+        val aiNames = AiNameGenerator.generateNames(
+            count = activeSlots.count { it.type == PlayerType.AI },
+            playerCount = setupState.playerCount,
+        ).iterator()
         val playerConfigs = activeSlots.map { slot ->
             val name = when (slot.type) {
-                PlayerType.HUMAN -> slot.name.ifBlank { "Player ${slot.slot}" }
+                PlayerType.HUMAN -> slot.name.trim().ifBlank { "Player ${slot.slot}" }
                 PlayerType.AI -> aiNames.next()
             }
             PlayerConfig(slot = slot.slot, type = slot.type, name = name, difficulty = slot.difficulty)
@@ -1135,7 +1167,7 @@ class GameViewModel(
         viewModelScope.launch {
             for (slot in slots) {
                 if (slot.type == PlayerType.HUMAN) {
-                    repository.setPlayerName(slot.slot, slot.name.ifBlank { "Player ${slot.slot}" })
+                    repository.setPlayerName(slot.slot, slot.name.trim().ifBlank { "Player ${slot.slot}" })
                 }
             }
         }

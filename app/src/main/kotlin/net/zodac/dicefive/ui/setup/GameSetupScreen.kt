@@ -32,10 +32,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
@@ -61,6 +63,8 @@ fun GameSetupScreen(
     modifier: Modifier = Modifier,
 ) {
     val setup by viewModel.setup.collectAsState()
+    val activeSlots = setup.playerSlots.take(setup.playerCount)
+    val duplicateNameSlots = duplicateHumanNameSlots(activeSlots)
 
     ScreenScaffold(title = "New Game", onBack = onBack, modifier = modifier) {
         // The form scrolls on its own, and the Start Game button sits directly after it rather than
@@ -70,9 +74,17 @@ fun GameSetupScreen(
         // underneath it; a form too tall for the screen scrolls, with the button held at the bottom.
         Column(
             modifier = Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            SetupForm(setup = setup, viewModel = viewModel)
+            SetupForm(setup = setup, activeSlots = activeSlots, duplicateNameSlots = duplicateNameSlots, viewModel = viewModel)
+        }
+
+        if (duplicateNameSlots.isNotEmpty()) {
+            Text(
+                text = "Names must be unique",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
         }
 
         Button(
@@ -80,40 +92,57 @@ fun GameSetupScreen(
                 viewModel.startGame()
                 onStartGame()
             },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            enabled = duplicateNameSlots.isEmpty(),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
         ) {
             Text(text = "Start Game", style = MaterialTheme.typography.titleMedium)
         }
     }
 }
 
+/**
+ * Every Human seat whose name (leading/trailing whitespace ignored, case ignored) collides with
+ * another Human seat's - an AI's name is generated, never typed, so it can't collide with anything
+ * a player entered. A blank name isn't a collision with another blank one: both fall back to their
+ * own distinct "Player N" default at [GameViewModel.startGame].
+ */
+private fun duplicateHumanNameSlots(slots: List<PlayerSetupSlot>): Set<Int> =
+    slots.filter { it.type == PlayerType.HUMAN }
+        .groupBy { it.name.trim().lowercase() }
+        .filterKeys { it.isNotEmpty() }
+        .values
+        .filter { it.size > 1 }
+        .flatten()
+        .mapTo(mutableSetOf()) { it.slot }
+
 @Composable
-private fun SetupForm(setup: GameSetupState, viewModel: GameViewModel) {
+private fun SetupForm(
+    setup: GameSetupState,
+    activeSlots: List<PlayerSetupSlot>,
+    duplicateNameSlots: Set<Int>,
+    viewModel: GameViewModel,
+) {
     SetupCard(title = "Players") {
         PlayerCountSelector(count = setup.playerCount, onCountChange = viewModel::setPlayerCount)
     }
 
-    // Player 1 is always the human at this device - their name lives in Settings now, so
-    // there's nothing to configure for them here. Only the other seats (2-4) ever need a row,
-    // and with one player there are none at all, so the whole card is skipped.
-    val otherSlots = setup.playerSlots.take(setup.playerCount).drop(1)
-    if (otherSlots.isNotEmpty()) {
-        // One card holding every other player as a single row each, rather than a card per
-        // player: three stacked cards, each with its own title, padding and controls, is what
-        // pushed the form off the screen. No card title here - every row already names its own
-        // player.
-        SetupCard {
-            otherSlots.forEachIndexed { index, slot ->
-                if (index > 0) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                }
-                PlayerRow(
-                    slot = slot,
-                    onTypeChange = { type -> viewModel.setPlayerType(slot.slot, type) },
-                    onNameChange = { name -> viewModel.setPlayerName(slot.slot, name) },
-                    onDifficultyChange = { difficulty -> viewModel.setPlayerDifficulty(slot.slot, difficulty) },
-                )
+    // Every active seat gets a row, including player 1 (always Human, at this device) - one card
+    // holding all of them rather than a card per player: stacked cards, each with its own title,
+    // padding and controls, is what pushed the form off the screen. No card title here - every
+    // row already names its own player.
+    SetupCard(rowSpacing = 2.dp) {
+        activeSlots.forEachIndexed { index, slot ->
+            if (index > 0) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
+            PlayerRow(
+                slot = slot,
+                isTypeLocked = slot.slot == 1,
+                isNameDuplicate = slot.slot in duplicateNameSlots,
+                onTypeChange = { type -> viewModel.setPlayerType(slot.slot, type) },
+                onNameChange = { name -> viewModel.setPlayerName(slot.slot, name) },
+                onDifficultyChange = { difficulty -> viewModel.setPlayerDifficulty(slot.slot, difficulty) },
+            )
         }
     }
 
@@ -130,18 +159,20 @@ private fun SetupForm(setup: GameSetupState, viewModel: GameViewModel) {
  * One section of the form - a card is M3's grouping surface for exactly this.
  *
  * [title] is optional: a section whose contents already label themselves (the player rows) doesn't
- * need a heading repeating it.
+ * need a heading repeating it. [rowSpacing] is tightened further still for the player list, where
+ * up to four rows (plus their dividers) need to fit on screen at once alongside every other card.
  */
 @Composable
 private fun SetupCard(
     modifier: Modifier = Modifier,
     title: String? = null,
+    rowSpacing: Dp = 6.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(modifier = modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(rowSpacing),
         ) {
             if (title != null) {
                 Text(
@@ -174,16 +205,22 @@ private fun PlayerCountSelector(count: Int, onCountChange: (Int) -> Unit) {
  * A player on one line: their name (editable for a User, automatic for a CPU) and the control
  * that switches between the two. No separate "Player N" label - the name field's own value (or,
  * for a CPU, the difficulty picker itself) already identifies the row.
+ *
+ * [isTypeLocked] is true only for player 1, who is always Human (this device's own player) - their
+ * row shows a fixed "You" label in place of the [FilterChip] the other seats get, at the same
+ * width so every row's name field still lines up at the same right edge.
  */
 @Composable
 private fun PlayerRow(
     slot: PlayerSetupSlot,
+    isTypeLocked: Boolean,
+    isNameDuplicate: Boolean,
     onTypeChange: (PlayerType) -> Unit,
     onNameChange: (String) -> Unit,
     onDifficultyChange: (Difficulty) -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -191,6 +228,7 @@ private fun PlayerRow(
             PlayerType.HUMAN -> CompactNameField(
                 value = slot.name,
                 onValueChange = onNameChange,
+                isError = isNameDuplicate,
                 modifier = Modifier.weight(1f),
             )
 
@@ -201,40 +239,62 @@ private fun PlayerRow(
             )
         }
 
-        FilterChip(
-            selected = slot.type == PlayerType.AI,
-            onClick = { onTypeChange(if (slot.type == PlayerType.AI) PlayerType.HUMAN else PlayerType.AI) },
-            label = {
-                // FilterChip's own Row left-aligns its label rather than centering it, so at a
-                // fixed chip width the leftover space all landed on one side - most visible as
-                // "CPU" and "User" sitting at different horizontal positions. A label that fills
-                // the whole slot and centers its own text isn't subject to that.
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text(if (slot.type == PlayerType.AI) "CPU" else "User")
-                }
-            },
-            modifier = Modifier.width(TYPE_CONTROL_WIDTH),
-        )
+        if (isTypeLocked) {
+            Box(modifier = Modifier.width(TYPE_CONTROL_WIDTH), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "You",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            FilterChip(
+                selected = slot.type == PlayerType.AI,
+                onClick = { onTypeChange(if (slot.type == PlayerType.AI) PlayerType.HUMAN else PlayerType.AI) },
+                label = {
+                    // FilterChip's own Row left-aligns its label rather than centering it, so at a
+                    // fixed chip width the leftover space all landed on one side - most visible as
+                    // "CPU" and "User" sitting at different horizontal positions. A label that fills
+                    // the whole slot and centers its own text isn't subject to that.
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(if (slot.type == PlayerType.AI) "CPU" else "User")
+                    }
+                },
+                modifier = Modifier.width(TYPE_CONTROL_WIDTH),
+            )
+        }
     }
 }
 
 /**
- * A single-line name field shrunk to [DifficultySelector]'s own height (a segmented button's
- * ~40dp floor) so toggling User/CPU doesn't resize the whole row - the public `OutlinedTextField`
- * composable enforces a 56dp minimum height that isn't reachable through its own
- * modifier/parameters, so this builds the same look from [BasicTextField] plus
- * [OutlinedTextFieldDefaults.DecorationBox], which takes an explicit
+ * A single-line name field shrunk close to [DifficultySelector]'s own height so toggling User/CPU
+ * doesn't resize the whole row - the public `OutlinedTextField` composable enforces a 56dp minimum
+ * height that isn't reachable through its own modifier/parameters, so this builds the same look
+ * from [BasicTextField] plus [OutlinedTextFieldDefaults.DecorationBox], which takes an explicit
  * [contentPadding][OutlinedTextFieldDefaults.contentPadding] instead.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CompactNameField(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+private fun CompactNameField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    isError: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val colors = OutlinedTextFieldDefaults.colors()
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier,
+        modifier = modifier.onFocusChanged { focusState ->
+            // Trimmed only once the player has moved on, not on every keystroke - trimming a
+            // trailing space the instant it's typed would make it impossible to type a second
+            // word, and leading/trailing whitespace can't matter until the value is final anyway.
+            if (!focusState.isFocused) {
+                val trimmed = value.trim()
+                if (trimmed != value) onValueChange(trimmed)
+            }
+        },
         textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
         singleLine = true,
         // Names read as Capitalized Words, not lowercase - and this keeps the keyboard's own
@@ -250,10 +310,11 @@ private fun CompactNameField(value: String, onValueChange: (String) -> Unit, mod
             innerTextField = innerTextField,
             enabled = true,
             singleLine = true,
+            isError = isError,
             visualTransformation = VisualTransformation.None,
             interactionSource = interactionSource,
             colors = colors,
-            contentPadding = OutlinedTextFieldDefaults.contentPadding(top = 10.dp, bottom = 10.dp),
+            contentPadding = OutlinedTextFieldDefaults.contentPadding(top = 6.dp, bottom = 6.dp),
         )
     }
 }
