@@ -183,6 +183,7 @@ fun GameScreen(
                 onCycleValue = viewModel::cycleHeldDieValue,
                 onScoreCategory = viewModel::commitScore,
                 onTapCupWithNoRollsLeft = viewModel::tapCupWithNoRollsLeft,
+                onShakeRollDetected = viewModel::onShakeRollDetected,
                 soundEnabled = soundEnabled,
                 vibrationEnabled = vibrationEnabled,
             )
@@ -203,6 +204,7 @@ private fun InProgressGame(
     onCycleValue: (Int) -> Unit,
     onScoreCategory: (ScoreCategory) -> Unit,
     onTapCupWithNoRollsLeft: () -> Unit,
+    onShakeRollDetected: () -> Unit,
     soundEnabled: Boolean,
     vibrationEnabled: Boolean,
 ) {
@@ -286,6 +288,18 @@ private fun InProgressGame(
             onTapCupWithNoRollsLeft()
         }
     }
+
+    // Shaking the phone is just another way to "tap" the cup - same gating, same animation/sound,
+    // same no-rolls-left fallback - it only additionally reports the achievement, and only for a
+    // shake that actually triggers a roll, not one that lands on the no-op fallback. Not offered at
+    // all while viewing another player's scorecard, matching the cup itself being untappable then.
+    val onShakeDetected = {
+        if (viewedPlayer == null) {
+            if (canRoll && !isRolling) onShakeRollDetected()
+            onCupTap()
+        }
+    }
+    rememberShakeDetector(onShake = onShakeDetected)
 
     PlayerHeaderBar(
         players = state.players,
