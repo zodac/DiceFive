@@ -205,8 +205,9 @@ class AchievementsViewModel(
         progressOverride: Map<Achievement, Int>,
     ): AchievementsUiState {
         val items = Achievement.entries
-            // A secret achievement doesn't exist as far as the list (or its counts) is concerned
-            // until it's actually been earned - that's the whole point of it being secret.
+            // A secret achievement doesn't exist as far as the list is concerned until it's
+            // actually been earned - that's the whole point of it being secret. It stays out of
+            // the unlocked/total tallies below even once earned - see their own comment.
             .filterNot { it.visibility == AchievementVisibility.SECRET && state.unlockedAt[it] == null }
             .map {
                 val progress = (AchievementEngine.progressOf(it, state.counters, leaderboard) + (progressOverride[it] ?: 0))
@@ -223,8 +224,11 @@ class AchievementsViewModel(
             groups = items
                 .groupBy { it.achievement.category }
                 .map { (category, categoryItems) -> AchievementGroup(category, categoryItems) },
-            unlockedCount = items.count { it.unlockedAt != null },
-            totalCount = items.size,
+            // Secret achievements never count towards these tallies, earned or not - a "30 of 30"
+            // player would otherwise never see 100% until they stumbled onto every secret too,
+            // which defeats the "secret" part of a surprise achievement.
+            unlockedCount = items.count { it.unlockedAt != null && it.achievement.visibility != AchievementVisibility.SECRET },
+            totalCount = items.count { it.achievement.visibility != AchievementVisibility.SECRET },
         )
     }
 
