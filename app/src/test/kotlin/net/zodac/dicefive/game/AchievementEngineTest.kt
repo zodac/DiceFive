@@ -833,9 +833,7 @@ class AchievementEngineTest {
                 Achievement.PERSONAL_BEST,
                 Achievement.TON,
                 Achievement.SCORE_200,
-                Achievement.DOUBLE_TON,
                 Achievement.SCORE_300,
-                Achievement.TRIPLE_TON,
                 Achievement.SCORE_400,
                 Achievement.SCORE_500,
             ),
@@ -844,18 +842,14 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `Double Ton and Triple Ton are exact, and disjoint from the strictly-over rungs next to them`() {
+    fun `Solid Round and Sharpshooter unlock on exactly 200 or 300, not only strictly over`() {
         val exactly200 = evaluate(finishedGame(player(total = 200)))
         val over200 = evaluate(finishedGame(player(total = 250)))
         val exactly300 = evaluate(finishedGame(player(total = 300)))
 
-        assertTrue(Achievement.DOUBLE_TON in exactly200.newlyUnlocked)
-        assertFalse("exactly 200 must not also unlock Solid Round - it's for strictly over", Achievement.SCORE_200 in exactly200.newlyUnlocked)
+        assertTrue("200 should unlock Solid Round", Achievement.SCORE_200 in exactly200.newlyUnlocked)
         assertTrue("250 is over 200, so it should unlock Solid Round", Achievement.SCORE_200 in over200.newlyUnlocked)
-        assertFalse(Achievement.DOUBLE_TON in over200.newlyUnlocked)
-        assertTrue(Achievement.TRIPLE_TON in exactly300.newlyUnlocked)
-        assertFalse("exactly 300 must not also unlock Sharpshooter - it's for strictly over", Achievement.SCORE_300 in exactly300.newlyUnlocked)
-        assertFalse(Achievement.DOUBLE_TON in exactly300.newlyUnlocked)
+        assertTrue("300 should unlock Sharpshooter", Achievement.SCORE_300 in exactly300.newlyUnlocked)
     }
 
     @Test

@@ -142,8 +142,6 @@ object AchievementEngine {
     private const val LOWER_CLASS_THRESHOLD = 150
     private const val NICE_SCORE = 69
     private const val TON_SCORE = 100
-    private const val DOUBLE_TON_SCORE = 200
-    private const val TRIPLE_TON_SCORE = 300
     private const val LANDSLIDE_MARGIN = 100
     private const val PHOTO_FINISH_MARGIN = 1
     private const val PIPPED_MARGIN = 1
@@ -371,10 +369,8 @@ object AchievementEngine {
 
         // Score thresholds - see earnedDuringPlay's doc comment for why these wait for the actual
         // result rather than firing off a total that's already passed the mark mid-game.
-        // SCORE_200/SCORE_300 are strictly greater-than - see their doc comments in Achievement.kt
-        // for why they're kept disjoint from DOUBLE_TON/TRIPLE_TON's exact thresholds.
-        award(Achievement.SCORE_200, bestHumanScore > 200)
-        award(Achievement.SCORE_300, bestHumanScore > 300)
+        award(Achievement.SCORE_200, bestHumanScore >= 200)
+        award(Achievement.SCORE_300, bestHumanScore >= 300)
         award(Achievement.SCORE_400, bestHumanScore >= 400)
         award(Achievement.SCORE_500, bestHumanScore >= 500)
 
@@ -433,12 +429,10 @@ object AchievementEngine {
         award(Achievement.IMPATIENT, playerOneNeverRolledTwice)
         award(Achievement.NATURALLY_GIFTED, multiplayer && playerOneNeverRolledTwice && humanWon)
 
-        // Exactly 69/100/200/300 - thresholds the running total can overshoot, so they can only be
-        // judged now, unlike the 200-or-more/300-or-more rungs right next to them on the ladder.
+        // Exactly 69/100 - thresholds the running total can overshoot, so they can only be judged
+        // now, unlike the 200-or-more/300-or-more rungs further up the ladder.
         award(Achievement.NICE, anyHuman { it.totalScore == NICE_SCORE })
         award(Achievement.TON, anyHuman { it.totalScore == TON_SCORE })
-        award(Achievement.DOUBLE_TON, anyHuman { it.totalScore == DOUBLE_TON_SCORE })
-        award(Achievement.TRIPLE_TON, anyHuman { it.totalScore == TRIPLE_TON_SCORE })
 
         // The upper section filled with exactly the matching pip count in every box, in this one
         // game - can only be judged once every upper box is actually filled in.

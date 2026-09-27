@@ -166,9 +166,7 @@ val Achievement.icon: ImageVector
         Achievement.PERSONAL_BEST -> Icons.AutoMirrored.Filled.TrendingUp
         Achievement.TON -> Icons.Filled.Filter1
         Achievement.SCORE_200 -> Icons.Filled.Speed
-        Achievement.DOUBLE_TON -> Icons.Filled.LooksTwo
         Achievement.SCORE_300 -> Icons.Filled.GpsFixed
-        Achievement.TRIPLE_TON -> Icons.Filled.Filter3
         Achievement.SCORE_400 -> Icons.Filled.KeyboardDoubleArrowUp
         Achievement.SCORE_500 -> Icons.Filled.Bolt
 
