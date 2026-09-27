@@ -24,6 +24,7 @@ import net.zodac.dicefive.ui.common.AppLogo
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.PageColumn
+import net.zodac.dicefive.ui.common.RulesDialog
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /**
@@ -47,6 +48,11 @@ fun MenuScreen(
     modifier: Modifier = Modifier,
 ) {
     var showResumeDialog by remember { mutableStateOf(false) }
+    var showRulesDialog by remember { mutableStateOf(false) }
+
+    if (showRulesDialog) {
+        RulesDialog(onDismissRequest = { showRulesDialog = false })
+    }
 
     if (showResumeDialog) {
         DiceFiveDialog(
@@ -89,6 +95,7 @@ fun MenuScreen(
                 MenuDestinationButton(label = "Statistics", onClick = onStatistics)
                 MenuDestinationButton(label = "Styles", onClick = onStyles)
                 MenuDestinationButton(label = "Settings", onClick = onSettings)
+                MenuDestinationButton(label = "Rules", onClick = { showRulesDialog = true })
             }
 
             Spacer(modifier = Modifier.weight(0.38f))
