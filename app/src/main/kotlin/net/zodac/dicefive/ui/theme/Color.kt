@@ -207,3 +207,12 @@ val Bronze = Color(0xFFE0965A)
 // theme-able choice. Not TricolourRedSwatch - that one belongs to the Tricolour game mode and
 // shouldn't couple an unrelated achievement's colour to a game mode's palette.
 val AchievementHeartRed = Color(0xFFE53935)
+
+// Shaken, Not Tapped's martini icon (Achievement.iconTintOrUnspecified) - same "fixed meaning,
+// not a theme-able choice" reasoning as the heart/podium accents above: a martini has a glass, a
+// drink and an olive, and those are three specific colours, not one ambient tint.
+val MartiniGlassSwatch = Color(0xFFD8DEE0)
+val MartiniLiquidSwatch = Color(0xFFD9B23C)
+val MartiniOliveSwatch = Color(0xFF6E7A2E)
+val MartiniOliveHighlightSwatch = Color(0xFF93A150)
+val MartiniPickSwatch = Color(0xFFC9A66B)
