@@ -1,0 +1,164 @@
+name: Update dependencies
+
+# Once a month (and on demand), runs .github/scripts/update_dependency_versions.sh - every Gradle
+# dependency, the Android SDK platform, the JDK, the sandbox image's pins and the actionlint image -
+# then re-runs the same gates the release workflow applies. Only if everything passes is the result
+# committed to main and a release started; a failure anywhere leaves main untouched (the run just
+# fails, with the reason in its log).
+#
+# Everything runs on the default GITHUB_TOKEN - no extra secret - which GitHub limits in two ways,
+# both designed around here:
+#   - It may not change files under .github/workflows/. So no version the update moves lives in a
+#     workflow: the JDK comes from the Gradle toolchain file and the SDK packages from
+#     app/build.gradle.kts, both read at run time (below, and in release.yml), and the actionlint
+#     image is pinned in .github/scripts/lint_workflows.sh. The one thing left in workflow files is
+#     the actions' own versions (`uses: …@vN`): the script runs with --no-workflow-edits, so newer
+#     ones are only listed in the run summary, to apply by running the script locally.
+#   - A push made with it never triggers other workflows (which is what stops release.yml's own
+#     version-bump commit from looping). So after pushing, this starts release.yml explicitly - a
+#     workflow_dispatch is the one event GITHUB_TOKEN is allowed to trigger. That run releases the
+#     VERSION on main, the next patch release, with this commit in its notes; since the push itself
+#     triggered nothing, it runs exactly once.
+on:
+  schedule:
+    # 06:00 UTC on the 2nd of every month.
+    - cron: "0 6 2 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write # push the update commit
+  actions: write # start release.yml
+
+concurrency:
+  group: update-dependencies
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: main
+
+      # The Java version is owned by the Gradle toolchain (gradle/gradle-daemon-jvm.properties), which
+      # Gradle would download itself; installing the same JDK here just saves it that download.
+      - name: Read the Java version from the Gradle toolchain
+        id: java
+        run: echo "version=$(grep -oP '^toolchainVersion=\K[0-9]+' gradle/gradle-daemon-jvm.properties)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: ${{ steps.java.outputs.version }}
+
+      # The packages app/build.gradle.kts builds against. A newer platform the script tries is
+      # installed by the script itself.
+      - name: Install required Android SDK packages
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null
+          read -ra packages <<< "$(.github/scripts/android_sdk_packages.sh)"
+          "$SDKMANAGER" "${packages[@]}"
+
+      # normalizeOggAudio shells out to ffmpeg, which ubuntu-latest runners don't ship.
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      # Builds and tests on every Gradle-side change, steps a breaking bump back down, and exits
+      # non-zero if the build still fails or pinned values disagree across files - which stops the
+      # job here, before anything is committed.
+      - name: Update dependency versions
+        env:
+          # Raises the GitHub API rate limit for the version lookups.
+          GITHUB_TOKEN: ${{ github.token }}
+          # The script writes each change it made here ("what: old → new"): the commit message body.
+          UPDATE_SUMMARY_FILE: ${{ runner.temp }}/update-summary.txt
+          # ...and each update it found but did not apply (newer actions) here.
+          UPDATE_NOTES_FILE: ${{ runner.temp }}/update-notes.txt
+        run: .github/scripts/update_dependency_versions.sh --no-workflow-edits
+
+      - name: Report actions to update by hand
+        if: always()
+        run: |
+          if [ -s "$RUNNER_TEMP/update-notes.txt" ]; then
+            {
+              echo "## Available but not applied"
+              echo
+              echo "GITHUB_TOKEN may not edit workflow files - run \`.github/scripts/update_dependency_versions.sh\` locally to apply these:"
+              echo
+              sed 's/^/- /' "$RUNNER_TEMP/update-notes.txt"
+              echo
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Everything is already up to date - nothing to commit." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # Belt and braces: GITHUB_TOKEN cannot push a workflow change, so fail here with a clear
+          # message rather than at the push, after the gates have run for nothing.
+          if [ -n "$(git status --porcelain -- .github/workflows)" ]; then
+            echo "::error::The update changed files under .github/workflows/, which GITHUB_TOKEN may not push."
+            git status --short -- .github/workflows
+            exit 1
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          git status --short
+
+      # The release workflow's gates, run on exactly the tree that would be committed, whatever the
+      # script touched (it only builds when a Gradle input changed): the debug build, unit tests, the
+      # instrumented tests compiling, and lint - with the deprecation checks the build carries.
+      - name: Build, test and lint
+        if: steps.changes.outputs.changed == 'true'
+        run: ./gradlew assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lintDebug --console=plain
+
+      # Also exercises a freshly bumped actionlint image before it is committed.
+      - name: Lint workflows
+        if: steps.changes.outputs.changed == 'true'
+        run: .github/scripts/lint_workflows.sh
+
+      # Authored under its own name, not github-actions[bot]: scripts/release-changelog.sh leaves that
+      # author's commits (release.yml's version bumps) out of the release notes, and this one belongs
+      # in them. The push is a plain fast-forward - if main moved during the run it is rejected rather
+      # than rebased, so what lands is exactly the tree the gates above passed.
+      - name: Commit and push
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          {
+            echo "[Dependencies] Update dependency versions"
+            echo
+            sed 's/^/- /' "$RUNNER_TEMP/update-summary.txt"
+          } > "$RUNNER_TEMP/commit-message.txt"
+          {
+            echo "## Dependency updates"
+            echo
+            sed 's/^/- /' "$RUNNER_TEMP/update-summary.txt"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          git config user.name "DiceFive dependency updater"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -F "$RUNNER_TEMP/commit-message.txt"
+          git push origin HEAD:main
+
+      # The push above triggers nothing (GITHUB_TOKEN), so the release is started explicitly.
+      - name: Release the update
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run release.yml --ref main
+          echo "Started release.yml on main - see the Actions tab for the release run." >> "$GITHUB_STEP_SUMMARY"

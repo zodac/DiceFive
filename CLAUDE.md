@@ -50,6 +50,7 @@
   |------------------|----------------------------------------------------------------------|
   | `[Achievements]` | Achievement rules, the achievements list and unlock banners          |
   | `[CI]`           | GitHub workflows, release pipeline, git hooks and changelog scripts  |
+  | `[Dependencies]` | Version bumps - libraries, SDK, JDK, sandbox pins, actions           |
   | `[Gameplay]`     | The in-game screen - dice, cup, scorecard, player tabs - and rules   |
   | `[Game Over]`    | The end-of-game results page and its celebration                     |
   | `[Icon]`         | The app's launcher icon                                              |
