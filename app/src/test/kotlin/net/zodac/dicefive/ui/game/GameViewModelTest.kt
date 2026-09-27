@@ -155,6 +155,45 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `turn timer keeps running through an AI turn too, so its badge never disappears mid-game`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setPlayerCount(2)
+        viewModel.setPlayerType(2, PlayerType.AI)
+        viewModel.setTurnTimer(TurnTimer.SECONDS_30)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.CHANCE)
+
+        // Mid AI-turn, nothing advanced yet - the countdown should already be running for it, the
+        // same as it would for a human, rather than sitting null until control returns.
+        assertEquals(30, viewModel.turnSecondsRemaining.value)
+    }
+
+    @Test
+    fun `an AI that takes too long deciding is timed out and its turn forfeited, same as a human's`() = runTest(testDispatcher) {
+        // A separate dispatcher for AiTurnPlayer's hold/category work that this test never advances,
+        // standing in for a decision that never comes back in time - the only realistic way an AI
+        // seat could ever actually trip the turn timer.
+        val stuckAiDispatcher = StandardTestDispatcher()
+        val viewModel = GameViewModel(aiDispatcher = stuckAiDispatcher)
+        viewModel.setPlayerCount(2)
+        viewModel.setPlayerType(2, PlayerType.AI)
+        viewModel.setTurnTimer(TurnTimer.SECONDS_30)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.CHANCE)
+
+        advanceTimeBy(30_000)
+        runCurrent()
+
+        val state = viewModel.game.value!!
+        assertEquals(0, state.currentPlayerIndex)
+        assertEquals(1, state.players[1].scorecard.values.count { it != null })
+    }
+
+    @Test
     fun `AI players complete their turn automatically`() = runTest(testDispatcher) {
         val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(2)

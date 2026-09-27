@@ -129,8 +129,9 @@ class GameViewModel(
     private val _aiRolling = MutableStateFlow(false)
     val aiRolling: StateFlow<Boolean> = _aiRolling.asStateFlow()
 
-    /** Seconds left on the current human turn's timer, or null when [GameState.turnTimer] is
-     * [TurnTimer.NONE], it's an AI's turn, or the game is over - see [syncTurnTimer]. */
+    /** Seconds left on the current turn's timer - human or AI alike, so the badge's space in the
+     * layout never shifts between turns - or null when [GameState.turnTimer] is [TurnTimer.NONE]
+     * or the game is over - see [syncTurnTimer]. */
     private val _turnSecondsRemaining = MutableStateFlow<Int?>(null)
     val turnSecondsRemaining: StateFlow<Int?> = _turnSecondsRemaining.asStateFlow()
 
@@ -565,13 +566,14 @@ class GameViewModel(
 
     /**
      * Starts, restarts or cancels the per-turn countdown so it always matches [newState]: running
-     * only on a human seat's own turn, only while [GameState.turnTimer] allows one, and reset to
+     * on any seat's turn - human or AI - only while [GameState.turnTimer] allows one, and reset to
      * the full duration whenever the turn it's counting down for changes (a new turn starting, or
-     * the previous turn reappearing after [undo]).
+     * the previous turn reappearing after [undo]). An AI is expected to finish well within the
+     * limit - [autoScoreOnTimeout] forfeits its turn the same as a human's if it doesn't.
      */
     private fun syncTurnTimer(newState: GameState) {
         val seconds = newState.turnTimer.seconds
-        if (newState.isGameOver || newState.currentPlayer?.type != PlayerType.HUMAN || seconds == null) {
+        if (newState.isGameOver || seconds == null) {
             cancelTurnTimer()
             return
         }
@@ -606,11 +608,18 @@ class GameViewModel(
      * The turn timer running out: forfeits the rest of this turn's rolls (rolling first, if the
      * player hadn't yet, since a category can't be committed before that) and commits into
      * whichever open category comes first, scoring zero if the current dice don't match it - a
-     * forced miss rather than picking the player's best option for them.
+     * forced miss rather than picking the player's best option for them. Applies equally to an AI
+     * seat that's taken too long to decide - Hard's exhaustive search is the only realistic way
+     * this fires for one - cancelling its in-flight turn job first so it can't keep acting after
+     * being timed out from under it.
      */
     private fun autoScoreOnTimeout() {
         var state = _game.value ?: return
-        if (state.currentPlayer?.type != PlayerType.HUMAN) return
+        if (state.currentPlayer?.type == PlayerType.AI) {
+            aiTurnJob?.cancel()
+            aiTurnJob = null
+            _aiRolling.value = false
+        }
         // Only player 1 - "You" - earns achievements; another human seat can still be timed out,
         // it just doesn't feed Achievement tracking.
         val isPlayerOneTurn = state.currentPlayerIndex == 0
