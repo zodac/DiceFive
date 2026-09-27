@@ -380,6 +380,11 @@ object AchievementEngine {
         // Winning.
         award(Achievement.WIN_BY_100, multiplayer && humanWon && margin != null && margin >= LANDSLIDE_MARGIN)
         award(Achievement.WIN_BY_5, multiplayer && humanWon && margin == PHOTO_FINISH_MARGIN)
+        // Player 1 holds the top rank, but only because the house rule (TieBreak.kt) separated
+        // them from another player who matched their raw score - a plain, unbroken top score
+        // leaves tieBreakReason null, same as a solo win with nobody to tie.
+        val primaryPlayerRank = TieBreak.rank(players).first { it.originalIndex == 0 }
+        award(Achievement.TIE_BREAK, multiplayer && primaryPlayerRank.rank == 1 && primaryPlayerRank.tieBreakReason != null)
         award(Achievement.COMEBACK, multiplayer && humanWon && context.trailedIntoFinalRound)
         award(
             Achievement.ZERO_TO_HERO,

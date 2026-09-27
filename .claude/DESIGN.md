@@ -1151,3 +1151,92 @@ install-over-existing succeeds:
 - [ ] **Not yet seen on a device**: the compact 8-row grid, the striped Coloured House tile, the
       coloured dice and the new mat colour are compile-and-read verified only (no emulator in the
       sandbox).
+
+### Phase 15 — Tie-break house rules
+- [x] **Not in the official rules**: the real rulebook is silent on a tie at the top - it's simply
+      recorded as a shared win, and DiceFive did the same until this phase (see Phase 13's "a tie at
+      the top counts as a win"). This is a deliberate house rule layered on top, the same status as a
+      casual group's own sudden-death round - not a restoration of anything official.
+- [x] **The rule, in priority order** - whoever matched a score with more handicaps (less luck, more
+      empty boxes) ranks above the other(s): fewest 5x, then most zeroed categories, then fewest of
+      the four Tricolour-mode colour boxes actually scored (Tricolour only), then lowest upper
+      section (excluding its 35 bonus), then lowest Chance, then lowest 3x, then lowest 4x. The first
+      criterion that differs decides it; if every one of them also matches, it's a true tie and stays
+      a shared rank - same as an untouched game of the official rules would have called it.
+- [x] `game/TieBreak.kt` (new, pure, no Android/persistence deps): `TieBreakCriterion` (the seven
+      criteria above, each with its own `reasonText` for the Game Over screen's caption),
+      `TieBreakStats` (one player/row's inputs to the rule - every field but `score` nullable),
+      `PlayerState.toTieBreakStats()` (always fully populated except `tricolourScoredCount`, null in
+      Standard mode - no colour boxes to count), and two comparators:
+      - `liveGameComparator` - a criterion both sides share as null (only possible for the Tricolour
+        one, in a Standard game) is skipped, falling through to the next. Used by `GameOverScreen`,
+        where a just-finished game's own players always have every other field populated.
+      - `leaderboardComparator` - a *missing* stat (a row recorded before this phase shipped) counts
+        as the worst possible value for that criterion rather than being skipped, so an unknown can
+        never quietly tie with someone else's real, hard-won handicap - the same "unknown means
+        excluded, not guessed at" call already made for `ScoreEntry.fiveOfAKindCount`. It also drops
+        the Tricolour criterion entirely: the leaderboard mixes Standard and Tricolour scores on one
+        list, and a Standard row has no colour boxes to compare a Tricolour one against - null there
+        would otherwise always sink a Standard row under a Tricolour one on the same score, for the
+        wrong reason.
+      `decidingCriterion(a, b, forLeaderboard)` returns whichever criterion told two same-scored
+      rows apart (or null for a true tie) - what a Game Over row's caption names. `TieBreak.rank`
+      and its `RankedPlayer` (`player`, `originalIndex`, `rank`, `tieBreakReason`) live here too,
+      not in a screen - the one ranking a just-finished game's players, shared by `GameOverScreen`
+      (which renders it as-is, sorted) and the `TIE_BREAK` achievement (which looks up
+      `originalIndex == 0` for player 1, since sorted position isn't seat identity). `originalIndex`
+      exists because ranking pairs by list index rather than `associateWith`-ing `PlayerState` to
+      its stats - two players can legitimately have identical `PlayerState` values (a true tie down
+      to the last box), which a `Map` would silently collapse into one entry.
+- [x] **`GameOverScreen`**: player-ranking now comes from `TieBreak.rank` - assigns a rank that only
+      advances past however many players are a true tie (same pattern the previous "runners-up can
+      tie too" fix used, now generalised across the whole table including the top spot, and shown
+      with the same "=2" prefix `ScoresScreen` uses for a true tie). `winners` is now just "everyone
+      at rank 1" - almost always one player, since a raw-score tie is now nearly always broken by
+      some criterion below it. `WinnerCard`/`RunnerUpRow` gained an optional `tieBreakReason`:
+      whenever a player's raw score matches the very next player down the list but the house rule
+      still told them apart, their row gets a small caption ("Won on fewer 5x", "Won on more zeroed
+      categories", ...) crediting the deciding criterion.
+- [x] **Leaderboard**: `ScoreEntry` gained five nullable columns - `zeroedCategoryCount`,
+      `upperSectionTotal`, `chanceScore`, `threeOfAKindScore`, `fourOfAKindScore` (no
+      `tricolourScoredCount` column - see `leaderboardComparator`'s doc comment on why that
+      criterion doesn't belong on the shared board at all) - via `MIGRATION_5_6` (schema v6),
+      populated from `GameViewModel.persistHumanScores` off the same `PlayerState.toTieBreakStats()`
+      the Game Over screen itself just used. `ScoreDao.pagedScores`'s `ORDER BY` now breaks a score
+      tie with `COALESCE(column, sentinel)` per criterion (a large number for "lower is better", -1
+      for "higher is better" `zeroedCategoryCount`) - the SQL-level mirror of
+      `leaderboardComparator`'s "missing counts as worst" rule, so a page's row order and
+      `ScoresScreen`'s own client-side tie/rank logic agree. **This is unrelated to
+      `ScoreEntry.won`** - the achievements/statistics "a tie at the top counts as a win" rule from
+      Phase 13 is untouched; the house rule only changes *ranking/display*, never who counts as
+      having won for achievement or streak purposes.
+- [x] **`ScoresScreen`**: `rankEntries` assigns each page's rows a rank via `leaderboardComparator`,
+      the same "only advances past a true tie" logic as `GameOverScreen`; a row prefixes its rank
+      with "=" only when it is a true tie with a neighbour (every criterion also matches), never for
+      a raw-score tie the house rule went on to break. No reason caption on the Leaderboard itself -
+      unlike the Game Over screen, a compact 50-row table has no room for one, and behind-the-scenes
+      ranking was all that was asked for. A tie split across a page boundary isn't caught - each
+      page only ever compares against its own fetched rows, same limitation the table's pagination
+      already had for anything else.
+- [x] **`Achievement.TIE_BREAK`** ("Tie Break", Winning category, visible - not Miscellaneous,
+      despite the original ask, since that category is exclusively the *hidden*-achievement bucket
+      (`AchievementEngineTest` enforces it both ways) and this is a normal, chaseable win condition
+      like its neighbours): unlocked when player 1 holds `TieBreak.rank`'s rank 1 *and* their
+      `tieBreakReason` is non-null - a plain, unbroken top score leaves that null, same as a solo
+      win with nobody to tie. Deliberately separate from `FIRST_WIN`'s existing "a raw-score tie
+      counts as a win" rule (Phase 13), which stays untouched - `TIE_BREAK` only fires when the
+      house rule was actually the reason player 1, not the other tied player, holds the win. Icon:
+      `Icons.Filled.Gavel` in `AchievementIcons.kt` - the ruling that settled an otherwise-equal
+      score (an earlier pick, two arrows meeting head-on, didn't read clearly enough and was
+      swapped out).
+- [x] Tests: `TieBreakTest` (12 - each criterion's priority, null/skip vs null/worst semantics for
+      the two comparators, the Tricolour-only criterion's exclusion from the leaderboard comparator,
+      and `PlayerState.toTieBreakStats()`'s field extraction off a real scorecard). Four new
+      `AchievementEngineTest` cases for `TIE_BREAK` (wins it, loses the tie-break so doesn't, a true
+      unbroken tie doesn't, and a solo game can't). `./gradlew testDebugUnitTest` and `assembleDebug`
+      both green.
+- [ ] **Not yet seen on a device**: the Game Over screen's tie-break captions and "=" rank prefix,
+      the Leaderboard's "=" rank prefix, and the Tie Break achievement's banner/icon are
+      compile-and-read verified only (no emulator in the sandbox).
+- [ ] **For later**: this phase's rule list is the source for the player-facing "How Do You Play
+      This Game?" rules section's own tie-break explanation, once that section exists.

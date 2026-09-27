@@ -31,6 +31,7 @@ import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +45,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
+import net.zodac.dicefive.game.TieBreak
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
@@ -99,6 +101,9 @@ fun ScoresScreen(
                     // colour/weight already separate them from the data below without it.
                     Spacer(modifier = Modifier.height(4.dp))
                     val listState = rememberLazyListState()
+                    // Ranks/`=` ties reflect the same house-rule ordering ScoreDao.pagedScores
+                    // already sorted this page by - see rankEntries.
+                    val ranked = remember(state.entries, state.pageIndex) { rankEntries(state.entries, state.pageIndex) }
                     Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                         LazyColumn(
                             state = listState,
@@ -109,9 +114,13 @@ fun ScoresScreen(
                             // right, scrollbar or not.
                             contentPadding = PaddingValues(horizontal = 12.dp),
                         ) {
-                            itemsIndexed(state.entries, key = { _, entry -> entry.id }) { index, entry ->
-                                val rank = state.pageIndex * SCORES_PAGE_SIZE + index + 1
-                                ScoreRow(rank = rank, entry = entry, striped = index % 2 == 1)
+                            itemsIndexed(ranked, key = { _, ranked -> ranked.entry.id }) { index, rankedEntry ->
+                                ScoreRow(
+                                    rank = rankedEntry.rank,
+                                    isTrueTie = rankedEntry.isTrueTie,
+                                    entry = rankedEntry.entry,
+                                    striped = index % 2 == 1,
+                                )
                             }
                         }
                         LazyListScrollbar(listState = listState)
@@ -184,12 +193,40 @@ private fun podiumAccent(rank: Int): Color? {
     }
 }
 
+/** One page's row, ranked by the tie-break house rule (`game/TieBreak.kt`) rather than plain
+ * position - [isTrueTie] means this row shares [rank] with at least one neighbour because every
+ * criterion in that list also matched between them, not just their raw score. */
+private data class RankedEntry(val entry: ScoreEntry, val rank: Int, val isTrueTie: Boolean)
+
+/**
+ * Assigns each of this page's [entries] its rank, sharing one only for a true tie - the same
+ * house-rule ordering `ScoreDao.pagedScores`'s `ORDER BY` already sorted them by (keep the two in
+ * step; see [TieBreak.leaderboardComparator]'s doc comment). A tie split across a page boundary
+ * isn't caught here - each page only ever compares against its own rows.
+ */
+private fun rankEntries(entries: List<ScoreEntry>, pageIndex: Int): List<RankedEntry> {
+    val stats = entries.map { it.toTieBreakStats() }
+    val ranks = IntArray(entries.size)
+    var rank = pageIndex * SCORES_PAGE_SIZE + 1
+    for (index in entries.indices) {
+        if (index > 0 && TieBreak.leaderboardComparator.compare(stats[index - 1], stats[index]) != 0) {
+            rank = pageIndex * SCORES_PAGE_SIZE + index + 1
+        }
+        ranks[index] = rank
+    }
+    return entries.indices.map { index ->
+        val tiedWithPrevious = index > 0 && ranks[index - 1] == ranks[index]
+        val tiedWithNext = index < entries.lastIndex && ranks[index + 1] == ranks[index]
+        RankedEntry(entries[index], ranks[index], isTrueTie = tiedWithPrevious || tiedWithNext)
+    }
+}
+
 // rememberPlainTooltipPositionProvider is deprecated in favour of rememberTooltipPositionProvider,
 // which doesn't exist yet in material3 1.4.0 - it arrives with the 1.5.0 line. Swap it over then.
 @Suppress("DEPRECATION")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScoreRow(rank: Int, entry: ScoreEntry, striped: Boolean) {
+private fun ScoreRow(rank: Int, isTrueTie: Boolean, entry: ScoreEntry, striped: Boolean) {
     val onPodium = rank <= PODIUM_RANKS
     val accent = podiumAccent(rank)
 
@@ -224,7 +261,8 @@ private fun ScoreRow(rank: Int, entry: ScoreEntry, striped: Boolean) {
             // Same style/weight on every row, podium or not - the accent colour above is already
             // the whole distinction, a second (font) one on top of it was redundant.
             Text(
-                text = rank.toString(),
+                // "=" only for a true tie (every tie-break criterion also matches) - see rankEntries.
+                text = if (isTrueTie) "=$rank" else rank.toString(),
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodySmall,
                 color = accent ?: MaterialTheme.colorScheme.onSurfaceVariant,

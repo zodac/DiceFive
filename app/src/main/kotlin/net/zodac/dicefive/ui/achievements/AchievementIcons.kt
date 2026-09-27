@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.FormatPaint
+import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Grade
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.Groups
@@ -175,6 +176,8 @@ val Achievement.icon: ImageVector
         Achievement.FIRST_WIN -> Icons.Filled.Flag
         Achievement.WIN_BY_100 -> Icons.Filled.Landslide
         Achievement.WIN_BY_5 -> Icons.Filled.PhotoCamera
+        // A gavel - the ruling that settled an otherwise-equal score.
+        Achievement.TIE_BREAK -> Icons.Filled.Gavel
         // No cowboy-with-twin-pistols glyph in Material (nor any hat at all) for the "quick draw"
         // read of a last-round comeback, so this is the requested fallback: a plain cowboy hat.
         Achievement.COMEBACK -> ImageVector.vectorResource(R.drawable.ic_cowboy_hat)

@@ -45,6 +45,7 @@ import net.zodac.dicefive.game.GameStartContext
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.game.DiceScoring
 import net.zodac.dicefive.game.ScoreCalculator
+import net.zodac.dicefive.game.toTieBreakStats
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.Difficulty
@@ -1220,6 +1221,10 @@ class GameViewModel(
         state.players.forEachIndexed { index, player ->
             if (player.type == PlayerType.HUMAN) {
                 val won = if (multiplayer) player.totalScore == topScore else null
+                // Feeds the leaderboard's own tie-break ordering (see TieBreak.kt) - unrelated to
+                // [won] above, which keeps its existing "a tie at the top counts as a win" rule for
+                // achievements/statistics untouched.
+                val tieBreakStats = player.toTieBreakStats()
                 // Index 0 is always the primary player ("You") - see AchievementEngine's class doc.
                 repository.recordScore(
                     player.name,
@@ -1227,6 +1232,11 @@ class GameViewModel(
                     won = won,
                     isPrimaryPlayer = index == 0,
                     fiveOfAKindCount = player.fiveOfAKindCount,
+                    zeroedCategoryCount = tieBreakStats.zeroedCategoryCount,
+                    upperSectionTotal = tieBreakStats.upperSectionTotal,
+                    chanceScore = tieBreakStats.chance,
+                    threeOfAKindScore = tieBreakStats.threeOfAKind,
+                    fourOfAKindScore = tieBreakStats.fourOfAKind,
                 )
             }
         }

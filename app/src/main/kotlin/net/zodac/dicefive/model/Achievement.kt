@@ -301,6 +301,10 @@ enum class Achievement(
         "win_by_5", "Photo Finish", "Win by a single point",
         AchievementCategory.WINNING,
     ),
+    TIE_BREAK(
+        "tie_break", "Tie Break", "Win a game on a tie-break, after matching another player's score exactly",
+        AchievementCategory.WINNING,
+    ),
     COMEBACK(
         "comeback", "Comeback Kid", "Win after trailing at the start of the final round",
         AchievementCategory.WINNING,
