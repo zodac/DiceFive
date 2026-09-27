@@ -169,7 +169,8 @@ object AchievementEngine {
         ScoreCategory.COLOURED_HOUSE,
     )
 
-    /** How finely a [ProgressStyle.CUMULATIVE] achievement announces itself: quarter by quarter. */
+    /** How finely a [ProgressStyle.CUMULATIVE] achievement announces itself by default: quarter by
+     * quarter - overridden per-achievement by [Achievement.progressStepSize]. */
     private const val PROGRESS_MILESTONES = 4
 
     /**
@@ -522,13 +523,16 @@ object AchievementEngine {
             // A streak is fragile and slow to build, so every single step forward is news.
             ProgressStyle.STREAK -> true
             // A total that only climbs would otherwise pop a banner every single game.
-            ProgressStyle.CUMULATIVE -> milestone(previous, achievement.target) != milestone(current, achievement.target)
+            ProgressStyle.CUMULATIVE -> milestone(previous, achievement) != milestone(current, achievement)
             ProgressStyle.NONE -> false
         }
         return if (worthShowing) AchievementProgress(achievement, previous, current) else null
     }
 
-    private fun milestone(value: Int, target: Int): Int = value * PROGRESS_MILESTONES / target
+    /** [Achievement.progressStepSize] if it has one, otherwise the default quarter-of-[Achievement
+     * .target] cadence. */
+    private fun milestone(value: Int, achievement: Achievement): Int =
+        achievement.progressStepSize?.let { value / it } ?: (value * PROGRESS_MILESTONES / achievement.target)
 
     /** A tie at the top counts as a win for the human - nobody beat them. */
     private fun humanWon(state: GameState, humans: List<PlayerState>): Boolean =
