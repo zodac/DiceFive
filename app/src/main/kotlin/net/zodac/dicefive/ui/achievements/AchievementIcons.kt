@@ -1,6 +1,11 @@
 package net.zodac.dicefive.ui.achievements
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FactCheck
+import androidx.compose.material.icons.automirrored.filled.Help
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.filled.Undo
@@ -26,7 +31,6 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.EmojiPeople
 import androidx.compose.material.icons.filled.EventRepeat
-import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Filter1
 import androidx.compose.material.icons.filled.Filter3
@@ -38,8 +42,6 @@ import androidx.compose.material.icons.filled.Grade
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.HeartBroken
-import androidx.compose.material.icons.filled.Help
-import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material.icons.filled.HourglassEmpty
@@ -48,12 +50,10 @@ import androidx.compose.material.icons.filled.House
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowUp
 import androidx.compose.material.icons.filled.Landslide
-import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Looks3
 import androidx.compose.material.icons.filled.Looks6
 import androidx.compose.material.icons.filled.LooksTwo
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MilitaryTech
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Numbers
@@ -189,7 +189,7 @@ val Achievement.icon: ImageVector
         // ---- Miscellaneous (hidden) ---------------------------------------------------------------
         Achievement.I_DID_IT_MY_WAY -> Icons.Filled.Palette
         Achievement.COMMITMENT_ISSUES -> Icons.Filled.SwapHoriz
-        Achievement.DECISIONS_DECISIONS -> Icons.Filled.Help
+        Achievement.DECISIONS_DECISIONS -> Icons.AutoMirrored.Filled.Help
         Achievement.TIME_TO_LET_IT_GO -> Icons.Filled.HourglassEmpty
         Achievement.TIME_WASTING -> Icons.Filled.HourglassFull
         // The same glyph UndoButton.kt uses for the real undo control, not its Redo mirror image -
@@ -205,7 +205,7 @@ val Achievement.icon: ImageVector
         Achievement.FIRST_ROLL_LARGE_STRAIGHT -> Icons.Filled.Route
         Achievement.FIRST_ROLL_5X -> Icons.Filled.Celebration
         Achievement.SIXES_30 -> Icons.Filled.Looks6
-        Achievement.CHANCE_30 -> Icons.Filled.HelpOutline
+        Achievement.CHANCE_30 -> Icons.AutoMirrored.Filled.HelpOutline
         Achievement.DEJA_VU -> Icons.Filled.History
         Achievement.PRODUCT_PLACEMENT -> Icons.Filled.Storefront
         Achievement.POINTLESS_ROLL -> Icons.Filled.RemoveCircle
@@ -219,9 +219,9 @@ val Achievement.icon: ImageVector
 
         // ---- Collection ---------------------------------------------------------------------------
         Achievement.TALLY -> Icons.Filled.Checklist
-        Achievement.BOOKKEEPER -> Icons.Filled.MenuBook
-        Achievement.REGISTRAR -> Icons.Filled.LibraryBooks
-        Achievement.AUDITOR -> Icons.Filled.FactCheck
+        Achievement.BOOKKEEPER -> Icons.AutoMirrored.Filled.MenuBook
+        Achievement.REGISTRAR -> Icons.AutoMirrored.Filled.LibraryBooks
+        Achievement.AUDITOR -> Icons.AutoMirrored.Filled.FactCheck
         Achievement.ARCHIVIST -> Icons.Filled.Archive
         Achievement.HISTORIAN -> Icons.Filled.AutoStories
         Achievement.COMPLETIONIST -> Icons.Filled.Verified
