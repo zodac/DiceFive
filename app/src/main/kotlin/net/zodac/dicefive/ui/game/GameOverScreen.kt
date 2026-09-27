@@ -63,6 +63,7 @@ fun GameOverScreen(
     state: GameState,
     onBackToMenu: () -> Unit,
     onPlayAgain: () -> Unit,
+    onReviewScorecards: () -> Unit,
     modifier: Modifier = Modifier,
     soundEnabled: Boolean = true,
 ) {
@@ -123,6 +124,18 @@ fun GameOverScreen(
             // pinning these as a footer put them right where a banner could land on top of them.
             // They now just follow directly after the score list instead.
             Spacer(modifier = Modifier.height(20.dp))
+
+            // A full-width third action rather than squeezing into the row below - "review the
+            // board" is a detour on the way to one of the two real exits from this screen, not a
+            // third option of equal weight with them.
+            OutlinedButton(
+                onClick = onReviewScorecards,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            ) {
+                Text(text = "Review Scorecards", style = MaterialTheme.typography.titleMedium)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),

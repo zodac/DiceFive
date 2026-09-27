@@ -77,6 +77,13 @@ fun GameScreen(
     val turnSecondsRemaining by viewModel.turnSecondsRemaining.collectAsState()
     val currentState = state ?: return
     var showLeaveConfirmation by remember { mutableStateOf(false) }
+    // Whether Game Over's "Review Scorecards" button has been tapped - reset the moment the game
+    // stops being over (Play Again starts a fresh one), so a stale review doesn't reappear the
+    // next time this game finishes.
+    var reviewingScorecards by remember { mutableStateOf(false) }
+    LaunchedEffect(currentState.isGameOver) {
+        if (!currentState.isGameOver) reviewingScorecards = false
+    }
 
     val context = LocalContext.current
     LaunchedEffect(viewModel) {
@@ -86,6 +93,8 @@ fun GameScreen(
     }
 
     // Redirect system back to Menu (default nav behavior would land on the setup form instead).
+    // While reviewing scorecards, back returns to the results instead - ScorecardReviewScreen
+    // installs its own BackHandler for that, which composes later and so wins over this one.
     BackHandler {
         if (!currentState.isGameOver && confirmBeforeLeaving) {
             showLeaveConfirmation = true
@@ -129,13 +138,22 @@ fun GameScreen(
         // Once the game is over the board isn't what anyone is looking at, so the results get the
         // whole screen as their own themed page rather than being appended under the felt.
         if (currentState.isGameOver) {
-            GameOverScreen(
-                state = currentState,
-                onBackToMenu = onBackToMenu,
-                onPlayAgain = viewModel::startGame,
-                modifier = modifier,
-                soundEnabled = soundEnabled,
-            )
+            if (reviewingScorecards) {
+                ScorecardReviewScreen(
+                    state = currentState,
+                    onBack = { reviewingScorecards = false },
+                    modifier = modifier,
+                )
+            } else {
+                GameOverScreen(
+                    state = currentState,
+                    onBackToMenu = onBackToMenu,
+                    onPlayAgain = viewModel::startGame,
+                    onReviewScorecards = { reviewingScorecards = true },
+                    modifier = modifier,
+                    soundEnabled = soundEnabled,
+                )
+            }
             return@CompositionLocalProvider
         }
 
