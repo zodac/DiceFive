@@ -310,7 +310,7 @@ private fun BannerSlot(
     ) {
         when (val event = item.event) {
             is AchievementEvent.Unlocked -> UnlockedBanner(event.achievement)
-            is AchievementEvent.Progressed -> ProgressBanner(event.achievement, event.previous, event.current)
+            is AchievementEvent.Progressed -> ProgressBanner(event.achievement, event.previous, event.current, interactive)
         }
     }
 
@@ -394,11 +394,15 @@ private fun UnlockedBanner(achievement: Achievement) {
  *
  * The count and the bar both animate from [previous] to [current] rather than snapping straight
  * to the new value, so a progress nudge visibly climbs instead of just appearing already-there.
+ * That climb only plays once this banner is the front of the stack - see [interactive] - rather
+ * than while it's still peeking out behind another one, unseen: starting it early would have it
+ * finish (or even fully play out) before the player ever gets to watch it count up.
  */
 @Composable
-private fun ProgressBanner(achievement: Achievement, previous: Int, current: Int) {
+private fun ProgressBanner(achievement: Achievement, previous: Int, current: Int, interactive: Boolean) {
     val animatedProgress = remember { Animatable(previous.toFloat()) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(interactive) {
+        if (!interactive) return@LaunchedEffect
         animatedProgress.animateTo(current.toFloat(), tween(PROGRESS_COUNT_MILLIS))
     }
     val displayedValue = animatedProgress.value.roundToInt()
