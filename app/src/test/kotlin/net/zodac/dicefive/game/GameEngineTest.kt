@@ -113,6 +113,19 @@ class GameEngineTest {
     }
 
     @Test
+    fun `commitScore records the dice it was scored with as the player's lastRoll`() {
+        var state = GameEngine.rollDice(GameEngine.newGame(twoPlayers))
+        state = GameEngine.toggleHold(state, dieIndex = 0)
+        val diceUsedToScore = state.dice
+
+        state = GameEngine.commitScore(state, ScoreCategory.CHANCE)
+
+        assertEquals(diceUsedToScore, state.players[0].lastRoll)
+        // The next player's own dice are unaffected - and, having not yet finished a turn, still null.
+        assertEquals(null, state.players[1].lastRoll)
+    }
+
+    @Test
     fun `cycleDieValue advances only the target die to the next face`() {
         var state = GameEngine.rollDice(GameEngine.newGame(onePlayer))
         state = GameEngine.toggleHold(state, dieIndex = 0)

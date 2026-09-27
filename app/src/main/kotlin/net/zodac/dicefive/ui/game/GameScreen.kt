@@ -315,7 +315,6 @@ private fun InProgressGame(
     }
 
     if (viewedPlayer != null) {
-        // Read-only: no mat, dice or cup for a turn that isn't actually happening.
         ReadOnlyScoreboard(player = viewedPlayer)
     } else {
         GameBoard(
@@ -326,20 +325,32 @@ private fun InProgressGame(
             onCupTap = onCupTap,
             onUndo = onUndo,
         )
+    }
 
+    // The one DiceTray call for both branches above - a live turn's own dice, or a viewed player's
+    // last roll - so the gap above it (this Column's own Arrangement.spacedBy, in GameScreen) is
+    // identical either way, not a second hand-picked layout that only one branch remembers to
+    // apply. Skipped entirely for a viewed player who hasn't finished a turn yet - there's no roll
+    // of theirs to show, not even an empty mat.
+    val viewedLastRoll = viewedPlayer?.lastRoll
+    if (viewedPlayer == null || viewedLastRoll != null) {
         DiceTray(
-            dice = state.dice,
-            gameMode = state.gameMode,
-            enabled = canHold,
-            showDice = showDice,
-            rolling = isRolling,
-            onToggleHold = onToggleHoldWithSound,
-            superuserModeActive = superuserModeActive,
-            onCycleValue = onCycleValue,
+            dice = viewedLastRoll ?: state.dice,
+            gameMode = viewedPlayer?.gameMode ?: state.gameMode,
+            // No mat interactivity for a viewed player - it's not their turn playing out, just their
+            // last one on display.
+            enabled = viewedPlayer == null && canHold,
+            showDice = viewedPlayer != null || showDice,
+            rolling = viewedPlayer == null && isRolling,
+            onToggleHold = if (viewedPlayer == null) onToggleHoldWithSound else NO_OP_TOGGLE_HOLD,
+            superuserModeActive = viewedPlayer == null && superuserModeActive,
+            onCycleValue = if (viewedPlayer == null) onCycleValue else NO_OP_TOGGLE_HOLD,
             modifier = Modifier.fillMaxWidth(),
         )
     }
 }
+
+private val NO_OP_TOGGLE_HOLD: (Int) -> Unit = {}
 
 /** The current player's remaining turn time - counts down to zero, at which point the turn is
  * forfeited and auto-scored (see [GameViewModel.autoScoreOnTimeout]). Sits at its normal muted

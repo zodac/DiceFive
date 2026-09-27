@@ -121,6 +121,31 @@ class GameStateJsonTest {
     }
 
     @Test
+    fun `round trips a player's lastRoll, held state included`() {
+        val lastRoll = List(5) { Die(value = it % 6 + 1, isHeld = it % 2 == 0) }
+        val state = GameState(
+            players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, lastRoll = lastRoll)),
+        )
+
+        val decoded = GameStateJson.decode(GameStateJson.encode(state))
+
+        assertEquals(state, decoded)
+        assertEquals(lastRoll, decoded.players.single().lastRoll)
+    }
+
+    @Test
+    fun `decodes a save from before the lastRoll field existed as no last roll`() {
+        val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
+        val legacyJson = org.json.JSONObject(GameStateJson.encode(state)).apply {
+            getJSONArray("players").getJSONObject(0).remove("lastRoll")
+        }.toString()
+
+        val decoded = GameStateJson.decode(legacyJson)
+
+        assertEquals(null, decoded.players.single().lastRoll)
+    }
+
+    @Test
     fun `decodes a save from before game modes existed as Standard`() {
         val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
         val legacyJson = org.json.JSONObject(GameStateJson.encode(state)).apply {

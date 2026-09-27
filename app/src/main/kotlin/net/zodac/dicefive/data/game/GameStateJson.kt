@@ -77,6 +77,7 @@ object GameStateJson {
         put("type", player.type.name)
         put("difficulty", player.difficulty.name)
         put("fiveOfAKindBonusCount", player.fiveOfAKindBonusCount)
+        player.lastRoll?.let { put("lastRoll", JSONArray(it.map(::encodeDie))) }
         put(
             "scorecard",
             JSONObject().apply {
@@ -99,6 +100,10 @@ object GameStateJson {
             gameMode = gameMode,
             scorecard = scorecard,
             fiveOfAKindBonusCount = obj.getInt("fiveOfAKindBonusCount"),
+            // Absent from a game saved before this field existed, or from a player with no
+            // finished turn yet - either way, null (no last roll to show) rather than failing to
+            // resume it.
+            lastRoll = if (obj.has("lastRoll")) obj.getJSONArray("lastRoll").toObjectList().map(::decodeDie) else null,
         )
     }
 
