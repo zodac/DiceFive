@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,8 +38,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import net.zodac.dicefive.model.PlayerState
+import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.ui.theme.PlayerColors
 
 /** How long a score takes to count up: most turns' points rise in [SCORE_RISE_MIN_MILLIS], a bigger
@@ -46,6 +49,11 @@ import net.zodac.dicefive.ui.theme.PlayerColors
 private const val SCORE_RISE_MIN_MILLIS = 1000
 private const val SCORE_RISE_MAX_MILLIS = 2000
 private const val SCORE_RISE_MILLIS_PER_POINT = 40
+
+/** A name that doesn't fit its tab (a full-length CPU name beside its chip icon, at four players on
+ * a narrow phone) shrinks by [NAME_FONT_STEP] at a time down to this, and is only ellipsised past it. */
+private val NAME_MIN_FONT_SIZE = 9.sp
+private val NAME_FONT_STEP = 0.5.sp
 
 internal fun scoreRiseMillis(pointsGained: Int): Int =
     (pointsGained * SCORE_RISE_MILLIS_PER_POINT).coerceIn(SCORE_RISE_MIN_MILLIS, SCORE_RISE_MAX_MILLIS)
@@ -80,6 +88,7 @@ fun PlayerHeaderBar(
         players.forEachIndexed { index, player ->
             PlayerTab(
                 name = player.name,
+                cpu = player.type == PlayerType.AI,
                 score = player.totalScore,
                 color = PlayerColors[index % PlayerColors.size],
                 active = index == currentPlayerIndex,
@@ -96,6 +105,7 @@ fun PlayerHeaderBar(
 @Composable
 private fun PlayerTab(
     name: String,
+    cpu: Boolean,
     score: Int,
     color: Color,
     active: Boolean,
@@ -116,14 +126,29 @@ private fun PlayerTab(
             .padding(vertical = 6.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = name,
-            color = color,
-            fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            style = if (compactName) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
-        )
+        val nameStyle = if (compactName) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
+        ) {
+            if (cpu) {
+                // Measured first, so the name gets whatever width is left after it.
+                CpuPlayerIcon(size = if (compactName) 12.dp else 14.dp, tint = color)
+            }
+            Text(
+                text = name,
+                color = color,
+                fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = nameStyle,
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = NAME_MIN_FONT_SIZE,
+                    maxFontSize = nameStyle.fontSize,
+                    stepSize = NAME_FONT_STEP,
+                ),
+            )
+        }
         Text(
             text = risingScore(score).toString(),
             color = color,
