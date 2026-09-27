@@ -490,6 +490,44 @@ class AchievementEngineTest {
     }
 
     @Test
+    fun `Well Rolled announces progress every 1,000 dice, not every quarter of its 10,000 target`() {
+        val state = finishedGame(player())
+
+        // 990 -> 995 doesn't cross a thousand.
+        val quiet = evaluate(
+            state,
+            context = GameAchievementContext(diceRolledByPlayerOne = 5),
+            before = AchievementsState(counters = mapOf(AchievementCounter.DICE_ROLLED to 990)),
+        )
+        // 999 -> 1,000 does - nowhere near the default cadence's 2,500-dice first quarter.
+        val milestone = evaluate(
+            state,
+            context = GameAchievementContext(diceRolledByPlayerOne = 1),
+            before = AchievementsState(counters = mapOf(AchievementCounter.DICE_ROLLED to 999)),
+        )
+
+        assertFalse(quiet.progressed.any { it.achievement == Achievement.DICE_10000 })
+        assertTrue(milestone.progressed.any { it.achievement == Achievement.DICE_10000 })
+    }
+
+    @Test
+    fun `Professional Roller announces progress every 1,000 career points, not every quarter of its 100,000 target`() {
+        // 199 -> 249 doesn't cross a thousand.
+        val quiet = evaluate(
+            finishedGame(player(total = 50)),
+            context = GameAchievementContext(previousLeaderboard = LeaderboardTotals(totalPoints = 199)),
+        )
+        // 999 -> 1,000 does - nowhere near the default cadence's 25,000-point first quarter.
+        val milestone = evaluate(
+            finishedGame(player(total = 1)),
+            context = GameAchievementContext(previousLeaderboard = LeaderboardTotals(totalPoints = 999)),
+        )
+
+        assertFalse(quiet.progressed.any { it.achievement == Achievement.PROFESSIONAL_ROLLER })
+        assertTrue(milestone.progressed.any { it.achievement == Achievement.PROFESSIONAL_ROLLER })
+    }
+
+    @Test
     fun `an achievement being unlocked right now does not also report progress`() {
         val before = AchievementsState(counters = mapOf(AchievementCounter.GAMES_PLAYED to 9))
 

@@ -119,6 +119,15 @@ enum class Achievement(
     val countsTowardCompletion: Boolean = true,
     /** See [AchievementVisibility]. Defaults to fully visible, which is the vast majority. */
     val visibility: AchievementVisibility = AchievementVisibility.NORMAL,
+    /**
+     * Overrides [AchievementEngine][net.zodac.dicefive.game.AchievementEngine]'s default "announce
+     * every quarter of [target]" progress-banner cadence with a fixed step size instead - a banner
+     * fires every time the running total crosses a multiple of this many, regardless of how far
+     * that is from [target]. `null` (the default) keeps the quarter-based cadence. For a target as
+     * large as [DICE_10000]/[PROFESSIONAL_ROLLER]'s, quartering it would mean a banner only once
+     * every several dozen (or several hundred) games.
+     */
+    val progressStepSize: Int? = null,
 ) {
 
     // ---- Milestones: simply playing the game -------------------------------------------------
@@ -160,7 +169,7 @@ enum class Achievement(
     ),
     DICE_10000(
         "dice_10000", "Well Rolled", "Roll 10,000 dice",
-        AchievementCategory.MILESTONES, AchievementCounter.DICE_ROLLED, target = 10_000,
+        AchievementCategory.MILESTONES, AchievementCounter.DICE_ROLLED, target = 10_000, progressStepSize = 1_000,
     ),
     STREAK_3(
         "streak_3", "On A Roll", "Win 3 games in a row",
@@ -172,7 +181,7 @@ enum class Achievement(
     ),
     PROFESSIONAL_ROLLER(
         "career_points_100k", "Professional Roller", "Score 100,000 points across all your games",
-        AchievementCategory.MILESTONES, target = 100_000, isCareerPoints = true,
+        AchievementCategory.MILESTONES, target = 100_000, isCareerPoints = true, progressStepSize = 1_000,
     ),
 
     // ---- Dice feats: what the dice themselves did --------------------------------------------
