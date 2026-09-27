@@ -50,25 +50,36 @@ jobs:
       # Full history and tags: the release description lists every commit since the previous
       # release's tag, which a shallow clone wouldn't have.
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      # The Java version is owned by the Gradle toolchain (gradle/gradle-daemon-jvm.properties), which
+      # Gradle would download itself; installing the same JDK here just saves it that download. Read
+      # at run time rather than pinned here, so a JDK move never has to edit this file (which the
+      # monthly dependency update, pushing with GITHUB_TOKEN, may not do).
+      - name: Read the Java version from the Gradle toolchain
+        id: java
+        run: echo "version=$(grep -oP '^toolchainVersion=\K[0-9]+' gradle/gradle-daemon-jvm.properties)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: ${{ steps.java.outputs.version }}
 
       # ubuntu-latest runners ship a full Android SDK pre-installed (cmdline-tools,
       # licenses already accepted) - just install the specific packages this project
-      # pins. (android-actions/setup-android@v3 was tried here but fails on current
-      # runners: it also tries to install the long-removed legacy "tools" package.)
+      # builds against, which android_sdk_packages.sh reads from app/build.gradle.kts (not
+      # pinned here, for the same reason as the JDK above). (android-actions/setup-android@v3
+      # was tried here but fails on current runners: it also tries to install the
+      # long-removed legacy "tools" package.)
       - name: Install required Android SDK packages
         run: |
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses > /dev/null
-          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+          read -ra packages <<< "$(.github/scripts/android_sdk_packages.sh)"
+          "$SDKMANAGER" "${packages[@]}"
 
       # The normalizeOggAudio task shells out to ffmpeg to peak-normalise the
       # .ogg clips in app/src/main/rawAudioSource/, and ubuntu-latest runners
@@ -79,7 +90,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends ffmpeg
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Read version
         id: version
@@ -92,6 +103,13 @@ jobs:
 
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --console=plain
+
+      # Deprecation gates. Any compile already fails on a deprecated API (the Kotlin DEPRECATION flag in
+      # app/build.gradle.kts) or a build-script warning (org.gradle.kotlin.dsl.allWarningsAsErrors in
+      # gradle.properties); this step extends that to the instrumented-test code, which nothing else
+      # here compiles, and runs lint, where Deprecated / ObsoleteSdkInt findings are errors.
+      - name: Check instrumented tests compile and lint passes
+        run: ./gradlew compileDebugAndroidTestKotlin lintDebug --console=plain
 
       - name: Decode release keystore
         if: steps.version.outputs.stable == 'true' || inputs.force_apk == true
@@ -111,7 +129,9 @@ jobs:
         id: apk
         run: |
           path="DiceFive-${{ steps.version.outputs.name }}.apk"
-          cp app/build/outputs/apk/release/DiceFive-release.apk "$path"
+          # app/build.gradle.kts names outputs DiceFive-<version>-<buildType>.apk (signed here, so no
+          # -unsigned suffix).
+          cp "app/build/outputs/apk/release/DiceFive-${{ steps.version.outputs.name }}-release.apk" "$path"
           echo "path=$path" >> "$GITHUB_OUTPUT"
 
       # RELEASE_NOTES.md as written (skipped if empty), then the grouped commit list. A copy of the
@@ -135,7 +155,7 @@ jobs:
           echo "path=$body" >> "$GITHUB_OUTPUT"
 
       - name: Create/update GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.version.outputs.name }}
           name: DiceFive v${{ steps.version.outputs.name }}

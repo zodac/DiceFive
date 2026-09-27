@@ -830,6 +830,32 @@ install-over-existing succeeds:
       *mentioned* the name, which prompted for commit messages, doc edits and scratch repos - and
       still missed a `sed` over a glob. `.claude/hooks/tests/run-hook-tests.sh` covers it against a
       throwaway repo, and `sandbox/setup.sh` runs it before every session.
+- [x] **Dependency updates**: `.github/scripts/update_dependency_versions.sh` bumps everything
+      pinned - the Gradle catalog/wrapper/plugins (majors included), compileSdk (incl. minor SDK
+      releases), the JDK (owned by the Gradle toolchain, `gradle/gradle-daemon-jvm.properties`),
+      the sandbox image's pins, the actionlint image (`.github/scripts/lint_workflows.sh`) and the
+      workflows' actions. Anything metadata can't vet (a JDK major, a compileSdk, any Gradle bump) is
+      proven by a build; a bump that breaks it is found, taken back and stepped down to the newest
+      version that builds. targetSdk is never moved by it (a device test decision).
+      `.github/workflows/update-dependencies.yml` runs it on the 2nd of each month (and on dispatch),
+      re-runs the release gates plus actionlint, and only if all pass commits
+      `[Dependencies] Update dependency versions` to main, then starts `release.yml` with
+      `gh workflow run` - releasing the next patch version. It uses only `GITHUB_TOKEN`, which may not
+      edit workflow files and whose pushes trigger no workflows (hence the explicit dispatch, the one
+      event it may trigger). So no version the update moves is pinned in a workflow: both workflows
+      read the JDK from the toolchain file and the SDK packages from `app/build.gradle.kts`
+      (`.github/scripts/android_sdk_packages.sh`) at run time. The actions' own `uses:` versions are
+      the exception - the monthly run passes `--no-workflow-edits` and only lists newer ones in its
+      summary; running the script locally applies them. The commit is authored as "DiceFive
+      dependency updater", not `github-actions[bot]`, which `scripts/release-changelog.sh` drops from
+      release notes.
+- [x] **Deprecation gates**: deprecated API use fails compilation (`-Xwarning-level=DEPRECATION:error`
+      in `app/build.gradle.kts`), any build-script warning fails the build
+      (`org.gradle.kotlin.dsl.allWarningsAsErrors` in `gradle.properties`), and lint treats
+      `Deprecated` / `ObsoleteSdkInt` as errors. `release.yml` compiles the instrumented tests and
+      runs lint so all three are enforced in CI. The build uses AGP 9's new DSL and built-in Kotlin
+      (no `kotlin.android` plugin); APK renaming goes through `VariantOutputImpl`, an internal AGP
+      class, as there is no public API for it.
 
 ### Phase 13 — Achievements
 - [x] **Scope**: 51 achievements (50 + the later-added secret `CHEATER_CHEATER`),
