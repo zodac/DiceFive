@@ -8,8 +8,8 @@ The repo started as a skeleton: a single `GameScreen` showing "DiceFive" and
 "Rolls remaining: 3", a `GameState` with no scoring/turn logic, and no
 navigation, persistence, or other screens. This document tracks the full v1
 build: a menu-driven Android app implementing local (no netplay) Yahtzee for
-1-4 players (human and AI), with score history, a settings screen (theme,
-plus a version + GitHub link footer), and a stub achievements screen.
+1-4 players (human and AI), with score history, a settings screen (profile, gameplay and reset
+options, plus a version + GitHub link footer), and a stub achievements screen.
 
 Update this file's checkboxes as work lands, so the build can be resumed or
 revisited across sessions without re-deriving the plan.
@@ -21,7 +21,7 @@ decisions behind it. Read that before changing anything visual.
 ## Decisions (locked in)
 
 - **Persistence**: Room DB for score history, Jetpack DataStore
-  (Preferences) for settings (theme) and remembered human player names.
+  (Preferences) for settings and remembered human player names.
 - **Navigation**: Navigation Compose (`NavHost`), with a nested "play" graph
   sharing one scoped `GameViewModel` across the setup and in-game screens.
 - **AI difficulty**: the setup-screen selector is live (Easy/Medium/Hard per AI slot). `AiTurnPlayer`
@@ -212,11 +212,10 @@ decisions behind it. Read that before changing anything visual.
 
 ```
 net.zodac.dicefive/
-  MainActivity.kt                      — hosts NavHost, applies theme from SettingsRepository
+  MainActivity.kt                      — hosts NavHost inside DiceFiveTheme (dark only)
   data/
     settings/
-      Theme.kt                         — enum LIGHT/DARK/SYSTEM
-      SettingsRepository.kt            — DataStore-backed: theme Flow, remembered player names (slots 1-4)
+      SettingsRepository.kt            — DataStore-backed: remembered player names (slots 1-4)
     scores/
       ScoreEntry.kt (Room @Entity)     — id, playerName, score, timestampEpochMillis, won (nullable;
                                           null for a solo game or a pre-migration row), isPrimaryPlayer
@@ -283,12 +282,12 @@ net.zodac.dicefive/
     styles/StylesScreen.kt             — preview tiles (dice / dice cup / mat & background),
                                           one horizontally-scrolling row per category
     settings/
-      SettingsScreen.kt                — theme radio group (Light/Dark/System); footer shows
+      SettingsScreen.kt                — profile, gameplay and reset cards; footer shows
                                           app version + GitHub link via UriHandler
-      SettingsViewModel.kt             — reads/writes SettingsRepository.theme
-    theme/                             — Theme.kt (M3 colour schemes, no dynamic colour) + Color.kt (tonal-palette
-                                          roles, plus the separate game-table palette). MainActivity passes
-                                          darkTheme resolved from the stored Theme setting. No Type.kt: the M3
+      SettingsViewModel.kt             — reads/writes SettingsRepository
+    theme/                             — Theme.kt (one dark M3 colour scheme, no dynamic colour) + Color.kt
+                                          (tonal-palette roles, plus the separate game-table palette). No
+                                          light scheme and no theme setting. No Type.kt: the M3
                                           type scale is used as-is rather than overridden.
     common/                            — chrome shared by the menu and every non-game page: BrandBackdrop,
                                           ScreenScaffold (top app bar + back), PageColumn, AppLogo
@@ -386,12 +385,14 @@ dependencies — most unit tests live here.
 
 ## Settings & theme
 
-- `SettingsRepository.theme: Flow<Theme>` (LIGHT/DARK/SYSTEM, default
-  SYSTEM), backed by DataStore Preferences.
-- `MainActivity` collects this at the top and passes resolved
-  `darkTheme: Boolean` into `DiceFiveTheme` — SYSTEM defers to
-  `isSystemInDarkTheme()`.
-- `SettingsScreen`: radio group writing back to the repository. A quiet
+- The app has a single, dark theme. There used to be a Light/Dark/System
+  setting (`SettingsRepository.theme`); it was removed along with the light
+  colour scheme. `DiceFiveTheme` takes no arguments, `MainActivity` pins the
+  system bars to dark icons-on-dark (`SystemBarStyle.dark`) so a phone in
+  light mode doesn't draw dark status bar icons over the page, and the XML
+  window theme is `Theme.Material.NoActionBar`. A `theme` key left in an old
+  install's DataStore is simply never read.
+- `SettingsScreen`: profile, gameplay and reset cards. A quiet
   footer below the Reset card shows the app version (from `BuildConfig`)
   and a "View on GitHub" link to `https://github.com/zodac/DiceFive`,
   opened via Compose's `UriHandler` - this used to be its own `AboutScreen`,
@@ -610,6 +611,7 @@ install-over-existing succeeds:
       SYSTEM), `setTheme()`; same nullable-repository + `factory(context)`
       pattern.
 - [x] `ui/settings/SettingsScreen.kt`: Light/Dark/System radio group.
+      (Later removed: the app is dark only - see "Settings & theme".)
 - [x] `MainActivity` now builds a `SettingsRepository` directly (not via a
       ViewModel - it's a simple top-level read, and Activity recreation
       re-reads DataStore fresh anyway) and resolves `darkTheme` for

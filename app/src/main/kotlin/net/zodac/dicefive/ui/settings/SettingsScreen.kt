@@ -37,10 +37,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import net.zodac.dicefive.BuildConfig
-import net.zodac.dicefive.data.settings.Theme
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.ScreenScaffold
-import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 
 private const val GITHUB_URL = "https://github.com/zodac/DiceFive"
 
@@ -50,7 +48,6 @@ fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val theme by viewModel.theme.collectAsState()
     val confirmBeforeLeavingGame by viewModel.confirmBeforeLeavingGame.collectAsState()
     val soundEnabled by viewModel.soundEnabled.collectAsState()
     val vibrationEnabled by viewModel.vibrationEnabled.collectAsState()
@@ -99,15 +96,6 @@ fun SettingsScreen(
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
             )
-        }
-
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Appearance",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
-            )
-            ThemeSelector(selected = theme, onSelect = viewModel::setTheme)
         }
 
         Card(modifier = Modifier.fillMaxWidth()) {
@@ -244,23 +232,6 @@ fun SettingsScreen(
             dismissLabel = "Cancel",
             onDismiss = { showResetLeaderboardConfirmation = false },
             onDismissRequest = { showResetLeaderboardConfirmation = false },
-        )
-    }
-}
-
-/**
- * Three mutually exclusive options that each fit in a word: M3 points at a segmented button for
- * exactly this, and it puts the whole choice on one line instead of a three-row radio group.
- */
-@Composable
-private fun ThemeSelector(selected: Theme, onSelect: (Theme) -> Unit) {
-    Column(modifier = Modifier.padding(16.dp)) {
-        SegmentedChoiceRow(
-            options = Theme.entries,
-            selected = selected,
-            onSelect = onSelect,
-            label = { it.name.lowercase().replaceFirstChar(Char::uppercase) },
-            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

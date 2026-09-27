@@ -15,7 +15,7 @@ private val Context.achievementsDataStore by preferencesDataStore(name = "achiev
 
 /**
  * Unlock timestamps and progress counters, on their **own** DataStore file rather than sharing
- * `settings` - "Reset achievements" is a `clear()` on this file, and must not take the theme or
+ * `settings` - "Reset achievements" is a `clear()` on this file, and must not take the settings or
  * the remembered player names with it.
  *
  * Keys are built from [Achievement.id] / [AchievementCounter.name], so storage survives the enum
