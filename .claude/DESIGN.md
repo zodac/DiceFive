@@ -1238,5 +1238,37 @@ install-over-existing succeeds:
 - [ ] **Not yet seen on a device**: the Game Over screen's tie-break captions and "=" rank prefix,
       the Leaderboard's "=" rank prefix, and the Tie Break achievement's banner/icon are
       compile-and-read verified only (no emulator in the sandbox).
-- [ ] **For later**: this phase's rule list is the source for the player-facing "How Do You Play
-      This Game?" rules section's own tie-break explanation, once that section exists.
+- [x] **For later**: this phase's rule list is the source for the player-facing rules section's own
+      tie-break explanation - see Phase 16, which added that section.
+
+### Phase 16 — Player-facing rules
+- [x] A "Rules" entry on the main menu (`MenuScreen`, last in the destination button stack, same
+      `MenuDestinationButton` style as every other entry) opens `ui/common/RulesDialog.kt`: a modal,
+      not a nav destination - it never needs to be deep-linked to or survive process death, so a
+      plain `remember { mutableStateOf(false) }` boolean in `MenuScreen` (the same pattern the
+      existing resume-game confirmation already uses) is simpler than a new `Screen`/`composable`
+      route.
+- [x] **A new kind of modal**: `DiceFiveDialog` (the app's one existing dialog shape) is built on
+      M3's `AlertDialog`, whose icon/title/text/buttons slots have no room for a pager and page
+      indicator. `RulesDialog` instead wraps a raw `Dialog(properties = DialogProperties
+      (usePlatformDefaultWidth = false))` around a `Surface` sized to ~92%/82% of the screen (capped
+      at `CONTENT_MAX_WIDTH`), reusing `DiceFiveDialog`'s own container colour/shape/elevation
+      (`surfaceContainerHigh`, `shapes.extraLarge`, `tonalElevation = 6.dp`) so the two dialog styles
+      still read as the same app asking, despite one being a custom layout. First use of
+      `HorizontalPager` (`androidx.compose.foundation.pager`) anywhere in this app - a plain
+      `Column`/`Row` page-indicator (dots, larger for the current page) and previous/next
+      `IconButton`s sit either side of it, since there was no existing convention to match.
+- [x] **Six pages**, each its own swipe: How to Play (5 dice, 3 rolls, score into an open category),
+      Upper Section (per-number totals, the 63/35 bonus), Lower Section (Full House/Small
+      Straight/Large Straight's fixed values, Three/Four of a Kind and Chance scoring every die),
+      5x and the Joker Rule (the 50-point box, the 100-point bonus chip, and the joker rule's
+      three-step placement priority from `ScoreCalculator`), Tie Breaks (Phase 15's criterion list,
+      in order), and Tricolour Mode (the colour boxes and dice, everything else unchanged). Content
+      lives in a private `RULES_PAGES` list in `RulesDialog.kt` - kept in step with the actual rules
+      engine (`ScoreCategory`'s fixed values, `ScoreCalculator`'s joker rule, `game/TieBreak.kt`'s
+      criterion order) rather than copied out once and left to drift.
+- [x] `./gradlew testDebugUnitTest` and `assembleDebug` both green - no new pure-logic surface here
+      (this is presentation only), so no new unit tests.
+- [ ] **Not yet seen on a device**: the pager, its page indicator/nav arrows, and the dialog's sizing
+      against `CONTENT_MAX_WIDTH` on a real screen are compile-and-read verified only (no emulator in
+      the sandbox).
