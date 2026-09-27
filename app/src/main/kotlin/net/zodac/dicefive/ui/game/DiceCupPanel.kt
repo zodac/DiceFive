@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,6 +38,10 @@ import net.zodac.dicefive.ui.theme.TileIconColor
  * hand-copied panel layout, so its 5x tile and Upper/Bonus/Lower tracker can never drift out of
  * sync with [GameBoard]'s - only the cup, roll count and undo button disappear.
  */
+// The board deliberately avoids theme colour roles (see .claude/UI.md), so "disabled" here means
+// alpha-fading the cup's own fixed art rather than reaching for M3's onSurface-alpha convention.
+private const val DEPLETED_CUP_ALPHA = 0.4f
+
 data class CupPanelState(
     val rollsRemaining: Int,
     val tilted: Boolean,
@@ -125,7 +130,15 @@ fun DiceCupPanel(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Box(modifier = Modifier.size(104.dp), contentAlignment = Alignment.Center) {
+                        // Dimmed once rolls run out - the cup stays tappable (see the comment on
+                        // this Box's parent) but visually reads as spent rather than still live,
+                        // its contact shadow fading along with the rest of the art since the alpha
+                        // applies to the whole Canvas draw, shadow included.
+                        val cupAlpha = if (cup.rollsRemaining <= 0) DEPLETED_CUP_ALPHA else 1f
+                        Box(
+                            modifier = Modifier.size(104.dp).alpha(cupAlpha),
+                            contentAlignment = Alignment.Center,
+                        ) {
                             visualTheme.diceCupStyle.Cup(
                                 rolling = cup.rolling,
                                 tilted = cup.tilted,
