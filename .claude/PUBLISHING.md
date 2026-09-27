@@ -60,21 +60,68 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
 - **Short description** (80 chars), **full description** (4000 chars), category, and contact
   email - not yet drafted; entered directly in Play Console alongside the privacy policy URL from
   "Outside this repo" above.
-- **Open-source licenses / third-party notices page - not yet drafted, and currently a real gap.**
-  `app/build.gradle.kts`'s `packaging.resources.excludes` drops every AndroidX artifact's own
-  bundled `META-INF/androidx/**/LICENSE.txt` (a release-size optimization - each is a duplicate
-  copy of the same Apache-2.0 text), but this app has no substitute anywhere that gives recipients
-  a copy of that license, which Apache-2.0 §4(a) requires. Investigated during that change: even
-  *without* the exclusion, only 9 of the ~60-70 distinct Apache-2.0-licensed AndroidX/Kotlin/Compose
-  artifacts this app actually ships bundle their own license text in the first place (the rest -
-  Compose runtime/ui/foundation/material3, Kotlin stdlib, kotlinx.coroutines, most of Navigation and
-  Lifecycle, Activity, Window, DataStore itself, etc. - never did), so restoring the exclusion would
-  not have been a real fix either, just a partial, misleading one. The actual fix: one consolidated
-  page (Apache-2.0's text once, plus the list of artifacts it covers - nearly everything here uses
-  that one license) hosted the same way as the privacy policy (e.g. GitHub Pages), linked from
-  **both** places this app is actually distributed - the Play Store listing (once it exists) *and*
-  `README.md` (the GitHub release pipeline in `DESIGN.md` Phase 12 already publishes signed APKs
-  publicly today, independent of any Play submission). No in-app screen needed for either link.
+- **Open-source licenses / third-party notices - done in-app** (`DESIGN.md` Phase 17): Settings >
+  "Licences", generated from the dependency graph at build time, with a build-failing
+  guard against copyleft or unrecognised licenses. The build strips each AndroidX artifact's bundled
+  `META-INF/androidx/**/LICENSE.txt` (a size optimisation) - that's fine now, since the dialog ships
+  the Apache-2.0 text once for all of them. The sound effects are credited too (Freesound, CC0 and
+  CC-BY 4.0 - see `app/aboutlibraries/asset-sources.json`). Remaining, optionally: linking a hosted copy from the Play listing /
+  `README.md` for people who want to read it before installing (not required - the licenses only
+  require that the text goes out *with* the app).
+- **Adding or allowing a license**: if a new dependency fails the build on strict mode, read its
+  license before adding it to `allowedLicenses` in `app/build.gradle.kts`. LGPL/MPL/EPL can often be
+  complied with in a closed app (conditions on the library only) but each has real obligations
+  (LGPL: the user must be able to relink/replace the library, awkward with R8); GPL/AGPL would
+  require the whole app to be released under the GPL.
+- **The app's own license - decided: proprietary, all rights reserved** (`LICENSE` at the repo root),
+  with the source kept publicly readable on GitHub. Chosen over PolyForm Strict 1.0.0 and over any
+  open-source license because:
+  - the maintainer wants the code read-only (no reuse, no forks on app stores) and takes no outside
+    contributions, and plain copyright - which is all "all rights reserved" relies on - is the most
+    tested legal footing there is. PolyForm is well drafted but has little or no case history, and
+    would add permissions (non-commercial use, a 32-day cure period) that weren't wanted;
+  - a permissive license would let anyone publish the game with Pro unlocked and no ads;
+  - the planned Google SDKs (AdMob, Play Billing, Play Games Services) are proprietary, and the
+    planned **iOS** version would ship through the App Store - GPL-style licenses conflict with both.
+  - The sole copyright holder can relicense later; copies already released stay under the terms
+    they were released with.
+- **The notice must stay scoped to DiceFive's own work.** It must never claim the bundled
+  third-party parts, which keep their own licenses - `LICENSE` says so, and names the font:
+  - **The Sora font must stay under the OFL.** OFL-1.1 condition 5: the font, "modified or
+    unmodified, in part or in whole, must be distributed entirely under this license, and must not
+    be distributed under any other license". Our `sora.ttf` is a modified (static weight-700)
+    instance, still covered. `README.md`, store listings and any future EULA wording must not claim
+    "all files" without that carve-out.
+  - **The OFL also forbids selling the font on its own** (condition 1). Bundling it in a paid app
+    is fine; offering the font file by itself is not.
+  - **Audio**: CC0 needs nothing. CC-BY needs a credit, and §2(a)(5)(B) forbids adding terms that
+    restrict the original - so the clip stays outside the all-rights-reserved scope (volume
+    normalisation is too mechanical to create a new work anyway). CC-BY-SA adaptations must stay
+    CC-BY-SA. Anything NC (non-commercial) is incompatible with ads/Pro and must be replaced.
+  - The same applies to every library listed in the licenses dialog - not the app's to relicense.
+  - The app's own artwork is recorded as `LicenseRef-DiceFive-AllRightsReserved` in
+    `app/aboutlibraries/asset-sources.json` (constant `APP_LICENSE` in `VerifyAssetSourcesTask`) -
+    change both together if the license ever changes.
+- **Still open, related:**
+  - **iOS**: when the port happens, the licenses dialog, `asset-sources.json` and the copyleft
+    guard need carrying over to it (AboutLibraries supports Kotlin/Compose Multiplatform). Apple's
+    standard EULA covers App Store users - no custom EULA needed unless wanted.
+  - **The public GitHub release APKs** give the game away outside Play; once Pro exists, the Play
+    Billing check won't work in a sideloaded copy. Decide before Pro ships whether GitHub releases
+    continue, stop, or become a Pro-less build.
+  - **AI authorship**: much of the code and artwork was written with Claude. Copyright protection
+    for AI-generated material is unsettled, which could weaken enforcement of the notice. Worth a
+    lawyer's view, together with the notice itself, if the app starts earning real money.
+  - **The copyright line is a pseudonym for now**: "Copyright 2026 zodac.net" (in `LICENSE`,
+    `README.md` and the app's own entries in `asset-sources.json`). The maintainer owns zodac.net and
+    has no company, so ownership is theirs personally either way. A domain can't own copyright, but a
+    notice may use "a generally known alternative designation of the owner" (17 U.S.C. §401(b)(3)).
+    The cost is that enforcing it means first proving who is behind zodac.net (the domain
+    registration helps). Deliberately kept anonymous until payments ship. **Revisit when
+    registering for Play/App Store payments**: individual seller accounts expose the legal name
+    anyway (Apple shows it as the seller; Play's monetisation/EU trader details can), at which point
+    "Copyright <legal name> (zodac.net)" costs no extra privacy and removes the proof step. Changing
+    it only affects future releases' notices; ownership doesn't change.
 
 ## App build & manifest changes (in-repo)
 

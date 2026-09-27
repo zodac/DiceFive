@@ -1,0 +1,46 @@
+DiceFive
+Copyright (c) 2026 zodac.net. All rights reserved.
+
+SCOPE
+
+This notice covers DiceFive's own work only: the source code, build scripts, artwork, icons and
+other original content in this repository, and the applications built from them. It does not cover
+the third-party components described under "Third-party components" below.
+
+NO LICENSE GRANTED
+
+DiceFive's own work is proprietary. No license or other right is granted to copy, modify, adapt,
+merge, publish, distribute, sublicense, sell, or create derivative works from it, in whole or in
+part, without the prior written permission of the copyright holder.
+
+This repository is publicly visible so that its source can be read. Viewing it, and anything GitHub's
+Terms of Service permit for public repositories on GitHub itself, is allowed; nothing else is.
+
+THIRD-PARTY COMPONENTS
+
+The app includes third-party software and assets that belong to their respective owners and are
+used and redistributed under their own licenses. Those licenses - not this notice - govern those
+components, and nothing in this notice restricts any right they grant. In particular:
+
+- The Sora font (app/src/main/res/font/sora.ttf), Copyright 2019 The Sora Project Authors, is a
+  modified version of the original, and is distributed under the SIL Open Font License 1.1, which
+  continues to apply to it in full.
+- The sound effects are modified versions of recordings from Freesound (freesound.org): four under
+  Creative Commons Zero 1.0 (CC0), and two - the die hold and unhold clicks - derived from
+  "Mantel Clock Ticking.wav" by Tewkesound (https://freesound.org/s/140147/), licensed under
+  Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/).
+- The libraries the app is built with are distributed under their own open-source licenses.
+
+Every third-party component in the app, with its license's full text and copyright notice, is
+listed in the app under Settings > Licences, and the records behind that list are kept
+in app/aboutlibraries/ in this repository.
+
+DISCLAIMER
+
+DICEFIVE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH DICEFIVE OR
+THE USE OR OTHER DEALINGS IN IT.
+
+Permission requests: https://github.com/zodac/DiceFive

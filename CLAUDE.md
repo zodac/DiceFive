@@ -7,7 +7,9 @@
   Read this before changing anything visual.
 - `.claude/PUBLISHING.md` — Play Store submission requirements not covered by the build or by
   `DESIGN.md`'s GitHub release pipeline (Phase 12), such as the store listing's separate hi-res
-  icon. Nothing in it is done yet; it's a running checklist for when that submission happens.
+  icon. Little in it is done yet (the in-app open-source licenses page is); it's a running checklist for when that submission happens. It
+  also records the app's own license (proprietary, all rights reserved - see `LICENSE`), why it was
+  chosen, and how it must stay scoped to exclude third-party parts (the bundled font must stay OFL).
 
 # Working agreements
 

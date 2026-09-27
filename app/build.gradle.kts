@@ -3,6 +3,7 @@ import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.ByteArrayOutputStream
 import java.util.Properties
+import java.util.zip.ZipFile
 import javax.inject.Inject
 
 plugins {
@@ -10,6 +11,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.aboutlibraries.android)
 }
 
 // Single source of truth for the app version - bump the root VERSION file to release a new one.
@@ -124,9 +126,16 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             // A handful of AndroidX artifacts each bundle their own full copy of the same Apache
-            // license text under their own package path - none of it is read at runtime.
+            // license text under their own package path - none of it is read at runtime. The license
+            // still ships, once: Settings > Licences (see "Open-source licenses" below).
             excludes += "META-INF/androidx/**/LICENSE.txt"
         }
+    }
+
+    testOptions {
+        // Robolectric UI tests (e.g. LicensesDialogTest) render real screens on the JVM, reading the
+        // app's merged resources - including the generated aboutlibraries.json.
+        unitTests.isIncludeAndroidResources = true
     }
 
     lint {
@@ -285,6 +294,314 @@ androidComponents {
     }
 }
 
+// ── Open-source licenses ─────────────────────────────────────────────────────
+// Settings > "Licences" lists every third-party library the app ships, with its license
+// text - Apache-2.0 §4(a), MIT, BSD and the OFL all require that copy go out with the app. Nothing in
+// that list is written by hand: the AboutLibraries Android plugin walks each variant's real runtime
+// dependency graph at build time and writes it to a generated res/raw/aboutlibraries.json, so a new
+// or bumped dependency shows up on the next build with no one having to remember to add it.
+//
+// Things that aren't Gradle dependencies (a bundled font, sound clips, artwork) can't be discovered
+// that way, so each gets a hand-written entry under aboutlibraries/libraries/ instead - see the
+// README there. That folder is the one place a new third-party asset has to be recorded.
+aboutLibraries {
+    // Never reach out to GitHub or SPDX at build time, so CI and the sandbox generate byte-identical
+    // output. The catch: offline, the plugin knows each license's name but not its text - so every
+    // allowed license's full text is committed under aboutlibraries/licenses/ instead, and
+    // VerifyLicenseReportTask below fails the build if one is ever missing.
+    offlineMode = true
+    collect {
+        configPath = file("aboutlibraries")
+        // BOMs only pin other artifacts' versions - no code or content of theirs ships in the APK.
+        includePlatform = false
+    }
+    export {
+        // Unused by the dialog, and "developers" would otherwise list individual people's names.
+        excludeFields.addAll("developers", "funding", "scm", "organization")
+    }
+    license {
+        // The copyleft guard: any license not listed here fails the build (every variant, so it's
+        // caught by the first assembleDebug, not at release time). Only permissive licenses - those
+        // that ask for attribution and nothing more - are allowed outright, because they place no
+        // conditions on how this app itself is licensed. A copyleft (GPL, LGPL, AGPL, MPL, EPL,
+        // CDDL...) or unrecognised license has to be looked at by a person before it can ship: add
+        // it here only once its terms are understood - see .claude/PUBLISHING.md.
+        strictMode = com.mikepenz.aboutlibraries.plugin.StrictMode.FAIL
+        allowedLicenses.addAll("Apache-2.0", "MIT", "BSD-2-Clause", "BSD-3-Clause")
+        // The SIL Open Font License is copyleft on the font alone (a modified Sora must stay OFL and
+        // can't be sold by itself) and places no conditions on the app it's bundled in - so it's
+        // allowed, but only for the font, not for any library that turns up under it later.
+        allowedLicensesMap = mapOf(
+            "OFL-1.1" to listOf("sora"),
+            // The sound effects' Freesound sources (see aboutlibraries/asset-sources.json). CC0 asks for
+            // nothing; CC-BY asks for a credit, a link to the source and license, and a note of any
+            // changes - all in its libraries/ entry. Neither places any condition on the app itself.
+            // (Never CC-BY-SA - adaptations must stay under it - nor anything NC, which rules out ads
+            // and Pro; neither is allowed here.)
+            "CC0-1.0" to listOf("freesound-588198", "freesound-695731", "freesound-185986", "freesound-596051"),
+            "CC-BY-4.0" to listOf("freesound-140147"),
+        )
+    }
+}
+
+/**
+ * The checks the plugin's own strict mode doesn't make, run over the aboutlibraries.json it just
+ * generated for one variant:
+ * - every license some library uses has its full text - offline, the plugin only knows its name
+ *   (see offlineMode above), and a license is only honoured if its text ships with the app;
+ * - every library under a license whose terms require reproducing the copyright notice itself
+ *   (BSD, MIT, OFL) has one - the plugin never collects copyright lines, so each such library
+ *   needs an entry in aboutlibraries/libraries/ whose description starts with it.
+ */
+abstract class VerifyLicenseReportTask : DefaultTask() {
+
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val libraryDefinitions: RegularFileProperty
+
+    @get:OutputFile
+    abstract val reportFile: RegularFileProperty
+
+    @TaskAction
+    fun verify() {
+        @Suppress("UNCHECKED_CAST")
+        val definitions = groovy.json.JsonSlurper().parse(libraryDefinitions.get().asFile) as Map<String, Any?>
+        @Suppress("UNCHECKED_CAST")
+        val libraries = definitions["libraries"] as List<Map<String, Any?>>
+        @Suppress("UNCHECKED_CAST")
+        val licenses = definitions["licenses"] as Map<String, Map<String, Any?>>
+
+        val problems = mutableListOf<String>()
+        for ((id, license) in licenses) {
+            if ((license["content"] as String?).isNullOrBlank()) {
+                problems += "License '$id' has no text - add aboutlibraries/licenses/$id.json (the SPDX text)."
+            }
+        }
+        for (library in libraries) {
+            val id = library["uniqueId"]
+            @Suppress("UNCHECKED_CAST")
+            val libraryLicenses = library["licenses"] as List<String>? ?: emptyList()
+            if (libraryLicenses.isEmpty()) {
+                problems += "'$id' declares no license at all - find out what it is before it ships."
+            }
+            val needsNotice = libraryLicenses.any { NOTICE_LICENSE_PREFIXES.any(it::startsWith) }
+            val description = library["description"] as String? ?: ""
+            if (needsNotice && !description.startsWith("Copyright")) {
+                problems += "'$id' is ${libraryLicenses.joinToString()}, which requires its copyright notice - add " +
+                    "aboutlibraries/libraries/<name>.json with \"uniqueId\": \"$id\" and a description starting " +
+                    "with its \"Copyright ...\" line."
+            }
+        }
+        if (problems.isNotEmpty()) {
+            throw GradleException("Open-source license report is incomplete:\n - " + problems.joinToString("\n - "))
+        }
+        reportFile.get().asFile.writeText("${libraries.size} libraries, ${licenses.size} licenses: OK\n")
+    }
+
+    private companion object {
+        val NOTICE_LICENSE_PREFIXES = listOf("BSD-", "MIT", "OFL-", "ISC", "CC-BY-")
+    }
+}
+
+/**
+ * Apache-2.0 §4(d): a dependency that ships a NOTICE file must have that notice reproduced by
+ * anything redistributing it. AGP's default packaging drops every META-INF/NOTICE* from the APK, so
+ * this pulls them out of the variant's runtime dependencies first, into a generated
+ * res/raw/third_party_notices.json that the licenses dialog shows. Automatic, like the library list
+ * itself - nothing to remember when a dependency with a NOTICE turns up.
+ */
+abstract class CollectThirdPartyNoticesTask : DefaultTask() {
+
+    /** The runtime classpath's Java resources (for an AAR, its classes.jar - where a NOTICE lives). */
+    @get:Internal
+    abstract val javaResourceArtifacts: Property<ArtifactCollection>
+
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NAME_ONLY)
+    abstract val javaResourceFiles: ConfigurableFileCollection
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @TaskAction
+    fun collect() {
+        val notices = sortedMapOf<String, String>()
+        for (artifact in javaResourceArtifacts.get().artifacts) {
+            val file = artifact.file
+            if (!file.isFile) continue
+            ZipFile(file).use { zip ->
+                val text = zip.entries().asSequence()
+                    .filter { !it.isDirectory && it.name.substringAfterLast('/').uppercase().startsWith("NOTICE") }
+                    .joinToString("\n\n") { zip.getInputStream(it).bufferedReader().readText().trim() }
+                if (text.isNotBlank()) {
+                    notices[artifact.id.componentIdentifier.displayName] = text
+                }
+            }
+        }
+        val rawDir = outputDirectory.get().asFile.resolve("raw")
+        rawDir.deleteRecursively()
+        rawDir.mkdirs()
+        rawDir.resolve("third_party_notices.json").writeText(groovy.json.JsonOutput.toJson(notices))
+    }
+}
+
+/**
+ * The asset half of the report: a font, a sound or an image isn't a Gradle dependency, so nothing can
+ * discover its license - someone has to write down where it came from. This makes that impossible to
+ * skip: every file under any source set's res/ (bar values*, which is text and config, not creative
+ * work), rawAudioSource/ and assets/ must have a complete entry in aboutlibraries/asset-sources.json -
+ * what it is, where it came from and its license. That applies to the app's own
+ * artwork too (license LicenseRef-DiceFive-AllRightsReserved): "we made it" is a claim that still
+ * needs its session or commit behind it, and its own copyright line. A third-party asset instead
+ * names the libraries/ entry for each source it's made from - which carry the license, copyright/credit
+ * and source URL, and are what the licenses dialog shows. An unlisted or incomplete asset fails the
+ * build - unaccounted-for is treated as unlicensed until proven otherwise.
+ */
+abstract class VerifyAssetSourcesTask : DefaultTask() {
+
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val assetFiles: ConfigurableFileCollection
+
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val sourcesManifest: RegularFileProperty
+
+    @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val librariesDirectory: DirectoryProperty
+
+    /** Asset paths are recorded relative to this (the app module), so the manifest reads the same everywhere. */
+    @get:Internal
+    abstract val moduleDirectory: DirectoryProperty
+
+    @get:OutputFile
+    abstract val reportFile: RegularFileProperty
+
+    @TaskAction
+    fun verify() {
+        val moduleDir = moduleDirectory.get().asFile
+        val manifestName = sourcesManifest.get().asFile.name
+        @Suppress("UNCHECKED_CAST")
+        val entries = (groovy.json.JsonSlurper().parse(sourcesManifest.get().asFile) as Map<String, Any?>)
+            .filterKeys { !it.startsWith("_") }
+        val libraries = librariesDirectory.get().asFile.listFiles { file -> file.extension == "json" }.orEmpty()
+            .map { groovy.json.JsonSlurper().parse(it) as Map<*, *> }
+            .associateBy { it["uniqueId"] }
+        val assets = assetFiles.files.map { it.relativeTo(moduleDir).invariantSeparatorsPath }.sorted()
+
+        val problems = mutableListOf<String>()
+        for (asset in assets) {
+            if (asset !in entries) {
+                problems += "$asset has no recorded source - add it to $manifestName (see aboutlibraries/README.md)."
+            }
+        }
+        for ((path, value) in entries) {
+            if (path !in assets) {
+                problems += "$path is listed in $manifestName but no longer exists - remove its entry."
+                continue
+            }
+            val entry = value as? Map<*, *> ?: emptyMap<String, Any?>()
+            fun field(name: String) = (entry[name] as? String)?.takeIf { it.isNotBlank() }
+            for (name in REQUIRED_FIELDS) {
+                if (field(name) == null) problems += "$path has no \"$name\"."
+            }
+            val license = field("license") ?: continue
+            val libraryIds = (entry["libraries"] as? List<*>).orEmpty().map { it.toString() }
+            if (license == APP_LICENSE) {
+                // The app's own work: its copyright line lives here, as nothing else records it.
+                val copyright = field("copyright")
+                if (copyright == null || !copyright.startsWith("Copyright")) {
+                    problems += "$path is the app's own work - it needs a \"copyright\" starting \"Copyright\"."
+                }
+                if (libraryIds.isNotEmpty()) problems += "$path is the app's own work ($APP_LICENSE) but names libraries."
+                continue
+            }
+            // Third-party: its copyright and credit live in the libraries/ entries the licenses dialog
+            // shows - one per source (a remix of two recordings names both) - never duplicated here.
+            if (field("copyright") != null) {
+                problems += "$path is third-party - its copyright belongs in its libraries/ entries, not here."
+            }
+            if (libraryIds.isEmpty()) {
+                problems += "$path is third-party ($license) - it needs \"libraries\": the libraries/ entry for " +
+                    "each source it's made from, so the licenses dialog credits them."
+            }
+            for (libraryId in libraryIds) {
+                val library = libraries[libraryId]
+                when {
+                    library == null -> problems += "$path points to library '$libraryId', which has no libraries/ entry."
+                    license !in (library["licenses"] as? List<*>).orEmpty() ->
+                        problems += "$path is $license, but libraries/ entry '$libraryId' doesn't list that license."
+                    (library["description"] as? String)?.startsWith("Copyright") != true ->
+                        problems += "libraries/ entry '$libraryId' (for $path) needs a description starting with its " +
+                            "\"Copyright ...\" line (or \"Copyright waived ...\" for CC0)."
+                    (library["website"] as? String).isNullOrBlank() ->
+                        problems += "libraries/ entry '$libraryId' (for $path) needs a \"website\": where it came from."
+                    library["tag"] !in ASSET_TAGS ->
+                        problems += "libraries/ entry '$libraryId' (for $path) needs a \"tag\" - one of " +
+                            "${ASSET_TAGS.joinToString()} - so the licences dialog doesn't call it a library."
+                }
+            }
+        }
+        if (problems.isNotEmpty()) {
+            throw GradleException("Bundled assets without a complete source and license:\n - " + problems.joinToString("\n - "))
+        }
+        reportFile.get().asFile.writeText("${assets.size} assets: OK\n")
+    }
+
+    private companion object {
+        val REQUIRED_FIELDS = listOf("description", "source", "license")
+
+        /** The asset kinds LicensesDialog's ComponentKind knows how to name - keep the two in step. */
+        val ASSET_TAGS = listOf("font", "sound", "image")
+
+        /** The app's own work: proprietary, all rights reserved - see LICENSE at the repo root. */
+        const val APP_LICENSE = "LicenseRef-DiceFive-AllRightsReserved"
+    }
+}
+
+val verifyAssetSources = tasks.register<VerifyAssetSourcesTask>("verifyAssetSources") {
+    group = "verification"
+    description = "Checks every bundled asset has a recorded source and license."
+    assetFiles.from(fileTree("src") {
+        include("*/res/**", "*/rawAudioSource/**", "*/assets/**")
+        exclude("*/res/values*/**")
+    })
+    sourcesManifest.set(layout.projectDirectory.file("aboutlibraries/asset-sources.json"))
+    librariesDirectory.set(layout.projectDirectory.dir("aboutlibraries/libraries"))
+    moduleDirectory.set(layout.projectDirectory)
+    reportFile.set(layout.buildDirectory.file("reports/licenses/assets.txt"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        val capitalized = variant.name.replaceFirstChar(Char::uppercase)
+        tasks.matching { it.name == "generate${capitalized}Resources" }.configureEach { dependsOn(verifyAssetSources) }
+        val verify = tasks.register<VerifyLicenseReportTask>("verifyLicenseReport$capitalized") {
+            group = "verification"
+            description = "Checks the ${variant.name} open-source license report is complete."
+            dependsOn("prepareLibraryDefinitions$capitalized")
+            libraryDefinitions.set(
+                layout.buildDirectory.file("generated/aboutLibraries/${variant.name}/res/raw/aboutlibraries.json"),
+            )
+            reportFile.set(layout.buildDirectory.file("reports/licenses/${variant.name}.txt"))
+        }
+        // generate<Variant>Resources is on the path of every build of the variant - assemble, unit
+        // tests, lint - so an incomplete report fails all of them, as strict mode does.
+        tasks.matching { it.name == "generate${capitalized}Resources" }.configureEach { dependsOn(verify) }
+
+        val javaRes = variant.runtimeConfiguration.incoming.artifactView {
+            attributes.attribute(Attribute.of("artifactType", String::class.java), "android-java-res")
+        }.artifacts
+        val notices = tasks.register<CollectThirdPartyNoticesTask>("collectThirdPartyNotices$capitalized") {
+            javaResourceArtifacts.set(javaRes)
+            javaResourceFiles.from(javaRes.artifactFiles)
+            outputDirectory.set(layout.buildDirectory.dir("generated/thirdPartyNotices/${variant.name}"))
+        }
+        variant.sources.res?.addGeneratedSourceDirectory(notices, CollectThirdPartyNoticesTask::outputDirectory)
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -303,6 +620,8 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.datastore.preferences)
+    // Reads the aboutlibraries.json the plugin above generates - see the aboutLibraries block.
+    implementation(libs.aboutlibraries.core)
 
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.runtime)
@@ -310,6 +629,12 @@ dependencies {
     // org.json is part of the Android SDK, but unit tests run against a stub version of it
     // (every method throws) - this brings in a real implementation for JVM tests only.
     testImplementation(libs.org.json)
+    // Compose UI tests on the JVM (no device/emulator in the sandbox) - see LicensesDialogTest.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.junit)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
+    testImplementation(libs.androidx.espresso.core)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.junit)
