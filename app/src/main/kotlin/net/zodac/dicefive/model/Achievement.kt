@@ -258,25 +258,12 @@ enum class Achievement(
         "score_exactly_100", "Ton!", "Finish a game on exactly 100",
         AchievementCategory.SCORING,
     ),
-    // Strictly OVER 200, not "200 or more" - kept disjoint from DOUBLE_TON's exact 200 rather than
-    // overlapping it, so the two are genuinely distinct feats instead of one being a strict subset
-    // announced twice for the same game.
     SCORE_200(
-        "score_200", "Solid Round", "Score more than 200 in a game",
+        "score_200", "Solid Round", "Score 200 or more in a game",
         AchievementCategory.SCORING,
     ),
-    DOUBLE_TON(
-        "score_exactly_200", "Double Ton", "Finish a game on exactly 200",
-        AchievementCategory.SCORING,
-    ),
-    // Same reasoning as SCORE_200 above: strictly over, not "or more", to stay disjoint from
-    // TRIPLE_TON's exact 300.
     SCORE_300(
-        "score_300", "Sharpshooter", "Score more than 300 in a game",
-        AchievementCategory.SCORING,
-    ),
-    TRIPLE_TON(
-        "score_exactly_300", "Triple Ton", "Finish a game on exactly 300",
+        "score_300", "Sharpshooter", "Score 300 or more in a game",
         AchievementCategory.SCORING,
     ),
     SCORE_400(
