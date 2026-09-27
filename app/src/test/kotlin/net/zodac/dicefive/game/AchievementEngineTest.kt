@@ -172,6 +172,45 @@ class AchievementEngineTest {
         // A tie is a 0-point margin, not a 1-point one - Photo Finish is exactly 1, no more no less.
         assertFalse(Achievement.WIN_BY_5 in update.newlyUnlocked)
         assertFalse(Achievement.SINGULARITY in update.newlyUnlocked)
+        // Identical scorecards either side - the house rule has nothing to break here, so this is
+        // still a true, unbroken tie, not a Tie Break win.
+        assertFalse(Achievement.TIE_BREAK in update.newlyUnlocked)
+    }
+
+    @Test
+    fun `matching the top score with fewer 5x wins Tie Break`() {
+        val state = finishedGame(
+            player(total = 200, fiveOfAKindBonusCount = 0),
+            player(name = "Bot", type = PlayerType.AI, total = 200, fiveOfAKindBonusCount = 1),
+        )
+
+        val update = evaluate(state)
+
+        assertTrue(Achievement.FIRST_WIN in update.newlyUnlocked)
+        assertTrue(Achievement.TIE_BREAK in update.newlyUnlocked)
+    }
+
+    @Test
+    fun `matching the top score with more 5x loses the tie-break - no win, no Tie Break`() {
+        val state = finishedGame(
+            player(total = 200, fiveOfAKindBonusCount = 1),
+            player(name = "Bot", type = PlayerType.AI, total = 200, fiveOfAKindBonusCount = 0),
+        )
+
+        val update = evaluate(state)
+
+        // FIRST_WIN is unaffected - a raw-score tie still counts as a win there, same as before this
+        // house rule existed (see the earlier "tie at the top" test). Only TIE_BREAK cares who the
+        // house rule actually favoured.
+        assertTrue(Achievement.FIRST_WIN in update.newlyUnlocked)
+        assertFalse("the bot won the tie-break, not player 1", Achievement.TIE_BREAK in update.newlyUnlocked)
+    }
+
+    @Test
+    fun `Tie Break needs an opponent to tie with - a solo game never unlocks it`() {
+        val update = evaluate(finishedGame(player(total = 200, fiveOfAKindBonusCount = 0)))
+
+        assertFalse(Achievement.TIE_BREAK in update.newlyUnlocked)
     }
 
     @Test

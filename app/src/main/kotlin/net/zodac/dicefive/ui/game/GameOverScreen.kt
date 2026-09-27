@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
+import net.zodac.dicefive.game.TieBreak
+import net.zodac.dicefive.game.TieBreakCriterion
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
@@ -67,16 +69,15 @@ fun GameOverScreen(
     modifier: Modifier = Modifier,
     soundEnabled: Boolean = true,
 ) {
-    val ranked = state.players.sortedByDescending { it.totalScore }
-    val topScore = ranked.firstOrNull()?.totalScore ?: 0
-    // Ties share the top spot: "the first player in the sorted list" would silently crown one of
-    // two equal scores, which is the sort of thing that only ever shows up in a real game.
-    val winners = ranked.filter { it.totalScore == topScore }
-    val runnersUp = ranked.drop(winners.size)
+    val ranked = TieBreak.rank(state.players)
+    // A tie on raw score is now almost always broken by the house rule (see game/TieBreak.kt) -
+    // "winners" only stays plural when every criterion in that list also matches.
+    val winners = ranked.filter { it.rank == 1 }
+    val runnersUp = ranked.filter { it.rank != 1 }
     // Any human seat sharing the win counts - not just the primary player - so a tie between a
     // human and the CPU still gets the celebration. A solo game has nobody to beat, so its lone
     // player "winning" is a given and gets no fanfare.
-    val humanWon = state.players.size > 1 && winners.any { it.type == PlayerType.HUMAN }
+    val humanWon = state.players.size > 1 && winners.any { it.player.type == PlayerType.HUMAN }
 
     val soundEffects = rememberSoundEffects()
     soundEffects.enabled = soundEnabled
@@ -105,15 +106,23 @@ fun GameOverScreen(
             )
 
             for (winner in winners) {
-                WinnerCard(player = winner, solo = state.players.size == 1)
+                WinnerCard(player = winner.player, solo = state.players.size == 1, tieBreakReason = winner.tieBreakReason)
             }
 
             if (runnersUp.isNotEmpty()) {
+                // "=" only for a true tie (every tie-break criterion also matches, not just raw
+                // score) - a rank shared with more than one runner-up here is exactly that, since
+                // rankPlayers only ever repeats a rank for a true tie.
+                val sharedRanks = runnersUp.groupingBy { it.rank }.eachCount().filterValues { it > 1 }.keys
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                        runnersUp.forEachIndexed { index, player ->
-                            // Ranks continue past however many players shared the win.
-                            RunnerUpRow(rank = winners.size + index + 1, player = player)
+                        for (runnerUp in runnersUp) {
+                            RunnerUpRow(
+                                rank = runnerUp.rank,
+                                isTrueTie = runnerUp.rank in sharedRanks,
+                                player = runnerUp.player,
+                                tieBreakReason = runnerUp.tieBreakReason,
+                            )
                         }
                     }
                 }
@@ -160,9 +169,13 @@ fun GameOverScreen(
     }
 }
 
-/** [solo] keeps the gold card but drops the trophy and "Winner" label - nobody was beaten. */
+
+/** [solo] keeps the gold card but drops the trophy and "Winner" label - nobody was beaten.
+ * [tieBreakReason] is only set when this winner shares their raw score with the very next player
+ * down the results, and the house rule (not the official rules) is the only reason they're the one
+ * holding the trophy. */
 @Composable
-private fun WinnerCard(player: PlayerState, solo: Boolean) {
+private fun WinnerCard(player: PlayerState, solo: Boolean, tieBreakReason: TieBreakCriterion? = null) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -200,6 +213,12 @@ private fun WinnerCard(player: PlayerState, solo: Boolean) {
                 if (!solo) {
                     Text(text = "Winner", style = MaterialTheme.typography.labelLarge)
                 }
+                if (tieBreakReason != null) {
+                    Text(
+                        text = "Won on ${tieBreakReason.reasonText}",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
             }
             Text(
                 text = player.totalScore.toString(),
@@ -210,30 +229,42 @@ private fun WinnerCard(player: PlayerState, solo: Boolean) {
     }
 }
 
+/** [isTrueTie] prefixes the rank with "=" - only when this player shares it with another runner-up
+ * because every tie-break criterion also matched between them, not just their raw score.
+ * [tieBreakReason] is only set when this player shares their raw score with the very next player
+ * down the results, and the house rule is why they're the one ranked above instead. */
 @Composable
-private fun RunnerUpRow(rank: Int, player: PlayerState) {
+private fun RunnerUpRow(rank: Int, isTrueTie: Boolean, player: PlayerState, tieBreakReason: TieBreakCriterion? = null) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text = rank.toString(),
+            text = if (isTrueTie) "=$rank" else rank.toString(),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(
-            modifier = Modifier.weight(1f),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            if (player.type == PlayerType.AI) CpuPlayerIcon(size = 18.dp)
-            Text(
-                text = player.name,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                if (player.type == PlayerType.AI) CpuPlayerIcon(size = 18.dp)
+                Text(
+                    text = player.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (tieBreakReason != null) {
+                Text(
+                    text = "Won on ${tieBreakReason.reasonText}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         Text(
             text = player.totalScore.toString(),

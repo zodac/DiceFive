@@ -10,7 +10,30 @@ interface ScoreDao {
     @Insert
     suspend fun insert(entry: ScoreEntry)
 
-    @Query("SELECT * FROM scores ORDER BY score DESC LIMIT :limit OFFSET :offset")
+    /**
+     * Ties on [ScoreEntry.score] are broken by the same house rule `GameOverScreen` applies within
+     * a single game (see [net.zodac.dicefive.game.TieBreak]) - fewest 5x, most zeroed categories,
+     * lowest upper section, Chance, 3x, then 4x, each `COALESCE`d to a sentinel so a row missing
+     * that stat (recorded before this house rule shipped) sorts as though it held the worst
+     * possible value there, rather than quietly tying with a real, hard-won handicap. Keep this in
+     * step with [TieBreak.leaderboardComparator][net.zodac.dicefive.game.TieBreak.leaderboardComparator],
+     * which `ScoresScreen` uses to decide which adjacent rows are a true tie (an equal `=` rank)
+     * versus one this ordering has already broken.
+     */
+    @Query(
+        """
+        SELECT * FROM scores
+        ORDER BY
+            score DESC,
+            COALESCE(fiveOfAKindCount, 999999) ASC,
+            COALESCE(zeroedCategoryCount, -1) DESC,
+            COALESCE(upperSectionTotal, 999999) ASC,
+            COALESCE(chanceScore, 999999) ASC,
+            COALESCE(threeOfAKindScore, 999999) ASC,
+            COALESCE(fourOfAKindScore, 999999) ASC
+        LIMIT :limit OFFSET :offset
+        """,
+    )
     suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry>
 
     @Query("SELECT COUNT(*) FROM scores")

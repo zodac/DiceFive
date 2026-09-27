@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [ScoreEntry::class, DismissedPlayerStats::class], version = 5, exportSchema = false)
+@Database(entities = [ScoreEntry::class, DismissedPlayerStats::class], version = 6, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun scoreDao(): ScoreDao
@@ -61,10 +61,26 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds the tie-break house rule's own columns (see [net.zodac.dicefive.game.TieBreak]):
+         * [ScoreEntry.zeroedCategoryCount], [ScoreEntry.upperSectionTotal], [ScoreEntry.chanceScore],
+         * [ScoreEntry.threeOfAKindScore], [ScoreEntry.fourOfAKindScore]. Existing rows come back null
+         * - not recorded - same "unknown means unknown" call as [MIGRATION_4_5].
+         */
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE scores ADD COLUMN zeroedCategoryCount INTEGER")
+                db.execSQL("ALTER TABLE scores ADD COLUMN upperSectionTotal INTEGER")
+                db.execSQL("ALTER TABLE scores ADD COLUMN chanceScore INTEGER")
+                db.execSQL("ALTER TABLE scores ADD COLUMN threeOfAKindScore INTEGER")
+                db.execSQL("ALTER TABLE scores ADD COLUMN fourOfAKindScore INTEGER")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "dicefive.db")
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build()
                     .also { instance = it }
             }

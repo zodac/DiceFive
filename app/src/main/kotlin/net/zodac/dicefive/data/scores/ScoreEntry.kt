@@ -2,6 +2,7 @@ package net.zodac.dicefive.data.scores
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import net.zodac.dicefive.game.TieBreakStats
 
 /** One finished game's final score for a human player. AI scores are never recorded. */
 @Entity(tableName = "scores")
@@ -36,4 +37,31 @@ data class ScoreEntry(
      * isn't known (the Leaderboard shows "-" instead).
      */
     val fiveOfAKindCount: Int? = null,
-)
+    /**
+     * This player's tie-break house-rule stats (see [net.zodac.dicefive.game.TieBreak]) - how many
+     * categories scored zero, the upper-section subtotal (excluding its bonus), and the Chance/3x/4x
+     * boxes. All null for a row recorded before this house rule shipped: never captured, same
+     * "unknown means excluded, not guessed at" call as [fiveOfAKindCount]. There is no
+     * `tricolourScoredCount` column - see [net.zodac.dicefive.game.TieBreak]'s doc comment on why
+     * that one criterion is excluded from the cross-mode leaderboard entirely.
+     */
+    val zeroedCategoryCount: Int? = null,
+    val upperSectionTotal: Int? = null,
+    val chanceScore: Int? = null,
+    val threeOfAKindScore: Int? = null,
+    val fourOfAKindScore: Int? = null,
+) {
+
+    /** For [ScoreDao.pagedScores]'s ORDER BY to translate into the Leaderboard's own displayed
+     * ranks/`=` ties - see [ScoresScreen][net.zodac.dicefive.ui.scores.ScoresScreen]. */
+    fun toTieBreakStats(): TieBreakStats = TieBreakStats(
+        score = score,
+        fiveOfAKindCount = fiveOfAKindCount,
+        zeroedCategoryCount = zeroedCategoryCount,
+        tricolourScoredCount = null,
+        upperSectionTotal = upperSectionTotal,
+        chance = chanceScore,
+        threeOfAKind = threeOfAKindScore,
+        fourOfAKind = fourOfAKindScore,
+    )
+}
