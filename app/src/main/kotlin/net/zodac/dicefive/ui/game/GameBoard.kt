@@ -176,13 +176,14 @@ fun ReadOnlyScoreboard(player: PlayerState, modifier: Modifier = Modifier) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Column {
-                        Text(text = "Upper: ${player.upperSectionTotal}", color = TileIconColor, style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            text = "Bonus: ${player.upperSectionBonus}",
+                        SectionStatRow(label = "Upper:", value = player.upperSectionTotal)
+                        SectionStatRow(
+                            label = "Bonus:",
+                            value = player.upperSectionBonus,
                             color = if (player.upperSectionBonus > 0) GoldAccent else TileIconColor,
                             fontWeight = if (player.upperSectionBonus > 0) FontWeight.Bold else FontWeight.Normal,
-                            style = MaterialTheme.typography.bodyMedium,
                         )
+                        SectionStatRow(label = "Lower:", value = player.lowerSectionTotal)
                     }
                 }
             }
