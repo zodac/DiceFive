@@ -31,10 +31,11 @@ import net.zodac.dicefive.ui.game.style.IvoryDiceStyle
 /**
  * The brand typeface: Sora, a variable font ([R.font.sora]), pinned to its bold instance via
  * [FontVariation] rather than shipping a separate static weight file. Used on the logo wordmark
- * here and on [ScreenScaffold]'s page titles - nowhere else. This is a deliberate, narrow
- * departure from stock M3 type ([UI.md]'s "no typography overrides" rule is about the type
- * *scale*, not a call site): these are brand marks, not body text, so they earn their own face
- * the same way the game board earns its own palette.
+ * here, on [ScreenScaffold]'s page titles, and on the in-game corner badges (5x bonus count,
+ * Small/Large Straight run length - see `SegmentBadge`). This is a deliberate, narrow departure
+ * from stock M3 type ([UI.md]'s "no typography overrides" rule is about the type *scale*, not a
+ * call site): these are brand marks, not body text, so they earn their own face the same way the
+ * game board earns its own palette.
  */
 @OptIn(ExperimentalTextApi::class)
 internal val SoraFontFamily = FontFamily(
