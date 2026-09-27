@@ -57,6 +57,7 @@
   | `[Leaderboard]`  | The Leaderboard (scores) screen and the score records behind it      |
   | `[Project]`      | Repo-wide setup that isn't any one feature (initial commit, tooling) |
   | `[Settings]`     | The Settings screen and the preferences behind it                    |
+  | `[UI]`           | App-wide layout and navigation - main menu, shared chrome, dialogs   |
 
 # Pending
 
