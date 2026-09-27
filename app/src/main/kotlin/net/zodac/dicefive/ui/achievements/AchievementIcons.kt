@@ -89,10 +89,18 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.R
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.ui.theme.IrishGreenSwatch
+import net.zodac.dicefive.ui.theme.IrishOrangeSwatch
+import net.zodac.dicefive.ui.theme.IrishWhiteSwatch
 
 /**
  * The glyph an unlocked [Achievement] shows in [AchievementsScreen]. Every achievement gets its
@@ -225,7 +233,50 @@ val Achievement.icon: ImageVector
         Achievement.ARCHIVIST -> Icons.Filled.Archive
         Achievement.HISTORIAN -> Icons.Filled.AutoStories
         Achievement.COMPLETIONIST -> Icons.Filled.Verified
+
+        // ---- Secret -----------------------------------------------------------------------------
+        // A real tricolour flag, not a single-colour Material glyph - every other icon here is
+        // meant to be re-tinted by whatever container it's shown in, but this one's whole point is
+        // its own three fixed colours, so it's built with real fills rather than borrowed from
+        // Icons.Filled. Every render site special-cases this one achievement to pass
+        // Color.Unspecified as its tint so those fills survive instead of being flattened to one
+        // colour - see [iconTintOrUnspecified].
+        Achievement.LUCK_OF_THE_IRISH -> rememberIrishFlagIcon()
     }
+
+/**
+ * [tint] as given, except for [Achievement.LUCK_OF_THE_IRISH], whose icon is drawn in real fixed
+ * colours rather than meant to be tinted - passing [Color.Unspecified] there tells [androidx.compose
+ * .material3.Icon] to skip its colour filter entirely and show the vector's own fills.
+ */
+fun Achievement.iconTintOrUnspecified(tint: Color): Color = if (this == Achievement.LUCK_OF_THE_IRISH) Color.Unspecified else tint
+
+@Composable
+private fun rememberIrishFlagIcon(): ImageVector = remember {
+    ImageVector.Builder(name = "IrishFlag", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f).apply {
+        path(fill = SolidColor(IrishGreenSwatch)) {
+            moveTo(2f, 3f)
+            lineTo(9f, 3f)
+            lineTo(9f, 21f)
+            lineTo(2f, 21f)
+            close()
+        }
+        path(fill = SolidColor(IrishWhiteSwatch)) {
+            moveTo(9f, 3f)
+            lineTo(15f, 3f)
+            lineTo(15f, 21f)
+            lineTo(9f, 21f)
+            close()
+        }
+        path(fill = SolidColor(IrishOrangeSwatch)) {
+            moveTo(15f, 3f)
+            lineTo(22f, 3f)
+            lineTo(22f, 21f)
+            lineTo(15f, 21f)
+            close()
+        }
+    }.build()
+}
 
 /** Shown in place of [icon] for every achievement until it's unlocked - a mystery, not a spoiler. */
 val LOCKED_ACHIEVEMENT_ICON: ImageVector = Icons.Filled.QuestionMark

@@ -51,6 +51,7 @@ import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerConfig
+import net.zodac.dicefive.model.isLuckOfTheIrish
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
@@ -739,6 +740,7 @@ class GameViewModel(
             // just who's at the table.
             val playerTwo = players.getOrNull(1)
             val hasZodacAsPlayerTwo = players.size == 2 && playerTwo?.type == PlayerType.HUMAN && playerTwo.name == ZODAC_PLAYER_NAME
+            val isLuckOfTheIrish = game?.isLuckOfTheIrish == true
             // A mode that colours its own dice never shows the dice style, so picking one can't count.
             val playedNonDefaultDiceStyle = gameMode.usesPlayerDiceStyle &&
                 isNonDefaultStyle(settings.diceStyleId, DiceStyles.default.id)
@@ -749,6 +751,7 @@ class GameViewModel(
             val context = GameStartContext(
                 playedNonDefaultStyle = playedNonDefaultStyle,
                 hasHumanPlayerNamedZodac = hasZodacAsPlayerTwo,
+                hasIrishPlayerOneInTricolour = isLuckOfTheIrish,
                 customizedGameSettings = customizedGameSettings,
                 gameMode = gameMode,
             )

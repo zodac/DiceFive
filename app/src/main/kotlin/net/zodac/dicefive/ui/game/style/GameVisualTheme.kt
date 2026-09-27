@@ -64,3 +64,12 @@ data class GameVisualTheme(
 )
 
 val LocalGameVisualTheme = staticCompositionLocalOf { GameVisualTheme() }
+
+/**
+ * Whether Tricolour's dice/scorecard colours are showing as the Irish flag's green/white/orange
+ * right now - true only for [net.zodac.dicefive.model.isLuckOfTheIrish]'s exact condition, provided
+ * once per game by `GameScreen` from the live [net.zodac.dicefive.model.GameState]. Kept separate
+ * from [GameVisualTheme] (a player's own style picks) since this isn't a choice, it's an easter egg
+ * tied to this specific game.
+ */
+val LocalIrishTricolour = staticCompositionLocalOf { false }

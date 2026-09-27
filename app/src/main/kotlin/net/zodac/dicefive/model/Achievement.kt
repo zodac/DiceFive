@@ -559,6 +559,13 @@ enum class Achievement(
         "cheater_cheater", "Cheater, Cheater!", "Finish a game with the maximum possible score for its game mode",
         AchievementCategory.SECRET, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
+    // Excluded from COMPLETIONIST the same way CHEATER_CHEATER is - naming yourself after a
+    // country to re-skin a game mode's dice isn't something every player could reasonably be
+    // expected to stumble into on the way to 100%.
+    LUCK_OF_THE_IRISH(
+        "luck_of_the_irish", "Luck of the Irish", "Play a game of Tricolour as Ireland",
+        AchievementCategory.SECRET, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+    ),
     ;
 
     val progressStyle: ProgressStyle

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -315,12 +316,17 @@ private fun BannerSlot(
     }
 
     if (showOwnDescription) {
+        val defaultIconTint = MaterialTheme.colorScheme.primary
         DiceFiveDialog(
             // The achievement's own icon for an unlock, same as its banner; a progress nudge keeps
             // the generic trophy, since nothing has been earned yet.
             icon = when (val event = item.event) {
                 is AchievementEvent.Unlocked -> event.achievement.icon
                 is AchievementEvent.Progressed -> Icons.Filled.EmojiEvents
+            },
+            iconTint = when (val event = item.event) {
+                is AchievementEvent.Unlocked -> event.achievement.iconTintOrUnspecified(defaultIconTint)
+                is AchievementEvent.Progressed -> defaultIconTint
             },
             title = item.event.achievement.title,
             message = item.event.achievement.description,
@@ -378,7 +384,12 @@ private fun UnlockedBanner(achievement: Achievement) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Icon(imageVector = achievement.icon, contentDescription = null, modifier = Modifier.size(28.dp))
+            Icon(
+                imageVector = achievement.icon,
+                contentDescription = null,
+                tint = achievement.iconTintOrUnspecified(LocalContentColor.current),
+                modifier = Modifier.size(28.dp),
+            )
             Column {
                 Text(text = "Achievement unlocked", style = MaterialTheme.typography.labelSmall)
                 BannerTitle(achievement.title)

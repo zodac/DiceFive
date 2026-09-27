@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.palette
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileHighlightBottom
@@ -72,6 +73,7 @@ fun CategoryTile(
     fiveOfAKindBonusCount: Int = 0,
     onClick: (() -> Unit)? = null,
 ) {
+    val irishTricolour = LocalIrishTricolour.current
     val shape = RoundedCornerShape(if (prominent) 16.dp else 10.dp)
     val tileSize = when {
         prominent -> PROMINENT_TILE_SIZE
@@ -113,7 +115,7 @@ fun CategoryTile(
             .background(Brush.linearGradient(backgroundColors))
             .then(
                 if (category == ScoreCategory.COLOURED_HOUSE) {
-                    Modifier.drawBehind { drawColourStripes(alpha = if (scored) SCORED_STRIPE_ALPHA else 1f) }
+                    Modifier.drawBehind { drawColourStripes(alpha = if (scored) SCORED_STRIPE_ALPHA else 1f, irish = irishTricolour) }
                 } else {
                     Modifier
                 },
@@ -141,9 +143,9 @@ fun CategoryTile(
  * The Coloured House tile's background: red, yellow and blue in three equal diagonal stripes, top-left
  * to bottom-right - the yellow band fills the tile first, then the red and blue corners go over it.
  */
-private fun DrawScope.drawColourStripes(alpha: Float) {
+private fun DrawScope.drawColourStripes(alpha: Float, irish: Boolean) {
     val leg = STRIPE_CORNER_LEG
-    drawRect(color = DieColour.YELLOW.palette.stripe, alpha = alpha)
+    drawRect(color = DieColour.YELLOW.palette(irish).stripe, alpha = alpha)
     drawPath(
         path = Path().apply {
             moveTo(0f, 0f)
@@ -151,7 +153,7 @@ private fun DrawScope.drawColourStripes(alpha: Float) {
             lineTo(0f, size.height * leg)
             close()
         },
-        color = DieColour.RED.palette.stripe,
+        color = DieColour.RED.palette(irish).stripe,
         alpha = alpha,
     )
     drawPath(
@@ -161,7 +163,7 @@ private fun DrawScope.drawColourStripes(alpha: Float) {
             lineTo(size.width, size.height * (1 - leg))
             close()
         },
-        color = DieColour.BLUE.palette.stripe,
+        color = DieColour.BLUE.palette(irish).stripe,
         alpha = alpha,
     )
 }

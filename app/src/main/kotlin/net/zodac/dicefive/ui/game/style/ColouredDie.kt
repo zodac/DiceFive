@@ -5,6 +5,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.ui.theme.GoldAccent
+import net.zodac.dicefive.ui.theme.IrishGreenDiceBottom
+import net.zodac.dicefive.ui.theme.IrishGreenDiceTop
+import net.zodac.dicefive.ui.theme.IrishGreenPipColor
+import net.zodac.dicefive.ui.theme.IrishGreenStripe
+import net.zodac.dicefive.ui.theme.IrishGreenSwatch
+import net.zodac.dicefive.ui.theme.IrishOrangeDiceBottom
+import net.zodac.dicefive.ui.theme.IrishOrangeDiceTop
+import net.zodac.dicefive.ui.theme.IrishOrangePipColor
+import net.zodac.dicefive.ui.theme.IrishOrangeStripe
+import net.zodac.dicefive.ui.theme.IrishOrangeSwatch
+import net.zodac.dicefive.ui.theme.IrishWhiteDiceBottom
+import net.zodac.dicefive.ui.theme.IrishWhiteDiceTop
+import net.zodac.dicefive.ui.theme.IrishWhitePipColor
+import net.zodac.dicefive.ui.theme.IrishWhiteStripe
+import net.zodac.dicefive.ui.theme.IrishWhiteSwatch
 import net.zodac.dicefive.ui.theme.TricolourBlueDiceBottom
 import net.zodac.dicefive.ui.theme.TricolourBlueDiceTop
 import net.zodac.dicefive.ui.theme.TricolourBluePipColor
@@ -29,7 +44,7 @@ import net.zodac.dicefive.ui.theme.TricolourYellowSwatch
  */
 @Composable
 fun ColouredDie(value: Int, colour: DieColour, held: Boolean, modifier: Modifier) {
-    val palette = colour.palette
+    val palette = colour.palette(LocalIrishTricolour.current)
     BeveledDie(value, held, palette.diceTop, palette.diceBottom, palette.pip, modifier, heldRingColor = palette.heldRing)
 }
 
@@ -60,3 +75,19 @@ val DieColour.palette: DieColourPalette
             TricolourBlueDiceTop, TricolourBlueDiceBottom, TricolourBluePipColor, TricolourBlueSwatch, TricolourBlueStripe,
         )
     }
+
+/**
+ * [palette] as normal, or - while [LocalIrishTricolour] is true - the Irish flag's green/white/orange
+ * standing in for this colour's usual red/yellow/blue instead. Every caller that draws a Tricolour
+ * colour (dice, the Reds/Yellows/Blues scorecard swatches, Coloured House's stripes) goes through
+ * this one function, so re-skinning only ever needs touching this `when`.
+ */
+fun DieColour.palette(irish: Boolean): DieColourPalette = if (!irish) {
+    palette
+} else {
+    when (this) {
+        DieColour.RED -> DieColourPalette(IrishGreenDiceTop, IrishGreenDiceBottom, IrishGreenPipColor, IrishGreenSwatch, IrishGreenStripe)
+        DieColour.YELLOW -> DieColourPalette(IrishWhiteDiceTop, IrishWhiteDiceBottom, IrishWhitePipColor, IrishWhiteSwatch, IrishWhiteStripe)
+        DieColour.BLUE -> DieColourPalette(IrishOrangeDiceTop, IrishOrangeDiceBottom, IrishOrangePipColor, IrishOrangeSwatch, IrishOrangeStripe)
+    }
+}

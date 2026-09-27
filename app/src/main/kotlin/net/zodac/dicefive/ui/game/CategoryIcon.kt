@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.R
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.PipFace
 import net.zodac.dicefive.ui.game.style.palette
 import net.zodac.dicefive.ui.theme.TileIconColor
@@ -74,7 +75,7 @@ fun CategoryIcon(
                     .fillMaxSize()
                     .padding(10.dp)
                     .alpha(if (dimmed) 0.4f else 1f)
-                    .background(requireNotNull(category.matchingColour).palette.swatch),
+                    .background(requireNotNull(category.matchingColour).palette(LocalIrishTricolour.current).swatch),
             )
             // Material has one Stairs glyph, not a short-flight/long-flight pair, so both
             // categories render the same icon - a corner badge carries the run length (4 vs 5)
