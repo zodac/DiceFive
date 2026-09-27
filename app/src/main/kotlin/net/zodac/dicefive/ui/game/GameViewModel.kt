@@ -731,10 +731,14 @@ class GameViewModel(
         val repository = achievementsRepository ?: return
         val settings = settingsRepository ?: return
         viewModelScope.launch {
-            // Never P1 - "You" is always index 0, so this only ever looks at the other seats.
             val game = _game.value
-            val otherHumans = game?.players.orEmpty().drop(1).filter { it.type == PlayerType.HUMAN }
+            val players = game?.players.orEmpty()
             val gameMode = game?.gameMode ?: GameMode.default
+            // Specifically a two-player game's P2 - "You" (P1, index 0) never counts, and neither
+            // does P2 in a 3P/4P game, since Big Fan is about who's sitting across from you, not
+            // just who's at the table.
+            val playerTwo = players.getOrNull(1)
+            val hasZodacAsPlayerTwo = players.size == 2 && playerTwo?.type == PlayerType.HUMAN && playerTwo.name == ZODAC_PLAYER_NAME
             // A mode that colours its own dice never shows the dice style, so picking one can't count.
             val playedNonDefaultDiceStyle = gameMode.usesPlayerDiceStyle &&
                 isNonDefaultStyle(settings.diceStyleId, DiceStyles.default.id)
@@ -744,7 +748,7 @@ class GameViewModel(
                 isNonDefaultStyle(settings.diceMatId, DiceMats.default.id)
             val context = GameStartContext(
                 playedNonDefaultStyle = playedNonDefaultStyle,
-                hasHumanPlayerNamedZodac = otherHumans.any { it.name == ZODAC_PLAYER_NAME },
+                hasHumanPlayerNamedZodac = hasZodacAsPlayerTwo,
                 customizedGameSettings = customizedGameSettings,
                 gameMode = gameMode,
             )

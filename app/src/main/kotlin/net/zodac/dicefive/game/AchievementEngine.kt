@@ -58,8 +58,9 @@ data class GameStartContext(
      * [Achievement.FRESH_COAT_OF_PAINT]'s trigger.
      */
     val playedNonDefaultStyle: Boolean = false,
-    /** Whether one of the *other* seats - P2, P3, or P4, never P1 - is a human named exactly
-     * "zodac" (case-sensitive) - [Achievement.BIG_FAN]'s trigger. */
+    /** Whether this is a two-player game where P2 specifically - never P1, and never a 3P/4P
+     * game's P2 - is a human named exactly "zodac" (case-sensitive) - [Achievement.BIG_FAN]'s
+     * trigger. */
     val hasHumanPlayerNamedZodac: Boolean = false,
     /** Whether this game was started with any setup option changed from the app's own default -
      * the turn timer (`turnTimer != TurnTimer.NONE`) or the game mode (anything but

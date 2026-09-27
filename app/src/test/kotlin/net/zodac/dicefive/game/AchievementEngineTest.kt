@@ -869,7 +869,10 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `a human P2, P3, or P4 named zodac unlocks Big Fan`() {
+    fun `a two-player game with P2 named zodac unlocks Big Fan`() {
+        // GameViewModel.checkGameStartAchievements is the one that decides whether this flag is
+        // true - it requires a two-player game with a human P2 named exactly "zodac", never P1 and
+        // never a 3P/4P game's P2. This engine just trusts the flag it's handed.
         val before = AchievementsState(unlockedAt = mapOf(Achievement.THE_JOURNEY_BEGINS to 1L))
 
         val withZodac = AchievementEngine.evaluateAtGameStart(GameStartContext(hasHumanPlayerNamedZodac = true), before, NOW)
