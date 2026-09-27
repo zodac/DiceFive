@@ -22,7 +22,15 @@ import net.zodac.dicefive.ui.theme.GoldAccent
  * mechanics as [IvoryDiceStyle], so a third skin is just three new colours, not a new shape.
  */
 @Composable
-internal fun BeveledDie(value: Int, held: Boolean, topColor: Color, bottomColor: Color, pipColor: Color, modifier: Modifier) {
+internal fun BeveledDie(
+    value: Int,
+    held: Boolean,
+    topColor: Color,
+    bottomColor: Color,
+    pipColor: Color,
+    modifier: Modifier,
+    heldRingColor: Color = GoldAccent,
+) {
     val shape = RoundedCornerShape(22)
     Box(
         modifier = modifier
@@ -31,7 +39,7 @@ internal fun BeveledDie(value: Int, held: Boolean, topColor: Color, bottomColor:
             .background(Brush.linearGradient(listOf(topColor, bottomColor)))
             .then(
                 if (held) {
-                    Modifier.border(2.dp, GoldAccent, shape)
+                    Modifier.border(2.dp, heldRingColor, shape)
                 } else {
                     Modifier.border(1.dp, bottomColor.copy(alpha = 0.6f), shape)
                 },

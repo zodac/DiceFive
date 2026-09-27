@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import net.zodac.dicefive.model.DieColour
+import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TricolourBlueDiceBottom
 import net.zodac.dicefive.ui.theme.TricolourBlueDiceTop
 import net.zodac.dicefive.ui.theme.TricolourBluePipColor
@@ -16,6 +17,7 @@ import net.zodac.dicefive.ui.theme.TricolourRedStripe
 import net.zodac.dicefive.ui.theme.TricolourRedSwatch
 import net.zodac.dicefive.ui.theme.TricolourYellowDiceBottom
 import net.zodac.dicefive.ui.theme.TricolourYellowDiceTop
+import net.zodac.dicefive.ui.theme.TricolourYellowHeldRing
 import net.zodac.dicefive.ui.theme.TricolourYellowPipColor
 import net.zodac.dicefive.ui.theme.TricolourYellowStripe
 import net.zodac.dicefive.ui.theme.TricolourYellowSwatch
@@ -28,7 +30,7 @@ import net.zodac.dicefive.ui.theme.TricolourYellowSwatch
 @Composable
 fun ColouredDie(value: Int, colour: DieColour, held: Boolean, modifier: Modifier) {
     val palette = colour.palette
-    BeveledDie(value, held, palette.diceTop, palette.diceBottom, palette.pip, modifier)
+    BeveledDie(value, held, palette.diceTop, palette.diceBottom, palette.pip, modifier, heldRingColor = palette.heldRing)
 }
 
 /** Every shade one [DieColour] is drawn in, on the dice and on the scorecard. */
@@ -40,6 +42,9 @@ data class DieColourPalette(
     val swatch: Color,
     /** A deeper shade for a tile background with a glyph drawn over it. */
     val stripe: Color,
+    /** The held ring's colour on this die - [GoldAccent] for every colour except yellow, whose own
+     * face is close enough to gold that the two need swapping (see [TricolourYellowHeldRing]). */
+    val heldRing: Color = GoldAccent,
 )
 
 val DieColour.palette: DieColourPalette
@@ -49,6 +54,7 @@ val DieColour.palette: DieColourPalette
         )
         DieColour.YELLOW -> DieColourPalette(
             TricolourYellowDiceTop, TricolourYellowDiceBottom, TricolourYellowPipColor, TricolourYellowSwatch, TricolourYellowStripe,
+            heldRing = TricolourYellowHeldRing,
         )
         DieColour.BLUE -> DieColourPalette(
             TricolourBlueDiceTop, TricolourBlueDiceBottom, TricolourBluePipColor, TricolourBlueSwatch, TricolourBlueStripe,
