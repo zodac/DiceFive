@@ -199,11 +199,11 @@ class AchievementEngineTest {
 
         val update = evaluate(state)
 
-        // FIRST_WIN is unaffected - a raw-score tie still counts as a win there, same as before this
-        // house rule existed (see the earlier "tie at the top" test). Only TIE_BREAK cares who the
-        // house rule actually favoured.
-        assertTrue(Achievement.FIRST_WIN in update.newlyUnlocked)
+        // Losing the tie-break is losing, full stop - a raw-score tie the house rule then decides
+        // against player 1 must not count as a win anywhere, FIRST_WIN included.
+        assertFalse("the bot won the tie-break, not player 1", Achievement.FIRST_WIN in update.newlyUnlocked)
         assertFalse("the bot won the tie-break, not player 1", Achievement.TIE_BREAK in update.newlyUnlocked)
+        assertEquals(0, update.counters[AchievementCounter.GAMES_WON])
     }
 
     @Test

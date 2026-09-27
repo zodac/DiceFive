@@ -348,7 +348,8 @@ object AchievementEngine {
         val players = state.players
         val earned = earnedDuringPlay(players, humans).toMutableSet()
         val multiplayer = players.size > 1
-        val humanWon = humanWon(state, humans)
+        val primaryPlayerRank = TieBreak.rank(players).first { it.originalIndex == 0 }
+        val humanWon = primaryPlayerRank.rank == 1
         val bestHumanScore = humans.maxOf { it.totalScore }
         val margin = winningMargin(players, humans)
         val aiPlayers = players.filter { it.type == PlayerType.AI }
@@ -378,13 +379,17 @@ object AchievementEngine {
         award(Achievement.SCORE_500, bestHumanScore >= 500)
 
         // Winning.
+        // Judged directly off this game's own result, not off the GAMES_WON counter (unlike
+        // WINS_25): a counter can already sit at or past its target from an earlier win, so
+        // checking it here would re-flag FIRST_WIN as newly earned on a later loss if superuser
+        // mode's forceLock ever relocked it without also rolling the counter back.
+        award(Achievement.FIRST_WIN, multiplayer && humanWon)
         award(Achievement.WIN_BY_100, multiplayer && humanWon && margin != null && margin >= LANDSLIDE_MARGIN)
         award(Achievement.WIN_BY_5, multiplayer && humanWon && margin == PHOTO_FINISH_MARGIN)
         // Player 1 holds the top rank, but only because the house rule (TieBreak.kt) separated
         // them from another player who matched their raw score - a plain, unbroken top score
         // leaves tieBreakReason null, same as a solo win with nobody to tie.
-        val primaryPlayerRank = TieBreak.rank(players).first { it.originalIndex == 0 }
-        award(Achievement.TIE_BREAK, multiplayer && primaryPlayerRank.rank == 1 && primaryPlayerRank.tieBreakReason != null)
+        award(Achievement.TIE_BREAK, multiplayer && humanWon && primaryPlayerRank.tieBreakReason != null)
         award(Achievement.COMEBACK, multiplayer && humanWon && context.trailedIntoFinalRound)
         award(
             Achievement.ZERO_TO_HERO,
@@ -426,10 +431,7 @@ object AchievementEngine {
         // Impatient/Naturally Gifted: player 1 took every one of their own turns on a single roll.
         val playerOneNeverRolledTwice = !context.playerOneTookExtraRoll
         award(Achievement.IMPATIENT, playerOneNeverRolledTwice)
-        award(
-            Achievement.NATURALLY_GIFTED,
-            multiplayer && playerOneNeverRolledTwice && humans.first().totalScore == state.topScore,
-        )
+        award(Achievement.NATURALLY_GIFTED, multiplayer && playerOneNeverRolledTwice && humanWon)
 
         // Exactly 69/100/200/300 - thresholds the running total can overshoot, so they can only be
         // judged now, unlike the 200-or-more/300-or-more rungs right next to them on the ladder.
@@ -539,8 +541,11 @@ object AchievementEngine {
         achievement.progressStepSize?.let { value / it } ?: (value * PROGRESS_MILESTONES / achievement.target)
 
     /** A tie at the top counts as a win for the human - nobody beat them. */
+    // Rank, not raw score: a raw-score tie that the house rule (TieBreak.kt) then loses is not a
+    // win, even though `totalScore == state.topScore` alone would say otherwise. `humans` is always
+    // just player 1 (see the class doc's first rule), so their `originalIndex` is always 0.
     private fun humanWon(state: GameState, humans: List<PlayerState>): Boolean =
-        humans.any { it.totalScore == state.topScore }
+        humans.isNotEmpty() && TieBreak.rank(state.players).first { it.originalIndex == 0 }.rank == 1
 
     /**
      * How far the leading human finished ahead of the next player along, or null in a solo game.
