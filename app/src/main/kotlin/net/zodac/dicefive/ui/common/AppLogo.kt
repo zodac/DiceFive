@@ -15,10 +15,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -29,20 +27,22 @@ import net.zodac.dicefive.R
 import net.zodac.dicefive.ui.game.style.IvoryDiceStyle
 
 /**
- * The brand typeface: Sora, a variable font ([R.font.sora]), pinned to its bold instance via
- * [FontVariation] rather than shipping a separate static weight file. Used on the logo wordmark
- * here, on [ScreenScaffold]'s page titles, and on the in-game corner badges (5x bonus count,
- * Small/Large Straight run length - see `SegmentBadge`). This is a deliberate, narrow departure
- * from stock M3 type ([UI.md]'s "no typography overrides" rule is about the type *scale*, not a
- * call site): these are brand marks, not body text, so they earn their own face the same way the
- * game board earns its own palette.
+ * The brand typeface: Sora ([R.font.sora]), used on the logo wordmark here, on [ScreenScaffold]'s
+ * page titles, and on the in-game corner badges (5x bonus count, Small/Large Straight run length -
+ * see `SegmentBadge`). This is a deliberate, narrow departure from stock M3 type ([UI.md]'s "no
+ * typography overrides" rule is about the type *scale*, not a call site): these are brand marks,
+ * not body text, so they earn their own face the same way the game board earns its own palette.
+ *
+ * The upstream font ships as a variable font (a 100-800 weight axis); since this app only ever
+ * uses the bold instance, `sora.ttf` here is a static weight-700 instance produced with
+ * `fontTools.varLib.instancer`, then subset with `fontTools.subset` to just printable ASCII (every
+ * string rendered in this face is a short English title or a digit badge) - variable-axis and
+ * unused-script data was most of the original file's size.
  */
-@OptIn(ExperimentalTextApi::class)
 internal val SoraFontFamily = FontFamily(
     Font(
         resId = R.font.sora,
         weight = FontWeight.Bold,
-        variationSettings = FontVariation.Settings(FontVariation.weight(700)),
     ),
 )
 

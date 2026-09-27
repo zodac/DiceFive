@@ -98,10 +98,11 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "r8-rules.pro"
             )
             if (hasReleaseSigningConfig) {
                 signingConfig = signingConfigs.getByName("release")
@@ -122,6 +123,9 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            // A handful of AndroidX artifacts each bundle their own full copy of the same Apache
+            // license text under their own package path - none of it is read at runtime.
+            excludes += "META-INF/androidx/**/LICENSE.txt"
         }
     }
 
