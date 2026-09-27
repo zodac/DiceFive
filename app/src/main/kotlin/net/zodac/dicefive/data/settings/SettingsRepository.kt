@@ -16,17 +16,12 @@ import net.zodac.dicefive.model.TurnTimer
 private val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
 /**
- * DataStore-backed settings: the user's own name (slot 1, set from the
- * Settings screen), the last-used name/type/difficulty (User/CPU) for each player slot (1-4)
- * plus the last-used player count, so returning to setup pre-fills it, whether leaving an
- * in-progress game needs a confirmation, and whether sound effects/vibration are enabled.
+ * DataStore-backed settings: the last-used name/type/difficulty (User/CPU) for each player slot
+ * (1-4, slot 1 always Human) plus the last-used player count, so returning to setup pre-fills it,
+ * whether leaving an in-progress game needs a confirmation, and whether sound effects/vibration
+ * are enabled.
  */
 class SettingsRepository(private val context: Context) {
-
-    /** The primary user's own name, edited from the Settings screen - slot 1 is always them. */
-    val userName: Flow<String?> = playerNameFor(1)
-
-    suspend fun setUserName(name: String) = setPlayerName(1, name)
 
     fun playerNameFor(slot: Int): Flow<String?> =
         context.settingsDataStore.data.map { prefs -> prefs[playerNameKey(slot)] }

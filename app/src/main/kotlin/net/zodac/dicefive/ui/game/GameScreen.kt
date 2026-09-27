@@ -333,7 +333,7 @@ private fun TurnTimerBadge(secondsRemaining: Int, modifier: Modifier = Modifier)
         textAlign = TextAlign.Center,
         fontWeight = FontWeight.Bold,
         color = color,
-        style = MaterialTheme.typography.labelLarge,
+        style = MaterialTheme.typography.labelMedium,
     )
 }
 

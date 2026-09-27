@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.RestartAlt
@@ -14,7 +13,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -51,7 +48,6 @@ fun SettingsScreen(
     val confirmBeforeLeavingGame by viewModel.confirmBeforeLeavingGame.collectAsState()
     val soundEnabled by viewModel.soundEnabled.collectAsState()
     val vibrationEnabled by viewModel.vibrationEnabled.collectAsState()
-    val userName by viewModel.userName.collectAsState()
     val uriHandler = LocalUriHandler.current
     // Saveable: a rotation mid-confirmation shouldn't silently drop the question.
     var showResetAchievementsConfirmation by rememberSaveable { mutableStateOf(false) }
@@ -78,26 +74,6 @@ fun SettingsScreen(
     }
 
     ScreenScaffold(title = "Settings", onBack = onBack, modifier = modifier, scrollable = true) {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Profile",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
-            )
-            OutlinedTextField(
-                value = userName,
-                onValueChange = viewModel::setUserName,
-                label = { Text("Your name") },
-                placeholder = { Text("Player 1") },
-                singleLine = true,
-                // Same reasoning as CompactNameField in GameSetupScreen: names read as
-                // Capitalized Words, and this keeps the keyboard's shift state matching that
-                // even after the field is cleared back to empty.
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-            )
-        }
-
         Card(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "Gameplay",
