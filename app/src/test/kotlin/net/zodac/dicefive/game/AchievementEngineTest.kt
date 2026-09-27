@@ -516,6 +516,19 @@ class AchievementEngineTest {
     }
 
     @Test
+    fun `force-unlocking Completionist directly once everything else is already unlocked does not double it up`() {
+        // The superuser force-unlock path (AchievementsViewModel.forceUnlock) calls unlockNow with
+        // exactly the achievement being force-unlocked - here, Completionist itself, in the state a
+        // tester forcing it last would realistically be in: every requirement already unlocked.
+        val everythingElse = Achievement.COMPLETION_REQUIREMENTS.associateWith { 1L }
+        val before = AchievementsState(unlockedAt = everythingElse, counters = emptyMap())
+
+        val update = AchievementEngine.unlockNow(setOf(Achievement.COMPLETIONIST), before, now = 2L)
+
+        assertEquals(1, update.newlyUnlocked.count { it == Achievement.COMPLETIONIST })
+    }
+
+    @Test
     fun `I Robot counts toward Completionist, Completionist does not count toward itself`() {
         assertTrue(Achievement.I_ROBOT in Achievement.COMPLETION_REQUIREMENTS)
         assertFalse(Achievement.COMPLETIONIST in Achievement.COMPLETION_REQUIREMENTS)

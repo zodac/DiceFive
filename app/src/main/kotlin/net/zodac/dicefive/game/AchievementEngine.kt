@@ -462,7 +462,14 @@ object AchievementEngine {
             .toMutableList()
 
         val unlockedAfter = before.unlockedAt.keys + newlyUnlocked
-        if (!before.isUnlocked(Achievement.COMPLETIONIST) && unlockedAfter.containsAll(Achievement.COMPLETION_REQUIREMENTS)) {
+        // Completionist can also arrive here as a direct target of its own (e.g. superuser force-
+        // unlocking it specifically) rather than only as a cascade from some other achievement - the
+        // "in earned and not yet unlocked" filter above already added it in that case, so the
+        // cascade check must not add it again and double the unlock event.
+        if (Achievement.COMPLETIONIST !in newlyUnlocked &&
+            !before.isUnlocked(Achievement.COMPLETIONIST) &&
+            unlockedAfter.containsAll(Achievement.COMPLETION_REQUIREMENTS)
+        ) {
             newlyUnlocked += Achievement.COMPLETIONIST
         }
 
