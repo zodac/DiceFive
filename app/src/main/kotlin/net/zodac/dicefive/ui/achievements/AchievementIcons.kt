@@ -93,6 +93,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.res.vectorResource
@@ -103,6 +104,11 @@ import net.zodac.dicefive.ui.theme.AchievementHeartRed
 import net.zodac.dicefive.ui.theme.IrishGreenSwatch
 import net.zodac.dicefive.ui.theme.IrishOrangeSwatch
 import net.zodac.dicefive.ui.theme.IrishWhiteSwatch
+import net.zodac.dicefive.ui.theme.MartiniGlassSwatch
+import net.zodac.dicefive.ui.theme.MartiniLiquidSwatch
+import net.zodac.dicefive.ui.theme.MartiniOliveHighlightSwatch
+import net.zodac.dicefive.ui.theme.MartiniOliveSwatch
+import net.zodac.dicefive.ui.theme.MartiniPickSwatch
 
 /**
  * The glyph an unlocked [Achievement] shows in [AchievementsScreen]. Every achievement gets its
@@ -243,6 +249,9 @@ val Achievement.icon: ImageVector
         // its own three fixed colours, so it's built with real fills rather than borrowed from
         // Icons.Filled.
         Achievement.LUCK_OF_THE_IRISH -> rememberIrishFlagIcon()
+        // A martini, not a Material glyph - like the Irish flag above, its whole point is its own
+        // fixed colours (glass, liquid, olive), not a single ambient tint.
+        Achievement.SHAKEN_NOT_TAPPED -> rememberMartiniIcon()
     }
 
 /**
@@ -255,6 +264,7 @@ val Achievement.icon: ImageVector
 fun Achievement.iconTintOrUnspecified(tint: Color): Color = when (this) {
     Achievement.BIG_FAN -> AchievementHeartRed
     Achievement.LUCK_OF_THE_IRISH -> Color.Unspecified
+    Achievement.SHAKEN_NOT_TAPPED -> Color.Unspecified
     else -> tint
 }
 
@@ -280,6 +290,71 @@ private fun rememberIrishFlagIcon(): ImageVector = remember {
             lineTo(22f, 3f)
             lineTo(22f, 21f)
             lineTo(15f, 21f)
+            close()
+        }
+    }.build()
+}
+
+/** A martini glass, liquid and olive-on-a-pick, each its own fixed fill - see
+ * [Achievement.SHAKEN_NOT_TAPPED] and [iconTintOrUnspecified]'s doc comment. */
+@Composable
+private fun rememberMartiniIcon(): ImageVector = remember {
+    ImageVector.Builder(name = "Martini", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f).apply {
+        // Stem and base.
+        path(fill = SolidColor(MartiniGlassSwatch)) {
+            moveTo(11.1f, 13.6f)
+            lineTo(11.1f, 20f)
+            lineTo(8.3f, 20f)
+            lineTo(8.3f, 21.4f)
+            lineTo(15.7f, 21.4f)
+            lineTo(15.7f, 20f)
+            lineTo(12.9f, 20f)
+            lineTo(12.9f, 13.6f)
+            close()
+        }
+        // Bowl.
+        path(fill = SolidColor(MartiniGlassSwatch)) {
+            moveTo(3.2f, 3.6f)
+            lineTo(20.8f, 3.6f)
+            lineTo(12.9f, 13.6f)
+            lineTo(11.1f, 13.6f)
+            close()
+        }
+        // The drink itself, inset from the bowl's own outline so a rim of glass shows around it.
+        path(fill = SolidColor(MartiniLiquidSwatch)) {
+            moveTo(5.9f, 7f)
+            lineTo(18.1f, 7f)
+            lineTo(12.75f, 13.6f)
+            lineTo(11.25f, 13.6f)
+            close()
+        }
+        // Cocktail pick, resting across the rim.
+        path(stroke = SolidColor(MartiniPickSwatch), strokeLineWidth = 0.9f, strokeLineCap = StrokeCap.Round) {
+            moveTo(14.3f, 4.9f)
+            lineTo(19.3f, 1.7f)
+        }
+        // The olive - an octagon standing in for a circle, same as its highlight below (this
+        // builder has no arc primitive, so a many-sided polygon is the plain-line equivalent).
+        path(fill = SolidColor(MartiniOliveSwatch)) {
+            moveTo(14.90f, 6.35f)
+            lineTo(14.446f, 7.446f)
+            lineTo(13.35f, 7.90f)
+            lineTo(12.254f, 7.446f)
+            lineTo(11.80f, 6.35f)
+            lineTo(12.254f, 5.254f)
+            lineTo(13.35f, 4.80f)
+            lineTo(14.446f, 5.254f)
+            close()
+        }
+        path(fill = SolidColor(MartiniOliveHighlightSwatch)) {
+            moveTo(13.40f, 5.85f)
+            lineTo(13.239f, 6.239f)
+            lineTo(12.85f, 6.40f)
+            lineTo(12.461f, 6.239f)
+            lineTo(12.30f, 5.85f)
+            lineTo(12.461f, 5.461f)
+            lineTo(12.85f, 5.30f)
+            lineTo(13.239f, 5.461f)
             close()
         }
     }.build()

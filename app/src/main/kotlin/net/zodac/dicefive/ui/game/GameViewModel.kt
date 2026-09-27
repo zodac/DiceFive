@@ -499,6 +499,14 @@ class GameViewModel(
         }
     }
 
+    /** A phone-shake roll actually happened - see [rememberShakeDetector]/[Achievement
+     * .SHAKEN_NOT_TAPPED]. Only the achievement lives here: the roll itself is still driven
+     * through the same [rollDice] call a cup tap uses, so this is purely a one-shot unlock,
+     * same shape as [tapCupWithNoRollsLeft]. */
+    fun onShakeRollDetected() {
+        unlockAchievements(setOf(Achievement.SHAKEN_NOT_TAPPED))
+    }
+
     private fun onHumanAction(undoable: Boolean = true, transform: (GameState) -> GameState) {
         val state = _game.value ?: return
         if (state.currentPlayer?.type != PlayerType.HUMAN) return

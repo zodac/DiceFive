@@ -576,6 +576,13 @@ enum class Achievement(
         "luck_of_the_irish", "Luck of the Irish", "Play a game of Tricolour as Ireland/Éire",
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
+    // Excluded from COMPLETIONIST the same way Big Fan/Luck of the Irish are - shaking the phone to
+    // roll isn't something every player could reasonably be expected to stumble into on the way to
+    // 100%, since nothing in the UI hints it's possible.
+    SHAKEN_NOT_TAPPED(
+        "shaken_not_tapped", "Shaken, Not Tapped", "Shake your phone to roll the dice",
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+    ),
     ;
 
     val progressStyle: ProgressStyle
