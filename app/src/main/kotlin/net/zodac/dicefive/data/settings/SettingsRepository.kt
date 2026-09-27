@@ -16,20 +16,12 @@ import net.zodac.dicefive.model.TurnTimer
 private val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
 /**
- * DataStore-backed settings: the display theme, the user's own name (slot 1, set from the
+ * DataStore-backed settings: the user's own name (slot 1, set from the
  * Settings screen), the last-used name/type/difficulty (User/CPU) for each player slot (1-4)
  * plus the last-used player count, so returning to setup pre-fills it, whether leaving an
  * in-progress game needs a confirmation, and whether sound effects/vibration are enabled.
  */
 class SettingsRepository(private val context: Context) {
-
-    val theme: Flow<Theme> = context.settingsDataStore.data.map { prefs ->
-        prefs[THEME_KEY]?.let { raw -> runCatching { Theme.valueOf(raw) }.getOrNull() } ?: Theme.SYSTEM
-    }
-
-    suspend fun setTheme(theme: Theme) {
-        context.settingsDataStore.edit { it[THEME_KEY] = theme.name }
-    }
 
     /** The primary user's own name, edited from the Settings screen - slot 1 is always them. */
     val userName: Flow<String?> = playerNameFor(1)
@@ -131,7 +123,6 @@ class SettingsRepository(private val context: Context) {
     }
 
     private companion object {
-        val THEME_KEY = stringPreferencesKey("theme")
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
         val SOUND_ENABLED_KEY = booleanPreferencesKey("sound_enabled")
         val VIBRATION_ENABLED_KEY = booleanPreferencesKey("vibration_enabled")

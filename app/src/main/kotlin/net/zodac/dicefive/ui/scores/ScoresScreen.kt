@@ -35,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,10 +47,8 @@ import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
-import net.zodac.dicefive.ui.theme.DarkBronze
-import net.zodac.dicefive.ui.theme.DarkSilver
-import net.zodac.dicefive.ui.theme.LightBronze
-import net.zodac.dicefive.ui.theme.LightSilver
+import net.zodac.dicefive.ui.theme.Bronze
+import net.zodac.dicefive.ui.theme.Silver
 
 private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
 
@@ -175,17 +172,14 @@ private fun RowScope.HeaderCell(text: String, weight: Float, align: TextAlign = 
 /**
  * The podium accent for a rank, or null off the podium. 1st place reuses `colorScheme.primary` -
  * already the brand's gold - while 2nd/3rd reach for the fixed silver/bronze pair in `Color.kt`,
- * since M3 has no role for either. Picked by background luminance rather than
- * `isSystemInDarkTheme()`: the app's theme can be pinned to Light or Dark in Settings regardless
- * of the system setting, and luminance reflects whichever scheme is actually active.
+ * since M3 has no role for either.
  */
 @Composable
 private fun podiumAccent(rank: Int): Color? {
-    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     return when (rank) {
         1 -> MaterialTheme.colorScheme.primary
-        2 -> if (dark) DarkSilver else LightSilver
-        3 -> if (dark) DarkBronze else LightBronze
+        2 -> Silver
+        3 -> Bronze
         else -> null
     }
 }

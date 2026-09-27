@@ -16,11 +16,10 @@ colour roles.
 |---|---|---|
 | Where | menu, setup, scores, settings, achievements, about, results | `ui/game/` while a game is in progress |
 | Colours from | `MaterialTheme.colorScheme` roles | fixed values in `Color.kt`'s game-table block |
-| Swapped by | the light/dark colour schemes in `Theme.kt` | `ui/game/style/GameVisualTheme` |
-| Follows the theme setting | yes | no - the felt looks the same in both |
+| Swapped by | nothing - there is one colour scheme, dark, in `Theme.kt` | `ui/game/style/GameVisualTheme` |
 
 The board is a rendered object (felt, ivory dice, a leather cup), not chrome. Recolouring it
-per theme would mean re-drawing the art, so it holds its own palette and its own swap point.
+would mean re-drawing the art, so it holds its own palette and its own swap point.
 Don't "fix" the board by moving it onto colour roles; don't hardcode chrome colours to match
 the board.
 
@@ -45,9 +44,16 @@ Seeds:
 change the look, change a seed and regenerate the whole set (Material Theme Builder, or the
 tonal maths in the M3 spec), then paste the result in.
 
+**Dark only.** There is no light scheme and no theme option in Settings (both were removed):
+`DiceFiveTheme` takes no arguments and ignores the system's dark-mode setting. Two things outside
+Compose follow from that and are easy to miss: `MainActivity` passes `SystemBarStyle.dark` to
+`enableEdgeToEdge` (the default follows the system, so a phone in light mode would draw dark
+status bar icons over the dark page), and `themes.xml`'s window theme is the dark
+`Theme.Material.NoActionBar`, so the window behind the first frame isn't white.
+
 **No dynamic colour.** M3 recommends deriving the palette from the user's wallpaper. The
 navy-and-gold table is the game's identity and shouldn't change per device, so `Theme.kt` uses
-the static schemes. Swapping in `dynamicDarkColorScheme(context)` on API 31+ is a two-line
+a static scheme. Swapping in `dynamicDarkColorScheme(context)` on API 31+ is a two-line
 change if that's ever wanted.
 
 **No typography or shape overrides.** The M3 type and shape scales are used as shipped.
@@ -72,9 +78,8 @@ for.** `Color.kt`'s game-table palette (the board's felt/ivory/leather) and `Pla
 (cycled by player-tab index) are both like this already - colours that mean one specific thing
 regardless of theme, not a themeable role. The Leaderboard's podium follows the same pattern:
 1st place reuses `primary` (it already *is* the brand gold), but 2nd/3rd read as silver/bronze,
-which nothing in the M3 role set provides - so `LightSilver`/`DarkSilver` and
-`LightBronze`/`DarkBronze` exist as a fixed pair each, picked for contrast against the page
-background the same way `Primary` has a light and a dark value. Reach for this pattern only when
+which nothing in the M3 role set provides - so `Silver` and `Bronze` exist as fixed values,
+picked for contrast against the dark page background the same way `Primary` is. Reach for this pattern only when
 a role genuinely doesn't exist for what you mean (a medal colour, a fixed player identity) -
 not as a way around picking the right *existing* role, which was the mistake above.
 
@@ -99,7 +104,7 @@ which needs compileSdk 37). Revisit when 1.5.0 is stable.
 | `DiceFiveDialog.kt` | the app's one dialog shape, so the menu and the board ask questions the same way. |
 | `AppLogo.kt` | placeholder app mark, built from the game's own dice via `IvoryDiceStyle`. |
 | `Scrollbar.kt` | `LazyListScrollbar`, a `BoxScope` extension drawing a minimal scroll indicator over a `LazyColumn` - stock Compose has none for Android. Shared by the Leaderboard and Statistics screens. |
-| `SegmentedChoiceRow.kt` | the app's one segmented-button row, generic over the option type. Every use drops the stock M3 checkmark-on-select icon (`icon = {}`) - reserving space for it crowded a label out at some of the widths this app uses it at (AI difficulty, three options in a third-width column). Used by theme, player count, AI difficulty and turn timer. It takes an optional per-option glyph: the turn timer's "None" is a crossed-out timer icon with a "No timer" content description, not a word. |
+| `SegmentedChoiceRow.kt` | the app's one segmented-button row, generic over the option type. Every use drops the stock M3 checkmark-on-select icon (`icon = {}`) - reserving space for it crowded a label out at some of the widths this app uses it at (AI difficulty, three options in a third-width column). Used by player count, AI difficulty and turn timer. It takes an optional per-option glyph: the turn timer's "None" is a crossed-out timer icon with a "No timer" content description, not a word. |
 
 ### PageColumn
 
@@ -138,7 +143,7 @@ bottom once the form is too tall to fit and has to scroll.
 - **One filled button per screen**, tonal for the rest (the menu: filled Play, tonal
   destinations). That's M3's emphasis hierarchy, and it stops five identical slabs competing.
 - **Segmented buttons** (`ui/common/SegmentedChoiceRow.kt`) for small exclusive sets that fit one
-  line: theme choice, player count 1-4, AI difficulty. Radio rows are for options that need more
+  line: player count 1-4, AI difficulty. Radio rows are for options that need more
   than a word each - the setup screen's game mode, where each row carries `GameMode.description`
   as a second line, since "Tricolour" alone doesn't say what it changes. A disabled option (a mode
   that isn't ready yet) would also go in a radio row, for its visible disabled state.

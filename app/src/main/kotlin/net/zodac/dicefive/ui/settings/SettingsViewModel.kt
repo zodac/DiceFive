@@ -19,7 +19,6 @@ import net.zodac.dicefive.data.achievements.AchievementsRepository
 import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
-import net.zodac.dicefive.data.settings.Theme
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.ui.game.GameSetupState
@@ -30,9 +29,6 @@ class SettingsViewModel(
     private val achievementsRepository: AchievementStore? = null,
     private val scoreRepository: ScoreRepository? = null,
 ) : ViewModel() {
-
-    val theme: StateFlow<Theme> = (settingsRepository?.theme ?: flowOf(Theme.SYSTEM))
-        .stateIn(viewModelScope, SharingStarted.Eagerly, Theme.SYSTEM)
 
     val confirmBeforeLeavingGame: StateFlow<Boolean> = (settingsRepository?.confirmBeforeLeavingGame ?: flowOf(true))
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
@@ -48,11 +44,6 @@ class SettingsViewModel(
     val userName: StateFlow<String> = (settingsRepository?.userName ?: flowOf(null))
         .map { it ?: "" }
         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
-
-    fun setTheme(theme: Theme) {
-        val repository = settingsRepository ?: return
-        viewModelScope.launch { repository.setTheme(theme) }
-    }
 
     fun setConfirmBeforeLeavingGame(confirm: Boolean) {
         val repository = settingsRepository ?: return
