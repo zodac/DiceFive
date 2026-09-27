@@ -99,6 +99,7 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.R
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.ui.theme.AchievementHeartRed
 import net.zodac.dicefive.ui.theme.IrishGreenSwatch
 import net.zodac.dicefive.ui.theme.IrishOrangeSwatch
 import net.zodac.dicefive.ui.theme.IrishWhiteSwatch
@@ -235,22 +236,27 @@ val Achievement.icon: ImageVector
         Achievement.COMPLETIONIST -> Icons.Filled.Verified
 
         // ---- Easter Eggs ------------------------------------------------------------------------
+        // Every icon in this category is a fixed colour rather than the ambient tint - see
+        // [iconTintOrUnspecified] and .claude/UI.md's "The achievements list" section.
         Achievement.BIG_FAN -> Icons.Filled.Favorite
-        // A real tricolour flag, not a single-colour Material glyph - every other icon here is
-        // meant to be re-tinted by whatever container it's shown in, but this one's whole point is
+        // A real tricolour flag, not a single-colour Material glyph - this one's whole point is
         // its own three fixed colours, so it's built with real fills rather than borrowed from
-        // Icons.Filled. Every render site special-cases this one achievement to pass
-        // Color.Unspecified as its tint so those fills survive instead of being flattened to one
-        // colour - see [iconTintOrUnspecified].
+        // Icons.Filled.
         Achievement.LUCK_OF_THE_IRISH -> rememberIrishFlagIcon()
     }
 
 /**
- * [tint] as given, except for [Achievement.LUCK_OF_THE_IRISH], whose icon is drawn in real fixed
- * colours rather than meant to be tinted - passing [Color.Unspecified] there tells [androidx.compose
- * .material3.Icon] to skip its colour filter entirely and show the vector's own fills.
+ * [tint] as given, except for the fixed-colour Easter Eggs icons, where it's overridden instead:
+ * [Achievement.BIG_FAN]'s heart is always [AchievementHeartRed], and [Achievement.LUCK_OF_THE_IRISH]
+ * gets [Color.Unspecified], which tells [androidx.compose.material3.Icon] to skip its colour
+ * filter entirely and show the flag vector's own three fills. Every Easter Egg means a specific
+ * colour, not whatever container happens to hold it - see .claude/UI.md.
  */
-fun Achievement.iconTintOrUnspecified(tint: Color): Color = if (this == Achievement.LUCK_OF_THE_IRISH) Color.Unspecified else tint
+fun Achievement.iconTintOrUnspecified(tint: Color): Color = when (this) {
+    Achievement.BIG_FAN -> AchievementHeartRed
+    Achievement.LUCK_OF_THE_IRISH -> Color.Unspecified
+    else -> tint
+}
 
 @Composable
 private fun rememberIrishFlagIcon(): ImageVector = remember {

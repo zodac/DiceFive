@@ -201,3 +201,9 @@ val PlayerColors = listOf(
 // background the same way Primary is.
 val Silver = Color(0xFFC4CCD9)
 val Bronze = Color(0xFFE0965A)
+
+// Big Fan's heart icon (Achievement.iconTintOrUnspecified) - a fixed red for the same reason as
+// the podium accents above: M3 has no role for "this heart is red", and it's one meaning, not a
+// theme-able choice. Not TricolourRedSwatch - that one belongs to the Tricolour game mode and
+// shouldn't couple an unrelated achievement's colour to a game mode's palette.
+val AchievementHeartRed = Color(0xFFE53935)

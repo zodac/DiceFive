@@ -185,6 +185,16 @@ same generic question-mark glyph regardless of which achievement they are, so a 
 never a spoiler for what it takes to unlock it - only the achievement's own icon (once unlocked)
 and its title/description (gated separately by `AchievementVisibility`) reveal that.
 
+**Every Easter Eggs achievement's icon is a fixed colour, not the ambient tint every other
+achievement's icon takes.** An unlocked icon is normally re-tinted by whatever row/banner it sits
+in (`Achievement.iconTintOrUnspecified` just passes the given tint straight through); an Easter Egg
+overrides that with its own literal colour instead, because these are the one category whose icon
+*means* a specific colour regardless of container - Luck of the Irish's flag (real green/white/
+orange fills, `Color.Unspecified` so `Icon` skips its colour filter and shows them) and Big Fan's
+heart (forced red via `iconTintOrUnspecified`, since `Icons.Filled.Favorite` is a single-colour
+vector with no fills of its own to preserve). A new Easter Egg's icon should follow the same rule -
+add its case to `iconTintOrUnspecified` rather than leaving it to inherit the ambient tint.
+
 An earlier version *did* split locked-first/unlocked-after (unlocked flat and newest-first, a
 history rather than a to-do list) - reverted because it scattered a themed ladder in two: an
 earned achievement disappeared from its group into an unrelated timeline, so seeing "how far along
