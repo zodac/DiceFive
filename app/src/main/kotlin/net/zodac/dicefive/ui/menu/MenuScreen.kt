@@ -94,8 +94,8 @@ fun MenuScreen(
                 MenuDestinationButton(label = "Leaderboard", onClick = onScores)
                 MenuDestinationButton(label = "Statistics", onClick = onStatistics)
                 MenuDestinationButton(label = "Styles", onClick = onStyles)
-                MenuDestinationButton(label = "Settings", onClick = onSettings)
                 MenuDestinationButton(label = "Rules", onClick = { showRulesDialog = true })
+                MenuDestinationButton(label = "Settings", onClick = onSettings)
             }
 
             Spacer(modifier = Modifier.weight(0.38f))

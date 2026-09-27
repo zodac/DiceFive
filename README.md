@@ -29,7 +29,7 @@ app/src/main/kotlin/net/zodac/dicefive/
     settings/       DataStore: Theme, SettingsRepository
   navigation/       Screen route constants + DiceFiveNavHost
   ui/
-    menu/           MenuScreen (Play/Scores/Achievements/Styles/Settings)
+    menu/           MenuScreen (Play/Achievements/Leaderboard/Statistics/Styles/Rules/Settings)
     setup/          GameSetupScreen (player count/type/name, game mode, turn timer)
     game/           GameScreen + GameViewModel (setup form + live game state,
                     AI auto-play), DiceRow, ScorecardView

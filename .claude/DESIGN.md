@@ -1257,8 +1257,9 @@ install-over-existing succeeds:
       tie-break explanation - see Phase 16, which added that section.
 
 ### Phase 16 — Player-facing rules
-- [x] A "Rules" entry on the main menu (`MenuScreen`, last in the destination button stack, same
-      `MenuDestinationButton` style as every other entry) opens `ui/common/RulesDialog.kt`: a modal,
+- [x] A "Rules" entry on the main menu (`MenuScreen`, last in the destination button stack - since
+      moved above Settings, which now closes it - same `MenuDestinationButton` style as every other
+      entry) opens `ui/common/RulesDialog.kt`: a modal,
       not a nav destination - it never needs to be deep-linked to or survive process death, so a
       plain `remember { mutableStateOf(false) }` boolean in `MenuScreen` (the same pattern the
       existing resume-game confirmation already uses) is simpler than a new `Screen`/`composable`
