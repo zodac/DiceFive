@@ -291,7 +291,7 @@ enum class Achievement(
     // ---- Winning: beating whoever else was at the table ---------------------------------------
     FIRST_WIN(
         "win_first", "First Victory", "Win a game against at least one opponent",
-        AchievementCategory.WINNING, AchievementCounter.GAMES_WON,
+        AchievementCategory.WINNING,
     ),
     WIN_BY_100(
         "win_by_100", "Landslide", "Win by 100 points or more",
