@@ -1071,6 +1071,12 @@ class GameViewModel(
             unlockAchievements(setOf(Achievement.ALMOST_FAMOUS))
         }
 
+        // Empty House: the worst full house there is - three 1s and two 2s specifically, which a
+        // 5x-as-joker full house (all five dice the same value) can never produce.
+        if (category == ScoreCategory.FULL_HOUSE && dice.map { it.value }.sorted() == EMPTY_HOUSE_VALUES) {
+            unlockAchievements(setOf(Achievement.EMPTY_HOUSE))
+        }
+
         // Fuller House: the best full house there is - three 6s and two 5s specifically, which a
         // 5x-as-joker full house (all five dice the same value) can never produce.
         if (category == ScoreCategory.FULL_HOUSE && dice.map { it.value }.sorted() == FULLER_HOUSE_VALUES) {
@@ -1337,6 +1343,9 @@ class GameViewModel(
 
         /** [net.zodac.dicefive.ui.common.AppLogo]'s own dice, in its own order - "Product Placement". */
         private val LOGO_DICE_VALUES = listOf(2, 4, 5, 3, 6)
+
+        /** Three 1s and two 2s, sorted - the exact roll "Empty House" is named for. */
+        private val EMPTY_HOUSE_VALUES = listOf(1, 1, 1, 2, 2)
 
         /** Three 6s and two 5s, sorted - the exact roll "Fuller House" is named for. */
         private val FULLER_HOUSE_VALUES = listOf(5, 5, 6, 6, 6)

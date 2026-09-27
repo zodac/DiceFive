@@ -56,6 +56,7 @@ import androidx.compose.material.icons.filled.Looks6
 import androidx.compose.material.icons.filled.LooksTwo
 import androidx.compose.material.icons.filled.MilitaryTech
 import androidx.compose.material.icons.filled.NewReleases
+import androidx.compose.material.icons.filled.NoMeetingRoom
 import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
@@ -208,6 +209,7 @@ val Achievement.icon: ImageVector
         Achievement.IMPATIENT -> Icons.Filled.FlashOn
         Achievement.BIG_FAN -> Icons.Filled.Favorite
         Achievement.FRESH_COAT_OF_PAINT -> Icons.Filled.FormatPaint
+        Achievement.EMPTY_HOUSE -> Icons.Filled.NoMeetingRoom
         Achievement.FULLER_HOUSE -> Icons.Filled.House
         Achievement.FIRST_ROLL_FULL_HOUSE -> Icons.Filled.HomeWork
         Achievement.FIRST_ROLL_LARGE_STRAIGHT -> Icons.Filled.Route

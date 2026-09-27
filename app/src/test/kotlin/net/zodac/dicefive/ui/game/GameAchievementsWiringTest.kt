@@ -262,6 +262,74 @@ class GameAchievementsWiringTest {
     }
 
     @Test
+    fun `scoring three 1s and two 2s in Full House unlocks Empty House`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(1, 1, 1, 2, 2)))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.FULL_HOUSE)
+        advanceUntilIdle()
+
+        assertTrue("EMPTY_HOUSE should pop, got ${store.unlocked}", Achievement.EMPTY_HOUSE in store.unlocked)
+    }
+
+    @Test
+    fun `Empty House does not care what order the dice landed in`() = runTest {
+        val store = FakeAchievementStore()
+        // Same three 1s and two 2s as above, interleaved rather than grouped.
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(1, 2, 1, 2, 1)))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.FULL_HOUSE)
+        advanceUntilIdle()
+
+        assertTrue("EMPTY_HOUSE should pop regardless of dice order, got ${store.unlocked}", Achievement.EMPTY_HOUSE in store.unlocked)
+    }
+
+    @Test
+    fun `a full house of other values does not unlock Empty House`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(3, 3, 3, 2, 2)))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.FULL_HOUSE)
+        advanceUntilIdle()
+
+        assertFalse(Achievement.EMPTY_HOUSE in store.unlocked)
+    }
+
+    @Test
+    fun `a 5x used as a joker to fill Full House does not unlock Empty House`() = runTest {
+        val store = FakeAchievementStore()
+        // Turn 1: an all-6s roll closes Ones at 0, so the joker rule can't force it later. Turns
+        // 2 and 3: an all-1s roll banks the 5x box, then the same-shaped roll fills Full House via
+        // the joker rule instead - not a genuine three-and-two split.
+        val script = List(5) { 6 } + List(5) { 1 } + List(5) { 1 }
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(script))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.ONES)
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.FIVE_OF_A_KIND)
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.FULL_HOUSE)
+        advanceUntilIdle()
+
+        assertFalse(
+            "a joker-rule full house should not unlock Empty House, got ${store.unlocked}",
+            Achievement.EMPTY_HOUSE in store.unlocked,
+        )
+    }
+
+    @Test
     fun `scoring three 6s and two 5s in Full House unlocks Fuller House`() = runTest {
         val store = FakeAchievementStore()
         val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 5, 5)))

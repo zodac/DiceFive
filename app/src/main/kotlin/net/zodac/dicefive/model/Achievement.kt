@@ -425,6 +425,12 @@ enum class Achievement(
     ),
 
     // Moved from Dice feats.
+    // The worst full house there is - three 1s and two 2s specifically, never the joker rule's
+    // five-of-a-kind bent into the box instead. Sits right above its opposite number, Fuller House.
+    EMPTY_HOUSE(
+        "empty_house", "Empty House", "Score the worst Full House (three 1s and two 2s)",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
     // The best full house there is - three 6s and two 5s specifically, never the joker rule's
     // five-of-a-kind bent into the box instead. Sits right above House Call, the more general
     // "any full house, first roll" feat.
