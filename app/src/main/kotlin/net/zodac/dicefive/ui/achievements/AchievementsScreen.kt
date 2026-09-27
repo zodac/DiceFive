@@ -88,9 +88,10 @@ private object AchievementsScrollMemory {
  * mapping.
  *
  * `Achievement.visibility` gates how much of a locked row is shown: a secret achievement is
- * filtered out of [AchievementsViewModel]'s state entirely - and its unlocked/total counts -
- * while still locked, so it never appears here (or anywhere else) until it's already been
- * earned; a hidden one still appears, title and all, but its description reads "???" until then.
+ * filtered out of [AchievementsViewModel]'s state entirely while still locked, so it never
+ * appears here (or anywhere else) until it's already been earned - and it never counts towards
+ * the unlocked/total tally, earned or not; a hidden one still appears, title and all, but its
+ * description reads "???" until then.
  *
  * Achievements are per device - there is no per-player breakdown here because there is no
  * per-player record. Resetting them lives in Settings, with the other destructive controls.
