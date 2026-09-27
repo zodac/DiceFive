@@ -134,9 +134,15 @@ val FireWaveBack = Color(0xFFD2410F)
 val TricolourRedDiceTop = Color(0xFFEF5350)
 val TricolourRedDiceBottom = Color(0xFF9A1B1B)
 val TricolourRedPipColor = Color(0xFFFFF4EF)
-val TricolourYellowDiceTop = Color(0xFFFFE66B)
-val TricolourYellowDiceBottom = Color(0xFFC99A0E)
+// The yellow die's face and its own held ring have swapped shades from every other die: its face
+// is drawn in GoldAccent/GoldAccentDim (the colour every OTHER die's held ring uses) and its own
+// held ring uses what used to be its face colour instead - see TricolourYellowHeldRing and
+// DieColourPalette.heldRing. The original same-hue pairing made a held yellow die's ring vanish
+// against its own face.
+val TricolourYellowDiceTop = GoldAccent
+val TricolourYellowDiceBottom = GoldAccentDim
 val TricolourYellowPipColor = Color(0xFF3A2A05)
+val TricolourYellowHeldRing = Color(0xFFFFE66B)
 val TricolourBlueDiceTop = Color(0xFF5C9CEB)
 val TricolourBlueDiceBottom = Color(0xFF173E8C)
 val TricolourBluePipColor = Color(0xFFF1F6FF)
