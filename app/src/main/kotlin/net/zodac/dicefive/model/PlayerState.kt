@@ -17,6 +17,12 @@ data class PlayerState(
     val gameMode: GameMode = GameMode.default,
     val scorecard: Map<ScoreCategory, Int?> = gameMode.categories.associateWith { null },
     val fiveOfAKindBonusCount: Int = 0,
+    /** The dice this player's last completed turn was scored with - value and held/unheld state
+     * both, as they stood the moment they tapped a category. Null before this player's first turn
+     * ends. [GameState.dice] itself is reset for the next player the instant a turn advances, so
+     * this is the only place a finished turn's roll survives - kept so another player can glance at
+     * it via [net.zodac.dicefive.ui.game.ReadOnlyScoreboard] without it changing mid-glance. */
+    val lastRoll: List<Die>? = null,
 ) {
 
     val isScorecardComplete: Boolean

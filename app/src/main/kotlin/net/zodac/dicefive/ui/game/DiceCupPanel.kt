@@ -32,9 +32,25 @@ import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 
 /**
+ * [DiceCupPanel]'s cup-specific behaviour - the parts of the panel that only make sense for a turn
+ * actually being played right now. [ReadOnlyScoreboard] passes `cup = null` instead of a second,
+ * hand-copied panel layout, so its 5x tile and Upper/Bonus/Lower tracker can never drift out of
+ * sync with [GameBoard]'s - only the cup, roll count and undo button disappear.
+ */
+data class CupPanelState(
+    val rollsRemaining: Int,
+    val tilted: Boolean,
+    val rolling: Boolean,
+    val canUndo: Boolean,
+    val onCupTap: () -> Unit,
+    val onUndo: () -> Unit,
+)
+
+/**
  * The right-hand column beside the category grid: the prominent 5x tile (its top level with the
- * grid's first row), the (tappable)
- * dice cup with its remaining-rolls count, and the upper-section bonus tracker with undo.
+ * grid's first row), the (tappable) dice cup with its remaining-rolls count, and the upper-section
+ * bonus tracker with undo - the last three only when [cup] is non-null, i.e. an actual turn is in
+ * progress rather than a read-only look at someone else's scorecard.
  */
 @Composable
 fun DiceCupPanel(
@@ -44,13 +60,8 @@ fun DiceCupPanel(
     canScore: Boolean,
     showPreview: Boolean,
     available: Set<ScoreCategory>,
-    rollsRemaining: Int,
-    tilted: Boolean,
-    rolling: Boolean,
-    canUndo: Boolean,
     onScoreCategory: (ScoreCategory) -> Unit,
-    onCupTap: () -> Unit,
-    onUndo: () -> Unit,
+    cup: CupPanelState?,
     modifier: Modifier = Modifier,
 ) {
     val visualTheme = LocalGameVisualTheme.current
@@ -80,7 +91,9 @@ fun DiceCupPanel(
             Box(
                 modifier = Modifier
                     // weight(3f) reproduces the same row height this area already had - only the width
-                    // changes here (fillMaxWidth, below), not the height.
+                    // changes here (fillMaxWidth, below), not the height. Kept even with no cup to draw
+                    // (cup == null) so the 5x tile and the stats row below stay at the same heights
+                    // either way - only this box's own content disappears.
                     .weight(3f)
                     .fillMaxWidth()
                     // The cup itself rotates (shake + tilt) via graphicsLayer, which only affects
@@ -98,30 +111,34 @@ fun DiceCupPanel(
                     // Always enabled, even with no rolls left: onCupTap itself decides what a tap does
                     // in that case (see GameScreen) - counting it towards "No More Rolls" rather than
                     // the cup simply going dead once the useful taps run out.
-                    .clickable(
-                        interactionSource = cupInteractionSource,
-                        indication = null,
-                        onClick = onCupTap,
+                    .then(
+                        if (cup != null) {
+                            Modifier.clickable(interactionSource = cupInteractionSource, indication = null, onClick = cup.onCupTap)
+                        } else {
+                            Modifier
+                        },
                     ),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxHeight(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Box(modifier = Modifier.size(104.dp), contentAlignment = Alignment.Center) {
-                        visualTheme.diceCupStyle.Cup(
-                            rolling = rolling,
-                            tilted = tilted,
-                            modifier = Modifier.size(width = 58.dp, height = 84.dp),
+                if (cup != null) {
+                    Row(
+                        modifier = Modifier.fillMaxHeight(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Box(modifier = Modifier.size(104.dp), contentAlignment = Alignment.Center) {
+                            visualTheme.diceCupStyle.Cup(
+                                rolling = cup.rolling,
+                                tilted = cup.tilted,
+                                modifier = Modifier.size(width = 58.dp, height = 84.dp),
+                            )
+                        }
+                        Text(
+                            text = "x${cup.rollsRemaining}",
+                            color = TileIconColor,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge,
                         )
                     }
-                    Text(
-                        text = "x$rollsRemaining",
-                        color = TileIconColor,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge,
-                    )
                 }
             }
 
@@ -147,8 +164,10 @@ fun DiceCupPanel(
                     )
                     SectionStatRow(label = "Lower:", value = lowerTotal)
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                UndoButton(enabled = canUndo, onClick = onUndo)
+                if (cup != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    UndoButton(enabled = cup.canUndo, onClick = cup.onUndo)
+                }
             }
         }
     }

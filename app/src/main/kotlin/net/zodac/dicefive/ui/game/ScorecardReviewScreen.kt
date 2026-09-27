@@ -69,6 +69,20 @@ fun ScorecardReviewScreen(
 
         ReadOnlyScoreboard(player = reviewedPlayer)
 
+        // Same DiceTray call GameScreen's own read-only view uses - see its comment on why this
+        // isn't folded into ReadOnlyScoreboard itself.
+        reviewedPlayer.lastRoll?.let { dice ->
+            DiceTray(
+                dice = dice,
+                gameMode = reviewedPlayer.gameMode,
+                enabled = false,
+                showDice = true,
+                rolling = false,
+                onToggleHold = {},
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
         OutlinedButton(
             onClick = onBack,
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
