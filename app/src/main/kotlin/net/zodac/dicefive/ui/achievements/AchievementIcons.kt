@@ -163,7 +163,6 @@ val Achievement.icon: ImageVector
         Achievement.TRIPLE_TON -> Icons.Filled.Filter3
         Achievement.SCORE_400 -> Icons.Filled.KeyboardDoubleArrowUp
         Achievement.SCORE_500 -> Icons.Filled.Bolt
-        Achievement.CHEATER_CHEATER -> Icons.Filled.VisibilityOff
 
         // ---- Winning ----------------------------------------------------------------------------
         Achievement.FIRST_WIN -> Icons.Filled.Flag
@@ -207,7 +206,6 @@ val Achievement.icon: ImageVector
         Achievement.NOT_THOSE_DICE -> Icons.Filled.TouchApp
         Achievement.NO_MORE_ROLLS -> Icons.Filled.Block
         Achievement.IMPATIENT -> Icons.Filled.FlashOn
-        Achievement.BIG_FAN -> Icons.Filled.Favorite
         Achievement.FRESH_COAT_OF_PAINT -> Icons.Filled.FormatPaint
         Achievement.EMPTY_HOUSE -> Icons.Filled.NoMeetingRoom
         Achievement.FULLER_HOUSE -> Icons.Filled.House
@@ -236,7 +234,8 @@ val Achievement.icon: ImageVector
         Achievement.HISTORIAN -> Icons.Filled.AutoStories
         Achievement.COMPLETIONIST -> Icons.Filled.Verified
 
-        // ---- Secret -----------------------------------------------------------------------------
+        // ---- Easter Eggs ------------------------------------------------------------------------
+        Achievement.BIG_FAN -> Icons.Filled.Favorite
         // A real tricolour flag, not a single-colour Material glyph - every other icon here is
         // meant to be re-tinted by whatever container it's shown in, but this one's whole point is
         // its own three fixed colours, so it's built with real fills rather than borrowed from

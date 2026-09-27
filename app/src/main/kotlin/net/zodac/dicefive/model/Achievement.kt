@@ -17,7 +17,7 @@ enum class AchievementCounter {
  * way is what lets one ladder's rungs sit together - "Sharpshooter" then "High Roller" then "Dice
  * Deity" - instead of being scattered across an alphabetical list.
  *
- * [SECRET] is last on purpose, and every achievement in it has [AchievementVisibility.SECRET]:
+ * [EASTER_EGGS] is last on purpose, and every achievement in it has [AchievementVisibility.SECRET]:
  * [AchievementsViewModel][net.zodac.dicefive.ui.achievements.AchievementsViewModel] already
  * filters a locked secret achievement out of the list entirely, so as long as this category holds
  * nothing else, that filtering is *also* what keeps its own section header from ever appearing
@@ -33,7 +33,7 @@ enum class AchievementCategory(val label: String) {
     MISFORTUNE("Misfortune"),
     MISCELLANEOUS("Miscellaneous"),
     COLLECTION("Collection"),
-    SECRET("Secret"),
+    EASTER_EGGS("Easter Eggs"),
 }
 
 /** How a locked achievement shows progress, and how eagerly progress is worth announcing. */
@@ -92,10 +92,10 @@ enum class AchievementVisibility {
  * that visibility - `AchievementEngineTest` enforces both directions. A new hidden achievement
  * goes straight into Miscellaneous rather than its subject's usual category.
  *
- * [AchievementCategory.SECRET] is the same pairing with [AchievementVisibility.SECRET], and goes
- * at the very end of this enum (after [COMPLETIONIST]) rather than filed under its subject's usual
- * category - see [AchievementCategory.SECRET]'s own doc for why that placement is load-bearing,
- * not just tidiness. `AchievementEngineTest` enforces this exclusivity too.
+ * [AchievementCategory.EASTER_EGGS] is the same pairing with [AchievementVisibility.SECRET], and
+ * goes at the very end of this enum (after [COMPLETIONIST]) rather than filed under its subject's
+ * usual category - see [AchievementCategory.EASTER_EGGS]'s own doc for why that placement is
+ * load-bearing, not just tidiness. `AchievementEngineTest` enforces this exclusivity too.
  */
 enum class Achievement(
     val id: String,
@@ -517,12 +517,6 @@ enum class Achievement(
         "who_made_this", "Who Made This", "Open the GitHub link in Settings",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
-    // Earned by having a human P2/P3/P4 named exactly "zodac" - the one name this checks for,
-    // case-sensitively - never P1, who's always the human player at this device.
-    BIG_FAN(
-        "big_fan", "Big Fan", "Play a game with the creator",
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
-    ),
 
     // ---- Collection: filling in every score there is, and the set of achievements itself ------
     // The six ledger achievements are the longest haul in the game, so they sit at the very end,
@@ -561,25 +555,26 @@ enum class Achievement(
         AchievementCategory.COLLECTION, countsTowardCompletion = false,
     ),
 
-    // ---- Secret: not shown, let alone attempted, until already done ---------------------------
-    // See AchievementCategory.SECRET's doc for why this category exists (rather than filing these
-    // under each one's subject-matter category the way CHEATER_CHEATER used to sit in Scoring) -
-    // it's what keeps the "Secret" section header itself from ever appearing while empty.
+    // ---- Easter Eggs: not shown, let alone attempted, until already done ----------------------
+    // See AchievementCategory.EASTER_EGGS's doc for why this category exists (rather than filing
+    // these under each one's subject-matter category, the way Big Fan used to sit in
+    // Miscellaneous) - it's what keeps the "Easter Eggs" section header itself from ever
+    // appearing while empty.
     //
-    // The game mode's own maximum (GameMode.maxPossibleScore) is the absolute ceiling its rules allow, so
-    // CHEATER_CHEATER is excluded from COMPLETIONIST the same way I_ROBOT was while it couldn't be
-    // earned - it's not that it's unearnable, it's that requiring every player to stumble into a
-    // literally perfect game would make COMPLETIONIST itself absurd.
-    CHEATER_CHEATER(
-        "cheater_cheater", "Cheater, Cheater!", "Finish a game with the maximum possible score for its game mode",
-        AchievementCategory.SECRET, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+    // Excluded from COMPLETIONIST the same way I_ROBOT was while it couldn't be earned - naming
+    // yourself after the creator, or a human P2/P3/P4 named exactly "zodac" (case-sensitive, never
+    // P1, who's always the human player at this device), isn't something every player could
+    // reasonably be expected to stumble into on the way to 100%.
+    BIG_FAN(
+        "big_fan", "Big Fan", "Play a game with the creator",
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
-    // Excluded from COMPLETIONIST the same way CHEATER_CHEATER is - naming yourself after a
-    // country to re-skin a game mode's dice isn't something every player could reasonably be
-    // expected to stumble into on the way to 100%.
+    // Excluded from COMPLETIONIST the same way Big Fan is - naming yourself after a country to
+    // re-skin a game mode's dice isn't something every player could reasonably be expected to
+    // stumble into on the way to 100%.
     LUCK_OF_THE_IRISH(
-        "luck_of_the_irish", "Luck of the Irish", "Play a game of Tricolour as Ireland",
-        AchievementCategory.SECRET, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+        "luck_of_the_irish", "Luck of the Irish", "Play a game of Tricolour as Ireland/Éire",
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     ;
 

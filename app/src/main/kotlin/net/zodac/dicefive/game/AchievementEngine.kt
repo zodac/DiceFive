@@ -376,7 +376,6 @@ object AchievementEngine {
         award(Achievement.SCORE_300, bestHumanScore > 300)
         award(Achievement.SCORE_400, bestHumanScore >= 400)
         award(Achievement.SCORE_500, bestHumanScore >= 500)
-        award(Achievement.CHEATER_CHEATER, bestHumanScore >= state.gameMode.maxPossibleScore)
 
         // Winning.
         award(Achievement.WIN_BY_100, multiplayer && humanWon && margin != null && margin >= LANDSLIDE_MARGIN)
