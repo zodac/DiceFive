@@ -153,12 +153,15 @@ fun AchievementsScreen(
         // invitation to find out what tapping it does - the same reasoning AppLogo's onDiceTap
         // gives for its own hidden tap target. A tap counts toward arming superuser mode; once
         // it's armed, a long press unlocks every remaining achievement, and the long press after
-        // that relocks everything - see onBannerLongPress's doc comment.
+        // that relocks everything - see onBannerLongPress's doc comment. The haptic feedback that
+        // combinedClickable fires by default for onLongClick is disabled for the same reason: a
+        // buzz on long press would tip off that something's there.
         val unlockedCountInteractionSource = remember { MutableInteractionSource() }
         Card(
             modifier = Modifier.fillMaxWidth().combinedClickable(
                 interactionSource = unlockedCountInteractionSource,
                 indication = null,
+                hapticFeedbackEnabled = false,
                 onClick = viewModel::onUnlockedCountTapped,
                 onLongClick = viewModel::onBannerLongPress,
             ),
