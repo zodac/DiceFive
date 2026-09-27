@@ -3,10 +3,16 @@ package net.zodac.dicefive.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.Vibration
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -75,77 +81,77 @@ fun SettingsScreen(
 
     ScreenScaffold(title = "Settings", onBack = onBack, modifier = modifier, scrollable = true) {
         Card(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Gameplay",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
-            )
             ListItem(
-                headlineContent = { Text("Confirm before leaving") },
-                supportingContent = { Text("Ask first when backing out of a game in progress") },
+                leadingContent = {
+                    Icon(imageVector = Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null)
+                },
+                headlineContent = { Text("Sound effects") },
                 trailingContent = {
-                    Switch(checked = confirmBeforeLeavingGame, onCheckedChange = viewModel::setConfirmBeforeLeavingGame)
+                    Switch(checked = soundEnabled, onCheckedChange = viewModel::setSoundEnabled)
                 },
                 // The Card already supplies the surface; an opaque ListItem container would paint a
                 // second, slightly different one on top of it.
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
-        }
-
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Sound & Haptics",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
-            )
             ListItem(
-                headlineContent = { Text("Sound effects") },
-                supportingContent = { Text("Cup shake, dice landing and hold/unhold clicks") },
-                trailingContent = {
-                    Switch(checked = soundEnabled, onCheckedChange = viewModel::setSoundEnabled)
+                leadingContent = {
+                    Icon(imageVector = Icons.Filled.Vibration, contentDescription = null)
                 },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            )
-            ListItem(
                 headlineContent = { Text("Vibration") },
-                supportingContent = { Text("A short buzz when holding or unholding a die") },
                 trailingContent = {
                     Switch(checked = vibrationEnabled, onCheckedChange = viewModel::setVibrationEnabled)
                 },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
+            ListItem(
+                leadingContent = {
+                    Icon(imageVector = Icons.Filled.CheckCircle, contentDescription = null)
+                },
+                headlineContent = {
+                    Text(
+                        text = "Confirm before leaving game?",
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                },
+                trailingContent = {
+                    Switch(checked = confirmBeforeLeavingGame, onCheckedChange = viewModel::setConfirmBeforeLeavingGame)
+                },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            )
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Reset",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
-            )
-            ListItem(
-                headlineContent = { Text("Achievements") },
-                trailingContent = {
-                    TextButton(
-                        onClick = { showResetAchievementsConfirmation = true },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    ) {
-                        Text("Reset")
-                    }
-                },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            )
-            ListItem(
-                headlineContent = { Text("Leaderboard") },
-                trailingContent = {
-                    TextButton(
-                        onClick = { showResetLeaderboardConfirmation = true },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    ) {
-                        Text("Reset")
-                    }
-                },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Button(
+                onClick = { showResetAchievementsConfirmation = true },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = "Reset Achievements",
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
+            Button(
+                onClick = { showResetLeaderboardConfirmation = true },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = "Reset Leaderboard",
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
         }
 
         // Quiet footer, not a Card section: version and the project link aren't settings, just
