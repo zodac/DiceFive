@@ -32,6 +32,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -40,7 +42,8 @@ import kotlinx.coroutines.launch
 
 /** One page of [RulesDialog]. [paragraphs] renders as one block of body text per entry - a plain
  * list rather than a single string with embedded newlines, so a page mixing prose and a short
- * numbered list (see the joker rule) reads as separate paragraphs rather than one dense block. */
+ * numbered list (see the joker rule) reads as separate paragraphs rather than one dense block.
+ * Each paragraph may use [parseInlineMarkup]'s markers for bold, italic, underline and monospace. */
 private data class RulesPage(val title: String, val paragraphs: List<String>)
 
 /**
@@ -54,54 +57,70 @@ private data class RulesPage(val title: String, val paragraphs: List<String>)
  */
 private val RULES_PAGES = listOf(
     RulesPage(
-        title = "How to Play",
+        title = "How to Play DiceFive",
         paragraphs = listOf(
-            "Each turn, roll five dice up to three times, choosing which to keep between rolls.",
-            "Once you're happy with the roll - or you're out of rerolls - score it in any open category on your scorecard.",
-            "The game ends once every category is filled. Highest total score wins.",
+            "Score as many points as possible by rolling five dice, with three rolls per round.",
+            "You may keep any dice you want after a roll, then roll the remaining dice.",
+            "Once you're happy with the roll - or you've rolled three times - score it in any open category on your scorecard.",
+            "The game ends once every category is filled.",
         ),
     ),
     RulesPage(
-        title = "Upper Section",
+        title = "Scoring: Upper Section",
         paragraphs = listOf(
-            "Ones through Sixes: score the total of just the matching dice - three 4s in Fours scores 12.",
-            "Score 63 or more across the whole section - roughly three of each number - and you earn a 35-point bonus.",
+            "Each *Upper Section* category, from *Ones* to *Sixes*, scores the total of the dice showing that number.",
+            "For example, rolling `5-5-5-2-1` would give a score of **15pts** in the *Fives* category.",
+            "Score **63pts** or more across the whole section and you earn a bonus **35pts**! That's an average of three of each number.",
         ),
     ),
     RulesPage(
-        title = "Lower Section",
+        title = "Scoring: Lower Section",
         paragraphs = listOf(
-            "Full House (25 points): three of one number and two of another.",
-            "Small Straight (30): four numbers in a row. Large Straight (40): all five in a row.",
-            "Three of a Kind / Four of a Kind: needs at least three (or four) matching dice, but scores the total of all five.",
-            "Chance: no matching required at all - just the total of all five dice. The safety net for a bad roll.",
+            "The *Lower Section* awards points for specific dice combinations:",
+            "- *3x*: Total of all five dice, if at least three dice are the same",
+            "- *4x*: Total of all five dice, if at least four dice are the same",
+            "- *Full House* [25pts]: Three of one number and two of another",
+            "- *Small Straight* [30pts]: Four numbers in a row (`1-2-3-4`, `2-3-4-5`, `3-4-5-6`)",
+            "- *Large Straight* [40pts]: Five numbers in a row (`1-2-3-4-5`, `2-3-4-5-6`)",
+            "- *5x* [50pts]: All five dice are the same",
+            "- *Chance*: The sum of all five dice",
         ),
     ),
     RulesPage(
         title = "5x and the Joker Rule",
         paragraphs = listOf(
-            "Five matching dice - a \"5x\" - scores 50 points.",
-            "Roll another 5x after that box is already filled? It earns a 100-point bonus chip, on top of whatever category you score it in.",
-            "Where a repeat 5x can go, in order:",
-            "1. The matching upper box, if it's still open - five 4s must go in Fours, scored at full value.",
-            "2. Otherwise, any other open box you like - Full House, Small Straight and Large Straight score their full fixed amount regardless of what the dice actually show.",
-            "3. Only if nothing else is left open does it have to go in a leftover upper box for zero.",
+            "If you roll five matching dice, you can score a *5x* worth **50pts**.",
+            "Roll another five matching dice after already scoring a *5x*? It earns a **100pts** bonus, *on top of* whatever category you then score those dice in.",
+            "When you score a repeat *5x*, the Joker rule decides where it can go:",
+            "1 - The matching *Upper Section* category, if it's still open. Five `4`s must go in *Fours*, scored for **20pts**, in addition to the bonus.",
+            "2 - Otherwise, any unscored category outside the *Upper Section*, in addition to the bonus. *Full House*, *Small Straight* and *Large Straight* score their full fixed amount.",
+            "3 - If every category outside the *Upper Section* is already filled, you must score it in an unscored *Upper Section* category for **0pts** - but you still get the **100pts** bonus.",
         ),
     ),
     RulesPage(
         title = "Tie Breaks",
         paragraphs = listOf(
-            "Matching the top score isn't automatically a shared win - a house rule breaks it, rewarding whoever got there with more handicaps.",
-            "In order: fewest 5x, then most categories scored zero, then fewest Tricolour colour boxes scored (Tricolour games only), then the lowest upper section, Chance, Three of a Kind, then Four of a Kind.",
-            "Only a tie all the way down that list still shares first place.",
+            "If multiple players end the game with the same score, the following checks are made in order - the first difference decides who wins the tie:",
+            "- Fewest *5x*",
+            "- Most categories scored zero",
+            "- Lower *Upper Section* total",
+            "- Lower *Chance*",
+            "- Lower *3x*",
+            "- Lower *4x*",
+            "If all of these are equal, then it is a true tie.",
         ),
     ),
     RulesPage(
-        title = "Tricolour Mode",
+        title = "Mode: Tricolour",
         paragraphs = listOf(
-            "Every die also lands a colour - red, yellow or blue - alongside its number.",
-            "Four extra scorecard boxes: Reds, Yellows and Blues (40 points each, all five dice that colour), and Coloured House (25 points, three of one colour and two of another).",
-            "Everything else - the upper section, 5x, the joker rule - plays exactly the same as the standard rules, just with more boxes to fill.",
+            "A custom mode extending the *Standard* game mode. Every die also rolls a colour - red, yellow or blue - alongside its number.",
+            "There are four extra scoring categories:",
+            "- *Reds* [40pts]: All five dice are red",
+            "- *Yellows* [40pts]: All five dice are yellow",
+            "- *Blues* [40pts]: All five dice are blue",
+            "- *Coloured House* [25pts]: Three of one colour and two of another",
+            "Under the joker rule, a repeat *5x* also scores *Coloured House* at its full **25pts**. Everything else plays exactly the same as the *Standard* rules, just with more opportunities to score.",
+            "See if you can find the Easter Egg in this mode!",
         ),
     ),
 )
@@ -155,7 +174,10 @@ fun RulesDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
                         Spacer(modifier = Modifier.height(16.dp))
                         for (paragraph in rulesPage.paragraphs) {
                             Text(
-                                text = paragraph,
+                                text = parseInlineMarkup(
+                                    paragraph,
+                                    codeStyle = SpanStyle(fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary),
+                                ),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(bottom = 10.dp),
