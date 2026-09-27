@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.Button
@@ -58,6 +59,7 @@ fun SettingsScreen(
     // Saveable: a rotation mid-confirmation shouldn't silently drop the question.
     var showResetAchievementsConfirmation by rememberSaveable { mutableStateOf(false) }
     var showResetLeaderboardConfirmation by rememberSaveable { mutableStateOf(false) }
+    var showLicenses by rememberSaveable { mutableStateOf(false) }
 
     // Opening the GitHub link backgrounds the app (a browser takes over), and Compose's own frame
     // clock - which every banner's fade-in/hold/fade-out animation runs on - keeps ticking through
@@ -179,7 +181,19 @@ fun SettingsScreen(
                 )
                 Text("View source on GitHub")
             }
+            TextButton(onClick = { showLicenses = true }) {
+                Icon(
+                    imageVector = Icons.Filled.Gavel,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+                Text("Licences")
+            }
         }
+    }
+
+    if (showLicenses) {
+        LicensesDialog(onDismissRequest = { showLicenses = false })
     }
 
     if (showResetAchievementsConfirmation) {

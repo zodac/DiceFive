@@ -1,0 +1,5 @@
+{
+  "uniqueId": "androidx.datastore:datastore-preferences-external-protobuf",
+  "name": "Protocol Buffers (bundled in DataStore)",
+  "description": "Copyright 2008 Google Inc. All rights reserved."
+}

@@ -205,8 +205,12 @@ decisions behind it. Read that before changing anything visual.
   (`com.google.devtools.ksp`, version matched to the Kotlin version in
   `gradle/libs.versions.toml`).
 - `androidx.datastore:datastore-preferences`
-- No kotlinx.serialization — settings are individual Preference keys, not
-  serialized JSON.
+- No kotlinx.serialization of the app's own — settings are individual
+  Preference keys, not serialized JSON. (It does arrive transitively, via
+  `com.mikepenz:aboutlibraries-core` - see Phase 17.)
+- `com.mikepenz:aboutlibraries-core` plus the
+  `com.mikepenz.aboutlibraries.plugin.android` Gradle plugin - the open-source
+  licenses report (Phase 17).
 
 ## Package layout (target shape)
 
@@ -396,7 +400,8 @@ dependencies — most unit tests live here.
   footer below the Reset card shows the app version (from `BuildConfig`)
   and a "View on GitHub" link to `https://github.com/zodac/DiceFive`,
   opened via Compose's `UriHandler` - this used to be its own `AboutScreen`,
-  folded in here so the menu has one less destination.
+  folded in here so the menu has one less destination. Below that, an
+  "Licences" link opens `LicensesDialog` (Phase 17).
 
 ## Sound & haptics
 
@@ -449,6 +454,14 @@ dependencies — most unit tests live here.
   packages) plus careful reading of each screen's Compose code. If the user
   runs this on a real device/emulator later and finds a UI issue, fix it
   then.
+- **Robolectric is available for UI interaction tests** (since Phase 17): JVM
+  unit tests can render a real screen and drive it with touches -
+  `createComposeRule` (the `junit4.v2` one; the old one is deprecated, which
+  fails the build) plus Espresso for any platform `View`s, with
+  `@Config(sdk = [35])` and `@GraphicsMode(NATIVE)` (see `LicensesDialogTest`).
+  Good for reproducing crashes and checking touch handling; it does not
+  simulate everything a device does (e.g. the platform's long-press text
+  selection), so a real-device check still matters for those.
 
 ## Ad hoc debug build versioning
 
@@ -1288,3 +1301,96 @@ install-over-existing succeeds:
 - [ ] **Not yet seen on a device**: the pager, its page indicator/nav arrows, and the dialog's sizing
       against `CONTENT_MAX_WIDTH` on a real screen are compile-and-read verified only (no emulator in
       the sandbox).
+
+### Phase 17 — Open-source licenses
+- [x] **Why**: nearly every dependency is Apache-2.0, whose §4(a) requires giving recipients a copy of
+      the license; the build strips AndroidX's own bundled copies (a size optimisation), and nothing
+      replaced them - `PUBLISHING.md` tracked this as a real gap. The OFL on the bundled Sora font and
+      the BSD-3-Clause on DataStore's embedded protobuf likewise require their text and copyright
+      notice to ship. An in-app page covers every way the app is distributed (the GitHub release
+      APKs today, Play later) at once, which a hosted web page linked from each would not.
+- [x] **Nothing hand-listed**: the AboutLibraries Android plugin walks each variant's runtime
+      dependency graph at build time into a generated `res/raw/aboutlibraries.json`
+      (`includePlatform = false` - BOMs ship nothing). `LicensesDialog` (`ui/settings/`, opened from
+      the Settings footer) reads it through `aboutlibraries-core` and shows it grouped by license,
+      most-used first, each license's full text folded away behind "Show license text" - ninety-odd
+      libraries share Apache-2.0 and it only needs to appear once. Same raised `Surface` shape as
+      `RulesDialog` (Phase 16). `parseLicenseReport` is the pure part, unit-tested in
+      `LicenseReportTest`.
+- [x] **Copyleft guard**: strict mode `FAIL` with an allowlist of permissive licenses (Apache-2.0,
+      MIT, BSD-2/3-Clause) - any other license, copyleft or unrecognised, fails every build of the
+      variant (assemble, unit tests and lint alike), naming the license and every library that brought
+      it in, transitive ones included. OFL-1.1 is allowed only for `sora` via `allowedLicensesMap`.
+      Verified by temporarily adding `org.mariadb.jdbc:mariadb-java-client` (LGPL-2.1): the build
+      failed on it and on the `jna` it pulls in transitively.
+- [x] **Offline and deterministic**: `offlineMode = true`, so the plugin never fetches license text
+      from GitHub/SPDX. The price is that it then knows each license's name but not its text, so the
+      allowed licenses' SPDX texts are committed under `app/aboutlibraries/licenses/` - see the
+      README there. `VerifyLicenseReportTask` (`verifyLicenseReport<Variant>`, wired before
+      `generate<Variant>Resources`) fails the build if any shipped license lacks its text, if any
+      library declares no license, or if a library under a notice-requiring license (BSD, MIT, ISC,
+      OFL) lacks a `Copyright ...` line - the plugin never collects copyright lines, so those come
+      from a `libraries/<name>.json` override.
+- [x] **NOTICE files** (Apache-2.0 §4(d)): AGP's default packaging drops every `META-INF/NOTICE*`,
+      so `CollectThirdPartyNoticesTask` pulls them out of the variant's runtime Java resources into a
+      generated `res/raw/third_party_notices.json`, and the dialog shows a "Notices" section when it's
+      non-empty. None of today's shipped dependencies has one (`concurrent-futures-ktx` does, but the
+      app ships only `concurrent-futures`), so the section is currently hidden.
+- [x] **Assets the build can't see** - fonts, sounds, artwork - aren't dependencies, so nothing can
+      discover their license. `app/aboutlibraries/asset-sources.json` records every bundled asset file
+      (any source set's `res/` bar `values*/`, `rawAudioSource/`, `assets/`) with a description,
+      source, copyright line and license - the app's own artwork included
+      (`LicenseRef-DiceFive-AllRightsReserved` - see `LICENSE`; source = the Claude Code session and commit that created it, confirmed from git history). A
+      third-party asset also names its `libraries/` entry, which must agree on license and copyright.
+      `verifyAssetSources` (before every variant's `generate<Variant>Resources`) fails the build on an
+      unlisted asset, an incomplete or inconsistent entry, or a stale one - unaccounted-for is treated
+      as unlicensed. Sora is a modified (static weight-700) instance - the OFL allows that, and Sora
+      declares no Reserved Font Name, so it keeps its name.
+- [x] **The five `.ogg` clips** had no recorded source at first, and the build was deliberately left
+      failing until the maintainer found them - all modified Freesound recordings: `celebration`
+      (remix of 588198 + 695731), `cup_shake` (185986) and `mat_landing` (596051) are CC0;
+      `hold`/`unhold` are cut from 140147 ("Mantel Clock Ticking.wav" by Tewkesound), CC-BY 4.0. Each
+      source has its own `libraries/` entry (`freesound-<id>`); an asset lists every source it's made
+      from under `"libraries"`. CC-BY 4.0 §3(a) needs the creator, a link to the source and the
+      license, and a note that it was modified - all in `freesound-140147`'s description, which the
+      dialog shows. CC0-1.0 and CC-BY-4.0 are allowed only for those entries (`allowedLicensesMap` -
+      verified: any other entry claiming CC0 fails strict mode).
+- [x] **Dialog follow-ups**: the Settings link and dialog title are "Licences" (British spelling,
+      matching the rest of the UI's "colour"; code identifiers keep `license`, matching the library's
+      API and SPDX). The whole list is **one** platform `TextView` in a platform
+      `ScrollView` (`LicenceDocument`, `ui/settings/LicenceDocument.kt`), its headings, rows,
+      dividers and "Show / Hide licence text" toggles all spans in one `SpannableStringBuilder`
+      (`buildLicenceDocument`) - because only within a single TextView can a selection be dragged
+      across rows. `setTextIsSelectable` gives the system's own long-press behaviour - smart
+      selection of a whole URL and the Copy / Share / Select all toolbar - and TalkBack sees its
+      links. A tap on a link opens it, on a toggle flips it (`LinkTextView`'s `GestureDetector` - a
+      bare `OnGestureListener`, since a double-tap listener would swallow a quick second tap), and a
+      tap anywhere in the dialog drops a selection (`clearSelectionsOnTap` on the Initial pass ->
+      `SelectionClearer`) without that same tap also following a link. A long press on a
+      link shows the platform context menu instead of selecting - the URL as its title, then Copy link /
+      Copy text, as a browser does (`LinkTextView`'s `OnLongClickListener` runs before the TextView's
+      own long-press selection and stops it by returning true; anywhere off a link it returns false
+      and selection proceeds). A Toast confirms a copy below Android 13, which confirms copies itself. Selection handles and
+      highlight are tinted `primary` (handles API 29+). The `AndroidView` needs `clipToBounds()`: a
+      platform `ScrollView` draws its content offset and relies on its parent to clip it, which
+      Compose's interop host doesn't - without it, scrolled text drew up over the dialog's title
+      (except mid-overscroll, whose stretch effect draws through a clipped layer). Pinned by a pixel
+      test in `LicensesDialogTest` (Robolectric's `captureToImage` works with `GraphicsMode.NATIVE`,
+      which also makes it a way to *see* a screen here - save the bitmap and view it). **Why not Compose**: tried first, and it
+      failed on device - (1) `LinkAnnotation` opens on every press inside a `SelectionContainer`,
+      long press included; (2) a custom long-press link menu raced the selection gesture, which can't
+      be pre-empted (for touch, `awaitSelectionGestures` ignores a consumed down, and
+      `awaitLongPressOrCancellation` only notices consumption of *later* events, which a still finger
+      doesn't produce), so selection, its magnifier and the menu all started at once - that crashed;
+      (3) clearing focus didn't drop a `SelectionContainer` selection inside the dialog; (4) a
+      selection can't span separate text elements (rows). `LicensesDialogTest` covers link tap, link
+      long press, the toggles, a selection spanning rows and tap-to-clear on the real view under
+      **Robolectric** (added as a test dependency for this - the sandbox has no emulator); Robolectric
+      doesn't simulate the platform's long-press selection itself, so that part is device-only.
+      A licence's
+      heading names what uses it by kind ("Used by 4 sounds", "Used by 1 library and 1 font"): an
+      asset's `libraries/` entry carries `"tag"` (`font`/`sound`/`image` - `ComponentKind`), which
+      `verifyAssetSources` requires; anything the plugin discovers is a library.
+- [ ] **Not yet seen on a device** (no emulator in the sandbox). Release-build check done at the
+      APK level only: both generated JSONs survive R8 resource shrinking (referenced directly via
+      `R.raw`), but the parse under R8 hasn't been exercised on a device.
