@@ -2,7 +2,7 @@
 # Sandbox image for running Claude Code with --dangerously-skip-permissions
 # against the project this folder sits in, fully isolated from the host.
 #
-# The runtime is a plain Debian 13 (trixie) base. The JDK 21, Maven and Node
+# The runtime is a plain Debian 13 (trixie) base. The JDK, Maven and Node
 # toolchains are pulled from their official images as multi-stage build stages
 # and the relevant directories copied straight in — so we track upstream image
 # tags instead of hand-rolling tarball / NodeSource downloads. On top we also
@@ -11,18 +11,24 @@
 # an Android app — see the "Android SDK" block below) and the system libraries
 # Playwright's Chromium needs.
 #
-# JDK 21, not the newer 26 this file used to pin: Gradle 8.9's embedded
-# kotlin-dsl script compiler (used to parse build.gradle.kts) crashes on JDK
-# 26's version string ("26.0.2" -> IllegalArgumentException in
-# org.jetbrains.kotlin...JavaVersion.parse), so *.gradle.kts builds cannot
-# configure at all on it. 21 is the current LTS and is what Android Studio
-# itself bundles, so it is the safe default for AGP/Gradle/Kotlin versions in
-# the range this project pins. Confirmed working: JDK 21 + the SDK block below
-# builds this project's :app module end to end (assembleDebug, testDebugUnitTest).
+# The JDK is an LTS release, and only moves to a newer major once this project is
+# proven to build on it: the update script builds and unit-tests the project on
+# the candidate before writing it here (JDK 25 was adopted that way). A blind bump
+# has bitten before - JDK 26, once pinned here, crashed Gradle 8.9's kotlin-dsl
+# script compiler on its version string ("26.0.2" -> IllegalArgumentException in
+# org.jetbrains.kotlin...JavaVersion.parse), so *.gradle.kts builds could not
+# configure at all. The Java version itself is owned by the project's Gradle
+# toolchain (toolchainVersion in gradle/gradle-daemon-jvm.properties): Gradle runs
+# and compiles on that JDK and downloads it if missing. This stage only follows it,
+# so a sandbox build never has to download a JDK - keep the two on the same major
+# (the update script's consistency check enforces it).
 #
-# NOTE: every version below is pinned BY HAND in this repo. This image was copied
-# from a project that bumped its pins from CI; there is no such job here, so a
-# build that fails on a version Debian has since dropped means a pin needs moving.
+# NOTE: every version below is pinned, and bumped by running
+# .github/scripts/update_dependency_versions.sh from the repo root (nothing runs it
+# on a schedule), so a build that fails on a version Debian has since dropped means
+# it is time for a run. That script relies on this file's shape: the `FROM … AS
+# jdk|maven|node` stage names, the BEGIN/END DEBIAN PACKAGES markers, and the
+# cmdline-tools URL + sha1 line.
 #
 # The nested Docker engine is the one toolchain NOT copied from an image: the
 # binaries in the official `docker`/`docker:dind` images are musl-linked (Alpine),
@@ -64,17 +70,17 @@
 # ── Toolchain source stages (their payload is copied into the Debian base) ────
 # Each of these is only mined for its self-contained toolchain directory; none of
 # their base OS reaches the final image.
-#   JDK 21  — self-contained under /opt/java/openjdk, portable onto glibc Debian.
-#             LTS; see the file-header note above for why 21 and not 26.
+#   JDK 25  — self-contained under /opt/java/openjdk, portable onto glibc Debian.
+#             LTS; see the file-header note above for how a new major is adopted.
 #   Maven   — pure Java + shell under /usr/share/maven; the image's own JDK is unused.
 #   Node 26 — installed under /usr/local; the prebuilt binaries are glibc-portable
 #             (the -trixie tag matches this base's glibc exactly).
-FROM eclipse-temurin:21.0.12_8-jdk AS jdk
-FROM maven:3.9.16-eclipse-temurin-26 AS maven
-FROM node:26.8.2-trixie AS node
+FROM eclipse-temurin:25.0.4.1_1-jdk AS jdk
+FROM maven:3.9.16-eclipse-temurin-25 AS maven
+FROM node:26.10.0-trixie AS node
 
 # ── Runtime base ─────────────────────────────────────────────────────────────
-FROM debian:13.6
+FROM debian:13.7
 
 ARG UID=1000
 ARG GID=1000
@@ -183,14 +189,14 @@ RUN install -m 0755 -d /etc/apt/keyrings \
 # BEGIN DEBIAN PACKAGES
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -yqq --no-install-recommends \
-        docker-ce="5:29.7.2-1~debian.13~trixie" \
-        docker-ce-cli="5:29.7.2-1~debian.13~trixie" \
-        containerd.io="2.3.3-1~debian.13~trixie" \
-        docker-buildx-plugin="0.36.1-1~debian.13~trixie" \
-        docker-compose-plugin="5.5.0-1~debian.13~trixie"
+        docker-ce="5:29.8.1-1~debian.13~trixie" \
+        docker-ce-cli="5:29.8.1-1~debian.13~trixie" \
+        containerd.io="2.3.6-1~debian.13~trixie" \
+        docker-buildx-plugin="0.37.1-1~debian.13~trixie" \
+        docker-compose-plugin="5.5.1-1~debian.13~trixie"
 # END DEBIAN PACKAGES
 
-# ── JDK 21 / Maven / Node (copied from the toolchain stages above) ───────────
+# ── JDK 25 / Maven / Node (copied from the toolchain stages above) ───────────
 # The three toolchains are self-contained directory trees; drop them into the
 # glibc base at the paths JAVA_HOME / MAVEN_HOME / PATH already point at.
 #
@@ -287,7 +293,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
         git="1:2.47.3-0+deb13u1" \
         imagemagick="8:7.1.1.43+dfsg1-1+deb13u12" \
         iproute2="6.15.0-1" \
-        jq="1.7.1-6+deb13u3" \
+        jq="1.7.1-6+deb13u4" \
         librsvg2-bin="2.60.0+dfsg-1" \
         lsof="4.99.4+dfsg-2" \
         optipng="0.7.8+ds-1+b1" \
@@ -315,13 +321,16 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
 # cmdline-tools is pinned to the build Google's own repository manifest
 # (https://dl.google.com/android/repository/repository2-3.xml) currently serves as
 # `cmdline-tools;latest` (tool revision 23.0), sha1-verified against that same
-# manifest. `platform-tools`, `platforms;android-35` and `build-tools;36.0.0` are
-# pinned to match this project's compileSdk/targetSdk (35) and its
-# `android.buildToolsVersion` (app/build.gradle.kts) — keep those three in step if
-# either changes, or a build will reach out to the network for whatever AGP defaults
-# to instead of what is baked in here. build-tools is 36.0.0, one major ahead of
-# compileSdk's 35, because AGP 9.4.1 enforces build-tools >= 36.0.0 regardless of
-# compileSdk and overrides (with a network fetch) anything pinned lower.
+# manifest. `platform-tools`, `platforms;android-37.2` and `build-tools;36.0.0` are
+# pinned to match this project's compileSdk + compileSdkMinor (37.2 - a minor SDK
+# release is its own platform package, and from API 37 even the base release is
+# named with a minor, android-37.0) and its `android.buildToolsVersion`
+# (app/build.gradle.kts) — keep
+# those three in step if either changes, or a build will reach out to the network for
+# whatever AGP defaults to instead of what is baked in here (the update script's
+# consistency check fails the run if they drift). build-tools is 36.0.0 because AGP
+# 9.4.1 enforces build-tools >= 36.0.0 regardless of compileSdk and overrides (with a
+# network fetch) anything pinned lower.
 #
 # `yes |` answers the SDK Terms-of-Service prompt sdkmanager still shows on first
 # run (piped, not interactive, same technique as the license-acceptance pattern
@@ -347,9 +356,9 @@ RUN set -eux; \
     mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest; \
     rm -f /tmp/cmdline-tools.zip; \
     yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/opt/android-sdk \
-        "platform-tools" "platforms;android-35" "build-tools;36.0.0" >/dev/null || true; \
+        "platform-tools" "platforms;android-37.2" "build-tools;36.0.0" >/dev/null || true; \
     test -x /opt/android-sdk/platform-tools/adb; \
-    test -d /opt/android-sdk/platforms/android-35; \
+    test -d /opt/android-sdk/platforms/android-37.2; \
     test -d /opt/android-sdk/build-tools/36.0.0; \
     chmod -R a+rX /opt/android-sdk
 
@@ -367,7 +376,7 @@ RUN set -eux; \
 # BINARY itself stays out of the image (persisted in the ms-playwright volume via
 # setup.sh) to avoid baking ~150MB of Chromium into every layer.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    npx --yes playwright@1.62.0 install-deps chromium
+    npx --yes playwright@1.63.0 install-deps chromium
 
 # ── Claude Code CLI into a dev-owned npm prefix ──────────────────────────────
 # Installing `-g` into npm's default /usr prefix makes the package and the

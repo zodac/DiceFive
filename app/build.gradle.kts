@@ -1,11 +1,13 @@
-import org.gradle.api.Action
+import com.android.build.api.variant.impl.VariantOutputImpl
 import org.gradle.process.ExecOperations
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.ByteArrayOutputStream
+import java.util.Properties
 import javax.inject.Inject
 
 plugins {
+    // No org.jetbrains.kotlin.android: AGP 9 compiles Kotlin itself ("built-in Kotlin").
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
@@ -14,6 +16,17 @@ plugins {
 val appVersionName = rootProject.file("VERSION").readText().trim()
 val appVersionCode = appVersionName.split(".").map { it.toInt() }
     .let { (major, minor, patch) -> major * 10_000 + minor * 100 + patch }
+
+// Single source of truth for the Java version: `toolchainVersion` in gradle/gradle-daemon-jvm.properties
+// (written by `./gradlew updateDaemonJvm --jvm-version=N --jvm-vendor=ADOPTIUM`). Gradle runs itself on
+// that JDK, compiles and tests with it (the toolchain below), and the app is compiled FOR it - and it
+// downloads that JDK wherever it is missing (the foojay resolver in settings.gradle.kts), so a build no
+// longer depends on which java is installed: this sandbox, CI and Android Studio all get the same one.
+// The sandbox's JDK follows it as a head start (the update script's consistency check fails its run
+// if they drift), and CI's setup-java reads it from that file at run time.
+val javaVersion: Int = Properties()
+    .apply { rootProject.file("gradle/gradle-daemon-jvm.properties").inputStream().use(::load) }
+    .getProperty("toolchainVersion").trim().toInt()
 
 // Release signing is optional locally (assembleRelease then produces an unsigned APK) but
 // required in CI, which supplies these via secrets - see .github/workflows/release.yml.
@@ -28,7 +41,12 @@ val hasReleaseSigningConfig = !releaseKeystorePath.isNullOrBlank() &&
 
 android {
     namespace = "net.zodac.dicefive"
-    compileSdk = 35
+    // Compiles against Android 37.2: minor SDK releases add APIs and are their own SDK platform
+    // (android-37.2, pinned to match in sandbox/Dockerfile; the workflows read it from here via
+    // .github/scripts/android_sdk_packages.sh). Only compileSdk has a minor - targetSdk/minSdk are
+    // whole API levels, so targetSdk 37 already covers every 37.x.
+    compileSdk = 37
+    compileSdkMinor = 2
     // Pinned to match the build-tools baked into the sandbox image (sandbox/Dockerfile) so a
     // build never needs to fetch a different version over the network. Bumped to 36.0.0 for the
     // AGP 9 upgrade - AGP 9.4.1 enforces build-tools >= 36.0.0 and silently ignores/overrides a
@@ -44,7 +62,7 @@ android {
     defaultConfig {
         applicationId = "net.zodac.dicefive"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 37
         versionCode = appVersionCode
         versionName = appVersionName
 
@@ -92,12 +110,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
+        sourceCompatibility = JavaVersion.toVersion(javaVersion)
+        targetCompatibility = JavaVersion.toVersion(javaVersion)
     }
 
     buildFeatures {
@@ -105,16 +119,32 @@ android {
         buildConfig = true
     }
 
-    sourceSets {
-        getByName("main").kotlin.srcDirs("src/main/kotlin")
-        getByName("test").kotlin.srcDirs("src/test/kotlin")
-        getByName("androidTest").kotlin.srcDirs("src/androidTest/kotlin")
-    }
-
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+
+    lint {
+        // Deprecated and obsolete usages fail lint - and so CI, which runs it - rather than piling up
+        // as warnings. The Kotlin compiler flag below does the same for deprecated APIs in code, and
+        // gradle.properties' org.gradle.kotlin.dsl.allWarningsAsErrors for the build scripts.
+        error += setOf("Deprecated", "ObsoleteSdkInt")
+    }
+}
+
+// The toolchain (the JDK that compiles Kotlin and Java and runs the unit tests) and the Kotlin
+// counterpart of compileOptions above, all on javaVersion. (compilerOptions replaces
+// android.kotlinOptions, which Kotlin 2.3+ rejects outright as deprecated.)
+kotlin {
+    jvmToolchain(javaVersion)
+    compilerOptions {
+        jvmTarget = JvmTarget.fromTarget(javaVersion.toString())
+        // Using a deprecated API fails the build (main, unit-test and instrumented-test code alike),
+        // rather than piling up as warnings nobody reads. Only DEPRECATION is escalated - other
+        // warnings stay warnings. A dependency bump that deprecates something the app uses therefore
+        // breaks the build until the call is migrated (the update script holds that bump back).
+        freeCompilerArgs.add("-Xwarning-level=DEPRECATION:error")
     }
 }
 
@@ -124,8 +154,8 @@ android {
 // (the common case: nothing bumped VERSION between them) are logged by Android as the "same"
 // version but signed identically, and re-signing per build is what actually determines whether an
 // install-over-existing succeeds - the versionCode/name below just makes each one unambiguous.
-// Computed once at script-eval time (not inside onVariants) so the applicationVariants block below
-// can reuse the exact same string for the output filename without reading it back off the variant.
+// Computed once at script-eval time (not inside onVariants) so the output-filename block below can
+// reuse the exact same string without reading it back off the variant.
 val debugVersionCode = (System.currentTimeMillis() / 60_000L).toInt()
 val debugVersionName = "$appVersionName-dev$debugVersionCode"
 
@@ -236,25 +266,20 @@ androidComponents {
 }
 
 // Bake the version into the output filename too, so a debug APK handed to a tester is
-// self-describing (which build they're on) without needing to open Settings > App info.
-// Action<T> { ... } below is the Gradle Kotlin DSL's *receiver-style* SAM helper (`this` = T, no
-// declared parameter) - not a plain SAM-converted lambda - because DomainObjectCollection.all(Action)
-// otherwise loses overload resolution to Kotlin's Iterable<T>.all(predicate: (T) -> Boolean).
-android.applicationVariants.all(
-    Action<com.android.build.gradle.api.ApplicationVariant> {
-        val variant = this
-        val versionLabel = if (variant.buildType.name == "debug") debugVersionName else appVersionName
-        val unsignedSuffix = if (variant.buildType.name == "release" && !hasReleaseSigningConfig) "-unsigned" else ""
-        variant.outputs.all(
-            Action<com.android.build.gradle.api.BaseVariantOutput> {
-                val output = this
-                if (output is com.android.build.gradle.api.ApkVariantOutput) {
-                    output.outputFileName = "DiceFive-$versionLabel-${variant.buildType.name}$unsignedSuffix.apk"
-                }
-            },
-        )
-    },
-)
+// self-describing (which build they're on) without needing to open Settings > App info:
+// DiceFive-<version>-<buildType>[-unsigned].apk. The public variant API has no setter for the file
+// name, so this goes through its implementation class, VariantOutputImpl (an internal AGP class, not a
+// deprecated one - it replaces the deprecated android.applicationVariants API this used to use). If an
+// AGP upgrade moves it, this is the line that stops compiling.
+androidComponents {
+    onVariants { variant ->
+        val versionLabel = if (variant.buildType == "debug") debugVersionName else appVersionName
+        val unsignedSuffix = if (variant.buildType == "release" && !hasReleaseSigningConfig) "-unsigned" else ""
+        variant.outputs.filterIsInstance<VariantOutputImpl>().forEach { output ->
+            output.outputFileName.set("DiceFive-$versionLabel-${variant.buildType}$unsignedSuffix.apk")
+        }
+    }
+}
 
 dependencies {
     implementation(libs.androidx.core.ktx)

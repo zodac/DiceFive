@@ -1,19 +1,19 @@
 [versions]
 agp = "9.4.1"
-kotlin = "2.2.21"
-ksp = "2.3.6"
-coreKtx = "1.13.1"
-lifecycle = "2.8.6"
-activityCompose = "1.9.2"
-composeBom = "2026.06.01"
-navigationCompose = "2.8.0"
+kotlin = "2.4.20"
+ksp = "2.3.12"
+coreKtx = "1.19.1"
+lifecycle = "2.11.0"
+activityCompose = "1.13.0"
+composeBom = "2026.09.00"
+navigationCompose = "2.10.2"
 room = "2.8.5"
-datastore = "1.1.1"
+datastore = "1.2.1"
 junit = "4.13.2"
-androidxJunit = "1.2.1"
-espresso = "3.6.1"
-coroutinesTest = "1.8.1"
-orgJson = "20231013"
+androidxJunit = "1.3.0"
+espresso = "3.7.0"
+coroutinesTest = "1.11.0"
+orgJson = "20260814"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -42,6 +42,5 @@ org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
