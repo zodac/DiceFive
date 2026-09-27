@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.model.Die
@@ -131,22 +132,52 @@ fun DiceCupPanel(
             ) {
                 val upperTotal = player?.upperSectionTotal ?: 0
                 val upperBonus = player?.upperSectionBonus ?: 0
+                val lowerTotal = player?.lowerSectionTotal ?: 0
                 // Clearance from the score grid's rightmost column - which can render a 2-digit score
                 // past its own column's edge - comes from GameBoard's inter-panel gap and weight split,
                 // not from padding here specifically, so every row of this panel (this one, the cup, the
                 // 5x tile above) gets the same protection instead of just this one.
                 Column {
-                    Text(text = "Upper: $upperTotal", color = TileIconColor, style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        text = "Bonus: $upperBonus",
+                    SectionStatRow(label = "Upper:", value = upperTotal)
+                    SectionStatRow(
+                        label = "Bonus:",
+                        value = upperBonus,
                         color = if (upperBonus > 0) GoldAccent else TileIconColor,
                         fontWeight = if (upperBonus > 0) FontWeight.Bold else FontWeight.Normal,
-                        style = MaterialTheme.typography.bodyMedium,
                     )
+                    SectionStatRow(label = "Lower:", value = lowerTotal)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 UndoButton(enabled = canUndo, onClick = onUndo)
             }
         }
+    }
+}
+
+/**
+ * One line of the Upper/Bonus/Lower summary. The label sits in a fixed-width column so the values
+ * line up regardless of how wide "Upper:"/"Bonus:"/"Lower:" render in a proportional font.
+ */
+@Composable
+internal fun SectionStatRow(
+    label: String,
+    value: Int,
+    color: Color = TileIconColor,
+    fontWeight: FontWeight = FontWeight.Normal,
+) {
+    Row {
+        Text(
+            text = label,
+            color = color,
+            fontWeight = fontWeight,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.width(48.dp),
+        )
+        Text(
+            text = "$value",
+            color = color,
+            fontWeight = fontWeight,
+            style = MaterialTheme.typography.bodyMedium,
+        )
     }
 }
