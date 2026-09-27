@@ -398,38 +398,15 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `Cheater, Cheater! only unlocks on a literal perfect game`() {
-        val max = GameMode.STANDARD.maxPossibleScore
-        val perfect = evaluate(finishedGame(player(total = max)))
-        val oneShort = evaluate(finishedGame(player(total = max - 1)))
-        val greatButNotPerfect = evaluate(finishedGame(player(total = 500)))
-
-        assertTrue(Achievement.CHEATER_CHEATER in perfect.newlyUnlocked)
-        assertFalse(Achievement.CHEATER_CHEATER in oneShort.newlyUnlocked)
-        assertFalse(Achievement.CHEATER_CHEATER in greatButNotPerfect.newlyUnlocked)
-    }
-
-    @Test
-    fun `Cheater, Cheater! is measured against the game's own mode's maximum`() {
-        val tricolourMax = GameMode.TRICOLOUR.maxPossibleScore
-        // Standard's ceiling is well short of perfect in Tricolour, which has four more boxes to fill.
-        val standardMaxInTricolour = evaluate(
-            finishedGame(player(total = GameMode.STANDARD.maxPossibleScore, gameMode = GameMode.TRICOLOUR)),
-        )
-        val tricolourPerfect = evaluate(finishedGame(player(total = tricolourMax, gameMode = GameMode.TRICOLOUR)))
-
-        assertFalse(Achievement.CHEATER_CHEATER in standardMaxInTricolour.newlyUnlocked)
-        assertTrue(Achievement.CHEATER_CHEATER in tricolourPerfect.newlyUnlocked)
-    }
-
-    @Test
-    fun `Cheater, Cheater! is secret and does not gate Completionist`() {
-        assertEquals(AchievementVisibility.SECRET, Achievement.CHEATER_CHEATER.visibility)
-        assertFalse(Achievement.CHEATER_CHEATER in Achievement.COMPLETION_REQUIREMENTS)
+    fun `Big Fan and Luck of the Irish are the only secret achievements, and neither gates Completionist`() {
+        assertEquals(AchievementVisibility.SECRET, Achievement.BIG_FAN.visibility)
+        assertEquals(AchievementVisibility.SECRET, Achievement.LUCK_OF_THE_IRISH.visibility)
+        assertFalse(Achievement.BIG_FAN in Achievement.COMPLETION_REQUIREMENTS)
+        assertFalse(Achievement.LUCK_OF_THE_IRISH in Achievement.COMPLETION_REQUIREMENTS)
         // Every other achievement stays at least title-visible from the start - secrecy is the
         // exception, not the rule.
         assertEquals(
-            listOf(Achievement.CHEATER_CHEATER, Achievement.LUCK_OF_THE_IRISH),
+            listOf(Achievement.BIG_FAN, Achievement.LUCK_OF_THE_IRISH),
             Achievement.entries.filter { it.visibility == AchievementVisibility.SECRET },
         )
     }
@@ -628,16 +605,16 @@ class AchievementEngineTest {
     }
 
     /**
-     * Secret is exclusive with secret visibility, in both directions - see the class doc on
+     * Easter Eggs is exclusive with secret visibility, in both directions - see the class doc on
      * [Achievement]. Guards against a new secret achievement being filed under its subject's
-     * usual category (which would defeat [AchievementCategory.SECRET]'s whole point: its header
-     * only ever appearing once something in it is unlocked), or a normal achievement being left
-     * in Secret.
+     * usual category (which would defeat [AchievementCategory.EASTER_EGGS]'s whole point: its
+     * header only ever appearing once something in it is unlocked), or a normal achievement being
+     * left in Easter Eggs.
      */
     @Test
-    fun `Secret category and secret visibility are exclusive to each other`() {
+    fun `Easter Eggs category and secret visibility are exclusive to each other`() {
         Achievement.entries.forEach { achievement ->
-            val isSecretCategory = achievement.category == AchievementCategory.SECRET
+            val isSecretCategory = achievement.category == AchievementCategory.EASTER_EGGS
             val isSecretVisibility = achievement.visibility == AchievementVisibility.SECRET
 
             assertEquals(
