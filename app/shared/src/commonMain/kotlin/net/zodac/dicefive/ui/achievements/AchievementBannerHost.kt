@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.achievements
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -385,9 +386,10 @@ private fun BannerTitle(title: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * The full-fat banner: something was actually earned. Shows the achievement's own icon (the one
- * the Achievements screen shows once it's unlocked) rather than a generic trophy, so a burst of
- * unlocks reads as distinct achievements at a glance, not a stack of identical cups.
+ * The full-fat banner: something was actually earned. Shows the achievement's own icon in the same
+ * bordered square the Achievements screen shows it in once it's unlocked, rather than a generic
+ * trophy, so a burst of unlocks reads as distinct achievements at a glance, not a stack of
+ * identical cups.
  */
 @Composable
 private fun UnlockedBanner(achievement: Achievement) {
@@ -404,12 +406,18 @@ private fun UnlockedBanner(achievement: Achievement) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Icon(
-                imageVector = achievement.icon,
-                contentDescription = null,
-                tint = achievement.iconTintOrUnspecified(LocalContentColor.current),
-                modifier = Modifier.size(28.dp),
-            )
+            val defaultIconTint = LocalContentColor.current
+            Box(
+                modifier = Modifier.size(40.dp).border(width = 1.dp, color = defaultIconTint),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = achievement.icon,
+                    contentDescription = null,
+                    tint = achievement.iconTintOrUnspecified(defaultIconTint),
+                    modifier = Modifier.size(22.dp),
+                )
+            }
             Column {
                 Text(text = "Achievement unlocked", style = MaterialTheme.typography.labelSmall)
                 BannerTitle(achievement.title)
