@@ -4,7 +4,7 @@ Making the app run on iOS as well as Android without rewriting it in Swift, keep
 the existing Kotlin as possible.
 
 **Status (2026-09-28): Phases 1-4 are done.** The game, its UI and its persistence all live in
-the Kotlin Multiplatform `:shared` module and compile for Android *and* iOS on every build; the
+the Kotlin Multiplatform `app/shared` module and compile for Android *and* iOS on every build; the
 Android app is a thin shell around them. The iOS side of every platform service is written and
 compiles, but no iOS app has been linked or run yet - that needs a Mac (Phase 5).
 
@@ -17,9 +17,14 @@ implementations, and those are Kotlin too - Swift is only the ~20-line iOS app s
 
 ## Layout
 
+All the code lives under `app/`, split by platform: `app/shared` is everything platform-neutral,
+`app/android` the Android app, and `app/ios` (Phase 5) will be the Xcode project. They're separate
+Gradle modules (`:app:shared`, `:app:android`) because AGP 9 won't let one module be both Kotlin
+Multiplatform and an Android application.
+
 ```
-DiceFive/
-├── shared/                          KMP library (com.android.kotlin.multiplatform.library)
+DiceFive/app/
+├── shared/                          :app:shared - KMP library (com.android.kotlin.multiplatform.library)
 │   ├── schemas/                     Room's exported schemas (commit every new version)
 │   └── src/
 │       ├── commonMain/kotlin/net/zodac/dicefive/
@@ -33,23 +38,25 @@ DiceFive/
 │       ├── androidMain/             stripDiacritics actual only
 │       └── iosMain/                 stripDiacritics, storage paths (IosStorage),
 │                                    IosPlatformServices, MainViewController (the iOS entry point)
-├── app/                             com.android.application - the APK
+├── android/                         :app:android - com.android.application, the APK
+│   ├── aboutlibraries/              licence records (see its README)
 │   └── src/main/kotlin/net/zodac/dicefive/
 │       ├── MainActivity.kt          builds the container + platform services, calls DiceFiveApp
 │       ├── device/                  Android PlatformServices: SoundPool, Vibrator, SensorManager,
 │       │                            Toast, licence JSON from res/raw; AndroidAppContainer
 │       └── ui/settings/LicenceDocument.kt   the Android licence TextView (see DESIGN.md Phase 17)
-└── iosApp/                          (Phase 5) Xcode project hosting MainViewController()
+└── ios/                             (Phase 5) Xcode project hosting MainViewController()
 ```
 
 **Deviations from the original plan, and why:**
 
-- **The Android module stayed `:app`**, not `androidApp` - renaming it would have touched CI,
-  release scripts, CLAUDE.md's APK path and the sandbox for no functional gain.
-- **Android's platform implementations live in `:app/device/`, not `shared/androidMain`.** They
+- **Both modules sit under `app/`** (`app/shared`, `app/android`) rather than side by side at the
+  root, so all the code has one home and the split inside it is by platform.
+- **Android's platform implementations live in `app/android` (`device/`), not in
+  `app/shared/src/androidMain`.** They
   need the app's own resources (`R.raw` audio, the generated licence JSON) and its `BuildConfig`,
-  which the library can't see. iOS's live in `shared/iosMain`, because the iOS app is Swift and
-  can only call into the Kotlin framework.
+  which the library can't see. iOS's live in `app/shared/src/iosMain`, because the iOS app is
+  Swift and can only call into the Kotlin framework the shared module builds.
 - **iOS targets were added in Phase 2, not Phase 5.** Kotlin/Native compiles iOS `.klib`s on
   Linux - Apple platform libraries (UIKit, Foundation, CoreMotion...) included - so every build
   now proves `commonMain` has no JVM/Android API in it, and that `iosMain` compiles against the
@@ -79,18 +86,18 @@ DiceFive/
 - `BuildConfig.DEBUG` / `VERSION_NAME` → `BuildInfo`. The superuser-mode tests pass
   `isDebugBuild = true` explicitly, and a new test pins that a release build never activates it.
 
-### Phase 2 - The `:shared` module (commit `97476d6`)
+### Phase 2 - The shared module (commit `97476d6`; moved to `app/shared` later)
 
 - `model/`, `game/` and `AchievementsState` into `commonMain`; their tests into `commonTest`.
 - `IrishEasterEgg`'s `Normalizer` → `expect fun stripDiacritics` (iOS: Foundation's
   `stringByFoldingWithOptions(NSDiacriticInsensitiveSearch)`).
-- `:shared` registers a `testDebugUnitTest` task (JVM host tests + both iOS compiles + the iOS
+- `:app:shared` registers a `testDebugUnitTest` task (JVM host tests + both iOS compiles + the iOS
   test compile), so CI, the dependency-update script and CLAUDE.md's habits cover it unchanged.
 
 ### Phase 3 - Persistence (commit `745d9bb`)
 
 - Room's multiplatform build: `@ConstructedBy(AppDatabaseConstructor)`, KSP per target, schema
-  export to `shared/schemas/`. Android opens it on the framework SQLite (no driver set); iOS uses
+  export to `app/shared/schemas/`. Android opens it on the framework SQLite (no driver set); iOS uses
   `BundledSQLiteDriver` (`createIosAppDatabase`, in Application Support).
 - DataStore KMP: repositories take a `DataStore<Preferences>`; `createPreferencesDataStore(path)`
   plus `PreferencesFile` names. Android uses the same `files/datastore/` directory as before.
@@ -137,10 +144,10 @@ DiceFive/
 
 ## Phase 5 - iOS app (needs macOS)
 
-- **Xcode project** (`iosApp/`): a SwiftUI app hosting `MainViewControllerKt.MainViewController()`
+- **Xcode project** (`app/ios/`): a SwiftUI app hosting `MainViewControllerKt.MainViewController()`
   (sample in `MainViewController.kt`'s KDoc); link the `shared` framework - add an
   `iosTarget.binaries.framework { baseName = "Shared"; isStatic = true }` to
-  `shared/build.gradle.kts`, and an Xcode build phase running `embedAndSignAppleFrameworkForXcode`.
+  `app/shared/build.gradle.kts`, and an Xcode build phase running `embedAndSignAppleFrameworkForXcode`.
   Info.plist: `CFBundleShortVersionString` from `VERSION` (read by `BuildInfo` on iOS).
 - **Audio**: iOS doesn't decode Ogg Vorbis. Extend `NormalizeOggAudioTask` to also write AAC
   `.m4a` copies and bundle them in the Xcode project; `IosSoundPlayer` looks for
@@ -156,7 +163,7 @@ DiceFive/
   `BackHandler`. Give both a visible way out (iOS's edge-swipe back may also need wiring).
 - **Insets**: re-verify `UI.md`'s inset rules against safe areas, the Dynamic Island and the home
   indicator; `TransientMessageHost` already pads by `safeDrawing`.
-- **Run the tests on iOS**: `./gradlew :shared:iosSimulatorArm64Test` on a Mac runs `commonTest`
+- **Run the tests on iOS**: `./gradlew :app:shared:iosSimulatorArm64Test` on a Mac runs `commonTest`
   natively - the first real check of `stripDiacritics`, Room/DataStore on iOS, etc.
 - **Haptics tuning**: the impact styles in `IosHapticsPlayer` are a first guess.
 

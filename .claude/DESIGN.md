@@ -218,7 +218,7 @@ decisions behind it. Read that before changing anything visual.
 
 ## Package layout (target shape)
 
-(Since Phase 18 these packages live in `shared/src/commonMain/kotlin/` - the Android app keeps
+(Since Phase 18 these packages live in `app/shared/src/commonMain/kotlin/` - the Android app keeps
 only `MainActivity`, the `device/` platform services and the licence `TextView`. See `README.md`.)
 
 ```
@@ -413,8 +413,8 @@ dependencies — most unit tests live here.
 
 ## Sound & haptics
 
-- **Source clips live in `app/src/main/rawAudioSource/*.ogg`, not `res/raw/`.** The
-  `normalizeOggAudio` task (`NormalizeOggAudioTask` in `app/build.gradle.kts`) peak-normalises
+- **Source clips live in `app/android/src/main/rawAudioSource/*.ogg`, not `res/raw/`.** The
+  `normalizeOggAudio` task (`NormalizeOggAudioTask` in `app/android/build.gradle.kts`) peak-normalises
   every clip to -0.8 dBFS with **ffmpeg** and registers the output as a generated res dir, so
   `R.raw.<name>` still works. To add or replace a sound, drop the `.ogg` in `rawAudioSource/`.
   Don't hand-adjust gain and don't create `res/raw/`. The build fails without `ffmpeg` on PATH
@@ -474,7 +474,7 @@ dependencies — most unit tests live here.
   selection), so a real-device check still matters for those.
   `MainActivitySmokeTest` launches the whole app this way (Phase 18).
 - **iOS compiles here too** (since Phase 18): `./gradlew testDebugUnitTest` also compiles
-  `:shared` (main and tests) for both iOS targets, so a JVM/Android API in common code fails the
+  `:app:shared` (main and tests) for both iOS targets, so a JVM/Android API in common code fails the
   build. Linking an iOS app and running its tests needs macOS.
 
 ## Ad hoc debug build versioning
@@ -498,7 +498,7 @@ install-over-existing succeeds:
   which is a same-version reinstall (works today, but is one accidental `VERSION` edit away from
   becoming a refused downgrade).
 
-  Fix: `app/build.gradle.kts` gives the `debug` build type its own `versionCode`/`versionName` via
+  Fix: `app/android/build.gradle.kts` gives the `debug` build type its own `versionCode`/`versionName` via
   `androidComponents { onVariants(selector().withBuildType("debug")) { ... } }`, derived from
   wall-clock minutes-since-epoch instead of the `VERSION` file. Every fresh `assembleDebug` this
   way gets a strictly-increasing versionCode independent of whether `VERSION` changed, so handing
@@ -517,7 +517,7 @@ install-over-existing succeeds:
 
 ### Phase 0 — Build setup
 - [x] Add Navigation Compose, Room (+ KSP), DataStore dependencies to
-      `gradle/libs.versions.toml`, `app/build.gradle.kts`,
+      `gradle/libs.versions.toml`, `app/android/build.gradle.kts`,
       `settings.gradle.kts` / root `build.gradle.kts`.
 - [x] Confirm `./gradlew assembleDebug` still builds with no app changes yet
       (dependency wiring only). `./gradlew testDebugUnitTest` also green.
@@ -657,7 +657,7 @@ install-over-existing succeeds:
 - [x] `ui/about/AboutScreen.kt`: app name, `BuildConfig.VERSION_NAME`, and a
       clickable "View on GitHub" text opening
       `https://github.com/zodac/DiceFive` via `LocalUriHandler`. Enabled
-      `buildFeatures.buildConfig = true` in `app/build.gradle.kts` for the
+      `buildFeatures.buildConfig = true` in `app/android/build.gradle.kts` for the
       version string.
 - [x] `assembleDebug`, `compileDebugAndroidTestKotlin`, `testDebugUnitTest`
       all green (37 unit tests, unchanged).
@@ -733,11 +733,11 @@ install-over-existing succeeds:
 
 ### Phase 12 — Release pipeline
 - [x] Root `VERSION` file (currently `0.0.1`) is the single source of truth
-      for the app version. `app/build.gradle.kts` reads it at configure
+      for the app version. `app/android/build.gradle.kts` reads it at configure
       time: `versionName` = the file's contents, `versionCode` =
       `major*10_000 + minor*100 + patch` (deterministic, reproducible
       locally and in CI, no extra state to track).
-- [x] Release signing: `app/build.gradle.kts` builds a `release`
+- [x] Release signing: `app/android/build.gradle.kts` builds a `release`
       `signingConfig` from four env vars (`ANDROID_RELEASE_KEYSTORE_PATH`,
       `_KEYSTORE_PASSWORD`, `_KEY_ALIAS`, `_KEY_PASSWORD`). If any are
       unset, the `release` build type simply gets no signing config
@@ -819,7 +819,7 @@ install-over-existing succeeds:
       both scripts locally (patch bump, manual set to a new minor line,
       resumed patch-bumping from there, and invalid-input rejection) in an
       isolated temp directory before wiring them into CI.
-- [x] **Output APK naming**: `app/build.gradle.kts` sets
+- [x] **Output APK naming**: `app/android/build.gradle.kts` sets
       `android.base.archivesName = "DiceFive"`, so output filenames are
       `DiceFive-debug.apk` / `DiceFive-release.apk` (or
       `DiceFive-release-unsigned.apk` when built locally with no signing
@@ -872,14 +872,14 @@ install-over-existing succeeds:
       `gh workflow run` - releasing the next patch version. It uses only `GITHUB_TOKEN`, which may not
       edit workflow files and whose pushes trigger no workflows (hence the explicit dispatch, the one
       event it may trigger). So no version the update moves is pinned in a workflow: both workflows
-      read the JDK from the toolchain file and the SDK packages from `app/build.gradle.kts`
+      read the JDK from the toolchain file and the SDK packages from `app/android/build.gradle.kts`
       (`.github/scripts/android_sdk_packages.sh`) at run time. The actions' own `uses:` versions are
       the exception - the monthly run passes `--no-workflow-edits` and only lists newer ones in its
       summary; running the script locally applies them. The commit is authored as "DiceFive
       dependency updater", not `github-actions[bot]`, which `scripts/release-changelog.sh` drops from
       release notes.
 - [x] **Deprecation gates**: deprecated API use fails compilation (`-Xwarning-level=DEPRECATION:error`
-      in `app/build.gradle.kts`), any build-script warning fails the build
+      in `app/android/build.gradle.kts`), any build-script warning fails the build
       (`org.gradle.kotlin.dsl.allWarningsAsErrors` in `gradle.properties`), and lint treats
       `Deprecated` / `ObsoleteSdkInt` as errors. `release.yml` compiles the instrumented tests and
       runs lint so all three are enforced in CI. The build uses AGP 9's new DSL and built-in Kotlin
@@ -888,8 +888,8 @@ install-over-existing succeeds:
 
 - [x] **R8 shrinking/minification/obfuscation for release.** The placeholder
       `app/proguard-rules.pro` Android Studio generates by default was renamed to
-      `app/r8-rules.pro` (the project only ever runs R8, not classic ProGuard - the old
-      filename was misleading) and `app/build.gradle.kts`'s `release` build type turned on
+      `app/android/r8-rules.pro` (the project only ever runs R8, not classic ProGuard - the old
+      filename was misleading) and `app/android/build.gradle.kts`'s `release` build type turned on
       `isMinifyEnabled` and `isShrinkResources` (both were `false`). Verified against a
       same-commit A/B: unminified `assembleRelease` produced a 14.19 MB unsigned APK: shrinking
       alone (code + resources, no renaming) brought that to 1.91 MB, and allowing R8 to rename
@@ -1339,7 +1339,7 @@ install-over-existing succeeds:
       failed on it and on the `jna` it pulls in transitively.
 - [x] **Offline and deterministic**: `offlineMode = true`, so the plugin never fetches license text
       from GitHub/SPDX. The price is that it then knows each license's name but not its text, so the
-      allowed licenses' SPDX texts are committed under `app/aboutlibraries/licenses/` - see the
+      allowed licenses' SPDX texts are committed under `app/android/aboutlibraries/licenses/` - see the
       README there. `VerifyLicenseReportTask` (`verifyLicenseReport<Variant>`, wired before
       `generate<Variant>Resources`) fails the build if any shipped license lacks its text, if any
       library declares no license, or if a library under a notice-requiring license (BSD, MIT, ISC,
@@ -1351,7 +1351,7 @@ install-over-existing succeeds:
       non-empty. None of today's shipped dependencies has one (`concurrent-futures-ktx` does, but the
       app ships only `concurrent-futures`), so the section is currently hidden.
 - [x] **Assets the build can't see** - fonts, sounds, artwork - aren't dependencies, so nothing can
-      discover their license. `app/aboutlibraries/asset-sources.json` records every bundled asset file
+      discover their license. `app/android/aboutlibraries/asset-sources.json` records every bundled asset file
       (any source set's `res/` bar `values*/`, `rawAudioSource/`, `assets/`) with a description,
       source, copyright line and license - the app's own artwork included
       (`LicenseRef-DiceFive-AllRightsReserved` - see `LICENSE`; source = the Claude Code session and commit that created it, confirmed from git history). A
@@ -1417,7 +1417,7 @@ install-over-existing succeeds:
       haptics, the accelerometer and toasts behind `platform/PlatformServices` (Android side in
       `app/.../device/`); ViewModel factories take an `AppContainer`, not a `Context`;
       `BuildConfig` → `BuildInfo`. `ShakeDetector` became pure logic with its own tests.
-- [x] **`:shared`** (`97476d6`): a KMP library (AGP 9's `com.android.kotlin.multiplatform.library`
+- [x] **`:app:shared`** (`97476d6`): a KMP library (AGP 9's `com.android.kotlin.multiplatform.library`
       - `com.android.application` can't host KMP, hence the separate module) with Android, `iosArm64`
       and `iosSimulatorArm64` targets. The iOS targets compile on Linux, so every build checks
       common code for platform leaks. It answers to `testDebugUnitTest` (JVM tests + iOS compiles),
@@ -1425,7 +1425,7 @@ install-over-existing succeeds:
       Native forbids commas and parentheses in their backticked names.
 - [x] **Persistence** (`745d9bb`): Room and DataStore multiplatform. **The schema restarted at
       version 1 with no migrations** - pre-release, nothing to keep; an old v6 database is wiped on
-      open (downgrade fallback). Schemas are exported to `shared/schemas/`.
+      open (downgrade fallback). Schemas are exported to `app/shared/schemas/`.
       `AndroidAppContainerTest` opens the real Android storage under Robolectric.
 - [x] **UI**: every screen moved to Compose Multiplatform unchanged apart from resources
       (`Res.drawable.*`, `Res.font.sora`), `BackHandler` (now `ui/common/BackHandler.kt`, on the

@@ -251,7 +251,7 @@ RUN set -eux; \
 #
 # python3 (+pip/venv) with python3-fonttools, imagemagick, librsvg2-bin and optipng are an
 # image-asset toolchain (font/SVG rendering, PNG/ICO rasterising) carried over from the project this
-# sandbox was copied from. fonttools now earns its keep in THIS repo too: `app/src/main/res/font/sora.ttf`
+# sandbox was copied from. fonttools now earns its keep in THIS repo too: `app/shared/src/commonMain/composeResources/font/sora.ttf`
 # is a static weight-700 instance produced with `python3 -m fontTools.varLib.instancer`, subset to
 # printable ASCII with `python3 -m fontTools.subset` (see AppLogo.kt's SoraFontFamily doc) - a one-off,
 # not a build-time step, so regenerating it later still needs this package. imagemagick/librsvg2-bin/
@@ -261,7 +261,7 @@ RUN set -eux; \
 # `pip install fonttools` is refused.
 #
 # ffmpeg joins that same asset toolchain for audio: this project ships .ogg sound effects
-# (app/src/main/res/raw/) and re-encoding/gain-adjusting one occasionally comes up (e.g. boosting a
+# (app/android/src/main/res/raw/) and re-encoding/gain-adjusting one occasionally comes up (e.g. boosting a
 # clip that plays too quiet at SoundPool's volume ceiling of 1.0).
 #
 # lsof + iproute2 (`ss`) find whatever is LISTENing on a port inside the sandbox — the usual way to
@@ -329,7 +329,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
 # pinned to match this project's compileSdk + compileSdkMinor (37.2 - a minor SDK
 # release is its own platform package, and from API 37 even the base release is
 # named with a minor, android-37.0) and its `android.buildToolsVersion`
-# (app/build.gradle.kts) — keep
+# (app/android/build.gradle.kts) — keep
 # those three in step if either changes, or a build will reach out to the network for
 # whatever AGP defaults to instead of what is baked in here (the update script's
 # consistency check fails the run if they drift). build-tools is 36.0.0 because AGP

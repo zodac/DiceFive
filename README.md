@@ -16,8 +16,17 @@ Android DiceFive game - a local (no netplay) five-dice scorecard game for
 
 ## Structure
 
+All the code is under `app/`, split by platform:
+
 ```
-shared/src/commonMain/kotlin/net/zodac/dicefive/    everything platform-neutral
+app/
+  shared/     platform-neutral Kotlin Multiplatform library - the game, its UI, its storage
+  android/    the Android app that packages it
+  ios/        (to come) the Xcode project for the iOS app
+```
+
+```
+app/shared/src/commonMain/kotlin/net/zodac/dicefive/    everything platform-neutral
   model/            game domain types: GameState, PlayerState/PlayerConfig,
                     Die/DieColour, ScoreCategory, GameMode (every per-mode rule:
                     dice, rolls, scorecard, bonuses, max score), PlayerType,
@@ -45,8 +54,8 @@ shared/src/commonMain/kotlin/net/zodac/dicefive/    everything platform-neutral
     styles/         StylesScreen (preview tiles for dice/cup/mat styles)
     settings/       SettingsScreen + SettingsViewModel, LicensesDialog
     theme/          Compose theme (colour)
-shared/src/iosMain/                 iOS: storage paths, platform services, MainViewController
-app/src/main/kotlin/net/zodac/dicefive/              the Android app
+app/shared/src/iosMain/                 iOS: storage paths, platform services, MainViewController
+app/android/src/main/kotlin/net/zodac/dicefive/              the Android app
   MainActivity.kt   hosts DiceFiveApp
   device/           Android PlatformServices (SoundPool, Vibrator, sensors) + AndroidAppContainer
 ```
@@ -90,4 +99,4 @@ Third-party components are not covered by that notice and remain under their own
 libraries the app is built with, the Sora font (SIL Open Font License 1.1), and the sound effects
 (modified Freesound recordings under CC0 1.0 and CC BY 4.0). Each is listed, with
 its license text, in the app under **Settings > Licences**; the records behind that list
-live in [`app/aboutlibraries/`](app/aboutlibraries/).
+live in [`app/android/aboutlibraries/`](app/android/aboutlibraries/).

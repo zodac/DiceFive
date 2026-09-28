@@ -9,9 +9,9 @@ brand-seeded palette. The board is the exception - it owns its own art and does 
 colour roles.
 
 All of the UI described here is shared Compose Multiplatform code in
-`shared/src/commonMain/kotlin/net/zodac/dicefive/ui/` - package paths below (`ui/common/` and so on)
+`app/shared/src/commonMain/kotlin/net/zodac/dicefive/ui/` - package paths below (`ui/common/` and so on)
 are relative to that - and it must stay platform-neutral: no Android or JVM API (the iOS compile
-fails the build), resources through `Res.*` from `shared/src/commonMain/composeResources/`, and
+fails the build), resources through `Res.*` from `app/shared/src/commonMain/composeResources/`, and
 anything the device has to do through `platform/PlatformServices`. See `IOS_SUPPORT.md`.
 
 ---

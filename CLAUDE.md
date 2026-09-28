@@ -11,8 +11,8 @@
   also records the app's own license (proprietary, all rights reserved - see `LICENSE`), why it was
   chosen, and how it must stay scoped to exclude third-party parts (the bundled font must stay OFL).
 - `.claude/IOS_SUPPORT.md` — the iOS port via Kotlin Multiplatform + Compose Multiplatform: the
-  `:shared` / `:app` module layout, what lives where (and why Android's platform code is in
-  `:app/device/`), gotchas (e.g. no commas or parentheses in `commonTest` names), and what's left.
+  `app/shared` (platform-neutral) / `app/android` module layout, what lives where (and why
+  Android's platform code is in `app/android`), gotchas (e.g. no commas or parentheses in `commonTest` names), and what's left.
   Phases 1-4 are done - the game, UI and persistence are shared and compile for iOS; the iOS app
   itself (Phase 5) needs macOS.
 
@@ -31,7 +31,7 @@
 
 - After implementing a code change (a fix, feature, or refactor the user asked for), build a
   debug APK with `./gradlew assembleDebug` and send the resulting `.apk` from
-  `app/build/outputs/apk/debug/` to the user via SendUserFile so they can install/download it.
+  `app/android/build/outputs/apk/debug/` to the user via SendUserFile so they can install/download it.
   Do this once the change is verified (compiles, relevant tests pass) rather than after every
   intermediate edit.
 

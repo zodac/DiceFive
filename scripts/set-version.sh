@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sets the app version everywhere it's referenced, given an exact
-# major.minor.patch value. app/build.gradle.kts already reads the root
+# major.minor.patch value. app/android/build.gradle.kts already reads the root
 # VERSION file directly at build time (there is no separate hardcoded
 # Gradle version to keep in sync), so today this just writes that file -
 # but it's the one designated place to add any future doc/reference sync,

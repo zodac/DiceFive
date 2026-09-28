@@ -10,7 +10,7 @@ name: Update dependencies
 # both designed around here:
 #   - It may not change files under .github/workflows/. So no version the update moves lives in a
 #     workflow: the JDK comes from the Gradle toolchain file and the SDK packages from
-#     app/build.gradle.kts, both read at run time (below, and in release.yml), and the actionlint
+#     app/android/build.gradle.kts, both read at run time (below, and in release.yml), and the actionlint
 #     image is pinned in .github/scripts/lint_workflows.sh. The one thing left in workflow files is
 #     the actions' own versions (`uses: …@vN`): the script runs with --no-workflow-edits, so newer
 #     ones are only listed in the run summary, to apply by running the script locally.
@@ -55,7 +55,7 @@ jobs:
           distribution: temurin
           java-version: ${{ steps.java.outputs.version }}
 
-      # The packages app/build.gradle.kts builds against. A newer platform the script tries is
+      # The packages app/android/build.gradle.kts builds against. A newer platform the script tries is
       # installed by the script itself.
       - name: Install required Android SDK packages
         run: |
