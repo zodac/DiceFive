@@ -1339,7 +1339,7 @@ install-over-existing succeeds:
       failed on it and on the `jna` it pulls in transitively.
 - [x] **Offline and deterministic**: `offlineMode = true`, so the plugin never fetches license text
       from GitHub/SPDX. The price is that it then knows each license's name but not its text, so the
-      allowed licenses' SPDX texts are committed under `app/android/aboutlibraries/licenses/` - see the
+      allowed licenses' SPDX texts are committed under `app/licensing/licenses/` - see the
       README there. `VerifyLicenseReportTask` (`verifyLicenseReport<Variant>`, wired before
       `generate<Variant>Resources`) fails the build if any shipped license lacks its text, if any
       library declares no license, or if a library under a notice-requiring license (BSD, MIT, ISC,
@@ -1351,7 +1351,7 @@ install-over-existing succeeds:
       non-empty. None of today's shipped dependencies has one (`concurrent-futures-ktx` does, but the
       app ships only `concurrent-futures`), so the section is currently hidden.
 - [x] **Assets the build can't see** - fonts, sounds, artwork - aren't dependencies, so nothing can
-      discover their license. `app/android/aboutlibraries/asset-sources.json` records every bundled asset file
+      discover their license. `app/licensing/asset-sources.json` records every bundled asset file
       (any source set's `res/` bar `values*/`, `rawAudioSource/`, `assets/`) with a description,
       source, copyright line and license - the app's own artwork included
       (`LicenseRef-DiceFive-AllRightsReserved` - see `LICENSE`; source = the Claude Code session and commit that created it, confirmed from git history). A
@@ -1372,7 +1372,7 @@ install-over-existing succeeds:
 - [x] **Dialog follow-ups**: the Settings link and dialog title are "Licences" (British spelling,
       matching the rest of the UI's "colour"; code identifiers keep `license`, matching the library's
       API and SPDX). The whole list is **one** platform `TextView` in a platform
-      `ScrollView` (`LicenceDocument`, `ui/settings/LicenceDocument.kt`), its headings, rows,
+      `ScrollView` (`LicenceDocument` - since Phase 18 `TextViewLicenceDocument`, in `app/android/.../device/`), its headings, rows,
       dividers and "Show / Hide licence text" toggles all spans in one `SpannableStringBuilder`
       (`buildLicenceDocument`) - because only within a single TextView can a selection be dragged
       across rows. `setTextIsSelectable` gives the system's own long-press behaviour - smart

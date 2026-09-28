@@ -1,7 +1,9 @@
 # Open-source license report config
 
 Read by the AboutLibraries Gradle plugin (`aboutLibraries { collect { configPath } }` in
-`app/android/build.gradle.kts`). The library list shown in Settings > Licences is generated from
+`app/android/build.gradle.kts`, via `licensingDir`). It sits beside the code modules rather than in
+one, because it covers what both ship - `app/shared`'s font and icons as well as `app/android`'s
+sounds - and an iOS build will need the same records. The library list shown in Settings > Licences is generated from
 the real dependency graph on every build - nothing here lists dependencies. This folder only holds
 what the plugin can't discover for itself:
 

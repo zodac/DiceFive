@@ -10,9 +10,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.scores.PlayerStatistics
 import net.zodac.dicefive.data.scores.ScoreRepository
-import net.zodac.dicefive.platform.AppContainer
 
 data class StatisticsUiState(
     val players: List<PlayerStatistics> = emptyList(),

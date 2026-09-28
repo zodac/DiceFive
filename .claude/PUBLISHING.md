@@ -65,7 +65,7 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
   guard against copyleft or unrecognised licenses. The build strips each AndroidX artifact's bundled
   `META-INF/androidx/**/LICENSE.txt` (a size optimisation) - that's fine now, since the dialog ships
   the Apache-2.0 text once for all of them. The sound effects are credited too (Freesound, CC0 and
-  CC-BY 4.0 - see `app/android/aboutlibraries/asset-sources.json`). Remaining, optionally: linking a hosted copy from the Play listing /
+  CC-BY 4.0 - see `app/licensing/asset-sources.json`). Remaining, optionally: linking a hosted copy from the Play listing /
   `README.md` for people who want to read it before installing (not required - the licenses only
   require that the text goes out *with* the app).
 - **Adding or allowing a license**: if a new dependency fails the build on strict mode, read its
@@ -100,7 +100,7 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
     CC-BY-SA. Anything NC (non-commercial) is incompatible with ads/Pro and must be replaced.
   - The same applies to every library listed in the licenses dialog - not the app's to relicense.
   - The app's own artwork is recorded as `LicenseRef-DiceFive-AllRightsReserved` in
-    `app/android/aboutlibraries/asset-sources.json` (constant `APP_LICENSE` in `VerifyAssetSourcesTask`) -
+    `app/licensing/asset-sources.json` (constant `APP_LICENSE` in `VerifyAssetSourcesTask`) -
     change both together if the license ever changes.
 - **Still open, related:**
   - **iOS**: the licences dialog is shared code now, and `asset-sources.json` already covers the

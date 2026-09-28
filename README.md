@@ -23,6 +23,7 @@ app/
   shared/     platform-neutral Kotlin Multiplatform library - the game, its UI, its storage
   android/    the Android app that packages it
   ios/        (to come) the Xcode project for the iOS app
+  licensing/  licence records for every third-party library and asset either platform ships
 ```
 
 ```
@@ -39,8 +40,9 @@ app/shared/src/commonMain/kotlin/net/zodac/dicefive/    everything platform-neut
     achievements/   DataStore: AchievementStore/AchievementsRepository, AchievementEvents
     settings/       DataStore: SettingsRepository
     game/           DataStore: the in-progress game, as JSON
-  platform/         PlatformServices (sound, haptics, accelerometer, messages, licences),
-                    AppContainer, BuildInfo - what each platform supplies
+  app/              AppContainer, BuildInfo - what each platform's entry point builds
+  platform/         PlatformServices (sound, haptics, accelerometer, messages, licences) -
+                    the interfaces each platform implements
   navigation/       Screen route constants + DiceFiveNavHost
   ui/
     DiceFiveApp.kt  the root composable every platform hosts
@@ -54,10 +56,13 @@ app/shared/src/commonMain/kotlin/net/zodac/dicefive/    everything platform-neut
     styles/         StylesScreen (preview tiles for dice/cup/mat styles)
     settings/       SettingsScreen + SettingsViewModel, LicensesDialog
     theme/          Compose theme (colour)
-app/shared/src/iosMain/                 iOS: storage paths, platform services, MainViewController
+app/shared/src/iosMain/kotlin/net/zodac/dicefive/   iOS
+  MainViewController.kt   the iOS entry point
+  device/           iOS PlatformServices (AVAudioPlayer, UIKit haptics, CoreMotion), storage
 app/android/src/main/kotlin/net/zodac/dicefive/              the Android app
   MainActivity.kt   hosts DiceFiveApp
-  device/           Android PlatformServices (SoundPool, Vibrator, sensors) + AndroidAppContainer
+  device/           Android PlatformServices (SoundPool, Vibrator, sensors, the licence
+                    TextView) + AndroidAppContainer
 ```
 
 See `.claude/DESIGN.md` for the full feature scope, design decisions, and
@@ -99,4 +104,4 @@ Third-party components are not covered by that notice and remain under their own
 libraries the app is built with, the Sora font (SIL Open Font License 1.1), and the sound effects
 (modified Freesound recordings under CC0 1.0 and CC BY 4.0). Each is listed, with
 its license text, in the app under **Settings > Licences**; the records behind that list
-live in [`app/android/aboutlibraries/`](app/android/aboutlibraries/).
+live in [`app/licensing/`](app/licensing/).

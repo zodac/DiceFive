@@ -24,7 +24,7 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.savedstate.read
-import net.zodac.dicefive.platform.LocalAppContainer
+import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.ui.achievements.AchievementsScreen
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
 import net.zodac.dicefive.ui.common.BrandBackdrop

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementStore
@@ -18,7 +19,6 @@ import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
-import net.zodac.dicefive.platform.AppContainer
 
 /** All repositories are nullable so this stays constructible/testable without a Context - see [factory]. */
 class SettingsViewModel(

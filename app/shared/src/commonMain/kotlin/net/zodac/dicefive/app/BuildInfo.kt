@@ -1,4 +1,4 @@
-package net.zodac.dicefive.platform
+package net.zodac.dicefive.app
 
 /** Facts about this build of the app, supplied by the platform's own build (on Android, `BuildConfig`). */
 data class BuildInfo(

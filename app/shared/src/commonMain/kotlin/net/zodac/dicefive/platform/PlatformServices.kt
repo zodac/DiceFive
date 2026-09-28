@@ -36,7 +36,7 @@ interface PlatformServices {
 
     /**
      * The licence report as one selectable, scrollable document, with tappable links and "Show licence
-     * text" toggles. Platform-specific because text selection is: see LicenceDocument in :app:android for
+     * text" toggles. Platform-specific because text selection is: see TextViewLicenceDocument in :app:android for
      * why Android's is a platform TextView rather than Compose text.
      */
     @Composable

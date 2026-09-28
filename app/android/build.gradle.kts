@@ -301,16 +301,22 @@ androidComponents {
 // or bumped dependency shows up on the next build with no one having to remember to add it.
 //
 // Things that aren't Gradle dependencies (a bundled font, sound clips, artwork) can't be discovered
-// that way, so each gets a hand-written entry under aboutlibraries/libraries/ instead - see the
+// that way, so each gets a hand-written entry under app/licensing/libraries/ instead - see the
 // README there. That folder is the one place a new third-party asset has to be recorded.
+// The hand-written licence records - asset sources, asset/library entries and license texts - live in
+// app/licensing/, beside both modules rather than in this one: they cover app/shared's font and icons
+// too, and an iOS build will need the same records. This module is just the one that generates the
+// Android report from them.
+val licensingDir: Directory = rootProject.layout.projectDirectory.dir("app/licensing")
+
 aboutLibraries {
     // Never reach out to GitHub or SPDX at build time, so CI and the sandbox generate byte-identical
     // output. The catch: offline, the plugin knows each license's name but not its text - so every
-    // allowed license's full text is committed under aboutlibraries/licenses/ instead, and
+    // allowed license's full text is committed under app/licensing/licenses/ instead, and
     // VerifyLicenseReportTask below fails the build if one is ever missing.
     offlineMode = true
     collect {
-        configPath = file("aboutlibraries")
+        configPath = licensingDir.asFile
         // BOMs only pin other artifacts' versions - no code or content of theirs ships in the APK.
         includePlatform = false
     }
@@ -332,7 +338,7 @@ aboutLibraries {
         // allowed, but only for the font, not for any library that turns up under it later.
         allowedLicensesMap = mapOf(
             "OFL-1.1" to listOf("sora"),
-            // The sound effects' Freesound sources (see aboutlibraries/asset-sources.json). CC0 asks for
+            // The sound effects' Freesound sources (see app/licensing/asset-sources.json). CC0 asks for
             // nothing; CC-BY asks for a credit, a link to the source and license, and a note of any
             // changes - all in its libraries/ entry. Neither places any condition on the app itself.
             // (Never CC-BY-SA - adaptations must stay under it - nor anything NC, which rules out ads
@@ -350,7 +356,7 @@ aboutLibraries {
  *   (see offlineMode above), and a license is only honoured if its text ships with the app;
  * - every library under a license whose terms require reproducing the copyright notice itself
  *   (BSD, MIT, OFL) has one - the plugin never collects copyright lines, so each such library
- *   needs an entry in aboutlibraries/libraries/ whose description starts with it.
+ *   needs an entry in app/licensing/libraries/ whose description starts with it.
  */
 abstract class VerifyLicenseReportTask : DefaultTask() {
 
@@ -373,7 +379,7 @@ abstract class VerifyLicenseReportTask : DefaultTask() {
         val problems = mutableListOf<String>()
         for ((id, license) in licenses) {
             if ((license["content"] as String?).isNullOrBlank()) {
-                problems += "License '$id' has no text - add aboutlibraries/licenses/$id.json (the SPDX text)."
+                problems += "License '$id' has no text - add app/licensing/licenses/$id.json (the SPDX text)."
             }
         }
         for (library in libraries) {
@@ -387,7 +393,7 @@ abstract class VerifyLicenseReportTask : DefaultTask() {
             val description = library["description"] as String? ?: ""
             if (needsNotice && !description.startsWith("Copyright")) {
                 problems += "'$id' is ${libraryLicenses.joinToString()}, which requires its copyright notice - add " +
-                    "aboutlibraries/libraries/<name>.json with \"uniqueId\": \"$id\" and a description starting " +
+                    "app/licensing/libraries/<name>.json with \"uniqueId\": \"$id\" and a description starting " +
                     "with its \"Copyright ...\" line."
             }
         }
@@ -449,7 +455,7 @@ abstract class CollectThirdPartyNoticesTask : DefaultTask() {
  * discover its license - someone has to write down where it came from. This makes that impossible to
  * skip: every file under any of this module's source sets' res/ (bar values*, which is text and
  * config, not creative work), rawAudioSource/ and assets/, and under :app:shared's composeResources/ (the
- * shared UI's font and icons), must have a complete entry in aboutlibraries/asset-sources.json -
+ * shared UI's font and icons), must have a complete entry in app/licensing/asset-sources.json -
  * what it is, where it came from and its license. That applies to the app's own
  * artwork too (license LicenseRef-DiceFive-AllRightsReserved): "we made it" is a claim that still
  * needs its session or commit behind it, and its own copyright line. A third-party asset instead
@@ -493,7 +499,7 @@ abstract class VerifyAssetSourcesTask : DefaultTask() {
         val problems = mutableListOf<String>()
         for (asset in assets) {
             if (asset !in entries) {
-                problems += "$asset has no recorded source - add it to $manifestName (see aboutlibraries/README.md)."
+                problems += "$asset has no recorded source - add it to $manifestName (see app/licensing/README.md)."
             }
         }
         for ((path, value) in entries) {
@@ -568,8 +574,8 @@ val verifyAssetSources = tasks.register<VerifyAssetSourcesTask>("verifyAssetSour
         exclude("*/res/values*/**")
     })
     assetFiles.from(project(":app:shared").fileTree("src") { include("*/composeResources/**") })
-    sourcesManifest.set(layout.projectDirectory.file("aboutlibraries/asset-sources.json"))
-    librariesDirectory.set(layout.projectDirectory.dir("aboutlibraries/libraries"))
+    sourcesManifest.set(licensingDir.file("asset-sources.json"))
+    librariesDirectory.set(licensingDir.dir("libraries"))
     rootDirectory.set(rootProject.layout.projectDirectory)
     reportFile.set(layout.buildDirectory.file("reports/licenses/assets.txt"))
 }

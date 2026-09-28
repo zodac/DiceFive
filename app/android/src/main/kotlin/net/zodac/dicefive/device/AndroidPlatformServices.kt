@@ -15,8 +15,6 @@ import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.platform.SoundPlayer
 import net.zodac.dicefive.ui.settings.LicenseReport
 import net.zodac.dicefive.ui.settings.SelectionClearer
-import net.zodac.dicefive.ui.settings.TextViewLicenceDocument
-import net.zodac.dicefive.ui.settings.TextViewSelectionClearer
 
 /**
  * [PlatformServices] for Android. Holds the application context, never an Activity's: sound
