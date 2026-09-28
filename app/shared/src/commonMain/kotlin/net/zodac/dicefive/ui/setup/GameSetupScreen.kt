@@ -12,9 +12,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.TimerOff
 import androidx.compose.material3.Button
@@ -278,8 +278,8 @@ private fun PlayerRow(
 private fun CompactNameField(
     value: String,
     onValueChange: (String) -> Unit,
-    isError: Boolean = false,
     modifier: Modifier = Modifier,
+    isError: Boolean = false,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val colors = OutlinedTextFieldDefaults.colors()

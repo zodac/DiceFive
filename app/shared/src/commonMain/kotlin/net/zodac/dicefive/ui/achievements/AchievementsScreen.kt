@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.achievements
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -264,9 +265,12 @@ private fun AchievementRow(
             .pointerInput(superuserModeActive, item.achievement) {
                 if (!superuserModeActive) return@pointerInput
                 val touchSlop = viewConfiguration.touchSlop
+                // One awaitEachGesture per press, so no event slips through between the down and
+                // the tracking below; launch/cancel aren't suspending, so they can run against the
+                // outer coroutineScope from inside it.
                 coroutineScope {
-                    while (true) {
-                        val down = awaitPointerEventScope { awaitFirstDown(requireUnconsumed = false) }
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
                         var tickCount = 0
                         val tickJob = launch {
                             while (isActive) {
@@ -284,13 +288,11 @@ private fun AchievementRow(
                         // see the next row while a finger happened to land on this one first) kept
                         // ticking the whole ride down the list, firing lock/unlock ticks against
                         // whichever row it started on.
-                        awaitPointerEventScope {
-                            do {
-                                val event = awaitPointerEvent()
-                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                if (change.isConsumed || (change.position - down.position).getDistance() > touchSlop) break
-                            } while (event.changes.any { it.pressed })
-                        }
+                        do {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                            if (change.isConsumed || (change.position - down.position).getDistance() > touchSlop) break
+                        } while (event.changes.any { it.pressed })
                         tickJob.cancel()
                     }
                 }
