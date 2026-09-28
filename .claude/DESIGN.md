@@ -857,6 +857,12 @@ install-over-existing succeeds:
       *mentioned* the name, which prompted for commit messages, doc edits and scratch repos - and
       still missed a `sed` over a glob. `.claude/hooks/tests/run-hook-tests.sh` covers it against a
       throwaway repo, and `sandbox/setup.sh` runs it before every session.
+      Follow-up: the "## Changes" heading now names the previous release ("## Changes since X.Y.Z",
+      or plain "## Changes" with no previous tag), and each commit is listed as an 8-character short
+      hash hyperlinked to its GitHub commit page (`<repo>/commit/<hash>`, the repo URL taken from the
+      `origin` remote) instead of a bare hash in parentheses. Both changes live in
+      `scripts/release-changelog.sh`, which now prints the heading itself; the workflow's "Compose
+      release description" step no longer prints "## Changes" separately.
 - [x] **Dependency updates**: `.github/scripts/update_dependency_versions.sh` bumps everything
       pinned - the Gradle catalog/wrapper/plugins (majors included), compileSdk (incl. minor SDK
       releases), the JDK (owned by the Gradle toolchain, `gradle/gradle-daemon-jvm.properties`),
