@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -83,6 +84,21 @@ private fun flatIndexOf(groups: List<AchievementGroup>, achievementId: String): 
         index += group.items.size
     }
     return null
+}
+
+/** Scrolls so the item at [index] ends up vertically centred in the viewport, not just scrolled
+ * to its top edge - a plain `animateScrollToItem` can leave a short row sitting right at the very
+ * edge of the screen (or under the sticky category header), easy to miss rather than obviously
+ * the one just jumped to. Plays as two animations back to back - into view, then the corrective
+ * nudge to center it, since the row's real size isn't known (and isn't worth guessing) until it's
+ * actually been measured, which `animateScrollToItem` only guarantees once it's returned. */
+private suspend fun LazyListState.animateScrollToCentered(index: Int) {
+    animateScrollToItem(index)
+    val itemInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index } ?: return
+    val viewportHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
+    val centeredOffset = (viewportHeight - itemInfo.size) / 2
+    val delta = (itemInfo.offset - centeredOffset).toFloat()
+    if (delta != 0f) animateScrollBy(delta)
 }
 
 /**
@@ -168,7 +184,7 @@ fun AchievementsScreen(
             val groups = snapshotFlow { state.groups }.first { it.isNotEmpty() }
             val flatIndex = flatIndexOf(groups, targetId)
             if (flatIndex != null) {
-                listState.animateScrollToItem(flatIndex)
+                listState.animateScrollToCentered(flatIndex)
                 highlightedAchievementId = targetId
                 delay(ROW_FLASH_HOLD_MILLIS)
                 if (highlightedAchievementId == targetId) highlightedAchievementId = null
