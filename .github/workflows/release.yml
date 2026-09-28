@@ -92,6 +92,18 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      # The unit-test run also compiles app/shared for iOS (the check that its common code stays
+      # platform-neutral), which needs the Kotlin/Native toolchain - a few hundred MB that Gradle
+      # otherwise downloads into ~/.konan on every run. setup-gradle doesn't cache it. Keyed on the
+      # version catalog, where the Kotlin version lives; a partial match still restores the last
+      # toolchain, so only a Kotlin bump downloads a new one.
+      - name: Cache Kotlin/Native toolchain
+        uses: actions/cache@v6
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: konan-${{ runner.os }}-
+
       - name: Read version
         id: version
         run: |
