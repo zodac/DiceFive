@@ -2,9 +2,9 @@ package net.zodac.dicefive.data.game
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import net.zodac.dicefive.data.JsonArray
 import net.zodac.dicefive.data.JsonObject
-import net.zodac.dicefive.data.JsonString
 import net.zodac.dicefive.data.parseJson
 import net.zodac.dicefive.data.toJson
 import net.zodac.dicefive.model.Die
@@ -50,16 +50,6 @@ class GameStateJsonTest {
         val decoded = GameStateJson.decode(GameStateJson.encode(state))
 
         assertEquals(TurnTimer.SECONDS_60, decoded.turnTimer)
-    }
-
-    @Test
-    fun `decodes a save from before the turn timer field existed as no timer`() {
-        val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
-        val legacyJson = JsonObject(GameStateJson.encode(state).toJsonObject().fields - "turnTimer").toJson()
-
-        val decoded = GameStateJson.decode(legacyJson)
-
-        assertEquals(TurnTimer.NONE, decoded.turnTimer)
     }
 
     @Test
@@ -139,26 +129,25 @@ class GameStateJsonTest {
     }
 
     @Test
-    fun `decodes a save from before the lastRoll field existed as no last roll`() {
+    fun `decodes a player saved without a lastRoll - no finished turn yet - as none`() {
         val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
         val saved = GameStateJson.encode(state).toJsonObject()
         val player = (saved["players"] as JsonArray).items[0] as JsonObject
-        val legacyJson = JsonObject(saved.fields + ("players" to JsonArray(listOf(JsonObject(player.fields - "lastRoll"))))).toJson()
+        val withoutLastRoll = JsonObject(saved.fields + ("players" to JsonArray(listOf(JsonObject(player.fields - "lastRoll"))))).toJson()
 
-        val decoded = GameStateJson.decode(legacyJson)
+        val decoded = GameStateJson.decode(withoutLastRoll)
 
         assertEquals(null, decoded.players.single().lastRoll)
     }
 
     @Test
-    fun `decodes a save from before game modes existed as Standard`() {
+    fun `a save missing a required field fails to decode rather than guessing`() {
         val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
-        val legacyJson = JsonObject(GameStateJson.encode(state).toJsonObject().fields - "gameMode" + ("gameType" to JsonString("CLASSIC"))).toJson()
+        for (field in listOf("gameMode", "turnTimer", "phase", "players")) {
+            val incomplete = JsonObject(GameStateJson.encode(state).toJsonObject().fields - field).toJson()
 
-        val decoded = GameStateJson.decode(legacyJson)
-
-        assertEquals(GameMode.STANDARD, decoded.gameMode)
-        assertEquals(state, decoded)
+            assertFailsWith<IllegalArgumentException>("missing $field") { GameStateJson.decode(incomplete) }
+        }
     }
 }
 
