@@ -4,7 +4,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -26,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
@@ -52,11 +55,13 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.ConfigureOverlayDialogWindow
+import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.grouped
 
 /** How long a banner sits at full opacity before it starts to go. */
@@ -129,10 +134,31 @@ private data class BannerItem(val key: Long, val event: AchievementEvent)
  * [ConfigureOverlayDialogWindow] then turns that dialog window into a non-modal overlay - no dim,
  * and no swallowing touches/back-presses outside its own content - so it doesn't behave like a
  * real dialog itself.
+ *
+ * Long-pressing the front banner asks [onAchievementSelected] to take the player to that
+ * achievement on the Achievements screen (see `AchievementScrollRequests`, which is how the
+ * request actually reaches that screen - this host has no reference to it, only to the
+ * `NavHostController` its caller wires [onAchievementSelected] up to). Mid-game, with the
+ * "confirm before leaving" setting on, that's gated behind a leave-game confirmation first -
+ * [pendingAchievement] - during which every banner's hold countdown is paused (see [paused] on
+ * [BannerSlot]) so the stack doesn't quietly clear itself out from under the player while they're
+ * deciding.
  */
 @Composable
-fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun AchievementBannerHost(
+    modifier: Modifier = Modifier,
+    onAchievementSelected: (Achievement) -> Unit,
+    content: @Composable () -> Unit,
+) {
     val banners = remember { mutableStateListOf<BannerItem>() }
+
+    val container = LocalAppContainer.current
+    val hasInProgressGame by container.inProgressGameRepository.hasInProgressGame.collectAsState(initial = false)
+    val confirmBeforeLeavingGame by container.settingsRepository.confirmBeforeLeavingGame.collectAsState(initial = true)
+    // The achievement a long press asked to jump to, mid-game, waiting on the leave-game
+    // confirmation below before it actually navigates - null the rest of the time, including once
+    // there's no game to leave, when onAchievementSelected is called directly instead.
+    var pendingAchievement by remember { mutableStateOf<Achievement?>(null) }
 
     LaunchedEffect(Unit) {
         var nextKey = 0L
@@ -187,7 +213,16 @@ fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable ()
                             BannerSlot(
                                 item = item,
                                 interactive = depthFromFront == 0,
+                                paused = pendingAchievement != null,
                                 onDismissed = { banners.remove(item) },
+                                onLongPress = {
+                                    val achievement = item.event.achievement
+                                    if (hasInProgressGame && confirmBeforeLeavingGame) {
+                                        pendingAchievement = achievement
+                                    } else {
+                                        onAchievementSelected(achievement)
+                                    }
+                                },
                                 modifier = Modifier.zIndex(index.toFloat()),
                             )
                         }
@@ -221,6 +256,23 @@ fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable ()
             }
         }
     }
+
+    val achievementPendingLeaveConfirmation = pendingAchievement
+    if (achievementPendingLeaveConfirmation != null) {
+        DiceFiveDialog(
+            icon = Icons.AutoMirrored.Filled.Logout,
+            title = "Leave game?",
+            message = "Your progress is saved - you can continue this game later from Play.",
+            confirmLabel = "Leave",
+            onConfirm = {
+                pendingAchievement = null
+                onAchievementSelected(achievementPendingLeaveConfirmation)
+            },
+            dismissLabel = "Cancel",
+            onDismiss = { pendingAchievement = null },
+            onDismissRequest = { pendingAchievement = null },
+        )
+    }
 }
 
 /**
@@ -228,19 +280,31 @@ fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable ()
  * from the list, and is safe to call twice if a swipe lands during the closing fade.
  *
  * [interactive] gates the gesture recognizer entirely - false for every banner but the front one
- * in the stack, so a swipe can only ever land on the one actually on top; the ones peeking out
- * behind it don't so much as consume the touch.
+ * in the stack, so a swipe or long press can only ever land on the one actually on top; the ones
+ * peeking out behind it don't so much as consume the touch.
  *
  * The hold countdown only runs while [interactive] is true - a banner peeking out behind the
  * front one doesn't start timing out until it's actually promoted to the front, so a burst of
  * several banners each get their own full [HOLD_MILLIS] once it's their turn rather than all
- * ticking down together and clearing within moments of each other.
+ * ticking down together and clearing within moments of each other. [paused] holds it off further
+ * on top of that, while [AchievementBannerHost]'s leave-game confirmation is up - a banner
+ * shouldn't be able to quietly time out and clear itself while the player's still deciding whether
+ * to leave the game the long press that raised that confirmation started from.
+ *
+ * A single gesture recognizer handles both a horizontal swipe (dismiss) and a long press (jump to
+ * this achievement on the Achievements screen) - they have to live in the same `pointerInput`
+ * block rather than two separate ones, since both start from the same down event and only diverge
+ * once the finger either moves past touch slop (a swipe) or the long-press timeout elapses first
+ * (neither moved). A long press followed by drag is treated as a swipe, same as anywhere else in
+ * Android - the timeout is cancelled the moment real movement is seen.
  */
 @Composable
 private fun BannerSlot(
     item: BannerItem,
     interactive: Boolean,
+    paused: Boolean,
     onDismissed: () -> Unit,
+    onLongPress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -255,12 +319,14 @@ private fun BannerSlot(
         alpha.animateTo(1f, tween(FADE_IN_MILLIS))
     }
 
-    // Re-runs whenever this banner is promoted to/demoted from the front of the stack: becoming
-    // the front banner is what starts its hold countdown in the first place, and losing that
-    // status (shouldn't normally happen, but is handled the same way for safety) cancels whatever
-    // was left of it (the `return@LaunchedEffect` below).
-    LaunchedEffect(interactive, swipedAway) {
-        if (!interactive || swipedAway) return@LaunchedEffect
+    // Re-runs whenever this banner is promoted to/demoted from the front of the stack, or the
+    // leave-game confirmation opens/closes: becoming the front banner is what starts its hold
+    // countdown in the first place, and losing that status (shouldn't normally happen, but is
+    // handled the same way for safety) or the confirmation opening cancels whatever was left of it
+    // (the `return@LaunchedEffect` below). The confirmation closing starts a fresh full-length
+    // hold rather than resuming a partial one.
+    LaunchedEffect(interactive, swipedAway, paused) {
+        if (!interactive || swipedAway || paused) return@LaunchedEffect
         delay(HOLD_MILLIS)
         if (!swipedAway) {
             alpha.animateTo(0f, tween(FADE_OUT_MILLIS))
@@ -279,8 +345,39 @@ private fun BannerSlot(
                     Modifier
                 } else {
                     Modifier.pointerInput(item.key) {
-                        detectHorizontalDragGestures(
-                            onDragEnd = {
+                        val longPressTimeoutMillis = viewConfiguration.longPressTimeoutMillis
+                        val touchSlop = viewConfiguration.touchSlop
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            var dragging = false
+                            var previousX = down.position.x
+                            val longPressJob = scope.launch {
+                                delay(longPressTimeoutMillis)
+                                if (!dragging) onLongPress()
+                            }
+                            try {
+                                do {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                    if (!dragging) {
+                                        val totalDeltaX = change.position.x - down.position.x
+                                        if (abs(totalDeltaX) > touchSlop) {
+                                            dragging = true
+                                            longPressJob.cancel()
+                                        }
+                                    }
+                                    if (dragging) {
+                                        change.consume()
+                                        val deltaX = change.position.x - previousX
+                                        scope.launch { offsetX.snapTo(offsetX.value + deltaX) }
+                                    }
+                                    previousX = change.position.x
+                                } while (event.changes.any { it.pressed })
+                            } finally {
+                                longPressJob.cancel()
+                            }
+
+                            if (dragging) {
                                 scope.launch {
                                     if (abs(offsetX.value) > size.width * SWIPE_DISMISS_FRACTION) {
                                         swipedAway = true
@@ -292,10 +389,7 @@ private fun BannerSlot(
                                         offsetX.animateTo(0f, tween(SWIPE_OUT_MILLIS))
                                     }
                                 }
-                            },
-                        ) { change, dragAmount ->
-                            change.consume()
-                            scope.launch { offsetX.snapTo(offsetX.value + dragAmount) }
+                            }
                         }
                     }
                 },
