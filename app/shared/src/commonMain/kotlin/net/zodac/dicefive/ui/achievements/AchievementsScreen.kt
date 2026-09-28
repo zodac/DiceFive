@@ -5,7 +5,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -45,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.coroutineScope
@@ -86,48 +86,24 @@ private fun flatIndexOf(groups: List<AchievementGroup>, achievementId: String): 
     return null
 }
 
-/** How far [index]'s current position sits from dead centre in the viewport, in px - null if it
- * isn't currently measured (a call site's own scroll-to-it hasn't happened yet, or it's nowhere
- * near the viewport at all), or if centring it isn't actually reachable: one of the first few
- * achievements needs the list to scroll backward past its own start to bring it down to centre,
- * and the last few need it to scroll forward past the end to bring it up - both clamp to no
- * movement rather than failing outright, but attempting either still plays out the correction as
- * a wasted animation (or, worse, part of one) that visibly does nothing. Better to recognise
- * up front that it can't get any more centred than [animateScrollToItem]/[scrollToItem] already
- * left it, and skip the correction entirely. */
-private fun LazyListState.centeringDeltaFor(index: Int): Float? {
-    val itemInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index } ?: return null
+/** A rough stand-in for an achievement row's real height, close enough to centre a long press's
+ * target without ever needing to actually measure it first. An earlier version scrolled the item
+ * to the top of the viewport, measured its real height once that landed, then scrolled again to
+ * correct - which reads as two separate movements, sometimes in opposite directions (overshooting
+ * past centre on the way to the top, then correcting back). A single scroll straight to an
+ * estimated position is one continuous motion instead; being off by a few dp against the row's
+ * actual height doesn't undermine "roughly centred" the way a visible direction reversal
+ * undermines "smooth". Sized for a typical unlocked row (icon, title, description, "Unlocked at");
+ * a locked row with a progress bar instead is a little taller, but not by enough to matter here. */
+private val ESTIMATED_ROW_HEIGHT_DP = 88.dp
+
+/** Where [index] should end up, in px from the top of the viewport, so it lands roughly centred
+ * rather than pinned to the very top - clamped to non-negative, since a viewport shorter than
+ * [ESTIMATED_ROW_HEIGHT_DP] (shouldn't happen on any real device) would otherwise ask for a
+ * negative scroll offset. */
+private fun LazyListState.centeredScrollOffset(estimatedItemHeightPx: Int): Int {
     val viewportHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
-    val centeredOffset = (viewportHeight - itemInfo.size) / 2
-    val delta = (itemInfo.offset - centeredOffset).toFloat()
-    return when {
-        delta == 0f -> null
-        delta < 0f && !canScrollBackward -> null
-        delta > 0f && !canScrollForward -> null
-        else -> delta
-    }
-}
-
-/** Scrolls so the item at [index] ends up vertically centred in the viewport, not just scrolled
- * to its top edge - a plain `animateScrollToItem` can leave a short row sitting right at the very
- * edge of the screen (or under the sticky category header), easy to miss rather than obviously
- * the one just jumped to. Plays as two animations back to back - into view, then the corrective
- * nudge to center it, since the row's real size isn't known (and isn't worth guessing) until it's
- * actually been measured, which `animateScrollToItem` only guarantees once it's returned. */
-private suspend fun LazyListState.animateScrollToCentered(index: Int) {
-    animateScrollToItem(index)
-    val delta = centeringDeltaFor(index) ?: return
-    if (delta != 0f) animateScrollBy(delta)
-}
-
-/** The non-animated twin of [animateScrollToCentered] - jumps straight to the centred position
- * with nothing visibly sliding into place, for when the screen is only *about* to appear (see the
- * `animate` flag on `AchievementScrollRequests`' requests) and there's nothing on screen yet for a
- * scroll to visibly move away from. */
-private suspend fun LazyListState.scrollToCentered(index: Int) {
-    scrollToItem(index)
-    val delta = centeringDeltaFor(index) ?: return
-    if (delta != 0f) scroll { scrollBy(delta) }
+    return ((viewportHeight - estimatedItemHeightPx) / 2).coerceAtLeast(0)
 }
 
 /**
@@ -209,12 +185,18 @@ fun AchievementsScreen(
     // screen is composed either way. Only animates the scroll for the second case - see
     // AchievementScrollRequest.animate.
     var highlightedAchievementId by remember { mutableStateOf<String?>(null) }
+    val estimatedRowHeightPx = with(LocalDensity.current) { ESTIMATED_ROW_HEIGHT_DP.roundToPx() }
     LaunchedEffect(Unit) {
         AchievementScrollRequests.requests.collect { request ->
             val groups = snapshotFlow { state.groups }.first { it.isNotEmpty() }
             val flatIndex = flatIndexOf(groups, request.achievementId)
             if (flatIndex != null) {
-                if (request.animate) listState.animateScrollToCentered(flatIndex) else listState.scrollToCentered(flatIndex)
+                val centeredOffset = listState.centeredScrollOffset(estimatedRowHeightPx)
+                if (request.animate) {
+                    listState.animateScrollToItem(flatIndex, centeredOffset)
+                } else {
+                    listState.scrollToItem(flatIndex, centeredOffset)
+                }
                 highlightedAchievementId = request.achievementId
                 delay(ROW_FLASH_HOLD_MILLIS)
                 if (highlightedAchievementId == request.achievementId) highlightedAchievementId = null
