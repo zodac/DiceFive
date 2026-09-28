@@ -18,10 +18,16 @@ what the plugin can't discover for itself:
   MIT, ISC, OFL) needs one of these whose `description` is exactly that notice, starting
   `Copyright` - the build fails until it has one.
 
-- `asset-sources.json` - where every bundled asset file came from: each file under any of `app/`'s
-  source sets' `res/` (except `values*/`), `rawAudioSource/` and `assets/`, and under any of
-  `shared/`'s `composeResources/` (the shared UI's font and icons), keyed by its path relative to the
-  repository root.
+- `sora-OFL.txt` - the Sora font's own licence file, as distributed with it upstream: its copyright
+  line and the full SIL Open Font License. The OFL requires this to accompany the font wherever it's
+  redistributed - in this repository as well as in the app, where the Licences dialog shows the same
+  text (`licenses/OFL-1.1.json` plus `libraries/sora.json`'s copyright line). Kept here with the other
+  licence records rather than beside `sora.ttf`, so all of them are in one place.
+
+- `asset-sources.json` - where every bundled asset file came from: each file under any of
+  `app/android`'s source sets' `res/` (except `values*/`), `rawAudioSource/` and `assets/`, and under
+  any of `app/shared`'s `composeResources/` (the shared UI's font and icons), keyed by its path
+  relative to the repository root.
   Every entry - the app's own artwork included - needs:
   - `description` - what it is (and how it was modified, if it was);
   - `source` - where it came from: a download URL, or for the app's own work the Claude Code
