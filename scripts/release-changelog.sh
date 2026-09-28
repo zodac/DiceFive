@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# Prints the changes going into a release as Markdown: every commit since the previous release,
-# by its subject line ("[Category] Short description" - see .githooks/commit-msg), grouped under
-# one "### Category" heading each, categories in alphabetical order (case-insensitive) and commits
-# oldest-first within them:
+# Prints the changes going into a release as Markdown: a "## Changes since X.Y.Z" heading (naming
+# the previous release, or plain "## Changes" if there isn't one), then every commit since that
+# release, by its subject line ("[Category] Short description" - see .githooks/commit-msg),
+# grouped under one "### Category" heading each, categories in alphabetical order
+# (case-insensitive) and commits oldest-first within them:
+#
+#     ## Changes since 1.2.3
 #
 #     ### Gameplay
-#     - Add the Tricolour game mode (1f5dd9f)
+#     - [1f5dd9f2](https://github.com/zodac/DiceFive/commit/1f5dd9f2) Add the Tricolour game mode
 #
 # Used by the release workflow to build a GitHub release's description, after RELEASE_NOTES.md.
 # Run it locally to preview what the next release will list.
@@ -15,6 +18,9 @@
 # or the whole history if there is none. Left out: merge commits, and the release workflow's own
 # version-bump commits (authored by github-actions[bot]). Subjects that don't follow the format -
 # anything from before it was enforced - are listed under "Other", after every real category.
+#
+# Each commit links to its page on GitHub, using the "origin" remote (converted from an SSH URL if
+# needed) as the repo.
 #
 # Usage: scripts/release-changelog.sh [<version>]   (defaults to the contents of VERSION)
 set -euo pipefail
@@ -27,10 +33,20 @@ previous_tag="$(git -C "$root_dir" tag --merged HEAD --list 'v*' --sort=-version
   | grep -vxF "$this_tag" | head -n 1 || true)"
 range="${previous_tag:+$previous_tag..}HEAD"
 
+repo_url="$(git -C "$root_dir" remote get-url origin \
+  | sed -E 's#^git@([^:]+):#https://\1/#; s#\.git$##')"
+
+if [ -n "$previous_tag" ]; then
+  echo "## Changes since ${previous_tag#v}"
+else
+  echo "## Changes"
+fi
+echo
+
 # Unit separator between fields: it can't appear in a subject line, unlike a tab or a pipe.
 sep=$'\x1f'
-git -C "$root_dir" log --no-merges --reverse --format="%h${sep}%an${sep}%s" "$range" \
-  | awk -F "$sep" '
+git -C "$root_dir" log --no-merges --reverse --abbrev=8 --format="%h${sep}%an${sep}%s" "$range" \
+  | awk -F "$sep" -v repo_url="$repo_url" '
       $2 == "github-actions[bot]" { next }
       {
         hash = $1; subject = $3
@@ -48,7 +64,7 @@ git -C "$root_dir" log --no-merges --reverse --format="%h${sep}%an${sep}%s" "$ra
         key = tolower(category)
         if (!(key in label)) label[key] = (category == "" ? "Other" : category)
         rank = (category == "" ? "1" : "0")
-        printf "%s%s\t%s\t- %s (%s)\n", rank, key, label[key], description, hash
+        printf "%s%s\t%s\t- [%s](%s/commit/%s) %s\n", rank, key, label[key], hash, repo_url, hash, description
       }' \
   | LC_ALL=C sort -s -t $'\t' -k1,1 \
   | awk -F '\t' '

@@ -159,8 +159,6 @@ jobs:
               cat RELEASE_NOTES.md
               echo
             fi
-            echo "## Changes"
-            echo
             ./scripts/release-changelog.sh "${{ steps.version.outputs.name }}"
           } > "$body"
           cat "$body"
