@@ -1,5 +1,6 @@
 package net.zodac.dicefive.data.achievements
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -39,6 +40,7 @@ object AchievementScrollRequests {
     fun hasPending(): Boolean = _requests.replayCache.isNotEmpty()
 
     /** Drops the replayed value once it's been acted on. */
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun consumePending() {
         _requests.resetReplayCache()
     }

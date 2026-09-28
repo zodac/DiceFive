@@ -141,7 +141,7 @@ internal fun CategoryCell(
     // is exactly as previewable as a human's, it's just never the human tapping it in.
     val isLegalChoice = player != null && canScore && category in available
     val canPreview = player != null && showPreview && category in available
-    val previewScore = if (canPreview) ScoreCalculator.scoreFor(player!!, category, dice) else null
+    val previewScore = if (canPreview) ScoreCalculator.scoreFor(player, category, dice) else null
     val isGoodChoice = previewScore != null && previewScore > 0
     // Every 5x after the first earns a +100 bonus chip tracked separately from the scorecard
     // entry itself (which stays 50) - see PlayerState.fiveOfAKindBonusCount/Total and
@@ -160,7 +160,7 @@ internal fun CategoryCell(
     // when per the official joker rule it doesn't (see ScoreCalculator's class doc).
     val fiveOfAKindTileBonusPreview = category == ScoreCategory.FIVE_OF_A_KIND && bonusThisTurn
     val pendingBonusAmount = if (category == ScoreCategory.FIVE_OF_A_KIND) {
-        (player?.fiveOfAKindBonusTotal ?: 0) + if (fiveOfAKindTileBonusPreview) player?.gameMode?.fiveOfAKindBonusAmount ?: 0 else 0
+        (player?.fiveOfAKindBonusTotal ?: 0) + if (fiveOfAKindTileBonusPreview) player.gameMode.fiveOfAKindBonusAmount else 0
     } else {
         0
     }

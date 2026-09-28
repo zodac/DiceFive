@@ -69,7 +69,7 @@ class GameViewModelTest {
 
         val state = viewModel.game.value
         assertNotNull(state)
-        assertEquals(2, state!!.players.size)
+        assertEquals(2, state.players.size)
         assertEquals(PlayerType.HUMAN, state.players[0].type)
         assertEquals(PlayerType.AI, state.players[1].type)
     }
