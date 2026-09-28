@@ -88,12 +88,24 @@ private fun flatIndexOf(groups: List<AchievementGroup>, achievementId: String): 
 
 /** How far [index]'s current position sits from dead centre in the viewport, in px - null if it
  * isn't currently measured (a call site's own scroll-to-it hasn't happened yet, or it's nowhere
- * near the viewport at all). */
+ * near the viewport at all), or if centring it isn't actually reachable: one of the first few
+ * achievements needs the list to scroll backward past its own start to bring it down to centre,
+ * and the last few need it to scroll forward past the end to bring it up - both clamp to no
+ * movement rather than failing outright, but attempting either still plays out the correction as
+ * a wasted animation (or, worse, part of one) that visibly does nothing. Better to recognise
+ * up front that it can't get any more centred than [animateScrollToItem]/[scrollToItem] already
+ * left it, and skip the correction entirely. */
 private fun LazyListState.centeringDeltaFor(index: Int): Float? {
     val itemInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index } ?: return null
     val viewportHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
     val centeredOffset = (viewportHeight - itemInfo.size) / 2
-    return (itemInfo.offset - centeredOffset).toFloat()
+    val delta = (itemInfo.offset - centeredOffset).toFloat()
+    return when {
+        delta == 0f -> null
+        delta < 0f && !canScrollBackward -> null
+        delta > 0f && !canScrollForward -> null
+        else -> delta
+    }
 }
 
 /** Scrolls so the item at [index] ends up vertically centred in the viewport, not just scrolled
