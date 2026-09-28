@@ -2,6 +2,7 @@ package net.zodac.dicefive.ui.game
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,8 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,11 +33,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.random.Random
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlin.random.Random
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.game.style.ColouredDie
@@ -95,6 +96,7 @@ fun DiceTray(
     showDice: Boolean,
     rolling: Boolean,
     onToggleHold: (Int) -> Unit,
+    modifier: Modifier = Modifier,
     // Superuser mode (a hidden cheat - see GameViewModel.trackSuperuserSequence): once unlocked,
     // holding a finger anywhere in an already-held die's column cycles its face once a second,
     // until released or the finger slides into a different column. onCycleValue is always wired;
@@ -102,7 +104,6 @@ fun DiceTray(
     // a given die not being held) here just means that column is never eligible to cycle.
     superuserModeActive: Boolean = false,
     onCycleValue: (Int) -> Unit = {},
-    modifier: Modifier = Modifier,
 ) {
     val visualTheme = LocalGameVisualTheme.current
 
@@ -154,17 +155,14 @@ fun DiceTray(
                         // drag delta, so it never has grounds to steal the gesture.
                         Modifier.pointerInput(enabled) {
                             // coroutineScope for a real CoroutineScope to launch the concurrent
-                            // cycle-ticking coroutine on (PointerInputScope itself isn't one). Two
-                            // separate awaitPointerEventScope calls within it, not one: that scope
-                            // is `@RestrictsSuspension` and can't itself launch/cancel a coroutine,
-                            // so the down is detected in one restricted block, the launch/cancel
-                            // bookkeeping happens back in the plain coroutineScope in between,
-                            // then a second restricted block tracks movement/up.
+                            // cycle-ticking coroutine on (PointerInputScope itself isn't one). The
+                            // whole press is one awaitEachGesture, so no pointer event can slip
+                            // through between reading the down and tracking what follows; launch and
+                            // cancel aren't suspending calls, so the restricted gesture scope can
+                            // still make them against the outer coroutineScope.
                             coroutineScope {
-                                while (true) {
-                                    val down = awaitPointerEventScope {
-                                        awaitFirstDown(requireUnconsumed = false).also { it.consume() }
-                                    }
+                                awaitEachGesture {
+                                    val down = awaitFirstDown(requireUnconsumed = false).also { it.consume() }
                                     val columnCount = currentDice.size
                                     var activeIndex = columnIndexForX(down.position.x, size.width, columnCount)
                                     var cycled = false
@@ -188,25 +186,23 @@ fun DiceTray(
 
                                     var cycleJob = startCycling()
 
-                                    awaitPointerEventScope {
-                                        do {
-                                            val event = awaitPointerEvent()
-                                            event.changes.forEach { it.consume() }
-                                            val pointer = event.changes.firstOrNull { it.id == down.id }
-                                            val newIndex = pointer?.let { columnIndexForX(it.position.x, size.width, columnCount) }
-                                            if (newIndex != null && newIndex != activeIndex) {
-                                                // Crossed into a different die's column: whatever
-                                                // the previous one was doing (a pending click, or
-                                                // cycling) is abandoned, not completed - only the
-                                                // column the finger actually settles on and
-                                                // releases over acts.
-                                                cycleJob?.cancel()
-                                                activeIndex = newIndex
-                                                cycled = false
-                                                cycleJob = startCycling()
-                                            }
-                                        } while (event.changes.any { it.pressed })
-                                    }
+                                    do {
+                                        val event = awaitPointerEvent()
+                                        event.changes.forEach { it.consume() }
+                                        val pointer = event.changes.firstOrNull { it.id == down.id }
+                                        val newIndex = pointer?.let { columnIndexForX(it.position.x, size.width, columnCount) }
+                                        if (newIndex != null && newIndex != activeIndex) {
+                                            // Crossed into a different die's column: whatever
+                                            // the previous one was doing (a pending click, or
+                                            // cycling) is abandoned, not completed - only the
+                                            // column the finger actually settles on and
+                                            // releases over acts.
+                                            cycleJob?.cancel()
+                                            activeIndex = newIndex
+                                            cycled = false
+                                            cycleJob = startCycling()
+                                        }
+                                    } while (event.changes.any { it.pressed })
                                     cycleJob?.cancel()
 
                                     // Only a press that lasted long enough to actually change the
