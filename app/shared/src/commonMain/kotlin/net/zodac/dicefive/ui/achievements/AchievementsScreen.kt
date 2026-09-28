@@ -191,6 +191,11 @@ fun AchievementsScreen(
             val groups = snapshotFlow { state.groups }.first { it.isNotEmpty() }
             val flatIndex = flatIndexOf(groups, request.achievementId)
             if (flatIndex != null) {
+                // On a fresh navigation, the list hasn't necessarily had its first layout pass
+                // yet by the time its data has loaded - centredScrollOffset needs a real
+                // viewport size to work with, or it reads as 0 and the row lands pinned to the
+                // top instead of centred.
+                snapshotFlow { listState.layoutInfo.viewportSize.height }.first { it > 0 }
                 val centeredOffset = listState.centeredScrollOffset(estimatedRowHeightPx)
                 if (request.animate) {
                     listState.animateScrollToItem(flatIndex, centeredOffset)
