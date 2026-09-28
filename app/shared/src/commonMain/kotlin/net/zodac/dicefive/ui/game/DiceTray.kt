@@ -28,7 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
@@ -41,11 +40,9 @@ import kotlinx.coroutines.launch
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.game.style.ColouredDie
+import net.zodac.dicefive.ui.game.style.DiceMat
 import net.zodac.dicefive.ui.game.style.DiceStyle
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
-import net.zodac.dicefive.ui.theme.SlotSocketBorder
-import net.zodac.dicefive.ui.theme.SlotSocketBottom
-import net.zodac.dicefive.ui.theme.SlotSocketTop
 
 private data class ScatterOffset(val xOffset: Dp, val yOffset: Dp, val rotationDegrees: Float)
 
@@ -230,6 +227,7 @@ fun DiceTray(
                     seed = index,
                     gameMode = gameMode,
                     diceStyle = visualTheme.diceStyle,
+                    mat = visualTheme.mat,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -260,6 +258,7 @@ private fun DiceColumn(
     seed: Int,
     gameMode: GameMode,
     diceStyle: DiceStyle,
+    mat: DiceMat,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -270,8 +269,8 @@ private fun DiceColumn(
                 .aspectRatio(1f)
                 .sizeIn(maxWidth = MAX_SLOT_DIE_SIZE, maxHeight = MAX_SLOT_DIE_SIZE)
                 .clip(shape)
-                .background(Brush.verticalGradient(listOf(SlotSocketTop, SlotSocketBottom)))
-                .border(1.5.dp, SlotSocketBorder, shape),
+                .background(mat.slotSocketBrush)
+                .border(1.5.dp, mat.slotSocketBorder, shape),
         ) {
             if (show && die.isHeld) {
                 DieFace(die = die, held = true, diceStyle = diceStyle, modifier = Modifier.fillMaxSize().padding(3.dp))

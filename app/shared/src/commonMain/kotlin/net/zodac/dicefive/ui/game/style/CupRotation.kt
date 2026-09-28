@@ -31,6 +31,16 @@ private const val RESTING_TILT_DEGREES = 32f
 // half shakes" complaint without needing a second, switched pivot).
 private const val PIVOT_Y_FRACTION = 0.75f
 
+// Cups are authored on a 58 x 84 grid - the in-game cup's own size in dp - and scaled to the canvas.
+const val CUP_GRID_WIDTH = 58f
+const val CUP_GRID_HEIGHT = 84f
+
+// Every cup is seen side-on from a little above (roughly 22 degrees), so a circle round the cup - its
+// mouth, its base, a hoop - is drawn as an ellipse this many times as tall as it is wide. Using one
+// value for all of them is what keeps the open top, the base and anything wrapped round the body
+// looking like they're seen from the same angle.
+const val CUP_VIEW_SQUASH = 0.38f
+
 /**
  * The canvas every [DiceCupStyle] draws its cup on: [onDraw] paints the cup standing upright, and
  * this applies the shared shake/pour rotation from [rememberCupRotation] around it, so the cups only

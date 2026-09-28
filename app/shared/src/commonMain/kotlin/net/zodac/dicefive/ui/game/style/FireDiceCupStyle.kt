@@ -20,7 +20,7 @@ object FireDiceCupStyle : DiceCupStyle {
                 litFace = FireCupLitFace,
                 midFace = FireCupMidFace,
                 edge = FlameOrange,
-                mouth = FireCupShadow,
+                interior = FireCupShadow,
                 shadow = FireCupShadow,
             )
         }

@@ -94,12 +94,13 @@ val IvoryDiceTop = Color(0xFFFFFCF3)
 val IvoryDiceBottom = Color(0xFFD9C9A3)
 val DicePipColor = Color(0xFF2B2118)
 
-val SlotSocketTop = Color(0xFF0D2549)
-val SlotSocketBottom = Color(0xFF081833)
-// Lighter than both the socket's own fill and TrayBlueTop/Bottom (the mat it sits on), so the rim
-// reads as a crisp highlight against the mat rather than just a slightly-different shade of the
-// same blue - matching how CategoryTile's border pops against its felt background.
-val SlotSocketBorder = Color(0xFF6FA3E0)
+// The held-dice slots are part of the mat (see DiceMat.slotSocketBrush), so each mat has its own:
+// a fill darker than the mat and a rim lighter than both it and the mat, so the rim reads as a crisp
+// highlight against the mat rather than just a slightly-different shade of it - matching how
+// CategoryTile's border pops against its felt background.
+val TrayBlueSlotTop = Color(0xFF0D2549)
+val TrayBlueSlotBottom = Color(0xFF081833)
+val TrayBlueSlotBorder = Color(0xFF6FA3E0)
 
 val CupRimGold = Color(0xFFC79A4B)
 val CupShadow = Color(0xFF06101F)
@@ -121,6 +122,20 @@ val BarrelInterior = Color(0xFF1A0F08)
 val BarrelIron = Color(0xFF34343A)
 val BarrelIronSheen = Color(0xFF74747C)
 
+// The rest of the barrel skin: honey-oak dice with off-white pips (mid-tone enough that the gold held
+// ring still stands off the face), a plank tray in the cup's own wood, and a darker stained-wood
+// background so the teal score tiles still pop against it.
+val BarrelDiceTop = Color(0xFFC8894A)
+val BarrelDiceBottom = Color(0xFF7A4A22)
+val BarrelDicePipColor = Color(0xFFFFF6E8)
+val BarrelTrayTop = BarrelWood
+val BarrelTrayBottom = BarrelWoodDark
+val BarrelSlotTop = Color(0xFF2E1B0E)
+val BarrelSlotBottom = Color(0xFF1C1009)
+val BarrelSlotBorder = Color(0xFFC08A55)
+val BarrelBackgroundTop = Color(0xFF3A2314)
+val BarrelBackgroundBottom = Color(0xFF1C1009)
+
 // Fire theme: a red-and-orange skin for the die, dice cup and table mat - see FireDiceStyle,
 // FireDiceCupStyle and FireTableBackground. Same "not a colour role" rule as the rest of this block.
 val FireDiceTop = Color(0xFFFF6B4A)
@@ -140,6 +155,9 @@ val FireBackgroundTop = Color(0xFF7A130D)
 val FireBackgroundBottom = Color(0xFF3D0805)
 val FireTrayTop = Color(0xFFB2231A)
 val FireTrayBottom = Color(0xFF6E120A)
+val FireSlotTop = Color(0xFF5C0E09)
+val FireSlotBottom = Color(0xFF3A0604)
+val FireSlotBorder = Color(0xFFF07A5A)
 
 // Tricolour mode: the dice's own red/yellow/blue, which replace the player's dice style in that mode
 // (see ColouredDie), and the colour-box tiles on the scorecard (see CategoryIcon/CategoryTile). A
