@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -90,15 +91,12 @@ private const val SWIPE_DISMISS_FRACTION = 0.15f
 
 /** How much of an older banner peeks out above the one in front of it, in a stack - just enough
  * to show it's there and to stay tappable/swipeable on its own, without the pile eating the
- * screen the way one full-height row per banner used to. */
+ * screen the way one full-height row per banner used to. Measured from the top of the banner in
+ * front of it, not a fixed offset from the stack's own bottom - see the custom `Layout` in
+ * [AchievementBannerHost] - since banners aren't all the same height (a one-line description takes
+ * less room than a two-line one), and a fixed offset from a shared baseline would show more or less
+ * of each one than this depending on that difference, sometimes none of it at all. */
 private const val STACK_PEEK_DP = 14
-
-/** Headroom reserved above the front banner for every banner peeking out behind it -
- * `Modifier.offset` (used to stagger those peeks) only moves where a banner is drawn, it doesn't
- * grow how much space its container reports needing, so without this the stack's Dialog window -
- * which wraps to that reported size - would only ever be as tall as one banner, clipping the peeks
- * at its own edge rather than the screen's. */
-private val BANNER_STACK_HEADROOM_DP = (MAX_VISIBLE_BANNERS - 1) * STACK_PEEK_DP
 
 /** A faint outline on every banner, so a stack of them - which overlap with no gap between - reads
  * as separate cards rather than one elongated shape. Plain black at low alpha rather than a theme
@@ -176,40 +174,61 @@ fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable ()
             ),
         ) {
             ConfigureOverlayDialogWindow()
-            Box(
+            // Display order only, not the underlying list (removal below still targets `banners`
+            // directly) - a real unlock always sits in front of a progress nudge, wherever in the
+            // arrival order it actually landed. sortedBy is stable, so within each of the two
+            // groups, `banners`' own order - oldest-still-queued first, since new arrivals are
+            // inserted at the front of it, not appended (see the collector above) - is preserved.
+            // Front is always the *last* element of this list, so within a type group it's always
+            // the one that's been waiting longest, never one that only just joined the back.
+            val displayOrder = banners.sortedBy { it.event is AchievementEvent.Unlocked }
+            Layout(
                 modifier = Modifier
                     .widthIn(max = CONTENT_MAX_WIDTH)
                     .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
-                    .padding(top = BANNER_STACK_HEADROOM_DP.dp),
-                contentAlignment = Alignment.BottomCenter,
-            ) {
-                // Display order only, not the underlying list (removal below still targets `banners`
-                // directly) - a real unlock always sits in front of a progress nudge, wherever in the
-                // arrival order it actually landed. sortedBy is stable, so within each of the two
-                // groups, `banners`' own order - oldest-still-queued first, since new arrivals are
-                // inserted at the front of it, not appended (see the collector above) - is preserved.
-                // Front is always the *last* element of this list, so within a type group it's always
-                // the one that's been waiting longest, never one that only just joined the back.
-                val displayOrder = banners.sortedBy { it.event is AchievementEvent.Unlocked }
-                displayOrder.forEachIndexed { index, item ->
-                    // 0 for the front (frontmost, drawn last so it's on top), climbing for each one
-                    // further back in the stack.
-                    val depthFromFront = displayOrder.lastIndex - index
-                    key(item.key) {
-                        BannerSlot(
-                            item = item,
-                            interactive = depthFromFront == 0,
-                            anyDescriptionShowing = descriptionShownForKey != null,
-                            showOwnDescription = descriptionShownForKey == item.key,
-                            onRequestDescription = { descriptionShownForKey = item.key },
-                            onDismissDescription = { descriptionShownForKey = null },
-                            onDismissed = { banners.remove(item) },
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .offset(y = -(depthFromFront * STACK_PEEK_DP).dp)
-                                .zIndex(index.toFloat()),
-                        )
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                content = {
+                    displayOrder.forEachIndexed { index, item ->
+                        // 0 for the front (frontmost, drawn last so it's on top), climbing for each
+                        // one further back in the stack.
+                        val depthFromFront = displayOrder.lastIndex - index
+                        key(item.key) {
+                            BannerSlot(
+                                item = item,
+                                interactive = depthFromFront == 0,
+                                anyDescriptionShowing = descriptionShownForKey != null,
+                                showOwnDescription = descriptionShownForKey == item.key,
+                                onRequestDescription = { descriptionShownForKey = item.key },
+                                onDismissDescription = { descriptionShownForKey = null },
+                                onDismissed = { banners.remove(item) },
+                                modifier = Modifier.zIndex(index.toFloat()),
+                            )
+                        }
+                    }
+                },
+            ) { measurables, constraints ->
+                // A banner's own description can be one or two lines, so banners aren't all the
+                // same height - measured here, not assumed, so the stack's own size and each
+                // banner's peek are both based on actual heights rather than a guess that's wrong
+                // as often as it's right.
+                val placeables = measurables.map { it.measure(constraints.copy(minWidth = 0, minHeight = 0)) }
+                val peekPx = STACK_PEEK_DP.dp.roundToPx()
+                val width = placeables.maxOfOrNull { it.width } ?: 0
+                // The front banner (last in the list - see displayOrder above) sets the stack's
+                // baseline height; each one behind it needs just enough extra room for its own
+                // STACK_PEEK_DP sliver, not its own full height, since the rest of it sits behind
+                // whatever's in front - see the placement loop below.
+                val frontHeight = placeables.lastOrNull()?.height ?: 0
+                val height = frontHeight + (placeables.size - 1).coerceAtLeast(0) * peekPx
+                layout(width, height) {
+                    placeables.forEachIndexed { index, placeable ->
+                        val depthFromFront = placeables.lastIndex - index
+                        // Every banner's top sits exactly STACK_PEEK_DP above the top of the one
+                        // in front of it - not above its own bottom-aligned position, which is
+                        // what a fixed per-banner offset from the stack's own bottom would give,
+                        // and which only lines up when every banner happens to be the same height.
+                        val y = height - frontHeight - depthFromFront * peekPx
+                        placeable.placeRelative(x = (width - placeable.width) / 2, y = y)
                     }
                 }
             }
