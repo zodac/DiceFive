@@ -26,7 +26,6 @@ Multiplatform and an Android application.
 DiceFive/app/
 ├── shared/                          :app:shared - KMP library (com.android.kotlin.multiplatform.library)
 │   ├── schemas/                     Room's exported schemas (commit every new version)
-│   ├── licenses/                    sora-OFL.txt - the font's licence, kept beside the font
 │   └── src/
 │       ├── commonMain/kotlin/net/zodac/dicefive/
 │       │   ├── model/  game/        the rules engine, unchanged
@@ -51,7 +50,8 @@ DiceFive/app/
 │                                    Toast, licence JSON from res/raw), AndroidAppContainer, and
 │                                    TextViewLicenceDocument (see DESIGN.md Phase 17)
 ├── licensing/                       licence records for everything either platform ships: asset
-│                                    sources, library/asset entries, licence texts (see its README)
+│                                    sources, library/asset entries, licence texts, the font's own
+│                                    OFL file (see its README)
 └── ios/                             (Phase 5) Xcode project hosting MainViewController()
 ```
 
