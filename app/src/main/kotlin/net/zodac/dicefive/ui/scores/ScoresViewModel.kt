@@ -1,6 +1,5 @@
 package net.zodac.dicefive.ui.scores
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -11,10 +10,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.platform.AppContainer
 
 data class ScoresUiState(
     val entries: List<ScoreEntry> = emptyList(),
@@ -58,11 +57,8 @@ class ScoresViewModel(private val scoreRepository: ScoreRepository? = null) : Vi
     }
 
     companion object {
-        fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                val scoreDao = AppDatabase.getInstance(context.applicationContext).scoreDao()
-                ScoresViewModel(ScoreRepository(scoreDao))
-            }
+        fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
+            initializer { ScoresViewModel(container.scoreRepository) }
         }
     }
 }

@@ -119,15 +119,18 @@ internal fun Modifier.clearSelectionsOnTap(clearer: SelectionClearer): Modifier 
     Modifier.pointerInput(clearer) {
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-            val downAt = System.currentTimeMillis()
             var isTap = true
+            var upAt = down.uptimeMillis
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Initial)
                 val change = event.changes.firstOrNull { it.id == down.id } ?: return@awaitEachGesture
                 if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) isTap = false
-                if (!change.pressed) break
+                if (!change.pressed) {
+                    upAt = change.uptimeMillis
+                    break
+                }
             }
-            if (isTap && System.currentTimeMillis() - downAt < viewConfiguration.longPressTimeoutMillis) clearer.clearAll()
+            if (isTap && upAt - down.uptimeMillis < viewConfiguration.longPressTimeoutMillis) clearer.clearAll()
         }
     },
 )

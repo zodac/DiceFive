@@ -22,12 +22,10 @@ import net.zodac.dicefive.model.AchievementCounter
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
-import net.zodac.dicefive.BuildConfig
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -450,11 +448,9 @@ class GameAchievementsWiringTest {
 
     @Test
     fun `superuser mode no longer disqualifies a game - the cheat has to stay debuggable`() = runTest {
-        // The cheat is compiled out of release builds, so there is nothing to assert there.
-        assumeTrue(BuildConfig.DEBUG)
-
+        // The cheat only exists in debug builds, so this is one.
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6), isDebugBuild = true)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -639,10 +635,8 @@ class GameAchievementsWiringTest {
     @Test
     fun `the hidden hold sequence on player 2's turn still activates the cheat but not Time Wasting`() = runTest {
         // The cheat itself stays "any player's turn" - only the achievement is player 1's alone.
-        assumeTrue(BuildConfig.DEBUG)
-
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6), isDebugBuild = true)
         viewModel.setPlayerCount(2)
         viewModel.startGame()
 

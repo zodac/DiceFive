@@ -1,6 +1,6 @@
 package net.zodac.dicefive.ui.achievements
 
-import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -12,16 +12,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -41,27 +40,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import java.text.NumberFormat
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementVisibility
+import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.ui.common.ScreenScaffold
-
-/**
- * Date *and* time: several achievements can land in the same burst at the end of a game, so a date
- * alone wouldn't tell two rows in the same burst apart. Deliberately the same pattern the
- * Leaderboard uses for a score's timestamp.
- */
-private val UNLOCKED_AT_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
+import net.zodac.dicefive.ui.common.formatTimestamp
+import net.zodac.dicefive.ui.common.grouped
 
 // contentType tags, so hiddenUnderPinnedHeader can tell a category header from a row by the list's
 // own layout info rather than by parsing keys.
@@ -114,11 +104,9 @@ fun AchievementsScreen(
     val state by viewModel.uiState.collectAsState()
     val superuserModeActive by viewModel.superuserModeActive.collectAsState()
 
-    val context = LocalContext.current
+    val platform = LocalPlatformServices.current
     LaunchedEffect(viewModel) {
-        viewModel.toastMessages.collect { message ->
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-        }
+        viewModel.toastMessages.collect { message -> platform.showTransientMessage(message) }
     }
 
     // Restored only once the real list has loaded: uiState starts out empty, and a LazyColumn that
@@ -352,7 +340,7 @@ private fun AchievementRow(
 
                 when {
                     item.unlockedAt != null -> Text(
-                        text = "Unlocked ${formatUnlockedAt(item.unlockedAt)}",
+                        text = "Unlocked ${formatTimestamp(item.unlockedAt)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp),
@@ -382,9 +370,6 @@ private fun ProgressRow(item: AchievementItem) {
     }
 }
 
-/** Thousand separators, so "34,521 of 100,000" doesn't have to be counted digit by digit. */
-internal fun Int.grouped(): String = NumberFormat.getIntegerInstance().format(this)
-
 /**
  * Stops a row drawing anywhere above the bottom edge of the pinned category header, so it's cut off
  * at that edge rather than sliding underneath it. The header covers what's behind it, except at its
@@ -407,6 +392,3 @@ private fun Modifier.hiddenUnderPinnedHeader(listState: LazyListState, key: Any)
         else -> clipRect(top = hiddenHeight) { this@drawWithContent.drawContent() }
     }
 }
-
-private fun formatUnlockedAt(epochMillis: Long): String =
-    UNLOCKED_AT_FORMATTER.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))

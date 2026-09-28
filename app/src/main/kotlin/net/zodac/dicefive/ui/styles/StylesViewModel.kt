@@ -1,6 +1,5 @@
 package net.zodac.dicefive.ui.styles
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -12,6 +11,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.settings.SettingsRepository
+import net.zodac.dicefive.platform.AppContainer
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
@@ -53,8 +53,8 @@ class StylesViewModel(private val settingsRepository: SettingsRepository? = null
     }
 
     companion object {
-        fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
-            initializer { StylesViewModel(SettingsRepository(context.applicationContext)) }
+        fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
+            initializer { StylesViewModel(container.settingsRepository) }
         }
     }
 }

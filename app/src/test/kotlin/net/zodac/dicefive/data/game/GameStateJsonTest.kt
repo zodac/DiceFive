@@ -1,8 +1,14 @@
 package net.zodac.dicefive.data.game
 
-import net.zodac.dicefive.model.Difficulty
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
+import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
@@ -50,7 +56,7 @@ class GameStateJsonTest {
     @Test
     fun `decodes a save from before the turn timer field existed as no timer`() {
         val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
-        val legacyJson = org.json.JSONObject(GameStateJson.encode(state)).apply { remove("turnTimer") }.toString()
+        val legacyJson = JsonObject(GameStateJson.encode(state).toJsonObject() - "turnTimer").toString()
 
         val decoded = GameStateJson.decode(legacyJson)
 
@@ -136,9 +142,9 @@ class GameStateJsonTest {
     @Test
     fun `decodes a save from before the lastRoll field existed as no last roll`() {
         val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
-        val legacyJson = org.json.JSONObject(GameStateJson.encode(state)).apply {
-            getJSONArray("players").getJSONObject(0).remove("lastRoll")
-        }.toString()
+        val saved = GameStateJson.encode(state).toJsonObject()
+        val player = saved.getValue("players").jsonArray[0].jsonObject
+        val legacyJson = JsonObject(saved + ("players" to JsonArray(listOf(JsonObject(player - "lastRoll"))))).toString()
 
         val decoded = GameStateJson.decode(legacyJson)
 
@@ -148,10 +154,7 @@ class GameStateJsonTest {
     @Test
     fun `decodes a save from before game modes existed as Standard`() {
         val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
-        val legacyJson = org.json.JSONObject(GameStateJson.encode(state)).apply {
-            remove("gameMode")
-            put("gameType", "CLASSIC")
-        }.toString()
+        val legacyJson = JsonObject(GameStateJson.encode(state).toJsonObject() - "gameMode" + ("gameType" to JsonPrimitive("CLASSIC"))).toString()
 
         val decoded = GameStateJson.decode(legacyJson)
 
@@ -159,3 +162,5 @@ class GameStateJsonTest {
         assertEquals(state, decoded)
     }
 }
+
+private fun String.toJsonObject(): JsonObject = Json.parseToJsonElement(this).jsonObject

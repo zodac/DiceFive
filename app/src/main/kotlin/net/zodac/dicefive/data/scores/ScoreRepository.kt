@@ -1,6 +1,7 @@
 package net.zodac.dicefive.data.scores
 
 import net.zodac.dicefive.game.LeaderboardTotals
+import net.zodac.dicefive.game.nowEpochMillis
 
 /** How many leaderboard rows make up one page. Was 100; halved so a page is a shorter scroll. */
 const val SCORES_PAGE_SIZE = 50
@@ -18,7 +19,7 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
         chanceScore: Int? = null,
         threeOfAKindScore: Int? = null,
         fourOfAKindScore: Int? = null,
-        timestampEpochMillis: Long = System.currentTimeMillis(),
+        timestampEpochMillis: Long = nowEpochMillis(),
     ) {
         scoreDao.insert(
             ScoreEntry(

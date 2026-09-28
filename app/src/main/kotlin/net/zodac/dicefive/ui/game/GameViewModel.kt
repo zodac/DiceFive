@@ -1,6 +1,5 @@
 package net.zodac.dicefive.ui.game
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -26,25 +25,23 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import net.zodac.dicefive.BuildConfig
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementStore
-import net.zodac.dicefive.data.achievements.AchievementsRepository
 import net.zodac.dicefive.data.game.InProgressGameRepository
-import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.AchievementUpdate
 import net.zodac.dicefive.game.AiNameGenerator
 import net.zodac.dicefive.game.AiTurnPlayer
+import net.zodac.dicefive.game.DiceScoring
 import net.zodac.dicefive.game.GameAchievementContext
 import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.game.GameStartContext
 import net.zodac.dicefive.game.LeaderboardTotals
-import net.zodac.dicefive.game.DiceScoring
 import net.zodac.dicefive.game.ScoreCalculator
+import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.game.toTieBreakStats
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.Die
@@ -52,12 +49,13 @@ import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerConfig
-import net.zodac.dicefive.model.isLuckOfTheIrish
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
+import net.zodac.dicefive.model.isLuckOfTheIrish
+import net.zodac.dicefive.platform.AppContainer
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
@@ -132,6 +130,8 @@ class GameViewModel(
      * [kotlinx.coroutines.test.TestDispatcher] for `Dispatchers.Main` can pass that same dispatcher
      * here too - Default's real thread pool isn't advanced by that test's `advanceUntilIdle()`. */
     private val aiDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    /** Whether this is a debug build - superuser mode never activates without it. */
+    private val isDebugBuild: Boolean = false,
 ) : ViewModel() {
 
     private val _setup = MutableStateFlow(GameSetupState())
@@ -435,7 +435,7 @@ class GameViewModel(
      * actually being held and it being the human's turn, in case a stale call lands after either
      * stops being true - e.g. the turn ended mid-press). */
     fun cycleHeldDieValue(dieIndex: Int) {
-        if (!BuildConfig.DEBUG || !_superuserModeActive.value) return
+        if (!isDebugBuild || !_superuserModeActive.value) return
         val state = _game.value ?: return
         if (state.currentPlayer?.type != PlayerType.HUMAN) return
         if (state.dice.getOrNull(dieIndex)?.isHeld != true) return
@@ -558,7 +558,7 @@ class GameViewModel(
             if (superuserSequenceDieIndex == state.dice.size) {
                 resetSuperuserSequence()
                 if (state.currentPlayerIndex == 0) unlockAchievements(setOf(Achievement.TIME_WASTING))
-                if (BuildConfig.DEBUG) {
+                if (isDebugBuild) {
                     _superuserModeActive.value = true
                     _toastMessages.trySend("Superuser mode activated!")
                 }
@@ -765,7 +765,7 @@ class GameViewModel(
                 gameMode = gameMode,
             )
             withAchievementLock {
-                val update = AchievementEngine.evaluateAtGameStart(context, repository.current(), System.currentTimeMillis())
+                val update = AchievementEngine.evaluateAtGameStart(context, repository.current(), nowEpochMillis())
                 persistAndAnnounce(repository, update)
             }
         }
@@ -786,7 +786,7 @@ class GameViewModel(
 
         viewModelScope.launch {
             withAchievementLock {
-                val update = AchievementEngine.evaluateInProgress(state, repository.current(), System.currentTimeMillis())
+                val update = AchievementEngine.evaluateInProgress(state, repository.current(), nowEpochMillis())
                 persistAndAnnounce(repository, update)
             }
         }
@@ -807,7 +807,7 @@ class GameViewModel(
             playerOneTookExtraRoll = playerOneTookExtraRoll,
         )
         withAchievementLock {
-            val update = AchievementEngine.evaluate(state, context, repository.current(), System.currentTimeMillis())
+            val update = AchievementEngine.evaluate(state, context, repository.current(), nowEpochMillis())
             persistAndAnnounce(repository, update)
         }
     }
@@ -1131,7 +1131,7 @@ class GameViewModel(
         viewModelScope.launch {
             withAchievementLock {
                 val before = repository.current()
-                val update = AchievementEngine.unlockNow(achievements, before, System.currentTimeMillis())
+                val update = AchievementEngine.unlockNow(achievements, before, nowEpochMillis())
                 persistAndAnnounce(repository, update)
             }
         }
@@ -1372,14 +1372,14 @@ class GameViewModel(
         private const val ZODAC_PLAYER_NAME = "zodac"
 
         /** Builds a [GameViewModel] backed by real Room/DataStore persistence. */
-        fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
+        fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                val appContext = context.applicationContext
                 GameViewModel(
-                    scoreRepository = ScoreRepository(AppDatabase.getInstance(appContext).scoreDao()),
-                    settingsRepository = SettingsRepository(appContext),
-                    inProgressGameRepository = InProgressGameRepository(appContext),
-                    achievementsRepository = AchievementsRepository(appContext),
+                    scoreRepository = container.scoreRepository,
+                    settingsRepository = container.settingsRepository,
+                    inProgressGameRepository = container.inProgressGameRepository,
+                    achievementsRepository = container.achievementsRepository,
+                    isDebugBuild = container.buildInfo.isDebug,
                 )
             }
         }

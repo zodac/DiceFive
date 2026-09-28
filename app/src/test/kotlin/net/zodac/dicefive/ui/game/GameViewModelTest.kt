@@ -12,7 +12,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import net.zodac.dicefive.BuildConfig
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
@@ -25,7 +24,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -388,11 +386,9 @@ class GameViewModelTest {
 
     @Test
     fun `holding and unholding all five dice in order activates superuser mode`() = runTest(testDispatcher) {
-        // The whole feature is gated on BuildConfig.DEBUG (never available in a release build -
-        // see GameViewModel.trackSuperuserSequence); skip rather than fail under a variant where
-        // that's false, since a release variant correctly refusing to activate isn't a test failure.
-        assumeTrue(BuildConfig.DEBUG)
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        // The whole feature is gated on a debug build (never available in a release build - see
+        // GameViewModel.trackSuperuserSequence), so this is one; the release side is covered below.
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, isDebugBuild = true)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
         viewModel.rollDice()
@@ -409,6 +405,21 @@ class GameViewModelTest {
         assertTrue(viewModel.superuserModeActive.value)
         assertEquals("Superuser mode activated!", toastMessage)
         collectJob.cancel()
+    }
+
+    @Test
+    fun `the superuser sequence never activates superuser mode in a release build`() {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, isDebugBuild = false)
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+        viewModel.rollDice()
+
+        for (dieIndex in 0..4) {
+            viewModel.toggleHold(dieIndex)
+            viewModel.toggleHold(dieIndex)
+        }
+
+        assertFalse(viewModel.superuserModeActive.value)
     }
 
     @Test
@@ -434,8 +445,7 @@ class GameViewModelTest {
 
     @Test
     fun `superuser sequence activates on a later turn, not just the first`() {
-        assumeTrue(BuildConfig.DEBUG)
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, isDebugBuild = true)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
         viewModel.rollDice()
@@ -467,8 +477,7 @@ class GameViewModelTest {
     @Test
     fun `cycleHeldDieValue advances the die's face once superuser mode is active`() = runTest(testDispatcher) {
         // See the comment on the activation test above - this needs the feature reachable at all.
-        assumeTrue(BuildConfig.DEBUG)
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, isDebugBuild = true)
         viewModel.setPlayerCount(1)
         viewModel.startGame()
         viewModel.rollDice()

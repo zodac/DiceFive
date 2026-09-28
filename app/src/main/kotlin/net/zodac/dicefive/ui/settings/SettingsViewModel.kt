@@ -1,6 +1,5 @@
 package net.zodac.dicefive.ui.settings
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -14,12 +13,12 @@ import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementStore
-import net.zodac.dicefive.data.achievements.AchievementsRepository
-import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.AchievementEngine
+import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.platform.AppContainer
 
 /** All repositories are nullable so this stays constructible/testable without a Context - see [factory]. */
 class SettingsViewModel(
@@ -59,7 +58,7 @@ class SettingsViewModel(
         val repository = achievementsRepository ?: return
         viewModelScope.launch {
             val before = repository.current()
-            val update = AchievementEngine.unlockNow(setOf(Achievement.WHO_MADE_THIS), before, System.currentTimeMillis())
+            val update = AchievementEngine.unlockNow(setOf(Achievement.WHO_MADE_THIS), before, nowEpochMillis())
             if (update.isEmpty) return@launch
             // Stored before it's announced, so a banner can never outlive its unlock.
             repository.record(update.unlockedAt(), update.counters)
@@ -90,13 +89,12 @@ class SettingsViewModel(
     }
 
     companion object {
-        fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
+        fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                val appContext = context.applicationContext
                 SettingsViewModel(
-                    settingsRepository = SettingsRepository(appContext),
-                    achievementsRepository = AchievementsRepository(appContext),
-                    scoreRepository = ScoreRepository(AppDatabase.getInstance(appContext).scoreDao()),
+                    settingsRepository = container.settingsRepository,
+                    achievementsRepository = container.achievementsRepository,
+                    scoreRepository = container.scoreRepository,
                 )
             }
         }
