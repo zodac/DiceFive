@@ -162,7 +162,7 @@ fun DiceCupPanel(
             ) {
                 val upperTotal = player?.upperSectionTotal ?: 0
                 val upperBonus = player?.upperSectionBonus ?: 0
-                val lowerTotal = player?.lowerSectionTotalExcludingFiveOfAKind ?: 0
+                val lowerTotal = (player?.lowerSectionTotal ?: 0) + (player?.fiveOfAKindBonusTotal ?: 0)
                 // Clearance from the score grid's rightmost column - which can render a 2-digit score
                 // past its own column's edge - comes from GameBoard's inter-panel gap and weight split,
                 // not from padding here specifically, so every row of this panel (this one, the cup, the
