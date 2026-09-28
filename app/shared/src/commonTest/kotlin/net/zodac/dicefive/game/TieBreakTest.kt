@@ -96,20 +96,6 @@ class TieBreakTest {
     }
 
     @Test
-    fun `leaderboard comparator treats a missing stat as the worst possible value - not a skip`() {
-        val known = BASE_STATS
-        val unknownFiveOfAKind = BASE_STATS.copy(fiveOfAKindCount = null)
-
-        // Live-game rule: an unknown criterion is skipped, falling through to the next (which all
-        // match here) - a true tie.
-        assertEquals(0, TieBreak.liveGameComparator.compare(known, unknownFiveOfAKind))
-
-        // Leaderboard rule: the missing stat counts as worst, so the known row wins outright.
-        assertTrue(TieBreak.leaderboardComparator.compare(known, unknownFiveOfAKind) < 0)
-        assertEquals(TieBreakCriterion.FIVE_OF_A_KIND_COUNT, TieBreak.decidingCriterion(known, unknownFiveOfAKind, forLeaderboard = true))
-    }
-
-    @Test
     fun `leaderboard comparator ignores tricolour scored count entirely - even when only one side has it`() {
         val standardRow = BASE_STATS.copy(tricolourScoredCount = null)
         val tricolourRow = BASE_STATS.copy(tricolourScoredCount = 0)

@@ -1,6 +1,7 @@
 package net.zodac.dicefive.data.scores
 
 import net.zodac.dicefive.game.LeaderboardTotals
+import net.zodac.dicefive.game.TieBreakStats
 import net.zodac.dicefive.game.nowEpochMillis
 
 /** How many leaderboard rows make up one page. Was 100; halved so a page is a shorter scroll. */
@@ -8,32 +9,31 @@ const val SCORES_PAGE_SIZE = 50
 
 class ScoreRepository(private val scoreDao: ScoreDao) {
 
+    /**
+     * Records one human player's finished game: their score and tie-break stats (see
+     * [PlayerState.toTieBreakStats][net.zodac.dicefive.game.toTieBreakStats]), whether they won
+     * (null for a solo game), and whether they were player 1.
+     */
     suspend fun recordScore(
         playerName: String,
-        score: Int,
-        won: Boolean? = null,
-        isPrimaryPlayer: Boolean = false,
-        fiveOfAKindCount: Int? = null,
-        zeroedCategoryCount: Int? = null,
-        upperSectionTotal: Int? = null,
-        chanceScore: Int? = null,
-        threeOfAKindScore: Int? = null,
-        fourOfAKindScore: Int? = null,
+        stats: TieBreakStats,
+        won: Boolean?,
+        isPrimaryPlayer: Boolean,
         timestampEpochMillis: Long = nowEpochMillis(),
     ) {
         scoreDao.insert(
             ScoreEntry(
                 playerName = playerName,
-                score = score,
+                score = stats.score,
                 timestampEpochMillis = timestampEpochMillis,
                 won = won,
                 isPrimaryPlayer = isPrimaryPlayer,
-                fiveOfAKindCount = fiveOfAKindCount,
-                zeroedCategoryCount = zeroedCategoryCount,
-                upperSectionTotal = upperSectionTotal,
-                chanceScore = chanceScore,
-                threeOfAKindScore = threeOfAKindScore,
-                fourOfAKindScore = fourOfAKindScore,
+                fiveOfAKindCount = stats.fiveOfAKindCount,
+                zeroedCategoryCount = stats.zeroedCategoryCount,
+                upperSectionTotal = stats.upperSectionTotal,
+                chanceScore = stats.chance,
+                threeOfAKindScore = stats.threeOfAKind,
+                fourOfAKindScore = stats.fourOfAKind,
             ),
         )
         // A dismissed player who plays again clearly cares about their stats once more.

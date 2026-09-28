@@ -4,6 +4,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
+import net.zodac.dicefive.game.TieBreakStats
+import net.zodac.dicefive.game.nowEpochMillis
 
 /**
  * Hand-written in-memory double for [ScoreDao] - lets [ScoreRepository]'s
@@ -71,14 +73,38 @@ private class FakeScoreDao : ScoreDao {
     }
 }
 
+/** Records a score for a test that doesn't care about its tie-break stats - all zero bar the score. */
+private suspend fun ScoreRepository.record(
+    playerName: String,
+    score: Int,
+    won: Boolean? = null,
+    isPrimaryPlayer: Boolean = false,
+    timestampEpochMillis: Long = nowEpochMillis(),
+) = recordScore(
+    playerName = playerName,
+    stats = TieBreakStats(
+        score = score,
+        fiveOfAKindCount = 0,
+        zeroedCategoryCount = 0,
+        tricolourScoredCount = null,
+        upperSectionTotal = 0,
+        chance = 0,
+        threeOfAKind = 0,
+        fourOfAKind = 0,
+    ),
+    won = won,
+    isPrimaryPlayer = isPrimaryPlayer,
+    timestampEpochMillis = timestampEpochMillis,
+)
+
 class ScoreRepositoryTest {
 
     @Test
     fun `recordScore inserts an entry reflected in totalCount`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
 
-        repository.recordScore("Alice", 250)
-        repository.recordScore("Bob", 180)
+        repository.record("Alice", 250)
+        repository.record("Bob", 180)
 
         assertEquals(2, repository.totalCount())
     }
@@ -86,9 +112,9 @@ class ScoreRepositoryTest {
     @Test
     fun `page returns scores ordered highest first`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
-        repository.recordScore("Alice", 150)
-        repository.recordScore("Bob", 300)
-        repository.recordScore("Carol", 220)
+        repository.record("Alice", 150)
+        repository.record("Bob", 300)
+        repository.record("Carol", 220)
 
         val page = repository.page(pageIndex = 0, pageSize = 100)
 
@@ -98,7 +124,7 @@ class ScoreRepositoryTest {
     @Test
     fun `page respects page size and offset`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
-        repeat(5) { repository.recordScore("Player$it", it * 10) }
+        repeat(5) { repository.record("Player$it", it * 10) }
 
         val firstPage = repository.page(pageIndex = 0, pageSize = 2)
         val secondPage = repository.page(pageIndex = 1, pageSize = 2)
@@ -111,9 +137,9 @@ class ScoreRepositoryTest {
     @Test
     fun `playerStatistics groups by player name with games played - max score and first played`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
-        repository.recordScore("Alice", 150, timestampEpochMillis = 1_000L)
-        repository.recordScore("Alice", 300, timestampEpochMillis = 2_000L)
-        repository.recordScore("Bob", 220, timestampEpochMillis = 1_500L)
+        repository.record("Alice", 150, timestampEpochMillis = 1_000L)
+        repository.record("Alice", 300, timestampEpochMillis = 2_000L)
+        repository.record("Bob", 220, timestampEpochMillis = 1_500L)
 
         val stats = repository.playerStatistics()
 
@@ -127,9 +153,9 @@ class ScoreRepositoryTest {
     @Test
     fun `playerStatistics counts wins and losses from recorded outcomes`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
-        repository.recordScore("Alice", 300, won = true, timestampEpochMillis = 1_000L)
-        repository.recordScore("Alice", 150, won = false, timestampEpochMillis = 2_000L)
-        repository.recordScore("Alice", 200, won = null, timestampEpochMillis = 3_000L)
+        repository.record("Alice", 300, won = true, timestampEpochMillis = 1_000L)
+        repository.record("Alice", 150, won = false, timestampEpochMillis = 2_000L)
+        repository.record("Alice", 200, won = null, timestampEpochMillis = 3_000L)
 
         val alice = repository.playerStatistics().single { it.playerName == "Alice" }
 
@@ -141,9 +167,9 @@ class ScoreRepositoryTest {
     @Test
     fun `current win streak counts consecutive wins back from the most recent game`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
-        repository.recordScore("Alice", 100, won = false, timestampEpochMillis = 1_000L)
-        repository.recordScore("Alice", 200, won = true, timestampEpochMillis = 2_000L)
-        repository.recordScore("Alice", 300, won = true, timestampEpochMillis = 3_000L)
+        repository.record("Alice", 100, won = false, timestampEpochMillis = 1_000L)
+        repository.record("Alice", 200, won = true, timestampEpochMillis = 2_000L)
+        repository.record("Alice", 300, won = true, timestampEpochMillis = 3_000L)
 
         val alice = repository.playerStatistics().single { it.playerName == "Alice" }
 
@@ -153,9 +179,9 @@ class ScoreRepositoryTest {
     @Test
     fun `current win streak treats a solo - null outcome - game as neutral - not a break`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
-        repository.recordScore("Alice", 100, won = true, timestampEpochMillis = 1_000L)
-        repository.recordScore("Alice", 200, won = null, timestampEpochMillis = 2_000L)
-        repository.recordScore("Alice", 300, won = true, timestampEpochMillis = 3_000L)
+        repository.record("Alice", 100, won = true, timestampEpochMillis = 1_000L)
+        repository.record("Alice", 200, won = null, timestampEpochMillis = 2_000L)
+        repository.record("Alice", 300, won = true, timestampEpochMillis = 3_000L)
 
         val alice = repository.playerStatistics().single { it.playerName == "Alice" }
 
@@ -166,11 +192,11 @@ class ScoreRepositoryTest {
     fun `best win streak is the longest run of wins anywhere in the history - not just the current one`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
         // Oldest to newest: win, win, win, loss, win - a 3-game run that's since been broken.
-        repository.recordScore("Alice", 100, won = true, timestampEpochMillis = 1_000L)
-        repository.recordScore("Alice", 100, won = true, timestampEpochMillis = 2_000L)
-        repository.recordScore("Alice", 100, won = true, timestampEpochMillis = 3_000L)
-        repository.recordScore("Alice", 100, won = false, timestampEpochMillis = 4_000L)
-        repository.recordScore("Alice", 100, won = true, timestampEpochMillis = 5_000L)
+        repository.record("Alice", 100, won = true, timestampEpochMillis = 1_000L)
+        repository.record("Alice", 100, won = true, timestampEpochMillis = 2_000L)
+        repository.record("Alice", 100, won = true, timestampEpochMillis = 3_000L)
+        repository.record("Alice", 100, won = false, timestampEpochMillis = 4_000L)
+        repository.record("Alice", 100, won = true, timestampEpochMillis = 5_000L)
 
         val alice = repository.playerStatistics().single { it.playerName == "Alice" }
 
@@ -181,9 +207,9 @@ class ScoreRepositoryTest {
     @Test
     fun `best win streak also ignores solo - null outcome - games`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
-        repository.recordScore("Alice", 100, won = true, timestampEpochMillis = 1_000L)
-        repository.recordScore("Alice", 100, won = null, timestampEpochMillis = 2_000L)
-        repository.recordScore("Alice", 100, won = true, timestampEpochMillis = 3_000L)
+        repository.record("Alice", 100, won = true, timestampEpochMillis = 1_000L)
+        repository.record("Alice", 100, won = null, timestampEpochMillis = 2_000L)
+        repository.record("Alice", 100, won = true, timestampEpochMillis = 3_000L)
 
         val alice = repository.playerStatistics().single { it.playerName == "Alice" }
 
@@ -193,9 +219,9 @@ class ScoreRepositoryTest {
     @Test
     fun `bestScoreForPlayer is scoped to that name - not the whole leaderboard`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
-        repository.recordScore("Alice", 150)
-        repository.recordScore("Alice", 300)
-        repository.recordScore("Bob", 500)
+        repository.record("Alice", 150)
+        repository.record("Alice", 300)
+        repository.record("Bob", 500)
 
         assertEquals(300, repository.bestScoreForPlayer("Alice"))
         assertEquals(500, repository.bestScoreForPlayer("Bob"))
@@ -205,8 +231,8 @@ class ScoreRepositoryTest {
     @Test
     fun `resetLeaderboard removes every recorded score`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
-        repository.recordScore("Alice", 150)
-        repository.recordScore("Bob", 300)
+        repository.record("Alice", 150)
+        repository.record("Bob", 300)
 
         repository.resetLeaderboard()
 
@@ -216,8 +242,8 @@ class ScoreRepositoryTest {
     @Test
     fun `dismissPlayerStatistics hides a player from statistics without touching their scores`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
-        repository.recordScore("Alice", 150)
-        repository.recordScore("Bob", 300)
+        repository.record("Alice", 150)
+        repository.record("Bob", 300)
 
         repository.dismissPlayerStatistics("Alice")
 
@@ -229,10 +255,10 @@ class ScoreRepositoryTest {
     @Test
     fun `recording a new score for a dismissed player un-hides their statistics`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
-        repository.recordScore("Alice", 150)
+        repository.record("Alice", 150)
         repository.dismissPlayerStatistics("Alice")
 
-        repository.recordScore("Alice", 200)
+        repository.record("Alice", 200)
 
         assertEquals(listOf("Alice"), repository.playerStatistics().map { it.playerName })
     }
@@ -240,10 +266,10 @@ class ScoreRepositoryTest {
     @Test
     fun `primaryPlayerTotalPoints only sums rows recorded as the primary player`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
-        repository.recordScore("Alice", 150, isPrimaryPlayer = true)
+        repository.record("Alice", 150, isPrimaryPlayer = true)
         // A second human seat in the same local game - must not count towards Alice's career points.
-        repository.recordScore("Bob", 300, isPrimaryPlayer = false)
-        repository.recordScore("Alice", 250, isPrimaryPlayer = true)
+        repository.record("Bob", 300, isPrimaryPlayer = false)
+        repository.record("Alice", 250, isPrimaryPlayer = true)
 
         assertEquals(400, repository.primaryPlayerTotalPoints())
     }

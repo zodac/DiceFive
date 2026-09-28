@@ -1226,18 +1226,7 @@ class GameViewModel(
                 // achievements/statistics untouched.
                 val tieBreakStats = player.toTieBreakStats()
                 // Index 0 is always the primary player ("You") - see AchievementEngine's class doc.
-                repository.recordScore(
-                    player.name,
-                    player.totalScore,
-                    won = won,
-                    isPrimaryPlayer = index == 0,
-                    fiveOfAKindCount = player.fiveOfAKindCount,
-                    zeroedCategoryCount = tieBreakStats.zeroedCategoryCount,
-                    upperSectionTotal = tieBreakStats.upperSectionTotal,
-                    chanceScore = tieBreakStats.chance,
-                    threeOfAKindScore = tieBreakStats.threeOfAKind,
-                    fourOfAKindScore = tieBreakStats.fourOfAKind,
-                )
+                repository.recordScore(player.name, tieBreakStats, won = won, isPrimaryPlayer = index == 0)
             }
         }
     }
