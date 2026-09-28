@@ -141,6 +141,14 @@ prefixed with the platform's name (`AndroidSoundPlayer`, `IosSoundPlayer`).
 
 ## Gotchas worth not re-learning
 
+- **The KMP library plugin creates no lint tasks for its main code** unless `com.android.lint` is
+  also applied - so `app/shared` applies it, and `app/android`'s lint sets `checkDependencies = true`,
+  which makes the `lintDebug` CI already runs analyse the shared code under the app's rules. Verified
+  by planting a lint error in `commonMain`: it failed `lintDebug`, which it silently hadn't before.
+- **`app/shared` reads `compileSdk`, `compileSdkMinor` and `minSdk` from
+  `app/android/build.gradle.kts`** (the file the dependency-update and SDK-package scripts edit), so
+  the two modules can't compile against different SDKs. Keep those as plain `name = <number>` lines.
+
 - **Watch the release APK size before adding a multiplatform library.** It was 1.93MB before the
   port and reached 2.03MB; dropping kotlinx.serialization and kotlinx-datetime for small
   hand-written/platform code brought it to 1.95MB. What remains (~16KB) is Compose Multiplatform's

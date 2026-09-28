@@ -11,6 +11,9 @@ plugins {
     // combined with Kotlin Multiplatform any more (nor can com.android.application, which is why the
     // APK is built by the separate :app:android module).
     alias(libs.plugins.android.kotlin.multiplatform.library)
+    // Without this the KMP library plugin creates no lint tasks for the main code at all - and this
+    // module is most of the app. See the lint block below.
+    alias(libs.plugins.android.lint)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.jetbrains.compose)
     alias(libs.plugins.ksp)
@@ -22,14 +25,26 @@ val javaVersion: Int = Properties()
     .apply { rootProject.file("gradle/gradle-daemon-jvm.properties").inputStream().use(::load) }
     .getProperty("toolchainVersion").trim().toInt()
 
+// compileSdk (with its minor) and minSdk have one home, app/android/build.gradle.kts - it's where the
+// reasoning for each lives, and the file the dependency-update script and CI's SDK-package script read
+// and bump. This reads them from there, so the two modules can never compile against different SDKs.
+val androidAppBuildScript = rootProject.file("app/android/build.gradle.kts").readText()
+fun androidAppSetting(name: String, default: Int? = null): Int =
+    Regex("""^\s*$name\s*=\s*(\d+)""", RegexOption.MULTILINE).find(androidAppBuildScript)?.groupValues?.get(1)?.toInt()
+        ?: default
+        ?: throw GradleException("app/android/build.gradle.kts has no `$name = <number>` for :app:shared to share")
+
 kotlin {
     jvmToolchain(javaVersion)
 
     android {
         namespace = "net.zodac.dicefive.shared"
-        // In step with :app:android's compileSdk/minSdk (app/android/build.gradle.kts has the reasoning for each).
-        compileSdk = 37
-        minSdk = 26
+        compileSdk {
+            version = release(androidAppSetting("compileSdk")) {
+                minorApiLevel = androidAppSetting("compileSdkMinor", default = 0)
+            }
+        }
+        minSdk = androidAppSetting("minSdk")
         compilerOptions {
             jvmTarget = JvmTarget.fromTarget(javaVersion.toString())
         }
@@ -37,6 +52,10 @@ kotlin {
         withHostTest {}
         // Compose Multiplatform resources (composeResources/) ship inside the AAR as Android assets.
         androidResources { enable = true }
+        // The same rules as :app:android's lint - deprecated and obsolete usages are errors.
+        lint {
+            error += setOf("Deprecated", "ObsoleteSdkInt")
+        }
     }
 
     // Compiled on every host, so a JVM-only API slipping into commonMain fails the build here, not

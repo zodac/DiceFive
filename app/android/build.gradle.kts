@@ -144,6 +144,10 @@ android {
         // as warnings. The Kotlin compiler flag below does the same for deprecated APIs in code, and
         // gradle.properties' org.gradle.kotlin.dsl.allWarningsAsErrors for the build scripts.
         error += setOf("Deprecated", "ObsoleteSdkInt")
+        // Most of the app's code - the game, its UI, its storage - lives in :app:shared, which has no
+        // lint run of its own for its main code. Checking dependencies makes this module's lintDebug
+        // (the one CI runs) analyse it too, under these same rules.
+        checkDependencies = true
     }
 }
 
