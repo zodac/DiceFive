@@ -104,6 +104,11 @@ ARG GID=1000
 # ANDROID_HOME / ANDROID_SDK_ROOT — both set to the same path: AGP and most current
 #   tooling read ANDROID_HOME, but ANDROID_SDK_ROOT is still checked by some older
 #   Gradle/CI tooling, so set both rather than assume which one a given plugin reads.
+# KONAN_DATA_DIR — Kotlin/Native's toolchain (a few hundred MB, needed because every build
+#   compiles app/shared for iOS) lives inside the persisted ~/.gradle volume instead of its
+#   default ~/.konan, which nothing persists - so it downloads once per volume, not once per
+#   container. Not baked into the image: it's pinned to the Kotlin version, which the monthly
+#   dependency update moves, and a stale copy would just be dead weight.
 ENV DEBIAN_FRONTEND=noninteractive \
     JAVA_HOME=/opt/java/openjdk \
     MAVEN_HOME=/opt/maven \
@@ -111,6 +116,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     ANDROID_SDK_ROOT=/opt/android-sdk \
     PLAYWRIGHT_BROWSERS_PATH=/home/dev/.cache/ms-playwright \
     CLAUDE_CONFIG_DIR=/home/dev/.claude \
+    KONAN_DATA_DIR=/home/dev/.gradle/konan \
     PATH=/home/dev/.npm-global/bin:/opt/java/openjdk/bin:/opt/maven/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:$PATH
 
 # pipefail for every RUN in this stage so a failure in the middle of a `getent … | cut` pipe (or any
