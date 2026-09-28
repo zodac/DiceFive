@@ -1,6 +1,5 @@
 package net.zodac.dicefive.ui.menu
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -10,9 +9,10 @@ import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementStore
-import net.zodac.dicefive.data.achievements.AchievementsRepository
 import net.zodac.dicefive.game.AchievementEngine
+import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.platform.AppContainer
 
 /**
  * Backs the one achievement the menu itself can earn - tapping its own logo dice ("Not Those
@@ -26,7 +26,7 @@ class MenuViewModel(private val achievementsRepository: AchievementStore? = null
         val repository = achievementsRepository ?: return
         viewModelScope.launch {
             val before = repository.current()
-            val update = AchievementEngine.unlockNow(setOf(Achievement.NOT_THOSE_DICE), before, System.currentTimeMillis())
+            val update = AchievementEngine.unlockNow(setOf(Achievement.NOT_THOSE_DICE), before, nowEpochMillis())
             if (update.isEmpty) return@launch
             // Stored before it's announced, so a banner can never outlive its unlock.
             repository.record(update.unlockedAt(), update.counters)
@@ -35,8 +35,8 @@ class MenuViewModel(private val achievementsRepository: AchievementStore? = null
     }
 
     companion object {
-        fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
-            initializer { MenuViewModel(AchievementsRepository(context.applicationContext)) }
+        fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
+            initializer { MenuViewModel(container.achievementsRepository) }
         }
     }
 }

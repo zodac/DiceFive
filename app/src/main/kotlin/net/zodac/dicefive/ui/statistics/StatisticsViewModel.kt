@@ -1,6 +1,5 @@
 package net.zodac.dicefive.ui.statistics
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -11,9 +10,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.PlayerStatistics
 import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.platform.AppContainer
 
 data class StatisticsUiState(
     val players: List<PlayerStatistics> = emptyList(),
@@ -49,11 +48,8 @@ class StatisticsViewModel(private val scoreRepository: ScoreRepository? = null) 
     }
 
     companion object {
-        fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                val scoreDao = AppDatabase.getInstance(context.applicationContext).scoreDao()
-                StatisticsViewModel(ScoreRepository(scoreDao))
-            }
+        fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
+            initializer { StatisticsViewModel(container.scoreRepository) }
         }
     }
 }

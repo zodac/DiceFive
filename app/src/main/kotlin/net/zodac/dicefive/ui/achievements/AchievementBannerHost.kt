@@ -18,8 +18,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
@@ -57,6 +57,7 @@ import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.DiceFiveDialog
+import net.zodac.dicefive.ui.common.grouped
 
 /** How long a banner sits at full opacity before it starts to go. */
 private const val HOLD_MILLIS = 2_000L

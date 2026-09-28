@@ -31,16 +31,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import net.zodac.dicefive.data.scores.PlayerStatistics
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
-
-private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
+import net.zodac.dicefive.ui.common.formatTimestamp
 
 /** [GameMode.HIGHEST_POSSIBLE_SCORE] (a perfect game in whichever mode allows the most) is the longest a score can ever be. */
 private val MAX_SCORE_DISPLAY_WIDTH = GameMode.HIGHEST_POSSIBLE_SCORE.toString().length
@@ -120,7 +116,7 @@ private fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = formatDateTime(player.firstPlayedEpochMillis),
+                    text = formatTimestamp(player.firstPlayedEpochMillis),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -157,6 +153,3 @@ private fun StatCell(label: String, value: String) {
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
-
-private fun formatDateTime(epochMillis: Long): String =
-    Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).format(DATE_FORMATTER)

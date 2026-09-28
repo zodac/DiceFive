@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
@@ -304,7 +305,7 @@ private fun randomBursts(random: Random): List<FireworkBurst> = List(BURST_COUNT
         // Kept off the very edges so a burst's outer sparks don't clip the screen bounds.
         center = Offset(x = 0.15f + random.nextFloat() * 0.7f, y = 0.12f + random.nextFloat() * 0.45f),
         angles = FloatArray(PARTICLES_PER_BURST) { i ->
-            (i / PARTICLES_PER_BURST.toFloat()) * (2 * Math.PI).toFloat() + random.nextFloat() * 0.3f
+            (i / PARTICLES_PER_BURST.toFloat()) * (2 * PI).toFloat() + random.nextFloat() * 0.3f
         },
         speeds = FloatArray(PARTICLES_PER_BURST) { 0.55f + random.nextFloat() * 0.45f },
         colors = List(PARTICLES_PER_BURST) { FIREWORK_GOLDS[random.nextInt(FIREWORK_GOLDS.size)] },
@@ -321,7 +322,7 @@ private fun randomBursts(random: Random): List<FireworkBurst> = List(BURST_COUNT
 @Composable
 private fun GoldFireworks(durationMillis: Int, modifier: Modifier = Modifier) {
     val progress = remember { Animatable(0f) }
-    val bursts = remember { randomBursts(Random(System.nanoTime())) }
+    val bursts = remember { randomBursts(Random.Default) }
     LaunchedEffect(Unit) {
         progress.animateTo(1f, animationSpec = tween(durationMillis = durationMillis, easing = LinearEasing))
     }

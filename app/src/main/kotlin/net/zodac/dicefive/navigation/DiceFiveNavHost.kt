@@ -15,16 +15,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
-import androidx.navigation.navArgument
 import androidx.navigation.compose.rememberNavController
-import net.zodac.dicefive.data.game.InProgressGameRepository
+import androidx.navigation.navArgument
+import net.zodac.dicefive.platform.LocalAppContainer
 import net.zodac.dicefive.ui.achievements.AchievementsScreen
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
 import net.zodac.dicefive.ui.common.BrandBackdrop
@@ -51,6 +50,7 @@ private const val SCREEN_TRANSITION_MILLIS = 350
 
 @Composable
 fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) {
+    val container = LocalAppContainer.current
     val fadeIn = fadeIn(animationSpec = tween(SCREEN_TRANSITION_MILLIS))
     val fadeOut = fadeOut(animationSpec = tween(SCREEN_TRANSITION_MILLIS))
 
@@ -63,10 +63,8 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
         popExitTransition = { fadeOut },
     ) {
         composable(Screen.MENU) {
-            val context = LocalContext.current
-            val inProgressGameRepository = remember { InProgressGameRepository(context) }
-            val hasInProgressGame by inProgressGameRepository.hasInProgressGame.collectAsState(initial = false)
-            val menuViewModel = viewModel<MenuViewModel>(factory = MenuViewModel.factory(context))
+            val hasInProgressGame by container.inProgressGameRepository.hasInProgressGame.collectAsState(initial = false)
+            val menuViewModel = viewModel<MenuViewModel>(factory = MenuViewModel.factory(container))
             MenuScreen(
                 hasInProgressGame = hasInProgressGame,
                 onContinue = { navController.navigate(Screen.playSetup(resume = true)) },
@@ -85,9 +83,8 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                 route = Screen.PLAY_SETUP_ROUTE,
                 arguments = listOf(navArgument("resume") { type = NavType.BoolType; defaultValue = false }),
             ) { backStackEntry ->
-                val context = LocalContext.current
                 val playGraphEntry = remember(backStackEntry) { navController.getBackStackEntry(Screen.PLAY_GRAPH) }
-                val viewModel = viewModel<GameViewModel>(playGraphEntry, factory = GameViewModel.factory(context))
+                val viewModel = viewModel<GameViewModel>(playGraphEntry, factory = GameViewModel.factory(container))
                 val resume = backStackEntry.arguments?.getBoolean("resume") ?: false
 
                 if (!resume) {
@@ -117,47 +114,41 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                 }
             }
             composable(Screen.PLAY_GAME) { backStackEntry ->
-                val context = LocalContext.current
                 val playGraphEntry = remember(backStackEntry) { navController.getBackStackEntry(Screen.PLAY_GRAPH) }
                 GameScreen(
-                    viewModel = viewModel<GameViewModel>(playGraphEntry, factory = GameViewModel.factory(context)),
+                    viewModel = viewModel<GameViewModel>(playGraphEntry, factory = GameViewModel.factory(container)),
                     onBackToMenu = { navController.popBackStack(Screen.MENU, inclusive = false) },
                 )
             }
         }
 
         composable(Screen.SCORES) {
-            val context = LocalContext.current
             ScoresScreen(
-                viewModel = viewModel(factory = ScoresViewModel.factory(context)),
+                viewModel = viewModel(factory = ScoresViewModel.factory(container)),
                 onBack = { navController.navigateUp() },
             )
         }
         composable(Screen.STATISTICS) {
-            val context = LocalContext.current
             StatisticsScreen(
-                viewModel = viewModel(factory = StatisticsViewModel.factory(context)),
+                viewModel = viewModel(factory = StatisticsViewModel.factory(container)),
                 onBack = { navController.navigateUp() },
             )
         }
         composable(Screen.ACHIEVEMENTS) {
-            val context = LocalContext.current
             AchievementsScreen(
-                viewModel = viewModel(factory = AchievementsViewModel.factory(context)),
+                viewModel = viewModel(factory = AchievementsViewModel.factory(container)),
                 onBack = { navController.navigateUp() },
             )
         }
         composable(Screen.SETTINGS) {
-            val context = LocalContext.current
             SettingsScreen(
-                viewModel = viewModel(factory = SettingsViewModel.factory(context)),
+                viewModel = viewModel(factory = SettingsViewModel.factory(container)),
                 onBack = { navController.navigateUp() },
             )
         }
         composable(Screen.STYLES) {
-            val context = LocalContext.current
             StylesScreen(
-                viewModel = viewModel(factory = StylesViewModel.factory(context)),
+                viewModel = viewModel(factory = StylesViewModel.factory(container)),
                 onBack = { navController.navigateUp() },
             )
         }

@@ -40,19 +40,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.game.TieBreak
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
+import net.zodac.dicefive.ui.common.formatTimestamp
 import net.zodac.dicefive.ui.theme.Bronze
 import net.zodac.dicefive.ui.theme.Silver
-
-private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
 
 /** [GameMode.HIGHEST_POSSIBLE_SCORE] (a perfect game in whichever mode allows the most) is the longest a score can ever be. */
 private val SCORE_DISPLAY_WIDTH = GameMode.HIGHEST_POSSIBLE_SCORE.toString().length
@@ -233,7 +229,7 @@ private fun ScoreRow(rank: Int, isTrueTie: Boolean, entry: ScoreEntry, striped: 
     val tooltipState = rememberTooltipState()
     TooltipBox(
         positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-        tooltip = { PlainTooltip { Text(text = formatDate(entry.timestampEpochMillis)) } },
+        tooltip = { PlainTooltip { Text(text = formatTimestamp(entry.timestampEpochMillis)) } },
         state = tooltipState,
     ) {
         Row(
@@ -337,6 +333,3 @@ private fun PaginationControls(
         }
     }
 }
-
-private fun formatDate(epochMillis: Long): String =
-    Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).format(DATE_FORMATTER)

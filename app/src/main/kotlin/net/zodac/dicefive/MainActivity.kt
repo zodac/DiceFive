@@ -6,12 +6,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
-import net.zodac.dicefive.navigation.DiceFiveNavHost
-import net.zodac.dicefive.ui.achievements.AchievementBannerHost
-import net.zodac.dicefive.ui.theme.DiceFiveTheme
+import net.zodac.dicefive.device.AndroidAppContainer
+import net.zodac.dicefive.device.AndroidPlatformServices
+import net.zodac.dicefive.ui.DiceFiveApp
 
 class MainActivity : ComponentActivity() {
 
@@ -26,17 +23,10 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        val container = AndroidAppContainer.get(this)
+        val platform = AndroidPlatformServices(this)
         setContent {
-            DiceFiveTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    // Above the NavHost, not inside it: the burst of banners at the end of a game
-                    // has to survive the move from the board to the results screen and on to the
-                    // menu, which a per-destination overlay wouldn't.
-                    AchievementBannerHost(modifier = Modifier.fillMaxSize()) {
-                        DiceFiveNavHost()
-                    }
-                }
-            }
+            DiceFiveApp(container = container, platform = platform)
         }
     }
 }

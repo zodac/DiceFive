@@ -1,6 +1,5 @@
 package net.zodac.dicefive.ui.achievements
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -17,19 +16,18 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import net.zodac.dicefive.BuildConfig
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementStore
-import net.zodac.dicefive.data.achievements.AchievementsRepository
 import net.zodac.dicefive.data.achievements.AchievementsState
-import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.LeaderboardTotals
+import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.AchievementVisibility
+import net.zodac.dicefive.platform.AppContainer
 
 /** One row on the achievements list. [unlockedAt] is null while it's still locked. */
 data class AchievementItem(
@@ -57,6 +55,8 @@ data class AchievementsUiState(
 class AchievementsViewModel(
     private val achievementsRepository: AchievementStore? = null,
     private val scoreRepository: ScoreRepository? = null,
+    /** Whether this is a debug build - superuser mode never activates without it. */
+    private val isDebugBuild: Boolean = false,
 ) : ViewModel() {
 
     // Read once: the leaderboard only changes when a game finishes, which can't happen while this
@@ -66,7 +66,7 @@ class AchievementsViewModel(
     // ---- Superuser mode (debug-only) -----------------------------------------------------------
     // A hidden tester's cheat: tap the unlocked-count banner SUPERUSER_TAP_TARGET times to enter
     // it, then long-press any row to force it locked/unlocked - see onUnlockedCountTapped and
-    // onSuperuserLongPressTick. Entirely BuildConfig.DEBUG-gated (unlike GameViewModel's dice-hold
+    // onSuperuserLongPressTick. Entirely [isDebugBuild]-gated (unlike GameViewModel's dice-hold
     // cheat, this isn't a discoverable easter egg tied to an achievement, so there's no reason to
     // track anything toward it in a release build).
     private val _superuserModeActive = MutableStateFlow(false)
@@ -105,7 +105,7 @@ class AchievementsViewModel(
 
     /** The unlocked-count banner's tap-5-times entry point into superuser mode. */
     fun onUnlockedCountTapped() {
-        if (!BuildConfig.DEBUG || _superuserModeActive.value) return
+        if (!isDebugBuild || _superuserModeActive.value) return
         unlockedCountTapCount++
         if (unlockedCountTapCount >= SUPERUSER_TAP_TARGET) {
             unlockedCountTapCount = 0
@@ -127,7 +127,7 @@ class AchievementsViewModel(
      *    100,000, and nobody's holding a row for that long one tick at a time.
      */
     fun onSuperuserLongPressTick(achievement: Achievement, tickCount: Int) {
-        if (!BuildConfig.DEBUG || !_superuserModeActive.value) return
+        if (!isDebugBuild || !_superuserModeActive.value) return
         val repository = achievementsRepository ?: return
         viewModelScope.launch {
             val before = repository.current()
@@ -151,13 +151,13 @@ class AchievementsViewModel(
      * just does whichever of "unlock the rest" or "lock everything" the current state calls for.
      */
     fun onBannerLongPress() {
-        if (!BuildConfig.DEBUG || !_superuserModeActive.value) return
+        if (!isDebugBuild || !_superuserModeActive.value) return
         val repository = achievementsRepository ?: return
         viewModelScope.launch {
             val before = repository.current()
             val locked = Achievement.entries.filterNot(before::isUnlocked)
             if (locked.isNotEmpty()) {
-                val update = AchievementEngine.unlockNow(locked.toSet(), before, System.currentTimeMillis())
+                val update = AchievementEngine.unlockNow(locked.toSet(), before, nowEpochMillis())
                 if (!update.isEmpty) {
                     repository.record(update.unlockedAt(), update.counters)
                     update.newlyUnlocked.forEach { AchievementEvents.emit(AchievementEvent.Unlocked(it)) }
@@ -175,7 +175,7 @@ class AchievementsViewModel(
     }
 
     private suspend fun forceUnlock(repository: AchievementStore, achievement: Achievement, before: AchievementsState) {
-        val update = AchievementEngine.unlockNow(setOf(achievement), before, System.currentTimeMillis())
+        val update = AchievementEngine.unlockNow(setOf(achievement), before, nowEpochMillis())
         if (update.isEmpty) return
         repository.record(update.unlockedAt(), update.counters)
         update.newlyUnlocked.forEach { AchievementEvents.emit(AchievementEvent.Unlocked(it)) }
@@ -245,12 +245,12 @@ class AchievementsViewModel(
          * forever on a target like Professional Roller's 100,000. */
         const val SUPERUSER_FORCE_UNLOCK_TICKS = 20
 
-        fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
+        fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                val appContext = context.applicationContext
                 AchievementsViewModel(
-                    achievementsRepository = AchievementsRepository(appContext),
-                    scoreRepository = ScoreRepository(AppDatabase.getInstance(appContext).scoreDao()),
+                    achievementsRepository = container.achievementsRepository,
+                    scoreRepository = container.scoreRepository,
+                    isDebugBuild = container.buildInfo.isDebug,
                 )
             }
         }

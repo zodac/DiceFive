@@ -1,6 +1,5 @@
 package net.zodac.dicefive.ui.game
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.LinearEasing
@@ -32,7 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -44,7 +42,9 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.isLuckOfTheIrish
-import net.zodac.dicefive.data.settings.SettingsRepository
+import net.zodac.dicefive.platform.LocalAppContainer
+import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMats
@@ -87,11 +87,9 @@ fun GameScreen(
         if (!currentState.isGameOver) reviewingScorecards = false
     }
 
-    val context = LocalContext.current
+    val platform = LocalPlatformServices.current
     LaunchedEffect(viewModel) {
-        viewModel.toastMessages.collect { message ->
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-        }
+        viewModel.toastMessages.collect { message -> platform.showTransientMessage(message) }
     }
 
     // Redirect system back to Menu (default nav behavior would land on the setup form instead).
@@ -121,7 +119,7 @@ fun GameScreen(
     // A single injection point for the pluggable dice/cup/background art, built from whatever the
     // Styles screen last persisted (each id resolved through its own catalog's byId, which falls
     // back to that category's default for an id nothing recognizes).
-    val settingsRepository = remember { SettingsRepository(context) }
+    val settingsRepository = LocalAppContainer.current.settingsRepository
     val diceStyleId by settingsRepository.diceStyleId.collectAsState(initial = DiceStyles.default.id)
     val diceCupStyleId by settingsRepository.diceCupStyleId.collectAsState(initial = DiceCupStyles.default.id)
     val tableBackgroundId by settingsRepository.tableBackgroundId.collectAsState(initial = TableBackgrounds.default.id)
@@ -384,13 +382,15 @@ private fun TurnTimerBadge(secondsRemaining: Int, modifier: Modifier = Modifier)
 
 // The lint check exists because a real screen must scope its view model to the host, not build one
 // per composition - but a @Preview has no host to scope to, and GameViewModel is deliberately
-// constructible with no Context for exactly this (and for unit tests). Preview-only.
+// constructible with no repositories for exactly this (and for unit tests). Preview-only.
 @Suppress("ViewModelConstructorInComposable")
 @Preview(showBackground = true)
 @Composable
 private fun GameScreenPreview() {
     val viewModel = GameViewModel().apply { startGame() }
-    DiceFiveTheme {
-        GameScreen(viewModel = viewModel)
+    CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
+        DiceFiveTheme {
+            GameScreen(viewModel = viewModel)
+        }
     }
 }

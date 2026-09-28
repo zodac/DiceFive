@@ -32,10 +32,12 @@ import androidx.compose.ui.window.DialogProperties
 import com.mikepenz.aboutlibraries.Libs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import net.zodac.dicefive.R
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.SoraFontFamily
-import org.json.JSONObject
 
 /**
  * What a licensed item is, so a licence's heading can say "Used by 4 sounds" rather than calling a
@@ -116,11 +118,9 @@ internal fun parseLicenseReport(librariesJson: String, noticesJson: String): Lic
         .filter { it.components.isNotEmpty() }
         .sortedWith(compareByDescending<LicenseGroup> { it.components.size }.thenBy { it.name })
 
-    val noticesObject = JSONObject(noticesJson)
-    val notices = noticesObject.keys().asSequence()
-        .map { ThirdPartyNotice(library = it, text = noticesObject.getString(it)) }
+    val notices = Json.parseToJsonElement(noticesJson).jsonObject
+        .map { (library, text) -> ThirdPartyNotice(library = library, text = text.jsonPrimitive.content) }
         .sortedBy { it.library }
-        .toList()
 
     return LicenseReport(groups, notices)
 }

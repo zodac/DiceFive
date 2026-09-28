@@ -622,12 +622,15 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     // Reads the aboutlibraries.json the plugin above generates - see the aboutLibraries block.
     implementation(libs.aboutlibraries.core)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.datetime)
 
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.runtime)
     testImplementation(libs.kotlinx.coroutines.test)
-    // org.json is part of the Android SDK, but unit tests run against a stub version of it
-    // (every method throws) - this brings in a real implementation for JVM tests only.
+    // org.json is part of the Android SDK, but unit tests run against a stub version of it (every
+    // method throws) - this brings in a real implementation for JVM tests only. The app itself no
+    // longer uses it, but AboutLibraries' Android parser (behind parseLicenseReport) still does.
     testImplementation(libs.org.json)
     // Compose UI tests on the JVM (no device/emulator in the sandbox) - see LicensesDialogTest.
     testImplementation(libs.robolectric)
