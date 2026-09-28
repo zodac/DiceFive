@@ -5,9 +5,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import net.zodac.dicefive.app.AppContainer
+import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.navigation.DiceFiveNavHost
-import net.zodac.dicefive.platform.AppContainer
-import net.zodac.dicefive.platform.LocalAppContainer
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost

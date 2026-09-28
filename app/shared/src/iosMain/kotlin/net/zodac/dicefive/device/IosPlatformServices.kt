@@ -1,4 +1,4 @@
-package net.zodac.dicefive.platform
+package net.zodac.dicefive.device
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -7,6 +7,13 @@ import kotlinx.cinterop.useContents
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import net.zodac.dicefive.platform.Accelerometer
+import net.zodac.dicefive.platform.HapticEffect
+import net.zodac.dicefive.platform.HapticsPlayer
+import net.zodac.dicefive.platform.LicenceReports
+import net.zodac.dicefive.platform.PlatformServices
+import net.zodac.dicefive.platform.SoundEffect
+import net.zodac.dicefive.platform.SoundPlayer
 import net.zodac.dicefive.ui.settings.ComposeLicenceDocument
 import net.zodac.dicefive.ui.settings.LicenseReport
 import net.zodac.dicefive.ui.settings.NoSelectionClearer

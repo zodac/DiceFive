@@ -1,4 +1,4 @@
-package net.zodac.dicefive.platform
+package net.zodac.dicefive.app
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import net.zodac.dicefive.data.achievements.AchievementsRepository

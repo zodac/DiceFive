@@ -33,7 +33,7 @@ components, and nothing in this notice restricts any right they grant. In partic
 
 Every third-party component in the app, with its license's full text and copyright notice, is
 listed in the app under Settings > Licences, and the records behind that list are kept
-in app/android/aboutlibraries/ in this repository.
+in app/licensing/ in this repository.
 
 DISCLAIMER
 

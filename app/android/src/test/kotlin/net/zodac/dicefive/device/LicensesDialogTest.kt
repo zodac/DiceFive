@@ -1,4 +1,4 @@
-package net.zodac.dicefive.ui.settings
+package net.zodac.dicefive.device
 
 import android.app.Application
 import android.content.ClipboardManager
@@ -27,8 +27,8 @@ import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.Duration
-import net.zodac.dicefive.device.AndroidPlatformServices
 import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.ui.settings.LicensesDialog
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.hamcrest.Matchers.containsString
 import org.junit.Assert.assertEquals

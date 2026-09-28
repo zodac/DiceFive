@@ -1,4 +1,4 @@
-package net.zodac.dicefive.platform
+package net.zodac.dicefive.device
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope

@@ -42,7 +42,7 @@ import net.zodac.dicefive.ui.common.SoraFontFamily
 /**
  * What a licensed item is, so a licence's heading can say "Used by 4 sounds" rather than calling a
  * recording a library. Everything the plugin discovers from Gradle is a [LIBRARY]; a hand-written
- * aboutlibraries/libraries/ entry for an asset says which kind it is in its `tag` field.
+ * app/licensing/libraries/ entry for an asset says which kind it is in its `tag` field.
  */
 enum class ComponentKind(val tag: String?, val singular: String, val plural: String) {
     LIBRARY(tag = null, singular = "library", plural = "libraries"),
@@ -57,7 +57,7 @@ enum class ComponentKind(val tag: String?, val singular: String, val plural: Str
 }
 
 /** One licensed item as the dialog shows it. [copyright] is only set where the licence requires the
- * notice (or a credit) itself to be reproduced - see aboutlibraries/README.md. */
+ * notice (or a credit) itself to be reproduced - see app/licensing/README.md. */
 data class LicensedComponent(
     val name: String,
     val version: String?,

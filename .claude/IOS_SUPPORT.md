@@ -32,27 +32,39 @@ DiceFive/app/
 │       │   ├── model/  game/        the rules engine, unchanged
 │       │   ├── data/                Room KMP (scores), DataStore KMP (settings, achievements,
 │       │   │                        in-progress game), GameStateJson
-│       │   ├── platform/            PlatformServices, AppContainer, BuildInfo - the seams
+│       │   ├── app/                 AppContainer, BuildInfo - what each entry point builds
+│       │   ├── platform/            PlatformServices and its parts - the interfaces a platform
+│       │   │                        implements (plus SilentPlatformServices, for previews)
 │       │   ├── navigation/  ui/     Compose Multiplatform; ui/DiceFiveApp.kt is the root
 │       ├── commonMain/composeResources/   drawable/ (3 vectors), font/ (Sora)  - Res.*
 │       ├── commonTest/              the unit tests (kotlin.test) - JVM now, iOS simulator later
 │       ├── androidMain/             stripDiacritics actual only
-│       └── iosMain/                 stripDiacritics, storage paths (IosStorage),
-│                                    IosPlatformServices, MainViewController (the iOS entry point)
+│       └── iosMain/kotlin/net/zodac/dicefive/
+│           ├── MainViewController.kt    the iOS entry point (MainActivity's counterpart)
+│           ├── device/              IosPlatformServices, IosAppContainer, IosStorage,
+│           │                        TransientMessageHost
+│           └── model/               stripDiacritics actual
 ├── android/                         :app:android - com.android.application, the APK
-│   ├── aboutlibraries/              licence records (see its README)
 │   └── src/main/kotlin/net/zodac/dicefive/
 │       ├── MainActivity.kt          builds the container + platform services, calls DiceFiveApp
-│       ├── device/                  Android PlatformServices: SoundPool, Vibrator, SensorManager,
-│       │                            Toast, licence JSON from res/raw; AndroidAppContainer
-│       └── ui/settings/LicenceDocument.kt   the Android licence TextView (see DESIGN.md Phase 17)
+│       └── device/                  AndroidPlatformServices (SoundPool, Vibrator, SensorManager,
+│                                    Toast, licence JSON from res/raw), AndroidAppContainer, and
+│                                    TextViewLicenceDocument (see DESIGN.md Phase 17)
+├── licensing/                       licence records for everything either platform ships: asset
+│                                    sources, library/asset entries, licence texts (see its README)
 └── ios/                             (Phase 5) Xcode project hosting MainViewController()
 ```
+
+The same package means the same job on each platform: the entry point sits in the root package
+(`MainActivity`, `MainViewController`), and everything a platform implements is in `device/`,
+prefixed with the platform's name (`AndroidSoundPlayer`, `IosSoundPlayer`).
 
 **Deviations from the original plan, and why:**
 
 - **Both modules sit under `app/`** (`app/shared`, `app/android`) rather than side by side at the
-  root, so all the code has one home and the split inside it is by platform.
+  root, so all the code has one home and the split inside it is by platform. The licence records
+  sit beside them in `app/licensing/`, not inside either module, because they cover files from
+  both and an iOS build will need them too; `app/android` is just the one that reads them today.
 - **Android's platform implementations live in `app/android` (`device/`), not in
   `app/shared/src/androidMain`.** They
   need the app's own resources (`R.raw` audio, the generated licence JSON) and its `BuildConfig`,
@@ -155,13 +167,13 @@ DiceFive/app/
   `<clip>.m4a` in the main bundle and stays silent without them. The copies are still the same
   Freesound recordings, so they need the same credits: generate them from `rawAudioSource/` (never
   commit hand-made ones), and have iOS's licence report include the `freesound-*` entries from
-  `app/android/aboutlibraries/libraries/` - arguably the clips and those records should move to
-  `app/shared` once two platforms use them. Consider an `AVAudioSession`
+  `app/licensing/libraries/` (already platform-neutral) - arguably the clips themselves should move
+  to `app/shared` once two platforms use them. Consider an `AVAudioSession`
   category (ambient, so it respects the silent switch).
 - **Licences on iOS**: `IosPlatformServices.loadLicenceReports` returns an empty report. iOS needs
   its own generated report (AboutLibraries has a multiplatform Gradle plugin; the notices task is
   JVM-classpath-based) and the copyleft guard applied to the iOS dependency graph - the Android
-  report (app/android/aboutlibraries/) already covers everything app/shared uses on Android, but
+  report (built from `app/licensing/`) already covers everything app/shared uses on Android, but
   not iOS-only dependencies such as `sqlite-bundled` - see
   `PUBLISHING.md`. Check whether `ComposeLicenceDocument`'s links inside `SelectionContainer`
   behave on iOS (they didn't on Android - `DESIGN.md` Phase 17); if not, a `UITextView` via

@@ -35,7 +35,7 @@ internal object NoSelectionClearer : SelectionClearer {
  * The licence report in plain Compose: one section per licence - its name, what uses it, a "Show
  * licence text" toggle, and every item under it - with tappable links, each block of text
  * selectable on its own. What iOS shows, and what previews show; Android draws the report as one
- * platform TextView instead (see LicenceDocument in :app:android), because Compose's selection can't span
+ * platform TextView instead (see TextViewLicenceDocument in :app:android), because Compose's selection can't span
  * rows and its links misbehave inside a SelectionContainer on Android. Whether iOS needs a native text
  * view too is an open question in .claude/IOS_SUPPORT.md.
  */

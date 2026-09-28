@@ -1,10 +1,12 @@
-package net.zodac.dicefive.data
+package net.zodac.dicefive.device
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import kotlinx.cinterop.ExperimentalForeignApi
+import net.zodac.dicefive.data.PreferencesFile
+import net.zodac.dicefive.data.createPreferencesDataStore
 import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.buildAppDatabase
 import platform.Foundation.NSApplicationSupportDirectory
@@ -28,10 +30,10 @@ private val appDataDirectory: String by lazy {
 }
 
 /** The scores database on iOS - SQLite bundled with the app (Room's driver), as iOS has no framework one. */
-fun createIosAppDatabase(): AppDatabase =
+internal fun createIosAppDatabase(): AppDatabase =
     Room.databaseBuilder<AppDatabase>(name = "$appDataDirectory/${AppDatabase.FILE_NAME}")
         .setDriver(BundledSQLiteDriver())
         .buildAppDatabase()
 
-fun createIosPreferencesDataStore(file: PreferencesFile): DataStore<Preferences> =
+internal fun createIosPreferencesDataStore(file: PreferencesFile): DataStore<Preferences> =
     createPreferencesDataStore("$appDataDirectory/${file.fileName}")

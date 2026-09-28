@@ -1,4 +1,4 @@
-package net.zodac.dicefive.ui.settings
+package net.zodac.dicefive.device
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -43,6 +43,11 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.drawable.toDrawable
 import java.util.WeakHashMap
+import net.zodac.dicefive.ui.settings.LicenseReport
+import net.zodac.dicefive.ui.settings.LocalSelectionClearer
+import net.zodac.dicefive.ui.settings.SelectionClearer
+import net.zodac.dicefive.ui.settings.URL_TAG
+import net.zodac.dicefive.ui.settings.linkifyUrls
 
 /**
  * [SelectionClearer] for the platform text views in one dialog: remembers each one, so a tap anywhere
