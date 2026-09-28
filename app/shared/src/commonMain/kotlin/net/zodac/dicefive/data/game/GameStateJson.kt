@@ -1,17 +1,15 @@
 package net.zodac.dicefive.data.game
 
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.boolean
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.int
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
+import net.zodac.dicefive.data.JsonArray
+import net.zodac.dicefive.data.JsonBoolean
+import net.zodac.dicefive.data.JsonNumber
+import net.zodac.dicefive.data.JsonObject
+import net.zodac.dicefive.data.JsonParseException
+import net.zodac.dicefive.data.JsonString
+import net.zodac.dicefive.data.JsonValue
+import net.zodac.dicefive.data.buildJsonObject
+import net.zodac.dicefive.data.parseJson
+import net.zodac.dicefive.data.toJson
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.Difficulty
@@ -35,10 +33,10 @@ object GameStateJson {
         put("isGameOver", state.isGameOver)
         put("dice", JsonArray(state.dice.map(::encodeDie)))
         put("players", JsonArray(state.players.map(::encodePlayer)))
-    }.toString()
+    }.toJson()
 
     fun decode(json: String): GameState {
-        val obj = Json.parseToJsonElement(json).jsonObject
+        val obj = parseJson(json) as? JsonObject ?: throw JsonParseException("Not a JSON object")
         val gameMode = decodeGameMode(obj)
         return GameState(
             gameMode = gameMode,
@@ -99,9 +97,9 @@ object GameStateJson {
     }
 
     private fun decodePlayer(obj: JsonObject, gameMode: GameMode): PlayerState {
-        val scorecardJson = obj.getValue("scorecard").jsonObject
+        val scorecardJson = obj.getObject("scorecard")
         val scorecard = gameMode.categories.associateWith { category ->
-            scorecardJson[category.name]?.takeUnless { it is JsonNull }?.jsonPrimitive?.int
+            (scorecardJson[category.name] as? JsonNumber)?.toInt()
         }
         return PlayerState(
             name = obj.getString("name"),
@@ -119,15 +117,25 @@ object GameStateJson {
 
     private const val LEGACY_CLASSIC_GAME_TYPE = "CLASSIC"
 
-    private fun JsonObject.getInt(key: String): Int = getValue(key).jsonPrimitive.int
+    private fun JsonObject.field(key: String): JsonValue = this[key] ?: throw JsonParseException("Missing \"$key\"")
 
-    private fun JsonObject.getBoolean(key: String): Boolean = getValue(key).jsonPrimitive.boolean
+    private fun JsonObject.getInt(key: String): Int =
+        (field(key) as? JsonNumber)?.toInt() ?: throw JsonParseException("\"$key\" isn't a number")
 
-    private fun JsonObject.getString(key: String): String = getValue(key).jsonPrimitive.content
+    private fun JsonObject.getBoolean(key: String): Boolean =
+        (field(key) as? JsonBoolean)?.value ?: throw JsonParseException("\"$key\" isn't a boolean")
 
-    /** The string at [key], or "" if it's absent or null - org.json's `optString`, which this replaced. */
-    private fun JsonObject.optString(key: String): String =
-        (this[key] as? JsonPrimitive)?.takeUnless { it is JsonNull }?.content.orEmpty()
+    private fun JsonObject.getString(key: String): String =
+        (field(key) as? JsonString)?.value ?: throw JsonParseException("\"$key\" isn't a string")
 
-    private fun JsonObject.getObjectList(key: String): List<JsonObject> = getValue(key).jsonArray.map { it.jsonObject }
+    /** The string at [key], or "" if it's absent or null. */
+    private fun JsonObject.optString(key: String): String = (this[key] as? JsonString)?.value.orEmpty()
+
+    private fun JsonObject.getObject(key: String): JsonObject =
+        field(key) as? JsonObject ?: throw JsonParseException("\"$key\" isn't an object")
+
+    private fun JsonObject.getObjectList(key: String): List<JsonObject> =
+        (field(key) as? JsonArray ?: throw JsonParseException("\"$key\" isn't an array")).items.map {
+            it as? JsonObject ?: throw JsonParseException("\"$key\" holds a non-object")
+        }
 }

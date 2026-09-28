@@ -55,10 +55,8 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kotlinx.serialization.json)
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.datastore.preferences.core)
-            implementation(libs.kotlinx.datetime)
             implementation(libs.aboutlibraries.core)
 
             // The UI. `api`, not `implementation`, for the handful :app:android's own Compose code (MainActivity

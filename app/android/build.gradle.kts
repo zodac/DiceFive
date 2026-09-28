@@ -128,6 +128,8 @@ android {
             // license text under their own package path - none of it is read at runtime. The license
             // still ships, once: Settings > Licences (see "Open-source licenses" below).
             excludes += "META-INF/androidx/**/LICENSE.txt"
+            // ...and so do JetBrains' multiplatform wrappers of them (Compose Multiplatform, lifecycle).
+            excludes += "META-INF/org/jetbrains/**/LICENSE.txt"
         }
     }
 

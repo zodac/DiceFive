@@ -1413,7 +1413,8 @@ install-over-existing succeeds:
 - [x] **Why**: keep the option of an iOS version without rewriting the game in Swift. The plan,
       the target layout and what's left are in `.claude/IOS_SUPPORT.md`; this is the log.
 - [x] **Seams first, in the single module** (`4241b5c`): `org.json` → `kotlinx.serialization`,
-      `java.time` → `kotlinx-datetime`, `System.currentTimeMillis` → `nowEpochMillis()`; sound,
+      `java.time` → `kotlinx-datetime` (both later replaced - see the APK size item below),
+      `System.currentTimeMillis` → `nowEpochMillis()`; sound,
       haptics, the accelerometer and toasts behind `platform/PlatformServices` (Android side in
       `app/.../device/`); ViewModel factories take an `AppContainer`, not a `Context`;
       `BuildConfig` → `BuildInfo`. `ShakeDetector` became pure logic with its own tests.
@@ -1435,5 +1436,11 @@ install-over-existing succeeds:
 - [x] **iOS side written, compile-checked only**: `IosPlatformServices` (AVAudioPlayer, UIKit
       haptics, CoreMotion, a snackbar for transient messages), storage in Application Support, and
       `MainViewController()` for the Xcode project to host.
+- [x] **Release APK size**: 1.93MB before the port, 2.03MB after it. kotlinx.serialization (~49KB,
+      for the saved game and licence notices) became `data/Json.kt`, a small strict JSON
+      reader/writer with its own tests; kotlinx-datetime (~37KB, for one timestamp pattern) became an
+      `expect fun formatTimestamp` on each platform's own formatter; JetBrains' bundled
+      `META-INF/.../LICENSE.txt` copies are excluded like AndroidX's. Now 1.95MB - the rest is Compose
+      Multiplatform's resources runtime and the platform seams.
 - [ ] **Not yet seen on a device** - neither the Android build since the move (Robolectric only)
       nor iOS at all (needs macOS - `IOS_SUPPORT.md` Phase 5).
