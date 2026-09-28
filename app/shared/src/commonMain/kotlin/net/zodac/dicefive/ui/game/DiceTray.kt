@@ -132,7 +132,7 @@ fun DiceTray(
             .clip(RoundedCornerShape(16.dp))
             .background(visualTheme.mat.diceTrayBrush),
     ) {
-        // The mat's own decoration (e.g. the fire theme's flame trim) sits between the brush and
+        // The mat's own decoration, if it has one, sits between the brush and
         // the dice - matchParentSize so it fills whatever height the Row below ends up with.
         visualTheme.mat.DiceTrayDecoration(modifier = Modifier.matchParentSize())
 

@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.game.style
 
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -9,20 +10,52 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.graphicsLayer
 
 private const val SHAKE_AMPLITUDE_DEGREES = 7f
 private const val SNAP_TO_STANDING_MILLIS = 150
 private const val POUR_TILT_MILLIS = 320
 private const val WOBBLE_FADE_MILLIS = 120
 
+private const val RESTING_TILT_DEGREES = 32f
+// A single fixed pivot for every rotation - resting tilt AND shake alike - rather than switching
+// between the base (1f) and the center (0.5f) depending on `rolling`. That switch was instantaneous,
+// not animated, so at the moment rolling flipped, the SAME rotation angle suddenly rendered around a
+// different point and the whole cup visibly jumped to a different screen position for a frame -
+// independent of how fast or slow the tilt angle itself was animating. This point is close to the
+// base (so the settled tilt still reads as the cup resting on its base) but not exactly on it (so
+// during a shake the base visibly moves too, not just the rim - fixing the earlier "only the top
+// half shakes" complaint without needing a second, switched pivot).
+private const val PIVOT_Y_FRACTION = 0.75f
+
+/**
+ * The canvas every [DiceCupStyle] draws its cup on: [onDraw] paints the cup standing upright, and
+ * this applies the shared shake/pour rotation from [rememberCupRotation] around it, so the cups only
+ * differ in their art.
+ */
+@Composable
+fun CupCanvas(rolling: Boolean, tilted: Boolean, modifier: Modifier, onDraw: DrawScope.() -> Unit) {
+    val rotation = rememberCupRotation(rolling, tilted, RESTING_TILT_DEGREES)
+    Canvas(
+        modifier = modifier.graphicsLayer {
+            rotationZ = rotation
+            transformOrigin = TransformOrigin(0.5f, PIVOT_Y_FRACTION)
+        },
+        onDraw = onDraw,
+    )
+}
+
 /**
  * The shake-then-settle rotation (in degrees) shared by every [DiceCupStyle]: standing upright most
  * of the time, tipped to [restingTiltDegrees] once this turn's dice have been poured out, and
  * wobbling around whichever of those it's currently at while [rolling]. Pulled out of
- * [LeatherDiceCupStyle] once [FireDiceCupStyle] needed the exact same physics - the cups only differ
- * in what they draw, not how they move. Apply the result as `graphicsLayer { rotationZ = ... }`, with
- * a `transformOrigin` near the cup's own base so the shake reads as the whole cup rocking on its
- * foot rather than spinning around its centre.
+ * the original leather cup once a second style needed the exact same physics - the cups only differ
+ * in what they draw, not how they move. [CupCanvas] applies it as `graphicsLayer { rotationZ = ... }`,
+ * with a `transformOrigin` near the cup's own base so the shake reads as the whole cup rocking on its
+ * base rather than spinning around its centre.
  */
 @Composable
 fun rememberCupRotation(rolling: Boolean, tilted: Boolean, restingTiltDegrees: Float): Float {

@@ -97,7 +97,12 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[DICE_STYLE_ID_KEY] = id }
     }
 
-    val diceCupStyleId: Flow<String> = dataStore.data.map { prefs -> prefs[DICE_CUP_STYLE_ID_KEY] ?: "leather" }
+    // "leather" was the default cup before "faceted" replaced it. Anyone who picked it explicitly
+    // still has it saved, so it's read back as the new default - otherwise it would count as a
+    // non-default pick and unlock the cup style achievement without them choosing anything.
+    val diceCupStyleId: Flow<String> = dataStore.data.map { prefs ->
+        prefs[DICE_CUP_STYLE_ID_KEY]?.takeUnless { it == "leather" } ?: "faceted"
+    }
 
     suspend fun setDiceCupStyleId(id: String) {
         dataStore.edit { it[DICE_CUP_STYLE_ID_KEY] = id }
