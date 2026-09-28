@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.styles
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,7 +13,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -20,18 +20,27 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.ui.common.HorizontalScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
@@ -41,6 +50,10 @@ import net.zodac.dicefive.ui.game.style.DiceMat
 import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyle
 import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.game.style.StyleCatalog
+import net.zodac.dicefive.ui.game.style.StyleColour
+import net.zodac.dicefive.ui.game.style.StyleFamily
+import net.zodac.dicefive.ui.game.style.TableArt
 import net.zodac.dicefive.ui.game.style.TableBackground
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
@@ -57,17 +70,22 @@ private val MAT_PREVIEW_WIDTH = 108.dp
 private val MAT_PREVIEW_HEIGHT = 72.dp
 private val BACKGROUND_PREVIEW_WIDTH = 108.dp
 private val BACKGROUND_PREVIEW_HEIGHT = 72.dp
+private val COLOUR_DOT_SIZE = 7.dp
 
 /**
  * Lets a player pick, rather than read, the option for each independently swappable piece of table
  * art - [DiceStyle], [DiceCupStyle], [DiceMat] and [TableBackground]. One [Card] per category, a
- * horizontally scrolling row of preview tiles inside it; tapping a tile persists that choice via
- * [viewModel] and marks it selected, so a category isn't stuck at whatever tile count fits one page
- * width once more options are added.
+ * horizontally scrolling row of preview tiles inside it, so a category isn't stuck at whatever tile
+ * count fits one page width once more options are added.
+ *
+ * Each tile is one [StyleFamily] - a shape or pattern - rather than one colour of it: tapping it
+ * picks that style, and long-pressing a style that comes in more than one colour pops up a
+ * scrollable row of previews, one per colour, to pick from. A style's tile shows the colour picked for it, or its first colour if it isn't the current
+ * pick; a row of colour dots along its bottom edge is the cue that it has more than one.
  *
  * Mat and background are separate categories - each previews only its own brush (the mat's own
  * [DiceMat.DiceTrayDecoration] shows up on its tile too), not the two composed together, since
- * they're now independently selectable rather than a single paired option. All four categories'
+ * they're independently selectable rather than a single paired option. All four categories'
  * tiles are sized to fit on one screen without scrolling vertically; only the tile row within a
  * category scrolls, horizontally.
  */
@@ -81,61 +99,53 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
     ScreenScaffold(title = "Styles", onBack = onBack, modifier = modifier, scrollable = false) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             StyleCategoryCard(title = "Dice") {
-                for (style in DiceStyles.all) {
-                    StylePreviewTile(
-                        label = displayName(style.id),
-                        selected = style.id == diceStyleId,
-                        onClick = { viewModel.setDiceStyleId(style.id) },
-                        backgroundBrush = SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh),
-                        modifier = Modifier.size(DICE_PREVIEW_SIZE),
-                    ) {
-                        style.Die(value = 5, held = false, modifier = Modifier.size(DIE_ART_SIZE))
-                    }
+                StyleFamilyTiles(
+                    catalog = DiceStyles,
+                    selectedId = diceStyleId,
+                    onSelect = viewModel::setDiceStyleId,
+                    previewSize = DpSize(DICE_PREVIEW_SIZE, DICE_PREVIEW_SIZE),
+                    backgroundBrush = { SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh) },
+                ) { style ->
+                    style.Die(value = 5, held = false, modifier = Modifier.size(DIE_ART_SIZE))
                 }
             }
 
             StyleCategoryCard(title = "Dice Cup") {
-                for (style in DiceCupStyles.all) {
-                    StylePreviewTile(
-                        label = displayName(style.id),
-                        selected = style.id == diceCupStyleId,
-                        onClick = { viewModel.setDiceCupStyleId(style.id) },
-                        backgroundBrush = SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh),
-                        modifier = Modifier.size(width = CUP_PREVIEW_WIDTH, height = CUP_PREVIEW_HEIGHT),
-                    ) {
-                        style.Cup(
-                            rolling = false,
-                            tilted = false,
-                            modifier = Modifier.size(width = CUP_ART_SIZE_WIDTH, height = CUP_ART_SIZE_HEIGHT),
-                        )
-                    }
+                StyleFamilyTiles(
+                    catalog = DiceCupStyles,
+                    selectedId = diceCupStyleId,
+                    onSelect = viewModel::setDiceCupStyleId,
+                    previewSize = DpSize(CUP_PREVIEW_WIDTH, CUP_PREVIEW_HEIGHT),
+                    backgroundBrush = { SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh) },
+                ) { style ->
+                    style.Cup(
+                        rolling = false,
+                        tilted = false,
+                        modifier = Modifier.size(width = CUP_ART_SIZE_WIDTH, height = CUP_ART_SIZE_HEIGHT),
+                    )
                 }
             }
 
             StyleCategoryCard(title = "Mat") {
-                for (mat in DiceMats.all) {
-                    StylePreviewTile(
-                        label = displayName(mat.id),
-                        selected = mat.id == diceMatId,
-                        onClick = { viewModel.setDiceMatId(mat.id) },
-                        backgroundBrush = mat.diceTrayBrush,
-                        modifier = Modifier.size(width = MAT_PREVIEW_WIDTH, height = MAT_PREVIEW_HEIGHT),
-                    ) {
-                        mat.DiceTrayDecoration(modifier = Modifier.matchParentSize())
-                    }
+                StyleFamilyTiles(
+                    catalog = DiceMats,
+                    selectedId = diceMatId,
+                    onSelect = viewModel::setDiceMatId,
+                    previewSize = DpSize(MAT_PREVIEW_WIDTH, MAT_PREVIEW_HEIGHT),
+                    backgroundBrush = { mat -> mat.diceTrayBrush },
+                ) { mat ->
+                    mat.DiceTrayDecoration(modifier = Modifier.matchParentSize())
                 }
             }
 
             StyleCategoryCard(title = "Background") {
-                for (background in TableBackgrounds.all) {
-                    StylePreviewTile(
-                        label = displayName(background.id),
-                        selected = background.id == tableBackgroundId,
-                        onClick = { viewModel.setTableBackgroundId(background.id) },
-                        backgroundBrush = background.scoreAreaBrush,
-                        modifier = Modifier.size(width = BACKGROUND_PREVIEW_WIDTH, height = BACKGROUND_PREVIEW_HEIGHT),
-                    ) {}
-                }
+                StyleFamilyTiles(
+                    catalog = TableBackgrounds,
+                    selectedId = tableBackgroundId,
+                    onSelect = viewModel::setTableBackgroundId,
+                    previewSize = DpSize(BACKGROUND_PREVIEW_WIDTH, BACKGROUND_PREVIEW_HEIGHT),
+                    backgroundBrush = { background -> background.scoreAreaBrush },
+                ) {}
             }
         }
     }
@@ -174,60 +184,184 @@ private fun StyleCategoryCard(title: String, content: @Composable RowScope.() ->
     }
 }
 
-/** One style option: a rendered preview swatch plus its name, with a check badge when it's the
- * current pick. Tapping it selects it. [modifier] carries the swatch's own size, which differs by
- * category (a die's is square, a cup's is tall, the mat's is wide). */
+/** One [StyleFamilyTile] per family in [catalog], in order. */
 @Composable
-private fun StylePreviewTile(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    backgroundBrush: Brush,
-    modifier: Modifier = Modifier,
-    content: @Composable BoxScope.() -> Unit,
+private fun <T : TableArt> StyleFamilyTiles(
+    catalog: StyleCatalog<T>,
+    selectedId: String,
+    onSelect: (String) -> Unit,
+    previewSize: DpSize,
+    backgroundBrush: @Composable (T) -> Brush,
+    preview: @Composable BoxScope.(T) -> Unit,
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        val shape = RoundedCornerShape(16.dp)
-        Box(
-            modifier = modifier
-                .clip(shape)
-                .clickable(onClick = onClick)
-                .background(backgroundBrush)
-                .border(
-                    width = if (selected) 2.dp else 1.dp,
-                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                    shape = shape,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            content()
-
-            if (selected) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.CheckCircle,
-                        contentDescription = "Selected",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
-        }
-        Text(text = label, style = MaterialTheme.typography.labelSmall)
+    for (family in catalog.families) {
+        StyleFamilyTile(family, selectedId, onSelect, previewSize, backgroundBrush, preview)
     }
 }
 
-/** "midnight_felt" -> "Midnight Felt". Style ids are lower_snake_case by convention. */
-private fun displayName(id: String): String =
-    id.split("_").joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
+/**
+ * One style: a rendered preview plus its name, with a check badge when one of its colours is the
+ * current pick. Tapping it picks the colour it's showing; long-pressing it, when it has more than
+ * one colour, pops up a scrollable row of that style's colours, each as its own preview, to pick
+ * one. [previewSize] is the preview's own size, which differs by category (a die's is square, a
+ * cup's is tall, the mat's is wide).
+ */
+@Composable
+private fun <T : TableArt> StyleFamilyTile(
+    family: StyleFamily<T>,
+    selectedId: String,
+    onSelect: (String) -> Unit,
+    previewSize: DpSize,
+    backgroundBrush: @Composable (T) -> Brush,
+    preview: @Composable BoxScope.(T) -> Unit,
+) {
+    val picked = family.colourOf(selectedId)
+    val shown = picked ?: family.colours.first()
+    val hasColours = family.colours.size > 1
+    var choosingColour by remember { mutableStateOf(false) }
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // The pop-up's anchor: DropdownMenu positions itself against its parent, so the preview and
+        // the pop-up share this Box rather than the pop-up hanging off the label below.
+        Box {
+            StylePreview(
+                style = shown.style,
+                size = previewSize,
+                selected = picked != null,
+                backgroundBrush = backgroundBrush,
+                preview = preview,
+                modifier = Modifier.combinedClickable(
+                    onClick = { onSelect(shown.style.id) },
+                    onLongClick = if (hasColours) ({ choosingColour = true }) else null,
+                    onLongClickLabel = if (hasColours) "Choose ${family.name} colour" else null,
+                ),
+            ) {
+                if (hasColours) {
+                    ColourDots(
+                        colours = family.colours,
+                        shown = shown,
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 5.dp),
+                    )
+                }
+            }
+
+            // DropdownMenu for its anchoring, surface and dismiss handling, holding a row of previews
+            // rather than text items: a colour is picked by how it looks, and the style's name is
+            // already on the tile. The row scrolls sideways once a style has more colours than fit.
+            DropdownMenu(expanded = choosingColour, onDismissRequest = { choosingColour = false }) {
+                val scrollState = rememberScrollState()
+                Row(
+                    modifier = Modifier
+                        .horizontalScroll(scrollState)
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    for (colour in family.colours) {
+                        StylePreview(
+                            style = colour.style,
+                            size = previewSize,
+                            selected = colour.style.id == selectedId,
+                            backgroundBrush = backgroundBrush,
+                            preview = preview,
+                            modifier = Modifier
+                                .clickable {
+                                    onSelect(colour.style.id)
+                                    choosingColour = false
+                                }
+                                // No visible name - but a screen reader still needs to say which is which.
+                                .semantics { contentDescription = "${family.name}, ${colour.name}" },
+                        )
+                    }
+                }
+                HorizontalScrollbar(
+                    scrollState = scrollState,
+                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 4.dp),
+                )
+            }
+        }
+        Text(text = family.name, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+/**
+ * [style] drawn by [preview] on its [backgroundBrush] at [size], outlined in the app's gold with a
+ * check badge when [selected]. [modifier] carries the click handling; [overlay] draws on top.
+ */
+@Composable
+private fun <T : TableArt> StylePreview(
+    style: T,
+    size: DpSize,
+    selected: Boolean,
+    backgroundBrush: @Composable (T) -> Brush,
+    preview: @Composable BoxScope.(T) -> Unit,
+    modifier: Modifier = Modifier,
+    overlay: @Composable BoxScope.() -> Unit = {},
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(shape)
+            .then(modifier)
+            .background(backgroundBrush(style))
+            .border(
+                width = if (selected) 2.dp else 1.dp,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                shape = shape,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        preview(style)
+        if (selected) {
+            SelectedBadge(modifier = Modifier.align(Alignment.TopEnd).padding(6.dp))
+        }
+        overlay()
+    }
+}
+
+@Composable
+private fun SelectedBadge(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(20.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.CheckCircle,
+            contentDescription = "Selected",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(18.dp),
+        )
+    }
+}
+
+/** One dot per colour a style comes in, the one the tile is showing ringed in the app's gold. */
+@Composable
+private fun <T : TableArt> ColourDots(colours: List<StyleColour<T>>, shown: StyleColour<T>, modifier: Modifier = Modifier) {
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        for (colour in colours) {
+            val isShown = colour == shown
+            Swatch(
+                colour = colour.swatch,
+                size = COLOUR_DOT_SIZE,
+                ring = if (isShown) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun Swatch(colour: Color, size: Dp, ring: Color) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(colour)
+            .border(1.dp, ring, CircleShape),
+    )
+}
 
 // A preview has no host to scope a view model to - see .claude/UI.md's ViewModelConstructorInComposable gotcha.
 @Suppress("ViewModelConstructorInComposable")
