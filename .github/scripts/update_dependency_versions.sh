@@ -46,7 +46,7 @@
 #
 # Java:         ONE Java version, owned by the Gradle toolchain: `toolchainVersion` in
 #               gradle/gradle-daemon-jvm.properties. Gradle runs itself on that JDK, compiles and tests
-#               with it, and the app is compiled FOR it (app/build.gradle.kts reads it) - and Gradle
+#               with it, and the app is compiled FOR it (app/android/build.gradle.kts reads it) - and Gradle
 #               downloads it wherever it is missing, so builds never depend on the installed java. The
 #               sandbox's JDK stage follows it (a head start, so nothing needs downloading there; the
 #               guard at the end fails the run if the two disagree), and the workflows' setup-java reads
@@ -110,7 +110,7 @@ WORKFLOWS_DIR=".github/workflows"
 VERSION_CATALOG="./gradle/libs.versions.toml"
 GRADLE_WRAPPER_PROPERTIES="./gradle/wrapper/gradle-wrapper.properties"
 SETTINGS_GRADLE="./settings.gradle.kts"
-APP_BUILD_GRADLE="./app/build.gradle.kts"
+APP_BUILD_GRADLE="./app/android/build.gradle.kts"
 
 # Everything the final build depends on. Hashed before and after the updates, so the (slow) Gradle
 # build only runs when one of them actually changed.
@@ -491,7 +491,7 @@ show_build_failure() {
 # newer stable Android platform (newest first), install it, set compileSdk, and build + unit-test the
 # project exactly as committed; the first that passes is kept, and written into sandbox/Dockerfile's
 # sdkmanager install + its check (the workflows pin no platform - .github/scripts/android_sdk_packages.sh
-# reads it from app/build.gradle.kts at run time). Runs FIRST, before any dependency moves, so a failure is the platform's alone - and so the
+# reads it from app/android/build.gradle.kts at run time). Runs FIRST, before any dependency moves, so a failure is the platform's alone - and so the
 # catalog step then vets libraries against the new value.
 #
 # Minor SDK releases (36.1, 37.2) are platforms in their own right - each its own SDK package, adding
@@ -543,7 +543,7 @@ stable_android_platforms() {
     ' <<< "${manifest}" | sort -V -r -k1,1 | awk '!seen[$1]++'
 }
 
-# Writes API.MINOR into app/build.gradle.kts: compileSdk = API, and compileSdkMinor = MINOR (the line
+# Writes API.MINOR into app/android/build.gradle.kts: compileSdk = API, and compileSdkMinor = MINOR (the line
 # added after compileSdk if missing, removed for a .0 release).
 set_compile_sdk() {
     local api="${1%%.*}" minor="${1#*.}"
@@ -599,7 +599,7 @@ update_compile_sdk() {
         if run_gradle_build; then
             # The sandbox's platform pin, whatever era its name is from (android-35, android-37.0,
             # android-36.1). The workflows pin none - they ask .github/scripts/android_sdk_packages.sh,
-            # which reads app/build.gradle.kts.
+            # which reads app/android/build.gradle.kts.
             sed -i -E "s#platforms([;/])android-[0-9]+(\\.[0-9]+)?([^0-9.a-z-]|$)#platforms\\1${package}\\3#g" "${SANDBOX_DOCKERFILE}"
             PROJECT_COMPILE_SDK="${version%%.*}"
             record_update "compileSdk: ${current} → ${version}"
@@ -912,7 +912,7 @@ update_playwright() {
 # above them move together or not at all.
 #
 # The SDK *packages* installed with it (`platforms;android-N`, `build-tools;X.Y.Z`) are NOT bumped:
-# they must match compileSdk and buildToolsVersion in app/build.gradle.kts, which are code decisions.
+# they must match compileSdk and buildToolsVersion in app/android/build.gradle.kts, which are code decisions.
 # verify_version_sync checks they still agree.
 
 update_android_cmdline_tools() {
@@ -1618,7 +1618,7 @@ update_actionlint() {
 #     one is lower, so a stale pin still "works" - which is exactly why it needs a check)
 # The workflows are scanned too, so a pin re-added to one is held to the same value - but they are meant
 # to pin none of these: they read the JDK from the toolchain and the SDK packages from
-# app/build.gradle.kts at run time, so that the monthly update (pushing with GITHUB_TOKEN, which may not
+# app/android/build.gradle.kts at run time, so that the monthly update (pushing with GITHUB_TOKEN, which may not
 # edit workflow files) never needs to change one. A divergence is a HARD failure, not a warning.
 
 SYNC_FAILED=0

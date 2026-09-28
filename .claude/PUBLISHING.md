@@ -51,7 +51,7 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
 ## Store listing
 
 - **Hi-res icon.** The Play Console wants its own 512x512 PNG for the store listing page,
-  separate from the in-app adaptive icon (`app/src/main/res/drawable/ic_launcher_foreground.xml`
+  separate from the in-app adaptive icon (`app/android/src/main/res/drawable/ic_launcher_foreground.xml`
   / `@color/ic_launcher_background`) and not produced by `assembleDebug`/`assembleRelease` at
   all. Export the same artwork (the cup, dice, gold-on-navy brand colours - see `UI.md`'s Colour
   section for the palette) as a flat 512x512 PNG by hand and upload it separately.
@@ -65,11 +65,11 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
   guard against copyleft or unrecognised licenses. The build strips each AndroidX artifact's bundled
   `META-INF/androidx/**/LICENSE.txt` (a size optimisation) - that's fine now, since the dialog ships
   the Apache-2.0 text once for all of them. The sound effects are credited too (Freesound, CC0 and
-  CC-BY 4.0 - see `app/aboutlibraries/asset-sources.json`). Remaining, optionally: linking a hosted copy from the Play listing /
+  CC-BY 4.0 - see `app/android/aboutlibraries/asset-sources.json`). Remaining, optionally: linking a hosted copy from the Play listing /
   `README.md` for people who want to read it before installing (not required - the licenses only
   require that the text goes out *with* the app).
 - **Adding or allowing a license**: if a new dependency fails the build on strict mode, read its
-  license before adding it to `allowedLicenses` in `app/build.gradle.kts`. LGPL/MPL/EPL can often be
+  license before adding it to `allowedLicenses` in `app/android/build.gradle.kts`. LGPL/MPL/EPL can often be
   complied with in a closed app (conditions on the library only) but each has real obligations
   (LGPL: the user must be able to relink/replace the library, awkward with R8); GPL/AGPL would
   require the whole app to be released under the GPL.
@@ -100,7 +100,7 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
     CC-BY-SA. Anything NC (non-commercial) is incompatible with ads/Pro and must be replaced.
   - The same applies to every library listed in the licenses dialog - not the app's to relicense.
   - The app's own artwork is recorded as `LicenseRef-DiceFive-AllRightsReserved` in
-    `app/aboutlibraries/asset-sources.json` (constant `APP_LICENSE` in `VerifyAssetSourcesTask`) -
+    `app/android/aboutlibraries/asset-sources.json` (constant `APP_LICENSE` in `VerifyAssetSourcesTask`) -
     change both together if the license ever changes.
 - **Still open, related:**
   - **iOS**: the licences dialog is shared code now, and `asset-sources.json` already covers the
@@ -134,17 +134,17 @@ changes in the codebase to get a submittable build.
 
 - **App Bundle, not APK.** The GitHub release pipeline (Phase 12) only ever produces a signed
   `assembleRelease` **APK** - Play has required an `.aab` for new apps' production tracks since
-  2021, nothing in `app/build.gradle.kts` currently runs `bundleRelease`, and CI has no step for
+  2021, nothing in `app/android/build.gradle.kts` currently runs `bundleRelease`, and CI has no step for
   it; this needs its own build/signing path, separate from (or alongside) the GitHub one.
 - **`INTERNET` permission.** `AndroidManifest.xml` currently declares none at all - Play Games
   Services, cloud save, ads and billing all need `android.permission.INTERNET` (Games Services
   and billing add it via their own SDK's merged manifest; ads may still expect it declared).
 - Signing for the Play upload build should use the dedicated upload key from Play App Signing
-  (see "Outside this repo") - not `app/debug.keystore`, and not necessarily the same keystore the
+  (see "Outside this repo") - not `app/android/debug.keystore`, and not necessarily the same keystore the
   GitHub release pipeline's `ANDROID_RELEASE_*` secrets point at either, since that key was chosen
   for a different pipeline before Play App Signing was in the picture.
 - **Archive `mapping.txt` per release.** `DESIGN.md` Phase 12 turned on R8 shrinking and renaming
-  for the `release` build type, which means `app/build/outputs/mapping/release/mapping.txt` is now
+  for the `release` build type, which means `app/android/build/outputs/mapping/release/mapping.txt` is now
   a real deobfuscation mapping, not an empty file - without it, a renamed-class stack trace is
   unreadable. Play Console auto-detects and uses this mapping to deobfuscate Android vitals crash/
   ANR reports (Google's automatic crash collection, no SDK needed) as long as it's uploaded/bundled
@@ -158,7 +158,7 @@ changes in the codebase to get a submittable build.
 Covers three of the requested features at once: they're all facets of the one Play Games
 Services (v2) integration, not three separate SDKs. `DESIGN.md`'s Phase 13 "Google Play Games"
 entry already designed the achievement id mapping for this (secret achievements excluded) - none
-of it is built yet. No Play Games dependency exists in `app/build.gradle.kts` today.
+of it is built yet. No Play Games dependency exists in `app/android/build.gradle.kts` today.
 
 - **Link the app in Play Console** under Play Games Services, register the package name plus the
   **SHA-1 certificate fingerprint** for both the debug keystore (already in-repo) and whatever

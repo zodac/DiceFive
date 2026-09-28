@@ -4,7 +4,7 @@
 #
 # Description:  Prints the Android SDK packages this project builds against, space-separated and ready
 #               to hand to sdkmanager: the platform for compileSdk (+ compileSdkMinor) and the
-#               build-tools for buildToolsVersion, both read from app/build.gradle.kts. The workflows
+#               build-tools for buildToolsVersion, both read from app/android/build.gradle.kts. The workflows
 #               call this instead of pinning the packages themselves, so a compileSdk or build-tools
 #               change never has to edit a workflow file (which the monthly dependency update, pushing
 #               with GITHUB_TOKEN, is not allowed to do).
@@ -24,7 +24,7 @@
 # ------------------------------------------------------------------------------
 set -euo pipefail
 
-build_file="app/build.gradle.kts"
+build_file="app/android/build.gradle.kts"
 
 api=$(grep -oP '^\s*compileSdk\s*=\s*\K[0-9]+' "${build_file}" | head -1 || true)
 minor=$(grep -oP '^\s*compileSdkMinor\s*=\s*\K[0-9]+' "${build_file}" | head -1 || true)

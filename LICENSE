@@ -22,7 +22,7 @@ The app includes third-party software and assets that belong to their respective
 used and redistributed under their own licenses. Those licenses - not this notice - govern those
 components, and nothing in this notice restricts any right they grant. In particular:
 
-- The Sora font (app/src/main/res/font/sora.ttf), Copyright 2019 The Sora Project Authors, is a
+- The Sora font (app/shared/src/commonMain/composeResources/font/sora.ttf), Copyright 2019 The Sora Project Authors, is a
   modified version of the original, and is distributed under the SIL Open Font License 1.1, which
   continues to apply to it in full.
 - The sound effects are modified versions of recordings from Freesound (freesound.org): four under
@@ -33,7 +33,7 @@ components, and nothing in this notice restricts any right they grant. In partic
 
 Every third-party component in the app, with its license's full text and copyright notice, is
 listed in the app under Settings > Licences, and the records behind that list are kept
-in app/aboutlibraries/ in this repository.
+in app/android/aboutlibraries/ in this repository.
 
 DISCLAIMER
 

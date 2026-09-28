@@ -70,7 +70,7 @@ jobs:
 
       # ubuntu-latest runners ship a full Android SDK pre-installed (cmdline-tools,
       # licenses already accepted) - just install the specific packages this project
-      # builds against, which android_sdk_packages.sh reads from app/build.gradle.kts (not
+      # builds against, which android_sdk_packages.sh reads from app/android/build.gradle.kts (not
       # pinned here, for the same reason as the JDK above). (android-actions/setup-android@v3
       # was tried here but fails on current runners: it also tries to install the
       # long-removed legacy "tools" package.)
@@ -82,7 +82,7 @@ jobs:
           "$SDKMANAGER" "${packages[@]}"
 
       # The normalizeOggAudio task shells out to ffmpeg to peak-normalise the
-      # .ogg clips in app/src/main/rawAudioSource/, and ubuntu-latest runners
+      # .ogg clips in app/android/src/main/rawAudioSource/, and ubuntu-latest runners
       # don't ship it.
       - name: Install ffmpeg
         run: |
@@ -105,7 +105,7 @@ jobs:
         run: ./gradlew testDebugUnitTest --console=plain
 
       # Deprecation gates. Any compile already fails on a deprecated API (the Kotlin DEPRECATION flag in
-      # app/build.gradle.kts) or a build-script warning (org.gradle.kotlin.dsl.allWarningsAsErrors in
+      # app/android/build.gradle.kts) or a build-script warning (org.gradle.kotlin.dsl.allWarningsAsErrors in
       # gradle.properties); this step extends that to the instrumented-test code, which nothing else
       # here compiles, and runs lint, where Deprecated / ObsoleteSdkInt findings are errors.
       - name: Check instrumented tests compile and lint passes
@@ -129,9 +129,9 @@ jobs:
         id: apk
         run: |
           path="DiceFive-${{ steps.version.outputs.name }}.apk"
-          # app/build.gradle.kts names outputs DiceFive-<version>-<buildType>.apk (signed here, so no
+          # app/android/build.gradle.kts names outputs DiceFive-<version>-<buildType>.apk (signed here, so no
           # -unsigned suffix).
-          cp "app/build/outputs/apk/release/DiceFive-${{ steps.version.outputs.name }}-release.apk" "$path"
+          cp "app/android/build/outputs/apk/release/DiceFive-${{ steps.version.outputs.name }}-release.apk" "$path"
           echo "path=$path" >> "$GITHUB_OUTPUT"
 
       # RELEASE_NOTES.md as written (skipped if empty), then the grouped commit list. A copy of the
