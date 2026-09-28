@@ -324,7 +324,7 @@ object AchievementEngine {
         award(Achievement.SIXES_30, anyHuman { it.scorecard[ScoreCategory.SIXES] == MAX_SIXES })
         award(Achievement.UPPER_BONUS, anyHuman { it.upperSectionBonus > 0 })
         award(Achievement.UPPER_84, anyHuman { it.upperSectionTotal >= UPPER_CLASS_THRESHOLD })
-        award(Achievement.LOWER_150, anyHuman { it.lowerSectionTotal >= LOWER_CLASS_THRESHOLD })
+        award(Achievement.LOWER_150, anyHuman { it.lowerSectionTotalExcludingFiveOfAKind >= LOWER_CLASS_THRESHOLD })
         award(Achievement.SCRATCHED_5X, anyHuman { it.scorecard[ScoreCategory.FIVE_OF_A_KIND] == 0 })
 
         // Game modes. Only a Tricolour scorecard has these boxes at all, so no separate mode check.

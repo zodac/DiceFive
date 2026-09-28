@@ -772,6 +772,25 @@ class AchievementEngineTest {
     }
 
     @Test
+    fun `Lower Class doesn't count the 5x box`() {
+        val lower = mapOf(
+            ScoreCategory.THREE_OF_A_KIND to 25,
+            ScoreCategory.FOUR_OF_A_KIND to 25,
+            ScoreCategory.FULL_HOUSE to 25,
+            ScoreCategory.SMALL_STRAIGHT to 30,
+            ScoreCategory.CHANCE to 35,
+            // 140 without the 5x - a scored 5x on top would cross 150 in the raw lower section
+            // total, but must not count towards this achievement.
+            ScoreCategory.FIVE_OF_A_KIND to 50,
+        )
+        val state = inProgress(midGamePlayer(lower))
+
+        val update = AchievementEngine.evaluateInProgress(state, AchievementsState(), NOW)
+
+        assertFalse(Achievement.LOWER_150 in update.newlyUnlocked)
+    }
+
+    @Test
     fun `Ton is exactly 100 - and only a finished game can say so`() {
         val exactly = evaluate(finishedGame(player(total = 100)))
         val over = evaluate(finishedGame(player(total = 101)))

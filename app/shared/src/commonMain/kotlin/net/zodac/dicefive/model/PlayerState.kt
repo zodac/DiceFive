@@ -37,6 +37,15 @@ data class PlayerState(
     val lowerSectionTotal: Int
         get() = sectionTotal(ScoreSection.LOWER)
 
+    /**
+     * [lowerSectionTotal] without the 5x box - what the game screen's "Lower:" counter and the
+     * "Lower Class" achievement track, so a filled 5x (a fixed 50, or 0 as a joker fill) never
+     * counts towards it the way the other lower-section categories, scored from the dice
+     * themselves, do.
+     */
+    val lowerSectionTotalExcludingFiveOfAKind: Int
+        get() = lowerSectionTotal - (scorecard[ScoreCategory.FIVE_OF_A_KIND] ?: 0)
+
     /** Zero in a mode with no colour boxes. */
     val colourSectionTotal: Int
         get() = sectionTotal(ScoreSection.COLOUR)
