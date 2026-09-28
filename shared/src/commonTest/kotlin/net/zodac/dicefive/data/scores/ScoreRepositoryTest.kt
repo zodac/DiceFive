@@ -1,9 +1,9 @@
 package net.zodac.dicefive.data.scores
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
 /**
  * Hand-written in-memory double for [ScoreDao] - lets [ScoreRepository]'s
@@ -37,7 +37,7 @@ private class FakeScoreDao : ScoreDao {
     override suspend fun playerSummaries(): List<PlayerScoreSummary> =
         entries.groupBy { it.playerName }
             .filterKeys { it !in dismissed }
-            .toSortedMap(String.CASE_INSENSITIVE_ORDER)
+            .entries.sortedBy { it.key.lowercase() } // SQLite's COLLATE NOCASE, for the names used here
             .map { (name, rows) ->
                 PlayerScoreSummary(
                     playerName = name,
@@ -109,7 +109,7 @@ class ScoreRepositoryTest {
     }
 
     @Test
-    fun `playerStatistics groups by player name with games played, max score and first played`() = runTest {
+    fun `playerStatistics groups by player name with games played - max score and first played`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
         repository.recordScore("Alice", 150, timestampEpochMillis = 1_000L)
         repository.recordScore("Alice", 300, timestampEpochMillis = 2_000L)
@@ -151,7 +151,7 @@ class ScoreRepositoryTest {
     }
 
     @Test
-    fun `current win streak treats a solo (null outcome) game as neutral, not a break`() = runTest {
+    fun `current win streak treats a solo - null outcome - game as neutral - not a break`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
         repository.recordScore("Alice", 100, won = true, timestampEpochMillis = 1_000L)
         repository.recordScore("Alice", 200, won = null, timestampEpochMillis = 2_000L)
@@ -163,7 +163,7 @@ class ScoreRepositoryTest {
     }
 
     @Test
-    fun `best win streak is the longest run of wins anywhere in the history, not just the current one`() = runTest {
+    fun `best win streak is the longest run of wins anywhere in the history - not just the current one`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
         // Oldest to newest: win, win, win, loss, win - a 3-game run that's since been broken.
         repository.recordScore("Alice", 100, won = true, timestampEpochMillis = 1_000L)
@@ -179,7 +179,7 @@ class ScoreRepositoryTest {
     }
 
     @Test
-    fun `best win streak also ignores solo (null outcome) games`() = runTest {
+    fun `best win streak also ignores solo - null outcome - games`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
         repository.recordScore("Alice", 100, won = true, timestampEpochMillis = 1_000L)
         repository.recordScore("Alice", 100, won = null, timestampEpochMillis = 2_000L)
@@ -191,7 +191,7 @@ class ScoreRepositoryTest {
     }
 
     @Test
-    fun `bestScoreForPlayer is scoped to that name, not the whole leaderboard`() = runTest {
+    fun `bestScoreForPlayer is scoped to that name - not the whole leaderboard`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
         repository.recordScore("Alice", 150)
         repository.recordScore("Alice", 300)
@@ -249,7 +249,7 @@ class ScoreRepositoryTest {
     }
 
     @Test
-    fun `primaryPlayerTotalPoints is zero, not null-crashing, when nothing has been recorded`() = runTest {
+    fun `primaryPlayerTotalPoints is zero - not null-crashing - when nothing has been recorded`() = runTest {
         val repository = ScoreRepository(FakeScoreDao())
 
         assertEquals(0, repository.primaryPlayerTotalPoints())

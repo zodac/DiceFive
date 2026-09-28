@@ -1,5 +1,7 @@
 package net.zodac.dicefive.data.game
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -16,8 +18,6 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
-import org.junit.Assert.assertEquals
-import org.junit.Test
 
 class GameStateJsonTest {
 
@@ -64,7 +64,7 @@ class GameStateJsonTest {
     }
 
     @Test
-    fun `round trips a partially and fully filled scorecard, including zero scores`() {
+    fun `round trips a partially and fully filled scorecard - including zero scores`() {
         val scorecard = GameMode.STANDARD.categories.associateWith { category ->
             when (category) {
                 ScoreCategory.ONES -> 3
@@ -98,7 +98,7 @@ class GameStateJsonTest {
     }
 
     @Test
-    fun `round trips a Tricolour game, including each die's colour and the colour boxes`() {
+    fun `round trips a Tricolour game - including each die's colour and the colour boxes`() {
         val mode = GameMode.TRICOLOUR
         val scorecard = mode.categories.associateWith { category ->
             when (category) {
@@ -127,7 +127,7 @@ class GameStateJsonTest {
     }
 
     @Test
-    fun `round trips a player's lastRoll, held state included`() {
+    fun `round trips a player's lastRoll - held state included`() {
         val lastRoll = List(5) { Die(value = it % 6 + 1, isHeld = it % 2 == 0) }
         val state = GameState(
             players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, lastRoll = lastRoll)),

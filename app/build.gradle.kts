@@ -10,7 +10,6 @@ plugins {
     // No org.jetbrains.kotlin.android: AGP 9 compiles Kotlin itself ("built-in Kotlin").
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.ksp)
     alias(libs.plugins.aboutlibraries.android)
 }
 
@@ -618,16 +617,13 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
-    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.datastore.preferences.core)
     // Reads the aboutlibraries.json the plugin above generates - see the aboutLibraries block.
     implementation(libs.aboutlibraries.core)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.datetime)
 
     testImplementation(libs.junit)
-    testImplementation(libs.androidx.room.runtime)
     testImplementation(libs.kotlinx.coroutines.test)
     // org.json is part of the Android SDK, but unit tests run against a stub version of it (every
     // method throws) - this brings in a real implementation for JVM tests only. The app itself no

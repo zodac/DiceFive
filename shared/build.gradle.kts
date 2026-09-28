@@ -11,6 +11,8 @@ plugins {
     // combined with Kotlin Multiplatform any more (nor can com.android.application, which is why the
     // APK is built by the separate :app module).
     alias(libs.plugins.android.kotlin.multiplatform.library)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.androidx.room)
 }
 
 // The same Java version :app compiles for - see the comment on javaVersion in app/build.gradle.kts.
@@ -41,17 +43,38 @@ kotlin {
     compilerOptions {
         // As in :app - using a deprecated API fails the build rather than piling up as warnings.
         freeCompilerArgs.add("-Xwarning-level=DEPRECATION:error")
+        // expect/actual classes are still flagged Beta; Room's multiplatform setup needs one (the
+        // AppDatabaseConstructor its compiler generates), so the warning is noise here.
+        freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
     sourceSets {
         commonMain.dependencies {
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.androidx.room.runtime)
+            implementation(libs.androidx.datastore.preferences.core)
+        }
+        iosMain.dependencies {
+            // Android opens the database on the framework's own SQLite; iOS has none to offer.
+            implementation(libs.androidx.sqlite.bundled)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }
     }
+}
+
+room {
+    // Every schema version is exported here and committed, so a future migration can be tested
+    // against the real shape of the version it migrates from.
+    schemaDirectory("$projectDir/schemas")
+}
+
+dependencies {
+    // Room's compiler runs once per target, generating each one's AppDatabaseConstructor.
+    listOf("kspAndroid", "kspIosArm64", "kspIosSimulatorArm64").forEach { add(it, libs.androidx.room.compiler) }
 }
 
 // CI, the dependency-update script and day-to-day habit all run `./gradlew testDebugUnitTest` (the

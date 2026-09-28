@@ -13,8 +13,7 @@ data class ScoreEntry(
     val timestampEpochMillis: Long,
     /**
      * Whether this player had the top score (ties included) in this game. Null for a solo game -
-     * there's nobody to beat - and for a row recorded before this column existed; both are
-     * treated alike by [ScoreRepository.playerStatistics]: counted as played, but not counted
+     * there's nobody to beat - which [ScoreRepository.playerStatistics] counts as played, but not
      * toward wins, losses or a win streak.
      */
     val won: Boolean? = null,
@@ -26,22 +25,20 @@ data class ScoreEntry(
      * [ScoreDao.primaryPlayerTotalPoints] filters on for
      * [net.zodac.dicefive.model.Achievement.PROFESSIONAL_ROLLER], which is scoped to player 1
      * alone, unlike the score-collection achievements that (correctly) count every human's score.
-     * Defaults false so a row recorded before this column existed is simply excluded from that
-     * total rather than guessed at.
      */
     val isPrimaryPlayer: Boolean = false,
     /**
      * How many 5x this player scored in this game - see
-     * [net.zodac.dicefive.model.PlayerState.fiveOfAKindCount]. Null for a row recorded before this
-     * column existed: the count was never captured, and showing it as 0 would claim something that
-     * isn't known (the Leaderboard shows "-" instead).
+     * [net.zodac.dicefive.model.PlayerState.fiveOfAKindCount]. Null means "not recorded" (the
+     * Leaderboard shows "-"), not zero - a leftover of the pre-release schema, whose older rows
+     * predated this column; every row recorded now has it.
      */
     val fiveOfAKindCount: Int? = null,
     /**
      * This player's tie-break house-rule stats (see [net.zodac.dicefive.game.TieBreak]) - how many
      * categories scored zero, the upper-section subtotal (excluding its bonus), and the Chance/3x/4x
-     * boxes. All null for a row recorded before this house rule shipped: never captured, same
-     * "unknown means excluded, not guessed at" call as [fiveOfAKindCount]. There is no
+     * boxes. Nullable for the same pre-release reason as [fiveOfAKindCount], with the same
+     * "unknown means excluded, not guessed at" handling. There is no
      * `tricolourScoredCount` column - see [net.zodac.dicefive.game.TieBreak]'s doc comment on why
      * that one criterion is excluded from the cross-mode leaderboard entirely.
      */
