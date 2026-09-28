@@ -20,7 +20,9 @@ private const val SNAP_TO_STANDING_MILLIS = 150
 private const val POUR_TILT_MILLIS = 320
 private const val WOBBLE_FADE_MILLIS = 120
 
-private const val RESTING_TILT_DEGREES = 32f
+// Negative: rotationZ turns clockwise for positive angles, so this tips the poured-out cup over to
+// the left.
+private const val RESTING_TILT_DEGREES = -32f
 // A single fixed pivot for every rotation - resting tilt AND shake alike - rather than switching
 // between the base (1f) and the center (0.5f) depending on `rolling`. That switch was instantaneous,
 // not animated, so at the moment rolling flipped, the SAME rotation angle suddenly rendered around a
