@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 
 /**
  * Renders a single die face. Implementations are swapped wholesale via
@@ -45,6 +46,12 @@ interface TableBackground {
 interface DiceMat {
     val id: String
     val diceTrayBrush: Brush
+
+    /** The fill of the five slots along the top of the tray that held dice move into. */
+    val slotSocketBrush: Brush
+
+    /** The rim round each held-dice slot - lighter than both the slot and the mat, so it stands out. */
+    val slotSocketBorder: Color
 
     /**
      * An optional decorative overlay drawn on top of [diceTrayBrush], e.g. a pattern or trim along

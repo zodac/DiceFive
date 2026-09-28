@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.translate
 import net.zodac.dicefive.ui.theme.CupShadow
 import net.zodac.dicefive.ui.theme.FacetedCupEdge
 import net.zodac.dicefive.ui.theme.FacetedCupLitFace
@@ -32,69 +33,95 @@ object FacetedDiceCupStyle : DiceCupStyle {
                 litFace = FacetedCupLitFace,
                 midFace = FacetedCupMidFace,
                 edge = FacetedCupEdge,
-                mouth = CupShadow,
+                interior = CupShadow,
                 shadow = CupShadow,
             )
         }
     }
 }
 
-// The cup is authored on a 58 x 84 grid - the in-game cup's own size in dp - and scaled to the canvas.
-private const val GRID_WIDTH = 58f
-private const val GRID_HEIGHT = 84f
+private const val CENTRE_X = 29f
+private const val RIM_RADIUS = 21f
+private const val RIM_Y = 10f
+private const val BASE_RADIUS = 17f
+private const val BASE_Y = 74f
+// How far down the inside of the back wall stays lit before the interior falls into shadow.
+private const val INNER_WALL_DEPTH = 7f
 
 /**
- * Draws the faceted cup filling this canvas: a soft contact shadow, the left (shadowed), centre (lit)
- * and right faces, [edge]-coloured seams between them, and the open hexagonal mouth. [centreFaceArt]
- * paints extra decoration on the centre face, clipped to it, before the seams go on top.
+ * Draws the faceted cup filling this canvas, seen from a little above (see [CUP_VIEW_SQUASH]): a
+ * soft contact shadow, the left (shadowed), centre (lit) and right faces, [edge]-coloured seams
+ * between them, and the open hexagonal mouth - the inside of the far wall lit in [midFace] just
+ * below the rim, falling away into [interior] further down, so it reads as a hollow.
  */
 fun DrawScope.drawFacetedCup(
     shadeFace: Color,
     litFace: Color,
     midFace: Color,
     edge: Color,
-    mouth: Color,
+    interior: Color,
     shadow: Color,
-    centreFaceArt: DrawScope.() -> Unit = {},
 ) {
     val w = size.width
     val h = size.height
-    fun at(x: Float, y: Float) = Offset(w * x / GRID_WIDTH, h * y / GRID_HEIGHT)
+    fun at(x: Float, y: Float) = Offset(w * x / CUP_GRID_WIDTH, h * y / CUP_GRID_HEIGHT)
     fun polygon(points: List<Offset>) = Path().apply {
         moveTo(points[0].x, points[0].y)
         for (point in points.drop(1)) lineTo(point.x, point.y)
         close()
     }
 
+    // A regular hexagon round the cup's axis, a corner at each side, squashed by the viewing angle:
+    // [right, frontRight, frontLeft, left, backLeft, backRight].
+    fun hexagon(radius: Float, centreY: Float): List<Offset> {
+        val depth = radius * 0.866f * CUP_VIEW_SQUASH
+        return listOf(
+            at(CENTRE_X + radius, centreY),
+            at(CENTRE_X + radius / 2f, centreY + depth),
+            at(CENTRE_X - radius / 2f, centreY + depth),
+            at(CENTRE_X - radius, centreY),
+            at(CENTRE_X - radius / 2f, centreY - depth),
+            at(CENTRE_X + radius / 2f, centreY - depth),
+        )
+    }
+
+    val shadowRadius = BASE_RADIUS + 3f
     drawOval(
         color = shadow.copy(alpha = 0.4f),
-        topLeft = Offset(w * 0.18f, h * 0.93f),
-        size = Size(w * 0.64f, h * 0.08f),
+        topLeft = at(CENTRE_X - shadowRadius, BASE_Y + 2f - shadowRadius * CUP_VIEW_SQUASH),
+        size = Size(w * 2f * shadowRadius / CUP_GRID_WIDTH, h * 2f * shadowRadius * CUP_VIEW_SQUASH / CUP_GRID_HEIGHT),
     )
 
-    // Rim corners (the mouth's front edge) and base corners of the three visible faces.
-    val rimLeft = at(8f, 6f)
-    val rimFrontLeft = at(18f, 9f)
-    val rimFrontRight = at(40f, 9f)
-    val rimRight = at(50f, 6f)
-    val baseLeft = at(12f, 80f)
-    val baseFrontLeft = at(20.5f, 80f)
-    val baseFrontRight = at(37.5f, 80f)
-    val baseRight = at(46f, 80f)
+    val rim = hexagon(RIM_RADIUS, RIM_Y)
+    val base = hexagon(BASE_RADIUS, BASE_Y)
+    drawPath(polygon(listOf(rim[3], rim[2], base[2], base[3])), color = shadeFace)
+    drawPath(polygon(listOf(rim[2], rim[1], base[1], base[2])), color = litFace)
+    drawPath(polygon(listOf(rim[1], rim[0], base[0], base[1])), color = midFace)
 
-    drawPath(polygon(listOf(rimLeft, rimFrontLeft, baseFrontLeft, baseLeft)), color = shadeFace)
-    val centreFace = polygon(listOf(rimFrontLeft, rimFrontRight, baseFrontRight, baseFrontLeft))
-    drawPath(centreFace, color = litFace)
-    drawPath(polygon(listOf(rimFrontRight, rimRight, baseRight, baseFrontRight)), color = midFace)
-    clipPath(centreFace) { centreFaceArt() }
-
-    val seamWidth = h * 0.9f / GRID_HEIGHT
+    val seamWidth = h * 0.9f / CUP_GRID_HEIGHT
     val seamColor = edge.copy(alpha = 0.55f)
-    drawLine(seamColor, rimFrontLeft, baseFrontLeft, strokeWidth = seamWidth)
-    drawLine(seamColor, rimFrontRight, baseFrontRight, strokeWidth = seamWidth)
-    drawLine(seamColor, baseLeft, baseRight, strokeWidth = seamWidth)
+    drawLine(seamColor, rim[2], base[2], strokeWidth = seamWidth)
+    drawLine(seamColor, rim[1], base[1], strokeWidth = seamWidth)
+    drawPath(
+        path = Path().apply {
+            moveTo(base[3].x, base[3].y)
+            lineTo(base[2].x, base[2].y)
+            lineTo(base[1].x, base[1].y)
+            lineTo(base[0].x, base[0].y)
+        },
+        color = seamColor,
+        style = Stroke(width = seamWidth, join = StrokeJoin.Round),
+    )
 
-    val mouthPath = polygon(listOf(rimLeft, at(18f, 3f), at(40f, 3f), rimRight, rimFrontRight, rimFrontLeft))
-    drawPath(mouthPath, color = mouth)
-    drawPath(mouthPath, color = edge, style = Stroke(width = h / GRID_HEIGHT, join = StrokeJoin.Round))
+    // The mouth: filled with the lit inner wall, then the same outline dropped by INNER_WALL_DEPTH and
+    // clipped to the mouth covers everything but a band along the back in shadow - the far wall's
+    // inside visible below the rim, the near wall hiding the rest.
+    val mouth = polygon(rim)
+    clipPath(mouth) {
+        drawPath(mouth, color = midFace)
+        translate(top = h * INNER_WALL_DEPTH / CUP_GRID_HEIGHT) {
+            drawPath(mouth, color = interior)
+        }
+    }
+    drawPath(mouth, color = edge, style = Stroke(width = h / CUP_GRID_HEIGHT, join = StrokeJoin.Round))
 }

@@ -58,10 +58,19 @@ decisions behind it. Read that before changing anything visual.
   pips (`FireDiceStyle`), the faceted cup in reds with orange edges (`FireDiceCupStyle`), a red
   felt background (`FireTableBackground`) and a plain red tray (`FireDiceMat`). The cup and mat
   used to carry painted flames (a flame up the cup, a band of flame tongues along the tray's
-  bottom); both were removed at the maintainer's request. Picking "fire" for one category doesn't imply the
-  others - a fire die can sit in a faceted cup on a midnight felt mat.
+  bottom); both were removed at the maintainer's request. A third, "barrel" skin: honey-oak dice
+  with off-white pips (`BarrelDiceStyle`), the wooden barrel cup (`BarrelDiceCupStyle`), a tray of
+  brown planks with seams drawn across it (`BarrelDiceMat`) and a dark stained-wood background
+  (`BarrelTableBackground`). The five held-dice slots belong to the mat: every `DiceMat` supplies
+  its own `slotSocketBrush` (darker than the mat) and `slotSocketBorder` (lighter than both), so a
+  new mat can't fall back to another mat's slots. Picking one skin for one category doesn't imply the others - a fire
+  die can sit in a faceted cup on a midnight felt mat.
   Cups: every `DiceCupStyle` draws inside `CupCanvas` (`CupRotation.kt`), which owns the shared
   shake/pour rotation and pivot, and authors its art on a 58 x 84 grid (the in-game cup's dp size).
+  Every cup is drawn side-on from about 22 degrees above: anything round the cup's axis (mouth,
+  base, hoops) is an ellipse squashed by the shared `CUP_VIEW_SQUASH`, and the open mouth shows a
+  lit band of the far inner wall above a shadowed interior. Drawing the mouth open but the base
+  flat mixes two viewpoints and reads wrong - keep new cups on the same angle.
   `FacetedDiceCupStyle` (default: a six-sided prism in the green score-tile colours with gold edges)
   and `FireDiceCupStyle` share `drawFacetedCup`; `BarrelDiceCupStyle` is a brown wooden barrel with
   iron hoops. The original "leather" cup (steep taper, flared foot) was dropped for its shape;
