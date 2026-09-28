@@ -97,13 +97,15 @@ private fun flatIndexOf(groups: List<AchievementGroup>, achievementId: String): 
  * a locked row with a progress bar instead is a little taller, but not by enough to matter here. */
 private val ESTIMATED_ROW_HEIGHT_DP = 88.dp
 
-/** Where [index] should end up, in px from the top of the viewport, so it lands roughly centred
- * rather than pinned to the very top - clamped to non-negative, since a viewport shorter than
- * [ESTIMATED_ROW_HEIGHT_DP] (shouldn't happen on any real device) would otherwise ask for a
- * negative scroll offset. */
+/** The `scrollOffset` to pass to `animateScrollToItem`/`scrollToItem` so the item lands roughly
+ * centred rather than pinned to the very top. That parameter's sign is the opposite of what it
+ * looks like it should be: positive scrolls the item *further towards/off the top* (it's "how far
+ * forward the list has scrolled past this item resting at the top"), so pulling it down into the
+ * middle of the viewport needs a negative value - hence the minus sign below, and the magnitude is
+ * clamped non-negative first only so this can't ever come out positive by accident. */
 private fun LazyListState.centeredScrollOffset(estimatedItemHeightPx: Int): Int {
     val viewportHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
-    return ((viewportHeight - estimatedItemHeightPx) / 2).coerceAtLeast(0)
+    return -((viewportHeight - estimatedItemHeightPx) / 2).coerceAtLeast(0)
 }
 
 /**
