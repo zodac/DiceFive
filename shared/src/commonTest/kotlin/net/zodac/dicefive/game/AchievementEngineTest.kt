@@ -1,5 +1,9 @@
 package net.zodac.dicefive.game
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
@@ -11,10 +15,6 @@ import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
 private const val NOW = 1_700_000_000_000L
 
@@ -107,8 +107,8 @@ class AchievementEngineTest {
 
         val update = evaluate(state)
 
-        assertFalse("player 2 winning must not earn player 1 a win", Achievement.FIRST_WIN in update.newlyUnlocked)
-        assertFalse("player 2's score must not earn player 1 Sharpshooter", Achievement.SCORE_300 in update.newlyUnlocked)
+        assertFalse(Achievement.FIRST_WIN in update.newlyUnlocked, "player 2 winning must not earn player 1 a win")
+        assertFalse(Achievement.SCORE_300 in update.newlyUnlocked, "player 2's score must not earn player 1 Sharpshooter")
         assertEquals(0, update.counters[AchievementCounter.GAMES_WON])
     }
 
@@ -138,12 +138,12 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `Photo Finish is exactly a one-point win, not a close-ish one`() {
+    fun `Photo Finish is exactly a one-point win - not a close-ish one`() {
         val byTwo = evaluate(
             finishedGame(player(total = 202), player(name = "Bot", type = PlayerType.AI, total = 200)),
         )
 
-        assertFalse("winning by 2 is not a photo finish", Achievement.WIN_BY_5 in byTwo.newlyUnlocked)
+        assertFalse(Achievement.WIN_BY_5 in byTwo.newlyUnlocked, "winning by 2 is not a photo finish")
     }
 
     @Test
@@ -158,12 +158,12 @@ class AchievementEngineTest {
 
         val update = evaluate(state)
 
-        assertFalse("player 1 didn't actually finish 1st, so this must not count as a win", Achievement.FIRST_WIN in update.newlyUnlocked)
+        assertFalse(Achievement.FIRST_WIN in update.newlyUnlocked, "player 1 didn't actually finish 1st, so this must not count as a win")
         assertEquals(0, update.counters[AchievementCounter.GAMES_WON])
     }
 
     @Test
-    fun `a tie at the top counts as a win for the human, but not a one-point win`() {
+    fun `a tie at the top counts as a win for the human - but not a one-point win`() {
         val state = finishedGame(player(total = 200), player(name = "Bot", type = PlayerType.AI, total = 200))
 
         val update = evaluate(state)
@@ -191,7 +191,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `matching the top score with more 5x loses the tie-break - no win, no Tie Break`() {
+    fun `matching the top score with more 5x loses the tie-break - no win and no Tie Break`() {
         val state = finishedGame(
             player(total = 200, fiveOfAKindBonusCount = 1),
             player(name = "Bot", type = PlayerType.AI, total = 200, fiveOfAKindBonusCount = 0),
@@ -201,8 +201,8 @@ class AchievementEngineTest {
 
         // Losing the tie-break is losing, full stop - a raw-score tie the house rule then decides
         // against player 1 must not count as a win anywhere, FIRST_WIN included.
-        assertFalse("the bot won the tie-break, not player 1", Achievement.FIRST_WIN in update.newlyUnlocked)
-        assertFalse("the bot won the tie-break, not player 1", Achievement.TIE_BREAK in update.newlyUnlocked)
+        assertFalse(Achievement.FIRST_WIN in update.newlyUnlocked, "the bot won the tie-break, not player 1")
+        assertFalse(Achievement.TIE_BREAK in update.newlyUnlocked, "the bot won the tie-break, not player 1")
         assertEquals(0, update.counters[AchievementCounter.GAMES_WON])
     }
 
@@ -306,7 +306,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `only player 1's own feats and scorecard earn achievements, not a second human's`() {
+    fun `only player 1's own feats and scorecard earn achievements - not a second human's`() {
         val state = finishedGame(
             // Player 1 (first in the list): under 100, no 5x.
             player(name = "Alice", total = 90),
@@ -357,7 +357,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `losing by exactly one point is Pipped to the Post, losing by more is not`() {
+    fun `losing by exactly one point is Pipped to the Post - losing by more is not`() {
         val byOne = evaluate(finishedGame(player(total = 199), player(name = "Bot", type = PlayerType.AI, total = 200)))
         val byFive = evaluate(finishedGame(player(total = 195), player(name = "Bot", type = PlayerType.AI, total = 200)))
 
@@ -405,7 +405,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `player 1 playing first-roll-only unlocks Impatient, and Naturally Gifted if they also won`() {
+    fun `player 1 playing first-roll-only unlocks Impatient - and Naturally Gifted if they also won`() {
         val won = finishedGame(player(total = 200), player(name = "Bot", type = PlayerType.AI, total = 150))
         val lost = finishedGame(player(total = 100), player(name = "Bot", type = PlayerType.AI, total = 150))
 
@@ -417,8 +417,8 @@ class AchievementEngineTest {
         assertTrue(Achievement.NATURALLY_GIFTED in wonFirstRollOnly.newlyUnlocked)
         assertFalse(Achievement.IMPATIENT in wonWithExtraRolls.newlyUnlocked)
         assertFalse(Achievement.NATURALLY_GIFTED in wonWithExtraRolls.newlyUnlocked)
-        assertTrue("first-roll-only but lost - Impatient still applies", Achievement.IMPATIENT in lostFirstRollOnly.newlyUnlocked)
-        assertFalse("first-roll-only but lost - not a win", Achievement.NATURALLY_GIFTED in lostFirstRollOnly.newlyUnlocked)
+        assertTrue(Achievement.IMPATIENT in lostFirstRollOnly.newlyUnlocked, "first-roll-only but lost - Impatient still applies")
+        assertFalse(Achievement.NATURALLY_GIFTED in lostFirstRollOnly.newlyUnlocked, "first-roll-only but lost - not a win")
     }
 
     /**
@@ -437,7 +437,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `Big Fan, Luck of the Irish and Shaken Not Tapped are the only secret achievements, and none gates Completionist`() {
+    fun `Big Fan - Luck of the Irish and Shaken Not Tapped are the only secret achievements - and none gates Completionist`() {
         assertEquals(AchievementVisibility.SECRET, Achievement.BIG_FAN.visibility)
         assertEquals(AchievementVisibility.SECRET, Achievement.LUCK_OF_THE_IRISH.visibility)
         assertEquals(AchievementVisibility.SECRET, Achievement.SHAKEN_NOT_TAPPED.visibility)
@@ -508,7 +508,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `Well Rolled announces progress every 1,000 dice, not every quarter of its 10,000 target`() {
+    fun `Well Rolled announces progress every 1 -000 dice - not every quarter of its 10 -000 target`() {
         val state = finishedGame(player())
 
         // 990 -> 995 doesn't cross a thousand.
@@ -529,7 +529,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `Professional Roller announces progress every 1,000 career points, not every quarter of its 100,000 target`() {
+    fun `Professional Roller announces progress every 1 -000 career points - not every quarter of its 100 -000 target`() {
         // 199 -> 249 doesn't cross a thousand.
         val quiet = evaluate(
             finishedGame(player(total = 50)),
@@ -585,7 +585,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `I Robot counts toward Completionist, Completionist does not count toward itself`() {
+    fun `I Robot counts toward Completionist - Completionist does not count toward itself`() {
         assertTrue(Achievement.I_ROBOT in Achievement.COMPLETION_REQUIREMENTS)
         assertFalse(Achievement.COMPLETIONIST in Achievement.COMPLETION_REQUIREMENTS)
     }
@@ -602,14 +602,14 @@ class AchievementEngineTest {
      * of filed into its theme would silently split that theme across the list.
      */
     @Test
-    fun `each category is one unbroken run, in category order`() {
+    fun `each category is one unbroken run - in category order`() {
         val runs = Achievement.entries.map { it.category }.distinct()
 
         assertEquals(AchievementCategory.entries.toList(), runs)
     }
 
     @Test
-    fun `the three first-roll feats are listed together, least unlikely first`() {
+    fun `the three first-roll feats are listed together - least unlikely first`() {
         val misc = Achievement.entries.filter { it.category == AchievementCategory.MISCELLANEOUS }
         val firstRoll = misc.filter { it.id.contains("first_roll") }
 
@@ -638,9 +638,9 @@ class AchievementEngineTest {
             val isHidden = achievement.visibility == AchievementVisibility.HIDDEN
 
             assertEquals(
-                "${achievement.name}: category=${achievement.category}, visibility=${achievement.visibility}",
                 isMiscellaneous,
                 isHidden,
+                "${achievement.name}: category=${achievement.category}, visibility=${achievement.visibility}",
             )
         }
     }
@@ -659,9 +659,9 @@ class AchievementEngineTest {
             val isSecretVisibility = achievement.visibility == AchievementVisibility.SECRET
 
             assertEquals(
-                "${achievement.name}: category=${achievement.category}, visibility=${achievement.visibility}",
                 isSecretCategory,
                 isSecretVisibility,
+                "${achievement.name}: category=${achievement.category}, visibility=${achievement.visibility}",
             )
         }
     }
@@ -717,7 +717,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `band progress is measured against the leaderboard, not a stored counter`() {
+    fun `band progress is measured against the leaderboard - not a stored counter`() {
         val scores = (5..27).toSet()
 
         assertEquals(23, AchievementEngine.progressOf(Achievement.TALLY, emptyMap(), LeaderboardTotals(distinctScores = scores)))
@@ -740,7 +740,7 @@ class AchievementEngineTest {
         val bands = Achievement.entries.filter { it.scoreBand != null }
 
         assertEquals(6, bands.size)
-        bands.forEach { assertEquals(it.title, it.scoreBand!!.count(), it.target) }
+        bands.forEach { assertEquals(it.scoreBand!!.count(), it.target, it.title) }
         assertEquals(46, Achievement.TALLY.target)
         assertEquals(50, Achievement.BOOKKEEPER.target)
     }
@@ -753,7 +753,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `Lower Class reads the lower section, and lands mid-game`() {
+    fun `Lower Class reads the lower section - and lands mid-game`() {
         val lower = mapOf(
             ScoreCategory.THREE_OF_A_KIND to 25,
             ScoreCategory.FOUR_OF_A_KIND to 25,
@@ -772,7 +772,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `Ton is exactly 100, and only a finished game can say so`() {
+    fun `Ton is exactly 100 - and only a finished game can say so`() {
         val exactly = evaluate(finishedGame(player(total = 100)))
         val over = evaluate(finishedGame(player(total = 101)))
         val midGame = AchievementEngine.evaluateInProgress(
@@ -783,7 +783,7 @@ class AchievementEngineTest {
 
         assertTrue(Achievement.TON in exactly.newlyUnlocked)
         assertFalse(Achievement.TON in over.newlyUnlocked)
-        assertFalse("a running total can still climb past 100", Achievement.TON in midGame.newlyUnlocked)
+        assertFalse(Achievement.TON in midGame.newlyUnlocked, "a running total can still climb past 100")
     }
 
     @Test
@@ -819,8 +819,8 @@ class AchievementEngineTest {
         val update = evaluate(finishedGame(player(name = "A", total = 500), player(name = "B", total = 500)), context)
 
         assertFalse(
-            "player 2's score must not count towards player 1's Professional Roller",
             Achievement.PROFESSIONAL_ROLLER in update.newlyUnlocked,
+            "player 2's score must not count towards player 1's Professional Roller",
         )
     }
 
@@ -842,14 +842,14 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `Solid Round and Sharpshooter unlock on exactly 200 or 300, not only strictly over`() {
+    fun `Solid Round and Sharpshooter unlock on exactly 200 or 300 - not only strictly over`() {
         val exactly200 = evaluate(finishedGame(player(total = 200)))
         val over200 = evaluate(finishedGame(player(total = 250)))
         val exactly300 = evaluate(finishedGame(player(total = 300)))
 
-        assertTrue("200 should unlock Solid Round", Achievement.SCORE_200 in exactly200.newlyUnlocked)
-        assertTrue("250 is over 200, so it should unlock Solid Round", Achievement.SCORE_200 in over200.newlyUnlocked)
-        assertTrue("300 should unlock Sharpshooter", Achievement.SCORE_300 in exactly300.newlyUnlocked)
+        assertTrue(Achievement.SCORE_200 in exactly200.newlyUnlocked, "200 should unlock Solid Round")
+        assertTrue(Achievement.SCORE_200 in over200.newlyUnlocked, "250 is over 200, so it should unlock Solid Round")
+        assertTrue(Achievement.SCORE_300 in exactly300.newlyUnlocked, "300 should unlock Sharpshooter")
     }
 
     @Test
@@ -896,7 +896,7 @@ class AchievementEngineTest {
     // pure engine's job, same as evaluate/evaluateInProgress for the rest of a game.
 
     @Test
-    fun `The Journey Begins unlocks the first time a game starts, never again`() {
+    fun `The Journey Begins unlocks the first time a game starts - never again`() {
         val before = AchievementsState()
 
         val first = AchievementEngine.evaluateAtGameStart(GameStartContext(), before, NOW)
@@ -1007,7 +1007,7 @@ class AchievementEngineTest {
         GameState(gameMode = players.first().gameMode, players = players.toList(), isGameOver = false)
 
     @Test
-    fun `a maxed box unlocks mid-game, without waiting for the results screen`() {
+    fun `a maxed box unlocks mid-game - without waiting for the results screen`() {
         val state = inProgress(midGamePlayer(mapOf(ScoreCategory.SIXES to 30)))
 
         val update = AchievementEngine.evaluateInProgress(state, AchievementsState(), NOW)
@@ -1016,7 +1016,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `feats already banked in the scorecard unlock mid-game, but a score threshold waits for the actual result`() {
+    fun `feats already banked in the scorecard unlock mid-game - but a score threshold waits for the actual result`() {
         val state = inProgress(
             // 30 + 50 + 200 bonus = 280 - already well past the 200 rung, but leaving this game
             // now records nothing on the leaderboard, so SCORE_200 must not have fired off a total
@@ -1030,7 +1030,7 @@ class AchievementEngineTest {
         assertTrue(Achievement.ENCORE_5X in update.newlyUnlocked)
         assertTrue(Achievement.HAT_TRICK_5X in update.newlyUnlocked)
         assertTrue(Achievement.CHANCE_30 in update.newlyUnlocked)
-        assertFalse("a score threshold must wait for the game to actually finish", Achievement.SCORE_200 in update.newlyUnlocked)
+        assertFalse(Achievement.SCORE_200 in update.newlyUnlocked, "a score threshold must wait for the game to actually finish")
     }
 
     @Test
@@ -1047,7 +1047,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `mid-game touches no counters, so an undo can't inflate a running total`() {
+    fun `mid-game touches no counters - so an undo can't inflate a running total`() {
         val before = AchievementsState(counters = mapOf(AchievementCounter.GAMES_PLAYED to 7))
         val state = inProgress(midGamePlayer(mapOf(ScoreCategory.SIXES to 30)))
 
@@ -1058,7 +1058,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `mid-game earns nothing once the game is over, leaving it to the final pass`() {
+    fun `mid-game earns nothing once the game is over - leaving it to the final pass`() {
         val state = finishedGame(player(total = 300))
 
         val update = AchievementEngine.evaluateInProgress(state, AchievementsState(), NOW)
@@ -1081,7 +1081,7 @@ class AchievementEngineTest {
     // ---- Game modes ------------------------------------------------------------------------------
 
     @Test
-    fun `starting any non-Standard mode unlocks Rules, and Standard does not`() {
+    fun `starting any non-Standard mode unlocks Rules - and Standard does not`() {
         val before = AchievementsState(unlockedAt = mapOf(Achievement.THE_JOURNEY_BEGINS to 1L))
 
         val standard = AchievementEngine.evaluateAtGameStart(GameStartContext(gameMode = GameMode.STANDARD), before, NOW)
@@ -1123,7 +1123,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `scoring all four colour boxes unlocks Tricolour Me Impressed mid-game, the moment the fourth goes in`() {
+    fun `scoring all four colour boxes unlocks Tricolour Me Impressed mid-game - the moment the fourth goes in`() {
         val threeOfFour = mapOf(ScoreCategory.REDS to 40, ScoreCategory.YELLOWS to 40, ScoreCategory.BLUES to 40)
 
         val beforeFourth = AchievementEngine.evaluateInProgress(

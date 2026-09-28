@@ -1,7 +1,7 @@
 package net.zodac.dicefive.model
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class PlayerStateTest {
 
@@ -13,7 +13,7 @@ class PlayerStateTest {
     )
 
     @Test
-    fun `a filled 5x box counts as one 5x, and each bonus chip as another`() {
+    fun `a filled 5x box counts as one 5x - and each bonus chip as another`() {
         assertEquals(1, player(fiveOfAKindBox = 50).fiveOfAKindCount)
         assertEquals(4, player(fiveOfAKindBox = 50, bonusChips = 3).fiveOfAKindCount)
     }

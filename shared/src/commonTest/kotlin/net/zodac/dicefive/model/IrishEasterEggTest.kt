@@ -1,16 +1,16 @@
 package net.zodac.dicefive.model
 
+import kotlin.test.Test
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import net.zodac.dicefive.game.GameEngine
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
 class IrishEasterEggTest {
 
     @Test
-    fun `Ireland, Eire, and accented Eire all match, case- and accent-insensitively`() {
+    fun `Ireland - Eire - and accented Eire all match - case- and accent-insensitively`() {
         listOf("Ireland", "ireland", "IRELAND", "Eire", "eire", "Éire", "éire", "  Ireland  ").forEach { name ->
-            assertTrue("\"$name\" should match", isIrishPlayerName(name))
+            assertTrue(isIrishPlayerName(name), "\"$name\" should match")
         }
     }
 
@@ -42,7 +42,7 @@ class IrishEasterEggTest {
     }
 
     @Test
-    fun `Tricolour with P2 (not P1) named Ireland is not Luck of the Irish`() {
+    fun `Tricolour with P2 rather than P1 named Ireland is not Luck of the Irish`() {
         val state = GameEngine.newGame(
             listOf(
                 PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Zoe"),

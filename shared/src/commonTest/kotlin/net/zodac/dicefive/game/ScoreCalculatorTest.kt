@@ -1,15 +1,15 @@
 package net.zodac.dicefive.game
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
 private fun diceOf(vararg values: Int): List<Die> = values.map { Die(value = it) }
 
@@ -56,7 +56,7 @@ class ScoreCalculatorTest {
     }
 
     @Test
-    fun `once every matching upper and lower box is filled, any remaining open box may be zeroed`() {
+    fun `once every matching upper and lower box is filled - any remaining open box may be zeroed`() {
         val scorecard = freshPlayer.scorecard + mapOf(
             ScoreCategory.FIVE_OF_A_KIND to 50,
             ScoreCategory.FOURS to 16,
@@ -109,7 +109,7 @@ class ScoreCalculatorTest {
     }
 
     @Test
-    fun `a repeat 5x can go in a colour box, but it scores by the dice's real colours`() {
+    fun `a repeat 5x can go in a colour box - but it scores by the dice's real colours`() {
         val player = tricolourJokerPlayer(ScoreCategory.SIXES to 30)
         val mixed = List(5) { Die(value = 6, colour = if (it == 0) DieColour.BLUE else DieColour.RED) }
         val allRed = List(5) { Die(value = 6, colour = DieColour.RED) }
