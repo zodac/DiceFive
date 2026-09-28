@@ -1107,8 +1107,10 @@ class GameViewModel(
         // that die is still held right now or was let go beforehand doesn't matter, only whether it
         // fed the score. Only the upper section can be "not used" this way: every other category's
         // score is built from all five dice together (a sum, or a pattern needing all of them), so
-        // there's no such thing as scoring one of those without a die still on the felt counting.
-        if (category in PlayerState.UPPER_CATEGORIES) {
+        // there's no such thing as scoring one of those without a die still on the felt counting. A
+        // zero score means the category failed outright rather than the player choosing to let the
+        // held die go, so it doesn't count.
+        if (category in PlayerState.UPPER_CATEGORIES && DiceScoring.score(category, dice) > 0) {
             val target = PlayerState.UPPER_CATEGORIES.indexOf(category) + 1
             if (heldThroughBothRerolls.any { dice[it].value != target }) {
                 unlockAchievements(setOf(Achievement.TIME_TO_LET_IT_GO))
