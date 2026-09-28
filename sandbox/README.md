@@ -211,7 +211,7 @@ history, each time):
 |-----------------------------|------------------|-----------------------------------------------------------------------------|
 | `sandbox/.claude-history/`  | bind-mounted dir | Claude auth, session transcripts/memory **and** onboarding/terminal-setup state (`~/.claude`) |
 | `<project>-sandbox-docker`  | named volume     | nested Docker images/layers (`/var/lib/docker`)                            |
-| `<project>-sandbox-gradle`  | named volume     | the Gradle distribution + dependency cache (`~/.gradle`) — AGP/Kotlin/AndroidX/Compose land here on first build |
+| `<project>-sandbox-gradle`  | named volume     | the Gradle distribution + dependency cache (`~/.gradle`) — AGP/Kotlin/AndroidX/Compose land here on first build, and the Kotlin/Native toolchain too (`~/.gradle/konan`, via `KONAN_DATA_DIR`) |
 | `<project>-sandbox-m2`      | named volume     | the Maven repository (`~/.m2`) — unused here, stays empty                  |
 | `<project>-sandbox-pw`      | named volume     | Playwright browsers — unused here, stays empty                             |
 

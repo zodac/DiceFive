@@ -75,9 +75,9 @@ prefixed with the platform's name (`AndroidSoundPlayer`, `IosSoundPlayer`).
   now proves `commonMain` has no JVM/Android API in it, and that `iosMain` compiles against the
   real Apple APIs. Only linking a binary and running tests needs macOS (those tasks are skipped
   elsewhere - `kotlin.native.ignoreDisabledTargets` in `gradle.properties`).
-- **No data was carried over.** The app is pre-release, so the Room schema restarted at version 1
-  with no migrations (a pre-release install's v6 database is wiped on open - the downgrade
-  fallback in `buildAppDatabase`). From now on, schema changes need a version bump and a migration.
+- **No data was carried over.** The app is pre-release, so the Room schema was collapsed into a
+  single initial version 1 (no migrations, no destructive fallback - an old pre-release install must
+  clear its data). From now on, schema changes need a version bump and a migration.
 
 ---
 

@@ -44,8 +44,7 @@ decisions behind it. Read that before changing anything visual.
   same as the leaderboard). Win/loss and the current win streak are only tracked for multiplayer
   games — a solo game has nobody to beat, so it's recorded with a null outcome that counts toward
   games played but neither wins, losses, nor breaks a streak, mirroring the existing
-  `WIN_STREAK`/`GAMES_WON` achievement counters. Rows recorded before this feature shipped get the
-  same null treatment, since their outcome was never captured.
+  `WIN_STREAK`/`GAMES_WON` achievement counters.
 - **GitHub link**: shown with the app version, in a footer at the bottom of
   the Settings screen (there is no separate About screen); `https://github.com/zodac/DiceFive`.
 - **Table art styles**: `ui/game/style/DiceStyle`/`DiceCupStyle`/`TableBackground` are
@@ -387,8 +386,7 @@ dependencies — most unit tests live here.
 - `ScoresScreen`: scrollable rank/name/5x/score table in a compact row style;
   the 5x column is how many 5x that game scored (`PlayerState.fiveOfAKindCount` - the 5x box when
   it holds 50, plus one per bonus chip - the same definition the achievements' `SCORED_5X` counter
-  uses), shown as "-" for an entry recorded before the column existed rather than a 0 it can't
-  vouch for;
+  uses);
   long-press a row shows a popup/tooltip with the formatted date from
   `timestampEpochMillis`. The next/prev controls only render when there is
   more than one page, but their height is always reserved, so the table ends
@@ -1424,9 +1422,12 @@ install-over-existing succeeds:
       common code for platform leaks. It answers to `testDebugUnitTest` (JVM tests + iOS compiles),
       so CI and the update script needed no changes. Tests are `kotlin.test` in `commonTest`; Kotlin/
       Native forbids commas and parentheses in their backticked names.
-- [x] **Persistence** (`745d9bb`): Room and DataStore multiplatform. **The schema restarted at
-      version 1 with no migrations** - pre-release, nothing to keep; an old v6 database is wiped on
-      open (downgrade fallback). Schemas are exported to `app/shared/schemas/`.
+- [x] **Persistence** (`745d9bb`): Room and DataStore multiplatform. **The schema was collapsed
+      into a single initial version 1**, with no migrations and no destructive fallback - pre-release,
+      nothing to keep. Every stat column but `won` (null for a solo game) is `NOT NULL`: the nullable
+      "recorded before this column existed" columns, the leaderboard's treat-missing-as-worst rule and
+      the "-" for an unknown 5x count all went with the old rows. Old saved games from before game
+      modes/turn timers are no longer read either. Schemas are exported to `app/shared/schemas/`.
       `AndroidAppContainerTest` opens the real Android storage under Robolectric.
 - [x] **UI**: every screen moved to Compose Multiplatform unchanged apart from resources
       (`Res.drawable.*`, `Res.font.sora`), `BackHandler` (now `ui/common/BackHandler.kt`, on the
@@ -1442,5 +1443,10 @@ install-over-existing succeeds:
       `expect fun formatTimestamp` on each platform's own formatter; JetBrains' bundled
       `META-INF/.../LICENSE.txt` copies are excluded like AndroidX's. Now 1.95MB - the rest is Compose
       Multiplatform's resources runtime and the platform seams.
+- [x] **Lint coverage and clean-ups**: lint covers `app/shared` again (it had silently stopped at
+      the module split); the warnings that surfaced are fixed - modifier parameter order, the shake
+      effect renamed `ShakeDetectorEffect`, and `DiceTray`/`AchievementsScreen`'s press handling made
+      one `awaitEachGesture` each. That last one fixed a real bug: two separate pointer scopes dropped
+      a second quick tap - `DiceTrayGestureTest` pins it, and fails on the old code.
 - [ ] **Not yet seen on a device** - neither the Android build since the move (Robolectric only)
       nor iOS at all (needs macOS - `IOS_SUPPORT.md` Phase 5).

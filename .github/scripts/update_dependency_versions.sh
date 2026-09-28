@@ -544,7 +544,8 @@ stable_android_platforms() {
 }
 
 # Writes API.MINOR into app/android/build.gradle.kts: compileSdk = API, and compileSdkMinor = MINOR (the line
-# added after compileSdk if missing, removed for a .0 release).
+# added after compileSdk if missing, removed for a .0 release). app/shared/build.gradle.kts reads these
+# same two lines (and minSdk) rather than declaring its own, so this one edit moves both modules.
 set_compile_sdk() {
     local api="${1%%.*}" minor="${1#*.}"
     sed -i -E "s|^([[:space:]]*compileSdk[[:space:]]*=[[:space:]]*)[0-9]+|\\1${api}|" "${APP_BUILD_GRADLE}"
