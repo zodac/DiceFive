@@ -4,8 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,7 +18,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
@@ -59,7 +57,6 @@ import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.ConfigureOverlayDialogWindow
-import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.grouped
 
 /** How long a banner sits at full opacity before it starts to go. */
@@ -112,7 +109,7 @@ private data class BannerItem(val key: Long, val event: AchievementEvent)
  *
  * Banners sit in a bottom-anchored overlapping stack, the longest-queued one in front and nearest
  * the thumb, each newer arrival peeking out by [STACK_PEEK_DP] further back - a burst of several no
- * longer fills the screen. Only the front banner is interactive (swipe or long press); the ones
+ * longer fills the screen. Only the front banner is interactive (swipe to dismiss); the ones
  * peeking out behind it are inert until it clears, so a swipe can never accidentally land on the
  * wrong one underneath. An unlock always takes the front position over a progress nudge, regardless
  * of which arrived first - see [displayOrder] - but otherwise clearing the front always promotes
@@ -120,28 +117,22 @@ private data class BannerItem(val key: Long, val event: AchievementEvent)
  * off the backlog: see the `add(0, ...)` in the collector below, and [displayOrder]'s comment, for
  * why a brand new banner has to join the *back* of the stack rather than the front, or it would cut
  * the queue the instant a slot freed up for it. Each banner leaves on its own: a hold, then a slow
- * fade. A horizontal swipe in either direction, or clearing its long-press description dialog,
- * doesn't wait for that.
+ * fade. A horizontal swipe in either direction doesn't wait for that.
  *
  * The stack renders in its own [Dialog] window, not as part of [content] - an achievement can fire
  * while a dialog (Settings' credits, a rules dialog, a confirmation) is already on screen, and a
  * new window is always drawn above whatever else was already showing when it appeared, so this
- * keeps the banner - and the description dialog its long press opens - from ending up stuck behind
- * one. A `Dialog` was chosen over a `Popup` for this because a `Popup`'s window is attached as a
- * panel of its parent (here, the main content's own window) and stacks relative to *that*, not to
- * other independent top-level windows like another already-open `Dialog` - so it could still end
- * up under one, however recently it was created. [ConfigureOverlayDialogWindow] then turns that
- * dialog window into a non-modal overlay - no dim, and no swallowing touches/back-presses outside
- * its own content - so it doesn't behave like a real dialog itself.
+ * keeps the banner from ending up stuck behind one. A `Dialog` was chosen over a `Popup` for this
+ * because a `Popup`'s window is attached as a panel of its parent (here, the main content's own
+ * window) and stacks relative to *that*, not to other independent top-level windows like another
+ * already-open `Dialog` - so it could still end up under one, however recently it was created.
+ * [ConfigureOverlayDialogWindow] then turns that dialog window into a non-modal overlay - no dim,
+ * and no swallowing touches/back-presses outside its own content - so it doesn't behave like a
+ * real dialog itself.
  */
 @Composable
 fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val banners = remember { mutableStateListOf<BannerItem>() }
-    // Which banner (if any) has its long-press description dialog open - only ever the front one,
-    // since only it is interactive, but read by every banner below so ALL of their hold countdowns
-    // pause together, not just the one actually showing the dialog. Otherwise a banner peeking out
-    // behind it could still time out and clear itself while the dialog was up.
-    var descriptionShownForKey by remember { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(Unit) {
         var nextKey = 0L
@@ -196,10 +187,6 @@ fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable ()
                             BannerSlot(
                                 item = item,
                                 interactive = depthFromFront == 0,
-                                anyDescriptionShowing = descriptionShownForKey != null,
-                                showOwnDescription = descriptionShownForKey == item.key,
-                                onRequestDescription = { descriptionShownForKey = item.key },
-                                onDismissDescription = { descriptionShownForKey = null },
                                 onDismissed = { banners.remove(item) },
                                 modifier = Modifier.zIndex(index.toFloat()),
                             )
@@ -241,31 +228,18 @@ fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable ()
  * from the list, and is safe to call twice if a swipe lands during the closing fade.
  *
  * [interactive] gates the gesture recognizer entirely - false for every banner but the front one
- * in the stack, so a swipe or long press can only ever land on the one actually on top; the ones
- * peeking out behind it don't so much as consume the touch.
+ * in the stack, so a swipe can only ever land on the one actually on top; the ones peeking out
+ * behind it don't so much as consume the touch.
  *
  * The hold countdown only runs while [interactive] is true - a banner peeking out behind the
  * front one doesn't start timing out until it's actually promoted to the front, so a burst of
  * several banners each get their own full [HOLD_MILLIS] once it's their turn rather than all
- * ticking down together and clearing within moments of each other. [anyDescriptionShowing] pauses
- * it further on top of that, for the one banner it's actually possible to open a dialog on (the
- * front one - see [interactive]).
- *
- * A single gesture recognizer handles both a horizontal swipe (dismiss) and a long press (show
- * the full description) - they have to live in the same `pointerInput` block rather than two
- * separate ones, since both start from the same down event and only diverge once the finger
- * either moves past touch slop (a swipe) or the long-press timeout elapses first (neither moved).
- * A long press followed by drag is treated as a swipe, same as anywhere else in Android - the
- * timeout is cancelled the moment real movement is seen.
+ * ticking down together and clearing within moments of each other.
  */
 @Composable
 private fun BannerSlot(
     item: BannerItem,
     interactive: Boolean,
-    anyDescriptionShowing: Boolean,
-    showOwnDescription: Boolean,
-    onRequestDescription: () -> Unit,
-    onDismissDescription: () -> Unit,
     onDismissed: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -281,14 +255,12 @@ private fun BannerSlot(
         alpha.animateTo(1f, tween(FADE_IN_MILLIS))
     }
 
-    // Re-runs whenever this banner is promoted to/demoted from the front of the stack, or its
-    // description dialog opens/closes: becoming the front banner is what starts its hold countdown
-    // in the first place, and losing that status (shouldn't normally happen, but is handled the
-    // same way for safety) or opening its dialog cancels whatever's left of it (the
-    // `return@LaunchedEffect` below). Closing the dialog starts a fresh full-length hold rather
-    // than resuming a partial one - reading the description is itself a reason to stick around.
-    LaunchedEffect(interactive, anyDescriptionShowing, swipedAway) {
-        if (!interactive || swipedAway || anyDescriptionShowing) return@LaunchedEffect
+    // Re-runs whenever this banner is promoted to/demoted from the front of the stack: becoming
+    // the front banner is what starts its hold countdown in the first place, and losing that
+    // status (shouldn't normally happen, but is handled the same way for safety) cancels whatever
+    // was left of it (the `return@LaunchedEffect` below).
+    LaunchedEffect(interactive, swipedAway) {
+        if (!interactive || swipedAway) return@LaunchedEffect
         delay(HOLD_MILLIS)
         if (!swipedAway) {
             alpha.animateTo(0f, tween(FADE_OUT_MILLIS))
@@ -307,39 +279,8 @@ private fun BannerSlot(
                     Modifier
                 } else {
                     Modifier.pointerInput(item.key) {
-                        val longPressTimeoutMillis = viewConfiguration.longPressTimeoutMillis
-                        val touchSlop = viewConfiguration.touchSlop
-                        awaitEachGesture {
-                            val down = awaitFirstDown(requireUnconsumed = false)
-                            var dragging = false
-                            var previousX = down.position.x
-                            val longPressJob = scope.launch {
-                                delay(longPressTimeoutMillis)
-                                if (!dragging) onRequestDescription()
-                            }
-                            try {
-                                do {
-                                    val event = awaitPointerEvent()
-                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                    if (!dragging) {
-                                        val totalDeltaX = change.position.x - down.position.x
-                                        if (abs(totalDeltaX) > touchSlop) {
-                                            dragging = true
-                                            longPressJob.cancel()
-                                        }
-                                    }
-                                    if (dragging) {
-                                        change.consume()
-                                        val deltaX = change.position.x - previousX
-                                        scope.launch { offsetX.snapTo(offsetX.value + deltaX) }
-                                    }
-                                    previousX = change.position.x
-                                } while (event.changes.any { it.pressed })
-                            } finally {
-                                longPressJob.cancel()
-                            }
-
-                            if (dragging) {
+                        detectHorizontalDragGestures(
+                            onDragEnd = {
                                 scope.launch {
                                     if (abs(offsetX.value) > size.width * SWIPE_DISMISS_FRACTION) {
                                         swipedAway = true
@@ -351,7 +292,10 @@ private fun BannerSlot(
                                         offsetX.animateTo(0f, tween(SWIPE_OUT_MILLIS))
                                     }
                                 }
-                            }
+                            },
+                        ) { change, dragAmount ->
+                            change.consume()
+                            scope.launch { offsetX.snapTo(offsetX.value + dragAmount) }
                         }
                     }
                 },
@@ -361,27 +305,6 @@ private fun BannerSlot(
             is AchievementEvent.Unlocked -> UnlockedBanner(event.achievement)
             is AchievementEvent.Progressed -> ProgressBanner(event.achievement, event.previous, event.current, interactive)
         }
-    }
-
-    if (showOwnDescription) {
-        val defaultIconTint = MaterialTheme.colorScheme.primary
-        DiceFiveDialog(
-            // The achievement's own icon for an unlock, same as its banner; a progress nudge keeps
-            // the generic trophy, since nothing has been earned yet.
-            icon = when (val event = item.event) {
-                is AchievementEvent.Unlocked -> event.achievement.icon
-                is AchievementEvent.Progressed -> Icons.Filled.EmojiEvents
-            },
-            iconTint = when (val event = item.event) {
-                is AchievementEvent.Unlocked -> event.achievement.iconTintOrUnspecified(defaultIconTint)
-                is AchievementEvent.Progressed -> defaultIconTint
-            },
-            title = item.event.achievement.title,
-            message = item.event.achievement.description,
-            confirmLabel = "Got it",
-            onConfirm = onDismissDescription,
-            onDismissRequest = onDismissDescription,
-        )
     }
 }
 
