@@ -447,8 +447,9 @@ abstract class CollectThirdPartyNoticesTask : DefaultTask() {
 /**
  * The asset half of the report: a font, a sound or an image isn't a Gradle dependency, so nothing can
  * discover its license - someone has to write down where it came from. This makes that impossible to
- * skip: every file under any source set's res/ (bar values*, which is text and config, not creative
- * work), rawAudioSource/ and assets/ must have a complete entry in aboutlibraries/asset-sources.json -
+ * skip: every file under any of this module's source sets' res/ (bar values*, which is text and
+ * config, not creative work), rawAudioSource/ and assets/, and under :shared's composeResources/ (the
+ * shared UI's font and icons), must have a complete entry in aboutlibraries/asset-sources.json -
  * what it is, where it came from and its license. That applies to the app's own
  * artwork too (license LicenseRef-DiceFive-AllRightsReserved): "we made it" is a claim that still
  * needs its session or commit behind it, and its own copyright line. A third-party asset instead
@@ -470,16 +471,16 @@ abstract class VerifyAssetSourcesTask : DefaultTask() {
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val librariesDirectory: DirectoryProperty
 
-    /** Asset paths are recorded relative to this (the app module), so the manifest reads the same everywhere. */
+    /** Asset paths are recorded relative to this (the repository root), so the manifest reads the same everywhere. */
     @get:Internal
-    abstract val moduleDirectory: DirectoryProperty
+    abstract val rootDirectory: DirectoryProperty
 
     @get:OutputFile
     abstract val reportFile: RegularFileProperty
 
     @TaskAction
     fun verify() {
-        val moduleDir = moduleDirectory.get().asFile
+        val rootDir = rootDirectory.get().asFile
         val manifestName = sourcesManifest.get().asFile.name
         @Suppress("UNCHECKED_CAST")
         val entries = (groovy.json.JsonSlurper().parse(sourcesManifest.get().asFile) as Map<String, Any?>)
@@ -487,7 +488,7 @@ abstract class VerifyAssetSourcesTask : DefaultTask() {
         val libraries = librariesDirectory.get().asFile.listFiles { file -> file.extension == "json" }.orEmpty()
             .map { groovy.json.JsonSlurper().parse(it) as Map<*, *> }
             .associateBy { it["uniqueId"] }
-        val assets = assetFiles.files.map { it.relativeTo(moduleDir).invariantSeparatorsPath }.sorted()
+        val assets = assetFiles.files.map { it.relativeTo(rootDir).invariantSeparatorsPath }.sorted()
 
         val problems = mutableListOf<String>()
         for (asset in assets) {
@@ -566,9 +567,10 @@ val verifyAssetSources = tasks.register<VerifyAssetSourcesTask>("verifyAssetSour
         include("*/res/**", "*/rawAudioSource/**", "*/assets/**")
         exclude("*/res/values*/**")
     })
+    assetFiles.from(rootProject.fileTree("shared/src") { include("*/composeResources/**") })
     sourcesManifest.set(layout.projectDirectory.file("aboutlibraries/asset-sources.json"))
     librariesDirectory.set(layout.projectDirectory.dir("aboutlibraries/libraries"))
-    moduleDirectory.set(layout.projectDirectory)
+    rootDirectory.set(rootProject.layout.projectDirectory)
     reportFile.set(layout.buildDirectory.file("reports/licenses/assets.txt"))
 }
 
@@ -602,32 +604,23 @@ androidComponents {
 }
 
 dependencies {
+    // The game, its UI and its persistence - everything that isn't Android-specific.
     implementation(project(":shared"))
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
+    // Compose UI and Material3 themselves arrive through :shared (as JetBrains' multiplatform
+    // artifacts, which resolve to these same androidx ones on Android); the BOM keeps the test and
+    // tooling artifacts below on matching versions.
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
-    // Just for Icons.AutoMirrored.Filled.Undo (see UndoButton.kt) - material3 alone only ships the
-    // small default icon set, which doesn't include Undo.
-    implementation(libs.androidx.material.icons.extended)
-    implementation(libs.androidx.navigation.compose)
+    // AndroidAppContainer opens the shared module's database and preferences files.
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.datastore.preferences.core)
-    // Reads the aboutlibraries.json the plugin above generates - see the aboutLibraries block.
-    implementation(libs.aboutlibraries.core)
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.kotlinx.datetime)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     // org.json is part of the Android SDK, but unit tests run against a stub version of it (every
     // method throws) - this brings in a real implementation for JVM tests only. The app itself no
-    // longer uses it, but AboutLibraries' Android parser (behind parseLicenseReport) still does.
+    // longer uses it, but AboutLibraries' Android parser (behind the Licences dialog) still does.
     testImplementation(libs.org.json)
     // Compose UI tests on the JVM (no device/emulator in the sandbox) - see LicensesDialogTest.
     testImplementation(libs.robolectric)

@@ -14,6 +14,7 @@ import android.view.MotionEvent
 import android.view.ViewConfiguration
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.isDialog as isComposeDialog
@@ -25,6 +26,9 @@ import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import java.time.Duration
+import net.zodac.dicefive.device.AndroidPlatformServices
+import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.hamcrest.Matchers.containsString
 import org.junit.Assert.assertEquals
@@ -37,7 +41,6 @@ import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import java.time.Duration
 
 /**
  * The Licences dialog's touch handling, on the real platform TextView it renders the report with -
@@ -59,7 +62,11 @@ class LicensesDialogTest {
     private lateinit var document: TextView
 
     private fun showDialog() {
-        compose.setContent { DiceFiveTheme { LicensesDialog(onDismissRequest = {}) } }
+        compose.setContent {
+            CompositionLocalProvider(LocalPlatformServices provides AndroidPlatformServices(application)) {
+                DiceFiveTheme { LicensesDialog(onDismissRequest = {}) }
+            }
+        }
         compose.waitUntil(timeoutMillis = 10_000) { findDocument() != null }
         document = findDocument()!!
     }

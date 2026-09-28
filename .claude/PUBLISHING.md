@@ -103,9 +103,13 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
     `app/aboutlibraries/asset-sources.json` (constant `APP_LICENSE` in `VerifyAssetSourcesTask`) -
     change both together if the license ever changes.
 - **Still open, related:**
-  - **iOS**: when the port happens, the licenses dialog, `asset-sources.json` and the copyleft
-    guard need carrying over to it (AboutLibraries supports Kotlin/Compose Multiplatform). Apple's
-    standard EULA covers App Store users - no custom EULA needed unless wanted.
+  - **iOS**: the licences dialog is shared code now, and `asset-sources.json` already covers the
+    shared font and icons - but the report it lists is generated from the *Android* build's
+    dependency graph, and iOS currently shows an empty one (`IosPlatformServices.loadLicenceReports`).
+    Before an iOS release, generate iOS's own report and apply the copyleft guard to the iOS
+    dependency graph (AboutLibraries supports Kotlin/Compose Multiplatform) - see
+    `IOS_SUPPORT.md` Phase 5. Apple's standard EULA covers App Store users - no custom EULA needed
+    unless wanted.
   - **The public GitHub release APKs** give the game away outside Play; once Pro exists, the Play
     Billing check won't work in a sideloaded copy. Decide before Pro ships whether GitHub releases
     continue, stop, or become a Pro-less build.
