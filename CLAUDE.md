@@ -10,6 +10,9 @@
   icon. Little in it is done yet (the in-app open-source licenses page is); it's a running checklist for when that submission happens. It
   also records the app's own license (proprietary, all rights reserved - see `LICENSE`), why it was
   chosen, and how it must stay scoped to exclude third-party parts (the bundled font must stay OFL).
+- `.claude/IOS_SUPPORT.md` — the plan for an iOS port via Kotlin Multiplatform + Compose
+  Multiplatform: where the Android-only code sits today, the target module layout, and a phased
+  migration that keeps the Android app shippable throughout. Nothing in it is done yet.
 
 # Working agreements
 
