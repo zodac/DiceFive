@@ -93,6 +93,13 @@ private const val SWIPE_DISMISS_FRACTION = 0.15f
  * screen the way one full-height row per banner used to. */
 private const val STACK_PEEK_DP = 14
 
+/** Headroom reserved above the front banner for every banner peeking out behind it -
+ * `Modifier.offset` (used to stagger those peeks) only moves where a banner is drawn, it doesn't
+ * grow how much space its container reports needing, so without this the stack's Dialog window -
+ * which wraps to that reported size - would only ever be as tall as one banner, clipping the peeks
+ * at its own edge rather than the screen's. */
+private val BANNER_STACK_HEADROOM_DP = (MAX_VISIBLE_BANNERS - 1) * STACK_PEEK_DP
+
 /** A faint outline on every banner, so a stack of them - which overlap with no gap between - reads
  * as separate cards rather than one elongated shape. Plain black at low alpha rather than a theme
  * colour: it needs to work over both the primary-container unlock banner and the
@@ -173,7 +180,8 @@ fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable ()
                 modifier = Modifier
                     .widthIn(max = CONTENT_MAX_WIDTH)
                     .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .padding(top = BANNER_STACK_HEADROOM_DP.dp),
                 contentAlignment = Alignment.BottomCenter,
             ) {
                 // Display order only, not the underlying list (removal below still targets `banners`
