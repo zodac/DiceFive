@@ -424,7 +424,9 @@ private val BANNER_DESCRIPTION_MIN_FONT_SIZE = 9.sp
 private val BANNER_DESCRIPTION_FONT_STEP = 0.25.sp
 
 /**
- * An achievement's description under its title, on up to [BANNER_DESCRIPTION_MAX_LINES] lines: at
+ * An achievement's description under its title, always exactly [BANNER_DESCRIPTION_MAX_LINES]
+ * lines - a short one-liner reserves the same space as a long two-liner rather than leaving the
+ * card shorter, so every unlock banner is the same size no matter which achievement it's for: at
  * bodySmall when it fits, otherwise stepped down until it does, same idea as [BannerTitle] but
  * smaller throughout, since the description is the secondary line and there are two of them to fit
  * where the title only ever needed one.
@@ -434,6 +436,7 @@ private fun BannerDescription(description: String, modifier: Modifier = Modifier
     Text(
         text = description,
         style = MaterialTheme.typography.bodySmall,
+        minLines = BANNER_DESCRIPTION_MAX_LINES,
         maxLines = BANNER_DESCRIPTION_MAX_LINES,
         overflow = TextOverflow.Ellipsis,
         autoSize = TextAutoSize.StepBased(
