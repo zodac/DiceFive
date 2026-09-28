@@ -1,11 +1,11 @@
 package net.zodac.dicefive.model
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.game.ScoreCalculator
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
 class GameModeTest {
 
@@ -32,7 +32,7 @@ class GameModeTest {
     @Test
     fun `every mode's max possible score is exactly what a perfect game through the engine totals`() {
         for (mode in GameMode.entries) {
-            assertEquals("$mode", mode.maxPossibleScore, perfectGame(mode).totalScore)
+            assertEquals(mode.maxPossibleScore, perfectGame(mode).totalScore, "$mode")
         }
     }
 
@@ -44,7 +44,7 @@ class GameModeTest {
     }
 
     @Test
-    fun `Tricolour is Standard plus the four colour boxes, played with coloured dice`() {
+    fun `Tricolour is Standard plus the four colour boxes - played with coloured dice`() {
         assertEquals(
             GameMode.STANDARD.categories + listOf(
                 ScoreCategory.REDS,
@@ -63,12 +63,12 @@ class GameModeTest {
     @Test
     fun `no mode's scorecard lists a category twice`() {
         for (mode in GameMode.entries) {
-            assertEquals("$mode", mode.categories.distinct(), mode.categories)
+            assertEquals(mode.categories.distinct(), mode.categories, "$mode")
         }
     }
 
     @Test
-    fun `ids are unique and round trip, and Standard is the default`() {
+    fun `ids are unique and round trip - and Standard is the default`() {
         assertEquals(GameMode.entries.size, GameMode.entries.map { it.id }.toSet().size)
         for (mode in GameMode.entries) {
             assertEquals(mode, GameMode.fromId(mode.id))
@@ -77,7 +77,7 @@ class GameModeTest {
     }
 
     @Test
-    fun `a new player's scorecard holds exactly their mode's categories, all open`() {
+    fun `a new player's scorecard holds exactly their mode's categories - all open`() {
         for (mode in GameMode.entries) {
             val player = PlayerState(name = "P", type = PlayerType.HUMAN, gameMode = mode)
             assertEquals(mode.categories, player.scorecard.keys.toList())

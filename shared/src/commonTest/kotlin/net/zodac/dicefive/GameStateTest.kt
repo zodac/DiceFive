@@ -1,14 +1,14 @@
 package net.zodac.dicefive
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.TurnPhase
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Test
 
 class GameStateTest {
 

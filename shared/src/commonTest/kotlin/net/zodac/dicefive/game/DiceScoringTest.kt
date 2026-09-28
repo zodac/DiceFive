@@ -1,10 +1,10 @@
 package net.zodac.dicefive.game
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.ScoreCategory
-import org.junit.Assert.assertEquals
-import org.junit.Test
 
 private fun diceOf(vararg values: Int): List<Die> = values.map { Die(value = it) }
 
@@ -94,7 +94,7 @@ class DiceScoringTest {
     private fun colouredDice(vararg dice: Pair<Int, DieColour>): List<Die> = dice.map { (value, colour) -> Die(value = value, colour = colour) }
 
     @Test
-    fun `a colour box scores 40 only when all five dice are that colour, whatever the numbers`() {
+    fun `a colour box scores 40 only when all five dice are that colour - whatever the numbers`() {
         val allRed = colouredDice(1 to DieColour.RED, 3 to DieColour.RED, 4 to DieColour.RED, 6 to DieColour.RED, 2 to DieColour.RED)
         val fourRed = colouredDice(1 to DieColour.RED, 3 to DieColour.RED, 4 to DieColour.RED, 6 to DieColour.RED, 2 to DieColour.BLUE)
 

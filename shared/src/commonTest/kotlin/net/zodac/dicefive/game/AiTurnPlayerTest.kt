@@ -1,9 +1,13 @@
 package net.zodac.dicefive.game
 
 import kotlin.random.Random
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.Difficulty
-import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerConfig
@@ -11,10 +15,6 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
 class AiTurnPlayerTest {
 
@@ -153,7 +153,7 @@ class AiTurnPlayerTest {
     }
 
     @Test
-    fun `Hard sacrifices raw score to bank the rarer Full House, unlike Easy or Medium`() {
+    fun `Hard sacrifices raw score to bank the rarer Full House - unlike Easy or Medium`() {
         // [5,5,5,6,6] is a Full House (25) but Three of a Kind/Chance both score higher (27).
         // Full House is much rarer than either, so Hard's opportunity-cost math should take it now.
         val values = listOf(5, 5, 5, 6, 6)
@@ -184,7 +184,7 @@ class AiTurnPlayerTest {
 
             val after = AiTurnPlayer.playTurn(state, Random(difficulty.ordinal))
 
-            assertEquals("$difficulty", 1, after.players.single().scorecard.values.count { it != null })
+            assertEquals(1, after.players.single().scorecard.values.count { it != null }, "$difficulty")
         }
     }
 

@@ -1,8 +1,5 @@
 package net.zodac.dicefive.model
 
-import java.text.Normalizer
-
-private val DIACRITICS_REGEX = "\\p{Mn}+".toRegex()
 private val IRISH_PLAYER_NAMES = setOf("ireland", "eire")
 
 /**
@@ -11,12 +8,10 @@ private val IRISH_PLAYER_NAMES = setOf("ireland", "eire")
  * .LUCK_OF_THE_IRISH]'s trigger, and what [isLuckOfTheIrish] re-skins Tricolour's dice/scorecard
  * colours for - see `ui.game.style.LocalIrishTricolour`.
  */
-fun isIrishPlayerName(name: String): Boolean {
-    val normalized = Normalizer.normalize(name.trim(), Normalizer.Form.NFD)
-        .replace(DIACRITICS_REGEX, "")
-        .lowercase()
-    return normalized in IRISH_PLAYER_NAMES
-}
+fun isIrishPlayerName(name: String): Boolean = stripDiacritics(name.trim()).lowercase() in IRISH_PLAYER_NAMES
+
+/** [text] with every accent/diacritic removed ("Éire" -> "Eire"), by each platform's own Unicode tables. */
+internal expect fun stripDiacritics(text: String): String
 
 /**
  * Whether this game should show Tricolour's red/yellow/blue as the Irish flag's green/white/orange

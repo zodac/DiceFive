@@ -1,5 +1,9 @@
 package net.zodac.dicefive.game
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.GameMode
@@ -10,10 +14,6 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
 class GameEngineTest {
 
@@ -25,7 +25,7 @@ class GameEngineTest {
 
     @Test
     fun `newGame rejects an empty player list`() {
-        assertThrows(IllegalArgumentException::class.java) { GameEngine.newGame(emptyList()) }
+        assertFailsWith<IllegalArgumentException> { GameEngine.newGame(emptyList()) }
     }
 
     @Test
@@ -49,7 +49,7 @@ class GameEngineTest {
         var state = GameEngine.newGame(onePlayer)
         repeat(3) { state = GameEngine.rollDice(state) }
 
-        assertThrows(IllegalStateException::class.java) { GameEngine.rollDice(state) }
+        assertFailsWith<IllegalStateException> { GameEngine.rollDice(state) }
     }
 
     @Test
@@ -68,7 +68,7 @@ class GameEngineTest {
     fun `toggleHold before any roll fails`() {
         val state = GameEngine.newGame(onePlayer)
 
-        assertThrows(IllegalStateException::class.java) { GameEngine.toggleHold(state, dieIndex = 0) }
+        assertFailsWith<IllegalStateException> { GameEngine.toggleHold(state, dieIndex = 0) }
     }
 
     @Test
@@ -87,7 +87,7 @@ class GameEngineTest {
     fun `commitScore before rolling fails`() {
         val state = GameEngine.newGame(onePlayer)
 
-        assertThrows(IllegalStateException::class.java) { GameEngine.commitScore(state, ScoreCategory.CHANCE) }
+        assertFailsWith<IllegalStateException> { GameEngine.commitScore(state, ScoreCategory.CHANCE) }
     }
 
     @Test
@@ -97,7 +97,7 @@ class GameEngineTest {
         // Second player's turn now (there is only one, so it's back to the same player) with a fresh scorecard slot.
         state = GameEngine.rollDice(state)
 
-        assertThrows(IllegalStateException::class.java) { GameEngine.commitScore(state, ScoreCategory.CHANCE) }
+        assertFailsWith<IllegalStateException> { GameEngine.commitScore(state, ScoreCategory.CHANCE) }
     }
 
     @Test
@@ -197,7 +197,7 @@ class GameEngineTest {
     }
 
     @Test
-    fun `Tricolour rolls give every rolled die a colour, and Standard rolls never do`() {
+    fun `Tricolour rolls give every rolled die a colour - and Standard rolls never do`() {
         val random = kotlin.random.Random(42)
         repeat(20) {
             val tricolour = GameEngine.rollDice(GameEngine.newGame(onePlayer, GameMode.TRICOLOUR), random)
@@ -221,7 +221,7 @@ class GameEngineTest {
     }
 
     @Test
-    fun `superuser cycling in Tricolour runs 1 to 6 within a colour, then on to the next colour`() {
+    fun `superuser cycling in Tricolour runs 1 to 6 within a colour - then on to the next colour`() {
         var state = GameEngine.newGame(onePlayer, GameMode.TRICOLOUR).copy(
             dice = List(5) { Die(value = 1, colour = DieColour.RED, isHeld = true) },
             phase = TurnPhase.ROLLED,
@@ -234,7 +234,7 @@ class GameEngineTest {
 
         val expected = listOf(DieColour.RED, DieColour.YELLOW, DieColour.BLUE)
             .flatMap { colour -> (1..6).map { it to colour } } + (1 to DieColour.RED)
-        assertEquals(expected, seen)
+        assertEquals<List<Pair<Int, DieColour?>>>(expected, seen)
         assertTrue(state.dice.drop(1).all { it == Die(value = 1, colour = DieColour.RED, isHeld = true) })
     }
 

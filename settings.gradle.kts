@@ -19,3 +19,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "DiceFive"
 include(":app")
+include(":shared")

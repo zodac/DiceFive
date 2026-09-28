@@ -1,13 +1,13 @@
 package net.zodac.dicefive.game
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
 private val BASE_STATS = TieBreakStats(
     score = 100,
@@ -23,7 +23,7 @@ private val BASE_STATS = TieBreakStats(
 class TieBreakTest {
 
     @Test
-    fun `higher score always wins outright, regardless of every other criterion`() {
+    fun `higher score always wins outright - regardless of every other criterion`() {
         val lowerScoreButFewerHandicaps = BASE_STATS.copy(score = 90, fiveOfAKindCount = 0)
         val higherScoreButMoreHandicaps = BASE_STATS.copy(score = 100, fiveOfAKindCount = 9)
 
@@ -31,7 +31,7 @@ class TieBreakTest {
     }
 
     @Test
-    fun `fewest 5x wins first, once scores are equal`() {
+    fun `fewest 5x wins first - once scores are equal`() {
         val fewer = BASE_STATS.copy(fiveOfAKindCount = 0)
         val more = BASE_STATS.copy(fiveOfAKindCount = 1)
 
@@ -66,7 +66,7 @@ class TieBreakTest {
     }
 
     @Test
-    fun `lower upper section wins once 5x, zeroed and tricolour all match`() {
+    fun `lower upper section wins once 5x - zeroed and tricolour all match`() {
         val lowerUpper = BASE_STATS.copy(upperSectionTotal = 20)
         val higherUpper = BASE_STATS.copy(upperSectionTotal = 26)
 
@@ -75,7 +75,7 @@ class TieBreakTest {
     }
 
     @Test
-    fun `lower chance, then lower 3x, then lower 4x break the remaining tie in priority order`() {
+    fun `lower chance - then lower 3x - then lower 4x break the remaining tie in priority order`() {
         val lowerChance = BASE_STATS.copy(chance = 5)
         val higherChance = BASE_STATS.copy(chance = 15)
         assertEquals(TieBreakCriterion.CHANCE, TieBreak.decidingCriterion(lowerChance, higherChance))
@@ -96,7 +96,7 @@ class TieBreakTest {
     }
 
     @Test
-    fun `leaderboard comparator treats a missing stat as the worst possible value, not a skip`() {
+    fun `leaderboard comparator treats a missing stat as the worst possible value - not a skip`() {
         val known = BASE_STATS
         val unknownFiveOfAKind = BASE_STATS.copy(fiveOfAKindCount = null)
 
@@ -110,7 +110,7 @@ class TieBreakTest {
     }
 
     @Test
-    fun `leaderboard comparator ignores tricolour scored count entirely, even when only one side has it`() {
+    fun `leaderboard comparator ignores tricolour scored count entirely - even when only one side has it`() {
         val standardRow = BASE_STATS.copy(tricolourScoredCount = null)
         val tricolourRow = BASE_STATS.copy(tricolourScoredCount = 0)
 

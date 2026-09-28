@@ -1,12 +1,11 @@
 package net.zodac.dicefive.game
 
 import kotlin.random.Random
-import net.zodac.dicefive.ui.game.GameSetupState
 
 /**
  * Generates flavourful, non-duplicate names for AI players at game start - a full name never
  * truncated, since half a word looks like a bug rather than a tight layout. Instead, each player
- * count has its own pool, every entry already within [GameSetupState.maxAiNameLength] for that
+ * count has its own pool, every entry already within `GameSetupState.maxAiNameLength` (ui.game) for that
  * count, so a name never has to be cut down (or arrives pre-ellipsised) once it lands in a real
  * tab. [AiNameGeneratorTest] sweeps every pool against its own cap so a name added later that
  * doesn't fit fails the build instead of showing up ellipsised in a real game.
