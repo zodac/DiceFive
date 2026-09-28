@@ -152,7 +152,11 @@ DiceFive/app/
   Info.plist: `CFBundleShortVersionString` from `VERSION` (read by `BuildInfo` on iOS).
 - **Audio**: iOS doesn't decode Ogg Vorbis. Extend `NormalizeOggAudioTask` to also write AAC
   `.m4a` copies and bundle them in the Xcode project; `IosSoundPlayer` looks for
-  `<clip>.m4a` in the main bundle and stays silent without them. Consider an `AVAudioSession`
+  `<clip>.m4a` in the main bundle and stays silent without them. The copies are still the same
+  Freesound recordings, so they need the same credits: generate them from `rawAudioSource/` (never
+  commit hand-made ones), and have iOS's licence report include the `freesound-*` entries from
+  `app/android/aboutlibraries/libraries/` - arguably the clips and those records should move to
+  `app/shared` once two platforms use them. Consider an `AVAudioSession`
   category (ambient, so it respects the silent switch).
 - **Licences on iOS**: `IosPlatformServices.loadLicenceReports` returns an empty report. iOS needs
   its own generated report (AboutLibraries has a multiplatform Gradle plugin; the notices task is
