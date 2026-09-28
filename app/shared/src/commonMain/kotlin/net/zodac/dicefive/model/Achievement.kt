@@ -505,7 +505,7 @@ enum class Achievement(
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     WHO_MADE_THIS(
-        "who_made_this", "Who Made This", "View the credits",
+        "who_made_this", "Who Made This?", "View the credits",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
 

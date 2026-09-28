@@ -52,7 +52,7 @@ class SettingsViewModel(
     }
 
     /** Backs the one achievement this screen itself can earn - opening the Credits dialog
-     * ("Who Made This"). Same fire-and-check-once pattern as
+     * ("Who Made This?"). Same fire-and-check-once pattern as
      * [net.zodac.dicefive.ui.menu.MenuViewModel.onDiceTapped]. */
     fun onCreditsViewed() {
         val repository = achievementsRepository ?: return
