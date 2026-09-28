@@ -1,5 +1,7 @@
 package net.zodac.dicefive.ui.achievements
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -36,6 +38,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -45,19 +48,42 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.data.achievements.AchievementScrollRequests
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.formatTimestamp
 import net.zodac.dicefive.ui.common.grouped
+import net.zodac.dicefive.ui.theme.GoldAccent
 
 // contentType tags, so hiddenUnderPinnedHeader can tell a category header from a row by the list's
 // own layout info rather than by parsing keys.
 private const val HEADER_CONTENT_TYPE = "header"
 private const val ROW_CONTENT_TYPE = "achievement"
+
+/** How long a row scrolled to from [AchievementScrollRequests] stays flashed gold before fading
+ * back to its normal colour - long enough to register as "here it is", short enough to still read
+ * as a flash rather than a new steady state. */
+private const val ROW_FLASH_HOLD_MILLIS = 900L
+private const val ROW_FLASH_TRANSITION_MILLIS = 400
+
+/** The flat `LazyColumn` index of the achievement with [achievementId], mirroring exactly how the
+ * list itself is built below - one header item per group, then its rows - or null if it isn't in
+ * [groups] at all (a still-locked secret achievement, say - see the class doc above). */
+private fun flatIndexOf(groups: List<AchievementGroup>, achievementId: String): Int? {
+    var index = 0
+    for (group in groups) {
+        index++ // the group's own sticky header
+        val itemIndex = group.items.indexOfFirst { it.achievement.id == achievementId }
+        if (itemIndex != -1) return index + itemIndex
+        index += group.items.size
+    }
+    return null
+}
 
 /**
  * Where the list was last scrolled to. Leaving this screen pops it off the back stack, which
@@ -113,20 +139,44 @@ fun AchievementsScreen(
     // Restored only once the real list has loaded: uiState starts out empty, and a LazyColumn that
     // first lays out with nothing in it clamps any requested position straight back to the top.
     // Saved on the way out only once restored, so leaving before the load finishes doesn't wipe
-    // the remembered position with that momentary top-of-list one.
+    // the remembered position with that momentary top-of-list one. Sits out entirely if a scroll
+    // request (see below) is already waiting - that's about to move the list somewhere specific,
+    // and restoring the old position first would just be a flash of the wrong place before it did.
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var restoredScroll by remember { mutableStateOf(false) }
     val listLoaded = state.groups.isNotEmpty()
     LaunchedEffect(listLoaded) {
         if (listLoaded && !restoredScroll) {
-            listState.scrollToItem(
-                AchievementsScrollMemory.firstVisibleItemIndex,
-                AchievementsScrollMemory.firstVisibleItemScrollOffset,
-            )
+            if (!AchievementScrollRequests.hasPending()) {
+                listState.scrollToItem(
+                    AchievementsScrollMemory.firstVisibleItemIndex,
+                    AchievementsScrollMemory.firstVisibleItemScrollOffset,
+                )
+            }
             restoredScroll = true
         }
     }
+
+    // A banner long-pressed elsewhere in the app (see AchievementBannerHost) asks to have its row
+    // scrolled to and flashed here - covers both arriving fresh (this screen wasn't even open yet)
+    // and a request landing while it already is, since this keeps collecting for as long as the
+    // screen is composed either way.
+    var highlightedAchievementId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        AchievementScrollRequests.requests.collect { targetId ->
+            val groups = snapshotFlow { state.groups }.first { it.isNotEmpty() }
+            val flatIndex = flatIndexOf(groups, targetId)
+            if (flatIndex != null) {
+                listState.animateScrollToItem(flatIndex)
+                highlightedAchievementId = targetId
+                delay(ROW_FLASH_HOLD_MILLIS)
+                if (highlightedAchievementId == targetId) highlightedAchievementId = null
+            }
+            AchievementScrollRequests.consumePending()
+        }
+    }
+
     DisposableEffect(listState) {
         onDispose {
             if (restoredScroll) {
@@ -198,6 +248,7 @@ fun AchievementsScreen(
                             item = it,
                             superuserModeActive = superuserModeActive,
                             onSuperuserLongPressTick = viewModel::onSuperuserLongPressTick,
+                            highlighted = it.achievement.id == highlightedAchievementId,
                             modifier = Modifier.hiddenUnderPinnedHeader(listState, it.achievement.id),
                         )
                     }
@@ -249,12 +300,17 @@ private fun GroupHeader(text: String, onPrevious: (() -> Unit)?, onNext: (() -> 
  * pointer change is otherwise consumed - this screen scrolls constantly, and without that check,
  * a finger that landed on a row on its way to scrolling past it kept ticking that same row for the
  * whole scroll.
+ *
+ * [highlighted] briefly flashes the row gold - see [AchievementScrollRequests] - rather than a
+ * static colour swap, since it's not marking new state the way the unlocked/locked colours do,
+ * just pointing at a row that was already whatever it was.
  */
 @Composable
 private fun AchievementRow(
     item: AchievementItem,
     superuserModeActive: Boolean,
     onSuperuserLongPressTick: (Achievement, Int) -> Unit,
+    highlighted: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val unlocked = item.unlockedAt != null
@@ -298,12 +354,18 @@ private fun AchievementRow(
                 }
             },
         colors = CardDefaults.cardColors(
-            // Earned ones are lifted off the page; the rest stay at the page's own level.
-            containerColor = if (unlocked) {
-                MaterialTheme.colorScheme.secondaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceContainer
-            },
+            containerColor = animateColorAsState(
+                targetValue = if (highlighted) {
+                    GoldAccent
+                    // Earned ones are lifted off the page; the rest stay at the page's own level.
+                } else if (unlocked) {
+                    MaterialTheme.colorScheme.secondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainer
+                },
+                animationSpec = tween(ROW_FLASH_TRANSITION_MILLIS),
+                label = "achievementRowFlash",
+            ).value,
         ),
     ) {
         Row(
