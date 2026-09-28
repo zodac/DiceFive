@@ -35,11 +35,12 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices) {
                 AchievementBannerHost(
                     modifier = Modifier.fillMaxSize(),
                     onAchievementSelected = { achievement ->
+                        val alreadyOnAchievements = navController.currentDestination?.route == Screen.ACHIEVEMENTS
                         // The request has to be made before navigating, not after: if the
                         // Achievements screen isn't open yet, its own collector only starts once
                         // it composes, and the request's replay is what lets it still catch this.
-                        AchievementScrollRequests.request(achievement.id)
-                        if (navController.currentDestination?.route != Screen.ACHIEVEMENTS) {
+                        AchievementScrollRequests.request(achievement.id, animate = alreadyOnAchievements)
+                        if (!alreadyOnAchievements) {
                             navController.navigate(Screen.ACHIEVEMENTS)
                         }
                     },

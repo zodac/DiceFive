@@ -5,6 +5,15 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
 /**
+ * [animate] is false when the screen wasn't already open - the caller is about to navigate to it
+ * fresh, and the player has nothing to see a scroll happen *from* yet, so the row should just
+ * already be there the moment the screen appears rather than visibly sliding into place. It's true
+ * only when the player was already looking at the list when the request was made, where a jump
+ * with no animation would instead read as the screen glitching under them.
+ */
+data class AchievementScrollRequest(val achievementId: String, val animate: Boolean)
+
+/**
  * Where a long-pressed achievement banner asks the Achievements screen to scroll to and flash a
  * specific row - see `ui/achievements/AchievementBannerHost`'s long press and
  * `ui/achievements/AchievementsScreen`'s collector.
@@ -17,11 +26,11 @@ import kotlinx.coroutines.flow.asSharedFlow
  */
 object AchievementScrollRequests {
 
-    private val _requests = MutableSharedFlow<String>(replay = 1)
-    val requests: SharedFlow<String> = _requests.asSharedFlow()
+    private val _requests = MutableSharedFlow<AchievementScrollRequest>(replay = 1)
+    val requests: SharedFlow<AchievementScrollRequest> = _requests.asSharedFlow()
 
-    fun request(achievementId: String) {
-        _requests.tryEmit(achievementId)
+    fun request(achievementId: String, animate: Boolean) {
+        _requests.tryEmit(AchievementScrollRequest(achievementId, animate))
     }
 
     /** Whether a request is currently waiting to be picked up - checked by the screen's own

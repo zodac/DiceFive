@@ -86,6 +86,16 @@ private fun flatIndexOf(groups: List<AchievementGroup>, achievementId: String): 
     return null
 }
 
+/** How far [index]'s current position sits from dead centre in the viewport, in px - null if it
+ * isn't currently measured (a call site's own scroll-to-it hasn't happened yet, or it's nowhere
+ * near the viewport at all). */
+private fun LazyListState.centeringDeltaFor(index: Int): Float? {
+    val itemInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index } ?: return null
+    val viewportHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
+    val centeredOffset = (viewportHeight - itemInfo.size) / 2
+    return (itemInfo.offset - centeredOffset).toFloat()
+}
+
 /** Scrolls so the item at [index] ends up vertically centred in the viewport, not just scrolled
  * to its top edge - a plain `animateScrollToItem` can leave a short row sitting right at the very
  * edge of the screen (or under the sticky category header), easy to miss rather than obviously
@@ -94,11 +104,18 @@ private fun flatIndexOf(groups: List<AchievementGroup>, achievementId: String): 
  * actually been measured, which `animateScrollToItem` only guarantees once it's returned. */
 private suspend fun LazyListState.animateScrollToCentered(index: Int) {
     animateScrollToItem(index)
-    val itemInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index } ?: return
-    val viewportHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
-    val centeredOffset = (viewportHeight - itemInfo.size) / 2
-    val delta = (itemInfo.offset - centeredOffset).toFloat()
+    val delta = centeringDeltaFor(index) ?: return
     if (delta != 0f) animateScrollBy(delta)
+}
+
+/** The non-animated twin of [animateScrollToCentered] - jumps straight to the centred position
+ * with nothing visibly sliding into place, for when the screen is only *about* to appear (see the
+ * `animate` flag on `AchievementScrollRequests`' requests) and there's nothing on screen yet for a
+ * scroll to visibly move away from. */
+private suspend fun LazyListState.scrollToCentered(index: Int) {
+    scrollToItem(index)
+    val delta = centeringDeltaFor(index) ?: return
+    if (delta != 0f) scroll { scrollBy(delta) }
 }
 
 /**
@@ -177,17 +194,18 @@ fun AchievementsScreen(
     // A banner long-pressed elsewhere in the app (see AchievementBannerHost) asks to have its row
     // scrolled to and flashed here - covers both arriving fresh (this screen wasn't even open yet)
     // and a request landing while it already is, since this keeps collecting for as long as the
-    // screen is composed either way.
+    // screen is composed either way. Only animates the scroll for the second case - see
+    // AchievementScrollRequest.animate.
     var highlightedAchievementId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
-        AchievementScrollRequests.requests.collect { targetId ->
+        AchievementScrollRequests.requests.collect { request ->
             val groups = snapshotFlow { state.groups }.first { it.isNotEmpty() }
-            val flatIndex = flatIndexOf(groups, targetId)
+            val flatIndex = flatIndexOf(groups, request.achievementId)
             if (flatIndex != null) {
-                listState.animateScrollToCentered(flatIndex)
-                highlightedAchievementId = targetId
+                if (request.animate) listState.animateScrollToCentered(flatIndex) else listState.scrollToCentered(flatIndex)
+                highlightedAchievementId = request.achievementId
                 delay(ROW_FLASH_HOLD_MILLIS)
-                if (highlightedAchievementId == targetId) highlightedAchievementId = null
+                if (highlightedAchievementId == request.achievementId) highlightedAchievementId = null
             }
             AchievementScrollRequests.consumePending()
         }
