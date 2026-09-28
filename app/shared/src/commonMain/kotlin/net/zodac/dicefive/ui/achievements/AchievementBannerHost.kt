@@ -386,15 +386,19 @@ private fun BannerSlot(
 }
 
 /** The smallest a banner's title shrinks to before it's ellipsised instead (titleMedium, its normal
- * size, is 16sp), and how finely it steps down from there. */
-private val BANNER_TITLE_MIN_FONT_SIZE = 12.sp
+ * size, is 16sp), and how finely it steps down from there. Lower than it once needed to be - the
+ * bordered icon square added in front of the title (see [UnlockedBanner]) is wider than the plain
+ * icon it replaced, leaving less width for the title itself, and "Rules? Where We're Going, We
+ * Don't Need Rules" - the longest title in the game - now needs to go lower than 12sp to still fit
+ * on one line rather than ellipsising. */
+private val BANNER_TITLE_MIN_FONT_SIZE = 10.sp
 private val BANNER_TITLE_FONT_STEP = 0.5.sp
 
 /**
  * An achievement's title on one line: at titleMedium when it fits, otherwise stepped down until it
- * does - "Rules? Where We're Going, We Don't Need Rules" needs about 12.4sp on a typical phone - but
- * never below [BANNER_TITLE_MIN_FONT_SIZE], still comfortably readable at a glance. Past that floor
- * (a narrower screen, or a longer title) it's ellipsised rather than shrunk further.
+ * does, but never below [BANNER_TITLE_MIN_FONT_SIZE], still comfortably readable at a glance. Past
+ * that floor (a narrower screen, or a longer title still) it's ellipsised rather than shrunk
+ * further.
  */
 @Composable
 private fun BannerTitle(title: String, modifier: Modifier = Modifier) {
