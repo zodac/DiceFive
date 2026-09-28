@@ -337,7 +337,7 @@ enum class Achievement(
         AchievementCategory.MISFORTUNE,
     ),
     ALMOST_FAMOUS(
-        "almost_famous", "Almost Famous", "Hold a first-roll four of a kind all the way to the last roll, but never land the 5x",
+        "almost_famous", "Almost Famous", "Hold a first-roll 4x all the way to the last roll, but never land the 5x",
         AchievementCategory.MISFORTUNE,
     ),
     SINGULARITY(
