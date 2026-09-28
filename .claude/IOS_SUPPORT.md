@@ -26,6 +26,7 @@ Multiplatform and an Android application.
 DiceFive/app/
 ├── shared/                          :app:shared - KMP library (com.android.kotlin.multiplatform.library)
 │   ├── schemas/                     Room's exported schemas (commit every new version)
+│   ├── licenses/                    sora-OFL.txt - the font's licence, kept beside the font
 │   └── src/
 │       ├── commonMain/kotlin/net/zodac/dicefive/
 │       │   ├── model/  game/        the rules engine, unchanged
@@ -155,7 +156,9 @@ DiceFive/app/
   category (ambient, so it respects the silent switch).
 - **Licences on iOS**: `IosPlatformServices.loadLicenceReports` returns an empty report. iOS needs
   its own generated report (AboutLibraries has a multiplatform Gradle plugin; the notices task is
-  JVM-classpath-based) and the copyleft guard applied to the iOS dependency graph - see
+  JVM-classpath-based) and the copyleft guard applied to the iOS dependency graph - the Android
+  report (app/android/aboutlibraries/) already covers everything app/shared uses on Android, but
+  not iOS-only dependencies such as `sqlite-bundled` - see
   `PUBLISHING.md`. Check whether `ComposeLicenceDocument`'s links inside `SelectionContainer`
   behave on iOS (they didn't on Android - `DESIGN.md` Phase 17); if not, a `UITextView` via
   `UIKitView`.
@@ -170,7 +173,8 @@ DiceFive/app/
 ## Phase 6 - CI and release
 
 - A macOS job for the iOS build and `iosSimulatorArm64Test`; TestFlight / App Store Connect
-  upload if wanted. The Linux jobs already compile iOS on every run (via `testDebugUnitTest`).
+  upload if wanted. The Linux jobs already compile iOS on every run (via `testDebugUnitTest`),
+  with the Kotlin/Native toolchain (`~/.konan`) cached by both workflows.
 - `update_dependency_versions.sh` already bumps the new catalog entries generically; the
   JetBrains/androidx version pairing above is the thing to watch in its build verification.
 - New commit category `[iOS]` for iOS-only work (add it to CLAUDE.md's table in the same commit).
