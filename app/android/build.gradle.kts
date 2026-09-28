@@ -158,11 +158,11 @@ kotlin {
     jvmToolchain(javaVersion)
     compilerOptions {
         jvmTarget = JvmTarget.fromTarget(javaVersion.toString())
-        // Using a deprecated API fails the build (main, unit-test and instrumented-test code alike),
-        // rather than piling up as warnings nobody reads. Only DEPRECATION is escalated - other
-        // warnings stay warnings. A dependency bump that deprecates something the app uses therefore
-        // breaks the build until the call is migrated (the update script holds that bump back).
-        freeCompilerArgs.add("-Xwarning-level=DEPRECATION:error")
+        // Any compiler warning fails the build (main, unit-test and instrumented-test code alike),
+        // rather than piling up unread - a deprecated API, an unnecessary `!!`, a missing `@OptIn`,
+        // and so on. A dependency bump that deprecates something the app uses therefore breaks the
+        // build until the call is migrated (the update script holds that bump back).
+        allWarningsAsErrors = true
     }
 }
 

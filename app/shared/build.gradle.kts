@@ -64,8 +64,8 @@ kotlin {
     iosSimulatorArm64()
 
     compilerOptions {
-        // As in :app:android - using a deprecated API fails the build rather than piling up as warnings.
-        freeCompilerArgs.add("-Xwarning-level=DEPRECATION:error")
+        // As in :app:android - any compiler warning fails the build rather than piling up unread.
+        allWarningsAsErrors = true
         // expect/actual classes are still flagged Beta; Room's multiplatform setup needs one (the
         // AppDatabaseConstructor its compiler generates), so the warning is noise here.
         freeCompilerArgs.add("-Xexpect-actual-classes")
