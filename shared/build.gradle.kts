@@ -11,6 +11,8 @@ plugins {
     // combined with Kotlin Multiplatform any more (nor can com.android.application, which is why the
     // APK is built by the separate :app module).
     alias(libs.plugins.android.kotlin.multiplatform.library)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.jetbrains.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.room)
 }
@@ -33,6 +35,8 @@ kotlin {
         }
         // commonTest runs on the JVM as Android host tests (no device needed).
         withHostTest {}
+        // Compose Multiplatform resources (composeResources/) ship inside the AAR as Android assets.
+        androidResources { enable = true }
     }
 
     // Compiled on every host, so a JVM-only API slipping into commonMain fails the build here, not
@@ -54,6 +58,30 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.datastore.preferences.core)
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.aboutlibraries.core)
+
+            // The UI. `api`, not `implementation`, for the handful :app's own Compose code (MainActivity
+            // and the Android licence view) builds on too.
+            api(libs.jetbrains.compose.runtime)
+            api(libs.jetbrains.compose.foundation)
+            api(libs.jetbrains.compose.ui)
+            api(libs.jetbrains.compose.material3)
+            implementation(libs.jetbrains.compose.ui.tooling.preview)
+            implementation(libs.jetbrains.compose.components.resources)
+            // Just for Icons.AutoMirrored.Filled.Undo and friends - material3 alone only ships the
+            // small default icon set.
+            implementation(libs.jetbrains.compose.material.icons.extended)
+            implementation(libs.jetbrains.lifecycle.viewmodel.compose)
+            implementation(libs.jetbrains.lifecycle.runtime.compose)
+            implementation(libs.jetbrains.navigation.compose)
+            implementation(libs.jetbrains.navigationevent.compose)
+        }
+        androidMain.dependencies {
+            // JetBrains' navigation-compose 2.9 resolves to androidx 2.9 on Android; this keeps the
+            // app on the androidx line it already shipped with (the 2.9 API the shared code compiles
+            // against is a subset of it).
+            implementation(libs.androidx.navigation.compose)
         }
         iosMain.dependencies {
             // Android opens the database on the framework's own SQLite; iOS has none to offer.
@@ -63,7 +91,17 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }
+        getByName("androidHostTest").dependencies {
+            // Android's org.json is a stub on the JVM (every method throws), and AboutLibraries'
+            // Android parser - behind parseLicenseReport - uses it.
+            implementation(libs.org.json)
+        }
     }
+}
+
+compose.resources {
+    packageOfResClass = "net.zodac.dicefive.resources"
+    publicResClass = false
 }
 
 room {

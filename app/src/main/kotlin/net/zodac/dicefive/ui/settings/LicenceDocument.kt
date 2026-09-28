@@ -27,8 +27,6 @@ import android.view.View
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,48 +34,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.drawable.toDrawable
 import java.util.WeakHashMap
 
-/** The annotation tag marking a URL's span in text built by [linkifyUrls]. */
-internal const val URL_TAG = "url"
-
-private val URL_PATTERN = Regex("""https?://[^\s<>"()]+""")
-
-/** Characters a URL can't usefully end in, but prose often puts straight after one. */
-private const val URL_TRAILING_PUNCTUATION = ".,;:!?'"
-
-/** [text] with every http(s) URL in it marked as a link. */
-internal fun linkifyUrls(text: String): AnnotatedString = buildAnnotatedString {
-    var cursor = 0
-    for (match in URL_PATTERN.findAll(text)) {
-        val url = match.value.trimEnd { it in URL_TRAILING_PUNCTUATION }
-        append(text, cursor, match.range.first)
-        pushStringAnnotation(URL_TAG, url)
-        append(url)
-        pop()
-        cursor = match.range.first + url.length
-    }
-    append(text, cursor, text.length)
-}
-
 /**
- * The text views in one dialog, so a tap anywhere in it can drop whatever text is selected - the way
- * selection behaves in a browser. Provided by the dialog via [LocalSelectionClearer]; wire the taps
- * with [clearSelectionsOnTap].
+ * [SelectionClearer] for the platform text views in one dialog: remembers each one, so a tap anywhere
+ * in the dialog can drop whatever text is selected in any of them.
  */
-internal class SelectionClearer {
+internal class TextViewSelectionClearer : SelectionClearer {
     private val views = WeakHashMap<TextView, Unit>()
 
     /** Set by a tap that just dismissed a selection, so that same tap doesn't also follow a link. */
@@ -91,7 +62,7 @@ internal class SelectionClearer {
         views.remove(view)
     }
 
-    fun clearAll() {
+    override fun clearAll() {
         tapDismissedSelection = false
         for (view in views.keys.toList()) {
             if (view.hasSelection()) {
@@ -103,37 +74,8 @@ internal class SelectionClearer {
         }
     }
 
-    /** Whether the tap in progress was used up dismissing a selection (and resets it). */
-    fun consumeDismissedTap(): Boolean = tapDismissedSelection.also { tapDismissedSelection = false }
+    override fun consumeDismissedTap(): Boolean = tapDismissedSelection.also { tapDismissedSelection = false }
 }
-
-internal val LocalSelectionClearer = staticCompositionLocalOf<SelectionClearer?> { null }
-
-/**
- * Calls [SelectionClearer.clearAll] for every tap anywhere in this element. Watches on the Initial
- * pass without consuming anything, so it runs before the tapped view sees the tap and never gets in
- * the way of what the tap was for. A drag past the touch slop (a scroll) or a long press (a new
- * selection) isn't a tap.
- */
-internal fun Modifier.clearSelectionsOnTap(clearer: SelectionClearer): Modifier = this.then(
-    Modifier.pointerInput(clearer) {
-        awaitEachGesture {
-            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-            var isTap = true
-            var upAt = down.uptimeMillis
-            while (true) {
-                val event = awaitPointerEvent(PointerEventPass.Initial)
-                val change = event.changes.firstOrNull { it.id == down.id } ?: return@awaitEachGesture
-                if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) isTap = false
-                if (!change.pressed) {
-                    upAt = change.uptimeMillis
-                    break
-                }
-            }
-            if (isTap && upAt - down.uptimeMillis < viewConfiguration.longPressTimeoutMillis) clearer.clearAll()
-        }
-    },
-)
 
 /** The colours and relative text sizes the document is drawn in, all as platform values. */
 internal data class DocumentStyle(
@@ -206,14 +148,14 @@ internal fun buildLicenceDocument(
         for (component in group.components) {
             val nameStart = doc.length
             doc.append(component.name)
-            if (component.website != null) {
-                doc.setSpan(URLSpan(component.website), nameStart, doc.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            component.website?.let { website ->
+                doc.setSpan(URLSpan(website), nameStart, doc.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
             if (component.version != null) appendStyled("  ${component.version}", ForegroundColorSpan(style.secondaryText))
             doc.append('\n')
-            if (component.copyright != null) {
+            component.copyright?.let { copyright ->
                 appendLinked(
-                    linkifyUrls(component.copyright),
+                    linkifyUrls(copyright),
                     ForegroundColorSpan(style.secondaryText),
                     RelativeSizeSpan(style.smallScale),
                 )
@@ -249,7 +191,7 @@ internal fun buildLicenceDocument(
  * gesture, which can't be pre-empted, and crashed; and a selection couldn't span rows.)
  */
 @Composable
-internal fun LicenceDocument(report: LicenseReport, modifier: Modifier = Modifier) {
+internal fun TextViewLicenceDocument(report: LicenseReport, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
     val clearer = LocalSelectionClearer.current
     var expanded by rememberSaveable { mutableStateOf(emptyList<String>()) }
@@ -280,7 +222,7 @@ internal fun LicenceDocument(report: LicenseReport, modifier: Modifier = Modifie
         factory = { context ->
             val text = LinkTextView(context).apply {
                 setTextIsSelectable(true)
-                clearer?.register(this)
+                (clearer as? TextViewSelectionClearer)?.register(this)
                 onTap = onTap@{ event ->
                     if (clearer?.consumeDismissedTap() == true || hasSelection()) return@onTap false
                     when (val span = clickableSpanAt(event)) {
@@ -295,7 +237,7 @@ internal fun LicenceDocument(report: LicenseReport, modifier: Modifier = Modifie
                 addView(text)
             }
         },
-        onRelease = { scroll -> (scroll.getChildAt(0) as? TextView)?.let { clearer?.unregister(it) } },
+        onRelease = { scroll -> (scroll.getChildAt(0) as? TextView)?.let { (clearer as? TextViewSelectionClearer)?.unregister(it) } },
         update = { scroll ->
             val view = scroll.getChildAt(0) as LinkTextView
             view.text = document

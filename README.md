@@ -5,40 +5,50 @@ Android DiceFive game - a local (no netplay) five-dice scorecard game for
 
 ## Stack
 
-- Kotlin, Jetpack Compose, Material 3, Navigation Compose
+- Kotlin Multiplatform: the game, its UI and its persistence are shared Kotlin, built for Android
+  today and compiled for iOS on every build (the iOS app itself is still to come - see
+  `.claude/IOS_SUPPORT.md`)
+- Compose Multiplatform, Material 3, Navigation Compose
 - MVVM (`ViewModel` + `StateFlow`)
-- Room (score history) + Jetpack DataStore Preferences (settings)
-- Single `:app` module, Gradle version catalog (`gradle/libs.versions.toml`)
-- minSdk 26, targetSdk / compileSdk 35
+- Room (score history) + DataStore Preferences (settings), both multiplatform
+- Gradle version catalog (`gradle/libs.versions.toml`)
+- Android: minSdk 26, targetSdk / compileSdk 37
 
 ## Structure
 
 ```
-app/src/main/kotlin/net/zodac/dicefive/
+shared/src/commonMain/kotlin/net/zodac/dicefive/    everything platform-neutral
   model/            game domain types: GameState, PlayerState/PlayerConfig,
                     Die/DieColour, ScoreCategory, GameMode (every per-mode rule:
                     dice, rolls, scorecard, bonuses, max score), PlayerType,
                     Difficulty, TurnPhase
-  game/             pure rules engine (no Android dependencies):
-                    DiceScoring, ScoreCalculator (joker rule), GameEngine
-                    (roll/hold/score/turn-advance reducers), AchievementEngine,
-                    AiTurnPlayer, AiNameGenerator
+  game/             pure rules engine: DiceScoring, ScoreCalculator (joker rule),
+                    GameEngine (roll/hold/score/turn-advance reducers),
+                    AchievementEngine, AiTurnPlayer, AiNameGenerator
   data/
     scores/         Room: ScoreEntry, ScoreDao, AppDatabase, ScoreRepository
     achievements/   DataStore: AchievementStore/AchievementsRepository, AchievementEvents
-    settings/       DataStore: Theme, SettingsRepository
+    settings/       DataStore: SettingsRepository
+    game/           DataStore: the in-progress game, as JSON
+  platform/         PlatformServices (sound, haptics, accelerometer, messages, licences),
+                    AppContainer, BuildInfo - what each platform supplies
   navigation/       Screen route constants + DiceFiveNavHost
   ui/
+    DiceFiveApp.kt  the root composable every platform hosts
     menu/           MenuScreen (Play/Achievements/Leaderboard/Statistics/Styles/Rules/Settings)
     setup/          GameSetupScreen (player count/type/name, game mode, turn timer)
     game/           GameScreen + GameViewModel (setup form + live game state,
-                    AI auto-play), DiceRow, ScorecardView
+                    AI auto-play), dice tray, scorecard
     scores/         ScoresScreen + ScoresViewModel (paginated leaderboard)
+    statistics/     StatisticsScreen + StatisticsViewModel
     achievements/   AchievementsScreen + AchievementsViewModel, AchievementBannerHost
     styles/         StylesScreen (preview tiles for dice/cup/mat styles)
-    settings/       SettingsScreen + SettingsViewModel (theme picker, version + GitHub link)
-    theme/          Compose theme (color, typography)
-  MainActivity.kt
+    settings/       SettingsScreen + SettingsViewModel, LicensesDialog
+    theme/          Compose theme (colour)
+shared/src/iosMain/                 iOS: storage paths, platform services, MainViewController
+app/src/main/kotlin/net/zodac/dicefive/              the Android app
+  MainActivity.kt   hosts DiceFiveApp
+  device/           Android PlatformServices (SoundPool, Vibrator, sensors) + AndroidAppContainer
 ```
 
 See `.claude/DESIGN.md` for the full feature scope, design decisions, and
@@ -64,8 +74,11 @@ list with `./scripts/release-changelog.sh`. After releasing, the workflow bumps 
 
 ```
 ./gradlew assembleDebug
-./gradlew test
+./gradlew testDebugUnitTest
 ```
+
+`testDebugUnitTest` also compiles the shared module for iOS, which is what keeps its common code
+free of Android and JVM APIs. Building and running the iOS app itself needs macOS.
 
 ## License
 

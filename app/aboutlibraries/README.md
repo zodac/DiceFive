@@ -16,8 +16,10 @@ what the plugin can't discover for itself:
   MIT, ISC, OFL) needs one of these whose `description` is exactly that notice, starting
   `Copyright` - the build fails until it has one.
 
-- `asset-sources.json` - where every bundled asset file came from: each file under any source set's
-  `res/` (except `values*/`), `rawAudioSource/` and `assets/`, keyed by its path relative to `app/`.
+- `asset-sources.json` - where every bundled asset file came from: each file under any of `app/`'s
+  source sets' `res/` (except `values*/`), `rawAudioSource/` and `assets/`, and under any of
+  `shared/`'s `composeResources/` (the shared UI's font and icons), keyed by its path relative to the
+  repository root.
   Every entry - the app's own artwork included - needs:
   - `description` - what it is (and how it was modified, if it was);
   - `source` - where it came from: a download URL, or for the app's own work the Claude Code

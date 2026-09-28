@@ -152,13 +152,14 @@ decisions behind it. Read that before changing anything visual.
     `() -> Unit` callback slot doesn't accept.
   - **`Achievement.TIME_WASTING` is tracked in every build, debug or release** - only the actual
     superuser-mode effect (`GameViewModel.trackSuperuserSequence`'s `_superuserModeActive.value =
-    true` and its toast) stays behind `BuildConfig.DEBUG`, so the achievement rewards performing
+    true` and its toast) stays behind a debug build (`BuildInfo.isDebug` - `BuildConfig.DEBUG` on
+    Android - passed in as `GameViewModel`'s `isDebugBuild`), so the achievement rewards performing
     the hidden hold sequence itself, whether or not this build lets it do anything.
   - **`NOT_THOSE_DICE` (tapping the menu's own logo dice) needed a `MenuViewModel`** purely to hold
     the one-line achievement unlock `MenuScreen` otherwise has no repository to reach - `AppLogo`
     gained an `onDiceTap` callback wrapping just the dice `Row`, not the wordmark below it.
   - **The Achievements screen has its own, unrelated superuser mode**, entirely
-    `BuildConfig.DEBUG`-gated (`AchievementsViewModel`) - unlike the in-game one, this isn't a
+    debug-build-gated (`AchievementsViewModel`'s `isDebugBuild`) - unlike the in-game one, this isn't a
     discoverable easter egg tied to an achievement, just a tester's shortcut, so nothing about it
     runs at all in a release build. Tapping the unlocked-count banner
     `AchievementsViewModel.SUPERUSER_TAP_TARGET` times arms it; a long press on any row then
@@ -199,6 +200,9 @@ decisions behind it. Read that before changing anything visual.
 
 ## New Gradle dependencies
 
+(The original Phase 0 list. Since Phase 18 the app is Kotlin Multiplatform - see that phase and
+`.claude/IOS_SUPPORT.md` for the current dependency set.)
+
 - `androidx.navigation:navigation-compose`
 - Room: `androidx.room:room-runtime`, `androidx.room:room-ktx`, plus
   `androidx.room:room-compiler` via the **KSP** plugin
@@ -213,6 +217,9 @@ decisions behind it. Read that before changing anything visual.
   licenses report (Phase 17).
 
 ## Package layout (target shape)
+
+(Since Phase 18 these packages live in `shared/src/commonMain/kotlin/` - the Android app keeps
+only `MainActivity`, the `device/` platform services and the licence `TextView`. See `README.md`.)
 
 ```
 net.zodac.dicefive/
@@ -397,7 +404,8 @@ dependencies — most unit tests live here.
   window theme is `Theme.Material.NoActionBar`. A `theme` key left in an old
   install's DataStore is simply never read.
 - `SettingsScreen`: profile, gameplay and reset cards. A quiet
-  footer below the Reset card shows the app version (from `BuildConfig`)
+  footer below the Reset card shows the app version (`BuildInfo.versionName` - from `BuildConfig`
+  on Android)
   and a "View on GitHub" link to `https://github.com/zodac/DiceFive`,
   opened via Compose's `UriHandler` - this used to be its own `AboutScreen`,
   folded in here so the menu has one less destination. Below that, an
@@ -415,10 +423,12 @@ dependencies — most unit tests live here.
 - Clips: `cup_shake`, `mat_landing`, `hold`, `unhold` (played at 0.35 volume), `celebration`
   (Game Over when any human seat wins a game of two or more players, alongside an all-gold
   fireworks animation; a solo game doesn't celebrate, as there's nobody to beat).
-- `SoundEffects` (SoundPool) queues a play request made before that sample finishes decoding and
-  plays it from `setOnLoadCompleteListener`. Without this, `celebration` is silently dropped
-  because it fires on the first frame after the pool is created.
-- `Haptics.kt`: a 150ms tick on hold/unhold and a buzz for the length of the cup shake. The
+- `SoundEffects` (shared) plays through the platform's `SoundPlayer`. On Android that's
+  `AndroidSoundPlayer` (SoundPool, `app/.../device/`), which queues a play request made before
+  that sample finishes decoding and plays it from `setOnLoadCompleteListener`. Without this,
+  `celebration` is silently dropped because it fires on the first frame after the pool is created.
+- `DiceHaptics` (shared) plays through the platform's `HapticsPlayer` - on Android
+  (`AndroidHapticsPlayer`), a 150ms tick on hold/unhold and a buzz for the length of the cup shake. The
   Settings switches "Sound effects" and "Vibration" (in `SettingsRepository`) gate sound and
   haptics separately. `SoundEffects.enabled` is a mutable flag rather than a reason to skip
   loading, since the setting can change mid-session.
@@ -462,6 +472,10 @@ dependencies — most unit tests live here.
   Good for reproducing crashes and checking touch handling; it does not
   simulate everything a device does (e.g. the platform's long-press text
   selection), so a real-device check still matters for those.
+  `MainActivitySmokeTest` launches the whole app this way (Phase 18).
+- **iOS compiles here too** (since Phase 18): `./gradlew testDebugUnitTest` also compiles
+  `:shared` (main and tests) for both iOS targets, so a JVM/Android API in common code fails the
+  build. Linking an iOS app and running its tests needs macOS.
 
 ## Ad hoc debug build versioning
 
@@ -1394,3 +1408,32 @@ install-over-existing succeeds:
 - [ ] **Not yet seen on a device** (no emulator in the sandbox). Release-build check done at the
       APK level only: both generated JSONs survive R8 resource shrinking (referenced directly via
       `R.raw`), but the parse under R8 hasn't been exercised on a device.
+
+### Phase 18 — Kotlin Multiplatform (iOS groundwork)
+- [x] **Why**: keep the option of an iOS version without rewriting the game in Swift. The plan,
+      the target layout and what's left are in `.claude/IOS_SUPPORT.md`; this is the log.
+- [x] **Seams first, in the single module** (`4241b5c`): `org.json` → `kotlinx.serialization`,
+      `java.time` → `kotlinx-datetime`, `System.currentTimeMillis` → `nowEpochMillis()`; sound,
+      haptics, the accelerometer and toasts behind `platform/PlatformServices` (Android side in
+      `app/.../device/`); ViewModel factories take an `AppContainer`, not a `Context`;
+      `BuildConfig` → `BuildInfo`. `ShakeDetector` became pure logic with its own tests.
+- [x] **`:shared`** (`97476d6`): a KMP library (AGP 9's `com.android.kotlin.multiplatform.library`
+      - `com.android.application` can't host KMP, hence the separate module) with Android, `iosArm64`
+      and `iosSimulatorArm64` targets. The iOS targets compile on Linux, so every build checks
+      common code for platform leaks. It answers to `testDebugUnitTest` (JVM tests + iOS compiles),
+      so CI and the update script needed no changes. Tests are `kotlin.test` in `commonTest`; Kotlin/
+      Native forbids commas and parentheses in their backticked names.
+- [x] **Persistence** (`745d9bb`): Room and DataStore multiplatform. **The schema restarted at
+      version 1 with no migrations** - pre-release, nothing to keep; an old v6 database is wiped on
+      open (downgrade fallback). Schemas are exported to `shared/schemas/`.
+      `AndroidAppContainerTest` opens the real Android storage under Robolectric.
+- [x] **UI**: every screen moved to Compose Multiplatform unchanged apart from resources
+      (`Res.drawable.*`, `Res.font.sora`), `BackHandler` (now `ui/common/BackHandler.kt`, on the
+      navigation-event API) and the licences split (common dialog and parsing; the platform supplies
+      the JSON and the document view - Android keeps its `TextView`). `verifyAssetSources` covers
+      `shared/.../composeResources/`. `MainActivitySmokeTest` drives the real app under Robolectric.
+- [x] **iOS side written, compile-checked only**: `IosPlatformServices` (AVAudioPlayer, UIKit
+      haptics, CoreMotion, a snackbar for transient messages), storage in Application Support, and
+      `MainViewController()` for the Xcode project to host.
+- [ ] **Not yet seen on a device** - neither the Android build since the move (Robolectric only)
+      nor iOS at all (needs macOS - `IOS_SUPPORT.md` Phase 5).
