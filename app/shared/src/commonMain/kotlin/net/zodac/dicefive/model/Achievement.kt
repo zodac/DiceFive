@@ -209,7 +209,7 @@ enum class Achievement(
     ),
 
     LOWER_150(
-        "lower_150", "Lower Class", "Score 150 or more in the lower section",
+        "lower_150", "Lower Class", "Score 150 or more in the lower section (excluding 5x scores)",
         AchievementCategory.DICE,
     ),
 
