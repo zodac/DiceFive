@@ -385,6 +385,39 @@ private fun BannerTitle(title: String, modifier: Modifier = Modifier) {
     )
 }
 
+/** How many lines an unlock banner's description gets before it's ellipsised - the longest ones
+ * ("Have a scoring option after the 2nd roll, then leave yourself with none after the 3rd") still
+ * need two even at the smallest size below. */
+private const val BANNER_DESCRIPTION_MAX_LINES = 2
+
+/** The smallest a banner's description shrinks to before it's ellipsised instead (bodySmall, its
+ * normal size, is 12sp), and how finely it steps down from there - finer than the title's, since
+ * there's less room to spare on the way down to a size that's still legible at all. */
+private val BANNER_DESCRIPTION_MIN_FONT_SIZE = 9.sp
+private val BANNER_DESCRIPTION_FONT_STEP = 0.25.sp
+
+/**
+ * An achievement's description under its title, on up to [BANNER_DESCRIPTION_MAX_LINES] lines: at
+ * bodySmall when it fits, otherwise stepped down until it does, same idea as [BannerTitle] but
+ * smaller throughout, since the description is the secondary line and there are two of them to fit
+ * where the title only ever needed one.
+ */
+@Composable
+private fun BannerDescription(description: String, modifier: Modifier = Modifier) {
+    Text(
+        text = description,
+        style = MaterialTheme.typography.bodySmall,
+        maxLines = BANNER_DESCRIPTION_MAX_LINES,
+        overflow = TextOverflow.Ellipsis,
+        autoSize = TextAutoSize.StepBased(
+            minFontSize = BANNER_DESCRIPTION_MIN_FONT_SIZE,
+            maxFontSize = MaterialTheme.typography.bodySmall.fontSize,
+            stepSize = BANNER_DESCRIPTION_FONT_STEP,
+        ),
+        modifier = modifier,
+    )
+}
+
 /**
  * The full-fat banner: something was actually earned. Shows the achievement's own icon in the same
  * bordered square the Achievements screen shows it in once it's unlocked, rather than a generic
@@ -419,8 +452,8 @@ private fun UnlockedBanner(achievement: Achievement) {
                 )
             }
             Column {
-                Text(text = "Achievement unlocked", style = MaterialTheme.typography.labelSmall)
                 BannerTitle(achievement.title)
+                BannerDescription(achievement.description)
             }
         }
     }
