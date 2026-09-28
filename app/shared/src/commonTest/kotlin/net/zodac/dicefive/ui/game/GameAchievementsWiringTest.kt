@@ -968,9 +968,14 @@ class GameAchievementsWiringTest {
     @Test
     fun `holding a die through both re-rolls - then scoring a category it doesn't count towards - unlocks Time to Let It Go`() = runTest {
         val store = FakeAchievementStore()
-        // Every die (held or not) always shows 6 - die 0 is held from right after roll 1, through
-        // both re-rolls, then Ones is scored: die 0's face is never counted towards it at all.
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
+        // Die 0 rolls a 6 and is held from right after roll 1, through both re-rolls. The other
+        // four dice roll 6 initially too, then settle on 1s by the final roll, so Ones scores a
+        // real 4 - die 0's 6 is never counted towards it, but the category didn't just fail.
+        val viewModel = GameViewModel(
+            aiDispatcher = testDispatcher,
+            achievementsRepository = store,
+            random = ScriptedDice(listOf(6, 6, 6, 6, 6, 1, 1, 1, 1, 1, 1, 1, 1)),
+        )
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -987,7 +992,11 @@ class GameAchievementsWiringTest {
     @Test
     fun `unholding the die before committing still unlocks Time to Let It Go - only whether it was used matters`() = runTest {
         val store = FakeAchievementStore()
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
+        val viewModel = GameViewModel(
+            aiDispatcher = testDispatcher,
+            achievementsRepository = store,
+            random = ScriptedDice(listOf(6, 6, 6, 6, 6, 1, 1, 1, 1, 1, 1, 1, 1)),
+        )
         viewModel.setPlayerCount(1)
         viewModel.startGame()
 
@@ -1001,6 +1010,29 @@ class GameAchievementsWiringTest {
         advanceUntilIdle()
 
         assertTrue(Achievement.TIME_TO_LET_IT_GO in store.unlocked, "TIME_TO_LET_IT_GO should pop regardless of the die's final held state")
+    }
+
+    @Test
+    fun `scoring a zero in the category does not unlock Time to Let It Go`() = runTest {
+        val store = FakeAchievementStore()
+        // Every die always shows 6 - die 0 is held through both re-rolls same as the unlocking
+        // case, but Ones scores 0 outright since nothing on the table ever shows a 1. That's the
+        // category failing, not the player choosing to let the held die go, so it must not pop.
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.toggleHold(0)
+        viewModel.rollDice()
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.ONES)
+        advanceUntilIdle()
+
+        assertFalse(
+            Achievement.TIME_TO_LET_IT_GO in store.unlocked,
+            "a zero score must not unlock TIME_TO_LET_IT_GO, got ${store.unlocked}",
+        )
     }
 
     @Test
