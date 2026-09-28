@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
@@ -39,13 +38,14 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -56,6 +56,7 @@ import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
+import net.zodac.dicefive.ui.common.ConfigureOverlayDialogWindow
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.grouped
 
@@ -81,9 +82,6 @@ private const val STAGGER_MILLIS = 300L
  * turn rather than being dropped - see the admission wait in [AchievementBannerHost].
  */
 private const val MAX_VISIBLE_BANNERS = 4
-
-/** Banners are confined to the bottom half of the screen, clear of the board and the scorecard. */
-private const val BOTTOM_HALF = 0.5f
 
 /** How far across itself a banner must be dragged to count as "get rid of this" - down from an
  * original 0.25f, which needed too firm a swipe to register. */
@@ -118,6 +116,17 @@ private data class BannerItem(val key: Long, val event: AchievementEvent)
  * the queue the instant a slot freed up for it. Each banner leaves on its own: a hold, then a slow
  * fade. A horizontal swipe in either direction, or clearing its long-press description dialog,
  * doesn't wait for that.
+ *
+ * The stack renders in its own [Dialog] window, not as part of [content] - an achievement can fire
+ * while a dialog (Settings' credits, a rules dialog, a confirmation) is already on screen, and a
+ * new window is always drawn above whatever else was already showing when it appeared, so this
+ * keeps the banner - and the description dialog its long press opens - from ending up stuck behind
+ * one. A `Dialog` was chosen over a `Popup` for this because a `Popup`'s window is attached as a
+ * panel of its parent (here, the main content's own window) and stacks relative to *that*, not to
+ * other independent top-level windows like another already-open `Dialog` - so it could still end
+ * up under one, however recently it was created. [ConfigureOverlayDialogWindow] then turns that
+ * dialog window into a non-modal overlay - no dim, and no swallowing touches/back-presses outside
+ * its own content - so it doesn't behave like a real dialog itself.
  */
 @Composable
 fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
@@ -146,43 +155,53 @@ fun AchievementBannerHost(modifier: Modifier = Modifier, content: @Composable ()
 
     Box(modifier = modifier) {
         content()
+    }
 
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .fillMaxHeight(BOTTOM_HALF)
-                .clipToBounds()
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 16.dp),
-            contentAlignment = Alignment.BottomCenter,
+    if (banners.isNotEmpty()) {
+        Dialog(
+            // Never called: nothing here is dismissible from outside - see ConfigureOverlayDialogWindow.
+            onDismissRequest = {},
+            properties = DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false,
+                usePlatformDefaultWidth = false,
+            ),
         ) {
-            // Display order only, not the underlying list (removal below still targets `banners`
-            // directly) - a real unlock always sits in front of a progress nudge, wherever in the
-            // arrival order it actually landed. sortedBy is stable, so within each of the two
-            // groups, `banners`' own order - oldest-still-queued first, since new arrivals are
-            // inserted at the front of it, not appended (see the collector above) - is preserved.
-            // Front is always the *last* element of this list, so within a type group it's always
-            // the one that's been waiting longest, never one that only just joined the back.
-            val displayOrder = banners.sortedBy { it.event is AchievementEvent.Unlocked }
-            displayOrder.forEachIndexed { index, item ->
-                // 0 for the front (frontmost, drawn last so it's on top), climbing for each one
-                // further back in the stack.
-                val depthFromFront = displayOrder.lastIndex - index
-                key(item.key) {
-                    BannerSlot(
-                        item = item,
-                        interactive = depthFromFront == 0,
-                        anyDescriptionShowing = descriptionShownForKey != null,
-                        showOwnDescription = descriptionShownForKey == item.key,
-                        onRequestDescription = { descriptionShownForKey = item.key },
-                        onDismissDescription = { descriptionShownForKey = null },
-                        onDismissed = { banners.remove(item) },
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .offset(y = -(depthFromFront * STACK_PEEK_DP).dp)
-                            .zIndex(index.toFloat()),
-                    )
+            ConfigureOverlayDialogWindow()
+            Box(
+                modifier = Modifier
+                    .widthIn(max = CONTENT_MAX_WIDTH)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+                // Display order only, not the underlying list (removal below still targets `banners`
+                // directly) - a real unlock always sits in front of a progress nudge, wherever in the
+                // arrival order it actually landed. sortedBy is stable, so within each of the two
+                // groups, `banners`' own order - oldest-still-queued first, since new arrivals are
+                // inserted at the front of it, not appended (see the collector above) - is preserved.
+                // Front is always the *last* element of this list, so within a type group it's always
+                // the one that's been waiting longest, never one that only just joined the back.
+                val displayOrder = banners.sortedBy { it.event is AchievementEvent.Unlocked }
+                displayOrder.forEachIndexed { index, item ->
+                    // 0 for the front (frontmost, drawn last so it's on top), climbing for each one
+                    // further back in the stack.
+                    val depthFromFront = displayOrder.lastIndex - index
+                    key(item.key) {
+                        BannerSlot(
+                            item = item,
+                            interactive = depthFromFront == 0,
+                            anyDescriptionShowing = descriptionShownForKey != null,
+                            showOwnDescription = descriptionShownForKey == item.key,
+                            onRequestDescription = { descriptionShownForKey = item.key },
+                            onDismissDescription = { descriptionShownForKey = null },
+                            onDismissed = { banners.remove(item) },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .offset(y = -(depthFromFront * STACK_PEEK_DP).dp)
+                                .zIndex(index.toFloat()),
+                        )
+                    }
                 }
             }
         }
