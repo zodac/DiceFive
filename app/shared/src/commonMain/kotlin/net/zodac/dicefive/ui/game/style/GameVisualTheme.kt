@@ -7,13 +7,19 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 /**
+ * One swappable piece of table art in one colour - a [DiceStyle], [DiceCupStyle], [TableBackground]
+ * or [DiceMat]. [id] is what the player's pick is saved as, so it must never change once shipped.
+ */
+interface TableArt {
+    val id: String
+}
+
+/**
  * Renders a single die face. Implementations are swapped wholesale via
  * [GameVisualTheme.diceStyle] - e.g. a future "user picked a dice skin"
  * setting would just provide a different [DiceStyle] instance.
  */
-interface DiceStyle {
-    val id: String
-
+interface DiceStyle : TableArt {
     @Composable
     fun Die(value: Int, held: Boolean, modifier: Modifier)
 }
@@ -25,9 +31,7 @@ interface DiceStyle {
  * (drives the shake), [tilted] reflects whether this turn's dice have
  * already been poured out at least once (drives the resting pose).
  */
-interface DiceCupStyle {
-    val id: String
-
+interface DiceCupStyle : TableArt {
     @Composable
     fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier)
 }
@@ -37,14 +41,12 @@ interface DiceCupStyle {
  * always uses the app's base theme background. Independently swappable from [DiceMat], which
  * covers the dice-tray area below it.
  */
-interface TableBackground {
-    val id: String
+interface TableBackground : TableArt {
     val scoreAreaBrush: Brush
 }
 
 /** Supplies the (independently swappable) dice-tray mat, separate from [TableBackground]. */
-interface DiceMat {
-    val id: String
+interface DiceMat : TableArt {
     val diceTrayBrush: Brush
 
     /** The fill of the five slots along the top of the tray that held dice move into. */

@@ -51,8 +51,16 @@ decisions behind it. Read that before changing anything visual.
   independently swappable and independently persisted (`SettingsRepository.diceStyleId`/
   `diceCupStyleId`/`tableBackgroundId`, plain string ids, defaulted and resolved through each
   category's own catalog object in `ui/game/style/StyleCatalog.kt` - `DiceStyles`/`DiceCupStyles`/
-  `TableBackgrounds`, each a `byId` lookup falling back to that category's `default`). The Styles
-  screen (`ui/styles/`) is the picker; `GameScreen` reads the three ids and builds the active
+  `TableBackgrounds`/`DiceMats`, each a `StyleCatalog` with a `byId` lookup falling back to that
+  category's `default`). Each catalog groups its art into `StyleFamily`s - a style (shape or
+  pattern) with one or more `StyleColour`s - and every colour is still its own `TableArt` with its
+  own saved id, so grouping never changed what's persisted. Current groups: dice Classic (Ivory,
+  Red, Oak); cups Faceted (Green, Red) and Barrel; mats Felt (Blue, Red) and Barrel; backgrounds
+  Classic (Navy, Red, Brown). A new colour of an existing shape goes in that family, not a new one.
+  The Styles screen (`ui/styles/`) is the picker: one tile per family, showing the picked colour
+  (or the family's first), colour dots along the bottom when it has more than one, and a long
+  press popping up a scrollable row of previews, one per colour (no colour names on screen - the
+  name belongs to the style; `StyleColour.name` is only read out by screen readers). `GameScreen` reads the ids and builds the active
   `GameVisualTheme` from them on every recomposition. Shipped skins: Ivory/Faceted/Midnight Felt
   (the defaults) and a second, fully independent "fire" skin per category - a red die with orange
   pips (`FireDiceStyle`), the faceted cup in reds with orange edges (`FireDiceCupStyle`), a red
