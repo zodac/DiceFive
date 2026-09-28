@@ -85,12 +85,14 @@ prefixed with the platform's name (`AndroidSoundPlayer`, `IosSoundPlayer`).
 
 ### Phase 1 - Android-only APIs behind seams (commit `4241b5c`)
 
-- `org.json` → `kotlinx.serialization`'s `JsonObject` tree API (`GameStateJson`, same keys;
-  licence notices). The JVM tests still need `org.json` on their classpath, because
-  AboutLibraries' Android parser uses it internally.
-- `java.time` / `NumberFormat` → `kotlinx-datetime` + `ui/common/Formatting.kt`
-  (`formatTimestamp`, `grouped`). Month names are English regardless of locale, like the rest of
-  the UI.
+- `org.json` → a small hand-written JSON reader/writer, `data/Json.kt` (`GameStateJson`, same
+  keys; licence notices). First done with kotlinx.serialization, which turned out to cost ~49KB of
+  the release APK for these two uses. The JVM tests still need `org.json` on their classpath,
+  because AboutLibraries' Android parser uses it internally.
+- `java.time` / `NumberFormat` → `formatTimestamp` as an `expect fun` (Android: the same
+  `java.time` formatter as before; iOS: `NSDateFormatter`) and a common `grouped()`, in
+  `ui/common/Formatting.kt`. First done with kotlinx-datetime - ~180 classes in the APK for one
+  pattern.
 - `System.currentTimeMillis()` → `game/Clock.kt`'s `nowEpochMillis()` (`kotlin.time.Clock`).
 - `platform/PlatformServices`: `SoundPlayer`, `HapticsPlayer`, `Accelerometer`,
   `showTransientMessage` (was `Toast`). `SoundEffects` / `DiceHaptics` are shared wrappers;
@@ -138,6 +140,12 @@ prefixed with the platform's name (`AndroidSoundPlayer`, `IosSoundPlayer`).
 ---
 
 ## Gotchas worth not re-learning
+
+- **Watch the release APK size before adding a multiplatform library.** It was 1.93MB before the
+  port and reached 2.03MB; dropping kotlinx.serialization and kotlinx-datetime for small
+  hand-written/platform code brought it to 1.95MB. What remains (~16KB) is Compose Multiplatform's
+  resources runtime and the platform seams. Compare R8 mappings (`build/outputs/mapping/release/`)
+  class counts per package to see what a change retains.
 
 - **Kotlin/Native rejects some characters in function names**: no commas, parentheses (and
   `.`, `:`, `/`, `<`, `>`, `[`, `]`) in backticked test names in `commonTest`. Use " - " instead.

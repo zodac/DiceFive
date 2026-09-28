@@ -31,9 +31,10 @@ import androidx.compose.ui.window.DialogProperties
 import com.mikepenz.aboutlibraries.Libs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
+import net.zodac.dicefive.data.JsonObject
+import net.zodac.dicefive.data.JsonParseException
+import net.zodac.dicefive.data.JsonString
+import net.zodac.dicefive.data.parseJson
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
@@ -119,8 +120,9 @@ internal fun parseLicenseReport(librariesJson: String, noticesJson: String): Lic
         .filter { it.components.isNotEmpty() }
         .sortedWith(compareByDescending<LicenseGroup> { it.components.size }.thenBy { it.name })
 
-    val notices = Json.parseToJsonElement(noticesJson).jsonObject
-        .map { (library, text) -> ThirdPartyNotice(library = library, text = text.jsonPrimitive.content) }
+    val noticesObject = parseJson(noticesJson) as? JsonObject ?: throw JsonParseException("Notices aren't a JSON object")
+    val notices = noticesObject.fields
+        .map { (library, text) -> ThirdPartyNotice(library = library, text = (text as? JsonString)?.value.orEmpty()) }
         .sortedBy { it.library }
 
     return LicenseReport(groups, notices)
