@@ -44,8 +44,8 @@ fun MenuScreen(
     onAchievements: () -> Unit,
     onStyles: () -> Unit,
     onSettings: () -> Unit,
-    onDiceTap: () -> Unit = {},
     modifier: Modifier = Modifier,
+    onDiceTap: () -> Unit = {},
 ) {
     var showResumeDialog by remember { mutableStateOf(false) }
     var showRulesDialog by remember { mutableStateOf(false) }

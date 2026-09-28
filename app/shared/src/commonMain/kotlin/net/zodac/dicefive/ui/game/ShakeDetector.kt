@@ -43,7 +43,7 @@ private const val SHAKE_COOLDOWN_MILLIS = 1_500L
  * fires once at least [SHAKE_MIN_BEATS] rising edges (the signal crossing up through the threshold,
  * having first dropped back below it) land within [SHAKE_WINDOW_MILLIS] of each other.
  *
- * Pure logic, fed by the platform's [Accelerometer] via [rememberShakeDetector], which ties it to
+ * Pure logic, fed by the platform's [Accelerometer] via [ShakeDetectorEffect], which ties it to
  * the host screen's own resumed state rather than the composition's - so the same tuning applies
  * on every platform, and it can be unit tested with made-up samples.
  */
@@ -110,7 +110,7 @@ internal class ShakeDetector(private val onShake: () -> Unit) {
  * and re-registering the sensor listener each time.
  */
 @Composable
-fun rememberShakeDetector(onShake: () -> Unit) {
+fun ShakeDetectorEffect(onShake: () -> Unit) {
     val platform = LocalPlatformServices.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnShake = rememberUpdatedState(onShake)

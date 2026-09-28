@@ -39,10 +39,10 @@ fun DiceFiveDialog(
     message: String,
     confirmLabel: String,
     onConfirm: () -> Unit,
-    dismissLabel: String? = null,
-    onDismiss: (() -> Unit)? = null,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    dismissLabel: String? = null,
+    onDismiss: (() -> Unit)? = null,
     // Overridable for the one icon in the app that's drawn in its own fixed colours rather than
     // meant to be tinted - see Achievement.iconTintOrUnspecified. Every other caller leaves this at
     // its default.

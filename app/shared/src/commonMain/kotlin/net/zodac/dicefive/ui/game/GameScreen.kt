@@ -297,7 +297,7 @@ private fun InProgressGame(
             onCupTap()
         }
     }
-    rememberShakeDetector(onShake = onShakeDetected)
+    ShakeDetectorEffect(onShake = onShakeDetected)
 
     PlayerHeaderBar(
         players = state.players,

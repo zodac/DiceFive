@@ -500,7 +500,7 @@ class GameViewModel(
         }
     }
 
-    /** A phone-shake roll actually happened - see [rememberShakeDetector]/[Achievement
+    /** A phone-shake roll actually happened - see [ShakeDetectorEffect]/[Achievement
      * .SHAKEN_NOT_TAPPED]. Only the achievement lives here: the roll itself is still driven
      * through the same [rollDice] call a cup tap uses, so this is purely a one-shot unlock,
      * same shape as [tapCupWithNoRollsLeft]. */
