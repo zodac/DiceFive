@@ -271,10 +271,9 @@ private fun ScoreRow(rank: Int, isTrueTie: Boolean, entry: ScoreEntry, striped: 
                 overflow = TextOverflow.Ellipsis,
             )
             // How many 5x that game scored - a quiet secondary column, so it takes the rank's muted
-            // colour rather than competing with the score. "-" for an entry recorded before the
-            // count was captured (see ScoreEntry.fiveOfAKindCount), not a 0 it can't vouch for.
+            // colour rather than competing with the score.
             Text(
-                text = entry.fiveOfAKindCount?.toString() ?: "-",
+                text = entry.fiveOfAKindCount.toString(),
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodySmall,
                 color = accent ?: MaterialTheme.colorScheme.onSurfaceVariant,

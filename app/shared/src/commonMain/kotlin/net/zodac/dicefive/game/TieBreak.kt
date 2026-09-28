@@ -23,25 +23,25 @@ enum class TieBreakCriterion(val reasonText: String) {
 }
 
 /**
- * One player's (or leaderboard row's) tie-break inputs. Every field but [score] is nullable: a
- * live, just-finished game always fills them all in (see [PlayerState.toTieBreakStats]) except
- * [tricolourScoredCount], which stays null for a Standard-mode game - there are no colour boxes to
- * count. A leaderboard row recorded before this house rule shipped comes back with every one of
- * them null: the stat was simply never captured, the same "unknown means excluded, not guessed
- * at" call already made for [net.zodac.dicefive.data.scores.ScoreEntry.fiveOfAKindCount].
+ * One player's (or leaderboard row's) tie-break inputs. Only [tricolourScoredCount] can be null:
+ * a Standard-mode game has no colour boxes to count (and the leaderboard never compares it - see
+ * [LEADERBOARD_CRITERIA]).
  */
 data class TieBreakStats(
     val score: Int,
-    val fiveOfAKindCount: Int?,
-    val zeroedCategoryCount: Int?,
+    val fiveOfAKindCount: Int,
+    val zeroedCategoryCount: Int,
     val tricolourScoredCount: Int?,
-    val upperSectionTotal: Int?,
-    val chance: Int?,
-    val threeOfAKind: Int?,
-    val fourOfAKind: Int?,
+    val upperSectionTotal: Int,
+    val chance: Int,
+    val threeOfAKind: Int,
+    val fourOfAKind: Int,
 )
 
-/** [TieBreakStats] for a finished player's own scorecard - every field always known. */
+/**
+ * [TieBreakStats] for a finished player's own scorecard. Only meaningful once every box is filled,
+ * which is the only time anything ranks players (the results screen, the end-of-game achievements).
+ */
 fun PlayerState.toTieBreakStats(): TieBreakStats = TieBreakStats(
     score = totalScore,
     fiveOfAKindCount = fiveOfAKindCount,
@@ -52,9 +52,9 @@ fun PlayerState.toTieBreakStats(): TieBreakStats = TieBreakStats(
         null
     },
     upperSectionTotal = upperSectionTotal,
-    chance = scorecard[ScoreCategory.CHANCE],
-    threeOfAKind = scorecard[ScoreCategory.THREE_OF_A_KIND],
-    fourOfAKind = scorecard[ScoreCategory.FOUR_OF_A_KIND],
+    chance = scorecard[ScoreCategory.CHANCE] ?: 0,
+    threeOfAKind = scorecard[ScoreCategory.THREE_OF_A_KIND] ?: 0,
+    fourOfAKind = scorecard[ScoreCategory.FOUR_OF_A_KIND] ?: 0,
 )
 
 private data class Criterion(
@@ -97,20 +97,17 @@ data class RankedPlayer(val player: PlayerState, val originalIndex: Int, val ran
 object TieBreak {
 
     /**
-     * A just-finished game's own players, best first: equal scores broken by the house rule, a
-     * criterion both players share as null (only possible for [TieBreakCriterion.TRICOLOUR_SCORED_COUNT]
-     * in a Standard-mode game) simply skipped in favour of the next one. A true tie - every
-     * criterion also matches - compares equal, and stays a shared rank; see `GameOverScreen`.
+     * A just-finished game's own players, best first: equal scores broken by the house rule, the
+     * tricolour criterion skipped in a Standard-mode game (every player's is null there). A true tie -
+     * every criterion also matches - compares equal, and stays a shared rank; see `GameOverScreen`.
      */
-    val liveGameComparator: Comparator<TieBreakStats> = comparator(LIVE_GAME_CRITERIA, treatUnknownAsWorst = false)
+    val liveGameComparator: Comparator<TieBreakStats> = comparator(LIVE_GAME_CRITERIA)
 
     /**
-     * Leaderboard rows, best first. Unlike [liveGameComparator], a row missing a stat (a
-     * pre-house-rule row) sorts as though that stat were the worst possible value, rather than
-     * skipping the criterion - an unknown must never quietly tie with someone else's real, hard-won
-     * handicap. Mirrors `ScoreDao.pagedScores`'s own `COALESCE(...)` ordering; keep the two in step.
+     * Leaderboard rows, best first - the same criteria minus the tricolour one. Mirrors
+     * `ScoreDao.pagedScores`'s own `ORDER BY`; keep the two in step.
      */
-    val leaderboardComparator: Comparator<TieBreakStats> = comparator(LEADERBOARD_CRITERIA, treatUnknownAsWorst = true)
+    val leaderboardComparator: Comparator<TieBreakStats> = comparator(LEADERBOARD_CRITERIA)
 
     /**
      * The first criterion that separates [a] and [b], or null if they're a true tie (every
@@ -120,7 +117,7 @@ object TieBreak {
     fun decidingCriterion(a: TieBreakStats, b: TieBreakStats, forLeaderboard: Boolean = false): TieBreakCriterion? {
         val criteria = if (forLeaderboard) LEADERBOARD_CRITERIA else LIVE_GAME_CRITERIA
         for (criterion in criteria) {
-            if (compare(criterion, a, b, treatUnknownAsWorst = forLeaderboard) != 0) return criterion.id
+            if (compare(criterion, a, b) != 0) return criterion.id
         }
         return null
     }
@@ -155,23 +152,21 @@ object TieBreak {
         }
     }
 
-    private fun compare(criterion: Criterion, a: TieBreakStats, b: TieBreakStats, treatUnknownAsWorst: Boolean): Int {
-        val av = criterion.value(a)
-        val bv = criterion.value(b)
-        if (av == null && bv == null) return 0
-        if (av == null) return if (treatUnknownAsWorst) 1 else 0
-        if (bv == null) return if (treatUnknownAsWorst) -1 else 0
+    /** Zero - skipped - where either side has no value, which only the tricolour count ever lacks. */
+    private fun compare(criterion: Criterion, a: TieBreakStats, b: TieBreakStats): Int {
+        val av = criterion.value(a) ?: return 0
+        val bv = criterion.value(b) ?: return 0
         return if (criterion.lowerIsBetter) av.compareTo(bv) else bv.compareTo(av)
     }
 
-    private fun comparator(criteria: List<Criterion>, treatUnknownAsWorst: Boolean): Comparator<TieBreakStats> =
+    private fun comparator(criteria: List<Criterion>): Comparator<TieBreakStats> =
         Comparator { a, b ->
             val scoreCompare = b.score.compareTo(a.score)
             if (scoreCompare != 0) {
                 scoreCompare
             } else {
                 criteria.firstNotNullOfOrNull { criterion ->
-                    compare(criterion, a, b, treatUnknownAsWorst).takeIf { it != 0 }
+                    compare(criterion, a, b).takeIf { it != 0 }
                 } ?: 0
             }
         }

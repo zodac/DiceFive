@@ -4,6 +4,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import net.zodac.dicefive.game.TieBreakStats
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
@@ -29,7 +30,7 @@ class AndroidAppContainerTest {
 
     @Test
     fun `a recorded score is read back from the database`() = runTest {
-        container.scoreRepository.recordScore(playerName = "Tester", score = 250, won = true, isPrimaryPlayer = true)
+        container.scoreRepository.recordScore("Tester", stats(score = 250), won = true, isPrimaryPlayer = true)
 
         assertEquals(1, container.scoreRepository.totalCount())
         assertEquals(250, container.scoreRepository.page(0).single().score)
@@ -39,8 +40,8 @@ class AndroidAppContainerTest {
 
     @Test
     fun `equal scores are ordered by the tie-break - fewer 5x ranks higher`() = runTest {
-        container.scoreRepository.recordScore(playerName = "More", score = 200, fiveOfAKindCount = 2)
-        container.scoreRepository.recordScore(playerName = "Fewer", score = 200, fiveOfAKindCount = 0)
+        container.scoreRepository.recordScore("More", stats(score = 200, fiveOfAKindCount = 2), won = null, isPrimaryPlayer = false)
+        container.scoreRepository.recordScore("Fewer", stats(score = 200, fiveOfAKindCount = 0), won = null, isPrimaryPlayer = false)
 
         assertEquals(listOf("Fewer", "More"), container.scoreRepository.page(0).map { it.playerName })
     }
@@ -51,4 +52,15 @@ class AndroidAppContainerTest {
 
         assertEquals("Tester", container.settingsRepository.playerNameFor(1).first())
     }
+
+    private fun stats(score: Int, fiveOfAKindCount: Int = 0) = TieBreakStats(
+        score = score,
+        fiveOfAKindCount = fiveOfAKindCount,
+        zeroedCategoryCount = 0,
+        tricolourScoredCount = null,
+        upperSectionTotal = 0,
+        chance = 0,
+        threeOfAKind = 0,
+        fourOfAKind = 0,
+    )
 }

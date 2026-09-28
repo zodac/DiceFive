@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "7634f9048dba8c39a03574d3cccc5edf",
+    "identityHash": "e369be56080f794d012dac8f6c2ed514",
     "entities": [
       {
         "tableName": "scores",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `playerName` TEXT NOT NULL, `score` INTEGER NOT NULL, `timestampEpochMillis` INTEGER NOT NULL, `won` INTEGER, `isPrimaryPlayer` INTEGER NOT NULL, `fiveOfAKindCount` INTEGER, `zeroedCategoryCount` INTEGER, `upperSectionTotal` INTEGER, `chanceScore` INTEGER, `threeOfAKindScore` INTEGER, `fourOfAKindScore` INTEGER)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `playerName` TEXT NOT NULL, `score` INTEGER NOT NULL, `timestampEpochMillis` INTEGER NOT NULL, `won` INTEGER, `isPrimaryPlayer` INTEGER NOT NULL, `fiveOfAKindCount` INTEGER NOT NULL, `zeroedCategoryCount` INTEGER NOT NULL, `upperSectionTotal` INTEGER NOT NULL, `chanceScore` INTEGER NOT NULL, `threeOfAKindScore` INTEGER NOT NULL, `fourOfAKindScore` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -46,32 +46,38 @@
           {
             "fieldPath": "fiveOfAKindCount",
             "columnName": "fiveOfAKindCount",
-            "affinity": "INTEGER"
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "zeroedCategoryCount",
             "columnName": "zeroedCategoryCount",
-            "affinity": "INTEGER"
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "upperSectionTotal",
             "columnName": "upperSectionTotal",
-            "affinity": "INTEGER"
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "chanceScore",
             "columnName": "chanceScore",
-            "affinity": "INTEGER"
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "threeOfAKindScore",
             "columnName": "threeOfAKindScore",
-            "affinity": "INTEGER"
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "fourOfAKindScore",
             "columnName": "fourOfAKindScore",
-            "affinity": "INTEGER"
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -102,7 +108,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7634f9048dba8c39a03574d3cccc5edf')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e369be56080f794d012dac8f6c2ed514')"
     ]
   }
 }

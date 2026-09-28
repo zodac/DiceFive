@@ -13,10 +13,9 @@ import kotlinx.coroutines.IO
  * [RoomDatabase.Builder] (on Android, the framework's SQLite; on iOS, the bundled driver) and
  * finishes it with [buildAppDatabase].
  *
- * The schema restarted at version 1 when the app moved to Kotlin Multiplatform, before its first
- * release, and the pre-release migrations went with it. From here on, every schema change needs a
- * version bump and a migration again - the exported schemas in app/shared/schemas/ are what a
- * migration test compares against.
+ * Version 1 is the initial schema - the pre-release history was collapsed into it before the first
+ * release. Every schema change from here on needs a version bump and a migration; the exported
+ * schemas in app/shared/schemas/ are what a migration test compares against.
  */
 @Database(entities = [ScoreEntry::class, DismissedPlayerStats::class], version = 1, exportSchema = true)
 @ConstructedBy(AppDatabaseConstructor::class)
@@ -36,11 +35,10 @@ expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase> {
     override fun initialize(): AppDatabase
 }
 
-/** Finishes a platform's builder the same way everywhere. */
+/**
+ * Finishes a platform's builder the same way everywhere. No destructive fallback of any kind: a
+ * missing migration must fail loudly in testing, never quietly wipe a player's scores.
+ */
 fun RoomDatabase.Builder<AppDatabase>.buildAppDatabase(): AppDatabase = this
-    // A database written by a newer build (an older APK installed over it, or a pre-release install
-    // from before the schema restarted at version 1) can't be migrated down - starting empty beats
-    // failing to open at all.
-    .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
     .setQueryCoroutineContext(Dispatchers.IO)
     .build()
