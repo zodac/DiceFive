@@ -47,8 +47,8 @@ interface DiceMat {
     val diceTrayBrush: Brush
 
     /**
-     * An optional decorative overlay drawn on top of [diceTrayBrush], e.g. the fire theme's flame
-     * trim licking up from the tray's bottom edge. Most mats don't need one, so it's a no-op by
+     * An optional decorative overlay drawn on top of [diceTrayBrush], e.g. a pattern or trim along
+     * the tray's edge. Most mats don't need one, so it's a no-op by
      * default rather than every implementation repeating an empty override.
      */
     @Composable

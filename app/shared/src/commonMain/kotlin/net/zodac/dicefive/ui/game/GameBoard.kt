@@ -131,7 +131,7 @@ fun GameBoard(
             // rolled - not stay tipped over from the previous player's last roll. What makes THIS
             // roll's shake look the same as a same-turn reroll's isn't keeping this true across
             // the boundary; it's that Cup already forces itself upright the instant a shake
-            // starts, whatever `tilted` was beforehand (see LeatherDiceCupStyle).
+            // starts, whatever `tilted` was beforehand (see rememberCupRotation).
             tilted = state.phase == TurnPhase.ROLLED,
             rolling = rolling,
             canUndo = canUndo,

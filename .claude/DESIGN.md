@@ -53,14 +53,20 @@ decisions behind it. Read that before changing anything visual.
   category's own catalog object in `ui/game/style/StyleCatalog.kt` - `DiceStyles`/`DiceCupStyles`/
   `TableBackgrounds`, each a `byId` lookup falling back to that category's `default`). The Styles
   screen (`ui/styles/`) is the picker; `GameScreen` reads the three ids and builds the active
-  `GameVisualTheme` from them on every recomposition. Shipped skins: Ivory/Leather/Midnight Felt
-  (the originals) and a second, fully independent "fire" skin per category - a red die with orange
-  pips (`FireDiceStyle`), a plain straight-tapered cup with two flame licks (`FireDiceCupStyle`,
-  no flared foot or brass bands, unlike Leather), and a red felt/tray background trimmed with a
-  band of pointed flame tongues along the tray's bottom third (`FireTableBackground`, drawn as two
-  overlapping wavy bands offset half a cycle apart - see its `flameTongueLift` doc comment for why
-  a plain sine reads as a dune, not flame). Picking "fire" for one category doesn't imply the
-  others - a fire die can sit in a leather cup on a midnight felt mat.
+  `GameVisualTheme` from them on every recomposition. Shipped skins: Ivory/Faceted/Midnight Felt
+  (the defaults) and a second, fully independent "fire" skin per category - a red die with orange
+  pips (`FireDiceStyle`), the faceted cup in reds with orange edges (`FireDiceCupStyle`), a red
+  felt background (`FireTableBackground`) and a plain red tray (`FireDiceMat`). The cup and mat
+  used to carry painted flames (a flame up the cup, a band of flame tongues along the tray's
+  bottom); both were removed at the maintainer's request. Picking "fire" for one category doesn't imply the
+  others - a fire die can sit in a faceted cup on a midnight felt mat.
+  Cups: every `DiceCupStyle` draws inside `CupCanvas` (`CupRotation.kt`), which owns the shared
+  shake/pour rotation and pivot, and authors its art on a 58 x 84 grid (the in-game cup's dp size).
+  `FacetedDiceCupStyle` (default: a six-sided prism in the green score-tile colours with gold edges)
+  and `FireDiceCupStyle` share `drawFacetedCup`; `BarrelDiceCupStyle` is a brown wooden barrel with
+  iron hoops. The original "leather" cup (steep taper, flared foot) was dropped for its shape;
+  `SettingsRepository.diceCupStyleId` reads a saved `"leather"` back as `"faceted"` so it doesn't
+  count as a non-default pick for `STYLE_CUP`.
 - **Game modes** (`model/GameMode.kt`, was `GameType`): `STANDARD` (the official rules, formerly
   `CLASSIC`) and `TRICOLOUR` (see Phase 14). **Every rule that can differ between modes is a field
   on the mode**, even where both modes agree today: dice count, rolls per turn, die faces, die

@@ -101,10 +101,25 @@ val SlotSocketBottom = Color(0xFF081833)
 // same blue - matching how CategoryTile's border pops against its felt background.
 val SlotSocketBorder = Color(0xFF6FA3E0)
 
-val CupBodyTop = Color(0xFF35302B)
-val CupBodyBottom = Color(0xFF14100D)
 val CupRimGold = Color(0xFFC79A4B)
 val CupShadow = Color(0xFF06101F)
+
+// FacetedDiceCupStyle, the default cup: the green score tiles' own colours, one per visible face
+// (shadowed left, lit centre, mid-tone right), so the cup reads as part of the same board, edged in
+// the gold the board uses for a good pick and a held die.
+val FacetedCupShadeFace = TileTealBottom
+val FacetedCupLitFace = TileTealBorder
+val FacetedCupMidFace = TileTealTop
+val FacetedCupEdge = GoldAccent
+
+// BarrelDiceCupStyle: brown wooden staves bound with dark iron hoops.
+val BarrelWoodDark = Color(0xFF3E2412)
+val BarrelWood = Color(0xFF6B4226)
+val BarrelWoodLight = Color(0xFF8A5A32)
+val BarrelRim = Color(0xFFA87447)
+val BarrelInterior = Color(0xFF1A0F08)
+val BarrelIron = Color(0xFF34343A)
+val BarrelIronSheen = Color(0xFF74747C)
 
 // Fire theme: a red-and-orange skin for the die, dice cup and table mat - see FireDiceStyle,
 // FireDiceCupStyle and FireTableBackground. Same "not a colour role" rule as the rest of this block.
@@ -112,19 +127,19 @@ val FireDiceTop = Color(0xFFFF6B4A)
 val FireDiceBottom = Color(0xFFA6180C)
 val FireDicePipColor = Color(0xFFFFB347)
 
-val FireCupBodyTop = Color(0xFFB3261B)
-val FireCupBodyBottom = Color(0xFF4A0D08)
-val FireCupRim = Color(0xFF2B0705)
+// The fire cup's faces: shadowed left, lit centre, mid-tone right - the same lighting as the
+// faceted default's teal faces.
+val FireCupShadeFace = Color(0xFF4A0D08)
+val FireCupLitFace = Color(0xFFD9473A)
+val FireCupMidFace = Color(0xFFB3261B)
 val FireCupShadow = Color(0xFF1A0503)
 
 val FlameOrange = Color(0xFFFF8A1E)
-val FlameOrangeLight = Color(0xFFFFC24D)
 
 val FireBackgroundTop = Color(0xFF7A130D)
 val FireBackgroundBottom = Color(0xFF3D0805)
 val FireTrayTop = Color(0xFFB2231A)
 val FireTrayBottom = Color(0xFF6E120A)
-val FireWaveBack = Color(0xFFD2410F)
 
 // Tricolour mode: the dice's own red/yellow/blue, which replace the player's dice style in that mode
 // (see ColouredDie), and the colour-box tiles on the scorecard (see CategoryIcon/CategoryTile). A

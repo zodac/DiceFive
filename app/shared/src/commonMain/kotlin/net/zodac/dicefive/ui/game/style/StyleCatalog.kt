@@ -9,8 +9,8 @@ object DiceStyles {
 
 /** Every available [DiceCupStyle], in the order they're offered on the Styles screen. */
 object DiceCupStyles {
-    val all: List<DiceCupStyle> = listOf(LeatherDiceCupStyle, FireDiceCupStyle)
-    val default: DiceCupStyle = LeatherDiceCupStyle
+    val all: List<DiceCupStyle> = listOf(FacetedDiceCupStyle, FireDiceCupStyle, BarrelDiceCupStyle)
+    val default: DiceCupStyle = FacetedDiceCupStyle
     fun byId(id: String): DiceCupStyle = all.firstOrNull { it.id == id } ?: default
 }
 
