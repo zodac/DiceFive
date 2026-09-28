@@ -51,10 +51,10 @@ class SettingsViewModel(
         viewModelScope.launch { repository.setVibrationEnabled(enabled) }
     }
 
-    /** Backs the one achievement this screen itself can earn - tapping through to the project's
-     * GitHub page ("Who Made This"). Same fire-and-check-once pattern as
+    /** Backs the one achievement this screen itself can earn - opening the Credits dialog
+     * ("Who Made This"). Same fire-and-check-once pattern as
      * [net.zodac.dicefive.ui.menu.MenuViewModel.onDiceTapped]. */
-    fun onGithubLinkOpened() {
+    fun onCreditsViewed() {
         val repository = achievementsRepository ?: return
         viewModelScope.launch {
             val before = repository.current()

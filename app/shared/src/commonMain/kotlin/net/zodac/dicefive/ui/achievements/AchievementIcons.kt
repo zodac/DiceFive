@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Checklist
-import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -234,7 +233,7 @@ val Achievement.icon: ImageVector
         Achievement.WHY_DID_YOU_DO_THAT -> Icons.Filled.PriorityHigh
         Achievement.ALL_ZEROES -> Icons.Filled.Quiz
         Achievement.EXTREME_LOW_ROLLS -> Icons.Filled.KeyboardDoubleArrowDown
-        Achievement.WHO_MADE_THIS -> Icons.Filled.Code
+        Achievement.WHO_MADE_THIS -> Icons.Filled.Groups
 
         // ---- Collection ---------------------------------------------------------------------------
         Achievement.TALLY -> Icons.Filled.Checklist
