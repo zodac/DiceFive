@@ -34,6 +34,11 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 import net.zodac.dicefive.ui.theme.GoldAccent
+import net.zodac.dicefive.ui.theme.IrishGreenSwatch
+import net.zodac.dicefive.ui.theme.IrishOrangeSwatch
+import net.zodac.dicefive.ui.theme.IrishWhiteDiceBottom
+import net.zodac.dicefive.ui.theme.IrishWhitePipColor
+import net.zodac.dicefive.ui.theme.IrishWhiteSwatch
 
 /**
  * Which physical die is being drawn - its position in the tray - so a style meant to look natural
@@ -410,4 +415,36 @@ internal fun convexHull(points: List<Offset>): List<Offset> {
         return chain.dropLast(1)
     }
     return half(sorted) + half(sorted.asReversed())
+}
+
+/**
+ * The Irish flag as a die - green, white and orange in equal vertical thirds, green at the hoist -
+ * in the same flag colours Tricolour switches to for Luck of the Irish, with dark pips that read on
+ * all three. The secret style that achievement unlocks.
+ */
+object IrishFlagDiceStyle : DiceStyle, Swatched {
+    override val id: String = "irish_flag"
+    override val swatch: Color = IrishGreenSwatch
+    override val bodyColor: Color = IrishWhiteDiceBottom
+
+    private val bands = Brush.horizontalGradient(
+        0f to IrishGreenSwatch,
+        1f / 3 to IrishGreenSwatch,
+        1f / 3 to IrishWhiteSwatch,
+        2f / 3 to IrishWhiteSwatch,
+        2f / 3 to IrishOrangeSwatch,
+        1f to IrishOrangeSwatch,
+    )
+
+    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(STYLED_DIE_CORNER_PERCENT)
+
+    @Composable
+    override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
+        value = value,
+        held = held,
+        modifier = modifier,
+        face = bands,
+        edge = IrishWhiteDiceBottom,
+        pipColor = IrishWhitePipColor,
+    )
 }

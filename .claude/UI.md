@@ -271,6 +271,12 @@ towards a number (`AchievementsState.countedUnlocks`) - they're easter eggs, not
 For now every lock is a distinct, arbitrarily picked count up to the number of non-secret
 achievements; `StyleCatalogTest` keeps them distinct and earnable.
 
+A style locked behind one **secret** achievement is a secret style (`StyleUnlock.hiddenWhileLocked`):
+it isn't on the Styles screen at all, padlock or not, until that achievement is earned - the Irish
+dice (the flag in thirds, in Luck of the Irish's Tricolour colours) are the first. Any achievement
+that unlocks a specific style (`Achievement.unlocksStyle`) carries a star at the right of its row and
+its unlock banner (`StyleRewardStar`), so the player knows to go and look.
+
 On the Styles screen a locked tile shows its first colour under a translucent scrim and a faded padlock, can't be picked,
 and long-pressing it opens a `DiceFiveDialog` saying what unlocks it. **A saved pick whose style is
 locked is never overwritten** - everything that draws a style (the game, the menu logo, "Fresh Coat

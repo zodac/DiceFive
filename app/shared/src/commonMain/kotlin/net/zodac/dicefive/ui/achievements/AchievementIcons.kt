@@ -88,6 +88,9 @@ import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
@@ -276,6 +279,20 @@ val Achievement.icon: ImageVector
         // The menu logo's own fan - the default ivory dice, 2-4-5-3-6 - that it's earned by tapping.
         Achievement.NOT_THOSE_DICE -> rememberDiceFanIcon()
     }
+
+/**
+ * The star at the right of an achievement's row and unlock banner when earning it also unlocks a
+ * style ([unlocksStyle][net.zodac.dicefive.ui.game.style.unlocksStyle]) - a cue that there's something extra waiting on the Styles screen.
+ */
+@Composable
+fun StyleRewardStar(tint: Color, modifier: Modifier = Modifier) {
+    Icon(
+        imageVector = Icons.Filled.Star,
+        contentDescription = "Unlocks a style",
+        tint = tint,
+        modifier = modifier.size(22.dp),
+    )
+}
 
 /**
  * [tint] as given, except for the fixed-colour Easter Eggs icons, where it's overridden instead:

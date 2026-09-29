@@ -59,6 +59,7 @@ import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.ui.game.style.unlocksStyle
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.ConfigureOverlayDialogWindow
 import net.zodac.dicefive.ui.common.DiceFiveDialog
@@ -502,10 +503,11 @@ private fun UnlockedBanner(achievement: Achievement) {
                     modifier = Modifier.size(22.dp),
                 )
             }
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 BannerTitle(achievement.title)
                 BannerDescription(achievement.description)
             }
+            if (achievement.unlocksStyle) StyleRewardStar(tint = defaultIconTint)
         }
     }
 }
