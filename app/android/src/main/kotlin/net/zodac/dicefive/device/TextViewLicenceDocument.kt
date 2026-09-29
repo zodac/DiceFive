@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.os.Build
 import android.text.Selection
@@ -24,6 +25,7 @@ import android.view.GestureDetector
 import android.view.Menu
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewTreeObserver
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
@@ -237,7 +239,7 @@ internal fun TextViewLicenceDocument(report: LicenseReport, modifier: Modifier =
                     }
                 }
             }
-            ScrollView(context).apply {
+            DocumentScrollView(context).apply {
                 isVerticalScrollBarEnabled = true
                 addView(text)
             }
@@ -245,7 +247,28 @@ internal fun TextViewLicenceDocument(report: LicenseReport, modifier: Modifier =
         onRelease = { scroll -> (scroll.getChildAt(0) as? TextView)?.let { (clearer as? TextViewSelectionClearer)?.unregister(it) } },
         update = { scroll ->
             val view = scroll.getChildAt(0) as LinkTextView
-            view.text = document
+            if (view.text !== document) {
+                // Setting new text on a selectable TextView moves its cursor to 0 and scrolls that into
+                // view, snapping the list to the top whenever a licence is shown or hidden. Put the
+                // scroll back before the next frame is drawn, so there's no visible jump.
+                val scrollY = scroll.scrollY
+                view.setText(document, TextView.BufferType.SPANNABLE)
+                // setText leaves the cursor at 0, and a focused TextView with a cursor scrolls to it
+                // whenever it next lays out or is touched - the jump that came back once scrolling resumed.
+                Selection.removeSelection(view.text as Spannable)
+                scroll.viewTreeObserver.addOnPreDrawListener(
+                    object : ViewTreeObserver.OnPreDrawListener {
+                        override fun onPreDraw(): Boolean {
+                            scroll.viewTreeObserver.removeOnPreDrawListener(this)
+                            if (scroll.scrollY != scrollY) {
+                                scroll.scrollTo(0, scrollY)
+                                return false
+                            }
+                            return true
+                        }
+                    },
+                )
+            }
             view.setTextColor(style.text)
             view.setLinkTextColor(style.accent)
             view.setTextSize(TypedValue.COMPLEX_UNIT_SP, bodySize)
@@ -256,6 +279,17 @@ internal fun TextViewLicenceDocument(report: LicenseReport, modifier: Modifier =
             }
         },
     )
+}
+
+/**
+ * A ScrollView that won't scroll to bring a rectangle taller than itself on screen. When its one child
+ * (the whole document) takes focus - as a tap on a "Show licence text" toggle makes it - a plain
+ * ScrollView scrolls to show that child, which for a child this long means putting its top in view.
+ * A cursor or drag-handle rectangle is a line tall, so scrolling while a selection is dragged is unaffected.
+ */
+private class DocumentScrollView(context: Context) : ScrollView(context) {
+    override fun computeScrollDeltaToGetChildRectOnScreen(rect: Rect): Int =
+        if (rect.height() > height) 0 else super.computeScrollDeltaToGetChildRectOnScreen(rect)
 }
 
 /** Selection highlight - and, where the platform allows (API 29+), the drag handles - in [accent],
