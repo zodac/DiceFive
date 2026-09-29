@@ -454,12 +454,15 @@ size you can't check.
 - The per-player difficulty selector on the setup screen: it cost a control row per player and
   every option in it is disabled until AI difficulty exists, so it's one line of text for now.
   `PlayerSetupSlot.difficulty` and `setPlayerDifficulty` are untouched - only the UI went.
-- `AppLogo`'s dice fan is deliberately live `IvoryDiceStyle.Die` composables, not a drawable -
-  the launcher icon (`ic_launcher_foreground.xml`) is the app's static artwork; the in-app logo
-  is not meant to duplicate it. It shares the icon's cup, but as the live default cup
-  (`ClassicGoldDiceCupStyle`, 3.4 dice tall with the fan a little below its middle), not a copy
-  of the icon's silhouette. The cup takes no layout space (`noLayoutSpace`), so the dice and
-  wordmark sit exactly where they would without it and its base tucks behind the wordmark - adding
-  the cup must not move them. Only the part above the dice is reserved, as top padding, because
-  `PageColumn` scrolls and a scrolling column clips anything drawn outside it. Keep the "DiceFive" text, which
-  `MainActivityTest` asserts on.
+- `AppLogo` is deliberately live Compose art, not a drawable - the launcher icon
+  (`ic_launcher_foreground.xml`) is the app's static artwork of the default dice and cup; the
+  in-app logo is not meant to duplicate it. On the menu it's drawn in the player's own dice and cup
+  picks (`MenuViewModel.logoStyles`), and held invisible - still taking its space - until they've
+  loaded, so it never flashes the defaults first. The cup takes no layout space (`noLayoutSpace`),
+  so the dice and wordmark sit exactly where they would without it and its base tucks behind the
+  wordmark - adding or switching the cup must not move them. Only the part a tall cup stands above
+  the dice is reserved, as top padding, because `PageColumn` scrolls and a scrolling column clips
+  anything drawn outside it. Every cup is drawn at the same scale per grid unit (as in the game and
+  on the Styles screen), and hangs from the same top line rather than standing on a shared base: a
+  squat cup (`CupShape.SQUAT`) stood on the tall cup's base hid almost wholly behind the dice and
+  wordmark. Keep the "DiceFive" text, which `MainActivityTest` asserts on.

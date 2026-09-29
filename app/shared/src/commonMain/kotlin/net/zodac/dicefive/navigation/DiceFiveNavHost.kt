@@ -66,6 +66,7 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
         composable(Screen.MENU) {
             val hasInProgressGame by container.inProgressGameRepository.hasInProgressGame.collectAsState(initial = false)
             val menuViewModel = viewModel<MenuViewModel>(factory = MenuViewModel.factory(container))
+            val logoStyles by menuViewModel.logoStyles.collectAsState()
             MenuScreen(
                 hasInProgressGame = hasInProgressGame,
                 onContinue = { navController.navigate(Screen.playSetup(resume = true)) },
@@ -75,6 +76,7 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                 onStatistics = { navController.navigate(Screen.STATISTICS) },
                 onStyles = { navController.navigate(Screen.STYLES) },
                 onSettings = { navController.navigate(Screen.SETTINGS) },
+                logoStyles = logoStyles,
                 onDiceTap = menuViewModel::onDiceTapped,
             )
         }
