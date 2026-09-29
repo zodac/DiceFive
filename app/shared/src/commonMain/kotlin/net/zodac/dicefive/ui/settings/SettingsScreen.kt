@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
@@ -33,6 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,6 +65,25 @@ private fun SettingLabel(text: String, modifier: Modifier = Modifier) {
     )
 }
 
+/**
+ * One on/off setting: the whole row is the toggle, not just the switch at its end - tapping the
+ * label flips it too, with the ripple across the row, and a screen reader hears one "Sound effects,
+ * switch, on" rather than the label and an unnamed switch separately. The [Switch] itself takes no
+ * clicks of its own ([Switch]'s `onCheckedChange = null`), so there's one target, not two.
+ */
+@Composable
+private fun SwitchSetting(icon: ImageVector, label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    ListItem(
+        leadingContent = { Icon(imageVector = icon, contentDescription = null) },
+        headlineContent = { SettingLabel(label) },
+        trailingContent = { Switch(checked = checked, onCheckedChange = null) },
+        modifier = Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
+        // The Card already supplies the surface; an opaque ListItem container would paint a
+        // second, slightly different one on top of it.
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+    )
+}
+
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
@@ -80,47 +102,14 @@ fun SettingsScreen(
 
     ScreenScaffold(title = "Settings", onBack = onBack, modifier = modifier, scrollable = true) {
         Card(modifier = Modifier.fillMaxWidth()) {
-            ListItem(
-                leadingContent = {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null)
-                },
-                headlineContent = { SettingLabel("Sound effects") },
-                trailingContent = {
-                    Switch(checked = soundEnabled, onCheckedChange = viewModel::setSoundEnabled)
-                },
-                // The Card already supplies the surface; an opaque ListItem container would paint a
-                // second, slightly different one on top of it.
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            )
-            ListItem(
-                leadingContent = {
-                    Icon(imageVector = Icons.Filled.Vibration, contentDescription = null)
-                },
-                headlineContent = { SettingLabel("Vibration") },
-                trailingContent = {
-                    Switch(checked = vibrationEnabled, onCheckedChange = viewModel::setVibrationEnabled)
-                },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            )
-            ListItem(
-                leadingContent = {
-                    Icon(imageVector = Icons.Filled.Casino, contentDescription = null)
-                },
-                headlineContent = { SettingLabel("Simple dice roll") },
-                trailingContent = {
-                    Switch(checked = simpleDiceRoll, onCheckedChange = viewModel::setSimpleDiceRoll)
-                },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            )
-            ListItem(
-                leadingContent = {
-                    Icon(imageVector = Icons.Filled.CheckCircle, contentDescription = null)
-                },
-                headlineContent = { SettingLabel("Confirm leaving game?") },
-                trailingContent = {
-                    Switch(checked = confirmBeforeLeavingGame, onCheckedChange = viewModel::setConfirmBeforeLeavingGame)
-                },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            SwitchSetting(Icons.AutoMirrored.Filled.VolumeUp, "Sound effects", soundEnabled, viewModel::setSoundEnabled)
+            SwitchSetting(Icons.Filled.Vibration, "Vibration", vibrationEnabled, viewModel::setVibrationEnabled)
+            SwitchSetting(Icons.Filled.Casino, "Simple dice roll", simpleDiceRoll, viewModel::setSimpleDiceRoll)
+            SwitchSetting(
+                Icons.Filled.CheckCircle,
+                "Confirm leaving game?",
+                confirmBeforeLeavingGame,
+                viewModel::setConfirmBeforeLeavingGame,
             )
         }
 
