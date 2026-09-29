@@ -51,6 +51,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -322,7 +325,11 @@ private fun GroupHeader(text: String, onPrevious: (() -> Unit)?, onNext: (() -> 
                 text = text.uppercase(),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                // Said as written, not spelled out as the all-caps it's drawn in.
+                modifier = Modifier.weight(1f).padding(horizontal = 12.dp).semantics {
+                    heading()
+                    contentDescription = text
+                },
             )
             IconButton(onClick = { onPrevious?.invoke() }, enabled = onPrevious != null) {
                 Icon(imageVector = Icons.Filled.KeyboardArrowUp, contentDescription = "Previous category")
