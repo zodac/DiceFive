@@ -1,10 +1,17 @@
 package net.zodac.dicefive.ui.common
 
+import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
@@ -16,6 +23,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.layout.onSizeChanged
 import net.zodac.dicefive.ui.game.style.drawPips
 
 /**
@@ -39,14 +47,41 @@ private val WATERMARK_DICE = listOf(
  * for the light - so it tracks the theme instead of being a second palette running alongside it.
  * It's a *surface treatment*, deliberately quiet enough that ordinary Material components sit on
  * it unmodified, at their normal contrast.
+ *
+ * With [driftingDice] (the main menu only), the dice don't sit still: they start where they always
+ * are, then drift slowly up and across the screen, turning as they go, and come back in from below
+ * on new paths (see [DiceDrift]). Every other screen keeps them still.
  */
 @Composable
-fun BrandBackdrop(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+fun BrandBackdrop(modifier: Modifier = Modifier, driftingDice: Boolean = false, content: @Composable BoxScope.() -> Unit) {
     val colorScheme = MaterialTheme.colorScheme
+    val drift = if (driftingDice) remember { DiceDrift(WATERMARK_DICE.map { it.toDrifting() }) } else null
+    // Bumped every frame the dice move, and read only while drawing - so they redraw without
+    // anything recomposing.
+    val driftFrame = remember { mutableLongStateOf(0L) }
+    var backdropSize by remember { mutableStateOf(Size.Zero) }
+    if (drift != null) {
+        LaunchedEffect(drift) {
+            var last: Long? = null
+            // The infinite-animation frame, not a plain one: it never ends, and this is what tells a
+            // UI test not to wait for it to (a plain frame loop would keep the menu from ever idling).
+            while (true) {
+                withInfiniteAnimationFrameNanos { now ->
+                    // A stalled frame (or the app coming back from the background) moves them on by
+                    // no more than a tenth of a second, never jumping them across the screen.
+                    val seconds = last?.let { ((now - it) / 1e9f).coerceIn(0f, MAX_DRIFT_STEP_SECONDS) } ?: 0f
+                    last = now
+                    drift.advance(seconds, backdropSize.width, backdropSize.height)
+                    driftFrame.longValue = now
+                }
+            }
+        }
+    }
 
     Box(
         modifier = modifier
             .fillMaxSize()
+            .onSizeChanged { backdropSize = Size(it.width.toFloat(), it.height.toFloat()) }
             // drawWithCache, not layered background() modifiers: the brushes depend on the measured
             // size (the spotlight is placed and sized relative to it), so they're built once per
             // size change rather than on every recomposition.
@@ -63,21 +98,32 @@ fun BrandBackdrop(modifier: Modifier = Modifier, content: @Composable BoxScope.(
                 onDrawBehind {
                     drawRect(base)
                     drawRect(spotlight)
-                    drawDiceWatermark(colorScheme.onSurface)
+                    if (drift == null) {
+                        drawDiceWatermark(colorScheme.onSurface, WATERMARK_DICE.map { it.toDrifting() })
+                    } else {
+                        driftFrame.longValue // Read here, so each move redraws.
+                        // Only the dice actually showing - one sliding in from below isn't drawn until it's on screen.
+                        drawDiceWatermark(colorScheme.onSurface, drift.dice.filter { isShowing(it, size.width, size.height) })
+                    }
                 }
             },
         content = content,
     )
 }
 
-/** Draws [WATERMARK_DICE] as barely-there outlined die faces - texture, never a readable element. */
-private fun DrawScope.drawDiceWatermark(color: Color) {
+// The longest step the drifting dice are moved on by in one frame.
+private const val MAX_DRIFT_STEP_SECONDS = 0.1f
+
+private fun WatermarkDie.toDrifting() = DriftingDie(x = centerX, y = centerY, size = size, rotation = rotation, value = value)
+
+/** Draws [dice] as barely-there outlined die faces - texture, never a readable element. */
+private fun DrawScope.drawDiceWatermark(color: Color, dice: List<DriftingDie>) {
     val outline = color.copy(alpha = 0.05f)
     val pips = color.copy(alpha = 0.04f)
 
-    for (die in WATERMARK_DICE) {
+    for (die in dice) {
         val dieSize = size.minDimension * die.size
-        val topLeft = Offset(die.centerX * size.width - dieSize / 2f, die.centerY * size.height - dieSize / 2f)
+        val topLeft = Offset(die.x * size.width - dieSize / 2f, die.y * size.height - dieSize / 2f)
 
         rotate(degrees = die.rotation, pivot = Offset(topLeft.x + dieSize / 2f, topLeft.y + dieSize / 2f)) {
             drawRoundRect(

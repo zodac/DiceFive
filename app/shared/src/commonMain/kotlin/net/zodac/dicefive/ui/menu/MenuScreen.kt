@@ -72,7 +72,8 @@ fun MenuScreen(
         )
     }
 
-    BrandBackdrop(modifier = modifier) {
+    // The menu alone has its backdrop's dice drifting about; every other screen keeps them still.
+    BrandBackdrop(modifier = modifier, driftingDice = true) {
         PageColumn(horizontalPadding = 28.dp) {
             // Weighted spacers rather than fixed padding: the logo sits in the lit upper third and
             // the button stack just below the middle, on a tall phone and a short one alike.
