@@ -39,6 +39,9 @@ import net.zodac.dicefive.ui.theme.IrishOrangeSwatch
 import net.zodac.dicefive.ui.theme.IrishWhiteDiceBottom
 import net.zodac.dicefive.ui.theme.IrishWhitePipColor
 import net.zodac.dicefive.ui.theme.IrishWhiteSwatch
+import net.zodac.dicefive.ui.theme.TricolourBlueSwatch
+import net.zodac.dicefive.ui.theme.TricolourRedSwatch
+import net.zodac.dicefive.ui.theme.TricolourYellowSwatch
 
 /**
  * Which physical die is being drawn - its position in the tray - so a style meant to look natural
@@ -456,33 +459,38 @@ internal fun convexHull(points: List<Offset>): List<Offset> {
 }
 
 /**
- * The Irish flag as a die - green, white and orange in equal vertical thirds, green at the hoist -
- * in the same flag colours Tricolour switches to for Luck of the Irish, with dark pips that read on
- * all three. The secret style that achievement unlocks.
+ * A die striped in equal vertical bands of [stripes], first at the left, with [pipColor]
+ * chosen to read on all of them. On a coloured roll it's a plain die of its shape in the roll's
+ * colour - the bands are nothing but colours, so stripes of one colour would just be that
+ * colour anyway.
  */
-object IrishFlagDiceStyle : DiceStyle, Swatched {
-    override val id: String = "irish_flag"
-    override val swatch: Color = IrishGreenSwatch
-    override val bodyColor: Color = IrishWhiteDiceBottom
+class StripedDiceStyle(
+    override val id: String,
+    private val stripes: List<Color>,
+    private val edge: Color,
+    private val pipColor: Color,
+) : DiceStyle, Swatched {
+    init {
+        require(stripes.size >= 2) { "A striped die needs at least two stripes" }
+    }
 
+    override val swatch: Color = stripes.first()
+    override val bodyColor: Color = edge
+
+    // Hard-edged bands: each colour's stop is repeated at both ends of its slice.
     private val bands = Brush.horizontalGradient(
-        0f to IrishGreenSwatch,
-        1f / 3 to IrishGreenSwatch,
-        1f / 3 to IrishWhiteSwatch,
-        2f / 3 to IrishWhiteSwatch,
-        2f / 3 to IrishOrangeSwatch,
-        1f to IrishOrangeSwatch,
+        *stripes.flatMapIndexed { i, colour ->
+            listOf((i.toFloat() / stripes.size) to colour, ((i + 1).toFloat() / stripes.size) to colour)
+        }.toTypedArray(),
     )
 
     override val cornerPercent: Int = STYLED_DIE_CORNER_PERCENT
 
-    // Its flag is nothing but colours, so on a coloured roll it's a plain die of the same shape in
-    // the roll's colour - three bands in one colour would just be that colour anyway.
     override fun recoloured(palette: DieColourPalette): DiceStyle = object : DiceStyle {
-        override val id: String = this@IrishFlagDiceStyle.id
+        override val id: String = this@StripedDiceStyle.id
         override val bodyColor: Color = lerp(palette.diceTop, palette.diceBottom, 0.5f)
 
-        override fun recoloured(palette: DieColourPalette): DiceStyle = this@IrishFlagDiceStyle.recoloured(palette)
+        override fun recoloured(palette: DieColourPalette): DiceStyle = this@StripedDiceStyle.recoloured(palette)
 
         override val cornerPercent: Int = STYLED_DIE_CORNER_PERCENT
 
@@ -504,7 +512,46 @@ object IrishFlagDiceStyle : DiceStyle, Swatched {
         held = held,
         modifier = modifier,
         face = bands,
-        edge = IrishWhiteDiceBottom,
-        pipColor = IrishWhitePipColor,
+        edge = edge,
+        pipColor = pipColor,
     )
 }
+
+/**
+ * The Irish flag as a die - green, white and orange in equal vertical thirds, green at the hoist -
+ * in the same flag colours Tricolour switches to for Luck of the Irish, with dark pips that read on
+ * all three. The first colour of Multicolour, the secret style that achievement unlocks.
+ */
+val IrishFlagDiceStyle: StripedDiceStyle = StripedDiceStyle(
+    id = "irish_flag",
+    stripes = listOf(IrishGreenSwatch, IrishWhiteSwatch, IrishOrangeSwatch),
+    edge = IrishWhiteDiceBottom,
+    pipColor = IrishWhitePipColor,
+)
+
+private val MULTICOLOUR_EDGE = Color(0xFF3A3A3A)
+private val MULTICOLOUR_PIP = Color(0xFF14181F)
+
+/** Tricolour mode's red, yellow and blue as a die - the same shades its coloured dice use. */
+val TricolourStripedDiceStyle: StripedDiceStyle = StripedDiceStyle(
+    id = "multicolour_tricolour",
+    stripes = listOf(TricolourRedSwatch, TricolourYellowSwatch, TricolourBlueSwatch),
+    edge = MULTICOLOUR_EDGE,
+    pipColor = MULTICOLOUR_PIP,
+)
+
+/** The seven colours of the rainbow, red to violet, in shades light enough for the dark pips. */
+val RainbowStripedDiceStyle: StripedDiceStyle = StripedDiceStyle(
+    id = "multicolour_rainbow",
+    stripes = listOf(
+        Color(0xFFEF5350),
+        Color(0xFFFF9800),
+        Color(0xFFFFEE58),
+        Color(0xFF66BB6A),
+        Color(0xFF4FC3F7),
+        Color(0xFF7986CB),
+        Color(0xFFBA68C8),
+    ),
+    edge = MULTICOLOUR_EDGE,
+    pipColor = MULTICOLOUR_PIP,
+)

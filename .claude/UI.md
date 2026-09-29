@@ -312,13 +312,14 @@ For now every lock is a distinct, arbitrarily picked count up to the number of n
 achievements; `StyleCatalogTest` keeps them distinct and earnable.
 
 A style locked behind one **secret** achievement is a secret style (`StyleUnlock.hiddenWhileLocked`):
-it isn't on the Styles screen at all, padlock or not, until that achievement is earned - the Irish
-dice (the flag in thirds, in Luck of the Irish's Tricolour colours) were the first, and the Sunflower
+it isn't on the Styles screen at all, padlock or not, until that achievement is earned - the
+Multicolour dice (vertical stripes, `StripedDiceStyle`: Irish - the flag in thirds - then
+Tricolour's red/yellow/blue, then Rainbow, seven stripes) were the first, and the Sunflower
 cup (the Flowerpot in permanent bloom, from Greenfingers) the second. Any achievement
 that unlocks a specific style (`Achievement.unlocksStyle`) carries a star at the right of its row and
 its unlock banner (`StyleRewardStar`), so the player knows to go and look. On the row, a tap or long
 press on the star shows a plain tooltip (not a dialog) naming the style - "You've unlocked the
-'Irish' dice style!", from `Achievement.styleRewards` and the catalog's `noun`. The banner's star
+'Multicolour' dice style!", from `Achievement.styleRewards` and the catalog's `noun`. The banner's star
 has no tooltip: the banner's own gestures (swipe, long press) already cover it.
 
 On the Styles screen a locked tile shows its first colour under a translucent scrim and a faded padlock, can't be picked,
@@ -391,8 +392,8 @@ the `BeveledDie` in that colour; the rest rebuild themselves from the `DieColour
 numbers and digits always take the palette's `pip` and the held ring its `heldRing`, never the
 style's own: those were picked to read on the style's own colour and can vanish on the roll's (the
 blue D20's gold numbers on a yellow die). Choices worth knowing: neon LCD keeps its dark body and
-lights its digit in the colour's `swatch`; Googly sockets go white; the Irish flag die, being only
-colours, becomes a plain die of its shape. `DiceTray` builds every recoloured style once per game
+lights its digit in the colour's `swatch`; Googly sockets go white; the striped Multicolour dice, being only
+colours, become a plain die of their shape. `DiceTray` builds every recoloured style once per game
 (`TrayDiceStyles`, remembered on the style, the mode's colours and Luck of the Irish - none change
 mid-game), so no roll rebuilds one and a die gets the same style object every time it lands a colour.
 
