@@ -162,8 +162,8 @@ val FireSlotTop = Color(0xFF5C0E09)
 val FireSlotBottom = Color(0xFF3A0604)
 val FireSlotBorder = Color(0xFFF07A5A)
 
-// Tricolour mode: the dice's own red/yellow/blue, which replace the player's dice style in that mode
-// (see ColouredDie), and the colour-box tiles on the scorecard (see CategoryIcon/CategoryTile). A
+// Tricolour mode: the dice's own red/yellow/blue, which recolour the player's dice style in that
+// mode (see DiceStyle.recoloured), and the colour-box tiles on the scorecard (see CategoryIcon/CategoryTile). A
 // fixed meaning, not a theme - same rule as the rest of this block. "Swatch" is the flat colour a
 // colour box shows; "Stripe" is a deeper shade of it for the Coloured House tile's background, dark
 // enough that the tile's white/gold house glyph still reads on top of it.

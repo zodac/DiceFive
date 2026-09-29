@@ -74,8 +74,6 @@ class GameModeTest {
             GameMode.TRICOLOUR.categories,
         )
         assertEquals(listOf(DieColour.RED, DieColour.YELLOW, DieColour.BLUE), GameMode.TRICOLOUR.dieColours)
-        assertFalse(GameMode.TRICOLOUR.usesPlayerDiceStyle)
-        assertTrue(GameMode.STANDARD.usesPlayerDiceStyle)
         assertTrue(ScoreCategory.COLOURED_HOUSE.jokerFreeFill)
     }
 
@@ -91,7 +89,6 @@ class GameModeTest {
         assertEquals(standard.upperBonusThreshold, quickfire.upperBonusThreshold)
         assertEquals(standard.upperBonusAmount, quickfire.upperBonusAmount)
         assertEquals(standard.fiveOfAKindBonusAmount, quickfire.fiveOfAKindBonusAmount)
-        assertTrue(quickfire.usesPlayerDiceStyle)
     }
 
     @Test

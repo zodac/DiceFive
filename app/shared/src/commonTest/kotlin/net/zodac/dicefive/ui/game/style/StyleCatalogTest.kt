@@ -7,6 +7,7 @@ import kotlin.test.assertTrue
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementVisibility
+import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.FLOWERPOT_FULL_BLOOM
 
 /**
@@ -172,5 +173,23 @@ class StyleCatalogTest {
             }
         }
         assertFalse(Achievement.BIG_FAN.unlocksStyle)
+    }
+
+    @Test
+    fun aColouredDieKeepsItsDiceStyleOnlyInTheRollsColour() {
+        for (style in DiceStyles.all) {
+            for (colour in DieColour.entries) {
+                for (irish in listOf(false, true)) {
+                    val palette = colour.palette(irish)
+                    val recoloured = style.recoloured(palette)
+                    assertEquals(style.id, recoloured.id)
+                    assertEquals(style.tumblesItself, recoloured.tumblesItself, style.id)
+                    assertEquals(style.pupilTravel, recoloured.pupilTravel, style.id)
+                    assertEquals(style.topFace(1), recoloured.topFace(1), style.id)
+                    // Recolouring twice is the same as recolouring once in the second colour.
+                    assertEquals(style.id, recoloured.recoloured(DieColour.BLUE.palette).id)
+                }
+            }
+        }
     }
 }

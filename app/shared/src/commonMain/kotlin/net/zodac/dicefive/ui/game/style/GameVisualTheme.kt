@@ -71,6 +71,15 @@ interface DiceStyle : TableArt {
         }
     }
 
+    /**
+     * This style's shape and finish in [palette]'s colours instead of its own - how a die whose
+     * colour is part of the roll (Tricolour) is drawn, so the player's style still shows while the
+     * colour still reads. Its pips, numbers or digits always take [DieColourPalette.pip], picked to
+     * read on that colour, never the style's own, which could vanish against it (the blue D20's gold
+     * numbers on a yellow die), and its held ring [DieColourPalette.heldRing], for the same reason.
+     */
+    fun recoloured(palette: DieColourPalette): DiceStyle
+
     @Composable
     fun Die(value: Int, held: Boolean, modifier: Modifier)
 }

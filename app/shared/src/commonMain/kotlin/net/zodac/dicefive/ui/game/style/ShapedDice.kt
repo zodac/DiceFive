@@ -42,8 +42,21 @@ class CubeDiceStyle(
     private val side: Color,
     private val pip: Color,
     private val rounded: Boolean = false,
+    private val heldRing: Color = GoldAccent,
 ) : DiceStyle, Swatched {
     override val swatch: Color = front
+
+    // The lit top lifted towards white and the side in shadow, as the cube's own colours are.
+    override fun recoloured(palette: DieColourPalette): DiceStyle = CubeDiceStyle(
+        id,
+        front = palette.diceTop,
+        frontShade = palette.diceBottom,
+        top = lerp(palette.diceTop, Color.White, 0.3f),
+        side = lerp(palette.diceBottom, Color.Black, 0.2f),
+        pip = palette.pip,
+        rounded = rounded,
+        heldRing = palette.heldRing,
+    )
 
     // The same outline the die is drawn in, rounded or not, so its shadow matches the silhouette.
     private val silhouette = GenericShape { size, _ -> addPath(cubeOutline(size, rounded)) }
@@ -151,7 +164,7 @@ class CubeDiceStyle(
         if (rounded) clipPath(outlinePath) { drawFaces() } else drawFaces()
         drawPath(
             outlinePath,
-            color = if (held) GoldAccent else frontShade,
+            color = if (held) heldRing else frontShade,
             style = Stroke(width = if (held) 2.dp.toPx() else 1.dp.toPx(), join = StrokeJoin.Round),
         )
     }
@@ -244,8 +257,16 @@ private const val MISPRINT_CORNER_PERCENT = 16
  * roughly where it belongs, and never overlapping another, so the count still reads. Seeded by
  * face, so each face is always misprinted the same way - and differently for each colour ([seed]).
  */
-class MisprintDiceStyle(override val id: String, private val paper: Color, private val ink: Color, private val seed: Int) : DiceStyle, Swatched {
+class MisprintDiceStyle(
+    override val id: String,
+    private val paper: Color,
+    private val ink: Color,
+    private val seed: Int,
+    private val heldRing: Color = GoldAccent,
+) : DiceStyle, Swatched {
     override val swatch: Color = paper
+
+    override fun recoloured(palette: DieColourPalette): DiceStyle = MisprintDiceStyle(id, palette.diceTop, palette.pip, seed, palette.heldRing)
 
     override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(MISPRINT_CORNER_PERCENT)
 
@@ -260,6 +281,7 @@ class MisprintDiceStyle(override val id: String, private val paper: Color, priva
         cornerPercent = MISPRINT_CORNER_PERCENT,
         pipShape = PipShape.CUSTOM,
         customPips = { face -> drawMisprintedPips(face) },
+        heldRingColor = heldRing,
     ) {
         val line = Stroke(width = 1.4.dp.toPx())
         val inset = 2.dp.toPx()

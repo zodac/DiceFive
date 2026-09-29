@@ -50,8 +50,8 @@ enum class GameMode(
     val dieValues: IntRange,
     /**
      * The colours every die can land on, alongside its number, each equally likely. Empty when dice
-     * have no colour, in which case they're drawn in the player's chosen dice style instead - see
-     * [usesPlayerDiceStyle].
+     * have no colour. Either way they're drawn in the player's chosen dice style - a coloured die
+     * recoloured in its colour (see `DiceStyle.recoloured`).
      */
     val dieColours: List<DieColour>,
     /** The scorecard, in display order. One turn per category, so this is also the length of a game. */
@@ -173,11 +173,6 @@ enum class GameMode(
         autoRollAtTurnStart = true,
     ),
     ;
-
-    /** Whether dice are drawn in the player's own dice style (the Styles screen) - only when the rules
-     * don't give them a colour of their own to show instead. */
-    val usesPlayerDiceStyle: Boolean
-        get() = dieColours.isEmpty()
 
     companion object {
         val default: GameMode = STANDARD

@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import net.zodac.dicefive.ui.theme.GoldAccent
 
 // A googly die's pupil - its pip - and the socket round it that it rolls about in, well over twice its
 // radius so it has room to roll, as fractions of the face its pips are laid out across; and how thick
@@ -42,10 +43,15 @@ class GooglyDiceStyle(
     private val bottom: Color,
     private val pip: Color,
     private val socket: Color = Color.White,
+    private val heldRing: Color = GoldAccent,
 ) : DiceStyle, Swatched {
     override val swatch: Color = top
     override val bodyColor: Color = lerp(top, bottom, 0.5f)
     override val pupilTravel: Float = GOOGLY_PUPIL_REACH * GOOGLY_FACE_SHARE
+
+    // White sockets whatever the style's own, so the black pupils read on every colour.
+    override fun recoloured(palette: DieColourPalette): DiceStyle =
+        GooglyDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, heldRing = palette.heldRing)
 
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) {
@@ -63,6 +69,7 @@ class GooglyDiceStyle(
             pipPadding = GOOGLY_PIP_PADDING,
             // Read while drawing, so the pupils move without the die recomposing.
             customPips = { drawGooglyEyes(it, motion?.pupils ?: settled) },
+            heldRingColor = heldRing,
         )
     }
 
