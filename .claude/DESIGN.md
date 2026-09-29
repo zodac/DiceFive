@@ -916,6 +916,8 @@ install-over-existing succeeds:
       Roll on `GameScreen`, enabled only while `canUndo` is true; there's no
       Undo on the game-over screen (undoing a finished game would also need
       to retract an already-persisted score - out of scope here).
+      The button is shown only in a solo game (one player): with others it reached back into their
+      finished turn, or was cleared by the AI's move almost at once.
 - [x] New/updated tests: `GameStateJsonTest` (3, round-trips including nulls
       and a finished game), `GameViewModelTest` (+5: undo of a roll, undo of
       a scored category, undo unavailable before any move and after an AI

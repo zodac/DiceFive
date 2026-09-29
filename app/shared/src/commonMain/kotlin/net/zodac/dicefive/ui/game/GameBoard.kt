@@ -141,6 +141,9 @@ fun GameBoard(
             tilted = state.phase == TurnPhase.ROLLED,
             rolling = rolling,
             canUndo = canUndo,
+            // Undo is solo-only: with other players it either reaches back into their finished turn
+            // or is cleared by the AI's move almost at once.
+            showUndo = state.players.size == 1,
             onCupTap = onCupTap,
             onUndo = onUndo,
             flowerpotGrowth = FlowerpotGrowth(
