@@ -315,6 +315,15 @@ Screen transitions are 350ms fades, set on the `NavHost` for all four directions
 Compose's own default is `fadeIn/fadeOut(tween(700))`, which reads as the app thinking between
 a tap and the screen arriving. Set in one place so destinations can't drift apart.
 
+**A looping animation must not run while there's nothing to show.** A `rememberInfiniteTransition`
+asks for a frame every frame for as long as it's in the composition, whether or not its value is
+used - and read with `by` in a composable, it recomposes that composable every frame too. So:
+compose the clock only while it's needed (a highlighted score tile's `GlowBorder`, the cup's
+`rememberShakeWobble` while rolling or fading out, the turn timer's last seconds), and where it
+can, read the value in the draw phase (`graphicsLayer { }`, `drawBehind { }`) so each tick is a
+repaint rather than a recomposition. Every score tile once ran its own glow clock and every cup its
+shake clock at weight zero, which kept the whole board recomposing for the entire game.
+
 ## The scorecard grid and game modes
 
 `ScoreGrid` doesn't hard-code a scorecard: `scoreGridRows(gameMode)` lays out whatever
