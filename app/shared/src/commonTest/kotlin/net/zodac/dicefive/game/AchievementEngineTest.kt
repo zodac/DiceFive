@@ -454,9 +454,9 @@ class AchievementEngineTest {
             listOf(
                 Achievement.BIG_FAN,
                 Achievement.LUCK_OF_THE_IRISH,
+                Achievement.NOT_THOSE_DICE,
                 Achievement.SHAKEN_NOT_TAPPED,
                 Achievement.MAGICIANS_SECRET,
-                Achievement.NOT_THOSE_DICE,
             ),
             Achievement.entries.filter { it.visibility == AchievementVisibility.SECRET },
         )
@@ -674,6 +674,13 @@ class AchievementEngineTest {
                 "${achievement.name}: category=${achievement.category}, visibility=${achievement.visibility}",
             )
         }
+    }
+
+    /** Easter Eggs have no ladder to run easiest-first, so they run alphabetically by title instead. */
+    @Test
+    fun `Easter Eggs are in alphabetical order by title`() {
+        val titles = Achievement.entries.filter { it.category == AchievementCategory.EASTER_EGGS }.map { it.title }
+        assertEquals(titles.sortedBy { it.lowercase() }, titles)
     }
 
     /**

@@ -181,6 +181,7 @@ the top of the list as a `stickyHeader` while its group scrolls by, styled as a 
 everything else on the screen rather than a bare `Surface` (which has no default shape, hence
 square corners if you reach for it) - and run easiest-first within each theme, which is just
 `Achievement`'s declaration order, so the catalogue is the single place that ordering is decided.
+The exception is Easter Eggs, which have no ladder and run alphabetically by title instead.
 Unlocking one doesn't move it: it stays in its ladder and is highlighted in place instead (its own
 icon in place of the generic question mark every locked row shows, plus a raised
 `secondaryContainer` card), so a ladder always reads as a ladder, earned rungs and all, rather
