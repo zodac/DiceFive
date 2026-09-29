@@ -91,7 +91,10 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
      * folded here: `groupBy` keeps that order, both across players and within each one's games.
      */
     suspend fun playerStatistics(): List<PlayerStatistics> =
-        scoreDao.playerGames().groupBy { it.playerName }.map { (playerName, games) ->
+        scoreDao.playerGames().groupBy { it.playerName.lowercase() }.values.map { variants ->
+            // Names differing only by case are one player; show the spelling they used most recently.
+            val games = variants.sortedByDescending { it.timestampEpochMillis }
+            val playerName = games.first().playerName
             val streaks = winStreaks(games.map { it.won })
             PlayerStatistics(
                 playerName = playerName,

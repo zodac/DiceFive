@@ -40,7 +40,7 @@ interface ScoreDao {
     /** One player's best score, by name - null if that name has never recorded one. Used for the
      * "New Personal Best" achievement, which is player 1's own best, not the leaderboard's overall
      * best. */
-    @Query("SELECT MAX(score) FROM scores WHERE playerName = :playerName")
+    @Query("SELECT MAX(score) FROM scores WHERE playerName = :playerName COLLATE NOCASE")
     suspend fun bestScoreForPlayer(playerName: String): Int?
 
     /** Every score that has ever been recorded, once each - what the score-collection achievements count. */
@@ -55,15 +55,15 @@ interface ScoreDao {
     /**
      * Every recorded game, grouped by player name alphabetically and most recent first within each
      * player - excluding anyone dismissed from the Statistics screen (see [DismissedPlayerStats]).
-     * Their scores are still counted on the Leaderboard; this query backs Statistics only. The exact
-     * name breaks ties between names equal but for case, so each name's games stay together.
+     * Their scores are still counted on the Leaderboard; this query backs Statistics only. Names are
+     * compared ignoring case, as the New Game screen does, so "bob" and "Bob" are one player.
      */
     @Query(
         """
         SELECT playerName, timestampEpochMillis, won, score
         FROM scores
-        WHERE playerName NOT IN (SELECT playerName FROM dismissed_player_stats)
-        ORDER BY playerName COLLATE NOCASE ASC, playerName ASC, timestampEpochMillis DESC
+        WHERE playerName COLLATE NOCASE NOT IN (SELECT playerName FROM dismissed_player_stats)
+        ORDER BY playerName COLLATE NOCASE ASC, timestampEpochMillis DESC
         """,
     )
     suspend fun playerGames(): List<PlayerGame>
@@ -73,7 +73,7 @@ interface ScoreDao {
     suspend fun dismissPlayer(playerName: String)
 
     /** Un-hides [playerName] from the Statistics screen, if they were dismissed. */
-    @Query("DELETE FROM dismissed_player_stats WHERE playerName = :playerName")
+    @Query("DELETE FROM dismissed_player_stats WHERE playerName = :playerName COLLATE NOCASE")
     suspend fun clearDismissal(playerName: String)
 
     /** Wipes every recorded score - the Leaderboard and Statistics screens share this one table. */
