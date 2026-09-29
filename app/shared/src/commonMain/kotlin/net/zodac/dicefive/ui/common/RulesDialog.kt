@@ -131,7 +131,7 @@ private val RULES_PAGES = listOf(
         title = "Mode: Quickfire",
         paragraphs = listOf(
             "A custom mode extending the *Standard* game mode. You get just **one roll** per turn - no holding dice, no rerolls.",
-            "Every turn also has a **10 second** timer, which replaces the usual *Turn Timer* setting. If it runs out, the roll is scored in the first open category, even if it's worth **0pts**.",
+            "Every turn also has a **10 second** timer, which replaces the usual *Turn Timer* setting. If it runs out, the roll is scored in whichever open category it's worth the *least* in - the first one on the scorecard, if several tie.",
             "Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules - you just have to take what the dice give you, and quickly!",
         ),
     ),

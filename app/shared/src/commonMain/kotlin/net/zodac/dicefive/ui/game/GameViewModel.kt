@@ -702,9 +702,10 @@ class GameViewModel(
 
     /**
      * The turn timer running out: forfeits the rest of this turn's rolls (rolling first, if the
-     * player hadn't yet, since a category can't be committed before that) and commits into
-     * whichever open category comes first, scoring zero if the current dice don't match it - a
-     * forced miss rather than picking the player's best option for them. Applies equally to an AI
+     * player hadn't yet, since a category can't be committed before that) and commits into the
+     * category the mode's [net.zodac.dicefive.model.TimeoutPick] names - the first open one
+     * (scoring zero if the dice don't match it), or in Quickfire the one the dice score least in.
+     * Either way a forced miss rather than picking the player's best option for them. Applies equally to an AI
      * seat that's taken too long to decide - Hard's exhaustive search is the only realistic way
      * this fires for one - cancelling its in-flight turn job first so it can't keep acting after
      * being timed out from under it.
@@ -724,7 +725,7 @@ class GameViewModel(
             state = GameEngine.rollDice(state, random)
         }
         val player = state.currentPlayer ?: return
-        val category = ScoreCalculator.availableCategories(player, state.dice).first()
+        val category = ScoreCalculator.timeoutCategory(player, state.dice)
         setUndoSnapshot(null)
         applyGameState(GameEngine.commitScore(state, category))
         if (isPlayerOneTurn) {

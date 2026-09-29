@@ -92,6 +92,22 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `a Quickfire timeout scores the lowest-scoring category - not the first open one`() = runTest(testDispatcher) {
+        // Five 1s: Ones would score 5, Twos is the first box they score 0 in.
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, random = FixedValueRandom(1))
+        viewModel.setPlayerCount(1)
+        viewModel.setGameMode(GameMode.QUICKFIRE)
+        viewModel.startGame()
+
+        advanceTimeBy(10_000)
+        runCurrent()
+
+        val scorecard = viewModel.game.value!!.players.single().scorecard
+        assertEquals(0, scorecard[ScoreCategory.TWOS])
+        assertNull(scorecard[ScoreCategory.ONES])
+    }
+
+    @Test
     fun `startGame builds a game with the configured players`() {
         val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(2)
