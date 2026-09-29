@@ -126,6 +126,21 @@ class GameEngineTest {
     }
 
     @Test
+    fun `rollDice counts each roll towards the rolling player only - across turns`() {
+        var state = GameEngine.rollDice(GameEngine.newGame(twoPlayers))
+        state = GameEngine.rollDice(state)
+        state = GameEngine.commitScore(state, ScoreCategory.CHANCE)
+        state = GameEngine.rollDice(state)
+
+        assertEquals(listOf(2, 1), state.players.map { it.rollCount })
+
+        state = GameEngine.commitScore(state, ScoreCategory.CHANCE)
+        state = GameEngine.rollDice(state)
+
+        assertEquals(listOf(3, 1), state.players.map { it.rollCount })
+    }
+
+    @Test
     fun `cycleDieValue advances only the target die to the next face`() {
         var state = GameEngine.rollDice(GameEngine.newGame(onePlayer))
         state = GameEngine.toggleHold(state, dieIndex = 0)

@@ -18,7 +18,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -40,12 +43,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.ui.game.style.FlowerpotGrowth
 import net.zodac.dicefive.ui.game.style.LocalCupActivity
 import net.zodac.dicefive.ui.game.style.LocalCupAnimated
+import net.zodac.dicefive.ui.game.style.LocalFlowerpotGrowth
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
@@ -62,6 +68,9 @@ import net.zodac.dicefive.ui.theme.TileIconColor
 private const val CUP_FADE_EARLY_MILLIS = 100
 private const val SPENT_CUP_SATURATION = 0.25f
 private const val SPENT_CUP_BRIGHTNESS = 0.55f
+// How long a Flowerpot that's just bloomed rests tipped over after pouring before it stands back up
+// to show the sunflower off: time for the dice to settle and the bloom to finish growing in.
+private const val BLOOM_STAND_UP_MILLIS = 1_400L
 
 data class CupPanelState(
     val rollsRemaining: Int,
@@ -70,6 +79,8 @@ data class CupPanelState(
     val canUndo: Boolean,
     val onCupTap: () -> Unit,
     val onUndo: () -> Unit,
+    /** The current player's plant, for the Flowerpot cup - see [FlowerpotGrowth]. */
+    val flowerpotGrowth: FlowerpotGrowth,
 )
 
 /**
@@ -172,7 +183,20 @@ fun DiceCupPanel(
                         // recolouring rather than fading, so the cup stays opaque and the table behind it
                         // (stars, say) doesn't show through. Fades over the second half of the last roll's
                         // toss, ending a little before the dice settle.
-                        val depleted = cup.rollsRemaining <= 0 && !cup.rolling
+                        // The exception is a Flowerpot that's grown its sunflower, which keeps its colour
+                        // and, once it's poured, stands back up so its bloom is seen in full - it still
+                        // can't be rolled.
+                        val outOfRolls = cup.rollsRemaining <= 0 && !cup.rolling
+                        val showingOff = outOfRolls && visualTheme.diceCupStyle.showsOffWhenSpent(cup.flowerpotGrowth)
+                        val depleted = outOfRolls && !showingOff
+                        var standingForBloom by remember { mutableStateOf(false) }
+                        LaunchedEffect(showingOff) {
+                            standingForBloom = false
+                            if (showingOff) {
+                                delay(BLOOM_STAND_UP_MILLIS)
+                                standingForBloom = true
+                            }
+                        }
                         val spent by animateFloatAsState(
                             targetValue = if (depleted) 1f else 0f,
                             animationSpec = if (depleted) {
@@ -192,10 +216,11 @@ fun DiceCupPanel(
                             CompositionLocalProvider(
                                 LocalCupAnimated provides (cup.rollsRemaining > 0),
                                 LocalCupActivity provides dice,
+                                LocalFlowerpotGrowth provides cup.flowerpotGrowth,
                             ) {
                                 cupStyle.Cup(
                                     rolling = cup.rolling,
-                                    tilted = cup.tilted,
+                                    tilted = cup.tilted && !standingForBloom,
                                     // A cup's shape grid is its size in dp here - tall or squat, both fit this 104dp box.
                                     modifier = Modifier.size(width = cupStyle.shape.gridWidth.dp, height = cupStyle.shape.gridHeight.dp),
                                 )
@@ -284,7 +309,9 @@ private fun Modifier.spentLook(spent: Float): Modifier = if (spent <= 0f) this e
     }
     val paint = Paint().apply { colorFilter = ColorFilter.colorMatrix(matrix) }
     drawIntoCanvas { canvas ->
-        canvas.saveLayer(size.toRect(), paint)
+        // Past the box on every side: a cup's art can reach out of it (the Flowerpot's sunflower
+        // stands well above it), and a layer only the box's size would cut that off.
+        canvas.saveLayer(size.toRect().inflate(size.minDimension), paint)
         drawContent()
         canvas.restore()
     }

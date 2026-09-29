@@ -50,7 +50,11 @@ object GameEngine {
                 die.copy(value = value, colour = colour)
             }
         }
+        val players = state.players.mapIndexed { index, player ->
+            if (index == state.currentPlayerIndex) player.copy(rollCount = player.rollCount + 1) else player
+        }
         return state.copy(
+            players = players,
             dice = newDice,
             rollsRemaining = state.rollsRemaining - 1,
             phase = TurnPhase.ROLLED,

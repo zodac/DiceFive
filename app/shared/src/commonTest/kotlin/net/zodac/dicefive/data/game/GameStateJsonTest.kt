@@ -141,6 +141,30 @@ class GameStateJsonTest {
     }
 
     @Test
+    fun `round trips each player's roll count`() {
+        val state = GameState(
+            players = listOf(
+                PlayerState(name = "Player 1", type = PlayerType.HUMAN, rollCount = 27),
+                PlayerState(name = "Player 2", type = PlayerType.AI, rollCount = 25),
+            ),
+        )
+
+        assertEquals(state, GameStateJson.decode(GameStateJson.encode(state)))
+    }
+
+    @Test
+    fun `decodes a player saved before rolls were counted as having rolled none`() {
+        val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, rollCount = 12)))
+        val saved = GameStateJson.encode(state).toJsonObject()
+        val player = (saved["players"] as JsonArray).items[0] as JsonObject
+        val withoutRollCount = JsonObject(saved.fields + ("players" to JsonArray(listOf(JsonObject(player.fields - "rollCount"))))).toJson()
+
+        val decoded = GameStateJson.decode(withoutRollCount)
+
+        assertEquals(0, decoded.players.single().rollCount)
+    }
+
+    @Test
     fun `a save missing a required field fails to decode rather than guessing`() {
         val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
         for (field in listOf("gameMode", "turnTimer", "phase", "players")) {

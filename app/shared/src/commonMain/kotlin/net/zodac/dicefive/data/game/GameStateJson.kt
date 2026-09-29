@@ -76,6 +76,7 @@ object GameStateJson {
         put("type", player.type.name)
         put("difficulty", player.difficulty.name)
         put("fiveOfAKindBonusCount", player.fiveOfAKindBonusCount)
+        put("rollCount", player.rollCount)
         player.lastRoll?.let { put("lastRoll", JsonArray(it.map(::encodeDie))) }
         put(
             "scorecard",
@@ -101,6 +102,9 @@ object GameStateJson {
             fiveOfAKindBonusCount = obj.getInt("fiveOfAKindBonusCount"),
             // Left out by encode for a player with no finished turn yet - no last roll to show.
             lastRoll = if ("lastRoll" in obj) obj.getObjectList("lastRoll").map(::decodeDie) else null,
+            // Missing from a game saved before rolls were counted: it picks up from zero, which
+            // can only keep the Flowerpot's sunflower from blooming that game, never hand it out.
+            rollCount = if ("rollCount" in obj) obj.getInt("rollCount") else 0,
         )
     }
 

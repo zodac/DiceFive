@@ -52,6 +52,7 @@ When a new rule needs a field, add it here too. This is the map of where each ru
 | `turnTimerSeconds`                       | `GameState.turnSeconds` → `GameViewModel.syncTurnTimer`; the setup screen disables the Turn Timer row      |
 | `timeoutPick`                            | `ScoreCalculator.timeoutCategory` ← `GameViewModel.autoScoreOnTimeout`                                      |
 | `autoRollAtTurnStart`                    | `GameState.awaitsAutoRoll` → `GameScreen`'s auto-tap `LaunchedEffect`                                       |
+| `maxRollsPerGame`                        | `rollsToBloom`/`flowerpotGrowthStage` - when the Flowerpot's sunflower blooms, and so Greenfingers; `GameModeTest` |
 
 ## First, work out what kind of mode it is
 
@@ -76,6 +77,9 @@ changed something there.
 - Add the entry with every field set explicitly (copy `STANDARD` and change what differs).
 - `description` is the one line under the mode's name on the New Game screen. Say what's
   *different*.
+- `maxRollsPerGame` is declared too (boxes x rolls per turn, derivation on the entry); `GameModeTest`
+  plays a game using every roll through the engine and fails if it's wrong. The Flowerpot's sunflower
+  blooms on `max(39, maxRollsPerGame)` rolls, so a mode with fewer than 39 can't earn Greenfingers.
 - `maxPossibleScore` is declared, with its derivation as a doc comment on the entry. `GameModeTest`
   plays a perfect game (every turn a 5x) through the real engine for every mode and fails if the
   number is wrong. If scoring is unchanged, it's the same as the mode it copies. A rule that changes
@@ -220,7 +224,7 @@ Families to check:
 
 | Family              | Achievements                                                                                 | What to ask                                                                 |
 |---------------------|----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| Roll count          | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Loaded Dice, Time To Let It Go, Pointless Roll | Does "only one roll used" or "every roll used" become automatic or impossible? |
+| Roll count          | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Loaded Dice, Time To Let It Go, Pointless Roll, Greenfingers | Does "only one roll used" or "every roll used" become automatic or impossible? |
 | First roll          | House Call, Straight Away, Straight Out Of The Cup, I Can Count!                             | Is every roll now a first roll, or none?                                    |
 | Holds               | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues                     | Can dice still be held?                                                     |
 | Timer               | Out Of Time, Beat The Clock, Luck Of The Draw                                                | Is there always, or never, a timer?                                         |
@@ -260,6 +264,7 @@ Famous`` in `GameAchievementsWiringTest` fails without the guard.
 | Are These Loaded Dice? (`LOADED_DICE`)         | Two rerolls                                                      |
 | Time To Let It Go (`TIME_TO_LET_IT_GO`)        | A die held after the 1st and 2nd rolls                           |
 | What Was The Point Of That? (`POINTLESS_ROLL`) | Rolling with all five held - the only roll comes before any hold |
+| Greenfingers (`GREENFINGERS`)                  | 39 rolls - Quickfire has 13 (`maxRollsPerGame`), so its plant stops at the seedling. That's the data doing it, not a guard: every Quickfire roll is made for the player, so this must stay true |
 
 **Still earnable, and worth knowing:**
 

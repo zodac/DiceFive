@@ -68,6 +68,13 @@ enum class GameMode(
      */
     val maxPossibleScore: Int,
     /**
+     * The most rolls one player can make in a whole game: every roll of every turn, one turn per box.
+     * Declared rather than computed, with the derivation on each entry, and `GameModeTest` plays a
+     * game using every roll through the real engine to prove it. What the Flowerpot's sunflower
+     * blooms on, in a mode long enough - see [flowerpotGrowthStage].
+     */
+    val maxRollsPerGame: Int,
+    /**
      * A per-turn time limit the rules themselves set, in seconds, replacing whatever the setup
      * screen's Turn Timer is set to (that row is disabled while such a mode is picked). Null leaves
      * the timer to the player - see [GameState.turnSeconds].
@@ -89,6 +96,8 @@ enum class GameMode(
      * Max score: `5*(1+2+3+4+5+6)` upper, maxed = 105, `+35` upper bonus, `+50` the 5x box itself,
      * `+30+30+25+30+40+30` the other six lower boxes maxed = 185, `+12*100` every one of the other 12
      * turns also being a 5x = 1200. `105+35+50+185+1200 = 1575`.
+     *
+     * Max rolls: 13 boxes, 3 rolls each. `13*3 = 39`.
      */
     STANDARD(
         id = "standard",
@@ -103,6 +112,7 @@ enum class GameMode(
         upperBonusAmount = 35,
         fiveOfAKindBonusAmount = 100,
         maxPossibleScore = 1575,
+        maxRollsPerGame = 39,
     ),
 
     /**
@@ -114,6 +124,8 @@ enum class GameMode(
      * the three single-colour boxes (five 6s all one colour - a 5x and a colour set at once) `+25` the
      * coloured house, `+16*100` every one of the other 16 turns also being a 5x = 1600.
      * `105+35+50+185+120+25+1600 = 2120`.
+     *
+     * Max rolls: Standard's 13 boxes plus the 4 colour boxes, 3 rolls each. `17*3 = 51`.
      */
     TRICOLOUR(
         id = "tricolour",
@@ -128,6 +140,7 @@ enum class GameMode(
         upperBonusAmount = 35,
         fiveOfAKindBonusAmount = 100,
         maxPossibleScore = 2120,
+        maxRollsPerGame = 51,
     ),
 
     /**
@@ -138,6 +151,8 @@ enum class GameMode(
      *
      * Max score: the same card and bonuses as Standard, so the same perfect game - a single roll can
      * still land five 6s. `1575`.
+     *
+     * Max rolls: Standard's 13 boxes, 1 roll each. `13*1 = 13`.
      */
     QUICKFIRE(
         id = "quickfire",
@@ -152,6 +167,7 @@ enum class GameMode(
         upperBonusAmount = 35,
         fiveOfAKindBonusAmount = 100,
         maxPossibleScore = 1575,
+        maxRollsPerGame = 13,
         turnTimerSeconds = 10,
         timeoutPick = TimeoutPick.LOWEST_SCORE,
         autoRollAtTurnStart = true,

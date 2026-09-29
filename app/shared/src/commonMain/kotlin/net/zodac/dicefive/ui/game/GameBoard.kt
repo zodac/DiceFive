@@ -21,6 +21,8 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
+import net.zodac.dicefive.model.flowerpotGrowthStage
+import net.zodac.dicefive.ui.game.style.FlowerpotGrowth
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 
 /** Inset of the score-grid + cup section's content. Its height is fixed per game mode (see
@@ -141,6 +143,10 @@ fun GameBoard(
             canUndo = canUndo,
             onCupTap = onCupTap,
             onUndo = onUndo,
+            flowerpotGrowth = FlowerpotGrowth(
+                stage = state.gameMode.flowerpotGrowthStage(player?.rollCount ?: 0),
+                grower = state.currentPlayerIndex,
+            ),
         ),
         modifier = modifier,
     )

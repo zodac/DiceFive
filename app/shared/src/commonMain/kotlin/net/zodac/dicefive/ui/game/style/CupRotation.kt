@@ -109,6 +109,21 @@ val LocalCupActivity = compositionLocalOf<Any?> { null }
 val LocalOnRabbitSeen = compositionLocalOf<() -> Unit> { {} }
 
 /**
+ * The Flowerpot cup's plant: how far it has grown ([stage], from 0 up to
+ * [net.zodac.dicefive.model.FLOWERPOT_FULL_BLOOM] - see
+ * [net.zodac.dicefive.model.flowerpotGrowthStage]) and whose it is ([grower], their seat at the
+ * table, or null outside a game). A new stage for the same grower grows into place; a different
+ * grower's plant replaces it outright rather than shrinking or growing into it.
+ */
+data class FlowerpotGrowth(val stage: Int, val grower: Int?)
+
+/**
+ * The Flowerpot's plant as it should be drawn. The game provides the current player's; anywhere else
+ * (the Styles screen, the menu's logo) it's a plain pot of soil, with nothing grown yet.
+ */
+val LocalFlowerpotGrowth = compositionLocalOf { FlowerpotGrowth(stage = 0, grower = null) }
+
+/**
  * The canvas every [DiceCupStyle] draws its cup on: [onDraw] paints the cup standing upright on its
  * [shape]'s grid, and this applies the shared shake/pour rotation from [rememberCupRotation] around
  * it, so the cups only differ in their art. The [CupDrawScope] carries the [CupPose] for any liquid

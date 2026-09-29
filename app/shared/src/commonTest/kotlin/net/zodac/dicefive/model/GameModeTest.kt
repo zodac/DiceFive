@@ -39,6 +39,22 @@ class GameModeTest {
     }
 
     @Test
+    fun `every mode's max rolls is exactly what a game using every roll through the engine counts`() {
+        for (mode in GameMode.entries) {
+            var state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Roller")), mode)
+            while (!state.isGameOver) {
+                while (state.rollsRemaining > 0) state = GameEngine.rollDice(state, Random(1))
+                val player = state.players.single()
+                state = GameEngine.commitScore(state, mode.categories.first { player.scorecard[it] == null })
+            }
+            assertEquals(mode.maxRollsPerGame, state.players.single().rollCount, "$mode")
+        }
+        assertEquals(39, GameMode.STANDARD.maxRollsPerGame)
+        assertEquals(51, GameMode.TRICOLOUR.maxRollsPerGame)
+        assertEquals(13, GameMode.QUICKFIRE.maxRollsPerGame)
+    }
+
+    @Test
     fun `Standard's ceiling is 1575 - as is Quickfire's - and Tricolour's is 2120`() {
         assertEquals(1575, GameMode.STANDARD.maxPossibleScore)
         assertEquals(1575, GameMode.QUICKFIRE.maxPossibleScore)

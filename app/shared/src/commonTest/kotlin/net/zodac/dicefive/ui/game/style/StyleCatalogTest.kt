@@ -7,6 +7,7 @@ import kotlin.test.assertTrue
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementVisibility
+import net.zodac.dicefive.model.FLOWERPOT_FULL_BLOOM
 
 /**
  * The Styles screen groups each category's colours into styles, but what's saved is still each
@@ -131,6 +132,34 @@ class StyleCatalogTest {
         assertEquals(DiceStyles.default, DiceStyles.unlockedById(IrishFlagDiceStyle.id, AchievementsState(everythingElse.associateWith { 0L })))
         val earned = AchievementsState(mapOf(Achievement.LUCK_OF_THE_IRISH to 0L))
         assertEquals(IrishFlagDiceStyle, DiceStyles.unlockedById(IrishFlagDiceStyle.id, earned))
+    }
+
+    @Test
+    fun theSunflowerCupIsASecretStyleUnlockedByGreenfingers() {
+        val sunflower = DiceCupStyles.familyOf("sunflower_terracotta")
+        assertEquals("Sunflower", sunflower.name)
+        assertEquals(listOf("sunflower_terracotta", "sunflower_slate"), sunflower.colours.map { it.style.id })
+        assertTrue(sunflower.unlock.hiddenWhileLocked)
+        assertEquals(listOf("the 'Sunflower' dice cup style"), Achievement.GREENFINGERS.styleRewards.map { it.description })
+
+        // No number of ordinary achievements unlocks it - only the one.
+        val everythingElse = Achievement.entries.filter { it != Achievement.GREENFINGERS }
+        assertEquals(DiceCupStyles.default, DiceCupStyles.unlockedById("sunflower_slate", AchievementsState(everythingElse.associateWith { 0L })))
+        val earned = AchievementsState(mapOf(Achievement.GREENFINGERS to 0L))
+        assertEquals("sunflower_slate", DiceCupStyles.unlockedById("sunflower_slate", earned).id)
+    }
+
+    @Test
+    fun onlyAFlowerpotThatHasGrownItsSunflowerShowsOffWhenSpent() {
+        val flowerpot = DiceCupStyles.byId("flowerpot_terracotta")
+        val sunflower = DiceCupStyles.byId("sunflower_terracotta")
+        val bloomed = FlowerpotGrowth(stage = FLOWERPOT_FULL_BLOOM, grower = 0)
+
+        assertTrue(flowerpot.showsOffWhenSpent(bloomed))
+        assertFalse(flowerpot.showsOffWhenSpent(FlowerpotGrowth(stage = FLOWERPOT_FULL_BLOOM - 1, grower = 0)))
+        // The Sunflower cup is always in bloom, so it greys like any other cup.
+        assertFalse(sunflower.showsOffWhenSpent(bloomed))
+        assertFalse(DiceCupStyles.default.showsOffWhenSpent(bloomed))
     }
 
     @Test

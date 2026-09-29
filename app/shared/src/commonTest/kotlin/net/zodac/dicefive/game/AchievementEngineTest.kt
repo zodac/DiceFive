@@ -448,11 +448,14 @@ class AchievementEngineTest {
         assertFalse(Achievement.MAGICIANS_SECRET in Achievement.COMPLETION_REQUIREMENTS)
         assertEquals(AchievementVisibility.SECRET, Achievement.NOT_THOSE_DICE.visibility)
         assertFalse(Achievement.NOT_THOSE_DICE in Achievement.COMPLETION_REQUIREMENTS)
+        assertEquals(AchievementVisibility.SECRET, Achievement.GREENFINGERS.visibility)
+        assertFalse(Achievement.GREENFINGERS in Achievement.COMPLETION_REQUIREMENTS)
         // Every other achievement stays at least title-visible from the start - secrecy is the
         // exception, not the rule.
         assertEquals(
             listOf(
                 Achievement.BIG_FAN,
+                Achievement.GREENFINGERS,
                 Achievement.LUCK_OF_THE_IRISH,
                 Achievement.NOT_THOSE_DICE,
                 Achievement.SHAKEN_NOT_TAPPED,
@@ -1198,6 +1201,35 @@ class AchievementEngineTest {
         )
 
         assertFalse(Achievement.TRICOLOUR_ALL_COLOURS in update.newlyUnlocked)
+    }
+
+    /** Player 1 part-way through a game in [mode], having rolled [rolls] times, as [evaluateInProgress] sees it after a roll. */
+    private fun afterRolls(rolls: Int, mode: GameMode = GameMode.STANDARD, vararg others: PlayerState) = AchievementEngine.evaluateInProgress(
+        inProgress(midGamePlayer(emptyMap(), gameMode = mode).copy(rollCount = rolls), *others),
+        AchievementsState(),
+        NOW,
+    )
+
+    @Test
+    fun `using every roll of every turn unlocks Greenfingers - one roll short does not`() {
+        assertTrue(Achievement.GREENFINGERS in afterRolls(39).newlyUnlocked)
+        assertFalse(Achievement.GREENFINGERS in afterRolls(38).newlyUnlocked)
+        // Tricolour's card is longer, so its sunflower takes every roll of its 17 turns.
+        assertTrue(Achievement.GREENFINGERS in afterRolls(51, GameMode.TRICOLOUR).newlyUnlocked)
+        assertFalse(Achievement.GREENFINGERS in afterRolls(50, GameMode.TRICOLOUR).newlyUnlocked)
+    }
+
+    @Test
+    fun `Quickfire never unlocks Greenfingers - its 13 rolls are too few to bloom`() {
+        // Every one of its rolls is made for the player, so using them all takes no trying at all.
+        assertFalse(Achievement.GREENFINGERS in afterRolls(13, GameMode.QUICKFIRE).newlyUnlocked)
+    }
+
+    @Test
+    fun `another player's sunflower does not unlock Greenfingers - only player 1 earns achievements`() {
+        val playerTwo = midGamePlayer(emptyMap()).copy(name = "Player 2", rollCount = 39)
+
+        assertFalse(Achievement.GREENFINGERS in afterRolls(20, GameMode.STANDARD, playerTwo).newlyUnlocked)
     }
 
     @Test

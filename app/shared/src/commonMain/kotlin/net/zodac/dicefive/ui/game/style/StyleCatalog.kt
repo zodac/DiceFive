@@ -336,6 +336,16 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
             ),
             unlock = AchievementCount(18),
         ),
+        // Secret: not on the Styles screen at all until Greenfingers is earned. The Flowerpot's own
+        // pots, with the sunflower that earned it always in bloom.
+        StyleFamily(
+            "Sunflower",
+            listOf(
+                cup("Terracotta", ::sunflowerPot, "sunflower_terracotta", 0xFF7A3418, 0xFFE08A5C, 0xFFC0643A, 0xFFC0643A, 0xFF2E1E14),
+                cup("Slate", ::sunflowerPot, "sunflower_slate", 0xFF2E3438, 0xFF8A949A, 0xFF5A646A, 0xFF5A646A, 0xFF1E1A16),
+            ),
+            unlock = StyleUnlock.SpecificAchievement(Achievement.GREENFINGERS),
+        ),
         StyleFamily(
             "Cauldron",
             listOf(
@@ -497,6 +507,8 @@ private fun <T : DiceCupStyle> cup(
     interior: Long,
 ): StyleColour<DiceCupStyle> =
     StyleColour(name, Color(mid), create(id, CupPalette(Color(dark), Color(light), Color(mid), Color(accent), Color(interior))))
+
+private fun sunflowerPot(id: String, palette: CupPalette) = FlowerpotDiceCupStyle(id, palette, inFullBloom = true)
 
 // Cauldrons share their iron and differ only in their brew, which is also the colour the Styles
 // screen shows for them.
