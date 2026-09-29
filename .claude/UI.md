@@ -158,6 +158,17 @@ bottom once the form is too tall to fit and has to scroll.
   disabled colours worse than the framework does.
 - **One filled button per screen**, tonal for the rest (the menu: filled Play, tonal
   destinations). That's M3's emphasis hierarchy, and it stops five identical slabs competing.
+- **The menu's Play button splits when there's a saved game** (`MenuScreen.PlayButton`): the same
+  56dp pill, cut down the middle by a 2dp gap into New Game | Continue, each half its own stock
+  `Button` with the pill's rounded end on its outer side and a straight inner edge. It replaced a
+  "Resume game?" dialog behind a single Play. The nearest M3 pattern is the Expressive *connected
+  button group* (equal buttons, a 2dp gap, flattened inner corners) - not M3's *split button*, which
+  is one action plus a menu, nor *segmented buttons*, which are for choosing an option and which M3
+  says not to use for actions. Both halves stay filled `primary`: neither is destructive (New Game
+  only opens setup; the save is replaced only when a new game starts), so neither is played down.
+  Two stock buttons give each half its own ripple, state layer, touch target and TalkBack node. The
+  Expressive group's inner-corner press morph needs `ButtonGroup` (1.5.0, see above) - not built by
+  hand.
 - **Segmented buttons** (`ui/common/SegmentedChoiceRow.kt`) for small exclusive sets that fit one
   line: player count 1-4, AI difficulty, turn timer. Radio rows are for options that need more
   than a word each - the setup screen's game mode, where each row carries `GameMode.description`

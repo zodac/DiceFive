@@ -895,7 +895,8 @@ install-over-existing succeeds:
       the save when a game finishes, so a game survives navigating away or
       even process death. `MenuScreen`'s Play button shows a
       Continue/New Game dialog when `InProgressGameRepository.hasInProgressGame`
-      is true; `Screen.PLAY_SETUP_ROUTE` gained an optional `resume` nav arg
+      is true (later replaced by a split New Game | Continue button with no
+      dialog - see `UI.md`'s component conventions); `Screen.PLAY_SETUP_ROUTE` gained an optional `resume` nav arg
       - `DiceFiveNavHost` uses it to call `GameViewModel.resumeGame()` behind
       a small loading spinner before landing on `play/game`, falling back to
       the normal setup form if there was nothing to resume after all.
