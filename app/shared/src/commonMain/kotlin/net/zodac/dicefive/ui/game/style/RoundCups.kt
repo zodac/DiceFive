@@ -692,14 +692,15 @@ class FlowerpotDiceCupStyle(override val id: String, private val palette: CupPal
 // How long one bubble takes to rise, swell and pop, and one wisp of steam to rise and fade.
 private const val CAULDRON_CYCLE_MILLIS = 2400
 
-// The cauldron's rim and opening, and the brew's level: deep enough that tipping the pot all the
-// way over (the cup's resting tilt) lifts the low side only to the lip - rim + radius x tan(32
-// degrees), about 15.6 below the rim, plus a hair - so it never has to spill. Seen from above,
-// standing, that leaves only a strip of brew showing behind the front of the rim: the price of
-// physics a wide pot can't escape.
+// The cauldron's rim and opening, and the brew's level: high enough to fill most of the opening seen
+// from above, standing, with a band of the dark inner wall above it. Tipped all the way over (the
+// cup's resting tilt), a pot this full would overflow - the brew drops to just under the lip on its
+// low side (liquidIn) and what's lost is the drips down its side; it's full again next turn. Kept
+// deep enough to hold every bit of its level down to that lip, the brew only showed as a strip
+// behind the front of the rim, and the pot looked empty.
 private const val BREW_RIM_Y = 18f
 private const val BREW_MOUTH_RADIUS = 25f
-private const val BREW_LEVEL_Y = 34.5f
+private const val BREW_LEVEL_Y = 27f
 /** A bubble in the brew: where on its surface ([u] across, [v] front to back, each -1..1), when in the cycle it starts, and how big it gets. */
 private data class Bubble(val u: Float, val v: Float, val start: Float, val radius: Float)
 
