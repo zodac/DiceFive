@@ -65,11 +65,14 @@ import net.zodac.dicefive.ui.common.ConfigureOverlayDialogWindow
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.grouped
 
-/** How long a banner sits at full opacity before it starts to go. */
-private const val HOLD_MILLIS = 2_000L
+/**
+ * How long a banner sits at full opacity before it starts to go - with the fades either side, 5s on
+ * screen in all.
+ */
+private const val HOLD_MILLIS = 4_000L
 
 /** Deliberately unhurried: the end of a game pops several, and a snap-out would read as a glitch. */
-private const val FADE_OUT_MILLIS = 900
+private const val FADE_OUT_MILLIS = 820
 
 private const val FADE_IN_MILLIS = 180
 
@@ -287,7 +290,8 @@ fun AchievementBannerHost(
  * The hold countdown only runs while [interactive] is true - a banner peeking out behind the
  * front one doesn't start timing out until it's actually promoted to the front, so a burst of
  * several banners each get their own full [HOLD_MILLIS] once it's their turn rather than all
- * ticking down together and clearing within moments of each other. [paused] holds it off further
+ * ticking down together and clearing within moments of each other. It's also held off while a
+ * finger is on the banner, restarting in full once it lifts. [paused] holds it off further
  * on top of that, while [AchievementBannerHost]'s leave-game confirmation is up - a banner
  * shouldn't be able to quietly time out and clear itself while the player's still deciding whether
  * to leave the game the long press that raised that confirmation started from.
@@ -312,6 +316,8 @@ private fun BannerSlot(
     val alpha = remember { Animatable(0f) }
     val offsetX = remember { Animatable(0f) }
     var swipedAway by remember { mutableStateOf(false) }
+    // A finger on the banner - mid-swipe, or just holding it there to keep reading - holds its countdown off.
+    var touched by remember { mutableStateOf(false) }
 
     // Fades in as soon as it's placed in the stack, whether or not it's the front banner yet -
     // every banner in a burst should be visible right away, even the ones peeking out behind the
@@ -325,9 +331,15 @@ private fun BannerSlot(
     // countdown in the first place, and losing that status (shouldn't normally happen, but is
     // handled the same way for safety) or the confirmation opening cancels whatever was left of it
     // (the `return@LaunchedEffect` below). The confirmation closing starts a fresh full-length
-    // hold rather than resuming a partial one.
-    LaunchedEffect(interactive, swipedAway, paused) {
+    // hold rather than resuming a partial one. A finger on it does the same - pausing it while
+    // it's down, and a fresh hold once it lifts - and brings it back to full opacity if it had
+    // already started fading, so a slow swipe or a press to keep it can't lose it mid-gesture.
+    LaunchedEffect(interactive, swipedAway, paused, touched) {
         if (!interactive || swipedAway || paused) return@LaunchedEffect
+        if (touched) {
+            alpha.animateTo(1f, tween(FADE_IN_MILLIS))
+            return@LaunchedEffect
+        }
         delay(HOLD_MILLIS)
         if (!swipedAway) {
             alpha.animateTo(0f, tween(FADE_OUT_MILLIS))
@@ -350,6 +362,7 @@ private fun BannerSlot(
                         val touchSlop = viewConfiguration.touchSlop
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
+                            touched = true
                             var dragging = false
                             var previousX = down.position.x
                             val longPressJob = scope.launch {
@@ -376,6 +389,7 @@ private fun BannerSlot(
                                 } while (event.changes.any { it.pressed })
                             } finally {
                                 longPressJob.cancel()
+                                touched = false
                             }
 
                             if (dragging) {
