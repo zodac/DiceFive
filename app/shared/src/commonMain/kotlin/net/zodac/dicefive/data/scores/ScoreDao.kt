@@ -53,29 +53,20 @@ interface ScoreDao {
     suspend fun primaryPlayerTotalPoints(): Int?
 
     /**
-     * One row per distinct player name that has ever recorded a score, alphabetical - excluding
-     * anyone dismissed from the Statistics screen (see [DismissedPlayerStats]). Their scores are
-     * still counted on the Leaderboard; this query backs Statistics only.
+     * Every recorded game, grouped by player name alphabetically and most recent first within each
+     * player - excluding anyone dismissed from the Statistics screen (see [DismissedPlayerStats]).
+     * Their scores are still counted on the Leaderboard; this query backs Statistics only. The exact
+     * name breaks ties between names equal but for case, so each name's games stay together.
      */
     @Query(
         """
-        SELECT playerName,
-               MIN(timestampEpochMillis) AS firstPlayedEpochMillis,
-               COUNT(*) AS gamesPlayed,
-               SUM(CASE WHEN won = 1 THEN 1 ELSE 0 END) AS gamesWon,
-               SUM(CASE WHEN won = 0 THEN 1 ELSE 0 END) AS gamesLost,
-               MAX(score) AS maxScore
+        SELECT playerName, timestampEpochMillis, won, score
         FROM scores
         WHERE playerName NOT IN (SELECT playerName FROM dismissed_player_stats)
-        GROUP BY playerName
-        ORDER BY playerName COLLATE NOCASE ASC
+        ORDER BY playerName COLLATE NOCASE ASC, playerName ASC, timestampEpochMillis DESC
         """,
     )
-    suspend fun playerSummaries(): List<PlayerScoreSummary>
-
-    /** One player's win/loss history, most recent game first - walked to find their current streak. */
-    @Query("SELECT won FROM scores WHERE playerName = :playerName ORDER BY timestampEpochMillis DESC")
-    suspend fun outcomesForPlayer(playerName: String): List<Boolean?>
+    suspend fun playerGames(): List<PlayerGame>
 
     /** Hides [playerName] from the Statistics screen - see [DismissedPlayerStats]. */
     @Query("INSERT OR REPLACE INTO dismissed_player_stats (playerName) VALUES (:playerName)")

@@ -36,25 +36,11 @@ private class FakeScoreDao : ScoreDao {
     override suspend fun primaryPlayerTotalPoints(): Int? =
         entries.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
 
-    override suspend fun playerSummaries(): List<PlayerScoreSummary> =
-        entries.groupBy { it.playerName }
-            .filterKeys { it !in dismissed }
-            .entries.sortedBy { it.key.lowercase() } // SQLite's COLLATE NOCASE, for the names used here
-            .map { (name, rows) ->
-                PlayerScoreSummary(
-                    playerName = name,
-                    firstPlayedEpochMillis = rows.minOf { it.timestampEpochMillis },
-                    gamesPlayed = rows.size,
-                    gamesWon = rows.count { it.won == true },
-                    gamesLost = rows.count { it.won == false },
-                    maxScore = rows.maxOf { it.score },
-                )
-            }
-
-    override suspend fun outcomesForPlayer(playerName: String): List<Boolean?> =
-        entries.filter { it.playerName == playerName }
-            .sortedByDescending { it.timestampEpochMillis }
-            .map { it.won }
+    override suspend fun playerGames(): List<PlayerGame> =
+        entries.filter { it.playerName !in dismissed }
+            // SQLite's COLLATE NOCASE (for the names used here), then the exact name, then newest first.
+            .sortedWith(compareBy<ScoreEntry>({ it.playerName.lowercase() }, { it.playerName }).thenByDescending { it.timestampEpochMillis })
+            .map { PlayerGame(it.playerName, it.timestampEpochMillis, it.won, it.score) }
 
     override suspend fun dismissPlayer(playerName: String) {
         dismissed += playerName

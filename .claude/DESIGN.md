@@ -339,7 +339,7 @@ net.zodac.dicefive/
                                           (false for pre-migration rows), fiveOfAKindCount (nullable;
                                           null for a pre-migration row)
       ScoreDao.kt                      — pagedScores(limit, offset), count(), bestScore(), insert(),
-                                          playerSummaries() (GROUP BY playerName), outcomesForPlayer(name)
+                                          playerGames() (every game, player then newest first)
       AppDatabase.kt                   — Room database (schema v5), singleton via Application; MIGRATION_1_2
                                           adds `won`, MIGRATION_3_4 adds `isPrimaryPlayer`, MIGRATION_4_5
                                           adds `fiveOfAKindCount`. A new column means bumping the version
