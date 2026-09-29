@@ -66,7 +66,7 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
         popExitTransition = { fadeOut },
     ) {
         composable(Screen.MENU) {
-            val hasInProgressGame by container.inProgressGameRepository.hasInProgressGame.collectAsStateWithLifecycle(initialValue = false)
+            val hasInProgressGame by container.inProgressGameRepository.hasInProgressGame.collectAsStateWithLifecycle(initialValue = null)
             val menuViewModel = viewModel<MenuViewModel>(factory = MenuViewModel.factory(container))
             val logoStyles by menuViewModel.logoStyles.collectAsStateWithLifecycle()
             MenuScreen(
