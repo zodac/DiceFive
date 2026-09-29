@@ -21,7 +21,17 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.geometry.toRect
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.util.lerp
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -43,7 +53,10 @@ import net.zodac.dicefive.ui.theme.TileIconColor
  */
 // The board deliberately avoids theme colour roles (see .claude/UI.md), so "disabled" here means
 // alpha-fading the cup's own fixed art rather than reaching for M3's onSurface-alpha convention.
-private const val DEPLETED_CUP_ALPHA = 0.4f
+// How long before the dice settle the cup's fade finishes.
+private const val CUP_FADE_EARLY_MILLIS = 100
+private const val SPENT_CUP_SATURATION = 0.25f
+private const val SPENT_CUP_BRIGHTNESS = 0.55f
 
 data class CupPanelState(
     val rollsRemaining: Int,
@@ -133,13 +146,23 @@ fun DiceCupPanel(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        // Dimmed once rolls run out - the cup stays tappable (see the comment on
-                        // this Box's parent) but visually reads as spent rather than still live,
-                        // its contact shadow fading along with the rest of the art since the alpha
-                        // applies to the whole Canvas draw, shadow included.
-                        val cupAlpha = if (cup.rollsRemaining <= 0) DEPLETED_CUP_ALPHA else 1f
+                        // Greyed and darkened once rolls run out - the cup stays tappable (see the comment on
+                        // this Box's parent) but visually reads as spent rather than still live. Done by
+                        // recolouring rather than fading, so the cup stays opaque and the table behind it
+                        // (stars, say) doesn't show through. Fades over the second half of the last roll's
+                        // toss, ending a little before the dice settle.
+                        val depleted = cup.rollsRemaining <= 0 && !cup.rolling
+                        val spent by animateFloatAsState(
+                            targetValue = if (depleted) 1f else 0f,
+                            animationSpec = if (depleted) {
+                                tween(DICE_TOSS_MILLIS / 2, delayMillis = DICE_TOSS_MILLIS / 2 - CUP_FADE_EARLY_MILLIS, easing = LinearEasing)
+                            } else {
+                                tween(DICE_TOSS_MILLIS / 2, easing = LinearEasing)
+                            },
+                            label = "cupSpent",
+                        )
                         Box(
-                            modifier = Modifier.size(104.dp).alpha(cupAlpha),
+                            modifier = Modifier.size(104.dp).spentLook(spent),
                             contentAlignment = Alignment.Center,
                         ) {
                             val cupStyle = visualTheme.diceCupStyle
@@ -223,5 +246,25 @@ internal fun SectionStatRow(
             fontWeight = fontWeight,
             style = MaterialTheme.typography.bodyMedium,
         )
+    }
+}
+
+/** Recolours everything drawn by [spent] (0-1) towards grey and dark, without making any of it see-through. */
+private fun Modifier.spentLook(spent: Float): Modifier = if (spent <= 0f) this else drawWithContent {
+    val brightness = lerp(1f, SPENT_CUP_BRIGHTNESS, spent)
+    val matrix = ColorMatrix().apply {
+        setToSaturation(lerp(1f, SPENT_CUP_SATURATION, spent))
+        timesAssign(ColorMatrix(floatArrayOf(
+            brightness, 0f, 0f, 0f, 0f,
+            0f, brightness, 0f, 0f, 0f,
+            0f, 0f, brightness, 0f, 0f,
+            0f, 0f, 0f, 1f, 0f,
+        )))
+    }
+    val paint = Paint().apply { colorFilter = ColorFilter.colorMatrix(matrix) }
+    drawIntoCanvas { canvas ->
+        canvas.saveLayer(size.toRect(), paint)
+        drawContent()
+        canvas.restore()
     }
 }
