@@ -21,35 +21,43 @@ import net.zodac.dicefive.ui.theme.BarrelWoodDark
 import net.zodac.dicefive.ui.theme.BarrelWoodLight
 import net.zodac.dicefive.ui.theme.CupShadow
 
-private const val CENTRE_X = 29f
-private const val END_RADIUS = 20f
-private const val RIM_Y = 10f
-private const val BASE_Y = 74f
-// The widest point of the bulge, halfway down, and where the two hoops sit on the sides.
-private const val BULGE_RADIUS = 24.5f
-private const val BULGE_Y = 42f
-private const val UPPER_HOOP_Y = 22.6f
-private const val LOWER_HOOP_Y = 62.4f
-private const val HOOP_RADIUS = 22.9f
+// All on the CupShape.MEDIUM grid (66 x 76), centre line at 33.
+private const val CENTRE_X = 33f
+private const val END_RADIUS = 24f
+private const val RIM_Y = 11f
+private const val BASE_Y = 66f
+// The widest point of the bulge, halfway down, and the sides' curve: each side is a cubic from rim
+// to base whose two control points sit BULGE_CONTROL out from the centre line, at these heights -
+// which puts the curve's widest point at BULGE_RADIUS.
+private const val BULGE_RADIUS = 29f
+private const val BULGE_Y = 38.5f
+private const val BULGE_CONTROL = 30.67f
+private const val UPPER_CONTROL_Y = 28.2f
+private const val LOWER_CONTROL_Y = 50.6f
+// Where the two hoops meet the sides (a fifth of the way down and up the side's curve), and how far
+// out they sit there.
+private const val UPPER_HOOP_Y = 21.85f
+private const val LOWER_HOOP_Y = 56f
+private const val HOOP_RADIUS = 27.2f
 private const val INNER_WALL_DEPTH = 6f
 // Where the joins between staves meet the rim, as offsets from the centre line.
-private val STAVE_JOIN_OFFSETS = listOf(-15f, -5f, 5f, 15f)
+private val STAVE_JOIN_OFFSETS = listOf(-18f, -6f, 6f, 18f)
 
 /**
  * A [DiceCupStyle] shaped like a small wooden barrel: bulging brown staves bound by two iron hoops,
  * seen from a little above (see [CUP_VIEW_SQUASH]), so the open top, the base, the hoops and the
- * stave joins all curve by the same amount.
+ * stave joins all curve by the same amount. Drawn [CupShape.MEDIUM] - a barrel's belly is nearly as
+ * wide as it's tall.
  */
 object BarrelDiceCupStyle : DiceCupStyle {
     override val id: String = "barrel"
+    override val shape: CupShape = CupShape.MEDIUM
 
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
-        CupCanvas(rolling, tilted, modifier) {
-            val w = size.width
-            val h = size.height
-            fun x(v: Float) = w * v / CUP_GRID_WIDTH
-            fun y(v: Float) = h * v / CUP_GRID_HEIGHT
+        CupCanvas(rolling, tilted, modifier, shape) {
+            fun x(v: Float) = gx(v)
+            fun y(v: Float) = gy(v)
 
             val shadowRadius = END_RADIUS + 3f
             drawOval(
@@ -62,9 +70,17 @@ object BarrelDiceCupStyle : DiceCupStyle {
             // is a straight line across the rim's ends; the mouth, drawn last, covers it.
             val body = Path().apply {
                 moveTo(x(CENTRE_X - END_RADIUS), y(RIM_Y))
-                cubicTo(x(3f), y(30f), x(3f), y(56f), x(CENTRE_X - END_RADIUS), y(BASE_Y))
+                cubicTo(
+                    x(CENTRE_X - BULGE_CONTROL), y(UPPER_CONTROL_Y),
+                    x(CENTRE_X - BULGE_CONTROL), y(LOWER_CONTROL_Y),
+                    x(CENTRE_X - END_RADIUS), y(BASE_Y),
+                )
                 frontArcTo(this, END_RADIUS, BASE_Y, ::x, ::y)
-                cubicTo(x(55f), y(56f), x(55f), y(30f), x(CENTRE_X + END_RADIUS), y(RIM_Y))
+                cubicTo(
+                    x(CENTRE_X + BULGE_CONTROL), y(LOWER_CONTROL_Y),
+                    x(CENTRE_X + BULGE_CONTROL), y(UPPER_CONTROL_Y),
+                    x(CENTRE_X + END_RADIUS), y(RIM_Y),
+                )
                 close()
             }
             // Horizontal shading (dark edges, lit left of centre) so the staves read as curved.
@@ -75,30 +91,32 @@ object BarrelDiceCupStyle : DiceCupStyle {
                     0.3f to BarrelWoodLight,
                     0.58f to BarrelWood,
                     1f to BarrelWoodDark,
-                    startX = x(3f),
-                    endX = x(55f),
+                    startX = x(CENTRE_X - BULGE_RADIUS),
+                    endX = x(CENTRE_X + BULGE_RADIUS),
                 ),
             )
 
             // Joins between staves: each runs down the front of the barrel, from the rim's ellipse to
-            // the base's, bowing out with the bulge.
-            clipPath(body) {
-                for (offset in STAVE_JOIN_OFFSETS) {
-                    val across = sqrt(1f - (offset / END_RADIUS) * (offset / END_RADIUS))
-                    val topY = RIM_Y + END_RADIUS * CUP_VIEW_SQUASH * across
-                    val bottomY = BASE_Y + END_RADIUS * CUP_VIEW_SQUASH * across
-                    val midX = CENTRE_X + offset * BULGE_RADIUS / END_RADIUS
-                    val midY = BULGE_Y + BULGE_RADIUS * CUP_VIEW_SQUASH * across
-                    val join = Path().apply {
-                        moveTo(x(CENTRE_X + offset), y(topY))
-                        // Control point chosen so the curve passes through (midX, midY) at its middle.
-                        quadraticTo(
-                            x(2f * midX - (CENTRE_X + offset)), y(2f * midY - (topY + bottomY) / 2f),
-                            x(CENTRE_X + offset), y(bottomY),
-                        )
-                    }
-                    drawPath(join, color = Color.Black.copy(alpha = 0.25f), style = Stroke(width = y(0.8f)))
+            // the base's, bowing out with the bulge. Worked out here: the grid can't be reached
+            // from inside clipPath's own DrawScope.
+            val joins = STAVE_JOIN_OFFSETS.map { offset ->
+                val across = sqrt(1f - (offset / END_RADIUS) * (offset / END_RADIUS))
+                val topY = RIM_Y + END_RADIUS * CUP_VIEW_SQUASH * across
+                val bottomY = BASE_Y + END_RADIUS * CUP_VIEW_SQUASH * across
+                val midX = CENTRE_X + offset * BULGE_RADIUS / END_RADIUS
+                val midY = BULGE_Y + BULGE_RADIUS * CUP_VIEW_SQUASH * across
+                Path().apply {
+                    moveTo(x(CENTRE_X + offset), y(topY))
+                    // Control point chosen so the curve passes through (midX, midY) at its middle.
+                    quadraticTo(
+                        x(2f * midX - (CENTRE_X + offset)), y(2f * midY - (topY + bottomY) / 2f),
+                        x(CENTRE_X + offset), y(bottomY),
+                    )
                 }
+            }
+            val joinWidth = y(0.8f)
+            clipPath(body) {
+                for (join in joins) drawPath(join, color = Color.Black.copy(alpha = 0.25f), style = Stroke(width = joinWidth))
             }
 
             // Iron hoops wrapped round the front, each with a thin lighter line along its top edge
@@ -121,9 +139,10 @@ object BarrelDiceCupStyle : DiceCupStyle {
             val mouthTopLeft = Offset(x(CENTRE_X - END_RADIUS), y(RIM_Y - END_RADIUS * CUP_VIEW_SQUASH))
             val mouthSize = Size(x(2f * END_RADIUS), y(2f * END_RADIUS * CUP_VIEW_SQUASH))
             val mouth = Path().apply { addOval(Rect(mouthTopLeft, mouthSize)) }
+            val depth = y(INNER_WALL_DEPTH)
             clipPath(mouth) {
                 drawOval(color = BarrelWood, topLeft = mouthTopLeft, size = mouthSize)
-                translate(top = y(INNER_WALL_DEPTH)) {
+                translate(top = depth) {
                     drawOval(color = BarrelInterior, topLeft = mouthTopLeft, size = mouthSize)
                 }
             }

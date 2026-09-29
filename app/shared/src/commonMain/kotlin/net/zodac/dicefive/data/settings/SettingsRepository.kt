@@ -87,6 +87,13 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[VIBRATION_ENABLED_KEY] = enabled }
     }
 
+    /** Whether dice just flick through faces while rolling, rather than tumbling in 3D - for anyone who finds the full roll too much. */
+    val simpleDiceRoll: Flow<Boolean> = dataStore.data.map { prefs -> prefs[SIMPLE_DICE_ROLL_KEY] ?: false }
+
+    suspend fun setSimpleDiceRoll(enabled: Boolean) {
+        dataStore.edit { it[SIMPLE_DICE_ROLL_KEY] = enabled }
+    }
+
     // Style ids, not the ui.game.style types themselves - this is the data layer, and resolving an
     // id to a concrete DiceStyle/DiceCupStyle/TableBackground is the Styles screen's job (via its
     // catalog). The literal defaults below must match ui.game.style's DiceStyles/DiceCupStyles/
@@ -97,11 +104,11 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[DICE_STYLE_ID_KEY] = id }
     }
 
-    // "leather" was the default cup before "faceted" replaced it. Anyone who picked it explicitly
-    // still has it saved, so it's read back as the new default - otherwise it would count as a
-    // non-default pick and unlock the cup style achievement without them choosing anything.
+    // "leather" was the default cup before it was dropped. Anyone who picked it explicitly still has
+    // it saved, so it's read back as today's default - otherwise it would count as a non-default
+    // pick and unlock the cup style achievement without them choosing anything.
     val diceCupStyleId: Flow<String> = dataStore.data.map { prefs ->
-        prefs[DICE_CUP_STYLE_ID_KEY]?.takeUnless { it == "leather" } ?: "faceted"
+        prefs[DICE_CUP_STYLE_ID_KEY]?.takeUnless { it == "leather" } ?: "casino_black"
     }
 
     suspend fun setDiceCupStyleId(id: String) {
@@ -124,6 +131,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
         val SOUND_ENABLED_KEY = booleanPreferencesKey("sound_enabled")
         val VIBRATION_ENABLED_KEY = booleanPreferencesKey("vibration_enabled")
+        val SIMPLE_DICE_ROLL_KEY = booleanPreferencesKey("simple_dice_roll")
         val PLAYER_COUNT_KEY = intPreferencesKey("player_count")
         val TURN_TIMER_KEY = stringPreferencesKey("turn_timer")
         val GAME_MODE_KEY = stringPreferencesKey("game_mode")

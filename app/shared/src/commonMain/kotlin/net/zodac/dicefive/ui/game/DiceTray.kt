@@ -1,11 +1,16 @@
 package net.zodac.dicefive.ui.game
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -28,10 +34,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.floor
+import kotlin.math.sin
 import kotlin.random.Random
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -42,7 +56,15 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.game.style.ColouredDie
 import net.zodac.dicefive.ui.game.style.DiceMat
 import net.zodac.dicefive.ui.game.style.DiceStyle
+import net.zodac.dicefive.ui.game.style.LocalDieCastsShadow
+import net.zodac.dicefive.ui.game.style.LocalDieIndex
+import net.zodac.dicefive.ui.game.style.LocalDieTumbling
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
+import net.zodac.dicefive.ui.game.style.LocalSimpleDiceRoll
+import net.zodac.dicefive.ui.game.style.PickUpPath
+import net.zodac.dicefive.ui.game.style.TossPath
+import net.zodac.dicefive.ui.game.style.TossPose
+import net.zodac.dicefive.ui.game.style.TossedCube
 
 private data class ScatterOffset(val xOffset: Dp, val yOffset: Dp, val rotationDegrees: Float)
 
@@ -61,6 +83,16 @@ private val SCATTER_OFFSETS = listOf(
 private val SCATTERED_DIE_SIZE = 44.dp
 private val MAX_SLOT_DIE_SIZE = 52.dp
 private val SCATTER_AREA_HEIGHT = 96.dp
+// Round the tray's contents, inside its rounded edge - which clips anything past it.
+private val TRAY_PADDING = 16.dp
+private val DICE_COLUMN_GAP = 14.dp
+
+// The one light the dice on the mat cast their shadows from: above and to the left of the tray's
+// top-left corner, in dp from that corner of the dice row. A shadow falls away from it by this much
+// of the die's distance from it - so dice further from the light cast longer shadows.
+private val LIGHT_X = (-48).dp
+private val LIGHT_Y = (-140).dp
+private const val SHADOW_LENGTH = 0.022f
 private const val SCRAMBLE_INTERVAL_MILLIS = 90L
 private const val CYCLE_INTERVAL_MILLIS = 1_000L
 
@@ -136,7 +168,7 @@ fun DiceTray(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(TRAY_PADDING)
                 .then(
                     if (enabled) {
                         // No indication/ripple here on purpose: at the size of a whole column it
@@ -215,7 +247,7 @@ fun DiceTray(
                         Modifier
                     },
                 ),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(DICE_COLUMN_GAP),
         ) {
             dice.forEachIndexed { index, die ->
                 DiceColumn(
@@ -260,7 +292,8 @@ private fun DiceColumn(
     diceStyle: DiceStyle,
     mat: DiceMat,
     modifier: Modifier = Modifier,
-) {
+) = CompositionLocalProvider(LocalDieIndex provides seed) {
+    // Which physical die this column is, so a natural-looking style can give each its own pattern.
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         val shape = RoundedCornerShape(10.dp)
         Box(
@@ -279,23 +312,194 @@ private fun DiceColumn(
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        Box(modifier = Modifier.fillMaxWidth().height(SCATTER_AREA_HEIGHT)) {
-            if (show && !die.isHeld) {
-                // Reads scrambleTick so each tick's recomposition seeds a fresh face -
-                // deliberately not remember()'d, since a cached value wouldn't flicker. A coloured
-                // die tumbles through colours as well as numbers.
-                val displayDie = if (rolling) scrambledFace(Random(scrambleTick * 31 + seed), gameMode) else die
-                DieFace(
-                    die = displayDie,
-                    held = false,
-                    diceStyle = diceStyle,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .size(SCATTERED_DIE_SIZE)
-                        .offset(x = scatter.xOffset, y = scatter.yOffset)
-                        .graphicsLayer { rotationZ = scatter.rotationDegrees },
-                )
+        ScatterArea(die, show, rolling, scrambleTick, scatter, seed, gameMode, diceStyle)
+    }
+}
+
+/**
+ * Counts a roll's two moments - the cup starting to shake ([starts]) and the roll landing
+ * ([landings]) - as the very composition they happen in, not a frame later from an effect. Keying
+ * an animation on these counts is what lets it be under way in that same frame: a toss starts the
+ * instant new dice land, so they never flash up at rest, showing the result, for a frame first.
+ */
+internal class RollTracker(private var wasRolling: Boolean) {
+    var starts = 0
+        private set
+    var landings = 0
+        private set
+
+    /** Notes [rolling] for this composition. Safe to call more than once for the same value. */
+    fun update(rolling: Boolean) {
+        if (rolling && !wasRolling) starts++
+        if (!rolling && wasRolling) landings++
+        wasRolling = rolling
+    }
+}
+
+/** How long a tossed die takes from leaving the cup to coming to rest - scoring waits for it. */
+internal const val DICE_TOSS_MILLIS = 900
+
+// How long an unheld die takes to be swept off the mat once the cup starts shaking - well inside
+// the shake, so the mat is clear for the rest of it.
+private const val PICK_UP_MILLIS = 200
+
+/**
+ * Where an unheld die lies on the mat, and how it gets there.
+ *
+ * With the full roll (the default): as the cup starts shaking, the die is swept off the mat past its
+ * near edge, out of sight for the rest of the shake ([PickUpPath]) - it's in the cup; the moment the
+ * roll lands (with the landing sound), it's thrown back on from there - up its column into the far
+ * wall, bouncing and tumbling back to rest on its result ([TossPath]). Walls either side
+ * keep it in its own column. With the player's "Simple dice roll animation" on, it just flicks
+ * through faces in place while rolling instead, as dice always used to.
+ */
+@Composable
+private fun ScatterArea(
+    die: Die,
+    show: Boolean,
+    rolling: Boolean,
+    scrambleTick: Int,
+    scatter: ScatterOffset,
+    seed: Int,
+    gameMode: GameMode,
+    diceStyle: DiceStyle,
+) {
+    val simple = LocalSimpleDiceRoll.current
+    val tracker = remember { RollTracker(rolling) }
+    tracker.update(rolling)
+    val pickUp = remember(tracker.starts) { Animatable(if (tracker.starts == 0 || simple) 1f else 0f) }
+    LaunchedEffect(tracker.starts) {
+        if (pickUp.value < 1f) pickUp.animateTo(1f, tween(PICK_UP_MILLIS, easing = LinearEasing))
+    }
+    val toss = remember(tracker.landings) { Animatable(if (tracker.landings == 0 || simple) 1f else 0f) }
+    LaunchedEffect(tracker.landings) {
+        if (toss.value < 1f) toss.animateTo(1f, tween(DICE_TOSS_MILLIS, easing = LinearEasing))
+    }
+    // The face the die was picked up showing, for the throw to start from - noted while it's being
+    // picked up, since by the time the roll lands the die already holds its new value.
+    val cupFace = remember { intArrayOf(0) }
+
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(SCATTER_AREA_HEIGHT)) {
+        // Past the tray's near edge, the whole die clipped off by it: off the mat entirely - a third
+        // of a die further than its own height, since a die lying at an angle pokes its corners up
+        // past its square outline.
+        val startY = (SCATTER_AREA_HEIGHT + TRAY_PADDING + SCATTERED_DIE_SIZE / 3).value
+        val restY = scatter.yOffset.value
+        val size = SCATTERED_DIE_SIZE.value
+        if (rolling && !(show && !die.isHeld)) cupFace[0] = 0
+        if (!show || die.isHeld) return@BoxWithConstraints
+        val rest = Modifier.align(Alignment.TopCenter).size(SCATTERED_DIE_SIZE)
+        val selfTumbling = die.colour == null && diceStyle.tumblesItself
+
+        // Where the die sits in the whole dice row, for its shadow: this column's place in the row
+        // plus where the die is within it.
+        val columnLeft = (maxWidth + DICE_COLUMN_GAP) * seed
+
+        /** The die's ground shadow, cast from the one light, [lift] (0..1) off the mat. */
+        @Composable
+        fun Shadow(x: Dp, y: Dp, yawDegrees: Float, lift: Float) {
+            val centreX = columnLeft + maxWidth / 2 + x
+            val centreY = y + SCATTERED_DIE_SIZE / 2
+            // Away from the light, further the further the die is from it - and further again, and
+            // softer, the higher the die is off the mat.
+            val reach = SHADOW_LENGTH * (1f + lift * 2f)
+            GroundShadow(
+                lift = lift,
+                modifier = rest
+                    .offset(x = x + (centreX - LIGHT_X) * reach, y = y + (centreY - LIGHT_Y) * reach)
+                    .graphicsLayer { rotationZ = yawDegrees },
+            )
+        }
+
+        @Composable
+        fun Moving(pose: TossPose, ring: List<Int>, finalTurns: Int, spinning: Boolean) {
+            val x = scatter.xOffset + pose.dx.dp
+            val y = scatter.yOffset + pose.dy.dp
+            val yaw = scatter.rotationDegrees + pose.yawDegrees
+            // A cube tipping over an edge rises off the mat, highest halfway over.
+            val lift = if (selfTumbling) 0f else sin((pose.roll - floor(pose.roll)) * PI.toFloat()) * 0.2f
+            Shadow(x, y, yaw, lift)
+            val placed = rest
+                .offset(x = x, y = y)
+                .graphicsLayer { rotationZ = yaw }
+            if (selfTumbling) {
+                // A D20 turns itself as it goes, landing on its face as it stops.
+                CompositionLocalProvider(LocalDieTumbling provides spinning) {
+                    DieFace(die = die, held = false, diceStyle = diceStyle, modifier = placed)
+                }
+            } else {
+                TossedCube(roll = pose.roll, finalTurns = finalTurns, ring = ring, modifier = placed) { value, faceModifier ->
+                    DieFace(die = die.copy(value = value), held = false, diceStyle = diceStyle, modifier = faceModifier)
+                }
             }
+        }
+
+        // Every die on the mat takes its shadow from the one light (Shadow, above), not its own.
+        CompositionLocalProvider(LocalDieCastsShadow provides false) {
+            when {
+                // Swept off the mat while the cup shakes, still showing the last roll.
+                rolling && !simple -> {
+                    val path = remember(tracker.starts, die.value) { PickUpPath(die.value, startY, restY) }
+                    cupFace[0] = path.value
+                    Moving(path.pose(pickUp.value), listOf(die.value), finalTurns = 0, spinning = false)
+                }
+
+                toss.value < 1f && !simple -> {
+                    val sideRoom = ((maxWidth - SCATTERED_DIE_SIZE) / 2 - abs(scatter.xOffset.value).dp).value.coerceAtLeast(0f)
+                    val path = remember(tracker.landings) {
+                        TossPath(
+                            seed = tracker.landings * 7 + seed,
+                            result = die.value,
+                            startFace = cupFace[0].takeIf { it != 0 },
+                            startY = startY,
+                            restY = restY,
+                            dieSize = size,
+                            sideRoom = sideRoom,
+                        )
+                    }
+                    Moving(path.pose(toss.value), path.ring, path.finalTurns, spinning = true)
+                }
+
+                else -> {
+                    // At rest - or, with the simple roll, flicking through faces in place while rolling.
+                    // Reads scrambleTick so each tick's recomposition seeds a fresh face - deliberately
+                    // not remember()'d, since a cached value wouldn't flicker. A coloured die tumbles
+                    // through colours as well as numbers.
+                    val displayDie = if (rolling) scrambledFace(Random(scrambleTick * 31 + seed), gameMode) else die
+                    Shadow(scatter.xOffset, scatter.yOffset, scatter.rotationDegrees, lift = 0f)
+                    DieFace(
+                        die = displayDie,
+                        held = false,
+                        diceStyle = diceStyle,
+                        modifier = rest
+                            .offset(x = scatter.xOffset, y = scatter.yOffset)
+                            .graphicsLayer { rotationZ = scatter.rotationDegrees },
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * A soft shadow the size of a die lying flat, built up from a few faint rounded squares of growing
+ * size so its edge fades out rather than stopping hard. [lift] (0..1) - how far the die is off the
+ * mat - spreads and fades it.
+ */
+@Composable
+private fun GroundShadow(lift: Float, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val corner = size.minDimension * 0.22f
+        val softness = size.minDimension * (0.06f + lift * 0.12f)
+        val layer = Color.Black.copy(alpha = 0.09f * (1f - lift * 0.6f))
+        for (step in 0..3) {
+            val grow = softness * step / 3f
+            drawRoundRect(
+                layer,
+                topLeft = Offset(-grow, -grow),
+                size = Size(size.width + grow * 2, size.height + grow * 2),
+                cornerRadius = CornerRadius(corner + grow),
+            )
         }
     }
 }

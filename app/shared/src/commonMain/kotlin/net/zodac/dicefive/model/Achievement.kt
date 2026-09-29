@@ -463,7 +463,7 @@ enum class Achievement(
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     PRODUCT_PLACEMENT(
-        "product_placement", "Product Placement", "Roll 2, 4, 5, 3, 6 - the exact dice on the main menu, in that order",
+        "product_placement", "Product Placement", "Roll/hold 2, 4, 5, 3, 6 - the exact dice on the main menu, in that order",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     POINTLESS_ROLL(
@@ -572,6 +572,12 @@ enum class Achievement(
     // 100%, since nothing in the UI hints it's possible.
     SHAKEN_NOT_TAPPED(
         "shaken_not_tapped", "Shaken, Not Tapped", "Shake your phone to roll the dice",
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+    ),
+    // Excluded from COMPLETIONIST like the rest of this category - it needs the Top Hat cup picked
+    // and the table left alone mid-turn, which nothing in the UI hints at.
+    MAGICIANS_SECRET(
+        "magicians_secret", "The Magician's Secret", "Find Where Luna Is Hiding",
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     ;

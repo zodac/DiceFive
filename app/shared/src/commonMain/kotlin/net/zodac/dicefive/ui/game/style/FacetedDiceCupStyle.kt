@@ -18,7 +18,7 @@ import net.zodac.dicefive.ui.theme.FacetedCupMidFace
 import net.zodac.dicefive.ui.theme.FacetedCupShadeFace
 
 /**
- * Default [DiceCupStyle]: a six-sided prism cup in the green score tiles' colours, three faces
+ * A [DiceCupStyle]: a six-sided prism cup in the green score tiles' colours, three faces
  * visible and shaded left to right, with a hexagonal mouth and gold edges. Only a gentle taper and
  * no foot - see [drawFacetedCup], which [FireDiceCupStyle] shares.
  */

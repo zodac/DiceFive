@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui.styles
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -64,8 +65,8 @@ private val DICE_PREVIEW_SIZE = 72.dp
 private val DIE_ART_SIZE = 44.dp
 private val CUP_PREVIEW_WIDTH = 72.dp
 private val CUP_PREVIEW_HEIGHT = 96.dp
-private val CUP_ART_SIZE_WIDTH = 42.dp
-private val CUP_ART_SIZE_HEIGHT = 60.dp
+// The cup previews at this fraction of their in-game size, whatever their shape (tall: 42 x 60dp).
+private const val CUP_ART_SCALE = 60f / 84f
 private val MAT_PREVIEW_WIDTH = 108.dp
 private val MAT_PREVIEW_HEIGHT = 72.dp
 private val BACKGROUND_PREVIEW_WIDTH = 108.dp
@@ -121,7 +122,10 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
                     style.Cup(
                         rolling = false,
                         tilted = false,
-                        modifier = Modifier.size(width = CUP_ART_SIZE_WIDTH, height = CUP_ART_SIZE_HEIGHT),
+                        modifier = Modifier.size(
+                            width = (style.shape.gridWidth * CUP_ART_SCALE).dp,
+                            height = (style.shape.gridHeight * CUP_ART_SCALE).dp,
+                        ),
                     )
                 }
             }
@@ -145,7 +149,9 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
                     onSelect = viewModel::setTableBackgroundId,
                     previewSize = DpSize(BACKGROUND_PREVIEW_WIDTH, BACKGROUND_PREVIEW_HEIGHT),
                     backgroundBrush = { background -> background.scoreAreaBrush },
-                ) {}
+                ) { background ->
+                    Canvas(modifier = Modifier.matchParentSize()) { with(background) { drawScoreAreaDecoration() } }
+                }
             }
         }
     }

@@ -51,6 +51,8 @@ import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.GameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
+import net.zodac.dicefive.ui.game.style.LocalOnRabbitSeen
+import net.zodac.dicefive.ui.game.style.LocalSimpleDiceRoll
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
@@ -126,6 +128,7 @@ fun GameScreen(
     val diceMatId by settingsRepository.diceMatId.collectAsState(initial = DiceMats.default.id)
     val soundEnabled by settingsRepository.soundEnabled.collectAsState(initial = true)
     val vibrationEnabled by settingsRepository.vibrationEnabled.collectAsState(initial = true)
+    val simpleDiceRoll by settingsRepository.simpleDiceRoll.collectAsState(initial = false)
     val visualTheme = remember(diceStyleId, diceCupStyleId, tableBackgroundId, diceMatId) {
         GameVisualTheme(
             diceStyle = DiceStyles.byId(diceStyleId),
@@ -134,7 +137,12 @@ fun GameScreen(
             mat = DiceMats.byId(diceMatId),
         )
     }
-    CompositionLocalProvider(LocalGameVisualTheme provides visualTheme, LocalIrishTricolour provides currentState.isLuckOfTheIrish) {
+    CompositionLocalProvider(
+        LocalGameVisualTheme provides visualTheme,
+        LocalIrishTricolour provides currentState.isLuckOfTheIrish,
+        LocalOnRabbitSeen provides viewModel::onRabbitSeen,
+        LocalSimpleDiceRoll provides simpleDiceRoll,
+    ) {
         // Once the game is over the board isn't what anyone is looking at, so the results get the
         // whole screen as their own themed page rather than being appended under the felt.
         if (currentState.isGameOver) {
@@ -219,9 +227,26 @@ private fun InProgressGame(
     // The cup/tray don't care whether the shake was kicked off by a human tap or the ViewModel's
     // own AI-turn loop (GameViewModel.aiRolling) - either way it's the same "rolling" pose.
     val isRolling = isTapRolling || aiRolling
-    // Scattered dice (and their scramble animation) should appear the instant the cup is tapped,
-    // not only once the real roll has resolved a few hundred ms later.
-    val showDice = state.phase == TurnPhase.ROLLED || isRolling
+    // With the simple roll, scattered dice (and their scramble) appear the instant the cup is
+    // tapped. With the full roll, a turn's first dice are still in the cup until they're thrown -
+    // there are no dice on the mat to gather up yet - so they appear as the roll lands.
+    val simpleDiceRoll = LocalSimpleDiceRoll.current
+    val showDice = state.phase == TurnPhase.ROLLED || (isRolling && simpleDiceRoll)
+
+    // The dice are still tumbling to a stop for a moment after the roll lands (see DiceTray), and
+    // scoring waits for them: nothing lights up or takes a tap until they've settled. Tracked from
+    // the very composition the roll lands in - not a frame later - so the highlights can't flash on
+    // before being taken away again.
+    val rollTracker = remember { RollTracker(isRolling) }
+    rollTracker.update(isRolling)
+    val settled = remember(rollTracker.landings) { mutableStateOf(rollTracker.landings == 0 || simpleDiceRoll) }
+    LaunchedEffect(rollTracker.landings) {
+        if (!settled.value) {
+            delay(DICE_TOSS_MILLIS.toLong())
+            settled.value = true
+        }
+    }
+    val diceSettling = !settled.value
 
     // The shake sound starts the instant isRolling goes true (human tap or an AI turn kicking
     // off), and the landing sound plays the instant it goes false again, whichever side started
@@ -318,6 +343,7 @@ private fun InProgressGame(
         GameBoard(
             state = state,
             rolling = isRolling,
+            diceSettling = diceSettling,
             canUndo = canUndo,
             onScoreCategory = onScoreCategory,
             onCupTap = onCupTap,

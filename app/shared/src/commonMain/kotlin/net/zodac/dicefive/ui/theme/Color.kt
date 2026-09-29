@@ -105,7 +105,7 @@ val TrayBlueSlotBorder = Color(0xFF6FA3E0)
 val CupRimGold = Color(0xFFC79A4B)
 val CupShadow = Color(0xFF06101F)
 
-// FacetedDiceCupStyle, the default cup: the green score tiles' own colours, one per visible face
+// FacetedDiceCupStyle: the green score tiles' own colours, one per visible face
 // (shadowed left, lit centre, mid-tone right), so the cup reads as part of the same board, edged in
 // the gold the board uses for a good pick and a held die.
 val FacetedCupShadeFace = TileTealBottom
@@ -143,7 +143,7 @@ val FireDiceBottom = Color(0xFFA6180C)
 val FireDicePipColor = Color(0xFFFFB347)
 
 // The fire cup's faces: shadowed left, lit centre, mid-tone right - the same lighting as the
-// faceted default's teal faces.
+// faceted cup's teal faces.
 val FireCupShadeFace = Color(0xFF4A0D08)
 val FireCupLitFace = Color(0xFFD9473A)
 val FireCupMidFace = Color(0xFFB3261B)
@@ -248,4 +248,18 @@ val MartiniGlassSwatch = Color(0xFFD8DEE0)
 val MartiniLiquidSwatch = Color(0xFFD9B23C)
 val MartiniOliveSwatch = Color(0xFF6E7A2E)
 val MartiniOliveHighlightSwatch = Color(0xFF93A150)
+
+// The Top Hat cup's rabbit (TopHatDiceCupStyle), shared with The Magician's Secret's icon so the
+// achievement shows the same rabbit the player found. Fixed colours for the same reason as the
+// martini's: a white rabbit with pink ears is one specific look, not a theme-able tint.
+val RabbitFur = Color(0xFFF5F5F5)
+val RabbitFurShade = Color(0xFFD9D9D9)
+val RabbitPink = Color(0xFFF4A6B8)
+val RabbitEye = Color(0xFF222222)
+// The Black Top Hat's own colours, for that icon: its shaded edge, lit side and mid tone, ribbon and inside.
+val MagicianHatDark = Color(0xFF0B0B0C)
+val MagicianHatLight = Color(0xFF3C3C40)
+val MagicianHatMid = Color(0xFF1E1E21)
+val MagicianHatRibbon = Color(0xFFB71C1C)
+val MagicianHatInside = Color(0xFF030303)
 val MartiniPickSwatch = Color(0xFFC9A66B)

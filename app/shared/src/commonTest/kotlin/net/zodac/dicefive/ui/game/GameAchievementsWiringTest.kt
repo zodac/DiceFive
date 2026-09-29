@@ -1109,6 +1109,20 @@ class GameAchievementsWiringTest {
     }
 
     @Test
+    fun `the Top Hat rabbit peeking out on a human turn unlocks The Magicians Secret`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(3))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.onRabbitSeen()
+        advanceUntilIdle()
+
+        assertTrue(Achievement.MAGICIANS_SECRET in store.unlocked, "MAGICIANS_SECRET should pop, got ${store.unlocked}")
+    }
+
+    @Test
     fun `tapping the cup three times with no rolls left unlocks No More Rolls`() = runTest {
         val store = FakeAchievementStore()
         val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(3))

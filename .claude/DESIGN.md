@@ -54,15 +54,30 @@ decisions behind it. Read that before changing anything visual.
   `TableBackgrounds`/`DiceMats`, each a `StyleCatalog` with a `byId` lookup falling back to that
   category's `default`). Each catalog groups its art into `StyleFamily`s - a style (shape or
   pattern) with one or more `StyleColour`s - and every colour is still its own `TableArt` with its
-  own saved id, so grouping never changed what's persisted. Current groups: dice Classic (Ivory,
-  Red, Oak); cups Faceted (Green, Red) and Barrel; mats Felt (Blue, Red) and Barrel; backgrounds
-  Classic (Navy, Red, Brown). A new colour of an existing shape goes in that family, not a new one.
+  own saved id, so grouping never changed what's persisted. The full list of styles and colours is
+  `StyleCatalog.kt` itself; the originals are dice Classic (Ivory, Red, Oak), cups Faceted (Green,
+  Red) and Barrel (with the casino shaker since moved ahead of them as the default), mats Classic (Blue, Red) and Barrel, backgrounds Classic (Navy, Red, Brown). A new
+  colour of an existing shape goes in that family, not a new one, and every family has 1-3 colours
+  (`StyleCatalogTest` checks). The later styles are built from shared parts rather than one file
+  each: `StyledDie` (`DiceArt.kt` - corner, surface finish, pip shape; `ShapedDice.kt` for the dice that
+  aren't a flat rounded square, like the 3D cube and the misprint; `LcdDice.kt` for the 7-segment LCD
+  dice; `D20Dice.kt` for the D20 - a real, projected icosahedron numbered 1-20 with opposite faces
+  summing to 21, turned so the roll (only ever 1-6) faces you, the rest of its numbers faded back; mid-roll
+  (`LocalDieTumbling`, set by the tray) it tumbles continuously about two axes instead, and at rest it
+  gets a small per-die, per-roll twist so no two landings look alike; `D20Test` pins the numbering), the round-cup kit
+  (`RoundCups.kt`, same raised view as the rest), `PatternedDiceMat` (`PatternedMats.kt`) and the
+  patterned backgrounds (`PatternedBackgrounds.kt`, drawn through
+  `TableBackground.drawScoreAreaDecoration`), with `Patterns.kt` holding painters more than one of
+  them uses (stars, countertop marble, gingham checks - the random ones always from a fixed seed so
+  they don't shimmer). Natural-looking dice (Marble, Frosted) also seed by `LocalDieIndex`, the
+  die's position in the tray, so no two dice - or two faces of one die - share a pattern. Their palettes
+  sit beside their entries in `StyleCatalog.kt` rather than in `Color.kt` - see UI.md.
   The Styles screen (`ui/styles/`) is the picker: one tile per family, showing the picked colour
   (or the family's first), colour dots along the bottom when it has more than one, and a long
   press popping up a scrollable row of previews, one per colour (no colour names on screen - the
   name belongs to the style; `StyleColour.name` is only read out by screen readers). `GameScreen` reads the ids and builds the active
-  `GameVisualTheme` from them on every recomposition. Shipped skins: Ivory/Faceted/Midnight Felt
-  (the defaults) and a second, fully independent "fire" skin per category - a red die with orange
+  `GameVisualTheme` from them on every recomposition. Shipped skins: Ivory/Midnight Felt/Blue Felt
+  (the defaults - the default cup is now the casino shaker, below) and a second, fully independent "fire" skin per category - a red die with orange
   pips (`FireDiceStyle`), the faceted cup in reds with orange edges (`FireDiceCupStyle`), a red
   felt background (`FireTableBackground`) and a plain red tray (`FireDiceMat`). The cup and mat
   used to carry painted flames (a flame up the cup, a band of flame tongues along the tray's
@@ -72,17 +87,56 @@ decisions behind it. Read that before changing anything visual.
   (`BarrelTableBackground`). The five held-dice slots belong to the mat: every `DiceMat` supplies
   its own `slotSocketBrush` (darker than the mat) and `slotSocketBorder` (lighter than both), so a
   new mat can't fall back to another mat's slots. Picking one skin for one category doesn't imply the others - a fire
-  die can sit in a faceted cup on a midnight felt mat.
+  die can sit in a barrel cup on a midnight felt mat.
   Cups: every `DiceCupStyle` draws inside `CupCanvas` (`CupRotation.kt`), which owns the shared
   shake/pour rotation and pivot, and authors its art on a 58 x 84 grid (the in-game cup's dp size).
   Every cup is drawn side-on from about 22 degrees above: anything round the cup's axis (mouth,
   base, hoops) is an ellipse squashed by the shared `CUP_VIEW_SQUASH`, and the open mouth shows a
   lit band of the far inner wall above a shadowed interior. Drawing the mouth open but the base
   flat mixes two viewpoints and reads wrong - keep new cups on the same angle.
-  `FacetedDiceCupStyle` (default: a six-sided prism in the green score-tile colours with gold edges)
-  and `FireDiceCupStyle` share `drawFacetedCup`; `BarrelDiceCupStyle` is a brown wooden barrel with
+  Proportions: a cup declares a `CupShape` - `TALL` (58 x 84) or `MEDIUM` (66 x 76: the Barrel and
+  Takeaway) or `SQUAT` (76 x 66: the Top Hat, Cauldron, Flowerpot, Tankard and Beaker) - which is both its canvas size in dp in the game's 104dp cup slot and the grid its art
+  is drawn on; the round-cup helpers read the grid from `CupDrawScope`, so they work on either.
+  Liquid: `CupCanvas` hands every cup a `CupPose` - its rotation plus a `liquidRotation` that
+  trails it on an underdamped spring. Every cup with liquid in it (Glass, Beaker, Takeaway,
+  Cauldron) moves it with the one shared physics, `liquidIn` in `RoundCups.kt`; each only picks
+  where its liquid rests. The surface is a level plane cutting the cup, so tipping *shears* it
+  rather than rotating it: every edge point stays against the wall but rides up it on the low side
+  and down on the high side by the tilt's slope times its distance across, the slope following
+  `CupPose.surfaceTilt` so the liquid rushes to the low side, overshoots and washes back. If that
+  ever lifts the low side over the lip, the level drops so it just reaches it - it brims, never
+  spills. Glass cups draw all of it clipped to the glass (`drawLiquidInGlass`); solid ones only
+  what shows through the opening. The Cauldron's brew rests deep enough that tipping all the way over
+  only brings it to the lip, leaving little showing when standing (the maintainer's choice); the
+  Takeaway's coffee rests high enough to see, and brims at the lip when tipped. The Flowerpot's seedling sways by
+  `CupPose.slosh` so it wiggles as the pot is shaken. Cups without liquid ignore the pose.
+  Two cups are animated, both on `rememberAmbientCycle` (an infinite transition read only in the
+  draw, so it repaints rather than recomposes): the Cauldron's bubbles that swell and pop, heaving
+  froth and glowing puffs rising off the brew, and the Takeaway's three thin, distinct steam lines
+  (`drawSteamLines`). Both start on the liquid's own surface (so a tipped cup steams from wherever
+  its liquid has pooled), rise straight up on screen (`screenwards` turns only the rise against the
+  cup's rotation - bubble highlights use it too, to stay towards the light), and are clipped out
+  wherever they'd sit over the cup's solid body rather than its opening. The Cauldron also carries a
+  few fixed drips of old brew down its front, just to look used. It stops
+  once a turn's rolls are spent: `DiceCupPanel` provides `LocalCupAnimated = false` while the cup
+  is dimmed, and `rememberAmbientCycle` then leaves the infinite transition out of composition altogether,
+  so a spent cup requests no frames, and draws a calm brew - no bubbles, froth or steam - until the
+  next turn starts it again from the beginning.
+  Easter egg: the Top Hat (drawn as deep as its opening is wide) hides a rabbit. Left tipped over
+  after a roll with nothing happening for a random 5-10s, a rabbit pokes its head and paws out for
+  5s, twitches an ear and ducks back in - once per quiet spell. Seeing it (on a human's turn)
+  unlocks the secret achievement The Magician's Secret (`MAGICIANS_SECRET`), through
+  `LocalOnRabbitSeen`, which `GameScreen` points at `GameViewModel.onRabbitSeen`; its icon is the
+  same tipped hat and rabbit, rebuilt as a fixed-colour vector (`rememberMagicianIcon`). "Nothing happening" is `LocalCupActivity`, which
+  `DiceCupPanel` sets to the current dice, so holding or releasing one restarts the wait (as do a
+  roll or a score, through the cup's own `rolling`/`tilted`).
+  The default cup is the casino shaker (`CasinoDiceCupStyle`, Black), shown on the Styles screen as
+  "Classic" (every category's default style is called Classic - `StyleCatalogTest` checks) and
+  listed first; its ids keep the `casino_` prefix so saved picks survive the default
+  moving again. `FacetedDiceCupStyle` (a six-sided prism in the green score-tile colours with gold
+  edges, the default before it) and `FireDiceCupStyle` share `drawFacetedCup`; `BarrelDiceCupStyle` is a brown wooden barrel with
   iron hoops. The original "leather" cup (steep taper, flared foot) was dropped for its shape;
-  `SettingsRepository.diceCupStyleId` reads a saved `"leather"` back as `"faceted"` so it doesn't
+  `SettingsRepository.diceCupStyleId` reads a saved `"leather"` back as today's default (`"casino_black"`) so it doesn't
   count as a non-default pick for `STYLE_CUP`.
 - **Game modes** (`model/GameMode.kt`, was `GameType`): `STANDARD` (the official rules, formerly
   `CLASSIC`) and `TRICOLOUR` (see Phase 14). **Every rule that can differ between modes is a field
@@ -453,6 +507,32 @@ dependencies — most unit tests live here.
   Settings switches "Sound effects" and "Vibration" (in `SettingsRepository`) gate sound and
   haptics separately. `SoundEffects.enabled` is a mutable flag rather than a reason to skip
   loading, since the setting can change mid-session.
+- Dice roll animation (`ScatterArea` in `DiceTray.kt`; paths in `ui/game/style/RollingDie.kt`):
+  as the cup starts shaking, each unheld die is swept off the mat past the tray's near edge, out
+  of sight for the rest of the shake - it's in the cup (`PickUpPath`, a slide); a turn's
+  first dice aren't on the mat yet, so `GameScreen` keeps them hidden until the roll lands. When it
+  lands - with the `mat_landing` sound - they're thrown back on together from there (`TossPath`) - up each die's own column into the
+  far wall (the top of the
+  scatter area), bouncing and rolling back to rest on their results, drifting a little between
+  invisible column walls and spinning before they settle. Flat-faced styles tumble as a cube of
+  their own faces (`TossedCube`), paced to the distance travelled, through the real faces round one
+  axis; a toss starts on the very face the die was picked up showing and ends on its result, with the
+  quarter-turns counted to make both true, so no face ever jumps. The D20 (`DiceStyle.tumblesItself`)
+  turns itself instead. **No flash of the result:** `RollTracker` counts shake-starts and landings
+  in the composition they happen in, and the pick-up/toss animations are keyed on those counts, so a
+  toss is already under way in the frame the new dice arrive - they never appear at rest first.
+  **Scoring waits for the dice:** `GameScreen` uses the same tracker to hold `diceSettling` true for
+  `DICE_TOSS_MILLIS` after each landing, and `GameBoard` shows no highlights and takes no score
+  taps while a roll is in hand (shaking or settling). The Settings switch "Simple dice roll
+  animation" (`SettingsRepository.simpleDiceRoll`, off by default) turns all of this back to dice
+  flicking through faces in place while rolling, scoring straight away; `GameScreen` provides it as
+  `LocalSimpleDiceRoll`.
+  Shadows: dice on the mat don't draw their own drop shadow (`LocalDieCastsShadow` off - every style
+  goes through `dieShadow`); the tray casts one ground shadow per die instead (`GroundShadow`), from a
+  single fixed light above and left of the tray (`LIGHT_X`/`LIGHT_Y`), falling away from it by a share
+  of the die's distance from it and spreading as a tumbling cube lifts over an edge. It follows the
+  die through the pick-up, the throw and rest alike, so it never pops in on landing. Held dice, off the
+  mat in their slots, keep their own.
 
 ## Achievements
 
