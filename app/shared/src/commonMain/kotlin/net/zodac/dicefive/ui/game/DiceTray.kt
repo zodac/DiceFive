@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -58,8 +59,10 @@ import net.zodac.dicefive.ui.game.style.BEVELED_DIE_CORNER_PERCENT
 import net.zodac.dicefive.ui.game.style.ColouredDie
 import net.zodac.dicefive.ui.game.style.DiceMat
 import net.zodac.dicefive.ui.game.style.DiceStyle
+import net.zodac.dicefive.ui.game.style.DieMotion
 import net.zodac.dicefive.ui.game.style.LocalDieCastsShadow
 import net.zodac.dicefive.ui.game.style.LocalDieIndex
+import net.zodac.dicefive.ui.game.style.LocalDieMotion
 import net.zodac.dicefive.ui.game.style.LocalDieTumbleMillis
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalSimpleDiceRoll
@@ -294,8 +297,35 @@ private fun DiceColumn(
     diceStyle: DiceStyle,
     mat: DiceMat,
     modifier: Modifier = Modifier,
-) = CompositionLocalProvider(LocalDieIndex provides seed) {
+) {
+    // For a style whose faces the die's movement throws about (googly eyes): the die's movement,
+    // kept for the whole column, so a die keeps its looks as it's held and released. Moved on every
+    // frame only while the die or its pupils are moving.
+    val motion = diceStyle.pupilTravel?.let { travel -> remember(travel) { DieMotion(seed, travel) } }
+    if (motion != null) {
+        LaunchedEffect(motion, motion.awake) {
+            if (motion.awake) motion.follow()
+        }
+    }
     // Which physical die this column is, so a natural-looking style can give each its own pattern.
+    CompositionLocalProvider(LocalDieIndex provides seed, LocalDieMotion provides motion) {
+        DiceColumnContent(die, show, rolling, scrambleTick, scatter, seed, gameMode, diceStyle, mat, modifier)
+    }
+}
+
+@Composable
+private fun DiceColumnContent(
+    die: Die,
+    show: Boolean,
+    rolling: Boolean,
+    scrambleTick: Int,
+    scatter: ScatterOffset,
+    seed: Int,
+    gameMode: GameMode,
+    diceStyle: DiceStyle,
+    mat: DiceMat,
+    modifier: Modifier,
+) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         val shape = RoundedCornerShape(10.dp)
         Box(
@@ -397,6 +427,25 @@ private fun ScatterArea(
         // plus where the die is within it.
         val columnLeft = (maxWidth + DICE_COLUMN_GAP) * seed
 
+        // Where the die is, for a style whose faces its movement throws about (DieMotion) - not a die
+        // in its own colour, which isn't drawn in the style at all.
+        val motion = LocalDieMotion.current?.takeIf { die.colour == null }
+
+        /**
+         * Tells [motion] the die is at [x]/[y] in its column (measured in die sizes), turned
+         * [yawDegrees], and [roll] quarter-turns into a tumble.
+         */
+        @Composable
+        fun Track(x: Dp, y: Dp, yawDegrees: Float, roll: Float = 0f) {
+            if (motion == null) return
+            val centre = Offset((columnLeft + maxWidth / 2 + x) / SCATTERED_DIE_SIZE, (y + SCATTERED_DIE_SIZE / 2) / SCATTERED_DIE_SIZE)
+            // The face mostly in view: tipping away over its top edge for the first half of each
+            // quarter-turn, then the next one tipping up to take its place.
+            val tipped = roll - floor(roll)
+            val tip = if (tipped < 0.5f) tipped * 90f else (tipped - 1f) * 90f
+            SideEffect { motion.moveTo(centre, yawDegrees, tip) }
+        }
+
         /**
          * The die's ground shadow, cast from the one light, [lift] (0..1) off the mat, in the outline
          * of the die itself - its style's, or a bevelled square for a die in a colour of its own.
@@ -433,6 +482,7 @@ private fun ScatterArea(
             val lift = if (selfTumbling) 0f else sin((pose.roll - floor(pose.roll)) * PI.toFloat()) * 0.2f
             val tumbleMillis = tossMillis.takeIf { selfTumbling }
             Shadow(x, y, yaw, lift, tumbleMillis)
+            Track(x, y, yaw, roll = if (selfTumbling) 0f else pose.roll)
             val placed = rest
                 .offset(x = x, y = y)
                 .graphicsLayer { rotationZ = yaw }
@@ -484,6 +534,7 @@ private fun ScatterArea(
                     // through colours as well as numbers.
                     val displayDie = if (rolling) scrambledFace(Random(scrambleTick * 31 + seed), gameMode) else die
                     Shadow(scatter.xOffset, scatter.yOffset, scatter.rotationDegrees, lift = 0f)
+                    Track(scatter.xOffset, scatter.yOffset, scatter.rotationDegrees)
                     DieFace(
                         die = displayDie,
                         held = false,

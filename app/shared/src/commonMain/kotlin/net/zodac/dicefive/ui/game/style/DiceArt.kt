@@ -81,8 +81,9 @@ internal enum class PipShape { ROUND, SQUARE, NUMERAL, CUSTOM }
 /**
  * The die every non-Classic [DiceStyle] is built from: a rounded square of [face], with [surface]
  * painted over it (a gloss, a vein, a highlight), a thin [edge] outline - swapped for a thicker
- * [heldRingColor] ring while held - and its value shown as [pipShape] in [pipColor]. The styles
- * differ only in these, so the held ring, shadow and pip layout behave the same across every one.
+ * [heldRingColor] ring while held - and its value shown as [pipShape] in [pipColor], laid out across
+ * the die less [pipPadding] all round. The styles differ only in these, so the held ring, shadow and
+ * pip layout behave the same across every one.
  */
 @Composable
 internal fun StyledDie(
@@ -94,6 +95,7 @@ internal fun StyledDie(
     pipColor: Color,
     cornerPercent: Int = STYLED_DIE_CORNER_PERCENT,
     edgeWidth: Dp = 1.dp,
+    pipPadding: Dp = 6.dp,
     pipShape: PipShape = PipShape.ROUND,
     heldRingColor: Color = GoldAccent,
     customPips: DrawScope.(Int) -> Unit = {},
@@ -116,16 +118,16 @@ internal fun StyledDie(
             PipShape.ROUND -> PipFace(
                 value = value,
                 color = pipColor,
-                modifier = Modifier.fillMaxSize().padding(6.dp),
+                modifier = Modifier.fillMaxSize().padding(pipPadding),
                 pipRadiusFraction = 0.11f,
             )
-            PipShape.SQUARE -> Canvas(modifier = Modifier.fillMaxSize().padding(6.dp)) {
+            PipShape.SQUARE -> Canvas(modifier = Modifier.fillMaxSize().padding(pipPadding)) {
                 drawPipPositions(value) { centre ->
                     val half = size.minDimension * 0.1f
                     drawRect(pipColor, topLeft = Offset(centre.x - half, centre.y - half), size = Size(half * 2, half * 2))
                 }
             }
-            PipShape.CUSTOM -> Canvas(modifier = Modifier.fillMaxSize().padding(6.dp)) { customPips(value) }
+            PipShape.CUSTOM -> Canvas(modifier = Modifier.fillMaxSize().padding(pipPadding)) { customPips(value) }
             PipShape.NUMERAL -> BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 // One size for every face of a style, as a fraction of the die's height - set small
                 // enough by numeral systems with longer numerals that their widest one still fits.
