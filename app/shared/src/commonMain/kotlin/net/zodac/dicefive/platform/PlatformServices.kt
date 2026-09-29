@@ -90,7 +90,13 @@ interface HapticsPlayer {
     fun play(effect: HapticEffect)
 }
 
-/** Raw accelerometer readings, gravity included, in m/s² along the device's own x/y/z axes. */
+/**
+ * Raw accelerometer readings, gravity included, in m/s² along the screen's axes as it's currently
+ * turned - x to its right, y to its top, z out of it towards the viewer - so a reading means the
+ * same on screen whichever way round the app is displayed. At rest, the axis pointing up reads
+ * +9.81 (Android's convention: the reaction to gravity, not gravity itself). Shake detection only
+ * uses the size of the motion; the googly-eyed logo dice (see DieMotion.feel) need the direction.
+ */
 interface Accelerometer {
 
     fun start(onSample: (x: Float, y: Float, z: Float) -> Unit)

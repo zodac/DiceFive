@@ -74,7 +74,12 @@ decisions behind it. Read that before changing anything visual.
   moves the pupils every frame - flung against the die's acceleration in its own turned frame, sliding
   down each face as it tips over mid-tumble (the tray passes the roll's tip), left
   behind by part of its spin, slowed by friction and bounced off the rim - then stops asking for
-  frames; `DieMotionTest` pins the physics), the round-cup kit
+  frames; `DieMotionTest` pins the physics). On the main menu only, the logo's googly dice (and no
+  other style, cup or screen) follow the phone itself: `AppLogo`'s `pupilsFollowDevice`, which the
+  menu alone sets, keeps a `DieMotion` per logo die and feeds it the accelerometer's pull
+  (`DieMotion.feel`, in g on screen - tilt and shake alike) while the menu is resumed. A pupil held
+  against its rim by that steady pull rests there instead of bouncing, or it would jitter forever and
+  never let the frames stop; with no device pull the physics is untouched. The round-cup kit
   (`RoundCups.kt`, same raised view as the rest), `PatternedDiceMat` (`PatternedMats.kt`) and the
   patterned backgrounds (`PatternedBackgrounds.kt`, drawn through
   `TableBackground.drawScoreAreaDecoration`), with `Patterns.kt` holding painters more than one of

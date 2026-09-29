@@ -99,4 +99,56 @@ class DieMotionTest {
         motion.moveTo(Offset(1.1f, 1f), 0f)
         assertTrue(motion.awake)
     }
+
+    /** Steps [motion] on from [from] until it stops or [limit] frames pass; returns the frame it stopped on, or null. */
+    private fun runUntilStill(motion: DieMotion, from: Int = 1, limit: Int = 2_000): Int? {
+        for (frame in from until from + limit) {
+            if (!motion.step(frame * frameNanos)) return frame
+        }
+        return null
+    }
+
+    @Test
+    fun aPhoneHeldUprightSettlesThePupilsAtTheBottomOfTheirSockets() {
+        val motion = startedAt(Offset.Zero)
+        motion.feel(Offset(0f, 1f))
+
+        assertTrue(motion.awake)
+        val stoppedAt = runUntilStill(motion)
+        assertTrue(stoppedAt != null, "the pupils should come to rest under a steady pull, not jitter forever")
+        assertTrue(motion.pupils.all { it.y > 0.95f }, "${motion.pupils}")
+    }
+
+    @Test
+    fun tippingThePhoneRightRollsThePupilsRight() {
+        val motion = startedAt(Offset.Zero)
+        motion.feel(Offset(1f, 0f))
+        runUntilStill(motion)
+
+        assertTrue(motion.pupils.all { it.x > 0.95f }, "${motion.pupils}")
+    }
+
+    @Test
+    fun theDevicePullIsTurnedIntoATiltedDiesOwnFrame() {
+        // Turned a quarter clockwise, the die's own "down" points left on screen - so a pull straight
+        // down the screen sends its pupils towards its own right-hand side (+x in its frame).
+        val motion = startedAt(Offset.Zero, yawDegrees = 90f)
+        motion.feel(Offset(0f, 1f))
+        runUntilStill(motion)
+
+        assertTrue(motion.pupils.all { it.x > 0.95f }, "${motion.pupils}")
+    }
+
+    @Test
+    fun onlyAPullThatChangesEnoughWakesSettledPupils() {
+        val motion = startedAt(Offset.Zero)
+        motion.feel(Offset(0f, 1f))
+        assertTrue(runUntilStill(motion) != null)
+        motion.settle() // As follow() does once the pupils stop, putting it back to sleep.
+
+        motion.feel(Offset(0.01f, 1f))
+        assertFalse(motion.awake, "sensor noise on a still phone shouldn't keep the pupils going")
+        motion.feel(Offset(0.3f, 1f))
+        assertTrue(motion.awake)
+    }
 }

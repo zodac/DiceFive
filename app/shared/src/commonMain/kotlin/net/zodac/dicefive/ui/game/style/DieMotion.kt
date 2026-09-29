@@ -42,6 +42,14 @@ private const val STILL_FRAMES = 6
 // The longest frame the pupils are moved on by in one go, so a stalled frame doesn't throw them.
 private const val MAX_STEP_SECONDS = 0.05f
 
+// How much the device's own pull (see DieMotion.feel) has to change, in g, since the pupils last came
+// to rest before it wakes them - so a phone lying still, or a sensor's noise, doesn't keep them going.
+private const val FELT_WAKE_GEES = 0.03f
+
+// Against the rim, a pupil only coming outwards as fast as a couple of frames of its push would make it
+// is being held there by a steady pull, not thrown into it - so it rests rather than bouncing.
+private const val RESTING_FRAMES = 2f
+
 /**
  * The die being drawn's [DieMotion], for a style whose faces its movement shakes about (see
  * [DiceStyle.pupilTravel]) - or null, where a die isn't on the mat or its style has nothing loose.
@@ -71,6 +79,10 @@ internal fun restingPupils(seed: Int): List<Offset> {
  * softly off the socket's rim. Once the die and every pupil have come to rest it stops asking for
  * frames, until the die next moves.
  *
+ * The device itself can pull on them too ([feel]) - only the main menu's logo does that, turning
+ * the phone's tilt and shake into the same slide. Without it, pupils behave exactly as they always
+ * have on the mat.
+ *
  * [travel] is how far a pupil can roll from its socket's centre, as a fraction of the die's size -
  * how hard the die's movement throws it depends on how far it has to go. [seed] picks where the
  * pupils start ([restingPupils]).
@@ -98,6 +110,8 @@ class DieMotion(seed: Int, private val travel: Float) {
     private var lastVelocity: Offset? = null
     private var lastNanos: Long? = null
     private var stillFrames = 0
+    private var felt = Offset.Zero
+    private var feltAtRest = Offset.Zero
 
     /**
      * Notes that the die is now centred at [centre] (in its own sizes), turned [yawDegrees], with the
@@ -116,6 +130,16 @@ class DieMotion(seed: Int, private val travel: Float) {
         } else if (previous != centre || yawDegrees != lastYawDegrees) {
             awake = true
         }
+    }
+
+    /**
+     * Notes the pull the device itself now puts on the pupils, in g, on screen (x right, y down):
+     * gravity down whichever way the phone is tipped, and against however it's being moved. Wakes
+     * them only if it has changed enough since they last came to rest to move them.
+     */
+    fun feel(gees: Offset) {
+        felt = gees * PUPIL_GRAVITY
+        if ((felt - feltAtRest).getDistance() > FELT_WAKE_GEES * PUPIL_GRAVITY) awake = true
     }
 
     /** Freezes the pupils where they are: the die has landed, so they stop sliding at once. */
@@ -175,7 +199,9 @@ class DieMotion(seed: Int, private val travel: Float) {
         // Into the die's own frame - it's drawn turned yawDegrees - and in socket-widths, not die sizes.
         // A face tipped away has its near edge raised, so its pupils slide towards its far (top) edge.
         val slope = Offset(0f, -PUPIL_GRAVITY * sin(tipDegrees * PI.toFloat() / 180f))
-        val push = (slope - acceleration.turned(-yawDegrees)) / travel
+        // The device's own pull (feel) is on screen, so it's turned into the die's frame the same way.
+        val push = (slope + (felt - acceleration).turned(-yawDegrees)) / travel
+        val restingSpeed = if (felt == Offset.Zero) 0f else push.getDistance() * seconds * RESTING_FRAMES
         pupils = pupils.mapIndexed { i, pupil ->
             // Left behind by part of the die's spin: turned back against it, in the die's frame.
             var place = pupil.turned(-turn * PUPIL_SPIN_LAG)
@@ -188,7 +214,9 @@ class DieMotion(seed: Int, private val travel: Float) {
                 val outwards = place / reach
                 place = outwards
                 val out = speed.x * outwards.x + speed.y * outwards.y
-                if (out > 0f) speed -= outwards * (out * (1f + PUPIL_BOUNCE))
+                // Held there by the device's steady pull, it rests - bouncing, it would jitter forever.
+                val bounce = if (out < restingSpeed) 0f else PUPIL_BOUNCE
+                if (out > 0f) speed -= outwards * (out * (1f + bounce))
             }
             speeds[i] = speed
             place
@@ -198,6 +226,7 @@ class DieMotion(seed: Int, private val travel: Float) {
         stillFrames = if (still && seconds > 0f) stillFrames + 1 else 0
         if (stillFrames >= STILL_FRAMES) {
             speeds.fill(Offset.Zero)
+            feltAtRest = felt
             return false
         }
         return true

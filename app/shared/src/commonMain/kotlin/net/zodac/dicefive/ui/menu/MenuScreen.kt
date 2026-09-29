@@ -84,6 +84,8 @@ fun MenuScreen(
                 modifier = Modifier.alpha(if (logoStyles == null) 0f else 1f),
                 diceStyle = logoStyles?.dice ?: DiceStyles.default,
                 cupStyle = logoStyles?.cup ?: DiceCupStyles.default,
+                // Googly eyes only: the one screen whose dice follow the phone's own tilt and shake.
+                pupilsFollowDevice = true,
                 onDiceTap = onDiceTap,
             )
 
