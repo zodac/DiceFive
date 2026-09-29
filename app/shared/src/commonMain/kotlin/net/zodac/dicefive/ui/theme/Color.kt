@@ -87,6 +87,9 @@ val TileScoredTop = Color(0xFF2E2E2E)
 val TileScoredBottom = Color(0xFF181818)
 val TileScoredBorder = Color(0xFF3F3F3F)
 
+// The dark disc behind a score tile's small count badge (a straight's run length, the 5x bonus count).
+val TileBadgeBackground = Color(0xFF0F211D)
+
 val GoldAccent = Color(0xFFFFCC55)
 val GoldAccentDim = Color(0xFFB8862A)
 
