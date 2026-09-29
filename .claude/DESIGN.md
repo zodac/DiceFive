@@ -55,7 +55,7 @@ decisions behind it. Read that before changing anything visual.
   category's `default`). Each catalog groups its art into `StyleFamily`s - a style (shape or
   pattern) with one or more `StyleColour`s - and every colour is still its own `TableArt` with its
   own saved id, so grouping never changed what's persisted. The full list of styles and colours is
-  `StyleCatalog.kt` itself; the originals are dice Classic (Ivory, Red, Oak), cups Faceted (Green,
+  `StyleCatalog.kt` itself; the originals are dice Classic (Ivory, Red, Oak - the original Red, id `fire`, was later removed; a saved `fire` dice pick now falls back to the default, and Classic gained Tricolour's red/yellow/blue ahead of Oak), cups Faceted (Green,
   Red) and Barrel (with the casino shaker since moved ahead of them as the default), mats Classic (Blue, Red) and Barrel, backgrounds Classic (Navy, Red, Brown). A new
   colour of an existing shape goes in that family, not a new one, and every family has 1-3 colours
   (`StyleCatalogTest` checks). The later styles are built from shared parts rather than one file
@@ -97,8 +97,7 @@ decisions behind it. Read that before changing anything visual.
   press popping up a scrollable row of previews, one per colour (no colour names on screen - the
   name belongs to the style; `StyleColour.name` is only read out by screen readers). `GameScreen` reads the ids and builds the active
   `GameVisualTheme` from them on every recomposition. Shipped skins: Ivory/Midnight Felt/Blue Felt
-  (the defaults - the default cup is now the casino shaker, below) and a second, fully independent "fire" skin per category - a red die with orange
-  pips (`FireDiceStyle`), the faceted cup in reds with orange edges (`FireDiceCupStyle`), a red
+  (the defaults - the default cup is now the casino shaker, below) and a second, fully independent "fire" skin for the cup, background and mat (the dice had one too, since removed) - the faceted cup in reds with orange edges (`FireDiceCupStyle`), a red
   felt background (`FireTableBackground`) and a plain red tray (`FireDiceMat`). The cup and mat
   used to carry painted flames (a flame up the cup, a band of flame tongues along the tray's
   bottom); both were removed at the maintainer's request. A third, "barrel" skin: honey-oak dice
