@@ -257,7 +257,11 @@ decisions behind it. Read that before changing anything visual.
     the hidden hold sequence itself, whether or not this build lets it do anything.
   - **`NOT_THOSE_DICE` (tapping the menu's own logo dice) needed a `MenuViewModel`** purely to hold
     the one-line achievement unlock `MenuScreen` otherwise has no repository to reach - `AppLogo`
-    gained an `onDiceTap` callback wrapping just the dice `Row`, not the wordmark below it.
+    gained an `onDiceTap` callback wrapping just the dice `Row`, not the wordmark below it. The
+    tap also rolls the fan (`logoRollPose`, pinned by `LogoRollTest`): each die hops, spins a whole
+    turn and flicks through other faces, one just after another, landing back on its own face at
+    its own tilt (2-4-5-3-6 - the order "Product Placement" also relies on). A tap mid-roll is
+    ignored; the achievement unlock is unchanged.
   - **The Achievements screen has its own, unrelated superuser mode**, entirely
     debug-build-gated (`AchievementsViewModel`'s `isDebugBuild`) - unlike the in-game one, this isn't a
     discoverable easter egg tied to an achievement, just a tester's shortcut, so nothing about it

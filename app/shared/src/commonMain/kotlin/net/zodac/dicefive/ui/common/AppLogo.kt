@@ -15,8 +15,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -33,6 +38,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlin.math.PI
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.random.Random
+import kotlinx.coroutines.launch
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.sora
@@ -78,6 +88,40 @@ private data class LogoDie(val value: Int, val tilt: Float, val drop: Dp)
 private const val LOGO_CUP_HEIGHT_IN_DICE = 3.4f
 private const val LOGO_CUP_RAISE_IN_DICE = 0.35f
 
+// Tapping the fan rolls it: each die hops, spins a whole turn - alternate dice each way - and
+// flicks through faces for ROLL_MILLIS, starting ROLL_STAGGER_MILLIS after the one before, then
+// lands back on its own face at its own tilt. Its face changes every ROLL_FACE_MILLIS, and settles
+// for the last ROLL_SETTLED_SHARE of its roll so it's seen landing on it.
+private const val ROLL_MILLIS = 900f
+private const val ROLL_STAGGER_MILLIS = 70f
+private const val ROLL_FACE_MILLIS = 80f
+private const val ROLL_SETTLED_SHARE = 0.2f
+private const val ROLL_HOP_IN_DICE = 0.6f
+internal val LOGO_ROLL_MILLIS = ROLL_MILLIS + ROLL_STAGGER_MILLIS * 4
+
+/** Where one logo die is, [elapsedMillis] into a roll of the fan: turned [spinDegrees] past its tilt, [hop] dice up, showing [value]. */
+internal data class LogoRollPose(val spinDegrees: Float, val hop: Float, val value: Int)
+
+/**
+ * The [index]th logo die's pose [elapsedMillis] into a roll, when its own face is [value]: its own
+ * face, level and square at the start and the end, a whole turn apart; hopping, spinning and
+ * showing other faces in between.
+ */
+internal fun logoRollPose(index: Int, value: Int, elapsedMillis: Float): LogoRollPose {
+    val progress = ((elapsedMillis - index * ROLL_STAGGER_MILLIS) / ROLL_MILLIS).coerceIn(0f, 1f)
+    val eased = 1f - (1f - progress).pow(3)
+    val direction = if (index % 2 == 0) 1f else -1f
+    val scrambling = progress > 0f && progress < 1f - ROLL_SETTLED_SHARE
+    val face = if (scrambling) {
+        val tick = (elapsedMillis / ROLL_FACE_MILLIS).toInt()
+        // Never its own face mid-roll, so it's plain the dice really are rolling.
+        (Random(tick * 31 + index).nextInt(1, 6).let { if (it >= value) it + 1 else it })
+    } else {
+        value
+    }
+    return LogoRollPose(spinDegrees = direction * 360f * eased, hop = ROLL_HOP_IN_DICE * sin(PI.toFloat() * progress), value = face)
+}
+
 private val LOGO_DICE = listOf(
     LogoDie(value = 2, tilt = -20f, drop = 8.dp),
     LogoDie(value = 4, tilt = -10f, drop = 2.dp),
@@ -103,8 +147,10 @@ private val LOGO_DICE = listOf(
  * [DieMotion] the dice tray moves them with. Every other style, and every other screen, is unaffected.
  *
  * [onDiceTap] is the "Not Those Dice!" easter egg - only the dice fan itself is the tap target, not
- * the wordmark below it. No ripple: at this size (five dice sharing one row) a ripple reads as the
- * whole logo flashing, not a considered tap target, the same call [DiceCupPanel] makes for its cup.
+ * the wordmark below it - and tapping it rolls the fan too (see [logoRollPose]), landing back on
+ * the dice it started on; a tap while they're still rolling is ignored. No ripple: at this size
+ * (five dice sharing one row) a ripple reads as the whole logo flashing, not a considered tap
+ * target, the same call [DiceCupPanel] makes for its cup.
  */
 @Composable
 fun AppLogo(
@@ -132,6 +178,30 @@ fun AppLogo(
             val awake = motion.awake
             LaunchedEffect(motion, awake) {
                 if (awake) motion.follow()
+            }
+        }
+    }
+
+    // How far into a roll the fan is, or null at rest. Each die's whole turns so far, so a googly
+    // die's pupils see one steady spin from roll to roll rather than a jump back by a turn.
+    var rollMillis by remember { mutableStateOf<Float?>(null) }
+    val turnsSoFar = remember { FloatArray(LOGO_DICE.size) }
+    val scope = rememberCoroutineScope()
+    val roll = {
+        if (rollMillis == null) {
+            scope.launch {
+                val start = withFrameNanos { it }
+                var elapsed = 0f
+                while (elapsed < LOGO_ROLL_MILLIS) {
+                    elapsed = withFrameNanos { (it - start) / 1_000_000f }
+                    rollMillis = elapsed.coerceAtMost(LOGO_ROLL_MILLIS)
+                    motions?.forEachIndexed { i, motion ->
+                        val pose = logoRollPose(i, LOGO_DICE[i].value, elapsed)
+                        motion.moveTo(Offset(0f, -pose.hop), LOGO_DICE[i].tilt + turnsSoFar[i] + pose.spinDegrees)
+                    }
+                }
+                LOGO_DICE.indices.forEach { i -> turnsSoFar[i] += logoRollPose(i, LOGO_DICE[i].value, LOGO_ROLL_MILLIS).spinDegrees }
+                rollMillis = null
             }
         }
     }
@@ -167,18 +237,22 @@ fun AppLogo(
                 modifier = Modifier.clickable(
                     interactionSource = diceInteractionSource,
                     indication = null,
-                    onClick = onDiceTap,
+                    onClick = {
+                        roll()
+                        onDiceTap()
+                    },
                 ),
             ) {
                 LOGO_DICE.forEachIndexed { i, die ->
+                    val pose = rollMillis?.let { logoRollPose(i, die.value, it) }
                     CompositionLocalProvider(LocalDieMotion provides motions?.get(i)) {
                         diceStyle.Die(
-                            value = die.value,
+                            value = pose?.value ?: die.value,
                             held = false,
                             modifier = Modifier
                                 .size(dieSize)
-                                .offset(y = die.drop)
-                                .rotate(die.tilt),
+                                .offset(y = die.drop - dieSize * (pose?.hop ?: 0f))
+                                .rotate(die.tilt + (pose?.spinDegrees ?: 0f)),
                         )
                     }
                 }
