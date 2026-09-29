@@ -255,7 +255,9 @@ decisions behind it. Read that before changing anything visual.
     true` and its toast) stays behind a debug build (`BuildInfo.isDebug` - `BuildConfig.DEBUG` on
     Android - passed in as `GameViewModel`'s `isDebugBuild`), so the achievement rewards performing
     the hidden hold sequence itself, whether or not this build lets it do anything.
-  - **`NOT_THOSE_DICE` (tapping the menu's own logo dice) needed a `MenuViewModel`** purely to hold
+  - **`NOT_THOSE_DICE` (tapping the menu's own logo dice - an Easter Egg now, so secret and outside
+    Completionist, having started out in Miscellaneous as a hidden achievement; its icon is the
+    logo's own fan of default dice, `rememberDiceFanIcon`) needed a `MenuViewModel`** purely to hold
     the one-line achievement unlock `MenuScreen` otherwise has no repository to reach - `AppLogo`
     gained an `onDiceTap` callback wrapping just the dice `Row`, not the wordmark below it. The
     tap also rolls the fan (`logoRollPose`, pinned by `LogoRollTest`): each die hops, spins a whole
