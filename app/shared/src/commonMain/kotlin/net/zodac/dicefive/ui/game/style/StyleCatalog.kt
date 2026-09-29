@@ -178,17 +178,34 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     "Red",
                     CubeDiceStyle("cube_red", Color(0xFFE53935), Color(0xFFB71C1C), Color(0xFFEF6A5E), Color(0xFF8E1414), Color.White),
                 ),
+                colour(
+                    "Rounded",
+                    CubeDiceStyle(
+                        "cube_round_ivory", Color(0xFFFFFCF3), Color(0xFFE6DAB8), Color(0xFFFFFFFF), Color(0xFFC9B78E), Color(0xFF2B2118),
+                        rounded = true,
+                    ),
+                ),
             ),
         ),
         StyleFamily(
             "Googly",
-            listOf(colour("Ivory", GooglyDiceStyle("googly_ivory", IvoryDiceTop, IvoryDiceBottom, DicePipColor))),
+            listOf(
+                colour("Ivory", GooglyDiceStyle("googly_ivory", IvoryDiceTop, IvoryDiceBottom, DicePipColor)),
+                colour(
+                    "Black",
+                    GooglyDiceStyle("googly_black", Color(0xFF3A3A3E), Color(0xFF141416), Color.White),
+                ),
+                colour(
+                    "Blue",
+                    GooglyDiceStyle("googly_blue", Color(0xFF3A6BB0), Color(0xFF14315C), GoldAccent, socket = GoldAccent),
+                ),
+            ),
         ),
         StyleFamily(
             "Misprint",
             listOf(
-                colour("Pencil", MisprintDiceStyle("misprint_pencil", Color(0xFFFAF7F0), Color(0xFF3A3A3A))),
-                colour("Blueprint", MisprintDiceStyle("misprint_blueprint", Color(0xFF1F4E8C), Color(0xFFEAF2FF))),
+                colour("Pencil", MisprintDiceStyle("misprint_pencil", Color(0xFFFAF7F0), Color(0xFF3A3A3A), seed = 1)),
+                colour("Blueprint", MisprintDiceStyle("misprint_blueprint", Color(0xFF1F4E8C), Color(0xFFEAF2FF), seed = 2)),
             ),
         ),
     ),
@@ -210,6 +227,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
             "Faceted",
             listOf(
                 StyleColour("Green", FacetedCupLitFace, FacetedDiceCupStyle),
+                StyleColour("Black", Color(0xFF3A3A3F), BlackFacetedDiceCupStyle),
                 StyleColour("Red", FireCupLitFace, FireDiceCupStyle),
             ),
         ),
@@ -288,9 +306,9 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
         StyleFamily(
             "Spotlight",
             listOf(
+                background("Purple", ::SpotlightBackground, "spotlight_purple", 0xFF5A3290, 0xFF1A0A33),
                 background("Navy", ::SpotlightBackground, "spotlight_navy", 0xFF2A5590, 0xFF0A1A33),
                 background("Green", ::SpotlightBackground, "spotlight_green", 0xFF2E7A48, 0xFF0A2A16),
-                background("Purple", ::SpotlightBackground, "spotlight_purple", 0xFF5A3290, 0xFF1A0A33),
             ),
         ),
         StyleFamily(
@@ -319,7 +337,6 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
             "Starry",
             listOf(
                 background("Midnight", ::StarryBackground, "starry_midnight", 0xFF12224A, 0xFF060C22),
-                background("Violet", ::StarryBackground, "starry_violet", 0xFF2E1650, 0xFF120722),
             ),
         ),
         StyleFamily(
@@ -348,7 +365,13 @@ object DiceMats : StyleCatalog<DiceMat>(
                 StyleColour("Red", FireTrayTop, FireDiceMat),
             ),
         ),
-        StyleFamily("Barrel", listOf(StyleColour("Brown", BarrelTrayTop, BarrelDiceMat))),
+        StyleFamily(
+            "Wood",
+            listOf(
+                StyleColour("Brown", BarrelTrayTop, BarrelDiceMat),
+                StyleColour("Hardwood", Color(0xFFA8703F), HardwoodDiceMat),
+            ),
+        ),
         StyleFamily(
             "Leather",
             listOf(
@@ -365,34 +388,6 @@ object DiceMats : StyleCatalog<DiceMat>(
             ),
         ),
         StyleFamily(
-            "Marble",
-            listOf(
-                mat("Black", ::MarbleDiceMat, "marble_black", 0xFF34343A, 0xFF1A1A1E, 0xFF111114, 0xFF0A0A0C, 0xFFBDBDBD, 0xFFFFFFFF),
-                mat("Green", ::MarbleDiceMat, "marble_green", 0xFF2A4A3C, 0xFF15291F, 0xFF0E1F17, 0xFF08140E, 0xFFA8D8C0, 0xFFDFF5EA),
-            ),
-        ),
-        StyleFamily(
-            "Chalkboard",
-            listOf(
-                colour(
-                    "Slate",
-                    ChalkboardDiceMat(
-                        "chalkboard_slate",
-                        matPalette(0xFF3A4648, 0xFF252E30, 0xFF1B2224, 0xFF12181A, 0xFFD8D8D0, 0xFFFFFFFF),
-                        frame = Color(0xFF7A5230),
-                    ),
-                ),
-                colour(
-                    "Green",
-                    ChalkboardDiceMat(
-                        "chalkboard_green",
-                        matPalette(0xFF2F4F3E, 0xFF1D3327, 0xFF152A1F, 0xFF0D1C14, 0xFFD8E8D8, 0xFFFFFFFF),
-                        frame = Color(0xFF7A5230),
-                    ),
-                ),
-            ),
-        ),
-        StyleFamily(
             "Gingham",
             listOf(
                 mat("Red", ::GinghamDiceMat, "gingham_red", 0xFFA8322D, 0xFF7E211D, 0xFF4A1310, 0xFF330B09, 0xFFF2B8B0, 0xFFFFFFFF),
@@ -404,9 +399,9 @@ object DiceMats : StyleCatalog<DiceMat>(
             "Starry",
             listOf(
                 mat("Midnight", ::StarryDiceMat, "starry_midnight", 0xFF152550, 0xFF070E24, 0xFF0A1330, 0xFF050A1C, 0xFF8FA8E8, 0xFFFFFFFF),
-                mat("Violet", ::StarryDiceMat, "starry_violet", 0xFF34195A, 0xFF150828, 0xFF1C0B33, 0xFF10051E, 0xFFC3A8F0, 0xFFFFFFFF),
             ),
         ),
+        StyleFamily("Marble", listOf(StyleColour("White", Color(0xFFF2F1EE), MarbleDiceMat))),
     ),
 )
 

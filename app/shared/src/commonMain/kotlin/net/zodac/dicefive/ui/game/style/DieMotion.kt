@@ -118,6 +118,15 @@ class DieMotion(seed: Int, private val travel: Float) {
         }
     }
 
+    /** Freezes the pupils where they are: the die has landed, so they stop sliding at once. */
+    fun settle() {
+        speeds.fill(Offset.Zero)
+        lastCentre = centre
+        lastYawDegrees = yawDegrees
+        lastVelocity = null
+        awake = false
+    }
+
     /** Moves the pupils on every frame until the die and they have all come to rest. */
     suspend fun follow() {
         try {

@@ -79,7 +79,12 @@ decisions behind it. Read that before changing anything visual.
   patterned backgrounds (`PatternedBackgrounds.kt`, drawn through
   `TableBackground.drawScoreAreaDecoration`), with `Patterns.kt` holding painters more than one of
   them uses (stars, countertop marble, gingham checks - the random ones always from a fixed seed so
-  they don't shimmer). Natural-looking dice (Marble, Frosted) also seed by `LocalDieIndex`, the
+  they don't shimmer). Mats of natural materials that Canvas strokes can't make convincing (the
+  Marble mat, the Wood mat's Hardwood) are `TexturedDiceMat`s (`TexturedMats.kt`): a pre-rendered
+  texture in `composeResources/drawable/`, cropped to fill the tray. The textures aren't photographs -
+  `scripts/art/generate_*_mat.py` (numpy/scipy/pillow) generate them from a fixed seed, each script's
+  docstring says how to re-export, and each is in `app/licensing/asset-sources.json` as the app's own
+  work. Earlier stroke-drawn marble mats read as lightning; see the scripts for what replaced them. Natural-looking dice (Marble, Frosted) also seed by `LocalDieIndex`, the
   die's position in the tray, so no two dice - or two faces of one die - share a pattern. Their palettes
   sit beside their entries in `StyleCatalog.kt` rather than in `Color.kt` - see UI.md.
   The Styles screen (`ui/styles/`) is the picker: one tile per family, showing the picked colour

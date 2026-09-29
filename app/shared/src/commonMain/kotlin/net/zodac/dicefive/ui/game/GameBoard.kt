@@ -49,6 +49,7 @@ private fun ScoreBoardRow(
     modifier: Modifier = Modifier,
 ) {
     val visualTheme = LocalGameVisualTheme.current
+    visualTheme.background.Animate()
 
     Row(
         modifier = modifier

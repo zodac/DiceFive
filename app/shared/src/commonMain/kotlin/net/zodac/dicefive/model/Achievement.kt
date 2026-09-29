@@ -411,7 +411,7 @@ enum class Achievement(
 
     // Moved from Themes.
     FRESH_COAT_OF_PAINT(
-        "fresh_coat_of_paint", "Fresh Coat Of Paint", "Start a game with any item using a non-default style",
+        "fresh_coat_of_paint", "Fresh Coat Of Paint", "Play a game with any item using a non-default style",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
 

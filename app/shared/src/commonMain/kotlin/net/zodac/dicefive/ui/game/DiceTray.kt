@@ -41,11 +41,13 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin
 import kotlin.random.Random
@@ -65,11 +67,13 @@ import net.zodac.dicefive.ui.game.style.LocalDieIndex
 import net.zodac.dicefive.ui.game.style.LocalDieMotion
 import net.zodac.dicefive.ui.game.style.LocalDieTumbleMillis
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
+import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.LocalSimpleDiceRoll
 import net.zodac.dicefive.ui.game.style.PickUpPath
 import net.zodac.dicefive.ui.game.style.TossPath
 import net.zodac.dicefive.ui.game.style.TossPose
 import net.zodac.dicefive.ui.game.style.TossedCube
+import net.zodac.dicefive.ui.game.style.palette
 
 private data class ScatterOffset(val xOffset: Dp, val yOffset: Dp, val rotationDegrees: Float)
 
@@ -91,6 +95,9 @@ private val SCATTER_AREA_HEIGHT = 96.dp
 // Round the tray's contents, inside its rounded edge - which clips anything past it.
 private val TRAY_PADDING = 16.dp
 private val DICE_COLUMN_GAP = 14.dp
+
+// How much wider than it is square a die tipping over can look, nearest edge looming (TossedCube).
+private const val TIPPED_FOOTPRINT = 1.06f
 
 // The one light the dice on the mat cast their shadows from: above and to the left of the tray's
 // top-left corner, in dp from that corner of the dice row. A shadow falls away from it by this much
@@ -423,6 +430,17 @@ private fun ScatterArea(
         val rest = Modifier.align(Alignment.TopCenter).size(SCATTERED_DIE_SIZE)
         val selfTumbling = die.colour == null && diceStyle.tumblesItself
 
+        // A die's rotated footprint stays inside its own column plus half the gap to the next, so
+        // neighbours can never overlap, however they're turned - pushed back in from the edge as if
+        // off a wall. A little extra for a cube tipping over, whose near edge looms a touch wider.
+        val halfSlot = (maxWidth + DICE_COLUMN_GAP) / 2
+        fun keptIn(x: Dp, yawDegrees: Float): Dp {
+            val radians = yawDegrees * PI.toFloat() / 180f
+            val half = SCATTERED_DIE_SIZE / 2 * (abs(cos(radians)) + abs(sin(radians))) * TIPPED_FOOTPRINT
+            val room = (halfSlot - half).coerceAtLeast(0.dp)
+            return x.coerceIn(-room, room)
+        }
+
         // Where the die sits in the whole dice row, for its shadow: this column's place in the row
         // plus where the die is within it.
         val columnLeft = (maxWidth + DICE_COLUMN_GAP) * seed
@@ -475,9 +493,9 @@ private fun ScatterArea(
 
         @Composable
         fun Moving(pose: TossPose, ring: List<Int>, finalTurns: Int, tossMillis: Float?) {
-            val x = scatter.xOffset + pose.dx.dp
-            val y = scatter.yOffset + pose.dy.dp
             val yaw = scatter.rotationDegrees + pose.yawDegrees
+            val x = keptIn(scatter.xOffset + pose.dx.dp, yaw)
+            val y = scatter.yOffset + pose.dy.dp
             // A cube tipping over an edge rises off the mat, highest halfway over.
             val lift = if (selfTumbling) 0f else sin((pose.roll - floor(pose.roll)) * PI.toFloat()) * 0.2f
             val tumbleMillis = tossMillis.takeIf { selfTumbling }
@@ -494,7 +512,14 @@ private fun ScatterArea(
             } else if (die.colour == null) {
                 diceStyle.TossedDie(roll = pose.roll, finalTurns = finalTurns, ring = ring, modifier = placed)
             } else {
-                TossedCube(roll = pose.roll, finalTurns = finalTurns, ring = ring, modifier = placed) { value, faceModifier ->
+                val palette = die.colour.palette(LocalIrishTricolour.current)
+                TossedCube(
+                    roll = pose.roll,
+                    finalTurns = finalTurns,
+                    ring = ring,
+                    body = lerp(palette.diceTop, palette.diceBottom, 0.5f),
+                    modifier = placed,
+                ) { value, faceModifier ->
                     DieFace(die = die.copy(value = value), held = false, diceStyle = diceStyle, modifier = faceModifier)
                 }
             }
@@ -533,14 +558,17 @@ private fun ScatterArea(
                     // not remember()'d, since a cached value wouldn't flicker. A coloured die tumbles
                     // through colours as well as numbers.
                     val displayDie = if (rolling) scrambledFace(Random(scrambleTick * 31 + seed), gameMode) else die
-                    Shadow(scatter.xOffset, scatter.yOffset, scatter.rotationDegrees, lift = 0f)
-                    Track(scatter.xOffset, scatter.yOffset, scatter.rotationDegrees)
+                    val restX = keptIn(scatter.xOffset, scatter.rotationDegrees)
+                    Shadow(restX, scatter.yOffset, scatter.rotationDegrees, lift = 0f)
+                    Track(restX, scatter.yOffset, scatter.rotationDegrees)
+                    // Landed: the pupils stop with the dice, rather than sloshing on once scoring is open.
+                    if (motion != null && !rolling) SideEffect { motion.settle() }
                     DieFace(
                         die = displayDie,
                         held = false,
                         diceStyle = diceStyle,
                         modifier = rest
-                            .offset(x = scatter.xOffset, y = scatter.yOffset)
+                            .offset(x = restX, y = scatter.yOffset)
                             .graphicsLayer { rotationZ = scatter.rotationDegrees },
                     )
                 }

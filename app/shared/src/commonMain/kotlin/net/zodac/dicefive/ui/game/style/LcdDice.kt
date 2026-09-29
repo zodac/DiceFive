@@ -42,6 +42,7 @@ class LcdDiceStyle(
     private val glow: Boolean,
 ) : DiceStyle, Swatched {
     override val swatch: Color = if (glow) lit else body
+    override val bodyColor: Color = body
 
     override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(LCD_CORNER_PERCENT)
 

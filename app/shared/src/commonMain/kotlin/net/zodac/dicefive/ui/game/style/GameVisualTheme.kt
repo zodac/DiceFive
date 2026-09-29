@@ -43,6 +43,12 @@ interface DiceStyle : TableArt {
      * (null at rest - see [LocalDieTumbleMillis]), for a die whose outline changes with either (the
      * D20). A rounded square by default, like [BeveledDie].
      */
+    /**
+     * The colour of the die's material itself - what shows along the rounded edge between two faces
+     * as [TossedCube] tumbles it. Its swatch, for a style that has one.
+     */
+    val bodyColor: Color get() = (this as? Swatched)?.swatch ?: Color.LightGray
+
     fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(BEVELED_DIE_CORNER_PERCENT)
 
     /**
@@ -60,7 +66,7 @@ interface DiceStyle : TableArt {
      */
     @Composable
     fun TossedDie(roll: Float, finalTurns: Int, ring: List<Int>, modifier: Modifier) {
-        TossedCube(roll = roll, finalTurns = finalTurns, ring = ring, modifier = modifier) { value, faceModifier ->
+        TossedCube(roll = roll, finalTurns = finalTurns, ring = ring, body = bodyColor, modifier = modifier) { value, faceModifier ->
             Die(value = value, held = false, modifier = faceModifier)
         }
     }
@@ -97,6 +103,13 @@ interface TableBackground : TableArt {
      * plain brush and don't need one, so it's a no-op by default.
      */
     fun DrawScope.drawScoreAreaDecoration() {}
+
+    /**
+     * Composed by whoever draws [drawScoreAreaDecoration], for a decoration that moves: keeps it
+     * running for as long as it's on screen. A no-op for one that doesn't.
+     */
+    @Composable
+    fun Animate() {}
 }
 
 /** Supplies the (independently swappable) dice-tray mat, separate from [TableBackground]. */

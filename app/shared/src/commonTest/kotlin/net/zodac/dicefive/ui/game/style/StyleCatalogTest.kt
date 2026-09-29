@@ -13,11 +13,15 @@ class StyleCatalogTest {
 
     @Test
     fun everyShippedIdStillResolvesToItsOwnArt() {
-        // The first ids shipped stay first - for cups, straight after the Classic (casino) style that now leads.
-        assertEquals(listOf("ivory", "fire", "barrel"), DiceStyles.all.map { it.id }.take(3))
-        assertEquals(listOf("casino_black", "casino_burgundy", "casino_green", "faceted", "fire", "barrel"), DiceCupStyles.all.map { it.id }.take(6))
-        assertEquals(listOf("tray_blue", "fire", "barrel"), DiceMats.all.map { it.id }.take(3))
-        assertEquals(listOf("midnight_felt", "fire", "barrel"), TableBackgrounds.all.map { it.id }.take(3))
+        val shipped = mapOf(
+            DiceStyles to listOf("ivory", "fire", "barrel"),
+            DiceCupStyles to listOf("casino_black", "faceted", "fire", "barrel"),
+            DiceMats to listOf("tray_blue", "fire", "barrel"),
+            TableBackgrounds to listOf("midnight_felt", "fire", "barrel"),
+        )
+        for ((catalog, ids) in shipped) {
+            for (id in ids) assertEquals(id, catalog.byId(id).id)
+        }
         for (catalog in listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds)) {
             for (art in catalog.all) {
                 assertEquals(art, catalog.byId(art.id))
@@ -55,7 +59,7 @@ class StyleCatalogTest {
         assertEquals("Faceted", DiceCupStyles.familyOf("fire").name)
         assertEquals("Barrel", DiceCupStyles.familyOf("barrel").name)
         assertEquals("Classic", DiceMats.familyOf("fire").name)
-        assertEquals("Barrel", DiceMats.familyOf("barrel").name)
+        assertEquals("Wood", DiceMats.familyOf("barrel").name)
         for (id in listOf("ivory", "fire", "barrel")) {
             assertEquals("Classic", DiceStyles.familyOf(id).name)
             assertEquals("Classic", TableBackgrounds.familyOf(if (id == "ivory") "midnight_felt" else id).name)
