@@ -181,13 +181,13 @@ decisions behind it. Read that before changing anything visual.
   player 1 - see the "Player 1 only" phase entry below for why, and for the Google Play Games
   question this raises. Career points (`PROFESSIONAL_ROLLER`) are the exception to that exception:
   they sum only rows with `ScoreEntry.isPrimaryPlayer` (set from the seat, never inferred from the
-  name). Score-threshold achievements (Solid Round, Sharpshooter, High Roller, Dice Deity, Cheater
-  Cheater) are judged only once a game finishes, never mid-game off a total an abandoned game
-  would throw away. Local only for now but shaped so each maps onto a Google Play Games
-  achievement later (see Phase 13). One (`CHEATER_CHEATER`) is secret: `Achievement.isSecret`
-  keeps it out of the list - and its unlocked/total counts - until it's
-  actually earned, since seeing "finish with the maximum possible score"
-  sitting on the to-do list would rather give the game away.
+  name). Score-threshold achievements (Solid Round, Sharpshooter, High Roller, Dice Deity) are
+  judged only once a game finishes, never mid-game off a total an abandoned game would throw away.
+  Local only for now but shaped so each maps onto a Google Play Games achievement later (see
+  Phase 13). The five in `AchievementCategory.EASTER_EGGS` are secret
+  (`AchievementVisibility.SECRET`): kept out of the list - and its unlocked/total counts - until
+  earned, and out of Completionist. Every `MISCELLANEOUS` achievement is `HIDDEN` (title shown,
+  description "???" until earned), and vice versa - `AchievementEngineTest` enforces both pairings.
   Table-art style ones (`STYLE_DICE`/`STYLE_CUP`/`STYLE_BACKGROUND`) are judged at game START, not
   the end - the player picked the style before a die was ever rolled, so there's no reason to make
   them finish playing to hear about it. This is its own evaluation entry point,
@@ -356,22 +356,25 @@ net.zodac.dicefive/
       AchievementEvents.kt             — process-wide SharedFlow feeding the banner host
       AchievementStore.kt              — the interface GameViewModel depends on, so the path is testable
   model/
-    Die.kt                             — existing, unchanged
-    ScoreCategory.kt                   — existing enum, unchanged
-    GameMode.kt                        — STANDARD, TRICOLOUR: every per-mode rule (see "Game modes" above)
+    Die.kt                             — a die's value, colour (coloured modes only) and held state
+    ScoreCategory.kt                   — every category any mode can use: section, fixed score, joker free-fill, colour
+    GameMode.kt                        — STANDARD, TRICOLOUR, QUICKFIRE: every per-mode rule (see "Game modes" above)
+    TurnTimer.kt                       — the setup screen's turn timer choices (NONE, 30s, 60s, 120s)
+    TimeoutPick.kt                     — FIRST_OPEN, LOWEST_SCORE: where a mode scores a timed-out turn
     DieColour.kt                       — RED, YELLOW, BLUE (Tricolour's die colours)
     PlayerType.kt                      — HUMAN, AI
-    Difficulty.kt                      — EASY, MEDIUM, HARD (stored, UI disabled)
+    Difficulty.kt                      — EASY, MEDIUM, HARD (picked per CPU seat on the setup screen)
     PlayerConfig.kt                    — setup-time: slot, type, name, difficulty
     PlayerState.kt                     — in-game: name, type, difficulty, scorecard (Map<ScoreCategory, Int?>), fiveOfAKindBonusCount
-    GameState.kt                       — rewritten: gameType, players: List<PlayerState>, currentPlayerIndex,
-                                          dice: List<Die>, rollsRemaining, phase (AWAITING_ROLL / ROLLED), isGameOver
+    GameState.kt                       — gameMode, turnTimer, players: List<PlayerState>, currentPlayerIndex,
+                                          dice: List<Die>, rollsRemaining, phase (AWAITING_ROLL / ROLLED), isGameOver;
+                                          turnSeconds and awaitsAutoRoll resolve the mode's turn rules
   game/
     DiceScoring.kt                     — pure functions: score(category, dice), isFiveOfAKind etc.
     ScoreCalculator.kt                 — resolves a category pick against current scorecard incl. upper bonus (63+ => +35)
                                           and Yahtzee joker rule (extra Yahtzee => +100 bonus, forced placement rules)
     GameEngine.kt                      — pure reducer-style functions: rollDice, toggleHold, commitScore, advanceTurn
-    AiTurnPlayer.kt                    — basic auto-play: roll x3 (no holds) then pick max-scoring open category
+    AiTurnPlayer.kt                    — Easy/Medium/Hard hold and category choices, from the player's own mode
     AiNameGenerator.kt                 — static themed name pool, random pick without duplicates per game
     AchievementEngine.kt               — pure: what a game has earned so far (mid-game) and at the end
   navigation/
@@ -382,10 +385,13 @@ net.zodac.dicefive/
     setup/
       GameSetupScreen.kt               — player count 1-4, per-slot human/AI + name field, game mode radio, turn timer
     game/
-      GameScreen.kt                    — dice tray w/ hold toggles, roll button, scorecard grid, current player banner
-      GameViewModel.kt                 — owns setup config AND live GameState; phase drives which screen renders;
-                                          drives AI auto-play via viewModelScope coroutine with short delays between steps
-      ScorecardView.kt / DiceRow.kt    — shared composables for the scorecard grid and dice display
+      GameScreen.kt                    — the in-game screen: turn timer badge, player tabs, board, the cup tap
+                                          (onCupTap - finger, phone shake, or Quickfire's auto-roll), game over
+      GameViewModel.kt                 — owns setup config AND live GameState; every roll lands through
+                                          performRoll; drives AI auto-play via viewModelScope coroutine with short
+                                          delays between steps; the turn timer; achievement tracking
+      GameBoard.kt / ScoreGrid.kt      — the felt board: the scorecard grid (laid out from the mode's categories)
+      DiceCupPanel.kt / DiceTray.kt    — the cup (and its rolls-left badge) and the dice on the mat
     scores/
       ScoresScreen.kt                  — paginated table (50/page), long-press row shows date tooltip
       ScoresViewModel.kt               — talks to ScoreRepository, tracks current page
@@ -455,10 +461,19 @@ nav arguments or introducing a singleton holder.
 
 ## Yahtzee turn engine rules
 
-- Start of turn: 5 dice, 3 rolls remaining, all unheld.
+The numbers here are Standard's - dice count, rolls per turn and the rest come from the game's
+`GameMode` (see "Game modes" under Decisions, and `.claude/GAME_MODES.md`).
+
+- Start of turn: 5 dice, 3 rolls remaining, all unheld. In a mode with
+  `autoRollAtTurnStart` (Quickfire), a human's turn starts with `GameScreen` tapping the cup for
+  them - the same tap a finger makes.
 - Roll: rolls all non-held dice, decrements `rollsRemaining`.
-- Hold: toggles a die's `isHeld` — only after ≥1 roll this turn and while
-  `rollsRemaining > 0`.
+- Hold: toggles a die's `isHeld` — only after ≥1 roll this turn. Still allowed once the last
+  roll is spent (it has no effect then, but disabling the dice looked broken - see `GameScreen`'s
+  `canHold`).
+- Every roll, human or AI, lands through `GameViewModel.performRoll`, after the cup shakes for
+  `CUP_SHAKE_MILLIS`: a human's via the cup tap (`onCupTap` - finger, phone shake or auto-roll)
+  and `rollDice`, an AI's via its own turn loop.
 - Score: player may pick any open `ScoreCategory` at any point once ≥1 die
   has been rolled this turn (not only after 3 rolls). `ScoreCalculator`
   computes the value including upper-section 63+ bonus (+35) and the
@@ -468,8 +483,11 @@ nav arguments or introducing a singleton holder.
   open box).
 - After scoring: advance to next player, reset dice/rolls/phase. If the new
   current player is AI, `GameViewModel` drives `AiTurnPlayer` through
-  roll → roll → roll → score automatically (brief coroutine delays so it's
-  visibly animated, not instant).
+  its rolls (up to the mode's `rollsPerTurn`, stopping early once it holds every die) and then a
+  score, with brief coroutine delays so it's visibly animated, not instant.
+- Turn timer: when one is set (the Turn Timer setting, or the mode's own `turnTimerSeconds`),
+  running out rolls if needed and scores `ScoreCalculator.timeoutCategory` - the first open box, or
+  in Quickfire the lowest-scoring one.
 - Game ends when every player's scorecard is full; `GameViewModel` persists
   each **human** player's final total to `ScoreRepository` (one row per
   human player; AI scores are not saved) and sets `isGameOver = true` so
@@ -586,14 +604,22 @@ dependencies — most unit tests live here.
 
 ## Tests
 
-- Update `GameStateTest` for the new `GameState` shape (preserve intent: new
-  game → 5 dice, 3 rolls).
-- Update `MainActivityTest`: keep "DiceFive" as the `MenuScreen` header text
-  so `onNodeWithText("DiceFive")` still passes.
-- New: `YahtzeeScoringTest` (every category + upper bonus + joker rule
-  branches), `GameEngineTest` (roll/hold/score/turn advance/game-over),
-  `AiTurnPlayerTest` (always legal, max-value open category),
-  `ScoreDaoTest`/`ScoreRepositoryTest` (pagination ordering, in-memory Room).
+Pure logic and view models are in `app/shared/src/commonTest` (run on the JVM, and compiled for
+iOS); anything that needs Android or a rendered screen is in `app/android/src/test` (Robolectric).
+
+- Rules: `DiceScoringTest` (every category), `ScoreCalculatorTest` (bonuses, the joker rule, where
+  a timeout scores), `GameEngineTest` (roll/hold/score/turn advance/game-over), `GameModeTest`
+  (each mode's rules, and its declared ceiling against a perfect game), `TieBreakTest`,
+  `AiTurnPlayerTest`.
+- Achievements: `AchievementEngineTest` (the rules), `GameAchievementsWiringTest` (unlocks through
+  a real `GameViewModel` game, with scripted dice).
+- View models and persistence: `GameViewModelTest`, `MenuViewModelTest`, `GameStateJsonTest`,
+  `InProgressGameRepositoryTest`, `ScoreRepositoryTest`, `JsonTest`.
+- Screens (Robolectric): `MainActivitySmokeTest` (the whole app launches), `GameScreenAutoRollTest`
+  (Quickfire's automatic roll with the real screen and view model), `BoardSemanticsTest`,
+  `GameBoardScoringGateTest`, `DiceTrayGestureTest`, `SettingsRowsTest`, `LicensesDialogTest`.
+- `.claude/GAME_MODES.md`'s Tests section has the helpers (scripted dice, virtual time, the screen
+  harness) and the traps.
 
 ## Verification
 
@@ -673,7 +699,8 @@ install-over-existing succeeds:
       `model/PlayerConfig.kt`, `model/PlayerState.kt`, `model/TurnPhase.kt`.
       Renamed `ScoreCategory.FIVE_OF_A_KIND` → `YAHTZEE`.
 - [x] Rewrite `model/GameState.kt` for multi-player/turn/phase shape.
-- [x] `game/YahtzeeScoring.kt` — per-category scoring functions.
+- [x] `game/YahtzeeScoring.kt` — per-category scoring functions. (Since renamed `DiceScoring.kt`,
+      with `YAHTZEE` → `FIVE_OF_A_KIND` and `GameType` → `GameMode` - see Phases 13 and 14.)
 - [x] `game/ScoreCalculator.kt` — upper bonus (via `PlayerState`) + Yahtzee
       joker rule (available categories + scoring + bonus-chip eligibility).
 - [x] `game/GameEngine.kt` — newGame/rollDice/toggleHold/commitScore
@@ -730,7 +757,8 @@ install-over-existing succeeds:
 - [x] `GameViewModel`: `rollDice()`/`toggleHold()`/`commitScore()` call
       `GameEngine`, gated to a no-op unless it's the human's turn.
 - [x] AI auto-play: `maybeStartAiTurn()` launches a `viewModelScope`
-      coroutine (600ms/step) that rolls 3x then scores via `AiTurnPlayer`,
+      coroutine (600ms/step) that rolls 3x then scores via `AiTurnPlayer`
+      (since Phase 20 its rolls shake for the tap's `CUP_SHAKE_MILLIS`),
       re-checking itself afterward so back-to-back AI players chain
       automatically.
 - [ ] Game-over → persist human scores: **deferred to Phase 5** (no
@@ -1055,7 +1083,8 @@ install-over-existing succeeds:
 
 ### Phase 13 — Achievements
 - [x] **Scope**: 51 achievements (50 + the later-added secret `CHEATER_CHEATER`),
-      replacing the Phase 8 placeholder screen.
+      replacing the Phase 8 placeholder screen. (Since then: Cheater Cheater was dropped in
+      `c4537af`, the secret ones became the Easter Eggs category, and there are 95 in all.)
       Local only for now, but every piece is shaped for a later Google Play
       Games migration: `Achievement.id` is a stable snake_case external key
       (**never change one** — it is the storage key and will be the Play
@@ -1283,10 +1312,10 @@ install-over-existing succeeds:
         already reports to, since only one account is ever signed in per device. Nothing about the
         engine changes for this; it only matters for whatever thin syncing layer eventually calls
         the Play Games SDK off `AchievementUpdate.newlyUnlocked`.
-      - Secret achievements (`Achievement.isSecret` - today just `CHEATER_CHEATER`) are **not**
+      - Secret achievements (`AchievementVisibility.SECRET` - the Easter Eggs category) are **not**
         registered as Google Play Games achievements at all, hidden or otherwise - they stay a
         local-only surprise. Whatever mapping table eventually pairs `Achievement.id` with a Play
-        Games achievement id should simply omit every `isSecret` entry, and the sync call that
+        Games achievement id should simply omit every `SECRET` entry, and the sync call that
         reports `newlyUnlocked` achievements needs to skip them too.
 
 ### Phase 14 — Game modes: Standard and Tricolour
@@ -1331,7 +1360,7 @@ install-over-existing succeeds:
       needs an opponent, like every other win), `TRICOLOUR_ALL_COLOURS` "Tricolour Me Impressed"
       (non-zero in all four colour boxes; judged in `earnedDuringPlay`, so it lands the moment the
       fourth one is committed). `CHEATER_CHEATER` now checks the game's own mode's maximum and no
-      longer names 1575. Picking a mode other than Standard also counts as customising the game for
+      longer names 1575 (it was later dropped - see Phase 13). Picking a mode other than Standard also counts as customising the game for
       "I Did It My Way", and a non-default *dice* style no longer counts for "Fresh Coat Of Paint"
       in a mode that doesn't show it. "Déjà Vu" and "Are These Loaded Dice?" compare number *and*
       colour, since that's what "the same result" means when dice have colours.
@@ -1453,7 +1482,7 @@ install-over-existing succeeds:
       `HorizontalPager` (`androidx.compose.foundation.pager`) anywhere in this app - a plain
       `Column`/`Row` page-indicator (dots, larger for the current page) and previous/next
       `IconButton`s sit either side of it, since there was no existing convention to match.
-- [x] **Six pages**, each its own swipe: How to Play (5 dice, 3 rolls, score into an open category),
+- [x] **Six pages** (seven since Phase 20 added "Mode: Quickfire"), each its own swipe: How to Play (5 dice, 3 rolls, score into an open category),
       Upper Section (per-number totals, the 63/35 bonus), Lower Section (Full House/Small
       Straight/Large Straight's fixed values, Three/Four of a Kind and Chance scoring every die),
       5x and the Joker Rule (the 50-point box, the 100-point bonus chip, and the joker rule's
@@ -1643,14 +1672,17 @@ install-over-existing succeeds:
 
 ### Phase 20 — Game mode: Quickfire
 - [x] **Rules** (beyond the official rules): Standard's dice, card and scoring, but `rollsPerTurn = 1`
-      (no holds, no rerolls) and a fixed 10-second turn timer. The timer is a new `GameMode` field,
-      `turnTimerSeconds` (null for every other mode); `GameState.turnSeconds` resolves "the mode's
-      timer, else the setup pick" and `GameViewModel.syncTurnTimer` counts down from it. A timeout
-      rolls if needed as it always has, but then scores the open category the dice are worth
-      *least* in, with the first in scorecard order winning a tie. Other modes still take the first
-      open category. This is `GameMode.timeoutPick` (`TimeoutPick.LOWEST_SCORE` vs the default
-      `FIRST_OPEN`), applied by `ScoreCalculator.timeoutCategory`, and still limited to the joker
-      rule's `availableCategories`. Same 1575 ceiling as Standard.
+      (no rerolls) and a fixed 10-second turn timer. Same 1575 ceiling as Standard. Engine, AI,
+      board and persistence needed no change for the one roll - they already read it from the mode.
+- [x] **The timer** is a new `GameMode` field, `turnTimerSeconds` (null for every other mode):
+      `GameState.turnSeconds` resolves "the mode's timer, else the setup pick", and
+      `GameViewModel.syncTurnTimer` counts down from it.
+- [x] **Timeouts score the lowest box**: a timeout rolls if needed as it always has, then scores the
+      open category the dice are worth *least* in, the first in scorecard order winning a tie.
+      Other modes still take the first open category. This is `GameMode.timeoutPick`
+      (`TimeoutPick.LOWEST_SCORE` vs the default `FIRST_OPEN`), applied by
+      `ScoreCalculator.timeoutCategory`, and still limited to the joker rule's
+      `availableCategories`.
 - [x] **Automatic roll** (`GameMode.autoRollAtTurnStart`): a human's Quickfire turn starts with the
       cup tapped for them. `GameScreen` calls its own `onCupTap` when `GameState.awaitsAutoRoll`
       goes true, so the shake, sound and roll are exactly a manual tap's. There's no separate
@@ -1663,20 +1695,25 @@ install-over-existing succeeds:
       `GameViewModel.performRoll` as a human's `rollDice`. The CPU still plays in the view model,
       not through the screen's tap: routing it through the screen would stall CPU turns whenever
       the screen isn't showing (and time them out, with a timer), and make the AI loop wait on the
-      UI. The CPU's 600ms pause before scoring (`AI_STEP_DELAY_MS`) is unchanged. Engine, AI, board and persistence needed no change - they already
-      read the rolls from the mode.
+      UI. The CPU's 600ms pause before scoring (`AI_STEP_DELAY_MS`) is unchanged.
 - [x] **New Game screen**: Quickfire appears in the Game Mode radio group from `GameMode.entries`.
       The Turn Timer row is disabled while it's picked (`SegmentedChoiceRow` gained `enabled`); the
       player's pick is kept and saved, and the game starts with `TurnTimer.NONE`.
 - [x] **Rules page**: "Mode: Quickfire", last in `RULES_PAGES`.
 - [x] **Achievements** (Game Modes, after Tricolour's): `QUICKFIRE_WIN` "Quick On The Draw" (win,
       multiplayer) and `QUICKFIRE_BEAT_THE_CLOCK` "Beat The Clock" (finish without player 1's timer
-      ever running out - `GameAchievementContext.playerOneTimedOut`). Impatient, Naturally Gifted and
-      Almost Famous are guarded so a one-roll mode can't give them away; six reroll-based ones simply
-      can't be earned in it. The full list is in `.claude/GAME_MODES.md`.
-- [x] **`.claude/GAME_MODES.md`**: the checklist for adding a mode, and the per-mode achievement audit.
-- [x] Tests: `GameScreenAutoRollTest` (Robolectric: Quickfire rolls without a tap, Standard waits, a human/CPU game goes round), `GameModeTest`, `ScoreCalculatorTest` (timeout pick: lowest, tie order, joker-forced box, Standard unchanged), `AchievementEngineTest`, `GameViewModelTest`, `GameAchievementsWiringTest`.
-- [ ] **Not yet seen on a device**: the disabled Turn Timer row and the 10s countdown.
+      ever running out - first a `playerOneTimedOut` flag, now `GameAchievementContext
+      .playerOneTimeouts == 0`, see Phase 21). Impatient, Naturally Gifted and Almost Famous are
+      guarded so a one-roll mode can't give them away; six reroll-based ones simply can't be earned
+      in it. The full list is in `.claude/GAME_MODES.md`.
+- [x] **`.claude/GAME_MODES.md`**: how to add a mode (including ones unlike these), where each mode
+      field is read, the turn-flow rules learned here, and the per-mode achievement audit.
+- [x] Tests: `GameScreenAutoRollTest` (Robolectric: Quickfire rolls without a tap, Standard waits, a
+      human/CPU game goes round), `GameModeTest`, `ScoreCalculatorTest` (timeout pick: lowest, tie
+      order, joker-forced box, Standard unchanged), `AchievementEngineTest`, `GameViewModelTest`,
+      `GameAchievementsWiringTest`.
+- [ ] **Not yet seen on a device**: the disabled Turn Timer row, the 10s countdown and the automatic
+      roll.
 
 ### Phase 21 — Luck Of The Draw
 - [x] `LUCK_OF_THE_DRAW` "Luck Of The Draw" (Miscellaneous, so hidden like the rest of that category):
