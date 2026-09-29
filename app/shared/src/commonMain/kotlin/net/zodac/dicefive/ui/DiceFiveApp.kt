@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import net.zodac.dicefive.app.AppContainer
@@ -14,6 +15,8 @@ import net.zodac.dicefive.navigation.Screen
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
+import net.zodac.dicefive.ui.common.DriftState
+import net.zodac.dicefive.ui.common.LocalDriftState
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /**
@@ -22,7 +25,13 @@ import net.zodac.dicefive.ui.theme.DiceFiveTheme
  */
 @Composable
 fun DiceFiveApp(container: AppContainer, platform: PlatformServices) {
-    CompositionLocalProvider(LocalAppContainer provides container, LocalPlatformServices provides platform) {
+    // Held here, above the NavHost, so the menu's drifting dice carry on unbroken across every screen off it.
+    val driftState = remember { DriftState() }
+    CompositionLocalProvider(
+        LocalAppContainer provides container,
+        LocalPlatformServices provides platform,
+        LocalDriftState provides driftState,
+    ) {
         DiceFiveTheme {
             Surface(modifier = Modifier.fillMaxSize()) {
                 // Hoisted out of DiceFiveNavHost (which otherwise creates its own) so a banner

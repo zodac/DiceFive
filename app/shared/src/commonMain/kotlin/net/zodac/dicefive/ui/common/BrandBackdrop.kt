@@ -7,11 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
@@ -48,40 +46,29 @@ private val WATERMARK_DICE = listOf(
  * It's a *surface treatment*, deliberately quiet enough that ordinary Material components sit on
  * it unmodified, at their normal contrast.
  *
- * With [driftingDice] (the main menu only), the dice don't sit still: they start where they always
+ * With [driftingDice] (the main menu and the screens off it - not the game itself), the dice don't sit still: they start where they always
  * are, then drift slowly up and across the screen, turning as they go, and come back in from below
- * on new paths (see [DiceDrift]). Every other screen keeps them still.
+ * on new paths (see [DiceDrift]). The drift is shared across those screens, so the dice keep their places and faces from one to the next until a game starts.
  */
 @Composable
 fun BrandBackdrop(modifier: Modifier = Modifier, driftingDice: Boolean = false, content: @Composable BoxScope.() -> Unit) {
     val colorScheme = MaterialTheme.colorScheme
-    val drift = if (driftingDice) remember { DiceDrift(WATERMARK_DICE.map { it.toDrifting() }) } else null
-    // Bumped every frame the dice move, and read only while drawing - so they redraw without
-    // anything recomposing.
-    val driftFrame = remember { mutableLongStateOf(0L) }
-    var backdropSize by remember { mutableStateOf(Size.Zero) }
+    // The app's one shared drift where there is one (see DiceFiveApp), so the dice carry on from where
+    // the last screen left them; a backdrop of its own otherwise.
+    val shared = LocalDriftState.current
+    val drift = if (driftingDice) shared ?: remember { DriftState() } else null
     if (drift != null) {
         LaunchedEffect(drift) {
-            var last: Long? = null
             // The infinite-animation frame, not a plain one: it never ends, and this is what tells a
             // UI test not to wait for it to (a plain frame loop would keep the menu from ever idling).
-            while (true) {
-                withInfiniteAnimationFrameNanos { now ->
-                    // A stalled frame (or the app coming back from the background) moves them on by
-                    // no more than a tenth of a second, never jumping them across the screen.
-                    val seconds = last?.let { ((now - it) / 1e9f).coerceIn(0f, MAX_DRIFT_STEP_SECONDS) } ?: 0f
-                    last = now
-                    drift.advance(seconds, backdropSize.width, backdropSize.height)
-                    driftFrame.longValue = now
-                }
-            }
+            while (true) withInfiniteAnimationFrameNanos { now -> drift.onFrame(now) }
         }
     }
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .onSizeChanged { backdropSize = Size(it.width.toFloat(), it.height.toFloat()) }
+            .onSizeChanged { drift?.size = Size(it.width.toFloat(), it.height.toFloat()) }
             // drawWithCache, not layered background() modifiers: the brushes depend on the measured
             // size (the spotlight is placed and sized relative to it), so they're built once per
             // size change rather than on every recomposition.
@@ -101,15 +88,56 @@ fun BrandBackdrop(modifier: Modifier = Modifier, driftingDice: Boolean = false, 
                     if (drift == null) {
                         drawDiceWatermark(colorScheme.onSurface, WATERMARK_DICE.map { it.toDrifting() })
                     } else {
-                        driftFrame.longValue // Read here, so each move redraws.
+                        drift.frame.longValue // Read here, so each move redraws.
                         // Only the dice actually showing - one sliding in from below isn't drawn until it's on screen.
-                        drawDiceWatermark(colorScheme.onSurface, drift.dice.filter { isShowing(it, size.width, size.height) })
+                        drawDiceWatermark(colorScheme.onSurface, drift.dice.dice.filter { isShowing(it, size.width, size.height) })
                     }
                 }
             },
         content = content,
     )
 }
+
+/**
+ * The drifting dice's state, kept outside any one screen so it outlives navigation: every screen
+ * that shows the drift draws this same one, and it only starts over on [reset] (or a fresh launch).
+ */
+internal class DriftState {
+    var dice = newDrift()
+        private set
+
+    /** Bumped every frame the dice move, and read only while drawing - so they redraw without anything recomposing. */
+    val frame = mutableLongStateOf(0L)
+
+    var size = Size.Zero
+
+    private var lastFrameNanos: Long? = null
+
+    /** Puts the dice back where they start, moving from the beginning again. */
+    fun reset() {
+        dice = newDrift()
+        lastFrameNanos = null
+    }
+
+    /**
+     * Moves the dice on to the frame at [now]. Two backdrops can be on screen at once mid-transition,
+     * each running this every frame; only the first to reach a given frame moves them.
+     */
+    fun onFrame(now: Long) {
+        val last = lastFrameNanos
+        if (last == now) return
+        // A stalled frame (or the app coming back from the background) moves them on by
+        // no more than a tenth of a second, never jumping them across the screen.
+        val seconds = last?.let { ((now - it) / 1e9f).coerceIn(0f, MAX_DRIFT_STEP_SECONDS) } ?: 0f
+        lastFrameNanos = now
+        dice.advance(seconds, size.width, size.height)
+        frame.longValue = now
+    }
+
+    private fun newDrift() = DiceDrift(WATERMARK_DICE.map { it.toDrifting() })
+}
+
+internal val LocalDriftState = staticCompositionLocalOf<DriftState?> { null }
 
 // The longest step the drifting dice are moved on by in one frame.
 private const val MAX_DRIFT_STEP_SECONDS = 0.1f
