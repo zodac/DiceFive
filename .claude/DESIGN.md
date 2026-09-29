@@ -167,8 +167,8 @@ decisions behind it. Read that before changing anything visual.
   differ between modes is a field on the mode**, even where the modes agree today: dice count, rolls
   per turn, die faces, die colours, the scorecard's categories (which is also the number of turns),
   the upper-bonus threshold/amount, the 5x bonus chip, the max possible score, a fixed turn
-  timer that overrides the setup pick (`turnTimerSeconds`), and where a timed-out turn is scored
-  (`timeoutPick`). `.claude/GAME_MODES.md` has the
+  timer that overrides the setup pick (`turnTimerSeconds`), where a timed-out turn is scored
+  (`timeoutPick`), and whether a human's first roll is tapped for them (`autoRollAtTurnStart`). `.claude/GAME_MODES.md` has the
   checklist for adding a mode. The engine, AI, achievements,
   persistence and board all read the rules from there - a new mode should be a new entry plus any
   genuinely new scoring rule, and nothing else learning it exists. A category's own scoring rule is
@@ -1650,7 +1650,14 @@ install-over-existing succeeds:
       *least* in, with the first in scorecard order winning a tie. Other modes still take the first
       open category. This is `GameMode.timeoutPick` (`TimeoutPick.LOWEST_SCORE` vs the default
       `FIRST_OPEN`), applied by `ScoreCalculator.timeoutCategory`, and still limited to the joker
-      rule's `availableCategories`. Same 1575 ceiling as Standard. Engine, AI, board and persistence needed no change - they already
+      rule's `availableCategories`. Same 1575 ceiling as Standard.
+- [x] **Automatic roll** (`GameMode.autoRollAtTurnStart`): a human's Quickfire turn starts with the
+      cup tapped for them. `GameScreen` calls its own `onCupTap` when `GameState.awaitsAutoRoll`
+      goes true, so the shake, sound and roll are exactly a manual tap's. There's no separate
+      view-model roll; one was built with its own 600ms shake and replaced on review, so auto-rolls
+      and real rolls stay the same thing. AI turns are unchanged: their loop already starts with a
+      roll. `GameViewModel.rollDice` now ignores a roll with no rolls left, which an Undo during
+      the shake could otherwise trigger (it threw from `GameEngine.rollDice`). Engine, AI, board and persistence needed no change - they already
       read the rolls from the mode.
 - [x] **New Game screen**: Quickfire appears in the Game Mode radio group from `GameMode.entries`.
       The Turn Timer row is disabled while it's picked (`SegmentedChoiceRow` gained `enabled`); the
@@ -1662,5 +1669,5 @@ install-over-existing succeeds:
       Almost Famous are guarded so a one-roll mode can't give them away; six reroll-based ones simply
       can't be earned in it. The full list is in `.claude/GAME_MODES.md`.
 - [x] **`.claude/GAME_MODES.md`**: the checklist for adding a mode, and the per-mode achievement audit.
-- [x] Tests: `GameModeTest`, `ScoreCalculatorTest` (timeout pick: lowest, tie order, joker-forced box, Standard unchanged), `AchievementEngineTest`, `GameViewModelTest`, `GameAchievementsWiringTest`.
+- [x] Tests: `GameScreenAutoRollTest` (Robolectric: Quickfire rolls without a tap, Standard waits, a human/CPU game goes round), `GameModeTest`, `ScoreCalculatorTest` (timeout pick: lowest, tie order, joker-forced box, Standard unchanged), `AchievementEngineTest`, `GameViewModelTest`, `GameAchievementsWiringTest`.
 - [ ] **Not yet seen on a device**: the disabled Turn Timer row and the 10s countdown.

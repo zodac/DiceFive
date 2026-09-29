@@ -108,6 +108,24 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `a roll that lands after Undo took the turn back to one with no rolls left is ignored`() {
+        // The cup shakes before a roll lands; Undo in that window restores the previous turn. In
+        // Quickfire the cup is tapped for the player right after they score, so this is likely there.
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setPlayerCount(1)
+        viewModel.setGameMode(GameMode.QUICKFIRE)
+        viewModel.startGame()
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.CHANCE)
+        viewModel.undo()
+        val restored = viewModel.game.value!!
+
+        viewModel.rollDice()
+
+        assertEquals(restored, viewModel.game.value)
+    }
+
+    @Test
     fun `startGame builds a game with the configured players`() {
         val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(2)

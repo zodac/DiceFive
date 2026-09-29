@@ -75,6 +75,13 @@ enum class GameMode(
     val turnTimerSeconds: Int? = null,
     /** Which open category a turn that runs out of time is scored in - see [TimeoutPick]. */
     val timeoutPick: TimeoutPick = TimeoutPick.FIRST_OPEN,
+    /**
+     * Whether a human's turn starts with the cup tapped for them - the game screen makes the same
+     * tap a player would (see [GameState.awaitsAutoRoll]), so the roll is indistinguishable from
+     * one they made themselves. An AI's turn needs nothing: its turn loop starts with a roll in
+     * every mode.
+     */
+    val autoRollAtTurnStart: Boolean = false,
 ) {
     /**
      * The official rules.
@@ -126,7 +133,8 @@ enum class GameMode(
     /**
      * Beyond the official rules: Standard's dice and scorecard, but only one roll per turn - no holds,
      * no rerolls - against a fixed 10-second turn timer. Running out of time scores the roll in the
-     * open category it's worth *least* in, rather than the first open one.
+     * open category it's worth *least* in, rather than the first open one. The one roll is made
+     * automatically as each turn starts.
      *
      * Max score: the same card and bonuses as Standard, so the same perfect game - a single roll can
      * still land five 6s. `1575`.
@@ -146,6 +154,7 @@ enum class GameMode(
         maxPossibleScore = 1575,
         turnTimerSeconds = 10,
         timeoutPick = TimeoutPick.LOWEST_SCORE,
+        autoRollAtTurnStart = true,
     ),
     ;
 
