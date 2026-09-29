@@ -128,8 +128,11 @@ decisions behind it. Read that before changing anything visual.
   spills. Glass cups draw all of it clipped to the glass (`drawLiquidInGlass`); solid ones only
   what shows through the opening. The Cauldron's brew rests deep enough that tipping all the way over
   only brings it to the lip, leaving little showing when standing (the maintainer's choice); the
-  Takeaway's coffee rests high enough to see, and brims at the lip when tipped. The Flowerpot's seedling sways by
-  `CupPose.slosh` so it wiggles as the pot is shaken. Cups without liquid ignore the pose.
+  Takeaway's coffee rests high enough to see, and brims at the lip when tipped. The Flowerpot's plant bends back towards
+  upright as the pot tips (`PLANT_UPRIGHT_PULL` of the tilt, each point along the stem taking its
+  share by height, so it curves), and follows the pot on the liquid's spring
+  (`CupPose.liquidRotation`, plus `PLANT_WOBBLE` of the slosh), so it wobbles through a shake and
+  overshoots a pour. Cups without liquid ignore the pose.
   Two cups are animated, both on `rememberAmbientCycle` (an infinite transition read only in the
   draw, so it repaints rather than recomposes): the Cauldron's bubbles that swell and pop, heaving
   froth and glowing puffs rising off the brew, and the Takeaway's three thin, distinct steam lines
@@ -150,6 +153,27 @@ decisions behind it. Read that before changing anything visual.
   same tipped hat and rabbit, rebuilt as a fixed-colour vector (`rememberMagicianIcon`). "Nothing happening" is `LocalCupActivity`, which
   `DiceCupPanel` sets to the current dice, so holding or releasing one restarts the wait (as do a
   roll or a score, through the cup's own `rolling`/`tilted`).
+  Easter egg: the Flowerpot's plant grows with the current player's rolls (`PlayerState.rollCount`,
+  counted by `GameEngine.rollDice` and saved with the game) - bare soil, the seedling, a stalk with
+  a bud, green petals pushing out of the bud, then a yellow sunflower (`flowerpotGrowthStage`). The
+  first three come at 10, 20 and 30 rolls in every mode; the bloom at `rollsToBloom` - every roll of
+  the game (`GameMode.maxRollsPerGame`, declared per mode like `maxPossibleScore`) but never fewer
+  than 39. So it only blooms for a player who uses every roll of every turn: 39 in Standard, 51 in
+  Tricolour, and never in Quickfire (13 rolls, so it stops at the seedling). `GameBoard` hands the
+  cup a `FlowerpotGrowth` (stage plus whose plant it is) through `LocalFlowerpotGrowth`: the same
+  player's plant grows into its next stage over `PLANT_GROW_MILLIS`, a different player's replaces
+  it outright. The bloom stands well above the pot, into the room over the cup on the board (the
+  spent-cup dimming layer is inflated past the cup's box so it isn't cut off). The bloom arrives on
+  the game's last roll, just as the cup is spent, so a Flowerpot whose sunflower has grown keeps its
+  colour instead of greying and, `BLOOM_STAND_UP_MILLIS` after pouring, stands back up to show it off
+  (`DiceCupStyle.showsOffWhenSpent`, for any player whose pot blooms) - it still can't be rolled; the
+  Sunflower cup, always in bloom, greys like any other; outside a game - a
+  Styles tile, the menu logo, where the local's default (bare soil, no grower) applies - a tall
+  plant is shrunk to reach no higher than `PLANT_TOP_OUTSIDE_GAME`. Player 1 bringing it into bloom
+  unlocks the secret Greenfingers (`GREENFINGERS`), judged by `AchievementEngine`'s in-progress
+  rules straight after the roll (the last roll lands before the last box is filled). It unlocks the secret Sunflower cup: the Flowerpot's
+  own pots with the sunflower always in bloom. Its icon is the same sunflower
+  (`rememberSunflowerIcon`), in the plant's shared colours from `ui/theme/Color.kt`.
   The default cup is the casino shaker (`CasinoDiceCupStyle`, Gold - Gold, Black, Green), shown on the Styles screen as
   "Classic" (every category's default style is called Classic - `StyleCatalogTest` checks) and
   listed first; its ids keep the `casino_` prefix so saved picks survive the default
@@ -174,7 +198,7 @@ decisions behind it. Read that before changing anything visual.
   genuinely new scoring rule, and nothing else learning it exists. A category's own scoring rule is
   fixed and mode-independent (`ScoreCategory` carries its `section`, `fixedScore`, `jokerFreeFill`
   and `matchingColour`); a mode just chooses which categories are on its card.
-- **Achievements**: 95 of them, **player 1 only** (`state.players[0]`, "You" on the setup
+- **Achievements**: 96 of them, **player 1 only** (`state.players[0]`, "You" on the setup
   screen) rather than any human at the table - the one exception is the ledger (the score-band and
   career-points achievements at the tail of `AchievementCategory.COLLECTION`), which stays measured
   against the leaderboard as a whole, i.e. every human who has played on this device, not just
@@ -184,7 +208,7 @@ decisions behind it. Read that before changing anything visual.
   name). Score-threshold achievements (Solid Round, Sharpshooter, High Roller, Dice Deity) are
   judged only once a game finishes, never mid-game off a total an abandoned game would throw away.
   Local only for now but shaped so each maps onto a Google Play Games achievement later (see
-  Phase 13). The five in `AchievementCategory.EASTER_EGGS` are secret
+  Phase 13). The six in `AchievementCategory.EASTER_EGGS` are secret
   (`AchievementVisibility.SECRET`): kept out of the list - and its unlocked/total counts - until
   earned, and out of Completionist. Every `MISCELLANEOUS` achievement is `HIDDEN` (title shown,
   description "???" until earned), and vice versa - `AchievementEngineTest` enforces both pairings.

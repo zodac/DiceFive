@@ -266,3 +266,14 @@ val MagicianHatMid = Color(0xFF1E1E21)
 val MagicianHatRibbon = Color(0xFFB71C1C)
 val MagicianHatInside = Color(0xFF030303)
 val MartiniPickSwatch = Color(0xFFC9A66B)
+
+// The Flowerpot cup's plant (FlowerpotDiceCupStyle), from seedling to sunflower, shared with
+// Greenfingers' icon so the achievement shows the same sunflower the player grew. Fixed colours for
+// the same reason as the rabbit's: a sunflower is one specific look, not a theme-able tint.
+val FlowerpotStem = Color(0xFF5DA34A)
+val FlowerpotLeaf = Color(0xFF7CC95C)
+val FlowerpotLeafDark = Color(0xFF4E8F3A)
+val SunflowerPetal = Color(0xFFFFC928)
+val SunflowerPetalShade = Color(0xFFE9A416)
+val SunflowerDisc = Color(0xFF5A3A1A)
+val SunflowerSeed = Color(0xFF2E1C0C)

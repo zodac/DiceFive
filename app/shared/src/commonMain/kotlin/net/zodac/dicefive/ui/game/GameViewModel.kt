@@ -57,6 +57,7 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
+import net.zodac.dicefive.model.hasGrownSunflower
 import net.zodac.dicefive.model.isLuckOfTheIrish
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMats
@@ -463,6 +464,8 @@ class GameViewModel(
         if (isPlayerOneTurn) {
             checkFirstRollAchievements()
             checkPostRollAchievements(rollsRemainingBeforeRoll, diceBeforeRoll)
+            // Greenfingers blooms on a roll, not a score: on the game's very last roll, before its last box is filled.
+            if (_game.value?.players?.firstOrNull()?.hasGrownSunflower == true) checkInProgressAchievements()
         }
     }
 

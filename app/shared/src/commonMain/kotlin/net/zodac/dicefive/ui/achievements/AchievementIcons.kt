@@ -115,6 +115,9 @@ import net.zodac.dicefive.ui.game.style.CUP_VIEW_SQUASH
 import net.zodac.dicefive.ui.game.style.pipLayout
 import net.zodac.dicefive.ui.theme.AchievementHeartRed
 import net.zodac.dicefive.ui.theme.DicePipColor
+import net.zodac.dicefive.ui.theme.FlowerpotLeaf
+import net.zodac.dicefive.ui.theme.FlowerpotLeafDark
+import net.zodac.dicefive.ui.theme.FlowerpotStem
 import net.zodac.dicefive.ui.theme.IrishGreenSwatch
 import net.zodac.dicefive.ui.theme.IrishOrangeSwatch
 import net.zodac.dicefive.ui.theme.IrishWhiteSwatch
@@ -134,6 +137,14 @@ import net.zodac.dicefive.ui.theme.RabbitEye
 import net.zodac.dicefive.ui.theme.RabbitFur
 import net.zodac.dicefive.ui.theme.RabbitFurShade
 import net.zodac.dicefive.ui.theme.RabbitPink
+import net.zodac.dicefive.ui.theme.SunflowerDisc
+import net.zodac.dicefive.ui.theme.SunflowerPetal
+import net.zodac.dicefive.ui.theme.SunflowerPetalShade
+import net.zodac.dicefive.ui.theme.SunflowerSeed
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 import org.jetbrains.compose.resources.vectorResource
 
 /**
@@ -286,6 +297,8 @@ val Achievement.icon: ImageVector
         Achievement.MAGICIANS_SECRET -> rememberMagicianIcon()
         // The menu logo's own fan - the default ivory dice, 2-4-5-3-6 - that it's earned by tapping.
         Achievement.NOT_THOSE_DICE -> rememberDiceFanIcon()
+        // The sunflower the Flowerpot grew, in the pot's own colours.
+        Achievement.GREENFINGERS -> rememberSunflowerIcon()
     }
 
 /**
@@ -315,6 +328,7 @@ fun Achievement.iconTintOrUnspecified(tint: Color): Color = when (this) {
     Achievement.SHAKEN_NOT_TAPPED -> Color.Unspecified
     Achievement.MAGICIANS_SECRET -> Color.Unspecified
     Achievement.NOT_THOSE_DICE -> Color.Unspecified
+    Achievement.GREENFINGERS -> Color.Unspecified
     else -> tint
 }
 
@@ -556,6 +570,66 @@ private fun rememberDiceFanIcon(): ImageVector = remember {
             }
         }
     }.build()
+}
+
+/**
+ * A sunflower in full bloom, the way the Flowerpot cup grows it for [Achievement.GREENFINGERS]: the
+ * same two rings of petals round a seeded disc, on a stem with a pair of leaves. Fixed colours
+ * throughout, like the other Easter Eggs icons - see [iconTintOrUnspecified].
+ */
+@Composable
+private fun rememberSunflowerIcon(): ImageVector = remember {
+    val centreX = 12f
+    val centreY = 8.6f
+    val discRadius = 3.3f
+    val petalReach = 7.6f
+    ImageVector.Builder(name = "Sunflower", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f).apply {
+        path(stroke = SolidColor(FlowerpotStem), strokeLineWidth = 1.6f, strokeLineCap = StrokeCap.Round) {
+            moveTo(centreX, centreY + 3f)
+            quadTo(centreX - 1f, 17f, centreX, 23f)
+        }
+        path(fill = SolidColor(FlowerpotLeafDark)) { leaf(11.6f, 18.6f, -5.6f, -2.6f, 1.5f) }
+        path(fill = SolidColor(FlowerpotLeaf)) { leaf(11.7f, 20.4f, 5.6f, -2.2f, 1.5f) }
+        // Two rings of petals, the back one a shade darker and half a petal round.
+        for ((offset, colour) in listOf(0.5f to SunflowerPetalShade, 0f to SunflowerPetal)) {
+            path(fill = SolidColor(colour)) {
+                for (i in 0 until SUNFLOWER_ICON_PETALS) {
+                    val angle = 2f * PI.toFloat() * (i + offset) / SUNFLOWER_ICON_PETALS - PI.toFloat() / 2f
+                    val (ax, ay) = cos(angle) to sin(angle)
+                    val (bx, by) = centreX + ax * discRadius * 0.8f to centreY + ay * discRadius * 0.8f
+                    val middle = discRadius + (petalReach - discRadius) * 0.45f
+                    val (mx, my) = centreX + ax * middle to centreY + ay * middle
+                    val width = 2.2f
+                    moveTo(bx, by)
+                    quadTo(mx - ay * width, my + ax * width, centreX + ax * petalReach, centreY + ay * petalReach)
+                    quadTo(mx + ay * width, my - ax * width, bx, by)
+                    close()
+                }
+            }
+        }
+        path(fill = SolidColor(SunflowerDisc)) { circle(centreX, centreY, discRadius) }
+        path(fill = SolidColor(SunflowerSeed)) {
+            for ((ring, count) in listOf(0.35f to 5, 0.7f to 9)) {
+                for (i in 0 until count) {
+                    val angle = 2f * PI.toFloat() * (i + ring) / count
+                    circle(centreX + cos(angle) * discRadius * ring, centreY + sin(angle) * discRadius * ring, 0.32f)
+                }
+            }
+        }
+    }.build()
+}
+
+private const val SUNFLOWER_ICON_PETALS = 12
+
+/** A leaf from ([x], [y]) out along ([dx], [dy]) to its tip, [halfWidth] either side of its midrib at its widest. */
+private fun PathBuilder.leaf(x: Float, y: Float, dx: Float, dy: Float, halfWidth: Float) {
+    val length = sqrt(dx * dx + dy * dy)
+    val (acrossX, acrossY) = -dy / length * halfWidth * 2f to dx / length * halfWidth * 2f
+    val (mx, my) = x + dx * 0.45f to y + dy * 0.45f
+    moveTo(x, y)
+    quadTo(mx + acrossX, my + acrossY, x + dx, y + dy)
+    quadTo(mx - acrossX, my - acrossY, x, y)
+    close()
 }
 
 /** A [side]-wide square from the origin with corners rounded to [corner]. */

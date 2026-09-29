@@ -1121,6 +1121,50 @@ class GameAchievementsWiringTest {
         assertTrue(Achievement.MAGICIANS_SECRET in store.unlocked, "MAGICIANS_SECRET should pop, got ${store.unlocked}")
     }
 
+    /** Plays a solo game to its last turn, rolling [rollsOnTurn] times on each (by index) then taking the first open box. */
+    private fun GameViewModel.playEveryTurnButTheLast(rollsOnTurn: (Int) -> Int) {
+        repeat(GameMode.STANDARD.categories.size - 1) { turn ->
+            repeat(rollsOnTurn(turn)) { rollDice() }
+            val player = game.value?.currentPlayer ?: return
+            commitScore(GameMode.STANDARD.categories.first { player.scorecard[it] == null })
+        }
+    }
+
+    @Test
+    fun `using every roll of every turn unlocks Greenfingers on the game's very last roll`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(3))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.playEveryTurnButTheLast { 3 }
+        repeat(2) { viewModel.rollDice() }
+        advanceUntilIdle()
+        assertFalse(Achievement.GREENFINGERS in store.unlocked, "GREENFINGERS should wait for the last roll, got ${store.unlocked}")
+
+        viewModel.rollDice()
+        advanceUntilIdle()
+
+        assertEquals(false, viewModel.game.value?.isGameOver, "the last box is still to fill")
+        assertTrue(Achievement.GREENFINGERS in store.unlocked, "GREENFINGERS should pop on the 39th roll, got ${store.unlocked}")
+    }
+
+    @Test
+    fun `scoring a single turn early keeps Greenfingers locked`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(3))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.playEveryTurnButTheLast { turn -> if (turn == 5) 2 else 3 }
+        repeat(3) { viewModel.rollDice() }
+        viewModel.commitScore(GameMode.STANDARD.categories.first { viewModel.game.value?.currentPlayer?.scorecard?.get(it) == null })
+        advanceUntilIdle()
+
+        assertEquals(true, viewModel.game.value?.isGameOver)
+        assertFalse(Achievement.GREENFINGERS in store.unlocked, "GREENFINGERS needs every roll, got ${store.unlocked}")
+    }
+
     @Test
     fun `tapping the cup three times with no rolls left unlocks No More Rolls`() = runTest {
         val store = FakeAchievementStore()
