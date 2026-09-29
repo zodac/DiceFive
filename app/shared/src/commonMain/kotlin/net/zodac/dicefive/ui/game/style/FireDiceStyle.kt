@@ -13,6 +13,8 @@ object FireDiceStyle : DiceStyle {
     override val id: String = "fire"
     override val bodyColor: Color = lerp(FireDiceTop, FireDiceBottom, 0.5f)
 
+    override fun recoloured(palette: DieColourPalette): DiceStyle = ColouredClassicDiceStyle(id, palette)
+
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) =
         BeveledDie(value, held, FireDiceTop, FireDiceBottom, FireDicePipColor, modifier)

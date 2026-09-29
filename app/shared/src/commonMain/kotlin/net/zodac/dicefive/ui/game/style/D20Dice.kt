@@ -208,6 +208,9 @@ class D20DiceStyle(
     override val swatch: Color = light
     override val tumblesItself: Boolean = true
 
+    override fun recoloured(palette: DieColourPalette): DiceStyle =
+        D20DiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, palette.heldRing)
+
     /**
      * Its exact outline, twist and all at rest - and mid-tumble, the outline of the very orientation
      * it's being drawn in at [tumbleMillis], so the shadow turns with it.

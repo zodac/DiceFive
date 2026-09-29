@@ -41,7 +41,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
@@ -60,9 +59,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.model.Die
+import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.GameMode
-import net.zodac.dicefive.ui.game.style.BEVELED_DIE_CORNER_PERCENT
-import net.zodac.dicefive.ui.game.style.ColouredDie
 import net.zodac.dicefive.ui.game.style.DiceMat
 import net.zodac.dicefive.ui.game.style.DiceStyle
 import net.zodac.dicefive.ui.game.style.DieMotion
@@ -76,7 +74,6 @@ import net.zodac.dicefive.ui.game.style.LocalSimpleDiceRoll
 import net.zodac.dicefive.ui.game.style.PickUpPath
 import net.zodac.dicefive.ui.game.style.TossPath
 import net.zodac.dicefive.ui.game.style.TossPose
-import net.zodac.dicefive.ui.game.style.TossedCube
 import net.zodac.dicefive.ui.game.style.palette
 
 private data class ScatterOffset(val xOffset: Dp, val yOffset: Dp, val rotationDegrees: Float)
@@ -129,9 +126,9 @@ private const val CYCLE_INTERVAL_MILLIS = 1_000L
  * that's under the finger the whole time. Sliding into another die's column cancels whatever the
  * previous column was doing (a pending click, or superuser cycling) and starts fresh on the new
  * one; only the column the finger is actually released over can register a click or leave cycling
- * in effect. Uses [LocalGameVisualTheme] for both the die art and the mat - except in a [gameMode]
- * whose dice carry their own colour, which are drawn in that colour instead of the dice style (see
- * [ColouredDie]).
+ * in effect. Uses [LocalGameVisualTheme] for both the die art and the mat - in a [gameMode] whose
+ * dice carry their own colour, the dice style recoloured in each die's colour (see
+ * [net.zodac.dicefive.ui.game.style.DiceStyle.recoloured]).
  */
 @Composable
 fun DiceTray(
@@ -266,6 +263,11 @@ fun DiceTray(
             horizontalArrangement = Arrangement.spacedBy(DICE_COLUMN_GAP),
         ) {
             val irish = LocalIrishTricolour.current
+            // Built once for the game: none of the style, the mode's colours or Luck of the Irish
+            // changes mid-game, so every roll reuses the same recoloured styles.
+            val diceStyles = remember(visualTheme.diceStyle, gameMode.dieColours, irish) {
+                TrayDiceStyles(visualTheme.diceStyle, gameMode.dieColours, irish)
+            }
             dice.forEachIndexed { index, die ->
                 // The tray's own touch handling is one hand-rolled gesture over the whole row, which a
                 // screen reader can't see into - so each die is its own node, named by its face (and
@@ -293,7 +295,7 @@ fun DiceTray(
                     scatter = SCATTER_OFFSETS[index % SCATTER_OFFSETS.size],
                     seed = index,
                     gameMode = gameMode,
-                    diceStyle = visualTheme.diceStyle,
+                    diceStyles = diceStyles,
                     mat = visualTheme.mat,
                     modifier = Modifier.weight(1f).then(dieSemantics),
                 )
@@ -324,14 +326,14 @@ private fun DiceColumn(
     scatter: ScatterOffset,
     seed: Int,
     gameMode: GameMode,
-    diceStyle: DiceStyle,
+    diceStyles: TrayDiceStyles,
     mat: DiceMat,
     modifier: Modifier = Modifier,
 ) {
     // For a style whose faces the die's movement throws about (googly eyes): the die's movement,
     // kept for the whole column, so a die keeps its looks as it's held and released. Moved on every
     // frame only while the die or its pupils are moving.
-    val motion = diceStyle.pupilTravel?.let { travel -> remember(travel) { DieMotion(seed, travel) } }
+    val motion = diceStyles.plain.pupilTravel?.let { travel -> remember(travel) { DieMotion(seed, travel) } }
     if (motion != null) {
         LaunchedEffect(motion, motion.awake) {
             if (motion.awake) motion.follow()
@@ -339,7 +341,7 @@ private fun DiceColumn(
     }
     // Which physical die this column is, so a natural-looking style can give each its own pattern.
     CompositionLocalProvider(LocalDieIndex provides seed, LocalDieMotion provides motion) {
-        DiceColumnContent(die, show, rolling, scrambleTick, scatter, seed, gameMode, diceStyle, mat, modifier)
+        DiceColumnContent(die, show, rolling, scrambleTick, scatter, seed, gameMode, diceStyles, mat, modifier)
     }
 }
 
@@ -352,7 +354,7 @@ private fun DiceColumnContent(
     scatter: ScatterOffset,
     seed: Int,
     gameMode: GameMode,
-    diceStyle: DiceStyle,
+    diceStyles: TrayDiceStyles,
     mat: DiceMat,
     modifier: Modifier,
 ) {
@@ -368,13 +370,13 @@ private fun DiceColumnContent(
                 .border(1.5.dp, mat.slotSocketBorder, shape),
         ) {
             if (show && die.isHeld) {
-                DieFace(die = die, held = true, diceStyle = diceStyle, modifier = Modifier.fillMaxSize().padding(3.dp))
+                DieFace(die = die, held = true, diceStyles = diceStyles, modifier = Modifier.fillMaxSize().padding(3.dp))
             }
         }
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        ScatterArea(die, show, rolling, scrambleTick, scatter, seed, gameMode, diceStyle)
+        ScatterArea(die, show, rolling, scrambleTick, scatter, seed, gameMode, diceStyles)
     }
 }
 
@@ -424,7 +426,7 @@ private fun ScatterArea(
     scatter: ScatterOffset,
     seed: Int,
     gameMode: GameMode,
-    diceStyle: DiceStyle,
+    diceStyles: TrayDiceStyles,
 ) {
     val simple = LocalSimpleDiceRoll.current
     val tracker = remember { RollTracker(rolling) }
@@ -451,7 +453,8 @@ private fun ScatterArea(
         if (rolling && !(show && !die.isHeld)) cupFace[0] = 0
         if (!show || die.isHeld) return@BoxWithConstraints
         val rest = Modifier.align(Alignment.TopCenter).size(SCATTERED_DIE_SIZE)
-        val selfTumbling = die.colour == null && diceStyle.tumblesItself
+        val style = diceStyles.forDie(die)
+        val selfTumbling = style.tumblesItself
 
         // A die's rotated footprint stays inside its own column plus half the gap to the next, so
         // neighbours can never overlap, however they're turned - pushed back in from the edge as if
@@ -468,9 +471,8 @@ private fun ScatterArea(
         // plus where the die is within it.
         val columnLeft = (maxWidth + DICE_COLUMN_GAP) * seed
 
-        // Where the die is, for a style whose faces its movement throws about (DieMotion) - not a die
-        // in its own colour, which isn't drawn in the style at all.
-        val motion = LocalDieMotion.current?.takeIf { die.colour == null }
+        // Where the die is, for a style whose faces its movement throws about (DieMotion).
+        val motion = LocalDieMotion.current
 
         /**
          * Tells [motion] the die is at [x]/[y] in its column (measured in die sizes), turned
@@ -489,17 +491,12 @@ private fun ScatterArea(
 
         /**
          * The die's ground shadow, cast from the one light, [lift] (0..1) off the mat, in the outline
-         * of the die itself - its style's, or a bevelled square for a die in a colour of its own.
-         * [tumbleMillis] is how long a die that turns itself has been tumbling mid-toss, for a shadow
+         * of the die itself - its style's. [tumbleMillis] is how long a die that turns itself has been tumbling mid-toss, for a shadow
          * that turns with it.
          */
         @Composable
         fun Shadow(x: Dp, y: Dp, yawDegrees: Float, lift: Float, tumbleMillis: Float? = null) {
-            val shape = if (die.colour != null) {
-                RoundedCornerShape(BEVELED_DIE_CORNER_PERCENT)
-            } else {
-                diceStyle.shadowShape(die.value, seed, tumbleMillis)
-            }
+            val shape = style.shadowShape(die.value, seed, tumbleMillis)
             val centreX = columnLeft + maxWidth / 2 + x
             val centreY = y + SCATTERED_DIE_SIZE / 2
             // Away from the light, further the further the die is from it - and further again, and
@@ -530,21 +527,10 @@ private fun ScatterArea(
             if (selfTumbling) {
                 // A D20 turns itself as it goes, landing on its face as it stops.
                 CompositionLocalProvider(LocalDieTumbleMillis provides tumbleMillis) {
-                    DieFace(die = die, held = false, diceStyle = diceStyle, modifier = placed)
+                    DieFace(die = die, held = false, diceStyles = diceStyles, modifier = placed)
                 }
-            } else if (die.colour == null) {
-                diceStyle.TossedDie(roll = pose.roll, finalTurns = finalTurns, ring = ring, modifier = placed)
             } else {
-                val palette = die.colour.palette(LocalIrishTricolour.current)
-                TossedCube(
-                    roll = pose.roll,
-                    finalTurns = finalTurns,
-                    ring = ring,
-                    body = lerp(palette.diceTop, palette.diceBottom, 0.5f),
-                    modifier = placed,
-                ) { value, faceModifier ->
-                    DieFace(die = die.copy(value = value), held = false, diceStyle = diceStyle, modifier = faceModifier)
-                }
+                style.TossedDie(roll = pose.roll, finalTurns = finalTurns, ring = ring, modifier = placed)
             }
         }
 
@@ -565,7 +551,7 @@ private fun ScatterArea(
                             seed = tracker.landings * 7 + seed,
                             result = die.value,
                             startFace = cupFace[0].takeIf { it != 0 },
-                            restTop = if (die.colour == null) diceStyle.topFace(die.value) else null,
+                            restTop = style.topFace(die.value),
                             startY = startY,
                             restY = restY,
                             dieSize = size,
@@ -589,7 +575,7 @@ private fun ScatterArea(
                     DieFace(
                         die = displayDie,
                         held = false,
-                        diceStyle = diceStyle,
+                        diceStyles = diceStyles,
                         modifier = rest
                             .offset(x = restX, y = scatter.yOffset)
                             .graphicsLayer { rotationZ = scatter.rotationDegrees },
@@ -620,15 +606,22 @@ private fun GroundShadow(shape: Shape, lift: Float, modifier: Modifier = Modifie
     }
 }
 
-/** A die in its own colour when it has one, otherwise in the player's chosen [diceStyle]. */
+/** A die in the player's chosen dice style - in its own colour, when it has one (see [TrayDiceStyles]). */
 @Composable
-private fun DieFace(die: Die, held: Boolean, diceStyle: DiceStyle, modifier: Modifier) {
-    val colour = die.colour
-    if (colour != null) {
-        ColouredDie(value = die.value, colour = colour, held = held, modifier = modifier)
-    } else {
-        diceStyle.Die(value = die.value, held = held, modifier = modifier)
-    }
+private fun DieFace(die: Die, held: Boolean, diceStyles: TrayDiceStyles, modifier: Modifier) {
+    diceStyles.forDie(die).Die(value = die.value, held = held, modifier = modifier)
+}
+
+/**
+ * The player's [plain] dice style, and that style [DiceStyle.recoloured] in each of [colours] - Luck
+ * of the Irish's while [irish] - all built up front, so a die of any colour is drawn in the same
+ * style object every time it lands that colour.
+ */
+private class TrayDiceStyles(val plain: DiceStyle, colours: List<DieColour>, irish: Boolean) {
+    private val coloured: Map<DieColour, DiceStyle> = colours.associateWith { plain.recoloured(it.palette(irish)) }
+
+    /** The style [die] is drawn in: recoloured in its colour when it has one. */
+    fun forDie(die: Die): DiceStyle = die.colour?.let { coloured.getValue(it) } ?: plain
 }
 
 /** A random face [gameMode]'s dice could land on - its number, and its colour if it has them. */

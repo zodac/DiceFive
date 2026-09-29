@@ -829,12 +829,9 @@ class GameViewModel(
             val playerTwo = players.getOrNull(1)
             val hasZodacAsPlayerTwo = players.size == 2 && playerTwo?.type == PlayerType.HUMAN && playerTwo.name == ZODAC_PLAYER_NAME
             val isLuckOfTheIrish = game?.isLuckOfTheIrish == true
-            // A mode that colours its own dice never shows the dice style, so picking one can't count.
-            // Nor can a pick whose style is still locked, since the default is drawn in its place.
+            // A pick whose style is still locked can't count, since the default is drawn in its place.
             val achievements = repository.current()
-            val playedNonDefaultDiceStyle = gameMode.usesPlayerDiceStyle &&
-                isNonDefaultStyle(settings.diceStyleId, DiceStyles, achievements)
-            val playedNonDefaultStyle = playedNonDefaultDiceStyle ||
+            val playedNonDefaultStyle = isNonDefaultStyle(settings.diceStyleId, DiceStyles, achievements) ||
                 isNonDefaultStyle(settings.diceCupStyleId, DiceCupStyles, achievements) ||
                 isNonDefaultStyle(settings.tableBackgroundId, TableBackgrounds, achievements) ||
                 isNonDefaultStyle(settings.diceMatId, DiceMats, achievements)

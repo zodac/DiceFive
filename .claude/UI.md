@@ -384,11 +384,17 @@ height (rows share the height equally and centre their tile), since those differ
 offset suits both. It used to sit centred in that space, noticeably lower than the first row.
 Arithmetic only - not yet seen on a device.
 
-**Coloured dice ignore the dice style.** In a mode with `GameMode.dieColours`, each die's colour is
-part of the roll, so `DiceTray` draws it with `ColouredDie` (the same `BeveledDie` shape, in that
-colour) instead of the Styles screen's pick; the cup, mat and background still follow the player's
-styles. For the same reason, a non-default dice style doesn't count towards "Fresh Coat Of Paint"
-in such a mode (`GameMode.usesPlayerDiceStyle`).
+**Coloured dice keep the dice style, in the roll's colour.** In a mode with `GameMode.dieColours`,
+each die's colour is part of the roll, so `DiceTray` draws it with the player's style
+`recoloured(palette)` - every `DiceStyle` must implement it (Classic becomes `ColouredClassicDiceStyle`,
+the `BeveledDie` in that colour; the rest rebuild themselves from the `DieColourPalette`). The pips,
+numbers and digits always take the palette's `pip` and the held ring its `heldRing`, never the
+style's own: those were picked to read on the style's own colour and can vanish on the roll's (the
+blue D20's gold numbers on a yellow die). Choices worth knowing: neon LCD keeps its dark body and
+lights its digit in the colour's `swatch`; Googly sockets go white; the Irish flag die, being only
+colours, becomes a plain die of its shape. `DiceTray` builds every recoloured style once per game
+(`TrayDiceStyles`, remembered on the style, the mode's colours and Luck of the Irish - none change
+mid-game), so no roll rebuilds one and a die gets the same style object every time it lands a colour.
 
 The colour-box tiles are a flat square of `DieColourPalette.swatch`; Coloured House is Full House's
 glyph over three equal-width diagonal stripes (red/yellow/blue corners-and-band, split at two-thirds

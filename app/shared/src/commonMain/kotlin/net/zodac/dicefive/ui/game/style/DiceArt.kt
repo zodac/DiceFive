@@ -155,9 +155,18 @@ internal fun StyledDie(
 private const val CASINO_CORNER_PERCENT = 8
 
 /** Sharp-cornered, glossy casino dice with flush white pips. */
-class CasinoDiceStyle(override val id: String, private val light: Color, private val dark: Color) : DiceStyle, Swatched {
+class CasinoDiceStyle(
+    override val id: String,
+    private val light: Color,
+    private val dark: Color,
+    private val pip: Color = Color.White,
+    private val heldRing: Color = GoldAccent,
+) : DiceStyle, Swatched {
     override val swatch: Color = light
     override val bodyColor: Color = lerp(light, dark, 0.5f)
+
+    override fun recoloured(palette: DieColourPalette): DiceStyle =
+        CasinoDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, palette.heldRing)
 
     override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(CASINO_CORNER_PERCENT)
 
@@ -168,8 +177,9 @@ class CasinoDiceStyle(override val id: String, private val light: Color, private
         modifier = modifier,
         face = Brush.linearGradient(listOf(light, dark)),
         edge = dark,
-        pipColor = Color.White,
+        pipColor = pip,
         cornerPercent = CASINO_CORNER_PERCENT,
+        heldRingColor = heldRing,
     ) {
         // A glossy band across the top, fading out by halfway down.
         drawRect(
@@ -194,8 +204,12 @@ class FrostedDiceStyle(
     private val light: Color,
     private val dark: Color,
     private val pip: Color,
+    private val heldRing: Color = GoldAccent,
 ) : DiceStyle, Swatched {
     override val swatch: Color = dark
+
+    override fun recoloured(palette: DieColourPalette): DiceStyle =
+        FrostedDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, palette.heldRing)
 
     override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(FROSTED_CORNER_PERCENT)
 
@@ -210,6 +224,7 @@ class FrostedDiceStyle(
             edge = Color.White.copy(alpha = 0.55f),
             pipColor = pip.copy(alpha = 0.85f),
             cornerPercent = FROSTED_CORNER_PERCENT,
+            heldRingColor = heldRing,
         ) {
             drawFrost(seed)
         }
@@ -284,8 +299,14 @@ class MarbleDiceStyle(
     private val vein: Color,
     private val pip: Color,
     private val seed: Int,
+    private val heldRing: Color = GoldAccent,
 ) : DiceStyle, Swatched {
     override val swatch: Color = light
+
+    // Veins part-way from the stone towards the pips, so they stand out whichever way the pips do.
+    override fun recoloured(palette: DieColourPalette): DiceStyle = MarbleDiceStyle(
+        id, palette.diceTop, palette.diceBottom, lerp(palette.diceBottom, palette.pip, 0.4f), palette.pip, seed, palette.heldRing,
+    )
 
     override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(MARBLE_CORNER_PERCENT)
 
@@ -301,6 +322,7 @@ class MarbleDiceStyle(
             edge = dark,
             pipColor = pip,
             cornerPercent = MARBLE_CORNER_PERCENT,
+            heldRingColor = heldRing,
         ) {
             drawMarble(faceSeed, vein)
         }
@@ -321,6 +343,14 @@ class MetalDiceStyle(
     private val heldRing: Color = GoldAccent,
 ) : DiceStyle, Swatched {
     override val swatch: Color = sheen[1]
+
+    // The same light-dark-light-dark sheen, its highlights the colour lifted towards white.
+    override fun recoloured(palette: DieColourPalette): DiceStyle = MetalDiceStyle(
+        id,
+        listOf(lerp(palette.diceTop, Color.White, 0.45f), palette.diceTop, lerp(palette.diceTop, Color.White, 0.3f), palette.diceBottom),
+        palette.pip,
+        palette.heldRing,
+    )
 
     override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(METAL_CORNER_PERCENT)
 
@@ -349,6 +379,9 @@ class RetroDiceStyle(
     private val heldRing: Color = GoldAccent,
 ) : DiceStyle, Swatched {
     override val swatch: Color = face
+
+    override fun recoloured(palette: DieColourPalette): DiceStyle =
+        RetroDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, palette.heldRing)
 
     override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(RETRO_CORNER_PERCENT)
 
@@ -382,8 +415,12 @@ class NumeralDiceStyle(
     private val dark: Color,
     private val digit: Color,
     private val system: NumeralSystem = NumeralSystem.DIGITS,
+    private val heldRing: Color = GoldAccent,
 ) : DiceStyle, Swatched {
     override val swatch: Color = light
+
+    override fun recoloured(palette: DieColourPalette): DiceStyle =
+        NumeralDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, system, palette.heldRing)
 
     override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(STYLED_DIE_CORNER_PERCENT)
 
@@ -399,6 +436,7 @@ class NumeralDiceStyle(
         numeral = system.write,
         numeralFont = system.font,
         numeralSize = system.size,
+        heldRingColor = heldRing,
     )
 }
 
@@ -437,6 +475,28 @@ object IrishFlagDiceStyle : DiceStyle, Swatched {
     )
 
     override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(STYLED_DIE_CORNER_PERCENT)
+
+    // Its flag is nothing but colours, so on a coloured roll it's a plain die of the same shape in
+    // the roll's colour - three bands in one colour would just be that colour anyway.
+    override fun recoloured(palette: DieColourPalette): DiceStyle = object : DiceStyle {
+        override val id: String = this@IrishFlagDiceStyle.id
+        override val bodyColor: Color = lerp(palette.diceTop, palette.diceBottom, 0.5f)
+
+        override fun recoloured(palette: DieColourPalette): DiceStyle = this@IrishFlagDiceStyle.recoloured(palette)
+
+        override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(STYLED_DIE_CORNER_PERCENT)
+
+        @Composable
+        override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
+            value = value,
+            held = held,
+            modifier = modifier,
+            face = Brush.linearGradient(listOf(palette.diceTop, palette.diceBottom)),
+            edge = palette.diceBottom,
+            pipColor = palette.pip,
+            heldRingColor = palette.heldRing,
+        )
+    }
 
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(

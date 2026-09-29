@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.game.style
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.IrishGreenDiceBottom
@@ -38,14 +39,18 @@ import net.zodac.dicefive.ui.theme.TricolourYellowStripe
 import net.zodac.dicefive.ui.theme.TricolourYellowSwatch
 
 /**
- * A die whose colour is part of the roll itself, drawn in that colour whatever [DiceStyle] the player
- * has picked - in a mode like Tricolour the colour is information, so a skin can't be allowed to hide
- * it. Same bevelled shape as every [DiceStyle], only the colours differ.
+ * The Classic die ([BeveledDie]) in a [DieColourPalette] - what every Classic colour becomes on a
+ * roll that lands a colour of its own (see [DiceStyle.recoloured]). They're one shape in three
+ * colours, so all three recolour the same.
  */
-@Composable
-fun ColouredDie(value: Int, colour: DieColour, held: Boolean, modifier: Modifier) {
-    val palette = colour.palette(LocalIrishTricolour.current)
-    BeveledDie(value, held, palette.diceTop, palette.diceBottom, palette.pip, modifier, heldRingColor = palette.heldRing)
+internal class ColouredClassicDiceStyle(override val id: String, private val palette: DieColourPalette) : DiceStyle {
+    override val bodyColor: Color = lerp(palette.diceTop, palette.diceBottom, 0.5f)
+
+    override fun recoloured(palette: DieColourPalette): DiceStyle = ColouredClassicDiceStyle(id, palette)
+
+    @Composable
+    override fun Die(value: Int, held: Boolean, modifier: Modifier) =
+        BeveledDie(value, held, palette.diceTop, palette.diceBottom, palette.pip, modifier, heldRingColor = palette.heldRing)
 }
 
 /** Every shade one [DieColour] is drawn in, on the dice and on the scorecard. */

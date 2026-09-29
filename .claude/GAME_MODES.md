@@ -43,12 +43,11 @@ When a new rule needs a field, add it here too. This is the map of where each ru
 
 | Field                                    | Read by                                                                                                    |
 |------------------------------------------|------------------------------------------------------------------------------------------------------------|
-| `diceCount`, `dieValues`, `dieColours`   | `GameEngine.newGame`/`rollDice`/`cycleDieValue`, `DiceTray` (incl. the rolling scramble), `AiTurnPlayer`    |
+| `diceCount`, `dieValues`, `dieColours`   | `GameEngine.newGame`/`rollDice`/`cycleDieValue`, `DiceTray` (incl. the rolling scramble, and a coloured die's `DiceStyle.recoloured`), `AiTurnPlayer` |
 | `rollsPerTurn`                           | `GameEngine` (turn reset) and the `GameState` default set `rollsRemaining`, which the cup's `xN` badge and the AI loop read; `GameViewModel`'s `fullRolls`/`rollsRemainingAfter*` helpers; Impatient/Naturally Gifted's guard |
 | `categories`                             | `PlayerState` (card, totals, completeness), `ScoreCalculator`, `ScoreGrid`, `GameStateJson`, `AiTurnPlayer` baselines, "How Do You Play This Game?" |
 | `upperBonus*`, `fiveOfAKindBonusAmount`  | `PlayerState` totals, `ScoreCalculator`, the 5x tile's bonus preview                                       |
 | `maxPossibleScore`                       | `HIGHEST_POSSIBLE_SCORE` (Leaderboard/Statistics column width), `GameModeTest`                              |
-| `usesPlayerDiceStyle` (from `dieColours`)| `DiceTray` (style vs `ColouredDie`), Fresh Coat Of Paint                                                     |
 | `turnTimerSeconds`                       | `GameState.turnSeconds` → `GameViewModel.syncTurnTimer`; the setup screen disables the Turn Timer row      |
 | `timeoutPick`                            | `ScoreCalculator.timeoutCategory` ← `GameViewModel.autoScoreOnTimeout`                                      |
 | `autoRollAtTurnStart`                    | `GameState.awaitsAutoRoll` → `GameScreen`'s auto-tap `LaunchedEffect`                                       |
@@ -281,9 +280,10 @@ Famous`` in `GameAchievementsWiringTest` fails without the guard.
 
 ### Tricolour (coloured dice, four colour boxes)
 
-Nothing guarded, nothing blocked. Déjà Vu and Are These Loaded Dice? compare number *and* colour, and
-Fresh Coat Of Paint ignores the dice style (Tricolour draws its own coloured dice). How Do You Play
-This Game? needs the colour boxes zeroed too. See `DESIGN.md` Phase 14.
+Nothing guarded, nothing blocked. Déjà Vu and Are These Loaded Dice? compare number *and* colour.
+Fresh Coat Of Paint counts the dice style as in any mode - Tricolour draws the player's style,
+recoloured per die (it once drew its own fixed coloured dice, and the dice style didn't count). How
+Do You Play This Game? needs the colour boxes zeroed too. See `DESIGN.md` Phase 14.
 
 ## Tests
 
