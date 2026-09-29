@@ -37,8 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import net.zodac.dicefive.app.LocalAppContainer
-import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
@@ -48,15 +46,10 @@ import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.common.BackHandler
 import net.zodac.dicefive.ui.common.DiceFiveDialog
-import net.zodac.dicefive.ui.game.style.DiceCupStyles
-import net.zodac.dicefive.ui.game.style.DiceMats
-import net.zodac.dicefive.ui.game.style.DiceStyles
-import net.zodac.dicefive.ui.game.style.GameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalOnRabbitSeen
 import net.zodac.dicefive.ui.game.style.LocalSimpleDiceRoll
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
-import net.zodac.dicefive.ui.game.style.TableBackgrounds
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /** How long the cup shakes before the roll result is revealed - purely a presentation delay. */
@@ -81,6 +74,7 @@ fun GameScreen(
     val superuserModeActive by viewModel.superuserModeActive.collectAsStateWithLifecycle()
     val aiRolling by viewModel.aiRolling.collectAsStateWithLifecycle()
     val turnSecondsRemaining by viewModel.turnSecondsRemaining.collectAsStateWithLifecycle()
+    val table by viewModel.tableSettings.collectAsStateWithLifecycle()
     val currentState = state ?: return
     var showLeaveConfirmation by remember { mutableStateOf(false) }
     // Whether Game Over's "Review Scorecards" button has been tapped - reset the moment the game
@@ -120,31 +114,16 @@ fun GameScreen(
         )
     }
 
-    // A single injection point for the pluggable dice/cup/background art, built from whatever the
-    // Styles screen last persisted (each id resolved through its own catalog's unlockedById, which
-    // falls back to that category's default for an id nothing recognizes or a style still locked).
-    val settingsRepository = LocalAppContainer.current.settingsRepository
-    val achievements by LocalAppContainer.current.achievementsRepository.state.collectAsStateWithLifecycle(initialValue = AchievementsState())
-    val diceStyleId by settingsRepository.diceStyleId.collectAsStateWithLifecycle(initialValue = DiceStyles.default.id)
-    val diceCupStyleId by settingsRepository.diceCupStyleId.collectAsStateWithLifecycle(initialValue = DiceCupStyles.default.id)
-    val tableBackgroundId by settingsRepository.tableBackgroundId.collectAsStateWithLifecycle(initialValue = TableBackgrounds.default.id)
-    val diceMatId by settingsRepository.diceMatId.collectAsStateWithLifecycle(initialValue = DiceMats.default.id)
-    val soundEnabled by settingsRepository.soundEnabled.collectAsStateWithLifecycle(initialValue = true)
-    val vibrationEnabled by settingsRepository.vibrationEnabled.collectAsStateWithLifecycle(initialValue = true)
-    val simpleDiceRoll by settingsRepository.simpleDiceRoll.collectAsStateWithLifecycle(initialValue = false)
-    val visualTheme = remember(diceStyleId, diceCupStyleId, tableBackgroundId, diceMatId, achievements) {
-        GameVisualTheme(
-            diceStyle = DiceStyles.unlockedById(diceStyleId, achievements),
-            diceCupStyle = DiceCupStyles.unlockedById(diceCupStyleId, achievements),
-            background = TableBackgrounds.unlockedById(tableBackgroundId, achievements),
-            mat = DiceMats.unlockedById(diceMatId, achievements),
-        )
-    }
+    // A single injection point for the pluggable dice/cup/background art and the table's settings -
+    // see GameViewModel.tableSettings. Nothing's drawn until they've loaded, rather than the defaults.
+    val tableSettings = table ?: return
+    val soundEnabled = tableSettings.soundEnabled
+    val vibrationEnabled = tableSettings.vibrationEnabled
     CompositionLocalProvider(
-        LocalGameVisualTheme provides visualTheme,
+        LocalGameVisualTheme provides tableSettings.visualTheme,
         LocalIrishTricolour provides currentState.isLuckOfTheIrish,
         LocalOnRabbitSeen provides viewModel::onRabbitSeen,
-        LocalSimpleDiceRoll provides simpleDiceRoll,
+        LocalSimpleDiceRoll provides tableSettings.simpleDiceRoll,
     ) {
         // Once the game is over the board isn't what anyone is looking at, so the results get the
         // whole screen as their own themed page rather than being appended under the felt.

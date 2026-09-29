@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -60,6 +61,7 @@ import net.zodac.dicefive.model.isLuckOfTheIrish
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.game.style.GameVisualTheme
 import net.zodac.dicefive.ui.game.style.StyleCatalog
 import net.zodac.dicefive.ui.game.style.TableArt
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
@@ -164,6 +166,40 @@ class GameViewModel(
 
     val confirmBeforeLeavingGame: StateFlow<Boolean> = (settingsRepository?.confirmBeforeLeavingGame ?: flowOf(true))
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    /**
+     * The table's art - each saved Styles pick resolved through its catalog's unlockedById, so an
+     * id nothing recognises, or a style still locked, draws that category's default - and its
+     * sound, vibration and roll settings. Null until they've all loaded, so the board is never
+     * drawn in the defaults for a frame before switching to the player's own; this view model is
+     * scoped to the whole "play" graph and loads them eagerly, so by the time the board shows
+     * they're normally long since in. With no repository, straight to the defaults.
+     */
+    val tableSettings: StateFlow<TableSettings?> = if (settingsRepository == null) {
+        MutableStateFlow(TableSettings())
+    } else {
+        val visualTheme = combine(
+            settingsRepository.diceStyleId,
+            settingsRepository.diceCupStyleId,
+            settingsRepository.tableBackgroundId,
+            settingsRepository.diceMatId,
+            achievementsRepository?.state ?: flowOf(AchievementsState()),
+        ) { diceId, cupId, backgroundId, matId, achievements ->
+            GameVisualTheme(
+                diceStyle = DiceStyles.unlockedById(diceId, achievements),
+                diceCupStyle = DiceCupStyles.unlockedById(cupId, achievements),
+                background = TableBackgrounds.unlockedById(backgroundId, achievements),
+                mat = DiceMats.unlockedById(matId, achievements),
+            )
+        }
+        combine(
+            visualTheme,
+            settingsRepository.soundEnabled,
+            settingsRepository.vibrationEnabled,
+            settingsRepository.simpleDiceRoll,
+        ) { theme, sound, vibration, simpleRoll -> TableSettings(theme, sound, vibration, simpleRoll) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    }
 
     // A hidden cheat: hold, then unhold, all five dice in strict order (die 0's pair, then die
     // 1's, ... through die 4's) - on any turn, any player's. Once active for the rest of this
