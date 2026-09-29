@@ -29,7 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +58,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.ui.common.DiceFiveDialog
@@ -124,14 +124,14 @@ private val LocalPickedTilePlaced = staticCompositionLocalOf<(Int, Int) -> Unit>
  */
 @Composable
 fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
-    val diceStyleId by viewModel.diceStyleId.collectAsState()
-    val diceCupStyleId by viewModel.diceCupStyleId.collectAsState()
-    val tableBackgroundId by viewModel.tableBackgroundId.collectAsState()
-    val diceMatId by viewModel.diceMatId.collectAsState()
+    val diceStyleId by viewModel.diceStyleId.collectAsStateWithLifecycle()
+    val diceCupStyleId by viewModel.diceCupStyleId.collectAsStateWithLifecycle()
+    val tableBackgroundId by viewModel.tableBackgroundId.collectAsStateWithLifecycle()
+    val diceMatId by viewModel.diceMatId.collectAsStateWithLifecycle()
 
-    val achievements by viewModel.achievements.collectAsState()
+    val achievements by viewModel.achievements.collectAsStateWithLifecycle()
 
-    val ready by viewModel.ready.collectAsState()
+    val ready by viewModel.ready.collectAsStateWithLifecycle()
 
     ScreenScaffold(title = "Styles", onBack = onBack, modifier = modifier, scrollable = false) {
         // Nothing until the saved picks have loaded, so each row can open scrolled to its real pick.

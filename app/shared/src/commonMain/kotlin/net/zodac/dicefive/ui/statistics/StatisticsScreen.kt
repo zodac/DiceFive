@@ -20,7 +20,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -31,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.data.scores.PlayerStatistics
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.common.DiceFiveDialog
@@ -47,7 +47,7 @@ fun StatisticsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingDeleteName by rememberSaveable { mutableStateOf<String?>(null) }
 
     ScreenScaffold(title = "Statistics", onBack = onBack, modifier = modifier) {

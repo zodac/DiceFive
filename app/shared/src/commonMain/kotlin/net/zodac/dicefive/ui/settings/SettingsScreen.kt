@@ -26,7 +26,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -37,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.ScreenScaffold
@@ -68,10 +68,10 @@ fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val confirmBeforeLeavingGame by viewModel.confirmBeforeLeavingGame.collectAsState()
-    val soundEnabled by viewModel.soundEnabled.collectAsState()
-    val vibrationEnabled by viewModel.vibrationEnabled.collectAsState()
-    val simpleDiceRoll by viewModel.simpleDiceRoll.collectAsState()
+    val confirmBeforeLeavingGame by viewModel.confirmBeforeLeavingGame.collectAsStateWithLifecycle()
+    val soundEnabled by viewModel.soundEnabled.collectAsStateWithLifecycle()
+    val vibrationEnabled by viewModel.vibrationEnabled.collectAsStateWithLifecycle()
+    val simpleDiceRoll by viewModel.simpleDiceRoll.collectAsStateWithLifecycle()
     // Saveable: a rotation mid-confirmation shouldn't silently drop the question.
     var showResetAchievementsConfirmation by rememberSaveable { mutableStateOf(false) }
     var showResetLeaderboardConfirmation by rememberSaveable { mutableStateOf(false) }

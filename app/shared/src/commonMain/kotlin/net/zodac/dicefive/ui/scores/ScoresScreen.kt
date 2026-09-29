@@ -29,7 +29,6 @@ import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -40,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.game.TieBreak
@@ -74,7 +74,7 @@ fun ScoresScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     ScreenScaffold(title = "Leaderboard", onBack = onBack, modifier = modifier) {
         if (state.entries.isEmpty()) {

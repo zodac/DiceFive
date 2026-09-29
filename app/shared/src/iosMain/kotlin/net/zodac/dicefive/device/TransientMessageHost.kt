@@ -11,11 +11,11 @@ import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 
 /** About as long as an Android `Toast.LENGTH_SHORT`. */
@@ -27,7 +27,7 @@ private const val MESSAGE_MILLIS = 2_000L
  */
 @Composable
 internal fun TransientMessageHost(platform: IosPlatformServices, content: @Composable BoxScope.() -> Unit) {
-    val message by platform.transientMessage.collectAsState()
+    val message by platform.transientMessage.collectAsStateWithLifecycle()
     Box(modifier = Modifier.fillMaxSize()) {
         content()
         message?.let { text ->

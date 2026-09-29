@@ -23,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.LocalAppContainer
@@ -75,12 +75,12 @@ fun GameScreen(
     modifier: Modifier = Modifier,
     onBackToMenu: () -> Unit = {},
 ) {
-    val state by viewModel.game.collectAsState()
-    val canUndo by viewModel.canUndo.collectAsState()
-    val confirmBeforeLeaving by viewModel.confirmBeforeLeavingGame.collectAsState()
-    val superuserModeActive by viewModel.superuserModeActive.collectAsState()
-    val aiRolling by viewModel.aiRolling.collectAsState()
-    val turnSecondsRemaining by viewModel.turnSecondsRemaining.collectAsState()
+    val state by viewModel.game.collectAsStateWithLifecycle()
+    val canUndo by viewModel.canUndo.collectAsStateWithLifecycle()
+    val confirmBeforeLeaving by viewModel.confirmBeforeLeavingGame.collectAsStateWithLifecycle()
+    val superuserModeActive by viewModel.superuserModeActive.collectAsStateWithLifecycle()
+    val aiRolling by viewModel.aiRolling.collectAsStateWithLifecycle()
+    val turnSecondsRemaining by viewModel.turnSecondsRemaining.collectAsStateWithLifecycle()
     val currentState = state ?: return
     var showLeaveConfirmation by remember { mutableStateOf(false) }
     // Whether Game Over's "Review Scorecards" button has been tapped - reset the moment the game
@@ -124,14 +124,14 @@ fun GameScreen(
     // Styles screen last persisted (each id resolved through its own catalog's unlockedById, which
     // falls back to that category's default for an id nothing recognizes or a style still locked).
     val settingsRepository = LocalAppContainer.current.settingsRepository
-    val achievements by LocalAppContainer.current.achievementsRepository.state.collectAsState(initial = AchievementsState())
-    val diceStyleId by settingsRepository.diceStyleId.collectAsState(initial = DiceStyles.default.id)
-    val diceCupStyleId by settingsRepository.diceCupStyleId.collectAsState(initial = DiceCupStyles.default.id)
-    val tableBackgroundId by settingsRepository.tableBackgroundId.collectAsState(initial = TableBackgrounds.default.id)
-    val diceMatId by settingsRepository.diceMatId.collectAsState(initial = DiceMats.default.id)
-    val soundEnabled by settingsRepository.soundEnabled.collectAsState(initial = true)
-    val vibrationEnabled by settingsRepository.vibrationEnabled.collectAsState(initial = true)
-    val simpleDiceRoll by settingsRepository.simpleDiceRoll.collectAsState(initial = false)
+    val achievements by LocalAppContainer.current.achievementsRepository.state.collectAsStateWithLifecycle(initialValue = AchievementsState())
+    val diceStyleId by settingsRepository.diceStyleId.collectAsStateWithLifecycle(initialValue = DiceStyles.default.id)
+    val diceCupStyleId by settingsRepository.diceCupStyleId.collectAsStateWithLifecycle(initialValue = DiceCupStyles.default.id)
+    val tableBackgroundId by settingsRepository.tableBackgroundId.collectAsStateWithLifecycle(initialValue = TableBackgrounds.default.id)
+    val diceMatId by settingsRepository.diceMatId.collectAsStateWithLifecycle(initialValue = DiceMats.default.id)
+    val soundEnabled by settingsRepository.soundEnabled.collectAsStateWithLifecycle(initialValue = true)
+    val vibrationEnabled by settingsRepository.vibrationEnabled.collectAsStateWithLifecycle(initialValue = true)
+    val simpleDiceRoll by settingsRepository.simpleDiceRoll.collectAsStateWithLifecycle(initialValue = false)
     val visualTheme = remember(diceStyleId, diceCupStyleId, tableBackgroundId, diceMatId, achievements) {
         GameVisualTheme(
             diceStyle = DiceStyles.unlockedById(diceStyleId, achievements),
