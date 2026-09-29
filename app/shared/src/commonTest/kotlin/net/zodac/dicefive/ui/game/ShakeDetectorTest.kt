@@ -7,7 +7,8 @@ import kotlin.test.assertEquals
 class ShakeDetectorTest {
 
     private var shakes = 0
-    private val detector = ShakeDetector { shakes++ }
+    private val rateChanges = mutableListOf<Boolean>()
+    private val detector = ShakeDetector(onActiveChanged = { rateChanges += it }) { shakes++ }
     private var now = 0L
 
     /** The phone lying still for long enough that the gravity filter has settled on z. */
@@ -66,8 +67,40 @@ class ShakeDetectorTest {
         assertEquals(1, shakes)
     }
 
+    @Test
+    fun `a still phone is read at the idle rate - not woken by its first reading`() {
+        settle()
+
+        assertEquals(emptyList(), rateChanges)
+    }
+
+    @Test
+    fun `motion steps the rate up - and it drops back once the phone has been still a while`() {
+        settle()
+        sample(x = WAKE_SWING)
+        assertEquals(listOf(true), rateChanges)
+
+        repeat(50) { sample(x = 0f) } // half a second still: stays up
+        assertEquals(listOf(true), rateChanges)
+        repeat(60) { sample(x = 0f) } // past the hold: back down
+        assertEquals(listOf(true, false), rateChanges)
+    }
+
+    @Test
+    fun `a shake drops the rate straight back down`() {
+        settle()
+        beat(1f)
+        beat(-1f)
+        beat(1f)
+
+        assertEquals(1, shakes)
+        assertEquals(listOf(true, false), rateChanges)
+    }
+
     private companion object {
         const val GRAVITY = 9.81f
         const val SWING = 30f
+        // Past the wake threshold, well short of a shake's.
+        const val WAKE_SWING = 6f
     }
 }

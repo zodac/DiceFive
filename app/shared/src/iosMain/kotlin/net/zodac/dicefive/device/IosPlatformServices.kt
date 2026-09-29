@@ -124,16 +124,22 @@ private class IosHapticsPlayer : HapticsPlayer {
 @OptIn(ExperimentalForeignApi::class)
 private class IosAccelerometer : Accelerometer {
 
-    private val motionManager = CMMotionManager().apply { accelerometerUpdateInterval = 1.0 / 50 }
+    private val motionManager = CMMotionManager()
 
     val isAvailable: Boolean get() = motionManager.isAccelerometerAvailable()
 
-    override fun start(onSample: (x: Float, y: Float, z: Float) -> Unit) {
+    override fun start(samplesPerSecond: Int, onSample: (x: Float, y: Float, z: Float) -> Unit) {
+        setSamplesPerSecond(samplesPerSecond)
         motionManager.startAccelerometerUpdatesToQueue(NSOperationQueue.mainQueue) { data, _ ->
             data?.acceleration?.useContents {
                 onSample(-x.toFloat() * STANDARD_GRAVITY, -y.toFloat() * STANDARD_GRAVITY, -z.toFloat() * STANDARD_GRAVITY)
             }
         }
+    }
+
+    // CoreMotion takes a new interval while updates are running.
+    override fun setSamplesPerSecond(samplesPerSecond: Int) {
+        motionManager.accelerometerUpdateInterval = 1.0 / samplesPerSecond
     }
 
     override fun stop() {

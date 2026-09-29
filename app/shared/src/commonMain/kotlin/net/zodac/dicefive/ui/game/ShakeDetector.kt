@@ -31,6 +31,21 @@ private const val SHAKE_MIN_BEATS = 3
  * separates it from the phone's own motion - see [ShakeDetector.onSample]. */
 private const val GRAVITY_FILTER_ALPHA = 0.8f
 
+/** How often the sensor is read while nothing's happening - just often enough to notice a shake start. */
+internal const val IDLE_SAMPLES_PER_SECOND = 10
+
+/** How often it's read once motion's been noticed, which is what the beat counting above is tuned for. */
+internal const val ACTIVE_SAMPLES_PER_SECOND = 50
+
+/** How far above gravity a sample has to swing, in m/s², to count as "something's moving" and step
+ * the sensor up to [ACTIVE_SAMPLES_PER_SECOND] - well under [SHAKE_THRESHOLD], so a shake's first
+ * swing wakes it even if the slow rate happens to catch that swing short of its peak. */
+private const val WAKE_THRESHOLD = 4f
+
+/** How long the sensor stays at the active rate after the last sample past [WAKE_THRESHOLD], before
+ * dropping back to the idle rate. */
+private const val ACTIVE_HOLD_MILLIS = 1_000L
+
 /** Once a shake fires, how long to ignore the sensor for - long enough that the roll it triggered
  * (and the cup's own shake animation) finishes before another shake could be detected off the
  * same motion. */
@@ -43,11 +58,20 @@ private const val SHAKE_COOLDOWN_MILLIS = 1_500L
  * fires once at least [SHAKE_MIN_BEATS] rising edges (the signal crossing up through the threshold,
  * having first dropped back below it) land within [SHAKE_WINDOW_MILLIS] of each other.
  *
+ * It also decides how often the sensor needs reading, through [onActiveChanged]: at rest, only
+ * [IDLE_SAMPLES_PER_SECOND] - each reading wakes the app, so a game left sitting between rolls
+ * shouldn't be woken 50 times a second - stepping up to [ACTIVE_SAMPLES_PER_SECOND] the moment
+ * anything moves past [WAKE_THRESHOLD], and back down [ACTIVE_HOLD_MILLIS] after it stops, or as
+ * soon as a shake has fired (the cooldown ignores the sensor anyway).
+ *
  * Pure logic, fed by the platform's [Accelerometer] via [ShakeDetectorEffect], which ties it to
  * the host screen's own resumed state rather than the composition's - so the same tuning applies
  * on every platform, and it can be unit tested with made-up samples.
  */
-internal class ShakeDetector(private val onShake: () -> Unit) {
+internal class ShakeDetector(
+    private val onActiveChanged: (active: Boolean) -> Unit = {},
+    private val onShake: () -> Unit,
+) {
 
     private val gravity = FloatArray(3)
     private val beatTimestamps = ArrayDeque<Long>()
@@ -56,26 +80,49 @@ internal class ShakeDetector(private val onShake: () -> Unit) {
     // the transition into it (see onSample), so one continuous swing in a single direction,
     // however many samples the sensor reports along the way, is still only ever one beat.
     private var aboveThreshold = false
+    // Whether the gravity filter has had a first reading to start from - see onSample.
+    private var primed = false
 
-    /** Forgets everything seen so far - called whenever the sensor stops, so a later start begins fresh. */
+    /** Whether the sensor should be read at [ACTIVE_SAMPLES_PER_SECOND] rather than the idle rate. */
+    var active = false
+        private set
+    private var lastMotionMillis = 0L
+
+    /** Forgets everything seen so far - called whenever the sensor stops, so a later start begins fresh (and idle). */
     fun reset() {
         gravity.fill(0f)
+        primed = false
         beatTimestamps.clear()
         aboveThreshold = false
+        active = false
     }
 
     /** One raw reading, gravity included, in m/s², taken at [nowMillis]. */
     fun onSample(x: Float, y: Float, z: Float, nowMillis: Long) {
         if (nowMillis < cooldownUntilMillis) return
 
-        val raw = floatArrayOf(x, y, z)
-        for (i in 0..2) {
-            gravity[i] = GRAVITY_FILTER_ALPHA * gravity[i] + (1 - GRAVITY_FILTER_ALPHA) * raw[i]
+        // Started from the first reading rather than from zero, so the filter doesn't spend its first
+        // readings climbing to gravity - which would look like motion and wake the sensor for nothing.
+        if (!primed) {
+            gravity[0] = x
+            gravity[1] = y
+            gravity[2] = z
+            primed = true
         }
-        val dx = raw[0] - gravity[0]
-        val dy = raw[1] - gravity[1]
-        val dz = raw[2] - gravity[2]
+        gravity[0] = GRAVITY_FILTER_ALPHA * gravity[0] + (1 - GRAVITY_FILTER_ALPHA) * x
+        gravity[1] = GRAVITY_FILTER_ALPHA * gravity[1] + (1 - GRAVITY_FILTER_ALPHA) * y
+        gravity[2] = GRAVITY_FILTER_ALPHA * gravity[2] + (1 - GRAVITY_FILTER_ALPHA) * z
+        val dx = x - gravity[0]
+        val dy = y - gravity[1]
+        val dz = z - gravity[2]
         val magnitude = sqrt(dx * dx + dy * dy + dz * dz)
+
+        if (magnitude >= WAKE_THRESHOLD) {
+            lastMotionMillis = nowMillis
+            setActive(true)
+        } else if (active && nowMillis - lastMotionMillis > ACTIVE_HOLD_MILLIS) {
+            setActive(false)
+        }
 
         val wasAboveThreshold = aboveThreshold
         aboveThreshold = magnitude >= SHAKE_THRESHOLD
@@ -91,8 +138,15 @@ internal class ShakeDetector(private val onShake: () -> Unit) {
         if (beatTimestamps.size >= SHAKE_MIN_BEATS) {
             beatTimestamps.clear()
             cooldownUntilMillis = nowMillis + SHAKE_COOLDOWN_MILLIS
+            setActive(false)
             onShake()
         }
+    }
+
+    private fun setActive(active: Boolean) {
+        if (this.active == active) return
+        this.active = active
+        onActiveChanged(active)
     }
 }
 
@@ -105,17 +159,29 @@ internal class ShakeDetector(private val onShake: () -> Unit) {
  * and end, since a live sensor listener firing while the app isn't in front is pure waste (and,
  * worse here, could roll dice nobody's looking at).
  *
+ * Nor is it listening at all unless [enabled] - the caller turns it off whenever a shake couldn't
+ * do anything (someone else's turn, another player's scorecard on view). While listening, it's read
+ * at the rate [ShakeDetector] asks for: slowly at rest, quickly once something moves.
+ *
  * [onShake] is read through [rememberUpdatedState] so a caller can pass a fresh lambda every
  * recomposition (as [GameScreen] does, closing over the latest game state) without tearing down
  * and re-registering the sensor listener each time.
  */
 @Composable
-fun ShakeDetectorEffect(onShake: () -> Unit) {
+fun ShakeDetectorEffect(enabled: Boolean, onShake: () -> Unit) {
     val platform = LocalPlatformServices.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnShake = rememberUpdatedState(onShake)
     val accelerometer = remember { platform.createAccelerometer() } ?: return
-    val detector = remember { ShakeDetector { currentOnShake.value() } }
+    val detector = remember {
+        ShakeDetector(
+            onActiveChanged = { active ->
+                accelerometer.setSamplesPerSecond(if (active) ACTIVE_SAMPLES_PER_SECOND else IDLE_SAMPLES_PER_SECOND)
+            },
+            onShake = { currentOnShake.value() },
+        )
+    }
+    if (!enabled) return
 
     DisposableEffect(lifecycleOwner, accelerometer) {
         fun stop() {
@@ -124,7 +190,9 @@ fun ShakeDetectorEffect(onShake: () -> Unit) {
         }
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_RESUME -> accelerometer.start { x, y, z -> detector.onSample(x, y, z, nowEpochMillis()) }
+                Lifecycle.Event.ON_RESUME -> accelerometer.start(IDLE_SAMPLES_PER_SECOND) { x, y, z ->
+                    detector.onSample(x, y, z, nowEpochMillis())
+                }
                 Lifecycle.Event.ON_PAUSE -> stop()
                 else -> Unit
             }
