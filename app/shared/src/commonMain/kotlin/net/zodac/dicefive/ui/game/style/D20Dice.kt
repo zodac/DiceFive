@@ -1,20 +1,14 @@
 package net.zodac.dicefive.ui.game.style
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.lerp
@@ -138,20 +132,45 @@ private val D20_LIGHT = Vec3(-0.4f, 0.6f, 1f).normalised()
 /**
  * The die's outline from [view] - the convex hull of its corners, a hexagon - in camera space.
  */
-private fun silhouette(view: D20View): List<Offset> {
-    val points = D20.vertices.map { view.cameraSpace(it) }.map { Offset(it.x, -it.y) }.sortedWith(compareBy({ it.x }, { it.y }))
-    fun cross(o: Offset, a: Offset, b: Offset) = (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x)
-    val lower = mutableListOf<Offset>()
-    for (p in points) {
-        while (lower.size >= 2 && cross(lower[lower.size - 2], lower.last(), p) <= 0f) lower.removeAt(lower.size - 1)
-        lower += p
+private fun silhouette(view: D20View): List<Offset> =
+    convexHull(D20.vertices.map { view.cameraSpace(it) }.map { Offset(it.x, -it.y) })
+
+/**
+ * How a D20 that rolled [value] lies at rest: on that face, twisted by an amount of its own for this
+ * die ([dieIndex]) and this roll, so no two landings look alike.
+ */
+private fun restingView(value: Int, dieIndex: Int): D20View {
+    val rest = D20_VIEWS[value] ?: D20_VIEWS.getValue(1)
+    val twist = (Random(dieIndex * 31 + value).nextFloat() * 2f - 1f) * D20_REST_TWIST_DEGREES
+    return rest.turned(rest.towards, twist)
+}
+
+/**
+ * How a D20 lies [tumbleMillis] into a tumble - turning about two axes of its own per die, at
+ * different speeds, so it rolls through every kind of position rather than spinning like a coin, and
+ * no two dice tumble alike - or, when null, how it lies at rest ([restingView]).
+ */
+private fun view(value: Int, dieIndex: Int, tumbleMillis: Float?): D20View {
+    if (tumbleMillis == null) return restingView(value, dieIndex)
+    val random = Random(dieIndex * 53 + 7)
+    fun axis() = Vec3(random.nextFloat() - 0.5f, random.nextFloat() - 0.5f, random.nextFloat() - 0.5f).normalised()
+    val first = axis()
+    val second = axis()
+    val spin = tumbleMillis / D20_TUMBLE_MILLIS * 360f
+    // From one fixed starting view, not the face the tray happens to be showing - so the spin is
+    // continuous, only snapping to the roll once it lands.
+    return D20_VIEWS.getValue(1).turned(first, spin).turned(second, spin * 1.7f)
+}
+
+/** A shape tracing [outline] (in the die's own space, as [silhouette] gives it) at whatever size it's drawn. */
+private fun silhouetteShape(outline: List<Offset>): Shape = GenericShape { size, _ ->
+    val scale = size.minDimension / 2f / D20.circumradius
+    outline.forEachIndexed { i, p ->
+        val x = size.width / 2 + p.x * scale
+        val y = size.height / 2 + p.y * scale
+        if (i == 0) moveTo(x, y) else lineTo(x, y)
     }
-    val upper = mutableListOf<Offset>()
-    for (p in points.asReversed()) {
-        while (upper.size >= 2 && cross(upper[upper.size - 2], upper.last(), p) <= 0f) upper.removeAt(upper.size - 1)
-        upper += p
-    }
-    return lower.dropLast(1) + upper.dropLast(1)
+    close()
 }
 
 /**
@@ -171,44 +190,21 @@ class D20DiceStyle(
     override val swatch: Color = light
     override val tumblesItself: Boolean = true
 
+    /**
+     * Its exact outline, twist and all at rest - and mid-tumble, the outline of the very orientation
+     * it's being drawn in at [tumbleMillis], so the shadow turns with it.
+     */
+    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape =
+        silhouetteShape(silhouette(view(value, dieIndex, tumbleMillis)))
+
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) {
         val dieIndex = LocalDieIndex.current
-        val tumbling = LocalDieTumbling.current
-        val rest = D20_VIEWS[value] ?: D20_VIEWS.getValue(1)
-        val view = if (tumbling) {
-            // Only composed mid-roll, so a die at rest asks for no frames at all.
-            val spin by rememberInfiniteTransition(label = "d20Tumble").animateFloat(
-                initialValue = 0f,
-                targetValue = 360f,
-                animationSpec = infiniteRepeatable(tween(D20_TUMBLE_MILLIS, easing = LinearEasing)),
-                label = "d20Spin",
-            )
-            // Two different axes per die, at different speeds, so it rolls through every kind of
-            // position rather than spinning like a coin - and no two dice tumble alike.
-            val axes = remember(dieIndex) {
-                val random = Random(dieIndex * 53 + 7)
-                fun axis() = Vec3(random.nextFloat() - 0.5f, random.nextFloat() - 0.5f, random.nextFloat() - 0.5f).normalised()
-                axis() to axis()
-            }
-            // From one fixed starting view, not the face the tray happens to be flickering through
-            // this tick - so the spin is continuous, only snapping to the roll once it lands.
-            D20_VIEWS.getValue(1).turned(axes.first, spin).turned(axes.second, spin * 1.7f)
-        } else {
-            // Lying on its rolled face, twisted by an amount of its own for this die and this roll.
-            val twist = (Random(dieIndex * 31 + value).nextFloat() * 2f - 1f) * D20_REST_TWIST_DEGREES
-            rest.turned(rest.towards, twist)
-        }
+        val tumbleMillis = LocalDieTumbleMillis.current
+        val tumbling = tumbleMillis != null
+        val view = view(value, dieIndex, tumbleMillis)
         val outline = silhouette(view)
-        val shape = GenericShape { size, _ ->
-            val scale = size.minDimension / 2f / D20.circumradius
-            outline.forEachIndexed { i, p ->
-                val x = size.width / 2 + p.x * scale
-                val y = size.height / 2 + p.y * scale
-                if (i == 0) moveTo(x, y) else lineTo(x, y)
-            }
-            close()
-        }
+        val shape = silhouetteShape(outline)
         val measurer = rememberTextMeasurer()
         val style = TextStyle(color = numberColour, fontSize = 40.sp, fontWeight = FontWeight.Bold)
 

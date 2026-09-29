@@ -1,10 +1,12 @@
 package net.zodac.dicefive.ui.game.style
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 
 /**
@@ -23,9 +25,37 @@ interface TableArt {
 interface DiceStyle : TableArt {
     /**
      * Whether this style draws its own tumble mid-roll (the D20, a solid it can turn itself) rather
-     * than being rolled as a cube of its own faces by the tray. See [LocalDieTumbling].
+     * than being rolled as a cube of its own faces by the tray. See [LocalDieTumbleMillis].
      */
     val tumblesItself: Boolean get() = false
+
+    /**
+     * The outline this die casts its ground shadow with when lying on the mat - its own shape, not a
+     * generic one. [dieIndex] is which die it is and [tumbleMillis] how long it's been tumbling
+     * (null at rest - see [LocalDieTumbleMillis]), for a die whose outline changes with either (the
+     * D20). A rounded square by default, like [BeveledDie].
+     */
+    fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(BEVELED_DIE_CORNER_PERCENT)
+
+    /**
+     * The face this style's art shows above [value] on the die, for a style drawn as a solid with
+     * more than one face in view (the Cube), or null when only [value] shows. A toss lands with this
+     * face on top, so the tossed die settles into exactly what [Die] then draws.
+     */
+    fun topFace(value: Int): Int? = null
+
+    /**
+     * The die tumbling mid-toss, [roll] quarter-turns along its way through [ring] - see
+     * [TossedCube], which by default rolls this style's own [Die] faces as a cube. A style whose
+     * faces already draw a whole solid (the Cube) draws its tumble itself instead, since rolling
+     * those as cards would show every card's painted sides at once.
+     */
+    @Composable
+    fun TossedDie(roll: Float, finalTurns: Int, ring: List<Int>, modifier: Modifier) {
+        TossedCube(roll = roll, finalTurns = finalTurns, ring = ring, modifier = modifier) { value, faceModifier ->
+            Die(value = value, held = false, modifier = faceModifier)
+        }
+    }
 
     @Composable
     fun Die(value: Int, held: Boolean, modifier: Modifier)

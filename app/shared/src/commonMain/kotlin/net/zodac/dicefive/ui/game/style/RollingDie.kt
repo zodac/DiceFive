@@ -42,11 +42,15 @@ class TossPose(val dx: Float, val dy: Float, val yawDegrees: Float, val roll: Fl
  * picked up off the mat, if it was on the mat at all) and finishes on [result], so it never jumps from one face to
  * another: [finalTurns], the whole quarter-turns it ends up rolled through, is picked to make both
  * true, and the tumble is paced to its distance travelled so it comes to rest squarely on a face.
+ * For a style that draws more than the face it rolled ([DiceStyle.topFace]), [restTop] is the face
+ * it has to finish with on top - the one before [result] in the ring - so it lands looking exactly as
+ * it then rests; that takes priority over [startFace], which is thrown in out of sight anyway.
  */
 class TossPath(
     seed: Int,
     result: Int,
     startFace: Int?,
+    restTop: Int? = null,
     private val startY: Float,
     private val restY: Float,
     dieSize: Float,
@@ -65,19 +69,22 @@ class TossPath(
     init {
         // The ring runs result, neighbour, opposite, neighbour's opposite; the face it starts on sits
         // (finalTurns) places back round it, so pick the neighbour and the turns to put startFace there.
+        // The ring's last face is the one on top at rest, one turn back from the result.
         val closest = maxOf(1, travel.roundToInt())
-        val (neighbour, turnsModFour) = when (startFace) {
-            null -> (1..6).filter { it != result && it != 7 - result }.random(random) to null
-            result -> (1..6).filter { it != result && it != 7 - result }.random(random) to 0
-            7 - result -> (1..6).filter { it != result && it != 7 - result }.random(random) to 2
-            // A neighbour of the result: as the ring's last face it's one turn back.
-            else -> 7 - startFace to 1
+        val neighbours = (1..6).filter { it != result && it != 7 - result }
+        val neighbour = when {
+            restTop != null && restTop in neighbours -> 7 - restTop
+            startFace != null && startFace in neighbours -> 7 - startFace
+            else -> neighbours.random(random)
         }
         ring = listOf(result, neighbour, 7 - result, 7 - neighbour)
-        finalTurns = if (turnsModFour == null) {
+        // It starts on the ring's face finalTurns places back from the result - or, if the face it
+        // was picked up on isn't round this ring at all, anywhere.
+        val startIndex = startFace?.let { ring.indexOf(it) }?.takeIf { it >= 0 }
+        finalTurns = if (startIndex == null) {
             closest
         } else {
-            (1..8).filter { it % 4 == turnsModFour }.minBy { abs(it - closest) }
+            (1..8).filter { (it + startIndex) % 4 == 0 }.minBy { abs(it - closest) }
         }
     }
 

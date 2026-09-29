@@ -42,11 +42,12 @@ import net.zodac.dicefive.ui.theme.GoldAccent
 val LocalDieIndex = compositionLocalOf { 0 }
 
 /**
- * Whether the die being drawn is mid-roll, tumbling across the mat. Most styles just show whatever
- * face they're handed as it flickers through values; a style drawn as a real solid (the D20) uses
- * it to tumble through orientations instead, so it doesn't just sit still while its number changes.
+ * How long the die being drawn has been tumbling across the mat mid-toss, in milliseconds, or null
+ * when it isn't. Only a style that [DiceStyle.tumblesItself] (the D20, a real solid) reads it,
+ * turning through orientations as it goes - from the toss's own clock rather than one of its own,
+ * so its ground shadow ([DiceStyle.shadowShape], handed the same time) turns with it.
  */
-val LocalDieTumbling = compositionLocalOf { false }
+val LocalDieTumbleMillis = compositionLocalOf<Float?> { null }
 
 /**
  * The player's "Simple dice roll animation" setting: when on, every die just flicks through faces
@@ -71,6 +72,9 @@ internal fun Modifier.dieShadow(shape: Shape): Modifier =
 @Composable
 internal fun naturalPatternSeed(value: Int, styleSeed: Int = 0): Int = LocalDieIndex.current * 97 + value * 13 + styleSeed
 
+/** How rounded a [StyledDie]'s corners are unless a style says otherwise, as a percentage of its size. */
+internal const val STYLED_DIE_CORNER_PERCENT = 22
+
 /** How a die shows its value. [CUSTOM] leaves it to the die's own pip painter. */
 internal enum class PipShape { ROUND, SQUARE, NUMERAL, CUSTOM }
 
@@ -88,7 +92,7 @@ internal fun StyledDie(
     face: Brush,
     edge: Color,
     pipColor: Color,
-    cornerPercent: Int = 22,
+    cornerPercent: Int = STYLED_DIE_CORNER_PERCENT,
     edgeWidth: Dp = 1.dp,
     pipShape: PipShape = PipShape.ROUND,
     heldRingColor: Color = GoldAccent,
@@ -139,9 +143,14 @@ internal fun StyledDie(
     }
 }
 
+// How rounded a Casino die's corners are, as a percentage of its size - for drawing it and its shadow alike.
+private const val CASINO_CORNER_PERCENT = 8
+
 /** Sharp-cornered, glossy casino dice with flush white pips. */
 class CasinoDiceStyle(override val id: String, private val light: Color, private val dark: Color) : DiceStyle, Swatched {
     override val swatch: Color = light
+
+    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(CASINO_CORNER_PERCENT)
 
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
@@ -151,7 +160,7 @@ class CasinoDiceStyle(override val id: String, private val light: Color, private
         face = Brush.linearGradient(listOf(light, dark)),
         edge = dark,
         pipColor = Color.White,
-        cornerPercent = 8,
+        cornerPercent = CASINO_CORNER_PERCENT,
     ) {
         // A glossy band across the top, fading out by halfway down.
         drawRect(
@@ -160,6 +169,9 @@ class CasinoDiceStyle(override val id: String, private val light: Color, private
         )
     }
 }
+
+// How rounded a Frosted die's corners are, as a percentage of its size - for drawing it and its shadow alike.
+private const val FROSTED_CORNER_PERCENT = 6
 
 /**
  * Frosted-glass dice with square corners: a see-through milky tint the mat shows faintly through,
@@ -176,6 +188,8 @@ class FrostedDiceStyle(
 ) : DiceStyle, Swatched {
     override val swatch: Color = dark
 
+    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(FROSTED_CORNER_PERCENT)
+
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) {
         val seed = naturalPatternSeed(value)
@@ -186,7 +200,7 @@ class FrostedDiceStyle(
             face = Brush.linearGradient(listOf(light.copy(alpha = 0.82f), dark.copy(alpha = 0.72f))),
             edge = Color.White.copy(alpha = 0.55f),
             pipColor = pip.copy(alpha = 0.85f),
-            cornerPercent = 6,
+            cornerPercent = FROSTED_CORNER_PERCENT,
         ) {
             drawFrost(seed)
         }
@@ -250,6 +264,9 @@ private fun DrawScope.drawFrost(seed: Int) {
     )
 }
 
+// How rounded a Marble die's corners are, as a percentage of its size - for drawing it and its shadow alike.
+private const val MARBLE_CORNER_PERCENT = 18
+
 /** Polished marble dice, veined across the face like a kitchen countertop - differently on every face of every die. */
 class MarbleDiceStyle(
     override val id: String,
@@ -260,6 +277,8 @@ class MarbleDiceStyle(
     private val seed: Int,
 ) : DiceStyle, Swatched {
     override val swatch: Color = light
+
+    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(MARBLE_CORNER_PERCENT)
 
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) {
@@ -272,12 +291,15 @@ class MarbleDiceStyle(
             face = Brush.linearGradient(listOf(light, dark)),
             edge = dark,
             pipColor = pip,
-            cornerPercent = 18,
+            cornerPercent = MARBLE_CORNER_PERCENT,
         ) {
             drawMarble(faceSeed, vein)
         }
     }
 }
+
+// How rounded a Metal die's corners are, as a percentage of its size - for drawing it and its shadow alike.
+private const val METAL_CORNER_PERCENT = 20
 
 /**
  * Metal dice: a diagonal sheen of light and dark bands with dark, engraved pips. [heldRing] is
@@ -291,6 +313,8 @@ class MetalDiceStyle(
 ) : DiceStyle, Swatched {
     override val swatch: Color = sheen[1]
 
+    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(METAL_CORNER_PERCENT)
+
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
         value = value,
@@ -299,10 +323,13 @@ class MetalDiceStyle(
         face = Brush.linearGradient(sheen),
         edge = sheen.last(),
         pipColor = pip,
-        cornerPercent = 20,
+        cornerPercent = METAL_CORNER_PERCENT,
         heldRingColor = heldRing,
     )
 }
+
+// How rounded a Retro die's corners are, as a percentage of its size - for drawing it and its shadow alike.
+private const val RETRO_CORNER_PERCENT = 6
 
 /** Flat, square-cornered retro dice with square pips and a heavy outline, like an old handheld's screen. */
 class RetroDiceStyle(
@@ -314,6 +341,8 @@ class RetroDiceStyle(
 ) : DiceStyle, Swatched {
     override val swatch: Color = face
 
+    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(RETRO_CORNER_PERCENT)
+
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
         value = value,
@@ -322,7 +351,7 @@ class RetroDiceStyle(
         face = Brush.linearGradient(listOf(face, face)),
         edge = outline,
         pipColor = pip,
-        cornerPercent = 6,
+        cornerPercent = RETRO_CORNER_PERCENT,
         edgeWidth = 2.dp,
         pipShape = PipShape.SQUARE,
         heldRingColor = heldRing,
@@ -347,6 +376,8 @@ class NumeralDiceStyle(
 ) : DiceStyle, Swatched {
     override val swatch: Color = light
 
+    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(STYLED_DIE_CORNER_PERCENT)
+
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
         value = value,
@@ -360,4 +391,19 @@ class NumeralDiceStyle(
         numeralFont = system.font,
         numeralSize = system.size,
     )
+}
+
+/** The corners of the smallest convex outline around [points], in order round it. */
+internal fun convexHull(points: List<Offset>): List<Offset> {
+    val sorted = points.sortedWith(compareBy({ it.x }, { it.y }))
+    fun cross(o: Offset, a: Offset, b: Offset) = (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x)
+    fun half(ordered: List<Offset>): List<Offset> {
+        val chain = mutableListOf<Offset>()
+        for (p in ordered) {
+            while (chain.size >= 2 && cross(chain[chain.size - 2], chain.last(), p) <= 0f) chain.removeAt(chain.size - 1)
+            chain += p
+        }
+        return chain.dropLast(1)
+    }
+    return half(sorted) + half(sorted.asReversed())
 }

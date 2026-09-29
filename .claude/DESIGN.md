@@ -63,7 +63,8 @@ decisions behind it. Read that before changing anything visual.
   aren't a flat rounded square, like the 3D cube and the misprint; `LcdDice.kt` for the 7-segment LCD
   dice; `D20Dice.kt` for the D20 - a real, projected icosahedron numbered 1-20 with opposite faces
   summing to 21, turned so the roll (only ever 1-6) faces you, the rest of its numbers faded back; mid-roll
-  (`LocalDieTumbling`, set by the tray) it tumbles continuously about two axes instead, and at rest it
+  (`LocalDieTumbleMillis`, the toss's elapsed time, set by the tray - driven by the toss's clock, not
+  one of its own, so its shadow can turn with it) it tumbles continuously about two axes instead, and at rest it
   gets a small per-die, per-roll twist so no two landings look alike; `D20Test` pins the numbering), the round-cup kit
   (`RoundCups.kt`, same raised view as the rest), `PatternedDiceMat` (`PatternedMats.kt`) and the
   patterned backgrounds (`PatternedBackgrounds.kt`, drawn through
@@ -518,7 +519,12 @@ dependencies — most unit tests live here.
   their own faces (`TossedCube`), paced to the distance travelled, through the real faces round one
   axis; a toss starts on the very face the die was picked up showing and ends on its result, with the
   quarter-turns counted to make both true, so no face ever jumps. The D20 (`DiceStyle.tumblesItself`)
-  turns itself instead. **No flash of the result:** `RollTracker` counts shake-starts and landings
+  turns itself instead. A style whose every face is already a drawn solid (the Cube) can't be
+  rolled as cards - each would carry its own painted top and side, showing extra faces - so it
+  overrides `DiceStyle.TossedDie` and tumbles as one real projected cube, the still die drawn by the
+  same renderer untipped; its `topFace` makes `TossPath` finish with the face its still art shows on
+  top (over the picked-up face, which is thrown in out of sight), so it lands exactly as it then
+  rests. `TossPathTest` pins the ring rules. **No flash of the result:** `RollTracker` counts shake-starts and landings
   in the composition they happen in, and the pick-up/toss animations are keyed on those counts, so a
   toss is already under way in the frame the new dice arrive - they never appear at rest first.
   **Scoring waits for the dice:** `GameScreen` uses the same tracker to hold `diceSettling` true for
@@ -532,7 +538,11 @@ dependencies — most unit tests live here.
   single fixed light above and left of the tray (`LIGHT_X`/`LIGHT_Y`), falling away from it by a share
   of the die's distance from it and spreading as a tumbling cube lifts over an edge. It follows the
   die through the pick-up, the throw and rest alike, so it never pops in on landing. Held dice, off the
-  mat in their slots, keep their own.
+  mat in their slots, keep their own. Each shadow is the die's own outline, from
+  `DiceStyle.shadowShape` - the style's corner rounding (every style shares its corner constant
+  between the die and its shadow), the Cube's hexagonal outline, and the D20's exact twisted
+  silhouette, at rest (`restingView`) and mid-tumble alike - the same `view` the die is drawn
+  in, frame by frame. Coloured dice use the bevelled die's rounded square.
 
 ## Achievements
 

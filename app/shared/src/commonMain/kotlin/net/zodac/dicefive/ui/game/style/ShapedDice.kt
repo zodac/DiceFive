@@ -2,6 +2,7 @@ package net.zodac.dicefive.ui.game.style
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -10,11 +11,15 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.floor
 import kotlin.math.sin
 import kotlin.random.Random
 import net.zodac.dicefive.ui.theme.GoldAccent
@@ -25,7 +30,7 @@ private const val CUBE_DEPTH = 0.2f
 /**
  * A die drawn as a solid cube seen from above and to the right: its value on the front face, and
  * two neighbouring faces - never the opposite one, which always adds up to 7 - on the lit top and
- * shaded side.
+ * shaded side. Mid-toss it tumbles as that same solid ([TossedDie]), not as a set of flat faces.
  */
 class CubeDiceStyle(
     override val id: String,
@@ -37,53 +42,141 @@ class CubeDiceStyle(
 ) : DiceStyle, Swatched {
     override val swatch: Color = front
 
+    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = GenericShape { size, _ -> addPath(cubeOutline(size)) }
+
+    override fun topFace(value: Int): Int = neighbouringFaces(value).first
+
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) {
         val silhouette = GenericShape { size, _ -> addPath(cubeOutline(size)) }
+        val (topValue, sideValue) = neighbouringFaces(value)
         Canvas(modifier = modifier.dieShadow(silhouette)) {
-            val s = size.minDimension
-            val d = s * CUBE_DEPTH
-            // Front, top and right faces as corner points; see cubeOutline for the whole shape.
-            val frontLeftTop = Offset(0f, d)
-            val frontRightTop = Offset(s - d, d)
-            val backLeftTop = Offset(d, 0f)
-            val backRightTop = Offset(s, 0f)
-            val frontRightBottom = Offset(s - d, s)
-            val backRightBottom = Offset(s, s - d)
+            drawCube(front = value, top = topValue, side = sideValue, tipDegrees = 0f, held = held)
+        }
+    }
 
-            drawRect(Brush.linearGradient(listOf(front, frontShade)), topLeft = frontLeftTop, size = Size(s - d, s - d))
-            drawPath(quad(frontLeftTop, backLeftTop, backRightTop, frontRightTop), top)
-            drawPath(quad(frontRightTop, backRightTop, backRightBottom, frontRightBottom), side)
-
-            val (topValue, sideValue) = neighbouringFaces(value)
-            val pipRadius = s * 0.075f
-            // Front: an ordinary face, inset from its edges.
-            for (p in pipLayout(value)) {
-                val inset = (s - d) * 0.12f
-                val span = (s - d) - inset * 2
-                drawCircle(pip, pipRadius, Offset(inset + p.x * span, d + inset + p.y * span))
-            }
-            // Top and side: the same layout mapped onto each slanted face, each pip squashed to match.
-            for (p in pipLayout(topValue)) {
-                val u = 0.15f + p.x * 0.7f
-                val v = 0.15f + p.y * 0.7f
-                val centre = backLeftTop + (backRightTop - backLeftTop) * u + (frontLeftTop - backLeftTop) * v
-                drawOval(pip.copy(alpha = 0.8f), topLeft = centre - Offset(pipRadius * 0.9f, pipRadius * 0.35f), size = Size(pipRadius * 1.8f, pipRadius * 0.7f))
-            }
-            for (p in pipLayout(sideValue)) {
-                val u = 0.15f + p.x * 0.7f
-                val v = 0.15f + p.y * 0.7f
-                val centre = frontRightTop + (backRightTop - frontRightTop) * u + (frontRightBottom - frontRightTop) * v
-                drawOval(pip.copy(alpha = 0.7f), topLeft = centre - Offset(pipRadius * 0.35f, pipRadius * 0.9f), size = Size(pipRadius * 0.7f, pipRadius * 1.8f))
-            }
-
-            drawPath(
-                cubeOutline(size),
-                color = if (held) GoldAccent else frontShade,
-                style = Stroke(width = if (held) 2.dp.toPx() else 1.dp.toPx()),
+    /**
+     * The cube rolling up the tray and back, turning about its left-right axis: the front face tips
+     * up and over into the top as the one beneath comes round to the front, while the side face
+     * stays put. [ring] and [finalTurns] are the faces round that axis and where it stops - see
+     * [TossPath] - and the side is whichever face is left over, the one it shows at rest if it can.
+     */
+    @Composable
+    override fun TossedDie(roll: Float, finalTurns: Int, ring: List<Int>, modifier: Modifier) {
+        if (ring.size < 4) {
+            // Not rolling round any axis - slid off the mat face-up, say.
+            Die(value = ring.first(), held = false, modifier = modifier)
+            return
+        }
+        fun faceAt(turn: Int) = ring[(turn - finalTurns).mod(ring.size)]
+        val base = floor(roll).toInt()
+        val sideValue = neighbouringFaces(ring.first()).second.takeIf { it !in ring } ?: (1..6).first { it !in ring }
+        Canvas(modifier = modifier) {
+            drawCube(
+                front = faceAt(base),
+                top = faceAt(base - 1),
+                side = sideValue,
+                tipDegrees = (roll - base) * 90f,
+                held = false,
+                bottom = faceAt(base + 1),
             )
         }
     }
+
+    /**
+     * The cube in 3D, tipped [tipDegrees] about its left-right axis from lying with [front] facing
+     * you, [top] above it and [side] to its right, and projected the way it's always drawn: every
+     * face turned towards you, filled, shaded between the front's colours and the top's as it tips
+     * over, and pipped with its pips laid flat on it; then outlined, in gold when [held].
+     */
+    private fun DrawScope.drawCube(front: Int, top: Int, side: Int, tipDegrees: Float, held: Boolean, bottom: Int = 7 - top) {
+        val s = size.minDimension
+        val d = s * CUBE_DEPTH
+        val span = s - d
+        val radians = tipDegrees * PI.toFloat() / 180f
+        fun project(p: CubePoint) = Offset(p.x * span + p.z * d, d + p.y * span - p.z * d)
+        // Seen along this, so a face whose normal points against it is turned towards you.
+        val sight = CubePoint(-d, d, span)
+
+        val faces = listOf(
+            CubeFace(front, corner = CubePoint(0f, 0f, 0f), across = CubePoint(1f, 0f, 0f), down = CubePoint(0f, 1f, 0f), normal = CubePoint(0f, 0f, -1f)),
+            CubeFace(top, corner = CubePoint(0f, 0f, 1f), across = CubePoint(1f, 0f, 0f), down = CubePoint(0f, 0f, -1f), normal = CubePoint(0f, -1f, 0f)),
+            CubeFace(bottom, corner = CubePoint(0f, 1f, 0f), across = CubePoint(1f, 0f, 0f), down = CubePoint(0f, 0f, 1f), normal = CubePoint(0f, 1f, 0f)),
+            CubeFace(7 - front, corner = CubePoint(0f, 1f, 1f), across = CubePoint(1f, 0f, 0f), down = CubePoint(0f, -1f, 0f), normal = CubePoint(0f, 0f, 1f)),
+            CubeFace(side, corner = CubePoint(1f, 0f, 0f), across = CubePoint(0f, 0f, 1f), down = CubePoint(0f, 1f, 0f), normal = CubePoint(1f, 0f, 0f)),
+        ).map { it.tipped(radians) }
+
+        val pipRadius = CUBE_PIP_RADIUS / (1f - CUBE_DEPTH)
+        for (face in faces) {
+            if (face.normal dot sight > -0.001f * s) continue
+            fun at(u: Float, v: Float) = project(face.corner + face.across * u + face.down * v)
+            val isSide = face.normal.x > 0.5f
+            // How far over towards being the top a front-to-top face has tipped, for its shading.
+            val up = (-face.normal.y).coerceAtLeast(0f)
+            val towards = (-face.normal.z).coerceAtLeast(0f)
+            val topness = if (up + towards > 0f) up / (up + towards) else 0f
+            val fill = if (isSide) {
+                SolidColor(this@CubeDiceStyle.side)
+            } else {
+                Brush.linearGradient(listOf(lerp(this@CubeDiceStyle.front, this@CubeDiceStyle.top, topness), lerp(frontShade, this@CubeDiceStyle.top, topness)))
+            }
+            drawPath(quad(at(0f, 0f), at(1f, 0f), at(1f, 1f), at(0f, 1f)), fill)
+            val pipColour = pip.copy(alpha = if (isSide) 0.7f else 1f - topness * 0.2f)
+            for (p in pipLayout(face.value)) {
+                val u = CUBE_PIP_INSET + p.x * (1f - CUBE_PIP_INSET * 2)
+                val v = CUBE_PIP_INSET + p.y * (1f - CUBE_PIP_INSET * 2)
+                val dot = Path().apply {
+                    for (step in 0 until 20) {
+                        val angle = step * 2f * PI.toFloat() / 20f
+                        val point = at(u + cos(angle) * pipRadius, v + sin(angle) * pipRadius)
+                        if (step == 0) moveTo(point.x, point.y) else lineTo(point.x, point.y)
+                    }
+                    close()
+                }
+                drawPath(dot, pipColour)
+            }
+        }
+
+        val corners = listOf(0f, 1f).flatMap { x -> listOf(0f, 1f).flatMap { y -> listOf(0f, 1f).map { z -> CubePoint(x, y, z) } } }
+        val outline = convexHull(corners.map { project(it.tipped(radians, about = 0.5f)) })
+        drawPath(
+            Path().apply {
+                outline.forEachIndexed { i, p -> if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y) }
+                close()
+            },
+            color = if (held) GoldAccent else frontShade,
+            style = Stroke(width = if (held) 2.dp.toPx() else 1.dp.toPx()),
+        )
+    }
+}
+
+// Each pip's radius, as a fraction of the whole die, and how far in from a face's edges its pips sit,
+// as a fraction of the face.
+private const val CUBE_PIP_RADIUS = 0.075f
+private const val CUBE_PIP_INSET = 0.12f
+
+/** A point or direction in the cube's own space: x to the right, y down and z away from you, the cube spanning 0..1 each way. */
+private data class CubePoint(val x: Float, val y: Float, val z: Float) {
+    operator fun plus(o: CubePoint) = CubePoint(x + o.x, y + o.y, z + o.z)
+    operator fun times(k: Float) = CubePoint(x * k, y * k, z * k)
+    infix fun dot(o: CubePoint) = x * o.x + y * o.y + z * o.z
+
+    /**
+     * Turned [radians] about the left-right axis through [about] (the cube's centre for a point, 0
+     * for a direction), the front tipping up and away.
+     */
+    fun tipped(radians: Float, about: Float = 0f): CubePoint {
+        val c = cos(radians)
+        val s = sin(radians)
+        val y0 = y - about
+        val z0 = z - about
+        return CubePoint(x, about + y0 * c + z0 * s, about - y0 * s + z0 * c)
+    }
+}
+
+/** One face of the cube showing [value]: a [corner], the edges its pips are laid out [across] and [down], and which way it faces. */
+private class CubeFace(val value: Int, val corner: CubePoint, val across: CubePoint, val down: CubePoint, val normal: CubePoint) {
+    fun tipped(radians: Float) = CubeFace(value, corner.tipped(radians, about = 0.5f), across.tipped(radians), down.tipped(radians), normal.tipped(radians))
 }
 
 /** A top and a side face that can both sit next to [front] on a real die: neither is it or its opposite. */
@@ -116,6 +209,9 @@ private fun cubeOutline(size: Size): Path {
     }
 }
 
+// How rounded a Misprint die's corners are, as a percentage of its size - for drawing it and its shadow alike.
+private const val MISPRINT_CORNER_PERCENT = 16
+
 /**
  * A misprinted die: a wobbly, doubled outline in [ink] on [paper], and every pip printed well off
  * its proper spot - at least a whole pip's width away, in its own random direction - though still
@@ -125,6 +221,8 @@ private fun cubeOutline(size: Size): Path {
 class MisprintDiceStyle(override val id: String, private val paper: Color, private val ink: Color) : DiceStyle, Swatched {
     override val swatch: Color = paper
 
+    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(MISPRINT_CORNER_PERCENT)
+
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
         value = value,
@@ -133,7 +231,7 @@ class MisprintDiceStyle(override val id: String, private val paper: Color, priva
         face = Brush.linearGradient(listOf(paper, paper)),
         edge = Color.Transparent,
         pipColor = ink,
-        cornerPercent = 16,
+        cornerPercent = MISPRINT_CORNER_PERCENT,
         pipShape = PipShape.CUSTOM,
         customPips = { face -> drawMisprintedPips(face) },
     ) {
