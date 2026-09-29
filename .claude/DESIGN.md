@@ -1657,7 +1657,13 @@ install-over-existing succeeds:
       view-model roll; one was built with its own 600ms shake and replaced on review, so auto-rolls
       and real rolls stay the same thing. AI turns are unchanged: their loop already starts with a
       roll. `GameViewModel.rollDice` now ignores a roll with no rolls left, which an Undo during
-      the shake could otherwise trigger (it threw from `GameEngine.rollDice`). Engine, AI, board and persistence needed no change - they already
+      the shake could otherwise trigger (it threw from `GameEngine.rollDice`).
+- [x] **Every roll shares one path, in every mode**: a CPU's roll now shakes for the same
+      `CUP_SHAKE_MILLIS` (420ms, was 600) as a tap, and lands through the same
+      `GameViewModel.performRoll` as a human's `rollDice`. The CPU still plays in the view model,
+      not through the screen's tap: routing it through the screen would stall CPU turns whenever
+      the screen isn't showing (and time them out, with a timer), and make the AI loop wait on the
+      UI. The CPU's 600ms pause before scoring (`AI_STEP_DELAY_MS`) is unchanged. Engine, AI, board and persistence needed no change - they already
       read the rolls from the mode.
 - [x] **New Game screen**: Quickfire appears in the Game Mode radio group from `GameMode.entries`.
       The Turn Timer row is disabled while it's picked (`SegmentedChoiceRow` gained `enabled`); the

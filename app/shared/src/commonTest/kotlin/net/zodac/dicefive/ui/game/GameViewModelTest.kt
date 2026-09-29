@@ -368,9 +368,9 @@ class GameViewModelTest {
         // dice (a 5x can't be improved by rerolling). The two "remaining" rolls that would
         // otherwise follow are pure no-ops - GameEngine.rollDice skips held dice - and should be
         // skipped rather than sitting through their delay for nothing: a full 3-roll AI turn takes
-        // 4 delay steps (roll, roll, roll, score); this one should take only 2 (roll, score).
+        // 3 shakes plus the pause before scoring; this one should take only 1 shake and that pause.
         val aiStepDelayMs = 600L // matches GameViewModel.AI_STEP_DELAY_MS, which is private to it
-        assertEquals(2 * aiStepDelayMs, testDispatcher.scheduler.currentTime - timeBeforeAiTurn)
+        assertEquals(CUP_SHAKE_MILLIS + aiStepDelayMs, testDispatcher.scheduler.currentTime - timeBeforeAiTurn)
         assertEquals(50, viewModel.game.value!!.players[1].scorecard[ScoreCategory.FIVE_OF_A_KIND])
     }
 

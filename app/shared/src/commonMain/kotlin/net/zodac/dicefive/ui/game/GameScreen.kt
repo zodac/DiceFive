@@ -52,8 +52,9 @@ import net.zodac.dicefive.ui.game.style.LocalSimpleDiceRoll
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
-/** How long the cup shakes before the roll result is revealed - purely a presentation delay. */
-private const val CUP_SHAKE_MILLIS = 420L
+/** How long the cup shakes before the roll result is revealed - purely a presentation delay. Shared
+ * by every roll: a tap (or Quickfire's automatic one) here, and an AI's in [GameViewModel]. */
+internal const val CUP_SHAKE_MILLIS = 420L
 
 /** Below this many seconds left, the badge flashes between red and its normal muted color instead
  * of sitting static. */
