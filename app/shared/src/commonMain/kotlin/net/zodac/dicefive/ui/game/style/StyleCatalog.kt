@@ -78,7 +78,7 @@ open class StyleCatalog<T : TableArt>(val noun: String, val families: List<Style
 }
 
 /** Every category's catalog, in the Styles screen's order. */
-val StyleCatalogs: List<StyleCatalog<*>> get() = listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds)
+val StyleCatalogs: List<StyleCatalog<*>> by lazy { listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds) }
 
 object DiceStyles : StyleCatalog<DiceStyle>(
     "dice",
