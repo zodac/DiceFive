@@ -65,7 +65,7 @@ fun ScreenScaffold(
     scrollable: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    BrandBackdrop(modifier = modifier) {
+    BrandBackdrop(modifier = modifier, driftingDice = true) {
         Scaffold(
             // The backdrop is already drawn behind; the Scaffold only supplies structure, insets
             // and the app bar, so it must not paint its own opaque container over the top.

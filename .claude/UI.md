@@ -550,8 +550,11 @@ SilentPlatformServices`) and steps both the compose clock and the paused main lo
 - The per-player difficulty selector on the setup screen: it cost a control row per player and
   every option in it is disabled until AI difficulty exists, so it's one line of text for now.
   `PlayerSetupSlot.difficulty` and `setPlayerDifficulty` are untouched - only the UI went.
-- `BrandBackdrop`'s watermark dice drift only on the main menu (`driftingDice`, which the menu
-  alone sets; every other screen keeps them still). `DiceDrift` holds the logic, free of Compose so
+- `BrandBackdrop`'s watermark dice drift on the main menu and every screen off it (`driftingDice`,
+  set by the menu and by `ScreenScaffold`; the game and results screens keep them still). The drift
+  is one `DriftState` held in `DiceFiveApp` and shared through `LocalDriftState`, so the dice keep
+  their places and faces from screen to screen; it starts over only after a game (the game
+  destination's `onDispose` resets it) or on a fresh launch. `DiceDrift` holds the logic, free of Compose so
   `DiceDriftTest` can pin it: five dice, each crossing in a straight line up and to one side and
   turning slower than it travels (its corners move slower than its centre), then coming straight
   back in just below the bottom edge on a new path, size and face - so there's no pool of dice

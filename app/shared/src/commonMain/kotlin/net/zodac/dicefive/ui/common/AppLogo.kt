@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -268,13 +267,6 @@ fun AppLogo(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
-        )
-
-        Text(
-            text = "ROLL · SCORE · REPEAT",
-            style = MaterialTheme.typography.labelSmall,
-            letterSpacing = 3.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

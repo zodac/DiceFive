@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +29,7 @@ import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.ui.achievements.AchievementsScreen
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
 import net.zodac.dicefive.ui.common.BrandBackdrop
+import net.zodac.dicefive.ui.common.LocalDriftState
 import net.zodac.dicefive.ui.game.GameScreen
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.menu.MenuScreen
@@ -117,6 +119,9 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                 }
             }
             composable(Screen.PLAY_GAME) { backStackEntry ->
+                // The menu's dice start over after a game, not while the setup screen is still fading out.
+                val driftState = LocalDriftState.current
+                DisposableEffect(driftState) { onDispose { driftState?.reset() } }
                 val playGraphEntry = remember(backStackEntry) { navController.getBackStackEntry(Screen.PLAY_GRAPH) }
                 GameScreen(
                     viewModel = viewModel<GameViewModel>(playGraphEntry, factory = GameViewModel.factory(container)),
