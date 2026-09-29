@@ -123,47 +123,128 @@ class StyleCatalogTest {
     }
 
     @Test
-    fun theMulticolourDiceAreASecretStyleUnlockedByLuckOfTheIrish() {
-        val irish = DiceStyles.familyOf(IrishFlagDiceStyle.id)
-        assertEquals("Multicolour", irish.name)
-        assertEquals(listOf("Irish", "Tricolour", "Rainbow"), irish.colours.map { it.name })
-        assertEquals(irish, DiceStyles.familyOf(RainbowStripedDiceStyle.id))
-        assertTrue(irish.unlock.hiddenWhileLocked)
-        assertTrue(Achievement.LUCK_OF_THE_IRISH.unlocksStyle)
-        assertEquals(listOf("the 'Multicolour' dice style"), Achievement.LUCK_OF_THE_IRISH.styleRewards.map { it.description })
+    fun theIrishDiceAreASecretColourOfMulticolourUnlockedByLuckOfTheIrish() {
+        val multicolour = DiceStyles.familyOf(IrishFlagDiceStyle.id)
+        assertEquals("Multicolour", multicolour.name)
+        assertEquals(listOf("Tricolour", "Rainbow", "Irish"), multicolour.colours.map { it.name })
+        assertTrue(multicolour.unlock is StyleUnlock.AchievementCount)
+        assertEquals(listOf("the hidden 'Multicolour' dice colour"), Achievement.LUCK_OF_THE_IRISH.styleRewards.map { it.description })
 
-        // No number of ordinary achievements unlocks it - only the one.
-        val everythingElse = Achievement.entries.filter { it != Achievement.LUCK_OF_THE_IRISH }
-        assertEquals(DiceStyles.default, DiceStyles.unlockedById(IrishFlagDiceStyle.id, AchievementsState(everythingElse.associateWith { 0L })))
-        val earned = AchievementsState(mapOf(Achievement.LUCK_OF_THE_IRISH to 0L))
-        assertEquals(IrishFlagDiceStyle, DiceStyles.unlockedById(IrishFlagDiceStyle.id, earned))
+        val count = multicolour.unlock.count
+        val ordinary = Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }.take(count)
+        val without = AchievementsState(ordinary.associateWith { 0L })
+        assertEquals(TricolourStripedDiceStyle, DiceStyles.unlockedById(TricolourStripedDiceStyle.id, without))
+        assertEquals(DiceStyles.default, DiceStyles.unlockedById(IrishFlagDiceStyle.id, without))
+        assertEquals(listOf("Tricolour", "Rainbow"), multicolour.availableColours(without).map { it.name })
+
+        // Luck of the Irish alone doesn't unlock the family.
+        val onlyIrish = AchievementsState(mapOf(Achievement.LUCK_OF_THE_IRISH to 0L))
+        assertEquals(DiceStyles.default, DiceStyles.unlockedById(IrishFlagDiceStyle.id, onlyIrish))
+        val both = AchievementsState(without.unlockedAt + onlyIrish.unlockedAt)
+        assertEquals(IrishFlagDiceStyle, DiceStyles.unlockedById(IrishFlagDiceStyle.id, both))
+        assertEquals(3, multicolour.availableColours(both).size)
     }
 
     @Test
-    fun theSunflowerCupIsASecretStyleUnlockedByGreenfingers() {
-        val sunflower = DiceCupStyles.familyOf("sunflower_terracotta")
-        assertEquals("Sunflower", sunflower.name)
-        assertEquals(listOf("sunflower_terracotta", "sunflower_slate"), sunflower.colours.map { it.style.id })
-        assertTrue(sunflower.unlock.hiddenWhileLocked)
-        assertEquals(listOf("the 'Sunflower' dice cup style"), Achievement.GREENFINGERS.styleRewards.map { it.description })
+    fun theBlueGooglyDiceAreASecretColourUnlockedByBigFan() {
+        val googly = DiceStyles.familyOf("googly_blue")
+        assertEquals("Googly", googly.name)
+        assertEquals(listOf("Ivory", "Black", "Blue"), googly.colours.map { it.name })
+        assertTrue(Achievement.BIG_FAN.unlocksStyle)
+        assertEquals(listOf("the hidden 'Googly' dice colour"), Achievement.BIG_FAN.styleRewards.map { it.description })
 
-        // No number of ordinary achievements unlocks it - only the one.
-        val everythingElse = Achievement.entries.filter { it != Achievement.GREENFINGERS }
-        assertEquals(DiceCupStyles.default, DiceCupStyles.unlockedById("sunflower_slate", AchievementsState(everythingElse.associateWith { 0L })))
-        val earned = AchievementsState(mapOf(Achievement.GREENFINGERS to 0L))
-        assertEquals("sunflower_slate", DiceCupStyles.unlockedById("sunflower_slate", earned).id)
+        val count = (googly.unlock as StyleUnlock.AchievementCount).count
+        val ordinary = Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }.take(count)
+        val without = AchievementsState(ordinary.associateWith { 0L })
+        assertEquals("googly_black", DiceStyles.unlockedById("googly_black", without).id)
+        assertEquals(DiceStyles.default, DiceStyles.unlockedById("googly_blue", without))
+        assertEquals(listOf("Ivory", "Black"), googly.availableColours(without).map { it.name })
+        assertEquals("googly_blue", DiceStyles.unlockedById("googly_blue", AchievementsState(without.unlockedAt + (Achievement.BIG_FAN to 0L))).id)
     }
 
     @Test
-    fun onlyAFlowerpotThatHasGrownItsSunflowerShowsOffWhenSpent() {
+    fun theFlowerpotsPlantStagesAreSecretColoursUnlockedByGreenfingers() {
+        val flowerpot = DiceCupStyles.familyOf("flowerpot_terracotta")
+        assertEquals("Flowerpot", flowerpot.name)
+        assertEquals(
+            listOf("flowerpot_terracotta", "flowerpot_seedling", "flowerpot_bud", "flowerpot_opening", "sunflower_terracotta"),
+            flowerpot.colours.map { it.style.id },
+        )
+        // The family itself is an ordinary count lock, not hidden: only the plant stages are secret.
+        assertFalse(flowerpot.unlock.hiddenWhileLocked)
+        assertEquals(listOf("the hidden 'Flowerpot' dice cup colours"), Achievement.GREENFINGERS.styleRewards.map { it.description })
+        // The removed Slate pot and Sunflower family no longer resolve.
+        assertEquals(DiceCupStyles.default, DiceCupStyles.byId("flowerpot_slate"))
+        assertEquals(DiceCupStyles.default, DiceCupStyles.byId("sunflower_slate"))
+
+        // Enough ordinary achievements unlock the pot, but not its plant stages, which are also left off the screen.
+        val count = (flowerpot.unlock as StyleUnlock.AchievementCount).count
+        val ordinary = Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }.take(count)
+        val without = AchievementsState(ordinary.associateWith { 0L })
+        assertEquals("flowerpot_terracotta", DiceCupStyles.unlockedById("flowerpot_terracotta", without).id)
+        assertEquals(DiceCupStyles.default, DiceCupStyles.unlockedById("sunflower_terracotta", without))
+        assertEquals(listOf("Terracotta"), flowerpot.availableColours(without).map { it.name })
+
+        // Greenfingers alone doesn't unlock the pot's family, but with it every stage is offered.
+        val earned = AchievementsState(without.unlockedAt + (Achievement.GREENFINGERS to 0L))
+        assertEquals("sunflower_terracotta", DiceCupStyles.unlockedById("sunflower_terracotta", earned).id)
+        assertEquals(5, flowerpot.availableColours(earned).size)
+        assertEquals(
+            DiceCupStyles.default,
+            DiceCupStyles.unlockedById("sunflower_terracotta", AchievementsState(mapOf(Achievement.GREENFINGERS to 0L))),
+        )
+    }
+
+    @Test
+    fun theRabbitTopHatIsASecretColourUnlockedByTheMagiciansSecret() {
+        val topHat = DiceCupStyles.familyOf("top_hat_rabbit")
+        assertEquals("Top Hat", topHat.name)
+        assertEquals(listOf("Black", "Grey", "Rabbit"), topHat.colours.map { it.name })
+        assertEquals(listOf("the hidden 'Top Hat' dice cup colour"), Achievement.MAGICIANS_SECRET.styleRewards.map { it.description })
+
+        val ordinary = Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }.take((topHat.unlock as StyleUnlock.AchievementCount).count)
+        val without = AchievementsState(ordinary.associateWith { 0L })
+        assertEquals("top_hat_grey", DiceCupStyles.unlockedById("top_hat_grey", without).id)
+        assertEquals(DiceCupStyles.default, DiceCupStyles.unlockedById("top_hat_rabbit", without))
+        assertEquals(listOf("Black", "Grey"), topHat.availableColours(without).map { it.name })
+        assertEquals("top_hat_rabbit", DiceCupStyles.unlockedById("top_hat_rabbit", AchievementsState(without.unlockedAt + (Achievement.MAGICIANS_SECRET to 0L))).id)
+    }
+
+    @Test
+    fun theMartiniCupIsASecretStyleUnlockedByShakenNotTapped() {
+        val martini = DiceCupStyles.familyOf("martini")
+        assertEquals("Martini", martini.name)
+        assertTrue(martini.unlock.hiddenWhileLocked)
+        assertEquals(listOf("the 'Martini' dice cup style"), Achievement.SHAKEN_NOT_TAPPED.styleRewards.map { it.description })
+
+        val everythingElse = Achievement.entries.filter { it != Achievement.SHAKEN_NOT_TAPPED }
+        assertEquals(DiceCupStyles.default, DiceCupStyles.unlockedById("martini", AchievementsState(everythingElse.associateWith { 0L })))
+        assertEquals("martini", DiceCupStyles.unlockedById("martini", AchievementsState(mapOf(Achievement.SHAKEN_NOT_TAPPED to 0L))).id)
+    }
+
+    @Test
+    fun theFloatingDiceBackgroundIsASecretStyleUnlockedByNotThoseDice() {
+        val floating = TableBackgrounds.familyOf("floating_dice")
+        assertEquals("Floating Dice", floating.name)
+        assertTrue(floating.unlock.hiddenWhileLocked)
+        assertEquals(listOf("the 'Floating Dice' background style"), Achievement.NOT_THOSE_DICE.styleRewards.map { it.description })
+
+        val everythingElse = Achievement.entries.filter { it != Achievement.NOT_THOSE_DICE }
+        assertEquals(TableBackgrounds.default, TableBackgrounds.unlockedById("floating_dice", AchievementsState(everythingElse.associateWith { 0L })))
+        assertEquals(FloatingDiceBackground, TableBackgrounds.unlockedById("floating_dice", AchievementsState(mapOf(Achievement.NOT_THOSE_DICE to 0L))))
+    }
+
+    @Test
+    fun onlyTheEmptyFlowerpotThatHasGrownItsSunflowerShowsOffWhenSpent() {
         val flowerpot = DiceCupStyles.byId("flowerpot_terracotta")
-        val sunflower = DiceCupStyles.byId("sunflower_terracotta")
         val bloomed = FlowerpotGrowth(stage = FLOWERPOT_FULL_BLOOM, grower = 0)
 
         assertTrue(flowerpot.showsOffWhenSpent(bloomed))
         assertFalse(flowerpot.showsOffWhenSpent(FlowerpotGrowth(stage = FLOWERPOT_FULL_BLOOM - 1, grower = 0)))
-        // The Sunflower cup is always in bloom, so it greys like any other cup.
-        assertFalse(sunflower.showsOffWhenSpent(bloomed))
+        // A pot held at one stage has nothing growing, so it greys like any other cup.
+        for (id in listOf("flowerpot_seedling", "flowerpot_bud", "flowerpot_opening", "sunflower_terracotta")) {
+            assertFalse(DiceCupStyles.byId(id).showsOffWhenSpent(bloomed), id)
+        }
         assertFalse(DiceCupStyles.default.showsOffWhenSpent(bloomed))
     }
 
@@ -176,7 +257,7 @@ class StyleCatalogTest {
                 assertEquals(secret, unlock.hiddenWhileLocked, family.name)
             }
         }
-        assertFalse(Achievement.BIG_FAN.unlocksStyle)
+        assertFalse(Achievement.entries.first { it.visibility != AchievementVisibility.SECRET }.unlocksStyle)
     }
 
     @Test

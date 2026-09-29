@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.game.style
 import androidx.compose.ui.graphics.Color
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.model.FLOWERPOT_FULL_BLOOM
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.ui.game.style.StyleUnlock.AchievementCount
 import net.zodac.dicefive.ui.theme.BarrelBackgroundTop
@@ -17,7 +18,13 @@ import net.zodac.dicefive.ui.theme.FeltNavyTop
 import net.zodac.dicefive.ui.theme.FireBackgroundTop
 import net.zodac.dicefive.ui.theme.FireCupLitFace
 import net.zodac.dicefive.ui.theme.FireTrayTop
+import net.zodac.dicefive.ui.theme.FlowerpotLeaf
+import net.zodac.dicefive.ui.theme.FlowerpotStem
 import net.zodac.dicefive.ui.theme.GoldAccent
+import net.zodac.dicefive.ui.theme.RabbitFur
+import net.zodac.dicefive.ui.theme.SunflowerPetal
+import net.zodac.dicefive.ui.theme.SurfaceContainerHigh
+import net.zodac.dicefive.ui.theme.SunflowerPetalShade
 import net.zodac.dicefive.ui.theme.IvoryDiceBottom
 import net.zodac.dicefive.ui.theme.IvoryDiceTop
 import net.zodac.dicefive.ui.theme.TrayBlueTop
@@ -28,7 +35,18 @@ interface Swatched {
 }
 
 /** One colour of a [StyleFamily]: the concrete piece of art it resolves to, and how it's named and shown. */
-data class StyleColour<out T : TableArt>(val name: String, val swatch: Color, val style: T)
+data class StyleColour<out T : TableArt>(
+    val name: String,
+    val swatch: Color,
+    val style: T,
+    /**
+     * A secret achievement that alone unlocks this colour, on top of its family's own lock: until it's
+     * earned the colour isn't offered on the Styles screen at all, and a saved pick of it draws the default.
+     */
+    val secretAchievement: Achievement? = null,
+) {
+    fun isAvailable(achievements: AchievementsState): Boolean = secretAchievement == null || achievements.isUnlocked(secretAchievement)
+}
 
 /**
  * One style - a shape or pattern - offered on the Styles screen as a single tile, in one or more
@@ -45,6 +63,9 @@ data class StyleFamily<T : TableArt>(
     }
 
     fun colourOf(id: String): StyleColour<T>? = colours.firstOrNull { it.style.id == id }
+
+    /** The [colours] to offer: all but any secret one not yet earned. */
+    fun availableColours(achievements: AchievementsState): List<StyleColour<T>> = colours.filter { it.isAvailable(achievements) }
 }
 
 /**
@@ -68,7 +89,10 @@ open class StyleCatalog<T : TableArt>(val noun: String, val families: List<Style
     fun familyOf(id: String): StyleFamily<T> = families.first { it.colourOf(byId(id).id) != null }
 
     /** Whether the style [id] belongs to has been unlocked - see [StyleUnlock]. */
-    fun isUnlocked(id: String, achievements: AchievementsState): Boolean = familyOf(id).unlock.isMet(achievements)
+    fun isUnlocked(id: String, achievements: AchievementsState): Boolean {
+        val family = familyOf(id)
+        return family.unlock.isMet(achievements) && family.colourOf(byId(id).id)?.isAvailable(achievements) != false
+    }
 
     /**
      * What to actually draw for the saved pick [id]: [byId], unless its style is still locked, in
@@ -234,10 +258,10 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     "Black",
                     GooglyDiceStyle("googly_black", Color(0xFF3A3A3E), Color(0xFF141416), Color.White),
                 ),
-                colour(
-                    "Blue",
-                    GooglyDiceStyle("googly_blue", Color(0xFF3A6BB0), Color(0xFF14315C), GoldAccent, socket = GoldAccent),
-                ),
+                // Secret: only offered once Big Fan is earned.
+                GooglyDiceStyle("googly_blue", Color(0xFF3A6BB0), Color(0xFF14315C), GoldAccent, socket = GoldAccent).let {
+                    StyleColour("Blue", it.swatch, it, secretAchievement = Achievement.BIG_FAN)
+                },
             ),
             unlock = AchievementCount(31),
         ),
@@ -249,15 +273,15 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             ),
             unlock = AchievementCount(48),
         ),
-        // Secret: not on the Styles screen at all until Luck of the Irish is earned.
         StyleFamily(
             "Multicolour",
             listOf(
-                colour("Irish", IrishFlagDiceStyle),
                 colour("Tricolour", TricolourStripedDiceStyle),
                 colour("Rainbow", RainbowStripedDiceStyle),
+                // Secret: only offered once Luck of the Irish is earned.
+                StyleColour("Irish", IrishFlagDiceStyle.swatch, IrishFlagDiceStyle, secretAchievement = Achievement.LUCK_OF_THE_IRISH),
             ),
-            unlock = StyleUnlock.SpecificAchievement(Achievement.LUCK_OF_THE_IRISH),
+            unlock = AchievementCount(36),
         ),
     ),
 )
@@ -327,8 +351,21 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
             listOf(
                 cup("Black", ::TopHatDiceCupStyle, "top_hat_black", 0xFF0B0B0C, 0xFF3C3C40, 0xFF1E1E21, 0xFFB71C1C, 0xFF030303),
                 cup("Grey", ::TopHatDiceCupStyle, "top_hat_grey", 0xFF3A3A3D, 0xFF9A9AA0, 0xFF6A6A70, 0xFF1A1A1C, 0xFF121214),
+                // Secret: only offered once The Magician's Secret is earned. The black hat, with its rabbit always out.
+                cup(
+                    "Rabbit",
+                    { id, palette -> TopHatDiceCupStyle(id, palette, rabbitAlwaysOut = true) },
+                    "top_hat_rabbit",
+                    0xFF0B0B0C, 0xFF3C3C40, 0xFF1E1E21, 0xFFB71C1C, 0xFF030303,
+                ).copy(swatch = RabbitFur, secretAchievement = Achievement.MAGICIANS_SECRET),
             ),
             unlock = AchievementCount(14),
+        ),
+        // Secret: not on the Styles screen at all until Shaken, Not Tapped is earned.
+        StyleFamily(
+            "Martini",
+            listOf(colour("Classic", MartiniDiceCupStyle("martini"))),
+            unlock = StyleUnlock.SpecificAchievement(Achievement.SHAKEN_NOT_TAPPED),
         ),
         StyleFamily(
             "Takeaway",
@@ -340,21 +377,8 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
         ),
         StyleFamily(
             "Flowerpot",
-            listOf(
-                cup("Terracotta", ::FlowerpotDiceCupStyle, "flowerpot_terracotta", 0xFF7A3418, 0xFFE08A5C, 0xFFC0643A, 0xFFC0643A, 0xFF2E1E14),
-                cup("Slate", ::FlowerpotDiceCupStyle, "flowerpot_slate", 0xFF2E3438, 0xFF8A949A, 0xFF5A646A, 0xFF5A646A, 0xFF1E1A16),
-            ),
+            flowerpotColours(),
             unlock = AchievementCount(18),
-        ),
-        // Secret: not on the Styles screen at all until Greenfingers is earned. The Flowerpot's own
-        // pots, with the sunflower that earned it always in bloom.
-        StyleFamily(
-            "Sunflower",
-            listOf(
-                cup("Terracotta", ::sunflowerPot, "sunflower_terracotta", 0xFF7A3418, 0xFFE08A5C, 0xFFC0643A, 0xFFC0643A, 0xFF2E1E14),
-                cup("Slate", ::sunflowerPot, "sunflower_slate", 0xFF2E3438, 0xFF8A949A, 0xFF5A646A, 0xFF5A646A, 0xFF1E1A16),
-            ),
-            unlock = StyleUnlock.SpecificAchievement(Achievement.GREENFINGERS),
         ),
         StyleFamily(
             "Cauldron",
@@ -443,6 +467,12 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
             ),
             unlock = AchievementCount(39),
         ),
+        // Secret: not on the Styles screen at all until Not Those Dice! is earned.
+        StyleFamily(
+            "Floating Dice",
+            listOf(StyleColour("Menu", SurfaceContainerHigh, FloatingDiceBackground)),
+            unlock = StyleUnlock.SpecificAchievement(Achievement.NOT_THOSE_DICE),
+        ),
     ),
 )
 
@@ -518,7 +548,27 @@ private fun <T : DiceCupStyle> cup(
 ): StyleColour<DiceCupStyle> =
     StyleColour(name, Color(mid), create(id, CupPalette(Color(dark), Color(light), Color(mid), Color(accent), Color(interior))))
 
-private fun sunflowerPot(id: String, palette: CupPalette) = FlowerpotDiceCupStyle(id, palette, inFullBloom = true)
+private val FlowerpotTerracotta = CupPalette(
+    Color(0xFF7A3418), Color(0xFFE08A5C), Color(0xFFC0643A), Color(0xFFC0643A), Color(0xFF2E1E14),
+)
+
+/**
+ * The Flowerpot's colours: the pot that grows its plant through a game (the one everyone has), then
+ * one pot for each stage of the plant, held there - secret, all of them, until Greenfingers is
+ * earned. Each shows the plant's own colour on the Styles screen, since the pot is the same. The
+ * full bloom's id is the old Sunflower cup's, so a saved pick of it still resolves.
+ */
+private fun flowerpotColours(): List<StyleColour<DiceCupStyle>> {
+    fun stage(name: String, id: String, swatch: Color, stage: Int) =
+        StyleColour(name, swatch, FlowerpotDiceCupStyle(id, FlowerpotTerracotta, fixedStage = stage), Achievement.GREENFINGERS)
+    return listOf(
+        StyleColour("Terracotta", FlowerpotTerracotta.mid, FlowerpotDiceCupStyle("flowerpot_terracotta", FlowerpotTerracotta)),
+        stage("Seedling", "flowerpot_seedling", FlowerpotLeaf, 1),
+        stage("Bud", "flowerpot_bud", FlowerpotStem, 2),
+        stage("Opening", "flowerpot_opening", SunflowerPetalShade, 3),
+        stage("Sunflower", "sunflower_terracotta", SunflowerPetal, FLOWERPOT_FULL_BLOOM),
+    )
+}
 
 // Cauldrons share their iron and differ only in their brew, which is also the colour the Styles
 // screen shows for them.

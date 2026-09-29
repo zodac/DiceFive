@@ -109,7 +109,7 @@ interface DiceCupStyle : TableArt {
      * Whether this cup shows itself off once a turn's rolls are spent: keeping its colour rather than
      * greying like every other, and standing back up after pouring rather than resting tipped over -
      * it can't be rolled either way. Only a Flowerpot whose sunflower has grown with [growth] (the
-     * moment the player should see its bloom in full), never the Sunflower cup.
+     * moment the player should see its bloom in full), never one held at a fixed stage.
      */
     fun showsOffWhenSpent(growth: FlowerpotGrowth): Boolean = false
 }

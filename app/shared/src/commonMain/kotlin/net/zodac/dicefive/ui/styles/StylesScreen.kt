@@ -274,7 +274,7 @@ private fun <T : TableArt> StyleFamilyTiles(
     val shownSelectedId = catalog.unlockedById(selectedId, achievements).id
     val (unlocked, locked) = catalog.families.partition { it.unlock.isMet(achievements) }
     for (family in unlocked) {
-        StyleFamilyTile(family, shownSelectedId, onSelect, previewSize, backgroundBrush, preview)
+        StyleFamilyTile(family, achievements, shownSelectedId, onSelect, previewSize, backgroundBrush, preview)
     }
     // A secret style isn't so much as hinted at until it's earned.
     for (family in locked.filterNot { it.unlock.hiddenWhileLocked }) {
@@ -292,15 +292,17 @@ private fun <T : TableArt> StyleFamilyTiles(
 @Composable
 private fun <T : TableArt> StyleFamilyTile(
     family: StyleFamily<T>,
+    achievements: AchievementsState,
     selectedId: String,
     onSelect: (String) -> Unit,
     previewSize: DpSize,
     backgroundBrush: @Composable (T) -> Brush,
     preview: @Composable BoxScope.(T) -> Unit,
 ) {
-    val picked = family.colourOf(selectedId)
-    val shown = picked ?: family.colours.first()
-    val hasColours = family.colours.size > 1
+    val colours = family.availableColours(achievements)
+    val picked = colours.firstOrNull { it.style.id == selectedId }
+    val shown = picked ?: colours.first()
+    val hasColours = colours.size > 1
     var choosingColour by remember { mutableStateOf(false) }
 
     val onPickedPlaced = LocalPickedTilePlaced.current
@@ -333,7 +335,7 @@ private fun <T : TableArt> StyleFamilyTile(
             ) {
                 if (hasColours) {
                     ColourDots(
-                        colours = family.colours,
+                        colours = colours,
                         shown = shown,
                         modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 5.dp),
                     )
@@ -351,7 +353,7 @@ private fun <T : TableArt> StyleFamilyTile(
                         .padding(horizontal = 12.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    for (colour in family.colours) {
+                    for (colour in colours) {
                         StylePreview(
                             style = colour.style,
                             size = previewSize,

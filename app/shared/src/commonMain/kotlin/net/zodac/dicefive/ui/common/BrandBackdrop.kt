@@ -111,6 +111,13 @@ internal class DriftState {
 
     var size = Size.Zero
 
+    /**
+     * How much faster than the menu's pace the dice move: 1 on the menu. The drift is in fractions of the
+     * screen a second, so on something much smaller - a Styles tile - the same pace would be a crawl
+     * you can't see; whoever draws a small surface sets this to keep it moving at the same speed in dp.
+     */
+    var timeScale = 1f
+
     private var lastFrameNanos: Long? = null
 
     /** Puts the dice back where they start, moving from the beginning again. */
@@ -128,7 +135,7 @@ internal class DriftState {
         if (last == now) return
         // A stalled frame (or the app coming back from the background) moves them on by
         // no more than a tenth of a second, never jumping them across the screen.
-        val seconds = last?.let { ((now - it) / 1e9f).coerceIn(0f, MAX_DRIFT_STEP_SECONDS) } ?: 0f
+        val seconds = last?.let { ((now - it) / 1e9f).coerceIn(0f, MAX_DRIFT_STEP_SECONDS) * timeScale } ?: 0f
         lastFrameNanos = now
         dice.advance(seconds, size.width, size.height)
         frame.longValue = now
@@ -145,7 +152,7 @@ private const val MAX_DRIFT_STEP_SECONDS = 0.1f
 private fun WatermarkDie.toDrifting() = DriftingDie(x = centerX, y = centerY, size = size, rotation = rotation, value = value)
 
 /** Draws [dice] as barely-there outlined die faces - texture, never a readable element. */
-private fun DrawScope.drawDiceWatermark(color: Color, dice: List<DriftingDie>) {
+internal fun DrawScope.drawDiceWatermark(color: Color, dice: List<DriftingDie>) {
     val outline = color.copy(alpha = 0.05f)
     val pips = color.copy(alpha = 0.04f)
 
