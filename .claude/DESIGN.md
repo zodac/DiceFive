@@ -65,7 +65,16 @@ decisions behind it. Read that before changing anything visual.
   summing to 21, turned so the roll (only ever 1-6) faces you, the rest of its numbers faded back; mid-roll
   (`LocalDieTumbleMillis`, the toss's elapsed time, set by the tray - driven by the toss's clock, not
   one of its own, so its shadow can turn with it) it tumbles continuously about two axes instead, and at rest it
-  gets a small per-die, per-roll twist so no two landings look alike; `D20Test` pins the numbering), the round-cup kit
+  gets a small per-die, per-roll twist so no two landings look alike; `D20Test` pins the numbering;
+  `GooglyDice.kt` for the googly-eyed die - a plain ivory die whose every pip is a loose pupil in a
+  clear socket well over twice its radius, thrown about by the die's movement: a style with a
+  `DiceStyle.pupilTravel` gets a `DieMotion` per die column from the tray (handed down as
+  `LocalDieMotion`, kept across holding so the eyes don't jump), which the tray tells where the die
+  is on the mat whenever it's drawn there and which, only while the die or its pupils are moving,
+  moves the pupils every frame - flung against the die's acceleration in its own turned frame, sliding
+  down each face as it tips over mid-tumble (the tray passes the roll's tip), left
+  behind by part of its spin, slowed by friction and bounced off the rim - then stops asking for
+  frames; `DieMotionTest` pins the physics), the round-cup kit
   (`RoundCups.kt`, same raised view as the rest), `PatternedDiceMat` (`PatternedMats.kt`) and the
   patterned backgrounds (`PatternedBackgrounds.kt`, drawn through
   `TableBackground.drawScoreAreaDecoration`), with `Patterns.kt` holding painters more than one of

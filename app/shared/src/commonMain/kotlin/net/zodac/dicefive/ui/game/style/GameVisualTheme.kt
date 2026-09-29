@@ -30,6 +30,14 @@ interface DiceStyle : TableArt {
     val tumblesItself: Boolean get() = false
 
     /**
+     * For a style with loose pupils on its faces that the die's movement throws about (googly eyes),
+     * how far each can roll from its socket's centre, as a fraction of the die's size - the tray then
+     * keeps each die a [DieMotion] to move them, handed down as [LocalDieMotion]. Null for a style
+     * with nothing loose, which needs no such tracking at all.
+     */
+    val pupilTravel: Float? get() = null
+
+    /**
      * The outline this die casts its ground shadow with when lying on the mat - its own shape, not a
      * generic one. [dieIndex] is which die it is and [tumbleMillis] how long it's been tumbling
      * (null at rest - see [LocalDieTumbleMillis]), for a die whose outline changes with either (the

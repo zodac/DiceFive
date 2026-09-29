@@ -5,6 +5,7 @@ import net.zodac.dicefive.ui.theme.BarrelBackgroundTop
 import net.zodac.dicefive.ui.theme.BarrelDiceTop
 import net.zodac.dicefive.ui.theme.BarrelTrayTop
 import net.zodac.dicefive.ui.theme.BarrelWood
+import net.zodac.dicefive.ui.theme.DicePipColor
 import net.zodac.dicefive.ui.theme.FacetedCupLitFace
 import net.zodac.dicefive.ui.theme.FeltNavyTop
 import net.zodac.dicefive.ui.theme.FireBackgroundTop
@@ -12,6 +13,7 @@ import net.zodac.dicefive.ui.theme.FireCupLitFace
 import net.zodac.dicefive.ui.theme.FireDiceTop
 import net.zodac.dicefive.ui.theme.FireTrayTop
 import net.zodac.dicefive.ui.theme.GoldAccent
+import net.zodac.dicefive.ui.theme.IvoryDiceBottom
 import net.zodac.dicefive.ui.theme.IvoryDiceTop
 import net.zodac.dicefive.ui.theme.TrayBlueTop
 
@@ -177,6 +179,10 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     CubeDiceStyle("cube_red", Color(0xFFE53935), Color(0xFFB71C1C), Color(0xFFEF6A5E), Color(0xFF8E1414), Color.White),
                 ),
             ),
+        ),
+        StyleFamily(
+            "Googly",
+            listOf(colour("Ivory", GooglyDiceStyle("googly_ivory", IvoryDiceTop, IvoryDiceBottom, DicePipColor))),
         ),
         StyleFamily(
             "Misprint",
