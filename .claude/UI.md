@@ -476,4 +476,4 @@ size you can't check.
   anything drawn outside it. Every cup is drawn at the same scale per grid unit (as in the game and
   on the Styles screen), and hangs from the same top line rather than standing on a shared base: a
   squat cup (`CupShape.SQUAT`) stood on the tall cup's base hid almost wholly behind the dice and
-  wordmark. Keep the "DiceFive" text, which `MainActivityTest` asserts on.
+  wordmark. Keep the "DiceFive" text, which `MainActivitySmokeTest` asserts on.
