@@ -26,23 +26,35 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 import net.zodac.dicefive.ui.common.HorizontalScrollbar
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.game.style.DiceCupStyle
@@ -73,6 +85,9 @@ private val BACKGROUND_PREVIEW_WIDTH = 108.dp
 private val BACKGROUND_PREVIEW_HEIGHT = 72.dp
 private val COLOUR_DOT_SIZE = 7.dp
 
+/** Lets the picked tile tell its card where it sits (x within the row, width) so the card can scroll to it. */
+private val LocalPickedTilePlaced = staticCompositionLocalOf<(Int, Int) -> Unit> { { _, _ -> } }
+
 /**
  * Lets a player pick, rather than read, the option for each independently swappable piece of table
  * art - [DiceStyle], [DiceCupStyle], [DiceMat] and [TableBackground]. One [Card] per category, a
@@ -97,8 +112,11 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
     val tableBackgroundId by viewModel.tableBackgroundId.collectAsState()
     val diceMatId by viewModel.diceMatId.collectAsState()
 
+    val ready by viewModel.ready.collectAsState()
+
     ScreenScaffold(title = "Styles", onBack = onBack, modifier = modifier, scrollable = false) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Nothing until the saved picks have loaded, so each row can open scrolled to its real pick.
+        if (ready) Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             StyleCategoryCard(title = "Dice") {
                 StyleFamilyTiles(
                     catalog = DiceStyles,
@@ -173,14 +191,34 @@ private fun StyleCategoryCard(title: String, content: @Composable RowScope.() ->
         )
 
         val scrollState = rememberScrollState()
+        var viewportWidth by remember { mutableIntStateOf(0) }
+        // Hidden until it has been scrolled to the current pick, so the page opens already
+        // positioned rather than visibly sliding there.
+        var revealed by remember { mutableStateOf(false) }
+        val scope = rememberCoroutineScope()
+        LaunchedEffect(Unit) {
+            withFrameNanos { }
+            withFrameNanos { }
+            revealed = true
+        }
+        val onPickedPlaced: (Int, Int) -> Unit = { x, width ->
+            if (!revealed) {
+                scope.launch {
+                    scrollState.scrollTo((x - (viewportWidth - width) / 2).coerceAtLeast(0))
+                    revealed = true
+                }
+            }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .onSizeChanged { viewportWidth = it.width }
+                .alpha(if (revealed) 1f else 0f)
                 .horizontalScroll(scrollState)
                 .padding(start = 12.dp, top = 6.dp, end = 12.dp, bottom = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            content()
+            CompositionLocalProvider(LocalPickedTilePlaced provides onPickedPlaced) { content() }
         }
 
         HorizontalScrollbar(
@@ -226,7 +264,12 @@ private fun <T : TableArt> StyleFamilyTile(
     val hasColours = family.colours.size > 1
     var choosingColour by remember { mutableStateOf(false) }
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    val onPickedPlaced = LocalPickedTilePlaced.current
+    Column(
+        modifier = Modifier.onPlaced { if (picked != null) onPickedPlaced(it.positionInParent().x.roundToInt(), it.size.width) },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
         // The pop-up's anchor: DropdownMenu positions itself against its parent, so the preview and
         // the pop-up share this Box rather than the pop-up hanging off the label below.
         Box {
