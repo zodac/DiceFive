@@ -152,8 +152,8 @@ class GameViewModel(
     val aiRolling: StateFlow<Boolean> = _aiRolling.asStateFlow()
 
     /** Seconds left on the current turn's timer - human or AI alike, so the badge's space in the
-     * layout never shifts between turns - or null when [GameState.turnTimer] is [TurnTimer.NONE]
-     * or the game is over - see [syncTurnTimer]. */
+     * layout never shifts between turns - or null when [GameState.turnSeconds] is (no timer from
+     * either the setup form or the mode) or the game is over - see [syncTurnTimer]. */
     private val _turnSecondsRemaining = MutableStateFlow<Int?>(null)
     val turnSecondsRemaining: StateFlow<Int?> = _turnSecondsRemaining.asStateFlow()
 
@@ -232,6 +232,10 @@ class GameViewModel(
     /** Whether player 1 has used a 2nd or 3rd roll on at least one of their own turns this game -
      * see [Achievement.IMPATIENT]/[Achievement.NATURALLY_GIFTED]. */
     private var playerOneTookExtraRoll = false
+
+    /** Whether the turn timer has run out on at least one of player 1's own turns this game - see
+     * [Achievement.QUICKFIRE_BEAT_THE_CLOCK]. */
+    private var playerOneTimedOut = false
 
     /** Whether player 1's most recently completed turn scored a genuine 5x - see
      * [Achievement.TWICE_IN_A_LIFETIME]. */
@@ -376,15 +380,18 @@ class GameViewModel(
             PlayerConfig(slot = slot.slot, type = slot.type, name = name, difficulty = slot.difficulty)
         }
         persistHumanNames(activeSlots)
+        // The form's own pick is still what's remembered, so switching back from a mode with a fixed
+        // timer finds it as it was left - but it isn't what this game plays under.
         persistGameConfig(setupState.playerCount, activeSlots, setupState.turnTimer, setupState.gameMode)
+        val turnTimer = if (setupState.gameMode.turnTimerSeconds != null) TurnTimer.NONE else setupState.turnTimer
         setUndoSnapshot(null)
         resetSuperuserMode()
         resetAchievementTracking()
-        applyGameState(GameEngine.newGame(playerConfigs, setupState.gameMode, setupState.turnTimer))
+        applyGameState(GameEngine.newGame(playerConfigs, setupState.gameMode, turnTimer))
         // "Full Table" is settled the moment four seats are taken - no need to make them play it out.
         checkInProgressAchievements()
         checkGameStartAchievements(
-            customizedGameSettings = setupState.turnTimer != TurnTimer.NONE || setupState.gameMode != GameMode.default,
+            customizedGameSettings = turnTimer != TurnTimer.NONE || setupState.gameMode != GameMode.default,
         )
 
         if (previousGame != null && previousGame.isGameOver && !humanWonGame(previousGame)) {
@@ -655,13 +662,13 @@ class GameViewModel(
 
     /**
      * Starts, restarts or cancels the per-turn countdown so it always matches [newState]: running
-     * on any seat's turn - human or AI - only while [GameState.turnTimer] allows one, and reset to
+     * on any seat's turn - human or AI - only while [GameState.turnSeconds] allows one, and reset to
      * the full duration whenever the turn it's counting down for changes (a new turn starting, or
      * the previous turn reappearing after [undo]). An AI is expected to finish well within the
      * limit - [autoScoreOnTimeout] forfeits its turn the same as a human's if it doesn't.
      */
     private fun syncTurnTimer(newState: GameState) {
-        val seconds = newState.turnTimer.seconds
+        val seconds = newState.turnSeconds
         if (newState.isGameOver || seconds == null) {
             cancelTurnTimer()
             return
@@ -720,7 +727,10 @@ class GameViewModel(
         val category = ScoreCalculator.availableCategories(player, state.dice).first()
         setUndoSnapshot(null)
         applyGameState(GameEngine.commitScore(state, category))
-        if (isPlayerOneTurn) unlockAchievements(setOf(Achievement.OUT_OF_TIME))
+        if (isPlayerOneTurn) {
+            playerOneTimedOut = true
+            unlockAchievements(setOf(Achievement.OUT_OF_TIME))
+        }
     }
 
     /**
@@ -854,6 +864,7 @@ class GameViewModel(
             ledIntoFinalRound = ledIntoFinalRound,
             diceRolledByPlayerOne = diceRolledByPlayerOne,
             playerOneTookExtraRoll = playerOneTookExtraRoll,
+            playerOneTimedOut = playerOneTimedOut,
         )
         withAchievementLock {
             val update = AchievementEngine.evaluate(state, context, repository.current(), nowEpochMillis())
@@ -1123,9 +1134,12 @@ class GameViewModel(
         // checkPostRollAchievements) through every roll since so the 5th die actually kept
         // getting re-rolled, and it never turned into a real 5x. Committing after only one or two
         // rolls isn't "almost" anything; rollsRemaining == 0 here means all three rolls this turn
-        // were spent (see the fullRolls/rollsRemainingAfter* helpers). Whether the
-        // 5x could even have been scored doesn't matter - only that it was rolled for and missed.
-        if (fourOfAKindIndicesFromFirstRoll != null &&
+        // were spent (see the fullRolls/rollsRemainingAfter* helpers) - and there has to have
+        // been a reroll to spend at all, or a one-roll mode (Quickfire) would hand it to any
+        // first-roll 4x. Whether the 5x could even have been scored doesn't matter - only that it
+        // was rolled for and missed.
+        if (state.fullRolls > 1 &&
+            fourOfAKindIndicesFromFirstRoll != null &&
             heldFourOfAKindThroughTurn &&
             !fiveOfAKindSeenThisTurn &&
             state.rollsRemaining == 0
@@ -1205,6 +1219,7 @@ class GameViewModel(
         trailedIntoFinalRound = false
         ledIntoFinalRound = false
         playerOneTookExtraRoll = false
+        playerOneTimedOut = false
         playerOnePreviousTurnWasFiveOfAKind = false
         outOfRollsCupTaps = 0
         resetPerTurnTracking()

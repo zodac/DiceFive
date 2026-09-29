@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.AlarmOn
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.EmojiPeople
 import androidx.compose.material.icons.filled.EventRepeat
+import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Filter1
 import androidx.compose.material.icons.filled.Filter3
@@ -212,6 +214,9 @@ val Achievement.icon: ImageVector
         // Three lights, for three colours.
         Achievement.TRICOLOUR_WIN -> Icons.Filled.Traffic
         Achievement.TRICOLOUR_ALL_COLOURS -> Icons.Filled.ColorLens
+        // Fast-forward rather than Speed or a bolt - those are Solid Round's and Dice Deity's.
+        Achievement.QUICKFIRE_WIN -> Icons.Filled.FastForward
+        Achievement.QUICKFIRE_BEAT_THE_CLOCK -> Icons.Filled.AlarmOn
 
         // ---- Misfortune -------------------------------------------------------------------------
         Achievement.SCRATCHED_5X -> Icons.Filled.Cancel

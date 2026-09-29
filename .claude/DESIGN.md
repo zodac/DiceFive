@@ -163,15 +163,17 @@ decisions behind it. Read that before changing anything visual.
   back as today's default (`"casino_gold"`), since that's what's drawn for them, so neither counts as
   a non-default pick for `STYLE_CUP`.
 - **Game modes** (`model/GameMode.kt`, was `GameType`): `STANDARD` (the official rules, formerly
-  `CLASSIC`) and `TRICOLOUR` (see Phase 14). **Every rule that can differ between modes is a field
-  on the mode**, even where both modes agree today: dice count, rolls per turn, die faces, die
-  colours, the scorecard's categories (which is also the number of turns), the upper-bonus
-  threshold/amount, the 5x bonus chip, and the max possible score. The engine, AI, achievements,
+  `CLASSIC`), `TRICOLOUR` (see Phase 14) and `QUICKFIRE` (see Phase 20). **Every rule that can
+  differ between modes is a field on the mode**, even where the modes agree today: dice count, rolls
+  per turn, die faces, die colours, the scorecard's categories (which is also the number of turns),
+  the upper-bonus threshold/amount, the 5x bonus chip, the max possible score, and a fixed turn
+  timer that overrides the setup pick (`turnTimerSeconds`). `.claude/GAME_MODES.md` has the
+  checklist for adding a mode. The engine, AI, achievements,
   persistence and board all read the rules from there - a new mode should be a new entry plus any
   genuinely new scoring rule, and nothing else learning it exists. A category's own scoring rule is
   fixed and mode-independent (`ScoreCategory` carries its `section`, `fixedScore`, `jokerFreeFill`
   and `matchingColour`); a mode just chooses which categories are on its card.
-- **Achievements**: 90 of them, **player 1 only** (`state.players[0]`, "You" on the setup
+- **Achievements**: 94 of them, **player 1 only** (`state.players[0]`, "You" on the setup
   screen) rather than any human at the table - the one exception is the ledger (the score-band and
   career-points achievements at the tail of `AchievementCategory.COLLECTION`), which stays measured
   against the leaderboard as a whole, i.e. every human who has played on this device, not just
@@ -442,6 +444,9 @@ nav arguments or introducing a singleton holder.
     selector (Easy/Medium/Hard) defaulting to Medium, greyed out.
 - Game mode: radio group, one row per `GameMode` with its one-line description. Remembered
   between games (`SettingsRepository.gameMode`, stored by `GameMode.id`).
+- Turn timer: segmented row, remembered between games. Disabled while the picked mode sets its own
+  timer (`GameMode.turnTimerSeconds` - Quickfire's 10s); the pick is kept for when another mode is
+  chosen, and the game itself starts with `TurnTimer.NONE`.
 - "Start Game": builds initial `GameState` — generates AI names via
   `AiNameGenerator` (no duplicates within the game) at this point — and
   flips `GameViewModel` phase from CONFIGURING to PLAYING, navigating from
@@ -472,7 +477,7 @@ nav arguments or introducing a singleton holder.
 `DiceScoring`/`GameEngine` are pure functions with no Android
 dependencies — most unit tests live here.
 
-- **Maximum possible score, per mode: 1575 Standard, 2120 Tricolour** (`GameMode.maxPossibleScore`,
+- **Maximum possible score, per mode: 1575 Standard and Quickfire, 2120 Tricolour** (`GameMode.maxPossibleScore`,
   with each derivation as a doc comment on its entry, locked by `GameModeTest` playing the perfect
   game through the real `GameEngine`) — every upper box maxed plus the 63+ bonus, every other box
   maxed, and every turn after the 5x box also landing a 5x for its +100 bonus chip (12 of them in
@@ -1634,3 +1639,24 @@ install-over-existing succeeds:
       own task inputs (`BaseAboutLibrariesTask`), on its latest version (15.2.0); nothing in our
       script triggers it, and the classpaths are resolved during the build anyway. Revisit on a
       plugin upgrade.
+
+### Phase 20 — Game mode: Quickfire
+- [x] **Rules** (beyond the official rules): Standard's dice, card and scoring, but `rollsPerTurn = 1`
+      (no holds, no rerolls) and a fixed 10-second turn timer. The timer is a new `GameMode` field,
+      `turnTimerSeconds` (null for every other mode); `GameState.turnSeconds` resolves "the mode's
+      timer, else the setup pick" and `GameViewModel.syncTurnTimer` counts down from it. A timeout
+      works as it always has: roll if needed, then the first open category, even for zero. Same
+      1575 ceiling as Standard. Engine, AI, board and persistence needed no change - they already
+      read the rolls from the mode.
+- [x] **New Game screen**: Quickfire appears in the Game Mode radio group from `GameMode.entries`.
+      The Turn Timer row is disabled while it's picked (`SegmentedChoiceRow` gained `enabled`); the
+      player's pick is kept and saved, and the game starts with `TurnTimer.NONE`.
+- [x] **Rules page**: "Mode: Quickfire", last in `RULES_PAGES`.
+- [x] **Achievements** (Game Modes, after Tricolour's): `QUICKFIRE_WIN` "Quick On The Draw" (win,
+      multiplayer) and `QUICKFIRE_BEAT_THE_CLOCK` "Beat The Clock" (finish without player 1's timer
+      ever running out - `GameAchievementContext.playerOneTimedOut`). Impatient, Naturally Gifted and
+      Almost Famous are guarded so a one-roll mode can't give them away; six reroll-based ones simply
+      can't be earned in it. The full list is in `.claude/GAME_MODES.md`.
+- [x] **`.claude/GAME_MODES.md`**: the checklist for adding a mode, and the per-mode achievement audit.
+- [x] Tests: `GameModeTest`, `AchievementEngineTest`, `GameViewModelTest`, `GameAchievementsWiringTest`.
+- [ ] **Not yet seen on a device**: the disabled Turn Timer row and the 10s countdown.

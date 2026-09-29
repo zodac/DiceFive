@@ -49,13 +49,15 @@ import kotlinx.coroutines.launch
 private data class RulesPage(val title: String, val paragraphs: List<String>)
 
 /**
- * The rules explained in the player's own words, not the rulebook's - six pages, swiped rather than
- * scrolled past as one long page, so each idea (upper section, lower section, the joker rule, the
- * house rule tie-break, Tricolour) gets its own moment rather than blurring into the next.
+ * The rules explained in the player's own words, not the rulebook's - one page per idea, swiped
+ * rather than scrolled past as one long page, so each (upper section, lower section, the joker rule,
+ * the house rule tie-break, and one page per non-Standard game mode) gets its own moment rather
+ * than blurring into the next.
  *
  * Kept in step with the actual rules engine: `ScoreCategory`'s fixed values (25/30/40/50/100),
- * `ScoreCalculator`'s joker rule priority, and `game/TieBreak.kt`'s criterion order (see its own
- * doc comment) - a rule change there should be echoed here.
+ * `ScoreCalculator`'s joker rule priority, `game/TieBreak.kt`'s criterion order (see its own
+ * doc comment), and each `GameMode`'s rolls, dice and timer - a rule change there should be
+ * echoed here.
  */
 private val RULES_PAGES = listOf(
     RulesPage(
@@ -123,6 +125,14 @@ private val RULES_PAGES = listOf(
             "- *Coloured House* [25pts]: Three of one colour and two of another",
             "Under the joker rule, a repeat *5x* also scores *Coloured House* at its full **25pts**. Everything else plays exactly the same as the *Standard* rules, just with more opportunities to score.",
             "See if you can find the Easter Egg in this mode!",
+        ),
+    ),
+    RulesPage(
+        title = "Mode: Quickfire",
+        paragraphs = listOf(
+            "A custom mode extending the *Standard* game mode. You get just **one roll** per turn - no holding dice, no rerolls.",
+            "Every turn also has a **10 second** timer, which replaces the usual *Turn Timer* setting. If it runs out, the roll is scored in the first open category, even if it's worth **0pts**.",
+            "Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules - you just have to take what the dice give you, and quickly!",
         ),
     ),
 )

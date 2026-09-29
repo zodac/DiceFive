@@ -60,6 +60,38 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `Quickfire plays one roll a turn on its own 10 second timer - whatever the form's timer says`() {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setPlayerCount(1)
+        viewModel.setTurnTimer(TurnTimer.SECONDS_60)
+        viewModel.setGameMode(GameMode.QUICKFIRE)
+        viewModel.startGame()
+
+        assertEquals(10, viewModel.turnSecondsRemaining.value)
+        // The game doesn't carry the overridden pick, but the form still remembers it.
+        assertEquals(TurnTimer.NONE, viewModel.game.value!!.turnTimer)
+        assertEquals(TurnTimer.SECONDS_60, viewModel.setup.value.turnTimer)
+
+        viewModel.rollDice()
+        assertEquals(TurnPhase.ROLLED, viewModel.game.value!!.phase)
+        assertEquals(0, viewModel.game.value!!.rollsRemaining)
+    }
+
+    @Test
+    fun `a Quickfire turn left to run out is forfeited after 10 seconds`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setPlayerCount(1)
+        viewModel.setGameMode(GameMode.QUICKFIRE)
+        viewModel.startGame()
+
+        advanceTimeBy(10_000)
+        runCurrent()
+
+        assertEquals(1, viewModel.game.value!!.players.single().scorecard.values.count { it != null })
+        assertEquals(10, viewModel.turnSecondsRemaining.value)
+    }
+
+    @Test
     fun `startGame builds a game with the configured players`() {
         val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(2)

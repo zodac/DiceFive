@@ -157,7 +157,13 @@ private fun SetupForm(
     }
 
     SetupCard(title = "Turn Timer") {
-        TurnTimerSelector(selected = setup.turnTimer, onSelect = viewModel::setTurnTimer)
+        // A mode with its own timer (Quickfire) overrides this row, so it's disabled rather than
+        // offering a choice that wouldn't apply. The pick is kept for when another mode is chosen.
+        TurnTimerSelector(
+            selected = setup.turnTimer,
+            onSelect = viewModel::setTurnTimer,
+            enabled = setup.gameMode.turnTimerSeconds == null,
+        )
     }
 }
 
@@ -370,11 +376,12 @@ private fun GameModeSelector(selected: GameMode, onSelect: (GameMode) -> Unit) {
 }
 
 /**
- * Whole-turn time limit: a small, always-enabled exclusive set, so this uses the same segmented
- * row as player count and AI difficulty rather than [GameModeOption]'s radio rows.
+ * Whole-turn time limit: a small exclusive set, so this uses the same segmented row as player count
+ * and AI difficulty rather than [GameModeOption]'s radio rows. Disabled while the game mode sets
+ * its own timer ([GameMode.turnTimerSeconds]).
  */
 @Composable
-private fun TurnTimerSelector(selected: TurnTimer, onSelect: (TurnTimer) -> Unit) {
+private fun TurnTimerSelector(selected: TurnTimer, onSelect: (TurnTimer) -> Unit, enabled: Boolean) {
     SegmentedChoiceRow(
         options = TurnTimer.entries,
         selected = selected,
@@ -384,6 +391,7 @@ private fun TurnTimerSelector(selected: TurnTimer, onSelect: (TurnTimer) -> Unit
         // A crossed-out timer says "no timer" at a glance next to 30s/60s/120s, where the word
         // "None" read as just another value. The label below is still its accessibility text.
         glyph = { if (it == TurnTimer.NONE) Icons.Filled.TimerOff else null },
+        enabled = enabled,
     )
 }
 
