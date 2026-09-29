@@ -24,7 +24,7 @@ import kotlin.random.Random
 // recomposition.
 
 /**
- * Scattered pointed stars of varying size and brightness, about one per 22dp square. At [seconds]
+ * Scattered pointed stars of varying size and brightness, about one per 44dp square. At [seconds]
  * into a twinkle each star's brightness swells and dims a little, each on its own beat - subtle
  * enough to read as the sky breathing rather than flashing. The default freezes them.
  */
@@ -32,8 +32,8 @@ internal fun DrawScope.drawStars(seed: Int, color: Color = Color.White, seconds:
     val random = Random(seed)
     // Its own stream, so the stars stay where they always were.
     val beat = Random(seed + 7919)
-    val cell = 22.dp.toPx()
-    val count = (size.width * size.height / (cell * cell)).toInt().coerceAtLeast(6)
+    val cell = 44.dp.toPx()
+    val count = (size.width * size.height / (cell * cell)).toInt().coerceAtLeast(4)
     val star = Path()
     repeat(count) {
         val centre = Offset(random.nextFloat() * size.width, random.nextFloat() * size.height)
