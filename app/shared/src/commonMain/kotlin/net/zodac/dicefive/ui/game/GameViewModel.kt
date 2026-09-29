@@ -458,7 +458,7 @@ class GameViewModel(
         // Counted before the roll, while it's still clear which dice are actually going to move.
         if (isPlayerOneTurn) diceRolledByPlayerOne += diceBeforeRoll.count { !it.isHeld }
 
-        onHumanAction(undoable = false) { GameEngine.rollDice(it, random) }
+        performRoll(state)
         if (isPlayerOneTurn) {
             checkFirstRollAchievements()
             checkPostRollAchievements(rollsRemainingBeforeRoll, diceBeforeRoll)
@@ -564,6 +564,19 @@ class GameViewModel(
         val state = _game.value ?: return
         if (state.currentPlayer?.type != PlayerType.HUMAN) return
         unlockAchievements(setOf(Achievement.MAGICIANS_SECRET))
+    }
+
+    /**
+     * Every roll in the game - a human's (tapped, or tapped for them in Quickfire) via [rollDice],
+     * and an AI's via [maybeStartAiTurn] - so they all land the same way. Not undoable, like
+     * rolling always has been: only a committed score is. Returns the rolled state for the AI loop,
+     * which carries its own copy of it.
+     */
+    private fun performRoll(state: GameState, checkForAiTurn: Boolean = true): GameState {
+        val rolled = GameEngine.rollDice(state, random)
+        setUndoSnapshot(null)
+        applyGameState(rolled, checkForAiTurn)
+        return rolled
     }
 
     private fun onHumanAction(undoable: Boolean = true, transform: (GameState) -> GameState) {
@@ -1332,16 +1345,15 @@ class GameViewModel(
             var current = state
             while (!current.isGameOver && current.currentPlayer?.type == PlayerType.AI) {
                 while (current.rollsRemaining > 0) {
-                    // The delay doubles as the cup's shake animation window, same as the human tap
-                    // handler in GameScreen - always exactly AI_STEP_DELAY_MS, whatever the
-                    // difficulty, since it's true for its whole span and then false the moment the
-                    // roll itself (never the hold decision below - see that comment) is published.
+                    // The delay doubles as the cup's shake animation window - the same CUP_SHAKE_MILLIS
+                    // a human's tap shakes for, whatever the difficulty, and the roll itself goes
+                    // through the same performRoll. aiRolling is true for the shake's whole span
+                    // and false the moment the roll (never the hold decision below - see that
+                    // comment) is published.
                     _aiRolling.value = true
                     try {
-                        delay(AI_STEP_DELAY_MS)
-                        current = GameEngine.rollDice(current, random)
-                        setUndoSnapshot(null)
-                        applyGameState(current, checkForAiTurn = false)
+                        delay(CUP_SHAKE_MILLIS)
+                        current = performRoll(current, checkForAiTurn = false)
                     } finally {
                         _aiRolling.value = false
                     }
@@ -1377,8 +1389,8 @@ class GameViewModel(
                     // A beat with the cup settled and the result visible before the next roll's
                     // shake starts - without it, back-to-back rolls (routine for Easy, which never
                     // holds anything and so never gets to skip a roll) read as one continuous blur
-                    // rather than distinct rolls. Only between rolls: the delay before the very
-                    // first roll and before scoring are already paced by AI_STEP_DELAY_MS above/below.
+                    // rather than distinct rolls. Only between rolls: the very first roll and the
+                    // score are already paced by the shake above and AI_STEP_DELAY_MS below.
                     delay(ROLL_GAP_MS)
                 }
                 delay(AI_STEP_DELAY_MS)
@@ -1395,6 +1407,7 @@ class GameViewModel(
     }
 
     companion object {
+        /** The AI's pause, dice settled, before it scores. Its rolls shake for CUP_SHAKE_MILLIS, same as a tap's. */
         private const val AI_STEP_DELAY_MS = 600L
 
         /** Pause between one roll settling and the next one's shake starting, within the same AI turn. */

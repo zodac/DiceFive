@@ -61,7 +61,10 @@ dice hard-coded somewhere, move it onto the mode rather than adding a `when (mod
     flag. That was tried and dropped, because it made a second, slightly different kind of roll.
     - CPU turns need nothing. `GameViewModel.maybeStartAiTurn` starts every AI turn with a roll in
       every mode, and `awaitsAutoRoll` is false on an AI's turn. Rolling for the AI as well would
-      put the game ahead of the AI loop's own copy of the state.
+      put the game ahead of the AI loop's own copy of the state. A CPU roll already matches a tap:
+      it shakes for the same `CUP_SHAKE_MILLIS` and lands through the same
+      `GameViewModel.performRoll`. It stays in the view model rather than the screen, so CPU turns
+      keep playing when the screen isn't showing.
     - Because the auto-roll lives in the screen, it needs a composed `GameScreen`. The view model
       alone never rolls. If the app is in the background, the turn timer still ends the turn (a
       timeout rolls first if needed). `GameScreenAutoRollTest` (Robolectric) covers the real screen
