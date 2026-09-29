@@ -85,7 +85,7 @@ fun SettingsScreen(
                 headlineContent = {
                     // Long enough to need the same compact treatment as "Confirm before leaving game?".
                     Text(
-                        text = "Simple dice roll animation",
+                        text = "Simple dice roll",
                         style = MaterialTheme.typography.bodySmall,
                         maxLines = 1,
                         softWrap = false,

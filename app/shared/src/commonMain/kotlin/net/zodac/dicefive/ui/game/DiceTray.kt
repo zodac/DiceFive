@@ -389,7 +389,7 @@ private const val PICK_UP_MILLIS = 200
  * near edge, out of sight for the rest of the shake ([PickUpPath]) - it's in the cup; the moment the
  * roll lands (with the landing sound), it's thrown back on from there - up its column into the far
  * wall, bouncing and tumbling back to rest on its result ([TossPath]). Walls either side
- * keep it in its own column. With the player's "Simple dice roll animation" on, it just flicks
+ * keep it in its own column. With the player's "Simple dice roll" on, it just flicks
  * through faces in place while rolling instead, as dice always used to.
  */
 @Composable
