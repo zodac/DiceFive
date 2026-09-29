@@ -1598,3 +1598,29 @@ install-over-existing succeeds:
       a second quick tap - `DiceTrayGestureTest` pins it, and fails on the old code.
 - [ ] **Not yet seen on a device** - neither the Android build since the move (Robolectric only)
       nor iOS at all (needs macOS - `IOS_SUPPORT.md` Phase 5).
+
+### Phase 19 — Performance review
+- [x] **Idle animations** (`be041a3`): looping clocks (score-tile glow, cup shake, turn-timer flash)
+      are composed only while they show something, and the tile glow is applied in a graphics layer -
+      they had kept the board recomposing every frame for the whole game. See `UI.md`'s Motion section.
+- [x] **Saves conflated** (`5368910`): `InProgressGameRepository` queues saves/clears in its own
+      process-lifetime scope and writes only the latest waiting one.
+- [x] **Lifecycle-aware collection** (`875d33a`), **no default-style flash on the board**
+      (`ac7e6d9`, `GameViewModel.tableSettings`), **style lookups computed once** (`3334dce`).
+- [x] **Baseline Profile, hand-written** (`4054fe6`): `app/android/src/main/baseline-prof.txt`
+      marks the whole `net.zodac.dicefive` package hot with wildcards (AGP expands them, R8 carries
+      them into the release `baseline.prof`). The AndroidX/Compose libraries already ship their own.
+- [ ] **Generate a real Baseline Profile on a device.** The wildcard file is a stand-in: it compiles
+      *all* app code ahead of time rather than the paths actually used at startup and in play. A
+      proper one needs the Baseline Profile Gradle plugin, a `:baselineprofile` module with a
+      Macrobenchmark `BaselineProfileRule` journey (cold start → menu → start a game → roll, hold,
+      score → Styles screen), run on a physical device or a rooted/userdebug emulator (API 28+) -
+      neither CI nor the sandbox has one, so it has to be run by hand, e.g. from Android Studio. Its
+      generated `baseline-prof.txt` then replaces the hand-written file, and a Macrobenchmark
+      `StartupBenchmark` with `CompilationMode.Partial()` against `None()` confirms it actually helps.
+      Regenerate after large UI changes.
+- [ ] **Not fixed: AboutLibraries resolves configurations while Gradle plans the build** (the
+      "`debugCompileClasspath` was resolved during configuration time" CI warning). It's the plugin's
+      own task inputs (`BaseAboutLibrariesTask`), on its latest version (15.2.0); nothing in our
+      script triggers it, and the classpaths are resolved during the build anyway. Revisit on a
+      plugin upgrade.
