@@ -169,8 +169,28 @@ fun rememberCupRotation(rolling: Boolean, tilted: Boolean, restingTiltDegrees: F
         animationSpec = tween(durationMillis = if (restTiltTarget == 0f) SNAP_TO_STANDING_MILLIS else POUR_TILT_MILLIS),
         label = "cupTilt",
     )
-    val infiniteTransition = rememberInfiniteTransition(label = "cupShake")
-    val shakeWobble by infiniteTransition.animateFloat(
+    // Faded in/out over WOBBLE_FADE_MILLIS rather than switched the instant `rolling` flips:
+    // cutting the wobble's contribution off abruptly could drop the rendered rotation anywhere in a
+    // +-SHAKE_AMPLITUDE_DEGREES range with nothing to smooth it out - a visible pop to a half-tilted
+    // or "wrong way" pose. Worst on a turn with only one shake to begin with (Hard AI's common
+    // one-roll-then-hold-everything turn), where there's no following shake to bury the jump in.
+    val wobbleWeight by animateFloatAsState(
+        targetValue = if (rolling) 1f else 0f,
+        animationSpec = tween(durationMillis = WOBBLE_FADE_MILLIS),
+        label = "cupWobbleFade",
+    )
+    // The wobble's clock only exists while it counts - shaking, or fading out after one. A still
+    // cup then asks for no frames at all: an infinite transition left running at weight 0 kept
+    // every cup on screen (the board's, the menu logo's, each Styles tile's) recomposing every
+    // frame for nothing. It starts fresh each shake, at weight 0, so there's no pop from that either.
+    val shakeWobble = if (rolling || wobbleWeight > 0f) rememberShakeWobble() else 0f
+    return restTilt + shakeWobble * wobbleWeight
+}
+
+/** The shake's back-and-forth, in degrees - see [rememberCupRotation] for when it runs. */
+@Composable
+private fun rememberShakeWobble(): Float {
+    val shakeWobble by rememberInfiniteTransition(label = "cupShake").animateFloat(
         initialValue = -SHAKE_AMPLITUDE_DEGREES,
         targetValue = SHAKE_AMPLITUDE_DEGREES,
         animationSpec = infiniteRepeatable(
@@ -179,16 +199,5 @@ fun rememberCupRotation(rolling: Boolean, tilted: Boolean, restingTiltDegrees: F
         ),
         label = "cupWobble",
     )
-    // Faded in/out over WOBBLE_FADE_MILLIS rather than switched the instant `rolling` flips: the
-    // infinite transition above never resets its own phase, so cutting its contribution off
-    // abruptly could drop the rendered rotation anywhere in a +-SHAKE_AMPLITUDE_DEGREES range with
-    // nothing to smooth it out - a visible pop to a half-tilted or "wrong way" pose. Worst on a turn
-    // with only one shake to begin with (Hard AI's common one-roll-then-hold-everything turn),
-    // where there's no following shake to bury the jump in.
-    val wobbleWeight by animateFloatAsState(
-        targetValue = if (rolling) 1f else 0f,
-        animationSpec = tween(durationMillis = WOBBLE_FADE_MILLIS),
-        label = "cupWobbleFade",
-    )
-    return restTilt + shakeWobble * wobbleWeight
+    return shakeWobble
 }

@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -387,17 +388,9 @@ private val NO_OP_TOGGLE_HOLD: (Int) -> Unit = {}
 private fun TurnTimerBadge(secondsRemaining: Int, modifier: Modifier = Modifier) {
     val flashing = secondsRemaining in 1..TURN_TIMER_FLASH_SECONDS
     val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val infiniteTransition = rememberInfiniteTransition(label = "turnTimerFlash")
-    val flashColor by infiniteTransition.animateColor(
-        initialValue = MaterialTheme.colorScheme.error,
-        targetValue = mutedColor,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = TURN_TIMER_FLASH_PERIOD_MILLIS, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "turnTimerFlashColor",
-    )
-    val color = if (flashing) flashColor else mutedColor
+    // The flash's clock only runs in those last seconds - left running all turn, it recomposed the
+    // badge every frame for the whole of every timed game.
+    val color = if (flashing) rememberFlashColor(mutedColor) else mutedColor
     Text(
         text = "Time left: ${secondsRemaining}s",
         modifier = modifier,
@@ -406,6 +399,21 @@ private fun TurnTimerBadge(secondsRemaining: Int, modifier: Modifier = Modifier)
         color = color,
         style = MaterialTheme.typography.labelMedium,
     )
+}
+
+/** [TurnTimerBadge]'s flash: the error red and back to [mutedColor], round and round. */
+@Composable
+private fun rememberFlashColor(mutedColor: Color): Color {
+    val flashColor by rememberInfiniteTransition(label = "turnTimerFlash").animateColor(
+        initialValue = MaterialTheme.colorScheme.error,
+        targetValue = mutedColor,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = TURN_TIMER_FLASH_PERIOD_MILLIS, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "turnTimerFlashColor",
+    )
+    return flashColor
 }
 
 // The lint check exists because a real screen must scope its view model to the host, not build one

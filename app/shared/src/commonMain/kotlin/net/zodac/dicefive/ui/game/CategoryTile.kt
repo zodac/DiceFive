@@ -10,18 +10,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.zodac.dicefive.model.DieColour
@@ -80,14 +82,6 @@ fun CategoryTile(
         compact -> COMPACT_TILE_SIZE
         else -> REGULAR_TILE_SIZE
     }
-    val infiniteTransition = rememberInfiniteTransition(label = "tileGlow")
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.55f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(animation = tween(900, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-        label = "tileGlowAlpha",
-    )
-
     // Three distinct looks, never overlapping in practice (a scored category is never a legal,
     // highlightable choice): gold glow for "score this now", flat grey for "already used", teal
     // otherwise. Without the grey state a scored tile looked identical to an ordinary open one -
@@ -97,11 +91,8 @@ fun CategoryTile(
         scored -> listOf(TileScoredTop, TileScoredBottom)
         else -> listOf(TileTealTop, TileTealBottom)
     }
-    val borderColor = when {
-        highlighted -> GoldAccent.copy(alpha = glowAlpha)
-        scored -> TileScoredBorder
-        else -> TileTealBorder
-    }
+    // A highlighted tile's pulsing gold border is drawn by GlowBorder instead, over the content.
+    val borderColor = if (scored) TileScoredBorder else TileTealBorder
     val iconColor = when {
         highlighted -> GoldAccent
         scored -> TileIconColor.copy(alpha = 0.4f)
@@ -120,7 +111,7 @@ fun CategoryTile(
                     Modifier
                 },
             )
-            .border(width = if (highlighted) 2.dp else 1.dp, color = borderColor, shape = shape)
+            .then(if (highlighted) Modifier else Modifier.border(width = 1.dp, color = borderColor, shape = shape))
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
@@ -136,7 +127,30 @@ fun CategoryTile(
             dimmed = scored,
             fiveOfAKindBonusCount = fiveOfAKindBonusCount,
         )
+        if (highlighted) GlowBorder(shape)
     }
+}
+
+/**
+ * A highlighted tile's gold border, pulsing. Only composed on a highlighted tile, and its alpha is
+ * applied in a graphics layer rather than read while composing, so the pulse is a repaint of this
+ * border alone: a glow clock on every tile, read into the border colour, used to recompose the
+ * whole grid every frame for the entire game, highlighted or not.
+ */
+@Composable
+private fun BoxScope.GlowBorder(shape: Shape) {
+    val glowAlpha = rememberInfiniteTransition(label = "tileGlow").animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(animation = tween(900, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
+        label = "tileGlowAlpha",
+    )
+    Box(
+        modifier = Modifier
+            .matchParentSize()
+            .graphicsLayer { alpha = glowAlpha.value }
+            .border(width = 2.dp, color = GoldAccent, shape = shape),
+    )
 }
 
 /**
