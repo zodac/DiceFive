@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.ui.common.AppLogo
@@ -25,6 +26,8 @@ import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.PageColumn
 import net.zodac.dicefive.ui.common.RulesDialog
+import net.zodac.dicefive.ui.game.style.DiceCupStyles
+import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /**
@@ -45,6 +48,7 @@ fun MenuScreen(
     onStyles: () -> Unit,
     onSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    logoStyles: LogoStyles? = LogoStyles(DiceStyles.default, DiceCupStyles.default),
     onDiceTap: () -> Unit = {},
 ) {
     var showResumeDialog by remember { mutableStateOf(false) }
@@ -74,7 +78,14 @@ fun MenuScreen(
             // the button stack just below the middle, on a tall phone and a short one alike.
             Spacer(modifier = Modifier.weight(0.22f))
 
-            AppLogo(onDiceTap = onDiceTap)
+            // Drawn in the player's own dice and cup. Held invisible (still taking its space, so
+            // nothing below moves) until their picks have loaded, rather than flashing the defaults.
+            AppLogo(
+                modifier = Modifier.alpha(if (logoStyles == null) 0f else 1f),
+                diceStyle = logoStyles?.dice ?: DiceStyles.default,
+                cupStyle = logoStyles?.cup ?: DiceCupStyles.default,
+                onDiceTap = onDiceTap,
+            )
 
             Spacer(modifier = Modifier.height(48.dp))
 

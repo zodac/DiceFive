@@ -3,7 +3,12 @@ package net.zodac.dicefive.ui.menu
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -15,8 +20,11 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
+import net.zodac.dicefive.ui.game.style.DiceCupStyles
+import net.zodac.dicefive.ui.game.style.DiceStyles
 
 /** In-memory [AchievementStore], mirroring `GameAchievementsWiringTest`'s fake. */
 private class FakeAchievementStore : AchievementStore {
@@ -42,6 +50,16 @@ private class FakeAchievementStore : AchievementStore {
     }
 
     val unlocked: Set<Achievement> get() = _state.value.unlockedAt.keys
+}
+
+/** In-memory preferences, so a real [SettingsRepository] can back the menu's logo styles. */
+private class FakePreferencesStore : DataStore<Preferences> {
+
+    private val _data = MutableStateFlow(emptyPreferences())
+    override val data: Flow<Preferences> = _data
+
+    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
+        transform(_data.value).also { _data.value = it }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -75,5 +93,38 @@ class MenuViewModelTest {
         val viewModel = MenuViewModel(achievementsRepository = null)
 
         viewModel.onDiceTapped()
+    }
+
+    @Test
+    fun `the logo is drawn in the defaults when there is no repository`() {
+        val viewModel = MenuViewModel(settingsRepository = null)
+
+        assertEquals(LogoStyles(DiceStyles.default, DiceCupStyles.default), viewModel.logoStyles.value)
+    }
+
+    @Test
+    fun `the logo has no styles until the saved picks load - never a flash of the defaults`() = runTest {
+        val settings = SettingsRepository(FakePreferencesStore())
+        settings.setDiceStyleId("casino_blue")
+        val viewModel = MenuViewModel(settingsRepository = settings)
+
+        assertNull(viewModel.logoStyles.value)
+        advanceUntilIdle()
+        assertEquals("casino_blue", viewModel.logoStyles.value?.dice?.id)
+    }
+
+    @Test
+    fun `the logo follows the player's dice and cup picks`() = runTest {
+        val settings = SettingsRepository(FakePreferencesStore())
+        val viewModel = MenuViewModel(settingsRepository = settings)
+        advanceUntilIdle()
+        assertEquals(LogoStyles(DiceStyles.default, DiceCupStyles.default), viewModel.logoStyles.value)
+
+        settings.setDiceStyleId("googly_ivory")
+        settings.setDiceCupStyleId("top_hat_black")
+        advanceUntilIdle()
+
+        assertEquals("googly_ivory", viewModel.logoStyles.value?.dice?.id)
+        assertEquals("top_hat_black", viewModel.logoStyles.value?.cup?.id)
     }
 }

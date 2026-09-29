@@ -27,10 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.sora
-import net.zodac.dicefive.ui.game.style.CUP_GRID_HEIGHT
-import net.zodac.dicefive.ui.game.style.CUP_GRID_WIDTH
-import net.zodac.dicefive.ui.game.style.ClassicGoldDiceCupStyle
-import net.zodac.dicefive.ui.game.style.IvoryDiceStyle
+import net.zodac.dicefive.ui.game.style.CupShape
+import net.zodac.dicefive.ui.game.style.DiceCupStyle
+import net.zodac.dicefive.ui.game.style.DiceCupStyles
+import net.zodac.dicefive.ui.game.style.DiceStyle
+import net.zodac.dicefive.ui.game.style.DiceStyles
 import org.jetbrains.compose.resources.Font
 
 /**
@@ -58,9 +59,11 @@ internal val SoraFontFamily: FontFamily
  */
 private data class LogoDie(val value: Int, val tilt: Float, val drop: Dp)
 
-// The cup behind the fan: how tall it stands, and how far its middle sits above the fan's - so more
-// of the cup, rim and all, shows above the dice than below them. Both in dice, so a smaller mark
-// keeps the same proportions.
+// The cup behind the fan, set by a tall cup: how tall it stands, and how far its middle sits above
+// the fan's - so more of it, rim and all, shows above the dice than below them. Both in dice, so a
+// smaller mark keeps the same proportions. A squat cup is drawn at the same scale, as the game and
+// the Styles screen size every cup by its grid, and hangs from the same top line: stood on the same
+// base, it would hide almost wholly behind the dice and the wordmark, only its rim showing.
 private const val LOGO_CUP_HEIGHT_IN_DICE = 3.4f
 private const val LOGO_CUP_RAISE_IN_DICE = 0.35f
 
@@ -73,11 +76,12 @@ private val LOGO_DICE = listOf(
 )
 
 /**
- * The app mark: a fan of the game's own dice, in front of the default cup, over the wordmark.
+ * The app mark: a fan of the game's own dice, in front of a cup, over the wordmark.
  *
- * Built from [IvoryDiceStyle] rather than an image so it costs no asset and always matches the
- * dice on the board - deliberately kept as live Compose dice rather than a drawable, unlike the
- * launcher icon (the Android app's `ic_launcher_foreground`), which is its own static artwork.
+ * Drawn with [diceStyle] and [cupStyle] - the player's own picks, on the menu - rather than an
+ * image, so it costs no asset and always matches the dice and cup on the board. Deliberately live
+ * Compose art rather than a drawable, unlike the launcher icon (the Android app's
+ * `ic_launcher_foreground`), which is its own static artwork of the defaults.
  *
  * The wordmark uses `displayMedium` from the type scale rather than a hand-set size, so it stays
  * in proportion with everything else if the scale is ever restyled; [titleSize] only exists for
@@ -92,27 +96,32 @@ fun AppLogo(
     modifier: Modifier = Modifier,
     dieSize: Dp = 34.dp,
     titleSize: TextUnit = TextUnit.Unspecified,
+    diceStyle: DiceStyle = DiceStyles.default,
+    cupStyle: DiceCupStyle = DiceCupStyles.default,
     onDiceTap: () -> Unit = {},
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         // The cup takes no room of its own (see noLayoutSpace), so the dice and the wordmark sit
         // exactly as they would without it, its base reaching down behind the wordmark. Only the
-        // part standing above the dice is reserved, as top padding: the page scrolls, and a
-        // scrolling column clips whatever is drawn outside it, which would cut off the rim.
-        val cupHeight = dieSize * LOGO_CUP_HEIGHT_IN_DICE
+        // part a tall cup stands above the dice is reserved, as top padding: the page scrolls, and
+        // a scrolling column clips whatever is drawn outside it, which would cut off the rim. It's
+        // reserved for a squat cup too, so switching cups never moves the dice or the wordmark.
+        val tallCupHeight = dieSize * LOGO_CUP_HEIGHT_IN_DICE
         val cupRaise = dieSize * LOGO_CUP_RAISE_IN_DICE
-        val cupAboveDice = cupHeight / 2 + cupRaise - dieSize / 2
+        val cupAboveDice = tallCupHeight / 2 + cupRaise - dieSize / 2
+        val gridUnit = tallCupHeight / CupShape.TALL.gridHeight
+        val cupHeight = gridUnit * cupStyle.shape.gridHeight
         Box(modifier = Modifier.padding(top = cupAboveDice), contentAlignment = Alignment.Center) {
-            // The launcher icon's cup - the default Classic cup in Gold - standing behind the fan,
-            // in the cup grid's own proportions so it isn't stretched. Upright and still: never
-            // rolling or tipped, so it never runs the in-game shake.
-            ClassicGoldDiceCupStyle.Cup(
+            // Standing behind the fan, in its own shape's proportions so it isn't stretched.
+            // Upright and still: never rolling or tipped, so it never runs the in-game shake (or
+            // lets the Top Hat's rabbit out - it only peeks from a hat left tipped over).
+            cupStyle.Cup(
                 rolling = false,
                 tilted = false,
                 modifier = Modifier
                     .noLayoutSpace()
-                    .offset(y = -cupRaise)
-                    .size(width = cupHeight * (CUP_GRID_WIDTH / CUP_GRID_HEIGHT), height = cupHeight),
+                    .offset(y = cupHeight / 2 - dieSize / 2 - cupAboveDice)
+                    .size(width = gridUnit * cupStyle.shape.gridWidth, height = cupHeight),
             )
 
             val diceInteractionSource = remember { MutableInteractionSource() }
@@ -126,7 +135,7 @@ fun AppLogo(
                 ),
             ) {
                 for (die in LOGO_DICE) {
-                    IvoryDiceStyle.Die(
+                    diceStyle.Die(
                         value = die.value,
                         held = false,
                         modifier = Modifier

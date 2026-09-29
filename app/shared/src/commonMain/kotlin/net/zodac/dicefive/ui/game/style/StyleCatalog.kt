@@ -216,7 +216,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
 /**
  * The Classic cup in Gold - the default cup, and the one the launcher icon draws as a silhouette
  * (the same gold body, dark mouth, lighter rim and navy band - `ic_launcher_foreground.xml`), so a
- * new player's first cup is the one on the icon. The main menu's logo stands it behind its dice.
+ * new player's first cup is the one on the icon.
  */
 val ClassicGoldDiceCupStyle: DiceCupStyle = CasinoDiceCupStyle(
     "casino_gold",
