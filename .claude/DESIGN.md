@@ -1619,6 +1619,16 @@ install-over-existing succeeds:
       generated `baseline-prof.txt` then replaces the hand-written file, and a Macrobenchmark
       `StartupBenchmark` with `CompilationMode.Partial()` against `None()` confirms it actually helps.
       Regenerate after large UI changes.
+- [ ] **Benchmark battery use before capping any animation's frame rate.** Every animation runs at
+      the display's full rate (up to 120fps), including the purely decorative, always-on ones: the
+      menu's drifting watermark dice (`BrandBackdrop`), the Starry background/mat twinkle
+      (`TwinkleClock`) and the coffee-steam/cauldron cups (`rememberAmbientCycle`). Capping those
+      (e.g. 60fps for the menu drift, 30fps for the twinkle and cups, via a shared delay-then-frame
+      clock) was considered and deliberately **not** done yet: it should first be measured, not
+      assumed, to be worth it - e.g. a Macrobenchmark `FrameTimingMetric`/`PowerMetric` run, or Android
+      Studio's Power Profiler / on-device power rails, on a real 120Hz phone, comparing idle-on-menu
+      and a Starry/cauldron game at full rate against the capped rates. Dice rolls, cup shakes and
+      hold/unhold stay at full rate regardless.
 - [ ] **Not fixed: AboutLibraries resolves configurations while Gradle plans the build** (the
       "`debugCompileClasspath` was resolved during configuration time" CI warning). It's the plugin's
       own task inputs (`BaseAboutLibrariesTask`), on its latest version (15.2.0); nothing in our
