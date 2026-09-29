@@ -159,10 +159,14 @@ bottom once the form is too tall to fit and has to scroll.
 - **One filled button per screen**, tonal for the rest (the menu: filled Play, tonal
   destinations). That's M3's emphasis hierarchy, and it stops five identical slabs competing.
 - **Segmented buttons** (`ui/common/SegmentedChoiceRow.kt`) for small exclusive sets that fit one
-  line: player count 1-4, AI difficulty. Radio rows are for options that need more
+  line: player count 1-4, AI difficulty, turn timer. Radio rows are for options that need more
   than a word each - the setup screen's game mode, where each row carries `GameMode.description`
   as a second line, since "Tricolour" alone doesn't say what it changes. A disabled option (a mode
   that isn't ready yet) would also go in a radio row, for its visible disabled state.
+- **An option the rest of the form overrides is disabled, not hidden** - the Turn Timer row while
+  Quickfire (which has its own timer) is picked. Hiding it would move everything below; disabling
+  it keeps the layout still and shows the choice doesn't apply. The player's pick is kept, so it's
+  back when they pick another mode.
 - **Cards** group a section. A `ListItem` inside a Card needs
   `ListItemDefaults.colors(containerColor = Color.Transparent)`, or it paints a second,
   slightly different surface on top of the card's.
@@ -413,6 +417,15 @@ their name, in the header tabs and on the results page. In a header tab it costs
 ~72dp, so tab names use `TextAutoSize.StepBased` (down to 9sp) and a full-length CPU name shrinks
 a little rather than arriving ellipsised.
 
+**Every roll is one cup tap.** A human's roll - a finger on the cup, a phone shake, or Quickfire
+tapping the cup for them as their turn starts (`GameState.awaitsAutoRoll`) - goes through
+`GameScreen`'s `onCupTap`: the cup shakes for `CUP_SHAKE_MILLIS`, the shake sound and haptics play,
+then `GameViewModel.rollDice`. A CPU's roll shakes for the same `CUP_SHAKE_MILLIS` (the view model
+sets `aiRolling`, which the screen treats like its own tap) and lands through the same
+`performRoll`. Don't add another way to roll with its own timing or animation - `.claude/
+GAME_MODES.md`'s "Turn flow" has why, and the traps (the AI loop's own copy of the state; Undo
+during the shake).
+
 ## Scrollbars on long lists
 
 Every page with a `LazyColumn` that can outgrow the screen (the Leaderboard, Statistics) wraps it
@@ -524,6 +537,11 @@ verified by `./gradlew assembleDebug testDebugUnitTest compileDebugAndroidTestKo
 careful reading, and layout claims are arithmetic, not screenshots. Say so when reporting -
 "compile-and-read verified, not seen" - and prefer layouts that degrade safely on a screen
 size you can't check.
+
+Behaviour a screen drives can be tested under Robolectric with the real screen and view model -
+`GameScreenAutoRollTest` renders `GameScreen` (with `LocalPlatformServices provides
+SilentPlatformServices`) and steps both the compose clock and the paused main looper
+(`ShadowLooper.idleMainLooper`), since the view model's coroutines delay on the latter.
 
 ## Deliberately deferred
 
