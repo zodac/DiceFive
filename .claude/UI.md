@@ -240,27 +240,47 @@ It listens on `AchievementEvents`, a process-wide `SharedFlow` — the two ends 
 common (a "play"-graph-scoped `GameViewModel` raises them; an overlay above the `NavHost` shows
 them), and achievements are per device, which is the same scope as the process.
 
-The stack behaviour, and why each number is what it is:
+The stack behaviour, and why each number is what it is (the constants are at the top of
+`AchievementBannerHost.kt`):
 
 | | Value | Why |
 |---|---|---|
-| Position | bottom half only, stacked upward | keeps the board, the dice tray and the scorecard clear |
-| Hold | 1.5s at full opacity | long enough to read a title, short enough not to sit in the way |
-| Fade out | 900ms | a snap-out in the middle of a burst reads as a glitch |
+| Position | bottom-anchored, overlapping stack: the longest-queued banner in front, each newer one peeking out 14dp above the one in front of it | keeps the board, the dice tray and the scorecard clear; a burst no longer fills the screen |
+| Fade in | 180ms, as soon as it joins the stack | every banner in a burst is visible right away, even the ones waiting behind |
+| Hold | 4s at full opacity - 5s on screen in all, with the fades | long enough to read a title and description, short enough not to sit in the way |
+| Fade out | 820ms | a snap-out in the middle of a burst reads as a glitch |
 | Stagger | 300ms between arrivals | a burst deals like cards instead of landing as a wall |
 | Cap | 4 on screen | the rest **wait** rather than being dropped — the collector suspends on `snapshotFlow { banners.size }` until a slot frees |
-| Swipe | 25% of the banner's width, either direction | clears one early; the event flow's buffer holds the backlog meanwhile |
+| Swipe | 15% of the banner's width, either direction; it leaves in 180ms | clears one early; the event flow's buffer holds the backlog meanwhile. 25% needed too firm a swipe |
+
+Only the front banner is interactive, and only it counts down: one waiting behind it starts its
+own full hold once it's promoted, so a burst plays out one banner after another rather than all
+clearing together. A finger on the front banner pauses its countdown too (and pulls it back to
+full opacity if it had started fading), with a fresh full hold once the finger lifts - so a slow
+swipe, or a press to keep it up, can't lose it mid-gesture. An unlock always takes the front over a progress nudge; otherwise a new
+arrival joins the back, so it can't cut the queue.
+
+Long-pressing the front banner jumps to that achievement on the Achievements screen. Mid-game,
+with "confirm before leaving" on, that asks first - and every banner's countdown is paused while the
+confirmation is up, restarting at a full hold when it closes.
+
+The stack lives in its own non-modal `Dialog` window, not in the app's content, so a banner that
+fires while another dialog is open still draws above it.
 
 Two variants, deliberately unequal: an **unlock** banner is `primaryContainer` with the
 achievement's own icon (`Achievement.icon`, the same one its unlocked row shows - a generic trophy
-made a burst of unlocks read as a stack of identical cups) and a two-line body; a **progress** banner is quieter (`surfaceContainerHigh`, one line plus a thin
-`LinearProgressIndicator`), so a run of "2 of 3" nudges can never be mistaken for the real thing.
+made a burst of unlocks read as a stack of identical cups) and a title plus up to two lines of
+description, with a star at its right when the achievement unlocks a style (see "Style locks"); a
+**progress** banner is quieter (`surfaceContainerHigh`, one line plus a thin
+`LinearProgressIndicator` whose count and bar climb from the old value to the new over 700ms),
+so a run of "2 of 3" nudges can never be mistaken for the real thing.
 
 Both show the achievement's title on one line, shrunk to fit rather than cut off (`BannerTitle`,
 Compose's `TextAutoSize.StepBased`): titleMedium's 16sp when it fits, stepping down 0.5sp at a time
-to a 12sp floor, and only ellipsised past that. The longest title - "Rules? Where We're Going, We
-Don't Need Rules" - needs ~12.4sp on a typical phone, so it fits there; a narrower screen gets the
-"…" rather than an unreadably small font.
+to a 10sp floor, and only ellipsised past that. The longest title - "Rules? Where We're Going, We
+Don't Need Rules" - needs ~12.4sp on a typical phone, so it fits there; a narrower screen shrinks
+it further before resorting to "…". The unlock banner's description shrinks the same way
+(`BannerDescription`: bodySmall down to 9sp in 0.25sp steps, across its two lines).
 
 ## Style locks
 
