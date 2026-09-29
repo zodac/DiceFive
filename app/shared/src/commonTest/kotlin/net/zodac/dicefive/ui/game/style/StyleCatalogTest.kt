@@ -2,7 +2,11 @@ package net.zodac.dicefive.ui.game.style
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.model.AchievementVisibility
 
 /**
  * The Styles screen groups each category's colours into styles, but what's saved is still each
@@ -71,5 +75,46 @@ class StyleCatalogTest {
         assertEquals("casino_gold", DiceCupStyles.byId("leather").id)
         assertEquals("casino_gold", DiceCupStyles.byId("casino_burgundy").id)
         assertEquals("Classic", DiceCupStyles.familyOf("leather").name)
+    }
+
+    @Test
+    fun onlyTheClassicStylesAreFree() {
+        for (catalog in listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds)) {
+            for (family in catalog.families) {
+                assertEquals(family.name == "Classic", family.unlock == StyleUnlock.Free, "${family.name}'s unlock is ${family.unlock}")
+            }
+        }
+    }
+
+    @Test
+    fun everyAchievementCountLockIsDistinctAndEarnable() {
+        val earnable = Achievement.entries.count { it.visibility != AchievementVisibility.SECRET }
+        val counts = listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds)
+            .flatMap { it.families }
+            .mapNotNull { (it.unlock as? StyleUnlock.AchievementCount)?.count }
+        assertEquals(counts.size, counts.toSet().size, "Two styles share an achievement count: $counts")
+        for (count in counts) assertTrue(count in 1..earnable, "$count isn't in 1..$earnable")
+    }
+
+    @Test
+    fun secretAchievementsDontCountTowardsALock() {
+        val secrets = Achievement.entries.filter { it.visibility == AchievementVisibility.SECRET }
+        val state = AchievementsState(unlockedAt = secrets.associateWith { 0L })
+        assertEquals(0, state.countedUnlocks)
+        assertFalse(StyleUnlock.AchievementCount(1).isMet(state))
+    }
+
+    @Test
+    fun aLockedPickIsDrawnAsTheDefaultUntilItsStyleUnlocks() {
+        val retro = DiceStyles.familyOf("retro_amber")
+        val needed = (retro.unlock as StyleUnlock.AchievementCount).count
+        val earnable = Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }
+        val justShort = AchievementsState(unlockedAt = earnable.take(needed - 1).associateWith { 0L })
+        val enough = AchievementsState(unlockedAt = earnable.take(needed).associateWith { 0L })
+
+        assertEquals(DiceStyles.default, DiceStyles.unlockedById("retro_amber", justShort))
+        assertEquals("retro_amber", DiceStyles.unlockedById("retro_amber", enough).id)
+        // Every colour of a Classic style is available from the start.
+        assertEquals("barrel", DiceStyles.unlockedById("barrel", AchievementsState()).id)
     }
 }

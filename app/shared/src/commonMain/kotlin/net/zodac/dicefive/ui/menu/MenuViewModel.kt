@@ -9,12 +9,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementStore
+import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.nowEpochMillis
@@ -44,8 +46,12 @@ class MenuViewModel(
     val logoStyles: StateFlow<LogoStyles?> = if (settingsRepository == null) {
         MutableStateFlow(LogoStyles(DiceStyles.default, DiceCupStyles.default))
     } else {
-        combine(settingsRepository.diceStyleId, settingsRepository.diceCupStyleId) { diceId, cupId ->
-            LogoStyles(DiceStyles.byId(diceId), DiceCupStyles.byId(cupId))
+        combine(
+            settingsRepository.diceStyleId,
+            settingsRepository.diceCupStyleId,
+            achievementsRepository?.state ?: flowOf(AchievementsState()),
+        ) { diceId, cupId, achievements ->
+            LogoStyles(DiceStyles.unlockedById(diceId, achievements), DiceCupStyles.unlockedById(cupId, achievements))
         }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
     }
 

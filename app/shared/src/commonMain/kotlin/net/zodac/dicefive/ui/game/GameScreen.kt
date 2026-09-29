@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.LocalAppContainer
+import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
@@ -119,9 +120,10 @@ fun GameScreen(
     }
 
     // A single injection point for the pluggable dice/cup/background art, built from whatever the
-    // Styles screen last persisted (each id resolved through its own catalog's byId, which falls
-    // back to that category's default for an id nothing recognizes).
+    // Styles screen last persisted (each id resolved through its own catalog's unlockedById, which
+    // falls back to that category's default for an id nothing recognizes or a style still locked).
     val settingsRepository = LocalAppContainer.current.settingsRepository
+    val achievements by LocalAppContainer.current.achievementsRepository.state.collectAsState(initial = AchievementsState())
     val diceStyleId by settingsRepository.diceStyleId.collectAsState(initial = DiceStyles.default.id)
     val diceCupStyleId by settingsRepository.diceCupStyleId.collectAsState(initial = DiceCupStyles.default.id)
     val tableBackgroundId by settingsRepository.tableBackgroundId.collectAsState(initial = TableBackgrounds.default.id)
@@ -129,12 +131,12 @@ fun GameScreen(
     val soundEnabled by settingsRepository.soundEnabled.collectAsState(initial = true)
     val vibrationEnabled by settingsRepository.vibrationEnabled.collectAsState(initial = true)
     val simpleDiceRoll by settingsRepository.simpleDiceRoll.collectAsState(initial = false)
-    val visualTheme = remember(diceStyleId, diceCupStyleId, tableBackgroundId, diceMatId) {
+    val visualTheme = remember(diceStyleId, diceCupStyleId, tableBackgroundId, diceMatId, achievements) {
         GameVisualTheme(
-            diceStyle = DiceStyles.byId(diceStyleId),
-            diceCupStyle = DiceCupStyles.byId(diceCupStyleId),
-            background = TableBackgrounds.byId(tableBackgroundId),
-            mat = DiceMats.byId(diceMatId),
+            diceStyle = DiceStyles.unlockedById(diceStyleId, achievements),
+            diceCupStyle = DiceCupStyles.unlockedById(diceCupStyleId, achievements),
+            background = TableBackgrounds.unlockedById(tableBackgroundId, achievements),
+            mat = DiceMats.unlockedById(diceMatId, achievements),
         )
     }
     CompositionLocalProvider(

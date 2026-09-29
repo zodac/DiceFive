@@ -2,6 +2,7 @@ package net.zodac.dicefive.data.achievements
 
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
+import net.zodac.dicefive.model.AchievementVisibility
 
 /**
  * Everything the app knows about this device's achievements: when each one was unlocked, and the
@@ -13,6 +14,14 @@ data class AchievementsState(
 ) {
 
     fun isUnlocked(achievement: Achievement): Boolean = achievement in unlockedAt
+
+    /**
+     * How many achievements have been earned, leaving out [AchievementVisibility.SECRET] ones - the
+     * number a style's achievement-count lock is measured against. A secret one is an easter egg, not
+     * a checklist item, so it can't be what stands between a player and a style.
+     */
+    val countedUnlocks: Int
+        get() = unlockedAt.keys.count { it.visibility != AchievementVisibility.SECRET }
 
     fun counter(counter: AchievementCounter): Int = counters[counter] ?: 0
 

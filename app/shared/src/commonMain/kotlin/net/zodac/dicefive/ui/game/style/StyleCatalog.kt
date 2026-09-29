@@ -1,6 +1,8 @@
 package net.zodac.dicefive.ui.game.style
 
 import androidx.compose.ui.graphics.Color
+import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.ui.game.style.StyleUnlock.AchievementCount
 import net.zodac.dicefive.ui.theme.BarrelBackgroundTop
 import net.zodac.dicefive.ui.theme.BarrelDiceTop
 import net.zodac.dicefive.ui.theme.BarrelTrayTop
@@ -29,9 +31,14 @@ data class StyleColour<out T : TableArt>(val name: String, val swatch: Color, va
 
 /**
  * One style - a shape or pattern - offered on the Styles screen as a single tile, in one or more
- * [colours]. The first colour is the one the tile shows until the player picks another.
+ * [colours]. The first colour is the one the tile shows until the player picks another. [unlock] is
+ * what it takes to use any of them - see [StyleUnlock].
  */
-data class StyleFamily<T : TableArt>(val name: String, val colours: List<StyleColour<T>>) {
+data class StyleFamily<T : TableArt>(
+    val name: String,
+    val colours: List<StyleColour<T>>,
+    val unlock: StyleUnlock = StyleUnlock.Free,
+) {
     init {
         require(colours.isNotEmpty()) { "A style needs at least one colour" }
     }
@@ -57,6 +64,15 @@ open class StyleCatalog<T : TableArt>(val families: List<StyleFamily<T>>) {
 
     /** The family [id] belongs to - or the default's, for an id nothing recognises, as [byId] does. */
     fun familyOf(id: String): StyleFamily<T> = families.first { it.colourOf(byId(id).id) != null }
+
+    /** Whether the style [id] belongs to has been unlocked - see [StyleUnlock]. */
+    fun isUnlocked(id: String, achievements: AchievementsState): Boolean = familyOf(id).unlock.isMet(achievements)
+
+    /**
+     * What to actually draw for the saved pick [id]: [byId], unless its style is still locked, in
+     * which case the [default] - the saved pick itself is left alone, see [StyleUnlock].
+     */
+    fun unlockedById(id: String, achievements: AchievementsState): T = if (isUnlocked(id, achievements)) byId(id) else default
 }
 
 object DiceStyles : StyleCatalog<DiceStyle>(
@@ -76,6 +92,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour("Green", CasinoDiceStyle("casino_green", Color(0xFF2E9E4F), Color(0xFF0B4A22))),
                 colour("Blue", CasinoDiceStyle("casino_blue", Color(0xFF2F7FE0), Color(0xFF0B3A80))),
             ),
+            unlock = AchievementCount(50),
         ),
         StyleFamily(
             "Frosted",
@@ -83,6 +100,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour("Ice", FrostedDiceStyle("frosted_ice", Color(0xFFE3F4FF), Color(0xFFA9D3EE), Color(0xFF1D4E6E))),
                 colour("White", FrostedDiceStyle("frosted_white", Color(0xFFFAFBFC), Color(0xFFD5DADF), Color(0xFF3A4550))),
             ),
+            unlock = AchievementCount(23),
         ),
         StyleFamily(
             "Marble",
@@ -96,6 +114,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     MarbleDiceStyle("marble_black", Color(0xFF3A3A3E), Color(0xFF141416), Color(0xFFD8D8D8), Color(0xFFF5F5F5), seed = 2),
                 ),
             ),
+            unlock = AchievementCount(60),
         ),
         StyleFamily(
             "Metal",
@@ -128,6 +147,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     ),
                 ),
             ),
+            unlock = AchievementCount(19),
         ),
         StyleFamily(
             "Retro",
@@ -138,6 +158,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     RetroDiceStyle("retro_amber", Color(0xFFFFB000), Color(0xFF9A5B00), Color(0xFF3A2400), heldRing = Color.White),
                 ),
             ),
+            unlock = AchievementCount(2),
         ),
         StyleFamily(
             "Numeral",
@@ -152,6 +173,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     NumeralDiceStyle("numeral_arabic", Color(0xFF3A3A3A), Color(0xFF121212), Color(0xFFE8C66A), NumeralSystem.EASTERN_ARABIC),
                 ),
             ),
+            unlock = AchievementCount(43),
         ),
         StyleFamily(
             "LCD",
@@ -159,6 +181,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour("Neon", LcdDiceStyle("lcd_neon", Color(0xFF15181D), Color(0xFF07090D), Color(0xFF3FD7FF), glow = true)),
                 colour("White", LcdDiceStyle("lcd_white", Color(0xFFF4F4F0), Color(0xFFE2E4DE), Color(0xFF151515), glow = false)),
             ),
+            unlock = AchievementCount(49),
         ),
         StyleFamily(
             "D20",
@@ -168,6 +191,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 // so the held ring is white instead, not lost against gold numbers.
                 colour("Blue", D20DiceStyle("d20_blue", Color(0xFF3A6BB0), Color(0xFF14315C), GoldAccent, heldRing = Color.White)),
             ),
+            unlock = AchievementCount(29),
         ),
         StyleFamily(
             "Cube",
@@ -188,6 +212,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     ),
                 ),
             ),
+            unlock = AchievementCount(24),
         ),
         StyleFamily(
             "Googly",
@@ -202,6 +227,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     GooglyDiceStyle("googly_blue", Color(0xFF3A6BB0), Color(0xFF14315C), GoldAccent, socket = GoldAccent),
                 ),
             ),
+            unlock = AchievementCount(31),
         ),
         StyleFamily(
             "Misprint",
@@ -209,6 +235,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour("Pencil", MisprintDiceStyle("misprint_pencil", Color(0xFFFAF7F0), Color(0xFF3A3A3A), seed = 1)),
                 colour("Blueprint", MisprintDiceStyle("misprint_blueprint", Color(0xFF1F4E8C), Color(0xFFEAF2FF), seed = 2)),
             ),
+            unlock = AchievementCount(48),
         ),
     ),
 )
@@ -243,8 +270,9 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 StyleColour("Black", Color(0xFF3A3A3F), BlackFacetedDiceCupStyle),
                 StyleColour("Red", FireCupLitFace, FireDiceCupStyle),
             ),
+            unlock = AchievementCount(26),
         ),
-        StyleFamily("Barrel", listOf(StyleColour("Brown", BarrelWood, BarrelDiceCupStyle))),
+        StyleFamily("Barrel", listOf(StyleColour("Brown", BarrelWood, BarrelDiceCupStyle)), unlock = AchievementCount(57)),
         StyleFamily(
             "Leather",
             listOf(
@@ -252,6 +280,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 cup("Black", ::LeatherDiceCupStyle, "leather_black", 0xFF111111, 0xFF4A4A4A, 0xFF262626, 0xFFBDBDBD, 0xFF050505),
                 cup("Oxblood", ::LeatherDiceCupStyle, "leather_oxblood", 0xFF3A0A0D, 0xFF92323A, 0xFF641A20, 0xFFE8C9A0, 0xFF160405),
             ),
+            unlock = AchievementCount(65),
         ),
         StyleFamily(
             "Glass",
@@ -260,6 +289,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 colour("Blue", GlassDiceCupStyle("glass_blue", Color(0xFF5AA8E8), Color(0xFF2F7FE0))),
                 colour("Amber", GlassDiceCupStyle("glass_amber", Color(0xFFE8C98A), Color(0xFFE8A030))),
             ),
+            unlock = AchievementCount(3),
         ),
         StyleFamily(
             "Tankard",
@@ -267,6 +297,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 cup("Pewter", ::TankardDiceCupStyle, "tankard_pewter", 0xFF4E555A, 0xFFC9D0D4, 0xFF8C959B, 0xFF5E676D, 0xFF1C2023),
                 cup("Copper", ::TankardDiceCupStyle, "tankard_copper", 0xFF6B3417, 0xFFE0A07A, 0xFFB8683D, 0xFF7A3C1B, 0xFF2A1308),
             ),
+            unlock = AchievementCount(61),
         ),
         StyleFamily(
             "Top Hat",
@@ -274,6 +305,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 cup("Black", ::TopHatDiceCupStyle, "top_hat_black", 0xFF0B0B0C, 0xFF3C3C40, 0xFF1E1E21, 0xFFB71C1C, 0xFF030303),
                 cup("Grey", ::TopHatDiceCupStyle, "top_hat_grey", 0xFF3A3A3D, 0xFF9A9AA0, 0xFF6A6A70, 0xFF1A1A1C, 0xFF121214),
             ),
+            unlock = AchievementCount(14),
         ),
         StyleFamily(
             "Takeaway",
@@ -281,6 +313,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 cup("White", ::TakeawayDiceCupStyle, "takeaway_white", 0xFFBDB6AA, 0xFFFFFFFF, 0xFFECE7DE, 0xFFA87A4E, 0xFF2A1A10),
                 cup("Black", ::TakeawayDiceCupStyle, "takeaway_black", 0xFF111111, 0xFF4A4A4A, 0xFF262626, 0xFFC08A55, 0xFF2A1A10),
             ),
+            unlock = AchievementCount(44),
         ),
         StyleFamily(
             "Flowerpot",
@@ -288,6 +321,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 cup("Terracotta", ::FlowerpotDiceCupStyle, "flowerpot_terracotta", 0xFF7A3418, 0xFFE08A5C, 0xFFC0643A, 0xFFC0643A, 0xFF2E1E14),
                 cup("Slate", ::FlowerpotDiceCupStyle, "flowerpot_slate", 0xFF2E3438, 0xFF8A949A, 0xFF5A646A, 0xFF5A646A, 0xFF1E1A16),
             ),
+            unlock = AchievementCount(18),
         ),
         StyleFamily(
             "Cauldron",
@@ -295,6 +329,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 cauldron("Green", "cauldron_green", 0xFF5BE36A, 0xFF1E7A2B),
                 cauldron("Purple", "cauldron_purple", 0xFFB06CF0, 0xFF5A2A8A),
             ),
+            unlock = AchievementCount(34),
         ),
         StyleFamily(
             "Beaker",
@@ -302,6 +337,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 colour("Blue", BeakerDiceCupStyle("beaker_blue", Color(0xFFD6ECF7), Color(0xFF4FC3F7))),
                 colour("Green", BeakerDiceCupStyle("beaker_green", Color(0xFFD6ECF7), Color(0xFF7CE08A))),
             ),
+            unlock = AchievementCount(67),
         ),
     ),
 )
@@ -323,6 +359,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 background("Navy", ::SpotlightBackground, "spotlight_navy", 0xFF2A5590, 0xFF0A1A33),
                 background("Green", ::SpotlightBackground, "spotlight_green", 0xFF2E7A48, 0xFF0A2A16),
             ),
+            unlock = AchievementCount(10),
         ),
         StyleFamily(
             "Pinstripe",
@@ -330,6 +367,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 background("Charcoal", ::PinstripeBackground, "pinstripe_charcoal", 0xFF2E3136, 0xFF1C1E22),
                 background("Navy", ::PinstripeBackground, "pinstripe_navy", 0xFF1E2E4C, 0xFF0F1A30),
             ),
+            unlock = AchievementCount(41),
         ),
         StyleFamily(
             "Planks",
@@ -337,6 +375,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 background("Oak", ::PlanksBackground, "planks_oak", 0xFF7A5534, 0xFF5A3C22),
                 background("Walnut", ::PlanksBackground, "planks_walnut", 0xFF4A3322, 0xFF2C1D12),
             ),
+            unlock = AchievementCount(5),
         ),
         StyleFamily(
             "Gingham",
@@ -345,12 +384,14 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 background("Blue", ::GinghamBackground, "gingham_blue", 0xFF264C78, 0xFF183352),
                 background("Green", ::GinghamBackground, "gingham_green", 0xFF33693D, 0xFF214A28),
             ),
+            unlock = AchievementCount(30),
         ),
         StyleFamily(
             "Starry",
             listOf(
                 background("Midnight", ::StarryBackground, "starry_midnight", 0xFF12224A, 0xFF060C22),
             ),
+            unlock = AchievementCount(27),
         ),
         StyleFamily(
             "Honeycomb",
@@ -358,6 +399,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 background("Charcoal", ::HoneycombBackground, "honeycomb_charcoal", 0xFF2A2D33, 0xFF16181C),
                 background("Indigo", ::HoneycombBackground, "honeycomb_indigo", 0xFF262A5A, 0xFF12142E),
             ),
+            unlock = AchievementCount(6),
         ),
         StyleFamily(
             "Sunburst",
@@ -365,6 +407,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 background("Crimson", ::SunburstBackground, "sunburst_crimson", 0xFF6A1218, 0xFF2E0508),
                 background("Amber", ::SunburstBackground, "sunburst_amber", 0xFF7A4A0E, 0xFF331E04),
             ),
+            unlock = AchievementCount(39),
         ),
     ),
 )
@@ -384,6 +427,7 @@ object DiceMats : StyleCatalog<DiceMat>(
                 StyleColour("Brown", BarrelTrayTop, BarrelDiceMat),
                 StyleColour("Hardwood", Color(0xFFA8703F), HardwoodDiceMat),
             ),
+            unlock = AchievementCount(16),
         ),
         StyleFamily(
             "Leather",
@@ -392,6 +436,7 @@ object DiceMats : StyleCatalog<DiceMat>(
                 mat("Oxblood", ::LeatherDiceMat, "leather_oxblood", 0xFF7A2328, 0xFF4E1216, 0xFF2E080B, 0xFF1E0507, 0xFFE0A89A, 0xFFE8C9A0),
                 mat("Black", ::LeatherDiceMat, "leather_black", 0xFF3A3A3A, 0xFF1C1C1C, 0xFF111111, 0xFF0A0A0A, 0xFF9E9E9E, 0xFFBDBDBD),
             ),
+            unlock = AchievementCount(83),
         ),
         StyleFamily(
             "Casino",
@@ -399,6 +444,7 @@ object DiceMats : StyleCatalog<DiceMat>(
                 mat("Green", ::CasinoDiceMat, "casino_green", 0xFF1E6B3A, 0xFF0E3F22, 0xFF0A2E18, 0xFF061F10, 0xFFE0C45A, 0xFFD4AF37),
                 mat("Purple", ::CasinoDiceMat, "casino_purple", 0xFF4A2266, 0xFF2A1040, 0xFF1E0A30, 0xFF12061E, 0xFFE0C45A, 0xFFD4AF37),
             ),
+            unlock = AchievementCount(11),
         ),
         StyleFamily(
             "Gingham",
@@ -407,14 +453,16 @@ object DiceMats : StyleCatalog<DiceMat>(
                 mat("Blue", ::GinghamDiceMat, "gingham_blue", 0xFF2F5C8F, 0xFF1E3E63, 0xFF122640, 0xFF0B182B, 0xFFB8D0F0, 0xFFFFFFFF),
                 mat("Green", ::GinghamDiceMat, "gingham_green", 0xFF3E7D4A, 0xFF27562F, 0xFF16331C, 0xFF0E2312, 0xFFBFE3C6, 0xFFFFFFFF),
             ),
+            unlock = AchievementCount(20),
         ),
         StyleFamily(
             "Starry",
             listOf(
                 mat("Midnight", ::StarryDiceMat, "starry_midnight", 0xFF152550, 0xFF070E24, 0xFF0A1330, 0xFF050A1C, 0xFF8FA8E8, 0xFFFFFFFF),
             ),
+            unlock = AchievementCount(69),
         ),
-        StyleFamily("Marble", listOf(StyleColour("White", Color(0xFFF2F1EE), MarbleDiceMat))),
+        StyleFamily("Marble", listOf(StyleColour("White", Color(0xFFF2F1EE), MarbleDiceMat)), unlock = AchievementCount(72)),
     ),
 )
 

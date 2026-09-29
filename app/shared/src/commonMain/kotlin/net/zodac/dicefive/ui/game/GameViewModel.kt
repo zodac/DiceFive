@@ -29,6 +29,7 @@ import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementStore
+import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
@@ -59,6 +60,8 @@ import net.zodac.dicefive.model.isLuckOfTheIrish
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.game.style.StyleCatalog
+import net.zodac.dicefive.ui.game.style.TableArt
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 
 /**
@@ -759,12 +762,14 @@ class GameViewModel(
             val hasZodacAsPlayerTwo = players.size == 2 && playerTwo?.type == PlayerType.HUMAN && playerTwo.name == ZODAC_PLAYER_NAME
             val isLuckOfTheIrish = game?.isLuckOfTheIrish == true
             // A mode that colours its own dice never shows the dice style, so picking one can't count.
+            // Nor can a pick whose style is still locked, since the default is drawn in its place.
+            val achievements = repository.current()
             val playedNonDefaultDiceStyle = gameMode.usesPlayerDiceStyle &&
-                isNonDefaultStyle(settings.diceStyleId, DiceStyles.default.id)
+                isNonDefaultStyle(settings.diceStyleId, DiceStyles, achievements)
             val playedNonDefaultStyle = playedNonDefaultDiceStyle ||
-                isNonDefaultStyle(settings.diceCupStyleId, DiceCupStyles.default.id) ||
-                isNonDefaultStyle(settings.tableBackgroundId, TableBackgrounds.default.id) ||
-                isNonDefaultStyle(settings.diceMatId, DiceMats.default.id)
+                isNonDefaultStyle(settings.diceCupStyleId, DiceCupStyles, achievements) ||
+                isNonDefaultStyle(settings.tableBackgroundId, TableBackgrounds, achievements) ||
+                isNonDefaultStyle(settings.diceMatId, DiceMats, achievements)
             val context = GameStartContext(
                 playedNonDefaultStyle = playedNonDefaultStyle,
                 hasHumanPlayerNamedZodac = hasZodacAsPlayerTwo,
@@ -820,10 +825,14 @@ class GameViewModel(
         }
     }
 
-    /** Whether [styleIdFlow]'s current value is anything other than [defaultId] - false (not "yes,
-     * non-default") when there's no repository to read at all, e.g. in a test with no Context. */
-    private suspend fun isNonDefaultStyle(styleIdFlow: Flow<String>?, defaultId: String): Boolean =
-        styleIdFlow?.first()?.let { it != defaultId } ?: false
+    /** Whether [styleIdFlow]'s current value draws anything other than [catalog]'s default, given
+     * which styles [achievements] has unlocked - false (not "yes, non-default") when there's no
+     * repository to read at all, e.g. in a test with no Context. */
+    private suspend fun <T : TableArt> isNonDefaultStyle(
+        styleIdFlow: Flow<String>?,
+        catalog: StyleCatalog<T>,
+        achievements: AchievementsState,
+    ): Boolean = styleIdFlow?.first()?.let { catalog.unlockedById(it, achievements).id != catalog.default.id } ?: false
 
     /**
      * Serialises every read-decide-write cycle. Three separate triggers can run one - a scored

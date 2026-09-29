@@ -262,6 +262,23 @@ to a 12sp floor, and only ellipsised past that. The longest title - "Rules? Wher
 Don't Need Rules" - needs ~12.4sp on a typical phone, so it fits there; a narrower screen gets the
 "…" rather than an unreadably small font.
 
+## Style locks
+
+Every category's Classic style is free; every other style (`StyleFamily.unlock`, a `StyleUnlock`)
+waits on either a number of achievements or one specific achievement. The lock is on the style, not
+the colour: once it's met, all of its colours are available. Secret achievements never count
+towards a number (`AchievementsState.countedUnlocks`) - they're easter eggs, not checklist items.
+For now every lock is a distinct, arbitrarily picked count up to the number of non-secret
+achievements; `StyleCatalogTest` keeps them distinct and earnable.
+
+On the Styles screen a locked tile shows its first colour under a translucent scrim and a faded padlock, can't be picked,
+and long-pressing it opens a `DiceFiveDialog` saying what unlocks it. **A saved pick whose style is
+locked is never overwritten** - everything that draws a style (the game, the menu logo, "Fresh Coat
+Of Paint", the Styles screen's check badge) goes through `StyleCatalog.unlockedById`, which draws
+the category's default instead. So resetting achievements re-locks without losing a player's pick,
+and earning it back restores it. A new place that draws a saved style must use `unlockedById`, not
+`byId`.
+
 ## Motion
 
 Screen transitions are 350ms fades, set on the `NavHost` for all four directions. Navigation
