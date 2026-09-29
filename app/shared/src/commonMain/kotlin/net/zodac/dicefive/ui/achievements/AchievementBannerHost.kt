@@ -42,6 +42,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -485,6 +489,16 @@ private fun BannerDescription(description: String, modifier: Modifier = Modifier
 }
 
 /**
+ * A banner as one node a screen reader announces when it appears, without being asked - a polite
+ * live region - saying [announcement] in place of its drawn text. Otherwise a banner comes and
+ * goes, a few seconds later, without a TalkBack user ever knowing it was there.
+ */
+private fun Modifier.announced(announcement: String): Modifier = clearAndSetSemantics {
+    contentDescription = announcement
+    liveRegion = LiveRegionMode.Polite
+}
+
+/**
  * The full-fat banner: something was actually earned. Shows the achievement's own icon in the same
  * bordered square the Achievements screen shows it in once it's unlocked, rather than a generic
  * trophy, so a burst of unlocks reads as distinct achievements at a glance, not a stack of
@@ -493,7 +507,12 @@ private fun BannerDescription(description: String, modifier: Modifier = Modifier
 @Composable
 private fun UnlockedBanner(achievement: Achievement) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().announced(
+            buildString {
+                append("Achievement unlocked: ${achievement.title}. ${achievement.description}")
+                if (achievement.unlocksStyle) append(". Unlocks a style")
+            },
+        ),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -547,7 +566,8 @@ private fun ProgressBanner(achievement: Achievement, previous: Int, current: Int
     val displayedValue = animatedProgress.value.roundToInt()
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        // The final count, not the climbing one - announcing every step of the climb would be noise.
+        modifier = Modifier.fillMaxWidth().announced("${achievement.title}: ${current.grouped()} of ${achievement.target.grouped()}"),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
