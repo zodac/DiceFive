@@ -4,6 +4,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
@@ -42,6 +43,7 @@ import net.zodac.dicefive.ui.setup.GameSetupScreen
 import net.zodac.dicefive.ui.statistics.StatisticsScreen
 import net.zodac.dicefive.ui.statistics.StatisticsViewModel
 import net.zodac.dicefive.ui.styles.StylesScreen
+import net.zodac.dicefive.ui.styles.StylesWarmUp
 import net.zodac.dicefive.ui.styles.StylesViewModel
 
 /**
@@ -69,18 +71,24 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
             val hasInProgressGame by container.inProgressGameRepository.hasInProgressGame.collectAsStateWithLifecycle(initialValue = null)
             val menuViewModel = viewModel<MenuViewModel>(factory = MenuViewModel.factory(container))
             val logoStyles by menuViewModel.logoStyles.collectAsStateWithLifecycle()
-            MenuScreen(
-                hasInProgressGame = hasInProgressGame,
-                onContinue = { navController.navigate(Screen.playSetup(resume = true)) },
-                onNewGame = { navController.navigate(Screen.PLAY_GRAPH) },
-                onAchievements = { navController.navigate(Screen.ACHIEVEMENTS) },
-                onScores = { navController.navigate(Screen.SCORES) },
-                onStatistics = { navController.navigate(Screen.STATISTICS) },
-                onStyles = { navController.navigate(Screen.STYLES) },
-                onSettings = { navController.navigate(Screen.SETTINGS) },
-                logoStyles = logoStyles,
-                onDiceTap = menuViewModel::onDiceTapped,
-            )
+            val savedStyles by container.savedStyles.collectAsStateWithLifecycle()
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                // Under the menu, which is opaque: runs the Styles page's drawing code once while the
+                // menu idles, so opening Styles isn't the first time it runs - see StylesWarmUp.
+                StylesWarmUp(picks = savedStyles, width = maxWidth)
+                MenuScreen(
+                    hasInProgressGame = hasInProgressGame,
+                    onContinue = { navController.navigate(Screen.playSetup(resume = true)) },
+                    onNewGame = { navController.navigate(Screen.PLAY_GRAPH) },
+                    onAchievements = { navController.navigate(Screen.ACHIEVEMENTS) },
+                    onScores = { navController.navigate(Screen.SCORES) },
+                    onStatistics = { navController.navigate(Screen.STATISTICS) },
+                    onStyles = { navController.navigate(Screen.STYLES) },
+                    onSettings = { navController.navigate(Screen.SETTINGS) },
+                    logoStyles = logoStyles,
+                    onDiceTap = menuViewModel::onDiceTapped,
+                )
+            }
         }
 
         navigation(startDestination = Screen.PLAY_SETUP_ROUTE, route = Screen.PLAY_GRAPH) {

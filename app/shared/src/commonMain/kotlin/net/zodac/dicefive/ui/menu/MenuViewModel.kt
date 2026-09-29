@@ -8,16 +8,16 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementStore
-import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
+import net.zodac.dicefive.data.settings.savedStylesFlow
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
@@ -37,23 +37,26 @@ data class LogoStyles(val dice: DiceStyle, val cup: DiceCupStyle)
 class MenuViewModel(
     private val achievementsRepository: AchievementStore? = null,
     settingsRepository: SettingsRepository? = null,
+    /** The app's own copy of the saved picks ([AppContainer.savedStyles]); without one, they're read from [settingsRepository]. */
+    savedStyles: StateFlow<SavedStyles?>? = null,
 ) : ViewModel() {
 
     /**
      * Null until the saved picks have loaded, so the logo never shows the defaults for a frame
      * before switching to a player's own; with no repository, straight to the defaults.
      */
-    val logoStyles: StateFlow<LogoStyles?> = if (settingsRepository == null) {
-        MutableStateFlow(LogoStyles(DiceStyles.default, DiceCupStyles.default))
-    } else {
-        combine(
-            settingsRepository.diceStyleId,
-            settingsRepository.diceCupStyleId,
-            achievementsRepository?.state ?: flowOf(AchievementsState()),
-        ) { diceId, cupId, achievements ->
-            LogoStyles(DiceStyles.unlockedById(diceId, achievements), DiceCupStyles.unlockedById(cupId, achievements))
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val logoStyles: StateFlow<LogoStyles?> = when {
+        savedStyles != null -> savedStyles.map { it?.let(::logoStylesOf) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, savedStyles.value?.let(::logoStylesOf))
+        settingsRepository != null -> savedStylesFlow(settingsRepository, achievementsRepository).map(::logoStylesOf)
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+        else -> MutableStateFlow(LogoStyles(DiceStyles.default, DiceCupStyles.default))
     }
+
+    private fun logoStylesOf(saved: SavedStyles): LogoStyles = LogoStyles(
+        DiceStyles.unlockedById(saved.diceStyleId, saved.achievements),
+        DiceCupStyles.unlockedById(saved.diceCupStyleId, saved.achievements),
+    )
 
     fun onDiceTapped() {
         val repository = achievementsRepository ?: return
@@ -69,7 +72,7 @@ class MenuViewModel(
 
     companion object {
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
-            initializer { MenuViewModel(container.achievementsRepository, container.settingsRepository) }
+            initializer { MenuViewModel(container.achievementsRepository, container.settingsRepository, container.savedStyles) }
         }
     }
 }

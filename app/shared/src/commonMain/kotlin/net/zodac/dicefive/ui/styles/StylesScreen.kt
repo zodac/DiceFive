@@ -1,5 +1,7 @@
 package net.zodac.dicefive.ui.styles
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -10,11 +12,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,7 +36,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -37,18 +45,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -58,12 +64,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.HorizontalScrollbar
+import net.zodac.dicefive.ui.common.PAGE_CONTENT_FADE_IN_MILLIS
 import net.zodac.dicefive.ui.common.parseInlineMarkup
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.game.style.DiceCupStyle
@@ -101,9 +110,6 @@ internal const val MAX_COLOUR_DOTS = 3
 private const val LOCKED_SCRIM_ALPHA = 0.55f
 private const val LOCKED_PADLOCK_ALPHA = 0.8f
 
-/** Lets the picked tile tell its card where it sits (x within the row, width) so the card can scroll to it. */
-private val LocalPickedTilePlaced = staticCompositionLocalOf<(Int, Int) -> Unit> { { _, _ -> } }
-
 /**
  * Lets a player pick, rather than read, the option for each independently swappable piece of table
  * art - [DiceStyle], [DiceCupStyle], [DiceMat] and [TableBackground]. One [Card] per category, a
@@ -128,138 +134,161 @@ private val LocalPickedTilePlaced = staticCompositionLocalOf<(Int, Int) -> Unit>
  */
 @Composable
 fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
-    val diceStyleId by viewModel.diceStyleId.collectAsStateWithLifecycle()
-    val diceCupStyleId by viewModel.diceCupStyleId.collectAsStateWithLifecycle()
-    val tableBackgroundId by viewModel.tableBackgroundId.collectAsStateWithLifecycle()
-    val diceMatId by viewModel.diceMatId.collectAsStateWithLifecycle()
-
-    val achievements by viewModel.achievements.collectAsStateWithLifecycle()
-
-    val ready by viewModel.ready.collectAsStateWithLifecycle()
+    val saved by viewModel.savedStyles.collectAsStateWithLifecycle()
 
     ScreenScaffold(title = "Styles", onBack = onBack, modifier = modifier, scrollable = false) {
         // Nothing until the saved picks have loaded, so each row can open scrolled to its real pick.
-        if (ready) Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            StyleCategoryCard(title = "Dice") {
-                StyleFamilyTiles(
-                    catalog = DiceStyles,
-                    selectedId = diceStyleId,
-                    achievements = achievements,
-                    onSelect = viewModel::setDiceStyleId,
-                    previewSize = DpSize(DICE_PREVIEW_SIZE, DICE_PREVIEW_SIZE),
-                    backgroundBrush = { SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh) },
-                ) { style ->
-                    style.Die(value = 5, held = false, modifier = Modifier.size(DIE_ART_SIZE))
-                }
+        // They're normally in already (AppContainer.savedStyles), so the page has them from its first frame.
+        val picks = saved ?: return@ScreenScaffold
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            for (category in StyleCategory.entries) {
+                StyleCategorySection(
+                    category = category,
+                    picks = picks,
+                    onSelect = when (category) {
+                        StyleCategory.DICE -> viewModel::setDiceStyleId
+                        StyleCategory.DICE_CUP -> viewModel::setDiceCupStyleId
+                        StyleCategory.MAT -> viewModel::setDiceMatId
+                        StyleCategory.BACKGROUND -> viewModel::setTableBackgroundId
+                    },
+                )
             }
+        }
+    }
+}
 
-            StyleCategoryCard(title = "Dice Cup") {
-                StyleFamilyTiles(
-                    catalog = DiceCupStyles,
-                    selectedId = diceCupStyleId,
-                    achievements = achievements,
-                    onSelect = viewModel::setDiceCupStyleId,
-                    previewSize = DpSize(CUP_PREVIEW_WIDTH, CUP_PREVIEW_HEIGHT),
-                    backgroundBrush = { SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh) },
-                ) { style ->
-                    style.Cup(
-                        rolling = false,
-                        tilted = false,
-                        modifier = Modifier.size(
-                            width = (style.shape.gridWidth * CUP_ART_SCALE).dp,
-                            height = (style.shape.gridHeight * CUP_ART_SCALE).dp,
-                        ),
-                    )
-                }
+/** The Styles screen's categories, in its order. */
+private enum class StyleCategory { DICE, DICE_CUP, MAT, BACKGROUND }
+
+/** One category's card - its title and its row of tiles - as the Styles screen shows it, and as [StylesWarmUp] draws it. */
+@Composable
+private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, onSelect: (String) -> Unit) {
+    val achievements = picks.achievements
+    when (category) {
+        StyleCategory.DICE -> StyleCategoryCard(title = "Dice") {
+            StyleFamilyTiles(
+                catalog = DiceStyles,
+                selectedId = picks.diceStyleId,
+                achievements = achievements,
+                onSelect = onSelect,
+                previewSize = DpSize(DICE_PREVIEW_SIZE, DICE_PREVIEW_SIZE),
+                backgroundBrush = { SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh) },
+            ) { style ->
+                style.Die(value = 5, held = false, modifier = Modifier.size(DIE_ART_SIZE))
             }
+        }
 
-            StyleCategoryCard(title = "Mat") {
-                StyleFamilyTiles(
-                    catalog = DiceMats,
-                    selectedId = diceMatId,
-                    achievements = achievements,
-                    onSelect = viewModel::setDiceMatId,
-                    previewSize = DpSize(MAT_PREVIEW_WIDTH, MAT_PREVIEW_HEIGHT),
-                    backgroundBrush = { mat -> mat.diceTrayBrush },
-                ) { mat ->
-                    mat.DiceTrayDecoration(modifier = Modifier.matchParentSize())
-                }
+        StyleCategory.DICE_CUP -> StyleCategoryCard(title = "Dice Cup") {
+            StyleFamilyTiles(
+                catalog = DiceCupStyles,
+                selectedId = picks.diceCupStyleId,
+                achievements = achievements,
+                onSelect = onSelect,
+                previewSize = DpSize(CUP_PREVIEW_WIDTH, CUP_PREVIEW_HEIGHT),
+                backgroundBrush = { SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh) },
+            ) { style ->
+                style.Cup(
+                    rolling = false,
+                    tilted = false,
+                    modifier = Modifier.size(
+                        width = (style.shape.gridWidth * CUP_ART_SCALE).dp,
+                        height = (style.shape.gridHeight * CUP_ART_SCALE).dp,
+                    ),
+                )
             }
+        }
 
-            StyleCategoryCard(title = "Background") {
-                StyleFamilyTiles(
-                    catalog = TableBackgrounds,
-                    selectedId = tableBackgroundId,
-                    achievements = achievements,
-                    onSelect = viewModel::setTableBackgroundId,
-                    previewSize = DpSize(BACKGROUND_PREVIEW_WIDTH, BACKGROUND_PREVIEW_HEIGHT),
-                    backgroundBrush = { background -> background.scoreAreaBrush },
-                ) { background ->
-                    background.Animate()
-                    Canvas(modifier = Modifier.matchParentSize()) { with(background) { drawScoreAreaDecoration() } }
-                }
+        StyleCategory.MAT -> StyleCategoryCard(title = "Mat") {
+            StyleFamilyTiles(
+                catalog = DiceMats,
+                selectedId = picks.diceMatId,
+                achievements = achievements,
+                onSelect = onSelect,
+                previewSize = DpSize(MAT_PREVIEW_WIDTH, MAT_PREVIEW_HEIGHT),
+                backgroundBrush = { mat -> mat.diceTrayBrush },
+            ) { mat ->
+                mat.DiceTrayDecoration(modifier = Modifier.matchParentSize())
+            }
+        }
+
+        StyleCategory.BACKGROUND -> StyleCategoryCard(title = "Background") {
+            StyleFamilyTiles(
+                catalog = TableBackgrounds,
+                selectedId = picks.tableBackgroundId,
+                achievements = achievements,
+                onSelect = onSelect,
+                previewSize = DpSize(BACKGROUND_PREVIEW_WIDTH, BACKGROUND_PREVIEW_HEIGHT),
+                backgroundBrush = { background -> background.scoreAreaBrush },
+            ) { background ->
+                background.Animate()
+                Canvas(modifier = Modifier.matchParentSize()) { with(background) { drawScoreAreaDecoration() } }
             }
         }
     }
 }
 
 /**
- * A titled group of preview tiles for one swappable category, matching Settings' Card sections.
- * The tile row scrolls horizontally and carries [HorizontalScrollbar] rather than a fixed-width
- * grid, so a category isn't stuck at whatever tile count fits one page width once more options
- * exist.
+ * Draws the Styles screen's categories once, out of sight, so the page's code has already run by the
+ * time a player opens it. Each tile's art is its own drawing code, and the first time any of it runs
+ * after a launch it's slow - slow enough, run all at once, to hold the menu for several frames when
+ * the page opens, release build or not. Placed on the menu (under its opaque backdrop, in a 1dp
+ * clipped box, so nothing shows): it waits for the menu to settle, then composes one category a
+ * frame, [width] wide so its row composes the same tiles the page would open on, and drops each
+ * again - spread thin enough that the menu's own drifting dice don't skip. Compose doesn't cull what
+ * a clip hides, so the art is really drawn, not just composed. Runs once per launch: later openings
+ * of the menu find it already done.
  */
 @Composable
-private fun StyleCategoryCard(title: String, content: @Composable RowScope.() -> Unit) {
+fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier) {
+    if (stylesWarmedUp || picks == null) return
+    var current by remember { mutableIntStateOf(-1) }
+    LaunchedEffect(Unit) {
+        delay(WARM_UP_DELAY_MILLIS)
+        for (index in StyleCategory.entries.indices) {
+            current = index
+            // A frame to compose and draw it, then on to the next.
+            withFrameNanos { }
+            withFrameNanos { }
+        }
+        stylesWarmedUp = true
+        current = -1
+    }
+    val category = StyleCategory.entries.getOrNull(current) ?: return
+    Box(modifier = modifier.size(1.dp).clipToBounds()) {
+        Box(modifier = Modifier.requiredWidth(width).wrapContentHeight(unbounded = true)) {
+            StyleCategorySection(category = category, picks = picks, onSelect = {})
+        }
+    }
+}
+
+/** Set once [StylesWarmUp] has drawn every category, for the life of the process. */
+private var stylesWarmedUp = false
+
+// Long enough for the menu's own entrance (its buttons' fade) to be over.
+private const val WARM_UP_DELAY_MILLIS = 600L
+
+/** A titled group of preview tiles for one swappable category, matching Settings' Card sections. */
+@Composable
+private fun StyleCategoryCard(title: String, content: @Composable ColumnScope.() -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.padding(start = 12.dp, top = 10.dp, end = 12.dp, bottom = 2.dp).semantics { heading() },
         )
-
-        val scrollState = rememberScrollState()
-        var viewportWidth by remember { mutableIntStateOf(0) }
-        // Hidden until it has been scrolled to the current pick, so the page opens already
-        // positioned rather than visibly sliding there.
-        var revealed by remember { mutableStateOf(false) }
-        val scope = rememberCoroutineScope()
-        LaunchedEffect(Unit) {
-            withFrameNanos { }
-            withFrameNanos { }
-            revealed = true
-        }
-        val onPickedPlaced: (Int, Int) -> Unit = { x, width ->
-            if (!revealed) {
-                scope.launch {
-                    scrollState.scrollTo((x - (viewportWidth - width) / 2).coerceAtLeast(0))
-                    revealed = true
-                }
-            }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .onSizeChanged { viewportWidth = it.width }
-                .alpha(if (revealed) 1f else 0f)
-                .horizontalScroll(scrollState)
-                .padding(start = 12.dp, top = 6.dp, end = 12.dp, bottom = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            CompositionLocalProvider(LocalPickedTilePlaced provides onPickedPlaced) { content() }
-        }
-
-        HorizontalScrollbar(
-            scrollState = scrollState,
-            modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
-        )
+        content()
     }
 }
 
 /**
- * One [StyleFamilyTile] per family in [catalog]: every unlocked style first, then the locked ones,
- * each group in the catalog's own order. [selectedId] is the saved pick, shown as the default
- * instead while its style is locked.
+ * One [StyleFamilyTile] per family in [catalog], in a horizontally scrolling row with a
+ * [HorizontalScrollbar] under it: every unlocked style first, then the locked ones, each group in
+ * the catalog's own order. [selectedId] is the saved pick, shown as the default instead while its
+ * style is locked.
+ *
+ * A [LazyRow], not a scrolling `Row`: every tile's art is its own drawing code, some of it animated,
+ * and composing every tile in every category at once made the first open after a restart hold up
+ * the menu for several frames. Only the tiles on screen are composed.
  */
 @Composable
 private fun <T : TableArt> StyleFamilyTiles(
@@ -273,13 +302,49 @@ private fun <T : TableArt> StyleFamilyTiles(
 ) {
     val shownSelectedId = catalog.unlockedById(selectedId, achievements).id
     val (unlocked, locked) = catalog.families.partition { it.unlock.isMet(achievements) }
-    for (family in unlocked) {
-        StyleFamilyTile(family, achievements, shownSelectedId, onSelect, previewSize, backgroundBrush, preview)
-    }
     // A secret style isn't so much as hinted at until it's earned.
-    for (family in locked.filterNot { it.unlock.hiddenWhileLocked }) {
-        LockedStyleFamilyTile(family, achievements, previewSize, backgroundBrush, preview)
+    val shownLocked = locked.filterNot { it.unlock.hiddenWhileLocked }
+
+    // Opens with the current pick first in line, then centres it once its size is known.
+    val pickedIndex = unlocked.indexOfFirst { it.colourOf(shownSelectedId) != null }.coerceAtLeast(0)
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = pickedIndex)
+    // Hidden until it has been scrolled to the current pick, so the page opens already
+    // positioned rather than visibly sliding there.
+    var revealed by remember { mutableStateOf(false) }
+    // Faded in like the rest of the page (ScreenScaffold), not popped in a frame or two after it.
+    val rowAlpha by animateFloatAsState(
+        targetValue = if (revealed) 1f else 0f,
+        animationSpec = tween(durationMillis = PAGE_CONTENT_FADE_IN_MILLIS),
+        label = "styleRowAlpha",
+    )
+    LaunchedEffect(Unit) {
+        val layout = snapshotFlow { listState.layoutInfo }.first { it.visibleItemsInfo.isNotEmpty() }
+        val picked = layout.visibleItemsInfo.firstOrNull { it.index == pickedIndex }
+        if (picked != null) {
+            val viewportCentre = (layout.viewportStartOffset + layout.viewportEndOffset) / 2
+            listState.scrollBy((picked.offset + picked.size / 2 - viewportCentre).toFloat())
+        }
+        revealed = true
     }
+
+    LazyRow(
+        state = listState,
+        modifier = Modifier.fillMaxWidth().alpha(rowAlpha),
+        contentPadding = PaddingValues(start = 12.dp, top = 6.dp, end = 12.dp, bottom = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        items(unlocked, key = { it.name }) { family ->
+            StyleFamilyTile(family, achievements, shownSelectedId, onSelect, previewSize, backgroundBrush, preview)
+        }
+        items(shownLocked, key = { it.name }) { family ->
+            LockedStyleFamilyTile(family, achievements, previewSize, backgroundBrush, preview)
+        }
+    }
+
+    HorizontalScrollbar(
+        listState = listState,
+        modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
+    )
 }
 
 /**
@@ -305,7 +370,6 @@ private fun <T : TableArt> StyleFamilyTile(
     val hasColours = colours.size > 1
     var choosingColour by remember { mutableStateOf(false) }
 
-    val onPickedPlaced = LocalPickedTilePlaced.current
     val bringIntoView = remember { BringIntoViewRequester() }
     val scope = rememberCoroutineScope()
     // Picking a tile that's partly scrolled off the card's edge scrolls it just far enough to show whole.
@@ -314,7 +378,7 @@ private fun <T : TableArt> StyleFamilyTile(
         scope.launch { bringIntoView.bringIntoView() }
     }
     Column(
-        modifier = Modifier.bringIntoViewRequester(bringIntoView).onPlaced { if (picked != null) onPickedPlaced(it.positionInParent().x.roundToInt(), it.size.width) },
+        modifier = Modifier.bringIntoViewRequester(bringIntoView),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
