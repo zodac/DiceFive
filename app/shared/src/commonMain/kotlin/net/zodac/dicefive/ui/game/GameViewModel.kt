@@ -1250,11 +1250,10 @@ class GameViewModel(
         }
     }
 
+    // Queued and conflated by the repository - see InProgressGameRepository.
     private fun persistInProgressGame(state: GameState) {
         val repository = inProgressGameRepository ?: return
-        viewModelScope.launch {
-            if (state.isGameOver) repository.clear() else repository.save(state)
-        }
+        if (state.isGameOver) repository.clear() else repository.save(state)
     }
 
     private var aiTurnJob: Job? = null
