@@ -236,3 +236,65 @@ fun HorizontalScrollbar(scrollState: ScrollState, modifier: Modifier = Modifier)
         )
     }
 }
+
+/**
+ * [HorizontalScrollbar] for a [androidx.compose.foundation.lazy.LazyRow] - the Styles screen's tile
+ * rows, which compose only the tiles on screen. Placed the same way, as its own row under the list.
+ *
+ * A lazy row only measures the items it has composed, so the content's full width is estimated:
+ * every item at the average width of the ones on screen at the first layout, plus the row's
+ * spacing and padding. It's frozen from then on, for [LazyListScrollbar]'s reason - so the thumb
+ * doesn't resize as tiles with wider labels scroll in. The rows it's used on are near-uniform
+ * tiles, so none of [LazyListScrollbar]'s per-item bookkeeping is needed: the scroll position is
+ * the first visible item's index times that average step, plus how far into it the row has
+ * scrolled. As there, [LazyListState.canScrollForward]/`canScrollBackward` are exact and pin the
+ * thumb to either end.
+ */
+@Composable
+fun HorizontalScrollbar(listState: LazyListState, modifier: Modifier = Modifier) {
+    val showScrollbar by remember { derivedStateOf { listState.canScrollForward || listState.canScrollBackward } }
+    if (!showScrollbar) return
+
+    val thumbColor = MaterialTheme.colorScheme.primary
+    val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    // The average item-plus-spacing width, frozen at the first layout (per item count, like LazyListScrollbar).
+    val frozenStep = remember(listState) { mutableMapOf<Int, Float>() }
+
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(SCROLLBAR_THICKNESS),
+    ) {
+        drawRoundRect(color = trackColor, cornerRadius = CornerRadius(size.height / 2))
+
+        val layoutInfo = listState.layoutInfo
+        val totalItems = layoutInfo.totalItemsCount
+        val visibleItems = layoutInfo.visibleItemsInfo
+        if (totalItems == 0 || visibleItems.isEmpty()) return@Canvas
+
+        val spacing = layoutInfo.mainAxisItemSpacing
+        val step = frozenStep.getOrPut(totalItems) { visibleItems.sumOf { it.size }.toFloat() / visibleItems.size + spacing }
+        val viewportSize = layoutInfo.viewportSize.width.toFloat()
+        val contentSize = layoutInfo.beforeContentPadding + layoutInfo.afterContentPadding + step * totalItems - spacing
+        val thumbFraction = (viewportSize / contentSize).coerceIn(MIN_THUMB_FRACTION, 1f)
+        val thumbWidth = size.width * thumbFraction
+
+        val firstVisible = visibleItems.first()
+        // `offset` runs from 0 at rest, down to minus the leading padding once that's scrolled past too.
+        val scrolledPastSize = firstVisible.index * step - firstVisible.offset
+        val scrollableSize = (contentSize - viewportSize).coerceAtLeast(1f)
+        val scrollFraction = when {
+            !listState.canScrollForward -> 1f
+            !listState.canScrollBackward -> 0f
+            else -> (scrolledPastSize / scrollableSize).coerceIn(0f, 1f)
+        }
+        val thumbOffsetX = (size.width - thumbWidth) * scrollFraction
+
+        drawRoundRect(
+            color = thumbColor,
+            topLeft = Offset(thumbOffsetX, 0f),
+            size = Size(thumbWidth, size.height),
+            cornerRadius = CornerRadius(size.height / 2),
+        )
+    }
+}

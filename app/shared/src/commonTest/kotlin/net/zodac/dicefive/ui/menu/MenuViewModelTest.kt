@@ -20,6 +20,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
@@ -112,6 +113,19 @@ class MenuViewModelTest {
         assertNull(viewModel.logoStyles.value)
         advanceUntilIdle()
         assertEquals("barrel", viewModel.logoStyles.value?.dice?.id)
+    }
+
+    @Test
+    fun `the logo is there from the start when the app's copy of the picks has already loaded`() = runTest {
+        val loaded = MutableStateFlow<SavedStyles?>(SavedStyles("barrel", "casino_black", "midnight_felt", "tray_blue", AchievementsState()))
+        val viewModel = MenuViewModel(settingsRepository = SettingsRepository(FakePreferencesStore()), savedStyles = loaded)
+
+        assertEquals("barrel", viewModel.logoStyles.value?.dice?.id)
+        assertEquals("casino_black", viewModel.logoStyles.value?.cup?.id)
+
+        loaded.value = loaded.value?.copy(diceStyleId = "ivory")
+        advanceUntilIdle()
+        assertEquals("ivory", viewModel.logoStyles.value?.dice?.id)
     }
 
     @Test

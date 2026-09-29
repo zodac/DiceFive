@@ -112,10 +112,10 @@ which needs compileSdk 37). Revisit when 1.5.0 is stable.
 | File | What it is |
 |---|---|
 | `BrandBackdrop.kt` | the app's one piece of scenery: surface gradient, `primary` spotlight, faint dice watermark. Built from colour roles, so it tracks the theme. Quiet enough that ordinary components sit on it unmodified. |
-| `ScreenScaffold.kt` | the frame for every non-menu page: backdrop + M3 top app bar with a back arrow . The bar itself stays transparent over the backdrop; its title is bold and tinted `primary` (see "Colour" above) rather than left at the M3 default. Also holds `PageColumn`. |
+| `ScreenScaffold.kt` | the frame for every non-menu page: backdrop + M3 top app bar with a back arrow . The bar itself stays transparent over the backdrop; its title is bold and tinted `primary` (see "Colour" above) rather than left at the M3 default. Its content (not the app bar) fades in over `PAGE_CONTENT_FADE_IN_MILLIS` (100ms) when a page opens, so whatever lands a frame or two late - a loaded list, a Styles row centring on its pick - eases in with the rest rather than popping in. Also holds `PageColumn`. |
 | `DiceFiveDialog.kt` | the app's one dialog shape, so the menu and the board ask questions the same way. |
 | `AppLogo.kt` | placeholder app mark, built from the game's own dice via `IvoryDiceStyle`. |
-| `Scrollbar.kt` | `LazyListScrollbar`, a `BoxScope` extension drawing a minimal scroll indicator over a `LazyColumn` - stock Compose has none for Android. Shared by the Leaderboard and Statistics screens. |
+| `Scrollbar.kt` | `LazyListScrollbar`, a `BoxScope` extension drawing a minimal scroll indicator over a `LazyColumn` - stock Compose has none for Android. Shared by the Leaderboard and Statistics screens. Also `HorizontalScrollbar`, a bar placed under a horizontally scrolling row: one overload for a plain `Row` (`ScrollState`, exact) and one for a `LazyRow` (`LazyListState`, estimated from near-uniform items) - the Styles screen's colour pop-up and tile rows. |
 | `SegmentedChoiceRow.kt` | the app's one segmented-button row, generic over the option type. Every use drops the stock M3 checkmark-on-select icon (`icon = {}`) - reserving space for it crowded a label out at some of the widths this app uses it at (AI difficulty, three options in a third-width column). Used by player count, AI difficulty and turn timer. Takes `enabled` for a choice the rest of the form overrides - the turn timer while a mode with its own timer (Quickfire) is picked. It takes an optional per-option glyph: the turn timer's "None" is a crossed-out timer icon with a "No timer" content description, not a word. |
 
 ### PageColumn
@@ -334,6 +334,24 @@ Of Paint", the Styles screen's check badge) goes through `StyleCatalog.unlockedB
 the category's default instead. So resetting achievements re-locks without losing a player's pick,
 and earning it back restores it. A new place that draws a saved style must use `unlockedById`, not
 `byId`.
+
+**Each category's tile row is a `LazyRow`, not a `horizontalScroll` `Row`.** Every tile's art is its
+own drawing code, some of it animated, and composing every tile of every category at once (40-odd
+and growing) made the first open after a restart hold the menu for several frames before the page
+came up. The lazy row composes only what's on screen. It opens with the current pick as its first
+item, then centres it once its size is known, and stays invisible until then, fading in over
+`PAGE_CONTENT_FADE_IN_MILLIS` like the rest of the page (see `ScreenScaffold`). The picks themselves come from `AppContainer.savedStyles`, one process-lifetime copy of the four ids
+and the achievements, loaded when the container is built and shared with the menu's logo - so the
+page normally has them on its first frame rather than waiting on its own load.
+
+**The menu warms the Styles page up (`StylesWarmUp`).** Even lazily, the first open after a launch
+was slow in a release build too: it's the first time each tile's drawing code runs, and that's a
+one-off cost per process. So once the menu has settled (600ms), `StylesWarmUp` draws the page's
+four category cards one per frame, at screen width, in a 1dp clipped box under the menu's opaque
+backdrop, then drops them - once per process. Compose doesn't cull clipped content, so the art
+really is drawn. The screen and the warm-up share `StyleCategorySection`, so a new category or a
+change to how tiles draw is warmed automatically; keep it that way rather than giving the warm-up
+its own copy.
 
 ## Accessibility
 
