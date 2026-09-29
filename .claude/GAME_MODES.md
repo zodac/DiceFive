@@ -9,7 +9,7 @@ Modes so far:
 |-------------|-------------|-----------------------------------------------------------------------------|
 | `STANDARD`  | `standard`  | Nothing - the official rules. The default.                                  |
 | `TRICOLOUR` | `tricolour` | Dice also roll red/yellow/blue; four colour boxes join the card             |
-| `QUICKFIRE` | `quickfire` | One roll per turn; a fixed 10s turn timer that replaces the Turn Timer pick; a timeout scores the lowest-scoring open box |
+| `QUICKFIRE` | `quickfire` | One roll per turn, made automatically; a fixed 10s turn timer that replaces the Turn Timer pick; a timeout scores the lowest-scoring open box |
 
 See `DESIGN.md` Phase 14 (Tricolour, and how modes were first modelled) and Phase 20 (Quickfire).
 
@@ -18,7 +18,8 @@ See `DESIGN.md` Phase 14 (Tricolour, and how modes were first modelled) and Phas
 **Everything that can differ between modes is a field on `model/GameMode.kt`**, even where every
 mode agrees on it: dice count, rolls per turn, die faces, die colours, the scorecard's categories,
 the upper bonus, the 5x bonus chip, the max possible score, a fixed turn timer
-(`turnTimerSeconds`), and where a timed-out turn is scored (`timeoutPick`). The engine, AI, achievements, persistence and board read the rules from there,
+(`turnTimerSeconds`), where a timed-out turn is scored (`timeoutPick`), and whether a turn's first
+roll is made automatically (`autoRollAtTurnStart`). The engine, AI, achievements, persistence and board read the rules from there,
 so they already handle a new mode. A new mode should be:
 
 1. a new `GameMode` entry, plus
@@ -43,7 +44,7 @@ dice hard-coded somewhere, move it onto the mode rather than adding a `when (mod
   is wrong. If scoring is unchanged, it's the same as the mode it copies.
 - A new rule that doesn't fit an existing field gets a new field, with a default that keeps the other
   modes as they were (as `turnTimerSeconds: Int? = null` did). Then make the one place that applies
-  it read the field. Quickfire added two:
+  it read the field. Quickfire added three:
   - `turnTimerSeconds`: `GameState.turnSeconds` resolves "mode's timer, else the setup pick", and
     `GameViewModel.syncTurnTimer` reads that.
   - `timeoutPick` (`model/TimeoutPick.kt`): where a timed-out turn is scored.
@@ -52,6 +53,23 @@ dice hard-coded somewhere, move it onto the mode rather than adding a `when (mod
     `LOWEST_SCORE` (Quickfire) is the open box the dice score least in, with the first in scorecard
     order winning a tie. Both only choose from `availableCategories`, so the joker rule's forced box
     still applies.
+  - `autoRollAtTurnStart`: a human's turn starts with the cup tapped for them. This is **the real
+    tap, not a separate roll path**. `GameScreen` has a `LaunchedEffect` keyed on
+    `GameState.awaitsAutoRoll` that calls the same `onCupTap` a finger does. The shake, sound,
+    haptics, `rollDice()` call and every achievement check are identical, so an auto-roll can't be
+    told apart from a manual one. Don't move it into the view model with its own delay or rolling
+    flag. That was tried and dropped, because it made a second, slightly different kind of roll.
+    - CPU turns need nothing. `GameViewModel.maybeStartAiTurn` starts every AI turn with a roll in
+      every mode, and `awaitsAutoRoll` is false on an AI's turn. Rolling for the AI as well would
+      put the game ahead of the AI loop's own copy of the state.
+    - Because the auto-roll lives in the screen, it needs a composed `GameScreen`. The view model
+      alone never rolls. If the app is in the background, the turn timer still ends the turn (a
+      timeout rolls first if needed). `GameScreenAutoRollTest` (Robolectric) covers the real screen
+      and view model together, including a human/CPU game.
+    - The cup shakes for a moment before its roll lands, and Undo stays enabled in that window. An
+      Undo there brings back the previous turn, which in Quickfire always has 0 rolls left.
+      `GameViewModel.rollDice` therefore ignores a roll with none remaining. Before this guard, that
+      late roll threw `No rolls remaining` from `GameEngine.rollDice`.
 
 What's already mode-driven and needs no change for a mode that only changes these fields:
 `GameEngine` (dice, rolls, faces, colours), `ScoreCalculator`/`PlayerState` (card, bonuses),

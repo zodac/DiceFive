@@ -294,6 +294,13 @@ private fun InProgressGame(
         }
     }
 
+    // Quickfire taps the cup for the player as their turn starts - the very same tap, so the shake,
+    // sound, haptics and roll are exactly what a real one gives. Keyed on awaitsAutoRoll, which
+    // goes false once the roll lands and true again on the next human turn.
+    LaunchedEffect(state.awaitsAutoRoll) {
+        if (state.awaitsAutoRoll) onCupTap()
+    }
+
     // Shaking the phone is just another way to "tap" the cup - same gating, same animation/sound,
     // same no-rolls-left fallback - it only additionally reports the achievement, and only for a
     // shake that actually triggers a roll, not one that lands on the no-op fallback. Not offered at

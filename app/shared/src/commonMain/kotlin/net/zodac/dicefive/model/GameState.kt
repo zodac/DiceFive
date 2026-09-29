@@ -27,4 +27,12 @@ data class GameState(
      * ([GameMode.turnTimerSeconds]) if it has one, otherwise the [turnTimer] picked at setup. */
     val turnSeconds: Int?
         get() = gameMode.turnTimerSeconds ?: turnTimer.seconds
+
+    /** A human's turn, not yet rolled, in a mode that taps the cup for them at the start of it
+     * ([GameMode.autoRollAtTurnStart]). An AI's turn is never this - its own turn loop rolls. */
+    val awaitsAutoRoll: Boolean
+        get() = gameMode.autoRollAtTurnStart &&
+            !isGameOver &&
+            currentPlayer?.type == PlayerType.HUMAN &&
+            phase == TurnPhase.AWAITING_ROLL
 }

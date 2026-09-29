@@ -418,6 +418,10 @@ class GameViewModel(
     fun rollDice() {
         val state = _game.value ?: return
         if (state.currentPlayer?.type != PlayerType.HUMAN) return
+        // A roll can arrive after the turn it was tapped for has gone: the cup shakes before the
+        // roll lands, and Undo in that window restores the previous turn - with no rolls left in
+        // Quickfire, where the cup is tapped automatically right after a score.
+        if (state.rollsRemaining <= 0) return
 
         // Only player 1 - "You" - earns achievements; another human seat still plays normally
         // below, it just doesn't feed any of the tracking that leads to one.

@@ -96,6 +96,19 @@ class GameModeTest {
     }
 
     @Test
+    fun `only a human's unrolled Quickfire turn awaits the automatic roll`() {
+        val human = PlayerState(name = "P", type = PlayerType.HUMAN, gameMode = GameMode.QUICKFIRE)
+        val cpu = PlayerState(name = "C", type = PlayerType.AI, gameMode = GameMode.QUICKFIRE)
+        val humanTurn = GameState(gameMode = GameMode.QUICKFIRE, players = listOf(human, cpu))
+
+        assertTrue(humanTurn.awaitsAutoRoll)
+        assertFalse(humanTurn.copy(phase = TurnPhase.ROLLED, rollsRemaining = 0).awaitsAutoRoll)
+        assertFalse(humanTurn.copy(currentPlayerIndex = 1).awaitsAutoRoll)
+        assertFalse(humanTurn.copy(isGameOver = true).awaitsAutoRoll)
+        assertFalse(GameState(players = listOf(PlayerState(name = "P", type = PlayerType.HUMAN))).awaitsAutoRoll)
+    }
+
+    @Test
     fun `no mode's scorecard lists a category twice`() {
         for (mode in GameMode.entries) {
             assertEquals(mode.categories.distinct(), mode.categories, "$mode")
