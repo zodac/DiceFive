@@ -34,6 +34,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
@@ -266,8 +268,15 @@ private fun <T : TableArt> StyleFamilyTile(
     var choosingColour by remember { mutableStateOf(false) }
 
     val onPickedPlaced = LocalPickedTilePlaced.current
+    val bringIntoView = remember { BringIntoViewRequester() }
+    val scope = rememberCoroutineScope()
+    // Picking a tile that's partly scrolled off the card's edge scrolls it just far enough to show whole.
+    val select: (String) -> Unit = { id ->
+        onSelect(id)
+        scope.launch { bringIntoView.bringIntoView() }
+    }
     Column(
-        modifier = Modifier.onPlaced { if (picked != null) onPickedPlaced(it.positionInParent().x.roundToInt(), it.size.width) },
+        modifier = Modifier.bringIntoViewRequester(bringIntoView).onPlaced { if (picked != null) onPickedPlaced(it.positionInParent().x.roundToInt(), it.size.width) },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -281,7 +290,7 @@ private fun <T : TableArt> StyleFamilyTile(
                 backgroundBrush = backgroundBrush,
                 preview = preview,
                 modifier = Modifier.combinedClickable(
-                    onClick = { onSelect(shown.style.id) },
+                    onClick = { select(shown.style.id) },
                     onLongClick = if (hasColours) ({ choosingColour = true }) else null,
                     onLongClickLabel = if (hasColours) "Choose ${family.name} colour" else null,
                 ),
@@ -315,7 +324,7 @@ private fun <T : TableArt> StyleFamilyTile(
                             preview = preview,
                             modifier = Modifier
                                 .clickable {
-                                    onSelect(colour.style.id)
+                                    select(colour.style.id)
                                     choosingColour = false
                                 }
                                 // No visible name - but a screen reader still needs to say which is which.
