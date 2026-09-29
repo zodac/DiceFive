@@ -31,11 +31,9 @@ class MainActivitySmokeTest {
     fun `a game can be started from the menu and system back asks before leaving it`() {
         compose.onNodeWithText("DiceFive").assertExists()
 
-        compose.onNodeWithText("Play").performClick()
-        // A game left in progress by an earlier test run asks first - either way, start a new one.
-        compose.onAllNodesWithText("New Game").fetchSemanticsNodes().firstOrNull()?.let {
-            compose.onNodeWithText("New Game").performClick()
-        }
+        // A game left in progress by an earlier test run splits Play into New Game and Continue.
+        val play = if (compose.onAllNodesWithText("Play").fetchSemanticsNodes().isNotEmpty()) "Play" else "New Game"
+        compose.onNodeWithText(play).performClick()
         compose.onNodeWithText("Start Game").performClick()
         compose.waitForIdle()
 
@@ -43,6 +41,7 @@ class MainActivitySmokeTest {
         compose.onNodeWithText("Leave game?").assertExists()
 
         compose.onNodeWithText("Leave").performClick()
-        compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithText("Play").fetchSemanticsNodes().isNotEmpty() }
+        // Left, not finished: the game is saved, so the menu offers to continue it.
+        compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithText("Continue").fetchSemanticsNodes().isNotEmpty() }
     }
 }

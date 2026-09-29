@@ -2,12 +2,12 @@ package net.zodac.dicefive.ui.menu
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
@@ -23,7 +23,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.ui.common.AppLogo
 import net.zodac.dicefive.ui.common.BrandBackdrop
-import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.PageColumn
 import net.zodac.dicefive.ui.common.RulesDialog
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
@@ -36,6 +35,16 @@ import net.zodac.dicefive.ui.theme.DiceFiveTheme
  * ripple, state layers and typography all come from the theme.
  */
 private val MENU_BUTTON_HEIGHT = 56.dp
+
+/**
+ * The split Play button's dividing line: the page showing through between its two halves, the same
+ * 2dp M3's connected button groups leave between their buttons.
+ */
+private val PLAY_SPLIT_GAP = 2.dp
+
+// Each half keeps the pill's rounded ends on its outer side and meets the other along a straight edge.
+private val NEW_GAME_HALF_SHAPE = RoundedCornerShape(topStartPercent = 50, bottomStartPercent = 50)
+private val CONTINUE_HALF_SHAPE = RoundedCornerShape(topEndPercent = 50, bottomEndPercent = 50)
 
 @Composable
 fun MenuScreen(
@@ -51,25 +60,10 @@ fun MenuScreen(
     logoStyles: LogoStyles? = LogoStyles(DiceStyles.default, DiceCupStyles.default),
     onDiceTap: () -> Unit = {},
 ) {
-    var showResumeDialog by remember { mutableStateOf(false) }
     var showRulesDialog by remember { mutableStateOf(false) }
 
     if (showRulesDialog) {
         RulesDialog(onDismissRequest = { showRulesDialog = false })
-    }
-
-    if (showResumeDialog) {
-        DiceFiveDialog(
-            icon = Icons.Filled.RestartAlt,
-            title = "Resume game?",
-            message = "You have a game in progress. Continue where you left off, or start fresh?",
-            confirmLabel = "Continue",
-            onConfirm = { showResumeDialog = false; onContinue() },
-            dismissLabel = "New Game",
-            onDismiss = { showResumeDialog = false; onNewGame() },
-            // Backing out must not silently discard the saved game by starting a new one.
-            onDismissRequest = { showResumeDialog = false },
-        )
     }
 
     // The menu alone has its backdrop's dice drifting about; every other screen keeps them still.
@@ -98,12 +92,7 @@ fun MenuScreen(
             ) {
                 // One filled button for the primary action and tonal buttons for the rest: M3's
                 // emphasis hierarchy, which also stops five identical slabs competing for the eye.
-                Button(
-                    onClick = { if (hasInProgressGame) showResumeDialog = true else onNewGame() },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = MENU_BUTTON_HEIGHT),
-                ) {
-                    Text(text = "Play", style = MaterialTheme.typography.titleMedium)
-                }
+                PlayButton(hasInProgressGame = hasInProgressGame, onContinue = onContinue, onNewGame = onNewGame)
                 MenuDestinationButton(label = "Achievements", onClick = onAchievements)
                 MenuDestinationButton(label = "Leaderboard", onClick = onScores)
                 MenuDestinationButton(label = "Statistics", onClick = onStatistics)
@@ -113,6 +102,47 @@ fun MenuScreen(
             }
 
             Spacer(modifier = Modifier.weight(0.38f))
+        }
+    }
+}
+
+/**
+ * The menu's primary action. With no saved game it's a single Play button; with one it's split down
+ * the middle into New Game and Continue - the same width, height and pill outline, so nothing else on
+ * the menu moves, and no dialog to ask which. Each half is its own stock `Button`, so each has its own
+ * ripple, state layer and touch target, clipped to its own shape. Both stay filled: neither is
+ * destructive (New Game only opens the setup form - the saved game is replaced only once a new one
+ * actually starts), so neither needs to be played down against the other.
+ */
+@Composable
+fun PlayButton(hasInProgressGame: Boolean, onContinue: () -> Unit, onNewGame: () -> Unit) {
+    if (!hasInProgressGame) {
+        Button(
+            onClick = onNewGame,
+            modifier = Modifier.fillMaxWidth().heightIn(min = MENU_BUTTON_HEIGHT),
+        ) {
+            Text(text = "Play", style = MaterialTheme.typography.titleMedium)
+        }
+        return
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(PLAY_SPLIT_GAP),
+    ) {
+        Button(
+            onClick = onNewGame,
+            modifier = Modifier.weight(1f).heightIn(min = MENU_BUTTON_HEIGHT),
+            shape = NEW_GAME_HALF_SHAPE,
+        ) {
+            Text(text = "New Game", style = MaterialTheme.typography.titleMedium, maxLines = 1)
+        }
+        Button(
+            onClick = onContinue,
+            modifier = Modifier.weight(1f).heightIn(min = MENU_BUTTON_HEIGHT),
+            shape = CONTINUE_HALF_SHAPE,
+        ) {
+            Text(text = "Continue", style = MaterialTheme.typography.titleMedium, maxLines = 1)
         }
     }
 }
@@ -133,6 +163,23 @@ private fun MenuScreenPreview() {
     DiceFiveTheme {
         MenuScreen(
             hasInProgressGame = false,
+            onContinue = {},
+            onNewGame = {},
+            onScores = {},
+            onStatistics = {},
+            onAchievements = {},
+            onStyles = {},
+            onSettings = {},
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun MenuScreenInProgressPreview() {
+    DiceFiveTheme {
+        MenuScreen(
+            hasInProgressGame = true,
             onContinue = {},
             onNewGame = {},
             onScores = {},
