@@ -77,6 +77,8 @@ data class CupPanelState(
     val tilted: Boolean,
     val rolling: Boolean,
     val canUndo: Boolean,
+    /** Whether the undo button is shown at all - only in a solo game. */
+    val showUndo: Boolean,
     val onCupTap: () -> Unit,
     val onUndo: () -> Unit,
     /** The current player's plant, for the Flowerpot cup - see [FlowerpotGrowth]. */
@@ -258,7 +260,7 @@ fun DiceCupPanel(
                     )
                     SectionStatRow(label = "Lower:", value = lowerTotal)
                 }
-                if (cup != null) {
+                if (cup != null && cup.showUndo) {
                     Spacer(modifier = Modifier.width(8.dp))
                     UndoButton(enabled = cup.canUndo, onClick = cup.onUndo)
                 }
