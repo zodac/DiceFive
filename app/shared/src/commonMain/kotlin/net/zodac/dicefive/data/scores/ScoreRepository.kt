@@ -85,19 +85,23 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
     suspend fun leaderboardTotals(): LeaderboardTotals =
         LeaderboardTotals(distinctScores = distinctScores(), totalPoints = primaryPlayerTotalPoints())
 
-    /** Per-player aggregate stats for the Statistics screen - see [PlayerStatistics]. */
+    /**
+     * Per-player aggregate stats for the Statistics screen - see [PlayerStatistics]. One query for
+     * every player's games, already in display order and most recent first within each player,
+     * folded here: `groupBy` keeps that order, both across players and within each one's games.
+     */
     suspend fun playerStatistics(): List<PlayerStatistics> =
-        scoreDao.playerSummaries().map { summary ->
-            val streaks = winStreaks(scoreDao.outcomesForPlayer(summary.playerName))
+        scoreDao.playerGames().groupBy { it.playerName }.map { (playerName, games) ->
+            val streaks = winStreaks(games.map { it.won })
             PlayerStatistics(
-                playerName = summary.playerName,
-                firstPlayedEpochMillis = summary.firstPlayedEpochMillis,
-                gamesPlayed = summary.gamesPlayed,
-                gamesWon = summary.gamesWon,
-                gamesLost = summary.gamesLost,
+                playerName = playerName,
+                firstPlayedEpochMillis = games.minOf { it.timestampEpochMillis },
+                gamesPlayed = games.size,
+                gamesWon = games.count { it.won == true },
+                gamesLost = games.count { it.won == false },
                 currentWinStreak = streaks.current,
                 bestWinStreak = streaks.best,
-                maxScore = summary.maxScore,
+                maxScore = games.maxOf { it.score },
             )
         }
 

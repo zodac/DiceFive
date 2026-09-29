@@ -17,15 +17,14 @@ data class PlayerStatistics(
 )
 
 /**
- * [ScoreDao.playerSummaries]'s projection - everything a single `GROUP BY playerName` query can
- * answer. The win streak isn't part of it: it depends on game order, not just counts, so
- * [ScoreRepository.playerStatistics] walks each player's history separately to fill it in.
+ * [ScoreDao.playerGames]'s projection: one recorded game, just the columns the Statistics screen
+ * needs. [ScoreRepository.playerStatistics] folds every player's games into their
+ * [PlayerStatistics] in one pass - the win streaks depend on game order, which a `GROUP BY` can't
+ * see, so this one query replaces a per-player summary plus a history query for each player.
  */
-data class PlayerScoreSummary(
+data class PlayerGame(
     val playerName: String,
-    val firstPlayedEpochMillis: Long,
-    val gamesPlayed: Int,
-    val gamesWon: Int,
-    val gamesLost: Int,
-    val maxScore: Int,
+    val timestampEpochMillis: Long,
+    val won: Boolean?,
+    val score: Int,
 )

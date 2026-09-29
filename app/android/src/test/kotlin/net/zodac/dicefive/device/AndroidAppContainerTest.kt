@@ -47,6 +47,28 @@ class AndroidAppContainerTest {
     }
 
     @Test
+    fun `statistics come from one query - grouped by player in name order - skipping a dismissed player`() = runTest {
+        val scores = container.scoreRepository
+        scores.recordScore("bob", stats(score = 120), won = false, isPrimaryPlayer = false)
+        scores.recordScore("Alice", stats(score = 150), won = true, isPrimaryPlayer = true)
+        scores.recordScore("Bob", stats(score = 90), won = true, isPrimaryPlayer = false)
+        scores.recordScore("Alice", stats(score = 210), won = true, isPrimaryPlayer = true)
+        scores.recordScore("Carol", stats(score = 80), won = null, isPrimaryPlayer = false)
+        scores.dismissPlayerStatistics("Carol")
+
+        val statistics = scores.playerStatistics()
+
+        // Case-insensitive name order, but "Bob" and "bob" are still two players, each kept whole.
+        assertEquals(listOf("Alice", "Bob", "bob"), statistics.map { it.playerName })
+        val alice = statistics.first()
+        assertEquals(2, alice.gamesPlayed)
+        assertEquals(2, alice.gamesWon)
+        assertEquals(2, alice.bestWinStreak)
+        assertEquals(210, alice.maxScore)
+        assertEquals(1, statistics.last().gamesLost)
+    }
+
+    @Test
     fun `settings are written to and read back from their preferences file`() = runTest {
         container.settingsRepository.setPlayerName(slot = 1, name = "Tester")
 

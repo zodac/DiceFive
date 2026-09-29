@@ -19,7 +19,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
-import net.zodac.dicefive.data.scores.PlayerScoreSummary
+import net.zodac.dicefive.data.scores.PlayerGame
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.data.scores.ScoreRepository
@@ -102,9 +102,7 @@ private class FakeScoreDao : ScoreDao {
     override suspend fun primaryPlayerTotalPoints(): Int? =
         entries.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
 
-    override suspend fun playerSummaries(): List<PlayerScoreSummary> = emptyList()
-
-    override suspend fun outcomesForPlayer(playerName: String): List<Boolean?> = emptyList()
+    override suspend fun playerGames(): List<PlayerGame> = emptyList()
 
     override suspend fun dismissPlayer(playerName: String) = Unit
 

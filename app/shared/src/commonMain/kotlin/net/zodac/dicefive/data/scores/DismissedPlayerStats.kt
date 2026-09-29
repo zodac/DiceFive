@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 
 /**
  * A player name whose card has been dismissed from the Statistics screen. This only tells
- * [ScoreDao.playerSummaries] to skip that name - the underlying `scores` rows are untouched, so
+ * [ScoreDao.playerGames] to skip that name - the underlying `scores` rows are untouched, so
  * the Leaderboard screen still shows their full history. Playing another game under the same name
  * clears the dismissal automatically, in [ScoreRepository.recordScore].
  */
