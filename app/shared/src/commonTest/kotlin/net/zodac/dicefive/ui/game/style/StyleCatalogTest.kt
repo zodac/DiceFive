@@ -121,12 +121,14 @@ class StyleCatalogTest {
     }
 
     @Test
-    fun theIrishDiceAreASecretStyleUnlockedByLuckOfTheIrish() {
+    fun theMulticolourDiceAreASecretStyleUnlockedByLuckOfTheIrish() {
         val irish = DiceStyles.familyOf(IrishFlagDiceStyle.id)
-        assertEquals("Irish", irish.name)
+        assertEquals("Multicolour", irish.name)
+        assertEquals(listOf("Irish", "Tricolour", "Rainbow"), irish.colours.map { it.name })
+        assertEquals(irish, DiceStyles.familyOf(RainbowStripedDiceStyle.id))
         assertTrue(irish.unlock.hiddenWhileLocked)
         assertTrue(Achievement.LUCK_OF_THE_IRISH.unlocksStyle)
-        assertEquals(listOf("the 'Irish' dice style"), Achievement.LUCK_OF_THE_IRISH.styleRewards.map { it.description })
+        assertEquals(listOf("the 'Multicolour' dice style"), Achievement.LUCK_OF_THE_IRISH.styleRewards.map { it.description })
 
         // No number of ordinary achievements unlocks it - only the one.
         val everythingElse = Achievement.entries.filter { it != Achievement.LUCK_OF_THE_IRISH }

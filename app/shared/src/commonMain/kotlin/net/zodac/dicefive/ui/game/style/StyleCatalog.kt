@@ -245,8 +245,12 @@ object DiceStyles : StyleCatalog<DiceStyle>(
         ),
         // Secret: not on the Styles screen at all until Luck of the Irish is earned.
         StyleFamily(
-            "Irish",
-            listOf(colour("Tricolour", IrishFlagDiceStyle)),
+            "Multicolour",
+            listOf(
+                colour("Irish", IrishFlagDiceStyle),
+                colour("Tricolour", TricolourStripedDiceStyle),
+                colour("Rainbow", RainbowStripedDiceStyle),
+            ),
             unlock = StyleUnlock.SpecificAchievement(Achievement.LUCK_OF_THE_IRISH),
         ),
     ),
