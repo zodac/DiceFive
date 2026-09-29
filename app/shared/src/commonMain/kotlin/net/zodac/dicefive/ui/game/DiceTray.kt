@@ -34,10 +34,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
@@ -53,12 +54,13 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.ui.game.style.BEVELED_DIE_CORNER_PERCENT
 import net.zodac.dicefive.ui.game.style.ColouredDie
 import net.zodac.dicefive.ui.game.style.DiceMat
 import net.zodac.dicefive.ui.game.style.DiceStyle
 import net.zodac.dicefive.ui.game.style.LocalDieCastsShadow
 import net.zodac.dicefive.ui.game.style.LocalDieIndex
-import net.zodac.dicefive.ui.game.style.LocalDieTumbling
+import net.zodac.dicefive.ui.game.style.LocalDieTumbleMillis
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalSimpleDiceRoll
 import net.zodac.dicefive.ui.game.style.PickUpPath
@@ -395,15 +397,26 @@ private fun ScatterArea(
         // plus where the die is within it.
         val columnLeft = (maxWidth + DICE_COLUMN_GAP) * seed
 
-        /** The die's ground shadow, cast from the one light, [lift] (0..1) off the mat. */
+        /**
+         * The die's ground shadow, cast from the one light, [lift] (0..1) off the mat, in the outline
+         * of the die itself - its style's, or a bevelled square for a die in a colour of its own.
+         * [tumbleMillis] is how long a die that turns itself has been tumbling mid-toss, for a shadow
+         * that turns with it.
+         */
         @Composable
-        fun Shadow(x: Dp, y: Dp, yawDegrees: Float, lift: Float) {
+        fun Shadow(x: Dp, y: Dp, yawDegrees: Float, lift: Float, tumbleMillis: Float? = null) {
+            val shape = if (die.colour != null) {
+                RoundedCornerShape(BEVELED_DIE_CORNER_PERCENT)
+            } else {
+                diceStyle.shadowShape(die.value, seed, tumbleMillis)
+            }
             val centreX = columnLeft + maxWidth / 2 + x
             val centreY = y + SCATTERED_DIE_SIZE / 2
             // Away from the light, further the further the die is from it - and further again, and
             // softer, the higher the die is off the mat.
             val reach = SHADOW_LENGTH * (1f + lift * 2f)
             GroundShadow(
+                shape = shape,
                 lift = lift,
                 modifier = rest
                     .offset(x = x + (centreX - LIGHT_X) * reach, y = y + (centreY - LIGHT_Y) * reach)
@@ -412,21 +425,24 @@ private fun ScatterArea(
         }
 
         @Composable
-        fun Moving(pose: TossPose, ring: List<Int>, finalTurns: Int, spinning: Boolean) {
+        fun Moving(pose: TossPose, ring: List<Int>, finalTurns: Int, tossMillis: Float?) {
             val x = scatter.xOffset + pose.dx.dp
             val y = scatter.yOffset + pose.dy.dp
             val yaw = scatter.rotationDegrees + pose.yawDegrees
             // A cube tipping over an edge rises off the mat, highest halfway over.
             val lift = if (selfTumbling) 0f else sin((pose.roll - floor(pose.roll)) * PI.toFloat()) * 0.2f
-            Shadow(x, y, yaw, lift)
+            val tumbleMillis = tossMillis.takeIf { selfTumbling }
+            Shadow(x, y, yaw, lift, tumbleMillis)
             val placed = rest
                 .offset(x = x, y = y)
                 .graphicsLayer { rotationZ = yaw }
             if (selfTumbling) {
                 // A D20 turns itself as it goes, landing on its face as it stops.
-                CompositionLocalProvider(LocalDieTumbling provides spinning) {
+                CompositionLocalProvider(LocalDieTumbleMillis provides tumbleMillis) {
                     DieFace(die = die, held = false, diceStyle = diceStyle, modifier = placed)
                 }
+            } else if (die.colour == null) {
+                diceStyle.TossedDie(roll = pose.roll, finalTurns = finalTurns, ring = ring, modifier = placed)
             } else {
                 TossedCube(roll = pose.roll, finalTurns = finalTurns, ring = ring, modifier = placed) { value, faceModifier ->
                     DieFace(die = die.copy(value = value), held = false, diceStyle = diceStyle, modifier = faceModifier)
@@ -441,7 +457,7 @@ private fun ScatterArea(
                 rolling && !simple -> {
                     val path = remember(tracker.starts, die.value) { PickUpPath(die.value, startY, restY) }
                     cupFace[0] = path.value
-                    Moving(path.pose(pickUp.value), listOf(die.value), finalTurns = 0, spinning = false)
+                    Moving(path.pose(pickUp.value), listOf(die.value), finalTurns = 0, tossMillis = null)
                 }
 
                 toss.value < 1f && !simple -> {
@@ -451,13 +467,14 @@ private fun ScatterArea(
                             seed = tracker.landings * 7 + seed,
                             result = die.value,
                             startFace = cupFace[0].takeIf { it != 0 },
+                            restTop = if (die.colour == null) diceStyle.topFace(die.value) else null,
                             startY = startY,
                             restY = restY,
                             dieSize = size,
                             sideRoom = sideRoom,
                         )
                     }
-                    Moving(path.pose(toss.value), path.ring, path.finalTurns, spinning = true)
+                    Moving(path.pose(toss.value), path.ring, path.finalTurns, tossMillis = toss.value * DICE_TOSS_MILLIS)
                 }
 
                 else -> {
@@ -482,24 +499,21 @@ private fun ScatterArea(
 }
 
 /**
- * A soft shadow the size of a die lying flat, built up from a few faint rounded squares of growing
- * size so its edge fades out rather than stopping hard. [lift] (0..1) - how far the die is off the
+ * A soft shadow the size of a die lying flat, in its [shape], built up from a few faint copies of
+ * growing size so its edge fades out rather than stopping hard. [lift] (0..1) - how far the die is off the
  * mat - spreads and fades it.
  */
 @Composable
-private fun GroundShadow(lift: Float, modifier: Modifier = Modifier) {
+private fun GroundShadow(shape: Shape, lift: Float, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
-        val corner = size.minDimension * 0.22f
+        val outline = shape.createOutline(size, layoutDirection, this)
         val softness = size.minDimension * (0.06f + lift * 0.12f)
         val layer = Color.Black.copy(alpha = 0.09f * (1f - lift * 0.6f))
         for (step in 0..3) {
             val grow = softness * step / 3f
-            drawRoundRect(
-                layer,
-                topLeft = Offset(-grow, -grow),
-                size = Size(size.width + grow * 2, size.height + grow * 2),
-                cornerRadius = CornerRadius(corner + grow),
-            )
+            scale(scaleX = (size.width + grow * 2) / size.width, scaleY = (size.height + grow * 2) / size.height) {
+                drawOutline(outline, layer)
+            }
         }
     }
 }

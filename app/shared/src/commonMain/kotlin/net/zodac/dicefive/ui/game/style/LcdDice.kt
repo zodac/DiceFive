@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui.game.style
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -8,6 +9,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 
@@ -24,6 +26,9 @@ private val LIT_SEGMENTS: Map<Int, Set<Segment>> = mapOf(
     6 to setOf(Segment.A, Segment.F, Segment.G, Segment.E, Segment.C, Segment.D),
 )
 
+// How rounded a Lcd die's corners are, as a percentage of its size - for drawing it and its shadow alike.
+private const val LCD_CORNER_PERCENT = 14
+
 /**
  * A die with a little LCD screen for a face, showing its value as a 7-segment digit. The unlit
  * segments stay faintly visible, the way they do on a real display, and [glow] adds a soft halo
@@ -38,6 +43,8 @@ class LcdDiceStyle(
 ) : DiceStyle, Swatched {
     override val swatch: Color = if (glow) lit else body
 
+    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(LCD_CORNER_PERCENT)
+
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
         value = value,
@@ -46,7 +53,7 @@ class LcdDiceStyle(
         face = Brush.linearGradient(listOf(body, body)),
         edge = screen,
         pipColor = lit,
-        cornerPercent = 14,
+        cornerPercent = LCD_CORNER_PERCENT,
         pipShape = PipShape.CUSTOM,
         customPips = { face -> drawDigit(face) },
     ) {

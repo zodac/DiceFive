@@ -15,6 +15,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.ui.theme.GoldAccent
 
+/** How rounded a [BeveledDie]'s corners are, as a percentage of its size. */
+internal const val BEVELED_DIE_CORNER_PERCENT = 22
+
 /**
  * The rounded, soft-bevelled die shared by every [DiceStyle] so far - only the gradient and pip
  * colour change between skins. Pulled out once [FireDiceStyle] needed the exact same bevel/shadow
@@ -30,7 +33,7 @@ internal fun BeveledDie(
     modifier: Modifier,
     heldRingColor: Color = GoldAccent,
 ) {
-    val shape = RoundedCornerShape(22)
+    val shape = RoundedCornerShape(BEVELED_DIE_CORNER_PERCENT)
     Box(
         modifier = modifier
             .dieShadow(shape)
