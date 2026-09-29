@@ -483,10 +483,12 @@ private fun rememberMagicianIcon(): ImageVector = remember {
 val LOCKED_ACHIEVEMENT_ICON: ImageVector = Icons.Filled.QuestionMark
 
 // The dice fan icon: each die's side, and the gap between neighbours, in the icon's 24-unit
-// viewport - five across fit it with room for the end dice's tilt. Their faces, tilts and drops are
-// the menu logo's own (AppLogo's LOGO_DICE), its drops scaled from its 34dp dice to these.
-private const val FAN_DIE = 4.2f
-private const val FAN_GAP = 0.3f
+// viewport - as big as five across can be, the end dice's tilted corners just inside its edges, with
+// only a sliver between neighbours (their tilts differ, so a wider gap is what shrank them). Their
+// faces, tilts and drops are the menu logo's own (AppLogo's LOGO_DICE), its drops scaled from its
+// 34dp dice to these.
+private const val FAN_DIE = 4.5f
+private const val FAN_GAP = 0.05f
 private val FAN_DICE = listOf(Triple(2, -20f, 8f), Triple(4, -10f, 2f), Triple(5, 0f, 0f), Triple(3, 10f, 2f), Triple(6, 20f, 8f))
 
 // Where the pips sit and how big, as fractions of the die: BeveledDie pads its face by 6dp of the
