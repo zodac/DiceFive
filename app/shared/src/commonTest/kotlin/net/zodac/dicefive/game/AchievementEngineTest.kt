@@ -1241,9 +1241,9 @@ class AchievementEngineTest {
             player(name = "Bot", type = PlayerType.AI, total = 200, gameMode = GameMode.QUICKFIRE),
         )
 
-        val inTime = evaluate(quickfireLoss, context = GameAchievementContext(playerOneTimedOut = false))
-        val timedOut = evaluate(quickfireLoss, context = GameAchievementContext(playerOneTimedOut = true))
-        val standard = evaluate(finishedGame(player(total = 100)), context = GameAchievementContext(playerOneTimedOut = false))
+        val inTime = evaluate(quickfireLoss, context = GameAchievementContext(playerOneTimeouts = 0))
+        val timedOut = evaluate(quickfireLoss, context = GameAchievementContext(playerOneTimeouts = 1))
+        val standard = evaluate(finishedGame(player(total = 100)), context = GameAchievementContext(playerOneTimeouts = 0))
 
         assertTrue(Achievement.QUICKFIRE_BEAT_THE_CLOCK in inTime.newlyUnlocked)
         assertFalse(Achievement.QUICKFIRE_BEAT_THE_CLOCK in timedOut.newlyUnlocked)
@@ -1261,6 +1261,41 @@ class AchievementEngineTest {
 
         assertFalse(Achievement.IMPATIENT in update.newlyUnlocked)
         assertFalse(Achievement.NATURALLY_GIFTED in update.newlyUnlocked)
+    }
+
+    // ---- Luck Of The Draw -------------------------------------------------------------------------
+
+    private fun wonGame(mode: GameMode = GameMode.STANDARD) = finishedGame(
+        player(total = 300, gameMode = mode),
+        player(name = "Bot", type = PlayerType.AI, total = 200, gameMode = mode),
+    )
+
+    private fun luckOfTheDraw(state: GameState, timeouts: Int) =
+        Achievement.LUCK_OF_THE_DRAW in evaluate(state, context = GameAchievementContext(playerOneTimeouts = timeouts)).newlyUnlocked
+
+    @Test
+    fun `winning with 3 or fewer categories scored yourself unlocks Luck Of The Draw`() {
+        // Standard's 13 boxes: 10 timeouts leaves 3 scored by hand.
+        assertTrue(luckOfTheDraw(wonGame(), timeouts = 10))
+        assertTrue(luckOfTheDraw(wonGame(), timeouts = 13))
+        assertFalse(luckOfTheDraw(wonGame(), timeouts = 9))
+    }
+
+    @Test
+    fun `Luck Of The Draw needs a win against an opponent`() {
+        val loss = finishedGame(player(total = 100), player(name = "Bot", type = PlayerType.AI, total = 200))
+        val solo = finishedGame(player(total = 300))
+
+        assertFalse(luckOfTheDraw(loss, timeouts = 13))
+        assertFalse(luckOfTheDraw(solo, timeouts = 13))
+    }
+
+    @Test
+    fun `Luck Of The Draw works in every mode - measured against that mode's own card`() {
+        assertTrue(luckOfTheDraw(wonGame(GameMode.QUICKFIRE), timeouts = 10))
+        // Tricolour's 17 boxes: 14 timeouts leaves 3 by hand, 13 leaves 4.
+        assertTrue(luckOfTheDraw(wonGame(GameMode.TRICOLOUR), timeouts = 14))
+        assertFalse(luckOfTheDraw(wonGame(GameMode.TRICOLOUR), timeouts = 13))
     }
 
     @Test

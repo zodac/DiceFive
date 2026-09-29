@@ -413,6 +413,13 @@ enum class Achievement(
         "impatient", "Impatient", "Finish a game never rolling more than once in any turn",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
+    // Any mode with a turn timer - the Turn Timer setting, or Quickfire's own. Needs an opponent,
+    // like every win.
+    LUCK_OF_THE_DRAW(
+        "luck_of_the_draw", "Luck Of The Draw",
+        "Win a game having scored 3 or fewer categories yourself - the turn timer scored the rest",
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
 
     // Moved from Themes.
     FRESH_COAT_OF_PAINT(

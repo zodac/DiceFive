@@ -28,6 +28,7 @@ import net.zodac.dicefive.model.AchievementCounter
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.TurnTimer
 
 /** In-memory [AchievementStore], so the whole game -> unlock path runs with no Context. */
 private class FakeAchievementStore : AchievementStore {
@@ -1215,6 +1216,37 @@ class GameAchievementsWiringTest {
         advanceUntilIdle()
 
         assertFalse(Achievement.ALMOST_FAMOUS in store.unlocked, "ALMOST_FAMOUS should not pop after only one roll, got ${store.unlocked}")
+    }
+
+    @Test
+    fun `letting every turn time out and still winning unlocks Luck Of The Draw`() = runTest {
+        val store = FakeAchievementStore()
+        // Every die a 6. Player 1 never touches their turn: the timer scores each one in the first
+        // open box, and their last is a repeat 5x - Chance plus the 100 bonus. Player 2 scores every
+        // turn by hand, the 5x box last so they never earn a bonus - so player 1 wins by 100 or more.
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
+        viewModel.setPlayerCount(2)
+        viewModel.setTurnTimer(TurnTimer.SECONDS_30)
+        viewModel.startGame()
+
+        val playerTwoOrder = listOf(
+            ScoreCategory.ONES, ScoreCategory.TWOS, ScoreCategory.THREES, ScoreCategory.FOURS,
+            ScoreCategory.FIVES, ScoreCategory.FULL_HOUSE, ScoreCategory.SMALL_STRAIGHT,
+            ScoreCategory.LARGE_STRAIGHT, ScoreCategory.SIXES, ScoreCategory.THREE_OF_A_KIND,
+            ScoreCategory.FOUR_OF_A_KIND, ScoreCategory.CHANCE, ScoreCategory.FIVE_OF_A_KIND,
+        )
+        for (category in playerTwoOrder) {
+            testDispatcher.scheduler.advanceTimeBy(30_000)
+            testDispatcher.scheduler.runCurrent()
+            viewModel.rollDice()
+            viewModel.commitScore(category)
+        }
+        advanceUntilIdle()
+
+        val state = viewModel.game.value!!
+        assertTrue(state.isGameOver)
+        assertTrue(state.players[0].totalScore > state.players[1].totalScore, "player 1 should win: ${state.players.map { it.totalScore }}")
+        assertTrue(Achievement.LUCK_OF_THE_DRAW in store.unlocked, "LUCK_OF_THE_DRAW should pop, got ${store.unlocked}")
     }
 
     @Test

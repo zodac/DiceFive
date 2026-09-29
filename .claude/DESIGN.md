@@ -174,7 +174,7 @@ decisions behind it. Read that before changing anything visual.
   genuinely new scoring rule, and nothing else learning it exists. A category's own scoring rule is
   fixed and mode-independent (`ScoreCategory` carries its `section`, `fixedScore`, `jokerFreeFill`
   and `matchingColour`); a mode just chooses which categories are on its card.
-- **Achievements**: 94 of them, **player 1 only** (`state.players[0]`, "You" on the setup
+- **Achievements**: 95 of them, **player 1 only** (`state.players[0]`, "You" on the setup
   screen) rather than any human at the table - the one exception is the ledger (the score-band and
   career-points achievements at the tail of `AchievementCategory.COLLECTION`), which stays measured
   against the leaderboard as a whole, i.e. every human who has played on this device, not just
@@ -1677,3 +1677,17 @@ install-over-existing succeeds:
 - [x] **`.claude/GAME_MODES.md`**: the checklist for adding a mode, and the per-mode achievement audit.
 - [x] Tests: `GameScreenAutoRollTest` (Robolectric: Quickfire rolls without a tap, Standard waits, a human/CPU game goes round), `GameModeTest`, `ScoreCalculatorTest` (timeout pick: lowest, tie order, joker-forced box, Standard unchanged), `AchievementEngineTest`, `GameViewModelTest`, `GameAchievementsWiringTest`.
 - [ ] **Not yet seen on a device**: the disabled Turn Timer row and the 10s countdown.
+
+### Phase 21 — Luck Of The Draw
+- [x] `LUCK_OF_THE_DRAW` "Luck Of The Draw" (Miscellaneous, so hidden like the rest of that category):
+      win a game against at least one opponent having scored 3 or fewer categories yourself, with
+      the turn timer scoring the rest. Not tied to a mode: any game with a timer (the Turn Timer
+      setting, or Quickfire's own) can earn it, measured against player 1's own card size (13 boxes,
+      or 17 in Tricolour, so 10 or 14 timeouts). `GameAchievementContext.playerOneTimeouts` counts
+      player 1's timed-out turns, replacing the old `playerOneTimedOut` flag (Beat The Clock now
+      checks it's 0). A timed-out score can't be undone, so the count never has to go back down.
+      Like every per-game counter, a resumed game starts it from zero, which can only make this
+      harder to earn, never easier.
+- [x] Tests: `AchievementEngineTest` (threshold, win needed, every mode against its own card) and a
+      `GameAchievementsWiringTest` game played through the view model with every player-1 turn
+      timed out.
