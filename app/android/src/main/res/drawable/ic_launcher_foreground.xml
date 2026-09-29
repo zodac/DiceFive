@@ -7,9 +7,9 @@
     <!--
       Kept close to the 66dp "safe zone" circle centred on (54,54) - the region every
       adaptive-icon mask (circle, squircle, rounded square, teardrop) is guaranteed not to crop.
-      Three dice sit above the cup's rim line (y=38.5), never dipping into or below the cup mouth;
-      two more flank the cup lower down, below the opening, offset from each other by one die
-      height (14 units) so they don't read as a mirrored pair.
+      Three dice sit above the cup's mouth (the top of its rim ellipse is at y~39), never dipping
+      into it; two more flank the cup lower down, below the opening, offset from each other by one
+      die height (14 units) so they don't read as a mirrored pair.
 
       Pip positions and radius are derived from the real dice: BeveledDie.kt pads its die box by
       6dp on each side before laying out pips, and PipFace draws them at pipRadiusFraction=0.11
@@ -33,21 +33,31 @@
         android:scaleX="0.8"
         android:scaleY="0.8">
 
-    <!-- Dice cup. -->
+    <!-- Dice cup: a silhouette of the in-game "Classic" shaker (CasinoDiceCupStyle in
+         RoundCups.kt) - straight sides, seen from the same raised angle, so its mouth and base are
+         ellipses squashed to 0.38 of their width (CUP_VIEW_SQUASH), with its single band round the
+         body cut out in the background colour. Radius 17 about x=54, rim at y=45.5, base at y=87.5:
+         a little stubbier than the real cup (40 x 67 grid units) so it fits under the dice.
+         Front arcs are cubics with controls 4/3 of the ellipse's half-height (6.46) down, as the
+         game's own frontArc() draws them. Its colours are the Classic cup's Gold (casino_gold in
+         StyleCatalog.kt), the default, so a new player's first cup is this one - change them
+         together. -->
     <path
-        android:pathData="M32,41.5 L76,41.5 L64,87.5 Q54,93.5 44,87.5 Z"
-        android:fillColor="#00000000"
-        android:strokeColor="#C79A4B"
-        android:strokeWidth="3.6"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
+        android:pathData="M37,45.5 L37,87.5 C37,96.11 71,96.11 71,87.5 L71,45.5 Z"
+        android:fillColor="#C79A4B" />
 
-    <!-- Rim line. -->
+    <!-- The band, cut out of the body - the game draws it 79% of the way down the cup. -->
     <path
-        android:pathData="M36,49.5 L72,49.5"
-        android:strokeColor="#C79A4B"
-        android:strokeWidth="1.6"
-        android:strokeAlpha="0.5" />
+        android:pathData="M37,78.5 C37,87.11 71,87.11 71,78.5"
+        android:strokeColor="#0B1E3A"
+        android:strokeWidth="1.8" />
+
+    <!-- The open mouth: dark depths inside a lighter gold rim. -->
+    <path
+        android:pathData="M37,45.5 a17,6.46 0 1,0 34,0 a17,6.46 0 1,0 -34,0 z"
+        android:fillColor="#2B2118"
+        android:strokeColor="#E6C278"
+        android:strokeWidth="1.8" />
 
     <!-- Gold die, left of the 5, below the cup's opening - a full die height lower than the
          white die on the other side. Showing 2, matching the menu logo's dice order (2-4-5-3-6
@@ -148,7 +158,7 @@
 
     <!-- White die, showing 6, below the cup's opening - last in the menu logo's order. -->
     <group
-        android:translateX="84.25"
+        android:translateX="80"
         android:translateY="47.2"
         android:pivotX="7"
         android:pivotY="7"

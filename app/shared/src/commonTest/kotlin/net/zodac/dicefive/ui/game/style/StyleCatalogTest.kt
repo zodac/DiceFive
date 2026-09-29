@@ -15,7 +15,7 @@ class StyleCatalogTest {
     fun everyShippedIdStillResolvesToItsOwnArt() {
         val shipped = mapOf(
             DiceStyles to listOf("ivory", "fire", "barrel"),
-            DiceCupStyles to listOf("casino_black", "faceted", "fire", "barrel"),
+            DiceCupStyles to listOf("casino_gold", "casino_black", "casino_green", "faceted", "fire", "barrel"),
             DiceMats to listOf("tray_blue", "fire", "barrel"),
             TableBackgrounds to listOf("midnight_felt", "fire", "barrel"),
         )
@@ -48,7 +48,7 @@ class StyleCatalogTest {
     @Test
     fun defaultIsTheFirstColourOfTheFirstStyle() {
         assertEquals(IvoryDiceStyle, DiceStyles.default)
-        assertEquals("casino_black", DiceCupStyles.default.id)
+        assertEquals("casino_gold", DiceCupStyles.default.id)
         assertEquals(listOf("Classic", "Faceted"), DiceCupStyles.families.take(2).map { it.name })
         assertEquals(TrayBlueMat, DiceMats.default)
         assertEquals(MidnightFeltBackground, TableBackgrounds.default)
@@ -68,7 +68,8 @@ class StyleCatalogTest {
 
     @Test
     fun unknownIdFallsBackToTheDefaultAndItsStyle() {
-        assertEquals("casino_black", DiceCupStyles.byId("leather").id)
+        assertEquals("casino_gold", DiceCupStyles.byId("leather").id)
+        assertEquals("casino_gold", DiceCupStyles.byId("casino_burgundy").id)
         assertEquals("Classic", DiceCupStyles.familyOf("leather").name)
     }
 }

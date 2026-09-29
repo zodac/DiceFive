@@ -284,14 +284,22 @@ class LeatherDiceCupStyle(override val id: String, private val palette: CupPalet
     }
 }
 
-/** A straight casino shaker, one radius from lip to base, with a single band of [CupPalette.accent] round its middle. */
-class CasinoDiceCupStyle(override val id: String, private val palette: CupPalette) : DiceCupStyle {
+/**
+ * A straight casino shaker, one radius from lip to base, with a single [band] round its middle -
+ * [CupPalette.accent] like its rim, unless it's given its own (the Gold cup's is the launcher
+ * icon's navy, since a gold band would vanish into a gold body).
+ */
+class CasinoDiceCupStyle(
+    override val id: String,
+    private val palette: CupPalette,
+    private val band: Color = palette.accent,
+) : DiceCupStyle {
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
         CupCanvas(rolling, tilted, modifier) {
             drawContactShadow(20f, 76f)
             drawPath(roundSection(20f, 9f, 20f, 76f), roundShading(palette, 20f))
-            drawPath(frontArcPath(20f, 62f), palette.accent, style = Stroke(width = gy(1f)))
+            drawPath(frontArcPath(20f, 62f), band, style = Stroke(width = gy(1f)))
             drawOpenMouth(20f, 9f, palette.mid, palette.interior, palette.accent, 1.1f)
         }
     }
