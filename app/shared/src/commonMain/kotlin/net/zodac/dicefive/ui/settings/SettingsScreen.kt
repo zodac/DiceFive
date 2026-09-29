@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Casino
@@ -33,10 +34,33 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.ScreenScaffold
+
+private val SETTING_LABEL_MIN_FONT_SIZE = 10.sp
+private val SETTING_LABEL_FONT_STEP = 0.5.sp
+
+/** A setting's label on one line: bodyLarge when it fits, stepped down to
+ * [SETTING_LABEL_MIN_FONT_SIZE] on a narrow screen, ellipsised only past that. */
+@Composable
+private fun SettingLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyLarge,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        autoSize = TextAutoSize.StepBased(
+            minFontSize = SETTING_LABEL_MIN_FONT_SIZE,
+            maxFontSize = MaterialTheme.typography.bodyLarge.fontSize,
+            stepSize = SETTING_LABEL_FONT_STEP,
+        ),
+        modifier = modifier,
+    )
+}
 
 @Composable
 fun SettingsScreen(
@@ -60,7 +84,7 @@ fun SettingsScreen(
                 leadingContent = {
                     Icon(imageVector = Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null)
                 },
-                headlineContent = { Text("Sound effects") },
+                headlineContent = { SettingLabel("Sound effects") },
                 trailingContent = {
                     Switch(checked = soundEnabled, onCheckedChange = viewModel::setSoundEnabled)
                 },
@@ -72,7 +96,7 @@ fun SettingsScreen(
                 leadingContent = {
                     Icon(imageVector = Icons.Filled.Vibration, contentDescription = null)
                 },
-                headlineContent = { Text("Vibration") },
+                headlineContent = { SettingLabel("Vibration") },
                 trailingContent = {
                     Switch(checked = vibrationEnabled, onCheckedChange = viewModel::setVibrationEnabled)
                 },
@@ -82,15 +106,7 @@ fun SettingsScreen(
                 leadingContent = {
                     Icon(imageVector = Icons.Filled.Casino, contentDescription = null)
                 },
-                headlineContent = {
-                    // Long enough to need the same compact treatment as "Confirm before leaving game?".
-                    Text(
-                        text = "Simple dice roll",
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1,
-                        softWrap = false,
-                    )
-                },
+                headlineContent = { SettingLabel("Simple dice roll") },
                 trailingContent = {
                     Switch(checked = simpleDiceRoll, onCheckedChange = viewModel::setSimpleDiceRoll)
                 },
@@ -100,14 +116,7 @@ fun SettingsScreen(
                 leadingContent = {
                     Icon(imageVector = Icons.Filled.CheckCircle, contentDescription = null)
                 },
-                headlineContent = {
-                    Text(
-                        text = "Confirm before leaving game?",
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1,
-                        softWrap = false,
-                    )
-                },
+                headlineContent = { SettingLabel("Confirm leaving game?") },
                 trailingContent = {
                     Switch(checked = confirmBeforeLeavingGame, onCheckedChange = viewModel::setConfirmBeforeLeavingGame)
                 },
