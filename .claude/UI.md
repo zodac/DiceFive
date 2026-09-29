@@ -313,6 +313,24 @@ the category's default instead. So resetting achievements re-locks without losin
 and earning it back restores it. A new place that draws a saved style must use `unlockedById`, not
 `byId`.
 
+## Accessibility
+
+Everything a screen reader needs is added as semantics, never by changing what's drawn:
+
+- **The board's art speaks for itself through semantics** (`BoardSemantics.kt` holds the spoken
+  names, as the Rules pages give them): each die is its own node - "Die 2, 5", held or not, with
+  hold/release as its action, since the tray's hand-rolled gesture is invisible to TalkBack; each
+  score box is one cleared-and-set node with its name, what it scored or would score, and "Score"
+  as its action; the cup is "Dice cup, 3 rolls left", a Roll button; player tabs are tabs, the
+  scorecard on view selected. `BoardSemanticsTest` pins the dice and score box actions.
+- **An on/off setting is its whole row** (`SwitchSetting`: `toggleable(role = Role.Switch)`, the
+  `Switch` itself taking no clicks), so the label and switch are one target and one announcement.
+- **A field with no visible label gets an accessibility-only one**, and its error as `error(...)`
+  - see the New Game name fields.
+- **Banners are polite live regions** announcing a fixed summary, not their animated text.
+- **Titles are headings**: page titles, Styles categories, achievement category headers, Rules
+  pages, Credits sections.
+
 ## Motion
 
 Screen transitions are 350ms fades, set on the `NavHost` for all four directions. Navigation
