@@ -295,7 +295,10 @@ A style locked behind one **secret** achievement is a secret style (`StyleUnlock
 it isn't on the Styles screen at all, padlock or not, until that achievement is earned - the Irish
 dice (the flag in thirds, in Luck of the Irish's Tricolour colours) are the first. Any achievement
 that unlocks a specific style (`Achievement.unlocksStyle`) carries a star at the right of its row and
-its unlock banner (`StyleRewardStar`), so the player knows to go and look.
+its unlock banner (`StyleRewardStar`), so the player knows to go and look. On the row, a tap or long
+press on the star shows a plain tooltip (not a dialog) naming the style - "You've unlocked the
+'Irish' dice style!", from `Achievement.styleRewards` and the catalog's `noun`. The banner's star
+has no tooltip: the banner's own gestures (swipe, long press) already cover it.
 
 On the Styles screen a locked tile shows its first colour under a translucent scrim and a faded padlock, can't be picked,
 and long-pressing it opens a `DiceFiveDialog` saying what unlocks it. **A saved pick whose style is
