@@ -107,7 +107,7 @@ fun SettingsScreen(
             SwitchSetting(Icons.Filled.Casino, "Simple dice roll", simpleDiceRoll, viewModel::setSimpleDiceRoll)
             SwitchSetting(
                 Icons.Filled.CheckCircle,
-                "Confirm leaving game?",
+                "Confirm leaving game",
                 confirmBeforeLeavingGame,
                 viewModel::setConfirmBeforeLeavingGame,
             )
