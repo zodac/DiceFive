@@ -115,7 +115,12 @@ private class IosHapticsPlayer : HapticsPlayer {
     }
 }
 
-/** CoreMotion's accelerometer, delivered on the main queue and converted from g to m/s². */
+/**
+ * CoreMotion's accelerometer, delivered on the main queue and converted from g to m/s² - and negated,
+ * since CoreMotion reports gravity itself (face up reads z = -1 g) where [Accelerometer] wants its
+ * reaction, as Android does. Its axes are the device's natural portrait ones: not yet turned for a
+ * rotated interface (see .claude/IOS_SUPPORT.md).
+ */
 @OptIn(ExperimentalForeignApi::class)
 private class IosAccelerometer : Accelerometer {
 
@@ -126,7 +131,7 @@ private class IosAccelerometer : Accelerometer {
     override fun start(onSample: (x: Float, y: Float, z: Float) -> Unit) {
         motionManager.startAccelerometerUpdatesToQueue(NSOperationQueue.mainQueue) { data, _ ->
             data?.acceleration?.useContents {
-                onSample(x.toFloat() * STANDARD_GRAVITY, y.toFloat() * STANDARD_GRAVITY, z.toFloat() * STANDARD_GRAVITY)
+                onSample(-x.toFloat() * STANDARD_GRAVITY, -y.toFloat() * STANDARD_GRAVITY, -z.toFloat() * STANDARD_GRAVITY)
             }
         }
     }

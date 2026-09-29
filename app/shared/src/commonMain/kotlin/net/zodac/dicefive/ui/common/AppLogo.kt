@@ -12,10 +12,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -25,6 +30,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.sora
 import net.zodac.dicefive.ui.game.style.CupShape
@@ -32,6 +41,8 @@ import net.zodac.dicefive.ui.game.style.DiceCupStyle
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceStyle
 import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.game.style.DieMotion
+import net.zodac.dicefive.ui.game.style.LocalDieMotion
 import org.jetbrains.compose.resources.Font
 
 /**
@@ -87,6 +98,10 @@ private val LOGO_DICE = listOf(
  * in proportion with everything else if the scale is ever restyled; [titleSize] only exists for
  * the About page, which wants the same mark at a supporting size.
  *
+ * With [pupilsFollowDevice] (the main menu only), a [diceStyle] with loose pupils - the googly
+ * eyes, and nothing else - has them slide about with the phone's tilt and shake, through the same
+ * [DieMotion] the dice tray moves them with. Every other style, and every other screen, is unaffected.
+ *
  * [onDiceTap] is the "Not Those Dice!" easter egg - only the dice fan itself is the tap target, not
  * the wordmark below it. No ripple: at this size (five dice sharing one row) a ripple reads as the
  * whole logo flashing, not a considered tap target, the same call [DiceCupPanel] makes for its cup.
@@ -98,8 +113,29 @@ fun AppLogo(
     titleSize: TextUnit = TextUnit.Unspecified,
     diceStyle: DiceStyle = DiceStyles.default,
     cupStyle: DiceCupStyle = DiceCupStyles.default,
+    pupilsFollowDevice: Boolean = false,
     onDiceTap: () -> Unit = {},
 ) {
+    // One DieMotion per die, only for a style with loose pupils and only where asked - kept for as
+    // long as the style is, and fed the device's pull while this screen is in front.
+    val travel = diceStyle.pupilTravel?.takeIf { pupilsFollowDevice }
+    val motions = travel?.let {
+        remember(it) { LOGO_DICE.mapIndexed { i, die -> DieMotion(seed = i, travel = it).apply { moveTo(Offset.Zero, die.tilt) } } }
+    }
+    if (motions != null) {
+        DevicePullEffect { gees -> motions.forEach { it.feel(gees) } }
+        for (motion in motions) {
+            // Acts on the value it was keyed on, not a fresh read: the sensor can wake the pupils in
+            // the very frame this first launches, and an effect that started following on that fresh
+            // read would be cancelled by the recomposition for it - and follow() going back to sleep
+            // as it's cancelled would leave nothing following at all.
+            val awake = motion.awake
+            LaunchedEffect(motion, awake) {
+                if (awake) motion.follow()
+            }
+        }
+    }
+
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         // The cup takes no room of its own (see noLayoutSpace), so the dice and the wordmark sit
         // exactly as they would without it, its base reaching down behind the wordmark. Only the
@@ -134,15 +170,17 @@ fun AppLogo(
                     onClick = onDiceTap,
                 ),
             ) {
-                for (die in LOGO_DICE) {
-                    diceStyle.Die(
-                        value = die.value,
-                        held = false,
-                        modifier = Modifier
-                            .size(dieSize)
-                            .offset(y = die.drop)
-                            .rotate(die.tilt),
-                    )
+                LOGO_DICE.forEachIndexed { i, die ->
+                    CompositionLocalProvider(LocalDieMotion provides motions?.get(i)) {
+                        diceStyle.Die(
+                            value = die.value,
+                            held = false,
+                            modifier = Modifier
+                                .size(dieSize)
+                                .offset(y = die.drop)
+                                .rotate(die.tilt),
+                        )
+                    }
                 }
             }
         }
@@ -174,4 +212,48 @@ fun AppLogo(
 private fun Modifier.noLayoutSpace(): Modifier = layout { measurable, _ ->
     val placeable = measurable.measure(Constraints())
     layout(0, 0) { placeable.place(-placeable.width / 2, -placeable.height / 2) }
+}
+
+// Standard gravity, for turning the accelerometer's m/s² into g; and how much of each new reading the
+// pull takes on, smoothing out the sensor's own jitter without dulling a real shake.
+private const val STANDARD_GRAVITY = 9.81f
+private const val PULL_SMOOTHING = 0.5f
+
+/**
+ * Reports the pull the device puts on anything loose on screen, in g (x right, y down): gravity down
+ * whichever way the phone is tipped, and against however it's being moved - the reverse of what the
+ * [Accelerometer][net.zodac.dicefive.platform.Accelerometer] reads. Listening only while this screen
+ * is resumed, as ShakeDetectorEffect does, so a backgrounded app's sensor isn't left running.
+ */
+@Composable
+private fun DevicePullEffect(onPull: (Offset) -> Unit) {
+    val platform = LocalPlatformServices.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val currentOnPull = rememberUpdatedState(onPull)
+    val accelerometer = remember { platform.createAccelerometer() } ?: return
+
+    DisposableEffect(lifecycleOwner, accelerometer) {
+        var pull: Offset? = null
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> accelerometer.start { x, y, _ ->
+                    // Up the screen is -y on it, so the reading's y keeps its sign and x flips.
+                    val reading = Offset(-x, y) / STANDARD_GRAVITY
+                    val smoothed = pull?.let { it + (reading - it) * PULL_SMOOTHING } ?: reading
+                    pull = smoothed
+                    currentOnPull.value(smoothed)
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    accelerometer.stop()
+                    pull = null
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            accelerometer.stop()
+        }
+    }
 }

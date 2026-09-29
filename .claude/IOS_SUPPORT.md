@@ -198,6 +198,11 @@ prefixed with the platform's name (`AndroidSoundPlayer`, `IosSoundPlayer`).
   `BackHandler`. Give both a visible way out (iOS's edge-swipe back may also need wiring).
 - **Insets**: re-verify `UI.md`'s inset rules against safe areas, the Dynamic Island and the home
   indicator; `TransientMessageHost` already pads by `safeDrawing`.
+- **Accelerometer axes**: `Accelerometer` promises readings along the *screen's* axes as currently
+  turned (Android remaps by the display's rotation), with Android's sign; `IosAccelerometer` already
+  negates CoreMotion's gravity-signed readings, but doesn't yet turn them for a rotated interface. If
+  the app can rotate on iOS, remap by the interface orientation, or the menu logo's googly pupils
+  (the only user of the direction - shake-to-roll uses magnitude alone) will fall sideways.
 - **Run the tests on iOS**: `./gradlew :app:shared:iosSimulatorArm64Test` on a Mac runs `commonTest`
   natively - the first real check of `stripDiacritics`, Room/DataStore on iOS, etc.
 - **Haptics tuning**: the impact styles in `IosHapticsPlayer` are a first guess.
