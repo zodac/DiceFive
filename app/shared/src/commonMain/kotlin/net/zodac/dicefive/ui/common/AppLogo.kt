@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.common
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.offset
@@ -15,15 +16,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.sora
+import net.zodac.dicefive.ui.game.style.CUP_GRID_HEIGHT
+import net.zodac.dicefive.ui.game.style.CUP_GRID_WIDTH
+import net.zodac.dicefive.ui.game.style.ClassicGoldDiceCupStyle
 import net.zodac.dicefive.ui.game.style.IvoryDiceStyle
 import org.jetbrains.compose.resources.Font
 
@@ -52,6 +58,12 @@ internal val SoraFontFamily: FontFamily
  */
 private data class LogoDie(val value: Int, val tilt: Float, val drop: Dp)
 
+// The cup behind the fan: how tall it stands, and how far its middle sits above the fan's - so more
+// of the cup, rim and all, shows above the dice than below them. Both in dice, so a smaller mark
+// keeps the same proportions.
+private const val LOGO_CUP_HEIGHT_IN_DICE = 3.4f
+private const val LOGO_CUP_RAISE_IN_DICE = 0.35f
+
 private val LOGO_DICE = listOf(
     LogoDie(value = 2, tilt = -20f, drop = 8.dp),
     LogoDie(value = 4, tilt = -10f, drop = 2.dp),
@@ -61,7 +73,7 @@ private val LOGO_DICE = listOf(
 )
 
 /**
- * The app mark: a fan of the game's own dice over the wordmark.
+ * The app mark: a fan of the game's own dice, in front of the default cup, over the wordmark.
  *
  * Built from [IvoryDiceStyle] rather than an image so it costs no asset and always matches the
  * dice on the board - deliberately kept as live Compose dice rather than a drawable, unlike the
@@ -83,25 +95,46 @@ fun AppLogo(
     onDiceTap: () -> Unit = {},
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        val diceInteractionSource = remember { MutableInteractionSource() }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.clickable(
-                interactionSource = diceInteractionSource,
-                indication = null,
-                onClick = onDiceTap,
-            ),
-        ) {
-            for (die in LOGO_DICE) {
-                IvoryDiceStyle.Die(
-                    value = die.value,
-                    held = false,
-                    modifier = Modifier
-                        .size(dieSize)
-                        .offset(y = die.drop)
-                        .rotate(die.tilt),
-                )
+        // The cup takes no room of its own (see noLayoutSpace), so the dice and the wordmark sit
+        // exactly as they would without it, its base reaching down behind the wordmark. Only the
+        // part standing above the dice is reserved, as top padding: the page scrolls, and a
+        // scrolling column clips whatever is drawn outside it, which would cut off the rim.
+        val cupHeight = dieSize * LOGO_CUP_HEIGHT_IN_DICE
+        val cupRaise = dieSize * LOGO_CUP_RAISE_IN_DICE
+        val cupAboveDice = cupHeight / 2 + cupRaise - dieSize / 2
+        Box(modifier = Modifier.padding(top = cupAboveDice), contentAlignment = Alignment.Center) {
+            // The launcher icon's cup - the default Classic cup in Gold - standing behind the fan,
+            // in the cup grid's own proportions so it isn't stretched. Upright and still: never
+            // rolling or tipped, so it never runs the in-game shake.
+            ClassicGoldDiceCupStyle.Cup(
+                rolling = false,
+                tilted = false,
+                modifier = Modifier
+                    .noLayoutSpace()
+                    .offset(y = -cupRaise)
+                    .size(width = cupHeight * (CUP_GRID_WIDTH / CUP_GRID_HEIGHT), height = cupHeight),
+            )
+
+            val diceInteractionSource = remember { MutableInteractionSource() }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable(
+                    interactionSource = diceInteractionSource,
+                    indication = null,
+                    onClick = onDiceTap,
+                ),
+            ) {
+                for (die in LOGO_DICE) {
+                    IvoryDiceStyle.Die(
+                        value = die.value,
+                        held = false,
+                        modifier = Modifier
+                            .size(dieSize)
+                            .offset(y = die.drop)
+                            .rotate(die.tilt),
+                    )
+                }
             }
         }
 
@@ -123,4 +156,13 @@ fun AppLogo(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+/**
+ * Measures the content at its own size but reports none, drawing it centred on the spot the parent
+ * places it - so it can sit behind its siblings without the parent growing to fit it.
+ */
+private fun Modifier.noLayoutSpace(): Modifier = layout { measurable, _ ->
+    val placeable = measurable.measure(Constraints())
+    layout(0, 0) { placeable.place(-placeable.width / 2, -placeable.height / 2) }
 }

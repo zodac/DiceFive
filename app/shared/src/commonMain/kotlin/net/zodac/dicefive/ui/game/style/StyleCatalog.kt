@@ -213,30 +213,25 @@ object DiceStyles : StyleCatalog<DiceStyle>(
     ),
 )
 
+/**
+ * The Classic cup in Gold - the default cup, and the one the launcher icon draws as a silhouette
+ * (the same gold body, dark mouth, lighter rim and navy band - `ic_launcher_foreground.xml`), so a
+ * new player's first cup is the one on the icon. The main menu's logo stands it behind its dice.
+ */
+val ClassicGoldDiceCupStyle: DiceCupStyle = CasinoDiceCupStyle(
+    "casino_gold",
+    CupPalette(dark = Color(0xFF7A5A26), light = Color(0xFFEBC77F), mid = CupRimGold, accent = Color(0xFFE6C278), interior = DicePipColor),
+    band = FeltNavyBottom,
+)
+
 object DiceCupStyles : StyleCatalog<DiceCupStyle>(
     listOf(
         // The casino shaker, first so it's the default - "Classic", like every category's default.
         // Its ids still say "casino": they're saved picks, so they stay put if the default moves.
-        // Gold leads, so a new player's first cup is the one on the launcher icon: the same gold
-        // body, dark mouth, lighter rim and navy band (ic_launcher_foreground.xml).
         StyleFamily(
             "Classic",
             listOf(
-                StyleColour(
-                    "Gold",
-                    CupRimGold,
-                    CasinoDiceCupStyle(
-                        "casino_gold",
-                        CupPalette(
-                            dark = Color(0xFF7A5A26),
-                            light = Color(0xFFEBC77F),
-                            mid = CupRimGold,
-                            accent = Color(0xFFE6C278),
-                            interior = DicePipColor,
-                        ),
-                        band = FeltNavyBottom,
-                    ),
-                ),
+                StyleColour("Gold", CupRimGold, ClassicGoldDiceCupStyle),
                 cup("Black", ::CasinoDiceCupStyle, "casino_black", 0xFF0F0F10, 0xFF4A4A4E, 0xFF26262A, 0xFFD4AF37, 0xFF050505),
                 cup("Green", ::CasinoDiceCupStyle, "casino_green", 0xFF0B2A12, 0xFF2F7A45, 0xFF1B5227, 0xFFD4AF37, 0xFF04120A),
             ),
