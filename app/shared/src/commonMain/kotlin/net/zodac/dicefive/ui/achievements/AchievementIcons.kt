@@ -82,7 +82,6 @@ import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.TimerOff
-import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Traffic
 import androidx.compose.material.icons.filled.Upgrade
 import androidx.compose.material.icons.filled.Verified
@@ -91,6 +90,7 @@ import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -106,10 +106,14 @@ import net.zodac.dicefive.resources.ic_cowboy_hat
 import net.zodac.dicefive.resources.ic_stairs
 import net.zodac.dicefive.resources.ic_time_machine_car
 import net.zodac.dicefive.ui.game.style.CUP_VIEW_SQUASH
+import net.zodac.dicefive.ui.game.style.pipLayout
 import net.zodac.dicefive.ui.theme.AchievementHeartRed
+import net.zodac.dicefive.ui.theme.DicePipColor
 import net.zodac.dicefive.ui.theme.IrishGreenSwatch
 import net.zodac.dicefive.ui.theme.IrishOrangeSwatch
 import net.zodac.dicefive.ui.theme.IrishWhiteSwatch
+import net.zodac.dicefive.ui.theme.IvoryDiceBottom
+import net.zodac.dicefive.ui.theme.IvoryDiceTop
 import net.zodac.dicefive.ui.theme.MagicianHatDark
 import net.zodac.dicefive.ui.theme.MagicianHatInside
 import net.zodac.dicefive.ui.theme.MagicianHatLight
@@ -226,7 +230,6 @@ val Achievement.icon: ImageVector
         // The same glyph UndoButton.kt uses for the real undo control, not its Redo mirror image -
         // this achievement is about undoing, not redoing.
         Achievement.UNDO_DIFFERENT_CATEGORY -> Icons.AutoMirrored.Filled.Undo
-        Achievement.NOT_THOSE_DICE -> Icons.Filled.TouchApp
         Achievement.NO_MORE_ROLLS -> Icons.Filled.Block
         Achievement.IMPATIENT -> Icons.Filled.FlashOn
         Achievement.FRESH_COAT_OF_PAINT -> Icons.Filled.FormatPaint
@@ -270,6 +273,8 @@ val Achievement.icon: ImageVector
         Achievement.SHAKEN_NOT_TAPPED -> rememberMartiniIcon()
         // The Top Hat cup with its rabbit peeking out, drawn the way the player found it.
         Achievement.MAGICIANS_SECRET -> rememberMagicianIcon()
+        // The menu logo's own fan - the default ivory dice, 2-4-5-3-6 - that it's earned by tapping.
+        Achievement.NOT_THOSE_DICE -> rememberDiceFanIcon()
     }
 
 /**
@@ -284,6 +289,7 @@ fun Achievement.iconTintOrUnspecified(tint: Color): Color = when (this) {
     Achievement.LUCK_OF_THE_IRISH -> Color.Unspecified
     Achievement.SHAKEN_NOT_TAPPED -> Color.Unspecified
     Achievement.MAGICIANS_SECRET -> Color.Unspecified
+    Achievement.NOT_THOSE_DICE -> Color.Unspecified
     else -> tint
 }
 
@@ -475,3 +481,77 @@ private fun rememberMagicianIcon(): ImageVector = remember {
 
 /** Shown in place of [icon] for every achievement until it's unlocked - a mystery, not a spoiler. */
 val LOCKED_ACHIEVEMENT_ICON: ImageVector = Icons.Filled.QuestionMark
+
+// The dice fan icon: each die's side, and the gap between neighbours, in the icon's 24-unit
+// viewport - five across fit it with room for the end dice's tilt. Their faces, tilts and drops are
+// the menu logo's own (AppLogo's LOGO_DICE), its drops scaled from its 34dp dice to these.
+private const val FAN_DIE = 4.2f
+private const val FAN_GAP = 0.3f
+private val FAN_DICE = listOf(Triple(2, -20f, 8f), Triple(4, -10f, 2f), Triple(5, 0f, 0f), Triple(3, 10f, 2f), Triple(6, 20f, 8f))
+
+// Where the pips sit and how big, as fractions of the die: BeveledDie pads its face by 6dp of the
+// logo's 34dp before laying pips out, each a radius of 0.11 of that padded face.
+private const val FAN_PIP_PAD = 6f / 34f
+private const val FAN_PIP_RADIUS = 0.11f * (1f - 2f * FAN_PIP_PAD)
+
+// A circle drawn as four cubics: each control point this far along the tangent, in radii.
+private const val CIRCLE_CUBIC = 0.5523f
+
+/**
+ * The menu logo's fan of five default dice - ivory, [IvoryDiceTop] to [IvoryDiceBottom] corner to
+ * corner with [DicePipColor] pips, as [net.zodac.dicefive.ui.game.style.IvoryDiceStyle] draws
+ * them - showing 2-4-5-3-6 on the same arc. Fixed colours, like every Easter Egg's icon.
+ */
+@Composable
+private fun rememberDiceFanIcon(): ImageVector = remember {
+    ImageVector.Builder(name = "DiceFan", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f).apply {
+        val step = FAN_DIE + FAN_GAP
+        FAN_DICE.forEachIndexed { i, (value, tilt, dropDp) ->
+            val centreX = 12f + (i - 2) * step
+            val centreY = 12f + dropDp / 34f * FAN_DIE
+            group(
+                rotate = tilt,
+                pivotX = FAN_DIE / 2f,
+                pivotY = FAN_DIE / 2f,
+                translationX = centreX - FAN_DIE / 2f,
+                translationY = centreY - FAN_DIE / 2f,
+            ) {
+                val face = Brush.linearGradient(listOf(IvoryDiceTop, IvoryDiceBottom), start = Offset.Zero, end = Offset(FAN_DIE, FAN_DIE))
+                path(fill = face, stroke = SolidColor(IvoryDiceBottom.copy(alpha = 0.6f)), strokeLineWidth = 0.15f) {
+                    roundedSquare(FAN_DIE, FAN_DIE * 0.22f)
+                }
+                val inner = FAN_DIE * (1f - 2f * FAN_PIP_PAD)
+                path(fill = SolidColor(DicePipColor)) {
+                    for (pip in pipLayout(value)) {
+                        circle(FAN_DIE * FAN_PIP_PAD + pip.x * inner, FAN_DIE * FAN_PIP_PAD + pip.y * inner, FAN_DIE * FAN_PIP_RADIUS)
+                    }
+                }
+            }
+        }
+    }.build()
+}
+
+/** A [side]-wide square from the origin with corners rounded to [corner]. */
+private fun PathBuilder.roundedSquare(side: Float, corner: Float) {
+    moveTo(corner, 0f)
+    lineTo(side - corner, 0f)
+    quadTo(side, 0f, side, corner)
+    lineTo(side, side - corner)
+    quadTo(side, side, side - corner, side)
+    lineTo(corner, side)
+    quadTo(0f, side, 0f, side - corner)
+    lineTo(0f, corner)
+    quadTo(0f, 0f, corner, 0f)
+    close()
+}
+
+/** A circle of [radius] centred on ([x], [y]). */
+private fun PathBuilder.circle(x: Float, y: Float, radius: Float) {
+    val k = radius * CIRCLE_CUBIC
+    moveTo(x + radius, y)
+    curveTo(x + radius, y + k, x + k, y + radius, x, y + radius)
+    curveTo(x - k, y + radius, x - radius, y + k, x - radius, y)
+    curveTo(x - radius, y - k, x - k, y - radius, x, y - radius)
+    curveTo(x + k, y - radius, x + radius, y - k, x + radius, y)
+    close()
+}

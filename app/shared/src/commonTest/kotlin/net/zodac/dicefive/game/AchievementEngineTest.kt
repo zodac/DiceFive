@@ -446,10 +446,18 @@ class AchievementEngineTest {
         assertFalse(Achievement.SHAKEN_NOT_TAPPED in Achievement.COMPLETION_REQUIREMENTS)
         assertEquals(AchievementVisibility.SECRET, Achievement.MAGICIANS_SECRET.visibility)
         assertFalse(Achievement.MAGICIANS_SECRET in Achievement.COMPLETION_REQUIREMENTS)
+        assertEquals(AchievementVisibility.SECRET, Achievement.NOT_THOSE_DICE.visibility)
+        assertFalse(Achievement.NOT_THOSE_DICE in Achievement.COMPLETION_REQUIREMENTS)
         // Every other achievement stays at least title-visible from the start - secrecy is the
         // exception, not the rule.
         assertEquals(
-            listOf(Achievement.BIG_FAN, Achievement.LUCK_OF_THE_IRISH, Achievement.SHAKEN_NOT_TAPPED, Achievement.MAGICIANS_SECRET),
+            listOf(
+                Achievement.BIG_FAN,
+                Achievement.LUCK_OF_THE_IRISH,
+                Achievement.SHAKEN_NOT_TAPPED,
+                Achievement.MAGICIANS_SECRET,
+                Achievement.NOT_THOSE_DICE,
+            ),
             Achievement.entries.filter { it.visibility == AchievementVisibility.SECRET },
         )
     }

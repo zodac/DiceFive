@@ -396,10 +396,6 @@ enum class Achievement(
         "undo_different_category", "I Didn't Mean That", "Undo a score and score a different category",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
-    NOT_THOSE_DICE(
-        "not_those_dice", "Not Those Dice!", "Tap the dice on the main menu",
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
-    ),
     NO_MORE_ROLLS(
         "no_more_rolls", "No More Rolls", "Tap the dice cup three times after your last roll of a turn",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
@@ -578,6 +574,13 @@ enum class Achievement(
     // and the table left alone mid-turn, which nothing in the UI hints at.
     MAGICIANS_SECRET(
         "magicians_secret", "The Magician's Secret", "Find Where Luna Is Hiding",
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+    ),
+    // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the menu's logo
+    // dice can be tapped, let alone that they roll. Its id is unchanged from when it sat in
+    // Miscellaneous as a hidden achievement, so an earlier unlock still counts.
+    NOT_THOSE_DICE(
+        "not_those_dice", "Not Those Dice!", "Tap the dice on the main menu",
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     ;
