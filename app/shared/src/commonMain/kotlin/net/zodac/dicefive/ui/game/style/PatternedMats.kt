@@ -2,6 +2,10 @@ package net.zodac.dicefive.ui.game.style
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -34,11 +38,18 @@ abstract class PatternedDiceMat(final override val id: String, protected val pal
     final override val slotSocketBrush: Brush = Brush.verticalGradient(listOf(palette.slotTop, palette.slotBottom))
     final override val slotSocketBorder: Color = palette.slotBorder
 
+    /** Whether the pattern moves, so it's redrawn on every frame with the time in seconds. */
+    protected open val animated: Boolean = false
+
     protected abstract fun DrawScope.drawPattern()
+
+    protected open fun DrawScope.drawPattern(seconds: Float) = drawPattern()
 
     @Composable
     final override fun DiceTrayDecoration(modifier: Modifier) {
-        Canvas(modifier = modifier) { drawPattern() }
+        var seconds by remember { mutableFloatStateOf(0f) }
+        if (animated) TwinkleClock { seconds = it }
+        Canvas(modifier = modifier) { drawPattern(seconds) }
     }
 }
 
@@ -70,27 +81,6 @@ class CasinoDiceMat(id: String, palette: MatPalette) : PatternedDiceMat(id, pale
     }
 }
 
-/** Polished dark marble, veined like a kitchen countertop. */
-class MarbleDiceMat(id: String, palette: MatPalette) : PatternedDiceMat(id, palette) {
-    override fun DrawScope.drawPattern() {
-        drawMarble(seed = 11, vein = palette.detail)
-    }
-}
-
-/** A chalkboard in a wooden frame, with a few faint smudges of old chalk. */
-class ChalkboardDiceMat(id: String, palette: MatPalette, private val frame: Color) : PatternedDiceMat(id, palette), Swatched {
-    override val swatch: Color = palette.top
-
-    override fun DrawScope.drawPattern() {
-        val smudge = Color.White.copy(alpha = 0.04f)
-        val width = 18.dp.toPx()
-        drawLine(smudge, Offset(size.width * 0.1f, size.height * 0.8f), Offset(size.width * 0.45f, size.height * 0.55f), strokeWidth = width)
-        drawLine(smudge, Offset(size.width * 0.55f, size.height * 0.9f), Offset(size.width * 0.9f, size.height * 0.6f), strokeWidth = width)
-        drawLine(smudge, Offset(size.width * 0.3f, size.height * 0.45f), Offset(size.width * 0.7f, size.height * 0.4f), strokeWidth = width * 0.7f)
-        insetOutline(2.5.dp, 15.dp, frame, Stroke(width = 5.dp.toPx()))
-    }
-}
-
 /** A gingham tablecloth: see-through bands both ways, darker where they cross. */
 class GinghamDiceMat(id: String, palette: MatPalette) : PatternedDiceMat(id, palette) {
     override fun DrawScope.drawPattern() {
@@ -100,7 +90,11 @@ class GinghamDiceMat(id: String, palette: MatPalette) : PatternedDiceMat(id, pal
 
 /** A night sky full of stars. */
 class StarryDiceMat(id: String, palette: MatPalette) : PatternedDiceMat(id, palette) {
-    override fun DrawScope.drawPattern() {
-        drawStars(seed = 5, color = palette.detail)
+    override val animated: Boolean = true
+
+    override fun DrawScope.drawPattern() = drawPattern(seconds = 0f)
+
+    override fun DrawScope.drawPattern(seconds: Float) {
+        drawStars(seed = 5, color = palette.detail, seconds = seconds)
     }
 }

@@ -1,5 +1,9 @@
 package net.zodac.dicefive.ui.game.style
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -83,8 +87,15 @@ class GinghamBackground(override val id: String, private val palette: Background
 class StarryBackground(override val id: String, private val palette: BackgroundPalette) : TableBackground {
     override val scoreAreaBrush: Brush = Brush.verticalGradient(listOf(palette.top, palette.bottom))
 
+    private var seconds by mutableFloatStateOf(0f)
+
+    @Composable
+    override fun Animate() {
+        TwinkleClock { seconds = it }
+    }
+
     override fun DrawScope.drawScoreAreaDecoration() {
-        drawStars(seed = 9, color = palette.detail)
+        drawStars(seed = 9, color = palette.detail, seconds = seconds)
     }
 }
 

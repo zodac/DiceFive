@@ -168,6 +168,7 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
                     previewSize = DpSize(BACKGROUND_PREVIEW_WIDTH, BACKGROUND_PREVIEW_HEIGHT),
                     backgroundBrush = { background -> background.scoreAreaBrush },
                 ) { background ->
+                    background.Animate()
                     Canvas(modifier = Modifier.matchParentSize()) { with(background) { drawScoreAreaDecoration() } }
                 }
             }

@@ -1,5 +1,8 @@
 package net.zodac.dicefive.ui.game.style
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -10,6 +13,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -19,15 +23,53 @@ import kotlin.random.Random
 // real randomness, so a pattern is the same every time it's drawn instead of shimmering on every
 // recomposition.
 
-/** Scattered stars of varying size and brightness, about one per 22dp square. */
-internal fun DrawScope.drawStars(seed: Int, color: Color = Color.White) {
+/**
+ * Scattered pointed stars of varying size and brightness, about one per 22dp square. At [seconds]
+ * into a twinkle each star's brightness swells and dims a little, each on its own beat - subtle
+ * enough to read as the sky breathing rather than flashing. The default freezes them.
+ */
+internal fun DrawScope.drawStars(seed: Int, color: Color = Color.White, seconds: Float = 0f) {
     val random = Random(seed)
+    // Its own stream, so the stars stay where they always were.
+    val beat = Random(seed + 7919)
     val cell = 22.dp.toPx()
     val count = (size.width * size.height / (cell * cell)).toInt().coerceAtLeast(6)
+    val star = Path()
     repeat(count) {
         val centre = Offset(random.nextFloat() * size.width, random.nextFloat() * size.height)
-        val radius = (0.5f + random.nextFloat() * 0.9f).dp.toPx()
-        drawCircle(color.copy(alpha = 0.25f + random.nextFloat() * 0.6f), radius, centre)
+        val radius = (1.3f + random.nextFloat() * 1.9f).dp.toPx()
+        val alpha = 0.3f + random.nextFloat() * 0.6f
+        val phase = beat.nextFloat() * 2f * PI.toFloat()
+        val speed = 0.5f + beat.nextFloat() * 1.1f
+        val twinkle = 1f - TWINKLE_DEPTH * (0.5f + 0.5f * sin(seconds * speed + phase))
+        // Four long points with hollow sides, so even a small one reads as a star and not a dot.
+        star.rewind()
+        for (i in 0 until 8) {
+            val angle = i * PI.toFloat() / 4f - PI.toFloat() / 2f
+            val reach = if (i % 2 == 0) radius else radius * STAR_WAIST
+            val x = centre.x + cos(angle) * reach
+            val y = centre.y + sin(angle) * reach
+            if (i == 0) star.moveTo(x, y) else star.lineTo(x, y)
+        }
+        star.close()
+        drawPath(star, color.copy(alpha = alpha * twinkle))
+    }
+}
+
+// How far in a star's hollow sides pinch, as a fraction of its points' reach.
+private const val STAR_WAIST = 0.3f
+
+// How far a star dims at the bottom of its twinkle, as a fraction of its brightness.
+private const val TWINKLE_DEPTH = 0.55f
+
+/** Calls [onTick] with the time in seconds on every frame, for as long as it's in the composition. */
+@Composable
+internal fun TwinkleClock(onTick: (Float) -> Unit) {
+    LaunchedEffect(Unit) {
+        while (true) {
+            // Wrapped so the float stays precise however long the app has been up.
+            withFrameNanos { onTick((it / 1_000_000L % 3_600_000L) / 1000f) }
+        }
     }
 }
 
@@ -35,8 +77,7 @@ internal fun DrawScope.drawStars(seed: Int, color: Color = Color.White) {
  * Polished marble, like a kitchen countertop: soft cloudy mottling in [vein]'s colour, then a few
  * long veins wandering across the surface - each one gently irregular rather than smooth, mostly
  * soft haze with a faint crisp line through it, throwing off thinner branches as it goes. Widths scale with the surface's
- * shorter side, so a die and a whole mat get veins in proportion.
- */
+ * shorter side, so a die and a whole mat get veins in proportion. */
 internal fun DrawScope.drawMarble(seed: Int, vein: Color) {
     val random = Random(seed)
     val w = size.width

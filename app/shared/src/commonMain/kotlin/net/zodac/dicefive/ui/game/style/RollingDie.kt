@@ -1,16 +1,29 @@
 package net.zodac.dicefive.ui.game.style
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.pow
@@ -128,11 +141,22 @@ fun faceRing(face: Int, seed: Int): List<Int> {
     return listOf(face, neighbour, 7 - face, 7 - neighbour)
 }
 
+// How rounded the die's outline is while it tumbles, as a fraction of its size - the same as its
+// faces' own corners (BEVELED_DIE_CORNER_PERCENT, STYLED_DIE_CORNER_PERCENT).
+private const val TOSSED_CORNER_FRACTION = 0.22f
+
+// How far the eye is from a face lying flat on the mat, in face widths: far enough that the cube
+// isn't warped, near enough that a face tipping up visibly widens towards you.
+private const val CUBE_EYE_DISTANCE = 4f
+
 /**
  * A die drawn as a solid cube, tumbled [roll] quarter-turns from its resting face ([finalTurns]
  * quarter-turns is resting): the face it's tipping off and the one tipping on, each drawn by [face]
- * in the die's own style, turned in 3D and pushed out to where it sits on the cube, the nearer on
- * top, each shaded as it turns away. [ring] is the faces round the axis it's rolling about - see
+ * in the die's own style, turned in 3D about the cube's centre and projected through one shared eye
+ * ([cubeFaceProjection]) - so the two meet along their shared edge - the nearer on top, each shaded
+ * as it turns away. Behind them is the die's solid [body]: the outline of everything in view, with
+ * the die's own rounded corners, so the rounded edge between the two faces is solid die rather than
+ * a notch the mat shows through. [ring] is the faces round the axis it's rolling about - see
  * [faceRing] - so rolling forward and back again brings the same faces round, like a real die.
  */
 @Composable
@@ -140,37 +164,164 @@ fun TossedCube(
     roll: Float,
     finalTurns: Int,
     ring: List<Int>,
+    body: Color,
     modifier: Modifier = Modifier,
     face: @Composable (value: Int, modifier: Modifier) -> Unit,
 ) {
     fun faceAt(turn: Int) = ring[(turn - finalTurns).mod(ring.size)]
     val base = floor(roll).toInt()
     val tipped = (roll - base) * 90f
-    BoxWithConstraints(modifier = modifier) {
-        val half = constraints.maxHeight / 2f
+    BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
+        val side = constraints.maxWidth.toFloat()
+        val dieWidth = maxWidth
+        val dieHeight = maxHeight
         // The face tipping away and the one coming up from the near side, farthest first.
         val faces = listOf(faceAt(base) to tipped, faceAt(base + 1) to tipped - 90f)
             .map { (value, degrees) -> Triple(value, degrees, cos(degrees * PI.toFloat() / 180f)) }
             .filter { (_, _, facing) -> facing > 0.02f }
             .sortedBy { (_, _, facing) -> facing }
-        for ((value, degrees, facing) in faces) {
-            val offset = half * sin(degrees * PI.toFloat() / 180f)
-            face(
-                value,
-                Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        rotationX = degrees
-                        translationY = -offset
-                        cameraDistance = 12f * density
-                        // Drawn off-screen so the shading below only darkens the face itself.
-                        compositingStrategy = CompositingStrategy.Offscreen
-                    }
+        val projections = faces.map { (_, degrees, _) -> cubeFaceProjection(side, degrees * PI.toFloat() / 180f) }
+        // The die's silhouette: everything in view, with the die's own rounded corners. The solid
+        // body fills it and every face is cut to it, so no face's painted corner pokes past the edge.
+        val corners = listOf(Offset(0f, 0f), Offset(side, 0f), Offset(side, side), Offset(0f, side))
+        val silhouette = roundedConvexPath(
+            convexHull(projections.flatMap { projection -> corners.map { projection.map(it) } }),
+            side * TOSSED_CORNER_FRACTION,
+        )
+        if (faces.size > 1) {
+            Canvas(modifier = Modifier.size(dieWidth, dieHeight)) {
+                // A shade darker than the faces: the edge rounds away from the light.
+                drawPath(silhouette, lerp(body, Color.Black, 0.18f))
+            }
+        }
+        for ((index, faceInView) in faces.withIndex()) {
+            val (value, _, facing) = faceInView
+            val projection = projections[index]
+            // Drawn in a layer twice the die's size, so a face swung up past the die's own square
+            // isn't clipped, and off-screen so the shading only darkens the face itself.
+            Box(
+                modifier = Modifier
+                    .requiredSize(dieWidth * 2, dieHeight * 2)
+                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                     .drawWithContent {
-                        drawContent()
-                        drawRect(Color.Black.copy(alpha = (1f - facing) * 0.45f), blendMode = BlendMode.SrcAtop)
+                        val inset = side / 2f
+                        clipPath(Path().apply { addPath(silhouette, Offset(inset, inset)) }) {
+                            withTransform({
+                                translate(inset, inset)
+                                transform(projection)
+                                translate(-inset, -inset)
+                            }) {
+                                this@drawWithContent.drawContent()
+                                drawRect(
+                                    Color.Black.copy(alpha = (1f - facing) * 0.45f),
+                                    topLeft = Offset(inset, inset),
+                                    size = Size(side, side),
+                                    blendMode = BlendMode.SrcAtop,
+                                )
+                            }
+                        }
                     },
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                face(value, Modifier.size(dieWidth, dieHeight))
+            }
         }
     }
+}
+
+/**
+ * Where a cube face [side] pixels across lands on screen, as a perspective [Matrix] from its own
+ * pixels: the face starts lying flat, facing you, as the top of a cube; the cube turns [radians]
+ * about its left-right axis through its centre - the face tipping up and away - and the result is
+ * seen from [CUBE_EYE_DISTANCE] face widths above that resting face, which it maps onto exactly.
+ * Every face of the cube goes through the same eye, so neighbouring faces share their edge.
+ */
+internal fun cubeFaceProjection(side: Float, radians: Float): Matrix {
+    val c = side / 2f
+    val h = side / 2f
+    val eye = side * CUBE_EYE_DISTANCE
+    val sine = sin(radians)
+    val cosine = cos(radians)
+    // Depth scale: w = (eye + depth of the point) / eye, linear in the face's y.
+    val a = -sine / eye
+    val b = (eye + h - h * cosine) / eye
+    val m = Matrix()
+    m[0, 0] = 1f
+    m[1, 0] = c * a
+    m[3, 0] = c * b - c - a * c * c
+    m[0, 1] = 0f
+    m[1, 1] = cosine + c * a
+    m[3, 1] = -c * cosine - h * sine + c * b - a * c * c
+    m[0, 3] = 0f
+    m[1, 3] = a
+    m[3, 3] = b - a * c
+    return m
+}
+
+/**
+ * The convex polygon through [points] with every corner rounded to [radius] - the polygon shrunk by
+ * [radius] and grown back by a disc of it, so each corner is a true circular arc however short the
+ * edges beside it, matching a [RoundedCornerShape] exactly for a square. Too thin to shrink, it's
+ * left sharp.
+ */
+private fun roundedConvexPath(points: List<Offset>, radius: Float): Path {
+    val inner = insetConvex(points, radius)
+    val path = Path()
+    if (inner.isEmpty()) {
+        points.forEachIndexed { i, p -> if (i == 0) path.moveTo(p.x, p.y) else path.lineTo(p.x, p.y) }
+        path.close()
+        return path
+    }
+    val n = inner.size
+    val centre = inner.reduce { sum, p -> sum + p } / n.toFloat()
+    // The outward normal's angle, in degrees, of the edge from inner[i] to inner[i + 1].
+    fun normalDegrees(i: Int): Float {
+        val edge = inner[(i + 1) % n] - inner[i]
+        var normal = Offset(edge.y, -edge.x)
+        val middle = (inner[i] + inner[(i + 1) % n]) / 2f
+        if ((middle - centre).x * normal.x + (middle - centre).y * normal.y < 0f) normal = -normal
+        return atan2(normal.y, normal.x) * 180f / PI.toFloat()
+    }
+    for (i in 0 until n) {
+        val start = normalDegrees((i + n - 1) % n)
+        var sweep = normalDegrees(i) - start
+        while (sweep > 180f) sweep -= 360f
+        while (sweep < -180f) sweep += 360f
+        val corner = inner[i]
+        path.arcTo(Rect(corner, radius), start, sweep, forceMoveTo = i == 0)
+    }
+    path.close()
+    return path
+}
+
+/** The convex polygon [points] with every edge moved [by] inwards - empty if nothing is left. */
+private fun insetConvex(points: List<Offset>, by: Float): List<Offset> {
+    val n = points.size
+    // Winding: positive area is one way round, negative the other; inwards is to that side.
+    val area = (0 until n).sumOf { i -> (points[i].x * points[(i + 1) % n].y - points[(i + 1) % n].x * points[i].y).toDouble() }
+    val sign = if (area > 0) 1f else -1f
+    var polygon = points
+    for (i in 0 until n) {
+        val a = points[i]
+        val b = points[(i + 1) % n]
+        val edge = b - a
+        val length = edge.getDistance()
+        if (length == 0f) continue
+        val inward = Offset(-edge.y, edge.x) / length * sign
+        val origin = a + inward * by
+        // Keeps what's on the inward side of the moved edge (Sutherland-Hodgman, one edge).
+        fun side(p: Offset) = (p - origin).x * inward.x + (p - origin).y * inward.y
+        val kept = mutableListOf<Offset>()
+        for (j in polygon.indices) {
+            val p = polygon[j]
+            val q = polygon[(j + 1) % polygon.size]
+            val sp = side(p)
+            val sq = side(q)
+            if (sp >= 0f) kept += p
+            if ((sp >= 0f) != (sq >= 0f)) kept += p + (q - p) * (sp / (sp - sq))
+        }
+        polygon = kept
+        if (polygon.size < 3) return emptyList()
+    }
+    return polygon
 }

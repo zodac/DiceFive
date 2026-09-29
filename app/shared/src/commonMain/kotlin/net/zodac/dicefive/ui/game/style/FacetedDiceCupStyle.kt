@@ -40,6 +40,25 @@ object FacetedDiceCupStyle : DiceCupStyle {
     }
 }
 
+/** [FacetedDiceCupStyle]'s shape in blacks, with the same gold edges. */
+object BlackFacetedDiceCupStyle : DiceCupStyle {
+    override val id: String = "faceted_black"
+
+    @Composable
+    override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
+        CupCanvas(rolling, tilted, modifier) {
+            drawFacetedCup(
+                shadeFace = Color(0xFF0A0A0C),
+                litFace = Color(0xFF3A3A3F),
+                midFace = Color(0xFF1C1C20),
+                edge = FacetedCupEdge,
+                interior = Color(0xFF050506),
+                shadow = Color(0xFF050506),
+            )
+        }
+    }
+}
+
 private const val CENTRE_X = 29f
 private const val RIM_RADIUS = 21f
 private const val RIM_Y = 10f

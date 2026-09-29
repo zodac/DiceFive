@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
@@ -151,6 +152,7 @@ private const val CASINO_CORNER_PERCENT = 8
 /** Sharp-cornered, glossy casino dice with flush white pips. */
 class CasinoDiceStyle(override val id: String, private val light: Color, private val dark: Color) : DiceStyle, Swatched {
     override val swatch: Color = light
+    override val bodyColor: Color = lerp(light, dark, 0.5f)
 
     override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(CASINO_CORNER_PERCENT)
 

@@ -284,19 +284,15 @@ class LeatherDiceCupStyle(override val id: String, private val palette: CupPalet
     }
 }
 
-/** A straight casino shaker with raised collars at the lip and base, each picked out with a line of [CupPalette.accent]. */
+/** A straight casino shaker, one radius from lip to base, with a single band of [CupPalette.accent] round its middle. */
 class CasinoDiceCupStyle(override val id: String, private val palette: CupPalette) : DiceCupStyle {
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
         CupCanvas(rolling, tilted, modifier) {
-            drawContactShadow(21f, 76f)
-            drawPath(roundSection(18f, 12f, 18f, 72f), roundShading(palette, 18f))
-            drawPath(roundSection(21f, 67f, 21f, 76f, curvedTop = true), roundShading(palette, 21f))
-            drawPath(frontArcPath(21f, 67f), lerp(palette.light, Color.White, 0.2f), style = Stroke(width = gy(0.8f)))
-            drawPath(frontArcPath(21f, 71.5f), palette.accent, style = Stroke(width = gy(1f)))
-            drawPath(roundSection(21f, 9f, 21f, 17f), roundShading(palette, 21f))
-            drawPath(frontArcPath(21f, 13f), palette.accent, style = Stroke(width = gy(1f)))
-            drawOpenMouth(21f, 9f, palette.mid, palette.interior, palette.accent, 1.1f)
+            drawContactShadow(20f, 76f)
+            drawPath(roundSection(20f, 9f, 20f, 76f), roundShading(palette, 20f))
+            drawPath(frontArcPath(20f, 62f), palette.accent, style = Stroke(width = gy(1f)))
+            drawOpenMouth(20f, 9f, palette.mid, palette.interior, palette.accent, 1.1f)
         }
     }
 }
