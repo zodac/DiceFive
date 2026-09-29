@@ -23,6 +23,7 @@ import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
+import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceStyles
 
@@ -105,12 +106,12 @@ class MenuViewModelTest {
     @Test
     fun `the logo has no styles until the saved picks load - never a flash of the defaults`() = runTest {
         val settings = SettingsRepository(FakePreferencesStore())
-        settings.setDiceStyleId("casino_blue")
+        settings.setDiceStyleId("fire")
         val viewModel = MenuViewModel(settingsRepository = settings)
 
         assertNull(viewModel.logoStyles.value)
         advanceUntilIdle()
-        assertEquals("casino_blue", viewModel.logoStyles.value?.dice?.id)
+        assertEquals("fire", viewModel.logoStyles.value?.dice?.id)
     }
 
     @Test
@@ -120,8 +121,26 @@ class MenuViewModelTest {
         advanceUntilIdle()
         assertEquals(LogoStyles(DiceStyles.default, DiceCupStyles.default), viewModel.logoStyles.value)
 
+        settings.setDiceStyleId("barrel")
+        settings.setDiceCupStyleId("casino_black")
+        advanceUntilIdle()
+
+        assertEquals("barrel", viewModel.logoStyles.value?.dice?.id)
+        assertEquals("casino_black", viewModel.logoStyles.value?.cup?.id)
+    }
+
+    @Test
+    fun `a pick whose style is locked is drawn as the default until it unlocks`() = runTest {
+        val settings = SettingsRepository(FakePreferencesStore())
+        val store = FakeAchievementStore()
         settings.setDiceStyleId("googly_ivory")
         settings.setDiceCupStyleId("top_hat_black")
+        val viewModel = MenuViewModel(store, settings)
+        advanceUntilIdle()
+        assertEquals(LogoStyles(DiceStyles.default, DiceCupStyles.default), viewModel.logoStyles.value)
+
+        val everything = Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }
+        store.record(everything.associateWith { 0L }, emptyMap())
         advanceUntilIdle()
 
         assertEquals("googly_ivory", viewModel.logoStyles.value?.dice?.id)

@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -28,6 +29,9 @@ import androidx.compose.ui.unit.dp
  * scrim, or the system back) is not the same as choosing its second option. Where a caller wants
  * them to be the same, it passes the same lambda.
  *
+ * [title] is null for a dialog whose icon and message say it all. [message] can be an
+ * [AnnotatedString], e.g. from [parseInlineMarkup], to highlight part of it.
+ *
  * [dismissLabel]/[onDismiss] are both null for a purely informational dialog with nothing to
  * confirm or decline - just the one button, [confirmLabel], to close it. Passing one without the
  * other is a caller error.
@@ -35,8 +39,33 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun DiceFiveDialog(
     icon: ImageVector,
-    title: String,
+    title: String?,
     message: String,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    dismissLabel: String? = null,
+    onDismiss: (() -> Unit)? = null,
+    iconTint: Color = MaterialTheme.colorScheme.primary,
+) = DiceFiveDialog(
+    icon = icon,
+    title = title,
+    message = AnnotatedString(message),
+    confirmLabel = confirmLabel,
+    onConfirm = onConfirm,
+    onDismissRequest = onDismissRequest,
+    modifier = modifier,
+    dismissLabel = dismissLabel,
+    onDismiss = onDismiss,
+    iconTint = iconTint,
+)
+
+@Composable
+fun DiceFiveDialog(
+    icon: ImageVector,
+    title: String?,
+    message: AnnotatedString,
     confirmLabel: String,
     onConfirm: () -> Unit,
     onDismissRequest: () -> Unit,
@@ -59,13 +88,15 @@ fun DiceFiveDialog(
                 modifier = Modifier.size(36.dp),
             )
         },
-        title = {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
+        title = title?.let {
+            {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         },
         text = {
             Text(

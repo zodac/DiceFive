@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.AppContainer
+import net.zodac.dicefive.data.achievements.AchievementStore
+import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMats
@@ -20,7 +22,10 @@ import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 
 /** Nullable so this stays constructible/testable without a Context - see [factory], mirroring `SettingsViewModel`. */
-class StylesViewModel(private val settingsRepository: SettingsRepository? = null) : ViewModel() {
+class StylesViewModel(
+    private val settingsRepository: SettingsRepository? = null,
+    achievementsRepository: AchievementStore? = null,
+) : ViewModel() {
 
     val diceStyleId: StateFlow<String> = (settingsRepository?.diceStyleId ?: flowOf(DiceStyles.default.id))
         .stateIn(viewModelScope, SharingStarted.Eagerly, DiceStyles.default.id)
@@ -34,7 +39,15 @@ class StylesViewModel(private val settingsRepository: SettingsRepository? = null
     val diceMatId: StateFlow<String> = (settingsRepository?.diceMatId ?: flowOf(DiceMats.default.id))
         .stateIn(viewModelScope, SharingStarted.Eagerly, DiceMats.default.id)
 
-    /** False until the saved selections have loaded; until then the four ids above are just the defaults. */
+    /** What's been earned so far, which decides which styles are unlocked - see
+     * [StyleUnlock][net.zodac.dicefive.ui.game.style.StyleUnlock]. */
+    val achievements: StateFlow<AchievementsState> = (achievementsRepository?.state ?: flowOf(AchievementsState()))
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AchievementsState())
+
+    /**
+     * False until the saved selections and the achievements have loaded; until then the four ids
+     * above are just the defaults, and every style looks locked.
+     */
     val ready: StateFlow<Boolean> = if (settingsRepository == null) {
         MutableStateFlow(true)
     } else {
@@ -43,7 +56,8 @@ class StylesViewModel(private val settingsRepository: SettingsRepository? = null
             settingsRepository.diceCupStyleId,
             settingsRepository.tableBackgroundId,
             settingsRepository.diceMatId,
-        ) { _, _, _, _ -> true }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+            achievementsRepository?.state ?: flowOf(AchievementsState()),
+        ) { _, _, _, _, _ -> true }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     }
 
     fun setDiceStyleId(id: String) {
@@ -68,7 +82,7 @@ class StylesViewModel(private val settingsRepository: SettingsRepository? = null
 
     companion object {
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
-            initializer { StylesViewModel(container.settingsRepository) }
+            initializer { StylesViewModel(container.settingsRepository, container.achievementsRepository) }
         }
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
@@ -51,13 +52,19 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.model.AchievementVisibility
+import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.HorizontalScrollbar
+import net.zodac.dicefive.ui.common.parseInlineMarkup
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.game.style.DiceCupStyle
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
@@ -68,6 +75,7 @@ import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.StyleCatalog
 import net.zodac.dicefive.ui.game.style.StyleColour
 import net.zodac.dicefive.ui.game.style.StyleFamily
+import net.zodac.dicefive.ui.game.style.StyleUnlock
 import net.zodac.dicefive.ui.game.style.TableArt
 import net.zodac.dicefive.ui.game.style.TableBackground
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
@@ -86,6 +94,9 @@ private val MAT_PREVIEW_HEIGHT = 72.dp
 private val BACKGROUND_PREVIEW_WIDTH = 108.dp
 private val BACKGROUND_PREVIEW_HEIGHT = 72.dp
 private val COLOUR_DOT_SIZE = 7.dp
+// A locked tile's style shows through its scrim; the padlock over it is faded to match.
+private const val LOCKED_SCRIM_ALPHA = 0.55f
+private const val LOCKED_PADLOCK_ALPHA = 0.8f
 
 /** Lets the picked tile tell its card where it sits (x within the row, width) so the card can scroll to it. */
 private val LocalPickedTilePlaced = staticCompositionLocalOf<(Int, Int) -> Unit> { { _, _ -> } }
@@ -101,6 +112,10 @@ private val LocalPickedTilePlaced = staticCompositionLocalOf<(Int, Int) -> Unit>
  * scrollable row of previews, one per colour, to pick from. A style's tile shows the colour picked for it, or its first colour if it isn't the current
  * pick; a row of colour dots along its bottom edge is the cue that it has more than one.
  *
+ * A style that hasn't been unlocked yet (see [StyleUnlock]) is covered by a padlock and can't be
+ * picked; long-pressing it explains what unlocks it. A saved pick whose style is locked shows the
+ * category's default as picked instead, since that's what the game draws in its place.
+ *
  * Mat and background are separate categories - each previews only its own brush (the mat's own
  * [DiceMat.DiceTrayDecoration] shows up on its tile too), not the two composed together, since
  * they're independently selectable rather than a single paired option. All four categories'
@@ -114,6 +129,8 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
     val tableBackgroundId by viewModel.tableBackgroundId.collectAsState()
     val diceMatId by viewModel.diceMatId.collectAsState()
 
+    val achievements by viewModel.achievements.collectAsState()
+
     val ready by viewModel.ready.collectAsState()
 
     ScreenScaffold(title = "Styles", onBack = onBack, modifier = modifier, scrollable = false) {
@@ -123,6 +140,7 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
                 StyleFamilyTiles(
                     catalog = DiceStyles,
                     selectedId = diceStyleId,
+                    achievements = achievements,
                     onSelect = viewModel::setDiceStyleId,
                     previewSize = DpSize(DICE_PREVIEW_SIZE, DICE_PREVIEW_SIZE),
                     backgroundBrush = { SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh) },
@@ -135,6 +153,7 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
                 StyleFamilyTiles(
                     catalog = DiceCupStyles,
                     selectedId = diceCupStyleId,
+                    achievements = achievements,
                     onSelect = viewModel::setDiceCupStyleId,
                     previewSize = DpSize(CUP_PREVIEW_WIDTH, CUP_PREVIEW_HEIGHT),
                     backgroundBrush = { SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh) },
@@ -154,6 +173,7 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
                 StyleFamilyTiles(
                     catalog = DiceMats,
                     selectedId = diceMatId,
+                    achievements = achievements,
                     onSelect = viewModel::setDiceMatId,
                     previewSize = DpSize(MAT_PREVIEW_WIDTH, MAT_PREVIEW_HEIGHT),
                     backgroundBrush = { mat -> mat.diceTrayBrush },
@@ -166,6 +186,7 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
                 StyleFamilyTiles(
                     catalog = TableBackgrounds,
                     selectedId = tableBackgroundId,
+                    achievements = achievements,
                     onSelect = viewModel::setTableBackgroundId,
                     previewSize = DpSize(BACKGROUND_PREVIEW_WIDTH, BACKGROUND_PREVIEW_HEIGHT),
                     backgroundBrush = { background -> background.scoreAreaBrush },
@@ -231,18 +252,27 @@ private fun StyleCategoryCard(title: String, content: @Composable RowScope.() ->
     }
 }
 
-/** One [StyleFamilyTile] per family in [catalog], in order. */
+/**
+ * One [StyleFamilyTile] per family in [catalog], in order. [selectedId] is the saved pick, shown as
+ * the default instead while its style is locked.
+ */
 @Composable
 private fun <T : TableArt> StyleFamilyTiles(
     catalog: StyleCatalog<T>,
     selectedId: String,
+    achievements: AchievementsState,
     onSelect: (String) -> Unit,
     previewSize: DpSize,
     backgroundBrush: @Composable (T) -> Brush,
     preview: @Composable BoxScope.(T) -> Unit,
 ) {
+    val shownSelectedId = catalog.unlockedById(selectedId, achievements).id
     for (family in catalog.families) {
-        StyleFamilyTile(family, selectedId, onSelect, previewSize, backgroundBrush, preview)
+        if (family.unlock.isMet(achievements)) {
+            StyleFamilyTile(family, shownSelectedId, onSelect, previewSize, backgroundBrush, preview)
+        } else {
+            LockedStyleFamilyTile(family, achievements, previewSize, backgroundBrush, preview)
+        }
     }
 }
 
@@ -341,6 +371,91 @@ private fun <T : TableArt> StyleFamilyTile(
         Text(text = family.name, style = MaterialTheme.typography.labelSmall)
     }
 }
+
+/**
+ * A style that hasn't been unlocked yet: its tile in its first colour, faded under a padlock, so
+ * it can't be picked. Long-pressing it pops up what it takes to unlock - [unlockRequirement].
+ */
+@Composable
+private fun <T : TableArt> LockedStyleFamilyTile(
+    family: StyleFamily<T>,
+    achievements: AchievementsState,
+    previewSize: DpSize,
+    backgroundBrush: @Composable (T) -> Brush,
+    preview: @Composable BoxScope.(T) -> Unit,
+) {
+    var showingRequirement by remember { mutableStateOf(false) }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        StylePreview(
+            style = family.colours.first().style,
+            size = previewSize,
+            selected = false,
+            backgroundBrush = backgroundBrush,
+            preview = preview,
+            modifier = Modifier
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = { showingRequirement = true },
+                    onLongClickLabel = "Show how to unlock ${family.name}",
+                )
+                .semantics { contentDescription = "${family.name}, locked" },
+        ) {
+            // Translucent, so the style still shows through - the lock says "not yet", not "hidden".
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = LOCKED_SCRIM_ALPHA)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = LOCKED_PADLOCK_ALPHA),
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+        }
+        Text(text = family.name, style = MaterialTheme.typography.labelSmall)
+    }
+
+    if (showingRequirement) {
+        DiceFiveDialog(
+            icon = Icons.Filled.Lock,
+            title = null,
+            // Backticks mark what to highlight - the gold the rules pages use.
+            message = parseInlineMarkup(
+                unlockRequirement(family, achievements),
+                codeStyle = SpanStyle(fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary),
+            ),
+            confirmLabel = "OK",
+            onConfirm = { showingRequirement = false },
+            onDismissRequest = { showingRequirement = false },
+        )
+    }
+}
+
+/**
+ * What it takes to unlock [family], and how far along [achievements] is, as the locked tile's pop-up
+ * says it - in [parseInlineMarkup]'s markup, with the counts and any achievement's name in backticks
+ * so they're highlighted.
+ */
+private fun unlockRequirement(family: StyleFamily<*>, achievements: AchievementsState): String =
+    when (val unlock = family.unlock) {
+        StyleUnlock.Free -> "${family.name} is always available."
+        is StyleUnlock.AchievementCount -> {
+            val plural = if (unlock.count == 1) "achievement" else "achievements"
+            "Earn `${unlock.count}` $plural to unlock ${family.name}. You've earned `${achievements.countedUnlocks}` so far."
+        }
+        // A secret achievement is never named before it's earned, anywhere.
+        is StyleUnlock.SpecificAchievement -> if (unlock.achievement.visibility == AchievementVisibility.SECRET) {
+            "Earn a secret achievement to unlock ${family.name}."
+        } else {
+            "Earn `${unlock.achievement.title}` to unlock ${family.name}."
+        }
+    }
 
 /**
  * [style] drawn by [preview] on its [backgroundBrush] at [size], outlined in the app's gold with a
