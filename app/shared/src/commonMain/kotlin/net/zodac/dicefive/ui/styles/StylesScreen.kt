@@ -253,8 +253,9 @@ private fun StyleCategoryCard(title: String, content: @Composable RowScope.() ->
 }
 
 /**
- * One [StyleFamilyTile] per family in [catalog], in order. [selectedId] is the saved pick, shown as
- * the default instead while its style is locked.
+ * One [StyleFamilyTile] per family in [catalog]: every unlocked style first, then the locked ones,
+ * each group in the catalog's own order. [selectedId] is the saved pick, shown as the default
+ * instead while its style is locked.
  */
 @Composable
 private fun <T : TableArt> StyleFamilyTiles(
@@ -267,13 +268,13 @@ private fun <T : TableArt> StyleFamilyTiles(
     preview: @Composable BoxScope.(T) -> Unit,
 ) {
     val shownSelectedId = catalog.unlockedById(selectedId, achievements).id
-    for (family in catalog.families) {
-        when {
-            family.unlock.isMet(achievements) -> StyleFamilyTile(family, shownSelectedId, onSelect, previewSize, backgroundBrush, preview)
-            // A secret style isn't so much as hinted at until it's earned.
-            family.unlock.hiddenWhileLocked -> Unit
-            else -> LockedStyleFamilyTile(family, achievements, previewSize, backgroundBrush, preview)
-        }
+    val (unlocked, locked) = catalog.families.partition { it.unlock.isMet(achievements) }
+    for (family in unlocked) {
+        StyleFamilyTile(family, shownSelectedId, onSelect, previewSize, backgroundBrush, preview)
+    }
+    // A secret style isn't so much as hinted at until it's earned.
+    for (family in locked.filterNot { it.unlock.hiddenWhileLocked }) {
+        LockedStyleFamilyTile(family, achievements, previewSize, backgroundBrush, preview)
     }
 }
 
