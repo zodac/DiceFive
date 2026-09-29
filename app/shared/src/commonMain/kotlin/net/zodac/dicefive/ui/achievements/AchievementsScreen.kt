@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -23,12 +24,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +48,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -54,6 +61,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementScrollRequests
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.ui.game.style.styleRewards
 import net.zodac.dicefive.ui.game.style.unlocksStyle
 import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.platform.LocalPlatformServices
@@ -450,8 +458,41 @@ private fun AchievementRow(
                 }
             }
 
-            if (item.achievement.unlocksStyle) StyleRewardStar(tint = tint)
+            if (item.achievement.unlocksStyle) StyleRewardStarWithTooltip(item.achievement, unlocked, tint)
         }
+    }
+}
+
+/**
+ * [StyleRewardStar] on an achievement's row, naming the style(s) it unlocks in a tooltip - on a tap
+ * as well as the long press [TooltipBox] already listens for, since a tap is what most players try
+ * first on a lone icon. A tooltip rather than a dialog: it's a passing "what's this?", not something
+ * to stop and dismiss.
+ */
+// rememberPlainTooltipPositionProvider is deprecated with no replacement in material3 1.4.0 - see
+// ScoresScreen's ScoreRow, which uses it the same way.
+@Suppress("DEPRECATION")
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StyleRewardStarWithTooltip(achievement: Achievement, unlocked: Boolean, tint: Color) {
+    val tooltipState = rememberTooltipState()
+    val scope = rememberCoroutineScope()
+    val message = achievement.styleRewards.joinToString("\n") { reward ->
+        if (unlocked) "You've unlocked ${reward.description}!" else "Earn this to unlock ${reward.description}"
+    }
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+        tooltip = { PlainTooltip { Text(text = message) } },
+        state = tooltipState,
+    ) {
+        StyleRewardStar(
+            tint = tint,
+            modifier = Modifier.clickable(
+                interactionSource = null,
+                indication = null,
+                onClickLabel = "Show which style this unlocks",
+            ) { scope.launch { tooltipState.show() } },
+        )
     }
 }
 

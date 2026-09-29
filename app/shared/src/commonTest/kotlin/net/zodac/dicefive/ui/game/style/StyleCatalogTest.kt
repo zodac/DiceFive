@@ -124,6 +124,7 @@ class StyleCatalogTest {
         assertEquals("Irish", irish.name)
         assertTrue(irish.unlock.hiddenWhileLocked)
         assertTrue(Achievement.LUCK_OF_THE_IRISH.unlocksStyle)
+        assertEquals(listOf("the 'Irish' dice style"), Achievement.LUCK_OF_THE_IRISH.styleRewards.map { it.description })
 
         // No number of ordinary achievements unlocks it - only the one.
         val everythingElse = Achievement.entries.filter { it != Achievement.LUCK_OF_THE_IRISH }

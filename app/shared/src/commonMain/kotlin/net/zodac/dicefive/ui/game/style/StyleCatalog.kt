@@ -50,8 +50,9 @@ data class StyleFamily<T : TableArt>(
 /**
  * Every [StyleFamily] in one category of table art, in the order they're offered on the Styles
  * screen. Every colour of every family is a separately saved pick, by its own [TableArt.id].
+ * [noun] is what one of the category is called in a sentence - "the 'Irish' dice style".
  */
-open class StyleCatalog<T : TableArt>(val families: List<StyleFamily<T>>) {
+open class StyleCatalog<T : TableArt>(val noun: String, val families: List<StyleFamily<T>>) {
     val all: List<T> = families.flatMap { family -> family.colours.map { it.style } }
 
     /** The first colour of the first family. */
@@ -80,6 +81,7 @@ open class StyleCatalog<T : TableArt>(val families: List<StyleFamily<T>>) {
 val StyleCatalogs: List<StyleCatalog<*>> get() = listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds)
 
 object DiceStyles : StyleCatalog<DiceStyle>(
+    "dice",
     listOf(
         StyleFamily(
             "Classic",
@@ -262,6 +264,7 @@ val ClassicGoldDiceCupStyle: DiceCupStyle = CasinoDiceCupStyle(
 )
 
 object DiceCupStyles : StyleCatalog<DiceCupStyle>(
+    "dice cup",
     listOf(
         // The casino shaker, first so it's the default - "Classic", like every category's default.
         // Its ids still say "casino": they're saved picks, so they stay put if the default moves.
@@ -353,6 +356,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
 )
 
 object TableBackgrounds : StyleCatalog<TableBackground>(
+    "background",
     listOf(
         StyleFamily(
             "Classic",
@@ -423,6 +427,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
 )
 
 object DiceMats : StyleCatalog<DiceMat>(
+    "mat",
     listOf(
         StyleFamily(
             "Classic",

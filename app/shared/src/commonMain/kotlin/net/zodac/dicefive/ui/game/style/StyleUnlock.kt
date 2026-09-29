@@ -45,11 +45,22 @@ sealed interface StyleUnlock {
     }
 }
 
+/** A style that earning one particular achievement unlocks, and what it's called: "the 'Irish' dice style". */
+data class StyleReward(val styleName: String, val categoryNoun: String) {
+    val description: String get() = "the '$styleName' $categoryNoun style"
+}
+
+/** Every style that earning this achievement unlocks, in the Styles screen's category order. */
+val Achievement.styleRewards: List<StyleReward>
+    get() = StyleCatalogs.flatMap { catalog ->
+        catalog.families
+            .filter { (it.unlock as? StyleUnlock.SpecificAchievement)?.achievement == this }
+            .map { StyleReward(it.name, catalog.noun) }
+    }
+
 /**
  * Whether earning this achievement is what unlocks some style - its row and unlock banner carry a
  * star to say there's something extra to go and find on the Styles screen.
  */
 val Achievement.unlocksStyle: Boolean
-    get() = StyleCatalogs.any { catalog ->
-        catalog.families.any { (it.unlock as? StyleUnlock.SpecificAchievement)?.achievement == this }
-    }
+    get() = styleRewards.isNotEmpty()
