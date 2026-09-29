@@ -454,6 +454,17 @@ size you can't check.
 - The per-player difficulty selector on the setup screen: it cost a control row per player and
   every option in it is disabled until AI difficulty exists, so it's one line of text for now.
   `PlayerSetupSlot.difficulty` and `setPlayerDifficulty` are untouched - only the UI went.
+- `BrandBackdrop`'s watermark dice drift only on the main menu (`driftingDice`, which the menu
+  alone sets; every other screen keeps them still). `DiceDrift` holds the logic, free of Compose so
+  `DiceDriftTest` can pin it: five dice, each crossing in a straight line up and to one side and
+  turning slower than it travels (its corners move slower than its centre), then coming straight
+  back in just below the bottom edge on a new path, size and face - so there's no pool of dice
+  waiting off screen, and only dice actually showing are drawn. A path's lean is held to what lets
+  it cross most of the height before running out of width (about 25 degrees on an upright phone),
+  or a narrow screen's dice bunch in its lower half; and a returning die takes whichever of a dozen
+  candidate paths stays furthest from the others over the next twelve seconds. "Gone" and the entry
+  point use each die's extent at its current turn, not its worst-case half-diagonal, so none is out
+  of sight longer than it must be - which is what keeps three to five showing.
 - `AppLogo` is deliberately live Compose art, not a drawable - the launcher icon
   (`ic_launcher_foreground.xml`) is the app's static artwork of the default dice and cup; the
   in-app logo is not meant to duplicate it. On the menu it's drawn in the player's own dice and cup
