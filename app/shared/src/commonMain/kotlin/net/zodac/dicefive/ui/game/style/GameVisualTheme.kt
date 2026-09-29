@@ -49,7 +49,14 @@ interface DiceStyle : TableArt {
      */
     val bodyColor: Color get() = (this as? Swatched)?.swatch ?: Color.LightGray
 
-    fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(BEVELED_DIE_CORNER_PERCENT)
+    fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(cornerPercent)
+
+    /**
+     * How rounded the die's corners are, as a percentage of its size - the one figure its face, its
+     * shadow and its tumble ([TossedCube]) all round to, so a square-cornered die doesn't tumble
+     * rounded and then snap square as it lands.
+     */
+    val cornerPercent: Int get() = BEVELED_DIE_CORNER_PERCENT
 
     /**
      * The face this style's art shows above [value] on the die, for a style drawn as a solid with
@@ -66,7 +73,7 @@ interface DiceStyle : TableArt {
      */
     @Composable
     fun TossedDie(roll: Float, finalTurns: Int, ring: List<Int>, modifier: Modifier) {
-        TossedCube(roll = roll, finalTurns = finalTurns, ring = ring, body = bodyColor, modifier = modifier) { value, faceModifier ->
+        TossedCube(roll = roll, finalTurns = finalTurns, ring = ring, body = bodyColor, cornerPercent = cornerPercent, modifier = modifier) { value, faceModifier ->
             Die(value = value, held = false, modifier = faceModifier)
         }
     }

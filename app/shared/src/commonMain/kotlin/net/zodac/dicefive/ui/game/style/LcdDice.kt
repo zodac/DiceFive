@@ -1,6 +1,5 @@
 package net.zodac.dicefive.ui.game.style
 
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -9,7 +8,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import net.zodac.dicefive.ui.theme.GoldAccent
@@ -56,7 +54,7 @@ class LcdDiceStyle(
         LcdDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, glow = false, heldRing = palette.heldRing)
     }
 
-    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(LCD_CORNER_PERCENT)
+    override val cornerPercent: Int = LCD_CORNER_PERCENT
 
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(

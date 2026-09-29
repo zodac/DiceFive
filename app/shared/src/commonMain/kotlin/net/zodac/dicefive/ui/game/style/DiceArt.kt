@@ -168,7 +168,7 @@ class CasinoDiceStyle(
     override fun recoloured(palette: DieColourPalette): DiceStyle =
         CasinoDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, palette.heldRing)
 
-    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(CASINO_CORNER_PERCENT)
+    override val cornerPercent: Int = CASINO_CORNER_PERCENT
 
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
@@ -211,7 +211,7 @@ class FrostedDiceStyle(
     override fun recoloured(palette: DieColourPalette): DiceStyle =
         FrostedDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, palette.heldRing)
 
-    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(FROSTED_CORNER_PERCENT)
+    override val cornerPercent: Int = FROSTED_CORNER_PERCENT
 
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) {
@@ -308,7 +308,7 @@ class MarbleDiceStyle(
         id, palette.diceTop, palette.diceBottom, lerp(palette.diceBottom, palette.pip, 0.4f), palette.pip, seed, palette.heldRing,
     )
 
-    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(MARBLE_CORNER_PERCENT)
+    override val cornerPercent: Int = MARBLE_CORNER_PERCENT
 
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) {
@@ -352,7 +352,7 @@ class MetalDiceStyle(
         palette.heldRing,
     )
 
-    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(METAL_CORNER_PERCENT)
+    override val cornerPercent: Int = METAL_CORNER_PERCENT
 
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
@@ -383,7 +383,7 @@ class RetroDiceStyle(
     override fun recoloured(palette: DieColourPalette): DiceStyle =
         RetroDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, palette.heldRing)
 
-    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(RETRO_CORNER_PERCENT)
+    override val cornerPercent: Int = RETRO_CORNER_PERCENT
 
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
@@ -422,7 +422,7 @@ class NumeralDiceStyle(
     override fun recoloured(palette: DieColourPalette): DiceStyle =
         NumeralDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, system, palette.heldRing)
 
-    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(STYLED_DIE_CORNER_PERCENT)
+    override val cornerPercent: Int = STYLED_DIE_CORNER_PERCENT
 
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
@@ -474,7 +474,7 @@ object IrishFlagDiceStyle : DiceStyle, Swatched {
         1f to IrishOrangeSwatch,
     )
 
-    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(STYLED_DIE_CORNER_PERCENT)
+    override val cornerPercent: Int = STYLED_DIE_CORNER_PERCENT
 
     // Its flag is nothing but colours, so on a coloured roll it's a plain die of the same shape in
     // the roll's colour - three bands in one colour would just be that colour anyway.
@@ -484,7 +484,7 @@ object IrishFlagDiceStyle : DiceStyle, Swatched {
 
         override fun recoloured(palette: DieColourPalette): DiceStyle = this@IrishFlagDiceStyle.recoloured(palette)
 
-        override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(STYLED_DIE_CORNER_PERCENT)
+        override val cornerPercent: Int = STYLED_DIE_CORNER_PERCENT
 
         @Composable
         override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(

@@ -141,10 +141,6 @@ fun faceRing(face: Int, seed: Int): List<Int> {
     return listOf(face, neighbour, 7 - face, 7 - neighbour)
 }
 
-// How rounded the die's outline is while it tumbles, as a fraction of its size - the same as its
-// faces' own corners (BEVELED_DIE_CORNER_PERCENT, STYLED_DIE_CORNER_PERCENT).
-private const val TOSSED_CORNER_FRACTION = 0.22f
-
 // How far the eye is from a face lying flat on the mat, in face widths: far enough that the cube
 // isn't warped, near enough that a face tipping up visibly widens towards you.
 private const val CUBE_EYE_DISTANCE = 4f
@@ -155,7 +151,7 @@ private const val CUBE_EYE_DISTANCE = 4f
  * in the die's own style, turned in 3D about the cube's centre and projected through one shared eye
  * ([cubeFaceProjection]) - so the two meet along their shared edge - the nearer on top, each shaded
  * as it turns away. Behind them is the die's solid [body]: the outline of everything in view, with
- * the die's own rounded corners, so the rounded edge between the two faces is solid die rather than
+ * the die's own [cornerPercent] corners, so the rounded edge between the two faces is solid die rather than
  * a notch the mat shows through. [ring] is the faces round the axis it's rolling about - see
  * [faceRing] - so rolling forward and back again brings the same faces round, like a real die.
  */
@@ -165,6 +161,7 @@ fun TossedCube(
     finalTurns: Int,
     ring: List<Int>,
     body: Color,
+    cornerPercent: Int,
     modifier: Modifier = Modifier,
     face: @Composable (value: Int, modifier: Modifier) -> Unit,
 ) {
@@ -186,7 +183,7 @@ fun TossedCube(
         val corners = listOf(Offset(0f, 0f), Offset(side, 0f), Offset(side, side), Offset(0f, side))
         val silhouette = roundedConvexPath(
             convexHull(projections.flatMap { projection -> corners.map { projection.map(it) } }),
-            side * TOSSED_CORNER_FRACTION,
+            side * cornerPercent / 100f,
         )
         if (faces.size > 1) {
             Canvas(modifier = Modifier.size(dieWidth, dieHeight)) {
