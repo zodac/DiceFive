@@ -11,6 +11,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -21,6 +27,7 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
+import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 
@@ -165,7 +172,35 @@ internal fun CategoryCell(
         0
     }
 
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    // One node for a screen reader - the tile's name and the score beside it together, rather than an
+    // unlabelled button and a stray number - replacing the tile's own click with the same action.
+    val irish = LocalIrishTricolour.current
+    val spokenState = when {
+        filled != null -> buildString {
+            append("Scored $filled")
+            if (pendingBonusAmount > 0) append(", plus $pendingBonusAmount bonus")
+        }
+        previewScore != null -> buildString {
+            append("Would score $previewScore")
+            if (fiveOfAKindTileBonusPreview) append(", plus $pendingBonusAmount bonus")
+        }
+        else -> "Open"
+    }
+    Row(
+        modifier = modifier.clearAndSetSemantics {
+            contentDescription = category.spokenName(irish)
+            stateDescription = spokenState
+            if (isLegalChoice) {
+                role = Role.Button
+                onClick(label = "Score") {
+                    onScoreCategory(category)
+                    true
+                }
+            }
+        },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         CategoryTile(
             category = category,
             // Not `|| fiveOfAKindTileBonusPreview`: the 5x tile is never actually pickable again
