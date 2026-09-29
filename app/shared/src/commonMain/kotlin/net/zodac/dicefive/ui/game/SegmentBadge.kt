@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.theme.TileBadgeBackground
 
 /**
  * A small circular badge showing 1-2 digits - used for both the Small/Large Straight run-length
@@ -33,7 +34,7 @@ fun SegmentBadge(count: Int, color: Color, modifier: Modifier = Modifier) {
     BoxWithConstraints(
         modifier = modifier
             .clip(CircleShape)
-            .background(Color(0xFF0F211D))
+            .background(TileBadgeBackground)
             .border(1.dp, color.copy(alpha = 0.6f), CircleShape),
         contentAlignment = Alignment.Center,
     ) {
