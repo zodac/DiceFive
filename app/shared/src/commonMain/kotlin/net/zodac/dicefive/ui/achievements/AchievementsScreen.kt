@@ -38,7 +38,6 @@ import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +53,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -160,8 +160,8 @@ fun AchievementsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val state by viewModel.uiState.collectAsState()
-    val superuserModeActive by viewModel.superuserModeActive.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val superuserModeActive by viewModel.superuserModeActive.collectAsStateWithLifecycle()
 
     val platform = LocalPlatformServices.current
     LaunchedEffect(viewModel) {

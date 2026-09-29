@@ -8,13 +8,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -64,9 +64,9 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
         popExitTransition = { fadeOut },
     ) {
         composable(Screen.MENU) {
-            val hasInProgressGame by container.inProgressGameRepository.hasInProgressGame.collectAsState(initial = false)
+            val hasInProgressGame by container.inProgressGameRepository.hasInProgressGame.collectAsStateWithLifecycle(initialValue = false)
             val menuViewModel = viewModel<MenuViewModel>(factory = MenuViewModel.factory(container))
-            val logoStyles by menuViewModel.logoStyles.collectAsState()
+            val logoStyles by menuViewModel.logoStyles.collectAsStateWithLifecycle()
             MenuScreen(
                 hasInProgressGame = hasInProgressGame,
                 onContinue = { navController.navigate(Screen.playSetup(resume = true)) },

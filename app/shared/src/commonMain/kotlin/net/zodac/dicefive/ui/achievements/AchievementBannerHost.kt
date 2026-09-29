@@ -28,7 +28,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
@@ -52,6 +51,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -157,8 +157,8 @@ fun AchievementBannerHost(
     val banners = remember { mutableStateListOf<BannerItem>() }
 
     val container = LocalAppContainer.current
-    val hasInProgressGame by container.inProgressGameRepository.hasInProgressGame.collectAsState(initial = false)
-    val confirmBeforeLeavingGame by container.settingsRepository.confirmBeforeLeavingGame.collectAsState(initial = true)
+    val hasInProgressGame by container.inProgressGameRepository.hasInProgressGame.collectAsStateWithLifecycle(initialValue = false)
+    val confirmBeforeLeavingGame by container.settingsRepository.confirmBeforeLeavingGame.collectAsStateWithLifecycle(initialValue = true)
     // The achievement a long press asked to jump to, mid-game, waiting on the leave-game
     // confirmation below before it actually navigates - null the rest of the time, including once
     // there's no game to leave, when onAchievementSelected is called directly instead.

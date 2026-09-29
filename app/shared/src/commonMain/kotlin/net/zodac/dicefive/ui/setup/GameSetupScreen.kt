@@ -27,7 +27,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -39,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
@@ -62,7 +62,7 @@ fun GameSetupScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val setup by viewModel.setup.collectAsState()
+    val setup by viewModel.setup.collectAsStateWithLifecycle()
     val activeSlots = setup.playerSlots.take(setup.playerCount)
     val duplicateNameSlots = duplicateHumanNameSlots(activeSlots)
 

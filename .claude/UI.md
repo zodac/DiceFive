@@ -149,6 +149,10 @@ bottom once the form is too tall to fit and has to scroll.
 
 ## Component conventions
 
+- **`collectAsStateWithLifecycle`, never `collectAsState`**, for a flow read into a composable, so
+  collection stops while the app is in the background instead of carrying on for nothing (a
+  `Flow` needs `initialValue =`; a `StateFlow` starts from its own value). It's common code -
+  `lifecycle-runtime-compose` - so iOS gets the same.
 - **Stock M3 components**, themed by the scheme. No hand-built buttons. A gradient-and-gloss
   button set was written and then deleted - it re-implemented state layers, ripple and
   disabled colours worse than the framework does.
