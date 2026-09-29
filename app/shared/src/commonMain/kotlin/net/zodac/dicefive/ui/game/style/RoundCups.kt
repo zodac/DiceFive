@@ -10,9 +10,11 @@ import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -34,6 +36,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.sign
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -44,6 +47,11 @@ import net.zodac.dicefive.model.FLOWERPOT_FULL_BLOOM
 import net.zodac.dicefive.ui.theme.FlowerpotLeaf
 import net.zodac.dicefive.ui.theme.FlowerpotLeafDark
 import net.zodac.dicefive.ui.theme.FlowerpotStem
+import net.zodac.dicefive.ui.theme.MartiniGlassSwatch
+import net.zodac.dicefive.ui.theme.MartiniLiquidSwatch
+import net.zodac.dicefive.ui.theme.MartiniOliveHighlightSwatch
+import net.zodac.dicefive.ui.theme.MartiniOliveSwatch
+import net.zodac.dicefive.ui.theme.MartiniPickSwatch
 import net.zodac.dicefive.ui.theme.RabbitEye
 import net.zodac.dicefive.ui.theme.RabbitFur
 import net.zodac.dicefive.ui.theme.RabbitFurShade
@@ -429,6 +437,70 @@ private const val HAT_BRIM_RADIUS = 36f
 // The rabbit's size relative to the proportions it was sketched at.
 private const val RABBIT_SCALE = 1.4f
 
+// A rabbit that's always out slides about the opening like a bead in a tray: how far either way it
+// can go from the centre line (grid units - it never leaves the opening), how hard the hat's tilt
+// pulls it (units/s^2 at a right angle), how hard the hat's own swinging throws it back (units per
+// radian of angular acceleration), the most it's ever accelerated, how quickly it loses speed, and
+// how much of its speed it keeps bouncing off an end.
+internal const val RABBIT_SLIDE_RANGE = 7f
+private const val RABBIT_GRAVITY = 500f
+private const val RABBIT_THROW = 15f
+private const val RABBIT_MAX_ACCELERATION = 3_000f
+private const val RABBIT_DRAG = 1.2f
+private const val RABBIT_BOUNCE = 0.35f
+// How long the physics keeps running after the hat last changed - shaking, or tipping over - and how
+// still the rabbit has to be by then for it to stop and ask for no more frames.
+private const val RABBIT_SETTLE_MILLIS = 2_500L
+private const val RABBIT_AT_REST_SPEED = 1f
+// How far it leans, in degrees, at its top speed.
+private const val RABBIT_LEAN_DEGREES = 9f
+// The speed at which it leans that far.
+private const val RABBIT_MAX_SPEED = 60f
+
+/**
+ * A rabbit sliding along a hat's opening. Given the hat's angle every frame ([step]) it works out
+ * what the hat is doing to it: gravity pulls it towards whichever side of the hat is lower, and as
+ * the hat swings it's thrown the opposite way - so a shaken hat rattles it from end to end. It
+ * bounces off either end of [RABBIT_SLIDE_RANGE] and never leaves.
+ */
+internal class RabbitSlide {
+    var x = 0f
+        private set
+    var velocity = 0f
+        private set
+    private var lastNanos = 0L
+    private var lastAngle = 0f
+    private var lastAngularVelocity = 0f
+
+    /** Moves on to the frame at [nowNanos], with the hat at [angleDegrees] (clockwise). */
+    fun step(nowNanos: Long, angleDegrees: Float) {
+        if (lastNanos == 0L) {
+            lastNanos = nowNanos
+            lastAngle = angleDegrees
+            return
+        }
+        val seconds = ((nowNanos - lastNanos) / 1e9f).coerceAtMost(1f / 30f)
+        // Several draws in one frame, or none yet: nothing has moved.
+        if (seconds <= 0f) return
+        val angularVelocity = (angleDegrees - lastAngle) * (PI.toFloat() / 180f) / seconds
+        val angularAcceleration = (angularVelocity - lastAngularVelocity) / seconds
+        lastNanos = nowNanos
+        lastAngle = angleDegrees
+        lastAngularVelocity = angularVelocity
+
+        val gravity = RABBIT_GRAVITY * sin(angleDegrees * PI.toFloat() / 180f)
+        val acceleration = (gravity - RABBIT_THROW * angularAcceleration).coerceIn(-RABBIT_MAX_ACCELERATION, RABBIT_MAX_ACCELERATION)
+        velocity = (velocity + acceleration * seconds) * (1f - RABBIT_DRAG * seconds)
+        x += velocity * seconds
+        if (abs(x) > RABBIT_SLIDE_RANGE) {
+            x = RABBIT_SLIDE_RANGE * sign(x)
+            velocity = -velocity * RABBIT_BOUNCE
+        }
+    }
+
+    val isAtRest: Boolean get() = abs(velocity) < RABBIT_AT_REST_SPEED
+}
+
 
 /**
  * A top hat turned upside down: the crown as the cup, a [CupPalette.accent] ribbon, and the wide
@@ -439,17 +511,42 @@ private const val RABBIT_SCALE = 1.4f
  * it for [RABBIT_PEEK_MILLIS], twitches an ear, and ducks back in - telling [LocalOnRabbitSeen] as
  * it does, which is what unlocks The Magician's Secret. Once per quiet spell - anything the player
  * does sends it straight back down and starts the wait again.
+ *
+ * With [rabbitAlwaysOut] - the secret hat that earns - the rabbit is simply always there, up out of
+ * the opening, and slides from side to side along it as the hat is shaken and tipped (see
+ * [RabbitSlide]), never falling out.
  */
-class TopHatDiceCupStyle(override val id: String, private val palette: CupPalette) : DiceCupStyle {
+class TopHatDiceCupStyle(
+    override val id: String,
+    private val palette: CupPalette,
+    private val rabbitAlwaysOut: Boolean = false,
+) : DiceCupStyle {
     override val shape: CupShape = CupShape.SQUAT
 
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
-        val peek = remember { Animatable(0f) }
+        val peek = remember { Animatable(if (rabbitAlwaysOut) 1f else 0f) }
         val earTwitch = remember { Animatable(0f) }
         val activity = LocalCupActivity.current
         val onRabbitSeen by rememberUpdatedState(LocalOnRabbitSeen.current)
+        val slide = remember { RabbitSlide() }
+        // A frame clock for the slide, only while the hat is moving or has just been: it starts when
+        // the hat is shaken or tipped and stops once the rabbit has come to rest, so a still hat asks
+        // for no frames at all.
+        val tick = remember { mutableLongStateOf(0L) }
+        if (rabbitAlwaysOut) {
+            LaunchedEffect(rolling, tilted) {
+                var until = 0L
+                while (true) {
+                    val now = withFrameNanos { it }
+                    if (until == 0L) until = now + RABBIT_SETTLE_MILLIS * 1_000_000L
+                    tick.longValue = now
+                    if (!rolling && now > until && slide.isAtRest) break
+                }
+            }
+        }
         LaunchedEffect(tilted, rolling, activity) {
+            if (rabbitAlwaysOut) return@LaunchedEffect
             peek.animateTo(0f, tween(RABBIT_RISE_MILLIS / 2))
             if (!tilted || rolling) return@LaunchedEffect
             delay(Random.nextLong(RABBIT_IDLE_MILLIS.first, RABBIT_IDLE_MILLIS.last + 1))
@@ -484,7 +581,12 @@ class TopHatDiceCupStyle(override val id: String, private val palette: CupPalett
 
             // Read only here, inside the draw, so the peek just repaints the hat.
             val progress = peek.value
-            if (progress > 0f) drawRabbit(progress, earTwitch.value)
+            if (rabbitAlwaysOut) {
+                slide.step(tick.longValue, pose.rotation)
+                drawRabbit(progress, earTwitch.value, slide.x, slide.velocity / RABBIT_MAX_SPEED * RABBIT_LEAN_DEGREES)
+            } else if (progress > 0f) {
+                drawRabbit(progress, earTwitch.value)
+            }
         }
     }
 
@@ -492,9 +594,10 @@ class TopHatDiceCupStyle(override val id: String, private val palette: CupPalett
      * The rabbit, risen [progress] (0..1) of the way out of the opening: head and ears clipped to
      * the opening and everything above it, so whatever's still inside the hat stays hidden behind
      * the front rim, then its paws over that rim once it's most of the way up. [twitch] (0..1)
-     * flicks its right ear.
+     * flicks its right ear. [slide] moves the whole rabbit that many grid units along the opening,
+     * leaning [lean] degrees (clockwise) as it goes.
      */
-    private fun CupDrawScope.drawRabbit(progress: Float, twitch: Float) {
+    private fun CupDrawScope.drawRabbit(progress: Float, twitch: Float, slide: Float = 0f, lean: Float = 0f) {
         // Every measurement below is a multiple of k, the rabbit's size, around the centre line.
         val k = RABBIT_SCALE
         val headY = HAT_BRIM_Y + 14f * k - 20f * k * progress
@@ -521,29 +624,36 @@ class TopHatDiceCupStyle(override val id: String, private val palette: CupPalett
             }
         }
 
+        // Worked out here too, for the same reason.
+        val slidePx = gx(slide)
+        val leanPivot = Offset(gx(centreX), gy(HAT_BRIM_Y))
         clipPath(visible) {
-            for ((angle, pivot, ear) in ears) {
-                rotate(angle, pivot) {
-                    drawOval(RabbitFur, topLeft = ear.topLeft, size = ear.size)
-                    val inner = ear.deflate(ear.width * 0.28f)
-                    drawOval(RabbitPink, topLeft = inner.topLeft, size = inner.size)
+            translate(left = slidePx) {
+                rotate(lean, leanPivot) {
+                    for ((angle, pivot, ear) in ears) {
+                        rotate(angle, pivot) {
+                            drawOval(RabbitFur, topLeft = ear.topLeft, size = ear.size)
+                            val inner = ear.deflate(ear.width * 0.28f)
+                            drawOval(RabbitPink, topLeft = inner.topLeft, size = inner.size)
+                        }
+                    }
+                    drawOval(Brush.verticalGradient(listOf(RabbitFur, RabbitFurShade), startY = head.top, endY = head.bottom), topLeft = head.topLeft, size = head.size)
+                    for (eye in eyes) {
+                        drawCircle(RabbitEye, radius = eyeRadius, center = eye)
+                        drawCircle(Color.White, radius = eyeRadius * 0.35f, center = eye - Offset(eyeRadius * 0.3f, eyeRadius * 0.3f))
+                    }
+                    drawOval(RabbitPink, topLeft = nose.topLeft, size = nose.size)
+                    for ((from, to) in whiskers) drawLine(RabbitFurShade, from, to, strokeWidth = whiskerWidth)
                 }
             }
-            drawOval(Brush.verticalGradient(listOf(RabbitFur, RabbitFurShade), startY = head.top, endY = head.bottom), topLeft = head.topLeft, size = head.size)
-            for (eye in eyes) {
-                drawCircle(RabbitEye, radius = eyeRadius, center = eye)
-                drawCircle(Color.White, radius = eyeRadius * 0.35f, center = eye - Offset(eyeRadius * 0.3f, eyeRadius * 0.3f))
-            }
-            drawOval(RabbitPink, topLeft = nose.topLeft, size = nose.size)
-            for ((from, to) in whiskers) drawLine(RabbitFurShade, from, to, strokeWidth = whiskerWidth)
         }
 
         // Paws on the front rim, arriving over the last stretch of the rise.
         val pawAlpha = ((progress - 0.4f) / 0.6f).coerceIn(0f, 1f)
         if (pawAlpha > 0f) {
             for (dx in listOf(-7f, 7f)) {
-                val x = centreX + dx * k
-                val across = (x - centreX) / HAT_OPENING_RADIUS
+                val x = centreX + dx * k + slide
+                val across = ((x - centreX) / HAT_OPENING_RADIUS).coerceIn(-1f, 1f)
                 val rimY = HAT_BRIM_Y + HAT_OPENING_RADIUS * CUP_VIEW_SQUASH * sqrt(1f - across * across)
                 val paw = Rect(Offset(gx(x - 2.5f * k), gy(rimY - 2.2f * k)), Size(gx(5f * k), gy(3.6f * k)))
                 drawOval(RabbitFur.copy(alpha = pawAlpha), topLeft = paw.topLeft, size = paw.size)
@@ -649,22 +759,24 @@ class TakeawayDiceCupStyle(override val id: String, private val palette: CupPale
  * An easter egg: in a game the plant grows with the current player's rolls ([LocalFlowerpotGrowth]),
  * from bare soil through a seedling, a stalk with a bud and the bud opening, to a sunflower in full
  * bloom for a player who uses every roll of every turn - which is what earns Greenfingers, and with
- * it the secret Sunflower cup: this pot [inFullBloom], its sunflower always out.
+ * it the secret pots that hold the plant at each stage: one with a [fixedStage] never grows, and is
+ * just a pot with that plant in it. Only the one with no [fixedStage] - the empty pot that grows -
+ * does the game's Flowerpot tricks (the plant, standing back up to show off its bloom).
  */
 class FlowerpotDiceCupStyle(
     override val id: String,
     private val palette: CupPalette,
-    private val inFullBloom: Boolean = false,
+    private val fixedStage: Int? = null,
 ) : DiceCupStyle {
     override val shape: CupShape = CupShape.SQUAT
 
     // A sunflower grown this game, not one the pot always has.
-    override fun showsOffWhenSpent(growth: FlowerpotGrowth): Boolean = !inFullBloom && growth.stage == FLOWERPOT_FULL_BLOOM
+    override fun showsOffWhenSpent(growth: FlowerpotGrowth): Boolean = fixedStage == null && growth.stage == FLOWERPOT_FULL_BLOOM
 
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
         val growth = LocalFlowerpotGrowth.current
-        val stage = if (inFullBloom) FLOWERPOT_FULL_BLOOM else growth.stage
+        val stage = fixedStage ?: growth.stage
         // The same grower's plant grows into its next stage; another's replaces it outright.
         val plant = remember(growth.grower) { Animatable(stage.toFloat()) }
         LaunchedEffect(plant, stage) {
@@ -1115,5 +1227,112 @@ class BeakerDiceCupStyle(override val id: String, private val tint: Color, priva
             }
             drawPath(spout, Color.White.copy(alpha = 0.8f), style = Stroke(width = gy(1f)))
         }
+    }
+}
+
+// The martini glass, on the TALL grid: a wide conical bowl narrowing to a point, a thin stem and a
+// round foot. The drink rests a little below the rim; the olive floats on it.
+private const val MARTINI_RIM_Y = 14f
+private const val MARTINI_RIM_RADIUS = 25f
+private const val MARTINI_BOWL_TIP_Y = 48f
+private const val MARTINI_BOWL_TIP_RADIUS = 1.6f
+private const val MARTINI_FOOT_Y = 73f
+private const val MARTINI_FOOT_RADIUS = 15f
+private const val MARTINI_LEVEL_Y = 25f
+private const val OLIVE_RADIUS = 3.6f
+// The olive rides on rails: a short stretch of the drink's surface, centred a little left of the
+// centre line, that it can't leave however hard the glass is shaken. It's this far (grid units) either
+// way from the middle of its rail; the slosh nudges it by at most OLIVE_SWING_MAX of that, and leans
+// its pick by at most PICK_LEAN_MAX.
+private const val OLIVE_RAIL_CENTRE = -3f
+private const val OLIVE_RAIL_HALF_LENGTH = 5f
+private const val OLIVE_SWING_PER_DEGREE = 0.25f
+private const val OLIVE_SWING_MAX = 1.5f
+private const val PICK_LEAN_BASE = 6f
+private const val PICK_LEAN_PER_DEGREE = 0.15f
+private const val PICK_LEAN_MAX = 2f
+
+/**
+ * A martini glass, like the Shaken, Not Tapped icon's: a see-through [glass] bowl on a thin stem
+ * and foot, with a [drink] that stays level and sloshes as the glass is shaken and poured (see
+ * [liquidIn]) and an olive on a cocktail pick floating on it. The olive rides the drink's surface -
+ * washing towards the low side as the glass tips, and swinging past where it's going and back as it
+ * is shaken - and its pick with it, but only along a short rail: it moves a few units and no more,
+ * however the glass is thrown about. Drawn [CupShape.TALL].
+ */
+class MartiniDiceCupStyle(
+    override val id: String,
+    private val glass: Color = MartiniGlassSwatch,
+    private val drink: Color = MartiniLiquidSwatch,
+) : DiceCupStyle, Swatched {
+    override val swatch: Color = drink
+
+    @Composable
+    override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
+        CupCanvas(rolling, tilted, modifier) {
+            drawContactShadow(MARTINI_FOOT_RADIUS, MARTINI_FOOT_Y, alpha = 0.2f)
+            val metal = CupPalette(
+                dark = lerp(glass, Color.Black, 0.45f),
+                light = Color.White,
+                mid = glass,
+                accent = glass,
+                interior = glass,
+            )
+            // Foot, then stem: solid enough to read against any table.
+            drawPath(roundSection(MARTINI_FOOT_RADIUS, MARTINI_FOOT_Y - 2.4f, MARTINI_FOOT_RADIUS, MARTINI_FOOT_Y), roundShading(metal, MARTINI_FOOT_RADIUS).let { it })
+            drawPath(roundSection(1.9f, MARTINI_BOWL_TIP_Y, 2.3f, MARTINI_FOOT_Y - 2.4f), roundShading(metal, 2.3f))
+            val foot = mouthBounds(MARTINI_FOOT_RADIUS, MARTINI_FOOT_Y - 2.4f)
+            drawOval(glass.copy(alpha = 0.9f), topLeft = foot.topLeft, size = foot.size)
+
+            val bowl = roundSection(MARTINI_RIM_RADIUS, MARTINI_RIM_Y, MARTINI_BOWL_TIP_RADIUS, MARTINI_BOWL_TIP_Y)
+            val rim = mouthBounds(MARTINI_RIM_RADIUS, MARTINI_RIM_Y)
+            drawPath(Path.combine(PathOperation.Union, bowl, Path().apply { addOval(rim) }), glass.copy(alpha = 0.2f))
+            val liquid = liquidIn(MARTINI_RIM_Y, MARTINI_RIM_RADIUS, MARTINI_LEVEL_Y)
+            drawLiquidInGlass(
+                bowl,
+                liquid,
+                drink,
+                surfaceRadius = taper(MARTINI_RIM_RADIUS, MARTINI_RIM_Y, MARTINI_BOWL_TIP_RADIUS, MARTINI_BOWL_TIP_Y, liquid.level),
+            )
+
+            val edge = Color.White.copy(alpha = 0.55f)
+            drawLine(edge, Offset(gx(centreX - MARTINI_RIM_RADIUS), gy(MARTINI_RIM_Y)), Offset(gx(centreX - MARTINI_BOWL_TIP_RADIUS), gy(MARTINI_BOWL_TIP_Y)), strokeWidth = gy(1f))
+            drawLine(edge, Offset(gx(centreX + MARTINI_RIM_RADIUS), gy(MARTINI_RIM_Y)), Offset(gx(centreX + MARTINI_BOWL_TIP_RADIUS), gy(MARTINI_BOWL_TIP_Y)), strokeWidth = gy(1f))
+            drawOval(Color.White.copy(alpha = 0.8f), topLeft = rim.topLeft, size = rim.size, style = Stroke(width = gy(1.1f)))
+            // A glint down the bowl's lit side.
+            drawLine(
+                Color.White.copy(alpha = 0.4f),
+                Offset(gx(centreX - 17f), gy(MARTINI_RIM_Y + 3f)),
+                Offset(gx(centreX - 6f), gy(MARTINI_RIM_Y + 21f)),
+                strokeWidth = gy(1.3f),
+                cap = StrokeCap.Round,
+            )
+            drawOlive(liquid)
+        }
+    }
+
+    /**
+     * The olive on its pick, floating on the drink: it drifts to the low side of a tilted surface and
+     * sways a little with the slosh, but stays on its rail (and inside the drink's edge). The pick
+     * leans out of it a little with the slosh, always standing up on screen.
+     */
+    private fun CupDrawScope.drawOlive(liquid: Liquid) {
+        val surfaceRadius = taper(MARTINI_RIM_RADIUS, MARTINI_RIM_Y, MARTINI_BOWL_TIP_RADIUS, MARTINI_BOWL_TIP_Y, liquid.level)
+        val edge = (surfaceRadius - OLIVE_RADIUS - 1.5f).coerceAtLeast(0f)
+        val halfLength = minOf(OLIVE_RAIL_HALF_LENGTH, edge)
+        val tilt = (liquid.slope * 40f).coerceIn(-1f, 1f) * halfLength
+        val sway = (-pose.slosh * OLIVE_SWING_PER_DEGREE).coerceIn(-OLIVE_SWING_MAX, OLIVE_SWING_MAX)
+        val x = centreX + OLIVE_RAIL_CENTRE + (tilt + sway).coerceIn(-halfLength, halfLength)
+        // Half sunk: its centre a little above the surface.
+        val centre = onLiquid(liquid, x, liquid.level - OLIVE_RADIUS * 0.45f)
+        val lean = PICK_LEAN_BASE + (pose.slosh * PICK_LEAN_PER_DEGREE).coerceIn(-PICK_LEAN_MAX, PICK_LEAN_MAX)
+        val tip = centre + screenwards(gx(lean), -gy(15f))
+        drawLine(MartiniPickSwatch, centre, tip, strokeWidth = gy(0.9f), cap = StrokeCap.Round)
+        drawCircle(MartiniPickSwatch, radius = gy(1.1f), center = tip)
+        val radius = gy(OLIVE_RADIUS)
+        drawCircle(MartiniOliveSwatch, radius = radius, center = centre)
+        // The pimento, and the highlight on its lit side.
+        drawCircle(Color(0xFFB3261E), radius = radius * 0.35f, center = centre + Offset(radius * 0.25f, radius * 0.1f))
+        drawCircle(MartiniOliveHighlightSwatch, radius = radius * 0.3f, center = centre - Offset(radius * 0.4f, radius * 0.4f))
     }
 }

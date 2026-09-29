@@ -166,12 +166,12 @@ decisions behind it. Read that before changing anything visual.
   the game's last roll, just as the cup is spent, so a Flowerpot whose sunflower has grown keeps its
   colour instead of greying and, `BLOOM_STAND_UP_MILLIS` after pouring, stands back up to show it off
   (`DiceCupStyle.showsOffWhenSpent`, for any player whose pot blooms) - it still can't be rolled; the
-  Sunflower cup, always in bloom, greys like any other; outside a game - a
+  held-stage pots (`fixedStage`) grey like any other; outside a game - a
   Styles tile, the menu logo, where the local's default (bare soil, no grower) applies - a tall
   plant is shrunk to reach no higher than `PLANT_TOP_OUTSIDE_GAME`. Player 1 bringing it into bloom
   unlocks the secret Greenfingers (`GREENFINGERS`), judged by `AchievementEngine`'s in-progress
-  rules straight after the roll (the last roll lands before the last box is filled). It unlocks the secret Sunflower cup: the Flowerpot's
-  own pots with the sunflower always in bloom. Its icon is the same sunflower
+  rules straight after the roll (the last roll lands before the last box is filled). It unlocks four secret Flowerpot colours: the same pot held at each stage of the plant
+  (seedling, bud, opening, sunflower), which never grow and never show off when spent - only the default, empty pot does. Its icon is the same sunflower
   (`rememberSunflowerIcon`), in the plant's shared colours from `ui/theme/Color.kt`.
   The default cup is the casino shaker (`CasinoDiceCupStyle`, Gold - Gold, Black, Green), shown on the Styles screen as
   "Classic" (every category's default style is called Classic - `StyleCatalogTest` checks) and

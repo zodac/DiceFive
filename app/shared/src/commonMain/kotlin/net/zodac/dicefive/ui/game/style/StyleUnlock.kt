@@ -46,8 +46,13 @@ sealed interface StyleUnlock {
 }
 
 /** A style that earning one particular achievement unlocks, and what it's called: "the 'Irish' dice style". */
-data class StyleReward(val styleName: String, val categoryNoun: String) {
-    val description: String get() = "the '$styleName' $categoryNoun style"
+data class StyleReward(val styleName: String, val categoryNoun: String, val hiddenColours: Int = 0) {
+    val description: String
+        get() = when (hiddenColours) {
+            0 -> "the '$styleName' $categoryNoun style"
+            1 -> "the hidden '$styleName' $categoryNoun colour"
+            else -> "the hidden '$styleName' $categoryNoun colours"
+        }
 }
 
 /** Every style that earning this achievement unlocks, in the Styles screen's category order. */
@@ -58,8 +63,12 @@ val Achievement.styleRewards: List<StyleReward>
 // time an achievement row or banner asks.
 private val styleRewardsByAchievement: Map<Achievement, List<StyleReward>> by lazy {
     StyleCatalogs.flatMap { catalog ->
-        catalog.families.mapNotNull { family ->
-            (family.unlock as? StyleUnlock.SpecificAchievement)?.let { it.achievement to StyleReward(family.name, catalog.noun) }
+        catalog.families.flatMap { family ->
+            val familyReward = (family.unlock as? StyleUnlock.SpecificAchievement)?.let { it.achievement to StyleReward(family.name, catalog.noun) }
+            // Secret colours of a style that's otherwise available: one reward per achievement, counting its colours.
+            val colourRewards = family.colours.mapNotNull { it.secretAchievement }.groupingBy { it }.eachCount()
+                .map { (achievement, count) -> achievement to StyleReward(family.name, catalog.noun, hiddenColours = count) }
+            listOfNotNull(familyReward) + colourRewards
         }
     }.groupBy({ it.first }, { it.second })
 }

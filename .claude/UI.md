@@ -312,10 +312,15 @@ For now every lock is a distinct, arbitrarily picked count up to the number of n
 achievements; `StyleCatalogTest` keeps them distinct and earnable.
 
 A style locked behind one **secret** achievement is a secret style (`StyleUnlock.hiddenWhileLocked`):
-it isn't on the Styles screen at all, padlock or not, until that achievement is earned - the
-Multicolour dice (vertical stripes, `StripedDiceStyle`: Irish - the flag in thirds - then
-Tricolour's red/yellow/blue, then Rainbow, seven stripes) were the first, and the Sunflower
-cup (the Flowerpot in permanent bloom, from Greenfingers) the second. Any achievement
+it isn't on the Styles screen at all, padlock or not, until that achievement is earned. Every easter
+egg has one: the Martini cup (Shaken, Not Tapped) and the Floating Dice background (Not Those Dice!,
+the main menu's backdrop - same colours, same drifting dice - as a table background). Others are
+secret single **colours** of otherwise ordinary, count-locked styles (`StyleColour.secretAchievement`),
+which the tile's colour row and dots leave out until it's earned: the Irish dice in Multicolour (Luck
+of the Irish), the blue/gold Googly dice (Big Fan), the Flowerpot's plant-stage pots (Greenfingers -
+a pot held at each of seedling, bud, opening, sunflower) and the Top Hat with its rabbit always out,
+sliding about the opening as the hat is shaken (The Magician's Secret).
+Any achievement
 that unlocks a specific style (`Achievement.unlocksStyle`) carries a star at the right of its row and
 its unlock banner (`StyleRewardStar`), so the player knows to go and look. On the row, a tap or long
 press on the star shows a plain tooltip (not a dialog) naming the style - "You've unlocked the
