@@ -1218,6 +1218,23 @@ class GameAchievementsWiringTest {
     }
 
     @Test
+    fun `a first-roll four of a kind in Quickfire does not unlock Almost Famous`() = runTest {
+        val store = FakeAchievementStore()
+        // Quickfire's one roll is also its last, so "every roll spent" is true straight away and
+        // nothing was ever rerolled to break the hold - this is the case the one-roll guard is for.
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 6, 1)))
+        viewModel.setPlayerCount(1)
+        viewModel.setGameMode(GameMode.QUICKFIRE)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.SIXES)
+        advanceUntilIdle()
+
+        assertFalse(Achievement.ALMOST_FAMOUS in store.unlocked, "ALMOST_FAMOUS should not pop in Quickfire, got ${store.unlocked}")
+    }
+
+    @Test
     fun `a four of a kind flag from an abandoned turn does not leak into the next turn's Almost Famous`() = runTest {
         val store = FakeAchievementStore()
         // Turn 1: four 6s on the first roll, committed immediately - not "almost" anything (see

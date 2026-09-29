@@ -10,6 +10,11 @@
   icon. Little in it is done yet (the in-app open-source licenses page is); it's a running checklist for when that submission happens. It
   also records the app's own license (proprietary, all rights reserved - see `LICENSE`), why it was
   chosen, and how it must stay scoped to exclude third-party parts (the bundled font must stay OFL).
+- `.claude/GAME_MODES.md` — how game modes are built (every per-mode rule is a field on `GameMode`)
+  and the checklist for adding one: the mode entry, its Rules page, its Game Modes achievements, the
+  New Game screen, tests and docs. It also records, per mode, which existing achievements can't be
+  earned in it and which needed a guard so the mode doesn't hand them out for free. Read this before
+  adding or changing a mode.
 - `.claude/IOS_SUPPORT.md` — the iOS port via Kotlin Multiplatform + Compose Multiplatform: the
   `app/shared` (platform-neutral) / `app/android` module layout, what lives where (and why
   Android's platform code is in `app/android`), gotchas (e.g. no commas or parentheses in `commonTest` names), and what's left.
@@ -58,6 +63,7 @@
   | `[Achievements]` | Achievement rules, the achievements list and unlock banners          |
   | `[CI]`           | GitHub workflows, release pipeline, git hooks and changelog scripts  |
   | `[Dependencies]` | Version bumps - libraries, SDK, JDK, sandbox pins, actions           |
+  | `[Game Mode]`    | Game modes - adding or changing one, with its rules and achievements |
   | `[Gameplay]`     | The in-game screen - dice, cup, scorecard, player tabs - and rules   |
   | `[Game Over]`    | The end-of-game results page and its celebration                     |
   | `[Icon]`         | The app's launcher icon                                              |

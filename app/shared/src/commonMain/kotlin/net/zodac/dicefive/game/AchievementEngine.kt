@@ -34,6 +34,9 @@ data class GameAchievementContext(
      * their turns was a single roll.
      */
     val playerOneTookExtraRoll: Boolean = false,
+    /** Whether the turn timer ran out on at least one of player 1's own turns this game -
+     * [Achievement.QUICKFIRE_BEAT_THE_CLOCK] needs this false. */
+    val playerOneTimedOut: Boolean = false,
     /**
      * What the leaderboard said *before* this game's rows were inserted. Read pre-insert for the
      * same reason [previousBestScore] is, and because the engine adds this game's own human totals
@@ -392,6 +395,8 @@ object AchievementEngine {
             multiplayer && humanWon && humans.any { it.totalScore == state.topScore && it.scorecard.values.count { v -> v == 0 } >= ZEROES_FOR_HERO },
         )
         award(Achievement.TRICOLOUR_WIN, multiplayer && humanWon && state.gameMode == GameMode.TRICOLOUR)
+        award(Achievement.QUICKFIRE_WIN, multiplayer && humanWon && state.gameMode == GameMode.QUICKFIRE)
+        award(Achievement.QUICKFIRE_BEAT_THE_CLOCK, state.gameMode == GameMode.QUICKFIRE && !context.playerOneTimedOut)
         award(Achievement.PIPPED_TO_THE_POST, multiplayer && !humanWon && state.topScore - bestHumanScore == PIPPED_MARGIN)
         award(Achievement.JAWS_OF_VICTORY, multiplayer && !humanWon && context.ledIntoFinalRound)
         award(
@@ -424,8 +429,9 @@ object AchievementEngine {
 
         award(Achievement.SOLO_GAME, players.size == 1)
 
-        // Impatient/Naturally Gifted: player 1 took every one of their own turns on a single roll.
-        val playerOneNeverRolledTwice = !context.playerOneTookExtraRoll
+        // Impatient/Naturally Gifted: player 1 took every one of their own turns on a single roll -
+        // by choice, so never in a mode that only allows one (Quickfire), where it would be free.
+        val playerOneNeverRolledTwice = !context.playerOneTookExtraRoll && state.gameMode.rollsPerTurn > 1
         award(Achievement.IMPATIENT, playerOneNeverRolledTwice)
         award(Achievement.NATURALLY_GIFTED, multiplayer && playerOneNeverRolledTwice && humanWon)
 

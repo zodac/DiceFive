@@ -23,6 +23,10 @@ import androidx.compose.ui.text.TextStyle
  * [glyph] swaps an option's text for an icon, for an option a symbol says better than a word (the
  * turn timer's "no timer"). [label] is still required for that option: it becomes the icon's
  * content description, so a screen reader announces the same thing the text would have said.
+ *
+ * [enabled] false greys out every segment and ignores taps, while still showing which one is
+ * picked - for a choice the rest of the form has overridden (the turn timer under a game mode that
+ * sets its own).
  */
 @Composable
 fun <T> SegmentedChoiceRow(
@@ -33,6 +37,7 @@ fun <T> SegmentedChoiceRow(
     modifier: Modifier = Modifier,
     labelStyle: TextStyle = LocalTextStyle.current,
     glyph: (T) -> ImageVector? = { null },
+    enabled: Boolean = true,
 ) {
     SingleChoiceSegmentedButtonRow(modifier = modifier) {
         options.forEachIndexed { index, option ->
@@ -40,6 +45,7 @@ fun <T> SegmentedChoiceRow(
             SegmentedButton(
                 selected = option == selected,
                 onClick = { onSelect(option) },
+                enabled = enabled,
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                 icon = {},
                 label = {

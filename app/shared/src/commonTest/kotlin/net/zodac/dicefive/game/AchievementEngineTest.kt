@@ -1122,9 +1122,11 @@ class AchievementEngineTest {
 
         val standard = AchievementEngine.evaluateAtGameStart(GameStartContext(gameMode = GameMode.STANDARD), before, NOW)
         val tricolour = AchievementEngine.evaluateAtGameStart(GameStartContext(gameMode = GameMode.TRICOLOUR), before, NOW)
+        val quickfire = AchievementEngine.evaluateAtGameStart(GameStartContext(gameMode = GameMode.QUICKFIRE), before, NOW)
 
         assertTrue(standard.isEmpty)
         assertEquals(listOf(Achievement.NON_STANDARD_MODE), tricolour.newlyUnlocked)
+        assertEquals(listOf(Achievement.NON_STANDARD_MODE), quickfire.newlyUnlocked)
     }
 
     @Test
@@ -1203,10 +1205,62 @@ class AchievementEngineTest {
         val gameModes = Achievement.entries.filter { it.category == AchievementCategory.GAME_MODES }
 
         assertEquals(
-            listOf(Achievement.NON_STANDARD_MODE, Achievement.TRICOLOUR_WIN, Achievement.TRICOLOUR_ALL_COLOURS),
+            listOf(
+                Achievement.NON_STANDARD_MODE,
+                Achievement.TRICOLOUR_WIN,
+                Achievement.TRICOLOUR_ALL_COLOURS,
+                Achievement.QUICKFIRE_WIN,
+                Achievement.QUICKFIRE_BEAT_THE_CLOCK,
+            ),
             gameModes,
         )
         assertTrue(gameModes.all { it in Achievement.COMPLETION_REQUIREMENTS })
+    }
+
+    @Test
+    fun `winning a multiplayer Quickfire game unlocks Quick On The Draw - not a loss or a solo game or another mode`() {
+        fun game(mode: GameMode, humanTotal: Int, withBot: Boolean = true) = if (withBot) {
+            finishedGame(
+                player(total = humanTotal, gameMode = mode),
+                player(name = "Bot", type = PlayerType.AI, total = 200, gameMode = mode),
+            )
+        } else {
+            finishedGame(player(total = humanTotal, gameMode = mode))
+        }
+
+        assertTrue(Achievement.QUICKFIRE_WIN in evaluate(game(GameMode.QUICKFIRE, 300)).newlyUnlocked)
+        assertFalse(Achievement.QUICKFIRE_WIN in evaluate(game(GameMode.QUICKFIRE, 100)).newlyUnlocked)
+        assertFalse(Achievement.QUICKFIRE_WIN in evaluate(game(GameMode.QUICKFIRE, 300, withBot = false)).newlyUnlocked)
+        assertFalse(Achievement.QUICKFIRE_WIN in evaluate(game(GameMode.STANDARD, 300)).newlyUnlocked)
+    }
+
+    @Test
+    fun `finishing Quickfire without player 1 timing out unlocks Beat The Clock - win or lose`() {
+        val quickfireLoss = finishedGame(
+            player(total = 100, gameMode = GameMode.QUICKFIRE),
+            player(name = "Bot", type = PlayerType.AI, total = 200, gameMode = GameMode.QUICKFIRE),
+        )
+
+        val inTime = evaluate(quickfireLoss, context = GameAchievementContext(playerOneTimedOut = false))
+        val timedOut = evaluate(quickfireLoss, context = GameAchievementContext(playerOneTimedOut = true))
+        val standard = evaluate(finishedGame(player(total = 100)), context = GameAchievementContext(playerOneTimedOut = false))
+
+        assertTrue(Achievement.QUICKFIRE_BEAT_THE_CLOCK in inTime.newlyUnlocked)
+        assertFalse(Achievement.QUICKFIRE_BEAT_THE_CLOCK in timedOut.newlyUnlocked)
+        assertFalse(Achievement.QUICKFIRE_BEAT_THE_CLOCK in standard.newlyUnlocked)
+    }
+
+    @Test
+    fun `Impatient and Naturally Gifted aren't handed out by Quickfire - one roll there isn't a choice`() {
+        val won = finishedGame(
+            player(total = 200, gameMode = GameMode.QUICKFIRE),
+            player(name = "Bot", type = PlayerType.AI, total = 150, gameMode = GameMode.QUICKFIRE),
+        )
+
+        val update = evaluate(won, context = GameAchievementContext(playerOneTookExtraRoll = false))
+
+        assertFalse(Achievement.IMPATIENT in update.newlyUnlocked)
+        assertFalse(Achievement.NATURALLY_GIFTED in update.newlyUnlocked)
     }
 
     @Test

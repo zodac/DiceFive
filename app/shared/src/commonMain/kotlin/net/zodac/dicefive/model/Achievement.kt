@@ -326,6 +326,15 @@ enum class Achievement(
         "Score all 'Tricolour' mode scores (red, yellow, blue, coloured house) in one game",
         AchievementCategory.GAME_MODES,
     ),
+    QUICKFIRE_WIN(
+        "quickfire_win", "Quick On The Draw", "Win a game of 'Quickfire' mode",
+        AchievementCategory.GAME_MODES,
+    ),
+    // Player 1 only, like every other achievement - an opponent timing out doesn't cost you this.
+    QUICKFIRE_BEAT_THE_CLOCK(
+        "quickfire_beat_the_clock", "Beat The Clock", "Finish a game of 'Quickfire' mode without ever running out of time",
+        AchievementCategory.GAME_MODES,
+    ),
 
     // ---- Misfortune: going badly, on purpose or otherwise --------------------------------------
     SCRATCHED_5X(

@@ -67,6 +67,12 @@ enum class GameMode(
      * `GameModeTest` plays that perfect game through the real engine to prove it.
      */
     val maxPossibleScore: Int,
+    /**
+     * A per-turn time limit the rules themselves set, in seconds, replacing whatever the setup
+     * screen's Turn Timer is set to (that row is disabled while such a mode is picked). Null leaves
+     * the timer to the player - see [GameState.turnSeconds].
+     */
+    val turnTimerSeconds: Int? = null,
 ) {
     /**
      * The official rules.
@@ -113,6 +119,29 @@ enum class GameMode(
         upperBonusAmount = 35,
         fiveOfAKindBonusAmount = 100,
         maxPossibleScore = 2120,
+    ),
+
+    /**
+     * Beyond the official rules: Standard's dice and scorecard, but only one roll per turn - no holds,
+     * no rerolls - against a fixed 10-second turn timer.
+     *
+     * Max score: the same card and bonuses as Standard, so the same perfect game - a single roll can
+     * still land five 6s. `1575`.
+     */
+    QUICKFIRE(
+        id = "quickfire",
+        displayName = "Quickfire",
+        description = "One roll per turn, and 10 seconds to score it",
+        diceCount = 5,
+        rollsPerTurn = 1,
+        dieValues = 1..6,
+        dieColours = emptyList(),
+        categories = STANDARD_CATEGORIES,
+        upperBonusThreshold = 63,
+        upperBonusAmount = 35,
+        fiveOfAKindBonusAmount = 100,
+        maxPossibleScore = 1575,
+        turnTimerSeconds = 10,
     ),
     ;
 

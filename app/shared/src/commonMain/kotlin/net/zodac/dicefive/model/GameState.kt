@@ -22,4 +22,9 @@ data class GameState(
     /** The highest total score among every player, including AI - what "winning" is measured against. */
     val topScore: Int
         get() = players.maxOf { it.totalScore }
+
+    /** How long each turn is allowed, in seconds, or null for no limit: the mode's own fixed timer
+     * ([GameMode.turnTimerSeconds]) if it has one, otherwise the [turnTimer] picked at setup. */
+    val turnSeconds: Int?
+        get() = gameMode.turnTimerSeconds ?: turnTimer.seconds
 }
