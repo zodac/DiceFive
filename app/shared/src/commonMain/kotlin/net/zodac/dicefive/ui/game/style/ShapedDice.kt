@@ -2,7 +2,6 @@ package net.zodac.dicefive.ui.game.style
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.shape.GenericShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -268,7 +267,7 @@ class MisprintDiceStyle(
 
     override fun recoloured(palette: DieColourPalette): DiceStyle = MisprintDiceStyle(id, palette.diceTop, palette.pip, seed, palette.heldRing)
 
-    override fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(MISPRINT_CORNER_PERCENT)
+    override val cornerPercent: Int = MISPRINT_CORNER_PERCENT
 
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
