@@ -58,13 +58,14 @@ class AndroidAppContainerTest {
 
         val statistics = scores.playerStatistics()
 
-        // Case-insensitive name order, but "Bob" and "bob" are still two players, each kept whole.
-        assertEquals(listOf("Alice", "Bob", "bob"), statistics.map { it.playerName })
+        // Case-insensitive name order, and "Bob" and "bob" are one player, as on the New Game screen.
+        assertEquals(listOf("alice", "bob"), statistics.map { it.playerName.lowercase() })
         val alice = statistics.first()
         assertEquals(2, alice.gamesPlayed)
         assertEquals(2, alice.gamesWon)
         assertEquals(2, alice.bestWinStreak)
         assertEquals(210, alice.maxScore)
+        assertEquals(2, statistics.last().gamesPlayed)
         assertEquals(1, statistics.last().gamesLost)
     }
 
