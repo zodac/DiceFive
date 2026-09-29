@@ -1,5 +1,7 @@
 package net.zodac.dicefive.ui.menu
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.ui.common.AppLogo
@@ -48,7 +51,7 @@ private val CONTINUE_HALF_SHAPE = RoundedCornerShape(topEndPercent = 50, bottomE
 
 @Composable
 fun MenuScreen(
-    hasInProgressGame: Boolean,
+    hasInProgressGame: Boolean?,
     onContinue: () -> Unit,
     onNewGame: () -> Unit,
     onScores: () -> Unit,
@@ -86,13 +89,23 @@ fun MenuScreen(
 
             Spacer(modifier = Modifier.height(48.dp))
 
+            // Held invisible (still taking its space) until the saved-game check has answered, so the
+            // buttons arrive together rather than Play flashing before it splits, or a gap popping in.
+            val ready = hasInProgressGame != null
+            val stackAlpha by animateFloatAsState(
+                targetValue = if (ready) 1f else 0f,
+                animationSpec = tween(durationMillis = 200),
+                label = "menuButtonsAlpha",
+            )
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth()
+                    .alpha(stackAlpha)
+                    .then(if (ready) Modifier else Modifier.pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } } }),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 // One filled button for the primary action and tonal buttons for the rest: M3's
                 // emphasis hierarchy, which also stops five identical slabs competing for the eye.
-                PlayButton(hasInProgressGame = hasInProgressGame, onContinue = onContinue, onNewGame = onNewGame)
+                PlayButton(hasInProgressGame = hasInProgressGame == true, onContinue = onContinue, onNewGame = onNewGame)
                 MenuDestinationButton(label = "Achievements", onClick = onAchievements)
                 MenuDestinationButton(label = "Leaderboard", onClick = onScores)
                 MenuDestinationButton(label = "Statistics", onClick = onStatistics)
