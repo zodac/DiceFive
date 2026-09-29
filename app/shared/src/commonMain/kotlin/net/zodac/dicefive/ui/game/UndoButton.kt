@@ -56,7 +56,8 @@ fun UndoButton(enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modif
         Text(
             text = "Undo",
             color = iconColor,
-            fontSize = 10.sp,
+            // labelSmall as it comes (11sp) - M3's smallest label size, and one that scales with the
+            // system font size like every other label, rather than a hand-set 10sp below it.
             style = MaterialTheme.typography.labelSmall,
         )
     }
