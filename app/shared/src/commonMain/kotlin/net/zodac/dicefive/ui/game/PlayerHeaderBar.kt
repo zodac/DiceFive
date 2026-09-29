@@ -34,6 +34,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -122,7 +126,12 @@ private fun PlayerTab(
             .clip(shape)
             .then(if (active) Modifier.border(1.5.dp, color.copy(alpha = 0.85f), shape) else Modifier)
             .then(if (viewed) Modifier.dashedBorder(1.5.dp, color.copy(alpha = 0.85f), 10.dp) else Modifier)
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Tab, onClickLabel = "View scorecard", onClick = onClick)
+            // Selected is the scorecard on view; the border's other meaning - whose turn it is - is said instead.
+            .semantics {
+                selected = viewed
+                if (active) stateDescription = "Current turn"
+            }
             .padding(vertical = 6.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

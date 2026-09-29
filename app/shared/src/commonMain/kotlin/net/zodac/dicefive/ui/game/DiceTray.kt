@@ -43,6 +43,10 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
@@ -261,7 +265,26 @@ fun DiceTray(
                 ),
             horizontalArrangement = Arrangement.spacedBy(DICE_COLUMN_GAP),
         ) {
+            val irish = LocalIrishTricolour.current
             dice.forEachIndexed { index, die ->
+                // The tray's own touch handling is one hand-rolled gesture over the whole row, which a
+                // screen reader can't see into - so each die is its own node, named by its face (and
+                // colour), saying whether it's held, and offering hold/release as its click action.
+                val dieSemantics = if (showDice) {
+                    Modifier.semantics {
+                        val colour = die.colour?.let { "${it.spokenName(irish)} " }.orEmpty()
+                        contentDescription = "Die ${index + 1}, $colour${die.value}"
+                        stateDescription = if (die.isHeld) "Held" else "Not held"
+                        if (enabled) {
+                            onClick(label = if (die.isHeld) "Release" else "Hold") {
+                                currentOnToggleHold(index)
+                                true
+                            }
+                        }
+                    }
+                } else {
+                    Modifier
+                }
                 DiceColumn(
                     die = die,
                     show = showDice,
@@ -272,7 +295,7 @@ fun DiceTray(
                     gameMode = gameMode,
                     diceStyle = visualTheme.diceStyle,
                     mat = visualTheme.mat,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).then(dieSemantics),
                 )
             }
         }

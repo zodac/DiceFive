@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.zodac.dicefive.ui.theme.TileIconColor
@@ -39,7 +40,7 @@ fun UndoButton(enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modif
             .clip(shape)
             .background(Brush.linearGradient(listOf(TileTealTop, TileTealBottom)))
             .border(1.dp, TileTealBorder, shape)
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

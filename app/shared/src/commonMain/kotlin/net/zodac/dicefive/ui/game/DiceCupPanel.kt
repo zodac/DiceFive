@@ -27,6 +27,11 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.util.lerp
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -134,7 +139,23 @@ fun DiceCupPanel(
                     // the cup simply going dead once the useful taps run out.
                     .then(
                         if (cup != null) {
-                            Modifier.clickable(interactionSource = cupInteractionSource, indication = null, onClick = cup.onCupTap)
+                            Modifier
+                                .clickable(
+                                    interactionSource = cupInteractionSource,
+                                    indication = null,
+                                    onClickLabel = "Roll",
+                                    role = Role.Button,
+                                    onClick = cup.onCupTap,
+                                )
+                                // Said instead of the "x3" drawn beside the cup.
+                                .clearAndSetSemantics {
+                                    contentDescription = "Dice cup, ${cup.rollsRemaining} ${if (cup.rollsRemaining == 1) "roll" else "rolls"} left"
+                                    role = Role.Button
+                                    onClick(label = "Roll") {
+                                        cup.onCupTap()
+                                        true
+                                    }
+                                }
                         } else {
                             Modifier
                         },
