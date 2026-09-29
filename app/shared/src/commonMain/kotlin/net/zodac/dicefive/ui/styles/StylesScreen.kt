@@ -50,6 +50,7 @@ import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -211,7 +212,7 @@ private fun StyleCategoryCard(title: String, content: @Composable RowScope.() ->
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.padding(start = 12.dp, top = 10.dp, end = 12.dp, bottom = 2.dp),
+            modifier = Modifier.padding(start = 12.dp, top = 10.dp, end = 12.dp, bottom = 2.dp).semantics { heading() },
         )
 
         val scrollState = rememberScrollState()

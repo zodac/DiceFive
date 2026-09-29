@@ -24,6 +24,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -95,6 +97,7 @@ fun CreditsDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.semantics { heading() },
                         )
                         Text(
                             text = parseInlineMarkup(section.body, codeStyle),
