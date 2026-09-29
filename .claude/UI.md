@@ -456,4 +456,10 @@ size you can't check.
   `PlayerSetupSlot.difficulty` and `setPlayerDifficulty` are untouched - only the UI went.
 - `AppLogo`'s dice fan is deliberately live `IvoryDiceStyle.Die` composables, not a drawable -
   the launcher icon (`ic_launcher_foreground.xml`) is the app's static artwork; the in-app logo
-  is not meant to duplicate it. Keep the "DiceFive" text, which `MainActivityTest` asserts on.
+  is not meant to duplicate it. It shares the icon's cup, but as the live default cup
+  (`ClassicGoldDiceCupStyle`, 3.4 dice tall with the fan a little below its middle), not a copy
+  of the icon's silhouette. The cup takes no layout space (`noLayoutSpace`), so the dice and
+  wordmark sit exactly where they would without it and its base tucks behind the wordmark - adding
+  the cup must not move them. Only the part above the dice is reserved, as top padding, because
+  `PageColumn` scrolls and a scrolling column clips anything drawn outside it. Keep the "DiceFive" text, which
+  `MainActivityTest` asserts on.
