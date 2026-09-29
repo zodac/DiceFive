@@ -548,6 +548,9 @@ enum class Achievement(
     // Miscellaneous) - it's what keeps the "Easter Eggs" section header itself from ever
     // appearing while empty.
     //
+    // Unlike every other category, these run alphabetically by title rather than easiest-first -
+    // there's no ladder among easter eggs to keep in order. AchievementEngineTest holds them to it.
+    //
     // Excluded from COMPLETIONIST the same way I_ROBOT was while it couldn't be earned - naming
     // yourself after the creator, or a human P2/P3/P4 named exactly "zodac" (case-sensitive, never
     // P1, who's always the human player at this device), isn't something every player could
@@ -563,6 +566,13 @@ enum class Achievement(
         "luck_of_the_irish", "Luck of the Irish", "Play a game of Tricolour as Ireland/Éire",
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
+    // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the menu's logo
+    // dice can be tapped, let alone that they roll. Its id is unchanged from when it sat in
+    // Miscellaneous as a hidden achievement, so an earlier unlock still counts.
+    NOT_THOSE_DICE(
+        "not_those_dice", "Not Those Dice!", "Tap the dice on the main menu",
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+    ),
     // Excluded from COMPLETIONIST the same way Big Fan/Luck of the Irish are - shaking the phone to
     // roll isn't something every player could reasonably be expected to stumble into on the way to
     // 100%, since nothing in the UI hints it's possible.
@@ -573,14 +583,7 @@ enum class Achievement(
     // Excluded from COMPLETIONIST like the rest of this category - it needs the Top Hat cup picked
     // and the table left alone mid-turn, which nothing in the UI hints at.
     MAGICIANS_SECRET(
-        "magicians_secret", "The Magician's Secret", "Find Where Luna Is Hiding",
-        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
-    ),
-    // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the menu's logo
-    // dice can be tapped, let alone that they roll. Its id is unchanged from when it sat in
-    // Miscellaneous as a hidden achievement, so an earlier unlock still counts.
-    NOT_THOSE_DICE(
-        "not_those_dice", "Not Those Dice!", "Tap the dice on the main menu",
+        "magicians_secret", "The Magician's Secret", "Find where Luna is hiding",
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     ;
