@@ -34,6 +34,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
@@ -54,6 +57,9 @@ import net.zodac.dicefive.ui.game.PlayerSetupSlot
  * the same place instead of stepping in and out with the label lengths.
  */
 private val TYPE_CONTROL_WIDTH = 76.dp
+
+/** Shown under the form, and said by a screen reader on each clashing name field. */
+private const val NAMES_MUST_BE_UNIQUE = "Names must be unique"
 
 @Composable
 fun GameSetupScreen(
@@ -81,7 +87,7 @@ fun GameSetupScreen(
 
         if (duplicateNameSlots.isNotEmpty()) {
             Text(
-                text = "Names must be unique",
+                text = NAMES_MUST_BE_UNIQUE,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -229,7 +235,12 @@ private fun PlayerRow(
                 value = slot.name,
                 onValueChange = onNameChange,
                 isError = isNameDuplicate,
-                modifier = Modifier.weight(1f),
+                // The field has no visible label (its value names the row), so a screen reader is
+                // given one - and told why it's red, which the outline alone only shows.
+                modifier = Modifier.weight(1f).semantics {
+                    contentDescription = "Player ${slot.slot} name"
+                    if (isNameDuplicate) error(NAMES_MUST_BE_UNIQUE)
+                },
             )
 
             PlayerType.AI -> DifficultySelector(
