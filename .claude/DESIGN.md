@@ -145,14 +145,18 @@ decisions behind it. Read that before changing anything visual.
   same tipped hat and rabbit, rebuilt as a fixed-colour vector (`rememberMagicianIcon`). "Nothing happening" is `LocalCupActivity`, which
   `DiceCupPanel` sets to the current dice, so holding or releasing one restarts the wait (as do a
   roll or a score, through the cup's own `rolling`/`tilted`).
-  The default cup is the casino shaker (`CasinoDiceCupStyle`, Black), shown on the Styles screen as
+  The default cup is the casino shaker (`CasinoDiceCupStyle`, Gold - Gold, Black, Green), shown on the Styles screen as
   "Classic" (every category's default style is called Classic - `StyleCatalogTest` checks) and
   listed first; its ids keep the `casino_` prefix so saved picks survive the default
-  moving again. `FacetedDiceCupStyle` (a six-sided prism in the green score-tile colours with gold
+  moving again. Gold (`casino_gold`) leads so a new player's first cup matches the launcher icon,
+  which draws the same cup as a silhouette: `CupRimGold` body, `DicePipColor` mouth, lighter gold
+  rim, and a `FeltNavyBottom` band (the one casino cup whose band isn't its rim colour). It took
+  Burgundy's place, since a style has at most three colours; Black was the default before it. `FacetedDiceCupStyle` (a six-sided prism in the green score-tile colours with gold
   edges, the default before it) and `FireDiceCupStyle` share `drawFacetedCup`; `BarrelDiceCupStyle` is a brown wooden barrel with
   iron hoops. The original "leather" cup (steep taper, flared foot) was dropped for its shape;
-  `SettingsRepository.diceCupStyleId` reads a saved `"leather"` back as today's default (`"casino_black"`) so it doesn't
-  count as a non-default pick for `STYLE_CUP`.
+  `SettingsRepository.diceCupStyleId` reads a saved `"leather"` or `"casino_burgundy"` (both dropped)
+  back as today's default (`"casino_gold"`), since that's what's drawn for them, so neither counts as
+  a non-default pick for `STYLE_CUP`.
 - **Game modes** (`model/GameMode.kt`, was `GameType`): `STANDARD` (the official rules, formerly
   `CLASSIC`) and `TRICOLOUR` (see Phase 14). **Every rule that can differ between modes is a field
   on the mode**, even where both modes agree today: dice count, rolls per turn, die faces, die

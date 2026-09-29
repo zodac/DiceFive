@@ -5,8 +5,10 @@ import net.zodac.dicefive.ui.theme.BarrelBackgroundTop
 import net.zodac.dicefive.ui.theme.BarrelDiceTop
 import net.zodac.dicefive.ui.theme.BarrelTrayTop
 import net.zodac.dicefive.ui.theme.BarrelWood
+import net.zodac.dicefive.ui.theme.CupRimGold
 import net.zodac.dicefive.ui.theme.DicePipColor
 import net.zodac.dicefive.ui.theme.FacetedCupLitFace
+import net.zodac.dicefive.ui.theme.FeltNavyBottom
 import net.zodac.dicefive.ui.theme.FeltNavyTop
 import net.zodac.dicefive.ui.theme.FireBackgroundTop
 import net.zodac.dicefive.ui.theme.FireCupLitFace
@@ -215,11 +217,27 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
     listOf(
         // The casino shaker, first so it's the default - "Classic", like every category's default.
         // Its ids still say "casino": they're saved picks, so they stay put if the default moves.
+        // Gold leads, so a new player's first cup is the one on the launcher icon: the same gold
+        // body, dark mouth, lighter rim and navy band (ic_launcher_foreground.xml).
         StyleFamily(
             "Classic",
             listOf(
+                StyleColour(
+                    "Gold",
+                    CupRimGold,
+                    CasinoDiceCupStyle(
+                        "casino_gold",
+                        CupPalette(
+                            dark = Color(0xFF7A5A26),
+                            light = Color(0xFFEBC77F),
+                            mid = CupRimGold,
+                            accent = Color(0xFFE6C278),
+                            interior = DicePipColor,
+                        ),
+                        band = FeltNavyBottom,
+                    ),
+                ),
                 cup("Black", ::CasinoDiceCupStyle, "casino_black", 0xFF0F0F10, 0xFF4A4A4E, 0xFF26262A, 0xFFD4AF37, 0xFF050505),
-                cup("Burgundy", ::CasinoDiceCupStyle, "casino_burgundy", 0xFF3A0A14, 0xFF8E2A3E, 0xFF5E1626, 0xFFD4AF37, 0xFF14040A),
                 cup("Green", ::CasinoDiceCupStyle, "casino_green", 0xFF0B2A12, 0xFF2F7A45, 0xFF1B5227, 0xFFD4AF37, 0xFF04120A),
             ),
         ),

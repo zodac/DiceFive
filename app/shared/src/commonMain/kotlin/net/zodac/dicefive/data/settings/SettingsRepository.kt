@@ -104,11 +104,12 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[DICE_STYLE_ID_KEY] = id }
     }
 
-    // "leather" was the default cup before it was dropped. Anyone who picked it explicitly still has
-    // it saved, so it's read back as today's default - otherwise it would count as a non-default
-    // pick and unlock the cup style achievement without them choosing anything.
+    // Dropped cups, read back as today's default: "leather" was the default before it went, and
+    // "casino_burgundy" made way for the Gold Classic cup. Anyone who picked one explicitly still has
+    // it saved, and it's drawn as the default - so it must not count as a non-default pick either,
+    // or it would unlock the cup style achievement for a cup they aren't playing with.
     val diceCupStyleId: Flow<String> = dataStore.data.map { prefs ->
-        prefs[DICE_CUP_STYLE_ID_KEY]?.takeUnless { it == "leather" } ?: "casino_black"
+        prefs[DICE_CUP_STYLE_ID_KEY]?.takeUnless { it in DROPPED_DICE_CUP_STYLE_IDS } ?: "casino_gold"
     }
 
     suspend fun setDiceCupStyleId(id: String) {
@@ -139,6 +140,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val DICE_CUP_STYLE_ID_KEY = stringPreferencesKey("dice_cup_style_id")
         val TABLE_BACKGROUND_ID_KEY = stringPreferencesKey("table_background_id")
         val DICE_MAT_ID_KEY = stringPreferencesKey("dice_mat_id")
+        val DROPPED_DICE_CUP_STYLE_IDS = setOf("leather", "casino_burgundy")
         fun playerNameKey(slot: Int) = stringPreferencesKey("player_name_$slot")
         fun playerTypeKey(slot: Int) = stringPreferencesKey("player_type_$slot")
         fun playerDifficultyKey(slot: Int) = stringPreferencesKey("player_difficulty_$slot")
