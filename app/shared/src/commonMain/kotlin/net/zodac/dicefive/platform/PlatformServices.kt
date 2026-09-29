@@ -96,10 +96,22 @@ interface HapticsPlayer {
  * same on screen whichever way round the app is displayed. At rest, the axis pointing up reads
  * +9.81 (Android's convention: the reaction to gravity, not gravity itself). Shake detection only
  * uses the size of the motion; the googly-eyed logo dice (see DieMotion.feel) need the direction.
+ *
+ * The rate is a request, not a promise - a platform may deliver readings more often - and every
+ * reading wakes the app, so a caller asks for no more than it needs (see ShakeDetector's idle rate).
  */
 interface Accelerometer {
 
-    fun start(onSample: (x: Float, y: Float, z: Float) -> Unit)
+    /** Starts delivering readings, about [samplesPerSecond] a second. */
+    fun start(samplesPerSecond: Int = DEFAULT_SAMPLES_PER_SECOND, onSample: (x: Float, y: Float, z: Float) -> Unit)
+
+    /** Changes the rate of readings already being delivered; does nothing while stopped. */
+    fun setSamplesPerSecond(samplesPerSecond: Int)
 
     fun stop()
+
+    companion object {
+        /** About every 20ms - smooth enough for the googly dice, and what shake detection is tuned for. */
+        const val DEFAULT_SAMPLES_PER_SECOND = 50
+    }
 }

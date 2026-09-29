@@ -304,7 +304,8 @@ private fun InProgressGame(
             onCupTap()
         }
     }
-    ShakeDetectorEffect(onShake = onShakeDetected)
+    // Only listening while a shake could do anything: this player's own turn, on their own scorecard.
+    ShakeDetectorEffect(enabled = isHumanTurn && viewedPlayer == null, onShake = onShakeDetected)
 
     PlayerHeaderBar(
         players = state.players,
