@@ -543,8 +543,8 @@ dependencies — most unit tests live here.
   toss is already under way in the frame the new dice arrive - they never appear at rest first.
   **Scoring waits for the dice:** `GameScreen` uses the same tracker to hold `diceSettling` true for
   `DICE_TOSS_MILLIS` after each landing, and `GameBoard` shows no highlights and takes no score
-  taps while a roll is in hand (shaking or settling). The Settings switch "Simple dice roll
-  animation" (`SettingsRepository.simpleDiceRoll`, off by default) turns all of this back to dice
+  taps while a roll is in hand (shaking or settling). The Settings switch "Simple dice roll"
+  (`SettingsRepository.simpleDiceRoll`, off by default) turns all of this back to dice
   flicking through faces in place while rolling, scoring straight away; `GameScreen` provides it as
   `LocalSimpleDiceRoll`.
   Shadows: dice on the mat don't draw their own drop shadow (`LocalDieCastsShadow` off - every style

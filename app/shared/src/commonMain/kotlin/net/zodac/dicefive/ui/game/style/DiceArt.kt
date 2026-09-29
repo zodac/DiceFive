@@ -51,7 +51,7 @@ val LocalDieIndex = compositionLocalOf { 0 }
 val LocalDieTumbleMillis = compositionLocalOf<Float?> { null }
 
 /**
- * The player's "Simple dice roll animation" setting: when on, every die just flicks through faces
+ * The player's "Simple dice roll" setting: when on, every die just flicks through faces
  * while rolling instead of tumbling in 3D. The game provides it; it's off everywhere else.
  */
 val LocalSimpleDiceRoll = compositionLocalOf { false }
