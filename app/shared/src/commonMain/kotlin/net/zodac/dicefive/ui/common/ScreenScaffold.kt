@@ -1,5 +1,7 @@
 package net.zodac.dicefive.ui.common
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -28,14 +30,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
+/** How long a page's content takes to fade in once it's opened - see [ScreenScaffold]. */
+const val PAGE_CONTENT_FADE_IN_MILLIS = 100
 
 /** Keeps a page's content from stretching into an unreadable line on a tablet or in landscape. */
 val CONTENT_MAX_WIDTH = 460.dp
@@ -93,32 +101,39 @@ fun ScreenScaffold(
                 )
             },
         ) { innerPadding ->
-            if (scrollable) {
-                // The content goes straight into PageColumn's viewport-tall column rather than a
-                // nested one, so a page can still use Modifier.weight to place itself vertically.
-                PageColumn(
-                    contentPadding = innerPadding,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    content = content,
-                )
-            } else {
-                // Not scrollable: the content manages its own (a LazyColumn taking weight(1f)),
-                // which can't be nested inside an outer scroll. The Box is what centres the
-                // width-capped column - `align` here would attach to the backdrop's Box, which is
-                // no longer this node's parent, and be quietly ignored.
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(innerPadding),
-                    contentAlignment = Alignment.TopCenter,
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .widthIn(max = CONTENT_MAX_WIDTH)
-                            .padding(horizontal = 20.dp, vertical = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
+            // The page's content eases in rather than appearing at once - whatever part of it is a
+            // frame or two late (a loaded list, a Styles row centring on its pick) fades in with the
+            // rest instead of popping in. The app bar is left to the page transition's own fade.
+            val contentAlpha = remember { Animatable(0f) }
+            LaunchedEffect(Unit) { contentAlpha.animateTo(1f, tween(PAGE_CONTENT_FADE_IN_MILLIS)) }
+            Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha.value }) {
+                if (scrollable) {
+                    // The content goes straight into PageColumn's viewport-tall column rather than a
+                    // nested one, so a page can still use Modifier.weight to place itself vertically.
+                    PageColumn(
+                        contentPadding = innerPadding,
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         content = content,
                     )
+                } else {
+                    // Not scrollable: the content manages its own (a LazyColumn taking weight(1f)),
+                    // which can't be nested inside an outer scroll. The Box is what centres the
+                    // width-capped column - `align` here would attach to the backdrop's Box, which is
+                    // no longer this node's parent, and be quietly ignored.
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(innerPadding),
+                        contentAlignment = Alignment.TopCenter,
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .widthIn(max = CONTENT_MAX_WIDTH)
+                                .padding(horizontal = 20.dp, vertical = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            content = content,
+                        )
+                    }
                 }
             }
         }
