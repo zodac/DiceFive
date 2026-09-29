@@ -189,6 +189,9 @@ the hold, so without the guard any first-roll 4x unlocks it. The test
 - No More Rolls - tapping the empty cup works as usual.
 - Out Of Time - more likely than anywhere else. The timed-out turn is scored in the lowest-scoring
   open box, not the first open one.
+- Luck Of The Draw - a win with 3 or fewer boxes scored yourself. Any timed game can earn it, but
+  Quickfire always has a timer, and it times out onto the lowest-scoring box, which makes the win
+  harder.
 - Well Rolled (10,000 dice) - slower, at most 5 dice a turn.
 
 ### Tricolour (coloured dice, four colour boxes)

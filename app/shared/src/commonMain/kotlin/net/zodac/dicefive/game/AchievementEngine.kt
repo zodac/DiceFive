@@ -34,9 +34,13 @@ data class GameAchievementContext(
      * their turns was a single roll.
      */
     val playerOneTookExtraRoll: Boolean = false,
-    /** Whether the turn timer ran out on at least one of player 1's own turns this game -
-     * [Achievement.QUICKFIRE_BEAT_THE_CLOCK] needs this false. */
-    val playerOneTimedOut: Boolean = false,
+    /**
+     * How many of player 1's own turns the turn timer ran out on (and so scored for them) this game.
+     * Every turn ends either that way or by player 1 scoring it, so the rest of their card is what
+     * they scored themselves. [Achievement.QUICKFIRE_BEAT_THE_CLOCK] needs this to be 0,
+     * [Achievement.LUCK_OF_THE_DRAW] needs it high enough.
+     */
+    val playerOneTimeouts: Int = 0,
     /**
      * What the leaderboard said *before* this game's rows were inserted. Read pre-insert for the
      * same reason [previousBestScore] is, and because the engine adds this game's own human totals
@@ -157,6 +161,10 @@ object AchievementEngine {
      * and every other box can be zeroed deliberately.
      */
     private const val LOWEST_POSSIBLE_SCORE = 5
+
+    /** The most categories player 1 can score themselves - not the turn timer - and still earn
+     * [Achievement.LUCK_OF_THE_DRAW]. */
+    private const val LUCK_OF_THE_DRAW_MAX_OWN_SCORES = 3
 
     private const val MAX_CHANCE = 30
     private const val MAX_SIXES = 30
@@ -396,7 +404,11 @@ object AchievementEngine {
         )
         award(Achievement.TRICOLOUR_WIN, multiplayer && humanWon && state.gameMode == GameMode.TRICOLOUR)
         award(Achievement.QUICKFIRE_WIN, multiplayer && humanWon && state.gameMode == GameMode.QUICKFIRE)
-        award(Achievement.QUICKFIRE_BEAT_THE_CLOCK, state.gameMode == GameMode.QUICKFIRE && !context.playerOneTimedOut)
+        award(Achievement.QUICKFIRE_BEAT_THE_CLOCK, state.gameMode == GameMode.QUICKFIRE && context.playerOneTimeouts == 0)
+        // Any mode - the card size comes from player 1's own mode, so it's "all but 3" of 13 boxes in
+        // Standard or Quickfire, and of 17 in Tricolour.
+        val playerOneScoredThemselves = players[0].gameMode.categories.size - context.playerOneTimeouts
+        award(Achievement.LUCK_OF_THE_DRAW, multiplayer && humanWon && playerOneScoredThemselves <= LUCK_OF_THE_DRAW_MAX_OWN_SCORES)
         award(Achievement.PIPPED_TO_THE_POST, multiplayer && !humanWon && state.topScore - bestHumanScore == PIPPED_MARGIN)
         award(Achievement.JAWS_OF_VICTORY, multiplayer && !humanWon && context.ledIntoFinalRound)
         award(

@@ -233,9 +233,10 @@ class GameViewModel(
      * see [Achievement.IMPATIENT]/[Achievement.NATURALLY_GIFTED]. */
     private var playerOneTookExtraRoll = false
 
-    /** Whether the turn timer has run out on at least one of player 1's own turns this game - see
-     * [Achievement.QUICKFIRE_BEAT_THE_CLOCK]. */
-    private var playerOneTimedOut = false
+    /** How many of player 1's own turns the turn timer has run out on this game - see
+     * [Achievement.QUICKFIRE_BEAT_THE_CLOCK] and [Achievement.LUCK_OF_THE_DRAW]. A timed-out score
+     * can't be undone, so this never needs counting back down. */
+    private var playerOneTimeouts = 0
 
     /** Whether player 1's most recently completed turn scored a genuine 5x - see
      * [Achievement.TWICE_IN_A_LIFETIME]. */
@@ -746,7 +747,7 @@ class GameViewModel(
         setUndoSnapshot(null)
         applyGameState(GameEngine.commitScore(state, category))
         if (isPlayerOneTurn) {
-            playerOneTimedOut = true
+            playerOneTimeouts++
             unlockAchievements(setOf(Achievement.OUT_OF_TIME))
         }
     }
@@ -882,7 +883,7 @@ class GameViewModel(
             ledIntoFinalRound = ledIntoFinalRound,
             diceRolledByPlayerOne = diceRolledByPlayerOne,
             playerOneTookExtraRoll = playerOneTookExtraRoll,
-            playerOneTimedOut = playerOneTimedOut,
+            playerOneTimeouts = playerOneTimeouts,
         )
         withAchievementLock {
             val update = AchievementEngine.evaluate(state, context, repository.current(), nowEpochMillis())
@@ -1237,7 +1238,7 @@ class GameViewModel(
         trailedIntoFinalRound = false
         ledIntoFinalRound = false
         playerOneTookExtraRoll = false
-        playerOneTimedOut = false
+        playerOneTimeouts = 0
         playerOnePreviousTurnWasFiveOfAKind = false
         outOfRollsCupTaps = 0
         resetPerTurnTracking()

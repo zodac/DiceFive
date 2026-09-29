@@ -74,6 +74,7 @@ import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Speed
@@ -240,6 +241,8 @@ val Achievement.icon: ImageVector
         Achievement.UNDO_DIFFERENT_CATEGORY -> Icons.AutoMirrored.Filled.Undo
         Achievement.NO_MORE_ROLLS -> Icons.Filled.Block
         Achievement.IMPATIENT -> Icons.Filled.FlashOn
+        // The timer shuffling your scores into place for you.
+        Achievement.LUCK_OF_THE_DRAW -> Icons.Filled.Shuffle
         Achievement.FRESH_COAT_OF_PAINT -> Icons.Filled.FormatPaint
         Achievement.EMPTY_HOUSE -> Icons.Filled.NoMeetingRoom
         Achievement.FULLER_HOUSE -> Icons.Filled.House
