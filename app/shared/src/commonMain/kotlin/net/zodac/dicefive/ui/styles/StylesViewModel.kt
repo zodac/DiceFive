@@ -5,8 +5,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -31,6 +33,18 @@ class StylesViewModel(private val settingsRepository: SettingsRepository? = null
 
     val diceMatId: StateFlow<String> = (settingsRepository?.diceMatId ?: flowOf(DiceMats.default.id))
         .stateIn(viewModelScope, SharingStarted.Eagerly, DiceMats.default.id)
+
+    /** False until the saved selections have loaded; until then the four ids above are just the defaults. */
+    val ready: StateFlow<Boolean> = if (settingsRepository == null) {
+        MutableStateFlow(true)
+    } else {
+        combine(
+            settingsRepository.diceStyleId,
+            settingsRepository.diceCupStyleId,
+            settingsRepository.tableBackgroundId,
+            settingsRepository.diceMatId,
+        ) { _, _, _, _ -> true }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    }
 
     fun setDiceStyleId(id: String) {
         val repository = settingsRepository ?: return
