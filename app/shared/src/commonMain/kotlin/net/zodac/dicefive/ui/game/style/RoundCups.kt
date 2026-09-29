@@ -310,7 +310,10 @@ class GlassDiceCupStyle(override val id: String, private val tint: Color, privat
         CupCanvas(rolling, tilted, modifier) {
             drawContactShadow(17f, 77f, alpha = 0.2f)
             val body = roundSection(20f, 10f, 17f, 77f)
-            drawPath(body, tint.copy(alpha = 0.18f))
+            // One tint over body and rim together: laid separately, the rim oval doubled it over the
+            // body's half of the opening, leaving a lighter-looking hemisphere.
+            val mouth = mouthBounds(20f, 10f)
+            drawPath(Path.combine(PathOperation.Union, body, Path().apply { addOval(mouth) }), tint.copy(alpha = 0.18f))
             drawLiquidInGlass(body, liquidIn(rimY = 10f, rimRadius = 20f, restLevel = 38f), liquid, surfaceRadius = taper(20f, 10f, 17f, 77f, 38f))
 
             val edge = Color.White.copy(alpha = 0.5f)
@@ -334,8 +337,6 @@ class GlassDiceCupStyle(override val id: String, private val tint: Color, privat
                 cap = StrokeCap.Round,
             )
 
-            val mouth = mouthBounds(20f, 10f)
-            drawOval(tint.copy(alpha = 0.12f), topLeft = mouth.topLeft, size = mouth.size)
             drawOval(Color.White.copy(alpha = 0.75f), topLeft = mouth.topLeft, size = mouth.size, style = Stroke(width = gy(1.1f)))
         }
     }
@@ -896,7 +897,8 @@ class BeakerDiceCupStyle(override val id: String, private val tint: Color, priva
         CupCanvas(rolling, tilted, modifier, shape) {
             drawContactShadow(23f, 56f, alpha = 0.2f)
             val body = roundSection(23f, 12f, 23f, 56f)
-            drawPath(body, tint.copy(alpha = 0.22f))
+            val rim = mouthBounds(23f, 12f)
+            drawPath(Path.combine(PathOperation.Union, body, Path().apply { addOval(rim) }), tint.copy(alpha = 0.22f))
             drawLiquidInGlass(body, liquidIn(rimY = 12f, rimRadius = 23f, restLevel = 36f), liquid, surfaceRadius = 23f)
 
             val glass = Color.White.copy(alpha = 0.55f)
@@ -908,8 +910,6 @@ class BeakerDiceCupStyle(override val id: String, private val tint: Color, priva
                 drawLine(Color.White.copy(alpha = 0.75f), Offset(gx(20f), gy(y)), Offset(gx(20f + length), gy(y)), strokeWidth = gy(0.8f))
             }
 
-            val rim = mouthBounds(23f, 12f)
-            drawOval(tint.copy(alpha = 0.12f), topLeft = rim.topLeft, size = rim.size)
             drawOval(Color.White.copy(alpha = 0.8f), topLeft = rim.topLeft, size = rim.size, style = Stroke(width = gy(1.1f)))
             val spout = Path().apply {
                 moveTo(gx(16.5f), gy(9f))
