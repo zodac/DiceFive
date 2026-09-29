@@ -52,11 +52,17 @@ data class StyleReward(val styleName: String, val categoryNoun: String) {
 
 /** Every style that earning this achievement unlocks, in the Styles screen's category order. */
 val Achievement.styleRewards: List<StyleReward>
-    get() = StyleCatalogs.flatMap { catalog ->
-        catalog.families
-            .filter { (it.unlock as? StyleUnlock.SpecificAchievement)?.achievement == this }
-            .map { StyleReward(it.name, catalog.noun) }
-    }
+    get() = styleRewardsByAchievement[this].orEmpty()
+
+// Worked out once from the catalogs, which never change, rather than by searching every style each
+// time an achievement row or banner asks.
+private val styleRewardsByAchievement: Map<Achievement, List<StyleReward>> by lazy {
+    StyleCatalogs.flatMap { catalog ->
+        catalog.families.mapNotNull { family ->
+            (family.unlock as? StyleUnlock.SpecificAchievement)?.let { it.achievement to StyleReward(family.name, catalog.noun) }
+        }
+    }.groupBy({ it.first }, { it.second })
+}
 
 /**
  * Whether earning this achievement is what unlocks some style - its row and unlock banner carry a
