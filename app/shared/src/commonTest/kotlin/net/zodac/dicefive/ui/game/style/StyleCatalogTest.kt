@@ -117,4 +117,30 @@ class StyleCatalogTest {
         // Every colour of a Classic style is available from the start.
         assertEquals("barrel", DiceStyles.unlockedById("barrel", AchievementsState()).id)
     }
+
+    @Test
+    fun theIrishDiceAreASecretStyleUnlockedByLuckOfTheIrish() {
+        val irish = DiceStyles.familyOf(IrishFlagDiceStyle.id)
+        assertEquals("Irish", irish.name)
+        assertTrue(irish.unlock.hiddenWhileLocked)
+        assertTrue(Achievement.LUCK_OF_THE_IRISH.unlocksStyle)
+
+        // No number of ordinary achievements unlocks it - only the one.
+        val everythingElse = Achievement.entries.filter { it != Achievement.LUCK_OF_THE_IRISH }
+        assertEquals(DiceStyles.default, DiceStyles.unlockedById(IrishFlagDiceStyle.id, AchievementsState(everythingElse.associateWith { 0L })))
+        val earned = AchievementsState(mapOf(Achievement.LUCK_OF_THE_IRISH to 0L))
+        assertEquals(IrishFlagDiceStyle, DiceStyles.unlockedById(IrishFlagDiceStyle.id, earned))
+    }
+
+    @Test
+    fun onlyASecretAchievementsStyleIsHiddenWhileLocked() {
+        for (catalog in StyleCatalogs) {
+            for (family in catalog.families) {
+                val unlock = family.unlock
+                val secret = unlock is StyleUnlock.SpecificAchievement && unlock.achievement.visibility == AchievementVisibility.SECRET
+                assertEquals(secret, unlock.hiddenWhileLocked, family.name)
+            }
+        }
+        assertFalse(Achievement.BIG_FAN.unlocksStyle)
+    }
 }

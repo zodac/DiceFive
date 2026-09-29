@@ -2,6 +2,7 @@ package net.zodac.dicefive.ui.game.style
 
 import androidx.compose.ui.graphics.Color
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.ui.game.style.StyleUnlock.AchievementCount
 import net.zodac.dicefive.ui.theme.BarrelBackgroundTop
 import net.zodac.dicefive.ui.theme.BarrelDiceTop
@@ -74,6 +75,9 @@ open class StyleCatalog<T : TableArt>(val families: List<StyleFamily<T>>) {
      */
     fun unlockedById(id: String, achievements: AchievementsState): T = if (isUnlocked(id, achievements)) byId(id) else default
 }
+
+/** Every category's catalog, in the Styles screen's order. */
+val StyleCatalogs: List<StyleCatalog<*>> get() = listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds)
 
 object DiceStyles : StyleCatalog<DiceStyle>(
     listOf(
@@ -236,6 +240,12 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour("Blueprint", MisprintDiceStyle("misprint_blueprint", Color(0xFF1F4E8C), Color(0xFFEAF2FF), seed = 2)),
             ),
             unlock = AchievementCount(48),
+        ),
+        // Secret: not on the Styles screen at all until Luck of the Irish is earned.
+        StyleFamily(
+            "Irish",
+            listOf(colour("Tricolour", IrishFlagDiceStyle)),
+            unlock = StyleUnlock.SpecificAchievement(Achievement.LUCK_OF_THE_IRISH),
         ),
     ),
 )

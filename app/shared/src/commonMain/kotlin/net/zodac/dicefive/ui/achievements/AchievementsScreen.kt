@@ -54,6 +54,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementScrollRequests
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.ui.game.style.unlocksStyle
 import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.ui.common.ScreenScaffold
@@ -425,7 +426,7 @@ private fun AchievementRow(
                 )
             }
 
-            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(text = item.achievement.title, style = MaterialTheme.typography.titleSmall)
                 Text(
                     text = if (item.achievement.visibility == AchievementVisibility.HIDDEN && !unlocked) {
@@ -448,6 +449,8 @@ private fun AchievementRow(
                     item.achievement.hasProgressBar -> ProgressRow(item)
                 }
             }
+
+            if (item.achievement.unlocksStyle) StyleRewardStar(tint = tint)
         }
     }
 }

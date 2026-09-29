@@ -61,7 +61,6 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementsState
-import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.HorizontalScrollbar
 import net.zodac.dicefive.ui.common.parseInlineMarkup
@@ -113,7 +112,8 @@ private val LocalPickedTilePlaced = staticCompositionLocalOf<(Int, Int) -> Unit>
  * pick; a row of colour dots along its bottom edge is the cue that it has more than one.
  *
  * A style that hasn't been unlocked yet (see [StyleUnlock]) is covered by a padlock and can't be
- * picked; long-pressing it explains what unlocks it. A saved pick whose style is locked shows the
+ * picked; long-pressing it explains what unlocks it. A secret one ([StyleUnlock.hiddenWhileLocked])
+ * isn't shown at all until it's unlocked. A saved pick whose style is locked shows the
  * category's default as picked instead, since that's what the game draws in its place.
  *
  * Mat and background are separate categories - each previews only its own brush (the mat's own
@@ -268,10 +268,11 @@ private fun <T : TableArt> StyleFamilyTiles(
 ) {
     val shownSelectedId = catalog.unlockedById(selectedId, achievements).id
     for (family in catalog.families) {
-        if (family.unlock.isMet(achievements)) {
-            StyleFamilyTile(family, shownSelectedId, onSelect, previewSize, backgroundBrush, preview)
-        } else {
-            LockedStyleFamilyTile(family, achievements, previewSize, backgroundBrush, preview)
+        when {
+            family.unlock.isMet(achievements) -> StyleFamilyTile(family, shownSelectedId, onSelect, previewSize, backgroundBrush, preview)
+            // A secret style isn't so much as hinted at until it's earned.
+            family.unlock.hiddenWhileLocked -> Unit
+            else -> LockedStyleFamilyTile(family, achievements, previewSize, backgroundBrush, preview)
         }
     }
 }
@@ -449,12 +450,8 @@ private fun unlockRequirement(family: StyleFamily<*>, achievements: Achievements
             val plural = if (unlock.count == 1) "achievement" else "achievements"
             "Earn `${unlock.count}` $plural to unlock ${family.name}. You've earned `${achievements.countedUnlocks}` so far."
         }
-        // A secret achievement is never named before it's earned, anywhere.
-        is StyleUnlock.SpecificAchievement -> if (unlock.achievement.visibility == AchievementVisibility.SECRET) {
-            "Earn a secret achievement to unlock ${family.name}."
-        } else {
-            "Earn `${unlock.achievement.title}` to unlock ${family.name}."
-        }
+        // Never a secret one: its style isn't shown until it's earned (StyleUnlock.hiddenWhileLocked).
+        is StyleUnlock.SpecificAchievement -> "Earn `${unlock.achievement.title}` to unlock ${family.name}."
     }
 
 /**
