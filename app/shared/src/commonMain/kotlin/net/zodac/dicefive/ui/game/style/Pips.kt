@@ -26,12 +26,19 @@ private val PIP_LAYOUTS: Map<Int, List<Offset>> = mapOf(
 
 /** Draws the pips for [value] (1..6) across the full size of this draw scope. */
 fun DrawScope.drawPips(value: Int, color: Color, pipRadiusFraction: Float = 0.09f) {
-    val positions = PIP_LAYOUTS[value] ?: PIP_LAYOUTS.getValue(1)
     val radius = size.minDimension * pipRadiusFraction
-    for (position in positions) {
-        drawCircle(color = color, radius = radius, center = Offset(position.x * size.width, position.y * size.height))
+    drawPipPositions(value) { centre -> drawCircle(color = color, radius = radius, center = centre) }
+}
+
+/** Calls [drawPip] at the centre of each pip for [value] (1..6), laid out across this draw scope. */
+fun DrawScope.drawPipPositions(value: Int, drawPip: DrawScope.(Offset) -> Unit) {
+    for (position in pipLayout(value)) {
+        drawPip(Offset(position.x * size.width, position.y * size.height))
     }
 }
+
+/** Where the pips for [value] (1..6) sit on a face, as fractions (0f..1f) of its width and height. */
+fun pipLayout(value: Int): List<Offset> = PIP_LAYOUTS[value] ?: PIP_LAYOUTS.getValue(1)
 
 /** A square Canvas pre-wired to [drawPips] - used by both the 3D dice and the flat category icons. */
 @Composable

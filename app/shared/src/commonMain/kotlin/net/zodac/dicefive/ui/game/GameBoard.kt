@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.Die
@@ -55,6 +56,7 @@ private fun ScoreBoardRow(
             .height(scoreBoardHeight(gameMode, BOARD_PADDING))
             .clip(RoundedCornerShape(16.dp))
             .background(visualTheme.background.scoreAreaBrush)
+            .drawBehind { with(visualTheme.background) { drawScoreAreaDecoration() } }
             .padding(BOARD_PADDING),
     ) {
         ScoreGrid(
@@ -98,6 +100,7 @@ fun GameBoard(
     onCupTap: () -> Unit,
     onUndo: () -> Unit,
     modifier: Modifier = Modifier,
+    diceSettling: Boolean = false,
 ) {
     val player = state.currentPlayer
     val rolled = state.phase == TurnPhase.ROLLED
@@ -107,13 +110,13 @@ fun GameBoard(
     // turn (especially Easy, which never holds anything) just changes numbers with no visual cue
     // of what's about to happen.
     //
-    // !rolling on top of that: `rolled` alone only reflects the PREVIOUS roll's result while the
-    // cup is mid-shake for a reroll (state.phase doesn't move off ROLLED until the shake finishes
-    // and the new dice actually land), so without this a tap could score against dice about to be
-    // replaced. showPreview stays on `rolled` alone, not gated on !rolling - the preview keeps
-    // showing the previous roll's highlight right up until the new one lands, it just can't be
-    // tapped while that's still in flight.
-    val canScore = rolled && player?.type == PlayerType.HUMAN && !rolling
+    // Neither shows while a roll is in hand: `rolled` alone only reflects the PREVIOUS roll's result
+    // while the cup is mid-shake for a reroll (state.phase doesn't move off ROLLED until the shake
+    // finishes and the new dice actually land), and once they land they're still tumbling to a stop
+    // ([diceSettling]) - so nothing is highlighted or tappable until the dice the scores are for
+    // are sitting still, and a tap can never score against dice about to change.
+    val rollInHand = rolling || diceSettling
+    val canScore = rolled && player?.type == PlayerType.HUMAN && !rollInHand
     val available = player?.let { ScoreCalculator.availableCategories(it, state.dice) }.orEmpty().toSet()
 
     ScoreBoardRow(
@@ -121,7 +124,7 @@ fun GameBoard(
         player = player,
         dice = state.dice,
         canScore = canScore,
-        showPreview = rolled,
+        showPreview = rolled && !rollInHand,
         available = available,
         onScoreCategory = onScoreCategory,
         cup = CupPanelState(

@@ -1,14 +1,17 @@
 package net.zodac.dicefive.ui.game.style
 
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
@@ -33,9 +36,33 @@ private const val RESTING_TILT_DEGREES = -32f
 // half shakes" complaint without needing a second, switched pivot).
 private const val PIVOT_Y_FRACTION = 0.75f
 
-// Cups are authored on a 58 x 84 grid - the in-game cup's own size in dp - and scaled to the canvas.
+// Tall cups are authored on a 58 x 84 grid - the in-game cup's own size in dp - and scaled to the canvas.
 const val CUP_GRID_WIDTH = 58f
 const val CUP_GRID_HEIGHT = 84f
+
+/**
+ * The proportions a cup is drawn in: its canvas size in dp in the game (and so the grid its art is
+ * authored on): [TALL] for the usual cup, [MEDIUM] for one a little wider and shorter (a barrel, a
+ * takeaway cup), or [SQUAT] for one as wide as it's tall, like a cauldron. All fit the game's 104dp
+ * cup slot, even tipped over.
+ */
+enum class CupShape(val gridWidth: Float, val gridHeight: Float) {
+    TALL(CUP_GRID_WIDTH, CUP_GRID_HEIGHT),
+    MEDIUM(66f, 76f),
+    SQUAT(76f, 66f),
+}
+
+/**
+ * The [DrawScope] a cup is drawn in, with its [shape]'s grid ([gx]/[gy] turn grid units into
+ * pixels, [centreX] is the cup's centre line) and its current [pose], for any liquid inside it.
+ */
+class CupDrawScope internal constructor(drawScope: DrawScope, val shape: CupShape, val pose: CupPose) : DrawScope by drawScope {
+    val centreX: Float get() = shape.gridWidth / 2f
+
+    fun gx(v: Float): Float = size.width * v / shape.gridWidth
+
+    fun gy(v: Float): Float = size.height * v / shape.gridHeight
+}
 
 // Every cup is seen side-on from a little above (roughly 22 degrees), so a circle round the cup - its
 // mouth, its base, a hoop - is drawn as an ellipse this many times as tall as it is wide. Using one
@@ -44,20 +71,72 @@ const val CUP_GRID_HEIGHT = 84f
 const val CUP_VIEW_SQUASH = 0.38f
 
 /**
- * The canvas every [DiceCupStyle] draws its cup on: [onDraw] paints the cup standing upright, and
- * this applies the shared shake/pour rotation from [rememberCupRotation] around it, so the cups only
- * differ in their art.
+ * How a cup is currently turned, for art inside it that shouldn't just turn with it - a liquid.
+ *
+ * [rotation] is the cup's own angle. [liquidRotation] trails it on an underdamped spring, the way
+ * liquid lags behind the glass holding it: it overshoots and wobbles when the cup is shaken or
+ * poured, then settles back to matching it.
+ */
+class CupPose(val rotation: Float, val liquidRotation: Float) {
+    /**
+     * The angle (degrees, clockwise) to turn a liquid's surface by, in the cup's own upright
+     * drawing, so it stays level on screen - plus whatever slosh is still settling.
+     */
+    val surfaceTilt: Float get() = -liquidRotation
+
+    /** How far the liquid is still lagging the cup, in degrees: 0 once it's settled. */
+    val slosh: Float get() = rotation - liquidRotation
+}
+
+/**
+ * Whether a cup's own ambient animation (the Cauldron's bubbling) should run. The game turns it off
+ * once a turn's rolls are used up and the cup is dimmed, so a spent cup sits still instead of
+ * redrawing every frame; everywhere else - the Styles screen's previews - it stays on.
+ */
+val LocalCupAnimated = compositionLocalOf { true }
+
+/**
+ * Something that changes whenever the player does anything at the table - the game provides the
+ * current dice, so holding or releasing one changes it - for a cup that reacts to being left alone
+ * (the Top Hat's rabbit) to restart its wait on. Null where nobody's playing.
+ */
+val LocalCupActivity = compositionLocalOf<Any?> { null }
+
+/**
+ * Called the moment the Top Hat's rabbit peeks out, for The Magician's Secret. The game provides
+ * it; anywhere else (the Styles screen, where the hat never tips) it does nothing.
+ */
+val LocalOnRabbitSeen = compositionLocalOf<() -> Unit> { {} }
+
+/**
+ * The canvas every [DiceCupStyle] draws its cup on: [onDraw] paints the cup standing upright on its
+ * [shape]'s grid, and this applies the shared shake/pour rotation from [rememberCupRotation] around
+ * it, so the cups only differ in their art. The [CupDrawScope] carries the [CupPose] for any liquid
+ * a cup draws; most cups ignore it.
  */
 @Composable
-fun CupCanvas(rolling: Boolean, tilted: Boolean, modifier: Modifier, onDraw: DrawScope.() -> Unit) {
+fun CupCanvas(
+    rolling: Boolean,
+    tilted: Boolean,
+    modifier: Modifier,
+    shape: CupShape = CupShape.TALL,
+    onDraw: CupDrawScope.() -> Unit,
+) {
     val rotation = rememberCupRotation(rolling, tilted, RESTING_TILT_DEGREES)
+    val liquidRotation by animateFloatAsState(
+        targetValue = rotation,
+        animationSpec = spring(dampingRatio = 0.3f, stiffness = Spring.StiffnessLow),
+        label = "cupLiquid",
+    )
+    val pose = CupPose(rotation, liquidRotation)
     Canvas(
         modifier = modifier.graphicsLayer {
             rotationZ = rotation
             transformOrigin = TransformOrigin(0.5f, PIVOT_Y_FRACTION)
         },
-        onDraw = onDraw,
-    )
+    ) {
+        CupDrawScope(this, shape, pose).onDraw()
+    }
 }
 
 /**

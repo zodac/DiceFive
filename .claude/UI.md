@@ -24,10 +24,16 @@ anything the device has to do through `platform/PlatformServices`. See `IOS_SUPP
 | Colours from | `MaterialTheme.colorScheme` roles | fixed values in `Color.kt`'s game-table block |
 | Swapped by | nothing - there is one colour scheme, dark, in `Theme.kt` | `ui/game/style/GameVisualTheme` |
 
-The board is a rendered object (felt, ivory dice, a faceted cup), not chrome. Recolouring it
+The board is a rendered object (felt, ivory dice, a casino shaker cup), not chrome. Recolouring it
 would mean re-drawing the art, so it holds its own palette and its own swap point.
 Don't "fix" the board by moving it onto colour roles; don't hardcode chrome colours to match
 the board.
+
+The board's first skins keep their colours as named constants in `Color.kt`'s game-table block.
+The Styles catalog's later styles (dozens of colour variants) keep theirs as literal palettes
+beside their entries in `ui/game/style/StyleCatalog.kt` instead - each is only ever used by that one
+entry, and a few hundred one-use names in `Color.kt` would bury the ones that are shared. Either
+way they're fixed values, never colour roles.
 
 ## Colour
 

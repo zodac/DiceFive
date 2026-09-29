@@ -91,10 +91,13 @@ import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathBuilder
+import androidx.compose.ui.graphics.vector.group
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.model.Achievement
@@ -102,15 +105,25 @@ import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.ic_cowboy_hat
 import net.zodac.dicefive.resources.ic_stairs
 import net.zodac.dicefive.resources.ic_time_machine_car
+import net.zodac.dicefive.ui.game.style.CUP_VIEW_SQUASH
 import net.zodac.dicefive.ui.theme.AchievementHeartRed
 import net.zodac.dicefive.ui.theme.IrishGreenSwatch
 import net.zodac.dicefive.ui.theme.IrishOrangeSwatch
 import net.zodac.dicefive.ui.theme.IrishWhiteSwatch
+import net.zodac.dicefive.ui.theme.MagicianHatDark
+import net.zodac.dicefive.ui.theme.MagicianHatInside
+import net.zodac.dicefive.ui.theme.MagicianHatLight
+import net.zodac.dicefive.ui.theme.MagicianHatMid
+import net.zodac.dicefive.ui.theme.MagicianHatRibbon
 import net.zodac.dicefive.ui.theme.MartiniGlassSwatch
 import net.zodac.dicefive.ui.theme.MartiniLiquidSwatch
 import net.zodac.dicefive.ui.theme.MartiniOliveHighlightSwatch
 import net.zodac.dicefive.ui.theme.MartiniOliveSwatch
 import net.zodac.dicefive.ui.theme.MartiniPickSwatch
+import net.zodac.dicefive.ui.theme.RabbitEye
+import net.zodac.dicefive.ui.theme.RabbitFur
+import net.zodac.dicefive.ui.theme.RabbitFurShade
+import net.zodac.dicefive.ui.theme.RabbitPink
 import org.jetbrains.compose.resources.vectorResource
 
 /**
@@ -255,6 +268,8 @@ val Achievement.icon: ImageVector
         // A martini, not a Material glyph - like the Irish flag above, its whole point is its own
         // fixed colours (glass, liquid, olive), not a single ambient tint.
         Achievement.SHAKEN_NOT_TAPPED -> rememberMartiniIcon()
+        // The Top Hat cup with its rabbit peeking out, drawn the way the player found it.
+        Achievement.MAGICIANS_SECRET -> rememberMagicianIcon()
     }
 
 /**
@@ -268,6 +283,7 @@ fun Achievement.iconTintOrUnspecified(tint: Color): Color = when (this) {
     Achievement.BIG_FAN -> AchievementHeartRed
     Achievement.LUCK_OF_THE_IRISH -> Color.Unspecified
     Achievement.SHAKEN_NOT_TAPPED -> Color.Unspecified
+    Achievement.MAGICIANS_SECRET -> Color.Unspecified
     else -> tint
 }
 
@@ -359,6 +375,100 @@ private fun rememberMartiniIcon(): ImageVector = remember {
             lineTo(12.85f, 5.30f)
             lineTo(13.239f, 5.461f)
             close()
+        }
+    }.build()
+}
+
+// The hat's side is foreshortened by the same raised viewing angle as the game's cups.
+private const val HAT_ICON_SQUASH = CUP_VIEW_SQUASH
+
+/** A full ellipse centred on ([cx], [cy]). */
+private fun PathBuilder.ellipse(cx: Float, cy: Float, rx: Float, ry: Float) {
+    moveTo(cx - rx, cy)
+    arcTo(rx, ry, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = cx + rx, y1 = cy)
+    arcTo(rx, ry, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = cx - rx, y1 = cy)
+    close()
+}
+
+/**
+ * The Top Hat cup (in its black colour) lying tipped over with its rabbit peeking out - see
+ * [Achievement.MAGICIANS_SECRET]. Drawn on the game art's own grid, with the same measurements as
+ * `TopHatDiceCupStyle` - hat 46 wide and 46 deep, rabbit at full height - then scaled into the icon
+ * and tipped the same way the game tips it, so the achievement shows exactly what the player found.
+ * Fixed colours throughout, like the other Easter Eggs icons - see [iconTintOrUnspecified].
+ */
+@Composable
+private fun rememberMagicianIcon(): ImageVector = remember {
+    val squash = HAT_ICON_SQUASH
+    val centre = 38f
+    ImageVector.Builder(name = "MagiciansHat", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f).apply {
+        // The drawing spans roughly x 2..74, y -27..66 on the game's grid: centre it, scale it into
+        // the icon, and tip it over to the left like the cup lies after a roll.
+        group(
+            rotate = -32f,
+            pivotX = centre,
+            pivotY = 19.5f,
+            scaleX = 0.25f,
+            scaleY = 0.25f,
+            translationX = 12f - centre,
+            // Nudged up a touch: tipped over, the crown's low corner reaches further than the ears.
+            translationY = 11.4f - 19.5f,
+        ) {
+            val shading = { from: Float, to: Float ->
+                Brush.horizontalGradient(
+                    0f to MagicianHatDark,
+                    0.3f to MagicianHatLight,
+                    0.58f to MagicianHatMid,
+                    1f to MagicianHatDark,
+                    startX = from,
+                    endX = to,
+                )
+            }
+            // Crown, then the ribbon just below the brim.
+            path(fill = shading(14f, 62f)) {
+                moveTo(centre - 23f, 13f)
+                lineTo(centre - 24f, 57f)
+                arcTo(24f, 24f * squash, 0f, isMoreThanHalf = false, isPositiveArc = false, x1 = centre + 24f, y1 = 57f)
+                lineTo(centre + 23f, 13f)
+                close()
+            }
+            path(fill = SolidColor(MagicianHatRibbon)) {
+                moveTo(centre - 23.1f, 20f)
+                lineTo(centre - 23.3f, 28f)
+                arcTo(23.3f, 23.3f * squash, 0f, isMoreThanHalf = false, isPositiveArc = false, x1 = centre + 23.3f, y1 = 28f)
+                lineTo(centre + 23.1f, 20f)
+                arcTo(23.1f, 23.1f * squash, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = centre - 23.1f, y1 = 20f)
+                close()
+            }
+            // Brim: its edge, its top face, and the opening in it.
+            path(fill = SolidColor(MagicianHatDark)) {
+                moveTo(centre - 36f, 11f)
+                lineTo(centre - 36f, 13f)
+                arcTo(36f, 36f * squash, 0f, isMoreThanHalf = false, isPositiveArc = false, x1 = centre + 36f, y1 = 13f)
+                lineTo(centre + 36f, 11f)
+                close()
+            }
+            path(fill = shading(2f, 74f)) { ellipse(centre, 11f, 36f, 36f * squash) }
+            path(fill = SolidColor(MagicianHatInside)) { ellipse(centre, 11f, 23f, 23f * squash) }
+
+            // The rabbit: ears, head and face, then its paws over the front of the rim.
+            for ((angle, x) in listOf(-12f to centre - 7f, 12f to centre + 7f)) {
+                group(rotate = angle, pivotX = x, pivotY = -4.4f) {
+                    path(fill = SolidColor(RabbitFur)) { ellipse(x, -13.5f, 3.5f, 10.5f) }
+                    path(fill = SolidColor(RabbitPink)) { ellipse(x, -13.5f, 1.55f, 8.5f) }
+                }
+            }
+            path(fill = Brush.verticalGradient(listOf(RabbitFur, RabbitFurShade), startY = -6.5f, endY = 11.7f)) {
+                ellipse(centre, 2.6f, 11.2f, 9.1f)
+            }
+            for (x in listOf(centre - 4.9f, centre + 4.9f)) {
+                path(fill = SolidColor(RabbitEye)) { ellipse(x, 1.2f, 1.7f, 1.7f) }
+                path(fill = SolidColor(Color.White)) { ellipse(x - 0.5f, 0.7f, 0.6f, 0.6f) }
+            }
+            path(fill = SolidColor(RabbitPink)) { ellipse(centre, 6.1f, 1.7f, 1.3f) }
+            for (x in listOf(centre - 9.8f, centre + 9.8f)) {
+                path(fill = SolidColor(RabbitFur)) { ellipse(x, 18.3f, 3.5f, 2.5f) }
+            }
         }
     }.build()
 }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Groups
@@ -46,6 +47,7 @@ fun SettingsScreen(
     val confirmBeforeLeavingGame by viewModel.confirmBeforeLeavingGame.collectAsState()
     val soundEnabled by viewModel.soundEnabled.collectAsState()
     val vibrationEnabled by viewModel.vibrationEnabled.collectAsState()
+    val simpleDiceRoll by viewModel.simpleDiceRoll.collectAsState()
     // Saveable: a rotation mid-confirmation shouldn't silently drop the question.
     var showResetAchievementsConfirmation by rememberSaveable { mutableStateOf(false) }
     var showResetLeaderboardConfirmation by rememberSaveable { mutableStateOf(false) }
@@ -73,6 +75,24 @@ fun SettingsScreen(
                 headlineContent = { Text("Vibration") },
                 trailingContent = {
                     Switch(checked = vibrationEnabled, onCheckedChange = viewModel::setVibrationEnabled)
+                },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            )
+            ListItem(
+                leadingContent = {
+                    Icon(imageVector = Icons.Filled.Casino, contentDescription = null)
+                },
+                headlineContent = {
+                    // Long enough to need the same compact treatment as "Confirm before leaving game?".
+                    Text(
+                        text = "Simple dice roll animation",
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                },
+                trailingContent = {
+                    Switch(checked = simpleDiceRoll, onCheckedChange = viewModel::setSimpleDiceRoll)
                 },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )

@@ -36,6 +36,9 @@ class SettingsViewModel(
     val vibrationEnabled: StateFlow<Boolean> = (settingsRepository?.vibrationEnabled ?: flowOf(true))
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
+    val simpleDiceRoll: StateFlow<Boolean> = (settingsRepository?.simpleDiceRoll ?: flowOf(false))
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
     fun setConfirmBeforeLeavingGame(confirm: Boolean) {
         val repository = settingsRepository ?: return
         viewModelScope.launch { repository.setConfirmBeforeLeavingGame(confirm) }
@@ -49,6 +52,11 @@ class SettingsViewModel(
     fun setVibrationEnabled(enabled: Boolean) {
         val repository = settingsRepository ?: return
         viewModelScope.launch { repository.setVibrationEnabled(enabled) }
+    }
+
+    fun setSimpleDiceRoll(enabled: Boolean) {
+        val repository = settingsRepository ?: return
+        viewModelScope.launch { repository.setSimpleDiceRoll(enabled) }
     }
 
     /** Backs the one achievement this screen itself can earn - opening the Credits dialog

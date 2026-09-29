@@ -5,6 +5,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 
 /**
  * One swappable piece of table art in one colour - a [DiceStyle], [DiceCupStyle], [TableBackground]
@@ -20,6 +21,12 @@ interface TableArt {
  * setting would just provide a different [DiceStyle] instance.
  */
 interface DiceStyle : TableArt {
+    /**
+     * Whether this style draws its own tumble mid-roll (the D20, a solid it can turn itself) rather
+     * than being rolled as a cube of its own faces by the tray. See [LocalDieTumbling].
+     */
+    val tumblesItself: Boolean get() = false
+
     @Composable
     fun Die(value: Int, held: Boolean, modifier: Modifier)
 }
@@ -32,6 +39,9 @@ interface DiceStyle : TableArt {
  * already been poured out at least once (drives the resting pose).
  */
 interface DiceCupStyle : TableArt {
+    /** The proportions this cup is drawn in; callers size its canvas to match. */
+    val shape: CupShape get() = CupShape.TALL
+
     @Composable
     fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier)
 }
@@ -43,6 +53,12 @@ interface DiceCupStyle : TableArt {
  */
 interface TableBackground : TableArt {
     val scoreAreaBrush: Brush
+
+    /**
+     * An optional pattern drawn over [scoreAreaBrush], behind the scorecard. Most backgrounds are a
+     * plain brush and don't need one, so it's a no-op by default.
+     */
+    fun DrawScope.drawScoreAreaDecoration() {}
 }
 
 /** Supplies the (independently swappable) dice-tray mat, separate from [TableBackground]. */

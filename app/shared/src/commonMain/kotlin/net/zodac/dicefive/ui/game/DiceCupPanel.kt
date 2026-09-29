@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,6 +29,8 @@ import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.ui.game.style.LocalCupActivity
+import net.zodac.dicefive.ui.game.style.LocalCupAnimated
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
@@ -139,11 +142,20 @@ fun DiceCupPanel(
                             modifier = Modifier.size(104.dp).alpha(cupAlpha),
                             contentAlignment = Alignment.Center,
                         ) {
-                            visualTheme.diceCupStyle.Cup(
-                                rolling = cup.rolling,
-                                tilted = cup.tilted,
-                                modifier = Modifier.size(width = 58.dp, height = 84.dp),
-                            )
+                            val cupStyle = visualTheme.diceCupStyle
+                            // A spent cup sits still: no ambient animation once it's dimmed. The dice
+                            // double as the table's activity - holding one counts as doing something.
+                            CompositionLocalProvider(
+                                LocalCupAnimated provides (cup.rollsRemaining > 0),
+                                LocalCupActivity provides dice,
+                            ) {
+                                cupStyle.Cup(
+                                    rolling = cup.rolling,
+                                    tilted = cup.tilted,
+                                    // A cup's shape grid is its size in dp here - tall or squat, both fit this 104dp box.
+                                    modifier = Modifier.size(width = cupStyle.shape.gridWidth.dp, height = cupStyle.shape.gridHeight.dp),
+                                )
+                            }
                         }
                         Text(
                             text = "x${cup.rollsRemaining}",

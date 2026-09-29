@@ -11,11 +11,17 @@ import net.zodac.dicefive.ui.theme.FireBackgroundTop
 import net.zodac.dicefive.ui.theme.FireCupLitFace
 import net.zodac.dicefive.ui.theme.FireDiceTop
 import net.zodac.dicefive.ui.theme.FireTrayTop
+import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.IvoryDiceTop
 import net.zodac.dicefive.ui.theme.TrayBlueTop
 
+/** Table art that knows its own most representative colour - its dot on the Styles screen. */
+interface Swatched {
+    val swatch: Color
+}
+
 /** One colour of a [StyleFamily]: the concrete piece of art it resolves to, and how it's named and shown. */
-data class StyleColour<T : TableArt>(val name: String, val swatch: Color, val style: T)
+data class StyleColour<out T : TableArt>(val name: String, val swatch: Color, val style: T)
 
 /**
  * One style - a shape or pattern - offered on the Styles screen as a single tile, in one or more
@@ -59,11 +65,141 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 StyleColour("Oak", BarrelDiceTop, BarrelDiceStyle),
             ),
         ),
+        StyleFamily(
+            "Casino",
+            listOf(
+                colour("Red", CasinoDiceStyle("casino_red", Color(0xFFE53935), Color(0xFF8E0E0E))),
+                colour("Green", CasinoDiceStyle("casino_green", Color(0xFF2E9E4F), Color(0xFF0B4A22))),
+                colour("Blue", CasinoDiceStyle("casino_blue", Color(0xFF2F7FE0), Color(0xFF0B3A80))),
+            ),
+        ),
+        StyleFamily(
+            "Frosted",
+            listOf(
+                colour("Ice", FrostedDiceStyle("frosted_ice", Color(0xFFE3F4FF), Color(0xFFA9D3EE), Color(0xFF1D4E6E))),
+                colour("White", FrostedDiceStyle("frosted_white", Color(0xFFFAFBFC), Color(0xFFD5DADF), Color(0xFF3A4550))),
+            ),
+        ),
+        StyleFamily(
+            "Marble",
+            listOf(
+                colour(
+                    "White",
+                    MarbleDiceStyle("marble_white", Color(0xFFF4F2EE), Color(0xFFD9D5CE), Color(0xFF8E8A84), Color(0xFF222222), seed = 1),
+                ),
+                colour(
+                    "Black",
+                    MarbleDiceStyle("marble_black", Color(0xFF3A3A3E), Color(0xFF141416), Color(0xFFD8D8D8), Color(0xFFF5F5F5), seed = 2),
+                ),
+            ),
+        ),
+        StyleFamily(
+            "Metal",
+            listOf(
+                // Gold and bronze dice would swallow the usual gold held ring, so theirs is white.
+                colour(
+                    "Gold",
+                    MetalDiceStyle(
+                        "metal_gold",
+                        listOf(Color(0xFFFFE9A3), Color(0xFFD4A437), Color(0xFFFFE08A), Color(0xFF9C7219)),
+                        Color(0xFF5C420B),
+                        heldRing = Color.White,
+                    ),
+                ),
+                colour(
+                    "Silver",
+                    MetalDiceStyle(
+                        "metal_silver",
+                        listOf(Color(0xFFF2F4F6), Color(0xFFAEB5BB), Color(0xFFE6EAED), Color(0xFF7C848B)),
+                        Color(0xFF33393E),
+                    ),
+                ),
+                colour(
+                    "Bronze",
+                    MetalDiceStyle(
+                        "metal_bronze",
+                        listOf(Color(0xFFF0B884), Color(0xFFB06A34), Color(0xFFE3A56C), Color(0xFF7A4418)),
+                        Color(0xFF3F2008),
+                        heldRing = Color.White,
+                    ),
+                ),
+            ),
+        ),
+        StyleFamily(
+            "Retro",
+            listOf(
+                colour("Green", RetroDiceStyle("retro_green", Color(0xFF9BBC0F), Color(0xFF306230), Color(0xFF0F380F))),
+                colour(
+                    "Amber",
+                    RetroDiceStyle("retro_amber", Color(0xFFFFB000), Color(0xFF9A5B00), Color(0xFF3A2400), heldRing = Color.White),
+                ),
+            ),
+        ),
+        StyleFamily(
+            "Numeral",
+            listOf(
+                colour("Digits", NumeralDiceStyle("numeral_white", Color(0xFFFBFBFB), Color(0xFFD6D6D6), Color(0xFF1E1E1E))),
+                colour(
+                    "Roman",
+                    NumeralDiceStyle("numeral_roman", Color(0xFFF3E9D2), Color(0xFFD8C8A0), Color(0xFF7A1F1F), NumeralSystem.ROMAN),
+                ),
+                colour(
+                    "Arabic",
+                    NumeralDiceStyle("numeral_arabic", Color(0xFF3A3A3A), Color(0xFF121212), Color(0xFFE8C66A), NumeralSystem.EASTERN_ARABIC),
+                ),
+            ),
+        ),
+        StyleFamily(
+            "LCD",
+            listOf(
+                colour("Neon", LcdDiceStyle("lcd_neon", Color(0xFF15181D), Color(0xFF07090D), Color(0xFF3FD7FF), glow = true)),
+                colour("White", LcdDiceStyle("lcd_white", Color(0xFFF4F4F0), Color(0xFFE2E4DE), Color(0xFF151515), glow = false)),
+            ),
+        ),
+        StyleFamily(
+            "D20",
+            listOf(
+                colour("White", D20DiceStyle("d20_white", Color(0xFFFBFBF8), Color(0xFFB9BCC2), Color(0xFF1A1A1A))),
+                // The brand's own pairing: the felt blue with the gold the board uses for "press this" -
+                // so the held ring is white instead, not lost against gold numbers.
+                colour("Blue", D20DiceStyle("d20_blue", Color(0xFF3A6BB0), Color(0xFF14315C), GoldAccent, heldRing = Color.White)),
+            ),
+        ),
+        StyleFamily(
+            "Cube",
+            listOf(
+                colour(
+                    "Ivory",
+                    CubeDiceStyle("cube_ivory", Color(0xFFFFFCF3), Color(0xFFE6DAB8), Color(0xFFFFFFFF), Color(0xFFC9B78E), Color(0xFF2B2118)),
+                ),
+                colour(
+                    "Red",
+                    CubeDiceStyle("cube_red", Color(0xFFE53935), Color(0xFFB71C1C), Color(0xFFEF6A5E), Color(0xFF8E1414), Color.White),
+                ),
+            ),
+        ),
+        StyleFamily(
+            "Misprint",
+            listOf(
+                colour("Pencil", MisprintDiceStyle("misprint_pencil", Color(0xFFFAF7F0), Color(0xFF3A3A3A))),
+                colour("Blueprint", MisprintDiceStyle("misprint_blueprint", Color(0xFF1F4E8C), Color(0xFFEAF2FF))),
+            ),
+        ),
     ),
 )
 
 object DiceCupStyles : StyleCatalog<DiceCupStyle>(
     listOf(
+        // The casino shaker, first so it's the default - "Classic", like every category's default.
+        // Its ids still say "casino": they're saved picks, so they stay put if the default moves.
+        StyleFamily(
+            "Classic",
+            listOf(
+                cup("Black", ::CasinoDiceCupStyle, "casino_black", 0xFF0F0F10, 0xFF4A4A4E, 0xFF26262A, 0xFFD4AF37, 0xFF050505),
+                cup("Burgundy", ::CasinoDiceCupStyle, "casino_burgundy", 0xFF3A0A14, 0xFF8E2A3E, 0xFF5E1626, 0xFFD4AF37, 0xFF14040A),
+                cup("Green", ::CasinoDiceCupStyle, "casino_green", 0xFF0B2A12, 0xFF2F7A45, 0xFF1B5227, 0xFFD4AF37, 0xFF04120A),
+            ),
+        ),
         StyleFamily(
             "Faceted",
             listOf(
@@ -72,6 +208,64 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
             ),
         ),
         StyleFamily("Barrel", listOf(StyleColour("Brown", BarrelWood, BarrelDiceCupStyle))),
+        StyleFamily(
+            "Leather",
+            listOf(
+                cup("Tan", ::LeatherDiceCupStyle, "leather_tan", 0xFF5C3A1C, 0xFFB98553, 0xFF8A5A2E, 0xFFF0DDB8, 0xFF1E1209),
+                cup("Black", ::LeatherDiceCupStyle, "leather_black", 0xFF111111, 0xFF4A4A4A, 0xFF262626, 0xFFBDBDBD, 0xFF050505),
+                cup("Oxblood", ::LeatherDiceCupStyle, "leather_oxblood", 0xFF3A0A0D, 0xFF92323A, 0xFF641A20, 0xFFE8C9A0, 0xFF160405),
+            ),
+        ),
+        StyleFamily(
+            "Glass",
+            listOf(
+                colour("Clear", GlassDiceCupStyle("glass_clear", Color(0xFFD6ECF7), Color(0xFF8FD3F4))),
+                colour("Blue", GlassDiceCupStyle("glass_blue", Color(0xFF5AA8E8), Color(0xFF2F7FE0))),
+                colour("Amber", GlassDiceCupStyle("glass_amber", Color(0xFFE8C98A), Color(0xFFE8A030))),
+            ),
+        ),
+        StyleFamily(
+            "Tankard",
+            listOf(
+                cup("Pewter", ::TankardDiceCupStyle, "tankard_pewter", 0xFF4E555A, 0xFFC9D0D4, 0xFF8C959B, 0xFF5E676D, 0xFF1C2023),
+                cup("Copper", ::TankardDiceCupStyle, "tankard_copper", 0xFF6B3417, 0xFFE0A07A, 0xFFB8683D, 0xFF7A3C1B, 0xFF2A1308),
+            ),
+        ),
+        StyleFamily(
+            "Top Hat",
+            listOf(
+                cup("Black", ::TopHatDiceCupStyle, "top_hat_black", 0xFF0B0B0C, 0xFF3C3C40, 0xFF1E1E21, 0xFFB71C1C, 0xFF030303),
+                cup("Grey", ::TopHatDiceCupStyle, "top_hat_grey", 0xFF3A3A3D, 0xFF9A9AA0, 0xFF6A6A70, 0xFF1A1A1C, 0xFF121214),
+            ),
+        ),
+        StyleFamily(
+            "Takeaway",
+            listOf(
+                cup("White", ::TakeawayDiceCupStyle, "takeaway_white", 0xFFBDB6AA, 0xFFFFFFFF, 0xFFECE7DE, 0xFFA87A4E, 0xFF2A1A10),
+                cup("Black", ::TakeawayDiceCupStyle, "takeaway_black", 0xFF111111, 0xFF4A4A4A, 0xFF262626, 0xFFC08A55, 0xFF2A1A10),
+            ),
+        ),
+        StyleFamily(
+            "Flowerpot",
+            listOf(
+                cup("Terracotta", ::FlowerpotDiceCupStyle, "flowerpot_terracotta", 0xFF7A3418, 0xFFE08A5C, 0xFFC0643A, 0xFFC0643A, 0xFF2E1E14),
+                cup("Slate", ::FlowerpotDiceCupStyle, "flowerpot_slate", 0xFF2E3438, 0xFF8A949A, 0xFF5A646A, 0xFF5A646A, 0xFF1E1A16),
+            ),
+        ),
+        StyleFamily(
+            "Cauldron",
+            listOf(
+                cauldron("Green", "cauldron_green", 0xFF5BE36A, 0xFF1E7A2B),
+                cauldron("Purple", "cauldron_purple", 0xFFB06CF0, 0xFF5A2A8A),
+            ),
+        ),
+        StyleFamily(
+            "Beaker",
+            listOf(
+                colour("Blue", BeakerDiceCupStyle("beaker_blue", Color(0xFFD6ECF7), Color(0xFF4FC3F7))),
+                colour("Green", BeakerDiceCupStyle("beaker_green", Color(0xFFD6ECF7), Color(0xFF7CE08A))),
+            ),
+        ),
     ),
 )
 
@@ -85,18 +279,176 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 StyleColour("Brown", BarrelBackgroundTop, BarrelTableBackground),
             ),
         ),
+        StyleFamily(
+            "Spotlight",
+            listOf(
+                background("Navy", ::SpotlightBackground, "spotlight_navy", 0xFF2A5590, 0xFF0A1A33),
+                background("Green", ::SpotlightBackground, "spotlight_green", 0xFF2E7A48, 0xFF0A2A16),
+                background("Purple", ::SpotlightBackground, "spotlight_purple", 0xFF5A3290, 0xFF1A0A33),
+            ),
+        ),
+        StyleFamily(
+            "Pinstripe",
+            listOf(
+                background("Charcoal", ::PinstripeBackground, "pinstripe_charcoal", 0xFF2E3136, 0xFF1C1E22),
+                background("Navy", ::PinstripeBackground, "pinstripe_navy", 0xFF1E2E4C, 0xFF0F1A30),
+            ),
+        ),
+        StyleFamily(
+            "Planks",
+            listOf(
+                background("Oak", ::PlanksBackground, "planks_oak", 0xFF7A5534, 0xFF5A3C22),
+                background("Walnut", ::PlanksBackground, "planks_walnut", 0xFF4A3322, 0xFF2C1D12),
+            ),
+        ),
+        StyleFamily(
+            "Gingham",
+            listOf(
+                background("Red", ::GinghamBackground, "gingham_red", 0xFF8E2A26, 0xFF6A1C19),
+                background("Blue", ::GinghamBackground, "gingham_blue", 0xFF264C78, 0xFF183352),
+                background("Green", ::GinghamBackground, "gingham_green", 0xFF33693D, 0xFF214A28),
+            ),
+        ),
+        StyleFamily(
+            "Starry",
+            listOf(
+                background("Midnight", ::StarryBackground, "starry_midnight", 0xFF12224A, 0xFF060C22),
+                background("Violet", ::StarryBackground, "starry_violet", 0xFF2E1650, 0xFF120722),
+            ),
+        ),
+        StyleFamily(
+            "Honeycomb",
+            listOf(
+                background("Charcoal", ::HoneycombBackground, "honeycomb_charcoal", 0xFF2A2D33, 0xFF16181C),
+                background("Indigo", ::HoneycombBackground, "honeycomb_indigo", 0xFF262A5A, 0xFF12142E),
+            ),
+        ),
+        StyleFamily(
+            "Sunburst",
+            listOf(
+                background("Crimson", ::SunburstBackground, "sunburst_crimson", 0xFF6A1218, 0xFF2E0508),
+                background("Amber", ::SunburstBackground, "sunburst_amber", 0xFF7A4A0E, 0xFF331E04),
+            ),
+        ),
     ),
 )
 
 object DiceMats : StyleCatalog<DiceMat>(
     listOf(
         StyleFamily(
-            "Felt",
+            "Classic",
             listOf(
                 StyleColour("Blue", TrayBlueTop, TrayBlueMat),
                 StyleColour("Red", FireTrayTop, FireDiceMat),
             ),
         ),
         StyleFamily("Barrel", listOf(StyleColour("Brown", BarrelTrayTop, BarrelDiceMat))),
+        StyleFamily(
+            "Leather",
+            listOf(
+                mat("Tan", ::LeatherDiceMat, "leather_tan", 0xFF9A6A3C, 0xFF6B4424, 0xFF3E2612, 0xFF2A190B, 0xFFE0C08E, 0xFFE8D2A8),
+                mat("Oxblood", ::LeatherDiceMat, "leather_oxblood", 0xFF7A2328, 0xFF4E1216, 0xFF2E080B, 0xFF1E0507, 0xFFE0A89A, 0xFFE8C9A0),
+                mat("Black", ::LeatherDiceMat, "leather_black", 0xFF3A3A3A, 0xFF1C1C1C, 0xFF111111, 0xFF0A0A0A, 0xFF9E9E9E, 0xFFBDBDBD),
+            ),
+        ),
+        StyleFamily(
+            "Casino",
+            listOf(
+                mat("Green", ::CasinoDiceMat, "casino_green", 0xFF1E6B3A, 0xFF0E3F22, 0xFF0A2E18, 0xFF061F10, 0xFFE0C45A, 0xFFD4AF37),
+                mat("Purple", ::CasinoDiceMat, "casino_purple", 0xFF4A2266, 0xFF2A1040, 0xFF1E0A30, 0xFF12061E, 0xFFE0C45A, 0xFFD4AF37),
+            ),
+        ),
+        StyleFamily(
+            "Marble",
+            listOf(
+                mat("Black", ::MarbleDiceMat, "marble_black", 0xFF34343A, 0xFF1A1A1E, 0xFF111114, 0xFF0A0A0C, 0xFFBDBDBD, 0xFFFFFFFF),
+                mat("Green", ::MarbleDiceMat, "marble_green", 0xFF2A4A3C, 0xFF15291F, 0xFF0E1F17, 0xFF08140E, 0xFFA8D8C0, 0xFFDFF5EA),
+            ),
+        ),
+        StyleFamily(
+            "Chalkboard",
+            listOf(
+                colour(
+                    "Slate",
+                    ChalkboardDiceMat(
+                        "chalkboard_slate",
+                        matPalette(0xFF3A4648, 0xFF252E30, 0xFF1B2224, 0xFF12181A, 0xFFD8D8D0, 0xFFFFFFFF),
+                        frame = Color(0xFF7A5230),
+                    ),
+                ),
+                colour(
+                    "Green",
+                    ChalkboardDiceMat(
+                        "chalkboard_green",
+                        matPalette(0xFF2F4F3E, 0xFF1D3327, 0xFF152A1F, 0xFF0D1C14, 0xFFD8E8D8, 0xFFFFFFFF),
+                        frame = Color(0xFF7A5230),
+                    ),
+                ),
+            ),
+        ),
+        StyleFamily(
+            "Gingham",
+            listOf(
+                mat("Red", ::GinghamDiceMat, "gingham_red", 0xFFA8322D, 0xFF7E211D, 0xFF4A1310, 0xFF330B09, 0xFFF2B8B0, 0xFFFFFFFF),
+                mat("Blue", ::GinghamDiceMat, "gingham_blue", 0xFF2F5C8F, 0xFF1E3E63, 0xFF122640, 0xFF0B182B, 0xFFB8D0F0, 0xFFFFFFFF),
+                mat("Green", ::GinghamDiceMat, "gingham_green", 0xFF3E7D4A, 0xFF27562F, 0xFF16331C, 0xFF0E2312, 0xFFBFE3C6, 0xFFFFFFFF),
+            ),
+        ),
+        StyleFamily(
+            "Starry",
+            listOf(
+                mat("Midnight", ::StarryDiceMat, "starry_midnight", 0xFF152550, 0xFF070E24, 0xFF0A1330, 0xFF050A1C, 0xFF8FA8E8, 0xFFFFFFFF),
+                mat("Violet", ::StarryDiceMat, "starry_violet", 0xFF34195A, 0xFF150828, 0xFF1C0B33, 0xFF10051E, 0xFFC3A8F0, 0xFFFFFFFF),
+            ),
+        ),
     ),
 )
+
+// Shorthands for the entries above. A colour's swatch - its dot on the Styles screen - is the most
+// representative colour of its palette.
+
+private fun <T> colour(name: String, style: T): StyleColour<T> where T : TableArt, T : Swatched = StyleColour(name, style.swatch, style)
+
+private fun <T : DiceCupStyle> cup(
+    name: String,
+    create: (String, CupPalette) -> T,
+    id: String,
+    dark: Long,
+    light: Long,
+    mid: Long,
+    accent: Long,
+    interior: Long,
+): StyleColour<DiceCupStyle> =
+    StyleColour(name, Color(mid), create(id, CupPalette(Color(dark), Color(light), Color(mid), Color(accent), Color(interior))))
+
+// Cauldrons share their iron and differ only in their brew, which is also the colour the Styles
+// screen shows for them.
+private fun cauldron(name: String, id: String, brew: Long, deepBrew: Long): StyleColour<DiceCupStyle> =
+    StyleColour(
+        name,
+        Color(brew),
+        CauldronDiceCupStyle(id, CupPalette(Color(0xFF151618), Color(0xFF5A5E63), Color(0xFF2C2F33), Color(brew), Color(deepBrew))),
+    )
+
+private fun matPalette(top: Long, bottom: Long, slotTop: Long, slotBottom: Long, slotBorder: Long, detail: Long) =
+    MatPalette(Color(top), Color(bottom), Color(slotTop), Color(slotBottom), Color(slotBorder), Color(detail))
+
+private fun mat(
+    name: String,
+    create: (String, MatPalette) -> DiceMat,
+    id: String,
+    top: Long,
+    bottom: Long,
+    slotTop: Long,
+    slotBottom: Long,
+    slotBorder: Long,
+    detail: Long,
+): StyleColour<DiceMat> = StyleColour(name, Color(top), create(id, matPalette(top, bottom, slotTop, slotBottom, slotBorder, detail)))
+
+private fun background(
+    name: String,
+    create: (String, BackgroundPalette) -> TableBackground,
+    id: String,
+    top: Long,
+    bottom: Long,
+): StyleColour<TableBackground> = StyleColour(name, Color(top), create(id, BackgroundPalette(Color(top), Color(bottom))))

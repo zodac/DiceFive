@@ -437,17 +437,19 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `Big Fan - Luck of the Irish and Shaken Not Tapped are the only secret achievements - and none gates Completionist`() {
+    fun `the Easter Eggs are the only secret achievements - and none gates Completionist`() {
         assertEquals(AchievementVisibility.SECRET, Achievement.BIG_FAN.visibility)
         assertEquals(AchievementVisibility.SECRET, Achievement.LUCK_OF_THE_IRISH.visibility)
         assertEquals(AchievementVisibility.SECRET, Achievement.SHAKEN_NOT_TAPPED.visibility)
         assertFalse(Achievement.BIG_FAN in Achievement.COMPLETION_REQUIREMENTS)
         assertFalse(Achievement.LUCK_OF_THE_IRISH in Achievement.COMPLETION_REQUIREMENTS)
         assertFalse(Achievement.SHAKEN_NOT_TAPPED in Achievement.COMPLETION_REQUIREMENTS)
+        assertEquals(AchievementVisibility.SECRET, Achievement.MAGICIANS_SECRET.visibility)
+        assertFalse(Achievement.MAGICIANS_SECRET in Achievement.COMPLETION_REQUIREMENTS)
         // Every other achievement stays at least title-visible from the start - secrecy is the
         // exception, not the rule.
         assertEquals(
-            listOf(Achievement.BIG_FAN, Achievement.LUCK_OF_THE_IRISH, Achievement.SHAKEN_NOT_TAPPED),
+            listOf(Achievement.BIG_FAN, Achievement.LUCK_OF_THE_IRISH, Achievement.SHAKEN_NOT_TAPPED, Achievement.MAGICIANS_SECRET),
             Achievement.entries.filter { it.visibility == AchievementVisibility.SECRET },
         )
     }

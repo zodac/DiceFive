@@ -508,6 +508,14 @@ class GameViewModel(
         unlockAchievements(setOf(Achievement.SHAKEN_NOT_TAPPED))
     }
 
+    /** The Top Hat cup's rabbit just peeked out - see [Achievement.MAGICIANS_SECRET]. Only on a human's
+     * turn: the hat has to have been left alone by someone at the table, not tipped by an AI. */
+    fun onRabbitSeen() {
+        val state = _game.value ?: return
+        if (state.currentPlayer?.type != PlayerType.HUMAN) return
+        unlockAchievements(setOf(Achievement.MAGICIANS_SECRET))
+    }
+
     private fun onHumanAction(undoable: Boolean = true, transform: (GameState) -> GameState) {
         val state = _game.value ?: return
         if (state.currentPlayer?.type != PlayerType.HUMAN) return
