@@ -20,7 +20,7 @@ class StyleCatalogTest {
     @Test
     fun everyShippedIdStillResolvesToItsOwnArt() {
         val shipped = mapOf(
-            DiceStyles to listOf("ivory", "fire", "barrel"),
+            DiceStyles to listOf("ivory", "classic_red", "classic_yellow", "classic_blue", "barrel"),
             DiceCupStyles to listOf("casino_gold", "casino_black", "casino_green", "faceted", "fire", "barrel"),
             DiceMats to listOf("tray_blue", "fire", "barrel"),
             TableBackgrounds to listOf("midnight_felt", "fire", "barrel"),
@@ -36,10 +36,10 @@ class StyleCatalogTest {
     }
 
     @Test
-    fun everyStyleComesInOneToThreeColours() {
+    fun everyStyleComesInAtLeastOneColour() {
         for (catalog in listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds)) {
             for (family in catalog.families) {
-                assertTrue(family.colours.size in 1..3, "${family.name} has ${family.colours.size} colours")
+                assertTrue(family.colours.isNotEmpty(), "${family.name} has no colours")
             }
         }
     }
@@ -66,7 +66,7 @@ class StyleCatalogTest {
         assertEquals("Barrel", DiceCupStyles.familyOf("barrel").name)
         assertEquals("Classic", DiceMats.familyOf("fire").name)
         assertEquals("Wood", DiceMats.familyOf("barrel").name)
-        for (id in listOf("ivory", "fire", "barrel")) {
+        for (id in listOf("ivory", "classic_red", "classic_yellow", "classic_blue", "barrel")) {
             assertEquals("Classic", DiceStyles.familyOf(id).name)
             assertEquals("Classic", TableBackgrounds.familyOf(if (id == "ivory") "midnight_felt" else id).name)
         }
@@ -77,6 +77,8 @@ class StyleCatalogTest {
         assertEquals("casino_gold", DiceCupStyles.byId("leather").id)
         assertEquals("casino_gold", DiceCupStyles.byId("casino_burgundy").id)
         assertEquals("Classic", DiceCupStyles.familyOf("leather").name)
+        // The Classic dice's old red skin is gone, so a saved pick of it lands on the default.
+        assertEquals(DiceStyles.default, DiceStyles.byId("fire"))
     }
 
     @Test

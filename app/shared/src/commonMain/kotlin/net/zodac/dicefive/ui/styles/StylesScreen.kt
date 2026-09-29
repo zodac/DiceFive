@@ -94,6 +94,9 @@ private val MAT_PREVIEW_HEIGHT = 72.dp
 private val BACKGROUND_PREVIEW_WIDTH = 108.dp
 private val BACKGROUND_PREVIEW_HEIGHT = 72.dp
 private val COLOUR_DOT_SIZE = 7.dp
+private val COLOUR_DOT_SIZE_MORE_BEYOND = 4.dp
+// More colours than this and the tile's dots show a window of them; the pop-up still lists every one.
+internal const val MAX_COLOUR_DOTS = 3
 // A locked tile's style shows through its scrim; the padlock over it is faded to match.
 private const val LOCKED_SCRIM_ALPHA = 0.55f
 private const val LOCKED_PADLOCK_ALPHA = 0.8f
@@ -510,16 +513,33 @@ private fun SelectedBadge(modifier: Modifier = Modifier) {
     }
 }
 
-/** One dot per colour a style comes in, the one the tile is showing ringed in the app's gold. */
+/**
+ * Which of [count] colours' dots to show when the tile has room for [MAX_COLOUR_DOTS]: all of them,
+ * or a window of that many that always includes [shownIndex] - the shown colour is in the middle
+ * where it can be, and at an end where it's the first or last colour.
+ */
+internal fun colourDotRange(count: Int, shownIndex: Int): IntRange {
+    if (count <= MAX_COLOUR_DOTS) return 0 until count
+    val start = (shownIndex - MAX_COLOUR_DOTS / 2).coerceIn(0, count - MAX_COLOUR_DOTS)
+    return start until start + MAX_COLOUR_DOTS
+}
+
+/**
+ * One dot per colour a style comes in, the one the tile is showing ringed in the app's gold. A style
+ * with more colours than fit shows a window of them around the shown one - see [colourDotRange] -
+ * and the window's end dots shrink on any side that has more colours beyond it.
+ */
 @Composable
 private fun <T : TableArt> ColourDots(colours: List<StyleColour<T>>, shown: StyleColour<T>, modifier: Modifier = Modifier) {
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-        for (colour in colours) {
-            val isShown = colour == shown
+    val range = colourDotRange(colours.size, colours.indexOf(shown))
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
+        for (index in range) {
+            val colour = colours[index]
+            val moreBeyond = (index == range.first && index > 0) || (index == range.last && index < colours.lastIndex)
             Swatch(
                 colour = colour.swatch,
-                size = COLOUR_DOT_SIZE,
-                ring = if (isShown) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                size = if (moreBeyond) COLOUR_DOT_SIZE_MORE_BEYOND else COLOUR_DOT_SIZE,
+                ring = if (colour == shown) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
             )
         }
     }

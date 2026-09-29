@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.game.style
 import androidx.compose.ui.graphics.Color
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.ui.game.style.StyleUnlock.AchievementCount
 import net.zodac.dicefive.ui.theme.BarrelBackgroundTop
 import net.zodac.dicefive.ui.theme.BarrelDiceTop
@@ -15,7 +16,6 @@ import net.zodac.dicefive.ui.theme.FeltNavyBottom
 import net.zodac.dicefive.ui.theme.FeltNavyTop
 import net.zodac.dicefive.ui.theme.FireBackgroundTop
 import net.zodac.dicefive.ui.theme.FireCupLitFace
-import net.zodac.dicefive.ui.theme.FireDiceTop
 import net.zodac.dicefive.ui.theme.FireTrayTop
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.IvoryDiceBottom
@@ -77,6 +77,10 @@ open class StyleCatalog<T : TableArt>(val noun: String, val families: List<Style
     fun unlockedById(id: String, achievements: AchievementsState): T = if (isUnlocked(id, achievements)) byId(id) else default
 }
 
+/** A Classic die in one of Tricolour mode's colours, from the same palette that colours its dice in that mode. */
+private fun classicDie(id: String, colour: DieColour): StyleColour<DiceStyle> =
+    StyleColour(colour.name.lowercase().replaceFirstChar { it.uppercase() }, colour.palette.swatch, ColouredClassicDiceStyle(id, colour.palette))
+
 /** Every category's catalog, in the Styles screen's order. */
 val StyleCatalogs: List<StyleCatalog<*>> by lazy { listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds) }
 
@@ -87,7 +91,9 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             "Classic",
             listOf(
                 StyleColour("Ivory", IvoryDiceTop, IvoryDiceStyle),
-                StyleColour("Red", FireDiceTop, FireDiceStyle),
+                classicDie("classic_red", DieColour.RED),
+                classicDie("classic_yellow", DieColour.YELLOW),
+                classicDie("classic_blue", DieColour.BLUE),
                 StyleColour("Oak", BarrelDiceTop, BarrelDiceStyle),
             ),
         ),

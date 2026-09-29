@@ -106,12 +106,12 @@ class MenuViewModelTest {
     @Test
     fun `the logo has no styles until the saved picks load - never a flash of the defaults`() = runTest {
         val settings = SettingsRepository(FakePreferencesStore())
-        settings.setDiceStyleId("fire")
+        settings.setDiceStyleId("barrel")
         val viewModel = MenuViewModel(settingsRepository = settings)
 
         assertNull(viewModel.logoStyles.value)
         advanceUntilIdle()
-        assertEquals("fire", viewModel.logoStyles.value?.dice?.id)
+        assertEquals("barrel", viewModel.logoStyles.value?.dice?.id)
     }
 
     @Test

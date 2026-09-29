@@ -139,11 +139,8 @@ val BarrelSlotBorder = Color(0xFFC08A55)
 val BarrelBackgroundTop = Color(0xFF3A2314)
 val BarrelBackgroundBottom = Color(0xFF1C1009)
 
-// Fire theme: a red-and-orange skin for the die, dice cup and table mat - see FireDiceStyle,
-// FireDiceCupStyle and FireTableBackground. Same "not a colour role" rule as the rest of this block.
-val FireDiceTop = Color(0xFFFF6B4A)
-val FireDiceBottom = Color(0xFFA6180C)
-val FireDicePipColor = Color(0xFFFFB347)
+// Fire theme: a red-and-orange skin for the dice cup, table mat and background - see
+// FireDiceCupStyle, FireDiceMat and FireTableBackground. Same "not a colour role" rule as the rest of this block.
 
 // The fire cup's faces: shadowed left, lit centre, mid-tone right - the same lighting as the
 // faceted cup's teal faces.
