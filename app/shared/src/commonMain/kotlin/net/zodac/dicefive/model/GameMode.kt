@@ -73,6 +73,8 @@ enum class GameMode(
      * the timer to the player - see [GameState.turnSeconds].
      */
     val turnTimerSeconds: Int? = null,
+    /** Which open category a turn that runs out of time is scored in - see [TimeoutPick]. */
+    val timeoutPick: TimeoutPick = TimeoutPick.FIRST_OPEN,
 ) {
     /**
      * The official rules.
@@ -123,7 +125,8 @@ enum class GameMode(
 
     /**
      * Beyond the official rules: Standard's dice and scorecard, but only one roll per turn - no holds,
-     * no rerolls - against a fixed 10-second turn timer.
+     * no rerolls - against a fixed 10-second turn timer. Running out of time scores the roll in the
+     * open category it's worth *least* in, rather than the first open one.
      *
      * Max score: the same card and bonuses as Standard, so the same perfect game - a single roll can
      * still land five 6s. `1575`.
@@ -142,6 +145,7 @@ enum class GameMode(
         fiveOfAKindBonusAmount = 100,
         maxPossibleScore = 1575,
         turnTimerSeconds = 10,
+        timeoutPick = TimeoutPick.LOWEST_SCORE,
     ),
     ;
 

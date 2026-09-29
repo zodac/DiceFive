@@ -4,6 +4,7 @@ import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
+import net.zodac.dicefive.model.TimeoutPick
 
 /**
  * Resolves what a player may score with their current dice, applying the official joker
@@ -33,6 +34,20 @@ object ScoreCalculator {
 
         val openOutsideUpper = open.filterNot { it.section == ScoreSection.UPPER }
         return openOutsideUpper.ifEmpty { open }
+    }
+
+    /**
+     * Where a turn that ran out of time is scored, by the player's mode's [TimeoutPick]: the first
+     * open category, or the one [dice] score least in (the first of them, in scorecard order, on a
+     * tie). Always one of [availableCategories], so the joker rule still decides what's open.
+     */
+    fun timeoutCategory(player: PlayerState, dice: List<Die>): ScoreCategory {
+        val available = availableCategories(player, dice)
+        return when (player.gameMode.timeoutPick) {
+            TimeoutPick.FIRST_OPEN -> available.first()
+            // minBy keeps the first of equal minimums, which is the scorecard-order tie-break.
+            TimeoutPick.LOWEST_SCORE -> available.minBy { scoreFor(player, it, dice) }
+        }
     }
 
     /** The scorecard cell value for [category] with the current [dice] (excludes any 5x bonus chip). */

@@ -166,8 +166,9 @@ decisions behind it. Read that before changing anything visual.
   `CLASSIC`), `TRICOLOUR` (see Phase 14) and `QUICKFIRE` (see Phase 20). **Every rule that can
   differ between modes is a field on the mode**, even where the modes agree today: dice count, rolls
   per turn, die faces, die colours, the scorecard's categories (which is also the number of turns),
-  the upper-bonus threshold/amount, the 5x bonus chip, the max possible score, and a fixed turn
-  timer that overrides the setup pick (`turnTimerSeconds`). `.claude/GAME_MODES.md` has the
+  the upper-bonus threshold/amount, the 5x bonus chip, the max possible score, a fixed turn
+  timer that overrides the setup pick (`turnTimerSeconds`), and where a timed-out turn is scored
+  (`timeoutPick`). `.claude/GAME_MODES.md` has the
   checklist for adding a mode. The engine, AI, achievements,
   persistence and board all read the rules from there - a new mode should be a new entry plus any
   genuinely new scoring rule, and nothing else learning it exists. A category's own scoring rule is
@@ -1645,8 +1646,11 @@ install-over-existing succeeds:
       (no holds, no rerolls) and a fixed 10-second turn timer. The timer is a new `GameMode` field,
       `turnTimerSeconds` (null for every other mode); `GameState.turnSeconds` resolves "the mode's
       timer, else the setup pick" and `GameViewModel.syncTurnTimer` counts down from it. A timeout
-      works as it always has: roll if needed, then the first open category, even for zero. Same
-      1575 ceiling as Standard. Engine, AI, board and persistence needed no change - they already
+      rolls if needed as it always has, but then scores the open category the dice are worth
+      *least* in, with the first in scorecard order winning a tie. Other modes still take the first
+      open category. This is `GameMode.timeoutPick` (`TimeoutPick.LOWEST_SCORE` vs the default
+      `FIRST_OPEN`), applied by `ScoreCalculator.timeoutCategory`, and still limited to the joker
+      rule's `availableCategories`. Same 1575 ceiling as Standard. Engine, AI, board and persistence needed no change - they already
       read the rolls from the mode.
 - [x] **New Game screen**: Quickfire appears in the Game Mode radio group from `GameMode.entries`.
       The Turn Timer row is disabled while it's picked (`SegmentedChoiceRow` gained `enabled`); the
@@ -1658,5 +1662,5 @@ install-over-existing succeeds:
       Almost Famous are guarded so a one-roll mode can't give them away; six reroll-based ones simply
       can't be earned in it. The full list is in `.claude/GAME_MODES.md`.
 - [x] **`.claude/GAME_MODES.md`**: the checklist for adding a mode, and the per-mode achievement audit.
-- [x] Tests: `GameModeTest`, `AchievementEngineTest`, `GameViewModelTest`, `GameAchievementsWiringTest`.
+- [x] Tests: `GameModeTest`, `ScoreCalculatorTest` (timeout pick: lowest, tie order, joker-forced box, Standard unchanged), `AchievementEngineTest`, `GameViewModelTest`, `GameAchievementsWiringTest`.
 - [ ] **Not yet seen on a device**: the disabled Turn Timer row and the 10s countdown.

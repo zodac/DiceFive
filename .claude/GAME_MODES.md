@@ -9,7 +9,7 @@ Modes so far:
 |-------------|-------------|-----------------------------------------------------------------------------|
 | `STANDARD`  | `standard`  | Nothing - the official rules. The default.                                  |
 | `TRICOLOUR` | `tricolour` | Dice also roll red/yellow/blue; four colour boxes join the card             |
-| `QUICKFIRE` | `quickfire` | One roll per turn; a fixed 10s turn timer that replaces the Turn Timer pick |
+| `QUICKFIRE` | `quickfire` | One roll per turn; a fixed 10s turn timer that replaces the Turn Timer pick; a timeout scores the lowest-scoring open box |
 
 See `DESIGN.md` Phase 14 (Tricolour, and how modes were first modelled) and Phase 20 (Quickfire).
 
@@ -17,8 +17,8 @@ See `DESIGN.md` Phase 14 (Tricolour, and how modes were first modelled) and Phas
 
 **Everything that can differ between modes is a field on `model/GameMode.kt`**, even where every
 mode agrees on it: dice count, rolls per turn, die faces, die colours, the scorecard's categories,
-the upper bonus, the 5x bonus chip, the max possible score, and a fixed turn timer
-(`turnTimerSeconds`). The engine, AI, achievements, persistence and board read the rules from there,
+the upper bonus, the 5x bonus chip, the max possible score, a fixed turn timer
+(`turnTimerSeconds`), and where a timed-out turn is scored (`timeoutPick`). The engine, AI, achievements, persistence and board read the rules from there,
 so they already handle a new mode. A new mode should be:
 
 1. a new `GameMode` entry, plus
@@ -43,8 +43,15 @@ dice hard-coded somewhere, move it onto the mode rather than adding a `when (mod
   is wrong. If scoring is unchanged, it's the same as the mode it copies.
 - A new rule that doesn't fit an existing field gets a new field, with a default that keeps the other
   modes as they were (as `turnTimerSeconds: Int? = null` did). Then make the one place that applies
-  it read the field. Quickfire's timer: `GameState.turnSeconds` resolves "mode's timer, else the
-  setup pick", and `GameViewModel.syncTurnTimer` reads that.
+  it read the field. Quickfire added two:
+  - `turnTimerSeconds`: `GameState.turnSeconds` resolves "mode's timer, else the setup pick", and
+    `GameViewModel.syncTurnTimer` reads that.
+  - `timeoutPick` (`model/TimeoutPick.kt`): where a timed-out turn is scored.
+    `ScoreCalculator.timeoutCategory` applies it, and `GameViewModel.autoScoreOnTimeout` calls
+    that. `FIRST_OPEN` (the default) is the first open box in scorecard order, whatever it scores.
+    `LOWEST_SCORE` (Quickfire) is the open box the dice score least in, with the first in scorecard
+    order winning a tie. Both only choose from `availableCategories`, so the joker rule's forced box
+    still applies.
 
 What's already mode-driven and needs no change for a mode that only changes these fields:
 `GameEngine` (dice, rolls, faces, colours), `ScoreCalculator`/`PlayerState` (card, bonuses),
@@ -159,7 +166,8 @@ the hold, so without the guard any first-roll 4x unlocks it. The test
   Quickfire roll is a first roll.
 - The hold-only ones: A Cunning Strategy, Decisions, Decisions, Time Wasting, Commitment Issues.
 - No More Rolls - tapping the empty cup works as usual.
-- Out Of Time - more likely than anywhere else.
+- Out Of Time - more likely than anywhere else. The timed-out turn is scored in the lowest-scoring
+  open box, not the first open one.
 - Well Rolled (10,000 dice) - slower, at most 5 dice a turn.
 
 ### Tricolour (coloured dice, four colour boxes)
