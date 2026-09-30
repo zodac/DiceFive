@@ -53,6 +53,27 @@ class GameStateJsonTest {
     }
 
     @Test
+    fun `round trips the seconds left on the turn timer`() {
+        val state = GameState(
+            turnTimer = TurnTimer.SECONDS_60,
+            players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)),
+            turnSecondsLeft = 23,
+        )
+
+        assertEquals(23, GameStateJson.decode(GameStateJson.encode(state)).turnSecondsLeft)
+    }
+
+    @Test
+    fun `a save without seconds left decodes to a full timer`() {
+        val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
+        val withoutField = (parseJson(GameStateJson.encode(state)) as JsonObject).let { obj ->
+            JsonObject(obj.filterKeys { it != "turnSecondsLeft" })
+        }.toJson()
+
+        assertEquals(null, GameStateJson.decode(withoutField).turnSecondsLeft)
+    }
+
+    @Test
     fun `round trips a partially and fully filled scorecard - including zero scores`() {
         val scorecard = GameMode.STANDARD.categories.associateWith { category ->
             when (category) {

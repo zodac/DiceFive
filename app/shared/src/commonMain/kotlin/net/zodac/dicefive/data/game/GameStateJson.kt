@@ -31,6 +31,7 @@ object GameStateJson {
         put("rollsRemaining", state.rollsRemaining)
         put("phase", state.phase.name)
         put("isGameOver", state.isGameOver)
+        put("turnSecondsLeft", state.turnSecondsLeft)
         put("dice", JsonArray(state.dice.map(::encodeDie)))
         put("players", JsonArray(state.players.map(::encodePlayer)))
     }.toJson()
@@ -45,6 +46,7 @@ object GameStateJson {
             rollsRemaining = obj.getInt("rollsRemaining"),
             phase = TurnPhase.valueOf(obj.getString("phase")),
             isGameOver = obj.getBoolean("isGameOver"),
+            turnSecondsLeft = (obj["turnSecondsLeft"] as? JsonNumber)?.toInt(),
             dice = obj.getObjectList("dice").map(::decodeDie),
             players = obj.getObjectList("players").map { decodePlayer(it, gameMode) },
         )
