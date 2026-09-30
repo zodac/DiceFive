@@ -1,25 +1,20 @@
 package net.zodac.dicefive.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Vibration
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -38,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.app.LocalAppContainer
@@ -70,6 +64,27 @@ private fun SwitchSetting(icon: ImageVector, label: String, checked: Boolean, on
         // The Card already supplies the surface; an opaque ListItem container would paint a
         // second, slightly different one on top of it.
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+    )
+}
+
+/**
+ * One destructive action as a row in the same shape as [SwitchSetting]: error-tinted icon and label (no
+ * filled background - a red slab is the loudest thing on the page), a line saying what it does, and the whole
+ * row as the tap target. It only opens a confirmation; nothing is deleted by the tap itself. A screen reader
+ * hears one "Reset achievements, Lock every achievement again, button".
+ */
+@Composable
+private fun ResetSetting(icon: ImageVector, label: String, description: String, onClick: () -> Unit) {
+    ListItem(
+        leadingContent = { Icon(imageVector = icon, contentDescription = null) },
+        headlineContent = { SettingLabel(label) },
+        supportingContent = { Text(description) },
+        modifier = Modifier.clickable(role = Role.Button, onClick = onClick),
+        colors = ListItemDefaults.colors(
+            containerColor = Color.Transparent,
+            leadingIconColor = MaterialTheme.colorScheme.error,
+            headlineColor = MaterialTheme.colorScheme.error,
+        ),
     )
 }
 
@@ -108,49 +123,35 @@ fun SettingsScreen(
             )
         }
 
-        // Height set by the taller button, so one whose label wraps at a large font doesn't leave the other short.
-        Row(
-            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Button(
+        Card(modifier = Modifier.fillMaxWidth()) {
+            ResetSetting(
+                icon = Icons.Filled.RestartAlt,
+                label = "Reset achievements",
+                description = "Lock every achievement again",
                 onClick = { showResetAchievementsConfirmation = true },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-            ) {
-                Text(
-                    text = "Reset Achievements",
-                    style = MaterialTheme.typography.labelSmall,
-                    textAlign = TextAlign.Center,
-                )
-            }
-            Button(
+            )
+            ResetSetting(
+                icon = Icons.Filled.DeleteSweep,
+                label = "Reset leaderboard",
+                description = "Delete all recorded scores",
                 onClick = { showResetLeaderboardConfirmation = true },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-            ) {
-                Text(
-                    text = "Reset Leaderboard",
-                    style = MaterialTheme.typography.labelSmall,
-                    textAlign = TextAlign.Center,
-                )
-            }
+            )
         }
 
         // Quiet links, not a Card section: these aren't settings, just where the standalone About
         // screen's content moved once it was folded in here. The version is the scaffold's footer.
-        Column(
+        // Side by side, each taking half the width, so a label that wraps at a large font stays inside its half.
+        Row(
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             TextButton(
                 onClick = {
                     showCredits = true
                     viewModel.onCreditsViewed()
                 },
+                modifier = Modifier.weight(1f),
             ) {
                 Icon(
                     imageVector = Icons.Filled.Groups,
@@ -159,7 +160,7 @@ fun SettingsScreen(
                 )
                 Text("Credits")
             }
-            TextButton(onClick = { showLicenses = true }) {
+            TextButton(onClick = { showLicenses = true }, modifier = Modifier.weight(1f)) {
                 Icon(
                     imageVector = Icons.Filled.Gavel,
                     contentDescription = null,

@@ -1,11 +1,17 @@
 package net.zodac.dicefive
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -60,5 +66,25 @@ class SettingsRowsTest {
         vibration.assertIsOn()
         vibration.performClick()
         vibration.assertIsOff()
+    }
+
+    @Test
+    fun `each reset is one button row that opens its confirmation`() {
+        val viewModel = SettingsViewModel(settingsRepository = SettingsRepository(InMemoryPreferences()))
+        compose.setContent {
+            CompositionLocalProvider(LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext())) {
+                DiceFiveTheme { SettingsScreen(viewModel = viewModel, onBack = {}) }
+            }
+        }
+        val isButton = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
+
+        // One node per row carrying the name and what it does - a single TalkBack stop.
+        val achievements = compose.onNode(hasText("Reset achievements") and hasText("Lock every achievement again") and hasClickAction() and isButton)
+        achievements.assertIsDisplayed()
+        compose.onNode(hasText("Reset leaderboard") and hasText("Delete all recorded scores") and hasClickAction() and isButton)
+            .assertIsDisplayed()
+
+        achievements.performClick()
+        compose.onNodeWithText("Reset Achievements?").assertIsDisplayed()
     }
 }
