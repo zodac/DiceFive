@@ -231,7 +231,7 @@ Families to check:
 | Family              | Achievements                                                                                 | What to ask                                                                 |
 |---------------------|----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
 | Roll count          | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Loaded Dice, Time To Let It Go, Pointless Roll, Greenfingers | Does "only one roll used" or "every roll used" become automatic or impossible? |
-| First roll          | House Call, Straight Away, Straight Out Of The Cup, I Can Count!                             | Is every roll now a first roll, or none?                                    |
+| First roll          | House Call, Straight Away, Five on the Fly, I Can Count!                             | Is every roll now a first roll, or none?                                    |
 | Holds               | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues                     | Can dice still be held?                                                     |
 | Timer               | Out Of Time, Beat The Clock, Luck Of The Draw                                                | Is there always, or never, a timer?                                         |
 | Card contents       | How Do You Play This Game?, Spotless, Bonus Round, Upper/Lower Class, Exact Change, the 5x ones | Is each box still on the card, and do totals still mean the same?            |
@@ -274,7 +274,7 @@ Famous`` in `GameAchievementsWiringTest` fails without the guard.
 
 **Still earnable, and worth knowing:**
 
-- The first-roll feats (House Call, Straight Away, Straight Out Of The Cup, I Can Count!) - every
+- The first-roll feats (House Call, Straight Away, Five on the Fly, I Can Count!) - every
   Quickfire roll is a first roll.
 - The hold-only ones: A Cunning Strategy, Decisions, Decisions, Time Wasting, Commitment Issues.
 - No More Rolls - tapping the empty cup works as usual.

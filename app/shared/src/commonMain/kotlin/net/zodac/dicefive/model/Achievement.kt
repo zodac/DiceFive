@@ -463,7 +463,7 @@ enum class Achievement(
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     FIRST_ROLL_5X(
-        "5x_first_roll", "Straight Out Of The Cup", "Roll a 5x on the first roll of a turn",
+        "5x_first_roll", "Five on the Fly", "Roll a 5x on the first roll of a turn",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     SIXES_30(
