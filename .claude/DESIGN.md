@@ -431,7 +431,7 @@ net.zodac.dicefive/
     styles/StylesScreen.kt             — preview tiles (dice / dice cup / mat & background),
                                           one horizontally-scrolling row per category
     settings/
-      SettingsScreen.kt                — profile, gameplay and reset cards; footer shows
+      SettingsScreen.kt                — switches card and a reset card; footer shows
                                           app version + GitHub link via UriHandler
       SettingsViewModel.kt             — reads/writes SettingsRepository
     theme/                             — Theme.kt (one dark M3 colour scheme, no dynamic colour) + Color.kt
@@ -555,8 +555,9 @@ dependencies — most unit tests live here.
   light mode doesn't draw dark status bar icons over the page, and the XML
   window theme is `Theme.Material.NoActionBar`. A `theme` key left in an old
   install's DataStore is simply never read.
-- `SettingsScreen`: profile, gameplay and reset cards. A quiet
-  footer below the Reset card shows the app version (`BuildInfo.versionName` - from `BuildConfig`
+- `SettingsScreen`: a switches card and a reset card (two error-tinted `ListItem` rows styled like the
+  switch rows, each a button that opens its confirmation; no filled red buttons). A quiet
+  footer below it shows the app version (`BuildInfo.versionName` - from `BuildConfig`
   on Android)
   and a "View on GitHub" link to `https://github.com/zodac/DiceFive`,
   opened via Compose's `UriHandler` - this used to be its own `AboutScreen`,

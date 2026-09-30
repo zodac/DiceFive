@@ -419,7 +419,7 @@ seen on a device" line and in the report to the user, not claimed as done.
   flow onto a second line, the Scores columns re-split above 1.15x font scale, and the New Game player
   row stacks its controls above 1.05x. What's left: `ScoreGrid`'s numbers stay on one line by design
   (a fixed grid, `overflow = Visible`); 11sp `labelSmall` (M3's smallest) is still used for
-  captions and the Reset buttons; and **none of it has been seen at a large font on a device** -
+  captions; and **none of it has been seen at a large font on a device** -
   Robolectric's text engine never wraps, so `ShrinkThenWrapTextTest` pins only which size and line limit
   are chosen. Try 130% and 200% font on: a 4-player game with 8-character names (and CPUs), the longest
   achievement banners, Settings, New Game, the Leaderboard and Statistics.
