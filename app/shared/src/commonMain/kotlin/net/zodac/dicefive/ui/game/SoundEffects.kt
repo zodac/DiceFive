@@ -20,15 +20,22 @@ private const val HOLD_VOLUME = 0.35f
  * [SoundPlayer]. [release] tears the player down when nothing needs it any more - see
  * [rememberSoundEffects], which owns that lifecycle for [GameScreen] and [GameOverScreen].
  */
-class SoundEffects(private val player: SoundPlayer) {
+class SoundEffects(createPlayer: () -> SoundPlayer) {
 
-    /** Set from the Settings screen's "Sound effects" switch - every play call below silently
-     * no-ops while this is false, rather than the player never being loaded, since the setting can
-     * flip mid-session without recreating this instance. */
+    /** Built (and its clips decoded) on the first sound actually played, so a session with sound
+     * off never pays for it - and one where it's switched on mid-game loads it then. */
+    private val player by lazy(createPlayer)
+    private var playerCreated = false
+
+    /** Set from the Settings screen's "Sound effects" switch - every play call below returns
+     * before touching the player while this is false, since the setting can flip mid-session
+     * without recreating this instance. */
     var enabled: Boolean = true
 
     private fun playSound(effect: SoundEffect, volume: Float) {
-        if (enabled) player.play(effect, volume)
+        if (!enabled) return
+        playerCreated = true
+        player.play(effect, volume)
     }
 
     fun playShake() = playSound(SoundEffect.CUP_SHAKE, 1f)
@@ -42,12 +49,16 @@ class SoundEffects(private val player: SoundPlayer) {
     fun playCelebration() = playSound(SoundEffect.CELEBRATION, 1f)
 
     /** Holds a clip still playing (the fanfare, say) while the app is in the background; [resume] carries on. */
-    fun pause() = player.pause()
+    fun pause() {
+        if (playerCreated) player.pause()
+    }
 
-    fun resume() = player.resume()
+    fun resume() {
+        if (playerCreated) player.resume()
+    }
 
     fun release() {
-        player.release()
+        if (playerCreated) player.release()
     }
 }
 
@@ -56,7 +67,7 @@ class SoundEffects(private val player: SoundPlayer) {
 @Composable
 fun rememberSoundEffects(): SoundEffects {
     val platform = LocalPlatformServices.current
-    val soundEffects = remember { SoundEffects(platform.createSoundPlayer()) }
+    val soundEffects = remember { SoundEffects(platform::createSoundPlayer) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         // Nothing sounds in the background: a clip under way is held, and carries on when the app is back.
