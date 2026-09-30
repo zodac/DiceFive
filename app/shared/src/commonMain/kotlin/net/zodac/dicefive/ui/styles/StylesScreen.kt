@@ -5,8 +5,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,7 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -55,9 +55,18 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.CollectionItemInfo
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
@@ -333,11 +342,11 @@ private fun <T : TableArt> StyleFamilyTiles(
         contentPadding = PaddingValues(start = 12.dp, top = 6.dp, end = 12.dp, bottom = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        items(unlocked, key = { it.name }) { family ->
-            StyleFamilyTile(family, achievements, shownSelectedId, onSelect, previewSize, backgroundBrush, preview)
+        itemsIndexed(unlocked, key = { _, family -> family.name }) { index, family ->
+            StyleFamilyTile(family, achievements, shownSelectedId, onSelect, previewSize, backgroundBrush, preview, index)
         }
-        items(shownLocked, key = { it.name }) { family ->
-            LockedStyleFamilyTile(family, achievements, previewSize, backgroundBrush, preview)
+        itemsIndexed(shownLocked, key = { _, family -> family.name }) { index, family ->
+            LockedStyleFamilyTile(family, achievements, previewSize, backgroundBrush, preview, unlocked.size + index)
         }
     }
 
@@ -363,6 +372,7 @@ private fun <T : TableArt> StyleFamilyTile(
     previewSize: DpSize,
     backgroundBrush: @Composable (T) -> Brush,
     preview: @Composable BoxScope.(T) -> Unit,
+    position: Int,
 ) {
     val colours = family.availableColours(achievements)
     val picked = colours.firstOrNull { it.style.id == selectedId }
@@ -391,11 +401,32 @@ private fun <T : TableArt> StyleFamilyTile(
                 selected = picked != null,
                 backgroundBrush = backgroundBrush,
                 preview = preview,
-                modifier = Modifier.combinedClickable(
-                    onClick = { select(shown.style.id) },
-                    onLongClick = if (hasColours) ({ choosingColour = true }) else null,
-                    onLongClickLabel = if (hasColours) "Choose ${family.name} colour" else null,
-                ),
+                modifier = Modifier
+                    // One radio button in a row of them: the style (and the colour showing, if it has
+                    // several), whether it's the pick, and the colour chooser as an action, so neither
+                    // the check badge nor the colour dots is a stop of its own. Ahead of the click handling,
+                    // not behind it: semantics cleared only apply to what sits further in.
+                    .clearAndSetSemantics {
+                        contentDescription = if (hasColours) "${family.name}, ${shown.name}" else family.name
+                        role = Role.RadioButton
+                        selected = picked != null
+                        collectionItemInfo = CollectionItemInfo(rowIndex = 0, rowSpan = 1, columnIndex = position, columnSpan = 1)
+                        onClick(label = "Select") {
+                            select(shown.style.id)
+                            true
+                        }
+                        if (hasColours) {
+                            onLongClick(label = "Choose ${family.name} colour") {
+                                choosingColour = true
+                                true
+                            }
+                        }
+                    }
+                    .combinedClickable(
+                        onClick = { select(shown.style.id) },
+                        onLongClick = if (hasColours) ({ choosingColour = true }) else null,
+                        onLongClickLabel = if (hasColours) "Choose ${family.name} colour" else null,
+                    ),
             ) {
                 if (hasColours) {
                     ColourDots(
@@ -425,12 +456,21 @@ private fun <T : TableArt> StyleFamilyTile(
                             backgroundBrush = backgroundBrush,
                             preview = preview,
                             modifier = Modifier
-                                .clickable {
+                                // No visible name - but a screen reader still needs to say which is which.
+                                .clearAndSetSemantics {
+                                    contentDescription = "${family.name}, ${colour.name}"
+                                    role = Role.RadioButton
+                                    selected = colour.style.id == selectedId
+                                    onClick(label = "Select") {
+                                        select(colour.style.id)
+                                        choosingColour = false
+                                        true
+                                    }
+                                }
+                                .selectable(selected = colour.style.id == selectedId, role = Role.RadioButton) {
                                     select(colour.style.id)
                                     choosingColour = false
-                                }
-                                // No visible name - but a screen reader still needs to say which is which.
-                                .semantics { contentDescription = "${family.name}, ${colour.name}" },
+                                },
                         )
                     }
                 }
@@ -455,6 +495,7 @@ private fun <T : TableArt> LockedStyleFamilyTile(
     previewSize: DpSize,
     backgroundBrush: @Composable (T) -> Brush,
     preview: @Composable BoxScope.(T) -> Unit,
+    position: Int,
 ) {
     var showingRequirement by remember { mutableStateOf(false) }
     Column(
@@ -468,12 +509,23 @@ private fun <T : TableArt> LockedStyleFamilyTile(
             backgroundBrush = backgroundBrush,
             preview = preview,
             modifier = Modifier
+                // A tap does nothing on screen, but a screen reader has no long press to fall back on:
+                // its one action is the long press's, so double-tapping says how to unlock it.
+                .clearAndSetSemantics {
+                    contentDescription = family.name
+                    stateDescription = "Locked"
+                    role = Role.Button
+                    collectionItemInfo = CollectionItemInfo(rowIndex = 0, rowSpan = 1, columnIndex = position, columnSpan = 1)
+                    onClick(label = "Show how to unlock ${family.name}") {
+                        showingRequirement = true
+                        true
+                    }
+                }
                 .combinedClickable(
                     onClick = {},
                     onLongClick = { showingRequirement = true },
                     onLongClickLabel = "Show how to unlock ${family.name}",
-                )
-                .semantics { contentDescription = "${family.name}, locked" },
+                ),
         ) {
             // Translucent, so the style still shows through - the lock says "not yet", not "hidden".
             Box(

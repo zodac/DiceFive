@@ -5,6 +5,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +27,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -100,8 +106,30 @@ fun StatisticsScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = {}, onLongClick = onLongPress)) {
+fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
+    val spoken = "${player.playerName}. First played ${formatTimestamp(player.firstPlayedEpochMillis)}. Best score ${player.maxScore}. " +
+        "Played ${player.gamesPlayed}, won ${player.gamesWon}, lost ${player.gamesLost}. " +
+        "Win streak ${player.currentWinStreak}, best win streak ${player.bestWinStreak}."
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            // One announcement in words, not a dozen separate texts, and no "double tap to activate" for the
+            // tap that does nothing: the delete is the card's one action, in TalkBack's actions menu.
+            .clearAndSetSemantics {
+                contentDescription = spoken
+                onLongClick(label = "Delete ${player.playerName}'s stats") {
+                    onLongPress()
+                    true
+                }
+                customActions = listOf(
+                    CustomAccessibilityAction("Delete ${player.playerName}'s stats") {
+                        onLongPress()
+                        true
+                    },
+                )
+            }
+            .combinedClickable(onClick = {}, onLongClick = onLongPress, onLongClickLabel = "Delete ${player.playerName}'s stats"),
+    ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             // Name, first-played timestamp, and max score share one baseline - sized down from
             // their old solo-row/captioned style so a max-length (10-character) name, a date, and
@@ -111,7 +139,8 @@ private fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
                     text = player.playerName,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 1,
+                    // A second line before an ellipsis, so a name at a large font wraps rather than losing its end.
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
@@ -119,8 +148,10 @@ private fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
                     text = formatTimestamp(player.firstPlayedEpochMillis),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    // Wraps at a large font rather than ellipsising a date into something unreadable, sharing
+                    // what's left of the row with the name instead of squeezing it out.
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
                 Text(
                     // Space-padded to a fixed width: the name before it fills whatever's left in
@@ -135,7 +166,13 @@ private fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            // A FlowRow: at a large font the five cells no longer fit across, and the last ones drop to a
+            // second line rather than overlapping. At the normal size it's one row, as before.
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 StatCell(label = "Played", value = player.gamesPlayed.toString())
                 StatCell(label = "Won", value = player.gamesWon.toString())
                 StatCell(label = "Lost", value = player.gamesLost.toString())

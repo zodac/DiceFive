@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
@@ -57,6 +58,10 @@ import net.zodac.dicefive.ui.game.PlayerSetupSlot
  * the same place instead of stepping in and out with the label lengths.
  */
 private val TYPE_CONTROL_WIDTH = 76.dp
+
+/** Above this system font scale a player row stacks its controls (see [PlayerRow]). At 1.0 - and up to a
+ * hair over it - the row is the one it has always been. */
+private const val STACKED_PLAYER_ROW_FONT_SCALE = 1.05f
 
 /** Shown under the form, and said by a screen reader on each clashing name field. */
 private const val NAMES_MUST_BE_UNIQUE = "Names must be unique"
@@ -231,11 +236,12 @@ private fun PlayerRow(
     onNameChange: (String) -> Unit,
     onDifficultyChange: (Difficulty) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+    // The name (or difficulty) and the User/CPU switch share a row at the normal font size. At a larger one
+    // the difficulty's three labels no longer fit beside the switch, so it drops beneath - the controls
+    // keep the width their labels need instead of being squeezed or cut off.
+    val fontScale = LocalDensity.current.fontScale
+    val stacked = fontScale > STACKED_PLAYER_ROW_FONT_SCALE
+    val nameOrDifficulty: @Composable (Modifier) -> Unit = { controlModifier ->
         when (slot.type) {
             PlayerType.HUMAN -> CompactNameField(
                 value = slot.name,
@@ -243,7 +249,7 @@ private fun PlayerRow(
                 isError = isNameDuplicate,
                 // The field has no visible label (its value names the row), so a screen reader is
                 // given one - and told why it's red, which the outline alone only shows.
-                modifier = Modifier.weight(1f).semantics {
+                modifier = controlModifier.semantics {
                     contentDescription = "Player ${slot.slot} name"
                     if (isNameDuplicate) error(NAMES_MUST_BE_UNIQUE)
                 },
@@ -252,12 +258,15 @@ private fun PlayerRow(
             PlayerType.AI -> DifficultySelector(
                 selected = slot.difficulty,
                 onSelect = onDifficultyChange,
-                modifier = Modifier.weight(1f),
+                modifier = controlModifier,
             )
         }
-
+    }
+    // Grows with the font so "User" and "CPU" fit; the same for "You", so every row's control still lines up.
+    val typeControlWidth = TYPE_CONTROL_WIDTH * fontScale.coerceAtLeast(1f)
+    val typeControl: @Composable () -> Unit = {
         if (isTypeLocked) {
-            Box(modifier = Modifier.width(TYPE_CONTROL_WIDTH), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.width(typeControlWidth), contentAlignment = Alignment.Center) {
                 Text(
                     text = "You",
                     style = MaterialTheme.typography.labelLarge,
@@ -277,8 +286,27 @@ private fun PlayerRow(
                         Text(if (slot.type == PlayerType.AI) "CPU" else "User")
                     }
                 },
-                modifier = Modifier.width(TYPE_CONTROL_WIDTH),
+                modifier = Modifier.width(typeControlWidth),
             )
+        }
+    }
+
+    if (stacked) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            nameOrDifficulty(Modifier.fillMaxWidth())
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) { typeControl() }
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            nameOrDifficulty(Modifier.weight(1f))
+            typeControl()
         }
     }
 }

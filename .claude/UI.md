@@ -291,17 +291,20 @@ fires while another dialog is open still draws above it.
 Two variants, deliberately unequal: an **unlock** banner is `primaryContainer` with the
 achievement's own icon (`Achievement.icon`, the same one its unlocked row shows - a generic trophy
 made a burst of unlocks read as a stack of identical cups) and a title plus up to two lines of
-description, with a star at its right when the achievement unlocks a style (see "Style locks"); a
+description, with a small star badge on the icon's corner when the achievement unlocks a style (see "Style locks"); a
 **progress** banner is quieter (`surfaceContainerHigh`, one line plus a thin
 `LinearProgressIndicator` whose count and bar climb from the old value to the new over 700ms),
 so a run of "2 of 3" nudges can never be mistaken for the real thing.
 
-Both show the achievement's title on one line, shrunk to fit rather than cut off (`BannerTitle`,
-Compose's `TextAutoSize.StepBased`): titleMedium's 16sp when it fits, stepping down 0.5sp at a time
-to a 10sp floor, and only ellipsised past that. The longest title - "Rules? Where We're Going, We
-Don't Need Rules" - needs ~12.4sp on a typical phone, so it fits there; a narrower screen shrinks
-it further before resorting to "…". The unlock banner's description shrinks the same way
-(`BannerDescription`: bodySmall down to 9sp in 0.25sp steps, across its two lines).
+Both show the achievement's title on ONE line (`BannerTitle`, via `ShrinkThenWrapText` with a
+one-line limit): titleMedium's 16sp when it fits, stepping down 0.5sp at a time to 12sp, and only
+ellipsised past that - never wrapped, so every unlock banner is the same height. That is what
+`MAX_ACHIEVEMENT_TITLE_LENGTH` (38 characters, enforced by `AchievementTextTest`) is for; the longest
+title, "Where We're Going, We Don't Need Rules", is ~221dp at 12sp against a ~244dp text column on a
+360dp phone (estimated from Roboto's metrics, not measured), so a narrower screen ellipsises it
+first. The unlock banner's description is bodySmall (12sp, never shrunk), always exactly two lines,
+ellipsised past that (`BannerDescription`) - at 360dp the longest current ones just fit two lines
+(estimated); at 320dp about eight need a third and are cut.
 
 ## Style locks
 
@@ -322,11 +325,14 @@ of the Irish), the blue/gold Googly dice (Big Fan), the Flowerpot's plant-stage 
 a pot held at each of seedling, bud, opening, sunflower) and the Top Hat with its rabbit always out,
 sliding about the opening as the hat is shaken (The Magician's Secret).
 Any achievement
-that unlocks a specific style (`Achievement.unlocksStyle`) carries a star at the right of its row and
-its unlock banner (`StyleRewardStar`), so the player knows to go and look. On the row, a tap or long
-press on the star shows a plain tooltip (not a dialog) naming the style - "You've unlocked the
-'Multicolour' dice style!", from `Achievement.styleRewards` and the catalog's `noun`. The banner's star
-has no tooltip: the banner's own gestures (swipe, long press) already cover it.
+that unlocks a specific style (`Achievement.unlocksStyle`) shows a plain tooltip (not a dialog) when
+its row is tapped or long-pressed, naming the style - "You've unlocked the 'Multicolour' dice
+style!", from `Achievement.styleRewards` and the catalog's `noun` (`StyleRewardTooltip`). The row
+and the unlock banner also carry a star (`StyleRewardStar`) - **a badge over the corner of the icon
+square, not a widget beside the text**: a star in the text row narrowed the text column and made
+titles and descriptions wrap, so it must never take layout width. It's decorative to TalkBack: the
+row's one action says "Show which style this unlocks" and the banner's announcement ends "Unlocks a
+style". Superuser mode's long press on a row takes precedence, so the tooltip is off while it's on.
 
 On the Styles screen a locked tile shows its first colour under a translucent scrim and a faded padlock, can't be picked,
 and long-pressing it opens a `DiceFiveDialog` saying what unlocks it. **A saved pick whose style is
@@ -398,8 +404,45 @@ in view.
 the sandbox. What real TalkBack actually speaks can't be, so it goes in the DESIGN.md phase's "Not yet
 seen on a device" line and in the report to the user, not claimed as done.
 
-**Known gap**: item 9 isn't met yet on the Rules pages - their dice notation, "pts" and list dashes
-are read as written.
+### Known gaps
+
+- **Item 9 on the Rules pages**: their dice notation, "pts" and list dashes are read as written.
+- **Reduced motion isn't honoured.** Nothing reads the system animator-duration scale or a "remove
+  animations" setting. Looping animations run in `CategoryTile` (glow), `CupRotation`, `RoundCups`
+  and the turn-timer flash, and the die roll, cup shake and drift are unconditional. Needs an
+  `expect`/`actual` for the setting; then skip the loops and shorten the one-shots.
+- **Text scaling**: the shrink-to-fit floors are gone - `ShrinkThenWrapText` (`ui/common`) shrinks a
+  label to `MIN_READABLE_FONT_SIZE` (12sp) at most, then wraps it (2 lines) instead. It's used for
+  player tab names, banner titles and Settings labels. Other `maxLines = 1` sites now allow a second
+  line (Scores/Statistics/Game Over names, menu buttons), the Statistics stat cells and the Scores pager
+  flow onto a second line, the Scores columns re-split above 1.15x font scale, and the New Game player
+  row stacks its controls above 1.05x. What's left: `ScoreGrid`'s numbers stay on one line by design
+  (a fixed grid, `overflow = Visible`); 11sp `labelSmall` (M3's smallest) is still used for
+  captions and the Reset buttons; and **none of it has been seen at a large font on a device** -
+  Robolectric's text engine never wraps, so `ShrinkThenWrapTextTest` pins only which size and line limit
+  are chosen. Try 130% and 200% font on: a 4-player game with 8-character names (and CPUs), the longest
+  achievement banners, Settings, New Game, the Leaderboard and Statistics.
+- **Timer flash rate unchecked** against the three-flashes-per-second limit (period is
+  `TURN_TIMER_FLASH_PERIOD_MILLIS`, a colour fade rather than an on/off flash). Its spoken twin is
+  the one-off "Time running out" live region.
+- **Contrast**, computed from the palette (dark theme; WCAG 3:1 for graphics, 4.5:1 for text). Not
+  measured on the generated M3 roles beyond the pairs below, nor on any style's own art:
+  - Fine: tile icon on teal 8.5-12.7:1; gold on the highlighted tile 7.3:1; `onSurfaceVariant` on
+    the surface 10.9:1; the selected style's `primary` border 10.9:1.
+  - Borderline, and exempt or spoken: a scored tile's icon (0.4 alpha) is 3.2-3.5:1; the disabled
+    Undo (0.35 alpha) is 2.4-2.9:1 - disabled controls are exempt, and M3's own disabled is 38%. A
+    scored tile against the page is 1.4:1, but its state is spoken and it isn't interactive.
+  - **Below 3:1**: an unselected style tile's `outlineVariant` border is 2.0:1 (the art inside
+    carries the tile, and the selected one is clear, so low impact - `outline` is 5.8:1 if it's
+    ever raised); the locked-style padlock (0.8 alpha over a 0.55 scrim) is ~2.1:1 over light art,
+    8.8:1 over dark. The lock is also spoken ("Locked").
+- **Checked and fine, no change needed**: Undo is one merged button named "Undo" (its icon is
+  decorative; `ScreenReaderSemanticsTest`); the dialog icons are decorative and their message and
+  buttons are text; the Scores pager's "Previous" / "Next" sit beside "Page N of M", so they're
+  clear in context - "Previous page" / "Next page" would be a nicety, not a fix.
+- **Not looked at**: whether a dialog announces a title when it has none (the locked-style
+  requirement dialog passes `title = null`), and the Achievements rows' locked/unlocked state
+  beyond the icon.
 
 ### What's in place
 
@@ -411,6 +454,15 @@ Everything a screen reader needs is added as semantics, never by changing what's
   score box is one cleared-and-set node with its name, what it scored or would score, and "Score"
   as its action; the cup is "Dice cup, 3 rolls left", a Roll button; player tabs are tabs, the
   scorecard on view selected. `BoardSemanticsTest` pins the dice and score box actions.
+- **Style tiles are radio buttons** (`StylesScreen`): one node each with the style (and colour) name,
+  selected state and position in the row; the colour chooser is a long-click action, and a locked
+  tile's action says how to unlock it. Stats cards read as one sentence with delete as their only
+  action; the hidden superuser counter and the logo dice use raw `detectTapGestures`, so TalkBack
+  isn't handed an unnamed button. The turn timer says its seconds in words and, once it starts
+  flashing, is a polite live region with a fixed message (announced once, not every second).
+  **Gotcha:** `clearAndSetSemantics` only overrides what sits *inside* it, so put it *before*
+  `clickable`/`combinedClickable` in the chain - after it, the clickable's own `onClick` leaks
+  through (`ScreenReaderSemanticsTest` pins this).
 - **An on/off setting is its whole row** (`SwitchSetting`: `toggleable(role = Role.Switch)`, the
   `Switch` itself taking no clicks), so the label and switch are one target and one announcement.
 - **A field with no visible label gets an accessibility-only one**, and its error as `error(...)`
@@ -515,8 +567,12 @@ the cap actually deliver a full name on one line on a narrow phone.
 
 CPU players carry a small processor-chip icon (`CpuPlayerIcon`, Material's `Memory` glyph) before
 their name, in the header tabs and on the results page. In a header tab it costs ~14dp of that
-~72dp, so tab names use `TextAutoSize.StepBased` (down to 9sp) and a full-length CPU name shrinks
-a little rather than arriving ellipsised.
+~72dp, so tab names use `ShrinkThenWrapText` (down to 12sp, then a second line): a full-length CPU
+name may shrink a little, but never below 12sp. The caps above were checked against that floor
+(estimated from Roboto's metrics, not measured on a device): at 360dp, 4 players leaves ~72dp for a
+human name and ~58dp for a CPU's, against ~63dp for a widest-ordinary 8-letter name and ~42dp for the
+longest 4-player CPU pool name, so 8 (CPU 6) still fits on one line; 3, 2 and 1 players have more room
+than their caps need. At 320dp a 4-player human name of 8 wide letters is the tightest case.
 
 **Every roll is one cup tap.** A human's roll - a finger on the cup, a phone shake, or Quickfire
 tapping the cup for them as their turn starts (`GameState.awaitsAutoRoll`) - goes through

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -35,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,6 +70,20 @@ private val PODIUM_ROW_GAP = 4.dp
 
 /** A text button's own height - the space the pagination row occupies, filled or not. */
 private val PAGINATION_ROW_HEIGHT = 40.dp
+
+/** From this system font scale up, the table's narrow columns (rank, 5x, score) get a bigger share of the
+ * row: at the normal split, a three-digit rank or a four-digit score wider than its cell overlaps its
+ * neighbour. Below it the split is the one the table has always had. */
+private const val LARGE_FONT_SCALE = 1.15f
+
+/** The share of a row each column gets - [HeaderRow] and every [ScoreRow] use the same, so they line up. */
+private class ScoreColumns(val rank: Float, val player: Float, val fiveOfAKind: Float, val score: Float)
+
+private val NORMAL_COLUMNS = ScoreColumns(rank = 1f, player = 4f, fiveOfAKind = 1f, score = 1.5f)
+private val LARGE_FONT_COLUMNS = ScoreColumns(rank = 1.5f, player = 3.5f, fiveOfAKind = 1.5f, score = 2.5f)
+
+@Composable
+private fun scoreColumns(): ScoreColumns = if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) LARGE_FONT_COLUMNS else NORMAL_COLUMNS
 
 @Composable
 fun ScoresScreen(
@@ -128,7 +145,8 @@ fun ScoresScreen(
             // buttons is furniture), but letting the table grow into the gap would mean the card
             // ended in a different place on a one-page leaderboard than on a two-page one.
             Box(
-                modifier = Modifier.fillMaxWidth().height(PAGINATION_ROW_HEIGHT),
+                // At least the normal height at any font size, and taller with it: the buttons' text grows.
+                modifier = Modifier.fillMaxWidth().heightIn(min = PAGINATION_ROW_HEIGHT * LocalDensity.current.fontScale.coerceAtLeast(1f)),
                 contentAlignment = Alignment.Center,
             ) {
                 if (state.totalPages > 1) {
@@ -148,6 +166,7 @@ fun ScoresScreen(
 
 @Composable
 private fun HeaderRow() {
+    val columns = scoreColumns()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -156,10 +175,10 @@ private fun HeaderRow() {
             // text actually lands.
             .padding(horizontal = 8.dp + 12.dp, vertical = 2.dp),
     ) {
-        HeaderCell(text = "#", weight = 1f)
-        HeaderCell(text = "Player", weight = 4f)
-        HeaderCell(text = "5x", weight = 1f, align = TextAlign.Center)
-        HeaderCell(text = "Score", weight = 1.5f, align = TextAlign.End)
+        HeaderCell(text = "#", weight = columns.rank)
+        HeaderCell(text = "Player", weight = columns.player)
+        HeaderCell(text = "5x", weight = columns.fiveOfAKind, align = TextAlign.Center)
+        HeaderCell(text = "Score", weight = columns.score, align = TextAlign.End)
     }
 }
 
@@ -225,6 +244,7 @@ private fun rankEntries(entries: List<ScoreEntry>, pageIndex: Int): List<RankedE
 private fun ScoreRow(rank: Int, isTrueTie: Boolean, entry: ScoreEntry, striped: Boolean) {
     val onPodium = rank <= PODIUM_RANKS
     val accent = podiumAccent(rank)
+    val columns = scoreColumns()
 
     val tooltipState = rememberTooltipState()
     TooltipBox(
@@ -259,25 +279,29 @@ private fun ScoreRow(rank: Int, isTrueTie: Boolean, entry: ScoreEntry, striped: 
             Text(
                 // "=" only for a true tie (every tie-break criterion also matches) - see rankEntries.
                 text = if (isTrueTie) "=$rank" else rank.toString(),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(columns.rank),
                 style = MaterialTheme.typography.bodySmall,
                 color = accent ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                softWrap = false,
             )
             Text(
                 text = entry.playerName,
-                modifier = Modifier.weight(4f),
+                modifier = Modifier.weight(columns.player),
                 style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
+                // A second line before an ellipsis: at a large font a name that no longer fits one line
+                // wraps rather than losing its end. Names that fit one line look as they always did.
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             // How many 5x that game scored - a quiet secondary column, so it takes the rank's muted
             // colour rather than competing with the score.
             Text(
                 text = entry.fiveOfAKindCount.toString(),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(columns.fiveOfAKind),
                 style = MaterialTheme.typography.bodySmall,
                 color = accent ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
+                softWrap = false,
             )
             Text(
                 // Space-padded to a fixed width, same reasoning as Statistics' max score: keeps
@@ -285,11 +309,12 @@ private fun ScoreRow(rank: Int, isTrueTie: Boolean, entry: ScoreEntry, striped: 
                 // podium or not - the row's own background tint is what calls out a podium finish
                 // now, not a second size bump on top of it.
                 text = entry.score.toString().padStart(SCORE_DISPLAY_WIDTH),
-                modifier = Modifier.weight(1.5f),
+                modifier = Modifier.weight(columns.score),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = accent ?: MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.End,
+                softWrap = false,
             )
         }
     }
@@ -304,10 +329,13 @@ private fun PaginationControls(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
 ) {
-    Row(
+    // A FlowRow, not a Row: at a large font the three no longer fit across, and the page count drops to a
+    // second line instead of running off the edge. At the normal size it's one row, as before.
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.Center,
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
         TextButton(onClick = onPrevious, enabled = hasPrevious) {
             Icon(

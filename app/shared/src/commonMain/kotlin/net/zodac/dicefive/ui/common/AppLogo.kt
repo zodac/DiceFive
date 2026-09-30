@@ -1,8 +1,6 @@
 package net.zodac.dicefive.ui.common
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -270,18 +268,17 @@ fun AppLogo(
                     .size(width = cupWidth, height = cupHeight),
             )
 
-            val diceInteractionSource = remember { MutableInteractionSource() }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable(
-                    interactionSource = diceInteractionSource,
-                    indication = null,
-                    onClick = {
+                // Raw taps, not clickable: the dice are decoration, and a clickable would give TalkBack an
+                // unnamed "double tap to activate" stop that does nothing a screen reader user could use.
+                modifier = Modifier.pointerInput(Unit) {
+                    detectTapGestures {
                         roll()
                         onDiceTap()
-                    },
-                ),
+                    }
+                },
             ) {
                 LOGO_DICE.forEachIndexed { i, die ->
                     val pose = rollMillis?.let { logoRollPose(i, die.value, it) }

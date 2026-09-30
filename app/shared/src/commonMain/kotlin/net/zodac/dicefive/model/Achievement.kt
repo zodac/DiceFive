@@ -13,6 +13,16 @@ enum class AchievementCounter {
 }
 
 /**
+ * The longest an [Achievement.title] may be. The unlock banner shows a title on ONE line, shrunk to no
+ * smaller than 12sp and never wrapped (every banner is the same size), so a title has to fit its
+ * column at that size: 38 characters is the longest there is ("Where We're Going, We Don't Need
+ * Rules"), which the banner's text column holds on a 360dp phone. Narrower screens ellipsise it
+ * first. A longer title is a project-rule breach - shorten it; see CLAUDE.md. `AchievementTextTest`
+ * enforces this.
+ */
+const val MAX_ACHIEVEMENT_TITLE_LENGTH = 38
+
+/**
  * What an achievement is *about*, and the order those themes are shown in. Grouping the list this
  * way is what lets one ladder's rungs sit together - "Sharpshooter" then "High Roller" then "Dice
  * Deity" - instead of being scattered across an alphabetical list.
@@ -312,7 +322,7 @@ enum class Achievement(
 
     // ---- Game modes: playing beyond the Standard rules ------------------------------------------
     NON_STANDARD_MODE(
-        "game_mode_non_standard", "Rules? Where We're Going, We Don't Need Rules", "Start a non-Standard game mode",
+        "game_mode_non_standard", "Where We're Going, We Don't Need Rules", "Start a non-Standard game mode",
         AchievementCategory.GAME_MODES,
     ),
     TRICOLOUR_WIN(
@@ -417,7 +427,7 @@ enum class Achievement(
     // like every win.
     LUCK_OF_THE_DRAW(
         "luck_of_the_draw", "Luck Of The Draw",
-        "Win a game having scored 3 or fewer categories yourself - the turn timer scored the rest",
+        "Win a game scoring 3 or fewer categories yourself - the turn timer did the rest",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
 

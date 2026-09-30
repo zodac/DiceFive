@@ -1,5 +1,7 @@
 package net.zodac.dicefive.ui.achievements
 
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.automirrored.filled.Help
@@ -93,6 +95,7 @@ import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -302,18 +305,24 @@ val Achievement.icon: ImageVector
     }
 
 /**
- * The star at the right of an achievement's row and unlock banner when earning it also unlocks a
- * style ([unlocksStyle][net.zodac.dicefive.ui.game.style.unlocksStyle]) - a cue that there's something extra waiting on the Styles screen.
+ * The star badge on the corner of an achievement's icon square (row and unlock banner) when earning it also
+ * unlocks a style ([unlocksStyle][net.zodac.dicefive.ui.game.style.unlocksStyle]) - a cue that there's
+ * something extra waiting on the Styles screen. Drawn over the icon's corner rather than beside the text, so it takes
+ * no text width and can't make a title or description wrap. Decorative: what it says is spoken by the
+ * row's action ("Show which style this unlocks") and the banner's announcement ("Unlocks a style").
  */
 @Composable
-fun StyleRewardStar(tint: Color, modifier: Modifier = Modifier) {
+fun BoxScope.StyleRewardStar(tint: Color) {
     Icon(
         imageVector = Icons.Filled.Star,
-        contentDescription = "Unlocks a style",
+        contentDescription = null,
         tint = tint,
-        modifier = modifier.size(22.dp),
+        modifier = Modifier.align(Alignment.TopEnd).offset(x = STAR_BADGE_OFFSET, y = -STAR_BADGE_OFFSET).size(STAR_BADGE_SIZE),
     )
 }
+
+private val STAR_BADGE_SIZE = 16.dp
+private val STAR_BADGE_OFFSET = 6.dp
 
 /**
  * [tint] as given, except for the fixed-colour Easter Eggs icons, where it's overridden instead:
