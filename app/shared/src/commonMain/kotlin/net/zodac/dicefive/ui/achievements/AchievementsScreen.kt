@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -34,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -76,6 +79,7 @@ import net.zodac.dicefive.ui.theme.GoldAccent
 // own layout info rather than by parsing keys.
 private const val HEADER_CONTENT_TYPE = "header"
 private const val ROW_CONTENT_TYPE = "achievement"
+private const val TAIL_CONTENT_TYPE = "tail"
 
 /** How long a row scrolled to from [AchievementScrollRequests] stays flashed gold before fading
  * back to its normal colour - long enough to register as "here it is", short enough to still read
@@ -107,6 +111,9 @@ private fun flatIndexOf(groups: List<AchievementGroup>, achievementId: String): 
  * undermines "smooth". Sized for a typical unlocked row (icon, title, description, "Unlocked at");
  * a locked row with a progress bar instead is a little taller, but not by enough to matter here. */
 private val ESTIMATED_ROW_HEIGHT_DP = 88.dp
+
+/** The pinned category header's height (48dp arrows plus card padding), until it's measured. */
+private val ESTIMATED_HEADER_HEIGHT_DP = 56.dp
 
 /** The `scrollOffset` to pass to `animateScrollToItem`/`scrollToItem` so the item lands roughly
  * centred rather than pinned to the very top. That parameter's sign is the opposite of what it
@@ -233,6 +240,23 @@ fun AchievementsScreen(
         }
     }
 
+    // Room after the last row so it can scroll up to rest just under the pinned header (and so a
+    // banner long press can centre the rows at the bottom, instead of leaving them clamped at the
+    // list's end, under the unlock banner). Sized as viewport - pinned header - last row, both
+    // measured once seen; the header/row estimates only cover the first frames.
+    var tailSpacePx by remember { mutableIntStateOf(0) }
+    val headerEstimatePx = with(LocalDensity.current) { ESTIMATED_HEADER_HEIGHT_DP.roundToPx() }
+    LaunchedEffect(listState) {
+        var headerPx = headerEstimatePx
+        var lastRowPx = estimatedRowHeightPx
+        snapshotFlow { listState.layoutInfo }.collect { info ->
+            info.visibleItemsInfo.firstOrNull { it.contentType == HEADER_CONTENT_TYPE }?.let { headerPx = it.size }
+            info.visibleItemsInfo.lastOrNull { it.contentType == ROW_CONTENT_TYPE }
+                ?.takeIf { it.index == info.totalItemsCount - 2 }?.let { lastRowPx = it.size }
+            tailSpacePx = (info.viewportSize.height - headerPx - lastRowPx).coerceAtLeast(0)
+        }
+    }
+
     ScreenScaffold(title = "Achievements", onBack = onBack, modifier = modifier) {
         // No ripple, and no other visual change on tap or long press: this is the hidden entry
         // point into superuser mode (see the class doc above), and a ripple here would be an open
@@ -298,6 +322,9 @@ fun AchievementsScreen(
                             modifier = Modifier.hiddenUnderPinnedHeader(listState, it.achievement.id),
                         )
                     }
+                }
+                item(key = "tail-space", contentType = TAIL_CONTENT_TYPE) {
+                    Spacer(Modifier.height(with(LocalDensity.current) { tailSpacePx.toDp() }))
                 }
             }
         }

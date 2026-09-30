@@ -239,6 +239,18 @@ that getting from Milestones to Collection was a lot of flinging. At the first/l
 arrow that has nowhere to go is greyed out rather than removed, so the pair never shifts. They're
 stock `IconButton`s, so the header is the 48dp minimum touch height, not the bare label's.
 
+**The list deliberately scrolls past its last row** - a trailing blank item (`tail-space`) sized
+as viewport - pinned header - last row, so the lowest scroll leaves the final row resting just
+under the "x of y unlocked" card and the pinned category header, with blank space below. This is a
+design choice for this page only, not a general pattern (no other list does it, and none should
+without the same reason). Without it the list clamps at its end, so a row near the bottom - the
+Easter Eggs, which are last - can never reach the middle of the screen, and a banner long press
+(which centres the row) left it sitting under the unlock banner. The height is measured from the
+real header and last row once they've been on screen (estimates only cover the first frames).
+It has to be a trailing *item*, not `contentPadding`: bottom padding shrinks
+`layoutInfo.viewportEndOffset`, which `centeredScrollOffset` reads, so centring would drift.
+The spacer is empty, so TalkBack has nothing to read and gains no focus stop.
+
 Rows are clipped at the pinned header's bottom edge (`Modifier.hiddenUnderPinnedHeader`, read
 from `layoutInfo` in the draw pass via the `contentType` tags) instead of sliding under it:
 otherwise they show through its rounded corners. The scroll position is kept in a process-lifetime
