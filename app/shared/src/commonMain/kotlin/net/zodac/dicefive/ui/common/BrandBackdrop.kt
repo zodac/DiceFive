@@ -46,17 +46,24 @@ private val WATERMARK_DICE = listOf(
  * It's a *surface treatment*, deliberately quiet enough that ordinary Material components sit on
  * it unmodified, at their normal contrast.
  *
+ * With [showDice] off there are no dice at all - the in-game screen, whose table art sits on top.
+ *
  * With [driftingDice] (the main menu and the screens off it - not the game itself), the dice don't sit still: they start where they always
  * are, then drift slowly up and across the screen, turning as they go, and come back in from below
  * on new paths (see [DiceDrift]). The drift is shared across those screens, so the dice keep their places and faces from one to the next until a game starts.
  */
 @Composable
-fun BrandBackdrop(modifier: Modifier = Modifier, driftingDice: Boolean = false, content: @Composable BoxScope.() -> Unit) {
+fun BrandBackdrop(
+    modifier: Modifier = Modifier,
+    driftingDice: Boolean = false,
+    showDice: Boolean = true,
+    content: @Composable BoxScope.() -> Unit,
+) {
     val colorScheme = MaterialTheme.colorScheme
     // The app's one shared drift where there is one (see DiceFiveApp), so the dice carry on from where
     // the last screen left them; a backdrop of its own otherwise.
     val shared = LocalDriftState.current
-    val drift = if (driftingDice) shared ?: remember { DriftState() } else null
+    val drift = if (driftingDice && showDice) shared ?: remember { DriftState() } else null
     // Still, where they are, under reduced motion - a watermark rather than a drift.
     if (drift != null && !LocalReduceMotion.current) {
         LaunchedEffect(drift) {
@@ -86,6 +93,7 @@ fun BrandBackdrop(modifier: Modifier = Modifier, driftingDice: Boolean = false, 
                 onDrawBehind {
                     drawRect(base)
                     drawRect(spotlight)
+                    if (!showDice) return@onDrawBehind
                     if (drift == null) {
                         drawDiceWatermark(colorScheme.onSurface, WATERMARK_DICE.map { it.toDrifting() })
                     } else {
