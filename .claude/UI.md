@@ -293,6 +293,15 @@ full opacity if it had started fading), with a fresh full hold once the finger l
 swipe, or a press to keep it up, can't lose it mid-gesture. An unlock always takes the front over a progress nudge; otherwise a new
 arrival joins the back, so it can't cut the queue.
 
+**Tap the front banner to pause its countdown, tap again to resume.** A pause/play glyph (a dark
+circle, top-right) pops up on each tap and fades after 1s (`HOLD_INDICATOR_MILLIS`). The glyph is a
+child of the banner, so it shares the banner's alpha: resuming with under a second left, it goes
+with the banner rather than outliving it. Resuming carries on with the time that was left
+(`holdRemainingMillis`, measured with a monotonic mark, so a stretch in the background counts
+against it); a swipe or long press starts a fresh hold. Once the glyph fades nothing shows that the
+banner is held - by design. TalkBack gets the tap as a "Pause countdown"/"Resume countdown"
+action on the banner, since the raw gesture isn't reachable otherwise; not heard on a device.
+
 Long-pressing the front banner jumps to that achievement on the Achievements screen. Mid-game,
 with "confirm before leaving" on, that asks first - and every banner's countdown is paused while the
 confirmation is up, restarting at a full hold when it closes.

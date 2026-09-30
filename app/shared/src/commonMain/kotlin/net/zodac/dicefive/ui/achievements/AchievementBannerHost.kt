@@ -17,8 +17,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
@@ -29,6 +32,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +50,8 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -54,6 +61,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.time.TimeSource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -85,6 +93,10 @@ private const val SWIPE_OUT_MILLIS = 180
 
 /** How long a progress banner's count and bar take to climb from the old value to the new one. */
 private const val PROGRESS_COUNT_MILLIS = 700
+
+/** How long the pause/play glyph stays fully visible after a tap before it fades. */
+private const val HOLD_INDICATOR_MILLIS = 1_000L
+private const val HOLD_INDICATOR_FADE_MILLIS = 250
 
 /** The gap between two banners appearing, so a burst arrives as a stack being dealt, not a wall. */
 private const val STAGGER_MILLIS = 300L
@@ -306,6 +318,23 @@ private fun BannerSlot(
     var swipedAway by remember { mutableStateOf(false) }
     // A finger on the banner - mid-swipe, or just holding it there to keep reading - holds its countdown off.
     var touched by remember { mutableStateOf(false) }
+    // A tap pauses the countdown until the next tap; see the class doc. holdRemainingMillis is what's
+    // left of the hold, so a resume carries on from where the pause landed instead of starting over.
+    var held by remember { mutableStateOf(false) }
+    var holdRemainingMillis by remember { mutableLongStateOf(HOLD_MILLIS) }
+    val indicatorAlpha = remember { Animatable(0f) }
+    var indicatorShowsPause by remember { mutableStateOf(true) }
+    var indicatorTick by remember { mutableIntStateOf(0) }
+
+    // The pause/play glyph is a child of the banner, so it shares the banner's own alpha: if the
+    // banner is fading out (under a second left when resumed) the glyph goes with it, and never
+    // outlives it.
+    LaunchedEffect(indicatorTick) {
+        if (indicatorTick == 0) return@LaunchedEffect
+        indicatorAlpha.snapTo(1f)
+        lifecycle.delayWhileResumed(HOLD_INDICATOR_MILLIS)
+        indicatorAlpha.animateTo(0f, tween(HOLD_INDICATOR_FADE_MILLIS))
+    }
 
     // Fades in as soon as it's placed in the stack, whether or not it's the front banner yet -
     // every banner in a burst should be visible right away, even the ones peeking out behind the
@@ -322,14 +351,21 @@ private fun BannerSlot(
     // hold rather than resuming a partial one. A finger on it does the same - pausing it while
     // it's down, and a fresh hold once it lifts - and brings it back to full opacity if it had
     // already started fading, so a slow swipe or a press to keep it can't lose it mid-gesture.
-    LaunchedEffect(interactive, swipedAway, paused, touched) {
+    LaunchedEffect(interactive, swipedAway, paused, touched, held) {
         if (!interactive || swipedAway || paused) return@LaunchedEffect
         if (touched) {
             alpha.animateTo(1f, tween(FADE_IN_MILLIS))
             return@LaunchedEffect
         }
+        if (held) return@LaunchedEffect
         // Not while the app is in the background: a banner shouldn't clear itself unseen.
-        lifecycle.delayWhileResumed(HOLD_MILLIS)
+        val holdStarted = TimeSource.Monotonic.markNow()
+        try {
+            lifecycle.delayWhileResumed(holdRemainingMillis)
+        } finally {
+            // Whatever cancelled this (a touch, a pause) leaves the unspent part for a resume.
+            holdRemainingMillis = (holdRemainingMillis - holdStarted.elapsedNow().inWholeMilliseconds).coerceAtLeast(0L)
+        }
         if (!swipedAway) {
             alpha.animateTo(0f, tween(FADE_OUT_MILLIS))
             onDismissed()
@@ -343,6 +379,21 @@ private fun BannerSlot(
             .offset { IntOffset(offsetX.value.roundToInt(), 0) }
             .alpha(alpha.value)
             .then(
+                if (interactive) {
+                    // The tap has to be reachable without the raw gesture below: TalkBack gets it as an action.
+                    Modifier.semantics(mergeDescendants = true) {
+                        onClick(label = if (held) "Resume countdown" else "Pause countdown") {
+                            held = !held
+                            indicatorShowsPause = held
+                            indicatorTick++
+                            true
+                        }
+                    }
+                } else {
+                    Modifier
+                },
+            )
+            .then(
                 if (!interactive) {
                     Modifier
                 } else {
@@ -353,10 +404,14 @@ private fun BannerSlot(
                             val down = awaitFirstDown(requireUnconsumed = false)
                             touched = true
                             var dragging = false
+                            var longPressed = false
                             var previousX = down.position.x
                             val longPressJob = scope.launch {
                                 lifecycle.delayWhileResumed(longPressTimeoutMillis)
-                                if (!dragging) onLongPress()
+                                if (!dragging) {
+                                    longPressed = true
+                                    onLongPress()
+                                }
                             }
                             try {
                                 do {
@@ -381,6 +436,16 @@ private fun BannerSlot(
                                 touched = false
                             }
 
+                            if (!dragging && !longPressed) {
+                                // A plain tap: pause the countdown, or resume it.
+                                held = !held
+                                indicatorShowsPause = held
+                                indicatorTick++
+                            } else {
+                                // Swiped or long-pressed: the usual fresh hold.
+                                holdRemainingMillis = HOLD_MILLIS
+                                held = false
+                            }
                             if (dragging) {
                                 scope.launch {
                                     if (abs(offsetX.value) > size.width * SWIPE_DISMISS_FRACTION) {
@@ -402,6 +467,19 @@ private fun BannerSlot(
         when (val event = item.event) {
             is AchievementEvent.Unlocked -> UnlockedBanner(event.achievement)
             is AchievementEvent.Progressed -> ProgressBanner(event.achievement, event.previous, event.current, interactive)
+        }
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f),
+            contentColor = Color.White,
+            modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).alpha(indicatorAlpha.value),
+        ) {
+            Icon(
+                imageVector = if (indicatorShowsPause) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                // Only announced while it's on screen; the tap itself is the semantics action above.
+                contentDescription = if (indicatorAlpha.value > 0f) (if (indicatorShowsPause) "Paused" else "Resumed") else null,
+                modifier = Modifier.padding(4.dp).size(20.dp),
+            )
         }
     }
 }
