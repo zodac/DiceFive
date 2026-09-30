@@ -67,7 +67,7 @@ class GameStateJsonTest {
     fun `a save without seconds left decodes to a full timer`() {
         val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
         val withoutField = (parseJson(GameStateJson.encode(state)) as JsonObject).let { obj ->
-            JsonObject(obj.filterKeys { it != "turnSecondsLeft" })
+            JsonObject(obj.fields.filterKeys { it != "turnSecondsLeft" })
         }.toJson()
 
         assertEquals(null, GameStateJson.decode(withoutField).turnSecondsLeft)
