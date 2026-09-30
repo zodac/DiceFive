@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,7 +52,6 @@ import net.zodac.dicefive.model.isLuckOfTheIrish
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.common.BackHandler
-import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
@@ -91,7 +89,7 @@ fun GameScreen(
     val turnSecondsRemaining by viewModel.turnSecondsRemaining.collectAsStateWithLifecycle()
     val table by viewModel.tableSettings.collectAsStateWithLifecycle()
     val currentState = state ?: return
-    var showLeaveConfirmation by remember { mutableStateOf(false) }
+    val leaveConfirmation = LocalLeaveGameConfirmation.current
     // Whether Game Over's "Review Scorecards" button has been tapped - reset the moment the game
     // stops being over (Play Again starts a fresh one), so a stale review doesn't reappear the
     // next time this game finishes.
@@ -120,9 +118,10 @@ fun GameScreen(
         }
     }
 
-    // The leave-game confirmation freezes the turn timer and CPU turns while it is up.
-    DisposableEffect(viewModel, showLeaveConfirmation) {
-        viewModel.setHeld(showLeaveConfirmation)
+    // The leave-game confirmation freezes the turn timer and CPU turns while it is up, however it was asked for.
+    val leaveConfirmationShowing = leaveConfirmation.isShowing
+    DisposableEffect(viewModel, leaveConfirmationShowing) {
+        viewModel.setHeld(leaveConfirmationShowing)
         onDispose { viewModel.setHeld(false) }
     }
 
@@ -136,23 +135,10 @@ fun GameScreen(
     // installs its own BackHandler for that, which composes later and so wins over this one.
     BackHandler {
         if (!currentState.isGameOver && confirmBeforeLeaving) {
-            showLeaveConfirmation = true
+            leaveConfirmation.request(onBackToMenu)
         } else {
             onBackToMenu()
         }
-    }
-
-    if (showLeaveConfirmation) {
-        DiceFiveDialog(
-            icon = Icons.AutoMirrored.Filled.Logout,
-            title = "Leave game?",
-            message = "Your progress is saved - you can continue this game later.",
-            confirmLabel = "Leave",
-            onConfirm = { showLeaveConfirmation = false; onBackToMenu() },
-            dismissLabel = "Cancel",
-            onDismiss = { showLeaveConfirmation = false },
-            onDismissRequest = { showLeaveConfirmation = false },
-        )
     }
 
     // A single injection point for the pluggable dice/cup/background art and the table's settings -

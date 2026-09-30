@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -63,10 +62,10 @@ import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.ui.common.delayWhileResumed
+import net.zodac.dicefive.ui.game.LocalLeaveGameConfirmation
 import net.zodac.dicefive.ui.game.style.unlocksStyle
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.ConfigureOverlayDialogWindow
-import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.grouped
 
@@ -148,14 +147,16 @@ private data class BannerItem(val key: Long, val event: AchievementEvent)
  * achievement on the Achievements screen (see `AchievementScrollRequests`, which is how the
  * request actually reaches that screen - this host has no reference to it, only to the
  * `NavHostController` its caller wires [onAchievementSelected] up to). Mid-game, with the
- * "confirm before leaving" setting on, that's gated behind a leave-game confirmation first -
- * [pendingAchievement] - during which every banner's hold countdown is paused (see [paused] on
- * [BannerSlot]) so the stack doesn't quietly clear itself out from under the player while they're
- * deciding.
+ * "confirm before leaving" setting on, and only while the game's own screen is in front
+ * ([isOnGameScreen] - a saved game elsewhere, or the Achievements page itself, has nothing being
+ * left), that's gated behind the shared leave-game confirmation first (`LeaveGameConfirmation`),
+ * during which every banner's hold countdown is paused (see [paused] on [BannerSlot]) so the stack
+ * doesn't quietly clear itself out from under the player while they're deciding.
  */
 @Composable
 fun AchievementBannerHost(
     modifier: Modifier = Modifier,
+    isOnGameScreen: () -> Boolean,
     onAchievementSelected: (Achievement) -> Unit,
     content: @Composable () -> Unit,
 ) {
@@ -164,10 +165,7 @@ fun AchievementBannerHost(
     val container = LocalAppContainer.current
     val hasInProgressGame by container.inProgressGameRepository.hasInProgressGame.collectAsStateWithLifecycle(initialValue = false)
     val confirmBeforeLeavingGame by container.settingsRepository.confirmBeforeLeavingGame.collectAsStateWithLifecycle(initialValue = true)
-    // The achievement a long press asked to jump to, mid-game, waiting on the leave-game
-    // confirmation below before it actually navigates - null the rest of the time, including once
-    // there's no game to leave, when onAchievementSelected is called directly instead.
-    var pendingAchievement by remember { mutableStateOf<Achievement?>(null) }
+    val leaveConfirmation = LocalLeaveGameConfirmation.current
 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(Unit) {
@@ -223,12 +221,12 @@ fun AchievementBannerHost(
                             BannerSlot(
                                 item = item,
                                 interactive = depthFromFront == 0,
-                                paused = pendingAchievement != null,
+                                paused = leaveConfirmation.isShowing,
                                 onDismissed = { banners.remove(item) },
                                 onLongPress = {
                                     val achievement = item.event.achievement
-                                    if (hasInProgressGame && confirmBeforeLeavingGame) {
-                                        pendingAchievement = achievement
+                                    if (isOnGameScreen() && hasInProgressGame && confirmBeforeLeavingGame) {
+                                        leaveConfirmation.request { onAchievementSelected(achievement) }
                                     } else {
                                         onAchievementSelected(achievement)
                                     }
@@ -265,23 +263,6 @@ fun AchievementBannerHost(
                 }
             }
         }
-    }
-
-    val achievementPendingLeaveConfirmation = pendingAchievement
-    if (achievementPendingLeaveConfirmation != null) {
-        DiceFiveDialog(
-            icon = Icons.AutoMirrored.Filled.Logout,
-            title = "Leave game?",
-            message = "Your progress is saved - you can continue this game later.",
-            confirmLabel = "Leave",
-            onConfirm = {
-                pendingAchievement = null
-                onAchievementSelected(achievementPendingLeaveConfirmation)
-            },
-            dismissLabel = "Cancel",
-            onDismiss = { pendingAchievement = null },
-            onDismissRequest = { pendingAchievement = null },
-        )
     }
 }
 
