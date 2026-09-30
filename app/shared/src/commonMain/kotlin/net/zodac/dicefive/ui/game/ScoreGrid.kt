@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.game
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,14 +10,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -241,21 +246,56 @@ internal fun CategoryCell(
                 )
             }
         } else {
-            val text = filled?.toString() ?: previewScore?.toString() ?: "-"
-            Text(
-                text = text,
-                color = if (isGoodChoice) GoldAccent else TileIconColor.copy(alpha = if (filled != null) 1f else 0.55f),
-                fontWeight = if (isGoodChoice) FontWeight.Bold else FontWeight.Normal,
-                style = if (prominent) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                // The weighted width here is razor-thin by design (see the Row's spacedBy comment
-                // above) - just enough for a single digit. Clip was hard-cropping the second digit
-                // of any score above 9 (Fives, Chance, ...); Visible lets it spill into that
-                // reserved gap instead of being cut off.
-                overflow = TextOverflow.Visible,
-                softWrap = false,
-                modifier = Modifier.weight(1f),
-            )
+            val style = if (prominent) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium
+            // The score or preview on show - or, while there isn't one, the last one that was, kept
+            // laid out but hidden behind the "-". Every cell's preview hides the moment the cup is
+            // tapped for a reroll, and laying all their text out again (a number to "-", bold to
+            // plain) on that one frame made it the heaviest of the roll; now it's just a swap of
+            // which is visible. The number is laid out again only when it changes, as the dice
+            // settle. Screen readers hear the cell's stateDescription, never these.
+            val shown = (filled ?: previewScore)?.let { ShownScore(it.toString(), gold = isGoodChoice, scored = filled != null) }
+            val lastShown = remember { arrayOfNulls<ShownScore>(1) }
+            if (shown != null) lastShown[0] = shown
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                lastShown[0]?.let { number ->
+                    ScoreText(
+                        text = number.text,
+                        color = if (number.gold) GoldAccent else TileIconColor.copy(alpha = if (number.scored) 1f else 0.55f),
+                        fontWeight = if (number.gold) FontWeight.Bold else FontWeight.Normal,
+                        style = style,
+                        modifier = Modifier.alpha(if (shown != null) 1f else 0f),
+                    )
+                }
+                ScoreText(
+                    text = "-",
+                    color = TileIconColor.copy(alpha = 0.55f),
+                    fontWeight = FontWeight.Normal,
+                    style = style,
+                    modifier = Modifier.alpha(if (shown == null) 1f else 0f),
+                )
+            }
         }
     }
+}
+
+/** A cell's score or preview as it was last shown: its text, whether it was a gold "worth picking" one, and whether it's scored. */
+private class ShownScore(val text: String, val gold: Boolean, val scored: Boolean)
+
+/** A number (or "-") beside a category tile. */
+@Composable
+private fun ScoreText(text: String, color: Color, fontWeight: FontWeight, style: TextStyle, modifier: Modifier) {
+    Text(
+        text = text,
+        color = color,
+        fontWeight = fontWeight,
+        style = style,
+        maxLines = 1,
+        // The weighted width here is razor-thin by design (see the Row's spacedBy comment in
+        // CategoryCell) - just enough for a single digit. Clip was hard-cropping the second digit
+        // of any score above 9 (Fives, Chance, ...); Visible lets it spill into that reserved gap
+        // instead of being cut off.
+        overflow = TextOverflow.Visible,
+        softWrap = false,
+        modifier = modifier,
+    )
 }
