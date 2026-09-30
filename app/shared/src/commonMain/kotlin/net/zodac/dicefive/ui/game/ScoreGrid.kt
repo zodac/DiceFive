@@ -41,7 +41,7 @@ private const val REGULAR_GRID_ROWS = 6
 private val GRID_ROW_SPACING = 6.dp
 
 /** The board's height for a Standard-sized grid - see [scoreBoardHeight]. */
-private val REGULAR_BOARD_HEIGHT = 380.dp
+internal val REGULAR_BOARD_HEIGHT = 380.dp
 
 /**
  * The grid's rows for [gameMode], top to bottom, each one or two categories wide: the upper section

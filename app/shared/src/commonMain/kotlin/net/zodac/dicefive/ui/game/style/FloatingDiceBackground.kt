@@ -11,15 +11,15 @@ import net.zodac.dicefive.ui.common.DriftState
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.drawDiceWatermark
 import net.zodac.dicefive.ui.common.isShowing
+import net.zodac.dicefive.ui.game.REGULAR_BOARD_HEIGHT
 import net.zodac.dicefive.ui.theme.OnSurface
 import net.zodac.dicefive.ui.theme.Primary
 import net.zodac.dicefive.ui.theme.Surface
 import net.zodac.dicefive.ui.theme.SurfaceContainerHigh
 import net.zodac.dicefive.ui.theme.SurfaceContainerLowest
 
-// About how tall the main menu is, in dp, and the most a small surface's dice are sped up.
+// About how tall the main menu is, in dp.
 private const val MENU_REFERENCE_HEIGHT_DP = 760f
-private const val MAX_TIME_SCALE = 12f
 
 /**
  * The main menu's backdrop as a table background: the same gradient, the same spotlight from above
@@ -50,9 +50,12 @@ object FloatingDiceBackground : TableBackground {
 
     override fun DrawScope.drawScoreAreaDecoration() {
         drift.size = size
-        // The menu is roughly this tall; anything much smaller (a Styles tile) moves its dice faster
-        // to keep the same pace on screen, or it would look still.
-        drift.timeScale = (MENU_REFERENCE_HEIGHT_DP / (size.height / density)).coerceIn(1f, MAX_TIME_SCALE)
+        // The drift moves in fractions of the surface a second, at the menu's pace on something as tall
+        // as the menu; the game's shorter board runs it faster, so its dice cover the same ground on
+        // screen. Anything smaller still - a Styles tile - keeps the board's pace rather than speeding
+        // up further, so the preview moves as a miniature of the board rather than racing.
+        val height = maxOf(size.height / density, REGULAR_BOARD_HEIGHT.value)
+        drift.timeScale = (MENU_REFERENCE_HEIGHT_DP / height).coerceAtLeast(1f)
         drift.frame.longValue // Read here, so each move redraws.
         drawRect(
             Brush.radialGradient(
