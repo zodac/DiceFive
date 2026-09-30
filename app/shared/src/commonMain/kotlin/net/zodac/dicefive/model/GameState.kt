@@ -14,6 +14,10 @@ data class GameState(
     val rollsRemaining: Int = gameMode.rollsPerTurn,
     val phase: TurnPhase = TurnPhase.AWAITING_ROLL,
     val isGameOver: Boolean = false,
+    /** Seconds that were left on the turn timer when the game was saved mid-turn, so resuming picks
+     * the countdown up where it stopped; null - the full [turnSeconds] - everywhere else. Only ever
+     * set on the saved copy, never on the live game. */
+    val turnSecondsLeft: Int? = null,
 ) {
 
     val currentPlayer: PlayerState?

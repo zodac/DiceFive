@@ -170,7 +170,7 @@ class GameViewModel(
      */
     fun setForeground(value: Boolean) {
         onScreen = value
-        foreground.value = onScreen && !held
+        updateForeground()
     }
 
     /**
@@ -179,8 +179,27 @@ class GameViewModel(
      */
     fun setHeld(value: Boolean) {
         held = value
-        foreground.value = onScreen && !held
+        updateForeground()
     }
+
+    private fun updateForeground() {
+        val running = onScreen && !held
+        foreground.value = running
+        if (!running) saveTurnTimerProgress()
+    }
+
+    /** Saves the game with the turn timer's seconds left, so Continue resumes the countdown rather than
+     * restarting it. Only when the game stops running: the live state never carries it, and saving it
+     * every second would rewrite the game on every tick. */
+    private fun saveTurnTimerProgress() {
+        val state = _game.value ?: return
+        val remaining = _turnSecondsRemaining.value ?: return
+        if (state.isGameOver) return
+        inProgressGameRepository?.save(state.copy(turnSecondsLeft = remaining))
+    }
+
+    /** Seconds [resumeGame] found left on the saved turn, for the next timer start to use. */
+    private var resumedSecondsLeft: Int? = null
 
     private var onScreen = true
     private var held = false
@@ -452,7 +471,9 @@ class GameViewModel(
         setUndoSnapshot(null)
         resetSuperuserMode()
         resetAchievementTracking()
-        applyGameState(loaded)
+        resumedSecondsLeft = loaded.turnSecondsLeft
+        applyGameState(loaded.copy(turnSecondsLeft = null))
+        resumedSecondsLeft = null
         checkInProgressAchievements()
         checkGameStartAchievements()
         unlockAchievements(setOf(Achievement.CONTINUED_GAME))
@@ -741,14 +762,14 @@ class GameViewModel(
         val turnSequence = newState.players.sumOf { player -> player.scorecard.values.count { it != null } }
         if (turnTimerTurnSequence == turnSequence && turnTimerJob?.isActive == true) return
         turnTimerTurnSequence = turnSequence
-        startTurnTimer(seconds)
+        startTurnTimer(seconds, resumedSecondsLeft?.coerceIn(1, seconds) ?: seconds)
     }
 
-    private fun startTurnTimer(totalSeconds: Int) {
+    private fun startTurnTimer(totalSeconds: Int, startSeconds: Int = totalSeconds) {
         turnTimerJob?.cancel()
-        _turnSecondsRemaining.value = totalSeconds
+        _turnSecondsRemaining.value = startSeconds
         turnTimerJob = viewModelScope.launch {
-            var remaining = totalSeconds
+            var remaining = startSeconds
             while (remaining > 0) {
                 pausableDelay(1_000L)
                 remaining--
