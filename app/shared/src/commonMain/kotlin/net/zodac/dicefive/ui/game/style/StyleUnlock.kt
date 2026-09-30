@@ -9,8 +9,8 @@ import net.zodac.dicefive.model.AchievementVisibility
  * one of its colours is available.
  *
  * A saved pick whose style is still locked isn't erased - [StyleCatalog.unlockedById] just draws the
- * category's default in its place - so re-locking (a reset of the achievements) and unlocking again
- * brings the player's own pick back rather than losing it.
+ * category's default in its place. (Resetting the achievements is the exception: Settings also puts
+ * every pick that reset locks back to the default, so it can't return on re-earning the style.)
  */
 sealed interface StyleUnlock {
 
