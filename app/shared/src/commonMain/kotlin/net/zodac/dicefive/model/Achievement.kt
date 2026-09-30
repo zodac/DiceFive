@@ -582,7 +582,7 @@ enum class Achievement(
     // P1, who's always the human player at this device), isn't something every player could
     // reasonably be expected to stumble into on the way to 100%.
     BIG_FAN(
-        "big_fan", "Big Fan", "Play a game with the creator",
+        "big_fan", "Big Fan", "Play a 1v1 game against the creator",
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the
