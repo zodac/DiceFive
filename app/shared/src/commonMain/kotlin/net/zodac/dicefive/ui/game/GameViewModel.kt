@@ -1450,18 +1450,19 @@ class GameViewModel(
                     // static pause with nothing animating - however long it takes, only the pause
                     // before the dice's held state updates changes, not any animation.
                     val holds = withContext(aiDispatcher) { AiTurnPlayer.chooseHolds(current) }
-                    current = AiTurnPlayer.applyHolds(current, holds)
-                    setUndoSnapshot(null)
-                    applyGameState(current, checkForAiTurn = false)
-
-                    // Every die is being kept, so a further roll would only ever reroll nothing
-                    // (GameEngine.rollDice skips held dice) - stop here, same as a human choosing to
+                    // Every die is being kept, so the turn is over: stop before the holds are applied, as
+                    // showing every die held just before scoring is noise. A further roll would only ever
+                    // reroll nothing (GameEngine.rollDice skips held dice) - stop here, same as a human choosing to
                     // score early with rolls still legally available. `rollsRemaining` is left
                     // exactly as the rules say: "x$rollsRemaining" on the cup means legal rolls
                     // still available, not how many the player intends to use, so this must never
                     // force it down to fake an early stop - it was doing exactly that before, and a
                     // roll that still had legal rerolls left was showing as none remaining.
                     if (holds.size == current.dice.size) break
+
+                    current = AiTurnPlayer.applyHolds(current, holds)
+                    setUndoSnapshot(null)
+                    applyGameState(current, checkForAiTurn = false)
 
                     // A beat with the cup settled and the result visible before the next roll's
                     // shake starts - without it, back-to-back rolls (routine for Easy, which never
