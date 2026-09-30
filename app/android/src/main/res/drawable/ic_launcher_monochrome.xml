@@ -1,0 +1,92 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!--
+      The themed-icon layer: the same artwork as ic_launcher_foreground.xml as one flat silhouette.
+      Android tints a monochrome layer using only its alpha, so colour does nothing here - detail is
+      kept by cutting it out instead: each die's pips are holes in its body, the cup's band is a hole
+      in its body, and the cup's mouth is an open ellipse outlined by its rim. Geometry, rotations and
+      the 0.8 zoom are copied from the foreground, so keep the two in step when one changes.
+    -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.8"
+        android:scaleY="0.8">
+
+        <!-- Cup body: its top edge is the lower arc of the mouth, so the opening stays see-through.
+             The band is a crescent hole (even-odd). -->
+        <path
+            android:fillType="evenOdd"
+            android:fillColor="#000000"
+            android:pathData="M37,45.5 L37,87.5 C37,96.11 71,96.11 71,87.5 L71,45.5 a17,6.46 0 0 1 -34,0 z M37,77.6 C37,86.21 71,86.21 71,77.6 L71,79.4 C71,88.01 37,88.01 37,79.4 z" />
+        <!-- Cup rim. -->
+        <path
+            android:pathData="M37,45.5 a17,6.46 0 1,0 34,0 a17,6.46 0 1,0 -34,0 z"
+            android:strokeColor="#000000"
+            android:strokeWidth="1.8" />
+
+        <group
+            android:translateX="16"
+            android:translateY="60.5"
+            android:pivotX="7"
+            android:pivotY="7"
+            android:rotation="-52">
+            <path
+                android:fillType="evenOdd"
+                android:fillColor="#000000"
+                android:pathData="M3.5,0 h7 a3.5,3.5 0 0 1 3.5,3.5 v7 a3.5,3.5 0 0 1 -3.5,3.5 h-7 a3.5,3.5 0 0 1 -3.5,-3.5 v-7 a3.5,3.5 0 0 1 3.5,-3.5 z M3.83,4.83 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z M8.18,9.18 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z" />
+        </group>
+
+        <group
+            android:translateX="23"
+            android:translateY="18.4"
+            android:pivotX="7.5"
+            android:pivotY="7.5"
+            android:rotation="28">
+            <path
+                android:fillType="evenOdd"
+                android:fillColor="#000000"
+                android:pathData="M3.75,0 h7.5 a3.75,3.75 0 0 1 3.75,3.75 v7.5 a3.75,3.75 0 0 1 -3.75,3.75 h-7.5 a3.75,3.75 0 0 1 -3.75,-3.75 v-7.5 a3.75,3.75 0 0 1 3.75,-3.75 z M4.10,5.17 a1.07,1.07 0 1,0 2.14,0 a1.07,1.07 0 1,0 -2.14,0 z M8.76,5.17 a1.07,1.07 0 1,0 2.14,0 a1.07,1.07 0 1,0 -2.14,0 z M4.10,9.83 a1.07,1.07 0 1,0 2.14,0 a1.07,1.07 0 1,0 -2.14,0 z M8.76,9.83 a1.07,1.07 0 1,0 2.14,0 a1.07,1.07 0 1,0 -2.14,0 z" />
+        </group>
+
+        <group
+            android:translateX="49"
+            android:translateY="13.5"
+            android:pivotX="7"
+            android:pivotY="7"
+            android:rotation="-5">
+            <path
+                android:fillType="evenOdd"
+                android:fillColor="#000000"
+                android:pathData="M3.5,0 h7 a3.5,3.5 0 0 1 3.5,3.5 v7 a3.5,3.5 0 0 1 -3.5,3.5 h-7 a3.5,3.5 0 0 1 -3.5,-3.5 v-7 a3.5,3.5 0 0 1 3.5,-3.5 z M3.83,4.83 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z M8.18,4.83 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z M6.00,7 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z M3.83,9.18 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z M8.18,9.18 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z" />
+        </group>
+
+        <group
+            android:translateX="70.6"
+            android:translateY="22.9"
+            android:pivotX="7"
+            android:pivotY="7"
+            android:rotation="18">
+            <path
+                android:fillType="evenOdd"
+                android:fillColor="#000000"
+                android:pathData="M3.5,0 h7 a3.5,3.5 0 0 1 3.5,3.5 v7 a3.5,3.5 0 0 1 -3.5,3.5 h-7 a3.5,3.5 0 0 1 -3.5,-3.5 v-7 a3.5,3.5 0 0 1 3.5,-3.5 z M3.83,4.83 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z M6.00,7 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z M8.18,9.18 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z" />
+        </group>
+
+        <group
+            android:translateX="80"
+            android:translateY="47.2"
+            android:pivotX="7"
+            android:pivotY="7"
+            android:rotation="-77">
+            <path
+                android:fillType="evenOdd"
+                android:fillColor="#000000"
+                android:pathData="M3.5,0 h7 a3.5,3.5 0 0 1 3.5,3.5 v7 a3.5,3.5 0 0 1 -3.5,3.5 h-7 a3.5,3.5 0 0 1 -3.5,-3.5 v-7 a3.5,3.5 0 0 1 3.5,-3.5 z M3.83,4.46 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z M3.83,7 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z M3.83,9.54 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z M8.18,4.46 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z M8.18,7 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z M8.18,9.54 a1.00,1.00 0 1,0 2.00,0 a1.00,1.00 0 1,0 -2.00,0 z" />
+        </group>
+    </group>
+</vector>

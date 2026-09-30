@@ -747,6 +747,13 @@ edges are pinned.
   (everything sits inside one outer `<group scaleX="0.8" scaleY="0.8" pivotX="54"
   pivotY="54">`) rather than pushing content back out toward the theoretical 66dp edge.
 
+- **The launcher icon has a themed (monochrome) layer**, `ic_launcher_monochrome.xml`: the foreground's
+  cup and dice as one flat silhouette, because Android tints that layer by alpha alone. Pips and the
+  cup's band are even-odd cut-outs, the mouth an outlined ellipse. Its geometry is copied from
+  `ic_launcher_foreground.xml` (same rotations, same 0.8 zoom), so change them together. Rendered to a
+  PNG and checked there; not seen on a device with themed icons on. `ic_launcher.xml` is the only icon
+  wrapper (the manifest's `roundIcon` points at it too), so there is no `ic_launcher_round.xml`.
+
 ## Verifying UI work
 
 **There is no emulator in the sandbox** (see DESIGN.md's Verification section). UI changes are

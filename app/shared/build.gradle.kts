@@ -55,6 +55,8 @@ kotlin {
         // The same rules as :app:android's lint - deprecated and obsolete usages are errors.
         lint {
             error += setOf("Deprecated", "ObsoleteSdkInt")
+            warningsAsErrors = true
+            disable += "GradleDependency"
         }
     }
 
