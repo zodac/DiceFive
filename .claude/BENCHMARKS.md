@@ -71,12 +71,33 @@ the change isn't seen until much later, and without `runOnIdle` it can be missed
   `@Config(qualifiers = "w411dp-h891dp-xxhdpi")` for a phone-sized screen. Scroll a row with its
   `SemanticsActions.ScrollToIndex` (one tile a frame) - `ScrollBy` does nothing on these rows.
 
+- **Many more styles than exist (a stress catalog)** - to see how a page scales before the art is
+  drawn. A throwaway file in `ui/game/style` with a function that repeats each `StyleFamily` N times,
+  each copy renamed ("Marble 2" - the rows key on the name) and each colour's style wrapped in a
+  delegating copy with its own id (`class Copied(override val id: String, base: DiceStyle) :
+  DiceStyle by base`, one per art interface). Apply it in `StyleCatalog`'s constructor (make
+  `families` a plain parameter and `val families = copies(families, n)`). Copies get their own tile,
+  layer, label and place in the build order, but share the original's cached surfaces (marble, frost
+  - `drawCachedSurface` keys on the pattern) and decoded mat textures, so they understate what that
+  many genuinely new styles would cost the first time. Switch it off (N = 1) before running the
+  suite - tests count the real catalog. Never commit it.
+- **Opening a page, frame by frame** - `setContent { key(generation) { if (generation % 2 == 1)
+  StylesScreen(...) } }` with `mainClock.autoAdvance = false`; bump `generation` to open or close the
+  page, then time each of the next ~40 `advanceTimeByFrame()` + `waitForIdle()` pairs, and between
+  openings advance a few seconds so the build-ahead finishes. The first opening is cold (~400ms);
+  compare the later ones. Frame 1 is the page's first composition; the ones after show the
+  build-ahead.
+
 ### Finding what the time is spent on
 
 - **A sampling profiler in the test**: a daemon thread reading `mainThread.stackTrace` every
   0.2ms while a flag is set around the frames of interest, counting the innermost `net.zodac`
   frame (what app code is running) or every frame on the stack (which Compose phase:
   `performRecompose`, `measureAndLayout`, `applyChanges`, `layoutText`, `composeInitial`...).
+  Samples with no `net.zodac` frame at all are Compose's own work (creating nodes, laying them
+  out); for those, count the innermost frame whose class names `Text` or `Paragraph` - text layout
+  hides there, under whatever composable asked for it. Keep the sampled state in top-level
+  `@Volatile` vars, declared above the test class's annotations.
 - **Which text re-lays out**: temporarily add `onTextLayout = { println("TL file:line " +
   it.layoutInput.text) }` to the `Text`s involved, and print markers around the frame in question.
   Callbacks for a frame's layouts arrive after it, so read the block following each marker.
@@ -255,6 +276,22 @@ Everything unlocked, phone-sized screen:
     captures and identical semantics text.
   - Per tile scrolling in: 2.01ms before, 1.58ms keeping every tile, 0.83ms with cached labels,
     **0.56ms with both**.
+- **Opening grew with the number of styles, and was redone every time** (reported on a device: the
+  menu's drifting dice froze for a few frames on every open). Measured with a stress catalog (every
+  dice family three times over, the rest twice - 98 tiles), warm, per opening frame: 48-80ms, against
+  37-49ms for the real 42. Every unbuilt tile had its own placeholder, name label and all, on that
+  frame; about a third of the frame was laying out names, from a text measurer made afresh each
+  opening; and every tile on screen was built on it. Fixes, in `StylesScreen.kt`:
+  - The unbuilt tiles either side of the built run (built nearest the pick first, so always one run)
+    are one `PlaceholderRun` each - empty tile outlines in a single `Canvas`, no names.
+  - One label measurer for the process (`rememberTileLabelMeasurer`), shared with `StylesWarmUp`, so
+    names are laid out once per launch; its cache is sized to every style there is.
+  - The first frame builds only each row's pick, then a tile either side per frame until the screen
+    is full; the row is shown once it is.
+
+  Opening frame now 16-24ms warm with the stress catalog, the same as with the real one - what's
+  left is the page shell (app bar, card titles, scrollbars) - and the three building frames after it
+  4-8ms.
 - **Opening:** the first frame composes the page (~160-200ms here, before JIT warm-up); the
   `StylesWarmUp` pre-draw from the menu already exists for this - see its comment in
   `StylesScreen.kt`.
