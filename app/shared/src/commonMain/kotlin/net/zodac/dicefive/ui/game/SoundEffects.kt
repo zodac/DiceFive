@@ -3,6 +3,9 @@ package net.zodac.dicefive.ui.game
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SoundEffect
 import net.zodac.dicefive.platform.SoundPlayer
@@ -38,6 +41,11 @@ class SoundEffects(private val player: SoundPlayer) {
 
     fun playCelebration() = playSound(SoundEffect.CELEBRATION, 1f)
 
+    /** Holds a clip still playing (the fanfare, say) while the app is in the background; [resume] carries on. */
+    fun pause() = player.pause()
+
+    fun resume() = player.resume()
+
     fun release() {
         player.release()
     }
@@ -49,8 +57,21 @@ class SoundEffects(private val player: SoundPlayer) {
 fun rememberSoundEffects(): SoundEffects {
     val platform = LocalPlatformServices.current
     val soundEffects = remember { SoundEffects(platform.createSoundPlayer()) }
-    DisposableEffect(Unit) {
-        onDispose { soundEffects.release() }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        // Nothing sounds in the background: a clip under way is held, and carries on when the app is back.
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> soundEffects.pause()
+                Lifecycle.Event.ON_RESUME -> soundEffects.resume()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            soundEffects.release()
+        }
     }
     return soundEffects
 }

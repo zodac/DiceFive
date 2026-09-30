@@ -104,6 +104,11 @@ fun BrandBackdrop(modifier: Modifier = Modifier, driftingDice: Boolean = false, 
  * that shows the drift draws this same one, and it only starts over on [reset] (or a fresh launch).
  */
 internal class DriftState {
+
+    private companion object {
+        const val MIN_DRIFT_FRAME_NANOS = 30_000_000L
+    }
+
     var dice = newDrift()
         private set
 
@@ -134,6 +139,10 @@ internal class DriftState {
     fun onFrame(now: Long) {
         val last = lastFrameNanos
         if (last == now) return
+        // The drift is slow, so about 30 redraws a second look the same as 60 or 120 and cost half or less: a
+        // frame arriving sooner than that is left for the next, and the dice then move on by the whole time
+        // since the last one they did move on for, so their speed is unchanged.
+        if (last != null && now - last < MIN_DRIFT_FRAME_NANOS) return
         // A stalled frame (or the app coming back from the background) moves them on by
         // no more than a tenth of a second, never jumping them across the screen.
         val seconds = last?.let { ((now - it) / 1e9f).coerceIn(0f, MAX_DRIFT_STEP_SECONDS) * timeScale } ?: 0f

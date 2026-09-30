@@ -395,6 +395,50 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `the turn timer stops counting while the game is in the background`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setPlayerCount(1)
+        viewModel.setTurnTimer(TurnTimer.SECONDS_30)
+        viewModel.startGame()
+
+        advanceTimeBy(5_000)
+        runCurrent()
+        assertEquals(25, viewModel.turnSecondsRemaining.value)
+
+        viewModel.setForeground(false)
+        advanceTimeBy(120_000)
+        runCurrent()
+        // Nothing ran down, and the turn wasn't forfeited behind the player's back.
+        assertEquals(25, viewModel.turnSecondsRemaining.value)
+        assertEquals(0, viewModel.game.value!!.players.single().scorecard.values.count { it != null })
+
+        viewModel.setForeground(true)
+        advanceTimeBy(2_000)
+        runCurrent()
+        assertEquals(23, viewModel.turnSecondsRemaining.value)
+    }
+
+    @Test
+    fun `a CPU turn waits in the background and plays on when the game is back`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, random = FixedValueRandom(6))
+        viewModel.setPlayerCount(2)
+        viewModel.setPlayerType(2, PlayerType.AI)
+        viewModel.setPlayerDifficulty(2, Difficulty.HARD)
+        viewModel.startGame()
+        viewModel.rollDice()
+
+        viewModel.setForeground(false)
+        viewModel.commitScore(ScoreCategory.CHANCE)
+        advanceTimeBy(120_000)
+        runCurrent()
+        assertEquals(0, viewModel.game.value!!.players[1].scorecard.values.count { it != null })
+
+        viewModel.setForeground(true)
+        advanceUntilIdle()
+        assertEquals(1, viewModel.game.value!!.players[1].scorecard.values.count { it != null })
+    }
+
+    @Test
     fun `undo is unavailable until a human action has happened`() {
         val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)

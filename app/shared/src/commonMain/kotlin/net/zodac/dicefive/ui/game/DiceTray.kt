@@ -48,6 +48,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -55,13 +56,13 @@ import kotlin.math.floor
 import kotlin.math.sin
 import kotlin.random.Random
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.style.DiceMat
 import net.zodac.dicefive.ui.game.style.DiceStyle
 import net.zodac.dicefive.ui.game.style.DieMotion
@@ -150,12 +151,13 @@ fun DiceTray(
 ) {
     val visualTheme = LocalGameVisualTheme.current
 
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     var scrambleTick by remember { mutableIntStateOf(0) }
     // No face-flicker (about eleven changes a second) under reduced motion.
     val reduceMotion = LocalReduceMotion.current
     LaunchedEffect(rolling) {
         while (rolling && !reduceMotion) {
-            delay(SCRAMBLE_INTERVAL_MILLIS)
+            lifecycle.delayWhileResumed(SCRAMBLE_INTERVAL_MILLIS)
             scrambleTick++
         }
     }
@@ -220,7 +222,7 @@ fun DiceTray(
                                             val index = activeIndex
                                             launch {
                                                 while (isActive) {
-                                                    delay(CYCLE_INTERVAL_MILLIS)
+                                                    lifecycle.delayWhileResumed(CYCLE_INTERVAL_MILLIS)
                                                     cycled = true
                                                     currentOnCycleValue(index)
                                                 }

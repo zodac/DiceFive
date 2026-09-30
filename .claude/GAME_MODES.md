@@ -141,7 +141,13 @@ How a roll happens today, in every mode:
   the same sound and haptics, then call `rollDice()`, where player 1's achievement tracking runs.
 - **A CPU's roll is driven by `GameViewModel.maybeStartAiTurn`**, which shakes for the same
   `CUP_SHAKE_MILLIS` (through `aiRolling`) and then calls `performRoll`. It stays in the view model,
-  not the screen, so CPU turns keep playing when the screen isn't showing.
+  not the screen, so a recomposition can't interrupt it - but it does **not** run while the game is
+  out of sight: `GameScreen` calls `setForeground` from lifecycle callbacks (resumed / paused, and
+  leaving composition), and the CPU loop and the turn timer wait through `pausableDelay`, which
+  doesn't run down in the background and restarts a wait already under way on return. **Any new wait
+  in the CPU loop or the timer must use `pausableDelay`, never `delay`** - a plain one keeps running
+  with the app in the background and would forfeit a turn or play a CPU's out behind the player's
+  back (`GameViewModelTest` pins both).
 
 Rules that came out of Quickfire:
 

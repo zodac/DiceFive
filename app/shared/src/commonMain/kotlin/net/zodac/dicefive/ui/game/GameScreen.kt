@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -39,8 +40,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerType
@@ -52,6 +55,7 @@ import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.common.BackHandler
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalOnRabbitSeen
 import net.zodac.dicefive.ui.game.style.LocalSimpleDiceRoll
@@ -90,6 +94,26 @@ fun GameScreen(
     var reviewingScorecards by remember { mutableStateOf(false) }
     LaunchedEffect(currentState.isGameOver) {
         if (!currentState.isGameOver) reviewingScorecards = false
+    }
+
+    // The game's clocks (turn timer, CPU turns) run only while this screen is in front and resumed. Driven from
+    // lifecycle callbacks, not composition: a backgrounded app draws no frames, so nothing would recompose
+    // to say it had gone. Leaving composition (another screen opening over the game) pauses it too.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(viewModel, lifecycleOwner) {
+        viewModel.setForeground(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> viewModel.setForeground(true)
+                Lifecycle.Event.ON_PAUSE -> viewModel.setForeground(false)
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.setForeground(false)
+        }
     }
 
     val platform = LocalPlatformServices.current
@@ -219,6 +243,7 @@ private fun InProgressGame(
     // likely to be used - right after seeing the final roll.
     val canHold = isHumanTurn && state.phase == TurnPhase.ROLLED
 
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     var isTapRolling by remember { mutableStateOf(false) }
     // The cup/tray don't care whether the shake was kicked off by a human tap or the ViewModel's
     // own AI-turn loop (GameViewModel.aiRolling) - either way it's the same "rolling" pose.
@@ -238,7 +263,7 @@ private fun InProgressGame(
     val settled = remember(rollTracker.landings) { mutableStateOf(rollTracker.landings == 0 || simpleDiceRoll) }
     LaunchedEffect(rollTracker.landings) {
         if (!settled.value) {
-            delay(DICE_TOSS_MILLIS.toLong())
+            lifecycle.delayWhileResumed(DICE_TOSS_MILLIS.toLong())
             settled.value = true
         }
     }
@@ -298,7 +323,7 @@ private fun InProgressGame(
         if (canRoll && !isRolling) {
             coroutineScope.launch {
                 isTapRolling = true
-                delay(cupShakeMillis)
+                lifecycle.delayWhileResumed(cupShakeMillis)
                 onRoll()
                 isTapRolling = false
             }

@@ -11,7 +11,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
@@ -157,6 +157,28 @@ class GameViewModel(
      */
     @Volatile
     var cupShakeMillis: Long = CUP_SHAKE_MILLIS
+
+    /** Whether the game is in front of the player - see [setForeground]. */
+    private val foreground = MutableStateFlow(true)
+
+    /**
+     * Freezes the game's own clocks while the game isn't on screen (`GameScreen` is backgrounded, or
+     * covered by another screen such as Achievements): the turn timer stops counting, and a CPU turn
+     * stops where it is and carries on when the player is back - neither runs down or plays out
+     * behind their back. Every wait in those two goes through [pausableDelay]; a wait already under
+     * way when the game goes away starts again on return. Nothing else in the game runs on a timer.
+     */
+    fun setForeground(value: Boolean) {
+        foreground.value = value
+    }
+
+    /** [delay] that doesn't run while [foreground] is false - see [setForeground]. */
+    private suspend fun pausableDelay(millis: Long) {
+        while (true) {
+            foreground.first { it }
+            if (withTimeoutOrNull(millis) { foreground.first { !it } } == null) return
+        }
+    }
 
     private val _aiRolling = MutableStateFlow(false)
     val aiRolling: StateFlow<Boolean> = _aiRolling.asStateFlow()
@@ -715,7 +737,7 @@ class GameViewModel(
         turnTimerJob = viewModelScope.launch {
             var remaining = totalSeconds
             while (remaining > 0) {
-                delay(1_000L)
+                pausableDelay(1_000L)
                 remaining--
                 _turnSecondsRemaining.value = remaining
             }
@@ -1362,7 +1384,7 @@ class GameViewModel(
                     // comment) is published.
                     _aiRolling.value = true
                     try {
-                        delay(cupShakeMillis)
+                        pausableDelay(cupShakeMillis)
                         current = performRoll(current, checkForAiTurn = false)
                     } finally {
                         _aiRolling.value = false
@@ -1401,9 +1423,9 @@ class GameViewModel(
                     // holds anything and so never gets to skip a roll) read as one continuous blur
                     // rather than distinct rolls. Only between rolls: the very first roll and the
                     // score are already paced by the shake above and AI_STEP_DELAY_MS below.
-                    delay(ROLL_GAP_MS)
+                    pausableDelay(ROLL_GAP_MS)
                 }
-                delay(AI_STEP_DELAY_MS)
+                pausableDelay(AI_STEP_DELAY_MS)
                 // Also off the main thread: Hard's category choice compares against
                 // CATEGORY_BASELINE, a `by lazy` average-over-every-outcome computed once per
                 // process on whichever call touches it first - same cost/rationale as the hold

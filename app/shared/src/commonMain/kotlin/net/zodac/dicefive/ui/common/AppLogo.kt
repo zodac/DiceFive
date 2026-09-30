@@ -41,7 +41,6 @@ import kotlin.math.PI
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.random.Random
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
@@ -180,6 +179,7 @@ fun AppLogo(
     // long as the style is, and fed the device's pull while this screen is in front.
     // Not under reduced motion: pupils sliding about with the device are motion too, so they stay put.
     val reduceMotion = LocalReduceMotion.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     val travel = diceStyle.pupilTravel?.takeIf { pupilsFollowDevice && !reduceMotion }
     val motions = travel?.let {
         remember(it) { LOGO_DICE.mapIndexed { i, die -> DieMotion(seed = i, travel = it).apply { moveTo(Offset.Zero, die.tilt) } } }
@@ -240,7 +240,7 @@ fun AppLogo(
                 if (!cupShaking && !reduceMotion && isOnLogoCup(tap.x, tap.y, size.width.toFloat(), cupWidth.toPx(), cupHeight.toPx())) {
                     cupShaking = true
                     cupTapScope.launch {
-                        delay(CUP_SHAKE_MILLIS)
+                        lifecycle.delayWhileResumed(CUP_SHAKE_MILLIS)
                         cupShaking = false
                     }
                 }
@@ -324,7 +324,11 @@ private fun Modifier.noLayoutSpace(): Modifier = layout { measurable, _ ->
 // Standard gravity, for turning the accelerometer's m/s² into g; and how much of each new reading the
 // pull takes on, smoothing out the sensor's own jitter without dulling a real shake.
 private const val STANDARD_GRAVITY = 9.81f
-private const val PULL_SMOOTHING = 0.5f
+// The pupils' sensor is read 20 times a second, not the default 50 - they're smoothed anyway, and every reading
+// wakes the app. The smoothing is stronger per reading to match, so the pupils feel just as quick:
+// 1 - 0.5^(50 / 20) is what 0.5 a reading at 50 a second comes to at 20.
+private const val PULL_SAMPLES_PER_SECOND = 20
+private const val PULL_SMOOTHING = 0.82f
 
 /**
  * Reports the pull the device puts on anything loose on screen, in g (x right, y down): gravity down
@@ -343,7 +347,7 @@ private fun DevicePullEffect(onPull: (Offset) -> Unit) {
         var pull: Offset? = null
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_RESUME -> accelerometer.start { x, y, _ ->
+                Lifecycle.Event.ON_RESUME -> accelerometer.start(PULL_SAMPLES_PER_SECOND) { x, y, _ ->
                     // Up the screen is -y on it, so the reading's y keeps its sign and x flips.
                     val reading = Offset(-x, y) / STANDARD_GRAVITY
                     val smoothed = pull?.let { it + (reading - it) * PULL_SMOOTHING } ?: reading

@@ -43,12 +43,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.style.FlowerpotGrowth
 import net.zodac.dicefive.ui.game.style.LocalCupActivity
 import net.zodac.dicefive.ui.game.style.LocalCupAnimated
@@ -192,11 +193,12 @@ fun DiceCupPanel(
                         val outOfRolls = cup.rollsRemaining <= 0 && !cup.rolling
                         val showingOff = outOfRolls && visualTheme.diceCupStyle.showsOffWhenSpent(cup.flowerpotGrowth)
                         val depleted = outOfRolls && !showingOff
+                        val lifecycle = LocalLifecycleOwner.current.lifecycle
                         var standingForBloom by remember { mutableStateOf(false) }
                         LaunchedEffect(showingOff) {
                             standingForBloom = false
                             if (showingOff) {
-                                delay(BLOOM_STAND_UP_MILLIS)
+                                lifecycle.delayWhileResumed(BLOOM_STAND_UP_MILLIS)
                                 standingForBloom = true
                             }
                         }

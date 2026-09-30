@@ -31,6 +31,10 @@ internal class AndroidHapticsPlayer(context: Context) : HapticsPlayer {
             context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
 
+    override fun cancel() {
+        vibrator.cancel()
+    }
+
     override fun play(effect: HapticEffect) {
         if (!vibrator.hasVibrator()) return
         val millis = when (effect) {

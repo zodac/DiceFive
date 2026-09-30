@@ -63,6 +63,14 @@ internal class AndroidSoundPlayer(context: Context) : SoundPlayer {
         }
     }
 
+    override fun pause() {
+        pool.autoPause()
+    }
+
+    override fun resume() {
+        pool.autoResume()
+    }
+
     override fun release() {
         pool.release()
     }

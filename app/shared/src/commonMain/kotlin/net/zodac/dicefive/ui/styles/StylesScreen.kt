@@ -73,8 +73,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementsState
@@ -82,6 +82,7 @@ import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.HorizontalScrollbar
 import net.zodac.dicefive.ui.common.PAGE_CONTENT_FADE_IN_MILLIS
+import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.parseInlineMarkup
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.game.style.DiceCupStyle
@@ -251,8 +252,9 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
 fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier) {
     if (stylesWarmedUp || picks == null) return
     var current by remember { mutableIntStateOf(-1) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(Unit) {
-        delay(WARM_UP_DELAY_MILLIS)
+        lifecycle.delayWhileResumed(WARM_UP_DELAY_MILLIS)
         for (index in StyleCategory.entries.indices) {
             current = index
             // A frame to compose and draw it, then on to the next.
