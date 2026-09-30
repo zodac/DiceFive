@@ -20,6 +20,9 @@ import net.zodac.dicefive.ui.achievements.AchievementBannerHost
 import net.zodac.dicefive.ui.common.DriftState
 import net.zodac.dicefive.ui.common.LocalDriftState
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.game.LeaveGameConfirmation
+import net.zodac.dicefive.ui.game.LeaveGameConfirmationDialog
+import net.zodac.dicefive.ui.game.LocalLeaveGameConfirmation
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /**
@@ -32,11 +35,13 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices) {
     val driftState = remember { DriftState() }
     // Lifecycle-aware, so the system-settings observer behind it is only registered while the app is in front.
     val reduceMotion by remember(platform) { platform.reduceMotion() }.collectAsStateWithLifecycle(initialValue = false)
+    val leaveConfirmation = remember { LeaveGameConfirmation() }
     CompositionLocalProvider(
         LocalReduceMotion provides reduceMotion,
         LocalAppContainer provides container,
         LocalPlatformServices provides platform,
         LocalDriftState provides driftState,
+        LocalLeaveGameConfirmation provides leaveConfirmation,
     ) {
         DiceFiveTheme {
             Surface(modifier = Modifier.fillMaxSize()) {
@@ -49,6 +54,7 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices) {
                 // menu, which a per-destination overlay wouldn't.
                 AchievementBannerHost(
                     modifier = Modifier.fillMaxSize(),
+                    isOnGameScreen = { navController.currentDestination?.route == Screen.PLAY_GAME },
                     onAchievementSelected = { achievement ->
                         val alreadyOnAchievements = navController.currentDestination?.route == Screen.ACHIEVEMENTS
                         // The request has to be made before navigating, not after: if the
@@ -62,6 +68,7 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices) {
                 ) {
                     DiceFiveNavHost(navController = navController)
                 }
+                LeaveGameConfirmationDialog(leaveConfirmation)
             }
         }
     }
