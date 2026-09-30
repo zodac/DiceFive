@@ -206,6 +206,13 @@ prefixed with the platform's name (`AndroidSoundPlayer`, `IosSoundPlayer`).
 - **Run the tests on iOS**: `./gradlew :app:shared:iosSimulatorArm64Test` on a Mac runs `commonTest`
   natively - the first real check of `stripDiacritics`, Room/DataStore on iOS, etc.
 - **Haptics tuning**: the impact styles in `IosHapticsPlayer` are a first guess.
+- **Reduce Motion**: `PlatformServices.reduceMotion()` defaults to `flowOf(false)`, so on iOS the
+  shared `LocalReduceMotion` is never on. Implement it in `IosPlatformServices` from
+  `UIAccessibilityIsReduceMotionEnabled()`, re-emitting on
+  `UIAccessibilityReduceMotionStatusDidChangeNotification` - not written here because it can't be
+  compiled without a Mac. `UI.md`'s "Reduced motion" section says what it changes (and why the cup's
+  shake window stays while sound or vibration is on - re-check the m4a copies' lengths match the
+  ogg ones, since the window is timed to them).
 
 ## Phase 6 - CI and release
 

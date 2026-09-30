@@ -48,6 +48,7 @@ import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.game.style.FlowerpotGrowth
 import net.zodac.dicefive.ui.game.style.LocalCupActivity
 import net.zodac.dicefive.ui.game.style.LocalCupAnimated
@@ -221,7 +222,8 @@ fun DiceCupPanel(
                                 LocalFlowerpotGrowth provides cup.flowerpotGrowth,
                             ) {
                                 cupStyle.Cup(
-                                    rolling = cup.rolling,
+                                    // The shake sound and buzz still play (GameScreen); only the drawn shake goes.
+                                    rolling = cup.rolling && !LocalReduceMotion.current,
                                     tilted = cup.tilted && !standingForBloom,
                                     // A cup's shape grid is its size in dp here - tall or squat, both fit this 104dp box.
                                     modifier = Modifier.size(width = cupStyle.shape.gridWidth.dp, height = cupStyle.shape.gridHeight.dp),

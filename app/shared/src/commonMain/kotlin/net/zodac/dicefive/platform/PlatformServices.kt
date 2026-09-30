@@ -3,6 +3,8 @@ package net.zodac.dicefive.platform
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import net.zodac.dicefive.ui.settings.LicenseReport
 import net.zodac.dicefive.ui.settings.SelectionClearer
 
@@ -24,6 +26,13 @@ interface PlatformServices {
 
     /** Null on hardware with no accelerometer - shake-to-roll then simply never fires. */
     fun createAccelerometer(): Accelerometer?
+
+    /**
+     * Whether the system is asking for less motion, and every change to that while the app runs. A
+     * platform that can't tell says false - see [net.zodac.dicefive.ui.common.LocalReduceMotion] for
+     * what it changes.
+     */
+    fun reduceMotion(): Flow<Boolean> = flowOf(false)
 
     /** A short message that shows for a moment and needs no response (an Android toast). */
     fun showTransientMessage(message: String)

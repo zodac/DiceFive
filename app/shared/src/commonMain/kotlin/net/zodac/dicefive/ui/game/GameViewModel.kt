@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlin.concurrent.Volatile
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -149,6 +150,14 @@ class GameViewModel(
     /** Mirrors the human dice cup's tap-driven shake animation for AI turns: unlike [rollDice],
      * [maybeStartAiTurn] updates dice directly rather than through a UI click handler, so nothing
      * would otherwise flip the cup/tray into their "rolling" pose for an AI player's rolls. */
+    /**
+     * How long a CPU's roll waits before landing - a human's tap waits the same, in `GameScreen`. Set by
+     * the screen from `cupShakeMillis`, which shortens it only when reduced motion is on and there is no
+     * sound or vibration to keep in step with; the full [CUP_SHAKE_MILLIS] otherwise.
+     */
+    @Volatile
+    var cupShakeMillis: Long = CUP_SHAKE_MILLIS
+
     private val _aiRolling = MutableStateFlow(false)
     val aiRolling: StateFlow<Boolean> = _aiRolling.asStateFlow()
 
@@ -1353,7 +1362,7 @@ class GameViewModel(
                     // comment) is published.
                     _aiRolling.value = true
                     try {
-                        delay(CUP_SHAKE_MILLIS)
+                        delay(cupShakeMillis)
                         current = performRoll(current, checkForAiTurn = false)
                     } finally {
                         _aiRolling.value = false

@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.theme.PlayerColors
 
@@ -193,6 +194,7 @@ private fun Modifier.dashedBorder(width: Dp, color: Color, cornerRadius: Dp): Mo
 @Composable
 private fun risingScore(score: Int): Int {
     val shown = remember { Animatable(score.toFloat()) }
+    val reduceMotion = LocalReduceMotion.current
     // The last total this tab was told about - where an interrupted rise was heading.
     var lastTarget by remember { mutableIntStateOf(score) }
     // Keyed on score, so a new total cancels the rise still running before this starts.
@@ -200,7 +202,8 @@ private fun risingScore(score: Int): Int {
         val from = lastTarget
         lastTarget = score
         shown.snapTo(from.toFloat())
-        if (score <= from) {
+        // Reduced motion: the new total appears at once instead of counting up.
+        if (score <= from || reduceMotion) {
             shown.snapTo(score.toFloat())
             return@LaunchedEffect
         }

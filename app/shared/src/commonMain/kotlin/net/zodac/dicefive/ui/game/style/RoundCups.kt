@@ -44,6 +44,7 @@ import kotlin.math.tan
 import kotlin.random.Random
 import kotlinx.coroutines.delay
 import net.zodac.dicefive.model.FLOWERPOT_FULL_BLOOM
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.theme.FlowerpotLeaf
 import net.zodac.dicefive.ui.theme.FlowerpotLeafDark
 import net.zodac.dicefive.ui.theme.FlowerpotStem
@@ -277,7 +278,7 @@ private fun CupDrawScope.drawSteamLines(
  */
 @Composable
 private fun rememberAmbientCycle(millis: Int): State<Float>? {
-    if (!LocalCupAnimated.current) return null
+    if (!LocalCupAnimated.current || LocalReduceMotion.current) return null
     return rememberInfiniteTransition(label = "cupAmbient").animateFloat(
         initialValue = 0f,
         targetValue = 1f,
@@ -534,7 +535,8 @@ class TopHatDiceCupStyle(
         // the hat is shaken or tipped and stops once the rabbit has come to rest, so a still hat asks
         // for no frames at all.
         val tick = remember { mutableLongStateOf(0L) }
-        if (rabbitAlwaysOut) {
+        // No sliding about under reduced motion: the rabbit just stays out where it is.
+        if (rabbitAlwaysOut && !LocalReduceMotion.current) {
             LaunchedEffect(rolling, tilted) {
                 var until = 0L
                 while (true) {

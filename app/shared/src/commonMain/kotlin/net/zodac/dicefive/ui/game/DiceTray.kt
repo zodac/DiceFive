@@ -61,6 +61,7 @@ import kotlinx.coroutines.launch
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.game.style.DiceMat
 import net.zodac.dicefive.ui.game.style.DiceStyle
 import net.zodac.dicefive.ui.game.style.DieMotion
@@ -150,8 +151,10 @@ fun DiceTray(
     val visualTheme = LocalGameVisualTheme.current
 
     var scrambleTick by remember { mutableIntStateOf(0) }
+    // No face-flicker (about eleven changes a second) under reduced motion.
+    val reduceMotion = LocalReduceMotion.current
     LaunchedEffect(rolling) {
-        while (rolling) {
+        while (rolling && !reduceMotion) {
             delay(SCRAMBLE_INTERVAL_MILLIS)
             scrambleTick++
         }
@@ -333,7 +336,9 @@ private fun DiceColumn(
     // For a style whose faces the die's movement throws about (googly eyes): the die's movement,
     // kept for the whole column, so a die keeps its looks as it's held and released. Moved on every
     // frame only while the die or its pupils are moving.
-    val motion = diceStyles.plain.pupilTravel?.let { travel -> remember(travel) { DieMotion(seed, travel) } }
+    // Not under reduced motion: pupils sliding about as the die moves are motion too, so they stay put.
+    val motion = diceStyles.plain.pupilTravel?.takeIf { !LocalReduceMotion.current }
+        ?.let { travel -> remember(travel) { DieMotion(seed, travel) } }
     if (motion != null) {
         LaunchedEffect(motion, motion.awake) {
             if (motion.awake) motion.follow()
