@@ -10,13 +10,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -49,7 +49,6 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
@@ -67,6 +66,7 @@ import net.zodac.dicefive.ui.game.style.unlocksStyle
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.ConfigureOverlayDialogWindow
 import net.zodac.dicefive.ui.common.DiceFiveDialog
+import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.grouped
 
 /**
@@ -421,69 +421,34 @@ private fun BannerSlot(
     }
 }
 
-/** The smallest a banner's title shrinks to before it's ellipsised instead (titleMedium, its normal
- * size, is 16sp), and how finely it steps down from there. Lower than it once needed to be - the
- * bordered icon square added in front of the title (see [UnlockedBanner]) is wider than the plain
- * icon it replaced, leaving less width for the title itself, and "Rules? Where We're Going, We
- * Don't Need Rules" - the longest title in the game - now needs to go lower than 12sp to still fit
- * on one line rather than ellipsising. */
-private val BANNER_TITLE_MIN_FONT_SIZE = 10.sp
-private val BANNER_TITLE_FONT_STEP = 0.5.sp
-
 /**
- * An achievement's title on one line: at titleMedium when it fits, otherwise stepped down until it
- * does, but never below [BANNER_TITLE_MIN_FONT_SIZE], still comfortably readable at a glance. Past
- * that floor (a narrower screen, or a longer title still) it's ellipsised rather than shrunk
- * further.
+ * An achievement's title: always ONE line, so every banner is the same height. titleMedium when it
+ * fits, otherwise stepped down until it does, but never below [MIN_READABLE_FONT_SIZE]; a title too
+ * long even then is ellipsised, not wrapped. `MAX_ACHIEVEMENT_TITLE_LENGTH` keeps every title short
+ * enough not to get that far on a normal phone.
  */
 @Composable
 private fun BannerTitle(title: String, modifier: Modifier = Modifier) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        autoSize = TextAutoSize.StepBased(
-            minFontSize = BANNER_TITLE_MIN_FONT_SIZE,
-            maxFontSize = MaterialTheme.typography.titleMedium.fontSize,
-            stepSize = BANNER_TITLE_FONT_STEP,
-        ),
-        modifier = modifier,
-    )
+    ShrinkThenWrapText(text = title, style = MaterialTheme.typography.titleMedium, wrappedMaxLines = 1, modifier = modifier)
 }
 
-/** How many lines an unlock banner's description gets before it's ellipsised - the longest ones
- * ("Have a scoring option after the 2nd roll, then leave yourself with none after the 3rd") still
- * need two even at the smallest size below. */
-private const val BANNER_DESCRIPTION_MAX_LINES = 2
-
-/** The smallest a banner's description shrinks to before it's ellipsised instead (bodySmall, its
- * normal size, is 12sp), and how finely it steps down from there - finer than the title's, since
- * there's less room to spare on the way down to a size that's still legible at all. */
-private val BANNER_DESCRIPTION_MIN_FONT_SIZE = 9.sp
-private val BANNER_DESCRIPTION_FONT_STEP = 0.25.sp
+/** How many lines an unlock banner's description gets, always - a short one reserves the same space as a
+ * long one, so every unlock banner is the same size whichever achievement it's for. bodySmall (12sp),
+ * never shrunk; a description that needs more is ellipsised. */
+private const val BANNER_DESCRIPTION_LINES = 2
 
 /**
- * An achievement's description under its title, always exactly [BANNER_DESCRIPTION_MAX_LINES]
- * lines - a short one-liner reserves the same space as a long two-liner rather than leaving the
- * card shorter, so every unlock banner is the same size no matter which achievement it's for: at
- * bodySmall when it fits, otherwise stepped down until it does, same idea as [BannerTitle] but
- * smaller throughout, since the description is the secondary line and there are two of them to fit
- * where the title only ever needed one.
+ * An achievement's description under its title: bodySmall, exactly [BANNER_DESCRIPTION_LINES] lines
+ * tall whatever its length.
  */
 @Composable
 private fun BannerDescription(description: String, modifier: Modifier = Modifier) {
     Text(
         text = description,
         style = MaterialTheme.typography.bodySmall,
-        minLines = BANNER_DESCRIPTION_MAX_LINES,
-        maxLines = BANNER_DESCRIPTION_MAX_LINES,
+        minLines = BANNER_DESCRIPTION_LINES,
+        maxLines = BANNER_DESCRIPTION_LINES,
         overflow = TextOverflow.Ellipsis,
-        autoSize = TextAutoSize.StepBased(
-            minFontSize = BANNER_DESCRIPTION_MIN_FONT_SIZE,
-            maxFontSize = MaterialTheme.typography.bodySmall.fontSize,
-            stepSize = BANNER_DESCRIPTION_FONT_STEP,
-        ),
         modifier = modifier,
     )
 }
@@ -525,22 +490,24 @@ private fun UnlockedBanner(achievement: Achievement) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             val defaultIconTint = LocalContentColor.current
-            Box(
-                modifier = Modifier.size(40.dp).border(width = 1.dp, color = defaultIconTint),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = achievement.icon,
-                    contentDescription = null,
-                    tint = achievement.iconTintOrUnspecified(defaultIconTint),
-                    modifier = Modifier.size(22.dp),
-                )
+            Box(modifier = Modifier.size(40.dp)) {
+                Box(
+                    modifier = Modifier.fillMaxSize().border(width = 1.dp, color = defaultIconTint),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = achievement.icon,
+                        contentDescription = null,
+                        tint = achievement.iconTintOrUnspecified(defaultIconTint),
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                if (achievement.unlocksStyle) StyleRewardStar(tint = defaultIconTint)
             }
             Column(modifier = Modifier.weight(1f)) {
                 BannerTitle(achievement.title)
                 BannerDescription(achievement.description)
             }
-            if (achievement.unlocksStyle) StyleRewardStar(tint = defaultIconTint)
         }
     }
 }

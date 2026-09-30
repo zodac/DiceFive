@@ -2,12 +2,14 @@ package net.zodac.dicefive.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Casino
@@ -36,34 +38,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.FooterPill
+import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.ScreenScaffold
 
-private val SETTING_LABEL_MIN_FONT_SIZE = 10.sp
-private val SETTING_LABEL_FONT_STEP = 0.5.sp
-
-/** A setting's label on one line: bodyLarge when it fits, stepped down to
- * [SETTING_LABEL_MIN_FONT_SIZE] on a narrow screen, ellipsised only past that. */
+/** A setting's label: bodyLarge on one line when it fits, stepped down to [MIN_READABLE_FONT_SIZE] on a
+ * narrow screen, and wrapped to a second line (the row grows) rather than shrunk further. */
 @Composable
 private fun SettingLabel(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyLarge,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        autoSize = TextAutoSize.StepBased(
-            minFontSize = SETTING_LABEL_MIN_FONT_SIZE,
-            maxFontSize = MaterialTheme.typography.bodyLarge.fontSize,
-            stepSize = SETTING_LABEL_FONT_STEP,
-        ),
-        modifier = modifier,
-    )
+    ShrinkThenWrapText(text = text, style = MaterialTheme.typography.bodyLarge, modifier = modifier)
 }
 
 /**
@@ -120,34 +108,33 @@ fun SettingsScreen(
             )
         }
 
+        // Height set by the taller button, so one whose label wraps at a large font doesn't leave the other short.
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Button(
                 onClick = { showResetAchievementsConfirmation = true },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
             ) {
                 Text(
                     text = "Reset Achievements",
                     style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    softWrap = false,
+                    textAlign = TextAlign.Center,
                 )
             }
             Button(
                 onClick = { showResetLeaderboardConfirmation = true },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
             ) {
                 Text(
                     text = "Reset Leaderboard",
                     style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    softWrap = false,
+                    textAlign = TextAlign.Center,
                 )
             }
         }

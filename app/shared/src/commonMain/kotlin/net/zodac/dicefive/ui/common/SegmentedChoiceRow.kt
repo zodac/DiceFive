@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 
 /**
  * A single-choice segmented button row for a small, mutually exclusive option set that fits one
@@ -56,7 +57,9 @@ fun <T> SegmentedChoiceRow(
                             modifier = Modifier.size(SegmentedButtonDefaults.IconSize),
                         )
                     } else {
-                        Text(text = label(option), style = labelStyle)
+                        // One unbroken line: a label too wide for its segment at a large font spills into the
+                        // segment's own padding rather than breaking mid-word ("Medi-um").
+                        Text(text = label(option), style = labelStyle, maxLines = 1, softWrap = false, overflow = TextOverflow.Visible)
                     }
                 },
             )

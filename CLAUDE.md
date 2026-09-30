@@ -42,6 +42,11 @@
   enough. The checklist, and how to verify it, is in `.claude/UI.md`'s "Accessibility" section; the
   report back to the user says what TalkBack does with the change, and what wasn't heard on a device.
 
+- **An achievement's title must fit on ONE line of the unlock banner, at 12sp or larger - never
+  wrapped or shrunk further.** That caps it at `MAX_ACHIEVEMENT_TITLE_LENGTH` (38) characters
+  (`model/Achievement.kt`), which `AchievementTextTest` enforces. Every banner is the same size, so
+  a title that doesn't fit is shortened, not accommodated. A description gets exactly two lines.
+
 - After implementing a code change (a fix, feature, or refactor the user asked for), build a
   debug APK with `./gradlew assembleDebug` and send the resulting `.apk` from
   `app/android/build/outputs/apk/debug/` to the user via SendUserFile so they can install/download it.

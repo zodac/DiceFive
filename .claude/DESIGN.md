@@ -1380,7 +1380,7 @@ install-over-existing succeeds:
       the dice already fill and holds four of one colour to chase the fifth (after a forming
       straight, before a number group). Easy needed nothing new.
 - [x] **Achievements**: new `AchievementCategory.GAME_MODES` (after Winning, before Misfortune):
-      `NON_STANDARD_MODE` "Rules? Where We're Going, We Don't Need Rules" (game start, any
+      `NON_STANDARD_MODE` "Where We're Going, We Don't Need Rules" (game start, any
       non-Standard mode, via `GameStartContext.gameMode`; its icon, `ic_time_machine_car`, is an
       original wedge-car silhouette trailing fire - a nod to the film, not its car), `TRICOLOUR_WIN` "Tricolourful" (game end;
       needs an opponent, like every other win), `TRICOLOUR_ALL_COLOURS` "Tricolour Me Impressed"

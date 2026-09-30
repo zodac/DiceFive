@@ -30,6 +30,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -373,7 +377,7 @@ private val NO_OP_TOGGLE_HOLD: (Int) -> Unit = {}
  * muted color instead of sitting static, so the final countdown is hard to miss even out of the
  * corner of an eye. */
 @Composable
-private fun TurnTimerBadge(secondsRemaining: Int, modifier: Modifier = Modifier) {
+fun TurnTimerBadge(secondsRemaining: Int, modifier: Modifier = Modifier) {
     val flashing = secondsRemaining in 1..TURN_TIMER_FLASH_SECONDS
     val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
     // The flash's clock only runs in those last seconds - left running all turn, it recomposed the
@@ -381,7 +385,18 @@ private fun TurnTimerBadge(secondsRemaining: Int, modifier: Modifier = Modifier)
     val color = if (flashing) rememberFlashColor(mutedColor) else mutedColor
     Text(
         text = "Time left: ${secondsRemaining}s",
-        modifier = modifier,
+        // The flash is colour alone, so its spoken twin: once the flash starts, the badge is a polite live
+        // region whose text is the same for every second of it - TalkBack announces the warning once,
+        // not a count every second. Before that the seconds change silently, and read in words ("12s"
+        // would be spoken as letters).
+        modifier = modifier.clearAndSetSemantics {
+            if (flashing) {
+                contentDescription = "Time running out, $TURN_TIMER_FLASH_SECONDS seconds or less left"
+                liveRegion = LiveRegionMode.Polite
+            } else {
+                contentDescription = "Time left: $secondsRemaining ${if (secondsRemaining == 1) "second" else "seconds"}"
+            }
+        },
         textAlign = TextAlign.Center,
         fontWeight = FontWeight.Bold,
         color = color,

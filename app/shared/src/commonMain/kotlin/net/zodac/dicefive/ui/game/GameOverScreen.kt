@@ -207,7 +207,9 @@ private fun WinnerCard(player: PlayerState, solo: Boolean, tieBreakReason: TieBr
                         text = player.name,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        maxLines = 1,
+                        // A second line before an ellipsis: a long name beside the trophy and score used to be cut
+                        // off; now it wraps.
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
@@ -255,7 +257,7 @@ private fun RunnerUpRow(rank: Int, isTrueTie: Boolean, player: PlayerState, tieB
                 Text(
                     text = player.name,
                     style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }

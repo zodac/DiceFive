@@ -4,8 +4,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -19,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.ui.common.AppLogo
@@ -132,23 +135,24 @@ fun PlayButton(hasInProgressGame: Boolean, onContinue: () -> Unit, onNewGame: ()
         return
     }
 
+    // Height set by the taller half, so a label that wraps at a large font doesn't leave the other short.
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(PLAY_SPLIT_GAP),
     ) {
         Button(
             onClick = onNewGame,
-            modifier = Modifier.weight(1f).heightIn(min = MENU_BUTTON_HEIGHT),
+            modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = MENU_BUTTON_HEIGHT),
             shape = NEW_GAME_HALF_SHAPE,
         ) {
-            Text(text = "New Game", style = MaterialTheme.typography.titleMedium, maxLines = 1)
+            Text(text = "New Game", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
         }
         Button(
             onClick = onContinue,
-            modifier = Modifier.weight(1f).heightIn(min = MENU_BUTTON_HEIGHT),
+            modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = MENU_BUTTON_HEIGHT),
             shape = CONTINUE_HALF_SHAPE,
         ) {
-            Text(text = "Continue", style = MaterialTheme.typography.titleMedium, maxLines = 1)
+            Text(text = "Continue", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
         }
     }
 }

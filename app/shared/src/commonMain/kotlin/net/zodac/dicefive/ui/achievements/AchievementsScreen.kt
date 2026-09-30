@@ -5,14 +5,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -239,18 +240,17 @@ fun AchievementsScreen(
         // invitation to find out what tapping it does - the same reasoning AppLogo's onDiceTap
         // gives for its own hidden tap target. A tap counts toward arming superuser mode; once
         // it's armed, a long press unlocks every remaining achievement, and the long press after
-        // that relocks everything - see onBannerLongPress's doc comment. The haptic feedback that
-        // combinedClickable fires by default for onLongClick is disabled for the same reason: a
-        // buzz on long press would tip off that something's there.
-        val unlockedCountInteractionSource = remember { MutableInteractionSource() }
+        // that relocks everything - see onBannerLongPress's doc comment. No haptic feedback on long
+        // press either: a buzz would tip off that something's there.
         Card(
-            modifier = Modifier.fillMaxWidth().combinedClickable(
-                interactionSource = unlockedCountInteractionSource,
-                indication = null,
-                hapticFeedbackEnabled = false,
-                onClick = viewModel::onUnlockedCountTapped,
-                onLongClick = viewModel::onBannerLongPress,
-            ),
+            // Raw gestures, not combinedClickable: that would tell TalkBack this is a button with a
+            // long-press action, announcing a control that (to anyone not in on it) does nothing.
+            modifier = Modifier.fillMaxWidth().pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { viewModel.onUnlockedCountTapped() },
+                    onLongPress = { viewModel.onBannerLongPress() },
+                )
+            },
         ) {
             Text(
                 text = "${state.unlockedCount} of ${state.totalCount} unlocked",
@@ -366,122 +366,137 @@ private fun AchievementRow(
 ) {
     val unlocked = item.unlockedAt != null
 
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .pointerInput(superuserModeActive, item.achievement) {
-                if (!superuserModeActive) return@pointerInput
-                val touchSlop = viewConfiguration.touchSlop
-                // One awaitEachGesture per press, so no event slips through between the down and
-                // the tracking below; launch/cancel aren't suspending, so they can run against the
-                // outer coroutineScope from inside it.
-                coroutineScope {
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        var tickCount = 0
-                        val tickJob = launch {
-                            while (isActive) {
-                                delay(AchievementsViewModel.SUPERUSER_TICK_MILLIS)
-                                tickCount++
-                                onSuperuserLongPressTick(item.achievement, tickCount)
+    StyleRewardTooltip(item.achievement, unlocked, enabled = !superuserModeActive) { tooltipModifier ->
+        Card(
+            modifier = modifier
+                .fillMaxWidth()
+                .then(tooltipModifier)
+                .pointerInput(superuserModeActive, item.achievement) {
+                    if (!superuserModeActive) return@pointerInput
+                    val touchSlop = viewConfiguration.touchSlop
+                    // One awaitEachGesture per press, so no event slips through between the down and
+                    // the tracking below; launch/cancel aren't suspending, so they can run against the
+                    // outer coroutineScope from inside it.
+                    coroutineScope {
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            var tickCount = 0
+                            val tickJob = launch {
+                                while (isActive) {
+                                    delay(AchievementsViewModel.SUPERUSER_TICK_MILLIS)
+                                    tickCount++
+                                    onSuperuserLongPressTick(item.achievement, tickCount)
+                                }
                             }
+                            // Cancels the ticking the moment this stops reading as "holding one spot"
+                            // - either the finger has dragged far enough to be a scroll of the list
+                            // underneath it, not a stationary long press, or an ancestor (the
+                            // LazyColumn's own scroll gesture) has already consumed the change, which
+                            // is exactly what happens once a real scroll takes over. Without this, a
+                            // press that started a long press but turned into a scroll (scrolling to
+                            // see the next row while a finger happened to land on this one first) kept
+                            // ticking the whole ride down the list, firing lock/unlock ticks against
+                            // whichever row it started on.
+                            do {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                if (change.isConsumed || (change.position - down.position).getDistance() > touchSlop) break
+                            } while (event.changes.any { it.pressed })
+                            tickJob.cancel()
                         }
-                        // Cancels the ticking the moment this stops reading as "holding one spot"
-                        // - either the finger has dragged far enough to be a scroll of the list
-                        // underneath it, not a stationary long press, or an ancestor (the
-                        // LazyColumn's own scroll gesture) has already consumed the change, which
-                        // is exactly what happens once a real scroll takes over. Without this, a
-                        // press that started a long press but turned into a scroll (scrolling to
-                        // see the next row while a finger happened to land on this one first) kept
-                        // ticking the whole ride down the list, firing lock/unlock ticks against
-                        // whichever row it started on.
-                        do {
-                            val event = awaitPointerEvent()
-                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                            if (change.isConsumed || (change.position - down.position).getDistance() > touchSlop) break
-                        } while (event.changes.any { it.pressed })
-                        tickJob.cancel()
                     }
-                }
-            },
-        colors = CardDefaults.cardColors(
-            containerColor = animateColorAsState(
-                targetValue = if (highlighted) {
-                    GoldAccent
-                    // Earned ones are lifted off the page; the rest stay at the page's own level.
-                } else if (unlocked) {
-                    MaterialTheme.colorScheme.secondaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainer
                 },
-                animationSpec = tween(ROW_FLASH_TRANSITION_MILLIS),
-                label = "achievementRowFlash",
-            ).value,
-        ),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            val tint = if (unlocked) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            }
-            Box(
-                modifier = Modifier.size(40.dp).border(width = 1.dp, color = tint),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = if (unlocked) item.achievement.icon else LOCKED_ACHIEVEMENT_ICON,
-                    contentDescription = null,
-                    tint = if (unlocked) item.achievement.iconTintOrUnspecified(tint) else tint,
-                    modifier = Modifier.size(22.dp),
-                )
-            }
-
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(text = item.achievement.title, style = MaterialTheme.typography.titleSmall)
-                Text(
-                    text = if (item.achievement.visibility == AchievementVisibility.HIDDEN && !unlocked) {
-                        "???"
+            colors = CardDefaults.cardColors(
+                containerColor = animateColorAsState(
+                    targetValue = if (highlighted) {
+                        GoldAccent
+                        // Earned ones are lifted off the page; the rest stay at the page's own level.
+                    } else if (unlocked) {
+                        MaterialTheme.colorScheme.secondaryContainer
                     } else {
-                        item.achievement.description
+                        MaterialTheme.colorScheme.surfaceContainer
                     },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                    animationSpec = tween(ROW_FLASH_TRANSITION_MILLIS),
+                    label = "achievementRowFlash",
+                ).value,
+            ),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val tint = if (unlocked) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                Box(modifier = Modifier.size(40.dp)) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().border(width = 1.dp, color = tint),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = if (unlocked) item.achievement.icon else LOCKED_ACHIEVEMENT_ICON,
+                            contentDescription = null,
+                            tint = if (unlocked) item.achievement.iconTintOrUnspecified(tint) else tint,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                    if (item.achievement.unlocksStyle) StyleRewardStar(tint = tint)
+                }
 
-                when {
-                    item.unlockedAt != null -> Text(
-                        text = "Unlocked ${formatTimestamp(item.unlockedAt)}",
-                        style = MaterialTheme.typography.labelSmall,
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(text = item.achievement.title, style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        text = if (item.achievement.visibility == AchievementVisibility.HIDDEN && !unlocked) {
+                            "???"
+                        } else {
+                            item.achievement.description
+                        },
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp),
                     )
 
-                    item.achievement.hasProgressBar -> ProgressRow(item)
+                    when {
+                        item.unlockedAt != null -> Text(
+                            text = "Unlocked ${formatTimestamp(item.unlockedAt)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+
+                        item.achievement.hasProgressBar -> ProgressRow(item)
+                    }
                 }
             }
-
-            if (item.achievement.unlocksStyle) StyleRewardStarWithTooltip(item.achievement, unlocked, tint)
         }
     }
 }
 
 /**
- * [StyleRewardStar] on an achievement's row, naming the style(s) it unlocks in a tooltip - on a tap
- * as well as the long press [TooltipBox] already listens for, since a tap is what most players try
- * first on a lone icon. A tooltip rather than a dialog: it's a passing "what's this?", not something
- * to stop and dismiss.
+ * A plain tooltip naming the style(s) an achievement unlocks, shown when its row is tapped or
+ * long-pressed - [content] gets the modifier that makes the row do that, and is given none at all for
+ * an achievement that unlocks no style. Not marked on the row (there's no icon for it): a tooltip
+ * rather than a dialog because it's a passing "what's this?", not something to stop and dismiss.
+ * [enabled] false (superuser mode, whose long press on a row means something else) switches both
+ * gestures off.
  */
 // rememberPlainTooltipPositionProvider is deprecated with no replacement in material3 1.4.0 - see
 // ScoresScreen's ScoreRow, which uses it the same way.
 @Suppress("DEPRECATION")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun StyleRewardStarWithTooltip(achievement: Achievement, unlocked: Boolean, tint: Color) {
+private fun StyleRewardTooltip(
+    achievement: Achievement,
+    unlocked: Boolean,
+    enabled: Boolean,
+    content: @Composable (Modifier) -> Unit,
+) {
+    if (!achievement.unlocksStyle) {
+        content(Modifier)
+        return
+    }
     val tooltipState = rememberTooltipState()
     val scope = rememberCoroutineScope()
     val message = achievement.styleRewards.joinToString("\n") { reward ->
@@ -491,14 +506,18 @@ private fun StyleRewardStarWithTooltip(achievement: Achievement, unlocked: Boole
         positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
         tooltip = { PlainTooltip { Text(text = message) } },
         state = tooltipState,
+        enableUserInput = enabled,
     ) {
-        StyleRewardStar(
-            tint = tint,
-            modifier = Modifier.clickable(
-                interactionSource = null,
-                indication = null,
-                onClickLabel = "Show which style this unlocks",
-            ) { scope.launch { tooltipState.show() } },
+        content(
+            if (enabled) {
+                // A tap, as well as the long press TooltipBox already listens for; a screen reader gets it as
+                // this row's one action.
+                Modifier.clickable(onClickLabel = "Show which style this unlocks", role = Role.Button) {
+                    scope.launch { tooltipState.show() }
+                }
+            } else {
+                Modifier
+            },
         )
     }
 }

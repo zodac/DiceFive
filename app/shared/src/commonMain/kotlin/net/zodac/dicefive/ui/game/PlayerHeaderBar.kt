@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,13 +38,12 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
+import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.theme.PlayerColors
 
 /** How long a score takes to count up: most turns' points rise in [SCORE_RISE_MIN_MILLIS], a bigger
@@ -53,11 +51,6 @@ import net.zodac.dicefive.ui.theme.PlayerColors
 private const val SCORE_RISE_MIN_MILLIS = 1000
 private const val SCORE_RISE_MAX_MILLIS = 2000
 private const val SCORE_RISE_MILLIS_PER_POINT = 40
-
-/** A name that doesn't fit its tab (a full-length CPU name beside its chip icon, at four players on
- * a narrow phone) shrinks by [NAME_FONT_STEP] at a time down to this, and is only ellipsised past it. */
-private val NAME_MIN_FONT_SIZE = 9.sp
-private val NAME_FONT_STEP = 0.5.sp
 
 internal fun scoreRiseMillis(pointsGained: Int): Int =
     (pointsGained * SCORE_RISE_MILLIS_PER_POINT).coerceIn(SCORE_RISE_MIN_MILLIS, SCORE_RISE_MAX_MILLIS)
@@ -144,18 +137,16 @@ private fun PlayerTab(
                 // Measured first, so the name gets whatever width is left after it.
                 CpuPlayerIcon(size = if (compactName) 12.dp else 14.dp, tint = color)
             }
-            Text(
+            // Shrinks a little for a name that doesn't fit its tab (a full-length CPU name beside its chip
+            // icon, at four players on a narrow phone), but never below MIN_READABLE_FONT_SIZE: past
+            // that it wraps to a second line rather than getting smaller - only reached at a large
+            // system font, or by a very wide name, since the caps on name length (see
+            // GameSetupState.maxPlayerNameLength) are sized to fit one line at that size.
+            ShrinkThenWrapText(
                 text = name,
+                style = nameStyle,
                 color = color,
                 fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = nameStyle,
-                autoSize = TextAutoSize.StepBased(
-                    minFontSize = NAME_MIN_FONT_SIZE,
-                    maxFontSize = nameStyle.fontSize,
-                    stepSize = NAME_FONT_STEP,
-                ),
             )
         }
         Text(
