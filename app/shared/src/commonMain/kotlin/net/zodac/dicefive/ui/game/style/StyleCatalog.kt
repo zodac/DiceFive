@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.game.style
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.FLOWERPOT_FULL_BLOOM
@@ -122,15 +123,6 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             ),
         ),
         StyleFamily(
-            "Casino",
-            listOf(
-                colour("Red", CasinoDiceStyle("casino_red", Color(0xFFE53935), Color(0xFF8E0E0E))),
-                colour("Green", CasinoDiceStyle("casino_green", Color(0xFF2E9E4F), Color(0xFF0B4A22))),
-                colour("Blue", CasinoDiceStyle("casino_blue", Color(0xFF2F7FE0), Color(0xFF0B3A80))),
-            ),
-            unlock = AchievementCount(50),
-        ),
-        StyleFamily(
             "Frosted",
             listOf(
                 colour("Ice", FrostedDiceStyle("frosted_ice", Color(0xFFE3F4FF), Color(0xFFA9D3EE), Color(0xFF1D4E6E))),
@@ -193,6 +185,8 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     "Amber",
                     RetroDiceStyle("retro_amber", Color(0xFFFFB000), Color(0xFF9A5B00), Color(0xFF3A2400), heldRing = Color.White),
                 ),
+                colour("Blue", RetroDiceStyle("retro_blue", Color(0xFF9CC8F5), Color(0xFF2E5C99), Color(0xFF0D2547))),
+                colour("Red", RetroDiceStyle("retro_red", Color(0xFFF29C94), Color(0xFF9E2A24), Color(0xFF3D0B08))),
             ),
             unlock = AchievementCount(2),
         ),
@@ -200,16 +194,77 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             "Numeral",
             listOf(
                 colour("Digits", NumeralDiceStyle("numeral_white", Color(0xFFFBFBFB), Color(0xFFD6D6D6), Color(0xFF1E1E1E))),
+                colour("Red", NumeralDiceStyle("numeral_red", Color(0xFFE53935), Color(0xFF8E0E0E), Color.White)),
+                colour("Blue", NumeralDiceStyle("numeral_blue", Color(0xFF2F7FE0), Color(0xFF0B3A80), Color.White)),
+            ),
+            unlock = AchievementCount(43),
+        ),
+        StyleFamily(
+            "Non-English",
+            listOf(
                 colour(
                     "Roman",
                     NumeralDiceStyle("numeral_roman", Color(0xFFF3E9D2), Color(0xFFD8C8A0), Color(0xFF7A1F1F), NumeralSystem.ROMAN),
                 ),
                 colour(
+                    "Roman Blue",
+                    NumeralDiceStyle("numeral_roman_blue", Color(0xFF2F4A73), Color(0xFF17263F), Color(0xFFF3E9D2), NumeralSystem.ROMAN),
+                ),
+                colour(
                     "Arabic",
                     NumeralDiceStyle("numeral_arabic", Color(0xFF3A3A3A), Color(0xFF121212), Color(0xFFE8C66A), NumeralSystem.EASTERN_ARABIC),
                 ),
+                colour(
+                    "Arabic Green",
+                    NumeralDiceStyle("numeral_arabic_green", Color(0xFFF3EFE0), Color(0xFFD9D2B8), Color(0xFF1F5E3A), NumeralSystem.EASTERN_ARABIC),
+                ),
+                colour(
+                    "Japanese",
+                    NumeralDiceStyle("numeral_japanese", Color(0xFFFBFBFB), Color(0xFFE3E3E3), Color(0xFFBC002D), NumeralSystem.JAPANESE),
+                ),
             ),
-            unlock = AchievementCount(43),
+            unlock = AchievementCount(50),
+        ),
+        StyleFamily(
+            "Text",
+            listOf(
+                colour(
+                    "Ivory Serif",
+                    NumeralDiceStyle(
+                        "text_serif", Color(0xFFF7F0DC), Color(0xFFDCCFA8), Color(0xFF1F2F5C), NumeralSystem.ENGLISH,
+                        font = FontFamily.Serif, size = 0.26f,
+                    ),
+                ),
+                colour(
+                    "Green Mono",
+                    NumeralDiceStyle(
+                        "text_mono", Color(0xFF1A1F1A), Color(0xFF080B08), Color(0xFF4CE07A), NumeralSystem.ENGLISH,
+                        font = FontFamily.Monospace, size = 0.2f,
+                    ),
+                ),
+                colour(
+                    "Purple Script",
+                    NumeralDiceStyle(
+                        "text_script", Color(0xFF6A3FA0), Color(0xFF34195C), Color(0xFFFFD86B), NumeralSystem.ENGLISH,
+                        font = FontFamily.Cursive, size = 0.32f,
+                    ),
+                ),
+                colour(
+                    "Red Block",
+                    NumeralDiceStyle(
+                        "text_block", Color(0xFFE53935), Color(0xFF8E0E0E), Color.White, NumeralSystem.ENGLISH_CAPS,
+                        font = FontFamily.SansSerif,
+                    ),
+                ),
+                colour(
+                    "Teal Plain",
+                    NumeralDiceStyle(
+                        "text_plain", Color(0xFF1FA6A0), Color(0xFF0B5A57), Color.White, NumeralSystem.ENGLISH,
+                        font = FontFamily.SansSerif, size = 0.27f,
+                    ),
+                ),
+            ),
+            unlock = AchievementCount(15),
         ),
         StyleFamily(
             "LCD",

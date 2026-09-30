@@ -154,44 +154,6 @@ internal fun StyledDie(
     }
 }
 
-// How rounded a Casino die's corners are, as a percentage of its size - for drawing it and its shadow alike.
-private const val CASINO_CORNER_PERCENT = 8
-
-/** Sharp-cornered, glossy casino dice with flush white pips. */
-class CasinoDiceStyle(
-    override val id: String,
-    private val light: Color,
-    private val dark: Color,
-    private val pip: Color = Color.White,
-    private val heldRing: Color = GoldAccent,
-) : DiceStyle, Swatched {
-    override val swatch: Color = light
-    override val bodyColor: Color = lerp(light, dark, 0.5f)
-
-    override fun recoloured(palette: DieColourPalette): DiceStyle =
-        CasinoDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, palette.heldRing)
-
-    override val cornerPercent: Int = CASINO_CORNER_PERCENT
-
-    @Composable
-    override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
-        value = value,
-        held = held,
-        modifier = modifier,
-        face = Brush.linearGradient(listOf(light, dark)),
-        edge = dark,
-        pipColor = pip,
-        cornerPercent = CASINO_CORNER_PERCENT,
-        heldRingColor = heldRing,
-    ) {
-        // A glossy band across the top, fading out by halfway down.
-        drawRect(
-            brush = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.3f), Color.Transparent), endY = size.height * 0.45f),
-            size = Size(size.width, size.height * 0.45f),
-        )
-    }
-}
-
 // How rounded a Frosted die's corners are, as a percentage of its size - for drawing it and its shadow alike.
 private const val FROSTED_CORNER_PERCENT = 6
 
@@ -403,12 +365,16 @@ class RetroDiceStyle(
     )
 }
 
-/** How a [NumeralDiceStyle] writes a value: as a digit, a Roman numeral, or an Eastern Arabic digit. */
+/** How a [NumeralDiceStyle] writes a value: as a digit, a Roman numeral, an Eastern Arabic digit, a Japanese numeral, or an English word. */
 enum class NumeralSystem(val write: (Int) -> String, val size: Float, val font: FontFamily? = null) {
     DIGITS({ it.toString() }, size = 0.62f),
     // Smaller, so the widest numeral ("III") still fits - and every face at that same size.
     ROMAN({ listOf("I", "II", "III", "IV", "V", "VI")[it - 1] }, size = 0.4f, font = FontFamily.Serif),
     EASTERN_ARABIC({ listOf("\u0661", "\u0662", "\u0663", "\u0664", "\u0665", "\u0666")[it - 1] }, size = 0.62f),
+    JAPANESE({ listOf("\u4E00", "\u4E8C", "\u4E09", "\u56DB", "\u4E94", "\u516D")[it - 1] }, size = 0.55f),
+    // The value spelt out in English. Small, so the widest word ("three") fits - a style may set its own size for a wider font.
+    ENGLISH({ listOf("one", "two", "three", "four", "five", "six")[it - 1] }, size = 0.24f),
+    ENGLISH_CAPS({ listOf("ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX")[it - 1] }, size = 0.21f),
 }
 
 /** Dice that show their value as a number instead of pips, written in [system]. */
@@ -419,11 +385,13 @@ class NumeralDiceStyle(
     private val digit: Color,
     private val system: NumeralSystem = NumeralSystem.DIGITS,
     private val heldRing: Color = GoldAccent,
+    private val font: FontFamily? = system.font,
+    private val size: Float = system.size,
 ) : DiceStyle, Swatched {
     override val swatch: Color = light
 
     override fun recoloured(palette: DieColourPalette): DiceStyle =
-        NumeralDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, system, palette.heldRing)
+        NumeralDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, system, palette.heldRing, font, size)
 
     override val cornerPercent: Int = STYLED_DIE_CORNER_PERCENT
 
@@ -437,8 +405,8 @@ class NumeralDiceStyle(
         pipColor = digit,
         pipShape = PipShape.NUMERAL,
         numeral = system.write,
-        numeralFont = system.font,
-        numeralSize = system.size,
+        numeralFont = font,
+        numeralSize = size,
         heldRingColor = heldRing,
     )
 }
