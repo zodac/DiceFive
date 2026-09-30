@@ -271,6 +271,17 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             ),
             unlock = AchievementCount(15),
         ),
+        // Secret: not on the Styles screen at all until The Solution is earned.
+        StyleFamily(
+            "Maths",
+            listOf(
+                colour("White", MathsDiceStyle("maths_white", IvoryDiceTop, IvoryDiceBottom, Color.Black)),
+                colour("Black", MathsDiceStyle("maths_black", Color(0xFF2E2E31), Color(0xFF0E0E0F), Color.White)),
+                // A chalkboard.
+                colour("Green", MathsDiceStyle("maths_green", Color(0xFF2F6B45), Color(0xFF173D26), Color.White)),
+            ),
+            unlock = StyleUnlock.SpecificAchievement(Achievement.THE_SOLUTION),
+        ),
         StyleFamily(
             "LCD",
             listOf(

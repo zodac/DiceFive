@@ -1,0 +1,11 @@
+{
+  "uniqueId": "mathjax-fonts",
+  "name": "MathJax TeX fonts",
+  "artifactVersion": "1.1",
+  "description": "Copyright (c) 2009-2010, Design Science, Inc. (www.mathjax.org), with Reserved Font Names MathJax_Main and MathJax_Math. The MathJax_Main Regular and MathJax_Math Italic fonts, unmodified, from MathJax 2.7.9 - the Computer Modern faces Wikipedia's formulas are set in - used on the Maths dice.",
+  "website": "https://github.com/mathjax/MathJax",
+  "licenses": [
+    "OFL-1.1"
+  ],
+  "tag": "font"
+}

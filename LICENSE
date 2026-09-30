@@ -25,6 +25,9 @@ components, and nothing in this notice restricts any right they grant. In partic
 - The Sora font (app/shared/src/commonMain/composeResources/font/sora.ttf), Copyright 2019 The Sora Project Authors, is a
   modified version of the original, and is distributed under the SIL Open Font License 1.1, which
   continues to apply to it in full.
+- The MathJax TeX fonts (app/shared/src/commonMain/composeResources/font/mathjax_main_regular.otf and
+  mathjax_math_italic.otf), Copyright 2009-2010 Design Science, Inc., are unmodified and distributed
+  under the SIL Open Font License 1.1, which continues to apply to them in full.
 - The sound effects are modified versions of recordings from Freesound (freesound.org): four under
   Creative Commons Zero 1.0 (CC0), and two - the die hold and unhold clicks - derived from
   "Mantel Clock Ticking.wav" by Tewkesound (https://freesound.org/s/140147/), licensed under

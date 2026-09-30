@@ -347,9 +347,9 @@ aboutLibraries {
         allowedLicenses.addAll("Apache-2.0", "MIT", "BSD-2-Clause", "BSD-3-Clause")
         // The SIL Open Font License is copyleft on the font alone (a modified Sora must stay OFL and
         // can't be sold by itself) and places no conditions on the app it's bundled in - so it's
-        // allowed, but only for the font, not for any library that turns up under it later.
+        // allowed, but only for the fonts, not for any library that turns up under it later.
         allowedLicensesMap = mapOf(
-            "OFL-1.1" to listOf("sora"),
+            "OFL-1.1" to listOf("sora", "mathjax-fonts"),
             // The sound effects' Freesound sources (see app/licensing/asset-sources.json). CC0 asks for
             // nothing; CC-BY asks for a credit, a link to the source and license, and a note of any
             // changes - all in its libraries/ entry. Neither places any condition on the app itself.
