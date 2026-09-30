@@ -60,6 +60,7 @@ import net.zodac.dicefive.model.isLuckOfTheIrish
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.common.BackHandler
+import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
@@ -198,40 +199,42 @@ fun GameScreen(
             return@CompositionLocalProvider
         }
 
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                // Without this, the player header row rendered flush against the very top of the
-                // screen and sat under the status bar's clock/icons on some devices - a fixed
-                // padding amount can't account for how tall that area actually is per device, so
-                // ask the system for its real inset instead.
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .verticalScroll(rememberScrollState())
-                .padding(GAME_PADDING),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            InProgressGame(
-                state = currentState,
-                canUndo = canUndo,
-                superuserModeActive = superuserModeActive,
-                aiRolling = aiRolling,
-                turnSecondsRemaining = turnSecondsRemaining,
-                onBack = leaveGame,
-                onUndo = viewModel::undo,
-                onRoll = viewModel::rollDice,
-                onToggleHold = viewModel::toggleHold,
-                onCycleValue = viewModel::cycleHeldDieValue,
-                onScoreCategory = viewModel::commitScore,
-                onTapCupWithNoRollsLeft = viewModel::tapCupWithNoRollsLeft,
-                onShakeRollDetected = viewModel::onShakeRollDetected,
-                soundEnabled = soundEnabled,
-                vibrationEnabled = vibrationEnabled,
-                cupShakeMillis = cupShakeMillis,
-            )
+        // The same colours as the menu and every page off it, but with no dice: the table's own art sits on top.
+        BrandBackdrop(modifier = modifier, showDice = false) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    // Without this, the player header row rendered flush against the very top of the
+                    // screen and sat under the status bar's clock/icons on some devices - a fixed
+                    // padding amount can't account for how tall that area actually is per device, so
+                    // ask the system for its real inset instead.
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .verticalScroll(rememberScrollState())
+                    .padding(GAME_PADDING),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                InProgressGame(
+                    state = currentState,
+                    canUndo = canUndo,
+                    superuserModeActive = superuserModeActive,
+                    aiRolling = aiRolling,
+                    turnSecondsRemaining = turnSecondsRemaining,
+                    onBack = leaveGame,
+                    onUndo = viewModel::undo,
+                    onRoll = viewModel::rollDice,
+                    onToggleHold = viewModel::toggleHold,
+                    onCycleValue = viewModel::cycleHeldDieValue,
+                    onScoreCategory = viewModel::commitScore,
+                    onTapCupWithNoRollsLeft = viewModel::tapCupWithNoRollsLeft,
+                    onShakeRollDetected = viewModel::onShakeRollDetected,
+                    soundEnabled = soundEnabled,
+                    vibrationEnabled = vibrationEnabled,
+                    cupShakeMillis = cupShakeMillis,
+                )
+            }
         }
     }
-}
-
+        }
 @Composable
 private fun InProgressGame(
     state: GameState,

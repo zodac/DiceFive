@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -129,12 +130,15 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                 }
             }
             composable(Screen.PLAY_GAME) { backStackEntry ->
-                // The menu's dice start over after a game, not while the setup screen is still fading out.
-                val driftState = LocalDriftState.current
-                DisposableEffect(driftState) { onDispose { driftState?.reset() } }
                 val playGraphEntry = remember(backStackEntry) { navController.getBackStackEntry(Screen.PLAY_GRAPH) }
+                val gameViewModel = viewModel<GameViewModel>(playGraphEntry, factory = GameViewModel.factory(container))
+                // The menu's dice start over after a game that was left unfinished, not while the setup screen is
+                // still fading out. A finished game's results page drifts them like any other, so the menu carries on.
+                val driftState = LocalDriftState.current
+                val gameOver by rememberUpdatedState(gameViewModel.game.collectAsStateWithLifecycle().value?.isGameOver == true)
+                DisposableEffect(driftState) { onDispose { if (!gameOver) driftState?.reset() } }
                 GameScreen(
-                    viewModel = viewModel<GameViewModel>(playGraphEntry, factory = GameViewModel.factory(container)),
+                    viewModel = gameViewModel,
                     onBackToMenu = { navController.popBackStack(Screen.MENU, inclusive = false) },
                 )
             }

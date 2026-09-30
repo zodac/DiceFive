@@ -88,7 +88,7 @@ fun GameOverScreen(
         if (humanWon) soundEffects.playCelebration()
     }
 
-    BrandBackdrop(modifier = modifier) {
+    BrandBackdrop(modifier = modifier, driftingDice = true) {
         // The fanfare (its own sound setting) still plays; the sparks are what reduced motion drops.
         if (humanWon && !LocalReduceMotion.current) {
             GoldFireworks(durationMillis = CELEBRATION_MILLIS, modifier = Modifier.fillMaxSize())

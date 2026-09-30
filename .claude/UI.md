@@ -111,7 +111,7 @@ which needs compileSdk 37). Revisit when 1.5.0 is stable.
 
 | File | What it is |
 |---|---|
-| `BrandBackdrop.kt` | the app's one piece of scenery: surface gradient, `primary` spotlight, faint dice watermark. Built from colour roles, so it tracks the theme. Quiet enough that ordinary components sit on it unmodified. |
+| `BrandBackdrop.kt` | the app's one piece of scenery: surface gradient, `primary` spotlight, faint dice watermark (`showDice = false` drops the dice: the in-game screen sits on the plain gradient). Built from colour roles, so it tracks the theme. Quiet enough that ordinary components sit on it unmodified. |
 | `ScreenScaffold.kt` | the frame for every non-menu page: backdrop + M3 top app bar with a back arrow . The bar itself stays transparent over the backdrop; its title is bold and tinted `primary` (see "Colour" above) rather than left at the M3 default. Its content (not the app bar) fades in over `PAGE_CONTENT_FADE_IN_MILLIS` (100ms) when a page opens, so whatever lands a frame or two late - a loaded list, a Styles row centring on its pick - eases in with the rest rather than popping in. Also holds `PageColumn`, and takes an optional `footer` (a `FooterPill`, for scrollable pages) floated at the bottom centre with the content padded by its measured height - Settings' version. |
 | `DiceFiveDialog.kt` | the app's one dialog shape, so the menu and the board ask questions the same way. |
 | `AppLogo.kt` | placeholder app mark, built from the game's own dice via `IvoryDiceStyle`. |
@@ -800,10 +800,10 @@ SilentPlatformServices`) and steps both the compose clock and the paused main lo
   every option in it is disabled until AI difficulty exists, so it's one line of text for now.
   `PlayerSetupSlot.difficulty` and `setPlayerDifficulty` are untouched - only the UI went.
 - `BrandBackdrop`'s watermark dice drift on the main menu and every screen off it (`driftingDice`,
-  set by the menu and by `ScreenScaffold`; the game and results screens keep them still). The drift
+  set by the menu, `ScreenScaffold` and the game-over page; the game itself has none, `showDice = false`). The drift
   is one `DriftState` held in `DiceFiveApp` and shared through `LocalDriftState`, so the dice keep
-  their places and faces from screen to screen; it starts over only after a game (the game
-  destination's `onDispose` resets it) or on a fresh launch. `DiceDrift` holds the logic, free of Compose so
+  their places and faces from screen to screen; it starts over only after a game left unfinished (the game
+  destination's `onDispose` resets it unless the game is over, so the results page's dice carry on into the menu) or on a fresh launch. `DiceDrift` holds the logic, free of Compose so
   `DiceDriftTest` can pin it: five dice, each crossing in a straight line up and to one side and
   turning slower than it travels (its corners move slower than its centre), then coming straight
   back in just below the bottom edge on a new path, size and face - so there's no pool of dice
