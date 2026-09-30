@@ -120,6 +120,12 @@ fun GameScreen(
         }
     }
 
+    // The leave-game confirmation freezes the turn timer and CPU turns while it is up.
+    DisposableEffect(viewModel, showLeaveConfirmation) {
+        viewModel.setHeld(showLeaveConfirmation)
+        onDispose { viewModel.setHeld(false) }
+    }
+
     val platform = LocalPlatformServices.current
     LaunchedEffect(viewModel) {
         viewModel.toastMessages.collect { message -> platform.showTransientMessage(message) }
