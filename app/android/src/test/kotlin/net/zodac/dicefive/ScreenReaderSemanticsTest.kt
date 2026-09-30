@@ -54,7 +54,8 @@ class ScreenReaderSemanticsTest {
 
     @Test
     fun `a style tile is a radio button and the picked one is selected`() {
-        compose.setContent { DiceFiveTheme { StylesScreen(viewModel = StylesViewModel(), onBack = {}) } }
+        val viewModel = StylesViewModel()
+        compose.setContent { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
 
         val radios = compose.onAllNodes(hasRole(Role.RadioButton)).fetchSemanticsNodes()
         assertTrue(radios.isNotEmpty())
@@ -66,7 +67,8 @@ class ScreenReaderSemanticsTest {
 
     @Test
     fun `a style tile says its place in the row`() {
-        compose.setContent { DiceFiveTheme { StylesScreen(viewModel = StylesViewModel(), onBack = {}) } }
+        val viewModel = StylesViewModel()
+        compose.setContent { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
 
         val columns = compose.onAllNodes(hasRole(Role.RadioButton)).fetchSemanticsNodes()
             .map { it.config[SemanticsProperties.CollectionItemInfo].columnIndex }
@@ -76,7 +78,8 @@ class ScreenReaderSemanticsTest {
 
     @Test
     fun `a locked style says it is locked and its action says how to unlock it`() {
-        compose.setContent { DiceFiveTheme { StylesScreen(viewModel = StylesViewModel(), onBack = {}) } }
+        val viewModel = StylesViewModel()
+        compose.setContent { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
 
         val locked = compose.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Locked"))
             .fetchSemanticsNodes()

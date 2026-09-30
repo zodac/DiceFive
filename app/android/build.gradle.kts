@@ -144,6 +144,12 @@ android {
         // as warnings. The Kotlin compiler flag below does the same for deprecated APIs in code, and
         // gradle.properties' org.gradle.kotlin.dsl.allWarningsAsErrors for the build scripts.
         error += setOf("Deprecated", "ObsoleteSdkInt")
+        // Any other warning fails lint too, for the same reason: nothing is left to pile up unread. Fix it,
+        // or suppress it where it occurs with a comment saying why (CLAUDE.md's working agreements).
+        warningsAsErrors = true
+        // The exception: "a newer version of a library exists" goes off the day a release is published,
+        // failing CI with no change on our side. update-dependencies.yml is what tracks new versions.
+        disable += "GradleDependency"
         // Most of the app's code - the game, its UI, its storage - lives in :app:shared, which has no
         // lint run of its own for its main code. Checking dependencies makes this module's lintDebug
         // (the one CI runs) analyse it too, under these same rules.

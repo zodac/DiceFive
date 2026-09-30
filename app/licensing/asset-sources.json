@@ -47,14 +47,14 @@
     "copyright": "Copyright 2026 zodac.net",
     "license": "LicenseRef-DiceFive-AllRightsReserved"
   },
-  "app/android/src/main/res/mipmap-anydpi/ic_launcher.xml": {
-    "description": "Adaptive launcher icon wrapper around ic_launcher_foreground",
-    "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01XHKZahXD9TiHU4GnGuV2FB (commit 67eae6c)",
+  "app/android/src/main/res/drawable/ic_launcher_monochrome.xml": {
+    "description": "Themed-icon (monochrome) layer of the launcher icon: the cup and dice of ic_launcher_foreground as one flat silhouette",
+    "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01BLdhRGLJqmptfL2R2xmNwR, derived from ic_launcher_foreground.xml",
     "copyright": "Copyright 2026 zodac.net",
     "license": "LicenseRef-DiceFive-AllRightsReserved"
   },
-  "app/android/src/main/res/mipmap-anydpi/ic_launcher_round.xml": {
-    "description": "Round adaptive launcher icon wrapper around ic_launcher_foreground",
+  "app/android/src/main/res/mipmap-anydpi/ic_launcher.xml": {
+    "description": "Adaptive launcher icon wrapper around ic_launcher_foreground and ic_launcher_monochrome",
     "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01XHKZahXD9TiHU4GnGuV2FB (commit 67eae6c)",
     "copyright": "Copyright 2026 zodac.net",
     "license": "LicenseRef-DiceFive-AllRightsReserved"

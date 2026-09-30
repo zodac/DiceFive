@@ -40,6 +40,14 @@
   checks no achievement title, description or category label contains it. `README.md` is public
   and is **not** an exception.
 
+- **Build warnings and errors get dealt with, even when they were there before you started.** That
+  covers the compiler, `lint`, the tests and the Gradle build. "It fails the same without my change"
+  explains where a problem came from; it isn't a reason to leave it. Fix it, or - where it truly
+  can't or shouldn't be fixed (a deliberate design choice, a false positive) - suppress it at the
+  narrowest scope with a comment saying why, and say so in the report. Never just note it and move on.
+  If the fix is large or changes behaviour beyond the task, tell the user and let them decide, rather
+  than skipping it silently.
+
 - **Every new or changed UI element must be checked for accessibility before it's done** - what
   TalkBack says for it, whether visual-only meaning (colour, fades, position) has a spoken twin, and
   whether every action is reachable without a custom gesture. Stock components are not assumed to be
