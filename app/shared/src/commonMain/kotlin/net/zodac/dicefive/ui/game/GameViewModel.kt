@@ -169,8 +169,21 @@ class GameViewModel(
      * way when the game goes away starts again on return. Nothing else in the game runs on a timer.
      */
     fun setForeground(value: Boolean) {
-        foreground.value = value
+        onScreen = value
+        foreground.value = onScreen && !held
     }
+
+    /**
+     * Holds the game's clocks while a dialog over it (the leave-game confirmation) is up, exactly as
+     * if the game were off screen - see [setForeground]. Released when the dialog closes.
+     */
+    fun setHeld(value: Boolean) {
+        held = value
+        foreground.value = onScreen && !held
+    }
+
+    private var onScreen = true
+    private var held = false
 
     /** [delay] that doesn't run while [foreground] is false - see [setForeground]. */
     private suspend fun pausableDelay(millis: Long) {
