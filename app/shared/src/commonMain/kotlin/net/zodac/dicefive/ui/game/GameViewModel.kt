@@ -158,6 +158,14 @@ class GameViewModel(
     @Volatile
     var cupShakeMillis: Long = CUP_SHAKE_MILLIS
 
+    /**
+     * How long a CPU waits after a roll lands for the dice to finish tossing onto the mat before it holds,
+     * rerolls or scores - `DICE_TOSS_MILLIS`, or 0 when the screen shows the dice without the toss (simple
+     * dice roll or reduced motion). Set by the screen.
+     */
+    @Volatile
+    var diceTossMillis: Long = DICE_TOSS_MILLIS.toLong()
+
     /** Whether the game is in front of the player - see [setForeground]. */
     private val foreground = MutableStateFlow(true)
 
@@ -1423,6 +1431,9 @@ class GameViewModel(
                     } finally {
                         _aiRolling.value = false
                     }
+                    // The roll is published but the dice are still tossing onto the mat: let them settle
+                    // before holding, rerolling or scoring, as a human has to.
+                    pausableDelay(diceTossMillis)
 
                     // Nothing left to decide on the turn's last roll - there's no further reroll to
                     // hold dice FOR.
@@ -1474,10 +1485,10 @@ class GameViewModel(
 
     companion object {
         /** The AI's pause, dice settled, before it scores. Its rolls shake for CUP_SHAKE_MILLIS, same as a tap's. */
-        private const val AI_STEP_DELAY_MS = 600L
+        private const val AI_STEP_DELAY_MS = 250L
 
         /** Pause between one roll settling and the next one's shake starting, within the same AI turn. */
-        private const val ROLL_GAP_MS = 250L
+        private const val ROLL_GAP_MS = 100L
 
         /** What `rollsRemaining` reads before any roll has happened this turn - the mode's full allowance. */
         private val GameState.fullRolls: Int

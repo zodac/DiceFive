@@ -368,9 +368,9 @@ class GameViewModelTest {
         // dice (a 5x can't be improved by rerolling). The two "remaining" rolls that would
         // otherwise follow are pure no-ops - GameEngine.rollDice skips held dice - and should be
         // skipped rather than sitting through their delay for nothing: a full 3-roll AI turn takes
-        // 3 shakes plus the pause before scoring; this one should take only 1 shake and that pause.
-        val aiStepDelayMs = 600L // matches GameViewModel.AI_STEP_DELAY_MS, which is private to it
-        assertEquals(CUP_SHAKE_MILLIS + aiStepDelayMs, testDispatcher.scheduler.currentTime - timeBeforeAiTurn)
+        // 3 shakes plus the pause before scoring; this one should take only 1 shake, the dice's toss and that pause.
+        val aiStepDelayMs = 250L // matches GameViewModel.AI_STEP_DELAY_MS, which is private to it
+        assertEquals(CUP_SHAKE_MILLIS + DICE_TOSS_MILLIS + aiStepDelayMs, testDispatcher.scheduler.currentTime - timeBeforeAiTurn)
         assertEquals(50, viewModel.game.value!!.players[1].scorecard[ScoreCategory.FIVE_OF_A_KIND])
     }
 
@@ -388,10 +388,10 @@ class GameViewModelTest {
         val timeBeforeAiTurn = testDispatcher.scheduler.currentTime
         advanceUntilIdle()
 
-        // The same one-shake turn as above, but the shake is the short window; the 600ms before scoring is
+        // The same one-shake turn as above, but the shake is the short window; the pause before scoring is
         // there so a player can follow the CPU, not to wait for an animation, so it stays.
-        val aiStepDelayMs = 600L
-        assertEquals(REDUCED_MOTION_CUP_SHAKE_MILLIS + aiStepDelayMs, testDispatcher.scheduler.currentTime - timeBeforeAiTurn)
+        val aiStepDelayMs = 250L
+        assertEquals(REDUCED_MOTION_CUP_SHAKE_MILLIS + DICE_TOSS_MILLIS + aiStepDelayMs, testDispatcher.scheduler.currentTime - timeBeforeAiTurn)
     }
 
     @Test
