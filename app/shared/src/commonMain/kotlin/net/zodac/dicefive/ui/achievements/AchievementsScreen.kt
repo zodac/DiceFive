@@ -24,17 +24,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -65,6 +60,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementScrollRequests
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.ui.common.AppTooltip
+import net.zodac.dicefive.ui.common.rememberAppTooltipState
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.style.styleRewards
 import net.zodac.dicefive.ui.game.style.unlocksStyle
@@ -485,10 +482,6 @@ private fun AchievementRow(
  * [enabled] false (superuser mode, whose long press on a row means something else) switches both
  * gestures off.
  */
-// rememberPlainTooltipPositionProvider is deprecated with no replacement in material3 1.4.0 - see
-// ScoresScreen's ScoreRow, which uses it the same way.
-@Suppress("DEPRECATION")
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StyleRewardTooltip(
     achievement: Achievement,
@@ -500,17 +493,12 @@ private fun StyleRewardTooltip(
         content(Modifier)
         return
     }
-    val tooltipState = rememberTooltipState()
+    val tooltipState = rememberAppTooltipState()
     val scope = rememberCoroutineScope()
     val message = achievement.styleRewards.joinToString("\n") { reward ->
         if (unlocked) "You've unlocked ${reward.description}!" else "Earn this to unlock ${reward.description}"
     }
-    TooltipBox(
-        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-        tooltip = { PlainTooltip { Text(text = message) } },
-        state = tooltipState,
-        enableUserInput = enabled,
-    ) {
+    AppTooltip(message = message, state = tooltipState, enabled = enabled) {
         content(
             if (enabled) {
                 // A tap, as well as the long press TooltipBox already listens for; a screen reader gets it as

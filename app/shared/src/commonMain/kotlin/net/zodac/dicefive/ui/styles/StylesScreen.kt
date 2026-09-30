@@ -112,11 +112,14 @@ import androidx.compose.runtime.key
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SavedStyles
+import net.zodac.dicefive.ui.common.AppTooltip
+import net.zodac.dicefive.ui.common.rememberAppTooltipState
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.HorizontalScrollbar
 import net.zodac.dicefive.ui.common.PAGE_CONTENT_FADE_IN_MILLIS
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.parseInlineMarkup
+import net.zodac.dicefive.ui.common.tooltipMarkup
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.game.style.DiceCupStyle
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
@@ -793,7 +796,8 @@ private fun <T : TableArt> StyleFamilyTile(
 
 /**
  * A style that hasn't been unlocked yet: its tile in its first colour, faded under a padlock, so
- * it can't be picked. Long-pressing it pops up what it takes to unlock - [unlockRequirement].
+ * it can't be picked. Tapping it shows a tooltip with the core requirement ([shortRequirement]);
+ * long-pressing it opens a dialog with more ([unlockRequirement]).
  */
 @Composable
 private fun <T : TableArt> LockedStyleFamilyTile(
@@ -805,48 +809,53 @@ private fun <T : TableArt> LockedStyleFamilyTile(
     position: Int,
 ) {
     var showingRequirement by remember { mutableStateOf(false) }
+    val tooltipState = rememberAppTooltipState()
+    val scope = rememberCoroutineScope()
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        StylePreview(
-            style = family.colours.first().style,
-            size = previewSize,
-            selected = false,
-            backgroundBrush = backgroundBrush,
-            preview = preview,
-            modifier = Modifier
-                // A tap does nothing on screen, but a screen reader has no long press to fall back on:
-                // its one action is the long press's, so double-tapping says how to unlock it.
-                .clearAndSetSemantics {
-                    contentDescription = family.name
-                    stateDescription = "Locked"
-                    role = Role.Button
-                    collectionItemInfo = CollectionItemInfo(rowIndex = 0, rowSpan = 1, columnIndex = position, columnSpan = 1)
-                    onClick(label = "Show how to unlock ${family.name}") {
-                        showingRequirement = true
-                        true
-                    }
-                }
-                .combinedClickable(
-                    onClick = {},
-                    onLongClick = { showingRequirement = true },
-                    onLongClickLabel = "Show how to unlock ${family.name}",
-                ),
-        ) {
-            // Translucent, so the style still shows through - the lock says "not yet", not "hidden".
-            Box(
+        // Not the tooltip's own long press (enabled = false): that opens the dialog, and a tap shows the tooltip.
+        AppTooltip(message = tooltipMarkup(shortRequirement(family)), state = tooltipState, enabled = false) {
+            StylePreview(
+                style = family.colours.first().style,
+                size = previewSize,
+                selected = false,
+                backgroundBrush = backgroundBrush,
+                preview = preview,
                 modifier = Modifier
-                    .matchParentSize()
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = LOCKED_SCRIM_ALPHA)),
-                contentAlignment = Alignment.Center,
+                    // A tap shows the short requirement and a long press the dialog. A tooltip isn't announced, so
+                    // a screen reader's one action is the dialog, which says the same and more.
+                    .clearAndSetSemantics {
+                        contentDescription = family.name
+                        stateDescription = "Locked"
+                        role = Role.Button
+                        collectionItemInfo = CollectionItemInfo(rowIndex = 0, rowSpan = 1, columnIndex = position, columnSpan = 1)
+                        onClick(label = "Show how to unlock ${family.name}") {
+                            showingRequirement = true
+                            true
+                        }
+                    }
+                    .combinedClickable(
+                        onClick = { scope.launch { tooltipState.show() } },
+                        onLongClick = { showingRequirement = true },
+                        onLongClickLabel = "Show how to unlock ${family.name}",
+                    ),
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Lock,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = LOCKED_PADLOCK_ALPHA),
-                    modifier = Modifier.size(28.dp),
-                )
+                // Translucent, so the style still shows through - the lock says "not yet", not "hidden".
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = LOCKED_SCRIM_ALPHA)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = LOCKED_PADLOCK_ALPHA),
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
             }
         }
         TileLabel(family.name)
@@ -867,6 +876,15 @@ private fun <T : TableArt> LockedStyleFamilyTile(
         )
     }
 }
+
+/** Just the core requirement for [family], for the tooltip a tap on its locked tile shows - [tooltipMarkup]'s markup. */
+private fun shortRequirement(family: StyleFamily<*>): String =
+    when (val unlock = family.unlock) {
+        StyleUnlock.Free -> "Always available"
+        is StyleUnlock.AchievementCount ->
+            "`${unlock.count}` ${if (unlock.count == 1) "achievement" else "achievements"} needed"
+        is StyleUnlock.SpecificAchievement -> "`${unlock.achievement.title}` achievement needed"
+    }
 
 /**
  * What it takes to unlock [family], and how far along [achievements] is, as the locked tile's pop-up

@@ -21,15 +21,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -48,6 +43,7 @@ import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.game.TieBreak
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.common.LazyListScrollbar
+import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.formatTimestamp
 import net.zodac.dicefive.ui.theme.Bronze
@@ -236,22 +232,13 @@ private fun rankEntries(entries: List<ScoreEntry>, pageIndex: Int): List<RankedE
     }
 }
 
-// rememberPlainTooltipPositionProvider is deprecated in favour of rememberTooltipPositionProvider,
-// which doesn't exist yet in material3 1.4.0 - it arrives with the 1.5.0 line. Swap it over then.
-@Suppress("DEPRECATION")
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ScoreRow(rank: Int, isTrueTie: Boolean, entry: ScoreEntry, striped: Boolean) {
     val onPodium = rank <= PODIUM_RANKS
     val accent = podiumAccent(rank)
     val columns = scoreColumns()
 
-    val tooltipState = rememberTooltipState()
-    TooltipBox(
-        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-        tooltip = { PlainTooltip { Text(text = formatTimestamp(entry.timestampEpochMillis)) } },
-        state = tooltipState,
-    ) {
+    AppTooltip(message = formatTimestamp(entry.timestampEpochMillis)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

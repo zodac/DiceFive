@@ -334,8 +334,10 @@ titles and descriptions wrap, so it must never take layout width. It's decorativ
 row's one action says "Show which style this unlocks" and the banner's announcement ends "Unlocks a
 style". Superuser mode's long press on a row takes precedence, so the tooltip is off while it's on.
 
-On the Styles screen a locked tile shows its first colour under a translucent scrim and a faded padlock, can't be picked,
-and long-pressing it opens a `DiceFiveDialog` saying what unlocks it. **A saved pick whose style is
+On the Styles screen a locked tile shows its first colour under a translucent scrim and a faded padlock, can't be picked.
+Tapping it shows an `AppTooltip` with just the core requirement ("`23` achievements needed", "`Big Fan`
+achievement needed"); long-pressing it opens a `DiceFiveDialog` with more (and how far along the player
+is). A tooltip isn't announced, so TalkBack's one action on the tile is the dialog. **A saved pick whose style is
 locked is never overwritten** - everything that draws a style (the game, the menu logo, "Fresh Coat
 Of Paint", the Styles screen's check badge) goes through `StyleCatalog.unlockedById`, which draws
 the category's default instead. So resetting achievements re-locks without losing a player's pick,
@@ -733,8 +735,10 @@ edges are pinned.
 - **`padding` before `size` shrinks the node.** `Modifier.size(34.dp).padding(top = 6.dp)`
   renders a 34x28 box, not a 34x34 one lowered by 6dp. Use `offset` to move something without
   resizing it - this is what made the logo dice non-square.
-- **`rememberPlainTooltipPositionProvider` is deprecated** with no replacement in 1.4.0; the
-  successor arrives with 1.5.0. Suppressed at the call site in `ScoresScreen`.
+- **Every tooltip is `AppTooltip`** (`ui/common/AppTooltip.kt`) - never `TooltipBox` directly - so the
+  look and behaviour change in one place. `rememberAppTooltipState()` lets a tap show one too. Material's
+  `rememberPlainTooltipPositionProvider` is deprecated with no replacement in 1.4.0 (the successor
+  arrives with 1.5.0); it's suppressed once, there.
 - **`ViewModelConstructorInComposable`** fires on `@Preview` functions that build a view model.
   Suppressed on the preview in `GameScreen` - a preview has no host to scope one to.
 - **The adaptive-icon "safe zone" is a floor, not a guarantee.** `ic_launcher_foreground.xml`'s
