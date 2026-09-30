@@ -8,6 +8,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -24,7 +26,6 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -139,8 +140,9 @@ private const val LOCKED_PADLOCK_ALPHA = 0.8f
  * Mat and background are separate categories - each previews only its own brush (the mat's own
  * [DiceMat.DiceTrayDecoration] shows up on its tile too), not the two composed together, since
  * they're independently selectable rather than a single paired option. All four categories'
- * tiles are sized to fit on one screen without scrolling vertically; only the tile row within a
- * category scrolls, horizontally.
+ * tiles are sized to fit on one screen without scrolling vertically, and the tile row within a
+ * category scrolls horizontally; on a screen too short for all four (a small phone, a large font)
+ * the page scrolls vertically too.
  */
 @Composable
 fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
@@ -150,7 +152,9 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
         // Nothing until the saved picks have loaded, so each row can open scrolled to its real pick.
         // They're normally in already (AppContainer.savedStyles), so the page has them from its first frame.
         val picks = saved ?: return@ScreenScaffold
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Sized to fit one screen, but free to scroll when it can't - a small phone, or a large
+        // font - rather than cutting the last category off out of reach.
+        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             for (category in StyleCategory.entries) {
                 StyleCategorySection(
                     category = category,
