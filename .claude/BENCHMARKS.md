@@ -204,9 +204,10 @@ Everything unlocked, phone-sized screen:
     each, a category at a time. Its first pass is the heaviest (loading and compiling code for the
     first time: ~164ms here, where the old one-category-a-frame pass was ~255ms); later passes are
     6-31ms (the old ones up to 39ms), just more of them.
-  - Each row's `LazyListState` has a `LazyLayoutCacheWindow` a tile wide either side, so the next
-    tile is composed and measured in the idle time between frames before it scrolls in. The
-    harness has no idle time between its frames, so it can't show this part - only a device can.
+  - Each row's `LazyListState` has a `LazyLayoutCacheWindow` (first a tile wide either side, later
+    the whole row - see below), so tiles are composed and measured in the idle time between frames
+    before they scroll in. The harness has no idle time between its frames, so it can't show the
+    prefetching - only a device can.
   - A tile that's built but not on screen (checked from `layoutInfo.visibleItemsInfo`) is held
     still by providing `LocalReduceMotion` true to it - every animated piece of art already stops
     under reduced motion. Checked: the Cauldron's code never runs at any scroll position where its
@@ -231,6 +232,29 @@ Everything unlocked, phone-sized screen:
   Robolectric can't show any of this: it doesn't model the device's GPU, and a capture replays
   the whole window regardless. The HWUI bars (or `adb shell dumpsys gfxinfo <package>`) on a real
   phone are the measure for drawing cost.
+- **A fling still spiked** on a device even with two tiles built ahead: a fast fling outruns
+  anything built between frames, and each tile arriving was built on its frame. Measured (warm,
+  composition + layout only, per tile scrolling in; the harness's own overhead left out): Compose's
+  bookkeeping for creating and disposing items ~40%, **laying out the tile's name label ~33%**,
+  semantics ~10%, the tile's boxes ~6%, the art ~5%, colour pop-up + dots + clicks + icons ~4%. So:
+  - Every tile is built ahead and kept. First tried as a whole-row `LazyLayoutCacheWindow` on the
+    `LazyRow`, but on the device a fling still spiked green, and counting built tiles showed why: the
+    cache window built **nothing** ahead - 16 tiles after opening, still 16 after five seconds idle
+    and after the row began to scroll; each tile was built only on the frame it came on screen. So
+    each row is now a plain `Row` with `horizontalScroll`, built deterministically: the tiles on
+    screen at open (the pick and as many either side as fit) straight away, then the rest one every
+    `TILE_BUILD_FRAMES` (4) frames once the page has faded in, nearest the pick first, each row
+    staggered a frame from the last; unbuilt tiles are same-sized empty placeholders, silent to a
+    screen reader, so nothing moves. Measured: 24 of 42 tiles built at open (the lazy rows built 16),
+    all 42 by ~480ms; after the launch warm-up the building frames peak at 7.8ms (JVM), most under
+    3ms; a fling afterwards builds nothing (worst frame 5ms). Tile positions after opening match the
+    lazy version exactly, less two stale off-screen items the lazy row still reported to screen
+    readers over the visible ones.
+  - Labels go through `TileLabel`: one `TextMeasurer` per page (with a cache) lays each name out
+    once, drawn with `drawText`, with the same `text` semantics a `Text` has - pixel-identical
+    captures and identical semantics text.
+  - Per tile scrolling in: 2.01ms before, 1.58ms keeping every tile, 0.83ms with cached labels,
+    **0.56ms with both**.
 - **Opening:** the first frame composes the page (~160-200ms here, before JIT warm-up); the
   `StylesWarmUp` pre-draw from the menu already exists for this - see its comment in
   `StylesScreen.kt`.
