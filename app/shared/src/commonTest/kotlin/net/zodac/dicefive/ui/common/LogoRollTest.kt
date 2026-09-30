@@ -54,4 +54,15 @@ class LogoRollTest {
             assertEquals(face, settled.value, "die $i should be seen landing on its own face")
         }
     }
+
+    @Test
+    fun aTapLandsOnTheCupOnlyInsideItsCentredRectangle() {
+        // A 100-wide logo with a 60 by 120 cup: it spans x 20..80 and y 0..120.
+        assertTrue(isOnLogoCup(50f, 10f, 100f, 60f, 120f))
+        assertTrue(isOnLogoCup(21f, 119f, 100f, 60f, 120f))
+        assertTrue(!isOnLogoCup(10f, 60f, 100f, 60f, 120f), "left of the cup")
+        assertTrue(!isOnLogoCup(90f, 60f, 100f, 60f, 120f), "right of the cup")
+        assertTrue(!isOnLogoCup(50f, 130f, 100f, 60f, 120f), "below the cup")
+        assertTrue(!isOnLogoCup(50f, -1f, 100f, 60f, 120f), "above the cup")
+    }
 }

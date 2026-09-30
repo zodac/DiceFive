@@ -75,6 +75,8 @@ fun MenuScreen(
                 cupStyle = logoStyles?.cup ?: DiceCupStyles.default,
                 // Googly eyes only: the one screen whose dice follow the phone's own tilt and shake.
                 pupilsFollowDevice = true,
+                // Tapping the cup itself shakes it, as in a game.
+                shakeCupOnTap = true,
                 onDiceTap = onDiceTap,
             )
 

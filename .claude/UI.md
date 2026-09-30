@@ -681,3 +681,9 @@ SilentPlatformServices`) and steps both the compose clock and the paused main lo
   on the Styles screen), and hangs from the same top line rather than standing on a shared base: a
   squat cup (`CupShape.SQUAT`) stood on the tall cup's base hid almost wholly behind the dice and
   wordmark. Keep the "DiceFive" text, which `MainActivitySmokeTest` asserts on.
+  **Tapping the cup shakes it** (`shakeCupOnTap`, the menu only): the same `CupCanvas` shake as in a
+  game, for `CUP_SHAKE_MILLIS`, so its wobble and any liquid slosh come with it, and it ends upright
+  (`tilted` stays false). Nothing is earned, and it has no sound or buzz. The cup takes no layout
+  space, and a zero-size node is never hit, so the target is the whole logo's own `detectTapGestures`
+  plus `isOnLogoCup`'s rectangle; a die's tap is consumed by the fan's click first, so it never
+  shakes the cup. Not exposed to TalkBack, like the dice tap.
