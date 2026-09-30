@@ -66,6 +66,10 @@ import net.zodac.dicefive.ui.theme.DiceFiveTheme
  * by every roll: a tap (or Quickfire's automatic one) here, and an AI's in [GameViewModel]. */
 internal const val CUP_SHAKE_MILLIS = 420L
 
+/** How long before the roll lands the cup stops shaking and starts to tip the dice out - a few frames,
+ * so the tip is already under way before the heavy frame the dice land on, rather than starting on it. */
+internal const val CUP_POUR_LEAD_MILLIS = 64L
+
 /** Below this many seconds left, the badge flashes between red and its normal muted color instead
  * of sitting static. */
 private const val TURN_TIMER_FLASH_SECONDS = 5
@@ -269,6 +273,19 @@ private fun InProgressGame(
     }
     val diceSettling = !settled.value
 
+    // The last CUP_POUR_LEAD_MILLIS of a shake, a human's or a CPU's: the cup starts pouring then, a
+    // few frames ahead of the dice landing (see CupPanelState.pouring). Only while still rolling, so
+    // it can never outlast the shake it belongs to.
+    var pourStarted by remember { mutableStateOf(false) }
+    LaunchedEffect(isRolling) {
+        pourStarted = false
+        if (isRolling) {
+            lifecycle.delayWhileResumed((cupShakeMillis - CUP_POUR_LEAD_MILLIS).coerceAtLeast(0L))
+            pourStarted = true
+        }
+    }
+    val pouring = isRolling && pourStarted
+
     // The shake sound starts the instant isRolling goes true (human tap or an AI turn kicking
     // off), and the landing sound plays the instant it goes false again, whichever side started
     // it - mirroring the cup/tray's own rolling pose above. previousRolling starts false in step
@@ -372,6 +389,7 @@ private fun InProgressGame(
         GameBoard(
             state = state,
             rolling = isRolling,
+            pouring = pouring,
             diceSettling = diceSettling,
             canUndo = canUndo,
             onScoreCategory = onScoreCategory,

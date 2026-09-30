@@ -458,7 +458,11 @@ private fun ScatterArea(
         val restY = scatter.yOffset.value
         val size = SCATTERED_DIE_SIZE.value
         if (rolling && !(show && !die.isHeld)) cupFace[0] = 0
-        if (!show || die.isHeld) return@BoxWithConstraints
+        // A turn's first dice aren't on the mat while the cup shakes, but they're built waiting off
+        // its near edge all the same - where a later roll's dice have been swept to by then - so the
+        // throw carries on in them instead of building them on the frame the cup tips.
+        val offMat = !show && rolling && !simple
+        if ((!show && !offMat) || die.isHeld) return@BoxWithConstraints
         val rest = Modifier.align(Alignment.TopCenter).size(SCATTERED_DIE_SIZE)
         val style = diceStyles.forDie(die)
         val selfTumbling = style.tumblesItself
@@ -543,17 +547,14 @@ private fun ScatterArea(
 
         // Every die on the mat takes its shadow from the one light (Shadow, above), not its own.
         CompositionLocalProvider(LocalDieCastsShadow provides false) {
+            val pickingUp = rolling && !simple
             when {
-                // Swept off the mat while the cup shakes, still showing the last roll.
-                rolling && !simple -> {
-                    val path = remember(tracker.starts, die.value) { PickUpPath(die.value, startY, restY) }
-                    cupFace[0] = path.value
-                    Moving(path.pose(pickUp.value), listOf(die.value), finalTurns = 0, tossMillis = null)
-                }
-
-                toss.value < 1f && !simple -> {
+                pickingUp || (toss.value < 1f && !simple) -> {
+                    // Swept off the mat while the cup shakes, still showing the last roll...
+                    val pickUpPath = remember(tracker.starts, die.value) { PickUpPath(die.value, startY, restY) }
+                    // ...then thrown back on once it lands.
                     val sideRoom = ((maxWidth - SCATTERED_DIE_SIZE) / 2 - abs(scatter.xOffset.value).dp).value.coerceAtLeast(0f)
-                    val path = remember(tracker.landings) {
+                    val tossPath = remember(tracker.landings) {
                         TossPath(
                             seed = tracker.landings * 7 + seed,
                             result = die.value,
@@ -565,7 +566,17 @@ private fun ScatterArea(
                             sideRoom = sideRoom,
                         )
                     }
-                    Moving(path.pose(toss.value), path.ring, path.finalTurns, tossMillis = toss.value * DICE_TOSS_MILLIS)
+                    // Both moves through the one Moving call, so the moment the roll lands the die
+                    // carries on in the nodes it already has. A call for each move had every die's
+                    // nodes torn down and built again on that very frame - the one the cup starts to
+                    // tip over on, which it visibly hitched.
+                    if (pickingUp && !offMat) cupFace[0] = pickUpPath.value
+                    Moving(
+                        pose = if (pickingUp) pickUpPath.pose(if (offMat) 1f else pickUp.value) else tossPath.pose(toss.value),
+                        ring = if (pickingUp) listOf(die.value) else tossPath.ring,
+                        finalTurns = if (pickingUp) 0 else tossPath.finalTurns,
+                        tossMillis = if (pickingUp) null else toss.value * DICE_TOSS_MILLIS,
+                    )
                 }
 
                 else -> {
