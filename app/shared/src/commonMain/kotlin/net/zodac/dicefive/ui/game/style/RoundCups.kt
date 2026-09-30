@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.sign
@@ -42,9 +43,9 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.math.tan
 import kotlin.random.Random
-import kotlinx.coroutines.delay
 import net.zodac.dicefive.model.FLOWERPOT_FULL_BLOOM
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.theme.FlowerpotLeaf
 import net.zodac.dicefive.ui.theme.FlowerpotLeafDark
 import net.zodac.dicefive.ui.theme.FlowerpotStem
@@ -529,6 +530,7 @@ class TopHatDiceCupStyle(
         val peek = remember { Animatable(if (rabbitAlwaysOut) 1f else 0f) }
         val earTwitch = remember { Animatable(0f) }
         val activity = LocalCupActivity.current
+        val lifecycle = LocalLifecycleOwner.current.lifecycle
         val onRabbitSeen by rememberUpdatedState(LocalOnRabbitSeen.current)
         val slide = remember { RabbitSlide() }
         // A frame clock for the slide, only while the hat is moving or has just been: it starts when
@@ -551,18 +553,18 @@ class TopHatDiceCupStyle(
             if (rabbitAlwaysOut) return@LaunchedEffect
             peek.animateTo(0f, tween(RABBIT_RISE_MILLIS / 2))
             if (!tilted || rolling) return@LaunchedEffect
-            delay(Random.nextLong(RABBIT_IDLE_MILLIS.first, RABBIT_IDLE_MILLIS.last + 1))
+            lifecycle.delayWhileResumed(Random.nextLong(RABBIT_IDLE_MILLIS.first, RABBIT_IDLE_MILLIS.last + 1))
             val rise = tween<Float>(RABBIT_RISE_MILLIS, easing = FastOutSlowInEasing)
             onRabbitSeen()
             peek.animateTo(1f, rise)
             val twitches = 4 * RABBIT_TWITCH_MILLIS
             val hold = RABBIT_PEEK_MILLIS - 2 * RABBIT_RISE_MILLIS - twitches
-            delay(hold / 2)
+            lifecycle.delayWhileResumed(hold / 2)
             repeat(2) {
                 earTwitch.animateTo(1f, tween(RABBIT_TWITCH_MILLIS))
                 earTwitch.animateTo(0f, tween(RABBIT_TWITCH_MILLIS))
             }
-            delay(hold / 2)
+            lifecycle.delayWhileResumed(hold / 2)
             peek.animateTo(0f, rise)
         }
 

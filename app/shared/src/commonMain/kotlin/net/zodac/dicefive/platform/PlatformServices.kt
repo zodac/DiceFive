@@ -82,6 +82,12 @@ interface SoundPlayer {
     /** Plays [effect] at [volume] (0-1). A clip still loading plays as soon as it's ready. */
     fun play(effect: SoundEffect, volume: Float)
 
+    /** Holds every clip still playing where it is, for the app going to the background - [resume] carries on. */
+    fun pause() = Unit
+
+    /** Carries on the clips [pause] held. */
+    fun resume() = Unit
+
     fun release()
 }
 
@@ -97,6 +103,9 @@ enum class HapticEffect {
 
 interface HapticsPlayer {
     fun play(effect: HapticEffect)
+
+    /** Stops a vibration under way, for the app going to the background. */
+    fun cancel() = Unit
 }
 
 /**

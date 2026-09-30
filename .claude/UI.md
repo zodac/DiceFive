@@ -584,6 +584,27 @@ sets `aiRolling`, which the screen treats like its own tap) and lands through th
 GAME_MODES.md`'s "Turn flow" has why, and the traps (the AI loop's own copy of the state; Undo
 during the shake).
 
+## Nothing runs in the background
+
+The process stays alive when the app is backgrounded, and so do coroutines: a plain `delay` keeps counting.
+So **no shared code uses a plain `delay`** - `NoBackgroundTimersTest` fails the build on one. `GameViewModel`'s
+turn timer and CPU turn loop use `pausableDelay` (driven by `setForeground`, which `GameScreen` calls from
+lifecycle callbacks - not from composition, because a backgrounded app draws no frames and nothing would
+recompose to say so - and which also pauses them when another screen opens over the game); everything else
+- the banners' hold, stagger and long-press, the roll's shake and settle waits, the tray's face flicker, the
+Top Hat rabbit's peek, the flowerpot's stand-up, the achievement row's flash, the Styles warm-up and the
+superuser gestures' ticks - uses `Lifecycle.delayWhileResumed` (`ui/common/ForegroundDelay.kt`). A wait under
+way when the app goes away starts again, in full, on return.
+
+Also stopped in the background: a sound under way (`SoundPlayer.pause`/`resume`, `SoundPool.autoPause`) and a
+vibration (`HapticsPlayer.cancel`), both via lifecycle observers in `rememberSoundEffects`/`rememberDiceHaptics`;
+the shake sensor and the logo's pupil sensor (resume/pause observers); and the reduced-motion setting's
+observer (collected with `collectAsStateWithLifecycle`, so it isn't registered). Frame-driven animation
+stops on its own with no frames. The app has no services, receivers or background work of its own.
+**iOS:** `SoundPlayer.pause`/`resume` and `HapticsPlayer.cancel` default to doing nothing, so the iOS players
+don't yet stop (implement them with `AVAudioPlayer.pause()`), and `TransientMessageHost` (iosMain, not compiled
+here) still uses a plain `delay`.
+
 ## Reduced motion
 
 **Two layers.** On Android, Compose itself already follows the system animation scale (read from the
@@ -599,8 +620,8 @@ does: `withFrameNanos` loops, `delay`-driven sequences and physics, and anything
 stopping outright.
 
 When it's true: the tile glow is steady gold, the turn timer is a steady red (its live-region warning is
-unchanged), the menu's drifting dice and the twinkling stars stay still, the cups' ambient sway and drawn
-shake stop, the Top Hat's always-out rabbit stays put (the peeking one still peeks - its sighting is an
+unchanged), the menu's drifting dice and the twinkling stars stay still, the Cauldron's bubbling and the
+Takeaway's steam (the cups' ambient animation, only for players who pick them) and the drawn shake stop, the Top Hat's always-out rabbit stays put (the peeking one still peeks - its sighting is an
 achievement - just without easing), the googly dice's pupils stay centred instead of sliding with the
 device (the menu logo and the tray), the logo dice and cup don't roll or shake when tapped (the tap still
 counts), the dice roll is the "simple" one (`LocalSimpleDiceRoll` is forced on - so scoring doesn't wait

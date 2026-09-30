@@ -1,7 +1,11 @@
 package net.zodac.dicefive.ui.game
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import net.zodac.dicefive.platform.HapticEffect
 import net.zodac.dicefive.platform.HapticsPlayer
 import net.zodac.dicefive.platform.LocalPlatformServices
@@ -23,11 +27,21 @@ class DiceHaptics(private val player: HapticsPlayer) {
     fun playShakeBuzz() {
         if (enabled) player.play(HapticEffect.SHAKE_BUZZ)
     }
+
+    /** Stops a buzz under way - the app has gone to the background. */
+    fun cancel() = player.cancel()
 }
 
 /** A [DiceHaptics] scoped to the current composition. */
 @Composable
 fun rememberDiceHaptics(): DiceHaptics {
     val platform = LocalPlatformServices.current
-    return remember { DiceHaptics(platform.createHapticsPlayer()) }
+    val haptics = remember { DiceHaptics(platform.createHapticsPlayer()) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_PAUSE) haptics.cancel() }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    return haptics
 }

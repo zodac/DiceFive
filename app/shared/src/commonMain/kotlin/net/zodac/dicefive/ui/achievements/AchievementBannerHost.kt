@@ -52,16 +52,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.style.unlocksStyle
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.ConfigureOverlayDialogWindow
@@ -168,6 +169,7 @@ fun AchievementBannerHost(
     // there's no game to leave, when onAchievementSelected is called directly instead.
     var pendingAchievement by remember { mutableStateOf<Achievement?>(null) }
 
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(Unit) {
         var nextKey = 0L
         AchievementEvents.events.collect { event ->
@@ -180,7 +182,7 @@ fun AchievementBannerHost(
             // element, which is the front slot, letting it cut in front of a banner the player can
             // already see peeking out behind the one they're about to swipe away.
             banners.add(0, BannerItem(key = nextKey++, event = event))
-            delay(STAGGER_MILLIS)
+            lifecycle.delayWhileResumed(STAGGER_MILLIS)
         }
     }
 
@@ -317,6 +319,7 @@ private fun BannerSlot(
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     val alpha = remember { Animatable(0f) }
     val offsetX = remember { Animatable(0f) }
     var swipedAway by remember { mutableStateOf(false) }
@@ -344,7 +347,8 @@ private fun BannerSlot(
             alpha.animateTo(1f, tween(FADE_IN_MILLIS))
             return@LaunchedEffect
         }
-        delay(HOLD_MILLIS)
+        // Not while the app is in the background: a banner shouldn't clear itself unseen.
+        lifecycle.delayWhileResumed(HOLD_MILLIS)
         if (!swipedAway) {
             alpha.animateTo(0f, tween(FADE_OUT_MILLIS))
             onDismissed()
@@ -370,7 +374,7 @@ private fun BannerSlot(
                             var dragging = false
                             var previousX = down.position.x
                             val longPressJob = scope.launch {
-                                delay(longPressTimeoutMillis)
+                                lifecycle.delayWhileResumed(longPressTimeoutMillis)
                                 if (!dragging) onLongPress()
                             }
                             try {

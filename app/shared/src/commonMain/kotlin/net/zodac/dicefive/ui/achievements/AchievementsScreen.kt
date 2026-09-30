@@ -57,14 +57,15 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementScrollRequests
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.style.styleRewards
 import net.zodac.dicefive.ui.game.style.unlocksStyle
 import net.zodac.dicefive.model.AchievementVisibility
@@ -166,6 +167,7 @@ fun AchievementsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val superuserModeActive by viewModel.superuserModeActive.collectAsStateWithLifecycle()
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
 
     val platform = LocalPlatformServices.current
     LaunchedEffect(viewModel) {
@@ -218,7 +220,7 @@ fun AchievementsScreen(
                     listState.scrollToItem(flatIndex, centeredOffset)
                 }
                 highlightedAchievementId = request.achievementId
-                delay(ROW_FLASH_HOLD_MILLIS)
+                lifecycle.delayWhileResumed(ROW_FLASH_HOLD_MILLIS)
                 if (highlightedAchievementId == request.achievementId) highlightedAchievementId = null
             }
             AchievementScrollRequests.consumePending()
@@ -365,6 +367,7 @@ private fun AchievementRow(
     modifier: Modifier = Modifier,
 ) {
     val unlocked = item.unlockedAt != null
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
 
     StyleRewardTooltip(item.achievement, unlocked, enabled = !superuserModeActive) { tooltipModifier ->
         Card(
@@ -383,7 +386,7 @@ private fun AchievementRow(
                             var tickCount = 0
                             val tickJob = launch {
                                 while (isActive) {
-                                    delay(AchievementsViewModel.SUPERUSER_TICK_MILLIS)
+                                    lifecycle.delayWhileResumed(AchievementsViewModel.SUPERUSER_TICK_MILLIS)
                                     tickCount++
                                     onSuperuserLongPressTick(item.achievement, tickCount)
                                 }

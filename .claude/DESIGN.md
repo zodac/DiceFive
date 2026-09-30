@@ -1680,16 +1680,15 @@ install-over-existing succeeds:
       generated `baseline-prof.txt` then replaces the hand-written file, and a Macrobenchmark
       `StartupBenchmark` with `CompilationMode.Partial()` against `None()` confirms it actually helps.
       Regenerate after large UI changes.
-- [ ] **Benchmark battery use before capping any animation's frame rate.** Every animation runs at
-      the display's full rate (up to 120fps), including the purely decorative, always-on ones: the
-      menu's drifting watermark dice (`BrandBackdrop`), the Starry background/mat twinkle
-      (`TwinkleClock`) and the coffee-steam/cauldron cups (`rememberAmbientCycle`). Capping those
-      (e.g. 60fps for the menu drift, 30fps for the twinkle and cups, via a shared delay-then-frame
-      clock) was considered and deliberately **not** done yet: it should first be measured, not
-      assumed, to be worth it - e.g. a Macrobenchmark `FrameTimingMetric`/`PowerMetric` run, or Android
-      Studio's Power Profiler / on-device power rails, on a real 120Hz phone, comparing idle-on-menu
-      and a Starry/cauldron game at full rate against the capped rates. Dice rolls, cup shakes and
-      hold/unhold stay at full rate regardless.
+- [ ] **Benchmark battery use of the remaining always-on animations.** The menu's (and every reading
+      page's) drifting watermark dice are now capped at about 30 redraws a second (`DriftState.onFrame`:
+      the drift is slow, and the dice still move by the whole time since their last move, so their speed
+      is unchanged). Still at the display's full rate (up to 120fps): the Starry background/mat twinkle
+      (`TwinkleClock`), the coffee-steam/cauldron cups (`rememberAmbientCycle`, only for players who
+      pick them) and the highlighted tile's glow. Whether capping those too is worth it should be measured, not assumed - e.g. a Macrobenchmark
+      `FrameTimingMetric`/`PowerMetric` run, or Android Studio's Power Profiler, on a real 120Hz phone.
+      Dice rolls, cup shakes and hold/unhold stay at full rate regardless. The logo pupils' sensor is read
+      20 times a second (`PULL_SAMPLES_PER_SECOND`, smoothing adjusted to match), not 50.
 - [ ] **Not fixed: AboutLibraries resolves configurations while Gradle plans the build** (the
       "`debugCompileClasspath` was resolved during configuration time" CI warning). It's the plugin's
       own task inputs (`BaseAboutLibrariesTask`), on its latest version (15.2.0); nothing in our

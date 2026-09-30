@@ -4,10 +4,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.app.LocalAppContainer
@@ -30,7 +30,8 @@ import net.zodac.dicefive.ui.theme.DiceFiveTheme
 fun DiceFiveApp(container: AppContainer, platform: PlatformServices) {
     // Held here, above the NavHost, so the menu's drifting dice carry on unbroken across every screen off it.
     val driftState = remember { DriftState() }
-    val reduceMotion by remember(platform) { platform.reduceMotion() }.collectAsState(initial = false)
+    // Lifecycle-aware, so the system-settings observer behind it is only registered while the app is in front.
+    val reduceMotion by remember(platform) { platform.reduceMotion() }.collectAsStateWithLifecycle(initialValue = false)
     CompositionLocalProvider(
         LocalReduceMotion provides reduceMotion,
         LocalAppContainer provides container,
