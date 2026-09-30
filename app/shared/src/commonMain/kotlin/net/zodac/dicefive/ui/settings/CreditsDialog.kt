@@ -44,8 +44,8 @@ private data class CreditsSection(val heading: String, val body: String)
 
 private val CREDITS_SECTIONS = listOf(
     CreditsSection(
-        heading = "Created by",
-        body = "DiceFive is made by `zodac`.",
+        heading = "Author",
+        body = "DiceFive is created by `zodac`.",
     ),
 )
 
@@ -108,13 +108,13 @@ fun CreditsDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
                     }
 
                     Text(
-                        text = "Inspired by",
+                        text = "Inspiration",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                     )
                     Text(
-                        text = parseInlineMarkup("DiceFive was inspired by `Dice Me Online`, created by Arturo Gutierrez", codeStyle),
+                        text = parseInlineMarkup("DiceFive was inspired by `Dice Me Online`, created by `Arturo Gutierrez`.", codeStyle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),

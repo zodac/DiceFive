@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.ui.common.ScreenScaffold
+import net.zodac.dicefive.ui.common.FooterPill
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.parseInlineMarkup
 
@@ -284,28 +285,19 @@ private val PAGE_FOOTER_GAP = 8.dp
  * "1 of 7" pinned to the bottom of the pages - where you are and how many there are, in one glance,
  * alongside the tab row's chevrons (which say only that there's more). A small gold pill drawn over the
  * pages, not a row of its own, so it costs the pages no height: longer text scrolls behind it, the
- * pill's own background keeping it readable on top. A plain background rather than a `Surface`,
- * which would swallow touches and stop a scroll that starts on the pill.
+ * pill's own background keeping it readable on top. Drawn by the shared [FooterPill].
  *
  * TalkBack hears "Page 1 of 7", and as a polite live region it's announced again whenever the page
  * changes - a swipe through the pager otherwise lands on a new page without a word.
  */
 @Composable
 private fun PageCountFooter(page: Int, pageCount: Int, modifier: Modifier = Modifier) {
-    Text(
+    FooterPill(
         text = "${page + 1} of $pageCount",
-        style = MaterialTheme.typography.labelMedium,
-        // The brand gold, as a filled button wears it: primary behind onPrimary, the pair the palette
-        // guarantees contrast for (see UI.md's "Colour" - gold as a fill matches an existing use).
-        color = MaterialTheme.colorScheme.onPrimary,
-        modifier = modifier
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary)
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-            .semantics {
-                contentDescription = "Page ${page + 1} of $pageCount"
-                liveRegion = LiveRegionMode.Polite
-            },
+        modifier = modifier.semantics {
+            contentDescription = "Page ${page + 1} of $pageCount"
+            liveRegion = LiveRegionMode.Polite
+        },
     )
 }
 
