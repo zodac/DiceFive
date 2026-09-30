@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.ui.common.DiceFiveDialog
+import net.zodac.dicefive.ui.common.FooterPill
 import net.zodac.dicefive.ui.common.ScreenScaffold
 
 private val SETTING_LABEL_MIN_FONT_SIZE = 10.sp
@@ -100,7 +101,13 @@ fun SettingsScreen(
     var showLicenses by rememberSaveable { mutableStateOf(false) }
     var showCredits by rememberSaveable { mutableStateOf(false) }
 
-    ScreenScaffold(title = "Settings", onBack = onBack, modifier = modifier, scrollable = true) {
+    ScreenScaffold(
+        title = "Settings",
+        onBack = onBack,
+        modifier = modifier,
+        scrollable = true,
+        footer = { FooterPill("Version ${LocalAppContainer.current.buildInfo.versionName}") },
+    ) {
         Card(modifier = Modifier.fillMaxWidth()) {
             SwitchSetting(Icons.AutoMirrored.Filled.VolumeUp, "Sound effects", soundEnabled, viewModel::setSoundEnabled)
             SwitchSetting(Icons.Filled.Vibration, "Vibration", vibrationEnabled, viewModel::setVibrationEnabled)
@@ -145,21 +152,13 @@ fun SettingsScreen(
             }
         }
 
-        // Quiet footer, not a Card section: version and these links aren't settings, just where the
-        // standalone About screen's content moved once it was folded in here.
+        // Quiet links, not a Card section: these aren't settings, just where the standalone About
+        // screen's content moved once it was folded in here. The version is the scaffold's footer.
         Column(
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            TextButton(onClick = { showLicenses = true }) {
-                Icon(
-                    imageVector = Icons.Filled.Gavel,
-                    contentDescription = null,
-                    modifier = Modifier.padding(end = 8.dp),
-                )
-                Text("Licences")
-            }
             TextButton(
                 onClick = {
                     showCredits = true
@@ -173,11 +172,14 @@ fun SettingsScreen(
                 )
                 Text("Credits")
             }
-            Text(
-                text = "Version ${LocalAppContainer.current.buildInfo.versionName}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            TextButton(onClick = { showLicenses = true }) {
+                Icon(
+                    imageVector = Icons.Filled.Gavel,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+                Text("Licences")
+            }
         }
     }
 

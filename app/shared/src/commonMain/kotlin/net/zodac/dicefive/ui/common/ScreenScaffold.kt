@@ -31,11 +31,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -44,6 +50,9 @@ import androidx.compose.ui.unit.dp
 
 /** How long a page's content takes to fade in once it's opened - see [ScreenScaffold]. */
 const val PAGE_CONTENT_FADE_IN_MILLIS = 100
+
+/** Space between a floating footer and the bottom edge, and again between it and the content above. */
+private val FOOTER_GAP = 8.dp
 
 /** Keeps a page's content from stretching into an unreadable line on a tablet or in landscape. */
 val CONTENT_MAX_WIDTH = 460.dp
@@ -58,6 +67,10 @@ val CONTENT_MAX_WIDTH = 460.dp
  * [scrollable] wraps the content in a vertical scroll; leave it false for pages that manage their
  * own scrolling (a `LazyColumn`, or anything using `Modifier.weight`).
  *
+ * [footer] floats over the content, pinned to the bottom centre (a [FooterPill]): the content isn't
+ * given a row for it, but is padded at its end by the footer's measured height, so a large font
+ * still clears it and the last line can always scroll above it. Only for a [scrollable] page.
+ *
  * The app bar's title is bold, set in [SoraFontFamily] (the same face as the menu wordmark) and
  * tinted `colorScheme.primary` - the app's one brand colour, the same gold a Statistics max score
  * or a game board's "press this" uses - rather than the plain default `titleMedium` text a bare
@@ -71,8 +84,10 @@ fun ScreenScaffold(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     scrollable: Boolean = false,
+    footer: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    require(footer == null || scrollable) { "A footer floats over a scrollable page" }
     BrandBackdrop(modifier = modifier, driftingDice = true) {
         Scaffold(
             // The backdrop is already drawn behind; the Scaffold only supplies structure, insets
@@ -110,11 +125,27 @@ fun ScreenScaffold(
                 if (scrollable) {
                     // The content goes straight into PageColumn's viewport-tall column rather than a
                     // nested one, so a page can still use Modifier.weight to place itself vertically.
+                    var footerHeightPx by remember { mutableIntStateOf(0) }
+                    val footerReserve = if (footer == null) 0.dp else with(LocalDensity.current) { footerHeightPx.toDp() } + FOOTER_GAP * 2
+                    val layoutDirection = LocalLayoutDirection.current
                     PageColumn(
-                        contentPadding = innerPadding,
+                        contentPadding = PaddingValues.Absolute(
+                            left = innerPadding.calculateLeftPadding(layoutDirection),
+                            top = innerPadding.calculateTopPadding(),
+                            right = innerPadding.calculateRightPadding(layoutDirection),
+                            bottom = innerPadding.calculateBottomPadding() + footerReserve,
+                        ),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         content = content,
                     )
+                    if (footer != null) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = innerPadding.calculateBottomPadding() + FOOTER_GAP)
+                                .onSizeChanged { footerHeightPx = it.height },
+                        ) { footer() }
+                    }
                 } else {
                     // Not scrollable: the content manages its own (a LazyColumn taking weight(1f)),
                     // which can't be nested inside an outer scroll. The Box is what centres the
