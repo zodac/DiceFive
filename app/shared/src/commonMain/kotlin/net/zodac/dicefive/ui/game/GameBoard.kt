@@ -103,6 +103,7 @@ fun GameBoard(
     onCupTap: () -> Unit,
     onUndo: () -> Unit,
     modifier: Modifier = Modifier,
+    pouring: Boolean = false,
     diceSettling: Boolean = false,
 ) {
     val player = state.currentPlayer
@@ -140,6 +141,7 @@ fun GameBoard(
             // starts, whatever `tilted` was beforehand (see rememberCupRotation).
             tilted = state.phase == TurnPhase.ROLLED,
             rolling = rolling,
+            pouring = pouring,
             canUndo = canUndo,
             // Undo is solo-only: with other players it either reaches back into their finished turn
             // or is cleared by the AI's move almost at once.

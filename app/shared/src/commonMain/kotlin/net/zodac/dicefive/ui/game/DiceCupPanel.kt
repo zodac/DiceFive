@@ -78,6 +78,12 @@ data class CupPanelState(
     val rollsRemaining: Int,
     val tilted: Boolean,
     val rolling: Boolean,
+    /**
+     * The last moments of a shake, when the cup has stopped shaking and is already tipping the dice
+     * out, a few frames before they land - see `CUP_POUR_LEAD_MILLIS`. Only the cup's own art uses
+     * it: the roll itself is still [rolling] until the dice land.
+     */
+    val pouring: Boolean = false,
     val canUndo: Boolean,
     /** Whether the undo button is shown at all - only in a solo game. */
     val showUndo: Boolean,
@@ -225,8 +231,8 @@ fun DiceCupPanel(
                             ) {
                                 cupStyle.Cup(
                                     // The shake sound and buzz still play (GameScreen); only the drawn shake goes.
-                                    rolling = cup.rolling && !LocalReduceMotion.current,
-                                    tilted = cup.tilted && !standingForBloom,
+                                    rolling = cup.rolling && !cup.pouring && !LocalReduceMotion.current,
+                                    tilted = (cup.tilted || cup.pouring) && !standingForBloom,
                                     // A cup's shape grid is its size in dp here - tall or squat, both fit this 104dp box.
                                     modifier = Modifier.size(width = cupStyle.shape.gridWidth.dp, height = cupStyle.shape.gridHeight.dp),
                                 )
