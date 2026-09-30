@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
@@ -76,6 +77,7 @@ fun GameSetupScreen(
     val setup by viewModel.setup.collectAsStateWithLifecycle()
     val activeSlots = setup.playerSlots.take(setup.playerCount)
     val duplicateNameSlots = duplicateHumanNameSlots(activeSlots)
+    val focusManager = LocalFocusManager.current
 
     ScreenScaffold(title = "New Game", onBack = onBack, modifier = modifier) {
         // The form scrolls on its own, and the Start Game button sits directly after it rather than
@@ -100,6 +102,9 @@ fun GameSetupScreen(
 
         Button(
             onClick = {
+                // A name field still focused would keep blinking its cursor on the fading-out page, and the
+                // keyboard up, for the frames the next screen takes to arrive.
+                focusManager.clearFocus()
                 viewModel.startGame()
                 onStartGame()
             },
