@@ -8,15 +8,20 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,8 +34,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -39,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.offset
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -74,6 +82,14 @@ private const val TURN_TIMER_FLASH_SECONDS = 5
 
 /** One full red-to-muted-to-red cycle of the flash, in milliseconds. */
 private const val TURN_TIMER_FLASH_PERIOD_MILLIS = 300
+
+private val GAME_PADDING = 16.dp
+
+/** Where the back arrow's 48dp target starts from the screen edge - the same as ScreenScaffold's app bar. */
+private val BACK_ARROW_INSET = 4.dp
+
+/** Where the back arrow's 48dp target starts below the status bar - the same as ScreenScaffold's app bar. */
+private val BACK_ARROW_TOP = 8.dp
 
 @Composable
 fun GameScreen(
@@ -133,13 +149,14 @@ fun GameScreen(
     // Redirect system back to Menu (default nav behavior would land on the setup form instead).
     // While reviewing scorecards, back returns to the results instead - ScorecardReviewScreen
     // installs its own BackHandler for that, which composes later and so wins over this one.
-    BackHandler {
+    val leaveGame = {
         if (!currentState.isGameOver && confirmBeforeLeaving) {
             leaveConfirmation.request(onBackToMenu)
         } else {
             onBackToMenu()
         }
     }
+    BackHandler(onBack = leaveGame)
 
     // A single injection point for the pluggable dice/cup/background art and the table's settings -
     // see GameViewModel.tableSettings. Nothing's drawn until they've loaded, rather than the defaults.
@@ -190,7 +207,7 @@ fun GameScreen(
                 // ask the system for its real inset instead.
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(GAME_PADDING),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             InProgressGame(
@@ -199,6 +216,7 @@ fun GameScreen(
                 superuserModeActive = superuserModeActive,
                 aiRolling = aiRolling,
                 turnSecondsRemaining = turnSecondsRemaining,
+                onBack = leaveGame,
                 onUndo = viewModel::undo,
                 onRoll = viewModel::rollDice,
                 onToggleHold = viewModel::toggleHold,
@@ -221,6 +239,7 @@ private fun InProgressGame(
     superuserModeActive: Boolean,
     aiRolling: Boolean,
     turnSecondsRemaining: Int?,
+    onBack: () -> Unit,
     onUndo: () -> Unit,
     onRoll: () -> Unit,
     onToggleHold: (Int) -> Unit,
@@ -364,13 +383,30 @@ private fun InProgressGame(
     // Only listening while a shake could do anything: this player's own turn, on their own scorecard.
     ShakeDetectorEffect(enabled = isHumanTurn && viewedPlayer == null, onShake = onShakeDetected)
 
-    PlayerHeaderBar(
-        players = state.players,
-        currentPlayerIndex = state.currentPlayerIndex,
-        viewedPlayerIndex = viewedPlayerIndex,
-        enabled = isHumanTurn,
-        onPlayerTap = onPlayerTap,
-    )
+    // The back arrow shares the tabs' row, so the row is no taller and nothing below it moves. It is pulled
+    // out over the screen's 16dp padding so the arrow sits where ScreenScaffold's does (4dp from the edge).
+    Row(
+        modifier = Modifier.layout { measurable, constraints ->
+            val extra = (GAME_PADDING - BACK_ARROW_INSET).roundToPx()
+            val placeable = measurable.measure(constraints.offset(horizontal = extra))
+            layout(placeable.width - extra, placeable.height) { placeable.place(-extra, 0) }
+        },
+        verticalAlignment = Alignment.Top,
+    ) {
+        // Lifted so its centre is ScreenScaffold's 32dp below the status bar: the screen's top padding
+        // puts this row at 16dp, and a bar's 48dp button sits 8dp down in it. Drawn only - the row's height is unchanged.
+        IconButton(onClick = onBack, modifier = Modifier.offset(y = BACK_ARROW_TOP - GAME_PADDING)) {
+            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+        }
+        PlayerHeaderBar(
+            players = state.players,
+            currentPlayerIndex = state.currentPlayerIndex,
+            viewedPlayerIndex = viewedPlayerIndex,
+            enabled = isHumanTurn,
+            onPlayerTap = onPlayerTap,
+            modifier = Modifier.weight(1f),
+        )
+    }
 
     // Only shown while a timer is actually running for this turn - see GameViewModel.syncTurnTimer.
     if (turnSecondsRemaining != null) {
