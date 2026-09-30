@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.styles
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -24,7 +25,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,7 +48,7 @@ import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.game.style.DieMotion
 import net.zodac.dicefive.ui.game.style.LocalDieMotion
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -181,9 +183,33 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
 /** The Styles screen's categories, in its order. */
 private enum class StyleCategory { DICE, DICE_CUP, MAT, BACKGROUND }
 
+// The gap between tiles in a row.
+private val TILE_SPACING = 12.dp
+
+/**
+ * The families a row shows, in its order: every unlocked one, then the locked ones - less any
+ * secret one, which isn't so much as hinted at until it's earned - each in the catalog's own order.
+ */
+private fun <T : TableArt> StyleCatalog<T>.shownFamilies(achievements: AchievementsState): Pair<List<StyleFamily<T>>, List<StyleFamily<T>>> {
+    val (unlocked, locked) = families.partition { it.unlock.isMet(achievements) }
+    return unlocked to locked.filterNot { it.unlock.hiddenWhileLocked }
+}
+
+/** How many tiles [category]'s row has. */
+private fun StyleCategory.tileCount(achievements: AchievementsState): Int {
+    val catalog = when (this) {
+        StyleCategory.DICE -> DiceStyles
+        StyleCategory.DICE_CUP -> DiceCupStyles
+        StyleCategory.MAT -> DiceMats
+        StyleCategory.BACKGROUND -> TableBackgrounds
+    }
+    val (unlocked, locked) = catalog.shownFamilies(achievements)
+    return unlocked.size + locked.size
+}
+
 /** One category's card - its title and its row of tiles - as the Styles screen shows it, and as [StylesWarmUp] draws it. */
 @Composable
-private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, onSelect: (String) -> Unit) {
+private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, onSelect: (String) -> Unit, warmUp: IntRange? = null) {
     val achievements = picks.achievements
     when (category) {
         StyleCategory.DICE -> StyleCategoryCard(title = "Dice") {
@@ -194,6 +220,7 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
                 onSelect = onSelect,
                 previewSize = DpSize(DICE_PREVIEW_SIZE, DICE_PREVIEW_SIZE),
                 backgroundBrush = { SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh) },
+                warmUp = warmUp,
             ) { style ->
                 DicePreview(style)
             }
@@ -207,6 +234,7 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
                 onSelect = onSelect,
                 previewSize = DpSize(CUP_PREVIEW_WIDTH, CUP_PREVIEW_HEIGHT),
                 backgroundBrush = { SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh) },
+                warmUp = warmUp,
             ) { style ->
                 style.Cup(
                     rolling = false,
@@ -227,6 +255,7 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
                 onSelect = onSelect,
                 previewSize = DpSize(MAT_PREVIEW_WIDTH, MAT_PREVIEW_HEIGHT),
                 backgroundBrush = { mat -> mat.diceTrayBrush },
+                warmUp = warmUp,
             ) { mat ->
                 mat.DiceTrayDecoration(modifier = Modifier.matchParentSize())
             }
@@ -240,6 +269,7 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
                 onSelect = onSelect,
                 previewSize = DpSize(BACKGROUND_PREVIEW_WIDTH, BACKGROUND_PREVIEW_HEIGHT),
                 backgroundBrush = { background -> background.scoreAreaBrush },
+                warmUp = warmUp,
             ) { background ->
                 background.Animate()
                 Canvas(modifier = Modifier.matchParentSize()) { with(background) { drawScoreAreaDecoration() } }
@@ -280,36 +310,39 @@ private fun DicePreview(style: DiceStyle) {
 }
 
 /**
- * Draws the Styles screen's categories once, out of sight, so the page's code has already run by the
- * time a player opens it. Each tile's art is its own drawing code, and the first time any of it runs
- * after a launch it's slow - slow enough, run all at once, to hold the menu for several frames when
- * the page opens, release build or not. Placed on the menu (under its opaque backdrop, in a 1dp
- * clipped box, so nothing shows): it waits for the menu to settle, then composes one category a
- * frame, [width] wide so its row composes the same tiles the page would open on, and drops each
- * again - spread thin enough that the menu's own drifting dice don't skip. Compose doesn't cull what
- * a clip hides, so the art is really drawn, not just composed. Runs once per launch: later openings
- * of the menu find it already done.
+ * Draws every tile of the Styles screen once, out of sight, so the page's code has already run by the
+ * time a player opens it or scrolls a row. Each tile's art is its own drawing code, and the first time
+ * any of it runs after a launch it's slow (loading a mat's texture, painting a marble die, compiling
+ * a D20's drawing) - slow enough, run all at once, to hold the menu for several frames when the page
+ * opens, and to make a row's first scroll stutter as each tile appeared. Placed on the menu (under
+ * its opaque backdrop, in a 1dp clipped box, so nothing shows): it waits for the menu to settle, then
+ * draws [WARM_UP_TILES_PER_PASS] tiles at a time, a category at a time, and drops them again - spread
+ * thin enough that the menu's own drifting dice don't skip. Compose doesn't cull what a clip hides,
+ * so the art is really drawn, not just composed. Runs once per launch: later openings of the menu
+ * find it already done. [width] is unused by the tiles themselves; it keeps the box as wide as the page.
  */
 @Composable
 fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier) {
     if (stylesWarmedUp || picks == null) return
-    var current by remember { mutableIntStateOf(-1) }
+    var current by remember { mutableStateOf<Pair<StyleCategory, IntRange>?>(null) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(Unit) {
         lifecycle.delayWhileResumed(WARM_UP_DELAY_MILLIS)
-        for (index in StyleCategory.entries.indices) {
-            current = index
-            // A frame to compose and draw it, then on to the next.
-            withFrameNanos { }
-            withFrameNanos { }
+        for (category in StyleCategory.entries) {
+            for (first in 0 until category.tileCount(picks.achievements) step WARM_UP_TILES_PER_PASS) {
+                current = category to (first until first + WARM_UP_TILES_PER_PASS)
+                // A frame to compose and draw them, then on to the next.
+                withFrameNanos { }
+                withFrameNanos { }
+            }
         }
         stylesWarmedUp = true
-        current = -1
+        current = null
     }
-    val category = StyleCategory.entries.getOrNull(current) ?: return
+    val (category, tiles) = current ?: return
     Box(modifier = modifier.size(1.dp).clipToBounds()) {
         Box(modifier = Modifier.requiredWidth(width).wrapContentHeight(unbounded = true)) {
-            StyleCategorySection(category = category, picks = picks, onSelect = {})
+            StyleCategorySection(category = category, picks = picks, onSelect = {}, warmUp = tiles)
         }
     }
 }
@@ -319,6 +352,9 @@ private var stylesWarmedUp = false
 
 // Long enough for the menu's own entrance (its buttons' fade) to be over.
 private const val WARM_UP_DELAY_MILLIS = 600L
+
+// How many tiles StylesWarmUp draws at once - few enough that a pass fits beside the menu's own frame.
+private const val WARM_UP_TILES_PER_PASS = 3
 
 /** A titled group of preview tiles for one swappable category, matching Settings' Card sections. */
 @Composable
@@ -337,12 +373,13 @@ private fun StyleCategoryCard(title: String, content: @Composable ColumnScope.()
  * One [StyleFamilyTile] per family in [catalog], in a horizontally scrolling row with a
  * [HorizontalScrollbar] under it: every unlocked style first, then the locked ones, each group in
  * the catalog's own order. [selectedId] is the saved pick, shown as the default instead while its
- * style is locked.
+ * style is locked. With [warmUp], just those tiles instead, in a plain row - see [StylesWarmUp].
  *
  * A [LazyRow], not a scrolling `Row`: every tile's art is its own drawing code, some of it animated,
  * and composing every tile in every category at once made the first open after a restart hold up
  * the menu for several frames. Only the tiles on screen are composed.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun <T : TableArt> StyleFamilyTiles(
     catalog: StyleCatalog<T>,
@@ -351,16 +388,40 @@ private fun <T : TableArt> StyleFamilyTiles(
     onSelect: (String) -> Unit,
     previewSize: DpSize,
     backgroundBrush: @Composable (T) -> Brush,
+    warmUp: IntRange? = null,
     preview: @Composable BoxScope.(T) -> Unit,
 ) {
     val shownSelectedId = catalog.unlockedById(selectedId, achievements).id
-    val (unlocked, locked) = catalog.families.partition { it.unlock.isMet(achievements) }
-    // A secret style isn't so much as hinted at until it's earned.
-    val shownLocked = locked.filterNot { it.unlock.hiddenWhileLocked }
+    val (unlocked, shownLocked) = catalog.shownFamilies(achievements)
+
+    @Composable
+    fun Tile(index: Int) {
+        if (index < unlocked.size) {
+            StyleFamilyTile(unlocked[index], achievements, shownSelectedId, onSelect, previewSize, backgroundBrush, preview, index)
+        } else {
+            LockedStyleFamilyTile(shownLocked[index - unlocked.size], achievements, previewSize, backgroundBrush, preview, index)
+        }
+    }
+
+    // StylesWarmUp's pass: just these tiles, side by side, drawn once - see StylesWarmUp.
+    if (warmUp != null) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            for (index in warmUp) if (index < unlocked.size + shownLocked.size) Tile(index)
+        }
+        return
+    }
 
     // Opens with the current pick first in line, then centres it once its size is known.
     val pickedIndex = unlocked.indexOfFirst { it.colourOf(shownSelectedId) != null }.coerceAtLeast(0)
-    val listState = rememberLazyListState(initialFirstVisibleItemIndex = pickedIndex)
+    // A tile's worth either side of what's on screen is kept built - composed and measured in the idle
+    // time between frames - so a tile scrolling in is already there rather than built on the frame it
+    // appears. What isn't on screen is kept still (see the item below), so the extra costs nothing
+    // once built.
+    val tileReach = previewSize.width + TILE_SPACING
+    val listState = rememberLazyListState(
+        cacheWindow = LazyLayoutCacheWindow(ahead = tileReach, behind = tileReach),
+        initialFirstVisibleItemIndex = pickedIndex,
+    )
     // Hidden until it has been scrolled to the current pick, so the page opens already
     // positioned rather than visibly sliding there.
     var revealed by remember { mutableStateOf(false) }
@@ -384,13 +445,18 @@ private fun <T : TableArt> StyleFamilyTiles(
         state = listState,
         modifier = Modifier.fillMaxWidth().alpha(rowAlpha),
         contentPadding = PaddingValues(start = 12.dp, top = 6.dp, end = 12.dp, bottom = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(TILE_SPACING),
     ) {
-        itemsIndexed(unlocked, key = { _, family -> family.name }) { index, family ->
-            StyleFamilyTile(family, achievements, shownSelectedId, onSelect, previewSize, backgroundBrush, preview, index)
-        }
-        itemsIndexed(shownLocked, key = { _, family -> family.name }) { index, family ->
-            LockedStyleFamilyTile(family, achievements, previewSize, backgroundBrush, preview, unlocked.size + index)
+        items(count = unlocked.size + shownLocked.size, key = { index -> (unlocked + shownLocked)[index].name }) { index ->
+            // Built ahead but not on screen yet (the cache window above), or scrolled just out of
+            // sight: held still, as under reduced motion - a cup's steam, a background's twinkle, a
+            // googly die's pupils - until it's actually showing, so nothing off screen animates.
+            val onScreen by remember(listState, index) {
+                derivedStateOf { listState.layoutInfo.visibleItemsInfo.any { it.index == index } }
+            }
+            CompositionLocalProvider(LocalReduceMotion provides (LocalReduceMotion.current || !onScreen)) {
+                Tile(index)
+            }
         }
     }
 
