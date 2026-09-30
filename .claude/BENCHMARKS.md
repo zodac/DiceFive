@@ -214,6 +214,23 @@ Everything unlocked, phone-sized screen:
 
   After the warm-up, a row's first scroll costs the same as its second: 4-7ms of composition per
   new tile, and no draw spikes (the Mat row's 35ms/97ms gone).
+- **On a device, the idle page was over budget every frame** (HWUI profile bars, `Profile HWUI
+  rendering`): mostly red and orange - issuing and drawing on the GPU, not the app's own work. A
+  device redraws the whole window whenever anything in it moves, so every animated tile (the
+  Takeaway's steam, the Cauldron, twinkling stars, Floating Dice) and the backdrop's drift had all
+  ~40 tiles' art drawn again each frame. Proven by holding everything still: the phone then drew
+  nothing at all while idle. Fixes:
+  - Each tile's preview is drawn into its own layer
+    (`graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }` in `StylePreview`),
+    which the device keeps and re-uses until that tile changes - a still tile costs next to nothing
+    per frame, and scrolling moves layers rather than redrawing art. Scrolling felt clearly better.
+  - The Floating Dice background ignored reduced motion, so it kept drifting (and kept the page
+    redrawing) when everything else had stopped - in the game too. It now holds still, like the
+    menu's backdrop.
+
+  Robolectric can't show any of this: it doesn't model the device's GPU, and a capture replays
+  the whole window regardless. The HWUI bars (or `adb shell dumpsys gfxinfo <package>`) on a real
+  phone are the measure for drawing cost.
 - **Opening:** the first frame composes the page (~160-200ms here, before JIT warm-up); the
   `StylesWarmUp` pre-draw from the menu already exists for this - see its comment in
   `StylesScreen.kt`.

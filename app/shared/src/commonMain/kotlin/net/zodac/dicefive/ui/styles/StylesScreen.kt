@@ -64,7 +64,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -705,6 +707,12 @@ private fun <T : TableArt> StylePreview(
     Box(
         modifier = Modifier
             .size(size)
+            // Drawn into a layer of its own, which the device keeps and puts back on screen as it is
+            // until the tile itself changes. Without it, anything on the page moving - an animated
+            // tile, the backdrop's drift, a row scrolling - had every tile's art drawn over again
+            // each frame, more than a frame's work on a phone; now a still tile costs next to nothing
+            // and scrolling just moves the layers. See .claude/BENCHMARKS.md.
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
             .clip(shape)
             .then(modifier)
             .background(backgroundBrush(style))
