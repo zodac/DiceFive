@@ -38,6 +38,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
+import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.game.style.DieMotion
+import net.zodac.dicefive.ui.game.style.LocalDieMotion
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -188,7 +195,7 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
                 previewSize = DpSize(DICE_PREVIEW_SIZE, DICE_PREVIEW_SIZE),
                 backgroundBrush = { SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh) },
             ) { style ->
-                style.Die(value = 5, held = false, modifier = Modifier.size(DIE_ART_SIZE))
+                DicePreview(style)
             }
         }
 
@@ -238,6 +245,37 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
                 Canvas(modifier = Modifier.matchParentSize()) { with(background) { drawScoreAreaDecoration() } }
             }
         }
+    }
+}
+
+/**
+ * A dice tile's die. One with something loose on its faces (googly eyes - see
+ * [DiceStyle.pupilTravel]) is moved by the page, as the tray moves it in a game: wherever its tile
+ * goes on screen - its row scrolled left or right, or the page up or down - the die goes with it, and
+ * its pupils are thrown about and settle. Not under reduced motion, where they sit where they settled.
+ */
+@Composable
+private fun DicePreview(style: DiceStyle) {
+    val travel = style.pupilTravel?.takeIf { !LocalReduceMotion.current }
+    if (travel == null) {
+        style.Die(value = 5, held = false, modifier = Modifier.size(DIE_ART_SIZE))
+        return
+    }
+    // Seeded as LocalDieIndex (0 here), so the pupils start where the die would draw them unmoved.
+    val motion = remember(travel) { DieMotion(seed = 0, travel = travel) }
+    // Acts on the value it was keyed on - see AppLogo's googly dice for why.
+    val awake = motion.awake
+    LaunchedEffect(motion, awake) {
+        if (awake) motion.follow()
+    }
+    val dieSizePx = with(LocalDensity.current) { DIE_ART_SIZE.toPx() }
+    CompositionLocalProvider(LocalDieMotion provides motion) {
+        style.Die(
+            value = 5,
+            held = false,
+            // Where the die is, in its own sizes, as DieMotion measures it.
+            modifier = Modifier.size(DIE_ART_SIZE).onGloballyPositioned { motion.moveTo(it.positionInRoot() / dieSizePx, 0f) },
+        )
     }
 }
 
