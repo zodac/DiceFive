@@ -211,16 +211,21 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     NumeralDiceStyle("numeral_roman_blue", Color(0xFF2F4A73), Color(0xFF17263F), Color(0xFFF3E9D2), NumeralSystem.ROMAN),
                 ),
                 colour(
+                    "Arabic Green",
+                    NumeralDiceStyle("numeral_arabic_green", Color(0xFF1F5E3A), Color(0xFF0F3320), Color(0xFFF3EFE0), NumeralSystem.EASTERN_ARABIC),
+                ),
+                colour(
                     "Arabic",
                     NumeralDiceStyle("numeral_arabic", Color(0xFF3A3A3A), Color(0xFF121212), Color(0xFFE8C66A), NumeralSystem.EASTERN_ARABIC),
                 ),
                 colour(
-                    "Arabic Green",
-                    NumeralDiceStyle("numeral_arabic_green", Color(0xFFF3EFE0), Color(0xFFD9D2B8), Color(0xFF1F5E3A), NumeralSystem.EASTERN_ARABIC),
-                ),
-                colour(
                     "Japanese",
                     NumeralDiceStyle("numeral_japanese", Color(0xFFFBFBFB), Color(0xFFE3E3E3), Color(0xFFBC002D), NumeralSystem.JAPANESE),
+                ),
+                colour(
+                    // Black urushi lacquer with maki-e gold.
+                    "Japanese Black",
+                    NumeralDiceStyle("numeral_japanese_black", Color(0xFF1A1714), Color(0xFF050403), Color(0xFFD4AF37), NumeralSystem.JAPANESE),
                 ),
             ),
             unlock = AchievementCount(50),
