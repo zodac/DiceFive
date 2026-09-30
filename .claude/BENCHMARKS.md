@@ -195,6 +195,25 @@ Everything unlocked, phone-sized screen:
   with no way to scroll to it (the page is sized to fit, and wasn't scrollable). Its column now
   scrolls vertically when it has to - 94dp there - and is laid out exactly as before when it fits
   (411x891dp, or 2x font on that screen).
+- **A row's first scroll stuttered** (reported on a device). The first time each tile scrolled in,
+  its frame spent 6-12ms composing it (4-5ms once warm) - up to 35ms for the Mat row, whose
+  textured mats decode their images - and its draw jumped from ~43ms to 60-97ms; mostly building
+  the tile for the first time, the D20 dice and the textured mats most of all. `StylesWarmUp`
+  had only drawn the tiles each row opens on. Three changes, in `StylesScreen.kt`:
+  - `StylesWarmUp` now draws **every** tile, `WARM_UP_TILES_PER_PASS` (3) at a time over two frames
+    each, a category at a time. Its first pass is the heaviest (loading and compiling code for the
+    first time: ~164ms here, where the old one-category-a-frame pass was ~255ms); later passes are
+    6-31ms (the old ones up to 39ms), just more of them.
+  - Each row's `LazyListState` has a `LazyLayoutCacheWindow` a tile wide either side, so the next
+    tile is composed and measured in the idle time between frames before it scrolls in. The
+    harness has no idle time between its frames, so it can't show this part - only a device can.
+  - A tile that's built but not on screen (checked from `layoutInfo.visibleItemsInfo`) is held
+    still by providing `LocalReduceMotion` true to it - every animated piece of art already stops
+    under reduced motion. Checked: the Cauldron's code never runs at any scroll position where its
+    tile isn't showing.
+
+  After the warm-up, a row's first scroll costs the same as its second: 4-7ms of composition per
+  new tile, and no draw spikes (the Mat row's 35ms/97ms gone).
 - **Opening:** the first frame composes the page (~160-200ms here, before JIT warm-up); the
   `StylesWarmUp` pre-draw from the menu already exists for this - see its comment in
   `StylesScreen.kt`.
