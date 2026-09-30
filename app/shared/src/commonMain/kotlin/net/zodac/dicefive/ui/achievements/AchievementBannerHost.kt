@@ -272,7 +272,7 @@ fun AchievementBannerHost(
         DiceFiveDialog(
             icon = Icons.AutoMirrored.Filled.Logout,
             title = "Leave game?",
-            message = "Your progress is saved - you can continue this game later from Play.",
+            message = "Your progress is saved - you can continue this game later.",
             confirmLabel = "Leave",
             onConfirm = {
                 pendingAchievement = null
