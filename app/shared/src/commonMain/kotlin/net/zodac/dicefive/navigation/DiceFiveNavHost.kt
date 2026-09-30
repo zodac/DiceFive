@@ -35,6 +35,7 @@ import net.zodac.dicefive.ui.game.GameScreen
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.menu.MenuScreen
 import net.zodac.dicefive.ui.menu.MenuViewModel
+import net.zodac.dicefive.ui.rules.RulesScreen
 import net.zodac.dicefive.ui.scores.ScoresScreen
 import net.zodac.dicefive.ui.scores.ScoresViewModel
 import net.zodac.dicefive.ui.settings.SettingsScreen
@@ -84,6 +85,7 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                     onScores = { navController.navigate(Screen.SCORES) },
                     onStatistics = { navController.navigate(Screen.STATISTICS) },
                     onStyles = { navController.navigate(Screen.STYLES) },
+                    onRules = { navController.navigate(Screen.RULES) },
                     onSettings = { navController.navigate(Screen.SETTINGS) },
                     logoStyles = logoStyles,
                     onDiceTap = menuViewModel::onDiceTapped,
@@ -167,6 +169,9 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                 viewModel = viewModel(factory = StylesViewModel.factory(container)),
                 onBack = { navController.navigateUp() },
             )
+        }
+        composable(Screen.RULES) {
+            RulesScreen(onBack = { navController.navigateUp() })
         }
     }
 }

@@ -16,9 +16,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
@@ -27,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.ui.common.AppLogo
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.PageColumn
-import net.zodac.dicefive.ui.common.RulesDialog
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
@@ -58,17 +54,12 @@ fun MenuScreen(
     onStatistics: () -> Unit,
     onAchievements: () -> Unit,
     onStyles: () -> Unit,
+    onRules: () -> Unit,
     onSettings: () -> Unit,
     modifier: Modifier = Modifier,
     logoStyles: LogoStyles? = LogoStyles(DiceStyles.default, DiceCupStyles.default),
     onDiceTap: () -> Unit = {},
 ) {
-    var showRulesDialog by remember { mutableStateOf(false) }
-
-    if (showRulesDialog) {
-        RulesDialog(onDismissRequest = { showRulesDialog = false })
-    }
-
     // The menu alone has its backdrop's dice drifting about; every other screen keeps them still.
     BrandBackdrop(modifier = modifier, driftingDice = true) {
         PageColumn(horizontalPadding = 28.dp) {
@@ -110,7 +101,7 @@ fun MenuScreen(
                 MenuDestinationButton(label = "Leaderboard", onClick = onScores)
                 MenuDestinationButton(label = "Statistics", onClick = onStatistics)
                 MenuDestinationButton(label = "Styles", onClick = onStyles)
-                MenuDestinationButton(label = "Rules", onClick = { showRulesDialog = true })
+                MenuDestinationButton(label = "Rules", onClick = onRules)
                 MenuDestinationButton(label = "Settings", onClick = onSettings)
             }
 
@@ -182,6 +173,7 @@ private fun MenuScreenPreview() {
             onStatistics = {},
             onAchievements = {},
             onStyles = {},
+            onRules = {},
             onSettings = {},
         )
     }
@@ -199,6 +191,7 @@ private fun MenuScreenInProgressPreview() {
             onStatistics = {},
             onAchievements = {},
             onStyles = {},
+            onRules = {},
             onSettings = {},
         )
     }

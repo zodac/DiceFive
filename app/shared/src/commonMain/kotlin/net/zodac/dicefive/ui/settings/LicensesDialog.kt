@@ -134,8 +134,8 @@ internal fun parseLicenseReport(librariesJson: String, noticesJson: String): Lic
  * - see the "Open-source licenses" section of app/android/build.gradle.kts for where the list comes from and
  * how the build keeps copyleft code out of it.
  *
- * Same raised reading surface as RulesDialog, for the same reason: this is a lot of text to read,
- * not a question to answer. The list itself is the platform's [PlatformServices.LicenceDocument] -
+ * A raised reading surface rather than a DiceFiveDialog, since this is a lot of text to read, not a
+ * question to answer. The list itself is the platform's [PlatformServices.LicenceDocument] -
  * one selectable text, with tappable links (on Android, the system's own Copy / Share toolbar too) -
  * and a tap anywhere drops a selection.
  */

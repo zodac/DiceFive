@@ -86,12 +86,13 @@ changed something there.
 - Doc comments on the entry and fields state the rule. Don't write down *why* the user wanted a rule
   unless they said why - a guessed rationale in a doc reads as fact later.
 
-### Rules page (`ui/common/RulesDialog.kt`)
+### Rules page (`ui/rules/RulesScreen.kt`)
 
-Add a `RulesPage` titled `"Mode: <Name>"` to the end of `RULES_PAGES`. Describe it relative to
+Add a `RulesPage` titled `"Mode: <Name>"`, with the bare mode name as its `tabLabel`, to the end of
+`RULES_PAGES`. Describe it relative to
 Standard ("A custom mode extending the *Standard* game mode...") and say what stays the same. Use
 `parseInlineMarkup`'s markers (`*italic*`, `**bold**`, `` `mono` ``) like the other pages. The pager
-and page dots size themselves from the list. Update the page each time the mode's rules change -
+and tab row size themselves from the list. Update the page each time the mode's rules change -
 Quickfire's changed three times after it was written.
 
 ### New categories

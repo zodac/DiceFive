@@ -1493,7 +1493,7 @@ install-over-existing succeeds:
 ### Phase 16 — Player-facing rules
 - [x] A "Rules" entry on the main menu (`MenuScreen`, last in the destination button stack - since
       moved above Settings, which now closes it - same `MenuDestinationButton` style as every other
-      entry) opens `ui/common/RulesDialog.kt`: a modal,
+      entry) opens `ui/common/RulesDialog.kt`: a modal (since Phase 22, a real screen instead),
       not a nav destination - it never needs to be deep-linked to or survive process death, so a
       plain `remember { mutableStateOf(false) }` boolean in `MenuScreen` (the same pattern the
       existing resume-game confirmation already uses) is simpler than a new `Screen`/`composable`
@@ -1754,3 +1754,52 @@ install-over-existing succeeds:
 - [x] Tests: `AchievementEngineTest` (threshold, win needed, every mode against its own card) and a
       `GameAchievementsWiringTest` game played through the view model with every player-1 turn
       timed out.
+
+### Phase 22 — Rules as a screen
+- [x] **Why**: Rules was the one menu destination that opened a modal rather than a screen, and the
+      reason for a modal (Phase 16: nothing needs to deep-link to it) mattered less than what it
+      cost - a box at ~92%/82% of the screen for the app's longest reading, and a row of dots that
+      grows with every game mode (seven pages meant six swipes to reach the last, with nothing to
+      say which page was which).
+- [x] `ui/common/RulesDialog.kt` became `ui/rules/RulesScreen.kt`, a `Screen.RULES` destination in
+      `DiceFiveNavHost` inside the shared `ScreenScaffold` (backdrop, "Rules" app bar, back arrow,
+      content fade-in), so it opens and closes like every other menu entry; `MenuScreen`'s
+      `showRulesDialog` flag gave way to an `onRules` callback.
+- [x] **Tabs, not dots**: a `PrimaryScrollableTabRow` (transparent over the backdrop, no edge
+      padding so it lines up with the page text) above the same `HorizontalPager` - swipe or tap a
+      tab to jump straight to a page, and TalkBack gets real tabs. Each `RulesPage` gained a
+      `tabLabel` ("Upper Section", "5x & Joker", "Quickfire"...) shorter than its page heading, so
+      more than a couple of tabs fit on a phone. The previous/next arrows went with the dots.
+- [x] **Showing there's more**: seen on a device, the first three tabs ended flush with the edge, so
+      the row looked complete. `fadeOffscreenEdges` fades whichever end has tabs beyond it (48dp,
+      deepening with the distance left to scroll, so it eases away rather than popping off at the
+      end) - but on its own that failed too: with a middle tab selected and centred, the next label
+      can start just past the edge, so the fade sat over empty space and hinted at nothing. So each
+      end with more beyond it also gets a `TabScrollChevron` (gold, 48dp, over the fade, eased by
+      the same distance-left strength), which is there whatever the labels' widths. Under a chevron
+      the tabs are hidden outright (`TAB_EDGE_CLEAR`, 40dp - the glyph ends 36dp in), then fade
+      back in over 24dp, so the glyph is never drawn over a label: a plain gradient left text
+      half-visible behind it. A tap scrolls
+      the row 60% of its width - tabs, not the page. It's kept out of TalkBack, since the tabs are
+      already stops with their own "x of 7". The TalkBack equivalent: stock `Tab`s are only `Role.Tab` in a selectable group, so
+      nothing said how many there were - the row now carries `CollectionInfo` and each tab its
+      `CollectionItemInfo`, so it's announced as "Tab, 1 of 7". `RulesScreenAccessibilityTest`
+      (Robolectric) pins the count, each tab's position, and that an off-screen tab scrolls into view
+      and opens its page, that the chevrons add no TalkBack stops, and that tapping the end chevron
+      scrolls the tabs without changing page.
+- [x] **A "1 of 7" footer** (`PageCountFooter`) alongside the chevrons: they say there's more, it
+      says where you are and how much. Kept small and given priority: a `labelMedium` gold pill
+      (`primary` behind `onPrimary`, the filled button's pair), pinned to the bottom and drawn *over* the pages rather than taking a
+      row of its own, so longer text scrolls behind it. Each page is padded at the bottom by the
+      pill's measured height (so a large font still clears it) plus 8dp, so its last line can always
+      scroll above it. A plain clipped background, not a `Surface`, which would swallow touches and
+      stop a scroll that starts on the pill. TalkBack hears "Page 1 of 7", and it's a polite live
+      region so a swipe to another page is announced - the pager says nothing on its own. Pinned in
+      `RulesScreenAccessibilityTest`, including that a long page's last line scrolls clear of it
+      (checked to fail without the padding).
+- [ ] **Known limit**: TalkBack scrolling a focused line into view only brings it inside the scroll
+      area, which runs on under the pill, so a line near the bottom can sit partly behind it. The
+      pill is ~60dp wide and centred, so most of the line stays visible. The fix would be a
+      `BringIntoViewSpec` that knows about the pill - not done.
+- [x] `assembleDebug`, `testDebugUnitTest`, `compileDebugAndroidTestKotlin` and `lint` green.
+- [ ] **Not yet seen on a device**: the footer's live-region announcement, the chevrons, and the "1 of 7" announcement under real TalkBack.

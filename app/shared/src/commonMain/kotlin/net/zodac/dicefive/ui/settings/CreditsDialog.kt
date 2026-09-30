@@ -52,7 +52,7 @@ private val CREDITS_SECTIONS = listOf(
 /**
  * Settings > "Credits": who made the app, and the other app that inspired it - kept separate from
  * [LicensesDialog], which is specifically the open-source licences the build ships under, not people
- * or products. Same raised reading surface as [LicensesDialog]/RulesDialog, for the same reason: a
+ * or products. Same raised reading surface as [LicensesDialog], for the same reason: a
  * short scroll of prose, not a question to answer.
  */
 @Composable
