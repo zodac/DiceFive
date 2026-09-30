@@ -92,6 +92,9 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
     be distributed under any other license". Our `sora.ttf` is a modified (static weight-700)
     instance, still covered. `README.md`, store listings and any future EULA wording must not claim
     "all files" without that carve-out.
+  - **The MathJax TeX fonts** (`mathjax_main_regular.otf`, `mathjax_math_italic.otf` - the Maths
+    dice) are OFL too, and unmodified. They declare Reserved Font Names (MathJax_Main, MathJax_Math),
+    so if they're ever subset or otherwise changed, the modified fonts must be renamed.
   - **The OFL also forbids selling the font on its own** (condition 1). Bundling it in a paid app
     is fine; offering the font file by itself is not.
   - **Audio**: CC0 needs nothing. CC-BY needs a credit, and §2(a)(5)(B) forbids adding terms that

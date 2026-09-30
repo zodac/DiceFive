@@ -223,6 +223,22 @@ class StyleCatalogTest {
     }
 
     @Test
+    fun theMathsDiceAreASecretStyleUnlockedByTheSolution() {
+        val maths = DiceStyles.familyOf("maths_white")
+        assertEquals("Maths", maths.name)
+        assertEquals(listOf("White", "Black", "Green"), maths.colours.map { it.name })
+        assertTrue(maths.unlock.hiddenWhileLocked)
+        assertEquals(listOf("the 'Maths' dice style"), Achievement.THE_SOLUTION.styleRewards.map { it.description })
+
+        val everythingElse = AchievementsState(Achievement.entries.filter { it != Achievement.THE_SOLUTION }.associateWith { 0L })
+        val solved = AchievementsState(mapOf(Achievement.THE_SOLUTION to 0L))
+        for (id in listOf("maths_white", "maths_black", "maths_green")) {
+            assertEquals(DiceStyles.default, DiceStyles.unlockedById(id, everythingElse), id)
+            assertEquals(id, DiceStyles.unlockedById(id, solved).id)
+        }
+    }
+
+    @Test
     fun theFloatingDiceBackgroundIsASecretStyleUnlockedByNotThoseDice() {
         val floating = TableBackgrounds.familyOf("floating_dice")
         assertEquals("Floating Dice", floating.name)

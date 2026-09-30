@@ -101,7 +101,7 @@ proprietary. This repository is public so the source can be read; that does not 
 to copy, modify, redistribute or publish it. See [`LICENSE`](LICENSE).
 
 Third-party components are not covered by that notice and remain under their own licenses - the
-libraries the app is built with, the Sora font (SIL Open Font License 1.1), and the sound effects
+libraries the app is built with, the Sora and MathJax TeX fonts (SIL Open Font License 1.1), and the sound effects
 (modified Freesound recordings under CC0 1.0 and CC BY 4.0). Each is listed, with
 its license text, in the app under **Settings > Licences**; the records behind that list
 live in [`app/licensing/`](app/licensing/).

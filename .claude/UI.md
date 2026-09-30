@@ -338,8 +338,9 @@ achievements; `StyleCatalogTest` keeps them distinct and earnable.
 
 A style locked behind one **secret** achievement is a secret style (`StyleUnlock.hiddenWhileLocked`):
 it isn't on the Styles screen at all, padlock or not, until that achievement is earned. Every easter
-egg has one: the Martini cup (Shaken, Not Tapped) and the Floating Dice background (Not Those Dice!,
-the main menu's backdrop - same colours, same drifting dice - as a table background). Others are
+egg has one: the Martini cup (Shaken, Not Tapped), the Floating Dice background (Not Those Dice!,
+the main menu's backdrop - same colours, same drifting dice - as a table background) and the Maths
+dice, all three colours (The Solution). Others are
 secret single **colours** of otherwise ordinary, count-locked styles (`StyleColour.secretAchievement`),
 which the tile's colour row and dots leave out until it's earned: the Irish dice in Multicolour (Luck
 of the Irish), the blue/gold Googly dice (Big Fan), the Flowerpot's plant-stage pots (Greenfingers -
