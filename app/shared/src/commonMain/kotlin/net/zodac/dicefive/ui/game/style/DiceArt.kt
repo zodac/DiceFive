@@ -191,10 +191,12 @@ class FrostedDiceStyle(
             cornerPercent = FROSTED_CORNER_PERCENT,
             heldRingColor = heldRing,
         ) {
-            drawFrost(seed)
+            drawCachedSurface(FrostSurface(seed)) { drawFrost(seed) }
         }
     }
 }
+
+private data class FrostSurface(val seed: Int)
 
 /**
  * Frost for one face: uneven patches where it's built up thicker, a fine grain whose density
