@@ -3,7 +3,8 @@
 - `.claude/DESIGN.md` — the build plan, game rules, and phase-by-phase log.
 - `.claude/UI.md` — how the interface is put together: the Material 3 colour system and how to
   regenerate it, the shared chrome in `ui/common/`, inset and layout rules, component
-  conventions, the player-name cap and why it exists, and the gotchas worth not re-learning.
+  conventions, the mandatory accessibility checklist for any UI change, the player-name cap and why
+  it exists, and the gotchas worth not re-learning.
   Read this before changing anything visual.
 - `.claude/PUBLISHING.md` — Play Store submission requirements not covered by the build or by
   `DESIGN.md`'s GitHub release pipeline (Phase 12), such as the store listing's separate hi-res
@@ -34,6 +35,12 @@
   to explain what the game is, and the single guard assertion in `AchievementEngineTest` that
   checks no achievement title, description or category label contains it. `README.md` is public
   and is **not** an exception.
+
+- **Every new or changed UI element must be checked for accessibility before it's done** - what
+  TalkBack says for it, whether visual-only meaning (colour, fades, position) has a spoken twin, and
+  whether every action is reachable without a custom gesture. Stock components are not assumed to be
+  enough. The checklist, and how to verify it, is in `.claude/UI.md`'s "Accessibility" section; the
+  report back to the user says what TalkBack does with the change, and what wasn't heard on a device.
 
 - After implementing a code change (a fix, feature, or refactor the user asked for), build a
   debug APK with `./gradlew assembleDebug` and send the resulting `.apk` from

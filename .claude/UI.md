@@ -355,6 +355,53 @@ its own copy.
 
 ## Accessibility
 
+**Mandatory for every new or changed UI element.** Accessibility is part of building an element, not
+a later pass: a change that adds or alters something a player sees or touches isn't done until it's
+been through the checklist below, and the report back to the user says what TalkBack now does with
+it. The Rules page's tab row is why this is a rule and not a habit: it shipped with stock M3 tabs on
+the assumption that stock meant accessible, and TalkBack never said there were more than the three
+in view.
+
+### The checklist
+
+1. **Don't assume a stock component is enough - check what it actually sets.** M3 gives a `Tab`
+   `Role.Tab` and nothing about its position in the row. Read the component's source (or `javap` its
+   classes in the Gradle cache) for the semantics it adds, then fill in what's missing.
+2. **What does TalkBack say when it lands here?** A name, a role (button, tab, switch, heading), and
+   any state (selected, checked, disabled, "3 rolls left"). Icons that do something need a
+   `contentDescription` that names the action, without the word "button" (the role says that);
+   decorative ones get `null`.
+3. **Does anything visual carry meaning that isn't spoken?** Colour, an edge fade, an icon, a
+   position, an animation, a badge. Each needs a spoken twin: the tab row's fade is paired with its
+   "Tab, 1 of 7", a die's held state with "held". If a sighted player could learn it from the
+   screen, a TalkBack user must be able to learn it from the semantics.
+4. **One of a set, not all in view?** Give the container `CollectionInfo` and each item
+   `CollectionItemInfo`, so TalkBack gives the position and count.
+5. **Is every action reachable by TalkBack?** A drag, a swipe-only or long-press gesture, or a
+   hand-rolled `pointerInput` is invisible to it - expose it as a semantics action (`onClick` with a
+   label, `customActions`), as the dice tray does for hold/release.
+6. **One control, one target, one announcement.** A label and its control are one node (merge, or
+   make the row the control - see `SwitchSetting`), not two stops that each say half.
+7. **Titles are headings** (`semantics { heading() }`), so TalkBack's heading navigation can jump
+   between them.
+8. **Something that appears and goes by itself** (a banner, a toast-like message) is a polite live
+   region with a fixed summary, not its animated text.
+9. **Does the text read well aloud?** Notation written for the eye - `5-5-5-2-1`, `15pts`, a
+   leading "- " bullet - can come out as "minus", letters or "dash". Where it matters, give TalkBack
+   the spoken form.
+10. **Sizes**: keep M3's 48dp minimum touch target (don't shrink an `IconButton` or `Tab`), and make
+    sure the layout survives a large system font - it should scroll, not clip (see `PageColumn`).
+
+**Verifying**: any semantics added for this get a Robolectric test asserting them, as
+`BoardSemanticsTest` and `RulesScreenAccessibilityTest` do - that's the part that can be checked in
+the sandbox. What real TalkBack actually speaks can't be, so it goes in the DESIGN.md phase's "Not yet
+seen on a device" line and in the report to the user, not claimed as done.
+
+**Known gap**: item 9 isn't met yet on the Rules pages - their dice notation, "pts" and list dashes
+are read as written.
+
+### What's in place
+
 Everything a screen reader needs is added as semantics, never by changing what's drawn:
 
 - **The board's art speaks for itself through semantics** (`BoardSemantics.kt` holds the spoken
@@ -368,6 +415,17 @@ Everything a screen reader needs is added as semantics, never by changing what's
 - **A field with no visible label gets an accessibility-only one**, and its error as `error(...)`
   - see the New Game name fields.
 - **Banners are polite live regions** announcing a fixed summary, not their animated text.
+- **A pager announces where it lands**: the Rules page's "1 of 7" footer is spoken as "Page 1 of 7"
+  and is a polite live region, since a swipe between `HorizontalPager` pages says nothing by itself.
+- **Anything floated over scrolling content needs matching padding at the content's end**, or its
+  last line can never scroll clear (the Rules footer pads each page by its measured height). Know the
+  limit: bring-into-view - TalkBack focus, `performScrollTo` - only scrolls a node into the scroll
+  area, which still runs under the float.
+- **A scrolling tab row says how many tabs it has** (the Rules page): stock M3 `Tab`s carry only
+  `Role.Tab`, so the row sets `CollectionInfo` and each tab `CollectionItemInfo`, for "Tab, 1 of 7".
+  It's the spoken twin of the row's edge chevrons - sighted or not, nobody should take the tabs in
+  view for all of them. The chevrons themselves are cleared from semantics: they'd only be stops
+  that repeat what the tabs already say.
 - **Titles are headings**: page titles, Styles categories, achievement category headers, Rules
   pages, Credits sections.
 
@@ -552,6 +610,10 @@ edges are pinned.
 
 ## Gotchas hit while building this
 
+- **An edge fade isn't a "there's more" hint on its own.** It only shows when content happens to be
+  under it, which depends on label widths, screen width and scroll position - the Rules tab row's
+  fade sat over the empty gap between two tabs and hinted at nothing. Pair it with something that's
+  there regardless (the Rules tab row's edge chevrons).
 - **`Modifier.align` needs the Box to be the actual parent.** Inside a `Scaffold` body the
   enclosing `BoxScope` is captured but is no longer the parent layout, so `align` is accepted
   and silently ignored. Wrap in a real `Box` with `contentAlignment` instead.
