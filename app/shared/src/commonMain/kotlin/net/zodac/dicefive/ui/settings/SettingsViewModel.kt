@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -14,11 +15,16 @@ import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementStore
+import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.ui.game.style.DiceCupStyles
+import net.zodac.dicefive.ui.game.style.DiceMats
+import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.game.style.TableBackgrounds
 
 /** All repositories are nullable so this stays constructible/testable without a Context - see [factory]. */
 class SettingsViewModel(
@@ -77,11 +83,24 @@ class SettingsViewModel(
     /**
      * Wipes every unlock and every progress counter. Only the achievements DataStore file is
      * cleared - the theme, the remembered player names and any game in progress are on their own
-     * files and are deliberately untouched.
+     * files and are deliberately untouched. The one exception is the Styles picks: any saved pick
+     * that the reset locks again goes back to its category's default, so earning the style a second
+     * time doesn't quietly bring the old pick back. Picks that need no achievement are kept.
      */
     fun resetAchievements() {
         val repository = achievementsRepository ?: return
-        viewModelScope.launch { repository.resetAll() }
+        viewModelScope.launch {
+            repository.resetAll()
+            settingsRepository?.let { resetLockedStylePicks(it) }
+        }
+    }
+
+    private suspend fun resetLockedStylePicks(settings: SettingsRepository) {
+        val none = AchievementsState()
+        if (!DiceStyles.isUnlocked(settings.diceStyleId.first(), none)) settings.setDiceStyleId(DiceStyles.default.id)
+        if (!DiceCupStyles.isUnlocked(settings.diceCupStyleId.first(), none)) settings.setDiceCupStyleId(DiceCupStyles.default.id)
+        if (!TableBackgrounds.isUnlocked(settings.tableBackgroundId.first(), none)) settings.setTableBackgroundId(TableBackgrounds.default.id)
+        if (!DiceMats.isUnlocked(settings.diceMatId.first(), none)) settings.setDiceMatId(DiceMats.default.id)
     }
 
     /**
