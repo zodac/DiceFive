@@ -17,6 +17,10 @@
   roll path, the AI loop, timers, undo) or an overridden setup option, the achievement audit (which
   existing achievements each mode blocks, and which needed a guard so the mode doesn't hand them out
   for free), and the test helpers and traps. Read this before adding or changing a mode.
+- `.claude/BENCHMARKS.md` — how animation frame cost is measured without a device (Robolectric
+  harness, set-ups, pitfalls), the results for every dice, cup, mat and background style and the
+  Styles page, what was fixed, and what's still open. Only needed for performance work: a
+  reported stutter or slowdown, or new art that draws every frame.
 - `.claude/IOS_SUPPORT.md` — the iOS port via Kotlin Multiplatform + Compose Multiplatform: the
   `app/shared` (platform-neutral) / `app/android` module layout, what lives where (and why
   Android's platform code is in `app/android`), gotchas (e.g. no commas or parentheses in `commonTest` names), and what's left.
