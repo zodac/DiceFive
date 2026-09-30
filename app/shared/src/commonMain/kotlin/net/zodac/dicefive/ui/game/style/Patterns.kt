@@ -6,15 +6,19 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.atan2
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
@@ -81,7 +85,42 @@ internal fun TwinkleClock(onTick: (Float) -> Unit) {
  * long veins wandering across the surface - each one gently irregular rather than smooth, mostly
  * soft haze with a faint crisp line through it, throwing off thinner branches as it goes. Widths scale with the surface's
  * shorter side, so a die and a whole mat get veins in proportion. */
-internal fun DrawScope.drawMarble(seed: Int, vein: Color) {
+internal fun DrawScope.drawMarble(seed: Int, vein: Color) = drawCachedSurface(MarbleSurface(seed, vein)) { paintMarble(seed, vein) }
+
+private data class MarbleSurface(val seed: Int, val vein: Color)
+
+/**
+ * A die's patterned surface, [paint]ed once for [key] at this size and then just stamped on every
+ * later draw. For a pattern that's costly to paint but never changes - marble veins are dozens of
+ * soft, layered strokes along long random walks; frost is hundreds of grains - which a toss would
+ * otherwise repaint every frame, on both faces of all five dice in view, slowing the whole table (the
+ * cup's shake and tip with it) several times over any other dice. [key] must say everything [paint]
+ * depends on besides the size.
+ */
+internal fun DrawScope.drawCachedSurface(key: Any, paint: DrawScope.() -> Unit) {
+    val width = ceil(size.width).toInt()
+    val height = ceil(size.height).toInt()
+    if (width <= 0 || height <= 0) return
+    val sized = SizedSurface(key, width, height)
+    val image = surfaceImages.remove(sized) ?: ImageBitmap(width, height).also { image ->
+        CanvasDrawScope().draw(this, layoutDirection, Canvas(image), Size(width.toFloat(), height.toFloat()), paint)
+    }
+    // Re-added on every use, so the map runs least recently used first.
+    surfaceImages[sized] = image
+    if (surfaceImages.size > SURFACE_CACHE_SIZE) surfaceImages.remove(surfaceImages.keys.first())
+    drawImage(image)
+}
+
+// Only ever drawn on the main thread, so never shared between threads.
+private val surfaceImages = LinkedHashMap<SizedSurface, ImageBitmap>()
+
+private data class SizedSurface(val key: Any, val width: Int, val height: Int)
+
+// Every face of five dice in a couple of patterned styles, with room for another size (a held die, the
+// Styles previews) - about 90KB apiece at a phone's usual die size.
+private const val SURFACE_CACHE_SIZE = 128
+
+private fun DrawScope.paintMarble(seed: Int, vein: Color) {
     val random = Random(seed)
     val w = size.width
     val h = size.height
