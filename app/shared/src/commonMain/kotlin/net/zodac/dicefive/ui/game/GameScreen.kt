@@ -150,6 +150,8 @@ fun GameScreen(
     // One length for a human's tap and a CPU's roll, kept in step with the shake sound and buzz - see cupShakeMillis.
     val cupShakeMillis = cupShakeMillis(reduceMotion, soundEnabled, vibrationEnabled)
     SideEffect { viewModel.cupShakeMillis = cupShakeMillis }
+    val simpleDiceRoll = tableSettings.simpleDiceRoll || reduceMotion
+    SideEffect { viewModel.diceTossMillis = if (simpleDiceRoll) 0L else DICE_TOSS_MILLIS.toLong() }
     CompositionLocalProvider(
         LocalGameVisualTheme provides tableSettings.visualTheme,
         LocalIrishTricolour provides currentState.isLuckOfTheIrish,
