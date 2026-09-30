@@ -44,6 +44,18 @@ import net.zodac.dicefive.ui.game.style.LocalDieMotion
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
+import kotlin.math.min
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalFontFamilyResolver
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
+import net.zodac.dicefive.ui.game.style.StyleCatalogs
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -54,7 +66,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.text
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.AnnotatedString
@@ -98,7 +109,6 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.runtime.key
-import androidx.compose.runtime.State
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SavedStyles
@@ -179,9 +189,8 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
         // Nothing until the saved picks have loaded, so each row can open scrolled to its real pick.
         // They're normally in already (AppContainer.savedStyles), so the page has them from its first frame.
         val picks = saved ?: return@ScreenScaffold
-        // One text measurer for every tile's name on the page, whose cache keeps each name's layout
-        // while the page is open - see TileLabel.
-        val labelMeasurer = rememberTextMeasurer(cacheSize = TILE_LABEL_CACHE_SIZE)
+        // One text measurer for every tile's name, kept across openings - see rememberTileLabelMeasurer.
+        val labelMeasurer = rememberTileLabelMeasurer()
         CompositionLocalProvider(LocalTileLabelMeasurer provides labelMeasurer) {
             // Sized to fit one screen, but free to scroll when it can't - a small phone, or a large
             // font - rather than cutting the last category off out of reach.
@@ -221,8 +230,28 @@ private fun <T : TableArt> StyleCatalog<T>.shownFamilies(achievements: Achieveme
 /** The page's measurer for tiles' names - see [TileLabel] - or null to lay each one out afresh as a plain [Text]. */
 private val LocalTileLabelMeasurer = compositionLocalOf<TextMeasurer?> { null }
 
-// Every tile's name on the page, with room to spare.
-private const val TILE_LABEL_CACHE_SIZE = 64
+/**
+ * The one measurer for tiles' names, kept for the life of the process rather than the page's, so
+ * each name is laid out once - by [StylesWarmUp] on the menu, normally - and every later opening of
+ * the page finds it already done. A new one only if the text would lay out differently: another
+ * density (font scale included) or layout direction, or new fonts.
+ */
+@Composable
+private fun rememberTileLabelMeasurer(): TextMeasurer {
+    val key = TileLabelMeasurerKey(LocalFontFamilyResolver.current, LocalDensity.current, LocalLayoutDirection.current)
+    val kept = tileLabelMeasurer
+    if (kept != null && kept.first == key) return kept.second
+    return TextMeasurer(key.fontFamilyResolver, key.density, key.layoutDirection, TILE_LABEL_CACHE_SIZE)
+        .also { tileLabelMeasurer = key to it }
+}
+
+private data class TileLabelMeasurerKey(val fontFamilyResolver: FontFamily.Resolver, val density: Density, val layoutDirection: LayoutDirection)
+
+// Only ever used on the main thread.
+private var tileLabelMeasurer: Pair<TileLabelMeasurerKey, TextMeasurer>? = null
+
+// Every tile's name on the page, however many styles there are, with room to spare.
+private val TILE_LABEL_CACHE_SIZE: Int by lazy { StyleCatalogs.sumOf { it.families.size } + 16 }
 
 /**
  * A tile's [name] under its preview, drawn exactly as a `labelSmall` [Text] would draw it and read by
@@ -403,8 +432,8 @@ fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier) 
     val (category, tiles) = current ?: return
     Box(modifier = modifier.size(1.dp).clipToBounds()) {
         Box(modifier = Modifier.requiredWidth(width).wrapContentHeight(unbounded = true)) {
-            // Its own measurer, so the labels are drawn by the same code the page's are.
-            CompositionLocalProvider(LocalTileLabelMeasurer provides rememberTextMeasurer(cacheSize = TILE_LABEL_CACHE_SIZE)) {
+            // The page's own measurer, so the names laid out here are the ones the page draws.
+            CompositionLocalProvider(LocalTileLabelMeasurer provides rememberTileLabelMeasurer()) {
                 StyleCategorySection(category = category, picks = picks, onSelect = {}, warmUp = tiles)
             }
         }
@@ -494,17 +523,32 @@ private fun <T : TableArt> StyleFamilyTiles(
     val windowWidth = LocalWindowInfo.current.containerSize.width
     // The pick and as many either side as can show beside it, centred in the row.
     val openingTiles = with(LocalDensity.current) { ceil(windowWidth / 2f / reach.toPx()).toInt() } * 2 + 1
-    val built = remember(buildOrder) {
-        val openedWith = buildOrder.take(openingTiles).toSet()
-        List(families.size) { index -> mutableStateOf(index in openedWith) }
-    }
+    // Built nearest the pick first, the built tiles are always one unbroken run - [firstBuilt] to
+    // [lastBuilt] - with the unbuilt ones either side of it. Each unbuilt side is one PlaceholderRun,
+    // not a placeholder per tile, so opening the page costs the same however many tiles the row has.
+    //
+    // Even the tiles on screen aren't all built on the page's first frame: that one frame, long enough
+    // to stall everything else on screen (the backdrop's drifting dice), is what made opening the page
+    // feel slow. It builds just the pick; each frame after adds the next tile either side, until the
+    // row is full across the screen - only then is it shown (see revealed below).
+    var firstBuilt by remember(buildOrder) { mutableIntStateOf(pickedIndex) }
+    var lastBuilt by remember(buildOrder) { mutableIntStateOf(pickedIndex) }
+    val openingBuilt = remember(buildOrder) { derivedStateOf { lastBuilt - firstBuilt + 1 >= min(openingTiles, families.size) } }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(buildOrder) {
+        fun buildNext(index: Int) {
+            if (index < firstBuilt) firstBuilt = index else if (index > lastBuilt) lastBuilt = index
+        }
+        val (opening, rest) = buildOrder.take(openingTiles) to buildOrder.drop(openingTiles)
+        // The pick is built already; then a tile either side of what's built, a frame at a time.
+        for (pair in opening.drop(1).chunked(2)) {
+            withFrameNanos { }
+            pair.forEach(::buildNext)
+        }
         lifecycle.delayWhileResumed(PAGE_CONTENT_FADE_IN_MILLIS.toLong())
         repeat(buildStagger) { withFrameNanos { } }
-        for (index in buildOrder) {
-            if (built[index].value) continue
-            built[index].value = true
+        for (index in rest) {
+            buildNext(index)
             repeat(TILE_BUILD_FRAMES) { withFrameNanos { } }
         }
     }
@@ -522,6 +566,7 @@ private fun <T : TableArt> StyleFamilyTiles(
     // Where the pick sits in the row, once it's been laid out: its left edge and width.
     val pickedAt = remember { mutableStateOf<Pair<Int, Int>?>(null) }
     LaunchedEffect(Unit) {
+        snapshotFlow { openingBuilt.value }.first { it }
         val (left, width) = snapshotFlow { pickedAt.value }.filterNotNull().first()
         val viewport = snapshotFlow { scrollState.viewportSize }.first { it > 0 }
         // Its place in the row is measured inside the row's padding, which scrolls with it.
@@ -539,17 +584,15 @@ private fun <T : TableArt> StyleFamilyTiles(
             .padding(horizontal = ROW_PADDING, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(TILE_SPACING),
     ) {
-        families.forEachIndexed { index, family ->
-            key(family.name) {
-                TileSlot(
-                    built = built[index],
-                    onPlaced = if (index == pickedIndex) ({ left, width -> pickedAt.value = left to width }) else null,
-                    placeholder = { TilePlaceholder(family.name, previewSize) },
-                ) {
+        if (firstBuilt > 0) PlaceholderRun(firstBuilt, previewSize)
+        for (index in firstBuilt..lastBuilt) {
+            key(families[index].name) {
+                TileSlot(onPlaced = if (index == pickedIndex) ({ left, width -> pickedAt.value = left to width }) else null) {
                     Tile(index)
                 }
             }
         }
+        if (lastBuilt < families.lastIndex) PlaceholderRun(families.lastIndex - lastBuilt, previewSize)
     }
 
     HorizontalScrollbar(
@@ -565,18 +608,11 @@ private val ROW_PADDING = 12.dp
 private const val TILE_BUILD_FRAMES = 4
 
 /**
- * One place in a Styles row: the [tile] once it's [built], and the [placeholder] until then. Reads
- * [built] itself, so a tile being built recomposes only its own place, not the row. The tile is held
- * still - as under reduced motion - while it isn't on screen. [onPlaced] hears where it sits in the
- * row and how wide it is.
+ * One built tile in a Styles row, held still - as under reduced motion - while it isn't on screen.
+ * [onPlaced] hears where it sits in the row and how wide it is.
  */
 @Composable
-private fun TileSlot(
-    built: State<Boolean>,
-    onPlaced: ((left: Int, width: Int) -> Unit)?,
-    placeholder: @Composable () -> Unit,
-    tile: @Composable () -> Unit,
-) {
+private fun TileSlot(onPlaced: ((left: Int, width: Int) -> Unit)?, tile: @Composable () -> Unit) {
     var onScreen by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier.onGloballyPositioned { coordinates ->
@@ -585,10 +621,6 @@ private fun TileSlot(
             onPlaced?.invoke(coordinates.positionInParent().x.toInt(), coordinates.size.width)
         },
     ) {
-        if (!built.value) {
-            placeholder()
-            return@Box
-        }
         CompositionLocalProvider(LocalReduceMotion provides (LocalReduceMotion.current || !onScreen)) {
             tile()
         }
@@ -596,27 +628,40 @@ private fun TileSlot(
 }
 
 /**
- * A tile not built yet (see StyleFamilyTiles): an empty tile of the same size, with its name, so the
- * row is laid out as it will be. Silent to a screen reader, which finds the tile itself once it's built.
+ * [count] tiles not built yet (see StyleFamilyTiles), side by side: each an empty tile of the same
+ * size, drawn in one go and taking exactly the room the tiles will, so nothing moves as they fill in.
+ * No names - laying those out is most of what a tile costs, and this is what keeps the page's
+ * opening frame from growing with the number of styles. Silent to a screen reader, which finds each
+ * tile once it's built.
  */
 @Composable
-private fun TilePlaceholder(name: String, previewSize: DpSize) {
-    val shape = RoundedCornerShape(16.dp)
-    Column(
-        modifier = Modifier.clearAndSetSemantics {},
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+private fun PlaceholderRun(count: Int, previewSize: DpSize) {
+    val fill = MaterialTheme.colorScheme.surfaceContainerHigh
+    val outline = MaterialTheme.colorScheme.outlineVariant
+    Canvas(
+        modifier = Modifier
+            .clearAndSetSemantics {}
+            .size(width = previewSize.width * count + TILE_SPACING * (count - 1), height = previewSize.height),
     ) {
-        Box(
-            modifier = Modifier
-                .size(previewSize)
-                .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
-        )
-        TileLabel(name)
+        val tile = Size(previewSize.width.toPx(), previewSize.height.toPx())
+        val step = (previewSize.width + TILE_SPACING).toPx()
+        val corner = CornerRadius(PLACEHOLDER_CORNER.toPx())
+        val border = 1.dp.toPx()
+        repeat(count) { i ->
+            val left = i * step
+            drawRoundRect(fill, topLeft = Offset(left, 0f), size = tile, cornerRadius = corner)
+            drawRoundRect(
+                outline,
+                topLeft = Offset(left + border / 2, border / 2),
+                size = Size(tile.width - border, tile.height - border),
+                cornerRadius = corner,
+                style = Stroke(border),
+            )
+        }
     }
 }
+
+private val PLACEHOLDER_CORNER = 16.dp
 
 /**
  * One style: a rendered preview plus its name, with a check badge when one of its colours is the
