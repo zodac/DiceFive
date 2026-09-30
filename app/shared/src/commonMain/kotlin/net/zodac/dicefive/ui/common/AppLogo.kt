@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.common
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -41,8 +43,10 @@ import kotlin.math.PI
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.random.Random
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.sora
 import net.zodac.dicefive.ui.game.style.CupShape
@@ -121,6 +125,13 @@ internal fun logoRollPose(index: Int, value: Int, elapsedMillis: Float): LogoRol
     return LogoRollPose(spinDegrees = direction * 360f * eased, hop = ROLL_HOP_IN_DICE * sin(PI.toFloat() * progress), value = face)
 }
 
+/**
+ * Whether a tap at ([x], [y]) - in the logo's own coordinates, its top edge being the cup's top and
+ * the cup centred on [logoWidth] - lands on a cup [cupWidth] by [cupHeight] wide and tall.
+ */
+internal fun isOnLogoCup(x: Float, y: Float, logoWidth: Float, cupWidth: Float, cupHeight: Float): Boolean =
+    y in 0f..cupHeight && x in (logoWidth - cupWidth) / 2f..(logoWidth + cupWidth) / 2f
+
 private val LOGO_DICE = listOf(
     LogoDie(value = 2, tilt = -20f, drop = 8.dp),
     LogoDie(value = 4, tilt = -10f, drop = 2.dp),
@@ -145,6 +156,11 @@ private val LOGO_DICE = listOf(
  * eyes, and nothing else - has them slide about with the phone's tilt and shake, through the same
  * [DieMotion] the dice tray moves them with. Every other style, and every other screen, is unaffected.
  *
+ * With [shakeCupOnTap] (the main menu only), tapping the cup itself - not the dice in front of it -
+ * shakes it as it shakes in a game, for [CUP_SHAKE_MILLIS] and through the same [CupCanvas] physics
+ * (the wobble, and any liquid sloshing), then settles it upright; a tap while it's shaking is
+ * ignored. No achievement, sound or buzz.
+ *
  * [onDiceTap] is the "Not Those Dice!" easter egg - only the dice fan itself is the tap target, not
  * the wordmark below it - and tapping it rolls the fan too (see [logoRollPose]), landing back on
  * the dice it started on; a tap while they're still rolling is ignored. No ripple: at this size
@@ -159,6 +175,7 @@ fun AppLogo(
     diceStyle: DiceStyle = DiceStyles.default,
     cupStyle: DiceCupStyle = DiceCupStyles.default,
     pupilsFollowDevice: Boolean = false,
+    shakeCupOnTap: Boolean = false,
     onDiceTap: () -> Unit = {},
 ) {
     // One DieMotion per die, only for a style with loose pupils and only where asked - kept for as
@@ -205,28 +222,52 @@ fun AppLogo(
         }
     }
 
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+    var cupShaking by remember { mutableStateOf(false) }
+    val cupTapScope = rememberCoroutineScope()
+
+    // The cup takes no layout space (see noLayoutSpace), so it can't carry a tap target of its own: a
+    // zero-size node is never hit. The whole logo listens instead, and works out whether a tap that no
+    // die took (the fan's own click consumes the ones on it) landed on the cup's rectangle - the top
+    // of the logo down, centred, in the cup's own proportions.
+    val tallCupHeight = dieSize * LOGO_CUP_HEIGHT_IN_DICE
+    val gridUnit = tallCupHeight / CupShape.TALL.gridHeight
+    val cupWidth = gridUnit * cupStyle.shape.gridWidth
+    val cupHeight = gridUnit * cupStyle.shape.gridHeight
+    val tapModifier = if (shakeCupOnTap) {
+        Modifier.pointerInput(cupWidth, cupHeight) {
+            detectTapGestures { tap ->
+                if (!cupShaking && isOnLogoCup(tap.x, tap.y, size.width.toFloat(), cupWidth.toPx(), cupHeight.toPx())) {
+                    cupShaking = true
+                    cupTapScope.launch {
+                        delay(CUP_SHAKE_MILLIS)
+                        cupShaking = false
+                    }
+                }
+            }
+        }
+    } else {
+        Modifier
+    }
+
+    Column(modifier = modifier.then(tapModifier), horizontalAlignment = Alignment.CenterHorizontally) {
         // The cup takes no room of its own (see noLayoutSpace), so the dice and the wordmark sit
         // exactly as they would without it, its base reaching down behind the wordmark. Only the
         // part a tall cup stands above the dice is reserved, as top padding: the page scrolls, and
         // a scrolling column clips whatever is drawn outside it, which would cut off the rim. It's
         // reserved for a squat cup too, so switching cups never moves the dice or the wordmark.
-        val tallCupHeight = dieSize * LOGO_CUP_HEIGHT_IN_DICE
         val cupRaise = dieSize * LOGO_CUP_RAISE_IN_DICE
         val cupAboveDice = tallCupHeight / 2 + cupRaise - dieSize / 2
-        val gridUnit = tallCupHeight / CupShape.TALL.gridHeight
-        val cupHeight = gridUnit * cupStyle.shape.gridHeight
         Box(modifier = Modifier.padding(top = cupAboveDice), contentAlignment = Alignment.Center) {
             // Standing behind the fan, in its own shape's proportions so it isn't stretched.
-            // Upright and still: never rolling or tipped, so it never runs the in-game shake (or
-            // lets the Top Hat's rabbit out - it only peeks from a hat left tipped over).
+            // Upright, and still unless tapped (see shakeCupOnTap): never tipped, so it never lets the
+            // Top Hat's rabbit out - it only peeks from a hat left tipped over - and a shake ends upright.
             cupStyle.Cup(
-                rolling = false,
+                rolling = cupShaking,
                 tilted = false,
                 modifier = Modifier
                     .noLayoutSpace()
                     .offset(y = cupHeight / 2 - dieSize / 2 - cupAboveDice)
-                    .size(width = gridUnit * cupStyle.shape.gridWidth, height = cupHeight),
+                    .size(width = cupWidth, height = cupHeight),
             )
 
             val diceInteractionSource = remember { MutableInteractionSource() }
