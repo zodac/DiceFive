@@ -450,6 +450,8 @@ class AchievementEngineTest {
         assertFalse(Achievement.NOT_THOSE_DICE in Achievement.COMPLETION_REQUIREMENTS)
         assertEquals(AchievementVisibility.SECRET, Achievement.GREENFINGERS.visibility)
         assertFalse(Achievement.GREENFINGERS in Achievement.COMPLETION_REQUIREMENTS)
+        assertEquals(AchievementVisibility.SECRET, Achievement.THE_SOLUTION.visibility)
+        assertFalse(Achievement.THE_SOLUTION in Achievement.COMPLETION_REQUIREMENTS)
         // Every other achievement stays at least title-visible from the start - secrecy is the
         // exception, not the rule.
         assertEquals(
@@ -460,6 +462,7 @@ class AchievementEngineTest {
                 Achievement.NOT_THOSE_DICE,
                 Achievement.SHAKEN_NOT_TAPPED,
                 Achievement.MAGICIANS_SECRET,
+                Achievement.THE_SOLUTION,
             ),
             Achievement.entries.filter { it.visibility == AchievementVisibility.SECRET },
         )
@@ -1083,6 +1086,27 @@ class AchievementEngineTest {
         assertFalse(Achievement.SCORE_UNDER_100 in update.newlyUnlocked)
         assertFalse(Achievement.LOW_ROLLS in update.newlyUnlocked)
         assertFalse(Achievement.SOLO_GAME in update.newlyUnlocked)
+    }
+
+    @Test
+    fun `The Solution needs a solo standard game as Phil Woodward on exactly 255`() {
+        fun earned(state: GameState) = Achievement.THE_SOLUTION in evaluate(state).newlyUnlocked
+
+        assertTrue(earned(finishedGame(player(name = "Phil Woodward", total = 255))))
+        assertTrue(earned(finishedGame(player(name = "  phil   WOODWARD ", total = 255))))
+        assertFalse(earned(finishedGame(player(name = "Phil Woodward", total = 254))))
+        assertFalse(earned(finishedGame(player(name = "Phil Woodward", total = 256))))
+        assertFalse(earned(finishedGame(player(name = "Phil Woodwards", total = 300))))
+        assertFalse(earned(finishedGame(player(name = "Player 1", total = 300))))
+        assertFalse(earned(finishedGame(player(name = "Phil Woodward", total = 300), player(name = "P2", total = 100))))
+        assertFalse(earned(finishedGame(player(name = "Phil Woodward", total = 300, gameMode = GameMode.TRICOLOUR))))
+    }
+
+    @Test
+    fun `Phil Woodward is matched by isPhilWoodward ignoring case and spacing`() {
+        assertTrue(net.zodac.dicefive.model.isPhilWoodward("Phil Woodward"))
+        assertTrue(net.zodac.dicefive.model.isPhilWoodward(" PHIL\tWoodward "))
+        assertFalse(net.zodac.dicefive.model.isPhilWoodward("PhilWoodward"))
     }
 
     @Test

@@ -131,6 +131,9 @@ import net.zodac.dicefive.ui.theme.MagicianHatInside
 import net.zodac.dicefive.ui.theme.MagicianHatLight
 import net.zodac.dicefive.ui.theme.MagicianHatMid
 import net.zodac.dicefive.ui.theme.MagicianHatRibbon
+import net.zodac.dicefive.ui.theme.ManuscriptInk
+import net.zodac.dicefive.ui.theme.ManuscriptPaper
+import net.zodac.dicefive.ui.theme.ManuscriptPaperEdge
 import net.zodac.dicefive.ui.theme.MartiniGlassSwatch
 import net.zodac.dicefive.ui.theme.MartiniLiquidSwatch
 import net.zodac.dicefive.ui.theme.MartiniOliveHighlightSwatch
@@ -302,6 +305,8 @@ val Achievement.icon: ImageVector
         Achievement.NOT_THOSE_DICE -> rememberDiceFanIcon()
         // The sunflower the Flowerpot grew, in the pot's own colours.
         Achievement.GREENFINGERS -> rememberSunflowerIcon()
+        // A sheaf of white pages, the top one written on - the paper the solution was published in.
+        Achievement.THE_SOLUTION -> rememberManuscriptIcon()
     }
 
 /**
@@ -338,7 +343,44 @@ fun Achievement.iconTintOrUnspecified(tint: Color): Color = when (this) {
     Achievement.MAGICIANS_SECRET -> Color.Unspecified
     Achievement.NOT_THOSE_DICE -> Color.Unspecified
     Achievement.GREENFINGERS -> Color.Unspecified
+    Achievement.THE_SOLUTION -> Color.Unspecified
     else -> tint
+}
+
+/**
+ * A sheaf of white pages fanned down and to the left, the top one written on in black: a heading,
+ * then lines of text ending short. For [Achievement.THE_SOLUTION]. Fixed colours throughout, like
+ * the other Easter Eggs icons - see [iconTintOrUnspecified]. Each page has a grey edge so the white
+ * still reads against a light container.
+ */
+@Composable
+private fun rememberManuscriptIcon(): ImageVector = remember {
+    ImageVector.Builder(name = "Manuscript", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f).apply {
+        for ((left, top) in listOf(7f to 1.8f, 5.5f to 3.4f, 4f to 5f)) {
+            path(
+                fill = SolidColor(ManuscriptPaper),
+                stroke = SolidColor(ManuscriptPaperEdge),
+                strokeLineWidth = 0.6f,
+            ) {
+                moveTo(left, top)
+                lineTo(left + 13f, top)
+                lineTo(left + 13f, top + 17f)
+                lineTo(left, top + 17f)
+                close()
+            }
+        }
+        // Writing on the front page: a heading, then body lines, the last one short.
+        path(stroke = SolidColor(ManuscriptInk), strokeLineWidth = 1f, strokeLineCap = StrokeCap.Round) {
+            moveTo(6.4f, 8.2f)
+            lineTo(14.6f, 8.2f)
+        }
+        path(stroke = SolidColor(ManuscriptInk), strokeLineWidth = 0.6f, strokeLineCap = StrokeCap.Round) {
+            for ((y, end) in listOf(11f to 14.6f, 13f to 14.6f, 15f to 14.6f, 17f to 14.6f, 19f to 10.6f)) {
+                moveTo(6.4f, y)
+                lineTo(end, y)
+            }
+        }
+    }.build()
 }
 
 @Composable

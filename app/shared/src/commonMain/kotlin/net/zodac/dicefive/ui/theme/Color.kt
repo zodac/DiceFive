@@ -264,6 +264,11 @@ val MagicianHatRibbon = Color(0xFFB71C1C)
 val MagicianHatInside = Color(0xFF030303)
 val MartiniPickSwatch = Color(0xFFC9A66B)
 
+// The Solution's icon: a sheaf of white pages, the top one written on in black.
+val ManuscriptPaper = Color(0xFFFFFFFF)
+val ManuscriptPaperEdge = Color(0xFF9AA3A8)
+val ManuscriptInk = Color(0xFF1B1F23)
+
 // The Flowerpot cup's plant (FlowerpotDiceCupStyle), from seedling to sunflower, shared with
 // Greenfingers' icon so the achievement shows the same sunflower the player grew. Fixed colours for
 // the same reason as the rabbit's: a sunflower is one specific look, not a theme-able tint.

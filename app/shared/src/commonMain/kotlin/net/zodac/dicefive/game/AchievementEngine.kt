@@ -12,6 +12,7 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ProgressStyle
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.hasGrownSunflower
+import net.zodac.dicefive.model.isPhilWoodward
 
 /**
  * The parts of a finished game that aren't recoverable from its final [GameState], collected live
@@ -150,6 +151,7 @@ object AchievementEngine {
     private const val LOWER_CLASS_THRESHOLD = 150
     private const val NICE_SCORE = 69
     private const val TON_SCORE = 100
+    private const val THE_SOLUTION_SCORE = 255
     private const val LANDSLIDE_MARGIN = 100
     private const val PHOTO_FINISH_MARGIN = 1
     private const val PIPPED_MARGIN = 1
@@ -445,6 +447,12 @@ object AchievementEngine {
         award(Achievement.SINGULARITY, multiplayer && !humanWon && aiWon)
 
         award(Achievement.SOLO_GAME, players.size == 1)
+        // Player 1's name and the card are fixed for the whole game, so this only needs the result.
+        award(
+            Achievement.THE_SOLUTION,
+            players.size == 1 && state.gameMode == GameMode.STANDARD && isPhilWoodward(players[0].name) &&
+                players[0].totalScore == THE_SOLUTION_SCORE,
+        )
 
         // Impatient/Naturally Gifted: player 1 took every one of their own turns on a single roll -
         // by choice, so never in a mode that only allows one (Quickfire), where it would be free.
