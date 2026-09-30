@@ -375,6 +375,26 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `a shorter shake window shortens only the shake - the AI still pauses before it scores`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, random = FixedValueRandom(6))
+        viewModel.cupShakeMillis = REDUCED_MOTION_CUP_SHAKE_MILLIS
+        viewModel.setPlayerCount(2)
+        viewModel.setPlayerType(2, PlayerType.AI)
+        viewModel.setPlayerDifficulty(2, Difficulty.HARD)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.CHANCE)
+        val timeBeforeAiTurn = testDispatcher.scheduler.currentTime
+        advanceUntilIdle()
+
+        // The same one-shake turn as above, but the shake is the short window; the 600ms before scoring is
+        // there so a player can follow the CPU, not to wait for an animation, so it stays.
+        val aiStepDelayMs = 600L
+        assertEquals(REDUCED_MOTION_CUP_SHAKE_MILLIS + aiStepDelayMs, testDispatcher.scheduler.currentTime - timeBeforeAiTurn)
+    }
+
+    @Test
     fun `undo is unavailable until a human action has happened`() {
         val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)

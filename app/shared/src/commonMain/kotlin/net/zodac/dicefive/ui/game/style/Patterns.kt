@@ -18,6 +18,7 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 
 // Pattern painters shared by more than one piece of table art. Each takes a fixed seed rather than
 // real randomness, so a pattern is the same every time it's drawn instead of shimmering on every
@@ -65,6 +66,8 @@ private const val TWINKLE_DEPTH = 0.55f
 /** Calls [onTick] with the time in seconds on every frame, for as long as it's in the composition. */
 @Composable
 internal fun TwinkleClock(onTick: (Float) -> Unit) {
+    // No clock at all under reduced motion: the stars stay at the brightness they were drawn at.
+    if (LocalReduceMotion.current) return
     LaunchedEffect(Unit) {
         while (true) {
             // Wrapped so the float stays precise however long the app has been up.

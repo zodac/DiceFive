@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.palette
 import net.zodac.dicefive.ui.theme.GoldAccent
@@ -140,16 +141,21 @@ fun CategoryTile(
  */
 @Composable
 private fun BoxScope.GlowBorder(shape: Shape) {
-    val glowAlpha = rememberInfiniteTransition(label = "tileGlow").animateFloat(
-        initialValue = 0.55f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(animation = tween(900, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-        label = "tileGlowAlpha",
-    )
+    // Steady, at full strength, under reduced motion: still the gold that marks a good pick.
+    val glowAlpha = if (LocalReduceMotion.current) {
+        null
+    } else {
+        rememberInfiniteTransition(label = "tileGlow").animateFloat(
+            initialValue = 0.55f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(animation = tween(900, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
+            label = "tileGlowAlpha",
+        )
+    }
     Box(
         modifier = Modifier
             .matchParentSize()
-            .graphicsLayer { alpha = glowAlpha.value }
+            .graphicsLayer { alpha = glowAlpha?.value ?: 1f }
             .border(width = 2.dp, color = GoldAccent, shape = shape),
     )
 }

@@ -57,7 +57,8 @@ fun BrandBackdrop(modifier: Modifier = Modifier, driftingDice: Boolean = false, 
     // the last screen left them; a backdrop of its own otherwise.
     val shared = LocalDriftState.current
     val drift = if (driftingDice) shared ?: remember { DriftState() } else null
-    if (drift != null) {
+    // Still, where they are, under reduced motion - a watermark rather than a drift.
+    if (drift != null && !LocalReduceMotion.current) {
         LaunchedEffect(drift) {
             // The infinite-animation frame, not a plain one: it never ends, and this is what tells a
             // UI test not to wait for it to (a plain frame loop would keep the menu from ever idling).

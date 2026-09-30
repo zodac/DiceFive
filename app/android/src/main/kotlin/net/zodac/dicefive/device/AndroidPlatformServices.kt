@@ -1,11 +1,19 @@
 package net.zodac.dicefive.device
 
 import android.content.Context
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
 import android.widget.Toast
 import androidx.annotation.RawRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.withContext
 import net.zodac.dicefive.R
 import net.zodac.dicefive.platform.Accelerometer
@@ -29,6 +37,24 @@ class AndroidPlatformServices(context: Context) : PlatformServices {
     override fun createHapticsPlayer(): HapticsPlayer = AndroidHapticsPlayer(appContext)
 
     override fun createAccelerometer(): Accelerometer? = AndroidAccelerometer.create(appContext)
+
+    /**
+     * True while the system's animation scale is 0 - what "Remove animations" (Settings > Accessibility)
+     * and the developer option of the same name set. Watched, so flipping it with the app open
+     * takes effect without a restart.
+     */
+    override fun reduceMotion(): Flow<Boolean> = callbackFlow {
+        val resolver = appContext.contentResolver
+        fun read() = Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                trySend(read())
+            }
+        }
+        resolver.registerContentObserver(Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE), false, observer)
+        trySend(read())
+        awaitClose { resolver.unregisterContentObserver(observer) }
+    }.distinctUntilChanged()
 
     override fun showTransientMessage(message: String) {
         Toast.makeText(appContext, message, Toast.LENGTH_SHORT).show()

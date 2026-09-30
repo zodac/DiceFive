@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +51,7 @@ import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.common.BackHandler
 import net.zodac.dicefive.ui.common.DiceFiveDialog
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalOnRabbitSeen
 import net.zodac.dicefive.ui.game.style.LocalSimpleDiceRoll
@@ -124,11 +126,16 @@ fun GameScreen(
     val tableSettings = table ?: return
     val soundEnabled = tableSettings.soundEnabled
     val vibrationEnabled = tableSettings.vibrationEnabled
+    val reduceMotion = LocalReduceMotion.current
+    // One length for a human's tap and a CPU's roll, kept in step with the shake sound and buzz - see cupShakeMillis.
+    val cupShakeMillis = cupShakeMillis(reduceMotion, soundEnabled, vibrationEnabled)
+    SideEffect { viewModel.cupShakeMillis = cupShakeMillis }
     CompositionLocalProvider(
         LocalGameVisualTheme provides tableSettings.visualTheme,
         LocalIrishTricolour provides currentState.isLuckOfTheIrish,
         LocalOnRabbitSeen provides viewModel::onRabbitSeen,
-        LocalSimpleDiceRoll provides tableSettings.simpleDiceRoll,
+        // Reduced motion means the simple roll: the dice appear at once and scoring doesn't wait for a toss.
+        LocalSimpleDiceRoll provides (tableSettings.simpleDiceRoll || reduceMotion),
     ) {
         // Once the game is over the board isn't what anyone is looking at, so the results get the
         // whole screen as their own themed page rather than being appended under the felt.
@@ -179,6 +186,7 @@ fun GameScreen(
                 onShakeRollDetected = viewModel::onShakeRollDetected,
                 soundEnabled = soundEnabled,
                 vibrationEnabled = vibrationEnabled,
+                cupShakeMillis = cupShakeMillis,
             )
         }
     }
@@ -200,6 +208,7 @@ private fun InProgressGame(
     onShakeRollDetected: () -> Unit,
     soundEnabled: Boolean,
     vibrationEnabled: Boolean,
+    cupShakeMillis: Long,
 ) {
     val currentPlayer = state.currentPlayer
     val isHumanTurn = currentPlayer?.type == PlayerType.HUMAN
@@ -289,7 +298,7 @@ private fun InProgressGame(
         if (canRoll && !isRolling) {
             coroutineScope.launch {
                 isTapRolling = true
-                delay(CUP_SHAKE_MILLIS)
+                delay(cupShakeMillis)
                 onRoll()
                 isTapRolling = false
             }
@@ -382,7 +391,12 @@ fun TurnTimerBadge(secondsRemaining: Int, modifier: Modifier = Modifier) {
     val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
     // The flash's clock only runs in those last seconds - left running all turn, it recomposed the
     // badge every frame for the whole of every timed game.
-    val color = if (flashing) rememberFlashColor(mutedColor) else mutedColor
+    // Steady red under reduced motion: still says "running out" (and the live region says it in words).
+    val color = when {
+        !flashing -> mutedColor
+        LocalReduceMotion.current -> MaterialTheme.colorScheme.error
+        else -> rememberFlashColor(mutedColor)
+    }
     Text(
         text = "Time left: ${secondsRemaining}s",
         // The flash is colour alone, so its spoken twin: once the flash starts, the badge is a polite live

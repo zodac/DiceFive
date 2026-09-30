@@ -407,10 +407,11 @@ seen on a device" line and in the report to the user, not claimed as done.
 ### Known gaps
 
 - **Item 9 on the Rules pages**: their dice notation, "pts" and list dashes are read as written.
-- **Reduced motion isn't honoured.** Nothing reads the system animator-duration scale or a "remove
-  animations" setting. Looping animations run in `CategoryTile` (glow), `CupRotation`, `RoundCups`
-  and the turn-timer flash, and the die roll, cup shake and drift are unconditional. Needs an
-  `expect`/`actual` for the setting; then skip the loops and shorten the one-shots.
+- **Reduced motion is honoured on Android only.** `PlatformServices.reduceMotion()` is true while the
+  system animation scale is 0 ("Remove animations"); iOS says false until it's wired to
+  `UIAccessibility.isReduceMotionEnabled` (see `IOS_SUPPORT.md`), and Compose Multiplatform on iOS has
+  no equivalent of the Android behaviour below. **None of it has been seen on a device.** See
+  "Reduced motion" below for what it does.
 - **Text scaling**: the shrink-to-fit floors are gone - `ShrinkThenWrapText` (`ui/common`) shrinks a
   label to `MIN_READABLE_FONT_SIZE` (12sp) at most, then wraps it (2 lines) instead. It's used for
   player tab names, banner titles and Settings labels. Other `maxLines = 1` sites now allow a second
@@ -582,6 +583,40 @@ sets `aiRolling`, which the screen treats like its own tap) and lands through th
 `performRoll`. Don't add another way to roll with its own timing or animation - `.claude/
 GAME_MODES.md`'s "Turn flow" has why, and the traps (the AI loop's own copy of the state; Undo
 during the shake).
+
+## Reduced motion
+
+**Two layers.** On Android, Compose itself already follows the system animation scale (read from the
+1.12.1 bytecode, not run on a device): `WindowRecomposer` observes `animator_duration_scale` and puts
+a `MotionDurationScale` in the recomposer's coroutine context, so every `tween`, `animate*AsState` and
+`Animatable` started from a composition (banners' slide and fade, page fades, the row flash, score
+count-ups, the plant's growth...) finishes instantly at scale 0. An `InfiniteTransition` does not just stop:
+`skipToEnd()` leaves each value at its **target**, which is not always a resting pose (the cup's shake wobble
+would freeze at full tilt, the timer flash at its muted end, the tile glow at full strength) - so those are
+gated below rather than left to it. What Compose does **not** cover, and `LocalReduceMotion`
+(`ui/common/ReduceMotion.kt`, provided once in `DiceFiveApp` from `PlatformServices.reduceMotion()`)
+does: `withFrameNanos` loops, `delay`-driven sequences and physics, and anything decorative worth
+stopping outright.
+
+When it's true: the tile glow is steady gold, the turn timer is a steady red (its live-region warning is
+unchanged), the menu's drifting dice and the twinkling stars stay still, the cups' ambient sway and drawn
+shake stop, the Top Hat's always-out rabbit stays put (the peeking one still peeks - its sighting is an
+achievement - just without easing), the googly dice's pupils stay centred instead of sliding with the
+device (the menu logo and the tray), the logo dice and cup don't roll or shake when tapped (the tap still
+counts), the dice roll is the "simple" one (`LocalSimpleDiceRoll` is forced on - so scoring doesn't wait
+for a toss), the tray doesn't flicker faces while rolling, scores appear rather than count up, and the Game
+Over fireworks don't play. **What the game does doesn't change.**
+
+**Audio and haptics are not motion, and stay.** The shake sound (~400ms), the shake buzz (336ms) and the
+landing sound (~490ms) are timed to the cup's `CUP_SHAKE_MILLIS` window - the first two start as it opens and
+end as the dice land, where the third begins - and for a TalkBack user they *are* the roll's feedback. So
+`cupShakeMillis` (`ui/game/CupShake.kt`) keeps the full window whenever sound or vibration is on, and only
+shrinks it (to 100ms, not 0: `isRolling` and the roll tracker have to be seen changing) when both are off
+and there's nothing to keep in step with. The same value is used for a human's tap (`GameScreen`) and a
+CPU's roll (`GameViewModel.cupShakeMillis`, set from the screen). **Never shorten the window without
+re-checking the clips and `AndroidHapticsPlayer`'s `SHAKE_HAPTIC_MILLIS`.** The CPU's other pauses
+(`ROLL_GAP_MS`, `AI_STEP_DELAY_MS`) are for following what it did, not for an animation, and never change.
+The Game Over fanfare and hold ticks are governed by their own settings, not by this.
 
 ## Scrollbars on long lists
 

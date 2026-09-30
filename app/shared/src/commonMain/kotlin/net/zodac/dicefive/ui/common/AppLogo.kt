@@ -178,7 +178,9 @@ fun AppLogo(
 ) {
     // One DieMotion per die, only for a style with loose pupils and only where asked - kept for as
     // long as the style is, and fed the device's pull while this screen is in front.
-    val travel = diceStyle.pupilTravel?.takeIf { pupilsFollowDevice }
+    // Not under reduced motion: pupils sliding about with the device are motion too, so they stay put.
+    val reduceMotion = LocalReduceMotion.current
+    val travel = diceStyle.pupilTravel?.takeIf { pupilsFollowDevice && !reduceMotion }
     val motions = travel?.let {
         remember(it) { LOGO_DICE.mapIndexed { i, die -> DieMotion(seed = i, travel = it).apply { moveTo(Offset.Zero, die.tilt) } } }
     }
@@ -202,7 +204,8 @@ fun AppLogo(
     val turnsSoFar = remember { FloatArray(LOGO_DICE.size) }
     val scope = rememberCoroutineScope()
     val roll = {
-        if (rollMillis == null) {
+        // No roll under reduced motion; the tap still counts (onDiceTap is called by the caller either way).
+        if (rollMillis == null && !reduceMotion) {
             scope.launch {
                 val start = withFrameNanos { it }
                 var elapsed = 0f
@@ -234,7 +237,7 @@ fun AppLogo(
     val tapModifier = if (shakeCupOnTap) {
         Modifier.pointerInput(cupWidth, cupHeight) {
             detectTapGestures { tap ->
-                if (!cupShaking && isOnLogoCup(tap.x, tap.y, size.width.toFloat(), cupWidth.toPx(), cupHeight.toPx())) {
+                if (!cupShaking && !reduceMotion && isOnLogoCup(tap.x, tap.y, size.width.toFloat(), cupWidth.toPx(), cupHeight.toPx())) {
                     cupShaking = true
                     cupTapScope.launch {
                         delay(CUP_SHAKE_MILLIS)

@@ -44,6 +44,7 @@ import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.ui.common.BrandBackdrop
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PageColumn
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.theme.CupRimGold
@@ -88,7 +89,8 @@ fun GameOverScreen(
     }
 
     BrandBackdrop(modifier = modifier) {
-        if (humanWon) {
+        // The fanfare (its own sound setting) still plays; the sparks are what reduced motion drops.
+        if (humanWon && !LocalReduceMotion.current) {
             GoldFireworks(durationMillis = CELEBRATION_MILLIS, modifier = Modifier.fillMaxSize())
         }
 
