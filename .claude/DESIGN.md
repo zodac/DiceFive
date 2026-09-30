@@ -92,7 +92,7 @@ decisions behind it. Read that before changing anything visual.
   work. Earlier stroke-drawn marble mats read as lightning; see the scripts for what replaced them. Natural-looking dice (Marble, Frosted) also seed by `LocalDieIndex`, the
   die's position in the tray, so no two dice - or two faces of one die - share a pattern. Their palettes
   sit beside their entries in `StyleCatalog.kt` rather than in `Color.kt` - see UI.md.
-  The Maths dice (`MathsDice.kt`; White, Black, Green - a secret style, hidden until The Solution is earned) show a formula per face - x⁰, √4, √9, 2², √25,
+  The Maths dice (`MathsDice.kt`; White, Black, Green - a secret style, hidden until The Solution is earned) show a formula per face - x⁰, ln e², ⌊π⌋, 2², √25,
   3! - in the MathJax TeX fonts (`composeResources/font/mathjax_*.otf`, OFL, unmodified), the
   Computer Modern faces Wikipedia sets formulas in. Each run is laid out once at a fixed size and
   scaled to the die, placed from the glyph metrics copied from the font into `MathsDice.kt`
