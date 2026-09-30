@@ -502,6 +502,9 @@ class GameViewModel(
         // below, it just doesn't feed any of the tracking that leads to one.
         val isPlayerOneTurn = state.currentPlayerIndex == 0
 
+        // Everything this roll earns is held back until the dice have landed - see heldBackRollUnlocks.
+        if (isPlayerOneTurn) heldBackRollUnlocks = mutableSetOf()
+
         if (isPlayerOneTurn) {
             if (state.dice.all { it.isHeld }) unlockAchievements(setOf(Achievement.POINTLESS_ROLL))
             if (state.rollsRemaining == state.fullRolls) resetPerTurnTracking()
@@ -537,8 +540,31 @@ class GameViewModel(
         if (isPlayerOneTurn) {
             checkFirstRollAchievements()
             checkPostRollAchievements(rollsRemainingBeforeRoll, diceBeforeRoll)
-            // Greenfingers blooms on a roll, not a score: on the game's very last roll, before its last box is filled.
-            if (_game.value?.players?.firstOrNull()?.hasGrownSunflower == true) checkInProgressAchievements()
+            announceRollAchievementsOnceLanded(
+                // Greenfingers blooms on a roll, not a score: on the game's very last roll, before its last box is filled.
+                bloomed = _game.value?.players?.firstOrNull()?.hasGrownSunflower == true,
+            )
+        }
+    }
+
+    /**
+     * Unlocks from the roll being processed in [rollDice], held back instead of announced - null
+     * outside it. The checks run the instant the roll is published, while the dice are still
+     * tossing onto the mat, so a banner for "Roll a 5x on the first roll" would pop up before the
+     * player has seen the 5x. The checks themselves (and all their per-turn tracking) still run
+     * immediately, against the state as it was rolled; only the announcement waits.
+     */
+    private var heldBackRollUnlocks: MutableSet<Achievement>? = null
+
+    /** Announces what [heldBackRollUnlocks] collected once the toss has finished (immediately with no toss). */
+    private fun announceRollAchievementsOnceLanded(bloomed: Boolean) {
+        val earned = heldBackRollUnlocks.orEmpty().toSet()
+        heldBackRollUnlocks = null
+        if (earned.isEmpty() && !bloomed) return
+        viewModelScope.launch {
+            pausableDelay(diceTossMillis)
+            unlockAchievements(earned)
+            if (bloomed) checkInProgressAchievements()
         }
     }
 
@@ -1289,6 +1315,10 @@ class GameViewModel(
     private fun unlockAchievements(achievements: Set<Achievement>) {
         val repository = achievementsRepository ?: return
         if (achievements.isEmpty()) return
+        heldBackRollUnlocks?.let {
+            it += achievements
+            return
+        }
         viewModelScope.launch {
             withAchievementLock {
                 val before = repository.current()

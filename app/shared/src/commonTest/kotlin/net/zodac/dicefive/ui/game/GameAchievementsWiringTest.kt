@@ -13,8 +13,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.data.achievements.AchievementStore
@@ -206,6 +208,24 @@ class GameAchievementsWiringTest {
         )
         assertFalse(Achievement.FIRST_ROLL_5X in store.unlocked)
         assertFalse(Achievement.FIRST_ROLL_FULL_HOUSE in store.unlocked)
+    }
+
+    @Test
+    fun `a roll feat waits for the dice to land before it pops`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = CountingDice(1..5))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+        viewModel.diceTossMillis = 1_000L
+
+        viewModel.rollDice()
+        advanceTimeBy(999L)
+        runCurrent()
+        assertFalse(Achievement.FIRST_ROLL_LARGE_STRAIGHT in store.unlocked, "popped while the dice were still tossing: ${store.unlocked}")
+
+        advanceTimeBy(2L)
+        runCurrent()
+        assertTrue(Achievement.FIRST_ROLL_LARGE_STRAIGHT in store.unlocked, "should pop once the dice have landed: ${store.unlocked}")
     }
 
     @Test
