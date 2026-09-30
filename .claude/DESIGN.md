@@ -197,7 +197,7 @@ decisions behind it. Read that before changing anything visual.
   genuinely new scoring rule, and nothing else learning it exists. A category's own scoring rule is
   fixed and mode-independent (`ScoreCategory` carries its `section`, `fixedScore`, `jokerFreeFill`
   and `matchingColour`); a mode just chooses which categories are on its card.
-- **Achievements**: 96 of them, **player 1 only** (`state.players[0]`, "You" on the setup
+- **Achievements**: 97 of them, **player 1 only** (`state.players[0]`, "You" on the setup
   screen) rather than any human at the table - the one exception is the ledger (the score-band and
   career-points achievements at the tail of `AchievementCategory.COLLECTION`), which stays measured
   against the leaderboard as a whole, i.e. every human who has played on this device, not just
@@ -207,7 +207,7 @@ decisions behind it. Read that before changing anything visual.
   name). Score-threshold achievements (Solid Round, Sharpshooter, High Roller, Dice Deity) are
   judged only once a game finishes, never mid-game off a total an abandoned game would throw away.
   Local only for now but shaped so each maps onto a Google Play Games achievement later (see
-  Phase 13). The six in `AchievementCategory.EASTER_EGGS` are secret
+  Phase 13). The seven in `AchievementCategory.EASTER_EGGS` are secret
   (`AchievementVisibility.SECRET`): kept out of the list - and its unlocked/total counts - until
   earned, and out of Completionist. Every `MISCELLANEOUS` achievement is `HIDDEN` (title shown,
   description "???" until earned), and vice versa - `AchievementEngineTest` enforces both pairings.
