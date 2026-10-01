@@ -12,7 +12,7 @@ import org.junit.runner.RunWith
 /**
  * Cold-start time with no ahead-of-time compilation against the generated Baseline Profile - the
  * gap between the two is what the profile buys. Run on a device with
- * `./gradlew :app:baselineprofile:connectedBenchmarkAndroidTest`.
+ * `./gradlew :app:baselineprofile:connectedBenchmarkReleaseAndroidTest`.
  */
 @RunWith(AndroidJUnit4::class)
 class StartupBenchmark {

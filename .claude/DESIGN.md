@@ -1832,7 +1832,7 @@ install-over-existing succeeds:
       1. `./gradlew :app:android:generateBaselineProfile` - writes
          `app/android/src/main/generated/baselineProfiles/baseline-prof.txt`, which is *merged* with
          the hand-written `src/main/baseline-prof.txt`, not replacing it.
-      2. `./gradlew :app:baselineprofile:connectedBenchmarkAndroidTest` for the before/after.
+      2. `./gradlew :app:baselineprofile:connectedBenchmarkReleaseAndroidTest` for the before/after.
       3. Compare with and without the hand-written wildcard file (it marks all app code hot, so with it
          present the generated profile adds little but startup ordering); if the generated one is as
          good, delete the wildcard file so unvisited code stops being compiled ahead of time.
