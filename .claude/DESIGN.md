@@ -98,6 +98,50 @@ decisions behind it. Read that before changing anything visual.
   scaled to the die, placed from the glyph metrics copied from the font into `MathsDice.kt`
   (superscripts at TeX's 0.7 scale and 0.413em rise); the root's bar is drawn as a rule, since the
   font's √ has none. A new formula needs its glyphs' metrics added there (fontTools' `BoundsPen`).
+  The Gems dice (`GemDice.kt`; Ivory, Black) cut each value's pips as a different stone - topaz,
+  ruby, emerald, sapphire, amethyst, diamond - in its usual cut (oval, cushion, step-cut, round
+  brilliant). They're drawn as artwork, not photographs (the maintainer's call after a realistic
+  pass looked "too real"): flat facet fills in five tones, ink lines, a crisp highlight, no metal
+  setting, each stone inlaid in a shadowed socket on a softly clouded face. Every stone differs
+  (angle, uneven edge, which facets catch the light), seeded by `naturalPatternSeed` like Marble;
+  faces and gems are painted once through `drawCachedSurface`.
+  The Treasure Chest cup (`TreasureChestCup.kt`) is the one cup not drawn in `CupCanvas`: it's a
+  solid in its own 3D space, turned `CHEST_YAW_DEGREES` so its right end shows, projected with the
+  cups' usual `CUP_VIEW_SQUASH`. It doesn't tip - shaken, it rocks side to side four times a second,
+  lifting smoothly at each end with its lid lifting in time (its own shake, in the layer; every part
+  a smooth wave - the first version's jolting hops were too aggressive); poured, the lid flies open on
+  a bouncing spring with a gold burst (`FLOURISH_MILLIS`; skipped under reduced motion), and it rests
+  open on its hoard. Its one special rule: a chest that first appears with the roll already poured (a
+  game being continued) stays shut until the next shake, which then opens it as usual - appearing open
+  meant showing it before its painted treasure was ready, empty then popping full (the maintainer's
+  call). The spill only shows once the lid has really opened, not when it lifts in the shake.
+  The lid has thickness (lining, lip edge, inner end face) and is visibly hinged on
+  the right end (hinge leaves, knuckle, and a stay once open).
+  The hoard is settled, not placed (`settlePile`): the chest is full to just under the rim, a flat
+  bed of coins covers that, then coins are dropped one at a time onto whatever is highest beneath
+  them, tipped gently to the slope they land on and rolling downhill while they'd rest on a slope
+  steeper than `REPOSE` - so every coin rests on something, and the heap takes a real heap's shape.
+  Coins placed by a formula looked as if they floated, however the gaps were patched; don't go back.
+  It's seeded, so the same pile every time. Its traps: a coin's tilt and its roll check must look at
+  the surface just *outside* its footprint (inside, the last coin there has already raised it - the
+  roll never triggered and the coins climbed into a tower), and the roll check uses where the coin
+  would actually rest (the highest point under it), not the ground under its centre. A realistic
+  slope across the chest's depth tops the heap out ~9 above the rim, which `DROPPED_COINS` is set to.
+  Its shadow is its own footprint (the plinth's outline projected on the table, cast right and back,
+  softened in a few faint layers), painted with the body - not the generic oval the round cups use.
+  For frame cost the body and the settled pile (with the pearls and loose gems) are each painted once
+  into an image per size; only the lid, the side hinge, the goblet, the crown, the highest six coins
+  and the spill are drawn live. The pile is simulated and painted on a background thread
+  (`rememberHoardArt`, started at the chest's first shake, or at once if it's already open - never
+  for a chest only shown closed, like the Styles preview) and kept for the session - done on the frame it first showed, resuming a game with the chest open hitched badly
+  (~160ms of the first frame on the desktop JVM). Until it's ready, or if painting ever fails, a plain gold fill stands in. Each
+  coin is drawn as rotated ovals (the ellipse its tilted face projects to, worked out once from two
+  projected directions), not projected polygons - several times cheaper to paint. Every opening
+  spills a fresh random handful (`spillHandful`): 2-4 coins and 1-2 sapphires, each thrown from its
+  own spot on the pile at its own moment, arc and spin, landing over the front rim or on the table
+  inside fixed bounds and clear of each other - no bounce. They vanish the moment the chest starts to
+  close for the next roll. With no burst (reduced motion) they're simply at rest. Checking for gaps: colour the inside of the chest bright green
+  for a render and count the green pixels.
   The Styles screen (`ui/styles/`) is the picker: one tile per family, showing the picked colour
   (or the family's first), colour dots along the bottom when it has more than one, and a long
   press popping up a scrollable row of previews, one per colour (no colour names on screen - the

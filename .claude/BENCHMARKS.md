@@ -296,6 +296,35 @@ Everything unlocked, phone-sized screen:
   `StylesWarmUp` pre-draw from the menu already exists for this - see its comment in
   `StylesScreen.kt`.
 
+### The Treasure Chest and the Gems dice (designed to it)
+
+Measured when they were added: the cup alone at its game size (idle 20 frames, shake 26, open 40),
+and five tossed dice, warm, ms per frame, against neighbours in the same run (the machine's baseline
+drifted between runs, so compare within a row's run only).
+
+| | Shake | Open | Notes |
+|---|---|---|---|
+| Classic Gold cup | 3.8-4.3 | 3.8-4.6 | baseline |
+| Treasure Chest, everything drawn live | 4.2-5.0 | 5.9-6.3 | body ~70 draws repainted every frame - the lid's rattle and swing redraw the canvas |
+| Treasure Chest, body and hoard cached | +0.4 over Gold | +1.1 over Gold | what shipped |
+| Gems, tossed | | | 11.2-11.4 against 9.9-11 for Ivory, Marble, Numeral |
+
+The chest's hoard was never drawn live past its first design: ~180 pieces were cut to one cached
+image plus 14 live ones before measuring. A one-off 28ms frame in one pass was GC (six passes
+otherwise steady).
+
+Re-measured once the hoard became a settled pile (~580 coins, each a projected disc with its edge,
+simulated on first use - `settlePile`) and the shake was smoothed: warm, within 1-2ms of the Gold cup
+shaking or opening; the first opening of a run (simulating the pile and painting it) ~20ms at worst
+against ~17ms for the Gold cup's own first open. That cost is once per launch, not per roll.
+
+Then reported as lag when continuing a game with the chest already open: that first frame had to
+simulate the pile (19ms), paint it (74ms - every coin was four projected 16-point polygons) and the
+body (2ms), 158ms in all. The pile now settles and paints on a background thread as soon as the
+chest is composed (a gold fill stands in until it's ready), and coins are drawn as rotated ovals:
+the same first frame is ~66ms, all of it first-run code warm-up - a second resume in the same run is
+23ms.
+
 ---
 
 ## Still on the table
