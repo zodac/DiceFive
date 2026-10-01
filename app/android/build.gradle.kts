@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.aboutlibraries.android)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 // Single source of truth for the app version - bump the root VERSION file to release a new one.
@@ -122,13 +123,13 @@ android {
     }
 
     packaging {
-        resources {
         // Prebuilt libraries (Compose's graphics-path, DataStore's shared counter) ship .so files with
         // no symbol table AGP can strip, so it warns on every build and packages them as they are.
         // Saying so here is the same outcome without the warning.
         jniLibs {
             keepDebugSymbols += setOf("**/libandroidx.graphics.path.so", "**/libdatastore_shared_counter.so")
         }
+        resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             // A handful of AndroidX artifacts each bundle their own full copy of the same Apache
             // license text under their own package path - none of it is read at runtime. The license
@@ -632,6 +633,10 @@ dependencies {
     implementation(project(":app:shared"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
+    // Installs the Baseline Profile on the device at first launch (Compose already brings it, but the
+    // generated profile is the app's own, so it is stated here), and is where the profile is generated from.
+    implementation(libs.androidx.profileinstaller)
+    "baselineProfile"(project(":app:baselineprofile"))
     // Compose UI and Material3 themselves arrive through :app:shared (as JetBrains' multiplatform
     // artifacts, which resolve to these same androidx ones on Android); the BOM keeps the test and
     // tooling artifacts below on matching versions.
