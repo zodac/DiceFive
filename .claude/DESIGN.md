@@ -1823,15 +1823,22 @@ install-over-existing succeeds:
 - [x] **Baseline Profile, hand-written** (`4054fe6`): `app/android/src/main/baseline-prof.txt`
       marks the whole `net.zodac.dicefive` package hot with wildcards (AGP expands them, R8 carries
       them into the release `baseline.prof`). The AndroidX/Compose libraries already ship their own.
-- [ ] **Generate a real Baseline Profile on a device.** The wildcard file is a stand-in: it compiles
-      *all* app code ahead of time rather than the paths actually used at startup and in play. A
-      proper one needs the Baseline Profile Gradle plugin, a `:baselineprofile` module with a
-      Macrobenchmark `BaselineProfileRule` journey (cold start → menu → start a game → roll, hold,
-      score → Styles screen), run on a physical device or a rooted/userdebug emulator (API 28+) -
-      neither CI nor the sandbox has one, so it has to be run by hand, e.g. from Android Studio. Its
-      generated `baseline-prof.txt` then replaces the hand-written file, and a Macrobenchmark
-      `StartupBenchmark` with `CompilationMode.Partial()` against `None()` confirms it actually helps.
-      Regenerate after large UI changes.
+- [ ] **Generate a real Baseline Profile on a device** (scaffolded, not yet run). `:app:baselineprofile`
+      holds the Macrobenchmark journey (`BaselineProfileGenerator`, steps in `Journeys.kt`: a game
+      played and then resumed, Styles, Achievements, Leaderboard, Statistics, Rules, Settings with its
+      Licences and Credits dialogs), `StartupBenchmark` and `StylesBenchmark` (frame times opening
+      Styles and swiping its rows), each compared with no compilation against the profile. Needs a
+      phone on adb, so it is run by hand:
+      1. `./gradlew :app:android:generateBaselineProfile` - writes
+         `app/android/src/main/generated/baselineProfiles/baseline-prof.txt`, which is *merged* with
+         the hand-written `src/main/baseline-prof.txt`, not replacing it.
+      2. `./gradlew :app:baselineprofile:connectedBenchmarkAndroidTest` for the before/after.
+      3. Compare with and without the hand-written wildcard file (it marks all app code hot, so with it
+         present the generated profile adds little but startup ordering); if the generated one is as
+         good, delete the wildcard file so unvisited code stops being compiled ahead of time.
+      Regenerate after large UI changes. Selectors are the visible labels and screen-reader
+      descriptions, so a relabelled button fails the run (`await` in `Journeys.kt`) rather than
+      quietly thinning the profile.
 - [ ] **Benchmark battery use of the remaining always-on animations.** The menu's (and every reading
       page's) drifting watermark dice are now capped at about 30 redraws a second (`DriftState.onFrame`:
       the drift is slow, and the dice still move by the whole time since their last move, so their speed

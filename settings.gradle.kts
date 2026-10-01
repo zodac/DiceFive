@@ -24,3 +24,4 @@ rootProject.name = "DiceFive"
 // home. app/ios (the Xcode project, still to come) will sit beside them. See .claude/IOS_SUPPORT.md.
 include(":app:shared")
 include(":app:android")
+include(":app:baselineprofile")
