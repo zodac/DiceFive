@@ -140,7 +140,7 @@ colour - `grep` for `Color.Green`/`Magenta` before committing.
   (`rememberHoardArt`): `produceState` + `withContext(Dispatchers.Default)` painting into an
   `ImageBitmap` via `CanvasDrawScope().draw(...)`, kept in a small main-thread map by (style, size),
   with a cheap stand-in drawn until it's ready. Start it only when it's needed (first shake, or
-  already open) - never for a Styles preview - and wrap it in `runCatching`, keeping the stand-in on
+  already open) - never for a Styles preview that's merely shown (picking a cup there shakes and tips it, which counts) - and wrap it in `runCatching`, keeping the stand-in on
   failure: Robolectric's legacy graphics mode (most UI tests) can't create the bitmap, and an uncaught
   failure in a `produceState` crashes the whole screen.
 - **Live per frame:** only what moves - a lid, a burst, a dozen top pieces. Say the count.
@@ -156,7 +156,13 @@ colour - `grep` for `Color.Green`/`Magenta` before committing.
 - A cup composed with `tilted` already true is a game being continued. The chest stays shut then until
   the next shake (its painted hoard can't be ready on that frame; appearing open meant empty-then-pop).
 - Anything that belongs to "open" (the chest's spill) must key off the open *state*, not the lid
-  angle - the shake lifts the lid too - and should go the moment the state closes.
+  angle - the shake lifts the lid too - and should go the moment the state closes. Anything heaped
+  higher than the rim (the chest's treasure) must also wait until the lid is clear of it, or it pokes
+  through a lid that's only just lifting.
+- A cup can be handed another instance of its own class in the same place (a Styles tile switching
+  colours), keeping any `remember`ed state; the Styles screen keys each tile's cup on its id, so keep
+  per-colour state (a fixed plant stage, an always-out rabbit) out of `remember` initialisers anywhere a
+  caller might not.
 - Reduced motion (`LocalReduceMotion`, `UI.md`): stop decorative motion (shake, bursts, drift), keep
   the outcome (the lid still opens, spilled pieces still appear at rest). Don't rely on Compose's
   animation scale alone - see `UI.md`.

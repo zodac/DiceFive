@@ -583,7 +583,11 @@ internal class RabbitSlide {
         x += velocity * seconds
         if (abs(x) > RABBIT_SLIDE_RANGE) {
             x = RABBIT_SLIDE_RANGE * sign(x)
-            velocity = -velocity * RABBIT_BOUNCE
+            // Arriving no faster than a couple of frames' pull from a standstill, it's lying against
+            // that end rather than hitting it, and stays there. Bounced instead, it would hop off and
+            // fall back every frame for as long as the hat lay tipped (at 60fps, never slowing to
+            // RABBIT_AT_REST_SPEED), keeping the hat's frame clock running for nothing.
+            velocity = if (abs(velocity) <= 2f * abs(acceleration) * seconds) 0f else -velocity * RABBIT_BOUNCE
         }
     }
 
@@ -693,10 +697,12 @@ class TopHatDiceCupStyle(
         val k = RABBIT_SCALE
         val headY = HAT_BRIM_Y + 14f * k - 20f * k * progress
         val opening = mouthBounds(HAT_OPENING_RADIUS, HAT_BRIM_Y)
-        // The opening, plus everything above its centre line across its width: where the rabbit can show.
+        // The opening, plus everything above its centre line: where the rabbit can show. Above the line
+        // it reaches well past the opening's sides - only what's down inside the hat needs hiding, and a
+        // rabbit slid to one end and leaning would otherwise have the tip of its ear cut off square.
         val visible = Path().apply {
             addOval(opening)
-            addRect(Rect(Offset(opening.left, gy(-60f)), Size(opening.width, gy(60f + HAT_BRIM_Y))))
+            addRect(Rect(Offset(opening.left - gx(HAT_OPENING_RADIUS), gy(-60f)), Size(opening.width + gx(2f * HAT_OPENING_RADIUS), gy(60f + HAT_BRIM_Y))))
         }
         // Worked out here: the cup grid isn't reachable from inside clipPath's own DrawScope.
         val head = Rect(Offset(gx(centreX - 8f * k), gy(headY - 6.5f * k)), Size(gx(16f * k), gy(13f * k)))

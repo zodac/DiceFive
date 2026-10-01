@@ -148,7 +148,7 @@ class TreasureChestDiceCupStyle(override val id: String, private val palette: Ch
         }
         // The hoard is simulated and painted in the background from the first shake (or straight away if
         // the chest is already open), so it's normally ready by the time the lid lifts - and never for
-        // a chest that's only ever shown closed, like the Styles screen's preview.
+        // a chest that's only ever shown closed and still, like a Styles preview that hasn't been picked.
         var canvasSize by remember { mutableStateOf(IntSize.Zero) }
         var hoardWanted by remember { mutableStateOf(false) }
         if (rolling || tilted) hoardWanted = true
@@ -296,7 +296,10 @@ private fun CupDrawScope.drawChest(
     if (swungBack) drawLid(lidDegrees, palette)
     if (flourish < 1f) drawFlourishBehind(treasureCentre, flourish)
     drawOpening(palette)
-    drawHoard(hoard, palette)
+    // Only once the lid is open and swung back behind it: the goblet, the crown and the top coins are
+    // heaped higher than the rim, so a lid just lifting - rattled in the shake, or only starting to
+    // fly open - would have them poking up through it. Until then the gap shows the dark inside.
+    if (swungBack && openness > 0f) drawHoard(hoard, palette)
     if (!swungBack) drawLid(lidDegrees, palette)
     drawBodyImage(id, palette)
     drawSideHinge(lidDegrees, palette)

@@ -110,6 +110,11 @@ import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.runtime.key
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import androidx.compose.runtime.Stable
+import androidx.lifecycle.Lifecycle
+import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.ui.common.AppTooltip
@@ -317,24 +322,35 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
         }
 
         StyleCategory.DICE_CUP -> StyleCategoryCard(title = "Dice Cup") {
+            val shake = rememberCupPickShake()
             StyleFamilyTiles(
                 catalog = DiceCupStyles,
                 selectedId = picks.diceCupStyleId,
                 achievements = achievements,
-                onSelect = onSelect,
+                onSelect = { id ->
+                    onSelect(id)
+                    shake.start(id)
+                },
                 previewSize = DpSize(CUP_PREVIEW_WIDTH, CUP_PREVIEW_HEIGHT),
                 backgroundBrush = { SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh) },
                 warmUp = warmUp,
                 buildStagger = category.ordinal,
             ) { style ->
-                style.Cup(
-                    rolling = false,
-                    tilted = false,
-                    modifier = Modifier.size(
-                        width = (style.shape.gridWidth * CUP_ART_SCALE).dp,
-                        height = (style.shape.gridHeight * CUP_ART_SCALE).dp,
-                    ),
-                )
+                // One cup per style, not one per tile: a tile showing another colour of the same
+                // family would otherwise inherit the last one's state - the Flowerpot's plant
+                // growing in from the bare pot's, the Magician's rabbit stuck at the plain hat's peek.
+                key(style.id) {
+                    // Forced still under reduced motion, as in a game (and off screen - see TileSlot).
+                    val moving = shake.cupId == style.id && !LocalReduceMotion.current
+                    style.Cup(
+                        rolling = moving && shake.shaking,
+                        tilted = moving && !shake.shaking,
+                        modifier = Modifier.size(
+                            width = (style.shape.gridWidth * CUP_ART_SCALE).dp,
+                            height = (style.shape.gridHeight * CUP_ART_SCALE).dp,
+                        ),
+                    )
+                }
             }
         }
 
@@ -369,6 +385,49 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
             }
         }
     }
+}
+
+/**
+ * Which cup on the Styles screen is rolling, if any: the one just picked, shown doing what it does in a
+ * game so a player sees how it moves before playing with it - shaken for [CUP_SHAKE_MILLIS] ([shaking]),
+ * then tipped over as if pouring the dice out, left lying there for [PICKED_CUP_TIPPED_MILLIS] (long
+ * enough for a chest's lid to fly open and settle), and stood back up. A new pick (or the same one
+ * again) starts it afresh; none at all under reduced motion. No sound or buzz.
+ */
+@Stable
+private class CupPickShake(private val scope: CoroutineScope, private val lifecycle: Lifecycle, private val reduceMotion: Boolean) {
+    /** The cup rolling, or null when none is. */
+    var cupId by mutableStateOf<String?>(null)
+        private set
+
+    /** Whether [cupId] is still being shaken; once not, it's tipped over. */
+    var shaking by mutableStateOf(false)
+        private set
+    private var job: Job? = null
+
+    fun start(id: String) {
+        if (reduceMotion) return
+        job?.cancel()
+        cupId = id
+        shaking = true
+        job = scope.launch {
+            lifecycle.delayWhileResumed(CUP_SHAKE_MILLIS)
+            shaking = false
+            lifecycle.delayWhileResumed(PICKED_CUP_TIPPED_MILLIS)
+            cupId = null
+        }
+    }
+}
+
+// How long a cup picked on the Styles screen lies tipped over after its shake before standing back up.
+private const val PICKED_CUP_TIPPED_MILLIS = 1_500L
+
+@Composable
+private fun rememberCupPickShake(): CupPickShake {
+    val scope = rememberCoroutineScope()
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val reduceMotion = LocalReduceMotion.current
+    return remember(scope, lifecycle, reduceMotion) { CupPickShake(scope, lifecycle, reduceMotion) }
 }
 
 /**
