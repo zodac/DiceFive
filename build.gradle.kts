@@ -16,8 +16,13 @@ plugins {
 // - DataStore's bundled protobuf reads memory through sun.misc.Unsafe (JEP 498) - drop that flag
 //   once it stops;
 // - Robolectric's native graphics runtime is loaded with System.load (JEP 472).
+// Compact object headers (JEP 519) are on for the test JVMs too: smaller heap, same behaviour.
 subprojects {
     tasks.withType<Test>().configureEach {
-        jvmArgs("--sun-misc-unsafe-memory-access=allow", "--enable-native-access=ALL-UNNAMED")
+        jvmArgs(
+            "--sun-misc-unsafe-memory-access=allow",
+            "--enable-native-access=ALL-UNNAMED",
+            "-XX:+UseCompactObjectHeaders",
+        )
     }
 }
