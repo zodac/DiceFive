@@ -555,7 +555,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
             unlock = AchievementCount(34),
         ),
         StyleFamily(
-            "Treasure Chest",
+            "Treasure",
             listOf(
                 colour(
                     "Oak",
@@ -611,7 +611,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
             unlock = AchievementCount(55),
         ),
         StyleFamily(
-            "Picnic Basket",
+            "Picnic",
             listOf(
                 colour(
                     "Wicker",

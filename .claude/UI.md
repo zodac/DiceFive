@@ -116,7 +116,7 @@ which needs compileSdk 37). Revisit when 1.5.0 is stable.
 | `DiceFiveDialog.kt` | the app's one dialog shape, so the menu and the board ask questions the same way. |
 | `AppLogo.kt` | placeholder app mark, built from the game's own dice via `IvoryDiceStyle`. |
 | `FooterPill.kt` | the small gold pill pinned over the bottom of a page: the Rules page's "1 of 7" and Settings' version. Spoken forms and live regions go on its `modifier`. |
-| `Scrollbar.kt` | `LazyListScrollbar`, a `BoxScope` extension drawing a minimal scroll indicator over a `LazyColumn` - stock Compose has none for Android. Shared by the Leaderboard and Statistics screens. Also `HorizontalScrollbar`, a bar placed under a horizontally scrolling row: one overload for a plain `Row` (`ScrollState`, exact) and one for a `LazyRow` (`LazyListState`, estimated from near-uniform items) - the Styles screen's colour pop-up and tile rows. |
+| `Scrollbar.kt` | `LazyListScrollbar`, a `BoxScope` extension drawing a minimal scroll indicator over a `LazyColumn` - stock Compose has none for Android. Shared by the Leaderboard and Statistics screens. Also `VerticalScrollbar`, a draggable bar for a plain `verticalScroll` column (the Styles page, placed in its side margin), and `HorizontalScrollbar`, a bar placed under a horizontally scrolling row: one overload for a plain `Row` (`ScrollState`, exact) and one for a `LazyRow` (`LazyListState`, estimated from near-uniform items) - the Styles screen's colour pop-up and tile rows. |
 | `SegmentedChoiceRow.kt` | the app's one segmented-button row, generic over the option type. Every use drops the stock M3 checkmark-on-select icon (`icon = {}`) - reserving space for it crowded a label out at some of the widths this app uses it at (AI difficulty, three options in a third-width column). Used by player count, AI difficulty and turn timer. Takes `enabled` for a choice the rest of the form overrides - the turn timer while a mode with its own timer (Quickfire) is picked. It takes an optional per-option glyph: the turn timer's "None" is a crossed-out timer icon with a "No timer" content description, not a word. |
 
 ### PageColumn
@@ -375,6 +375,32 @@ item, then centres it once its size is known, and stays invisible until then, fa
 and the achievements, loaded when the container is built and shared with the menu's logo - so the
 page normally has them on its first frame rather than waiting on its own load.
 
+**Each category card can open as a gallery.** A small grid icon at the end of the card's title
+(`GalleryToggle`) switches it from its scrolling row to every tile at once (`GalleryGrid`): the same
+tiles at full size, left-aligned like the row, the page scrolling down through them. **The row and the gallery space tiles identically** (`TileSpacing`, computed once from the
+card's width, which is why the tiles sit under a `BoxWithConstraints`): each tile takes its
+*preview's* width - a name wider than that (at a large font; the cups "Treasure Chest" and "Picnic
+Basket" were renamed "Treasure" and "Picnic" so none is at the normal size) centres under it and spills into the gaps rather than widening the tile - with the same gap between. The gap
+is `TILE_SPACING` (12dp) where a gallery line has room for it, closing up to `GALLERY_MIN_TILE_SPACING`
+(4dp) where that fits one more tile on a line; the tiles' sides are `TILES_SIDE_PADDING` (8dp) in
+both. They used to differ (12dp from each tile's full width in the row, the computed gap in the
+gallery) - `StylesGalleryTest` now checks every category's step matches. Together that fits four
+dice or cups across a 360dp phone (its card leaves ~304dp: 4 x 72dp and 5dp gaps); three mats and
+four backgrounds fit too. **A mat's tile is 97 x 65dp** (the dice tray's wide shape, cut 10% from 108 x 72 so three fit
+across a gallery - the row matches), and **a background's is 72 x 80dp**: the score board's shape, about
+as tall as it's wide (380dp tall, the screen's width less padding), not the mat's - the two used to
+share one. **The page has a vertical scrollbar** (`VerticalScrollbar`, `ui/common/Scrollbar.kt`) whenever
+it scrolls - an open gallery, a small phone - in ScreenScaffold's 20dp right-hand margin, beside the
+cards rather than over them. The whole margin is its handle: dragging it scrolls the page in
+proportion, so a long gallery is quick to get through. Silent to TalkBack, which scrolls by its own actions. Rejected on review: tiles shrunk to
+0.7x to fit more across; an even grid with every column as wide as the widest tile (wide gaps around
+the cups), centred or spread; and a `FlowRow` at each tile's own width with an 8dp gap, which left
+almost a whole empty column on a 360dp phone. The toggle is no taller than the title's own line, so
+adding it moved nothing; it's off whenever the page opens (`rememberSaveable`, per card). The tiles
+are `movableContentOf`, moved between the row and the gallery rather than rebuilt, so switching is
+cheap and a cup mid-shake carries on. To TalkBack the toggle is a switch, "Dice gallery, off"
+(`StylesGalleryTest`); the tiles keep their row's position in the set ("3 of 21") either way.
+
 **The menu warms the Styles page up (`StylesWarmUp`).** Even lazily, the first open after a launch
 was slow in a release build too: it's the first time each tile's drawing code runs, and that's a
 one-off cost per process. So once the menu has settled (600ms), `StylesWarmUp` draws the page's
@@ -382,7 +408,10 @@ four category cards one per frame, at screen width, in a 1dp clipped box under t
 backdrop, then drops them - once per process. Compose doesn't cull clipped content, so the art
 really is drawn. The screen and the warm-up share `StyleCategorySection`, so a new category or a
 change to how tiles draw is warmed automatically; keep it that way rather than giving the warm-up
-its own copy.
+its own copy. After the tiles it builds each category's real card, then the screen's empty frame, then the whole
+screen (`StylesScaffold`, with `ScreenScaffold(driftingDice = false)` so the menu's shared drift isn't
+moved along by a second copy): that first-time code, not the art, was most of the first open's lag
+once the tiles were warm. See `BENCHMARKS.md`.
 
 ## Accessibility
 
@@ -480,8 +509,8 @@ Everything a screen reader needs is added as semantics, never by changing what's
   as its action; the cup is "Dice cup, 3 rolls left", a Roll button; player tabs are tabs, the
   scorecard on view selected. `BoardSemanticsTest` pins the dice and score box actions.
 - **Style tiles are radio buttons** (`StylesScreen`): one node each with the style (and colour) name,
-  selected state and position in the row (picking a cup shakes and tips it - `CupPickShake` - which is only
-  something to see: the pick is what's announced); the colour chooser is a long-click action, and a locked
+  selected state and position in the row (picking a cup shakes and tips it - `CupPickShake` - and picking a die rolls it through all six
+  faces - `DicePickRoll` - both only something to see: the pick is what's announced); the colour chooser is a long-click action, and a locked
   tile's action says how to unlock it. Stats cards read as one sentence with delete as their only
   action; the hidden superuser counter and the logo dice use raw `detectTapGestures`, so TalkBack
   isn't handed an unnamed button. The turn timer says its seconds in words and, once it starts
@@ -649,7 +678,7 @@ unchanged), the menu's drifting dice and the twinkling stars stay still, the Cau
 Takeaway's steam (the cups' ambient animation, only for players who pick them) and the drawn shake stop (the Treasure Chest's, the Volcano's rumble and the Picnic Basket's too), its gold burst on opening doesn't play (the lid just opens), the Volcano doesn't erupt (its lava is simply there, at rest), the Picnic Basket's lids open without bouncing and its apples are simply on the table, the Shipping container's doors open without bouncing, the Top Hat's always-out rabbit stays put (the peeking one still peeks - its sighting is an
 achievement - just without easing), the googly dice's pupils stay centred instead of sliding with the
 device (the menu logo and the tray), the logo dice and cup don't roll or shake when tapped (the tap still
-counts), a cup picked on the Styles screen doesn't shake or tip (the pick still counts), the dice roll is the "simple" one (`LocalSimpleDiceRoll` is forced on - so scoring doesn't wait
+counts), a cup picked on the Styles screen doesn't shake or tip and a die picked there doesn't roll (the pick still counts), the dice roll is the "simple" one (`LocalSimpleDiceRoll` is forced on - so scoring doesn't wait
 for a toss), the tray doesn't flicker faces while rolling, scores appear rather than count up, and the Game
 Over fireworks don't play. **What the game does doesn't change.**
 

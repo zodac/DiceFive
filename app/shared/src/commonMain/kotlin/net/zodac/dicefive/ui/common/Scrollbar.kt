@@ -18,6 +18,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** How much of the track's cross-axis the scrollbar occupies - the track's width when the bar runs
@@ -298,3 +306,62 @@ fun HorizontalScrollbar(listState: LazyListState, modifier: Modifier = Modifier)
         )
     }
 }
+
+/**
+ * A vertical scrollbar for a plain (non-lazy) `Modifier.verticalScroll` column - the Styles page,
+ * which runs long once a category's gallery is open - that can also be dragged to scroll it. Exact,
+ * like [HorizontalScrollbar]'s [ScrollState] overload, and drawn only while there's somewhere to
+ * scroll to.
+ *
+ * It's [width] wide to take drags, with the bar drawn down its middle: placed in a page's side margin,
+ * the whole margin is its handle without covering anything a finger might want. Dragging moves the
+ * thumb with the finger, scrolling the page in proportion. Silent to a screen reader, which scrolls
+ * the page by its own actions.
+ */
+@Composable
+fun VerticalScrollbar(scrollState: ScrollState, width: Dp, modifier: Modifier = Modifier) {
+    val showScrollbar by remember { derivedStateOf { scrollState.canScrollForward || scrollState.canScrollBackward } }
+    if (!showScrollbar) return
+
+    val thumbColor = MaterialTheme.colorScheme.primary
+    val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    // The track's length, for turning a drag along it into a scroll of the page.
+    var trackHeight by remember { mutableIntStateOf(0) }
+    val dragState = rememberDraggableState { delta ->
+        val viewport = trackHeight.toFloat()
+        val content = viewport + scrollState.maxValue
+        val thumb = viewport * (viewport / content).coerceIn(MIN_THUMB_FRACTION, 1f)
+        val travel = viewport - thumb
+        if (travel > 0f) scrollState.dispatchRawDelta(delta * scrollState.maxValue / travel)
+    }
+
+    Canvas(
+        modifier = modifier
+            .fillMaxHeight()
+            .width(width)
+            .clearAndSetSemantics {}
+            .onSizeChanged { trackHeight = it.height }
+            .draggable(dragState, Orientation.Vertical),
+    ) {
+        val thickness = SCROLLBAR_THICKNESS.toPx()
+        val left = (size.width - thickness) / 2
+        drawRoundRect(
+            color = trackColor,
+            topLeft = Offset(left, 0f),
+            size = Size(thickness, size.height),
+            cornerRadius = CornerRadius(thickness / 2),
+        )
+
+        val viewportSize = size.height
+        val contentSize = viewportSize + scrollState.maxValue
+        val thumbHeight = size.height * (viewportSize / contentSize).coerceIn(MIN_THUMB_FRACTION, 1f)
+        val scrollFraction = if (scrollState.maxValue == 0) 0f else scrollState.value.toFloat() / scrollState.maxValue
+        drawRoundRect(
+            color = thumbColor,
+            topLeft = Offset(left, (size.height - thumbHeight) * scrollFraction),
+            size = Size(thickness, thumbHeight),
+            cornerRadius = CornerRadius(thickness / 2),
+        )
+    }
+}
+
