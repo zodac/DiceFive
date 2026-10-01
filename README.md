@@ -46,7 +46,7 @@ app/shared/src/commonMain/kotlin/net/zodac/dicefive/    everything platform-neut
   navigation/       Screen route constants + DiceFiveNavHost
   ui/
     DiceFiveApp.kt  the root composable every platform hosts
-    menu/           MenuScreen (Play/Achievements/Leaderboard/Statistics/Styles/Rules/Settings)
+    menu/           MenuScreen (Play/Achievements/Styles/Leaderboard/Statistics/Rules/Settings)
     setup/          GameSetupScreen (player count/type/name, game mode, turn timer)
     game/           GameScreen + GameViewModel (setup form + live game state,
                     AI auto-play), dice tray, scorecard

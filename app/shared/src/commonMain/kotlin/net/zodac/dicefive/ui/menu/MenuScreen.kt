@@ -103,9 +103,9 @@ fun MenuScreen(
                 // emphasis hierarchy, which also stops five identical slabs competing for the eye.
                 PlayButton(hasInProgressGame = hasInProgressGame == true, onContinue = onContinue, onNewGame = onNewGame)
                 MenuDestinationButton(label = "Achievements", onClick = onAchievements)
+                MenuDestinationButton(label = "Styles", onClick = onStyles)
                 MenuDestinationButton(label = "Leaderboard", onClick = onScores)
                 MenuDestinationButton(label = "Statistics", onClick = onStatistics)
-                MenuDestinationButton(label = "Styles", onClick = onStyles)
                 MenuDestinationButton(label = "Rules", onClick = onRules)
                 MenuDestinationButton(label = "Settings", onClick = onSettings)
             }
