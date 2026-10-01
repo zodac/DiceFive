@@ -140,24 +140,29 @@ internal fun MacrobenchmarkScope.resetAchievements() {
  * then long-presses the banner, which takes the player to that achievement on the Achievements
  * screen, where its row glows. Needs the achievement locked - see [resetAchievements].
  *
- * The dice are drawn with a raw tap gesture and have no label to find them by, so this probes: it
- * taps up the column above the menu buttons, where the logo sits, until a banner appears.
+ * The dice are drawn with a raw tap gesture and have no label to find them by, so they are found
+ * from the wordmark under them: AppLogo puts "DiceFive" 16dp below the row of dice (each 34dp tall),
+ * so the row's middle is about 33dp above the wordmark's top. A few nearby heights are tried in case
+ * the fan sits a little off that. Every one of them is above the wordmark, well clear of the buttons -
+ * and the run fails the moment a tap leaves the menu, rather than carrying on tapping elsewhere.
  */
 internal fun MacrobenchmarkScope.visitAchievementBanner() {
     val density = Resources.getSystem().displayMetrics.density
-    // The logo ends 48dp above the first button (MenuScreen's Spacer), so start there and work up.
-    val buttonsTop = await(By.text("Achievements"), "the menu's buttons").visibleBounds.top
+    val wordmark = By.text("DiceFive")
+    val wordmarkTop = await(wordmark, "the menu's DiceFive wordmark").visibleBounds.top
     val x = device.displayWidth / 2
     val banner = By.descStartsWith("Achievement unlocked: Not Those Dice!")
 
     var found: UiObject2? = null
-    var offsetDp = LOGO_PROBE_START_DP
-    while (found == null && offsetDp <= LOGO_PROBE_END_DP) {
-        device.click(x, buttonsTop - (offsetDp * density).toInt())
+    for (heightDp in DICE_PROBE_HEIGHTS_DP) {
+        device.click(x, wordmarkTop - (heightDp * density).toInt())
         found = device.wait(Until.findObject(banner), BANNER_APPEAR_MS)
-        offsetDp += LOGO_PROBE_STEP_DP
+        if (found != null) break
+        check(device.hasObject(wordmark)) {
+            "Baseline Profile journey: a tap ${heightDp}dp above the wordmark left the menu"
+        }
     }
-    (found ?: error("Baseline Profile journey: tapping the logo never raised the 'Not Those Dice!' banner"))
+    (found ?: error("Baseline Profile journey: tapping the logo's dice never raised the 'Not Those Dice!' banner"))
         .longClick()
 
     // Lands on the Achievements screen; give the row's gold flash time to play out before leaving.
@@ -203,8 +208,7 @@ internal fun MacrobenchmarkScope.visitStyles() {
 private const val ROLL_SETTLE_MS = 2_000L
 private const val LEAVE_DIALOG_MS = 1_500L
 
-private const val LOGO_PROBE_START_DP = 48
-private const val LOGO_PROBE_END_DP = 220
-private const val LOGO_PROBE_STEP_DP = 24
+/** Heights above the wordmark's top to tap, best guess first: 16dp gap plus half a 34dp die, then either side. */
+private val DICE_PROBE_HEIGHTS_DP = listOf(33, 25, 41, 17, 49)
 private const val BANNER_APPEAR_MS = 800L
 private const val GLOW_MS = 2_000L
