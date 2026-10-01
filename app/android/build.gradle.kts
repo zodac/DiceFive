@@ -123,6 +123,12 @@ android {
 
     packaging {
         resources {
+        // Prebuilt libraries (Compose's graphics-path, DataStore's shared counter) ship .so files with
+        // no symbol table AGP can strip, so it warns on every build and packages them as they are.
+        // Saying so here is the same outcome without the warning.
+        jniLibs {
+            keepDebugSymbols += setOf("**/libandroidx.graphics.path.so", "**/libdatastore_shared_counter.so")
+        }
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             // A handful of AndroidX artifacts each bundle their own full copy of the same Apache
             // license text under their own package path - none of it is read at runtime. The license
