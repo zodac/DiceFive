@@ -191,14 +191,18 @@ What the new project may want to set:
 | `SANDBOX_PW_DIRS`  | `tests .`       | the Playwright suite lives somewhere else                                                                        |
 | `PROJECT_DIR`      | the parent dir  | the folder is not at `<project>/sandbox/`                                                                        |
 
-What is baked into the image regardless: **JDK 21, Maven, an Android SDK (platform-tools,
-`platforms;android-35`, `build-tools;35.0.0`, matching this project's `compileSdk`/`buildToolsVersion`),
+What is baked into the image regardless: **JDK 25, Maven, an Android SDK (platform-tools,
+`platforms;android-37.2`, `build-tools;36.0.0`, matching this project's `compileSdk`/`buildToolsVersion`),
 Node, Playwright's OS libs, Docker-in-Docker** and the Claude CLI. A project that needs none of a given
 toolchain still works — it just carries a larger image than it needs, so trim the `COPY --from=jdk` /
 `--from=maven` stages, or the Android SDK block, if that matters. **This repo uses the JDK/Android half**
 (it's a Gradle/Kotlin/Compose Android app — see `sandbox/Dockerfile`'s "Android SDK" block for how the
 SDK is pinned) **but not Maven, Node's project role, or Playwright**; those three are carried only
 because the image is already built and trimming them has a rebuild cost of its own.
+
+The project's `local.properties` is the host's own (Android Studio writes it), so its `sdk.dir` names
+the host's SDK. Rather than edit it - which would break the host's build - `entrypoint.sh` makes that
+path exist in the container as a symlink to the image's SDK, so AGP finds it without warning.
 
 ## Persistence
 
