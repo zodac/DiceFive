@@ -295,6 +295,20 @@ Everything unlocked, phone-sized screen:
 - **Opening:** the first frame composes the page (~160-200ms here, before JIT warm-up); the
   `StylesWarmUp` pre-draw from the menu already exists for this - see its comment in
   `StylesScreen.kt`.
+- **The first open after a launch still lagged** (reported on a device, with the gallery view's
+  changes in). Measured as the menu would see it - `StylesWarmUp` run to the end, then the page opened,
+  each in a fresh JVM - the opening frame was ~105ms before the gallery work and 110-120ms with it
+  (the rest of the opening ~70ms either way). Sampled: almost none of it was tile art (the warm-up's
+  job) - it was class loading and Compose building, for the first time, everything *around* the
+  tiles: the page's scaffold and app bar, the rows' scroll containers, placeholders and scrollbars,
+  `BoxWithConstraints`, the gallery toggles. The warm-up only ever drew tiles in a plain `Row`. Now it
+  goes on to build each category's real card (one a pass), then the screen's empty frame, then the
+  whole screen (`StylesScaffold`, with `ScreenScaffold(driftingDice = false)` - the drift is shared
+  with the menu's). Opening frame **42-44ms** (three runs), the opening 118-121ms in all; the
+  warm-up's own frames on the menu stay as they were (its first pass, the tile art, ~240ms cold; the
+  rest under ~60ms) - the whole screen in one pass made an 70-87ms menu frame, hence the separate
+  frame pass. The gallery itself was never part of it: it isn't composed until opened, and opening
+  one moves the row's tiles (`movableContentOf`) rather than building them again.
 
 ### The Treasure Chest and the Gems dice (designed to it)
 

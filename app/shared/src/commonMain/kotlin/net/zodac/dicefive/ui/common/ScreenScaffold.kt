@@ -76,6 +76,9 @@ val CONTENT_MAX_WIDTH = 460.dp
  * or a game board's "press this" uses - rather than the plain default `titleMedium` text a bare
  * `CenterAlignedTopAppBar` gives you for free. The bar itself stays transparent over the backdrop,
  * same as the rest of the app's chrome.
+ *
+ * [driftingDice] is only ever false for a copy built out of sight ahead of time (the Styles page's
+ * warm-up): the drift is the app's one shared one, which a second copy would move along too.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,10 +88,11 @@ fun ScreenScaffold(
     modifier: Modifier = Modifier,
     scrollable: Boolean = false,
     footer: (@Composable () -> Unit)? = null,
+    driftingDice: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     require(footer == null || scrollable) { "A footer floats over a scrollable page" }
-    BrandBackdrop(modifier = modifier, driftingDice = true) {
+    BrandBackdrop(modifier = modifier, driftingDice = driftingDice) {
         Scaffold(
             // The backdrop is already drawn behind; the Scaffold only supplies structure, insets
             // and the app bar, so it must not paint its own opaque container over the top.

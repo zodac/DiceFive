@@ -1,5 +1,7 @@
 package net.zodac.dicefive.ui.styles
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -7,17 +9,24 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -26,12 +35,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.outlined.GridView as GridViewOutlined
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
@@ -91,6 +103,8 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
@@ -102,16 +116,21 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.first
 import kotlin.math.abs
 import kotlin.math.ceil
-import kotlinx.coroutines.flow.filterNotNull
+import kotlin.math.PI
+import kotlin.math.roundToInt
+import kotlin.math.sin
 import androidx.compose.ui.semantics.collectionInfo
 import androidx.compose.ui.semantics.CollectionInfo
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.runtime.key
+import androidx.compose.runtime.movableContentOf
+import androidx.compose.ui.layout.Layout
+import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.Lifecycle
 import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
@@ -121,6 +140,7 @@ import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.HorizontalScrollbar
+import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.PAGE_CONTENT_FADE_IN_MILLIS
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.parseInlineMarkup
@@ -149,10 +169,14 @@ private val CUP_PREVIEW_WIDTH = 72.dp
 private val CUP_PREVIEW_HEIGHT = 96.dp
 // The cup previews at this fraction of their in-game size, whatever their shape (tall: 42 x 60dp).
 private const val CUP_ART_SCALE = 60f / 84f
-private val MAT_PREVIEW_WIDTH = 108.dp
-private val MAT_PREVIEW_HEIGHT = 72.dp
-private val BACKGROUND_PREVIEW_WIDTH = 108.dp
-private val BACKGROUND_PREVIEW_HEIGHT = 72.dp
+// The dice tray's wide shape. Small enough for three across a gallery on a ~376dp phone (3 x 97dp
+// in ~320dp, with 12dp gaps); 108 x 72 only fit two.
+private val MAT_PREVIEW_WIDTH = 97.dp
+private val MAT_PREVIEW_HEIGHT = 65.dp
+// The score board's shape - about as tall as it is wide (380dp tall, the screen's width less its
+// padding), a little taller than wide on most phones - not the mat's: it's what a background fills.
+private val BACKGROUND_PREVIEW_WIDTH = 72.dp
+private val BACKGROUND_PREVIEW_HEIGHT = 80.dp
 private val COLOUR_DOT_SIZE = 7.dp
 private val COLOUR_DOT_SIZE_MORE_BEYOND = 4.dp
 // More colours than this and the tile's dots show a window of them; the pop-up still lists every one.
@@ -183,42 +207,81 @@ private const val LOCKED_PADLOCK_ALPHA = 0.8f
  * tiles are sized to fit on one screen without scrolling vertically, and the tile row within a
  * category scrolls horizontally; on a screen too short for all four (a small phone, a large font)
  * the page scrolls vertically too.
+ *
+ * Each category's title has a small gallery toggle at its end: on, that card shows every one of its
+ * tiles at once, full size, in a grid the page scrolls down through
+ * - for seeing a whole category without scrolling sideways through it.
  */
 @Composable
 fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val saved by viewModel.savedStyles.collectAsStateWithLifecycle()
+    StylesScaffold(
+        picks = saved,
+        onBack = onBack,
+        onSelect = { category ->
+            when (category) {
+                StyleCategory.DICE -> viewModel::setDiceStyleId
+                StyleCategory.DICE_CUP -> viewModel::setDiceCupStyleId
+                StyleCategory.MAT -> viewModel::setDiceMatId
+                StyleCategory.BACKGROUND -> viewModel::setTableBackgroundId
+            }
+        },
+        modifier = modifier,
+    )
+}
 
+/**
+ * The Styles screen with its picks: split from [StylesScreen], which has the view model, so
+ * [StylesWarmUp] can build the real thing - [driftingDice] false there (see [ScreenScaffold]).
+ */
+@Composable
+private fun StylesScaffold(
+    picks: SavedStyles?,
+    onBack: () -> Unit,
+    onSelect: (StyleCategory) -> (String) -> Unit,
+    modifier: Modifier = Modifier,
+    driftingDice: Boolean = true,
+) {
     ScreenScaffold(
         title = "Styles",
         onBack = onBack,
         modifier = modifier,
         scrollable = false,
+        driftingDice = driftingDice,
     ) {
         // Nothing until the saved picks have loaded, so each row can open scrolled to its real pick.
         // They're normally in already (AppContainer.savedStyles), so the page has them from its first frame.
-        val picks = saved ?: return@ScreenScaffold
-        // One text measurer for every tile's name, kept across openings - see rememberTileLabelMeasurer.
-        val labelMeasurer = rememberTileLabelMeasurer()
-        CompositionLocalProvider(LocalTileLabelMeasurer provides labelMeasurer) {
-            // Sized to fit one screen, but free to scroll when it can't - a small phone, or a large
-            // font - rather than cutting the last category off out of reach.
-            Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        StylesPage(picks = picks ?: return@ScreenScaffold, onSelect = onSelect)
+    }
+}
+
+/** Everything under the Styles screen's app bar: a card per category, the page scrolling when they don't fit, and its scrollbar. */
+@Composable
+private fun ColumnScope.StylesPage(picks: SavedStyles, onSelect: (StyleCategory) -> (String) -> Unit) {
+    // One text measurer for every tile's name, kept across openings - see rememberTileLabelMeasurer.
+    val labelMeasurer = rememberTileLabelMeasurer()
+    CompositionLocalProvider(LocalTileLabelMeasurer provides labelMeasurer) {
+        // Sized to fit one screen, but free to scroll when it can't - a small phone, a large font,
+        // an open gallery - rather than cutting the last category off out of reach.
+        val pageScroll = rememberScrollState()
+        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+            Column(modifier = Modifier.verticalScroll(pageScroll), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 for (category in StyleCategory.entries) {
-                    StyleCategorySection(
-                        category = category,
-                        picks = picks,
-                        onSelect = when (category) {
-                            StyleCategory.DICE -> viewModel::setDiceStyleId
-                            StyleCategory.DICE_CUP -> viewModel::setDiceCupStyleId
-                            StyleCategory.MAT -> viewModel::setDiceMatId
-                            StyleCategory.BACKGROUND -> viewModel::setTableBackgroundId
-                        },
-                    )
+                    StyleCategorySection(category = category, picks = picks, onSelect = onSelect(category))
                 }
             }
+            // In the page's right-hand margin, beside the cards rather than over them - see VerticalScrollbar.
+            VerticalScrollbar(
+                scrollState = pageScroll,
+                width = PAGE_MARGIN,
+                modifier = Modifier.align(Alignment.TopEnd).offset(x = PAGE_MARGIN),
+            )
         }
     }
 }
+
+// ScreenScaffold's side margin, which the page's scrollbar sits in.
+private val PAGE_MARGIN = 20.dp
 
 /** The Styles screen's categories, in its order. */
 private enum class StyleCategory { DICE, DICE_CUP, MAT, BACKGROUND }
@@ -301,27 +364,40 @@ private fun StyleCategory.tileCount(achievements: AchievementsState): Int {
     return unlocked.size + locked.size
 }
 
-/** One category's card - its title and its row of tiles - as the Styles screen shows it, and as [StylesWarmUp] draws it. */
+/**
+ * One category's card - its title and its tiles - as the Styles screen shows it, and as [StylesWarmUp]
+ * draws it. Its tiles are a scrolling row, or every one of them at once in a grid while its title's
+ * gallery toggle is on.
+ */
 @Composable
 private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, onSelect: (String) -> Unit, warmUp: IntRange? = null) {
     val achievements = picks.achievements
+    var gallery by rememberSaveable { mutableStateOf(false) }
+    @Composable
+    fun CategoryCard(title: String, content: @Composable ColumnScope.() -> Unit) =
+        StyleCategoryCard(title = title, gallery = gallery, onGalleryChange = { gallery = it }, content = content)
     when (category) {
-        StyleCategory.DICE -> StyleCategoryCard(title = "Dice") {
+        StyleCategory.DICE -> CategoryCard(title = "Dice") {
+            val roll = rememberDicePickRoll()
             StyleFamilyTiles(
                 catalog = DiceStyles,
                 selectedId = picks.diceStyleId,
                 achievements = achievements,
-                onSelect = onSelect,
+                onSelect = { id ->
+                    onSelect(id)
+                    roll.start(id)
+                },
                 previewSize = DpSize(DICE_PREVIEW_SIZE, DICE_PREVIEW_SIZE),
                 backgroundBrush = { SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh) },
+                gallery = gallery,
                 warmUp = warmUp,
                 buildStagger = category.ordinal,
             ) { style ->
-                DicePreview(style)
+                DicePreview(style, roll = roll.takeIf { it.dieId == style.id })
             }
         }
 
-        StyleCategory.DICE_CUP -> StyleCategoryCard(title = "Dice Cup") {
+        StyleCategory.DICE_CUP -> CategoryCard(title = "Dice Cup") {
             val shake = rememberCupPickShake()
             StyleFamilyTiles(
                 catalog = DiceCupStyles,
@@ -333,6 +409,7 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
                 },
                 previewSize = DpSize(CUP_PREVIEW_WIDTH, CUP_PREVIEW_HEIGHT),
                 backgroundBrush = { SolidColor(MaterialTheme.colorScheme.surfaceContainerHigh) },
+                gallery = gallery,
                 warmUp = warmUp,
                 buildStagger = category.ordinal,
             ) { style ->
@@ -354,7 +431,7 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
             }
         }
 
-        StyleCategory.MAT -> StyleCategoryCard(title = "Mat") {
+        StyleCategory.MAT -> CategoryCard(title = "Mat") {
             StyleFamilyTiles(
                 catalog = DiceMats,
                 selectedId = picks.diceMatId,
@@ -362,6 +439,7 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
                 onSelect = onSelect,
                 previewSize = DpSize(MAT_PREVIEW_WIDTH, MAT_PREVIEW_HEIGHT),
                 backgroundBrush = { mat -> mat.diceTrayBrush },
+                gallery = gallery,
                 warmUp = warmUp,
                 buildStagger = category.ordinal,
             ) { mat ->
@@ -369,7 +447,7 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
             }
         }
 
-        StyleCategory.BACKGROUND -> StyleCategoryCard(title = "Background") {
+        StyleCategory.BACKGROUND -> CategoryCard(title = "Background") {
             StyleFamilyTiles(
                 catalog = TableBackgrounds,
                 selectedId = picks.tableBackgroundId,
@@ -377,6 +455,7 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
                 onSelect = onSelect,
                 previewSize = DpSize(BACKGROUND_PREVIEW_WIDTH, BACKGROUND_PREVIEW_HEIGHT),
                 backgroundBrush = { background -> background.scoreAreaBrush },
+                gallery = gallery,
                 warmUp = warmUp,
                 buildStagger = category.ordinal,
             ) { background ->
@@ -431,16 +510,95 @@ private fun rememberCupPickShake(): CupPickShake {
 }
 
 /**
- * A dice tile's die. One with something loose on its faces (googly eyes - see
+ * Which die on the Styles screen is rolling, if any: the one just picked, tumbled in place through
+ * all six faces ([DIE_PICK_ROLL_FACES]), each for [DIE_PICK_ROLL_FACE_MILLIS], to land back on the 5
+ * its tile shows - so a player sees the style's every face before playing with it. A new
+ * pick (or the same one again) starts it afresh; none at all under reduced motion. No sound or buzz.
+ */
+@Stable
+private class DicePickRoll(private val scope: CoroutineScope, private val reduceMotion: Boolean) {
+    /** The die rolling, or null when none is. */
+    var dieId by mutableStateOf<String?>(null)
+        private set
+
+    /** How far through the roll it is: 0 at rest, then one more for each face it turns over to, to [DIE_PICK_ROLL_FACES]'s size. */
+    val progress = Animatable(0f)
+    private var job: Job? = null
+
+    fun start(id: String) {
+        if (reduceMotion) return
+        job?.cancel()
+        dieId = id
+        job = scope.launch {
+            progress.snapTo(0f)
+            progress.animateTo(
+                targetValue = DIE_PICK_ROLL_FACES.size.toFloat(),
+                animationSpec = tween(durationMillis = DIE_PICK_ROLL_MILLIS, easing = LinearEasing),
+            )
+            dieId = null
+        }
+    }
+
+    /** The face showing [progress] of the way through: the tile's 5, then each in turn, turning over halfway between. */
+    fun face(): Int = DIE_PICK_ROLL_FACES.getOrNull(progress.value.roundToInt() - 1) ?: DICE_TILE_FACE
+}
+
+// The face a dice tile shows.
+private const val DICE_TILE_FACE = 5
+
+/**
+ * The faces a picked die turns over to, from the 5 its tile shows: every face once, each beside the
+ * one before it on a real die - never its opposite, which a tumbling die can't go straight to (opposite
+ * faces add up to 7) - and back to the 5 to finish. See DicePickRollTest.
+ */
+internal val DIE_PICK_ROLL_FACES = listOf(3, 1, 2, 6, 4, 5)
+
+// How long each face of a picked die's roll shows, every one the same - an easing that started fast
+// and slowed to land flashed the first faces past (the 1 hardly showed) - and so the whole roll.
+private const val DIE_PICK_ROLL_FACE_MILLIS = 130
+private val DIE_PICK_ROLL_MILLIS = DIE_PICK_ROLL_FACE_MILLIS * DIE_PICK_ROLL_FACES.size
+
+// A rolling die turns once round as it goes (so a number or word finishes upright), and lifts by this much at
+// its height - no more, or a die turned corner-on (44dp across, 62dp corner to corner) reaches its 72dp tile's edges.
+private const val DIE_PICK_ROLL_TURN_DEGREES = 360f
+private const val DIE_PICK_ROLL_LIFT = 0.08f
+
+@Composable
+private fun rememberDicePickRoll(): DicePickRoll {
+    val scope = rememberCoroutineScope()
+    val reduceMotion = LocalReduceMotion.current
+    return remember(scope, reduceMotion) { DicePickRoll(scope, reduceMotion) }
+}
+
+/**
+ * Turns and lifts a die [roll] of the way through its roll, in the draw phase, so each frame is a
+ * repaint, not a recomposition. Nothing while it isn't rolling.
+ */
+private fun Modifier.rolling(roll: DicePickRoll?): Modifier =
+    if (roll == null) this else graphicsLayer {
+        // Its own layer, so art that blends onto what's under it (a die's grain) blends onto the die
+        // alone - turned, its square layer would otherwise take the tile's corners with it.
+        compositingStrategy = CompositingStrategy.Offscreen
+        val through = roll.progress.value / DIE_PICK_ROLL_FACES.size
+        rotationZ = through * DIE_PICK_ROLL_TURN_DEGREES
+        val lift = 1f + DIE_PICK_ROLL_LIFT * sin(PI.toFloat() * through)
+        scaleX = lift
+        scaleY = lift
+    }
+
+/**
+ * A dice tile's die - rolling, while it's the one just picked ([roll], see [DicePickRoll]). One with something loose on its faces (googly eyes - see
  * [DiceStyle.pupilTravel]) is moved by the page, as the tray moves it in a game: wherever its tile
  * goes on screen - its row scrolled left or right, or the page up or down - the die goes with it, and
  * its pupils are thrown about and settle. Not under reduced motion, where they sit where they settled.
  */
 @Composable
-private fun DicePreview(style: DiceStyle) {
+private fun DicePreview(style: DiceStyle, roll: DicePickRoll? = null) {
+    // Recomposed only as the face changes; the turning and lifting are drawn (Modifier.rolling).
+    val face by remember(roll) { derivedStateOf { roll?.face() ?: DICE_TILE_FACE } }
     val travel = style.pupilTravel?.takeIf { !LocalReduceMotion.current }
     if (travel == null) {
-        style.Die(value = 5, held = false, modifier = Modifier.size(DIE_ART_SIZE))
+        style.Die(value = face, held = false, modifier = Modifier.size(DIE_ART_SIZE).rolling(roll))
         return
     }
     // Seeded as LocalDieIndex (0 here), so the pupils start where the die would draw them unmoved.
@@ -453,10 +611,10 @@ private fun DicePreview(style: DiceStyle) {
     val dieSizePx = with(LocalDensity.current) { DIE_ART_SIZE.toPx() }
     CompositionLocalProvider(LocalDieMotion provides motion) {
         style.Die(
-            value = 5,
+            value = face,
             held = false,
             // Where the die is, in its own sizes, as DieMotion measures it.
-            modifier = Modifier.size(DIE_ART_SIZE).onGloballyPositioned { motion.moveTo(it.positionInRoot() / dieSizePx, 0f) },
+            modifier = Modifier.size(DIE_ART_SIZE).onGloballyPositioned { motion.moveTo(it.positionInRoot() / dieSizePx, 0f) }.rolling(roll),
         )
     }
 }
@@ -472,34 +630,61 @@ private fun DicePreview(style: DiceStyle) {
  * thin enough that the menu's own drifting dice don't skip. Compose doesn't cull what a clip hides,
  * so the art is really drawn, not just composed. Runs once per launch: later openings of the menu
  * find it already done. [width] is unused by the tiles themselves; it keeps the box as wide as the page.
+ *
+ * Then the page around the tiles, which is its own first-time code - each category's card as the page
+ * has it (its title and gallery toggle, its scrolling row, placeholders and scrollbar), one a pass,
+ * and last the whole screen, app bar and backdrop too ([StylesScaffold]) - so a first open after a
+ * launch doesn't load all of that at once on its opening frame (it was most of that frame).
  */
 @Composable
 fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier) {
     if (stylesWarmedUp || picks == null) return
-    var current by remember { mutableStateOf<Pair<StyleCategory, IntRange>?>(null) }
+    var current by remember { mutableStateOf<WarmUpPass?>(null) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(Unit) {
         lifecycle.delayWhileResumed(WARM_UP_DELAY_MILLIS)
+        suspend fun pass(next: WarmUpPass) {
+            current = next
+            // A frame to compose and draw it, then on to the next.
+            withFrameNanos { }
+            withFrameNanos { }
+        }
         for (category in StyleCategory.entries) {
             for (first in 0 until category.tileCount(picks.achievements) step WARM_UP_TILES_PER_PASS) {
-                current = category to (first until first + WARM_UP_TILES_PER_PASS)
-                // A frame to compose and draw them, then on to the next.
-                withFrameNanos { }
-                withFrameNanos { }
+                pass(WarmUpPass.Tiles(category, first until first + WARM_UP_TILES_PER_PASS))
             }
         }
+        for (category in StyleCategory.entries) pass(WarmUpPass.Card(category))
+        // The screen's frame on its own first, then with the page in it: each its own first-time code.
+        pass(WarmUpPass.Frame)
+        pass(WarmUpPass.Page)
         stylesWarmedUp = true
         current = null
     }
-    val (category, tiles) = current ?: return
+    val pass = current ?: return
     Box(modifier = modifier.size(1.dp).clipToBounds()) {
-        Box(modifier = Modifier.requiredWidth(width).wrapContentHeight(unbounded = true)) {
+        // As big as the page would be, so it lays out as it would there.
+        val height = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+        Column(modifier = Modifier.requiredWidth(width).requiredHeight(height)) {
             // The page's own measurer, so the names laid out here are the ones the page draws.
             CompositionLocalProvider(LocalTileLabelMeasurer provides rememberTileLabelMeasurer()) {
-                StyleCategorySection(category = category, picks = picks, onSelect = {}, warmUp = tiles)
+                when (pass) {
+                    is WarmUpPass.Tiles -> StyleCategorySection(category = pass.category, picks = picks, onSelect = {}, warmUp = pass.tiles)
+                    is WarmUpPass.Card -> StyleCategorySection(category = pass.category, picks = picks, onSelect = {})
+                    WarmUpPass.Frame -> StylesScaffold(picks = null, onBack = {}, onSelect = { {} }, driftingDice = false)
+                    WarmUpPass.Page -> StylesScaffold(picks = picks, onBack = {}, onSelect = { {} }, driftingDice = false)
+                }
             }
         }
     }
+}
+
+/** One step of [StylesWarmUp]: some of a category's tiles, a category's whole card, the screen's empty frame, or the whole screen. */
+private sealed interface WarmUpPass {
+    data class Tiles(val category: StyleCategory, val tiles: IntRange) : WarmUpPass
+    data class Card(val category: StyleCategory) : WarmUpPass
+    data object Frame : WarmUpPass
+    data object Page : WarmUpPass
 }
 
 /** Set once [StylesWarmUp] has drawn every category, for the life of the process. */
@@ -511,24 +696,91 @@ private const val WARM_UP_DELAY_MILLIS = 600L
 // How many tiles StylesWarmUp draws at once - few enough that a pass fits beside the menu's own frame.
 private const val WARM_UP_TILES_PER_PASS = 3
 
-/** A titled group of preview tiles for one swappable category, matching Settings' Card sections. */
+/**
+ * A titled group of preview tiles for one swappable category, matching Settings' Card sections. The
+ * title's [GalleryToggle] switches [gallery] - every tile at once, rather than a scrolling row.
+ */
 @Composable
-private fun StyleCategoryCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+private fun StyleCategoryCard(title: String, gallery: Boolean, onGalleryChange: (Boolean) -> Unit, content: @Composable ColumnScope.() -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.padding(start = 12.dp, top = 10.dp, end = 12.dp, bottom = 2.dp).semantics { heading() },
-        )
+        // The title's line, with the toggle centred on it.
+        Row(modifier = Modifier.padding(top = 10.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 12.dp)
+                    .semantics { heading() },
+            )
+            GalleryToggle(title = title, gallery = gallery, onGalleryChange = onGalleryChange)
+        }
         content()
     }
 }
+
+/**
+ * The small grid icon at the end of a category's title: on, the category shows every tile at once.
+ * Outlined and quiet while off, filled in the app's gold while on. No taller than the title's own line,
+ * so adding it didn't move anything; a touch near it still lands on it (Compose widens a small target's
+ * hit area to the minimum touch size). A switch to a screen reader - "Dice gallery, on".
+ */
+@Composable
+private fun GalleryToggle(title: String, gallery: Boolean, onGalleryChange: (Boolean) -> Unit) {
+    // Its room in the title's line: no taller than the icon, so the header is no taller for it.
+    Box(modifier = Modifier.padding(end = 2.dp).size(width = GALLERY_TOGGLE_SIZE, height = GALLERY_ICON_SIZE)) {
+        // The control itself, a square centred on the icon - so the press highlight is too - and
+        // let run past the title's line above and below.
+        Box(
+            modifier = Modifier
+                .requiredSize(GALLERY_TOGGLE_SIZE)
+                // The icon is the whole of it, named here rather than on the icon so it's one stop.
+                .clearAndSetSemantics {
+                    contentDescription = "$title gallery"
+                    role = Role.Switch
+                    toggleableState = ToggleableState(gallery)
+                    onClick(label = if (gallery) "Show $title as a row" else "Show all $title") {
+                        onGalleryChange(!gallery)
+                        true
+                    }
+                }
+                .toggleable(
+                    value = gallery,
+                    interactionSource = null,
+                    indication = ripple(bounded = false, radius = GALLERY_HIGHLIGHT_RADIUS),
+                    role = Role.Switch,
+                    onValueChange = onGalleryChange,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = if (gallery) Icons.Filled.GridView else Icons.Outlined.GridViewOutlined,
+                contentDescription = null,
+                tint = if (gallery) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(GALLERY_ICON_SIZE),
+            )
+        }
+    }
+}
+
+// The toggle's icon - no taller than the title's 20sp line, so the header is no taller for it.
+private val GALLERY_ICON_SIZE = 20.dp
+// The control - what a touch lands on - a square this size, centred on the icon.
+private val GALLERY_TOGGLE_SIZE = 40.dp
+// The press highlight's radius, centred on the icon: smaller than the control, as the first row of
+// tiles starts 18dp below the icon's centre (half the title's 20dp line, then 2 + 6dp of padding).
+private val GALLERY_HIGHLIGHT_RADIUS = 16.dp
 
 /**
  * One [StyleFamilyTile] per family in [catalog], in a horizontally scrolling row with a
  * [HorizontalScrollbar] under it: every unlocked style first, then the locked ones, each group in
  * the catalog's own order. [selectedId] is the saved pick, shown as the default instead while its
  * style is locked. With [warmUp], just those tiles instead, in a plain row - see [StylesWarmUp].
+ *
+ * With [gallery], the same tiles wrapped onto as many lines as they need instead, every one on screen at once and the page
+ * scrolling down through them. They're moved between the two, not built again: switching costs only
+ * the tiles not built yet (all of them are, on the first switch), and keeps what each was doing - a
+ * cup mid-shake, an open colour pop-up - and where the row was scrolled to.
  *
  * Every tile is built and kept, but not all at once when the page opens - composing every tile in
  * every category in one go held up the page's first open for several frames. See the build order
@@ -542,6 +794,7 @@ private fun <T : TableArt> StyleFamilyTiles(
     onSelect: (String) -> Unit,
     previewSize: DpSize,
     backgroundBrush: @Composable (T) -> Brush,
+    gallery: Boolean = false,
     warmUp: IntRange? = null,
     buildStagger: Int = 0,
     preview: @Composable BoxScope.(T) -> Unit,
@@ -575,116 +828,212 @@ private fun <T : TableArt> StyleFamilyTiles(
     }
     val scrollState = rememberScrollState()
 
-    // Every tile in the row is built, and kept - a plain scrolling row, not a lazy one, so scrolling,
-    // however fast, never has to build a tile on the frame it appears, and one scrolled past and back
-    // isn't built again. But not all at once: the ones on screen as the page opens are built straight
-    // away, and the rest a tile at a time once the page has faded in, nearest the pick first - each
-    // shown until then as an empty tile of the same size, so nothing moves as they fill in. Each row
-    // starts [buildStagger] frames after the first, so no two rows build on the same frame. (A lazy
-    // row's cache window was meant to do this, but built nothing ahead of time: every tile was still
-    // built on the frame it scrolled in.) What isn't on screen is held still (see TileSlot), so a
-    // tile costs nothing once built.
-    val buildOrder = remember(families.size, pickedIndex) { families.indices.sortedBy { abs(it - pickedIndex) } }
-    val reach = previewSize.width + TILE_SPACING
-    val windowWidth = LocalWindowInfo.current.containerSize.width
-    // The pick and as many either side as can show beside it, centred in the row.
-    val openingTiles = with(LocalDensity.current) { ceil(windowWidth / 2f / reach.toPx()).toInt() } * 2 + 1
-    // Built nearest the pick first, the built tiles are always one unbroken run - [firstBuilt] to
-    // [lastBuilt] - with the unbuilt ones either side of it. Each unbuilt side is one PlaceholderRun,
-    // not a placeholder per tile, so opening the page costs the same however many tiles the row has.
-    //
-    // Even the tiles on screen aren't all built on the page's first frame: that one frame, long enough
-    // to stall everything else on screen (the backdrop's drifting dice), is what made opening the page
-    // feel slow. It builds just the pick; each frame after adds the next tile either side, until the
-    // row is full across the screen - only then is it shown (see revealed below).
-    var firstBuilt by remember(buildOrder) { mutableIntStateOf(pickedIndex) }
-    var lastBuilt by remember(buildOrder) { mutableIntStateOf(pickedIndex) }
-    val openingBuilt = remember(buildOrder) { derivedStateOf { lastBuilt - firstBuilt + 1 >= min(openingTiles, families.size) } }
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    LaunchedEffect(buildOrder) {
-        fun buildNext(index: Int) {
-            if (index < firstBuilt) firstBuilt = index else if (index > lastBuilt) lastBuilt = index
+    // The card's width, for spacing the tiles: the row and the gallery space them alike (TileSpacing).
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val spacing = remember(maxWidth, previewSize.width, families.size) {
+            TileSpacing.of(width = maxWidth - TILES_SIDE_PADDING * 2, slot = previewSize.width, count = families.size)
         }
-        val (opening, rest) = buildOrder.take(openingTiles) to buildOrder.drop(openingTiles)
-        // The pick is built already; then a tile either side of what's built, a frame at a time.
-        for (pair in opening.drop(1).chunked(2)) {
-            withFrameNanos { }
-            pair.forEach(::buildNext)
-        }
-        lifecycle.delayWhileResumed(PAGE_CONTENT_FADE_IN_MILLIS.toLong())
-        repeat(buildStagger) { withFrameNanos { } }
-        for (index in rest) {
-            buildNext(index)
-            repeat(TILE_BUILD_FRAMES) { withFrameNanos { } }
-        }
-    }
+        Column {
 
-    // Hidden until it has been scrolled to the current pick, so the page opens already
-    // positioned rather than visibly sliding there.
-    var revealed by remember { mutableStateOf(false) }
-    // Faded in like the rest of the page (ScreenScaffold), not popped in a frame or two after it.
-    val rowAlpha by animateFloatAsState(
-        targetValue = if (revealed) 1f else 0f,
-        animationSpec = tween(durationMillis = PAGE_CONTENT_FADE_IN_MILLIS),
-        label = "styleRowAlpha",
-    )
-    val rowStartPaddingPx = with(LocalDensity.current) { ROW_PADDING.roundToPx() }
-    // Where the pick sits in the row, once it's been laid out: its left edge and width.
-    val pickedAt = remember { mutableStateOf<Pair<Int, Int>?>(null) }
-    LaunchedEffect(Unit) {
-        snapshotFlow { openingBuilt.value }.first { it }
-        val (left, width) = snapshotFlow { pickedAt.value }.filterNotNull().first()
-        val viewport = snapshotFlow { scrollState.viewportSize }.first { it > 0 }
-        // Its place in the row is measured inside the row's padding, which scrolls with it.
-        scrollState.scrollTo(rowStartPaddingPx + left + width / 2 - viewport / 2)
-        revealed = true
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .alpha(rowAlpha)
-            // Its place in a row of this many, as a lazy row would say it.
-            .semantics { collectionInfo = CollectionInfo(rowCount = 1, columnCount = families.size) }
-            .horizontalScroll(scrollState)
-            .padding(horizontal = ROW_PADDING, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(TILE_SPACING),
-    ) {
-        if (firstBuilt > 0) PlaceholderRun(firstBuilt, previewSize)
-        for (index in firstBuilt..lastBuilt) {
-            key(families[index].name) {
-                TileSlot(onPlaced = if (index == pickedIndex) ({ left, width -> pickedAt.value = left to width }) else null) {
-                    Tile(index)
+            // Every tile in the row is built, and kept - a plain scrolling row, not a lazy one, so scrolling,
+            // however fast, never has to build a tile on the frame it appears, and one scrolled past and back
+            // isn't built again. But not all at once: the ones on screen as the page opens are built straight
+            // away, and the rest a tile at a time once the page has faded in, nearest the pick first - each
+            // shown until then as an empty tile of the same size, so nothing moves as they fill in. Each row
+            // starts [buildStagger] frames after the first, so no two rows build on the same frame. (A lazy
+            // row's cache window was meant to do this, but built nothing ahead of time: every tile was still
+            // built on the frame it scrolled in.) What isn't on screen is held still (see TileSlot), so a
+            // tile costs nothing once built.
+            val buildOrder = remember(families.size, pickedIndex) { families.indices.sortedBy { abs(it - pickedIndex) } }
+            val reach = previewSize.width + spacing.gap
+            val windowWidth = LocalWindowInfo.current.containerSize.width
+            // The pick and as many either side as can show beside it, centred in the row.
+            val openingTiles = with(LocalDensity.current) { ceil(windowWidth / 2f / reach.toPx()).toInt() } * 2 + 1
+            // Built nearest the pick first, the built tiles are always one unbroken run - [firstBuilt] to
+            // [lastBuilt] - with the unbuilt ones either side of it. Each unbuilt side is one PlaceholderRun,
+            // not a placeholder per tile, so opening the page costs the same however many tiles the row has.
+            //
+            // Even the tiles on screen aren't all built on the page's first frame: that one frame, long enough
+            // to stall everything else on screen (the backdrop's drifting dice), is what made opening the page
+            // feel slow. It builds just the pick; each frame after adds the next tile either side, until the
+            // row is full across the screen - only then is it shown (see revealed below).
+            var firstBuilt by remember(buildOrder) { mutableIntStateOf(pickedIndex) }
+            var lastBuilt by remember(buildOrder) { mutableIntStateOf(pickedIndex) }
+            val openingBuilt = remember(buildOrder) { derivedStateOf { lastBuilt - firstBuilt + 1 >= min(openingTiles, families.size) } }
+            val lifecycle = LocalLifecycleOwner.current.lifecycle
+            LaunchedEffect(buildOrder) {
+                fun buildNext(index: Int) {
+                    if (index < firstBuilt) firstBuilt = index else if (index > lastBuilt) lastBuilt = index
+                }
+                val (opening, rest) = buildOrder.take(openingTiles) to buildOrder.drop(openingTiles)
+                // The pick is built already; then a tile either side of what's built, a frame at a time.
+                for (pair in opening.drop(1).chunked(2)) {
+                    withFrameNanos { }
+                    pair.forEach(::buildNext)
+                }
+                lifecycle.delayWhileResumed(PAGE_CONTENT_FADE_IN_MILLIS.toLong())
+                repeat(buildStagger) { withFrameNanos { } }
+                for (index in rest) {
+                    buildNext(index)
+                    repeat(TILE_BUILD_FRAMES) { withFrameNanos { } }
                 }
             }
-        }
-        if (lastBuilt < families.lastIndex) PlaceholderRun(families.lastIndex - lastBuilt, previewSize)
-    }
 
-    HorizontalScrollbar(
-        scrollState = scrollState,
-        modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
-    )
+            // The gallery shows every tile, so it builds every one not built yet, all at once.
+            LaunchedEffect(gallery) {
+                if (gallery) {
+                    firstBuilt = 0
+                    lastBuilt = families.lastIndex
+                }
+            }
+
+            // Hidden until it has been scrolled to the current pick, so the page opens already
+            // positioned rather than visibly sliding there.
+            var revealed by remember { mutableStateOf(false) }
+            // Faded in like the rest of the page (ScreenScaffold), not popped in a frame or two after it.
+            val rowAlpha by animateFloatAsState(
+                targetValue = if (revealed) 1f else 0f,
+                animationSpec = tween(durationMillis = PAGE_CONTENT_FADE_IN_MILLIS),
+                label = "styleRowAlpha",
+            )
+            // Where a tile's centre is in the row: every tile takes the same slot, built or not, so it's
+            // known before any of them is laid out.
+            val density = LocalDensity.current
+            fun centrePx(index: Int): Int = with(density) {
+                (TILES_SIDE_PADDING + (previewSize.width + spacing.gap) * index + previewSize.width / 2).roundToPx()
+            }
+            val pickedCentrePx = centrePx(pickedIndex)
+            // While the gallery's open, the row (out of sight, its scroll kept) follows the pick, so closing
+            // the gallery shows the row centred on it - as the page opens - rather than where it was left.
+            val currentIndex = unlocked.indexOfFirst { it.colourOf(shownSelectedId) != null }
+            LaunchedEffect(gallery, currentIndex) {
+                val viewport = scrollState.viewportSize
+                // Not before the row has opened on its pick (see below), which it then does anyway.
+                if (gallery && currentIndex >= 0 && viewport > 0) scrollState.scrollTo(centrePx(currentIndex) - viewport / 2)
+            }
+            LaunchedEffect(Unit) {
+                snapshotFlow { openingBuilt.value }.first { it }
+                val viewport = snapshotFlow { scrollState.viewportSize }.first { it > 0 }
+                scrollState.scrollTo(pickedCentrePx - viewport / 2)
+                revealed = true
+            }
+
+            // Each tile's composition, movable between the row and the gallery - see the doc comment. Handed
+            // the tile to draw each time, so it draws with the current pick, not the one it was first built with.
+            val slots = remember(families) {
+                families.map { movableContentOf { tile: @Composable () -> Unit -> TileSlot(tile) } }
+            }
+
+            if (gallery) {
+                // Read as the row is - its place in a set of this many - whichever way the grid wraps it.
+                GalleryGrid(
+                    slotWidth = previewSize.width,
+                    spacing = spacing,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { collectionInfo = CollectionInfo(rowCount = 1, columnCount = families.size) }
+                        .padding(start = TILES_SIDE_PADDING, top = 6.dp, end = TILES_SIDE_PADDING, bottom = 12.dp),
+                ) {
+                    for (index in families.indices) {
+                        slots[index] { Tile(index) }
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .alpha(rowAlpha)
+                        // Its place in a row of this many, as a lazy row would say it.
+                        .semantics { collectionInfo = CollectionInfo(rowCount = 1, columnCount = families.size) }
+                        .horizontalScroll(scrollState)
+                        .padding(horizontal = TILES_SIDE_PADDING, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.gap),
+                ) {
+                    if (firstBuilt > 0) PlaceholderRun(firstBuilt, previewSize, spacing.gap)
+                    for (index in firstBuilt..lastBuilt) {
+                        // Each tile in its preview's width, as in the gallery: a wider name spills into the gaps.
+                        Box(modifier = Modifier.width(previewSize.width).wrapContentWidth(unbounded = true)) {
+                            slots[index] { Tile(index) }
+                        }
+                    }
+                    if (lastBuilt < families.lastIndex) PlaceholderRun(families.lastIndex - lastBuilt, previewSize, spacing.gap)
+                }
+
+                HorizontalScrollbar(
+                    scrollState = scrollState,
+                    modifier = Modifier.padding(start = TILES_SIDE_PADDING, end = TILES_SIDE_PADDING, bottom = 10.dp),
+                )
+            }
+        }
+    }
 }
 
-// The gap before a row's first tile and after its last.
-private val ROW_PADDING = 12.dp
+/**
+ * How a category's tiles are spaced across a card [width] wide, in its row and its gallery alike, so the
+ * two match: each tile takes its preview's [slot] (a wider name spills into the gaps either side), and
+ * the gap between them is [TILE_SPACING] where the gallery's lines have room for it, or less - down to
+ * [GALLERY_MIN_TILE_SPACING] - where closing up fits another tile on each. [columns] is how many to a
+ * gallery line.
+ */
+@Immutable
+internal data class TileSpacing(val columns: Int, val gap: Dp) {
+    companion object {
+        fun of(width: Dp, slot: Dp, count: Int): TileSpacing {
+            val columns = ((width + GALLERY_MIN_TILE_SPACING) / (slot + GALLERY_MIN_TILE_SPACING)).toInt().coerceIn(1, count.coerceAtLeast(1))
+            val gap = if (columns > 1) minOf(TILE_SPACING, (width - slot * columns) / (columns - 1)) else TILE_SPACING
+            return TileSpacing(columns, gap)
+        }
+    }
+}
+
+/**
+ * A category's tiles in a gallery, every one laid out at once, left-aligned like the row and spaced as
+ * it is ([spacing]): [TileSpacing.columns] to a line, each in its preview's [slotWidth] with
+ * [TileSpacing.gap] between. A name wider than its preview (at a large font, say) centres under it and
+ * spills a little into the gaps, rather than pushing the line's last tile onto the next. Lines are as
+ * tall as their tallest tile, [TILE_SPACING] apart.
+ */
+@Composable
+private fun GalleryGrid(slotWidth: Dp, spacing: TileSpacing, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Layout(content = content, modifier = modifier) { measurables, constraints ->
+        val placeables = measurables.map { it.measure(constraints.copy(minWidth = 0, minHeight = 0)) }
+        val width = constraints.maxWidth
+        if (placeables.isEmpty()) return@Layout layout(width, 0) {}
+        val slot = slotWidth.toPx()
+        val step = slot + spacing.gap.toPx()
+        val lineGap = TILE_SPACING.roundToPx()
+        val lines = placeables.chunked(spacing.columns)
+        val lineHeights = lines.map { line -> line.maxOf { it.height } }
+        layout(width, lineHeights.sum() + lineGap * (lines.size - 1)) {
+            var y = 0
+            lines.forEachIndexed { l, line ->
+                line.forEachIndexed { c, tile -> tile.place(x = (c * step + (slot - tile.width) / 2).roundToInt(), y = y) }
+                y += lineHeights[l] + lineGap
+            }
+        }
+    }
+}
+
+// The least room between tiles side by side in a gallery, when closing up gains a column: four dice or
+// cups across a 360dp phone need 4 x 72dp in the ~304dp its card leaves inside TILES_SIDE_PADDING - gaps of 5dp.
+private val GALLERY_MIN_TILE_SPACING = 4.dp
+
+// The room either side of a card's tiles, row or gallery alike (and the row's scrollbar): what lets
+// four dice or cups fit across a 360dp phone's gallery (20dp page padding each side), and still wide
+// enough for the longest name to spill into.
+private val TILES_SIDE_PADDING = 8.dp
 
 // How many frames apart a row builds its tiles after the page opens - see StyleFamilyTiles.
 private const val TILE_BUILD_FRAMES = 4
 
-/**
- * One built tile in a Styles row, held still - as under reduced motion - while it isn't on screen.
- * [onPlaced] hears where it sits in the row and how wide it is.
- */
+/** One built tile in a Styles row or gallery, held still - as under reduced motion - while it isn't on screen. */
 @Composable
-private fun TileSlot(onPlaced: ((left: Int, width: Int) -> Unit)?, tile: @Composable () -> Unit) {
+private fun TileSlot(tile: @Composable () -> Unit) {
     var onScreen by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier.onGloballyPositioned { coordinates ->
-            // Clipped by the row: nothing left of it when it's scrolled out of sight.
+            // Clipped by the row or the page: nothing left of it when it's scrolled out of sight.
             onScreen = coordinates.boundsInRoot().width > 0f
-            onPlaced?.invoke(coordinates.positionInParent().x.toInt(), coordinates.size.width)
         },
     ) {
         CompositionLocalProvider(LocalReduceMotion provides (LocalReduceMotion.current || !onScreen)) {
@@ -701,16 +1050,16 @@ private fun TileSlot(onPlaced: ((left: Int, width: Int) -> Unit)?, tile: @Compos
  * tile once it's built.
  */
 @Composable
-private fun PlaceholderRun(count: Int, previewSize: DpSize) {
+private fun PlaceholderRun(count: Int, previewSize: DpSize, gap: Dp) {
     val fill = MaterialTheme.colorScheme.surfaceContainerHigh
     val outline = MaterialTheme.colorScheme.outlineVariant
     Canvas(
         modifier = Modifier
             .clearAndSetSemantics {}
-            .size(width = previewSize.width * count + TILE_SPACING * (count - 1), height = previewSize.height),
+            .size(width = previewSize.width * count + gap * (count - 1), height = previewSize.height),
     ) {
         val tile = Size(previewSize.width.toPx(), previewSize.height.toPx())
-        val step = (previewSize.width + TILE_SPACING).toPx()
+        val step = (previewSize.width + gap).toPx()
         val corner = CornerRadius(PLACEHOLDER_CORNER.toPx())
         val border = 1.dp.toPx()
         repeat(count) { i ->
