@@ -508,8 +508,12 @@ private fun <T : TableArt> StyleFamilyTiles(
     }
 
     val families = remember(unlocked, shownLocked) { unlocked + shownLocked }
-    // Opens with the current pick in the middle.
-    val pickedIndex = unlocked.indexOfFirst { it.colourOf(shownSelectedId) != null }.coerceAtLeast(0)
+    // Opens with the current pick in the middle. Only the pick the row opened with: the build below
+    // is keyed on it, so following a later pick would throw away every other tile and build them all
+    // again, flashing the whole row each time a new style was picked.
+    val pickedIndex = remember(families.size) {
+        unlocked.indexOfFirst { it.colourOf(shownSelectedId) != null }.coerceAtLeast(0)
+    }
     val scrollState = rememberScrollState()
 
     // Every tile in the row is built, and kept - a plain scrolling row, not a lazy one, so scrolling,
