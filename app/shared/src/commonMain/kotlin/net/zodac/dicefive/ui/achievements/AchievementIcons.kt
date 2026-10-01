@@ -3,22 +3,17 @@ package net.zodac.dicefive.ui.achievements
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.automirrored.filled.LibraryBooks
-import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.AlarmOn
 import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Balance
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Bolt
@@ -27,7 +22,6 @@ import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -280,12 +274,13 @@ val Achievement.icon: ImageVector
         Achievement.WHO_MADE_THIS -> Icons.Filled.Groups
 
         // ---- Collection ---------------------------------------------------------------------------
-        Achievement.TALLY -> Icons.Filled.Checklist
-        Achievement.BOOKKEEPER -> Icons.AutoMirrored.Filled.MenuBook
-        Achievement.REGISTRAR -> Icons.AutoMirrored.Filled.LibraryBooks
-        Achievement.AUDITOR -> Icons.AutoMirrored.Filled.FactCheck
-        Achievement.ARCHIVIST -> Icons.Filled.Archive
-        Achievement.HISTORIAN -> Icons.Filled.AutoStories
+        // The six score ranges, lowest to highest, count up a die's faces: one pip more for each.
+        Achievement.TALLY -> dieFaceIcon(1)
+        Achievement.BOOKKEEPER -> dieFaceIcon(2)
+        Achievement.REGISTRAR -> dieFaceIcon(3)
+        Achievement.AUDITOR -> dieFaceIcon(4)
+        Achievement.ARCHIVIST -> dieFaceIcon(5)
+        Achievement.HISTORIAN -> dieFaceIcon(6)
         Achievement.COMPLETIONIST -> Icons.Filled.Verified
 
         // ---- Easter Eggs ------------------------------------------------------------------------
