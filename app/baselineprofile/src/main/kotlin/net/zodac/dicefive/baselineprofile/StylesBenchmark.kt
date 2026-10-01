@@ -33,7 +33,7 @@ class StylesBenchmark {
         metrics = listOf(FrameTimingMetric()),
         compilationMode = mode,
         startupMode = StartupMode.COLD,
-        iterations = 10,
+        iterations = intArgument("benchmarkIterations") ?: 10,
     ) {
         pressHome()
         startActivityAndWait()
