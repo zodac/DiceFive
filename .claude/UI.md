@@ -645,7 +645,7 @@ stopping outright.
 
 When it's true: the tile glow is steady gold, the turn timer is a steady red (its live-region warning is
 unchanged), the menu's drifting dice and the twinkling stars stay still, the Cauldron's bubbling and the
-Takeaway's steam (the cups' ambient animation, only for players who pick them) and the drawn shake stop (the Treasure Chest's too), its gold burst on opening doesn't play (the lid just opens), the Top Hat's always-out rabbit stays put (the peeking one still peeks - its sighting is an
+Takeaway's steam (the cups' ambient animation, only for players who pick them) and the drawn shake stop (the Treasure Chest's, the Volcano's rumble and the Picnic Basket's too), its gold burst on opening doesn't play (the lid just opens), the Volcano doesn't erupt (its lava is simply there, at rest), the Picnic Basket's lids open without bouncing and its apples are simply on the table, the Shipping container's doors open without bouncing, the Top Hat's always-out rabbit stays put (the peeking one still peeks - its sighting is an
 achievement - just without easing), the googly dice's pupils stay centred instead of sliding with the
 device (the menu logo and the tray), the logo dice and cup don't roll or shake when tapped (the tap still
 counts), the dice roll is the "simple" one (`LocalSimpleDiceRoll` is forced on - so scoring doesn't wait

@@ -80,11 +80,16 @@ private const val BODY_HEIGHT = 20f
 private const val WALL = 1.3f
 // The lid: straight sides this tall, then a half-round top across the chest's depth.
 private const val LID_SIDE = 4f
+// The lid's height as a fraction of a half-round over its straight sides: a touch lower, so it isn't
+// too tall on a chest drawn this large.
+private const val LID_RISE = 0.9f
 private const val LID_ARC_STEPS = 18
 // Where the middle of the chest's footprint is drawn.
 private const val CHEST_CENTRE_X = 38f
 private const val CHEST_BASE_Y = 53f
 private const val CHEST_YAW_DEGREES = 28f
+// The whole chest drawn this much larger than its grid, about the middle of its footprint.
+private const val CHEST_SCALE = 1.2f
 private const val VIEW_ELEVATION_DEGREES = 22f
 // How far the lid swings back on its hinge when open - past upright, so it rests leaning back.
 private const val LID_OPEN_DEGREES = 105f
@@ -166,10 +171,16 @@ class TreasureChestDiceCupStyle(override val id: String, private val palette: Ch
             val scope = CupDrawScope(this, shape, CupPose(0f, 0f))
             val t = (shake?.value ?: 0f) * 2f * PI.toFloat()
             val rattle = shakeWeight * SHAKE_LID_RATTLE_DEGREES * shakeLift(t)
-            scope.drawChest(id, palette, hoard, lid.value * LID_OPEN_DEGREES + rattle, openness = lid.value.coerceIn(0f, 1f), flourish = flourish.value, spills = if (open) spills else emptyList())
+            scaledAbout(CHEST_SCALE, chestPivot(size)) {
+                scope.drawChest(id, palette, hoard, lid.value * LID_OPEN_DEGREES + rattle, openness = lid.value.coerceIn(0f, 1f), flourish = flourish.value, spills = if (open) spills else emptyList())
+            }
         }
     }
 }
+
+/** Where the chest is enlarged about ([CHEST_SCALE]) on a canvas of [size]: the middle of its footprint. */
+private fun chestPivot(size: Size): Offset =
+    Offset(size.width * CHEST_CENTRE_X / CupShape.SQUAT.gridWidth, size.height * CHEST_BASE_Y / CupShape.SQUAT.gridHeight)
 
 /** How far the chest is lifted at [t] (radians round the shake's loop), 0 to 1: up smoothly at each end of its rock, down as it swings through the middle. */
 private fun shakeLift(t: Float): Float = (1f - cos(8f * t)) / 2f
@@ -231,7 +242,8 @@ private fun lidProfile(inset: Float): List<Pair<Float, Float>> = buildList {
     val radius = CHEST_DEPTH / 2f
     for (i in 0..LID_ARC_STEPS) {
         val a = PI.toFloat() * i / LID_ARC_STEPS
-        add(LID_SIDE + (radius - inset) * sin(a) to radius + (radius - inset) * cos(a))
+        // The rise flattened by LID_RISE, so the arch is a little lower than a true half-round.
+        add((LID_SIDE + (radius - inset) * sin(a)) * LID_RISE to radius + (radius - inset) * cos(a))
     }
     add(0f to inset)
 }
@@ -346,7 +358,7 @@ private fun CupDrawScope.drawSideHinge(lidDegrees: Float, palette: ChestPalette)
     val rim = Stroke(gx(0.35f))
     if (lidDegrees > 30f) {
         // The stay: from low on the body's side, up to a pin on the lid's end.
-        val (lidY, lidZ) = swung(listOf(LID_SIDE + 2f to 7f), lidDegrees).first()
+        val (lidY, lidZ) = swung(listOf((LID_SIDE + 2f) * LID_RISE to 7f), lidDegrees).first()
         val from = point(x + 0.1f, top - 7f, back + 6f)
         val to = point(x + 0.1f, lidY, lidZ)
         drawLine(palette.goldDark, from, to, strokeWidth = gx(1.3f), cap = StrokeCap.Round)
@@ -451,7 +463,11 @@ private data class ChestBodyImage(val chestId: String)
  * the shake's lifting lid redraws the chest every frame.
  */
 private fun CupDrawScope.drawBodyImage(id: String, palette: ChestPalette) {
-    drawCachedSurface(ChestBodyImage(id)) { CupDrawScope(this, CupShape.SQUAT, CupPose(0f, 0f)).drawBody(palette) }
+    // Painted at the chest's scale, so it's stamped with that scale undone.
+    val pivot = chestPivot(size)
+    unscaledAbout(CHEST_SCALE, pivot) {
+        drawCachedSurface(ChestBodyImage(id)) { scaledAbout(CHEST_SCALE, pivot) { CupDrawScope(this, CupShape.SQUAT, CupPose(0f, 0f)).drawBody(palette) } }
+    }
 }
 
 /**
@@ -757,7 +773,7 @@ private fun rememberHoardArt(id: String, palette: ChestPalette, size: IntSize): 
                 val pile = SettledPile
                 val image = ImageBitmap(size.width, size.height)
                 CanvasDrawScope().draw(density, LayoutDirection.Ltr, Canvas(image), Size(size.width.toFloat(), size.height.toFloat())) {
-                    CupDrawScope(this, CupShape.SQUAT, CupPose(0f, 0f)).drawPaintedHoard(pile, palette)
+                    scaledAbout(CHEST_SCALE, chestPivot(this.size)) { CupDrawScope(this, CupShape.SQUAT, CupPose(0f, 0f)).drawPaintedHoard(pile, palette) }
                 }
                 HoardArt(pile, image)
             }.getOrNull()
@@ -785,7 +801,8 @@ private fun CupDrawScope.drawHoard(hoard: HoardArt?, palette: ChestPalette) {
         )
         return
     }
-    drawImage(hoard.image)
+    // Painted at the chest's scale, so it's stamped with that scale undone.
+    unscaledAbout(CHEST_SCALE, chestPivot(size)) { drawImage(hoard.image) }
     for (treasure in LiveTreasure) drawTreasure(treasure, hoard.pile, palette)
     for (coin in topCoins(hoard.pile)) drawSettledCoin(coin, hoard.pile, palette)
 }

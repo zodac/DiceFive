@@ -115,7 +115,8 @@ decisions behind it. Read that before changing anything visual.
   game being continued) stays shut until the next shake, which then opens it as usual - appearing open
   meant showing it before its painted treasure was ready, empty then popping full (the maintainer's
   call). The spill only shows once the lid has really opened, not when it lifts in the shake.
-  The lid has thickness (lining, lip edge, inner end face) and is visibly hinged on
+  The lid's arch is 90% of a half-round's height (`LID_RISE` - at full height it looked too tall once
+  the chest was enlarged). The lid has thickness (lining, lip edge, inner end face) and is visibly hinged on
   the right end (hinge leaves, knuckle, and a stay once open).
   The hoard is settled, not placed (`settlePile`): the chest is full to just under the rim, a flat
   bed of coins covers that, then coins are dropped one at a time onto whatever is highest beneath
@@ -142,6 +143,93 @@ decisions behind it. Read that before changing anything visual.
   inside fixed bounds and clear of each other - no bounce. They vanish the moment the chest starts to
   close for the next roll. With no burst (reduced motion) they're simply at rest. Checking for gaps: colour the inside of the chest bright green
   for a render and count the green pixels.
+  Seven more dice, each drawn as artwork, every costly face painted once through `drawCachedSurface`
+  and seeded per face and die (`naturalPatternSeed`) so no two are alike; illustrated pieces are
+  authored in a unit space and placed with `inUnit` (`ArtShapes.kt`), and a recoloured die draws
+  every piece in shades of the roll's pip colour (`Shades.of`). Cake (`CakeDice.kt`; Vanilla,
+  Chocolate, Pink): a frosted top with a ring of piped rosettes following the die's rounded outline
+  and strawberries for pips - on Chocolate (a milk chocolate, the darker one hid the berries) each
+  sits on a dollop of cream so it stands out. Meadow (`MeadowDice.kt`): a grassy field with a river shaped like the
+  number, every river rising at one edge of the face and running out at another (`RIVERS` - the 4's
+  branch and the 6's loop both reach an edge too). Poker (`PokerDice.kt`): a playing card per face,
+  Ace for 1, the suits cycling spades, hearts, clubs, diamonds (only four suits for six faces), ranks
+  in the bundled MathJax serif, pips laid out as a card's, the lower ones upside down. Obsidian
+  (`ObsidianDice.kt`; Lava, Blue): polished black glass with conchoidal ripples, every pip a crusted
+  vent of glowing lava with a few short cracks and spatters - each pushed a little off its pip's spot
+  (`VENT_SHOVE`), its own size, stretched and ragged, as if the lava forced its own way out - and
+  seeded by colour too, so Lava and Blue differ. No vent has a clean rim: its glow soaks out into
+  the glass in fading rings, a few rivulets leak out of it and fade, and its crust is only a few
+  dark-red flakes of cooling skin (a black crust ring read as too clean an edge, black flakes as dirt). The vents are laid out over the whole face, inset to
+  the usual pip area, so a pushed one's glow isn't cut off square at the pip area's edge. Mahjong (`MahjongDice.kt`; Pinzu, Manzu,
+  Sozu - one suit per colour): ivory tile faces with a jade back at the edge; Manzu's numerals and 萬
+  come from the system's CJK font (like the Japanese numerals); the 1 of bamboo is a bird. Tally
+  (`TallyDice.kt`): four ways of counting in fives, each written by hand on its own surface - the
+  Western five-bar gate in chalk on slate, the Chinese 正 in brush on rice paper, the Latin American
+  square-and-diagonal in pencil on a notebook, and the foresters' dot tally in pen on a field book.
+  Garden (`GardenDice.kt`; Soil - a Linen colour was dropped): 1 butternut squash, 2 carrots, 3
+  tomatoes, 4 artichokes (whole - a cut heart doesn't read at dice size - with a few broad, fleshy,
+  purple-tipped scales; many small pointed ones read as a pine cone), 5 eggplants, 6 onions. A top-level `Path` must be
+  `by lazy`: built when its file's class loads, it broke every plain-JVM test that touched
+  `DiceStyles` (a `Path` needs the platform's graphics).
+  Stone (`StoneDice.kt`; Granite, Slate, Sandstone, Limestone, Basalt, then White and Black Marble -
+  the Marble dice, once a style of their own at 60 achievements, merged in, their ids unchanged so
+  saved picks still resolve, and given the same carved pips - `drawCarvedPips`, shared): one class
+  for the five, each stone's own
+  texture painted once per face (`StoneKind`) - granite's packed crystals (fine and many; coarse
+  ones read as terrazzo), slate's cleavage layers, sandstone's wavy bedding and grit, limestone's
+  mottling, pores and the odd fossil, basalt's gas holes - with chiselled pips: slightly irregular
+  hollows, shadowed at the top left, lit at the bottom-right lip, their floors matte (a bright floor
+  read as a metal disc).
+  Containers is one cup style of three shapes: the wooden Barrel (once a style of its own; its
+  unlock count is the family's, so nobody loses it), the Oil Drum and the Shipping container. The
+  Oil Drum (`OilDrumDiceCupStyle`, in `RoundCups.kt`) is a steel drum from a photo the maintainer
+  supplied: a glossy enamelled cylinder (a hard highlight left of centre, a softer one right), two
+  rolling hoops standing proud a third of the way down and up, rolled rims at its top and foot, and a
+  closed lid - a dished top in its chime - with a bright metal bung and a small painted one. The
+  Shipping container (`ShippingContainerCup.kt`) is long and low, so it's a 3D box on the squat grid,
+  laid along its width and turned 40 degrees - mirrored, its door end on the left - so its doors show
+  as well as its long side (at 24 the end was a sliver - a container's only about 2.4m across to 6m
+  long): corrugated side, steel frame with cast corner blocks, doors with locking bars, handles and
+  hinges, and a little rust and scuffing. The drum shakes and tips like any cup; the container shakes
+  but never tips (`CupCanvas(tips = false)` - the maintainer's call). Poured, its doors swing out on their hinges on an
+  underdamped spring (`DOOR_OPEN_DEGREES`), showing its dark inside and plank floor; they shut as the
+  next shake starts, are already open for a continued game, and open without the bounce under reduced
+  motion. The box, inside included, is painted once; only the doors are live.
+  The Urn cup (`UrnCup.kt`; Terracotta, Bronze) is a turned profile (a Catmull-Rom curve through
+  `UrnProfile` - a smoothstep between points left kinks at each one) in `CupCanvas`, so it shakes and
+  tips like any cup; its Greek key and rays are wrapped round the body (`onBody`), foreshortening
+  towards its edges.
+  The Volcano cup (`VolcanoCup.kt`) draws its own `Canvas` like the chest and doesn't tip. Its foot
+  never moves: shaken, only its top half rumbles from side to side (gentle smooth waves, a few puffs
+  of smoke), and the eruption's jolt is the same - the cached cone is stamped in bands
+  (`SWAY_BANDS`), each shifted by how far up it is (`swayWeight`, fading to nothing `SWAY_DEPTH`
+  down), and everything live on it (crater, lava, burst) takes the same sway, so there's no seam.
+  Poured, it erupts - a flash, a tapering jet of lava, glowing bombs with streaks arcing over and
+  falling back below the rim, a plume of ash - while lava wells over the front of the rim and runs
+  down the slopes as ribbons that widen as they go and end in rounded tongues, stopping short of the
+  foot. It rests glowing until the next shake cools the lava away (`COOL_MILLIS`). A volcano
+  composed already poured (a continued game) shows its lava at rest, no eruption. The cone is a
+  mountain, not a lathe: its radius swells and hollows with angle and height (`radiusAt`), its rim is
+  ragged, its rock broken up by patches, a few soft ledges, cracks, scree and ash on its upper slopes -
+  but no channels down it (they read as lava's paths before there was any lava) - and a ring of rocks
+  of every size is heaped round its foot. All of that is painted once; only the crater, the five
+  flows and the burst are live.
+  The Picnic Basket cup (`PicnicBasketCup.kt`) is a turned 3D box like the chest (both drawn 20%
+  larger than their grid, about their footprint's middle - `BASKET_SCALE`, `CHEST_SCALE` - their
+  cached images painted at that scale and stamped with it undone, `unscaledAbout`), its top split
+  across the middle into two lids, each hinged along its own short end (leather straps wrapping
+  from lid onto wall, visible on the right end). Shaken, it rocks with its lids rattling; poured,
+  the lids lift at the split and swing out in opposite directions on an underdamped spring, resting
+  at `FLAP_OPEN_DEGREES` (105 - at 122 the left lid's lining turned square to the viewer and looked
+  bigger than the closed lid, though its edges project to the same lengths), and 1 to 3 apples
+  tumble out onto the table (a fresh random handful each time, only while open). The handle is an
+  upright U on leather brackets standing its legs out past the lids' edges, so the lids open and
+  shut under it. Inside, a picnic packed on gingham (a water bottle, grapes, an orange, a sandwich,
+  cheese, apples, a baguette), drawn back to front, filling it to the rim but low enough for the
+  lids to shut over it; a corner of the cloth always hangs over the front wall. Unlike the chest, a
+  basket composed already poured appears open at rest - its contents are drawn live and cheaply, so
+  there's nothing to wait for. A lid is only drawn behind the contents once it's swung past upright;
+  a lid rattling low in the shake is over them. The woven body and shadow are painted once.
   The Styles screen (`ui/styles/`) is the picker: one tile per family, showing the picked colour
   (or the family's first), colour dots along the bottom when it has more than one, and a long
   press popping up a scrollable row of previews, one per colour (no colour names on screen - the
@@ -646,12 +734,12 @@ dependencies — most unit tests live here.
   their own faces (`TossedCube`), paced to the distance travelled, through the real faces round one
   axis; a toss starts on the very face the die was picked up showing and ends on its result, with the
   quarter-turns counted to make both true, so no face ever jumps. The D20 (`DiceStyle.tumblesItself`)
-  turns itself instead. A style whose every face is already a drawn solid (the Cube) can't be
-  rolled as cards - each would carry its own painted top and side, showing extra faces - so it
-  overrides `DiceStyle.TossedDie` and tumbles as one real projected cube, the still die drawn by the
-  same renderer untipped; its `topFace` makes `TossPath` finish with the face its still art shows on
-  top (over the picked-up face, which is thrown in out of sight), so it lands exactly as it then
-  rests. `TossPathTest` pins the ring rules. **No flash of the result:** `RollTracker` counts shake-starts and landings
+  turns itself instead. A style whose every face is already a drawn solid can't be rolled as cards -
+  each would carry its own painted top and side, showing extra faces - so the hooks for one remain:
+  it would override `DiceStyle.TossedDie` and tumble as one real projected solid, and its `topFace`
+  makes `TossPath` finish with the face its still art shows on top, so it lands exactly as it then
+  rests. (The Cube dice, the one style that used them, were removed at the maintainer's request; a
+  saved pick of one now draws the default dice.) `TossPathTest` pins the ring rules. **No flash of the result:** `RollTracker` counts shake-starts and landings
   in the composition they happen in, and the pick-up/toss animations are keyed on those counts, so a
   toss is already under way in the frame the new dice arrive - they never appear at rest first.
   **Scoring waits for the dice:** `GameScreen` uses the same tracker to hold `diceSettling` true for
@@ -667,7 +755,7 @@ dependencies — most unit tests live here.
   die through the pick-up, the throw and rest alike, so it never pops in on landing. Held dice, off the
   mat in their slots, keep their own. Each shadow is the die's own outline, from
   `DiceStyle.shadowShape` - the style's corner rounding (every style shares its corner constant
-  between the die and its shadow), the Cube's hexagonal outline, and the D20's exact twisted
+  between the die and its shadow), and the D20's exact twisted
   silhouette, at rest (`restingView`) and mid-tumble alike - the same `view` the die is drawn
   in, frame by frame. Coloured dice use the bevelled die's rounded square.
 

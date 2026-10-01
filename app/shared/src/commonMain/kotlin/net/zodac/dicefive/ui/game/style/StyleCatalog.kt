@@ -131,20 +131,6 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             unlock = AchievementCount(23),
         ),
         StyleFamily(
-            "Marble",
-            listOf(
-                colour(
-                    "White",
-                    MarbleDiceStyle("marble_white", Color(0xFFF4F2EE), Color(0xFFD9D5CE), Color(0xFF8E8A84), Color(0xFF222222), seed = 1),
-                ),
-                colour(
-                    "Black",
-                    MarbleDiceStyle("marble_black", Color(0xFF3A3A3E), Color(0xFF141416), Color(0xFFD8D8D8), Color(0xFFF5F5F5), seed = 2),
-                ),
-            ),
-            unlock = AchievementCount(60),
-        ),
-        StyleFamily(
             "Metal",
             listOf(
                 // Gold and bronze dice would swallow the usual gold held ring, so theirs is white.
@@ -309,27 +295,6 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             unlock = AchievementCount(29),
         ),
         StyleFamily(
-            "Cube",
-            listOf(
-                colour(
-                    "Ivory",
-                    CubeDiceStyle("cube_ivory", Color(0xFFFFFCF3), Color(0xFFE6DAB8), Color(0xFFFFFFFF), Color(0xFFC9B78E), Color(0xFF2B2118)),
-                ),
-                colour(
-                    "Red",
-                    CubeDiceStyle("cube_red", Color(0xFFE53935), Color(0xFFB71C1C), Color(0xFFEF6A5E), Color(0xFF8E1414), Color.White),
-                ),
-                colour(
-                    "Rounded",
-                    CubeDiceStyle(
-                        "cube_round_ivory", Color(0xFFFFFCF3), Color(0xFFE6DAB8), Color(0xFFFFFFFF), Color(0xFFC9B78E), Color(0xFF2B2118),
-                        rounded = true,
-                    ),
-                ),
-            ),
-            unlock = AchievementCount(24),
-        ),
-        StyleFamily(
             "Googly",
             listOf(
                 colour("Ivory", GooglyDiceStyle("googly_ivory", IvoryDiceTop, IvoryDiceBottom, DicePipColor)),
@@ -361,6 +326,116 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 StyleColour("Irish", IrishFlagDiceStyle.swatch, IrishFlagDiceStyle, secretAchievement = Achievement.LUCK_OF_THE_IRISH),
             ),
             unlock = AchievementCount(36),
+        ),
+        StyleFamily(
+            "Cake",
+            listOf(
+                colour("Vanilla", CakeDiceStyle("cake_vanilla", Color(0xFFFFF6E6), Color(0xFFEBD9BC))),
+                // Milk chocolate, light enough for the strawberries to stand out, each on a dollop of cream.
+                colour("Chocolate", CakeDiceStyle("cake_chocolate", Color(0xFFA06A45), Color(0xFF70452B), dollop = Color(0xFFFFF6E6))),
+                colour("Pink", CakeDiceStyle("cake_pink", Color(0xFFFFD3DE), Color(0xFFEFA9BA))),
+            ),
+            unlock = AchievementCount(7),
+        ),
+        StyleFamily(
+            "Meadow",
+            listOf(colour("Green", MeadowDiceStyle("meadow_green", Color(0xFF7CB342), Color(0xFF4E8A2A)))),
+            unlock = AchievementCount(12),
+        ),
+        StyleFamily(
+            "Poker",
+            listOf(colour("White", PokerDiceStyle("poker_white", Color.White, Color(0xFFE6E6EA)))),
+            unlock = AchievementCount(21),
+        ),
+        StyleFamily(
+            "Obsidian",
+            listOf(
+                colour(
+                    "Lava",
+                    ObsidianDiceStyle(
+                        "obsidian_lava", Color(0xFF2A2830), Color(0xFF060508),
+                        Lava(Color(0xFF1A0A04), Color(0xFFB02A00), Color(0xFFFF6A00), Color(0xFFFFF2A0)),
+                    ),
+                ),
+                colour(
+                    "Blue",
+                    ObsidianDiceStyle(
+                        "obsidian_blue", Color(0xFF2A2830), Color(0xFF060508),
+                        Lava(Color(0xFF040A1A), Color(0xFF0040B0), Color(0xFF2E9BFF), Color(0xFFD8F4FF)),
+                    ),
+                ),
+            ),
+            unlock = AchievementCount(45),
+        ),
+        StyleFamily(
+            "Mahjong",
+            listOf(
+                colour("Pinzu", MahjongDiceStyle("mahjong_pinzu", MahjongSuit.PINZU, MahjongFace, MahjongFaceShade, MahjongBack)),
+                colour("Manzu", MahjongDiceStyle("mahjong_manzu", MahjongSuit.MANZU, MahjongFace, MahjongFaceShade, MahjongBack)),
+                colour("Sozu", MahjongDiceStyle("mahjong_sozu", MahjongSuit.SOZU, MahjongFace, MahjongFaceShade, MahjongBack)),
+            ),
+            unlock = AchievementCount(33),
+        ),
+        StyleFamily(
+            "Tally",
+            listOf(
+                colour(
+                    "Western",
+                    TallyDiceStyle(
+                        "tally_western", TallySystem.GATE, TallyPen.CHALK, TallySurface.SLATE,
+                        Color(0xFF3A4440), Color(0xFF232A27), Color(0xFFF2F2EA), Color.White,
+                    ),
+                ),
+                colour(
+                    "Chinese",
+                    TallyDiceStyle(
+                        "tally_chinese", TallySystem.ZHENG, TallyPen.BRUSH, TallySurface.RICE_PAPER,
+                        Color(0xFFF6EFDC), Color(0xFFE5D9B9), Color(0xFF1A1A1A), Color(0xFFB8A57A),
+                    ),
+                ),
+                colour(
+                    "Latin American",
+                    TallyDiceStyle(
+                        "tally_latin", TallySystem.SQUARE, TallyPen.PENCIL, TallySurface.NOTEBOOK,
+                        Color.White, Color(0xFFECEFF3), Color(0xFF3A3A3E), Color(0xFF8FB4E0),
+                    ),
+                ),
+                colour(
+                    "Forestry",
+                    TallyDiceStyle(
+                        "tally_forestry", TallySystem.DOTS, TallyPen.PEN, TallySurface.FIELD_BOOK,
+                        Color(0xFFF7E8A4), Color(0xFFE8D47E), Color(0xFF1E2A55), Color(0xFF6A9A6A),
+                    ),
+                ),
+            ),
+            unlock = AchievementCount(25),
+        ),
+        StyleFamily(
+            "Stone",
+            listOf(
+                colour("Granite", StoneDiceStyle("stone_granite", StoneKind.GRANITE, Color(0xFFB8AEA8), Color(0xFF7A716D), Color(0xFF26221F))),
+                colour("Slate", StoneDiceStyle("stone_slate", StoneKind.SLATE, Color(0xFF5A6470), Color(0xFF2E353D), Color(0xFF9AA2AC))),
+                colour("Sandstone", StoneDiceStyle("stone_sandstone", StoneKind.SANDSTONE, Color(0xFFE2BE8C), Color(0xFFB0824E), Color(0xFF5A3A1E))),
+                colour("Limestone", StoneDiceStyle("stone_limestone", StoneKind.LIMESTONE, Color(0xFFEDE6D3), Color(0xFFC9BFA4), Color(0xFF5E5646))),
+                colour("Basalt", StoneDiceStyle("stone_basalt", StoneKind.BASALT, Color(0xFF45464A), Color(0xFF1A1B1E), Color(0xFF8E9096))),
+                // Marble, once a style of its own: its ids are saved picks, so they stay as they were.
+                colour(
+                    "White Marble",
+                    MarbleDiceStyle("marble_white", Color(0xFFF4F2EE), Color(0xFFD9D5CE), Color(0xFF8E8A84), Color(0xFF222222), seed = 1),
+                ),
+                colour(
+                    "Black Marble",
+                    MarbleDiceStyle("marble_black", Color(0xFF3A3A3E), Color(0xFF141416), Color(0xFFD8D8D8), Color(0xFFC8C8CC), seed = 2),
+                ),
+            ),
+            unlock = AchievementCount(47),
+        ),
+        StyleFamily(
+            "Garden",
+            listOf(
+                colour("Soil", GardenDiceStyle("garden_soil", Color(0xFF6A4A30), Color(0xFF3E2A1A), soil = true)),
+            ),
+            unlock = AchievementCount(9),
         ),
     ),
 )
@@ -398,7 +473,19 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
             ),
             unlock = AchievementCount(26),
         ),
-        StyleFamily("Barrel", listOf(StyleColour("Brown", BarrelWood, BarrelDiceCupStyle)), unlock = AchievementCount(57)),
+        // Things for holding things. The wooden barrel was once a style of its own, and its unlock
+        // count is the family's, so no one loses it.
+        StyleFamily(
+            "Containers",
+            listOf(
+                StyleColour("Barrel", BarrelWood, BarrelDiceCupStyle),
+                // Glossy blue enamel, the hoops and rims a shade darker.
+                cup("Oil Drum", ::OilDrumDiceCupStyle, "oil_drum_blue", 0xFF0A1250, 0xFF4462D2, 0xFF1A2C9E, 0xFF13217C, 0xFF070D3A),
+                // Rust-red steel with bare dark-grey fittings.
+                cup("Shipping", ::ShippingContainerDiceCupStyle, "shipping_container_red", 0xFF5E1A12, 0xFFD4604A, 0xFFA83A28, 0xFF3A3A3C, 0xFF1A1A1A),
+            ),
+            unlock = AchievementCount(57),
+        ),
         StyleFamily(
             "Leather",
             listOf(
@@ -491,6 +578,53 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 colour("Green", BeakerDiceCupStyle("beaker_green", Color(0xFFD6ECF7), Color(0xFF7CE08A))),
             ),
             unlock = AchievementCount(67),
+        ),
+        StyleFamily(
+            "Urn",
+            listOf(
+                colour(
+                    "Terracotta",
+                    UrnDiceCupStyle("urn_terracotta", UrnPalette(Color(0xFFC4673A), Color(0xFFE8956A), Color(0xFF6E2E14), Color(0xFF1E1410), Color(0xFF1A0D07))),
+                ),
+                colour(
+                    "Bronze",
+                    UrnDiceCupStyle("urn_bronze", UrnPalette(Color(0xFF9A6B32), Color(0xFFE0B070), Color(0xFF4A3010), Color(0xFF2E6B5A), Color(0xFF140C04))),
+                ),
+            ),
+            unlock = AchievementCount(17),
+        ),
+        StyleFamily(
+            "Volcano",
+            listOf(
+                colour(
+                    "Basalt",
+                    VolcanoDiceCupStyle(
+                        "volcano_basalt",
+                        VolcanoPalette(
+                            rockLight = Color(0xFF8A7A6E), rock = Color(0xFF5A4C44), rockDark = Color(0xFF2A221E),
+                            lava = Lava(Color(0xFF2A0E04), Color(0xFFB02A00), Color(0xFFFF6A00), Color(0xFFFFF2A0)),
+                            ash = Color(0xFF4A4644),
+                        ),
+                    ),
+                ),
+            ),
+            unlock = AchievementCount(55),
+        ),
+        StyleFamily(
+            "Picnic Basket",
+            listOf(
+                colour(
+                    "Wicker",
+                    PicnicBasketDiceCupStyle(
+                        "picnic_wicker",
+                        BasketPalette(
+                            wickerLight = Color(0xFFE8C88A), wicker = Color(0xFFC8985A), wickerDark = Color(0xFF7A5428), gap = Color(0xFF4A2E14),
+                            cloth = Color(0xFFF7F2EA), check = Color(0xFFD0282E), leather = Color(0xFF6A3A1E),
+                        ),
+                    ),
+                ),
+            ),
+            unlock = AchievementCount(42),
         ),
     ),
 )
@@ -626,6 +760,11 @@ object DiceMats : StyleCatalog<DiceMat>(
         StyleFamily("Marble", listOf(StyleColour("White", Color(0xFFF2F1EE), MarbleDiceMat)), unlock = AchievementCount(72)),
     ),
 )
+
+// The Mahjong dice's tiles: an ivory face over a jade back.
+private val MahjongFace = Color(0xFFFBF7EC)
+private val MahjongFaceShade = Color(0xFFE6DFCB)
+private val MahjongBack = Color(0xFF2E7D4F)
 
 // Shorthands for the entries above. A colour's swatch - its dot on the Styles screen - is the most
 // representative colour of its palette.

@@ -63,7 +63,7 @@ class StyleCatalogTest {
     @Test
     fun coloursOfOneShapeShareAStyle() {
         assertEquals("Faceted", DiceCupStyles.familyOf("fire").name)
-        assertEquals("Barrel", DiceCupStyles.familyOf("barrel").name)
+        assertEquals("Containers", DiceCupStyles.familyOf("barrel").name)
         assertEquals("Classic", DiceMats.familyOf("fire").name)
         assertEquals("Wood", DiceMats.familyOf("barrel").name)
         for (id in listOf("ivory", "classic_red", "classic_yellow", "classic_blue", "barrel")) {

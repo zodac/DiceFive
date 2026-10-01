@@ -127,7 +127,8 @@ val LocalFlowerpotGrowth = compositionLocalOf { FlowerpotGrowth(stage = 0, growe
  * The canvas every [DiceCupStyle] draws its cup on: [onDraw] paints the cup standing upright on its
  * [shape]'s grid, and this applies the shared shake/pour rotation from [rememberCupRotation] around
  * it, so the cups only differ in their art. The [CupDrawScope] carries the [CupPose] for any liquid
- * a cup draws; most cups ignore it.
+ * a cup draws; most cups ignore it. A cup that doesn't [tips] (the Shipping container, which opens its
+ * doors instead) shakes the same, but stays standing once poured.
  */
 @Composable
 fun CupCanvas(
@@ -135,9 +136,10 @@ fun CupCanvas(
     tilted: Boolean,
     modifier: Modifier,
     shape: CupShape = CupShape.TALL,
+    tips: Boolean = true,
     onDraw: CupDrawScope.() -> Unit,
 ) {
-    val rotation = rememberCupRotation(rolling, tilted, RESTING_TILT_DEGREES)
+    val rotation = rememberCupRotation(rolling, tilted, if (tips) RESTING_TILT_DEGREES else 0f)
     val liquidRotation by animateFloatAsState(
         targetValue = rotation,
         animationSpec = spring(dampingRatio = 0.3f, stiffness = Spring.StiffnessLow),
