@@ -1830,7 +1830,7 @@ install-over-existing succeeds:
       Styles and swiping its rows), each compared with no compilation against the profile. Needs a
       phone on adb, so it is run by hand:
       1. `./gradlew :app:android:generateBaselineProfile` - writes
-         `app/android/src/main/generated/baselineProfiles/baseline-prof.txt`, which is *merged* with
+         `app/android/src/release/generated/baselineProfiles/baseline-prof.txt`, which is *merged* with
          the hand-written `src/main/baseline-prof.txt`, not replacing it.
       2. `./gradlew :app:baselineprofile:connectedBenchmarkReleaseAndroidTest` for the before/after.
       3. Compare with and without the hand-written wildcard file (it marks all app code hot, so with it
