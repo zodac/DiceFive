@@ -1836,6 +1836,9 @@ install-over-existing succeeds:
       3. Compare with and without the hand-written wildcard file (it marks all app code hot, so with it
          present the generated profile adds little but startup ordering); if the generated one is as
          good, delete the wildcard file so unvisited code stops being compiled ahead of time.
+      While checking the journey itself, cut it short: add
+      `-Pandroid.testInstrumentationRunnerArguments.journeyLaps=1` (profile laps) or `...benchmarkIterations=1`
+      to the Gradle command, so a failing step stops the run quickly.
       Regenerate after large UI changes. Selectors are the visible labels and screen-reader
       descriptions, so a relabelled button fails the run (`await` in `Journeys.kt`) rather than
       quietly thinning the profile.

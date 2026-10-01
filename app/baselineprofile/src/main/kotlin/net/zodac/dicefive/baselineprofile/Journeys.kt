@@ -2,13 +2,22 @@ package net.zodac.dicefive.baselineprofile
 
 import android.content.res.Resources
 import androidx.benchmark.macro.MacrobenchmarkScope
-import androidx.test.uiautomator.BySelector
+import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 
 internal const val PACKAGE = "net.zodac.dicefive"
 private const val TIMEOUT_MS = 5_000L
+
+/**
+ * An integer passed to the run as an instrumentation argument - from Gradle,
+ * `-Pandroid.testInstrumentationRunnerArguments.<name>=<n>` - or null when it wasn't. Used to cut a
+ * run down to one or two laps while the journey itself is being checked.
+ */
+internal fun intArgument(name: String): Int? =
+    InstrumentationRegistry.getArguments().getString(name)?.toIntOrNull()?.takeIf { it > 0 }
 
 /**
  * The app's screens as steps the profile generator and the benchmarks share. Selectors are the
@@ -97,13 +106,20 @@ internal fun MacrobenchmarkScope.visitSettings() {
     tapText("Settings")
     tapText("Sound effects")
     tapText("Sound effects")
+
+    // Each dialog is waited for by its Close button and left by it: the Settings page behind is
+    // itself scrollable and has the same "Licences" text, so neither a scrollable nor a label says
+    // the dialog is up, and a back press sent too early would leave Settings altogether.
     tapText("Licences")
-    device.wait(Until.hasObject(By.scrollable(true)), TIMEOUT_MS)
+    await(By.desc("Close"), "the Licences dialog's Close button")
     scrollDown(3)
-    back()
+    tapDesc("Close")
+
     tapText("Credits")
+    await(By.desc("Close"), "the Credits dialog's Close button")
     scrollDown(1)
-    back()
+    tapDesc("Close")
+
     back()
 }
 

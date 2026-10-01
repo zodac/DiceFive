@@ -21,7 +21,15 @@ class BaselineProfileGenerator {
     val rule = BaselineProfileRule()
 
     @Test
-    fun generate() = rule.collect(packageName = PACKAGE, includeInStartupProfile = true) {
+    fun generate() = rule.collect(
+        packageName = PACKAGE,
+        // Laps: the library's own defaults (up to 15, stopping after 3 that add nothing new) unless
+        // `-Pandroid.testInstrumentationRunnerArguments.journeyLaps=N` asks for exactly N - one or two
+        // while the journey is being checked, so a failing step stops the run quickly.
+        maxIterations = intArgument("journeyLaps") ?: 15,
+        stableIterations = intArgument("journeyLaps") ?: 3,
+        includeInStartupProfile = true,
+    ) {
         pressHome()
         startActivityAndWait()
 
