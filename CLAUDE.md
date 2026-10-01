@@ -17,6 +17,12 @@
   roll path, the AI loop, timers, undo) or an overridden setup option, the achievement audit (which
   existing achievements each mode blocks, and which needed a guard so the mode doesn't hand them out
   for free), and the test helpers and traps. Read this before adding or changing a mode.
+- `.claude/STYLE_ART.md` — how to make new table art (dice, cups, mats, backgrounds): working with the
+  maintainer on art (render for review before any APK; they check close-ups and frame cost), rendering
+  stills and animation sheets in Robolectric, the debug-colour trick for finding gaps, drawing
+  techniques (3D projection for non-round cups, simulating a pile instead of placing it, making things
+  visibly rest on something), painting heavy art once and off the frame, and the cup contract as a cup
+  sees it. Read this before creating or reworking a style.
 - `.claude/BENCHMARKS.md` — how animation frame cost is measured without a device (Robolectric
   harness, set-ups, pitfalls), the results for every dice, cup, mat and background style and the
   Styles page, what was fixed, and what's still open. Only needed for performance work: a
