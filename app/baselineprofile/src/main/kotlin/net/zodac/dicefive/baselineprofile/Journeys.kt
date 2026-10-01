@@ -1,5 +1,6 @@
 package net.zodac.dicefive.baselineprofile
 
+import android.content.res.Resources
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.By
@@ -106,6 +107,49 @@ internal fun MacrobenchmarkScope.visitSettings() {
     back()
 }
 
+/**
+ * Locks every achievement again (Settings > Reset achievements), so the "Not Those Dice!" unlock in
+ * [visitAchievementBanner] fires on every lap of the run - it can only be earned once, and the app's
+ * data survives from one lap to the next.
+ */
+internal fun MacrobenchmarkScope.resetAchievements() {
+    tapText("Settings")
+    tapText("Reset achievements")
+    tapText("Reset")
+    back()
+}
+
+/**
+ * Taps the logo's dice on the menu (the "Not Those Dice!" easter egg) to raise an unlock banner,
+ * then long-presses the banner, which takes the player to that achievement on the Achievements
+ * screen, where its row glows. Needs the achievement locked - see [resetAchievements].
+ *
+ * The dice are drawn with a raw tap gesture and have no label to find them by, so this probes: it
+ * taps up the column above the menu buttons, where the logo sits, until a banner appears.
+ */
+internal fun MacrobenchmarkScope.visitAchievementBanner() {
+    val density = Resources.getSystem().displayMetrics.density
+    // The logo ends 48dp above the first button (MenuScreen's Spacer), so start there and work up.
+    val buttonsTop = await(By.text("Achievements"), "the menu's buttons").visibleBounds.top
+    val x = device.displayWidth / 2
+    val banner = By.descStartsWith("Achievement unlocked: Not Those Dice!")
+
+    var found: UiObject2? = null
+    var offsetDp = LOGO_PROBE_START_DP
+    while (found == null && offsetDp <= LOGO_PROBE_END_DP) {
+        device.click(x, buttonsTop - (offsetDp * density).toInt())
+        found = device.wait(Until.findObject(banner), BANNER_APPEAR_MS)
+        offsetDp += LOGO_PROBE_STEP_DP
+    }
+    (found ?: error("Baseline Profile journey: tapping the logo never raised the 'Not Those Dice!' banner"))
+        .longClick()
+
+    // Lands on the Achievements screen; give the row's gold flash time to play out before leaving.
+    await(By.text("Achievements"), "the Achievements screen after the banner's long-press")
+    Thread.sleep(GLOW_MS)
+    back()
+}
+
 /** A long page of text: the Rules. */
 internal fun MacrobenchmarkScope.visitRules() {
     tapText("Rules")
@@ -142,3 +186,9 @@ internal fun MacrobenchmarkScope.visitStyles() {
 
 private const val ROLL_SETTLE_MS = 2_000L
 private const val LEAVE_DIALOG_MS = 1_500L
+
+private const val LOGO_PROBE_START_DP = 48
+private const val LOGO_PROBE_END_DP = 220
+private const val LOGO_PROBE_STEP_DP = 24
+private const val BANNER_APPEAR_MS = 800L
+private const val GLOW_MS = 2_000L
