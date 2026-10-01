@@ -325,6 +325,31 @@ chest is composed (a gold fill stands in until it's ready), and coins are drawn 
 the same first frame is ~66ms, all of it first-run code warm-up - a second resume in the same run is
 23ms.
 
+### The Urn, Volcano and Picnic Basket cups, and seven dice (designed to it)
+
+Measured when they were added, the second of two passes in one run (warm), ms per frame: the cup
+alone at its game size (idle 20 frames, shake 26, open 40), and five tossed dice.
+
+| Cup | Idle | Shake | Open (max) |
+|---|---|---|---|
+| Classic Gold (baseline) | 3.5-3.7 | 5.0-5.1 | 5.2-5.9 (7.2) |
+| Treasure Chest (now drawn 20% larger) | 4.7-5.0 | 7.2-8.0 | 6.8-7.3 (9.6) |
+| Urn | 4.3-4.7 | 6.0-6.1 | 6.0-6.1 (7.8) |
+| Volcano (top half swaying in 24 bands of its cached cone) | 3.7-4.0 | 4.1-4.6 | 5.2-5.3 (6.2) |
+| Picnic Basket (20% larger) | 3.8-4.0 | 5.0-5.3 | 5.4-5.8 (7.8) |
+
+Re-measured (two runs, after the Volcano's rework and the 20% enlargement of the chest and basket):
+a third run at the same time put the chest's open at 10.4 (19.9 worst) and the Urn's idle at 7.3, but
+the Urn hadn't changed and two re-runs agreed with the rows above - one noisy run, not a regression.
+Compare within a run.
+
+Dice tossed: Ivory 10.7, Gems 13.3; Cake 13.7, Meadow 11.7, Poker 13.0, Obsidian 12.3, Mahjong
+11.4-13.9, Tally 13.0-13.6, Garden 12.8. A style's first frame (painting its cached faces) was 12-33ms
+warm; Poker's very first in the run was 159ms - the bundled MathJax font loading, once per launch,
+as for the Maths dice. Live per frame: the Volcano's crater, five lava ribbons and (while erupting)
+about 30 bombs and ash puffs; the Basket's two lids, handle, ~8 pieces of food and up to 3 apples -
+their bodies are painted once.
+
 ---
 
 ## Still on the table

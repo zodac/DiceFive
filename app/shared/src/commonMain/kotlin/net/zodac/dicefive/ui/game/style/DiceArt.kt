@@ -258,7 +258,12 @@ private fun DrawScope.drawFrost(seed: Int) {
 // How rounded a Marble die's corners are, as a percentage of its size - for drawing it and its shadow alike.
 private const val MARBLE_CORNER_PERCENT = 18
 
-/** Polished marble dice, veined across the face like a kitchen countertop - differently on every face of every die. */
+private data class CarvedMarblePips(val value: Int, val light: Color, val dark: Color, val pip: Color, val seed: Int)
+
+/**
+ * Polished marble dice, veined across the face like a kitchen countertop - differently on every face
+ * of every die - with their pips carved in, as the other Stone dice's are.
+ */
 class MarbleDiceStyle(
     override val id: String,
     private val light: Color,
@@ -289,7 +294,10 @@ class MarbleDiceStyle(
             edge = dark,
             pipColor = pip,
             cornerPercent = MARBLE_CORNER_PERCENT,
+            pipShape = PipShape.CUSTOM,
             heldRingColor = heldRing,
+            // Carved into the stone, like the rest of its family's - each face's own chisel work.
+            customPips = { drawCachedSurface(CarvedMarblePips(value, light, dark, pip, faceSeed)) { drawCarvedPips(value, light, dark, pip, faceSeed) } },
         ) {
             drawMarble(faceSeed, vein)
         }

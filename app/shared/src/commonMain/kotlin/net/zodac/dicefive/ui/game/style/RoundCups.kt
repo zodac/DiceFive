@@ -325,6 +325,93 @@ class CasinoDiceCupStyle(
     }
 }
 
+// The oil drum: its radius, its top (a closed lid) and its foot, and where its two rolling hoops
+// bulge out round it, a third of the way down and up.
+private const val DRUM_RADIUS = 21f
+private const val DRUM_TOP_Y = 12f
+private const val DRUM_BASE_Y = 76f
+private val DRUM_HOOPS = listOf(33.5f, 54.5f)
+private val DrumBungSilver = Color(0xFFD8DCE0)
+
+/**
+ * A steel oil drum: a glossy enamelled cylinder with a bright highlight down it, two rolling hoops
+ * standing out round it, a rolled rim at its top and foot, and a closed lid with two bungs - the big
+ * one bright metal, the small one painted. [CupPalette.accent] is the hoops' and rims' shade.
+ */
+class OilDrumDiceCupStyle(override val id: String, private val palette: CupPalette) : DiceCupStyle, Swatched {
+    override val swatch: Color = palette.mid
+
+    @Composable
+    override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
+        CupCanvas(rolling, tilted, modifier) {
+            drawContactShadow(DRUM_RADIUS - 1f, DRUM_BASE_Y)
+            drawPath(roundSection(DRUM_RADIUS, DRUM_TOP_Y, DRUM_RADIUS, DRUM_BASE_Y), drumEnamel(DRUM_RADIUS))
+            // The rolled rim round its foot.
+            drawPath(frontArcPath(DRUM_RADIUS, DRUM_BASE_Y - 2.2f), palette.light.copy(alpha = 0.45f), style = Stroke(width = gy(0.6f)))
+            drawPath(frontArcPath(DRUM_RADIUS, DRUM_BASE_Y - 1.4f), palette.dark, style = Stroke(width = gy(0.7f)))
+            for (y in DRUM_HOOPS) drawHoop(y)
+            drawLid()
+        }
+    }
+
+    /** Glossy enamel round the curve: dark at the edges, a hard bright highlight left of centre and a softer one right of it. */
+    private fun CupDrawScope.drumEnamel(radius: Float): Brush = Brush.horizontalGradient(
+        0f to palette.dark,
+        0.12f to palette.mid,
+        0.27f to palette.light,
+        0.31f to lerp(palette.light, Color.White, 0.35f),
+        0.36f to palette.light,
+        0.55f to palette.mid,
+        0.8f to lerp(palette.mid, palette.light, 0.35f),
+        0.9f to palette.mid,
+        1f to palette.dark,
+        startX = gx(centreX - radius),
+        endX = gx(centreX + radius),
+    )
+
+    /** A rolling hoop at [y]: a rib standing just proud of the side, lit along its top and shadowed under it. */
+    private fun CupDrawScope.drawHoop(y: Float) {
+        val rib = roundSection(DRUM_RADIUS + 0.7f, y - 1.3f, DRUM_RADIUS + 0.7f, y + 1.3f, curvedTop = true)
+        drawPath(rib, drumEnamel(DRUM_RADIUS + 0.7f))
+        drawPath(frontArcPath(DRUM_RADIUS + 0.6f, y - 1f), Color.White.copy(alpha = 0.35f), style = Stroke(width = gy(0.5f)))
+        drawPath(frontArcPath(DRUM_RADIUS, y + 1.9f), palette.dark.copy(alpha = 0.7f), style = Stroke(width = gy(0.8f)))
+        drawPath(frontArcPath(DRUM_RADIUS + 0.7f, y + 1.3f), palette.accent, style = Stroke(width = gy(0.4f)))
+    }
+
+    /**
+     * The closed lid: a dished top inside the rolled chime round its edge, and its two bungs - the
+     * big bright metal one towards the back left, the small painted one at the back right.
+     */
+    private fun CupDrawScope.drawLid() {
+        val lid = mouthBounds(DRUM_RADIUS, DRUM_TOP_Y)
+        val dish = mouthBounds(DRUM_RADIUS - 1.6f, DRUM_TOP_Y + 0.5f)
+        drawOval(palette.mid, topLeft = lid.topLeft, size = lid.size)
+        drawOval(
+            Brush.linearGradient(listOf(lerp(palette.light, Color.White, 0.2f), palette.mid, palette.dark), start = dish.topLeft, end = dish.bottomRight),
+            topLeft = dish.topLeft,
+            size = dish.size,
+        )
+        drawOval(palette.dark.copy(alpha = 0.6f), topLeft = dish.topLeft, size = dish.size, style = Stroke(width = gy(0.5f)))
+        // The chime: the rolled seam round the lid's edge, catching the light along its front.
+        drawOval(palette.accent, topLeft = lid.topLeft, size = lid.size, style = Stroke(width = gy(1.3f)))
+        drawPath(frontArcPath(DRUM_RADIUS, DRUM_TOP_Y), lerp(palette.light, Color.White, 0.3f), style = Stroke(width = gy(0.6f)))
+        drawBung(-0.62f, -0.45f, 2.6f, DrumBungSilver)
+        drawBung(0.66f, -0.4f, 1.6f, palette.mid)
+    }
+
+    /** A bung on the lid at ([u], [v]) - across and front to back, -1 to 1 - [radius] across, in [colour], with its raised ring. */
+    private fun CupDrawScope.drawBung(u: Float, v: Float, radius: Float, colour: Color) {
+        val rim = DRUM_RADIUS - 2.5f
+        val at = Offset(gx(centreX + u * rim), gy(DRUM_TOP_Y + 0.5f + v * rim * CUP_VIEW_SQUASH))
+        val size = Size(gx(2f * radius), gy(2f * radius * CUP_VIEW_SQUASH))
+        val topLeft = at - Offset(size.width / 2f, size.height / 2f)
+        drawOval(Color.Black.copy(alpha = 0.3f), topLeft = topLeft + Offset(gx(0.3f), gy(0.4f)), size = size)
+        drawOval(Brush.linearGradient(listOf(lerp(colour, Color.White, 0.5f), colour, lerp(colour, Color.Black, 0.35f)), start = topLeft, end = topLeft + Offset(size.width, size.height)), topLeft = topLeft, size = size)
+        val inner = Size(size.width * 0.6f, size.height * 0.6f)
+        drawOval(lerp(colour, Color.Black, 0.3f), topLeft = at - Offset(inner.width / 2f, inner.height / 2f), size = inner, style = Stroke(width = gy(0.35f)))
+    }
+}
+
 /**
  * A glass tumbler: see-through [tint] glass with bright edges and a vertical highlight, the whole
  * rim outlined since the far side shows through, and a [liquid] inside that stays level and

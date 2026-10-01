@@ -98,9 +98,18 @@ private data class MarbleSurface(val seed: Int, val vein: Color)
  * depends on besides the size.
  */
 internal fun DrawScope.drawCachedSurface(key: Any, paint: DrawScope.() -> Unit) {
+    cachedSurface(key, paint)?.let { drawImage(it) }
+}
+
+/**
+ * The image [drawCachedSurface] stamps - [paint]ed once for [key] at this size - for art that draws
+ * it in pieces of its own (the Volcano's cone, its top trembling while its foot stays put). Null
+ * for an empty size.
+ */
+internal fun DrawScope.cachedSurface(key: Any, paint: DrawScope.() -> Unit): ImageBitmap? {
     val width = ceil(size.width).toInt()
     val height = ceil(size.height).toInt()
-    if (width <= 0 || height <= 0) return
+    if (width <= 0 || height <= 0) return null
     val sized = SizedSurface(key, width, height)
     val image = surfaceImages.remove(sized) ?: ImageBitmap(width, height).also { image ->
         CanvasDrawScope().draw(this, layoutDirection, Canvas(image), Size(width.toFloat(), height.toFloat()), paint)
@@ -108,7 +117,7 @@ internal fun DrawScope.drawCachedSurface(key: Any, paint: DrawScope.() -> Unit) 
     // Re-added on every use, so the map runs least recently used first.
     surfaceImages[sized] = image
     if (surfaceImages.size > SURFACE_CACHE_SIZE) surfaceImages.remove(surfaceImages.keys.first())
-    drawImage(image)
+    return image
 }
 
 // Only ever drawn on the main thread, so never shared between threads.
