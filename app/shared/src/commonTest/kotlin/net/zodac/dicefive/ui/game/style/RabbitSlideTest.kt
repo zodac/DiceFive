@@ -44,6 +44,29 @@ class RabbitSlideTest {
     }
 
     @Test
+    fun aRabbitLyingInATippedHatComesToRest() {
+        // At 60fps a bounce off the low end never slowed below the rest speed, so the hat's frame clock never stopped.
+        val slide = RabbitSlide()
+        run(slide, 300) { -32f }
+        assertTrue(slide.isAtRest, "still moving at ${slide.velocity}")
+    }
+
+    @Test
+    fun aRabbitShakenThenTippedComesToRest() {
+        val slide = RabbitSlide()
+        // Shaken (+-7 degrees, a swing every 180ms) for 420ms, then tipped over to -32 degrees across 320ms and left there.
+        run(slide, 600) { i ->
+            val ms = i * 16f
+            when {
+                ms < 420f -> 7f * sin(ms / 1000f * 2f * kotlin.math.PI.toFloat() / 0.18f)
+                ms < 740f -> -32f * (ms - 420f) / 320f
+                else -> -32f
+            }
+        }
+        assertTrue(slide.isAtRest, "still moving at ${slide.velocity}, at ${slide.x}")
+    }
+
+    @Test
     fun aLongStalledFrameNeverThrowsItOutEither() {
         val slide = RabbitSlide()
         slide.step(frame, 0f)

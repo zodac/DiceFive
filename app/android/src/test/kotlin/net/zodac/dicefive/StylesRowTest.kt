@@ -1,9 +1,12 @@
 package net.zodac.dicefive
 
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,5 +64,33 @@ class StylesRowTest {
         val selected = after.filter { it.config.getOrNull(SemanticsProperties.Selected) == true }
             .map { it.config[SemanticsProperties.ContentDescription].single() }
         assertTrue(selected.toString(), selected.any { it.startsWith(unlockedDice[1].name) })
+    }
+
+    @Test
+    fun `picking each cup shakes and tips it through to the end without breaking the row`() {
+        // Every cup, the chest included: its shake starts painting its hoard, which Robolectric can't - see TreasureChestCup.
+        val achievements = AchievementsState(unlockedAt = Achievement.entries.associateWith { 0L })
+        val cups = DiceCupStyles.families.filter { it.unlock.isMet(achievements) }
+        val saved = MutableStateFlow<SavedStyles?>(
+            SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements),
+        )
+        val viewModel = StylesViewModel(savedStyles = saved)
+        compose.setContent { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
+        compose.mainClock.advanceTimeBy(10_000)
+        compose.waitForIdle()
+        val built = compose.onAllNodes(tiles).fetchSemanticsNodes().size
+
+        for (cup in cups) {
+            val tile = compose.onAllNodes(tiles and SemanticsMatcher("starts with ${cup.name}") { node ->
+                node.config.getOrNull(SemanticsProperties.ContentDescription)?.singleOrNull()?.startsWith(cup.name) == true
+            }).onFirst()
+            tile.performSemanticsAction(SemanticsActions.OnClick)
+            // Partway through the shake (420ms), into the tip, then past its standing back up (1.5s later).
+            compose.mainClock.advanceTimeBy(200)
+            compose.mainClock.advanceTimeBy(600)
+            compose.mainClock.advanceTimeBy(2_000)
+            compose.waitForIdle()
+        }
+        assertEquals(built, compose.onAllNodes(tiles).fetchSemanticsNodes().size)
     }
 }

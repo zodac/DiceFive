@@ -134,8 +134,11 @@ decisions behind it. Read that before changing anything visual.
   into an image per size; only the lid, the side hinge, the goblet, the crown, the highest six coins
   and the spill are drawn live. The pile is simulated and painted on a background thread
   (`rememberHoardArt`, started at the chest's first shake, or at once if it's already open - never
-  for a chest only shown closed, like the Styles preview) and kept for the session - done on the frame it first showed, resuming a game with the chest open hitched badly
-  (~160ms of the first frame on the desktop JVM). Until it's ready, or if painting ever fails, a plain gold fill stands in. Each
+  for a chest only shown closed and still, like an unpicked Styles preview) and kept for the session - done on the frame it first showed, resuming a game with the chest open hitched badly
+  (~160ms of the first frame on the desktop JVM). Until it's ready, or if painting ever fails, a plain gold fill stands in.
+  The treasure (painted pile or stand-in) is only drawn once the lid has swung back past 45 degrees and is
+  drawn behind it: the goblet, crown and top coins stand higher than the rim, so with the lid rattling in
+  the shake or only starting to open they poked up through it. Until then the gap shows the dark inside. Each
   coin is drawn as rotated ovals (the ellipse its tilted face projects to, worked out once from two
   projected directions), not projected polygons - several times cheaper to paint. Every opening
   spills a fresh random handful (`spillHandful`): 2-4 coins and 1-2 sapphires, each thrown from its
@@ -233,7 +236,12 @@ decisions behind it. Read that before changing anything visual.
   The Styles screen (`ui/styles/`) is the picker: one tile per family, showing the picked colour
   (or the family's first), colour dots along the bottom when it has more than one, and a long
   press popping up a scrollable row of previews, one per colour (no colour names on screen - the
-  name belongs to the style; `StyleColour.name` is only read out by screen readers). `GameScreen` reads the ids and builds the active
+  name belongs to the style; `StyleColour.name` is only read out by screen readers). Picking a cup
+  plays its whole roll on its tile (`CupPickShake`): shaken for `CUP_SHAKE_MILLIS`, tipped over as if
+  pouring (a chest throws its lid open), left lying for 1.5s, then stood back up; not under reduced
+  motion. Each tile's cup is keyed on its style id, so a tile switching colours starts the new one
+  fresh - without that, picking the Sunflower grew it in from the bare pot's plant, and the Rabbit hat
+  kept the plain hat's hidden rabbit (only its ears showing). `GameScreen` reads the ids and builds the active
   `GameVisualTheme` from them on every recomposition. Shipped skins: Ivory/Midnight Felt/Blue Felt
   (the defaults - the default cup is now the casino shaker, below) and a second, fully independent "fire" skin for the cup, background and mat (the dice had one too, since removed) - the faceted cup in reds with orange edges (`FireDiceCupStyle`), a red
   felt background (`FireTableBackground`) and a plain red tray (`FireDiceMat`). The cup and mat
@@ -290,6 +298,11 @@ decisions behind it. Read that before changing anything visual.
   same tipped hat and rabbit, rebuilt as a fixed-colour vector (`rememberMagicianIcon`). "Nothing happening" is `LocalCupActivity`, which
   `DiceCupPanel` sets to the current dice, so holding or releasing one restarts the wait (as do a
   roll or a score, through the cup's own `rolling`/`tilted`).
+  The always-out rabbit (`RabbitSlide`) comes to rest against the low end of a tipped hat rather than
+  bouncing off it: at 60fps each bounce stayed just over `RABBIT_AT_REST_SPEED`, so the hat's frame
+  clock never stopped while it lay tipped. The rabbit is clipped only below the opening's centre line
+  (so nothing shows down inside the hat), not to the opening's width above it: slid to one end and
+  leaning, its ear tip used to be cut off square at the opening's edge.
   Easter egg: the Flowerpot's plant grows with the current player's rolls (`PlayerState.rollCount`,
   counted by `GameEngine.rollDice` and saved with the game) - bare soil, the seedling, a stalk with
   a bud, green petals pushing out of the bud, then a yellow sunflower (`flowerpotGrowthStage`). The
