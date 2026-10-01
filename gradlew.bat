@@ -28,6 +28,10 @@ set DIRNAME=%~dp0
 if "%DIRNAME%"=="" set DIRNAME=.
 @rem This is normally unused
 set APP_BASE_NAME=%~n0
+
+@rem Lets the wrapper's own JVM load Gradle's native library without a JDK 24+ warning (JEP 472) - see gradlew.
+@rem Regenerating the wrapper drops this line: put it back.
+set DEFAULT_JVM_OPTS="--enable-native-access=ALL-UNNAMED"
 set APP_HOME=%DIRNAME%
 
 @rem Resolve any "." and ".." in APP_HOME to make it shorter.

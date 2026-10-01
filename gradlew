@@ -86,6 +86,11 @@ APP_BASE_NAME=${0##*/}
 # Discard cd standard output in case $CDPATH is set (https://github.com/gradle/gradle/issues/25036)
 APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf '%s\n' "$PWD" ) || exit
 
+# The wrapper's own JVM loads Gradle's native-platform library (System.load), which JDK 24+ warns about
+# on every build unless it's allowed native access (JEP 472) - the daemon's half is in gradle.properties.
+# Regenerating the wrapper drops this line: put it back.
+DEFAULT_JVM_OPTS='"--enable-native-access=ALL-UNNAMED"'
+
 # Use the maximum available, or set MAX_FD != -1 to use that value.
 MAX_FD=maximum
 
