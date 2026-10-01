@@ -283,6 +283,14 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             unlock = StyleUnlock.SpecificAchievement(Achievement.THE_SOLUTION),
         ),
         StyleFamily(
+            "Gems",
+            listOf(
+                colour("Ivory", GemDiceStyle("gems_ivory", IvoryDiceTop, IvoryDiceBottom)),
+                colour("Black", GemDiceStyle("gems_black", Color(0xFF2E2E31), Color(0xFF0E0E0F))),
+            ),
+            unlock = AchievementCount(38),
+        ),
+        StyleFamily(
             "LCD",
             listOf(
                 colour("Neon", LcdDiceStyle("lcd_neon", Color(0xFF15181D), Color(0xFF07090D), Color(0xFF3FD7FF), glow = true)),
@@ -458,6 +466,23 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 cauldron("Purple", "cauldron_purple", 0xFFB06CF0, 0xFF5A2A8A),
             ),
             unlock = AchievementCount(34),
+        ),
+        StyleFamily(
+            "Treasure Chest",
+            listOf(
+                colour(
+                    "Oak",
+                    TreasureChestDiceCupStyle(
+                        "treasure_chest_oak",
+                        ChestPalette(
+                            woodLight = Color(0xFF9A5B2E), woodDark = Color(0xFF5E3317), seam = Color(0xFF3E200D),
+                            goldLight = Color(0xFFFFE08A), gold = Color(0xFFD4A437), goldDark = Color(0xFF8C6414),
+                            interior = Color(0xFF1E0F05), lining = Color(0xFF7A1424),
+                        ),
+                    ),
+                ),
+            ),
+            unlock = AchievementCount(53),
         ),
         StyleFamily(
             "Beaker",
