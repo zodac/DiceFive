@@ -136,7 +136,7 @@ private fun MacrobenchmarkScope.leaveGame() {
     await(By.text("Settings"), "the menu after leaving a game")
 }
 
-/** Settings, flipping one switch (and flipping it back) and opening the Licences and Credits dialogs. */
+/** Settings, flipping one switch (and flipping it back) and opening the Licences and About dialogs. */
 internal fun MacrobenchmarkScope.visitSettings() {
     tapText("Settings")
     tapText("Sound effects")
@@ -150,10 +150,10 @@ internal fun MacrobenchmarkScope.visitSettings() {
     scrollDown(3)
     closeDialog(By.desc("Close licences"), "the Licences dialog's Close button")
 
-    tapText("Credits")
-    await(By.desc("Close credits"), "the Credits dialog's Close button")
+    tapText("About")
+    await(By.desc("Close about"), "the About dialog's Close button")
     scrollDown(1)
-    closeDialog(By.desc("Close credits"), "the Credits dialog's Close button")
+    closeDialog(By.desc("Close about"), "the About dialog's Close button")
 
     back()
 }

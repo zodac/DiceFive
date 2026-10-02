@@ -12,7 +12,7 @@ import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Gavel
-import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.Card
@@ -102,7 +102,7 @@ fun SettingsScreen(
     var showResetAchievementsConfirmation by rememberSaveable { mutableStateOf(false) }
     var showResetLeaderboardConfirmation by rememberSaveable { mutableStateOf(false) }
     var showLicenses by rememberSaveable { mutableStateOf(false) }
-    var showCredits by rememberSaveable { mutableStateOf(false) }
+    var showAbout by rememberSaveable { mutableStateOf(false) }
 
     ScreenScaffold(
         title = "Settings",
@@ -148,17 +148,17 @@ fun SettingsScreen(
         ) {
             TextButton(
                 onClick = {
-                    showCredits = true
-                    viewModel.onCreditsViewed()
+                    showAbout = true
+                    viewModel.onAboutViewed()
                 },
                 modifier = Modifier.weight(1f),
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Groups,
+                    imageVector = Icons.Filled.Info,
                     contentDescription = null,
                     modifier = Modifier.padding(end = 8.dp),
                 )
-                Text("Credits")
+                Text("About")
             }
             TextButton(onClick = { showLicenses = true }, modifier = Modifier.weight(1f)) {
                 Icon(
@@ -175,8 +175,8 @@ fun SettingsScreen(
         LicensesDialog(onDismissRequest = { showLicenses = false })
     }
 
-    if (showCredits) {
-        CreditsDialog(onDismissRequest = { showCredits = false })
+    if (showAbout) {
+        AboutDialog(onDismissRequest = { showAbout = false })
     }
 
     if (showResetAchievementsConfirmation) {

@@ -65,10 +65,10 @@ class SettingsViewModel(
         viewModelScope.launch { repository.setSimpleDiceRoll(enabled) }
     }
 
-    /** Backs the one achievement this screen itself can earn - opening the Credits dialog
+    /** Backs the one achievement this screen itself can earn - opening the About dialog
      * ("Who Made This?"). Same fire-and-check-once pattern as
      * [net.zodac.dicefive.ui.menu.MenuViewModel.onDiceTapped]. */
-    fun onCreditsViewed() {
+    fun onAboutViewed() {
         val repository = achievementsRepository ?: return
         viewModelScope.launch {
             val before = repository.current()
