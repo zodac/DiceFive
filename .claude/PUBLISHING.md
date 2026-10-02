@@ -65,13 +65,13 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
   entered directly in Play Console alongside the privacy policy URL from "Outside this repo" above.
   Category and contact email are still to pick (zodacapps@gmail.com is the privacy policy's
   contact). Keep both texts in step with the app before each submission:
-  - **"Fully offline" / "No internet needed"** stop being true the moment Play Games sign-in, cloud
-    save, ads or Pro ship - rewrite them then (and the listing must declare ads).
+  - **The short description's "Fully offline"** stops being true the moment Play Games sign-in,
+    cloud save, ads or Pro ship - rewrite it then (and the listing must declare ads).
   - **Counts and lists**: a new game mode goes under "Three ways to play"; "Nearly 100
     achievements" (106 today, 7 of them secret and uncounted) and the style examples must match
     what ships.
   - **The trademark rule applies here too**: never the banned word from `CLAUDE.md` - Play also
-    rejects listings that lean on another product's trademark. "Five of a kind" is the term.
+    rejects listings that lean on another product's trademark. "5x" is the term, as in the app.
 
   Short description (79 characters):
 
@@ -79,10 +79,10 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
   Roll five dice, fill your scorecard, and outscore friends or AI. Fully offline.
   ```
 
-  Full description (~2380 characters):
+  Full description (~1654 characters):
 
   ```
-  DiceFive is the classic five-dice scorecard game, built for your phone. Roll up to three times a turn, hold the dice you want to keep, and decide where each roll scores. Chase a full house, a large straight or five of a kind, then try to make the upper-section bonus before your boxes run out.
+  DiceFive is a classic five-dice scorecard game. Roll up to three times a turn, hold the dice you want to keep, and decide where each roll scores. Chase a full house, a large straight or a 5x, then try to make the upper-section bonus before your boxes run out.
 
   Play solo to beat your best score, pass the phone around with up to four players, or fill the empty seats with computer opponents on Easy, Medium or Hard.
 
@@ -91,10 +91,8 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
   • Tricolour - every die also lands red, yellow or blue, and four colour boxes join the card. Five of one colour, or a coloured full house, opens up new ways to score.
   • Quickfire - one roll per turn and ten seconds to decide where it goes. No holds, no rerolls, just quick thinking.
 
-  Want more pressure in any mode? Add a turn timer.
-
   ACHIEVEMENTS TO CHASE
-  Nearly 100 achievements, from your first win and your first five of a kind to long win streaks, near-perfect cards and unlikely runs of bad luck. A few are secret, and you'll only find out what they are when you earn them.
+  Nearly 100 achievements, from your first win and your first 5x to long win streaks, near-perfect cards and unlikely runs of bad luck. A few are secret, and you'll only find out what they are when you earn them.
 
   MAKE THE TABLE YOUR OWN
   Unlock dozens of styles as you earn achievements:
@@ -103,21 +101,8 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
   • Table mats and backgrounds - wood, leather, casino felt, gingham, starry skies and more
 
   TRACK EVERY GAME
-  • Leaderboard of your highest scores, with the date and number of fives of a kind in each game
-  • Statistics for each player: games played, won and lost, best score, and current and best win streaks
-  • A tie-break house rule settles matching scores, so a draw at the top still has a winner
-
-  PLAYS THE WAY YOU DO
-  • Tap the cup or shake your phone to roll
-  • Undo a mis-tap before it costs you
-  • Games save automatically - leave and pick up where you left off
-  • Sound effects and vibration, each with its own on/off switch
-  • A "simple dice roll" option that swaps the tumbling 3D roll for a calmer one
-  • Rules screen in the app, with every scoring box and mode explained
-  • Built with TalkBack in mind
-
-  NO INTERNET NEEDED
-  DiceFive runs entirely on your device. No account, no sign-in, no internet connection required - just roll.
+  • Leaderboard of your highest scores, with the date and number of 5x in each game
+  • Statistics for each player, including games played, won and lost, best score, and current and best win streaks
   ```
 - **Open-source licenses / third-party notices - done in-app** (`DESIGN.md` Phase 17): Settings >
   "Licences", generated from the dependency graph at build time, with a build-failing
