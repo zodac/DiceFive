@@ -10,6 +10,7 @@ import kotlin.random.Random
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +26,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.achievements.AchievementEvent
@@ -1461,13 +1461,16 @@ class GameViewModel(
                     } finally {
                         _aiRolling.value = false
                     }
-                    // The roll is published but the dice are still tossing onto the mat: let them settle
-                    // before holding, rerolling or scoring, as a human has to.
-                    pausableDelay(diceTossMillis)
-
                     // Nothing left to decide on the turn's last roll - there's no further reroll to
                     // hold dice FOR.
-                    if (current.rollsRemaining == 0) break
+                    val rolled = current
+                    val holdsChoice = if (rolled.rollsRemaining > 0) async(aiDispatcher) { AiTurnPlayer.chooseHolds(rolled) } else null
+
+                    // The roll is published but the dice are still tossing onto the mat: let them settle
+                    // before holding, rerolling or scoring, as a human has to. The hold choice above is
+                    // already being worked out meanwhile, so the toss covers up to its own length of thinking.
+                    pausableDelay(diceTossMillis)
+                    if (holdsChoice == null) break
 
                     // Deliberately outside the block above: choosing what to hold happens once
                     // the cup has already stopped shaking and this roll's dice are already on
@@ -1478,8 +1481,9 @@ class GameViewModel(
                     // duration out past Easy/Medium's, whose choices are next to free. Now every
                     // difficulty's shake is the same fixed length, and "thinking" is just a
                     // static pause with nothing animating - however long it takes, only the pause
-                    // before the dice's held state updates changes, not any animation.
-                    val holds = withContext(aiDispatcher) { AiTurnPlayer.chooseHolds(current) }
+                    // before the dice's held state updates changes, not any animation. It runs during
+                    // the toss, so the pause is only whatever it takes beyond the toss itself.
+                    val holds = holdsChoice.await()
                     // Every die is being kept, so the turn is over: stop before the holds are applied, as
                     // showing every die held just before scoring is noise. A further roll would only ever
                     // reroll nothing (GameEngine.rollDice skips held dice) - stop here, same as a human choosing to
@@ -1490,6 +1494,10 @@ class GameViewModel(
                     // roll that still had legal rerolls left was showing as none remaining.
                     if (holds.size == current.dice.size) break
 
+                    // A human's beat to take in the settled dice before reaching for them - with the
+                    // choice worked out during the toss, the holds would otherwise land the instant the
+                    // dice stop. Scoring gets the same beat from AI_STEP_DELAY_MS below.
+                    pausableDelay(AI_REACTION_DELAY_MS)
                     current = AiTurnPlayer.applyHolds(current, holds)
                     setUndoSnapshot(null)
                     applyGameState(current, checkForAiTurn = false)
@@ -1501,12 +1509,14 @@ class GameViewModel(
                     // score are already paced by the shake above and AI_STEP_DELAY_MS below.
                     pausableDelay(ROLL_GAP_MS)
                 }
-                pausableDelay(AI_STEP_DELAY_MS)
                 // Also off the main thread: Hard's category choice compares against
-                // CATEGORY_BASELINE, a `by lazy` average-over-every-outcome computed once per
+                // CATEGORY_BASELINES, a `by lazy` average-over-every-outcome computed once per
                 // process on whichever call touches it first - same cost/rationale as the hold
-                // choice above.
-                val category = withContext(aiDispatcher) { AiTurnPlayer.chooseCategory(current) }
+                // choice above. Worked out during the pause before scoring, not after it.
+                val toScore = current
+                val categoryChoice = async(aiDispatcher) { AiTurnPlayer.chooseCategory(toScore) }
+                pausableDelay(AI_STEP_DELAY_MS)
+                val category = categoryChoice.await()
                 current = GameEngine.commitScore(current, category)
                 setUndoSnapshot(null)
                 applyGameState(current, checkForAiTurn = false)
@@ -1517,6 +1527,9 @@ class GameViewModel(
     companion object {
         /** The AI's pause, dice settled, before it scores. Its rolls shake for CUP_SHAKE_MILLIS, same as a tap's. */
         private const val AI_STEP_DELAY_MS = 250L
+
+        /** The AI's pause, dice settled, before it holds any of them for its next roll. */
+        private const val AI_REACTION_DELAY_MS = 200L
 
         /** Pause between one roll settling and the next one's shake starting, within the same AI turn. */
         private const val ROLL_GAP_MS = 100L
