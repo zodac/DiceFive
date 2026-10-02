@@ -46,6 +46,11 @@
   scorecard tile has always shown) and **`FIVE_OF_A_KIND` / `fiveOfAKind`** in code. Where the
   game's rules need naming generically, say "the rules" or "a five-dice scorecard game".
 
+  Likewise, **"three of a kind", "four of a kind" and "five of a kind"** (spaced or hyphenated)
+  never appear in anything a player can see - in the app or in the store listing. Use **"3x"**,
+  **"4x"** and **"5x"**, as the scorecard does. The code identifiers (`FIVE_OF_A_KIND` etc.) are
+  fine.
+
   The only permitted exceptions are `.claude/*.md` reference documentation, which needs the word
   to explain what the game is, and the single guard assertion in `AchievementEngineTest` that
   checks no achievement title, description or category label contains it. `README.md` is public

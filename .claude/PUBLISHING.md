@@ -71,7 +71,8 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
     achievements" (106 today, 7 of them secret and uncounted) and the style examples must match
     what ships.
   - **The trademark rule applies here too**: never the banned word from `CLAUDE.md` - Play also
-    rejects listings that lean on another product's trademark. "5x" is the term, as in the app.
+    rejects listings that lean on another product's trademark. "3x", "4x" and "5x" are the
+    terms, as in the app - never "three/four/five of a kind" (see `CLAUDE.md`).
 
   Short description (79 characters):
 
@@ -87,7 +88,7 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
   Play solo to beat your best score, pass the phone around with up to four players, or fill the empty seats with computer opponents on Easy, Medium or Hard.
 
   THREE WAYS TO PLAY
-  • Standard - the classic rules: 13 boxes, three rolls a turn, a 35-point upper bonus and 100-point bonuses for every extra five of a kind.
+  • Standard - the classic rules: 13 boxes, three rolls a turn, a 35-point upper bonus and 100-point bonuses for every extra 5x.
   • Tricolour - every die also lands red, yellow or blue, and four colour boxes join the card. Five of one colour, or a coloured full house, opens up new ways to score.
   • Quickfire - one roll per turn and ten seconds to decide where it goes. No holds, no rerolls, just quick thinking.
 
