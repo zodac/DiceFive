@@ -28,7 +28,8 @@ class BaselineProfileGenerator {
         // while the journey is being checked, so a failing step stops the run quickly.
         maxIterations = intArgument("journeyLaps") ?: 15,
         stableIterations = intArgument("journeyLaps") ?: 3,
-        includeInStartupProfile = true,
+        // The journey goes far past startup; the startup profile is StartupProfileGenerator's alone.
+        includeInStartupProfile = false,
     ) {
         pressHome()
         startActivityAndWait()

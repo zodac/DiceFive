@@ -1848,6 +1848,11 @@ install-over-existing succeeds:
       runs found three races a one-lap run hadn't: a back press or tap sent while a dialog is still
       closing goes to the dying dialog (leaving the app) or is dropped under its fading dim layer, so
       dialogs are left through `closeDialog` and Continue is retried.
+      The startup profile is `StartupProfileGenerator`'s alone (cold start to the menu); the journey
+      had been marked as startup too, which made `startup-prof.txt` the whole profile and left R8
+      nothing to put first. It still holds the style art: `StylesWarmUp` starts on the menu's first
+      idle frames, before the profile is captured - which is what a launch really runs. 22k of 31.6k
+      rules; the primary dex went from 2.94MB (everything) to 2.17MB (startup code first).
       Regenerate after large UI changes. Selectors are the visible labels and screen-reader
       descriptions, so a relabelled button fails the run (`await` in `Journeys.kt`) rather than
       quietly thinning the profile.
