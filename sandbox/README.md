@@ -84,6 +84,38 @@ published port is only a collision risk against the host's own stack. Set `SANDB
 this sandbox in another project*) to space-separated `host:container` pairs if a session ever needs one
 exposed.
 
+## An Android emulator, on demand
+
+`sandbox/emulator.sh start|stop|status`, run **inside** the sandbox, boots a headless Android 14
+emulator (about 20 seconds once installed) so the Baseline Profile journey, or any instrumented test,
+can run without a phone:
+
+```
+sandbox/emulator.sh start
+adb uninstall net.zodac.dicefive 2>/dev/null   # a debug build with a higher version code blocks the install
+./gradlew :app:android:generateBaselineProfile -Pandroid.testInstrumentationRunnerArguments.journeyLaps=1
+sandbox/emulator.sh stop
+```
+
+The first `start` in a fresh container downloads the emulator and a system image (~1.5 GB, into the
+container's SDK - they are not in the image, so a new container downloads them again) and creates
+the virtual device. Two things it does that a plain `emulator -avd` would not, and why:
+
+- **Opens `/dev/kvm` to `dev`.** The sandbox is `--privileged`, so the host's KVM is there, but the
+  node is `root:<the host's kvm gid>` and `dev` isn't in that group; without it the emulator falls back
+  to software CPU emulation, far too slow to drive an app. Only this container's copy of the node
+  changes.
+- **Switches the app's UI renderer to Vulkan after every boot** (`debug.hwui.renderer=skiavk`). The
+  emulator's software GLES path (gfxstream + SwiftShader) segfaults in its render thread while drawing
+  DiceFive - the emulator process exits with status 139 and no crash report a few seconds after the app
+  opens, which Gradle reports as `adb: device offline`. Found with `gdb` on the emulator; the Vulkan path
+  draws the app correctly. A boot-time `-prop` flag does not take effect; the property has to be set over
+  adb once the device is up.
+
+An emulator is for **generating** a profile (it is the list of classes and methods the journey touched,
+which doesn't depend on the device) and for debugging the journey. Its timings say nothing about a phone,
+so the benchmarks (`connectedBenchmarkReleaseAndroidTest`) belong on real hardware.
+
 ## Run it from IntelliJ (a "Claude Sandbox" run configuration)
 
 The handiest way to use the sandbox day-to-day is a saved **Shell Script** run configuration:

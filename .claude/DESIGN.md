@@ -1836,6 +1836,9 @@ install-over-existing succeeds:
       3. Compare with and without the hand-written wildcard file (it marks all app code hot, so with it
          present the generated profile adds little but startup ordering); if the generated one is as
          good, delete the wildcard file so unvisited code stops being compiled ahead of time.
+      `sandbox/emulator.sh start` boots an emulator inside the sandbox, so the journey can be run and
+      debugged there without a phone (see `sandbox/README.md`); generating works on it, benchmarking does
+      not mean anything on it.
       While checking the journey itself, cut it short: add
       `-Pandroid.testInstrumentationRunnerArguments.journeyLaps=1` (profile laps) or `...benchmarkIterations=1`
       to the Gradle command, so a failing step stops the run quickly.
