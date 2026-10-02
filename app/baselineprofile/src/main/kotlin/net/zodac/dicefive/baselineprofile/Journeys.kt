@@ -6,6 +6,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.UiObject2
+import androidx.test.uiautomator.StaleObjectException
 import androidx.test.uiautomator.Until
 
 internal const val PACKAGE = "net.zodac.dicefive"
@@ -153,22 +154,44 @@ internal fun MacrobenchmarkScope.visitAchievementBanner() {
     val x = device.displayWidth / 2
     val banner = By.descStartsWith("Achievement unlocked: Not Those Dice!")
 
-    var found: UiObject2? = null
+    var raised = false
     for (heightDp in DICE_PROBE_HEIGHTS_DP) {
         device.click(x, wordmarkTop - (heightDp * density).toInt())
-        found = device.wait(Until.findObject(banner), BANNER_APPEAR_MS)
-        if (found != null) break
+        raised = device.wait(Until.hasObject(banner), BANNER_APPEAR_MS)
+        if (raised) break
         check(device.hasObject(wordmark)) {
             "Baseline Profile journey: a tap ${heightDp}dp above the wordmark left the menu"
         }
     }
-    (found ?: error("Baseline Profile journey: tapping the logo's dice never raised the 'Not Those Dice!' banner"))
-        .longClick()
+    check(raised) { "Baseline Profile journey: tapping the logo's dice never raised the 'Not Those Dice!' banner" }
+    longClickBanner(banner)
 
     // Lands on the Achievements screen; give the row's gold flash time to play out before leaving.
     await(By.text("Achievements"), "the Achievements screen after the banner's long-press")
     Thread.sleep(GLOW_MS)
     back()
+}
+
+/**
+ * Long-presses the banner. It is still fading and sliding in when it is first seen, so the node
+ * found a moment ago can be gone by the time it is pressed (a StaleObjectException): look it up
+ * again for each attempt, rather than holding on to the first one.
+ */
+private fun MacrobenchmarkScope.longClickBanner(banner: BySelector) {
+    Thread.sleep(BANNER_SETTLE_MS)
+    repeat(LONG_CLICK_ATTEMPTS) {
+        val node = device.findObject(banner)
+        if (node != null) {
+            try {
+                node.longClick()
+                return
+            } catch (_: StaleObjectException) {
+                // Moved or re-composed between the lookup and the press - look again.
+            }
+        }
+        Thread.sleep(BANNER_SETTLE_MS)
+    }
+    error("Baseline Profile journey: the 'Not Those Dice!' banner could not be long-pressed")
 }
 
 /** A long page of text: the Rules. */
@@ -212,3 +235,5 @@ private const val LEAVE_DIALOG_MS = 1_500L
 private val DICE_PROBE_HEIGHTS_DP = listOf(33, 25, 41, 17, 49)
 private const val BANNER_APPEAR_MS = 800L
 private const val GLOW_MS = 2_000L
+private const val BANNER_SETTLE_MS = 400L
+private const val LONG_CLICK_ATTEMPTS = 5
