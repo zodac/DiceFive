@@ -59,12 +59,13 @@ fi
 if [[ -t 0 ]]; then RUN_SETUP=1; else RUN_SETUP=0; fi
 export RUN_SETUP
 
-# JAVA_HOME/MAVEN_HOME/ANDROID_HOME/ANDROID_SDK_ROOT must be preserved explicitly too:
+# JAVA_HOME/MAVEN_HOME/ANDROID_HOME/ANDROID_SDK_ROOT (and EMULATOR_API, which sandbox/emulator.sh and
+# sandbox/Dockerfile share) must be preserved explicitly too:
 # `sudo` resets the environment by default, and PATH alone (assigned directly below,
 # same as HOME) is not enough for a tool that reads one of these as a variable rather
 # than just finding its binary via PATH — AGP is exactly that case, and fails with
 # "SDK location not found" if ANDROID_HOME does not survive this hop.
 cd /work
 exec sudo -u dev \
-  --preserve-env=ANTHROPIC_API_KEY,CLAUDE_CONFIG_DIR,PLAYWRIGHT_BROWSERS_PATH,RUN_SETUP,JAVA_HOME,MAVEN_HOME,ANDROID_HOME,ANDROID_SDK_ROOT \
+  --preserve-env=ANTHROPIC_API_KEY,CLAUDE_CONFIG_DIR,PLAYWRIGHT_BROWSERS_PATH,RUN_SETUP,JAVA_HOME,MAVEN_HOME,ANDROID_HOME,ANDROID_SDK_ROOT,EMULATOR_API \
   HOME=/home/dev PATH="${PATH}" /usr/local/bin/sandbox-launch.sh "$@"

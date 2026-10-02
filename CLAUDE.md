@@ -27,6 +27,11 @@
   harness, set-ups, pitfalls), the results for every dice, cup, mat and background style and the
   Styles page, what was fixed, and what's still open. Only needed for performance work: a
   reported stutter or slowdown, or new art that draws every frame.
+- `.claude/EMULATOR.md` — the Android emulator that boots on demand inside the sandbox
+  (`sandbox/emulator.sh start|stop|status|screenshot`): running and debugging the Baseline Profile
+  journey (`app/baselineprofile`) without a phone, looking at the real app's screen, why it needs the
+  Vulkan renderer (the default one segfaults the emulator while drawing the app), and what to do when
+  it dies. Read this before using an emulator or touching the journey; it is not for benchmark timings.
 - `.claude/IOS_SUPPORT.md` — the iOS port via Kotlin Multiplatform + Compose Multiplatform: the
   `app/shared` (platform-neutral) / `app/android` module layout, what lives where (and why
   Android's platform code is in `app/android`), gotchas (e.g. no commas or parentheses in `commonTest` names), and what's left.

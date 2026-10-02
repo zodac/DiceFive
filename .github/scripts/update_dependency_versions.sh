@@ -20,6 +20,10 @@
 #                             that major has reached LTS
 #                 - sandbox/Dockerfile's Debian runtime base (FROM debian:X.Y, within the current major)
 #                 - sandbox/Dockerfile's Debian packages (# BEGIN/END DEBIAN PACKAGES blocks)
+#                 - the sandbox emulator's Android API (`ENV EMULATOR_API` in sandbox/Dockerfile and the
+#                   fallback in sandbox/emulator.sh), which follows compileSdk: the newest stable Google
+#                   APIs system image of the same API level (Google publishes none for minor releases
+#                   like 37.2, so it matches the level, e.g. 37.0)
 #                 - sandbox/Dockerfile's Android cmdline-tools download (URL + sha1, from Google's own SDK
 #                   repository manifest) and the Playwright CLI pin used for `install-deps`
 #                 - GitHub Actions `uses:` references (keeping the pin style: `@v4` stays a major tag) -
@@ -27,7 +31,9 @@
 #                 - The actionlint image pinned in .github/scripts/lint_workflows.sh
 #               Then two checks (NOT best-effort - either one failing fails the run):
 #                 - a consistency guard over values that must agree across files (JDK major, Android
-#                   platform, build-tools)
+#                   platform, build-tools, emulator API), which also fails if the sandbox's emulator
+#                   is not on compileSdk's API level (when Google publishes an image for it) or its
+#                   system image has disappeared from Google's SDK manifest
 #                 - a real build (assembleDebug, unit tests, instrumented-test compile, lint - the CI
 #                   gates) whenever a Gradle input changed,
 #                   so a bump that breaks the build is caught here rather than on the next push to main
@@ -106,6 +112,7 @@
 set -euo pipefail
 
 SANDBOX_DOCKERFILE="./sandbox/Dockerfile"
+SANDBOX_EMULATOR_SCRIPT="./sandbox/emulator.sh"
 WORKFLOWS_DIR=".github/workflows"
 VERSION_CATALOG="./gradle/libs.versions.toml"
 GRADLE_WRAPPER_PROPERTIES="./gradle/wrapper/gradle-wrapper.properties"
@@ -1614,6 +1621,8 @@ update_actionlint() {
 #   - JDK major: the Gradle toolchain and the sandbox's jdk stage
 #   - Android platform: app compileSdk + compileSdkMinor, and `platforms;android-…` in sandbox/Dockerfile,
 #     compared as API.MINOR (android-36 = 36.0), so a minor-release mismatch is caught
+#   - Emulator API: `ENV EMULATOR_API` in sandbox/Dockerfile and the fallback in sandbox/emulator.sh, and
+#     its API level against compileSdk's (the emulator follows it - see sync_emulator_api)
 #   - Build-tools: app buildToolsVersion, and `build-tools;X` / `build-tools/X` in sandbox/Dockerfile
 #     (AGP enforces a minimum build-tools and silently fetches it over the network when the installed
 #     one is lower, so a stale pin still "works" - which is exactly why it needs a check)
@@ -1690,6 +1699,108 @@ verify_version_sync() {
         done < <(grep -oP 'build-tools[;/]\K[0-9][0-9.]*[0-9]' "${f}" || true)
     done
     check_group "Build-tools" "${entries[@]}"
+
+    # ── Emulator API (sandbox/Dockerfile's choice, and the fallback in sandbox/emulator.sh) ──
+    entries=()
+    v=$(grep -oP '^ENV EMULATOR_API=\K[0-9.]+' "${SANDBOX_DOCKERFILE}" | head -1 || true)
+    entries+=("${v} (${SANDBOX_DOCKERFILE} ENV EMULATOR_API)")
+    v=$(grep -oP 'EMULATOR_API:-\K[0-9.]+' "${SANDBOX_EMULATOR_SCRIPT}" | head -1 || true)
+    entries+=("${v} (${SANDBOX_EMULATOR_SCRIPT} fallback)")
+    check_group "Emulator API" "${entries[@]}"
+
+    check_emulator_image
+}
+
+# The emulator's system image (`system-images;android-N;google_apis;x86_64`, N from the Dockerfile) must
+# still be published on the stable channel: if Google withdrew it the image build would fail on the next
+# sandbox launch, which is a broken setup and not a stale one, so it fails the run. A NEWER image is only
+# reported - the emulator's API is a product decision (see the header), not something to bump.
+# System images are not in repository2-3.xml (what sdk_repository_manifest reads): each image family has
+# its own manifest, and the Google APIs one is below. Prints the version, as the package names it ("34",
+# "37.0"), of every stable x86_64 image in it, one a line. Extension builds (android-36-ext19) are left out.
+stable_emulator_image_apis() {
+    local file="${WORK_DIR}/sys-img2-3-google_apis.xml"
+    [[ -s "${file}" ]] || curl_get -o "${file}" "${ANDROID_SDK_REPOSITORY}/sys-img/google_apis/sys-img2-3.xml" 2>/dev/null || return 1
+    awk '
+        /<remotePackage path="system-images;android-[0-9]+(\.[0-9]+)?;google_apis;x86_64">/ { in_pkg = 1; path = $0; stable = 0 }
+        in_pkg && /<channelRef ref="channel-0"\/>/ { stable = 1 }
+        in_pkg && /<\/remotePackage>/ {
+            if (stable) { sub(/.*system-images;android-/, "", path); sub(/;.*/, "", path); print path }
+            in_pkg = 0
+        }
+    ' "${file}"
+}
+
+check_emulator_image() {
+    local api apis compile_major
+    api=$(grep -oP '^ENV EMULATOR_API=\K[0-9.]+' "${SANDBOX_DOCKERFILE}" | head -1 || true)
+    [[ -n "${api}" ]] || { warn "No EMULATOR_API in ${SANDBOX_DOCKERFILE}, skipping the emulator image check"; return 0; }
+    apis=$(stable_emulator_image_apis) || { warn "Could not fetch Google's system image manifest, skipping the emulator image check"; return 0; }
+
+    if grep -qx "${api}" <<< "${apis}"; then
+        ok "Emulator image system-images;android-${api};google_apis;x86_64 is still published"
+    else
+        err "Emulator image system-images;android-${api};google_apis;x86_64 is no longer a stable image in Google's SDK manifest - run this script, or pick another EMULATOR_API in ${SANDBOX_DOCKERFILE} (and the fallback in ${SANDBOX_EMULATOR_SCRIPT})"
+        SYNC_FAILED=1
+    fi
+
+    # The emulator follows compileSdk's API level (sync_emulator_api). A platform is often published before
+    # its system image, so a missing image is only a warning; an image that exists and is not used is drift.
+    compile_major=$(read_compile_sdk)
+    if [[ -z "${compile_major}" ]]; then
+        return 0
+    elif [[ "${api%%.*}" == "${compile_major}" ]]; then
+        ok "Emulator API level in sync with compileSdk → ${compile_major}"
+    elif [[ -n "$(newest_emulator_image_for "${compile_major}")" ]]; then
+        err "Emulator API DIVERGED from compileSdk: ${SANDBOX_DOCKERFILE} EMULATOR_API=${api}, ${APP_BUILD_GRADLE} compileSdk=${compile_major}, and android-$(newest_emulator_image_for "${compile_major}") is published - run this script to move it"
+        SYNC_FAILED=1
+    else
+        warn "Emulator API ${api} is behind compileSdk ${compile_major}, but Google has not published a stable Google APIs x86_64 image for API ${compile_major} yet"
+    fi
+}
+
+# The newest stable image's version for API level ${1} ("37" -> "37.0"), empty when there is none.
+newest_emulator_image_for() {
+    stable_emulator_image_apis | awk -F. -v major="${1}" '$1 == major' | sort -V | tail -1
+}
+
+# ── Emulator: follow compileSdk ──────────────────────────────────────────────
+# The sandbox emulator (sandbox/emulator.sh; baked into sandbox/Dockerfile) runs the newest Android the
+# app compiles against: the newest stable Google APIs image of compileSdk's API level. Google publishes
+# an image per API level and for some minor releases (36.1, 37.0) but not for every minor (there is
+# none for 37.2), so it matches the LEVEL. Runs after compileSdk has been decided, whether or not that
+# moved it, so it also realigns an emulator that has drifted. When the platform exists before its image,
+# the emulator stays where it is (the guard at the end warns until the image is published).
+sync_emulator_api() {
+    echo
+    echo "🔍 Matching the sandbox emulator to compileSdk..."
+
+    local compile_major current target
+    compile_major=$(read_compile_sdk)
+    current=$(grep -oP '^ENV EMULATOR_API=\K[0-9.]+' "${SANDBOX_DOCKERFILE}" | head -1 || true)
+    if [[ -z "${compile_major}" || -z "${current}" ]]; then
+        warn "Could not read compileSdk or EMULATOR_API, skipping"
+        return 0
+    fi
+    if [[ "${current%%.*}" == "${compile_major}" ]]; then
+        # Same level; a newer image of it (37.0 -> 37.1) is still adopted.
+        target=$(newest_emulator_image_for "${compile_major}") || target=""
+        if [[ -z "${target}" || "${target}" == "${current}" ]]; then
+            echo "  EMULATOR_API=${current} (already the newest image of API ${compile_major})"
+            return 0
+        fi
+    else
+        target=$(newest_emulator_image_for "${compile_major}") || target=""
+        if [[ -z "${target}" ]]; then
+            warn "No stable Google APIs x86_64 system image for API ${compile_major} yet - the emulator stays on ${current}"
+            return 0
+        fi
+    fi
+
+    sed -i -E "s|^(ENV EMULATOR_API=)[0-9.]+|\\1${target}|" "${SANDBOX_DOCKERFILE}"
+    sed -i -E "s|(EMULATOR_API:-)[0-9.]+|\\1${target}|" "${SANDBOX_EMULATOR_SCRIPT}"
+    record_update "Sandbox emulator: android-${current} → android-${target} (follows compileSdk ${compile_major})"
+    ok "Sandbox emulator ${current} → ${target}"
 }
 
 # ── 13. Build verification ────────────────────────────────────────────────────
@@ -1901,6 +2012,7 @@ GRADLE_INPUTS_BEFORE=$(gradle_inputs_hash)
 
 # compileSdk first, on the project exactly as committed (see its section for why).
 update_compile_sdk      || warn "compileSdk update failed, continuing..."
+sync_emulator_api       || warn "Sandbox emulator update failed, continuing..."
 update_gradle_wrapper   || warn "Gradle wrapper update failed, continuing..."
 update_settings_plugins || warn "settings.gradle.kts plugin update failed, continuing..."
 update_version_catalog  || warn "Version catalog update failed, continuing..."
