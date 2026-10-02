@@ -33,9 +33,12 @@ decisions behind it. Read that before changing anything visual.
   Large Straight, a Small Straight once Large Straight is no longer open, or three-plus dice on a
   4/5/6 with that upper box still open - gets banked immediately instead of gambled on a reroll.
   HARD: exhaustively evaluates all 32 hold/reroll subsets each roll via exact expected value
-  (every possible outcome of the freed dice, weighted equally), and picks the open category whose
-  score most exceeds its own average value on a single random roll (so a rare category like Full
-  House can beat a nominally higher-scoring but easy-to-satisfy-later one like Chance).
+  (every possible outcome of the freed dice, weighted equally) through every reroll left in the
+  turn (the next one only, with Tricolour's coloured dice), and both its holds and its category
+  choice value a box by how far its score beats what a whole turn chasing that box averages, plus
+  its share of the upper bonus (so a rare category like Full House can beat a nominally
+  higher-scoring but easy-to-satisfy-later one like Chance, and three low dice are worth chasing
+  for 5x) - see Phase 23.
 - **Leaderboard screen**: one global leaderboard (not split by player or game
   type), sorted score-descending, paginated 50/page (originally 100; halved
   alongside a compact row style, so a page is a shorter scroll). No date
@@ -1992,3 +1995,45 @@ install-over-existing succeeds:
       `BringIntoViewSpec` that knows about the pill - not done.
 - [x] `assembleDebug`, `testDebugUnitTest`, `compileDebugAndroidTestKotlin` and `lint` green.
 - [ ] **Not yet seen on a device**: the footer's live-region announcement, the chevrons, and the "1 of 7" announcement under real TalkBack.
+
+### Phase 23 — Hard CPU review
+- [x] **Why**: seen in play, Hard threw away low sets (4-6-1-1-1 kept the 4 and 6; 2-2-2-6-5 kept
+      the 6 and 5), rarely chased 5x, and almost never earned the upper bonus. Three causes: it only
+      looked one reroll ahead even with two left; it valued a hand by raw points, so loose high dice
+      beat three low ones; and its category choice (score over baseline) and its holds (raw points)
+      disagreed about what a hand was worth.
+- [x] **Whole-turn search**: `HandValues` now plans through every reroll left - a hold's value is
+      the average over every outcome of the best hold of the hand after it, down to the last roll -
+      with each hand and held set valued once per decision. Standard: 252 hands, ~1-30ms a decision
+      on the JVM. Tricolour (18 faces, 26,334 hands) stays one reroll ahead (`maxLookahead`), at
+      about its old cost; two ahead took ~0.1-0.8s a decision, too long for the pause after a roll.
+- [x] **One valuation** (`HardValuation`) for holds and category choice: the score (with any 5x
+      bonus chip) less the box's baseline, plus `(score - 3 x face) x 35/63` in the upper section
+      while the bonus is still open and reachable. The baseline changed from a box's average on one
+      random roll to its average when a whole turn chases it (Large Straight ~1 -> 10.4, Chance 17.5
+      -> 23.3, 5x 0.02 -> 2.3): with single-roll baselines every straight looked like ~39 points'
+      profit and Hard chased them from a lone 4. Every box scores on numbers or on colours, never
+      both, so each baseline is solved over six number faces or three colour faces - cheap even for
+      Tricolour.
+- [x] **Measured** (`AiTurnPlayer.playTurn`, solo, seeded): Standard Hard 217.9 -> 238.9 over 400
+      games (Medium 190.5), upper bonus in 2% -> 27% of games; Tricolour 324 -> 350 over 40 (noisy);
+      Quickfire unchanged (125, no rerolls to plan). A 5x "future bonus chips" term was tried at two
+      strengths and moved the average within the noise (+0.7, +1.9 over 1,000 games), so it was left
+      out. `AiTurnPlayerTest` pins the 2-2-2-6-5 hold and a seeded 200-game average >= 230 (old Hard
+      averaged 219 on those games, new 239).
+- [ ] **Step 2 - a perfect-play table (not built; measured only)**: the value of every start-of-turn
+      state (filled boxes, upper subtotal capped at 63, 5x box scored or not) under optimal play,
+      looked up by the whole-turn search as each finished hand's future. Measured with a throwaway
+      prototype on the game's own scoring code:
+      - Standard and Quickfire: 536,448 reachable states each - 2.15 MB as float32, 1.07 MB as
+        float16 (the debug APK is ~22 MB).
+      - Tricolour: 8,583,168 states (34 MB / 17 MB), and each state's turn is the 26,334-hand
+        search above - out of reach exactly; it would need an approximation of its own.
+      - Generation, unoptimised (HashMaps, boxed doubles): ~9ms a state for Standard (~80 min on one
+        core), ~2ms for Quickfire (~18 min). An array-based solver with precomputed roll
+        transitions is typically 50-100x faster. A one-off generator, not something to run on a phone.
+      - Strength: perfect solo play under these rules (13 boxes, 35 at 63, 100 per extra 5x, joker)
+        averages about 254.6 (Verhoeff's published figure), against Hard's ~239 now.
+      - Costs: a generator, the table as a bundled resource for `commonMain`, a test that fails
+        when the rules no longer match the table, and one table per mode.
+
