@@ -8,7 +8,7 @@
   Read this before changing anything visual.
 - `.claude/PUBLISHING.md` — Play Store submission requirements not covered by the build or by
   `DESIGN.md`'s GitHub release pipeline (Phase 12), such as the store listing's separate hi-res
-  icon. Little in it is done yet (the in-app open-source licenses page is); it's a running checklist for when that submission happens. It
+  icon. Little in it is done yet (the in-app open-source licenses page is, and the store descriptions are drafted); it's a running checklist for when that submission happens. It
   also records the app's own license (proprietary, all rights reserved - see `LICENSE`), why it was
   chosen, and how it must stay scoped to exclude third-party parts (the bundled font must stay OFL).
 - `.claude/GAME_MODES.md` — how game modes are built (every per-mode rule is a field on `GameMode`,
@@ -45,6 +45,11 @@
   established term for five matching dice is **"5x"** in user-facing text (that is what the
   scorecard tile has always shown) and **`FIVE_OF_A_KIND` / `fiveOfAKind`** in code. Where the
   game's rules need naming generically, say "the rules" or "a five-dice scorecard game".
+
+  Likewise, **"three of a kind", "four of a kind" and "five of a kind"** (spaced or hyphenated)
+  never appear in anything a player can see - in the app or in the store listing. Use **"3x"**,
+  **"4x"** and **"5x"**, as the scorecard does. The code identifiers (`FIVE_OF_A_KIND` etc.) are
+  fine.
 
   The only permitted exceptions are `.claude/*.md` reference documentation, which needs the word
   to explain what the game is, and the single guard assertion in `AchievementEngineTest` that

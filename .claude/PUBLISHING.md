@@ -5,7 +5,8 @@ and aren't covered anywhere else. `.claude/DESIGN.md`'s Phase 12 covers the *Git
 pipeline (signed `assembleRelease` APK attached to a tagged GitHub Release on every push to
 `main`) - that is a different thing from a Play Store submission, which this file is about.
 
-Nothing in this file is done yet; it's a checklist for whenever that submission actually happens.
+Little in this file is done yet (the in-app licences page is, and the store listing's descriptions are
+drafted); it's a checklist for whenever that submission actually happens.
 
 ## Outside this repo
 
@@ -60,9 +61,50 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
   section for the palette) as a flat 512x512 PNG by hand and upload it separately.
 - **Feature graphic and screenshots** - not yet drafted. Screenshots should come from the real
   app once there's a build worth showing, not mocked up.
-- **Short description** (80 chars), **full description** (4000 chars), category, and contact
-  email - not yet drafted; entered directly in Play Console alongside the privacy policy URL from
-  "Outside this repo" above.
+- **Short description** (80 chars) and **full description** (4000 chars) - **drafted**, below;
+  entered directly in Play Console alongside the privacy policy URL from "Outside this repo" above.
+  Category and contact email are still to pick (zodacapps@gmail.com is the privacy policy's
+  contact). Keep both texts in step with the app before each submission:
+  - **The short description's "Fully offline"** stops being true the moment Play Games sign-in,
+    cloud save, ads or Pro ship - rewrite it then (and the listing must declare ads).
+  - **Counts and lists**: a new game mode goes under "Three ways to play"; "Nearly 100
+    achievements" (106 today, 7 of them secret and uncounted) and the style examples must match
+    what ships.
+  - **The trademark rule applies here too**: never the banned word from `CLAUDE.md` - Play also
+    rejects listings that lean on another product's trademark. "3x", "4x" and "5x" are the
+    terms, as in the app - never "three/four/five of a kind" (see `CLAUDE.md`).
+
+  Short description (79 characters):
+
+  ```
+  Roll five dice, fill your scorecard, and outscore friends or AI. Fully offline.
+  ```
+
+  Full description (~1654 characters):
+
+  ```
+  DiceFive is a classic five-dice scorecard game. Roll up to three times a turn, hold the dice you want to keep, and decide where each roll scores. Chase a full house, a large straight or a 5x, then try to make the upper-section bonus before your boxes run out.
+
+  Play solo to beat your best score, pass the phone around with up to four players, or fill the empty seats with computer opponents on Easy, Medium or Hard.
+
+  THREE WAYS TO PLAY
+  • Standard - the classic rules: 13 boxes, three rolls a turn, a 35-point upper bonus and 100-point bonuses for every extra 5x.
+  • Tricolour - every die also lands red, yellow or blue, and four colour boxes join the card. Five of one colour, or a coloured full house, opens up new ways to score.
+  • Quickfire - one roll per turn and ten seconds to decide where it goes. No holds, no rerolls, just quick thinking.
+
+  ACHIEVEMENTS TO CHASE
+  Nearly 100 achievements, from your first win and your first 5x to long win streaks, near-perfect cards and unlikely runs of bad luck. A few are secret, and you'll only find out what they are when you earn them.
+
+  MAKE THE TABLE YOUR OWN
+  Unlock dozens of styles as you earn achievements:
+  • Dice - gemstones, marble, mahjong tiles, LCD digits, googly eyes, Roman numerals, cake and more
+  • Dice cups - a top hat, a treasure chest, a volcano, a flowerpot, a cauldron and more
+  • Table mats and backgrounds - wood, leather, casino felt, gingham, starry skies and more
+
+  TRACK EVERY GAME
+  • Leaderboard of your highest scores, with the date and number of 5x in each game
+  • Statistics for each player, including games played, won and lost, best score, and current and best win streaks
+  ```
 - **Open-source licenses / third-party notices - done in-app** (`DESIGN.md` Phase 17): Settings >
   "Licences", generated from the dependency graph at build time, with a build-failing
   guard against copyleft or unrecognised licenses. The build strips each AndroidX artifact's bundled
