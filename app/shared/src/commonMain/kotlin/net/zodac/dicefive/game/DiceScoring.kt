@@ -18,31 +18,31 @@ object DiceScoring {
      */
     val FIVE_OF_A_KIND_SCORE: Int = requireNotNull(ScoreCategory.FIVE_OF_A_KIND.fixedScore)
 
-    private val STRAIGHT_RUN = listOf(1, 2, 3, 4, 5, 6)
+    /** Every run of 4 and of 5 consecutive faces, by length - built once rather than on every straight check. */
+    private val STRAIGHT_WINDOWS: Map<Int, List<List<Int>>> = listOf(4, 5).associateWith { (1..6).toList().windowed(it) }
 
-    fun score(category: ScoreCategory, dice: List<Die>): Int {
-        val values = dice.map { it.value }
-        val counts = values.groupingBy { it }.eachCount()
-        return when (category) {
-            ScoreCategory.ONES -> scoreUpper(values, 1)
-            ScoreCategory.TWOS -> scoreUpper(values, 2)
-            ScoreCategory.THREES -> scoreUpper(values, 3)
-            ScoreCategory.FOURS -> scoreUpper(values, 4)
-            ScoreCategory.FIVES -> scoreUpper(values, 5)
-            ScoreCategory.SIXES -> scoreUpper(values, 6)
-            ScoreCategory.THREE_OF_A_KIND -> if (counts.values.any { it >= 3 }) values.sum() else 0
-            ScoreCategory.FOUR_OF_A_KIND -> if (counts.values.any { it >= 4 }) values.sum() else 0
-            ScoreCategory.FULL_HOUSE -> fixedScoreIf(category, isHouse(counts))
-            ScoreCategory.SMALL_STRAIGHT -> fixedScoreIf(category, hasStraight(values.toSet(), 4))
-            ScoreCategory.LARGE_STRAIGHT -> fixedScoreIf(category, hasStraight(values.toSet(), 5))
-            ScoreCategory.FIVE_OF_A_KIND -> fixedScoreIf(category, isFiveOfAKind(dice))
-            ScoreCategory.CHANCE -> values.sum()
-            ScoreCategory.REDS, ScoreCategory.YELLOWS, ScoreCategory.BLUES ->
-                fixedScoreIf(category, isAllOneColour(dice, requireNotNull(category.matchingColour)))
-            // Every die needs a colour: a colourless mode's dice would otherwise all group under null.
-            ScoreCategory.COLOURED_HOUSE ->
-                fixedScoreIf(category, dice.all { it.colour != null } && isHouse(dice.groupingBy { it.colour }.eachCount()))
-        }
+    // Only what each category needs is worked out from the dice: Hard's hold search scores every
+    // open category of tens of thousands of hands per decision in Tricolour, so the counts and
+    // distinct values a category never looks at aren't built for it.
+    fun score(category: ScoreCategory, dice: List<Die>): Int = when (category) {
+        ScoreCategory.ONES -> scoreUpper(dice, 1)
+        ScoreCategory.TWOS -> scoreUpper(dice, 2)
+        ScoreCategory.THREES -> scoreUpper(dice, 3)
+        ScoreCategory.FOURS -> scoreUpper(dice, 4)
+        ScoreCategory.FIVES -> scoreUpper(dice, 5)
+        ScoreCategory.SIXES -> scoreUpper(dice, 6)
+        ScoreCategory.THREE_OF_A_KIND -> if (valueCounts(dice).values.any { it >= 3 }) dice.sumOf { it.value } else 0
+        ScoreCategory.FOUR_OF_A_KIND -> if (valueCounts(dice).values.any { it >= 4 }) dice.sumOf { it.value } else 0
+        ScoreCategory.FULL_HOUSE -> fixedScoreIf(category, isHouse(valueCounts(dice)))
+        ScoreCategory.SMALL_STRAIGHT -> fixedScoreIf(category, hasStraight(dice, 4))
+        ScoreCategory.LARGE_STRAIGHT -> fixedScoreIf(category, hasStraight(dice, 5))
+        ScoreCategory.FIVE_OF_A_KIND -> fixedScoreIf(category, isFiveOfAKind(dice))
+        ScoreCategory.CHANCE -> dice.sumOf { it.value }
+        ScoreCategory.REDS, ScoreCategory.YELLOWS, ScoreCategory.BLUES ->
+            fixedScoreIf(category, isAllOneColour(dice, requireNotNull(category.matchingColour)))
+        // Every die needs a colour: a colourless mode's dice would otherwise all group under null.
+        ScoreCategory.COLOURED_HOUSE ->
+            fixedScoreIf(category, dice.all { it.colour != null } && isHouse(dice.groupingBy { it.colour }.eachCount()))
     }
 
     fun isFiveOfAKind(dice: List<Die>): Boolean =
@@ -51,8 +51,10 @@ object DiceScoring {
     private fun fixedScoreIf(category: ScoreCategory, matched: Boolean): Int =
         if (matched) requireNotNull(category.fixedScore) else 0
 
-    private fun scoreUpper(values: List<Int>, target: Int): Int =
-        values.count { it == target } * target
+    private fun scoreUpper(dice: List<Die>, target: Int): Int =
+        dice.count { it.value == target } * target
+
+    private fun valueCounts(dice: List<Die>): Map<Int, Int> = dice.groupingBy { it.value }.eachCount()
 
     /** Three of one thing and two of another - numbers for Full House, colours for Coloured House. */
     private fun isHouse(counts: Map<*, Int>): Boolean =
@@ -61,6 +63,8 @@ object DiceScoring {
     private fun isAllOneColour(dice: List<Die>, colour: DieColour): Boolean =
         dice.isNotEmpty() && dice.all { it.colour == colour }
 
-    private fun hasStraight(distinctValues: Set<Int>, length: Int): Boolean =
-        STRAIGHT_RUN.windowed(length).any { window -> distinctValues.containsAll(window) }
+    private fun hasStraight(dice: List<Die>, length: Int): Boolean {
+        val distinctValues = dice.mapTo(HashSet()) { it.value }
+        return STRAIGHT_WINDOWS.getValue(length).any { window -> distinctValues.containsAll(window) }
+    }
 }
