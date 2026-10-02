@@ -75,7 +75,7 @@ fun CreditsDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
             Column(modifier = Modifier.fillMaxSize().padding(top = 4.dp, bottom = 20.dp, start = 20.dp, end = 20.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     IconButton(onClick = onDismissRequest) {
-                        Icon(imageVector = Icons.Filled.Close, contentDescription = "Close")
+                        Icon(imageVector = Icons.Filled.Close, contentDescription = "Close credits")
                     }
                 }
 

@@ -171,7 +171,7 @@ fun LicensesDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) 
                 ) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         IconButton(onClick = onDismissRequest) {
-                            Icon(imageVector = Icons.Filled.Close, contentDescription = "Close")
+                            Icon(imageVector = Icons.Filled.Close, contentDescription = "Close licences")
                         }
                     }
                     Text(
