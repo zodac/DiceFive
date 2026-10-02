@@ -1827,7 +1827,7 @@ install-over-existing succeeds:
       the phone before/after in step 2 and the wildcard decision in step 3 are still open). `:app:baselineprofile`
       holds the Macrobenchmark journey (`BaselineProfileGenerator`, steps in `Journeys.kt`: a game
       played and then resumed, Styles, Achievements, Leaderboard, Statistics, Rules, Settings with its
-      Licences and Credits dialogs), `StartupBenchmark` and `StylesBenchmark` (frame times opening
+      Licences and About dialogs), `StartupBenchmark` and `StylesBenchmark` (frame times opening
       Styles and swiping its rows), each compared with no compilation against the profile. Needs a
       phone on adb, so it is run by hand:
       1. `./gradlew :app:android:generateBaselineProfile` - writes
