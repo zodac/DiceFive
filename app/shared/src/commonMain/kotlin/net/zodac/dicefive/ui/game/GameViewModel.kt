@@ -1514,6 +1514,7 @@ class GameViewModel(
                     // choice worked out during the toss, the holds would otherwise land the instant the
                     // dice stop. Scoring gets the same beat from AI_STEP_DELAY_MS below.
                     pausableDelay(AI_REACTION_DELAY_MS)
+                    val releasedAny = current.dice.withIndex().any { (index, die) -> die.isHeld && index !in holds }
                     current = AiTurnPlayer.applyHolds(current, holds)
                     setUndoSnapshot(null)
                     applyGameState(current, checkForAiTurn = false)
@@ -1522,8 +1523,11 @@ class GameViewModel(
                     // shake starts - without it, back-to-back rolls (routine for Easy, which never
                     // holds anything and so never gets to skip a roll) read as one continuous blur
                     // rather than distinct rolls. Only between rolls: the very first roll and the
-                    // score are already paced by the shake above and AI_STEP_DELAY_MS below.
-                    pausableDelay(ROLL_GAP_MS)
+                    // score are already paced by the shake above and AI_STEP_DELAY_MS below. A die just
+                    // let go of gets longer: it drops from its slot onto the mat, and the shake sweeps
+                    // every loose die off the mat - so after only ROLL_GAP_MS it would be gone again
+                    // almost as soon as it landed, reading as a die vanishing rather than being released.
+                    pausableDelay(if (releasedAny) RELEASE_GAP_MS else ROLL_GAP_MS)
                 }
                 // Also off the main thread: Hard's category choice compares against
                 // CATEGORY_BASELINES, a `by lazy` average-over-every-outcome computed once per
@@ -1549,6 +1553,9 @@ class GameViewModel(
 
         /** Pause between one roll settling and the next one's shake starting, within the same AI turn. */
         private const val ROLL_GAP_MS = 100L
+
+        /** [ROLL_GAP_MS] when the AI has just let go of a die: long enough to see it land on the mat before the shake sweeps it up. */
+        private const val RELEASE_GAP_MS = 500L
 
         /** What `rollsRemaining` reads before any roll has happened this turn - the mode's full allowance. */
         private val GameState.fullRolls: Int
