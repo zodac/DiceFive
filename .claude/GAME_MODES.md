@@ -163,6 +163,10 @@ Rules that came out of Quickfire:
   composed. That's acceptable for a human turn: if the screen isn't showing, the turn timer still
   ends it (a timeout rolls first if needed). A rule that must happen with no screen belongs in the
   view model.
+- **A roll can't start while another is in hand.** `onCupTap` ignores a tap from the shake until
+  the dice have settled (`rollInHand`), and Quickfire's auto-roll `LaunchedEffect` is keyed on it, so
+  a turn that begins while the last dice are still settling rolls once they've landed rather than
+  never. A new automatic tap must wait on the same thing.
 - **A roll can land after its turn is gone.** The cup shakes before the roll lands, and Undo stays
   enabled meanwhile. Undo in that window brings back the previous turn, possibly with 0 rolls left,
   so `rollDice` ignores a roll with none remaining (`GameEngine.rollDice` throws on it). Any new

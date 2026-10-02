@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.util.lerp
@@ -84,6 +85,11 @@ data class CupPanelState(
      * it: the roll itself is still [rolling] until the dice land.
      */
     val pouring: Boolean = false,
+    /**
+     * A roll is under way - shaking, or its dice still tumbling to rest - so the cup takes no tap
+     * until it's over (see `GameScreen`'s `onCupTap`), and says it's disabled meanwhile.
+     */
+    val rollInHand: Boolean = false,
     val canUndo: Boolean,
     /** Whether the undo button is shown at all - only in a solo game. */
     val showUndo: Boolean,
@@ -155,15 +161,17 @@ fun DiceCupPanel(
                     // obvious translucent white rectangle over the whole tap target on press, which
                     // read as a rendering glitch rather than a press effect.
                     //
-                    // Always enabled, even with no rolls left: onCupTap itself decides what a tap does
-                    // in that case (see GameScreen) - counting it towards "No More Rolls" rather than
-                    // the cup simply going dead once the useful taps run out.
+                    // Enabled even with no rolls left: onCupTap itself decides what a tap does in that
+                    // case (see GameScreen) - counting it towards "No More Rolls" rather than the cup
+                    // simply going dead once the useful taps run out. Only disabled while a roll is in
+                    // hand, until its dice have settled - the same wait scoring has.
                     .then(
                         if (cup != null) {
                             Modifier
                                 .clickable(
                                     interactionSource = cupInteractionSource,
                                     indication = null,
+                                    enabled = !cup.rollInHand,
                                     onClickLabel = "Roll",
                                     role = Role.Button,
                                     onClick = cup.onCupTap,
@@ -172,6 +180,7 @@ fun DiceCupPanel(
                                 .clearAndSetSemantics {
                                     contentDescription = "Dice cup, ${cup.rollsRemaining} ${if (cup.rollsRemaining == 1) "roll" else "rolls"} left"
                                     role = Role.Button
+                                    if (cup.rollInHand) disabled()
                                     onClick(label = "Roll") {
                                         cup.onCupTap()
                                         true
