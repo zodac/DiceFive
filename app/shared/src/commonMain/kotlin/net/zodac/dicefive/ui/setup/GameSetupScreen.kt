@@ -75,11 +75,17 @@ fun GameSetupScreen(
     modifier: Modifier = Modifier,
 ) {
     val setup by viewModel.setup.collectAsStateWithLifecycle()
+    val setupRestored by viewModel.setupRestored.collectAsStateWithLifecycle()
     val activeSlots = setup.playerSlots.take(setup.playerCount)
     val duplicateNameSlots = duplicateHumanNameSlots(activeSlots)
     val focusManager = LocalFocusManager.current
 
     ScreenScaffold(title = "New Game", onBack = onBack, modifier = modifier) {
+        // Nothing but the title bar until the saved choices are back: drawing the form any sooner
+        // shows the defaults (Standard mode, 2 players) for a few frames before they switch to
+        // the last game's - and a Start Game tapped in that window would play the defaults.
+        if (!setupRestored) return@ScreenScaffold
+
         // The form scrolls on its own, and the Start Game button sits directly after it rather than
         // pinned to the foot of the screen, where an achievement banner can cover it. weight(1f,
         // fill = false) gives the form at most the height left over once the button is placed, and

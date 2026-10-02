@@ -94,10 +94,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val confirmBeforeLeavingGame by viewModel.confirmBeforeLeavingGame.collectAsStateWithLifecycle()
-    val soundEnabled by viewModel.soundEnabled.collectAsStateWithLifecycle()
-    val vibrationEnabled by viewModel.vibrationEnabled.collectAsStateWithLifecycle()
-    val simpleDiceRoll by viewModel.simpleDiceRoll.collectAsStateWithLifecycle()
+    val loadedToggles by viewModel.toggles.collectAsStateWithLifecycle()
     // Saveable: a rotation mid-confirmation shouldn't silently drop the question.
     var showResetAchievementsConfirmation by rememberSaveable { mutableStateOf(false) }
     var showResetLeaderboardConfirmation by rememberSaveable { mutableStateOf(false) }
@@ -111,14 +108,17 @@ fun SettingsScreen(
         scrollable = true,
         footer = { FooterPill("Version ${LocalAppContainer.current.buildInfo.versionName}") },
     ) {
+        // Nothing but the title bar until the saved switches are back, rather than drawing them in
+        // their default positions and then flipping the ones the player has changed.
+        val toggles = loadedToggles ?: return@ScreenScaffold
         Card(modifier = Modifier.fillMaxWidth()) {
-            SwitchSetting(Icons.AutoMirrored.Filled.VolumeUp, "Sound effects", soundEnabled, viewModel::setSoundEnabled)
-            SwitchSetting(Icons.Filled.Vibration, "Vibration", vibrationEnabled, viewModel::setVibrationEnabled)
-            SwitchSetting(Icons.Filled.Casino, "Simple dice roll", simpleDiceRoll, viewModel::setSimpleDiceRoll)
+            SwitchSetting(Icons.AutoMirrored.Filled.VolumeUp, "Sound effects", toggles.soundEnabled, viewModel::setSoundEnabled)
+            SwitchSetting(Icons.Filled.Vibration, "Vibration", toggles.vibrationEnabled, viewModel::setVibrationEnabled)
+            SwitchSetting(Icons.Filled.Casino, "Simple dice roll", toggles.simpleDiceRoll, viewModel::setSimpleDiceRoll)
             SwitchSetting(
                 Icons.Filled.CheckCircle,
                 "Confirm leaving game",
-                confirmBeforeLeavingGame,
+                toggles.confirmBeforeLeavingGame,
                 viewModel::setConfirmBeforeLeavingGame,
             )
         }

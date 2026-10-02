@@ -144,6 +144,12 @@ class GameViewModel(
     private val _setup = MutableStateFlow(GameSetupState())
     val setup: StateFlow<GameSetupState> = _setup.asStateFlow()
 
+    /** Whether [setup] holds the player's saved choices yet - immediately true with no
+     * [settingsRepository] to restore from. Until then the setup screen shows no form, rather
+     * than the defaults it would otherwise draw and then switch away from. */
+    private val _setupRestored = MutableStateFlow(settingsRepository == null)
+    val setupRestored: StateFlow<Boolean> = _setupRestored.asStateFlow()
+
     private val _game = MutableStateFlow<GameState?>(null)
     val game: StateFlow<GameState?> = _game.asStateFlow()
 
@@ -368,28 +374,38 @@ class GameViewModel(
     init {
         settingsRepository?.let { repository ->
             viewModelScope.launch {
-                // Restored first: setPlayerName below caps every restored name to whatever length
-                // fits *this* player count's tabs, so that cap has to be in place before any name
-                // is restored, not applied against the default count of 2.
-                repository.playerCount.first()?.let { savedCount -> setPlayerCount(savedCount) }
-                for (slot in 1..GameSetupState.MAX_PLAYERS) {
-                    val savedName = repository.playerNameFor(slot).first() ?: continue
-                    // Via setPlayerName, so a name saved before the length cap existed - or saved
-                    // at a longer-lived player count - is trimmed to it on the way back in rather
-                    // than reappearing over-long.
-                    setPlayerName(slot, savedName)
+                // Built up off to the side and published in one update, then flagged restored: the
+                // setup screen holds its form back until [setupRestored], so it never draws the
+                // defaults (Standard mode, 2 players) for the frames these reads take and then
+                // visibly switches to the saved choices.
+                var restored = _setup.value
+                // Restored first: every restored name is capped to whatever length fits *this*
+                // player count's tabs, so that cap has to be known before any name is restored,
+                // not applied against the default count of 2.
+                repository.playerCount.first()?.let { savedCount ->
+                    restored = restored.copy(
+                        playerCount = savedCount.coerceIn(GameSetupState.MIN_PLAYERS, GameSetupState.MAX_PLAYERS),
+                    )
                 }
-                // Slot 1 is always Human, so its type and difficulty are never saved/restored.
-                for (slot in 2..GameSetupState.MAX_PLAYERS) {
-                    val savedType = repository.playerTypeFor(slot).first() ?: continue
-                    updateSlot(slot) { it.copy(type = savedType) }
+                val cap = GameSetupState.maxPlayerNameLength(restored.playerCount)
+                val slots = restored.playerSlots.map { slot ->
+                    // Capped on the way in, so a name saved before the length cap existed - or saved
+                    // at a longer-lived player count - is trimmed rather than reappearing over-long.
+                    var updated = slot.copy(name = (repository.playerNameFor(slot.slot).first() ?: slot.name).take(cap))
+                    // Slot 1 is always Human, so its type and difficulty are never saved/restored.
+                    if (slot.slot >= 2) {
+                        repository.playerTypeFor(slot.slot).first()?.let { updated = updated.copy(type = it) }
+                        repository.playerDifficultyFor(slot.slot).first()?.let { updated = updated.copy(difficulty = it) }
+                    }
+                    updated
                 }
-                for (slot in 2..GameSetupState.MAX_PLAYERS) {
-                    val savedDifficulty = repository.playerDifficultyFor(slot).first() ?: continue
-                    updateSlot(slot) { it.copy(difficulty = savedDifficulty) }
-                }
-                setTurnTimer(repository.turnTimer.first())
-                setGameMode(repository.gameMode.first())
+                restored = restored.copy(
+                    playerSlots = slots,
+                    turnTimer = repository.turnTimer.first(),
+                    gameMode = repository.gameMode.first(),
+                )
+                _setup.value = restored
+                _setupRestored.value = true
             }
         }
     }
