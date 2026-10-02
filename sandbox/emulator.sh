@@ -4,9 +4,10 @@
 #
 #   sandbox/emulator.sh start     # install what's missing, boot headless, wait until it's ready
 #   sandbox/emulator.sh status
+#   sandbox/emulator.sh screenshot out.png   # what's on the emulator's screen right now
 #   sandbox/emulator.sh stop
 #
-# Run it INSIDE the sandbox. The first `start` in a fresh container downloads the emulator and a system
+# How it works, what it's for and how to debug it: .claude/EMULATOR.md. Run it INSIDE the sandbox. The first `start` in a fresh container downloads the emulator and a system
 # image (~1.5 GB: they live in the container's SDK, not in the image) and creates the virtual device;
 # later starts in the same container just boot it (~20 s).
 #
@@ -108,6 +109,13 @@ stop() {
   fi
 }
 
+screenshot() {
+  local out="${1:?usage: $0 screenshot <file.png>}"
+  is_up || { echo "[emulator] not running - start it first." >&2; exit 1; }
+  adb exec-out screencap -p >"${out}"
+  echo "[emulator] saved ${out}"
+}
+
 status() {
   if is_up; then
     echo "running: $(adb devices | awk 'NR==2 {print $1}'), renderer $(adb shell getprop debug.hwui.renderer | tr -d '\r')"
@@ -121,5 +129,6 @@ case "${1:-}" in
   start)  start ;;
   stop)   stop ;;
   status) status ;;
-  *) echo "usage: $0 start|stop|status" >&2; exit 2 ;;
+  screenshot) screenshot "${2:-}" ;;
+  *) echo "usage: $0 start|stop|status|screenshot <file.png>" >&2; exit 2 ;;
 esac
