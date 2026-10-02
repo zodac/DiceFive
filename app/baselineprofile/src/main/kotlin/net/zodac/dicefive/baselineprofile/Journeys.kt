@@ -46,6 +46,27 @@ internal fun MacrobenchmarkScope.tapDesc(description: String, startsWith: Boolea
 /** True if [text] is on screen right now, without waiting. */
 internal fun MacrobenchmarkScope.hasText(text: String): Boolean = device.hasObject(By.text(text))
 
+/**
+ * Taps a dialog's button, found by [selector], until the dialog is gone. A back press sent while it
+ * is still closing reaches the dialog's window after it has dropped its back handler, and the system
+ * takes it as leaving the app: the run lands on the launcher. A tap can also go unanswered: one that
+ * lands while the dialog's text is still settling from a scroll only stops the scroll.
+ */
+private fun MacrobenchmarkScope.closeDialog(selector: BySelector, what: String) {
+    repeat(CLOSE_ATTEMPTS) {
+        try {
+            device.findObject(selector)?.click()
+        } catch (_: StaleObjectException) {
+            // Re-composed between the lookup and the tap - look again.
+        }
+        if (device.wait(Until.gone(selector), CLOSE_WAIT_MS)) {
+            device.waitForIdle()
+            return
+        }
+    }
+    error("Baseline Profile journey: '$what' never closed its dialog")
+}
+
 internal fun MacrobenchmarkScope.back() {
     device.pressBack()
     device.waitForIdle()
@@ -87,18 +108,31 @@ internal fun MacrobenchmarkScope.playATurn() {
     leaveGame()
 }
 
-/** From the menu, with a game saved: Continue, wait for the board, then back out. */
+/**
+ * From the menu, with a game saved: Continue, wait for the board, then back out. The tap is tried
+ * again if the board doesn't come: the system drops a touch that lands while the last dialog's dim
+ * layer is still fading out over the menu ("Untrusted touch due to occlusion" in logcat).
+ */
 internal fun MacrobenchmarkScope.resumeGame() {
-    tapText("Continue")
-    await(By.descStartsWith("Dice cup"), "the board after Continue")
-    device.waitForIdle()
-    leaveGame()
+    val board = By.descStartsWith("Dice cup")
+    await(By.text("Continue"), "Continue")
+    repeat(CLOSE_ATTEMPTS) {
+        device.findObject(By.text("Continue"))?.click()
+        if (device.wait(Until.hasObject(board), TIMEOUT_MS)) {
+            device.waitForIdle()
+            leaveGame()
+            return
+        }
+    }
+    error("Baseline Profile journey: 'the board after Continue' never appeared")
 }
 
 /** Back out of a game: the back press asks first (unless the setting is off), and "Leave" confirms. */
 private fun MacrobenchmarkScope.leaveGame() {
     back()
-    if (device.wait(Until.hasObject(By.text("Leave game?")), LEAVE_DIALOG_MS)) tapText("Leave")
+    if (device.wait(Until.hasObject(By.text("Leave game?")), LEAVE_DIALOG_MS)) {
+        closeDialog(By.text("Leave"), "the leave dialog's Leave button")
+    }
     await(By.text("Settings"), "the menu after leaving a game")
 }
 
@@ -112,14 +146,14 @@ internal fun MacrobenchmarkScope.visitSettings() {
     // itself scrollable and has the same "Licences" text, so neither a scrollable nor a label says
     // the dialog is up, and a back press sent too early would leave Settings altogether.
     tapText("Licences")
-    await(By.desc("Close"), "the Licences dialog's Close button")
+    await(By.desc("Close licences"), "the Licences dialog's Close button")
     scrollDown(3)
-    tapDesc("Close")
+    closeDialog(By.desc("Close licences"), "the Licences dialog's Close button")
 
     tapText("Credits")
-    await(By.desc("Close"), "the Credits dialog's Close button")
+    await(By.desc("Close credits"), "the Credits dialog's Close button")
     scrollDown(1)
-    tapDesc("Close")
+    closeDialog(By.desc("Close credits"), "the Credits dialog's Close button")
 
     back()
 }
@@ -132,7 +166,8 @@ internal fun MacrobenchmarkScope.visitSettings() {
 internal fun MacrobenchmarkScope.resetAchievements() {
     tapText("Settings")
     tapText("Reset achievements")
-    tapText("Reset")
+    await(By.text("Reset"), "the reset dialog's Reset button")
+    closeDialog(By.text("Reset"), "the reset dialog's Reset button")
     back()
 }
 
@@ -230,6 +265,8 @@ internal fun MacrobenchmarkScope.visitStyles() {
 
 private const val ROLL_SETTLE_MS = 2_000L
 private const val LEAVE_DIALOG_MS = 1_500L
+private const val CLOSE_ATTEMPTS = 4
+private const val CLOSE_WAIT_MS = 1_500L
 
 /** Heights above the wordmark's top to tap, best guess first: 16dp gap plus half a 34dp die, then either side. */
 private val DICE_PROBE_HEIGHTS_DP = listOf(33, 25, 41, 17, 49)
