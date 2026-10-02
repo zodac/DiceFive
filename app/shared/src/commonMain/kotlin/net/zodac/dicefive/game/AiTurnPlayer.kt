@@ -239,15 +239,17 @@ object AiTurnPlayer {
 
     private fun chooseHoldsHard(player: PlayerState, dice: List<Die>): Set<Int> {
         val faces = facesOf(player.gameMode)
+        val hands = HandValues(player, faces, dice.size)
+        val diceFaces = dice.map { faces.indexOf(faceOf(it)) }
         // Holding different dice that show the same faces (two 3s, say) is the same decision, so
         // each distinct held set is only ever evaluated once.
-        val evByHeldFaces = mutableMapOf<List<Die>, Double>()
+        val evByHeldKey = mutableMapOf<Long, Double>()
         var bestMask = 0
         var bestEv = Double.NEGATIVE_INFINITY
         for (mask in 0 until (1 shl dice.size)) {
-            val heldDice = dice.filterIndexed { index, _ -> (mask shr index) and 1 == 1 }.map(::faceOf)
-            val key = heldDice.sortedWith(FACE_ORDER)
-            val ev = evByHeldFaces.getOrPut(key) { expectedBestValue(player, faces, heldDice, dice.size - heldDice.size) }
+            val heldFaces = diceFaces.filterIndexed { index, _ -> (mask shr index) and 1 == 1 }
+            val heldKey = hands.keyOf(heldFaces)
+            val ev = evByHeldKey.getOrPut(heldKey) { hands.expectedBestValue(heldFaces, heldKey, dice.size - heldFaces.size) }
             if (ev > bestEv) {
                 bestEv = ev
                 bestMask = mask
@@ -256,17 +258,49 @@ object AiTurnPlayer {
         return dice.indices.filter { (bestMask shr it) and 1 == 1 }.toSet()
     }
 
-    /** Exact expected value of the best open category, averaged over every possible outcome of rerolling [freeCount] dice alongside [heldDice]. */
-    private fun expectedBestValue(player: PlayerState, faces: List<Die>, heldDice: List<Die>, freeCount: Int): Double {
-        var total = 0.0
-        var totalWeight = 0L
-        forEachOutcome(faces, freeCount) { rolled, weight ->
-            val dice = heldDice + rolled
-            val available = ScoreCalculator.availableCategories(player, dice)
-            total += weight * available.maxOf { scoreWithBonus(player, it, dice) }
-            totalWeight += weight
+    /**
+     * Hard's hold search, for one decision. Every one of the 32 hold/reroll splits ends in one of the
+     * same finished hands - Standard has only 252 of them, Tricolour 26,334 - so each hand's best
+     * score is worked out once, the first time any split reaches it, and every later split just
+     * looks it up. Scoring a hand (every open category, each through [DiceScoring]) is the costly
+     * part: scoring every split's outcomes afresh scored each hand several times over, which a phone
+     * felt as a pause after every CPU roll.
+     *
+     * A hand is keyed by how many of its dice show each face, packed into one [Long] with
+     * `diceCount + 1` as the base - so the key doesn't depend on die order, and a held set's key
+     * plus a reroll's key is the finished hand's key.
+     */
+    private class HandValues(private val player: PlayerState, private val faces: List<Die>, diceCount: Int) {
+        private val facePowers = LongArray(faces.size).also { powers ->
+            var power = 1L
+            for (index in powers.indices) {
+                powers[index] = power
+                if (index < powers.lastIndex) {
+                    check(power <= Long.MAX_VALUE / (diceCount + 1)) { "Too many faces to key a hand by" }
+                    power *= diceCount + 1
+                }
+            }
         }
-        return total / totalWeight
+        private val bestValueByHand = HashMap<Long, Int>()
+
+        fun keyOf(faceIndices: List<Int>): Long = faceIndices.sumOf { facePowers[it] }
+
+        /** Exact expected value of the best open category, averaged over every possible outcome of rerolling [freeCount] dice alongside [heldFaces]. */
+        fun expectedBestValue(heldFaces: List<Int>, heldKey: Long, freeCount: Int): Double {
+            var total = 0.0
+            var totalWeight = 0L
+            forEachOutcomeIndices(faces.size, freeCount) { rolled, weight ->
+                var key = heldKey
+                for (face in rolled) key += facePowers[face]
+                val best = bestValueByHand.getOrPut(key) {
+                    val hand = heldFaces.map { faces[it] } + rolled.map { faces[it] }
+                    ScoreCalculator.availableCategories(player, hand).maxOf { scoreWithBonus(player, it, hand) }
+                }
+                total += weight * best
+                totalWeight += weight
+            }
+            return total / totalWeight
+        }
     }
 
     private fun scoreWithBonus(player: PlayerState, category: ScoreCategory, dice: List<Die>): Int =
@@ -287,8 +321,6 @@ object AiTurnPlayer {
     /** A die as just its face - dropping whether it's held, which a reroll's outcome doesn't care about. */
     private fun faceOf(die: Die): Die = Die(value = die.value, colour = die.colour)
 
-    private val FACE_ORDER = compareBy<Die>({ it.value }, { it.colour?.ordinal ?: -1 })
-
     /**
      * Invokes [action] once per distinct outcome of rolling [count] dice that each land on one of
      * [faces] - as an unordered set of faces, never the same set twice - along with how many of the
@@ -299,24 +331,44 @@ object AiTurnPlayer {
      * ordered count is what coloured dice make unaffordable: five dice with 18 faces each is 1.9
      * million ordered rolls, but only 26,334 distinct ones.
      */
-    private fun forEachOutcome(faces: List<Die>, count: Int, action: (List<Die>, Long) -> Unit) {
+    private fun forEachOutcome(faces: List<Die>, count: Int, action: (List<Die>, Long) -> Unit) =
+        forEachOutcomeIndices(faces.size, count) { indices, weight -> action(indices.map { faces[it] }, weight) }
+
+    /**
+     * [forEachOutcome] as indices into a list of [faceCount] faces: [action] gets each outcome's face
+     * indices in non-decreasing order. The array is reused between calls, so it must not be kept.
+     */
+    private fun forEachOutcomeIndices(faceCount: Int, count: Int, action: (IntArray, Long) -> Unit) {
         val indices = IntArray(count)
+        val countFactorial = FACTORIALS[count]
         while (true) {
-            val multiplicities = indices.toList().groupingBy { it }.eachCount().values
-            val weight = factorial(count) / multiplicities.fold(1L) { product, n -> product * factorial(n) }
-            action(indices.map { faces[it] }, weight)
+            // The indices are sorted, so each face's multiplicity is the length of its run.
+            var divisor = 1L
+            var runStart = 0
+            for (position in 1..count) {
+                if (position == count || indices[position] != indices[runStart]) {
+                    divisor *= FACTORIALS[position - runStart]
+                    runStart = position
+                }
+            }
+            action(indices, countFactorial / divisor)
 
             // Next non-decreasing sequence of face indices: bump the rightmost one that can still
             // go up, and reset everything after it to match, so no set of faces is ever repeated.
             var position = count - 1
-            while (position >= 0 && indices[position] == faces.size - 1) position--
+            while (position >= 0 && indices[position] == faceCount - 1) position--
             if (position < 0) break
             indices[position]++
             for (following in position + 1 until count) indices[following] = indices[position]
         }
     }
 
-    private fun factorial(n: Int): Long = (2..n).fold(1L) { product, factor -> product * factor }
+    /** `n!` for every dice count a mode could have - far more than any does. */
+    private val FACTORIALS = LongArray(MAX_FACTORIAL + 1).also { table ->
+        table[0] = 1L
+        for (n in 1..MAX_FACTORIAL) table[n] = table[n - 1] * n
+    }
+    private const val MAX_FACTORIAL = 20
 
     private const val SMALL_STRAIGHT_LENGTH = 4
 

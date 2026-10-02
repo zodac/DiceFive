@@ -35,6 +35,9 @@ class GameScreenCupGateTest {
     val compose = createComposeRule()
 
     private fun showSoloGame(): GameViewModel {
+        // Off, or every waitForIdle (each assertion makes one) runs the clock on through every pending
+        // delay - the whole shake and toss - in one go, and there's no "still settling" left to tap into.
+        compose.mainClock.autoAdvance = false
         val viewModel = GameViewModel()
         viewModel.setPlayerCount(1)
         viewModel.setGameMode(GameMode.STANDARD)
