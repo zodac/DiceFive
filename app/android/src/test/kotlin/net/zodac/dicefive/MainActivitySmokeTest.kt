@@ -34,6 +34,8 @@ class MainActivitySmokeTest {
         // A game left in progress by an earlier test run splits Play into New Game and Continue.
         val play = if (compose.onAllNodesWithText("Play").fetchSemanticsNodes().isNotEmpty()) "Play" else "New Game"
         compose.onNodeWithText(play).performClick()
+        // The form (and its button) only appears once the last game's choices are read back from disk.
+        compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithText("Start Game").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Start Game").performClick()
         compose.waitForIdle()
 

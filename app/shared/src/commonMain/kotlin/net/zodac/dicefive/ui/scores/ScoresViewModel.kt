@@ -20,6 +20,9 @@ data class ScoresUiState(
     val pageIndex: Int = 0,
     val totalCount: Int = 0,
     val isLoading: Boolean = false,
+    /** Whether the first page has been read yet - until then an empty [entries] means "not known
+     * yet", not "no scores", and the screen shows neither the list nor its empty message. */
+    val isLoaded: Boolean = false,
 ) {
     val totalPages: Int get() = ((totalCount - 1) / SCORES_PAGE_SIZE + 1).coerceAtLeast(1)
     val hasNextPage: Boolean get() = pageIndex < totalPages - 1
@@ -29,7 +32,7 @@ data class ScoresUiState(
 /** [scoreRepository] is nullable so this stays constructible/testable without a Context - see [factory]. */
 class ScoresViewModel(private val scoreRepository: ScoreRepository? = null) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ScoresUiState())
+    private val _uiState = MutableStateFlow(ScoresUiState(isLoaded = scoreRepository == null))
     val uiState: StateFlow<ScoresUiState> = _uiState.asStateFlow()
 
     init {
@@ -51,7 +54,7 @@ class ScoresViewModel(private val scoreRepository: ScoreRepository? = null) : Vi
             val entries = repository.page(pageIndex)
             val totalCount = repository.totalCount()
             _uiState.update {
-                it.copy(entries = entries, pageIndex = pageIndex, totalCount = totalCount, isLoading = false)
+                it.copy(entries = entries, pageIndex = pageIndex, totalCount = totalCount, isLoading = false, isLoaded = true)
             }
         }
     }

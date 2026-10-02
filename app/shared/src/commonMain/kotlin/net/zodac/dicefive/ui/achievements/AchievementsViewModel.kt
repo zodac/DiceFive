@@ -45,6 +45,9 @@ data class AchievementsUiState(
     val groups: List<AchievementGroup> = emptyList(),
     val unlockedCount: Int = 0,
     val totalCount: Int = 0,
+    /** Whether the unlocks and the leaderboard have both been read yet - until then an empty
+     * [groups] (and "0 of 0") means "not known yet", and the screen shows no list at all. */
+    val isLoaded: Boolean = false,
 )
 
 /**
@@ -60,8 +63,9 @@ class AchievementsViewModel(
 ) : ViewModel() {
 
     // Read once: the leaderboard only changes when a game finishes, which can't happen while this
-    // screen is open.
-    private val leaderboard = MutableStateFlow(LeaderboardTotals())
+    // screen is open. Null until read, so the list isn't drawn with the score-collection
+    // achievements' progress at zero for a frame before it jumps to the real figure.
+    private val leaderboard = MutableStateFlow(if (scoreRepository == null) LeaderboardTotals() else null)
 
     // ---- Superuser mode (debug-only) -----------------------------------------------------------
     // A hidden tester's cheat: tap the unlocked-count banner SUPERUSER_TAP_TARGET times to enter
@@ -89,8 +93,9 @@ class AchievementsViewModel(
             achievementsRepository?.state ?: flowOf(AchievementsState()),
             leaderboard,
             superuserProgressOverride,
-            ::toUiState,
-        ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), AchievementsUiState())
+        ) { state, board, progressOverride ->
+            if (board == null) AchievementsUiState() else toUiState(state, board, progressOverride)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), AchievementsUiState())
 
     init {
         scoreRepository?.let { repository ->
@@ -184,7 +189,7 @@ class AchievementsViewModel(
 
     private fun bumpProgress(repository: AchievementStore, achievement: Achievement, before: AchievementsState) {
         val overrides = superuserProgressOverride.value
-        val baseProgress = AchievementEngine.progressOf(achievement, before.counters, leaderboard.value)
+        val baseProgress = AchievementEngine.progressOf(achievement, before.counters, leaderboard.value ?: LeaderboardTotals())
         val previousOverride = overrides[achievement] ?: 0
         val newOverride = previousOverride + 1
         val previous = (baseProgress + previousOverride).coerceAtMost(achievement.target)
@@ -229,6 +234,7 @@ class AchievementsViewModel(
             // which defeats the "secret" part of a surprise achievement.
             unlockedCount = items.count { it.unlockedAt != null && it.achievement.visibility != AchievementVisibility.SECRET },
             totalCount = items.count { it.achievement.visibility != AchievementVisibility.SECRET },
+            isLoaded = true,
         )
     }
 

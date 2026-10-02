@@ -90,6 +90,9 @@ fun ScoresScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     ScreenScaffold(title = "Leaderboard", onBack = onBack, modifier = modifier) {
+        // Nothing but the title bar until the scores are read, so "No scores yet" never flashes up
+        // before a leaderboard that has some.
+        if (!state.isLoaded) return@ScreenScaffold
         if (state.entries.isEmpty()) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Text(
