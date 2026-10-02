@@ -130,6 +130,6 @@ updated" date will be changed accordingly.
 If you have questions about this Privacy Policy or the App's handling of information, you can contact
 us at:
 
-[YOUR EMAIL ADDRESS]
+<zodacapps@gmail.com>
 
 DiceFive
