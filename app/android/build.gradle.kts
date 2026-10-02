@@ -137,6 +137,10 @@ android {
             excludes += "META-INF/androidx/**/LICENSE.txt"
             // ...and so do JetBrains' multiplatform wrappers of them (Compose Multiplatform, lifecycle).
             excludes += "META-INF/org/jetbrains/**/LICENSE.txt"
+            // Kotlin's reflection metadata (only kotlin-reflect reads it, and the app doesn't use it)
+            // and kotlinx-coroutines' debug-agent file (only a JVM debugger loads it).
+            excludes += "kotlin/**.kotlin_builtins"
+            excludes += "DebugProbesKt.bin"
         }
     }
 
@@ -191,6 +195,14 @@ val debugVersionCode = (System.currentTimeMillis() / 60_000L).toInt()
 val debugVersionName = "$appVersionName-dev$debugVersionCode"
 
 androidComponents {
+    // Release dex stored uncompressed in the APK (the default only from minSdk 28): Android then runs
+    // it straight from the APK instead of extracting a second copy at install. Measured on the sandbox
+    // emulator: 6.4MB installed -> 4.5MB; the APK file grows 2.5MB -> 4.4MB, which only a sideload
+    // sees (Play compresses downloads itself). Not debug: its unminified dex would take the APK file
+    // from 22MB to 70MB for every build handed to a tester.
+    onVariants(selector().withBuildType("release")) { variant ->
+        variant.packaging.dex.useLegacyPackaging.set(false)
+    }
     onVariants(selector().withBuildType("debug")) { variant ->
         variant.outputs.forEach { output ->
             output.versionCode.set(debugVersionCode)
