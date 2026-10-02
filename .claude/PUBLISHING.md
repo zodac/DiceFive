@@ -22,7 +22,10 @@ through this doc knows what to ask the user to go do versus what it can build it
    purchases are in scope - which is immediately, since sign-in/cloud save/achievements are asked
    for now. A GitHub Pages page off this repo is a reasonable host; the content itself still needs
    writing (what's collected: Play Games account id, gameplay/achievement data now, advertising id
-   and purchase data later).
+   and purchase data later). **Drafted:** `docs/privacy-policy.md`, published by GitHub Pages (from
+   `main`, `/docs` folder) at https://zodac.github.io/DiceFive/privacy-policy - that URL goes in Play
+   Console. Contact email: zodacapps@gmail.com. Update it - and its "Last updated" date - whenever ads, billing, a new SDK or
+   `INTERNET` use ships, or when `android:allowBackup` changes (it currently mentions Android backup).
 3. **AdMob account** - only once ads work actually starts, not before. Linked to the Play Console
    listing once created.
 
