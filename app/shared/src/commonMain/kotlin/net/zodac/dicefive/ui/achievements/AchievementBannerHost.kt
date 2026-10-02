@@ -145,7 +145,7 @@ private data class BannerItem(val key: Long, val event: AchievementEvent)
  * fade. A horizontal swipe in either direction doesn't wait for that.
  *
  * The stack renders in its own [Dialog] window, not as part of [content] - an achievement can fire
- * while a dialog (Settings' credits, a rules dialog, a confirmation) is already on screen, and a
+ * while a dialog (Settings' About page, a rules dialog, a confirmation) is already on screen, and a
  * new window is always drawn above whatever else was already showing when it appeared, so this
  * keeps the banner from ending up stuck behind one. A `Dialog` was chosen over a `Popup` for this
  * because a `Popup`'s window is attached as a panel of its parent (here, the main content's own

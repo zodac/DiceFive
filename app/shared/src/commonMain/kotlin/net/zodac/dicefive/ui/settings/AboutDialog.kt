@@ -36,27 +36,47 @@ import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.parseInlineMarkup
 
+private const val GITHUB_REPO_URL = "https://github.com/zodac/DiceFive"
 private const val DICE_ME_ONLINE_URL = "https://play.google.com/store/apps/details?id=com.giu.diceme"
 
-/** One credits section: a heading and its body text. Kept as data rather than inlined composables
- * so the list itself documents what's credited, in order, without reading the layout code. */
-private data class CreditsSection(val heading: String, val body: String)
+/** Published by GitHub Pages from `docs/privacy-policy.md` - the same URL the Play Store listing links to. */
+private const val PRIVACY_POLICY_URL = "https://zodac.github.io/DiceFive/privacy-policy"
 
-private val CREDITS_SECTIONS = listOf(
-    CreditsSection(
+/** A button under a section's body that opens [url] in the browser. */
+private data class AboutLink(val label: String, val url: String)
+
+/** One About section: a heading, its body text and an optional link. Kept as data rather than
+ * inlined composables so the list itself documents what the page says, in order, without reading
+ * the layout code. */
+private data class AboutSection(val heading: String, val body: String, val link: AboutLink? = null)
+
+private val ABOUT_SECTIONS = listOf(
+    AboutSection(
         heading = "Author",
         body = "DiceFive is created by `zodac`.",
+        link = AboutLink("View the source code on GitHub", GITHUB_REPO_URL),
+    ),
+    AboutSection(
+        heading = "Inspiration",
+        body = "DiceFive was inspired by `Dice Me Online`, created by `Arturo Gutierrez`.",
+        link = AboutLink("View Dice Me Online on Google Play", DICE_ME_ONLINE_URL),
+    ),
+    AboutSection(
+        heading = "Privacy Policy",
+        body = "DiceFive holds no user data. Your games, scores and settings stay on this device, " +
+            "and there are no ads, analytics or tracking.",
+        link = AboutLink("Read the privacy policy", PRIVACY_POLICY_URL),
     ),
 )
 
 /**
- * Settings > "Credits": who made the app, and the other app that inspired it - kept separate from
- * [LicensesDialog], which is specifically the open-source licences the build ships under, not people
- * or products. Same raised reading surface as [LicensesDialog], for the same reason: a
- * short scroll of prose, not a question to answer.
+ * Settings > "About": who made the app and where its source lives, the other app that inspired it,
+ * and the privacy policy - kept separate from [LicensesDialog], which is specifically the open-source
+ * licences the build ships under, not people or products. Same raised reading surface as
+ * [LicensesDialog], for the same reason: a short scroll of prose, not a question to answer.
  */
 @Composable
-fun CreditsDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
+fun AboutDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
 
     Dialog(
@@ -75,23 +95,24 @@ fun CreditsDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
             Column(modifier = Modifier.fillMaxSize().padding(top = 4.dp, bottom = 20.dp, start = 20.dp, end = 20.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     IconButton(onClick = onDismissRequest) {
-                        Icon(imageVector = Icons.Filled.Close, contentDescription = "Close credits")
+                        Icon(imageVector = Icons.Filled.Close, contentDescription = "Close about")
                     }
                 }
 
                 Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
                     Text(
-                        text = "Credits",
+                        text = "About",
                         style = MaterialTheme.typography.headlineSmall,
                         fontFamily = SoraFontFamily,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.semantics { heading() },
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
                     val codeStyle = SpanStyle(fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary)
 
-                    for (section in CREDITS_SECTIONS) {
+                    for (section in ABOUT_SECTIONS) {
                         Text(
                             text = section.heading,
                             style = MaterialTheme.typography.titleMedium,
@@ -103,29 +124,21 @@ fun CreditsDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
                             text = parseInlineMarkup(section.body, codeStyle),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
+                            modifier = Modifier.padding(top = 4.dp, bottom = if (section.link == null) 16.dp else 4.dp),
                         )
-                    }
-
-                    Text(
-                        text = "Inspiration",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = parseInlineMarkup("DiceFive was inspired by `Dice Me Online`, created by `Arturo Gutierrez`.", codeStyle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
-                    )
-                    TextButton(onClick = { uriHandler.openUri(DICE_ME_ONLINE_URL) }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 8.dp),
-                        )
-                        Text("View Dice Me Online on Google Play")
+                        section.link?.let { link ->
+                            TextButton(
+                                onClick = { uriHandler.openUri(link.url) },
+                                modifier = Modifier.padding(bottom = 12.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                    contentDescription = null,
+                                    modifier = Modifier.padding(end = 8.dp),
+                                )
+                                Text(link.label)
+                            }
+                        }
                     }
                 }
             }
