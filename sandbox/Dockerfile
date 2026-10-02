@@ -78,7 +78,7 @@
 #   Node 26 — installed under /usr/local; the prebuilt binaries are glibc-portable
 #             (the -trixie tag matches this base's glibc exactly).
 FROM eclipse-temurin:25.0.4.1_1-jdk AS jdk
-FROM maven:3.9.16-eclipse-temurin-25 AS maven
+FROM maven:3.10.0-eclipse-temurin-25 AS maven
 FROM node:26.10.0-trixie AS node
 
 # ── Runtime base ─────────────────────────────────────────────────────────────
@@ -197,8 +197,8 @@ RUN install -m 0755 -d /etc/apt/keyrings \
 # BEGIN DEBIAN PACKAGES
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -yqq --no-install-recommends \
-        docker-ce="5:29.8.1-1~debian.13~trixie" \
-        docker-ce-cli="5:29.8.1-1~debian.13~trixie" \
+        docker-ce="5:29.8.2-1~debian.13~trixie" \
+        docker-ce-cli="5:29.8.2-1~debian.13~trixie" \
         containerd.io="2.3.6-1~debian.13~trixie" \
         docker-buildx-plugin="0.37.1-1~debian.13~trixie" \
         docker-compose-plugin="5.5.1-1~debian.13~trixie"
