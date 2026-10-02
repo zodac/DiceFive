@@ -123,7 +123,7 @@ object AiTurnPlayer {
         if (shouldStopEarlyMedium(player, dice)) return dice.indices.toSet()
 
         val values = dice.map { it.value }
-        val straightHold = bestStraightHoldIndices(values)
+        val straightHold = bestStraightHoldIndices(dice)
         if (straightHold.size >= SMALL_STRAIGHT_LENGTH) return straightHold
 
         val colourHold = colourChaseHoldIndices(player, dice)
@@ -191,14 +191,20 @@ object AiTurnPlayer {
         return if (group.size >= COLOUR_CHASE_GROUP_SIZE && colour in openColourBoxes) group.map { it.index }.toSet() else emptySet()
     }
 
-    /** One die index per distinct value in the longest run (4- or 5-length) present in [values], preferring the longer/higher run. */
-    private fun bestStraightHoldIndices(values: List<Int>): Set<Int> {
-        val distinct = values.toSet()
+    /**
+     * One die index per distinct value in the longest run (4- or 5-length) present in [dice],
+     * preferring the longer/higher run. Where a value shows on more than one die, a die already held
+     * is kept over swapping it for an identical one.
+     */
+    private fun bestStraightHoldIndices(dice: List<Die>): Set<Int> {
+        val distinct = dice.map { it.value }.toSet()
         val window = STRAIGHT_WINDOWS
             .filter { it.all { value -> value in distinct } }
             .maxWithOrNull(compareBy({ it.size }, { it.first() }))
             ?: return emptySet()
-        return window.map { target -> values.indexOfFirst { it == target } }.toSet()
+        return window.map { target ->
+            dice.indices.filter { dice[it].value == target }.let { matches -> matches.firstOrNull { dice[it].isHeld } ?: matches.first() }
+        }.toSet()
     }
 
     private fun chooseCategoryMedium(player: PlayerState, dice: List<Die>, available: List<ScoreCategory>): ScoreCategory =
@@ -241,6 +247,7 @@ object AiTurnPlayer {
         val faces = facesOf(player.gameMode)
         val hands = HandValues(player, faces, dice.size)
         val diceFaces = dice.map { faces.indexOf(faceOf(it)) }
+        val heldMask = dice.withIndex().sumOf { (index, die) -> if (die.isHeld) 1 shl index else 0 }
         // Holding different dice that show the same faces (two 3s, say) is the same decision, so
         // each distinct held set is only ever evaluated once.
         val evByHeldKey = mutableMapOf<Long, Double>()
@@ -250,7 +257,12 @@ object AiTurnPlayer {
             val heldFaces = diceFaces.filterIndexed { index, _ -> (mask shr index) and 1 == 1 }
             val heldKey = hands.keyOf(heldFaces)
             val ev = evByHeldKey.getOrPut(heldKey) { hands.expectedBestValue(heldFaces, heldKey, dice.size - heldFaces.size) }
-            if (ev > bestEv) {
+            // A tie - always the case between two dice showing the same face, whose EVs come from
+            // the same cache entry - goes to whichever split changes fewer of the current holds.
+            // Without it the lowest-indexed die always won, so a CPU would let go of the 3 it was
+            // holding just to pick up another 3 that had landed further left.
+            val changes = (mask xor heldMask).countOneBits()
+            if (ev > bestEv || (ev == bestEv && changes < (bestMask xor heldMask).countOneBits())) {
                 bestEv = ev
                 bestMask = mask
             }
