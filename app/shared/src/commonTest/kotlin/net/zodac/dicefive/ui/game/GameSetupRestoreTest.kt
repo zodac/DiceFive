@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.data.settings.SettingsRepository
@@ -70,6 +71,8 @@ class GameSetupRestoreTest {
             viewModel.setupRestored.collect { restored -> if (restored) shownStates += viewModel.setup.value }
         }
         advanceUntilIdle()
+        // advanceUntilIdle stops once only background work is left - the collector above included.
+        runCurrent()
 
         assertTrue(viewModel.setupRestored.value)
         val restored = shownStates.single()

@@ -57,6 +57,9 @@ fun StatisticsScreen(
     var pendingDeleteName by rememberSaveable { mutableStateOf<String?>(null) }
 
     ScreenScaffold(title = "Statistics", onBack = onBack, modifier = modifier) {
+        // Nothing but the title bar until the stats are read, so "No stats yet" never flashes up
+        // before the player cards.
+        if (!state.isLoaded) return@ScreenScaffold
         if (state.players.isEmpty()) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Text(
