@@ -97,6 +97,15 @@ class AiTurnPlayerTest {
     }
 
     @Test
+    fun `Medium keeps the die it already holds rather than swapping it for an identical one`() {
+        // 1-2-3-4 held from the last roll, with the 4 at the end; a second 4 has since landed earlier.
+        val state = rolledState(bot(Difficulty.MEDIUM), values = listOf(1, 4, 2, 3, 4))
+            .let { it.copy(dice = it.dice.mapIndexed { index, die -> die.copy(isHeld = index != 1) }) }
+
+        assertEquals(setOf(0, 2, 3, 4), AiTurnPlayer.chooseHolds(state))
+    }
+
+    @Test
     fun `Medium holds the largest matching group when no straight is forming`() {
         // A group of low-value dice isn't "good enough" to bank early, unlike a high one below -
         // Medium just holds the pair/triple and keeps rolling, same as before.
@@ -150,6 +159,18 @@ class AiTurnPlayerTest {
         val state = rolledState(bot(Difficulty.HARD), values = listOf(6, 6, 6, 6, 2))
 
         assertEquals(setOf(0, 1, 2, 3), AiTurnPlayer.chooseHolds(state))
+    }
+
+    @Test
+    fun `Hard keeps the die it already holds rather than swapping it for an identical one`() {
+        // The same hand either way round: whichever 4 is already held, Hard keeps that one and
+        // leaves the other free, rather than always taking the leftmost.
+        for (heldFour in listOf(1, 4)) {
+            val state = rolledState(bot(Difficulty.HARD), values = listOf(1, 4, 2, 3, 4))
+                .let { it.copy(dice = it.dice.mapIndexed { index, die -> die.copy(isHeld = index in setOf(0, 2, 3, heldFour)) }) }
+
+            assertEquals(setOf(0, 2, 3, heldFour), AiTurnPlayer.chooseHolds(state), "held 4 at index $heldFour")
+        }
     }
 
     @Test
