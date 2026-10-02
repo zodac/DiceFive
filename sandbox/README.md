@@ -87,9 +87,9 @@ exposed.
 ## An Android emulator, on demand
 
 `sandbox/emulator.sh start|stop|status|screenshot <file.png>`, run **inside** the sandbox, boots a
-headless Android 14 emulator (about 20 seconds once installed), so instrumented tests and the Baseline
-Profile journey can run without a phone. The first `start` in a fresh container downloads the emulator
-and a system image (~1.5 GB, into the container's SDK, not the image). It opens `/dev/kvm` to `dev` (the
+headless Android emulator, on the API level the app compiles against (about 20 seconds), so instrumented tests and the Baseline
+Profile journey can run without a phone. The emulator, a system image and a virtual device are baked
+into the image (`EMULATOR_API` in the Dockerfile picks the version and follows `compileSdk`; the dependency update script keeps them in step), so it boots straight away. It opens `/dev/kvm` to `dev` (the
 host's node is root:kvm and `dev` isn't in that group) and switches the app's UI renderer to Vulkan after
 every boot, because the emulator's software GLES path segfaults while drawing the app.
 
@@ -205,7 +205,8 @@ What the new project may want to set:
 | `PROJECT_DIR`      | the parent dir  | the folder is not at `<project>/sandbox/`                                                                        |
 
 What is baked into the image regardless: **JDK 25, Maven, an Android SDK (platform-tools,
-`platforms;android-37.2`, `build-tools;36.0.0`, matching this project's `compileSdk`/`buildToolsVersion`),
+`platforms;android-37.2`, `build-tools;36.0.0`, matching this project's `compileSdk`/`buildToolsVersion`, plus
+the emulator with a system image of `compileSdk`'s API level and a virtual device - see "An Android emulator, on demand"),
 Node, Playwright's OS libs, Docker-in-Docker** and the Claude CLI. A project that needs none of a given
 toolchain still works — it just carries a larger image than it needs, so trim the `COPY --from=jdk` /
 `--from=maven` stages, or the Android SDK block, if that matters. **This repo uses the JDK/Android half**

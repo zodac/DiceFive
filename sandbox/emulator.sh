@@ -2,14 +2,15 @@
 # An Android emulator inside the sandbox, started on demand - for running the Baseline Profile journey
 # (`./gradlew :app:android:generateBaselineProfile`) or any instrumented test without a phone.
 #
-#   sandbox/emulator.sh start     # install what's missing, boot headless, wait until it's ready
+#   sandbox/emulator.sh start     # boot headless (installing anything missing), wait until it's ready
 #   sandbox/emulator.sh status
 #   sandbox/emulator.sh screenshot out.png   # what's on the emulator's screen right now
 #   sandbox/emulator.sh stop
 #
-# How it works, what it's for and how to debug it: .claude/EMULATOR.md. Run it INSIDE the sandbox. The first `start` in a fresh container downloads the emulator and a system
-# image (~1.5 GB: they live in the container's SDK, not in the image) and creates the virtual device;
-# later starts in the same container just boot it (~20 s).
+# How it works, what it's for and how to debug it: .claude/EMULATOR.md. Run it INSIDE the sandbox.
+# The emulator, the system image and the virtual device are baked into the image (sandbox/Dockerfile), so
+# `start` just boots it (~20 s). If one is missing - a container from an image built before they were
+# added, or another EMULATOR_API - `start` installs it first (~1.5 GB, and only for that container).
 #
 # Two things here are not obvious, and both are why this script exists rather than a one-line command:
 #
@@ -24,8 +25,11 @@
 #   this script sets it every time). The app draws correctly under it.
 set -euo pipefail
 
-avd_name="${EMULATOR_AVD_NAME:-dicefive34}"
-api="${EMULATOR_API:-34}"
+# EMULATOR_API comes from the image (sandbox/Dockerfile ENV), where it is chosen - it follows compileSdk - and
+# the value here is only the fallback for a shell without it. The dependency update script keeps the two in
+# step with each other and with compileSdk.
+api="${EMULATOR_API:-37.0}"
+avd_name="${EMULATOR_AVD_NAME:-sandbox-api${api}}"
 image="system-images;android-${api};google_apis;x86_64"
 memory_mb="${EMULATOR_MEMORY_MB:-4096}"
 cores="${EMULATOR_CORES:-4}"
@@ -49,10 +53,16 @@ ensure_packages() {
   if [[ -x "${sdk}/emulator/emulator" && -d "${sdk}/system-images/android-${api}/google_apis/x86_64" ]]; then
     return
   fi
-  echo "[emulator] installing the emulator and the API ${api} system image (one-off, ~1.5 GB)..."
-  yes | sudo -E env "PATH=${PATH}" "${sdk}/cmdline-tools/latest/bin/sdkmanager" "emulator" "${image}" >/dev/null
+  echo "[emulator] installing the emulator and the API ${api} system image (~1.5 GB to download)..."
+  # `|| true`: `yes` always dies of SIGPIPE once sdkmanager stops reading, which pipefail turns into a
+  # failure of a SUCCESSFUL install; the directory check after the permissions fix is what decides.
+  yes | sudo -E env "PATH=${PATH}" "${sdk}/cmdline-tools/latest/bin/sdkmanager" "emulator" "${image}" >/dev/null || true
   sudo chmod -R a+rX "${sdk}/emulator" "${sdk}/system-images"
   sudo find "${sdk}/emulator" -type f -perm -u+x -exec chmod a+x {} +
+  if [[ ! -x "${sdk}/emulator/emulator" || ! -d "${sdk}/system-images/android-${api}/google_apis/x86_64" ]]; then
+    echo "[emulator] installing ${image} failed (is it published? see sdkmanager --list)." >&2
+    exit 1
+  fi
 }
 
 ensure_avd() {

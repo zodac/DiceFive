@@ -11,8 +11,9 @@ sandbox/emulator.sh screenshot out.png  # what is on its screen right now (then 
 sandbox/emulator.sh stop
 ```
 
-`start` is idempotent and does everything needed (below). It leaves the emulator running detached, so it
-outlives the shell that started it; **stop it when finished**, since it holds ~4 GB of RAM and 4 cores.
+`start` is idempotent and does everything needed (below), in about 20 seconds: the emulator, its system
+image and a virtual device are baked into the sandbox image. It leaves the emulator running detached, so
+it outlives the shell that started it; **stop it when finished**, since it holds ~4 GB of RAM and 4 cores.
 
 ## When to use it
 
@@ -52,12 +53,12 @@ sandbox/emulator.sh stop
 | Step | Why |
 |---|---|
 | `sudo chmod 666 /dev/kvm` if it isn't read-write | The sandbox is `--privileged` so the host's KVM is present, but the node is `root:<host's kvm gid>` and `dev` isn't in that group. Without KVM the emulator falls back to software CPU emulation - far too slow to drive an app. Only this container's copy of the node changes. |
-| Installs `emulator` and the API 34 Google APIs x86_64 system image if missing | The SDK is root-owned, so `sdkmanager` runs under `sudo`, and the permissions are then fixed (it unpacks without the other-user read/execute bits). ~1.5 GB, **per container**: they are not in the image. |
-| Creates the AVD `dicefive34` (Pixel 6) if missing | Lives under `~/.android/avd`. |
+| Installs the `emulator` package, the system image or the virtual device **only if missing** | They are baked into `sandbox/Dockerfile`, so normally nothing happens here. It is the fallback for a container from an image built before they were added, or for another `EMULATOR_API`: the SDK is root-owned, so `sdkmanager` runs under `sudo` and the permissions are then fixed (it unpacks without the other-user execute bit); about 1.5 GB to download (5 GB unpacked), for that container only. |
 | Boots with `-no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect` | Headless; `-no-snapshot` for a clean boot every time. |
 | `adb root`, then `setprop debug.hwui.renderer skiavk` | **The important one** - see below. |
 
-Environment overrides: `EMULATOR_AVD_NAME`, `EMULATOR_API`, `EMULATOR_MEMORY_MB`, `EMULATOR_CORES`.
+Environment overrides: `EMULATOR_API`, `EMULATOR_AVD_NAME` (default `sandbox-api<API>`), `EMULATOR_MEMORY_MB`,
+`EMULATOR_CORES`.
 It is a **Google APIs** image (not Play Store): that is what allows `adb root`, which profile generation
 and the renderer setting both need.
 
@@ -79,12 +80,12 @@ disabled in the AVD.
 ## If the emulator dies anyway
 
 1. **Get its exit status**, not just "the device went away". Start it from a wrapper that records it:
-   `emulator -avd dicefive34 ...; echo "EXIT $?" >> log`. 139 is a segfault; 137 is a kill (memory).
-   (`start` writes the emulator's own output to `~/.android/emulator-dicefive34.log`.)
+   `emulator -avd sandbox-api37.0 ...; echo "EXIT $?" >> log`. 139 is a segfault; 137 is a kill (memory).
+   (`start` writes the emulator's own output to `~/.android/emulator-sandbox-api37.0.log`.)
 2. **Get a backtrace.** There is no crash dump (crashpad writes nothing here and core files aren't kept).
    `sudo apt-get update && sudo apt-get install -y gdb`, then run the emulator under it, following the
    *parent* (the emulator forks a crash-handler child; following the child loses the real process):
-   `gdb -batch -ex "set follow-fork-mode parent" -ex "handle all nostop noprint pass" -ex "handle SIGSEGV stop print" -ex run -ex "bt 25" -ex "thread apply all bt 6" --args /opt/android-sdk/emulator/emulator -avd dicefive34 -no-window -no-audio -no-snapshot -gpu swiftshader_indirect`,
+   `gdb -batch -ex "set follow-fork-mode parent" -ex "handle all nostop noprint pass" -ex "handle SIGSEGV stop print" -ex run -ex "bt 25" -ex "thread apply all bt 6" --args /opt/android-sdk/emulator/emulator -avd sandbox-api37.0 -no-window -no-audio -no-snapshot -gpu swiftshader_indirect`,
    boot, launch the app over adb, and read the stack. A crash in `libgfxstream_backend.so` / the GLES
    translator is the known one above.
 3. **Don't trust a process-listing check for "is it alive"** - a `case`/`grep` for `qemu-system` can match
@@ -97,9 +98,37 @@ disabled in the AVD.
 
 - **Slower and software-drawn.** The journey's fixed waits (e.g. `Thread.sleep` after a roll) were tuned
   on phones; they hold up here, but anything timing-sensitive may behave differently.
-- **API 34 only** by default. `EMULATOR_API=35` etc. work if that image exists for x86_64.
-- **Nothing persists across containers** (SDK packages and the AVD are in the container). Baking the
-  packages into `sandbox/Dockerfile` would save the one-off download; it hasn't been done because it
-  makes the image much larger and the Dockerfile's pins are maintained by a script that relies on its shape.
+- **One Android version at a time**, the one `EMULATOR_API` names (below): currently API 37.0 (Android 17).
+- **Image size.** The emulator and system image add about 5 GB (1.5 GB downloaded, then unpacked) to the
+  sandbox image. They sit in their own layers below the SDK block, so a platform-tools or build-tools bump
+  does not re-download them.
+
+## Versions: the emulator follows compileSdk
+
+- `ENV EMULATOR_API=37.0` in `sandbox/Dockerfile` is the one place the emulator's Android version is
+  chosen. It is written as the image package names it (`37.0`: from API 37 even the base release carries
+  a minor; older ones are plain, `34`). The Dockerfile derives the system image
+  (`system-images;android-<API>;google_apis;x86_64`) and the virtual device (`sandbox-api<API>`) from it,
+  `entrypoint.sh` forwards it to `dev` (sudo strips the environment), and `sandbox/emulator.sh` reads it,
+  with a fallback literal (`${EMULATOR_API:-37.0}`) for a shell that doesn't have it.
+- It **tracks compileSdk's API level** (`app/android/build.gradle.kts`): the newest stable Google APIs
+  image of that level. Google publishes no image for most minor releases (there is none for compileSdk's
+  37.2), so it matches the level, not the minor. Running on the newest Android the project compiles
+  against is the point: it is where targetSdk's runtime behaviour changes show up.
+- **`.github/scripts/update_dependency_versions.sh` keeps it there**: `sync_emulator_api` runs right after
+  the compileSdk step and moves `EMULATOR_API` (Dockerfile and the `emulator.sh` fallback) to the newest
+  image of compileSdk's level, whether or not compileSdk moved. When the platform is published before its
+  image, the emulator stays where it is. The guard at the end then fails the run if the Dockerfile and the
+  fallback disagree, if the image is no longer a stable image in Google's manifest, or if an image for
+  compileSdk's level exists but the emulator isn't on it; if none exists yet it only warns.
+- The emulator and image are named by package only; sdkmanager cannot pin a revision (same as
+  `platform-tools`), so the revision baked in is whatever Google served when the layer was last built. The
+  layer is rebuilt only when its text changes, i.e. when `EMULATOR_API` does.
+- **To test on a different Android version** (an older one, say, to reproduce a bug): `EMULATOR_API=<N>
+  sandbox/emulator.sh start` installs that image and creates its virtual device for this container only
+  (about 1.5 GB). The Vulkan renderer workaround above is applied on any version, but a different image can
+  behave differently; the symptom of it not working is the emulator dying (exit 139) a few seconds after the
+  app opens. The journey has been run on API 34 and 37.0.
+
 - **Maintainer's phones remain the reference** for anything the emulator can't show: real frame times,
   haptics, the accelerometer-driven googly eyes, how it feels.
