@@ -28,9 +28,6 @@ it outlives the shell that started it; **stop it when finished**, since it holds
 
 ## Running the Baseline Profile journey on it
 
-> The journey (`app/baselineprofile`) is still on the `baseline-profile` branch and not on `main` yet: this
-> section applies on that branch, and this note goes once it is merged.
-
 ```
 sandbox/emulator.sh start
 adb uninstall net.zodac.dicefive 2>/dev/null
@@ -38,7 +35,9 @@ adb uninstall net.zodac.dicefive 2>/dev/null
 sandbox/emulator.sh stop
 ```
 
-- `journeyLaps=1` keeps a run to one lap (~1.5 minutes); drop it for the default (up to 15 laps).
+- `journeyLaps=1` keeps a run to one lap (~1.5 minutes); drop it for the default (up to 15 laps,
+  about 20 minutes). A one-lap pass doesn't prove the full run: timing races (a dialog still closing)
+  only showed up on laps 4 and 5.
 - The `adb uninstall` matters: a debug build installed earlier has a higher version code than the
   benchmark build, so the benchmark install is refused ("version downgrade") and the run is a no-op.
 - The generated profile lands in `app/android/src/release/generated/baselineProfiles/` (untracked until

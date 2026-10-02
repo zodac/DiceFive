@@ -1823,7 +1823,8 @@ install-over-existing succeeds:
 - [x] **Baseline Profile, hand-written** (`4054fe6`): `app/android/src/main/baseline-prof.txt`
       marks the whole `net.zodac.dicefive` package hot with wildcards (AGP expands them, R8 carries
       them into the release `baseline.prof`). The AndroidX/Compose libraries already ship their own.
-- [ ] **Generate a real Baseline Profile on a device** (scaffolded, not yet run). `:app:baselineprofile`
+- [ ] **Generate a real Baseline Profile on a device** (generated on the sandbox emulator, 2026-10-02;
+      the phone before/after in step 2 and the wildcard decision in step 3 are still open). `:app:baselineprofile`
       holds the Macrobenchmark journey (`BaselineProfileGenerator`, steps in `Journeys.kt`: a game
       played and then resumed, Styles, Achievements, Leaderboard, Statistics, Rules, Settings with its
       Licences and Credits dialogs), `StartupBenchmark` and `StylesBenchmark` (frame times opening
@@ -1836,9 +1837,17 @@ install-over-existing succeeds:
       3. Compare with and without the hand-written wildcard file (it marks all app code hot, so with it
          present the generated profile adds little but startup ordering); if the generated one is as
          good, delete the wildcard file so unvisited code stops being compiled ahead of time.
+      `sandbox/emulator.sh start` boots an emulator inside the sandbox, so the journey can be run and
+      debugged there without a phone (see `.claude/EMULATOR.md`); generating works on it, benchmarking does
+      not mean anything on it.
       While checking the journey itself, cut it short: add
       `-Pandroid.testInstrumentationRunnerArguments.journeyLaps=1` (profile laps) or `...benchmarkIterations=1`
       to the Gradle command, so a failing step stops the run quickly.
+      The first full run (15 laps, ~20 minutes) wrote 31k rules (743 app classes); the release build's
+      profile went from 13.7k to 17.8k rules with it, and its startup profile now orders the dex. Full
+      runs found three races a one-lap run hadn't: a back press or tap sent while a dialog is still
+      closing goes to the dying dialog (leaving the app) or is dropped under its fading dim layer, so
+      dialogs are left through `closeDialog` and Continue is retried.
       Regenerate after large UI changes. Selectors are the visible labels and screen-reader
       descriptions, so a relabelled button fails the run (`await` in `Journeys.kt`) rather than
       quietly thinning the profile.
