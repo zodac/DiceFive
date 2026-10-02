@@ -5,8 +5,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -26,6 +28,14 @@ import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 
+/** The Settings screen's switches, as saved. */
+data class SettingsToggles(
+    val soundEnabled: Boolean = true,
+    val vibrationEnabled: Boolean = true,
+    val simpleDiceRoll: Boolean = false,
+    val confirmBeforeLeavingGame: Boolean = true,
+)
+
 /** All repositories are nullable so this stays constructible/testable without a Context - see [factory]. */
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository? = null,
@@ -33,17 +43,22 @@ class SettingsViewModel(
     private val scoreRepository: ScoreRepository? = null,
 ) : ViewModel() {
 
-    val confirmBeforeLeavingGame: StateFlow<Boolean> = (settingsRepository?.confirmBeforeLeavingGame ?: flowOf(true))
-        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
-
-    val soundEnabled: StateFlow<Boolean> = (settingsRepository?.soundEnabled ?: flowOf(true))
-        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
-
-    val vibrationEnabled: StateFlow<Boolean> = (settingsRepository?.vibrationEnabled ?: flowOf(true))
-        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
-
-    val simpleDiceRoll: StateFlow<Boolean> = (settingsRepository?.simpleDiceRoll ?: flowOf(false))
-        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    /**
+     * Null until every switch's saved value has loaded - all four together, so the screen never
+     * draws a switch in its default position for a frame before flipping it to the player's own.
+     * With no repository, straight to the defaults.
+     */
+    val toggles: StateFlow<SettingsToggles?> = if (settingsRepository == null) {
+        MutableStateFlow(SettingsToggles())
+    } else {
+        combine(
+            settingsRepository.soundEnabled,
+            settingsRepository.vibrationEnabled,
+            settingsRepository.simpleDiceRoll,
+            settingsRepository.confirmBeforeLeavingGame,
+            ::SettingsToggles,
+        ).stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    }
 
     fun setConfirmBeforeLeavingGame(confirm: Boolean) {
         val repository = settingsRepository ?: return

@@ -17,12 +17,15 @@ import net.zodac.dicefive.data.scores.ScoreRepository
 data class StatisticsUiState(
     val players: List<PlayerStatistics> = emptyList(),
     val isLoading: Boolean = false,
+    /** Whether [players] has been read yet - until then an empty list means "not known yet", not
+     * "no stats", and the screen shows neither the cards nor its empty message. */
+    val isLoaded: Boolean = false,
 )
 
 /** [scoreRepository] is nullable so this stays constructible/testable without a Context - see [factory]. */
 class StatisticsViewModel(private val scoreRepository: ScoreRepository? = null) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(StatisticsUiState())
+    private val _uiState = MutableStateFlow(StatisticsUiState(isLoaded = scoreRepository == null))
     val uiState: StateFlow<StatisticsUiState> = _uiState.asStateFlow()
 
     init {
@@ -34,7 +37,7 @@ class StatisticsViewModel(private val scoreRepository: ScoreRepository? = null) 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val players = repository.playerStatistics()
-            _uiState.update { it.copy(players = players, isLoading = false) }
+            _uiState.update { it.copy(players = players, isLoading = false, isLoaded = true) }
         }
     }
 

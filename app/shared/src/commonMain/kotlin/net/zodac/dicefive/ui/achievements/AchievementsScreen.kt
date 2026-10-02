@@ -187,7 +187,7 @@ fun AchievementsScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var restoredScroll by remember { mutableStateOf(false) }
-    val listLoaded = state.groups.isNotEmpty()
+    val listLoaded = state.isLoaded
     LaunchedEffect(listLoaded) {
         if (listLoaded && !restoredScroll) {
             if (!AchievementScrollRequests.hasPending()) {
@@ -209,7 +209,7 @@ fun AchievementsScreen(
     val estimatedRowHeightPx = with(LocalDensity.current) { ESTIMATED_ROW_HEIGHT_DP.roundToPx() }
     LaunchedEffect(Unit) {
         AchievementScrollRequests.requests.collect { request ->
-            val groups = snapshotFlow { state.groups }.first { it.isNotEmpty() }
+            val groups = snapshotFlow { state }.first { it.isLoaded }.groups
             val flatIndex = flatIndexOf(groups, request.achievementId)
             if (flatIndex != null) {
                 // On a fresh navigation, the list hasn't necessarily had its first layout pass
@@ -258,6 +258,10 @@ fun AchievementsScreen(
     }
 
     ScreenScaffold(title = "Achievements", onBack = onBack, modifier = modifier) {
+        // Nothing but the title bar until the unlocks and scores are read: drawn any sooner, the
+        // page says "0 of 0 unlocked" and "Everything's unlocked" before the real list arrives.
+        if (!state.isLoaded) return@ScreenScaffold
+
         // No ripple, and no other visual change on tap or long press: this is the hidden entry
         // point into superuser mode (see the class doc above), and a ripple here would be an open
         // invitation to find out what tapping it does - the same reasoning AppLogo's onDiceTap
