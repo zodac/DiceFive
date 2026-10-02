@@ -2029,11 +2029,36 @@ install-over-existing succeeds:
         float16 (the debug APK is ~22 MB).
       - Tricolour: 8,583,168 states (34 MB / 17 MB), and each state's turn is the 26,334-hand
         search above - out of reach exactly; it would need an approximation of its own.
-      - Generation, unoptimised (HashMaps, boxed doubles): ~9ms a state for Standard (~80 min on one
-        core), ~2ms for Quickfire (~18 min). An array-based solver with precomputed roll
-        transitions is typically 50-100x faster. A one-off generator, not something to run on a phone.
-      - Strength: perfect solo play under these rules (13 boxes, 35 at 63, 100 per extra 5x, joker)
-        averages about 254.6 (Verhoeff's published figure), against Hard's ~239 now.
+      - Generation: a throwaway array-based solver (precomputed roll transitions; its scoring checked
+        against `ScoreCalculator`, joker rule included, on 3,000 random cases) solved all of
+        Standard in 14s on one core of the sandbox. (A HashMap-based first try took ~9ms a state, ~80
+        min.) Its turn search took 0.05-0.08ms, against 1-30ms for `HandValues`' HashMaps.
+      - Strength: it gives perfect solo play an expected 254.5 (Verhoeff's published figure for these
+        rules - 13 boxes, 35 at 63, 100 per extra 5x, joker - is 254.6); played over 4,000 seeded
+        games it averaged 253.4 +/- 0.9, against Hard's 238.9 on the same games.
+      - **Hybrid (store the most common X% of states, estimate the rest)**: a missing state's value
+        can't be worked out on the fly - it depends on every state after it, which is the whole
+        solve - so a miss falls back to Hard's own measure, as an estimate of the rest of the game
+        (each open box's baseline, plus the upper-bonus term, plus the average gap to the true value
+        for that many open boxes). States ranked by visits over 20,000 perfect games (60,814
+        distinct states came up - 11% of them); 4,000 seeded games each:
+
+        | Stored | States | Avg score | Lookup hits | Size (sparse, 6 B/entry) |
+        |---|---|---|---|---|
+        | 0% | 0 | 238.9 | 0% | 0 |
+        | 1% | 5,364 | 238.9 | 23% | 0.03 MB |
+        | 5% | 26,822 | 238.4 | 32% | 0.16 MB |
+        | 10% | 53,644 | 237.7 | 37% | 0.32 MB |
+        | 20% | 107,289 | 244.9 | 77% | 0.64 MB |
+        | 35% | 187,756 | 248.3 | 84% | 1.13 MB |
+        | 50% | 268,224 | 249.6 | 89% | 1.61 MB |
+        | 100% | 536,448 | 253.4 | 100% | 1.07 MB dense, float16 |
+
+        Below 20% it gains nothing: a decision compares the states after each candidate box, most
+        of them off the common path, so exact values for a few sit beside estimates for the rest.
+        From ~35% up a sparse table (keys and values) is as big as the whole table stored densely,
+        and still weaker. And every stored value still needs the full solve, so a partial table saves
+        no generation - for Tricolour, whose problem is generation (and 17 MB), it doesn't help.
       - Costs: a generator, the table as a bundled resource for `commonMain`, a test that fails
         when the rules no longer match the table, and one table per mode.
 
