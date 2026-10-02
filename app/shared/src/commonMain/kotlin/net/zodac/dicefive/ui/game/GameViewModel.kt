@@ -1494,6 +1494,10 @@ class GameViewModel(
                     // roll that still had legal rerolls left was showing as none remaining.
                     if (holds.size == current.dice.size) break
 
+                    // A human's beat to take in the settled dice before reaching for them - with the
+                    // choice worked out during the toss, the holds would otherwise land the instant the
+                    // dice stop. Scoring gets the same beat from AI_STEP_DELAY_MS below.
+                    pausableDelay(AI_REACTION_DELAY_MS)
                     current = AiTurnPlayer.applyHolds(current, holds)
                     setUndoSnapshot(null)
                     applyGameState(current, checkForAiTurn = false)
@@ -1523,6 +1527,9 @@ class GameViewModel(
     companion object {
         /** The AI's pause, dice settled, before it scores. Its rolls shake for CUP_SHAKE_MILLIS, same as a tap's. */
         private const val AI_STEP_DELAY_MS = 250L
+
+        /** The AI's pause, dice settled, before it holds any of them for its next roll. */
+        private const val AI_REACTION_DELAY_MS = 200L
 
         /** Pause between one roll settling and the next one's shake starting, within the same AI turn. */
         private const val ROLL_GAP_MS = 100L
