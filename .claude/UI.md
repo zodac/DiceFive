@@ -535,7 +535,7 @@ Everything a screen reader needs is added as semantics, never by changing what's
   view for all of them. The chevrons themselves are cleared from semantics: they'd only be stops
   that repeat what the tabs already say.
 - **Titles are headings**: page titles, Styles categories, achievement category headers, Rules
-  pages, Credits sections.
+  pages, About sections.
 
 ## Motion
 
