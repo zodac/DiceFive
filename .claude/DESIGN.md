@@ -1856,6 +1856,15 @@ install-over-existing succeeds:
       Regenerate after large UI changes. Selectors are the visible labels and screen-reader
       descriptions, so a relabelled button fails the run (`await` in `Journeys.kt`) rather than
       quietly thinning the profile.
+- [x] **Install size**: the release build installed at 6.4MB (15.9MB once its profile is compiled),
+      most of it a second, extracted copy of the dex - with `minSdk` 26 the dex is compressed in the
+      APK by default. Release builds now store it uncompressed
+      (`variant.packaging.dex.useLegacyPackaging`; not debug, whose unminified dex would take its APK
+      from 22MB to 70MB), so it runs from the APK: 4.5MB installed (14.0MB compiled), the APK file
+      2.5MB -> 4.4MB (Play compresses downloads itself). Also dropped `kotlin/**.kotlin_builtins` and `DebugProbesKt.bin` (13KB).
+      Measured and not taken: R8 `-repackageclasses` (identical dex - AGP already does it), and
+      dropping the wildcard profile (-1.2MB compiled; waits on step 3 above). What's left is mostly
+      library code: Compose 1.6MB of the 3.2MB dex, the app's own 0.7MB.
 - [ ] **Benchmark battery use of the remaining always-on animations.** The menu's (and every reading
       page's) drifting watermark dice are now capped at about 30 redraws a second (`DriftState.onFrame`:
       the drift is slow, and the dice still move by the whole time since their last move, so their speed
