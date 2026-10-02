@@ -8,7 +8,7 @@
 # tags instead of hand-rolling tarball / NodeSource downloads. On top we also
 # add: a NESTED Docker engine (so anything the project spins up runs inside this
 # throwaway container, never touching the host daemon), an Android SDK (this is
-# an Android app — see the "Android SDK" block below) and the system libraries
+# an Android app — see the "Android SDK" and emulator blocks below) and the system libraries
 # Playwright's Chromium needs.
 #
 # The JDK is an LTS release, and only moves to a newer major once this project is
@@ -55,6 +55,8 @@
 #   6. user creation               UID/GID build args -> below every large COPY
 #   7. tooling apt (the big one)   volatile pins; nothing below depends on it
 #   8. Android SDK                 needs `unzip` from step 7; occasional pin bumps
+#      + emulator and its AVD      separate layers below it: the emulator image is ~5 GB unpacked, and
+#                                  re-downloading it must not ride on a platform-tools bump
 #   9. Claude Code install         MOST volatile (a release most days); needs only
 #                                  node + the dev user, so it sits below the apt block
 #  10. COPY scripts                most-edited files, but the cheapest layer
@@ -371,6 +373,41 @@ RUN set -eux; \
     test -d /opt/android-sdk/platforms/android-37.2; \
     test -d /opt/android-sdk/build-tools/36.0.0; \
     chmod -R a+rX /opt/android-sdk
+
+# ── Android emulator + one virtual device (so `sandbox/emulator.sh start` boots at once) ───────────────
+# Its own layers, below the SDK block, so a bump to the SDK pins above never re-downloads the ~1.5 GB
+# image and a change here never re-downloads the SDK. The emulator and the system image are named by
+# package only - sdkmanager has no way to pin a revision, the same as `platform-tools` above - so what
+# is baked is whatever Google serves on the day this layer is built; it is rebuilt only when this text
+# changes, which is how `EMULATOR_API` below moves it.
+#
+# EMULATOR_API is the one place the emulator's Android version is chosen, and it FOLLOWS compileSdk: the
+# API level the app is compiled against (app/android/build.gradle.kts), so the emulator runs the newest
+# Android the project targets. It is written as the image package names it ("37.0": from API 37 even the
+# base release carries a minor; older ones are plain, "34"), and it is the newest stable Google APIs image
+# of compileSdk's API level - Google publishes no image for minor releases such as 37.2, so the emulator
+# can match the level but not the minor. .github/scripts/update_dependency_versions.sh moves it whenever
+# compileSdk moves, fails the run if the two drift apart or sandbox/emulator.sh's fallback disagrees with
+# this value, and fails it if the image is gone from Google's manifest. Google APIs, not Google Play: only
+# the former allows `adb root`, which the Baseline Profile run and the renderer workaround need (see
+# .claude/EMULATOR.md). entrypoint.sh forwards this variable to `dev` (sudo strips the environment).
+#
+# The SDK was installed root-owned, and sdkmanager unpacks the emulator without the other-user execute
+# bit, so the `chmod -R a+rX` at the end is what lets `dev` run it (X grants execute only where someone
+# already had it). The virtual device is made as `dev` - the user that boots it - under dev's own
+# ~/.android/avd, which no volume mounts over. Same `yes | ... || true` shape and for the same reason as
+# the SDK block: the `test` lines are what verify the install, since `yes` dies of SIGPIPE under pipefail.
+ENV EMULATOR_API=37.0
+RUN set -eux; \
+    yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/opt/android-sdk \
+        "emulator" "system-images;android-${EMULATOR_API};google_apis;x86_64" >/dev/null || true; \
+    test -x /opt/android-sdk/emulator/emulator; \
+    test -d "/opt/android-sdk/system-images/android-${EMULATOR_API}/google_apis/x86_64"; \
+    chmod -R a+rX /opt/android-sdk
+RUN runuser -u dev -- env HOME=/home/dev bash -c \
+    'echo no | /opt/android-sdk/cmdline-tools/latest/bin/avdmanager create avd \
+        -n "sandbox-api${EMULATOR_API}" -k "system-images;android-${EMULATOR_API};google_apis;x86_64" -d pixel_6' \
+    && test -d "/home/dev/.android/avd/sandbox-api${EMULATOR_API}.avd"
 
 # ── Playwright Chromium OS shared libs (libnspr4, libnss3, …) ────────────────
 # Baked here rather than re-installed on every sandbox open: as an IMAGE layer
