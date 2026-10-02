@@ -288,6 +288,10 @@ private fun InProgressGame(
         }
     }
     val diceSettling = !settled.value
+    // A roll is in hand from the cup's first shake until its dice have come to rest - the same window
+    // GameBoard holds scoring for. The cup takes no tap in it either (a finger, a phone shake or
+    // Quickfire's auto-roll): the next roll waits until this one's dice have settled.
+    val rollInHand = isRolling || diceSettling
 
     // The last CUP_POUR_LEAD_MILLIS of a shake, a human's or a CPU's: the cup starts pouring then, a
     // few frames ahead of the dice landing (see CupPanelState.pouring). Only while still rolling, so
@@ -353,7 +357,7 @@ private fun InProgressGame(
     // (rollsRemaining hit 0, the tap does nothing for the game itself), and keeping them separate
     // avoids Kotlin inferring this lambda's type from the join of a Job (the launch) and Unit.
     val onCupTap = {
-        if (canRoll && !isRolling) {
+        if (canRoll && !rollInHand) {
             coroutineScope.launch {
                 isTapRolling = true
                 lifecycle.delayWhileResumed(cupShakeMillis)
@@ -361,16 +365,18 @@ private fun InProgressGame(
                 isTapRolling = false
             }
         }
-        if (!canRoll && isHumanTurn && state.rollsRemaining == 0 && !isRolling) {
+        if (!canRoll && isHumanTurn && state.rollsRemaining == 0 && !rollInHand) {
             onTapCupWithNoRollsLeft()
         }
     }
 
     // Quickfire taps the cup for the player as their turn starts - the very same tap, so the shake,
     // sound, haptics and roll are exactly what a real one gives. Keyed on awaitsAutoRoll, which
-    // goes false once the roll lands and true again on the next human turn.
-    LaunchedEffect(state.awaitsAutoRoll) {
-        if (state.awaitsAutoRoll) onCupTap()
+    // goes false once the roll lands and true again on the next human turn - and on rollInHand, so a
+    // turn that starts while the last one's dice are still settling (a timeout scoring the moment
+    // they land) rolls once they have, rather than its tap being ignored and never made again.
+    LaunchedEffect(state.awaitsAutoRoll, rollInHand) {
+        if (state.awaitsAutoRoll && !rollInHand) onCupTap()
     }
 
     // Shaking the phone is just another way to "tap" the cup - same gating, same animation/sound,
@@ -379,7 +385,7 @@ private fun InProgressGame(
     // all while viewing another player's scorecard, matching the cup itself being untappable then.
     val onShakeDetected = {
         if (viewedPlayer == null) {
-            if (canRoll && !isRolling) onShakeRollDetected()
+            if (canRoll && !rollInHand) onShakeRollDetected()
             onCupTap()
         }
     }

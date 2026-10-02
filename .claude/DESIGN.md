@@ -757,7 +757,12 @@ dependencies — most unit tests live here.
   toss is already under way in the frame the new dice arrive - they never appear at rest first.
   **Scoring waits for the dice:** `GameScreen` uses the same tracker to hold `diceSettling` true for
   `DICE_TOSS_MILLIS` after each landing, and `GameBoard` shows no highlights and takes no score
-  taps while a roll is in hand (shaking or settling). The Settings switch "Simple dice roll"
+  taps while a roll is in hand (shaking or settling). **The cup waits too:** `onCupTap` ignores a
+  tap (finger, phone shake or Quickfire's auto-roll) for the same window, so the next roll can't
+  start until this one's dice are at rest, and the cup reads as disabled to TalkBack meanwhile
+  (`CupPanelState.rollInHand`; `GameScreenCupGateTest`). Quickfire's auto-roll is keyed on it as
+  well, so a turn that starts mid-settle rolls once the dice land. The CPU already waited the same
+  `diceTossMillis` after each roll in its own loop. The Settings switch "Simple dice roll"
   (`SettingsRepository.simpleDiceRoll`, off by default) turns all of this back to dice
   flicking through faces in place while rolling, scoring straight away; `GameScreen` provides it as
   `LocalSimpleDiceRoll`.

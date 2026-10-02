@@ -506,7 +506,8 @@ Everything a screen reader needs is added as semantics, never by changing what's
   names, as the Rules pages give them): each die is its own node - "Die 2, 5", held or not, with
   hold/release as its action, since the tray's hand-rolled gesture is invisible to TalkBack; each
   score box is one cleared-and-set node with its name, what it scored or would score, and "Score"
-  as its action; the cup is "Dice cup, 3 rolls left", a Roll button; player tabs are tabs, the
+  as its action; the cup is "Dice cup, 3 rolls left", a Roll button (disabled while a roll is in hand,
+  until its dice settle); player tabs are tabs, the
   scorecard on view selected. `BoardSemanticsTest` pins the dice and score box actions.
 - **Style tiles are radio buttons** (`StylesScreen`): one node each with the style (and colour) name,
   selected state and position in the row (picking a cup shakes and tips it - `CupPickShake` - and picking a die rolls it through all six
@@ -634,7 +635,9 @@ tapping the cup for them as their turn starts (`GameState.awaitsAutoRoll`) - goe
 `GameScreen`'s `onCupTap`: the cup shakes for `CUP_SHAKE_MILLIS`, the shake sound and haptics play,
 then `GameViewModel.rollDice`. A CPU's roll shakes for the same `CUP_SHAKE_MILLIS` (the view model
 sets `aiRolling`, which the screen treats like its own tap) and lands through the same
-`performRoll`. Don't add another way to roll with its own timing or animation - `.claude/
+`performRoll`. No roll starts while another is in hand - from the shake until the dice have settled
+(`rollInHand` in `GameScreen`, the window scoring also waits out): the cup ignores taps then and is
+`disabled()` to TalkBack, and the CPU loop waits out the toss (`diceTossMillis`) before it rolls again. Don't add another way to roll with its own timing or animation - `.claude/
 GAME_MODES.md`'s "Turn flow" has why, and the traps (the AI loop's own copy of the state; Undo
 during the shake).
 

@@ -142,6 +142,7 @@ fun GameBoard(
             tilted = state.phase == TurnPhase.ROLLED,
             rolling = rolling,
             pouring = pouring,
+            rollInHand = rollInHand,
             canUndo = canUndo,
             // Undo is solo-only: with other players it either reaches back into their finished turn
             // or is cleared by the AI's move almost at once.
