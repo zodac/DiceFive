@@ -1,0 +1,54 @@
+name: Pages
+
+# Publishes docs/ (the privacy policy - see .claude/PUBLISHING.md) to GitHub Pages, only when
+# something under docs/ changes on main. This replaces GitHub's built-in "pages-build-deployment",
+# which rebuilds the site on every push to main whatever it touched. For this workflow to be the one
+# that deploys, the repo's Settings -> Pages -> "Build and deployment" -> Source must be set to
+# "GitHub Actions" (not "Deploy from a branch"); the published URL stays the same.
+on:
+  push:
+    branches: [main]
+    paths: ["docs/**"]
+  # For a first deploy after switching the Pages source over, or a re-publish without a docs change.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; a newer push supersedes a queued one, but never cancels one mid-deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+
+      # The same Jekyll build the branch-based deploy ran, so docs/*.md still render as pages.
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./docs
+          destination: ./_site
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
