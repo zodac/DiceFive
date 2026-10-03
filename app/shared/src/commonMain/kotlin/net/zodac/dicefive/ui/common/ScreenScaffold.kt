@@ -101,28 +101,7 @@ fun ScreenScaffold(
             // The backdrop is already drawn behind; the Scaffold only supplies structure, insets
             // and the app bar, so it must not paint its own opaque container over the top.
             containerColor = Color.Transparent,
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontFamily = SoraFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.semantics { heading() },
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        titleContentColor = MaterialTheme.colorScheme.primary,
-                    ),
-                )
-            },
+            topBar = { PageTopBar(title = title, onBack = onBack) },
         ) { innerPadding ->
             // The page's content eases in rather than appearing at once - whatever part of it is a
             // frame or two late (a loaded list, a Styles row centring on its pick) fades in with the
@@ -180,6 +159,39 @@ fun ScreenScaffold(
             }
         }
     }
+}
+
+/**
+ * [ScreenScaffold]'s app bar on its own, for a page that can't take the whole scaffold but still
+ * wants its title where every other page's is (the results screen, whose fireworks go between the
+ * backdrop and the page). With no [onBack] there's no back arrow, and the title stays centred.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PageTopBar(title: String, onBack: (() -> Unit)?, modifier: Modifier = Modifier) {
+    CenterAlignedTopAppBar(
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontFamily = SoraFontFamily,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.semantics { heading() },
+            )
+        },
+        navigationIcon = {
+            if (onBack != null) {
+                IconButton(onClick = onBack) {
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+            titleContentColor = MaterialTheme.colorScheme.primary,
+        ),
+        modifier = modifier,
+    )
 }
 
 /** A [PageColumn]'s side margin, unless the page asks for another. */
