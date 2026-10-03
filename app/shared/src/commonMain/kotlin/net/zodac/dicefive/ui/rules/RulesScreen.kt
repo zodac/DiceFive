@@ -7,6 +7,12 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.rotate
+import net.zodac.dicefive.ui.common.VerticalScrollbar
+import net.zodac.dicefive.ui.game.style.DiceCupStyles
+import net.zodac.dicefive.ui.game.style.DiceStyles
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -83,6 +89,10 @@ private data class RulesPage(val title: String, val tabLabel: String, val blocks
 
 private sealed interface RulesBlock
 
+/** The default cup with a handful of dice tipped out beside it - a picture for a page with no
+ * example rolls of its own, so it doesn't look empty. */
+private data object RulesIllustration : RulesBlock
+
 /** A paragraph of body text. */
 private data class RulesText(val text: String) : RulesBlock
 
@@ -131,6 +141,7 @@ private val RULES_PAGES = listOf(
             text("You may keep any dice you want after a roll, then roll the remaining dice."),
             text("Once you're happy with the roll (or you've rolled three times), score it in any open category on your scorecard."),
             text("The game ends once every category is filled."),
+            RulesIllustration,
         ),
     ),
     RulesPage(
@@ -178,7 +189,7 @@ private val RULES_PAGES = listOf(
         blocks = listOf(
             text("If multiple players end the game with the same score, the following checks are made in order. The first difference decides who wins the tie:"),
             RulesStep(1, "Fewest `5x`"),
-            RulesStep(2, "Most categories scored zero"),
+            RulesStep(2, "Most categories scored **0pts**"),
             RulesStep(3, "Lower *Upper Section* total"),
             RulesStep(4, "Lower `Chance`"),
             RulesStep(5, "Lower `3x`"),
@@ -298,10 +309,15 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         var footerHeightPx by remember { mutableIntStateOf(0) }
         val density = LocalDensity.current
         val pageBottomPadding = with(density) { footerHeightPx.toDp() } + PAGE_FOOTER_GAP
+        // Held here rather than inside each page, so the scrollbar beside the pager can follow whichever
+        // page is showing.
+        val pageScrollStates = remember { List(RULES_PAGES.size) { ScrollState(initial = 0) } }
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+            // A gap between pages wider than the screen's side margin, so a page never shows a sliver
+            // of its neighbour's text at its edge.
+            HorizontalPager(state = pagerState, pageSpacing = PAGE_SPACING, modifier = Modifier.fillMaxSize()) { page ->
                 val rulesPage = RULES_PAGES[page]
-                Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = pageBottomPadding)) {
+                Column(modifier = Modifier.fillMaxSize().verticalScroll(pageScrollStates[page]).padding(bottom = pageBottomPadding)) {
                     Text(
                         text = rulesPage.title,
                         style = MaterialTheme.typography.headlineSmall,
@@ -316,6 +332,14 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     }
                 }
             }
+
+            // In the screen's right-hand margin, beside the text rather than over it (as on Styles),
+            // and only while the page showing is too long to fit.
+            VerticalScrollbar(
+                scrollState = pageScrollStates[pagerState.currentPage],
+                width = SCREEN_MARGIN,
+                modifier = Modifier.align(Alignment.TopEnd).offset(x = SCREEN_MARGIN),
+            )
 
             PageCountFooter(
                 page = pagerState.currentPage,
@@ -365,6 +389,7 @@ private val STEP_INDENT = 24.dp
 private fun RulesBlockView(block: RulesBlock) {
     when (block) {
         is RulesText -> RulesBodyText(block.text, modifier = Modifier.padding(bottom = BLOCK_GAP))
+        RulesIllustration -> RulesIllustrationView(modifier = Modifier.padding(top = 24.dp, bottom = BLOCK_GAP))
         is RulesDice -> RulesDiceRow(block, modifier = Modifier.padding(bottom = BLOCK_GAP))
         is RulesStep -> Column(modifier = Modifier.padding(bottom = BLOCK_GAP).semantics(mergeDescendants = true) {}) {
             Row {
@@ -443,6 +468,60 @@ private fun RulesDice.spokenDescription(): String {
         else -> " The ${ignored.dropLast(1).joinToString(", ")} and ${ignored.last()} don't count."
     }
     return "Example: ${dice.joinToString(", ") { it.spoken() }}.$ignoredSentence Scores ${spokenPoints(score)}."
+}
+
+/** ScreenScaffold's side margin, which the pages' scrollbar sits in. */
+private val SCREEN_MARGIN = 20.dp
+
+/** The gap between two pages of the pager - twice [SCREEN_MARGIN], so neither page's text shows in
+ * the other's margin when they're not quite lined up. */
+private val PAGE_SPACING = SCREEN_MARGIN * 2
+
+/** How tall the cup in [RulesIllustrationView] stands. */
+private val ILLUSTRATION_CUP_HEIGHT = 104.dp
+
+/** How big each die in [RulesIllustrationView] is. */
+private val ILLUSTRATION_DIE_SIZE = 36.dp
+
+/** The dice beside the cup: each one's value, tilt in degrees and drop below the line, in dice -
+ * scattered a little, as if just tipped out. */
+private val ILLUSTRATION_DICE = listOf(
+    Triple(6, -14f, 0.10f),
+    Triple(3, 9f, -0.05f),
+    Triple(5, -4f, 0.20f),
+    Triple(1, 17f, 0.00f),
+    Triple(4, -9f, 0.15f),
+)
+
+/**
+ * The default cup standing beside five of the default dice - decoration only, so it's no TalkBack
+ * stop at all. Drawn still: the cup never shakes and the dice never roll, so reduced motion has
+ * nothing to turn off.
+ */
+@Composable
+private fun RulesIllustrationView(modifier: Modifier = Modifier) {
+    val cupStyle = DiceCupStyles.default
+    val diceStyle = DiceStyles.default
+    val cupWidth = ILLUSTRATION_CUP_HEIGHT * (cupStyle.shape.gridWidth / cupStyle.shape.gridHeight)
+    Row(
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.Center,
+        modifier = modifier.fillMaxWidth().clearAndSetSemantics {},
+    ) {
+        cupStyle.Cup(rolling = false, tilted = false, modifier = Modifier.size(width = cupWidth, height = ILLUSTRATION_CUP_HEIGHT))
+        Spacer(modifier = Modifier.width(12.dp))
+        for ((value, tilt, drop) in ILLUSTRATION_DICE) {
+            diceStyle.Die(
+                value = value,
+                held = false,
+                modifier = Modifier
+                    .padding(horizontal = 2.dp)
+                    .offset(y = ILLUSTRATION_DIE_SIZE * drop)
+                    .size(ILLUSTRATION_DIE_SIZE)
+                    .rotate(tilt),
+            )
+        }
+    }
 }
 
 /** Space between the end of a page's text and the top of the footer, once scrolled to the bottom. */

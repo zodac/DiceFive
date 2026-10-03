@@ -704,6 +704,11 @@ The Game Over fanfare and hold ticks are governed by their own settings, not by 
 
 ## Scrollbars on long lists
 
+Plain scrolling pages (Styles, and each Rules page) use `VerticalScrollbar`, in the page's right-hand
+margin. The Rules pages share one, beside the pager, following whichever page is showing - which is
+why every scrollbar keys its "anything to scroll?" check on the state it's handed: unkeyed, it stayed
+on the first page's answer and never appeared on a longer one.
+
 Every page with a `LazyColumn` that can outgrow the screen (the Leaderboard, Statistics) wraps it
 in a `Box` and overlays `ui/common/Scrollbar.kt`'s `LazyListScrollbar` - written once and shared,
 rather than each screen drawing its own. It's `primary` (the app's gold) on a
