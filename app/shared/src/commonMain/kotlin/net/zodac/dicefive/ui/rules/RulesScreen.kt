@@ -620,12 +620,14 @@ private fun MeasureScope.pagerIndicatorLayout(
     val from = tabPositions[position.toInt()]
     val to = tabPositions[(position.toInt() + 1).coerceAtMost(tabPositions.size - 1)]
     val fraction = position - position.toInt()
-    // Under the label, as the stock indicator sits (matchContentSize), not the whole tab.
+    // Under the label, as the stock indicator sits (matchContentSize), not the whole tab. The
+    // positions a scrollable tab row hands a custom indicator start at the label, not the tab - its
+    // `left` is already in by the tab's padding - so the label's centre is half its width along.
     val width = lerp(from.contentWidth, to.contentWidth, fraction)
-    val centre = lerp(from.left + from.width / 2, to.left + to.width / 2, fraction)
+    val centre = lerp(from.left + from.contentWidth / 2, to.left + to.contentWidth / 2, fraction)
     val widthPx = width.roundToPx()
     val placeable = measurable.measure(constraints.copy(minWidth = widthPx, maxWidth = widthPx))
-    return layout(constraints.maxWidth, placeable.height) {
+    return layout(placeable.width, placeable.height) {
         placeable.place(x = (centre - width / 2).roundToPx(), y = 0)
     }
 }
