@@ -21,6 +21,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.game.style.DiceCupStyle
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
+import net.zodac.dicefive.ui.game.style.LocalCupActivity
+import net.zodac.dicefive.ui.game.style.TreasureChestDiceCupStyle
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -90,7 +92,8 @@ class CupReducedMotionTest {
     fun `every cup tips or opens when its roll lands, even one first drawn already poured`() {
         compose.mainClock.autoAdvance = false
         compose.setContent {
-            CompositionLocalProvider(LocalReduceMotion provides true) {
+            // On a table being played at, as in the game (its dice are what LocalCupActivity carries there).
+            CompositionLocalProvider(LocalReduceMotion provides true, LocalCupActivity provides Unit) {
                 key(redraw) {
                     Box(Modifier.size(104.dp).testTag("cup")) {
                         style.Cup(rolling = false, tilted = tilted, modifier = Modifier.size(style.shape.gridWidth.dp, style.shape.gridHeight.dp))
@@ -105,6 +108,12 @@ class CupReducedMotionTest {
                 redraw++
             }
             val standing = settledShot()
+            // A player has real time at the table before a roll lands, in which the Treasure Chest paints its hoard
+            // on a background thread (see its Cup). The test clock's time isn't real, so give it some.
+            if (cup is TreasureChestDiceCupStyle) {
+                Thread.sleep(PAINTING_MILLIS)
+                settledShot()
+            }
             val landed = assertSnaps("tipping or opening") { set { tilted = true } }
             assertTrue("${style.id} doesn't change when its roll lands", differingPixels(standing, landed) > CHANGED_PIXELS)
             assertSnaps("standing back up or closing") { set { tilted = false } }
@@ -126,6 +135,9 @@ class CupReducedMotionTest {
         const val CHANGED_PIXELS = 100
 
         const val FRAME_MILLIS = 16L
+
+        /** Real time for a cup's background painting before its first roll lands. */
+        const val PAINTING_MILLIS = 300L
 
         /** About half a second of frames: longer than any of the cups' swings, and short of the Top Hat's first rabbit peek. */
         const val FRAMES_WATCHED = 30

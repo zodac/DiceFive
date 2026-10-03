@@ -157,7 +157,11 @@ class TreasureChestDiceCupStyle(override val id: String, private val palette: Ch
         // a chest that's only ever shown closed and still, like a Styles preview that hasn't been picked.
         var canvasSize by remember { mutableStateOf(IntSize.Zero) }
         var hoardWanted by remember { mutableStateOf(false) }
-        if (rolling || tilted) hoardWanted = true
+        // Under reduced motion there's no shake to start it on, so it starts with the chest on a table being played
+        // at (LocalCupActivity), well before a roll lands - else the lid could open on an empty chest, the treasure
+        // popping in after.
+        val atTable = LocalCupActivity.current != null
+        if (rolling || tilted || (reduceMotion && atTable)) hoardWanted = true
         val hoard by rememberHoardArt(id, palette, if (hoardWanted) canvasSize else IntSize.Zero)
         val shakeWeight by animateFloatAsState(if (rolling) 1f else 0f, tween(SHAKE_FADE_MILLIS), label = "chestShakeFade")
         // The shake's clock only exists while it counts, so a still chest asks for no frames.
