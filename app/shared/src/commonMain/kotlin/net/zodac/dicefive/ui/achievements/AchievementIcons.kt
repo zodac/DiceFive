@@ -216,7 +216,7 @@ val Achievement.icon: ImageVector
         // read of a last-round comeback, so this is the requested fallback: a plain cowboy hat.
         Achievement.COMEBACK -> vectorResource(Res.drawable.ic_cowboy_hat)
         Achievement.BEAT_THREE_AI -> Icons.Filled.EmojiPeople
-        Achievement.I_ROBOT -> Icons.Filled.SmartToy
+        Achievement.NATURAL_INTELLIGENCE -> Icons.Filled.SmartToy
         Achievement.NATURALLY_GIFTED -> Icons.Filled.Spa
 
         // ---- Game modes ---------------------------------------------------------------------------
@@ -234,7 +234,7 @@ val Achievement.icon: ImageVector
         Achievement.SCRATCHED_5X -> Icons.Filled.Cancel
         Achievement.DICE_HATE_ME -> Icons.Filled.SentimentVeryDissatisfied
         Achievement.ALMOST_FAMOUS -> Icons.Filled.HeartBroken
-        Achievement.SINGULARITY -> Icons.Filled.Android
+        Achievement.I_ROBOT -> Icons.Filled.Android
         Achievement.PIPPED_TO_THE_POST -> Icons.Filled.Timer
         Achievement.JAWS_OF_VICTORY -> Icons.Filled.PriorityHigh
         Achievement.SCORE_UNDER_100 -> Icons.Filled.AcUnit

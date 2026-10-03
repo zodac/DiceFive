@@ -124,7 +124,7 @@ enum class Achievement(
     val isCareerPoints: Boolean = false,
     /**
      * Whether [COMPLETIONIST] waits on this one. False for [COMPLETIONIST] itself, and for
-     * anything that cannot currently be earned at all - see [I_ROBOT].
+     * anything that cannot currently be earned at all - see [NATURAL_INTELLIGENCE].
      */
     val countsTowardCompletion: Boolean = true,
     /** See [AchievementVisibility]. Defaults to fully visible, which is the vast majority. */
@@ -311,8 +311,8 @@ enum class Achievement(
         AchievementCategory.WINNING,
     ),
 
-    I_ROBOT(
-        "i_robot", "I, Robot", "Win a four-player game against three Hard CPU players",
+    NATURAL_INTELLIGENCE(
+        "natural_intelligence", "Natural Intelligence", "Win a four-player game against three Hard CPU players",
         AchievementCategory.WINNING,
     ),
     NATURALLY_GIFTED(
@@ -359,8 +359,8 @@ enum class Achievement(
         "almost_famous", "Almost Famous", "Hold a first-roll 4x all the way to the last roll, but never land the 5x",
         AchievementCategory.MISFORTUNE,
     ),
-    SINGULARITY(
-        "singularity", "Singularity", "Lose a game to a CPU player",
+    I_ROBOT(
+        "i_robot", "I, Robot", "Lose a game to a CPU player",
         AchievementCategory.MISFORTUNE,
     ),
     PIPPED_TO_THE_POST(
@@ -577,10 +577,10 @@ enum class Achievement(
     // Unlike every other category, these run alphabetically by title rather than easiest-first -
     // there's no ladder among easter eggs to keep in order. AchievementEngineTest holds them to it.
     //
-    // Excluded from COMPLETIONIST the same way I_ROBOT was while it couldn't be earned - naming
-    // yourself after the creator, or a human P2/P3/P4 named exactly "zodac" (case-sensitive, never
-    // P1, who's always the human player at this device), isn't something every player could
-    // reasonably be expected to stumble into on the way to 100%.
+    // Excluded from COMPLETIONIST the same way NATURAL_INTELLIGENCE was while it couldn't be
+    // earned - naming yourself after the creator, or a human P2/P3/P4 named exactly "zodac"
+    // (case-sensitive, never P1, who's always the human player at this device), isn't something
+    // every player could reasonably be expected to stumble into on the way to 100%.
     BIG_FAN(
         "big_fan", "Big Fan", "Play a 1v1 game against the creator",
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
