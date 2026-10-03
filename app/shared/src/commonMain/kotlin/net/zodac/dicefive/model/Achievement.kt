@@ -587,7 +587,7 @@ enum class Achievement(
     ),
     // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the
     // Flowerpot grows a plant, let alone that using every roll of every turn brings it into bloom.
-    // Never in a mode with fewer than 39 rolls a game (Quickfire), where it can't bloom at all.
+    // Never in a mode without 3 rolls a turn (Quickfire), where it can't bloom at all.
     GREENFINGERS(
         "greenfingers", "Greenfingers", "Grow a Sunflower",
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,

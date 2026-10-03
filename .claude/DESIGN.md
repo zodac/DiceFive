@@ -309,10 +309,13 @@ decisions behind it. Read that before changing anything visual.
   Easter egg: the Flowerpot's plant grows with the current player's rolls (`PlayerState.rollCount`,
   counted by `GameEngine.rollDice` and saved with the game) - bare soil, the seedling, a stalk with
   a bud, green petals pushing out of the bud, then a yellow sunflower (`flowerpotGrowthStage`). The
-  first three come at 10, 20 and 30 rolls in every mode; the bloom at `rollsToBloom` - every roll of
-  the game (`GameMode.maxRollsPerGame`, declared per mode like `maxPossibleScore`) but never fewer
-  than 39. So it only blooms for a player who uses every roll of every turn: 39 in Standard, 51 in
-  Tricolour, and never in Quickfire (13 rolls, so it stops at the seedling). `GameBoard` hands the
+  stages are spread evenly over every roll of the game (`GameMode.maxRollsPerGame`, declared per mode
+  like `maxPossibleScore`): stage k at `ceil(k * maxRollsPerGame / 4)` rolls, worked in integers -
+  10, 20, 30 in Standard's 39, 13, 26, 39 in Tricolour's 51. The bloom is not on that schedule: it
+  comes only once the count reaches `maxRollsPerGame`, so rounding can never bring it early, and
+  only in a mode with 3 rolls a turn (`growsSunflower`). So it only blooms for a player who uses
+  every roll of every turn: the 39th in Standard, the 51st in Tricolour, and never in Quickfire (one
+  roll a turn - its plant grows over its 13 rolls but stops at the bud opening). `GameBoard` hands the
   cup a `FlowerpotGrowth` (stage plus whose plant it is) through `LocalFlowerpotGrowth`: the same
   player's plant grows into its next stage over `PLANT_GROW_MILLIS`, a different player's replaces
   it outright. The bloom stands well above the pot, into the room over the cup on the board (the
