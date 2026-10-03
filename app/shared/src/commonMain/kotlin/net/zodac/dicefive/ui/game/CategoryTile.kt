@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -75,6 +76,8 @@ fun CategoryTile(
     compact: Boolean = false,
     scored: Boolean = false,
     fiveOfAKindBonusCount: Int = 0,
+    /** A solid outline in this colour in place of the usual border - the box a player last scored in (see [LastScoredHighlight]). */
+    outlineColor: Color? = null,
     onClick: (() -> Unit)? = null,
 ) {
     val irishTricolour = LocalIrishTricolour.current
@@ -113,7 +116,13 @@ fun CategoryTile(
                     Modifier
                 },
             )
-            .then(if (highlighted) Modifier else Modifier.border(width = 1.dp, color = borderColor, shape = shape))
+            .then(
+                when {
+                    highlighted -> Modifier
+                    outlineColor != null -> Modifier.border(width = 2.dp, color = outlineColor, shape = shape)
+                    else -> Modifier.border(width = 1.dp, color = borderColor, shape = shape)
+                },
+            )
             .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {

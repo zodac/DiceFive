@@ -126,6 +126,18 @@ class GameEngineTest {
     }
 
     @Test
+    fun `commitScore records the box it scored in as the player's lastScoredCategory`() {
+        var state = GameEngine.commitScore(GameEngine.rollDice(GameEngine.newGame(twoPlayers)), ScoreCategory.CHANCE)
+        assertEquals(ScoreCategory.CHANCE, state.players[0].lastScoredCategory)
+        assertEquals(null, state.players[1].lastScoredCategory)
+
+        // Each turn replaces the last.
+        state = GameEngine.commitScore(GameEngine.rollDice(state), ScoreCategory.CHANCE)
+        state = GameEngine.commitScore(GameEngine.rollDice(state), ScoreCategory.FOUR_OF_A_KIND)
+        assertEquals(ScoreCategory.FOUR_OF_A_KIND, state.players[0].lastScoredCategory)
+    }
+
+    @Test
     fun `rollDice counts each roll towards the rolling player only - across turns`() {
         var state = GameEngine.rollDice(GameEngine.newGame(twoPlayers))
         state = GameEngine.rollDice(state)
