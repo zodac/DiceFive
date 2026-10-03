@@ -3,10 +3,8 @@ package net.zodac.dicefive.device
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Paint
 import android.graphics.Rect
-import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.text.Selection
 import android.text.Spannable
@@ -15,9 +13,8 @@ import android.text.Spanned
 import android.text.TextPaint
 import android.text.style.ClickableSpan
 import android.text.style.ForegroundColorSpan
-import android.text.style.LineBackgroundSpan
 import android.text.style.RelativeSizeSpan
-import android.text.style.StyleSpan
+import android.text.style.TypefaceSpan
 import android.text.style.URLSpan
 import android.util.TypedValue
 import android.view.ContextMenu
@@ -25,7 +22,9 @@ import android.view.GestureDetector
 import android.view.Menu
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewTreeObserver
+import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
@@ -89,27 +88,37 @@ internal data class DocumentStyle(
     val text: Int,
     val secondaryText: Int,
     val accent: Int,
-    val divider: Int,
+    /** Each licence card's fill. */
+    val card: Int,
     /** A heading's size relative to the body text (titleMedium / bodyMedium). */
     val headingScale: Float,
     /** Secondary text's size relative to the body text (bodySmall / bodyMedium). */
     val smallScale: Float,
 )
 
+/** One card of the licence report: [key] names it (a licence's name, or [NOTICES_KEY]), and [text]
+ * is everything on it. */
+internal class LicenceCard(val key: String, val text: SpannableStringBuilder)
+
+internal const val NOTICES_KEY = "Notices"
+
 /**
- * The whole licence report as one piece of styled text: headings, rows, credits and (when expanded)
- * each licence's full text. One text, rather than a view per row, because only within a single
- * TextView can a selection be dragged across rows - so any run of it, or all of it, can be copied in
- * one go. Each licence's text is folded away behind a "Show licence text" toggle ([expanded] holds the
- * licence names currently shown; [onToggle] flips one).
+ * The licence report as one piece of styled text per card: one card per licence - its heading,
+ * "Show licence text" toggle, (when expanded) the full text, and every item under it - then one for
+ * the notices. One text per card, rather than a view per row, because within a single TextView a
+ * selection can be dragged across rows - so any run of a card, or all of it, can be copied in one go -
+ * while separate TextViews keep a selection from running on into the next licence. Each licence's
+ * text is folded away behind its toggle ([expanded] holds the licence names currently shown;
+ * [onToggle] flips one).
  */
-internal fun buildLicenceDocument(
+internal fun buildLicenceCards(
     report: LicenseReport,
     expanded: Set<String>,
     style: DocumentStyle,
     onToggle: (String) -> Unit,
-): SpannableStringBuilder {
-    val doc = SpannableStringBuilder()
+): List<LicenceCard> {
+    val cards = mutableListOf<LicenceCard>()
+    lateinit var doc: SpannableStringBuilder
 
     fun appendStyled(text: CharSequence, vararg spans: Any) {
         val start = doc.length
@@ -127,70 +136,73 @@ internal fun buildLicenceDocument(
 
     fun gap() = appendStyled("\n", RelativeSizeSpan(0.5f))
 
-    fun divider() = appendStyled(" \n", DividerSpan(style.divider), RelativeSizeSpan(0.9f))
-
-    fun heading(title: String, subtitle: String) {
-        if (doc.isNotEmpty()) divider()
-        appendStyled(title, StyleSpan(Typeface.BOLD), ForegroundColorSpan(style.accent), RelativeSizeSpan(style.headingScale))
+    /** Starts a new card with its heading, as titleMedium is drawn: medium weight, in the text colour. */
+    fun card(key: String, title: String, subtitle: String, content: () -> Unit) {
+        doc = SpannableStringBuilder()
+        appendStyled(title, TypefaceSpan("sans-serif-medium"), ForegroundColorSpan(style.text), RelativeSizeSpan(style.headingScale))
         doc.append('\n')
         appendStyled(subtitle, ForegroundColorSpan(style.secondaryText), RelativeSizeSpan(style.smallScale))
         doc.append('\n')
+        content()
+        // No trailing newline: it would only add an empty line to the bottom of the card.
+        while (doc.endsWith("\n")) doc.delete(doc.length - 1, doc.length)
+        cards += LicenceCard(key, doc)
     }
 
     for (group in report.groups) {
-        heading(group.name, group.usage)
-        val isExpanded = group.name in expanded
-        appendStyled(
-            if (isExpanded) "Hide licence text" else "Show licence text",
-            ToggleSpan(style.accent) { onToggle(group.name) },
-            RelativeSizeSpan(style.smallScale),
-        )
-        doc.append('\n')
-        if (isExpanded) {
-            gap()
-            appendLinked(linkifyUrls(group.text), ForegroundColorSpan(style.secondaryText), RelativeSizeSpan(style.smallScale))
+        card(group.name, group.name, group.usage) {
+            val isExpanded = group.name in expanded
+            appendStyled(
+                if (isExpanded) "Hide licence text" else "Show licence text",
+                ToggleSpan(style.accent) { onToggle(group.name) },
+                RelativeSizeSpan(style.smallScale),
+            )
             doc.append('\n')
-        }
-        gap()
-        for (component in group.components) {
-            val nameStart = doc.length
-            doc.append(component.name)
-            component.website?.let { website ->
-                doc.setSpan(URLSpan(website), nameStart, doc.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            }
-            if (component.version != null) appendStyled("  ${component.version}", ForegroundColorSpan(style.secondaryText))
-            doc.append('\n')
-            component.copyright?.let { copyright ->
-                appendLinked(
-                    linkifyUrls(copyright),
-                    ForegroundColorSpan(style.secondaryText),
-                    RelativeSizeSpan(style.smallScale),
-                )
+            if (isExpanded) {
+                gap()
+                appendLinked(linkifyUrls(group.text), ForegroundColorSpan(style.secondaryText), RelativeSizeSpan(style.smallScale))
                 doc.append('\n')
+            }
+            gap()
+            for (component in group.components) {
+                val nameStart = doc.length
+                doc.append(component.name)
+                component.website?.let { website ->
+                    doc.setSpan(URLSpan(website), nameStart, doc.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                }
+                if (component.version != null) appendStyled("  ${component.version}", ForegroundColorSpan(style.secondaryText))
+                doc.append('\n')
+                component.copyright?.let { copyright ->
+                    appendLinked(
+                        linkifyUrls(copyright),
+                        ForegroundColorSpan(style.secondaryText),
+                        RelativeSizeSpan(style.smallScale),
+                    )
+                    doc.append('\n')
+                }
             }
         }
     }
     if (report.notices.isNotEmpty()) {
-        heading("Notices", "Attribution notices shipped with the libraries above")
-        gap()
-        for (notice in report.notices) {
-            doc.append(notice.library).append('\n')
-            appendLinked(linkifyUrls(notice.text), ForegroundColorSpan(style.secondaryText), RelativeSizeSpan(style.smallScale))
-            doc.append('\n')
+        card(NOTICES_KEY, "Notices", "Attribution notices shipped with the libraries above") {
             gap()
+            for (notice in report.notices) {
+                doc.append(notice.library).append('\n')
+                appendLinked(linkifyUrls(notice.text), ForegroundColorSpan(style.secondaryText), RelativeSizeSpan(style.smallScale))
+                doc.append('\n')
+                gap()
+            }
         }
     }
-    // No trailing newline: it would only add an empty line to the end of the scroll.
-    while (doc.endsWith("\n")) doc.delete(doc.length - 1, doc.length)
-    return doc
+    return cards
 }
 
 /**
- * The licence report, selectable end to end: one platform TextView (in a platform ScrollView), not
- * Compose text, because the platform already does what a licence page needs and Compose can't -
- * a long press selects (a whole URL, via smart selection) and brings up the system's own Copy /
- * Share / Select all toolbar, the selection drags across the whole document (scrolling as it goes),
- * and TalkBack sees every link. A tap on a link opens it, and on a "Show licence text" toggle flips
+ * The licence report as a column of cards, each one platform TextView (all in one platform
+ * ScrollView), not Compose text, because the platform already does what a licence page needs and
+ * Compose can't - a long press selects (a whole URL, via smart selection) and brings up the system's
+ * own Copy / Share / Select all toolbar, the selection drags across a whole card (scrolling as it
+ * goes) but no further, and TalkBack sees every link. A tap on a link opens it, and on a "Show licence text" toggle flips
  * it - unless a selection was showing, in which case the tap just dismisses the selection.
  *
  * (Compose was tried first and failed on device: its LinkAnnotation opens on every press inside a
@@ -208,12 +220,12 @@ internal fun TextViewLicenceDocument(report: LicenseReport, modifier: Modifier =
         text = colors.onSurface.toArgb(),
         secondaryText = colors.onSurfaceVariant.toArgb(),
         accent = colors.primary.toArgb(),
-        divider = colors.outlineVariant.toArgb(),
+        card = colors.surfaceContainerHighest.toArgb(),
         headingScale = typography.titleMedium.fontSize.value / typography.bodyMedium.fontSize.value,
         smallScale = typography.bodySmall.fontSize.value / typography.bodyMedium.fontSize.value,
     )
-    val document = remember(report, expanded, style) {
-        buildLicenceDocument(report, expanded.toSet(), style) { name ->
+    val cards = remember(report, expanded, style) {
+        buildLicenceCards(report, expanded.toSet(), style) { name ->
             expanded = if (name in expanded) expanded - name else expanded + name
         }
     }
@@ -227,35 +239,58 @@ internal fun TextViewLicenceDocument(report: LicenseReport, modifier: Modifier =
         // draws through a clipped layer).
         modifier = modifier.clipToBounds(),
         factory = { context ->
-            val text = LinkTextView(context).apply {
-                setTextIsSelectable(true)
-                (clearer as? TextViewSelectionClearer)?.register(this)
-                onTap = onTap@{ event ->
-                    if (clearer?.consumeDismissedTap() == true || hasSelection()) return@onTap false
-                    when (val span = clickableSpanAt(event)) {
-                        null -> false
-                        is URLSpan -> true.also { uriHandler.openUri(span.url) }
-                        else -> true.also { span.onClick(this) }
-                    }
-                }
-            }
             DocumentScrollView(context).apply {
                 isVerticalScrollBarEnabled = true
-                addView(text)
+                addView(LinearLayout(context).apply { orientation = LinearLayout.VERTICAL })
             }
         },
-        onRelease = { scroll -> (scroll.getChildAt(0) as? TextView)?.let { (clearer as? TextViewSelectionClearer)?.unregister(it) } },
+        onRelease = { scroll ->
+            val column = scroll.getChildAt(0) as ViewGroup
+            for (i in 0 until column.childCount) (clearer as? TextViewSelectionClearer)?.unregister(column.getChildAt(i) as TextView)
+        },
         update = { scroll ->
-            val view = scroll.getChildAt(0) as LinkTextView
-            if (view.text !== document) {
+            val column = scroll.getChildAt(0) as LinearLayout
+            val density = scroll.resources.displayMetrics.density
+            // One card per licence, and the licences don't change once loaded, so this only adds them
+            // the first time; after that it's only a card's text that changes.
+            while (column.childCount < cards.size) {
+                column.addView(
+                    newCardView(column.context, uriHandler::openUri, clearer),
+                    LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT),
+                )
+            }
+            while (column.childCount > cards.size) {
+                (clearer as? TextViewSelectionClearer)?.unregister(column.getChildAt(column.childCount - 1) as TextView)
+                column.removeViewAt(column.childCount - 1)
+            }
+            val scrollY = scroll.scrollY
+            var changed = false
+            cards.forEachIndexed { index, card ->
+                val view = column.getChildAt(index) as LinkTextView
+                (view.layoutParams as LinearLayout.LayoutParams).bottomMargin = if (index == cards.lastIndex) 0 else (CARD_GAP_DP * density).toInt()
+                if (view.text !== card.text) {
+                    changed = true
+                    view.setText(card.text, TextView.BufferType.SPANNABLE)
+                    // setText leaves the cursor at 0, and a focused TextView with a cursor scrolls to it
+                    // whenever it next lays out or is touched - a jump back to the top of the card.
+                    Selection.removeSelection(view.text as Spannable)
+                }
+                view.background = GradientDrawable().apply {
+                    setColor(style.card)
+                    cornerRadius = CARD_CORNER_DP * density
+                }
+                val padding = (CARD_PADDING_DP * density).toInt()
+                view.setPadding(padding, padding, padding, padding)
+                view.setTextColor(style.text)
+                view.setLinkTextColor(style.accent)
+                view.setTextSize(TypedValue.COMPLEX_UNIT_SP, bodySize)
+                view.setLineSpacing(2f * density, 1f)
+                view.tintSelection(accent)
+            }
+            if (changed) {
                 // Setting new text on a selectable TextView moves its cursor to 0 and scrolls that into
-                // view, snapping the list to the top whenever a licence is shown or hidden. Put the
-                // scroll back before the next frame is drawn, so there's no visible jump.
-                val scrollY = scroll.scrollY
-                view.setText(document, TextView.BufferType.SPANNABLE)
-                // setText leaves the cursor at 0, and a focused TextView with a cursor scrolls to it
-                // whenever it next lays out or is touched - the jump that came back once scrolling resumed.
-                Selection.removeSelection(view.text as Spannable)
+                // view, snapping the list up whenever a licence is shown or hidden. Put the scroll back
+                // before the next frame is drawn, so there's no visible jump.
                 scroll.viewTreeObserver.addOnPreDrawListener(
                     object : ViewTreeObserver.OnPreDrawListener {
                         override fun onPreDraw(): Boolean {
@@ -269,11 +304,6 @@ internal fun TextViewLicenceDocument(report: LicenseReport, modifier: Modifier =
                     },
                 )
             }
-            view.setTextColor(style.text)
-            view.setLinkTextColor(style.accent)
-            view.setTextSize(TypedValue.COMPLEX_UNIT_SP, bodySize)
-            view.setLineSpacing(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2f, view.resources.displayMetrics), 1f)
-            view.tintSelection(accent)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 scroll.verticalScrollbarThumbDrawable = accent.toArgb().toDrawable()
             }
@@ -281,15 +311,43 @@ internal fun TextViewLicenceDocument(report: LicenseReport, modifier: Modifier =
     )
 }
 
+/** Matches the M3 Card's medium shape and the 16dp padding and gaps of the cards elsewhere (About). */
+private const val CARD_CORNER_DP = 12f
+private const val CARD_PADDING_DP = 16f
+private const val CARD_GAP_DP = 16f
+
+/** One card's selectable text: a tap on a link opens it, on a toggle flips it - unless a selection was
+ * showing (in any card), in which case the tap only dismisses it. */
+private fun newCardView(context: Context, openUri: (String) -> Unit, clearer: SelectionClearer?): LinkTextView =
+    LinkTextView(context).apply {
+        setTextIsSelectable(true)
+        (clearer as? TextViewSelectionClearer)?.register(this)
+        onTap = onTap@{ event ->
+            if (clearer?.consumeDismissedTap() == true || hasSelection()) return@onTap false
+            when (val span = clickableSpanAt(event)) {
+                null -> false
+                is URLSpan -> true.also { openUri(span.url) }
+                else -> true.also { span.onClick(this) }
+            }
+        }
+    }
+
 /**
- * A ScrollView that won't scroll to bring a rectangle taller than itself on screen. When its one child
- * (the whole document) takes focus - as a tap on a "Show licence text" toggle makes it - a plain
- * ScrollView scrolls to show that child, which for a child this long means putting its top in view.
- * A cursor or drag-handle rectangle is a line tall, so scrolling while a selection is dragged is unaffected.
+ * A ScrollView that won't scroll just to bring a whole card on screen. When a card takes focus - as a
+ * tap on a "Show licence text" toggle makes it - a plain ScrollView scrolls to show all of that card,
+ * which for one taller than the screen means putting its top in view, and for a shorter one partly
+ * off screen means a jump nobody asked for. A cursor or drag-handle rectangle is a line tall, so
+ * scrolling while a selection is dragged is unaffected.
  */
 private class DocumentScrollView(context: Context) : ScrollView(context) {
     override fun computeScrollDeltaToGetChildRectOnScreen(rect: Rect): Int =
-        if (rect.height() > height) 0 else super.computeScrollDeltaToGetChildRectOnScreen(rect)
+        if (rect.height() > height || isWholeCard(rect)) 0 else super.computeScrollDeltaToGetChildRectOnScreen(rect)
+
+    /** Whether [rect] (in the scroll's content coordinates, which are the card column's) is a whole card. */
+    private fun isWholeCard(rect: Rect): Boolean {
+        val column = getChildAt(0) as? ViewGroup ?: return false
+        return (0 until column.childCount).map(column::getChildAt).any { it.top == rect.top && it.bottom == rect.bottom }
+    }
 }
 
 /** Selection highlight - and, where the platform allows (API 29+), the drag handles - in [accent],
@@ -298,33 +356,6 @@ private fun TextView.tintSelection(accent: Color) {
     highlightColor = accent.copy(alpha = 0.35f).toArgb()
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         listOfNotNull(textSelectHandle, textSelectHandleLeft, textSelectHandleRight).forEach { it.mutate().setTint(accent.toArgb()) }
-    }
-}
-
-/** A full-width rule through the middle of its (otherwise blank) line - the text's divider. */
-private class DividerSpan(private val color: Int) : LineBackgroundSpan {
-    override fun drawBackground(
-        canvas: Canvas,
-        paint: Paint,
-        left: Int,
-        right: Int,
-        top: Int,
-        baseline: Int,
-        bottom: Int,
-        text: CharSequence,
-        start: Int,
-        end: Int,
-        lineNumber: Int,
-    ) {
-        val oldColor = paint.color
-        paint.color = color
-        val middle = (top + bottom) / 2f
-        canvas.drawRect(left.toFloat(), middle - 0.5f * DIVIDER_PX, right.toFloat(), middle + 0.5f * DIVIDER_PX, paint)
-        paint.color = oldColor
-    }
-
-    private companion object {
-        const val DIVIDER_PX = 2f
     }
 }
 

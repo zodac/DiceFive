@@ -24,6 +24,8 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -180,13 +182,14 @@ fun LicensesDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) 
                         fontFamily = SoraFontFamily,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.semantics { heading() },
                     )
                     Text(
                         text = "DiceFive is built with the open-source software, fonts and sounds below, each used " +
                             "under the licence it's listed with.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+                        modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
                     )
 
                     val loaded = report

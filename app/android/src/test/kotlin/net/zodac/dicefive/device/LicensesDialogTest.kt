@@ -11,6 +11,7 @@ import android.text.Spanned
 import android.text.style.URLSpan
 import android.view.ContextMenu
 import android.view.MotionEvent
+import android.view.ViewGroup
 import android.view.ViewConfiguration
 import android.widget.ScrollView
 import android.widget.TextView
@@ -43,7 +44,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The Licences dialog's touch handling, on the real platform TextView it renders the report with -
+ * The Licences dialog's touch handling, on the real platform TextViews it renders the report with - one
+ * per licence card -
  * run under Robolectric, as the sandbox has no device or emulator. Robolectric doesn't simulate the
  * platform's own long-press text selection, so that part (and its Copy / Share toolbar) is
  * device-only; everything the app itself adds is covered here.
@@ -59,6 +61,7 @@ class LicensesDialogTest {
 
     private val application: Application = ApplicationProvider.getApplicationContext()
 
+    /** The Apache-2.0 card - the first, and the one most of these tests work in. */
     private lateinit var document: TextView
 
     private fun showDialog() {
@@ -79,29 +82,39 @@ class LicensesDialogTest {
         return found
     }
 
-    /** Presses [document] at the middle of the first character of [target] - held for [holdMillis]. */
-    private fun press(target: String, holdMillis: Long = 50) {
-        val offset = document.text.indexOf(target)
-        check(offset >= 0) { "\"$target\" isn't in the document" }
-        val layout = document.layout
+    /** Every card, top to bottom - the TextViews in the column the scroll view holds. */
+    private fun cards(): List<TextView> {
+        val column = document.parent as ViewGroup
+        return (0 until column.childCount).map { column.getChildAt(it) as TextView }
+    }
+
+    /** The one card whose text contains [text]. */
+    private fun cardWith(text: String): TextView = cards().single { it.text.contains(text) }
+
+    /** Presses [card] (by default, the one card holding [target]) at the middle of [target]'s first
+     * character - held for [holdMillis]. */
+    private fun press(target: String, holdMillis: Long = 50, card: TextView = cardWith(target)) {
+        val offset = card.text.indexOf(target)
+        val layout = card.layout
         val line = layout.getLineForOffset(offset)
-        val x = layout.getPrimaryHorizontal(offset) + 2f + document.totalPaddingLeft
-        val y = (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f + document.totalPaddingTop
+        val x = layout.getPrimaryHorizontal(offset) + 2f + card.totalPaddingLeft
+        val y = (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f + card.totalPaddingTop
         val downTime = SystemClock.uptimeMillis()
         compose.runOnUiThread {
-            document.dispatchTouchEvent(MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, x, y, 0))
+            card.dispatchTouchEvent(MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, x, y, 0))
         }
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(holdMillis))
         compose.runOnUiThread {
-            document.dispatchTouchEvent(MotionEvent.obtain(downTime, downTime + holdMillis, MotionEvent.ACTION_UP, x, y, 0))
+            card.dispatchTouchEvent(MotionEvent.obtain(downTime, downTime + holdMillis, MotionEvent.ACTION_UP, x, y, 0))
         }
         compose.waitForIdle()
     }
 
-    private fun select(from: String, to: String) {
+    /** Selects from [from] to [to] in [card]. */
+    private fun select(from: String, to: String, card: TextView = document) {
         compose.runOnUiThread {
-            document.requestFocus()
-            val text = document.text
+            card.requestFocus()
+            val text = card.text
             Selection.setSelection(text as Spannable, text.indexOf(from), text.indexOf(to) + to.length)
         }
     }
@@ -120,12 +133,13 @@ class LicensesDialogTest {
     @Test
     fun `long-pressing a link offers Copy link and Copy text, instead of selecting or opening it`() {
         showDialog()
+        val card = cardWith(PROTOBUF)
         var menu: ContextMenu? = null
-        compose.runOnUiThread { document.setOnCreateContextMenuListener { built, _, _ -> menu = built } }
+        compose.runOnUiThread { card.setOnCreateContextMenuListener { built, _, _ -> menu = built } }
 
         press(PROTOBUF, holdMillis = ViewConfiguration.getLongPressTimeout() + 200L)
 
-        assertFalse(document.hasSelection())
+        assertFalse(card.hasSelection())
         assertNull(shadowOf(application).nextStartedActivity)
         val shown = checkNotNull(menu) { "No context menu was shown" }
         assertEquals(listOf("Copy link", "Copy text"), (0 until shown.size()).map { shown.getItem(it).title.toString() })
@@ -143,7 +157,7 @@ class LicensesDialogTest {
         var menu: ContextMenu? = null
         compose.runOnUiThread { document.setOnCreateContextMenuListener { built, _, _ -> menu = built } }
 
-        press("Used by", holdMillis = ViewConfiguration.getLongPressTimeout() + 200L)
+        press("Used by", holdMillis = ViewConfiguration.getLongPressTimeout() + 200L, card = document)
 
         // The platform always asks for a context menu on a long press; an empty one isn't shown, and
         // the press falls through to the TextView's own selection.
@@ -155,31 +169,51 @@ class LicensesDialogTest {
         showDialog()
         assertFalse(document.text.contains(APACHE_TEXT))
 
-        press("Show licence text")
+        press("Show licence text", card = document)
         assertTrue(document.text.contains(APACHE_TEXT))
 
         // A second tap inside the double-tap window is the TextView's own double-tap (select a word).
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(ViewConfiguration.getDoubleTapTimeout() + 100L))
-        press("Hide licence text")
+        press("Hide licence text", card = document)
         assertFalse(document.text.contains(APACHE_TEXT))
     }
 
     @Test
-    fun `one selection can span rows and licences`() {
+    fun `one selection can span a card's rows`() {
         showDialog()
 
-        select(from = "Apache License 2.0", to = PROTOBUF)
+        select(from = "Apache License 2.0", to = COMPOSE_UI)
 
         val selected = document.text.subSequence(document.selectionStart, document.selectionEnd).toString()
         assertTrue(selected.startsWith("Apache License 2.0"))
         assertTrue(selected.contains("Compose Material3 Components"))
-        assertTrue(selected.endsWith(PROTOBUF))
+        assertTrue(selected.endsWith(COMPOSE_UI))
+    }
+
+    @Test
+    fun `each licence is its own card, so a selection can't run on into the next`() {
+        showDialog()
+
+        val cards = cards()
+        assertTrue("Expected a card per licence, got ${cards.size}", cards.size > 1)
+        // Each card opens with its own heading - no licence is split across two.
+        val headings = cards.map { it.text.lines().first() }
+        assertEquals(headings.distinct(), headings)
+        assertFalse(document.text.contains(PROTOBUF))
+
+        compose.runOnUiThread {
+            document.requestFocus()
+            Selection.selectAll(document.text as Spannable)
+        }
+        val selected = document.text.subSequence(document.selectionStart, document.selectionEnd).toString()
+        assertTrue(selected.startsWith("Apache License 2.0"))
+        assertFalse(selected.contains(PROTOBUF))
     }
 
     @Test
     fun `tapping elsewhere clears a selection`() {
         showDialog()
-        select(from = "Apache License 2.0", to = PROTOBUF)
+        select(from = "Apache License 2.0", to = COMPOSE_UI)
         assertTrue(document.hasSelection())
 
         compose.onNodeWithText("Licences").performClick()
@@ -191,18 +225,19 @@ class LicensesDialogTest {
     @Test
     fun `tapping a link while text is selected only clears the selection`() {
         showDialog()
-        select(from = "Apache License 2.0", to = "Apache License 2.0")
+        val card = cardWith(PROTOBUF)
+        select(from = PROTOBUF, to = PROTOBUF, card = card)
 
         press(PROTOBUF)
 
-        assertFalse(document.hasSelection())
+        assertFalse(card.hasSelection())
         assertNull(shadowOf(application).nextStartedActivity)
     }
 
     /** The URL linked from [linkText] in the document - read from the text, not hard-coded, as it
      * carries the library's version. */
     private fun linkUrl(linkText: String): String {
-        val text = document.text as Spanned
+        val text = cardWith(linkText).text as Spanned
         val offset = text.indexOf(linkText)
         return text.getSpans(offset, offset, URLSpan::class.java).single().url
     }
@@ -213,7 +248,7 @@ class LicensesDialogTest {
     @Test
     fun `scrolling the list never draws over the title above it`() {
         showDialog()
-        val scroll = document.parent as ScrollView
+        val scroll = document.parent.parent as ScrollView
         val listTop = IntArray(2).also(scroll::getLocationInWindow)[1]
         val before = compose.onNode(isComposeDialog()).captureToImage().asAndroidBitmap()
 
@@ -231,6 +266,7 @@ class LicensesDialogTest {
 
     private companion object {
         const val PROTOBUF = "Protocol Buffers (bundled in DataStore)"
+        const val COMPOSE_UI = "Compose UI Text"
         const val APACHE_TEXT = "TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION"
     }
 }
