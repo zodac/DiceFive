@@ -720,7 +720,13 @@ dice aren't picked up or tossed - they stay where they lie through the shake and
 CPU's longer pause after releasing a die, `RELEASE_GAP_MS`, as there's no drop to watch), the board's cup doesn't
 shake or pour but stands while the roll is in it and is simply tipped once it lands (`rememberCupRotation` snaps, and
 its liquid doesn't slosh), a highlighted tile's gold ring is a plain steady border, pages don't cross-fade or fade
-their content in, scores appear rather than count up, and the Game Over fireworks don't play. **What the game does doesn't change.**
+their content in, scores appear rather than count up, and the Game Over fireworks don't play. With no fades
+left to cover loading, two things load differently: the Styles page builds every tile on screen on its first
+frame (one slower frame, but nothing else is moving) and shows each row as soon as it's scrolled to the pick,
+rather than building a pair a frame behind the fade; and continuing a game shows only the game's own plain
+backdrop until the board is ready (the spinner after `RESUME_SPINNER_DELAY_MILLIS`, `GameScreen` the same
+backdrop while its game or table settings load), where before the resume page, the menu and a blank frame
+each flashed up in turn. **What the game does doesn't change.**
 
 **Audio and haptics are not motion, and stay.** The shake sound (~400ms), the shake buzz (336ms) and the
 landing sound (~490ms) are timed to the cup's `CUP_SHAKE_MILLIS` window - the first two start as it opens and
