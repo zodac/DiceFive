@@ -23,6 +23,10 @@ data class PlayerState(
      * this is the only place a finished turn's roll survives - kept so another player can glance at
      * it via [net.zodac.dicefive.ui.game.ReadOnlyScoreboard] without it changing mid-glance. */
     val lastRoll: List<Die>? = null,
+    /** The box this player's last completed turn was scored in - null before their first turn ends.
+     * Shown with [lastRoll] when another player looks at this scorecard, so they can see what that
+     * roll went on, not just the roll. */
+    val lastScoredCategory: ScoreCategory? = null,
     /** How many times this player has rolled so far this game, every turn's rolls added up - what
      * the Flowerpot cup's plant grows by (see [flowerpotGrowthStage]). */
     val rollCount: Int = 0,

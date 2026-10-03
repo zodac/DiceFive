@@ -123,6 +123,13 @@ compose.resources {
     publicResClass = false
 }
 
+// `-PregeneratePerfectPlayTable` makes StandardPerfectPlayTableTest rewrite the bundled perfect-play
+// table from Standard's rules instead of checking the bundled copy still matches them - for when
+// those rules change. See StandardPerfectPlayTable and .claude/DESIGN.md's Phase 23.
+tasks.withType<Test>().configureEach {
+    systemProperty("dicefive.regeneratePerfectPlayTable", providers.gradleProperty("regeneratePerfectPlayTable").isPresent)
+}
+
 room {
     // Every schema version is exported here and committed, so a future migration can be tested
     // against the real shape of the version it migrates from.

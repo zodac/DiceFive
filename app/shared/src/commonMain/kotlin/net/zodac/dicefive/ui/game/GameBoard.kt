@@ -9,9 +9,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.Die
@@ -24,6 +27,7 @@ import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.flowerpotGrowthStage
 import net.zodac.dicefive.ui.game.style.FlowerpotGrowth
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
+import net.zodac.dicefive.ui.theme.playerColor
 
 /** Inset of the score-grid + cup section's content. Its height is fixed per game mode (see
  * [scoreBoardHeight]), so its two columns line up row-for-row. */
@@ -169,7 +173,27 @@ fun GameBoard(
  * either way rather than a second copy that can silently drift from the first.
  */
 @Composable
-fun ReadOnlyScoreboard(player: PlayerState, modifier: Modifier = Modifier) {
+fun ReadOnlyScoreboard(player: PlayerState, seat: Int, modifier: Modifier = Modifier) {
+    // The box this player's last turn went in, picked out in their colour - the scorecard on its own
+    // shows what they've scored, but not which of it was their last turn (see LastScoredHighlight).
+    // Their colour from their seat, through the same playerColor their tab uses, so the two always match.
+    val lastScored = player.lastScoredCategory?.let { LastScoredHighlight(it, playerColor(seat)) }
+    CompositionLocalProvider(LocalLastScoredHighlight provides lastScored) {
+        ReadOnlyScoreboardRow(player, modifier)
+    }
+}
+
+/**
+ * Which box a read-only scorecard's player last scored in, and their colour to mark it in - provided by
+ * [ReadOnlyScoreboard] for [CategoryCell] to find, rather than threaded through every layer between.
+ * Null on the live board, which marks nothing as a last score.
+ */
+internal class LastScoredHighlight(val category: ScoreCategory, val color: Color)
+
+internal val LocalLastScoredHighlight = staticCompositionLocalOf<LastScoredHighlight?> { null }
+
+@Composable
+private fun ReadOnlyScoreboardRow(player: PlayerState, modifier: Modifier) {
     ScoreBoardRow(
         gameMode = player.gameMode,
         player = player,

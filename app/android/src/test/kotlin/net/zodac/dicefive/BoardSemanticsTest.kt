@@ -3,11 +3,15 @@ package net.zodac.dicefive
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
@@ -18,6 +22,8 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.ui.game.DiceTray
+import net.zodac.dicefive.ui.game.PlayerHeaderBar
+import net.zodac.dicefive.ui.game.ReadOnlyScoreboard
 import net.zodac.dicefive.ui.game.ScoreGrid
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
@@ -86,4 +92,40 @@ class BoardSemanticsTest {
 
         assertEquals(listOf(ScoreCategory.FIVES), scored)
     }
+
+    @Test
+    fun `a player tab says the player's place - and the drawn place isn't a stop of its own`() {
+        val players = listOf(
+            PlayerState(name = "Alex", type = PlayerType.HUMAN).let { it.copy(scorecard = it.scorecard + (ScoreCategory.CHANCE to 20)) },
+            PlayerState(name = "Robo", type = PlayerType.AI).let { it.copy(scorecard = it.scorecard + (ScoreCategory.FULL_HOUSE to 25)) },
+            PlayerState(name = "Sam", type = PlayerType.HUMAN).let { it.copy(scorecard = it.scorecard + (ScoreCategory.SIXES to 20)) },
+        )
+        compose.setContent {
+            DiceFiveTheme {
+                PlayerHeaderBar(players = players, currentPlayerIndex = 0, viewedPlayerIndex = null, enabled = true, onPlayerTap = {}, modifier = Modifier.width(400.dp))
+            }
+        }
+
+        compose.onNode(hasText("Alex") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
+            .assert(hasStateDescription("Current turn, tied 2nd place"))
+        compose.onNode(hasText("Robo") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)).assert(hasStateDescription("1st place"))
+        // "=2nd" would be read as "equals 2nd" - the tab's state says it instead.
+        compose.onAllNodesWithText("=2nd", useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun `another player's scorecard says which box was their last turn's score`() {
+        val player = PlayerState(name = "Robo", type = PlayerType.AI).let {
+            it.copy(scorecard = it.scorecard + (ScoreCategory.THREES to 9) + (ScoreCategory.FULL_HOUSE to 25), lastScoredCategory = ScoreCategory.FULL_HOUSE)
+        }
+        compose.setContent {
+            DiceFiveTheme {
+                ReadOnlyScoreboard(player = player, seat = 1, modifier = Modifier.width(400.dp))
+            }
+        }
+
+        compose.onNodeWithContentDescription("Full House").assert(hasStateDescription("Scored 25, last turn's score"))
+        compose.onNodeWithContentDescription("Threes").assert(hasStateDescription("Scored 9"))
+    }
 }
+

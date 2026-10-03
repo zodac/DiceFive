@@ -508,7 +508,10 @@ Everything a screen reader needs is added as semantics, never by changing what's
   score box is one cleared-and-set node with its name, what it scored or would score, and "Score"
   as its action; the cup is "Dice cup, 3 rolls left", a Roll button (disabled while a roll is in hand,
   until its dice settle); player tabs are tabs, the
-  scorecard on view selected. `BoardSemanticsTest` pins the dice and score box actions.
+  scorecard on view selected, each saying the player's place ("tied 2nd place" - the drawn "=2nd"
+  is cleared, as it reads "equals"); on another player's scorecard, the box their last turn went in
+  adds "last turn's score" (drawn as an outline and bold score in their colour). `BoardSemanticsTest`
+  pins the dice and score box actions, the places and the last score.
 - **Style tiles are radio buttons** (`StylesScreen`): one node each with the style (and colour) name,
   selected state and position in the row (picking a cup shakes and tips it - `CupPickShake` - and picking a die rolls it through all six
   faces - `DicePickRoll` - both only something to see: the pick is what's announced); the colour chooser is a long-click action, and a locked
@@ -693,7 +696,8 @@ shrinks it (to 100ms, not 0: `isRolling` and the roll tracker have to be seen ch
 and there's nothing to keep in step with. The same value is used for a human's tap (`GameScreen`) and a
 CPU's roll (`GameViewModel.cupShakeMillis`, set from the screen). **Never shorten the window without
 re-checking the clips and `AndroidHapticsPlayer`'s `SHAKE_HAPTIC_MILLIS`.** The CPU's other pauses
-(`ROLL_GAP_MS`, `AI_STEP_DELAY_MS`) are for following what it did, not for an animation, and never change.
+(`ROLL_GAP_MS`, `RELEASE_GAP_MS`, `AI_STEP_DELAY_MS`, and between its hold changes `AI_HOLD_STEP_MS` and
+`AI_RELEASE_TO_HOLD_GAP_MS`) are for following what it did, not for an animation, and never change.
 The Game Over fanfare and hold ticks are governed by their own settings, not by this.
 
 ## Scrollbars on long lists
@@ -777,6 +781,13 @@ re-freezes the estimate from a different, possibly differently-biased sample. Si
 calculated `scrollFraction` with `1f`/`0f` whenever Compose says there's genuinely nothing left to
 scroll in that direction - the pixel math still governs everything in between, only the two true
 edges are pinned.
+
+## Player colours
+
+**A player's colour comes from `playerColor(seat)` (`ui/theme/Color.kt`) and nowhere else** - the list
+behind it is private. Their tab, name and score, and the outline on the box they last scored in (see
+`ReadOnlyScoreboard`, which takes the seat, not a colour) all read it, so changing a seat's colour there
+changes every place it's shown. Anything new that marks a player in their colour should read it too.
 
 ## Gotchas hit while building this
 

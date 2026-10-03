@@ -32,10 +32,13 @@ decisions behind it. Read that before changing anything visual.
   bonus. It also doesn't always spend every roll: a fixed set of "good enough" shapes - Full House,
   Large Straight, a Small Straight once Large Straight is no longer open, or three-plus dice on a
   4/5/6 with that upper box still open - gets banked immediately instead of gambled on a reroll.
-  HARD: exhaustively evaluates all 32 hold/reroll subsets each roll via exact expected value
-  (every possible outcome of the freed dice, weighted equally), and picks the open category whose
-  score most exceeds its own average value on a single random roll (so a rare category like Full
-  House can beat a nominally higher-scoring but easy-to-satisfy-later one like Chance).
+  HARD: evaluates every distinct hold each roll via exact expected value (every possible outcome of
+  the freed dice, weighted equally) through every reroll left in the turn, and its holds and its
+  category choice value a finished hand the same way: in Standard, by a bundled perfect-play table
+  of the rest of the game (so it plays Standard perfectly - ~254 a game on average); in other modes,
+  by how far a box's score beats what a whole turn chasing that box averages, plus its share of the
+  upper bonus (so a rare category like Full House can beat a nominally higher-scoring but
+  easy-to-satisfy-later one like Chance, and three low dice are worth chasing for 5x) - see Phase 23.
 - **Leaderboard screen**: one global leaderboard (not split by player or game
   type), sorted score-descending, paginated 50/page (originally 100; halved
   alongside a compact row style, so a page is a shorter scroll). No date
@@ -1992,3 +1995,115 @@ install-over-existing succeeds:
       `BringIntoViewSpec` that knows about the pill - not done.
 - [x] `assembleDebug`, `testDebugUnitTest`, `compileDebugAndroidTestKotlin` and `lint` green.
 - [ ] **Not yet seen on a device**: the footer's live-region announcement, the chevrons, and the "1 of 7" announcement under real TalkBack.
+
+### Phase 23 — Hard CPU review
+- [x] **Why**: seen in play, Hard threw away low sets (4-6-1-1-1 kept the 4 and 6; 2-2-2-6-5 kept
+      the 6 and 5), rarely chased 5x, and almost never earned the upper bonus. Three causes: it only
+      looked one reroll ahead even with two left; it valued a hand by raw points, so loose high dice
+      beat three low ones; and its category choice (score over baseline) and its holds (raw points)
+      disagreed about what a hand was worth.
+- [x] **Whole-turn search**: `HandValues` now plans through every reroll left - a hold's value is
+      the average over every outcome of the best hold of the hand after it, down to the last roll -
+      with each hand and held set valued once per decision. Standard: 252 hands, ~1-30ms a decision
+      on the JVM. Tricolour (18 faces, 26,334 hands) stays one reroll ahead (`maxLookahead`), at
+      about its old cost; two ahead took ~0.1-0.8s a decision, too long for the pause after a roll.
+- [x] **One valuation** (`HardValuation`) for holds and category choice: the score (with any 5x
+      bonus chip) less the box's baseline, plus `(score - 3 x face) x 35/63` in the upper section
+      while the bonus is still open and reachable. The baseline changed from a box's average on one
+      random roll to its average when a whole turn chases it (Large Straight ~1 -> 10.4, Chance 17.5
+      -> 23.3, 5x 0.02 -> 2.3): with single-roll baselines every straight looked like ~39 points'
+      profit and Hard chased them from a lone 4. Every box scores on numbers or on colours, never
+      both, so each baseline is solved over six number faces or three colour faces - cheap even for
+      Tricolour.
+- [x] **Measured** (`AiTurnPlayer.playTurn`, solo, seeded): Standard Hard 217.9 -> 238.9 over 400
+      games (Medium 190.5), upper bonus in 2% -> 27% of games; Tricolour 324 -> 350 over 40 (noisy);
+      Quickfire unchanged (125, no rerolls to plan). A 5x "future bonus chips" term was tried at two
+      strengths and moved the average within the noise (+0.7, +1.9 over 1,000 games), so it was left
+      out. `AiTurnPlayerTest` pins the 2-2-2-6-5 hold and a seeded 200-game average >= 230 (old Hard
+      averaged 219 on those games, new 239).
+- [x] **Step 2 - a perfect-play table (measured first, then shipped for Standard - see below)**: the value of every start-of-turn
+      state (filled boxes, upper subtotal capped at 63, 5x box scored or not) under optimal play,
+      looked up by the whole-turn search as each finished hand's future. Measured with a throwaway
+      prototype on the game's own scoring code:
+      - Standard and Quickfire: 536,448 reachable states each - 2.15 MB as float32, 1.07 MB as
+        float16 (the debug APK is ~22 MB).
+      - Tricolour: 8,583,168 states (34 MB / 17 MB), and each state's turn is the 26,334-hand
+        search above - out of reach exactly; it would need an approximation of its own.
+      - Generation: a throwaway array-based solver (precomputed roll transitions; its scoring checked
+        against `ScoreCalculator`, joker rule included, on 3,000 random cases) solved all of
+        Standard in 14s on one core of the sandbox. (A HashMap-based first try took ~9ms a state, ~80
+        min.) Its turn search took 0.05-0.08ms, against 1-30ms for `HandValues`' HashMaps.
+      - Strength: it gives perfect solo play an expected 254.5 (Verhoeff's published figure for these
+        rules - 13 boxes, 35 at 63, 100 per extra 5x, joker - is 254.6); played over 4,000 seeded
+        games it averaged 253.4 +/- 0.9, against Hard's 238.9 on the same games.
+      - **Hybrid (store the most common X% of states, estimate the rest)**: a missing state's value
+        can't be worked out on the fly - it depends on every state after it, which is the whole
+        solve - so a miss falls back to Hard's own measure, as an estimate of the rest of the game
+        (each open box's baseline, plus the upper-bonus term, plus the average gap to the true value
+        for that many open boxes). States ranked by visits over 20,000 perfect games (60,814
+        distinct states came up - 11% of them); 4,000 seeded games each:
+
+        | Stored | States | Avg score | Lookup hits | Size (sparse, 6 B/entry) |
+        |---|---|---|---|---|
+        | 0% | 0 | 238.9 | 0% | 0 |
+        | 1% | 5,364 | 238.9 | 23% | 0.03 MB |
+        | 5% | 26,822 | 238.4 | 32% | 0.16 MB |
+        | 10% | 53,644 | 237.7 | 37% | 0.32 MB |
+        | 20% | 107,289 | 244.9 | 77% | 0.64 MB |
+        | 35% | 187,756 | 248.3 | 84% | 1.13 MB |
+        | 50% | 268,224 | 249.6 | 89% | 1.61 MB |
+        | 100% | 536,448 | 253.4 | 100% | 1.07 MB dense, float16 |
+
+        Below 20% it gains nothing: a decision compares the states after each candidate box, most
+        of them off the common path, so exact values for a few sit beside estimates for the rest.
+        From ~35% up a sparse table (keys and values) is as big as the whole table stored densely,
+        and still weaker. And every stored value still needs the full solve, so a partial table saves
+        no generation - for Tricolour, whose problem is generation (and 17 MB), it doesn't help.
+      - Costs: a generator, the table as a bundled resource for `commonMain`, a test that fails
+        when the rules no longer match the table, and one table per mode.
+- [x] **The fast engine** (`DiceSpace`, `HandScoring`): every hand and every held set of a mode's dice
+      numbered once, with each held set's reroll outcomes and their odds in flat arrays, and every hand
+      scored in every box once, with `ScoreCalculator`'s joker rule mirrored as arithmetic
+      (`HandScoringTest` compares the two on 3,000 random cases per mode). A whole-turn decision is a
+      few passes over those arrays. It replaced `HandValues`' HashMaps: Standard decisions went from
+      1-30ms to ~0.03ms (JVM), and Tricolour, which had been held to one reroll ahead for speed (~40-100ms),
+      now plans the whole turn in ~2ms (p95 ~4ms). Building Tricolour's space - 26,334 hands, 33,649
+      held sets, ~10 MB - takes 0.6-1s on the JVM, so `GameViewModel.prepareHardCpus` starts it in the
+      background when a game with a Hard CPU starts or resumes (player 1 is always human, so it's done
+      before the CPU's first roll). Same seeded 300 Tricolour games: whole-turn 348.9 vs one reroll
+      ahead 342.4.
+- [x] **Standard's table shipped** (`StandardPerfectPlayTable`, `composeResources/files/standard_perfect_play.bin`,
+      1,072,905 bytes, +537 KB in the APK compressed): solved by the same engine and scoring the game
+      plays with, so the two can't disagree; each value to 1/32 of a point, each state solved from
+      its successors' stored values. Perfect play from the start: 254.48. `AppContainer` reads it
+      the first time a Hard CPU plays Standard (null if unreadable - Hard then estimates); `AiTurnPlayer`
+      takes it as an optional argument. Standard Hard: 239.1 by estimate -> 252.4 by the table over
+      400 seeded games. Quickfire (no rerolls) keeps the estimate for its category choice; no other mode
+      has a table.
+- [x] **Drift guard**: `StandardPerfectPlayTableTest` (JVM-only, `androidHostTest`) solves the table
+      afresh (~20s) and fails if the bundled file differs; `-PregeneratePerfectPlayTable` makes the same
+      test rewrite it. It also pins perfect play's expectation (254-255) and a seeded 200-game average
+      of at least 248 with the table. `AndroidAppContainerTest` reads it through the real container under
+      Robolectric, from the APK's assets as on a device. The file is in `asset-sources.json` as the app's own work.
+
+### Phase 24 — Places and last scores in game
+- [x] **Places on the player tabs** (`game/Standings.kt`, `PlayerHeaderBar`): each tab shows the
+      player's place under their score - "1st", "2nd", "=2nd" for a shared place, as the results
+      screen marks one - beside the whose-turn dot, in a row whose height is kept in any multiplayer
+      game so the tabs don't grow when the first score puts someone ahead. None in a solo game, or
+      while every total is level mid-game (the start). Mid-game, places go by total score alone - the
+      tie-break house rule only means anything on a finished scorecard - and once every card is full
+      they come from `TieBreak.rank`, so the scorecard review agrees with Game Over. TalkBack hears the
+      place in the tab's state ("Current turn, tied 2nd place").
+- [x] **Last score on another player's scorecard**: `PlayerState.lastScoredCategory` (set by
+      `GameEngine.commitScore`, saved with the game; an older save loads it as none). Tapping another
+      player's tab showed their scorecard and last roll but not which box that roll went in; that box
+      now has a 2dp outline and a bold score in their colour (the colour of their tab's dashed
+      outline), and says "last turn's score". Provided to the cells through `LocalLastScoredHighlight`
+      by `ReadOnlyScoreboard` (also used by Game Over's scorecard review); the live board marks nothing.
+- [x] **One source for player colours**: `playerColor(seat)` in `Color.kt`, its list private, read by
+      the tabs and by `ReadOnlyScoreboard` (which takes the seat, not a colour) - so the outline always
+      matches the player's tab, and a palette change reaches both. See `UI.md`'s "Player colours".
+- [ ] **Not yet seen on a device**: rendered under Robolectric only, and TalkBack's reading of the
+      places and the last score not heard.
+
