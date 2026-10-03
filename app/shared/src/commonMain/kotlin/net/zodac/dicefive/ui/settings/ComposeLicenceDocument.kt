@@ -5,19 +5,21 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
@@ -44,14 +46,25 @@ internal object NoSelectionClearer : SelectionClearer {
  * open question in .claude/IOS_SUPPORT.md.
  */
 @Composable
-internal fun ComposeLicenceDocument(report: LicenseReport, modifier: Modifier = Modifier) {
+internal fun ComposeLicenceDocument(report: LicenseReport, scroll: LicenceScroll, modifier: Modifier = Modifier) {
     var expanded by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    val scrollState = rememberScrollState()
+    // Mirrored into the dialog's LicenceScroll, for its scrollbar.
+    LaunchedEffect(scrollState) {
+        scroll.scrollBy = { scrollState.dispatchRawDelta(it) }
+        snapshotFlow { scrollState.value to scrollState.maxValue }.collect { (position, max) ->
+            scroll.position = position
+            scroll.maxPosition = max
+        }
+    }
     val colors = MaterialTheme.colorScheme
     val typography = MaterialTheme.typography
     val links = TextLinkStyles(SpanStyle(color = colors.primary, textDecoration = TextDecoration.Underline))
 
-    LazyColumn(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        items(report.groups, key = { it.name }) { group ->
+    // A plain scrolling column, not a LazyColumn: there are only a handful of cards, and a ScrollState
+    // knows its exact length, which the scrollbar needs.
+    Column(modifier = modifier.verticalScroll(scrollState), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        for (group in report.groups) {
             LicenceCard(title = group.name, subtitle = group.usage) {
                 val isExpanded = group.name in expanded
                 TextButton(onClick = { expanded = if (isExpanded) expanded - group.name else expanded + group.name }) {
@@ -69,13 +82,11 @@ internal fun ComposeLicenceDocument(report: LicenseReport, modifier: Modifier = 
             }
         }
         if (report.notices.isNotEmpty()) {
-            item(key = "notices") {
-                LicenceCard(title = "Notices", subtitle = "Attribution notices shipped with the libraries above") {
-                    for (notice in report.notices) {
-                        Column(modifier = Modifier.padding(top = 8.dp)) {
-                            Text(text = notice.library, style = typography.bodyMedium)
-                            Text(text = linked(notice.text, links), style = typography.bodySmall, color = colors.onSurfaceVariant)
-                        }
+            LicenceCard(title = "Notices", subtitle = "Attribution notices shipped with the libraries above") {
+                for (notice in report.notices) {
+                    Column(modifier = Modifier.padding(top = 8.dp)) {
+                        Text(text = notice.library, style = typography.bodyMedium)
+                        Text(text = linked(notice.text, links), style = typography.bodySmall, color = colors.onSurfaceVariant)
                     }
                 }
             }

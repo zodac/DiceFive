@@ -21,6 +21,7 @@ import net.zodac.dicefive.platform.HapticsPlayer
 import net.zodac.dicefive.platform.LicenceReports
 import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.platform.SoundPlayer
+import net.zodac.dicefive.ui.settings.LicenceScroll
 import net.zodac.dicefive.ui.settings.LicenseReport
 import net.zodac.dicefive.ui.settings.SelectionClearer
 
@@ -73,7 +74,8 @@ class AndroidPlatformServices(context: Context) : PlatformServices {
     override fun createSelectionClearer(): SelectionClearer = TextViewSelectionClearer()
 
     @Composable
-    override fun LicenceDocument(report: LicenseReport, modifier: Modifier) = TextViewLicenceDocument(report, modifier)
+    override fun LicenceDocument(report: LicenseReport, scroll: LicenceScroll, modifier: Modifier) =
+        TextViewLicenceDocument(report, scroll, modifier)
 
     private fun readRaw(@RawRes id: Int): String = appContext.resources.openRawResource(id).bufferedReader().use { it.readText() }
 }

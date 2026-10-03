@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
@@ -20,8 +21,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
@@ -41,6 +44,7 @@ import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.VerticalScrollbar
 
 /**
  * What a licensed item is, so a licence's heading can say "Used by 4 sounds" rather than calling a
@@ -130,6 +134,20 @@ internal fun parseLicenseReport(librariesJson: String, noticesJson: String): Lic
     return LicenseReport(groups, notices)
 }
 
+/** The dialog's side and bottom padding, whose right-hand side the scrollbar sits in. */
+private val DIALOG_MARGIN = 20.dp
+
+/**
+ * How far the licence document is scrolled, in pixels, for the dialog's [VerticalScrollbar]: the
+ * document keeps [position] and [maxPosition] up to date (both snapshot state, so the bar follows
+ * them), and sets [scrollBy] to scroll itself by a pixel delta, for a drag on the bar.
+ */
+class LicenceScroll {
+    var position by mutableIntStateOf(0)
+    var maxPosition by mutableIntStateOf(0)
+    var scrollBy: (Float) -> Unit = {}
+}
+
 /**
  * Settings > "Licences": every licence the app's third-party code, fonts, sounds and other assets
  * are shipped under, with its full text, and the items under each. Nothing here is written by hand
@@ -146,6 +164,7 @@ fun LicensesDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) 
     val platform = LocalPlatformServices.current
     val selectionClearer = remember { platform.createSelectionClearer() }
     // ~50KB of JSON - small, but no reason to parse it on the main thread while the dialog animates in.
+    val scroll = remember { LicenceScroll() }
     val report by produceState<LicenseReport?>(initialValue = null) {
         val reports = platform.loadLicenceReports()
         value = withContext(Dispatchers.Default) { parseLicenseReport(reports.librariesJson, reports.noticesJson) }
@@ -169,7 +188,7 @@ fun LicensesDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) 
                     modifier = Modifier
                         .fillMaxSize()
                         .clearSelectionsOnTap(selectionClearer)
-                        .padding(top = 4.dp, bottom = 20.dp, start = 20.dp, end = 20.dp),
+                        .padding(top = 4.dp, bottom = DIALOG_MARGIN, start = DIALOG_MARGIN, end = DIALOG_MARGIN),
                 ) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         IconButton(onClick = onDismissRequest) {
@@ -198,7 +217,18 @@ fun LicensesDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) 
                             CircularProgressIndicator()
                         }
                     } else {
-                        platform.LicenceDocument(report = loaded, modifier = Modifier.weight(1f).fillMaxWidth())
+                        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                            platform.LicenceDocument(report = loaded, scroll = scroll, modifier = Modifier.fillMaxSize())
+                            // In the dialog's right-hand margin, beside the cards rather than over them -
+                            // the same bar, placed the same way, as the Styles and Rules pages'.
+                            VerticalScrollbar(
+                                position = { scroll.position },
+                                maxPosition = { scroll.maxPosition },
+                                scrollBy = { scroll.scrollBy(it) },
+                                width = DIALOG_MARGIN,
+                                modifier = Modifier.align(Alignment.TopEnd).offset(x = DIALOG_MARGIN),
+                            )
+                        }
                     }
                 }
             }
