@@ -162,6 +162,19 @@ class GameStateJsonTest {
     }
 
     @Test
+    fun `round trips a player's last scored box - and decodes a save from before it was kept as none`() {
+        val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, lastScoredCategory = ScoreCategory.FULL_HOUSE)))
+
+        assertEquals(state, GameStateJson.decode(GameStateJson.encode(state)))
+
+        val saved = GameStateJson.encode(state).toJsonObject()
+        val player = (saved["players"] as JsonArray).items[0] as JsonObject
+        val older = JsonObject(saved.fields + ("players" to JsonArray(listOf(JsonObject(player.fields - "lastScoredCategory"))))).toJson()
+
+        assertEquals(null, GameStateJson.decode(older).players.single().lastScoredCategory)
+    }
+
+    @Test
     fun `round trips each player's roll count`() {
         val state = GameState(
             players = listOf(

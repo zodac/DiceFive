@@ -2086,3 +2086,24 @@ install-over-existing succeeds:
       of at least 248 with the table. `AndroidAppContainerTest` reads it through the real container under
       Robolectric, from the APK's assets as on a device. The file is in `asset-sources.json` as the app's own work.
 
+### Phase 24 — Places and last scores in game
+- [x] **Places on the player tabs** (`game/Standings.kt`, `PlayerHeaderBar`): each tab shows the
+      player's place under their score - "1st", "2nd", "=2nd" for a shared place, as the results
+      screen marks one - beside the whose-turn dot, in a row whose height is kept in any multiplayer
+      game so the tabs don't grow when the first score puts someone ahead. None in a solo game, or
+      while every total is level mid-game (the start). Mid-game, places go by total score alone - the
+      tie-break house rule only means anything on a finished scorecard - and once every card is full
+      they come from `TieBreak.rank`, so the scorecard review agrees with Game Over. TalkBack hears the
+      place in the tab's state ("Current turn, tied 2nd place").
+- [x] **Last score on another player's scorecard**: `PlayerState.lastScoredCategory` (set by
+      `GameEngine.commitScore`, saved with the game; an older save loads it as none). Tapping another
+      player's tab showed their scorecard and last roll but not which box that roll went in; that box
+      now has a 2dp outline and a bold score in their colour (the colour of their tab's dashed
+      outline), and says "last turn's score". Provided to the cells through `LocalLastScoredHighlight`
+      by `ReadOnlyScoreboard` (also used by Game Over's scorecard review); the live board marks nothing.
+- [x] **One source for player colours**: `playerColor(seat)` in `Color.kt`, its list private, read by
+      the tabs and by `ReadOnlyScoreboard` (which takes the seat, not a colour) - so the outline always
+      matches the player's tab, and a palette change reaches both. See `UI.md`'s "Player colours".
+- [ ] **Not yet seen on a device**: rendered under Robolectric only, and TalkBack's reading of the
+      places and the last score not heard.
+

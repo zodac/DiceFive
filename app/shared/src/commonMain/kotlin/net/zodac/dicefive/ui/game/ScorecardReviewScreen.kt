@@ -67,7 +67,7 @@ fun ScorecardReviewScreen(
             onPlayerTap = { reviewedPlayerIndex = it },
         )
 
-        ReadOnlyScoreboard(player = reviewedPlayer)
+        ReadOnlyScoreboard(player = reviewedPlayer, seat = reviewedPlayerIndex)
 
         // Same DiceTray call GameScreen's own read-only view uses - see its comment on why this
         // isn't folded into ReadOnlyScoreboard itself.

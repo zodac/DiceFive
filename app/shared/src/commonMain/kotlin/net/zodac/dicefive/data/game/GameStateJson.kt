@@ -80,6 +80,7 @@ object GameStateJson {
         put("fiveOfAKindBonusCount", player.fiveOfAKindBonusCount)
         put("rollCount", player.rollCount)
         player.lastRoll?.let { put("lastRoll", JsonArray(it.map(::encodeDie))) }
+        player.lastScoredCategory?.let { put("lastScoredCategory", it.name) }
         put(
             "scorecard",
             buildJsonObject {
@@ -104,6 +105,10 @@ object GameStateJson {
             fiveOfAKindBonusCount = obj.getInt("fiveOfAKindBonusCount"),
             // Left out by encode for a player with no finished turn yet - no last roll to show.
             lastRoll = if ("lastRoll" in obj) obj.getObjectList("lastRoll").map(::decodeDie) else null,
+            // Missing before the first turn ends, and from a game saved before it was kept: nothing
+            // is highlighted as that player's last score until their next one.
+            lastScoredCategory = obj.optString("lastScoredCategory").takeIf { it.isNotEmpty() }
+                ?.let { name -> gameMode.categories.firstOrNull { it.name == name } },
             // Missing from a game saved before rolls were counted: it picks up from zero, which
             // can only keep the Flowerpot's sunflower from blooming that game, never hand it out.
             rollCount = if ("rollCount" in obj) obj.getInt("rollCount") else 0,
