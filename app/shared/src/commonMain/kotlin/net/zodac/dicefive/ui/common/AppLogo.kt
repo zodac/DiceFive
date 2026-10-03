@@ -78,7 +78,7 @@ internal val SoraFontFamily: FontFamily
  * out of the node's own size, which would leave the lifted dice rendering as squashed rectangles
  * rather than as squares sitting lower.
  */
-private data class LogoDie(val value: Int, val tilt: Float, val drop: Dp)
+internal data class LogoDie(val value: Int, val tilt: Float, val drop: Dp)
 
 // The cup behind the fan, set by a tall cup: how tall it stands, and how far its middle sits above
 // the fan's - so more of it, rim and all, shows above the dice than below them. Both in dice, so a
@@ -123,13 +123,28 @@ internal fun logoRollPose(index: Int, value: Int, elapsedMillis: Float): LogoRol
 }
 
 /**
+ * Plays one roll of a row of dice the way the logo's fan rolls: calls [onFrame] every frame with how
+ * far into the roll it is, in milliseconds, up to [LOGO_ROLL_MILLIS] - each die's pose at that point
+ * is [logoRollPose]'s. Shared with the Rules page's cup and dice, so both roll alike.
+ */
+internal suspend fun playLogoRoll(onFrame: (elapsedMillis: Float) -> Unit) {
+    val start = withFrameNanos { it }
+    var elapsed = 0f
+    while (elapsed < LOGO_ROLL_MILLIS) {
+        elapsed = withFrameNanos { (it - start) / 1_000_000f }
+        onFrame(elapsed.coerceAtMost(LOGO_ROLL_MILLIS))
+    }
+}
+
+/**
  * Whether a tap at ([x], [y]) - in the logo's own coordinates, its top edge being the cup's top and
  * the cup centred on [logoWidth] - lands on a cup [cupWidth] by [cupHeight] wide and tall.
  */
 internal fun isOnLogoCup(x: Float, y: Float, logoWidth: Float, cupWidth: Float, cupHeight: Float): Boolean =
     y in 0f..cupHeight && x in (logoWidth - cupWidth) / 2f..(logoWidth + cupWidth) / 2f
 
-private val LOGO_DICE = listOf(
+/** The fan itself, left to right - also the order and lie of the Rules page's dice beside their cup. */
+internal val LOGO_DICE = listOf(
     LogoDie(value = 2, tilt = -20f, drop = 8.dp),
     LogoDie(value = 4, tilt = -10f, drop = 2.dp),
     LogoDie(value = 5, tilt = 0f, drop = 0.dp),
@@ -207,11 +222,8 @@ fun AppLogo(
         // No roll under reduced motion; the tap still counts (onDiceTap is called by the caller either way).
         if (rollMillis == null && !reduceMotion) {
             scope.launch {
-                val start = withFrameNanos { it }
-                var elapsed = 0f
-                while (elapsed < LOGO_ROLL_MILLIS) {
-                    elapsed = withFrameNanos { (it - start) / 1_000_000f }
-                    rollMillis = elapsed.coerceAtMost(LOGO_ROLL_MILLIS)
+                playLogoRoll { elapsed ->
+                    rollMillis = elapsed
                     motions?.forEachIndexed { i, motion ->
                         val pose = logoRollPose(i, LOGO_DICE[i].value, elapsed)
                         motion.moveTo(Offset(0f, -pose.hop), LOGO_DICE[i].tilt + turnsSoFar[i] + pose.spinDegrees)

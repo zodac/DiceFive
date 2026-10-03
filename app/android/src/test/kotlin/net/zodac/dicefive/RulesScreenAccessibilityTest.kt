@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -88,6 +89,62 @@ class RulesScreenAccessibilityTest {
 
         compose.onNodeWithText("Quickfire").assertIsSelected()
         compose.onAllNodesWithText("Mode: Quickfire")[0].assertIsDisplayed()
+    }
+
+    @Test
+    fun anExampleDiceRowIsSpokenWithWhichDiceCountAndWhatItScores() {
+        showRules()
+
+        compose.onNodeWithText("Lower Section").performScrollTo().performClick()
+        compose.waitForIdle()
+
+        // One stop for the category - its name, what it takes and the example - not five bare dice.
+        compose.onNodeWithText("Total of all five dice, if at least three dice are the same", substring = true)
+            .assertContentDescriptionEquals(
+                "Total of all five dice, if at least three dice are the same",
+                "Example: 5, 5, 5, 2, 6. The 2 and 6 don't count. Scores 23 points.",
+            )
+    }
+
+    @Test
+    fun aColouredExampleDieIsSpokenWithItsColour() {
+        showRules()
+
+        compose.onNodeWithText("Tricolour").performScrollTo().performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Three of one colour and two of another", substring = true)
+            .assertContentDescriptionEquals(
+                "Three of one colour and two of another",
+                "Example: red 1, red 4, red 6, blue 2, blue 5. Scores 25 points.",
+            )
+    }
+
+    @Test
+    fun pointsAreSpokenInFullNotAsPts() {
+        showRules()
+
+        compose.onNodeWithText("Upper Section").performScrollTo().performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Score 63pts or more", substring = true)
+            .assertContentDescriptionEquals(
+                "Score 63 points or more across the whole section and you earn a bonus 35 points! That's an average of three of each number.",
+            )
+    }
+
+    @Test
+    fun theExampleTurnTimerIsDescribedNotAnnouncedAsALiveCountdown() {
+        showRules()
+
+        compose.onNodeWithText("Quickfire").performScrollTo().performClick()
+        compose.waitForIdle()
+
+        val timer = compose.onNodeWithContentDescription("Example: the turn timer, turning red with 4 seconds left").fetchSemanticsNode()
+        // The game's badge is a live region in its last seconds; here no turn is running, so nothing is announced.
+        assertTrue(SemanticsProperties.LiveRegion !in timer.config)
+        assertTrue(compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.LiveRegion)).fetchSemanticsNodes()
+            .none { it.config.getOrElse(SemanticsProperties.ContentDescription) { emptyList() }.any { d -> "running out" in d } })
     }
 
     @Test

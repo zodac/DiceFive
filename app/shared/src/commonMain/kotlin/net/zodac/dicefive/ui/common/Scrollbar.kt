@@ -123,7 +123,7 @@ private class ScrollbarMemory {
  */
 @Composable
 fun BoxScope.LazyListScrollbar(listState: LazyListState, modifier: Modifier = Modifier) {
-    val showScrollbar by remember { derivedStateOf { listState.canScrollForward || listState.canScrollBackward } }
+    val showScrollbar by remember(listState) { derivedStateOf { listState.canScrollForward || listState.canScrollBackward } }
     if (!showScrollbar) return
 
     val thumbColor = MaterialTheme.colorScheme.primary
@@ -214,7 +214,7 @@ fun BoxScope.LazyListScrollbar(listState: LazyListState, modifier: Modifier = Mo
  */
 @Composable
 fun HorizontalScrollbar(scrollState: ScrollState, modifier: Modifier = Modifier) {
-    val showScrollbar by remember { derivedStateOf { scrollState.canScrollForward || scrollState.canScrollBackward } }
+    val showScrollbar by remember(scrollState) { derivedStateOf { scrollState.canScrollForward || scrollState.canScrollBackward } }
     if (!showScrollbar) return
 
     val thumbColor = MaterialTheme.colorScheme.primary
@@ -260,7 +260,7 @@ fun HorizontalScrollbar(scrollState: ScrollState, modifier: Modifier = Modifier)
  */
 @Composable
 fun HorizontalScrollbar(listState: LazyListState, modifier: Modifier = Modifier) {
-    val showScrollbar by remember { derivedStateOf { listState.canScrollForward || listState.canScrollBackward } }
+    val showScrollbar by remember(listState) { derivedStateOf { listState.canScrollForward || listState.canScrollBackward } }
     if (!showScrollbar) return
 
     val thumbColor = MaterialTheme.colorScheme.primary
@@ -320,7 +320,7 @@ fun HorizontalScrollbar(listState: LazyListState, modifier: Modifier = Modifier)
  */
 @Composable
 fun VerticalScrollbar(scrollState: ScrollState, width: Dp, modifier: Modifier = Modifier) {
-    val showScrollbar by remember { derivedStateOf { scrollState.canScrollForward || scrollState.canScrollBackward } }
+    val showScrollbar by remember(scrollState) { derivedStateOf { scrollState.canScrollForward || scrollState.canScrollBackward } }
     if (!showScrollbar) return
 
     val thumbColor = MaterialTheme.colorScheme.primary
