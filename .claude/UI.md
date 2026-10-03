@@ -691,8 +691,8 @@ here) still uses a plain `delay`.
 the player turns on the app's own **"Remove animations"** (Settings; `SettingsRepository.removeAnimations`,
 which replaced the narrower "Simple dice roll"). `DiceFiveApp` ORs the two and provides the result once, so
 everything below applies to either. The app's switch can't do what the system's does to Compose's own
-`MotionDurationScale` (that's fixed per window by the system setting), so the tweens it leaves running - a
-banner sliding in, a cup's lid opening, the spent cup greying - instead run on a frame clock **capped at
+`MotionDurationScale` (that's fixed per window by the system setting), so what it leaves moving - Material's own
+touch ripples and switch thumbs, a scroll's fling - instead runs on a frame clock **capped at
 30fps**: `MainActivity` builds the window's recomposer itself on `CappedFrameClock` (app/android), which
 `PlatformServices.capFrameRate` turns on and off with the setting. Every Compose animation, and the
 recomposer, waits on that clock. iOS doesn't cap yet (`capFrameRate` defaults to doing nothing).
@@ -724,7 +724,9 @@ dice aren't picked up or tossed - they stay where they lie through the shake and
 CPU's longer pause after releasing a die, `RELEASE_GAP_MS`, as there's no drop to watch), the board's cup doesn't
 shake or pour but stands while the roll is in it and is simply tipped once it lands (`rememberCupRotation` snaps, and
 its liquid doesn't slosh), a highlighted tile's gold ring is a plain steady border, pages don't cross-fade or fade
-their content in, scores appear rather than count up, and the Game Over fireworks don't play. With no fades
+their content in, achievement banners don't fade in or out or arrive one at a time (a burst is all there at once, each
+banner simply there and then gone; a progress banner's count doesn't climb; a drag still follows the finger -
+`BannerReducedMotionTest`), scores appear rather than count up, and the Game Over fireworks don't play. With no fades
 left to cover loading, two things load differently: the Styles page builds every tile on screen on its first
 frame (one slower frame, but nothing else is moving) and shows each row as soon as it's scrolled to the pick,
 rather than building a pair a frame behind the fade; and continuing a game shows only the game's own plain
