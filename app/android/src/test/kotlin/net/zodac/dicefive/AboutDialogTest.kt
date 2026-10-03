@@ -50,7 +50,7 @@ class AboutDialogTest {
     fun `the title and every section title are headings`() {
         showDialog()
         val isHeading = SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)
-        for (title in listOf("About", "Author", "Inspiration", "Privacy Policy")) {
+        for (title in listOf("About", "Author", "Inspiration", "Privacy")) {
             compose.onNodeWithText(title).performScrollTo().assert(isHeading)
         }
     }
@@ -59,9 +59,9 @@ class AboutDialogTest {
     fun `each link opens its page`() {
         showDialog()
         val links = listOf(
-            "View the source code on GitHub" to "https://github.com/zodac/DiceFive",
-            "View Dice Me Online on Google Play" to "https://play.google.com/store/apps/details?id=com.giu.diceme",
-            "Read the privacy policy" to "https://zodac.github.io/DiceFive/privacy-policy",
+            "Source code on GitHub" to "https://github.com/zodac/DiceFive",
+            "Dice Me Online on Google Play" to "https://play.google.com/store/apps/details?id=com.giu.diceme",
+            "Full privacy policy" to "https://zodac.github.io/DiceFive/privacy-policy",
         )
         for ((label, url) in links) {
             compose.onNodeWithText(label).performScrollTo().assert(hasClickAction()).performClick()

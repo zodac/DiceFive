@@ -4,17 +4,24 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,8 +34,8 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -47,25 +54,26 @@ private data class AboutLink(val label: String, val url: String)
 
 /** One About section: a heading, its body text and an optional link. Kept as data rather than
  * inlined composables so the list itself documents what the page says, in order, without reading
- * the layout code. */
+ * the layout code. Names in [body] go between backticks, which draws them a shade brighter than the
+ * rest of the sentence. */
 private data class AboutSection(val heading: String, val body: String, val link: AboutLink? = null)
 
 private val ABOUT_SECTIONS = listOf(
     AboutSection(
         heading = "Author",
         body = "DiceFive is created by `zodac`.",
-        link = AboutLink("View the source code on GitHub", GITHUB_REPO_URL),
+        link = AboutLink("Source code on GitHub", GITHUB_REPO_URL),
     ),
     AboutSection(
         heading = "Inspiration",
         body = "DiceFive was inspired by `Dice Me Online`, created by `Arturo Gutierrez`.",
-        link = AboutLink("View Dice Me Online on Google Play", DICE_ME_ONLINE_URL),
+        link = AboutLink("Dice Me Online on Google Play", DICE_ME_ONLINE_URL),
     ),
     AboutSection(
-        heading = "Privacy Policy",
+        heading = "Privacy",
         body = "DiceFive holds no user data. Your games, scores and settings stay on this device, " +
             "and there are no ads, analytics or tracking.",
-        link = AboutLink("Read the privacy policy", PRIVACY_POLICY_URL),
+        link = AboutLink("Full privacy policy", PRIVACY_POLICY_URL),
     ),
 )
 
@@ -74,6 +82,11 @@ private val ABOUT_SECTIONS = listOf(
  * and the privacy policy - kept separate from [LicensesDialog], which is specifically the open-source
  * licences the build ships under, not people or products. Same raised reading surface as
  * [LicensesDialog], for the same reason: a short scroll of prose, not a question to answer.
+ *
+ * Each section is its own card, so the three read as separate groups. Gold is kept for the page
+ * title and the links, the only things here that respond to a tap. Headings are `onSurface`, body
+ * text `onSurfaceVariant`, and names are just a brighter, medium-weight version of the body text,
+ * so headings, highlights and links no longer all share one colour.
  */
 @Composable
 fun AboutDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
@@ -110,36 +123,62 @@ fun AboutDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    val codeStyle = SpanStyle(fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary)
+                    val nameStyle = SpanStyle(fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
 
-                    for (section in ABOUT_SECTIONS) {
-                        Text(
-                            text = section.heading,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.semantics { heading() },
-                        )
-                        Text(
-                            text = parseInlineMarkup(section.body, codeStyle),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp, bottom = if (section.link == null) 16.dp else 4.dp),
-                        )
-                        section.link?.let { link ->
-                            TextButton(
-                                onClick = { uriHandler.openUri(link.url) },
-                                modifier = Modifier.padding(bottom = 12.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                                    contentDescription = null,
-                                    modifier = Modifier.padding(end = 8.dp),
-                                )
-                                Text(link.label)
-                            }
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        for (section in ABOUT_SECTIONS) {
+                            AboutSectionCard(
+                                section = section,
+                                nameStyle = nameStyle,
+                                onOpenLink = uriHandler::openUri,
+                            )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AboutSectionCard(section: AboutSection, nameStyle: SpanStyle, onOpenLink: (String) -> Unit) {
+    // One step above the dialog's surfaceContainerHigh, so the card reads as raised on it.
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
+    ) {
+        // A link's 40dp button already carries ~10dp of space under its label, so the card's own
+        // bottom padding shrinks to match, keeping the gap under the last line the same as above it.
+        Column(modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = if (section.link == null) 16.dp else 6.dp)) {
+            Text(
+                text = section.heading,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.semantics { heading() },
+            )
+            Text(
+                text = parseInlineMarkup(section.body, nameStyle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            section.link?.let { link ->
+                // Pulled left by the button's own start padding, so its icon lines up with the
+                // text above rather than sitting indented; the touch target is unchanged.
+                TextButton(
+                    onClick = { onOpenLink(link.url) },
+                    contentPadding = ButtonDefaults.TextButtonWithIconContentPadding,
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .offset(x = -ButtonDefaults.TextButtonWithIconContentPadding.calculateStartPadding(LayoutDirection.Ltr)),
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = null,
+                        modifier = Modifier.size(ButtonDefaults.IconSize),
+                    )
+                    Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
+                    Text(link.label)
                 }
             }
         }
