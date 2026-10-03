@@ -65,6 +65,11 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices) {
                             navController.navigate(Screen.ACHIEVEMENTS)
                         }
                     },
+                    onStylesSelected = {
+                        if (navController.currentDestination?.route != Screen.STYLES) {
+                            navController.navigate(Screen.STYLES)
+                        }
+                    },
                 ) {
                     DiceFiveNavHost(navController = navController)
                 }
