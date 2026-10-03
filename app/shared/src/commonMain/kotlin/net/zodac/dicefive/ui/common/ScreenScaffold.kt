@@ -79,6 +79,9 @@ val CONTENT_MAX_WIDTH = 460.dp
  *
  * [driftingDice] is only ever false for a copy built out of sight ahead of time (the Styles page's
  * warm-up): the drift is the app's one shared one, which a second copy would move along too.
+ *
+ * [horizontalPadding] is a [scrollable] page's side margin - narrower only where the page shows
+ * the game board's own pieces (the scorecard review), which are sized for the game screen's margin.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,6 +92,7 @@ fun ScreenScaffold(
     scrollable: Boolean = false,
     footer: (@Composable () -> Unit)? = null,
     driftingDice: Boolean = true,
+    horizontalPadding: Dp = PAGE_HORIZONTAL_PADDING,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     require(footer == null || scrollable) { "A footer floats over a scrollable page" }
@@ -135,6 +139,7 @@ fun ScreenScaffold(
                     val footerReserve = if (footer == null) 0.dp else with(LocalDensity.current) { footerHeightPx.toDp() } + FOOTER_GAP * 2
                     val layoutDirection = LocalLayoutDirection.current
                     PageColumn(
+                        horizontalPadding = horizontalPadding,
                         contentPadding = PaddingValues.Absolute(
                             left = innerPadding.calculateLeftPadding(layoutDirection),
                             top = innerPadding.calculateTopPadding(),
@@ -177,6 +182,9 @@ fun ScreenScaffold(
     }
 }
 
+/** A [PageColumn]'s side margin, unless the page asks for another. */
+private val PAGE_HORIZONTAL_PADDING = 24.dp
+
 /**
  * A page body that fills the screen but scrolls if it can't fit - the case on a short screen
  * (landscape, split-screen, a large display font).
@@ -188,7 +196,7 @@ fun ScreenScaffold(
 @Composable
 fun PageColumn(
     modifier: Modifier = Modifier,
-    horizontalPadding: Dp = 24.dp,
+    horizontalPadding: Dp = PAGE_HORIZONTAL_PADDING,
     // Defaults to the system bar insets, for a page used on its own (the menu, the results
     // screen) - the app draws edge to edge, so without this its content runs under the status
     // bar's clock. A page inside a ScreenScaffold passes the Scaffold's own inner padding here
