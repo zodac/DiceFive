@@ -1751,7 +1751,10 @@ install-over-existing succeeds:
       cards: the maintainer wanted copy limited to one licence, and the dialog to match the About
       page's cards - `surfaceContainerHighest`, 12dp corners, 16dp padding and gaps, headings in
       `onSurface` rather than gold. `DocumentScrollView` also ignores a whole card's rect, so a card
-      taking focus on a toggle tap doesn't scroll to show all of itself.) `setTextIsSelectable` gives the system's own long-press behaviour - smart
+      taking focus on a toggle tap doesn't scroll to show all of itself. The scrollbar thumb is a 4dp
+      pill, like `ui/common/Scrollbar.kt`'s - a plain colour drawable is square-ended and looked cut
+      off - drawn in a lane of its own (`SCROLLBARS_OUTSIDE_OVERLAY` plus end padding) rather than over
+      the cards' right edges.) `setTextIsSelectable` gives the system's own long-press behaviour - smart
       selection of a whole URL and the Copy / Share / Select all toolbar - and TalkBack sees its
       links. A tap on a link opens it, on a toggle flips it (`LinkTextView`'s `GestureDetector` - a
       bare `OnGestureListener`, since a double-tap listener would swallow a quick second tap), and a
