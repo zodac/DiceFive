@@ -104,7 +104,9 @@ fun GameScreen(
     val aiRolling by viewModel.aiRolling.collectAsStateWithLifecycle()
     val turnSecondsRemaining by viewModel.turnSecondsRemaining.collectAsStateWithLifecycle()
     val table by viewModel.tableSettings.collectAsStateWithLifecycle()
-    val currentState = state ?: return
+    // Until the game (and below, the table's settings) load, just the page the board is drawn on - the backdrop
+    // the screen before it hands over on, too - rather than nothing, which showed whatever was behind for a frame.
+    val currentState = state ?: return BrandBackdrop(modifier = modifier, showDice = false) {}
     val leaveConfirmation = LocalLeaveGameConfirmation.current
     // Whether Game Over's "Review Scorecards" button has been tapped - reset the moment the game
     // stops being over (Play Again starts a fresh one), so a stale review doesn't reappear the
@@ -160,7 +162,7 @@ fun GameScreen(
 
     // A single injection point for the pluggable dice/cup/background art and the table's settings -
     // see GameViewModel.tableSettings. Nothing's drawn until they've loaded, rather than the defaults.
-    val tableSettings = table ?: return
+    val tableSettings = table ?: return BrandBackdrop(modifier = modifier, showDice = false) {}
     val soundEnabled = tableSettings.soundEnabled
     val vibrationEnabled = tableSettings.vibrationEnabled
     val reduceMotion = LocalReduceMotion.current
