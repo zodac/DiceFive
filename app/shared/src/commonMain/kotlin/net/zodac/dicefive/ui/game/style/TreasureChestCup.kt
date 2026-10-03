@@ -127,9 +127,10 @@ class TreasureChestDiceCupStyle(override val id: String, private val palette: Ch
         val reduceMotion = LocalReduceMotion.current
         // Unlike a cup, a chest that first appears with the roll already poured - a game being continued
         // - stays shut until the next shake, rather than appearing open with its treasure still to load.
-        // The next roll then opens it as usual.
+        // The next roll then opens it as usual. Under reduced motion a cup is never told it's shaking, so the
+        // next roll is seen by the chest being stood back up for it instead (see DiceCupPanel).
         var heldShut by remember { mutableStateOf(tilted && !rolling) }
-        if (rolling) heldShut = false
+        if (rolling || !tilted) heldShut = false
         val open = tilted && !rolling && !heldShut
         // So it always starts shut.
         val lid = remember { Animatable(0f) }
