@@ -10,6 +10,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -66,14 +68,38 @@ import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.FooterPill
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.parseInlineMarkup
+import net.zodac.dicefive.model.DieColour
+import net.zodac.dicefive.ui.game.style.IvoryDiceStyle
+import net.zodac.dicefive.ui.game.style.palette
 
 /** One page of [RulesScreen]. [title] heads the page itself; [tabLabel] is the shorter name its tab
- * carries, so the tab row shows more than one or two tabs at a time. [paragraphs] renders as one
- * block of body text per entry - a plain list rather than a single string with embedded newlines,
- * so a page mixing prose and a short numbered list (see the joker rule) reads as separate paragraphs
- * rather than one dense block. Each paragraph may use [parseInlineMarkup]'s markers for bold,
- * italic, underline and monospace. */
-private data class RulesPage(val title: String, val tabLabel: String, val paragraphs: List<String>)
+ * carries, so the tab row shows more than one or two tabs at a time. [blocks] render in order: each
+ * [RulesText] as one block of body text - a plain list rather than a single string with embedded
+ * newlines, so a page mixing prose and a short list reads as separate paragraphs - and each
+ * [RulesDice] as a small row of example dice under the text it illustrates. Text may use
+ * [parseInlineMarkup]'s markers for bold, italic, underline and monospace. */
+private data class RulesPage(val title: String, val tabLabel: String, val blocks: List<RulesBlock>)
+
+private sealed interface RulesBlock
+
+private data class RulesText(val text: String) : RulesBlock
+
+/** One die in a [RulesDice] example: its [value], whether it [counts] towards the category being
+ * shown (the rest are drawn faded), and the [colour] it rolled in Tricolour, if any. */
+private data class ExampleDie(val value: Int, val counts: Boolean = true, val colour: DieColour? = null)
+
+/** A row of five example dice illustrating the rule above it, with what they score alongside. */
+private data class RulesDice(val dice: List<ExampleDie>, val score: String) : RulesBlock
+
+private fun text(text: String) = RulesText(text)
+
+/** Five example dice, the first [counting] of which make the category. */
+private fun dice(vararg values: Int, counting: Int = values.size, score: String): RulesDice =
+    RulesDice(values.mapIndexed { index, value -> ExampleDie(value, counts = index < counting) }, score)
+
+/** Five coloured example dice for Tricolour, the first [counting] of which make the category. */
+private fun colouredDice(vararg dice: Pair<Int, DieColour>, counting: Int = dice.size, score: String): RulesDice =
+    RulesDice(dice.mapIndexed { index, (value, colour) -> ExampleDie(value, counts = index < counting, colour = colour) }, score)
 
 /**
  * The rules explained in the player's own words, not the rulebook's - one page per idea, swiped
@@ -90,83 +116,96 @@ private val RULES_PAGES = listOf(
     RulesPage(
         title = "How to Play DiceFive",
         tabLabel = "How to Play",
-        paragraphs = listOf(
-            "Score as many points as possible by rolling five dice, with three rolls per round.",
-            "You may keep any dice you want after a roll, then roll the remaining dice.",
-            "Once you're happy with the roll - or you've rolled three times - score it in any open category on your scorecard.",
-            "The game ends once every category is filled.",
+        blocks = listOf(
+            text("Score as many points as possible by rolling five dice, with three rolls per round."),
+            text("You may keep any dice you want after a roll, then roll the remaining dice."),
+            text("Once you're happy with the roll - or you've rolled three times - score it in any open category on your scorecard."),
+            text("The game ends once every category is filled."),
         ),
     ),
     RulesPage(
         title = "Scoring: Upper Section",
         tabLabel = "Upper Section",
-        paragraphs = listOf(
-            "Each *Upper Section* category, from *Ones* to *Sixes*, scores the total of the dice showing that number.",
-            "For example, rolling `5-5-5-2-1` would give a score of **15pts** in the *Fives* category.",
-            "Score **63pts** or more across the whole section and you earn a bonus **35pts**! That's an average of three of each number.",
+        blocks = listOf(
+            text("Each *Upper Section* category, from *Ones* to *Sixes*, scores the total of the dice showing that number."),
+            text("For example, rolling `5-5-5-2-1` would give a score of **15pts** in the *Fives* category."),
+            dice(5, 5, 5, 2, 1, counting = 3, score = "15pts"),
+            text("Score **63pts** or more across the whole section and you earn a bonus **35pts**! That's an average of three of each number."),
         ),
     ),
     RulesPage(
         title = "Scoring: Lower Section",
         tabLabel = "Lower Section",
-        paragraphs = listOf(
-            "The *Lower Section* awards points for specific dice combinations:",
-            "- *3x*: Total of all five dice, if at least three dice are the same",
-            "- *4x*: Total of all five dice, if at least four dice are the same",
-            "- *Full House* [25pts]: Three of one number and two of another",
-            "- *Small Straight* [30pts]: Four numbers in a row (`1-2-3-4`, `2-3-4-5`, `3-4-5-6`)",
-            "- *Large Straight* [40pts]: Five numbers in a row (`1-2-3-4-5`, `2-3-4-5-6`)",
-            "- *5x* [50pts]: All five dice are the same",
-            "- *Chance*: The sum of all five dice",
+        blocks = listOf(
+            text("The *Lower Section* awards points for specific dice combinations:"),
+            text("- *3x*: Total of all five dice, if at least three dice are the same"),
+            dice(5, 5, 5, 2, 6, counting = 3, score = "23pts"),
+            text("- *4x*: Total of all five dice, if at least four dice are the same"),
+            dice(4, 4, 4, 4, 1, counting = 4, score = "17pts"),
+            text("- *Full House* [25pts]: Three of one number and two of another"),
+            dice(3, 3, 3, 6, 6, score = "25pts"),
+            text("- *Small Straight* [30pts]: Four numbers in a row (`1-2-3-4`, `2-3-4-5`, `3-4-5-6`)"),
+            dice(2, 3, 4, 5, 2, counting = 4, score = "30pts"),
+            text("- *Large Straight* [40pts]: Five numbers in a row (`1-2-3-4-5`, `2-3-4-5-6`)"),
+            dice(1, 2, 3, 4, 5, score = "40pts"),
+            text("- *5x* [50pts]: All five dice are the same"),
+            dice(6, 6, 6, 6, 6, score = "50pts"),
+            text("- *Chance*: The sum of all five dice"),
+            dice(2, 3, 5, 5, 6, score = "21pts"),
         ),
     ),
     RulesPage(
         title = "5x and the Joker Rule",
         tabLabel = "5x & Joker",
-        paragraphs = listOf(
-            "If you roll five matching dice, you can score a *5x* worth **50pts**.",
-            "Roll another five matching dice after already scoring a *5x*? It earns a **100pts** bonus, *on top of* whatever category you then score those dice in.",
-            "When you score a repeat *5x*, the Joker rule decides where it can go:",
-            "1 - The matching *Upper Section* category, if it's still open. Five `4`s must go in *Fours*, scored for **20pts**, in addition to the bonus.",
-            "2 - Otherwise, any unscored category outside the *Upper Section*, in addition to the bonus. *Full House*, *Small Straight* and *Large Straight* score their full fixed amount.",
-            "3 - If every category outside the *Upper Section* is already filled, you must score it in an unscored *Upper Section* category for **0pts** - but you still get the **100pts** bonus.",
+        blocks = listOf(
+            text("If you roll five matching dice, you can score a *5x* worth **50pts**."),
+            text("Roll another five matching dice after already scoring a *5x*? It earns a **100pts** bonus, *on top of* whatever category you then score those dice in."),
+            text("When you score a repeat *5x*, the Joker rule decides where it can go:"),
+            text("1 - The matching *Upper Section* category, if it's still open. Five `4`s must go in *Fours*, scored for **20pts**, in addition to the bonus."),
+            dice(4, 4, 4, 4, 4, score = "20pts + 100pts"),
+            text("2 - Otherwise, any unscored category outside the *Upper Section*, in addition to the bonus. *Full House*, *Small Straight* and *Large Straight* score their full fixed amount."),
+            text("3 - If every category outside the *Upper Section* is already filled, you must score it in an unscored *Upper Section* category for **0pts** - but you still get the **100pts** bonus."),
         ),
     ),
     RulesPage(
         title = "Tie Breaks",
         tabLabel = "Tie Breaks",
-        paragraphs = listOf(
-            "If multiple players end the game with the same score, the following checks are made in order - the first difference decides who wins the tie:",
-            "- Fewest *5x*",
-            "- Most categories scored zero",
-            "- Lower *Upper Section* total",
-            "- Lower *Chance*",
-            "- Lower *3x*",
-            "- Lower *4x*",
-            "If all of these are equal, then it is a true tie.",
+        blocks = listOf(
+            text("If multiple players end the game with the same score, the following checks are made in order - the first difference decides who wins the tie:"),
+            text("- Fewest *5x*"),
+            text("- Most categories scored zero"),
+            text("- Lower *Upper Section* total"),
+            text("- Lower *Chance*"),
+            text("- Lower *3x*"),
+            text("- Lower *4x*"),
+            text("If all of these are equal, then it is a true tie."),
         ),
     ),
     RulesPage(
         title = "Mode: Tricolour",
         tabLabel = "Tricolour",
-        paragraphs = listOf(
-            "A custom mode extending the *Standard* game mode. Every die also rolls a colour - red, yellow or blue - alongside its number.",
-            "There are four extra scoring categories:",
-            "- *Reds* [40pts]: All five dice are red",
-            "- *Yellows* [40pts]: All five dice are yellow",
-            "- *Blues* [40pts]: All five dice are blue",
-            "- *Coloured House* [25pts]: Three of one colour and two of another",
-            "Under the joker rule, a repeat *5x* also scores *Coloured House* at its full **25pts**. Everything else plays exactly the same as the *Standard* rules, just with more opportunities to score.",
-            "See if you can find the Easter Egg in this mode!",
+        blocks = listOf(
+            text("A custom mode extending the *Standard* game mode. Every die also rolls a colour - red, yellow or blue - alongside its number."),
+            text("There are four extra scoring categories:"),
+            text("- *Reds* [40pts]: All five dice are red"),
+            colouredDice(2 to DieColour.RED, 5 to DieColour.RED, 1 to DieColour.RED, 6 to DieColour.RED, 3 to DieColour.RED, score = "40pts"),
+            text("- *Yellows* [40pts]: All five dice are yellow"),
+            colouredDice(4 to DieColour.YELLOW, 4 to DieColour.YELLOW, 1 to DieColour.YELLOW, 5 to DieColour.YELLOW, 2 to DieColour.YELLOW, score = "40pts"),
+            text("- *Blues* [40pts]: All five dice are blue"),
+            colouredDice(6 to DieColour.BLUE, 3 to DieColour.BLUE, 3 to DieColour.BLUE, 2 to DieColour.BLUE, 5 to DieColour.BLUE, score = "40pts"),
+            text("- *Coloured House* [25pts]: Three of one colour and two of another"),
+            colouredDice(1 to DieColour.RED, 4 to DieColour.RED, 6 to DieColour.RED, 2 to DieColour.BLUE, 5 to DieColour.BLUE, score = "25pts"),
+            text("Under the joker rule, a repeat *5x* also scores *Coloured House* at its full **25pts**. Everything else plays exactly the same as the *Standard* rules, just with more opportunities to score."),
+            text("See if you can find the Easter Egg in this mode!"),
         ),
     ),
     RulesPage(
         title = "Mode: Quickfire",
         tabLabel = "Quickfire",
-        paragraphs = listOf(
-            "A custom mode extending the *Standard* game mode. You get just **one roll** per turn - no holding dice, no rerolls - and the dice are rolled for you as your turn starts.",
-            "Every turn also has a **10 second** timer, which replaces the usual *Turn Timer* setting. If it runs out, the roll is scored in whichever open category it's worth the *least* in - the first one on the scorecard, if several tie.",
-            "Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules - you just have to take what the dice give you, and quickly!",
+        blocks = listOf(
+            text("A custom mode extending the *Standard* game mode. You get just **one roll** per turn - no holding dice, no rerolls - and the dice are rolled for you as your turn starts."),
+            text("Every turn also has a **10 second** timer, which replaces the usual *Turn Timer* setting. If it runs out, the roll is scored in whichever open category it's worth the *least* in - the first one on the scorecard, if several tie."),
+            text("Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules - you just have to take what the dice give you, and quickly!"),
         ),
     ),
 )
@@ -255,16 +294,19 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         modifier = Modifier.semantics { heading() },
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    for (paragraph in rulesPage.paragraphs) {
-                        Text(
-                            text = parseInlineMarkup(
-                                paragraph,
-                                codeStyle = SpanStyle(fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary),
-                            ),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 10.dp),
-                        )
+                    for (block in rulesPage.blocks) {
+                        when (block) {
+                            is RulesText -> Text(
+                                text = parseInlineMarkup(
+                                    block.text,
+                                    codeStyle = SpanStyle(fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary),
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 10.dp),
+                            )
+                            is RulesDice -> RulesDiceRow(block, modifier = Modifier.padding(start = 12.dp, bottom = 14.dp))
+                        }
                     }
                 }
             }
@@ -276,6 +318,74 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             )
         }
     }
+}
+
+/** The size of each die in a [RulesDiceRow] - small enough that five and a score fit beside a bullet's indent. */
+private val EXAMPLE_DIE_SIZE = 28.dp
+
+/** How faint a die that doesn't count towards the example's category is drawn. */
+private const val EXAMPLE_DIE_FADED_ALPHA = 0.35f
+
+/** Mock-up only: how a [RulesDiceRow] singles out the dice that count. */
+enum class ExampleHighlight { FADE_OTHERS, UNDERLINE_COUNTED }
+
+/** Mock-up only: which [ExampleHighlight] to draw, so both can be rendered for review. */
+var exampleHighlight = ExampleHighlight.FADE_OTHERS
+
+/**
+ * Five example dice in the Classic style (each in its own colour in a Tricolour example), then what
+ * they score. Dice that don't count towards the category are faded, so "three 5s, plus two others"
+ * reads at a glance. TalkBack hears it as one sentence - the dice, which don't count and the score -
+ * rather than five unlabelled images.
+ */
+@Composable
+private fun RulesDiceRow(example: RulesDice, modifier: Modifier = Modifier) {
+    val spoken = remember(example) { example.spokenDescription() }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.clearAndSetSemantics { contentDescription = spoken },
+    ) {
+        for (die in example.dice) {
+            val style = die.colour?.let { IvoryDiceStyle.recoloured(it.palette) } ?: IvoryDiceStyle
+            val faded = exampleHighlight == ExampleHighlight.FADE_OTHERS && !die.counts
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(end = 6.dp)) {
+                style.Die(
+                    value = die.value,
+                    held = false,
+                    modifier = Modifier.size(EXAMPLE_DIE_SIZE).graphicsLayer { alpha = if (faded) EXAMPLE_DIE_FADED_ALPHA else 1f },
+                )
+                if (exampleHighlight == ExampleHighlight.UNDERLINE_COUNTED) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(width = EXAMPLE_DIE_SIZE - 4.dp, height = 3.dp)
+                            .clip(CircleShape)
+                            .background(if (die.counts) MaterialTheme.colorScheme.primary else Color.Transparent),
+                    )
+                }
+            }
+        }
+        Text(
+            text = "= ${example.score}",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 6.dp),
+        )
+    }
+}
+
+/** "Example: 5, 5, 5, 2, 6. The 2 and 6 don't count. Scores 23 points." - the row read aloud. */
+private fun RulesDice.spokenDescription(): String {
+    fun ExampleDie.spoken() = colour?.let { "${it.name.lowercase()} $value" } ?: value.toString()
+    val ignored = dice.filterNot { it.counts }.map { it.spoken() }
+    val ignoredSentence = when (ignored.size) {
+        0 -> ""
+        1 -> " The ${ignored.single()} doesn't count."
+        else -> " The ${ignored.dropLast(1).joinToString(", ")} and ${ignored.last()} don't count."
+    }
+    val spokenScore = score.replace("pts", " points").replace("+", "plus")
+    return "Example: ${dice.joinToString(", ") { it.spoken() }}.$ignoredSentence Scores $spokenScore."
 }
 
 /** Space between the end of a page's text and the top of the footer, once scrolled to the bottom. */
