@@ -123,12 +123,13 @@ class PicnicBasketDiceCupStyle(override val id: String, private val palette: Bas
         val spill = remember { Animatable(1f) }
         var spills by remember { mutableStateOf(if (open) basketSpill(Random.nextInt()) else emptyList()) }
         LaunchedEffect(open) {
+            // Under reduced motion the lids are simply shut or open, with no swing between.
             if (!open) {
-                flaps.animateTo(0f, tween(FLAP_CLOSE_MILLIS))
+                if (reduceMotion) flaps.snapTo(0f) else flaps.animateTo(0f, tween(FLAP_CLOSE_MILLIS))
             } else if (flaps.value < 1f) {
                 spills = basketSpill(Random.nextInt())
                 if (reduceMotion) {
-                    flaps.animateTo(1f, tween(200))
+                    flaps.snapTo(1f)
                 } else {
                     launch { spill.snapTo(0f); spill.animateTo(1f, tween(SPILL_MILLIS, easing = LinearEasing)) }
                     // Underdamped, so the lids fly up and bounce on their hinges.

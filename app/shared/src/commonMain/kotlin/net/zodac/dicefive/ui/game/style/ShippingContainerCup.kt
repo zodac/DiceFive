@@ -73,9 +73,10 @@ class ShippingContainerDiceCupStyle(override val id: String, private val palette
         // A continued game's container starts with its doors open; anything else starts shut.
         val doors = remember { Animatable(if (open) 1f else 0f) }
         LaunchedEffect(open) {
+            // Under reduced motion the doors are simply shut or open, with no swing between.
             when {
+                reduceMotion -> doors.snapTo(if (open) 1f else 0f)
                 !open -> doors.animateTo(0f, tween(DOOR_CLOSE_MILLIS))
-                reduceMotion -> doors.animateTo(1f, tween(200))
                 // Underdamped, so the doors fly open and bounce on their hinges.
                 else -> doors.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = Spring.StiffnessLow))
             }
