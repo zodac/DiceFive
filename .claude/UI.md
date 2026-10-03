@@ -740,10 +740,11 @@ shrinks it (to 100ms, not 0: `isRolling` and the roll tracker have to be seen ch
 and there's nothing to keep in step with. The same value is used for a human's tap (`GameScreen`) and a
 CPU's roll (`GameViewModel.cupShakeMillis`, set from the screen). **Never shorten the window without
 re-checking the clips and `AndroidHapticsPlayer`'s `SHAKE_HAPTIC_MILLIS`.** The CPU's other pauses
-(`ROLL_GAP_MS`, `AI_STEP_DELAY_MS`, and between its hold changes `AI_HOLD_STEP_MS` and
-`AI_RELEASE_TO_HOLD_GAP_MS`) are for following what it did, not for an animation, and never change; only the
-toss it waits out (`diceTossMillis`) and `RELEASE_GAP_MS` (time to watch a released die drop) go, as both are
-animation.
+(`ROLL_GAP_MS`, `AI_STEP_DELAY_MS`, `AI_REACTION_DELAY_MS`) are for following what it did, not for an animation,
+and never change; only the toss it waits out (`diceTossMillis`), `RELEASE_GAP_MS` (time to watch a released die drop) and the one-die-at-a-time
+stepping of its hold changes (`AI_HOLD_STEP_MS`, `AI_RELEASE_TO_HOLD_GAP_MS` - each roll's releases and holds land
+together, `GameViewModel.changeHolds`) go, as all are animation. They make no sound and aren't announced, so a
+TalkBack user loses nothing by them landing at once.
 The Game Over fanfare and hold ticks are governed by their own settings, not by this.
 
 ## Scrollbars on long lists

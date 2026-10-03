@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -29,7 +30,8 @@ private class ScriptedRolls(private val values: List<Int>) : Random() {
 
 /**
  * A CPU's hold changes are paced like a hand's: one die at a time, and a die it lets go of stays on the
- * mat long enough to be seen there before its next roll sweeps it up.
+ * mat long enough to be seen there before its next roll sweeps it up. With the dice not animated (reduced
+ * motion), that stepping is motion too, and the changes land together.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AiReleasePacingTest {
@@ -87,14 +89,17 @@ class AiReleasePacingTest {
         assertTrue(shake - released >= 500, "the next shake started ${shake - released}ms after the release")
     }
 
-    @Test
-    fun `the CPU releases and holds dice one at a time with a longer beat between the two`() = runTest(testDispatcher) {
+    /**
+     * Plays the human's turn and the CPU's (the [PAIR_THEN_STRAIGHT] script), returning every change to a die's hold
+     * during the CPU's turn: when, which die, and which way.
+     */
+    private fun TestScope.cpuHoldChanges(diceAnimated: Boolean): List<Triple<Long, Int, Boolean>> {
         val viewModel = GameViewModel(aiDispatcher = testDispatcher, random = ScriptedRolls(PAIR_THEN_STRAIGHT))
+        viewModel.diceAnimated = diceAnimated
         viewModel.setPlayerCount(2)
         viewModel.setPlayerType(2, PlayerType.AI)
         viewModel.startGame()
 
-        // Every change to a die's hold during the CPU's turn: when, which die, and which way.
         val changes = mutableListOf<Triple<Long, Int, Boolean>>()
         backgroundScope.launch(testDispatcher) {
             var previous: List<Boolean>? = null
@@ -112,6 +117,12 @@ class AiReleasePacingTest {
         viewModel.commitScore(ScoreCategory.CHANCE)
         advanceTimeBy(30_000)
         runCurrent()
+        return changes
+    }
+
+    @Test
+    fun `the CPU releases and holds dice one at a time with a longer beat between the two`() = runTest(testDispatcher) {
+        val changes = cpuHoldChanges(diceAnimated = true)
 
         val firstHold = changes.first().first
         val release = changes.single { !it.third }.first
@@ -121,6 +132,22 @@ class AiReleasePacingTest {
                 Triple(firstHold, 0, true), Triple(firstHold + 50, 1, true),
                 // Second, 6-6-3-4-5: let one 6 go, a longer beat, then 3, 4 and 5 one by one.
                 Triple(release, 1, false), Triple(release + 125, 2, true), Triple(release + 175, 3, true), Triple(release + 225, 4, true),
+            ),
+            changes,
+        )
+    }
+
+    @Test
+    fun `with the dice not animated the CPU's hold changes all land at once`() = runTest(testDispatcher) {
+        val changes = cpuHoldChanges(diceAnimated = false)
+
+        val firstHold = changes.first().first
+        val release = changes.single { !it.third }.first
+        assertEquals(
+            listOf(
+                // The same choices as above, but each roll's every release and hold published together.
+                Triple(firstHold, 0, true), Triple(firstHold, 1, true),
+                Triple(release, 1, false), Triple(release, 2, true), Triple(release, 3, true), Triple(release, 4, true),
             ),
             changes,
         )
