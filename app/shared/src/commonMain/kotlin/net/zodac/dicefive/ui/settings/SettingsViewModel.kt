@@ -14,8 +14,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.AppContainer
-import net.zodac.dicefive.data.achievements.AchievementEvent
-import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.ScoreRepository
@@ -23,6 +21,7 @@ import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.ui.achievements.announce
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
@@ -91,7 +90,7 @@ class SettingsViewModel(
             if (update.isEmpty) return@launch
             // Stored before it's announced, so a banner can never outlive its unlock.
             repository.record(update.unlockedAt(), update.counters)
-            update.newlyUnlocked.forEach { AchievementEvents.emit(AchievementEvent.Unlocked(it)) }
+            announce(update)
         }
     }
 
