@@ -302,20 +302,37 @@ against it); a swipe or long press starts a fresh hold. Once the glyph fades not
 banner is held - by design. TalkBack gets the tap as a "Pause countdown"/"Resume countdown"
 action on the banner, since the raw gesture isn't reachable otherwise; not heard on a device.
 
-Long-pressing the front banner jumps to that achievement on the Achievements screen. Mid-game,
+Long-pressing the front banner jumps to that achievement on the Achievements screen (a styles
+banner opens the Styles screen instead). Mid-game,
 with "confirm before leaving" on, that asks first - and every banner's countdown is paused while the
 confirmation is up, restarting at a full hold when it closes.
 
 The stack lives in its own non-modal `Dialog` window, not in the app's content, so a banner that
 fires while another dialog is open still draws above it.
 
-Two variants, deliberately unequal: an **unlock** banner is `primaryContainer` with the
+Two achievement variants, deliberately unequal: an **unlock** banner is `primaryContainer` with the
 achievement's own icon (`Achievement.icon`, the same one its unlocked row shows - a generic trophy
 made a burst of unlocks read as a stack of identical cups) and a title plus up to two lines of
 description, with a small star badge on the icon's corner when the achievement unlocks a style (see "Style locks"); a
 **progress** banner is quieter (`surfaceContainerHigh`, one line plus a thin
 `LinearProgressIndicator` whose count and bar climb from the old value to the new over 700ms),
 so a run of "2 of 3" nudges can never be mistaken for the real thing.
+
+A third, the **styles** banner (`AchievementEvent.StylesUnlocked`), says the player has earned
+enough achievements to unlock one or more styles by count (`StyleUnlock.AchievementCount`). It
+looks unlike an achievement on purpose: `tertiaryContainer`, and the style star itself as its icon,
+in a circle rather than the achievement's square. It's the same size as an unlock banner (title
+"Style Unlocked"/"Styles Unlocked", two-line description "Earned 23 achievements: the 'Frosted'
+dice style", naming two and counting the rest). **One update makes at most one styles banner**,
+however many styles and categories it unlocks: `announce(update)` (`ui/achievements/
+AchievementAnnouncements.kt`) - which every place that records an unlock calls - emits the unlocks,
+then one styles banner for every count lock crossed between `AchievementUpdate.countedUnlocksBefore`
+and `countedUnlocksAfter` (`stylesUnlockedByCount`), then the progress nudges. A style behind one
+specific achievement never gets one - that achievement's own banner carries the star. It sorts with
+the unlocks, ahead of progress nudges. Long-pressing it opens the Styles screen (behind the same
+leave-game confirmation). TalkBack hears every style it unlocked, not just the two drawn: "Styles
+unlocked: Frosted dice, Velvet mat, Oak background. Earned 30 achievements"
+(`StylesUnlockedBannerSemanticsTest`).
 
 Both show the achievement's title on ONE line (`BannerTitle`, via `ShrinkThenWrapText` with a
 one-line limit): titleMedium's 16sp when it fits, stepping down 0.5sp at a time to 12sp, and only

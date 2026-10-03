@@ -28,8 +28,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import net.zodac.dicefive.app.AppContainer
-import net.zodac.dicefive.data.achievements.AchievementEvent
-import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.game.InProgressGameRepository
@@ -61,6 +59,7 @@ import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.hasGrownSunflower
 import net.zodac.dicefive.model.isLuckOfTheIrish
+import net.zodac.dicefive.ui.achievements.announce
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
@@ -1353,8 +1352,7 @@ class GameViewModel(
         if (update.isEmpty) return
         // Stored before anything is announced, so a banner can never outlive its unlock.
         repository.record(update.unlockedAt(), update.counters)
-        update.newlyUnlocked.forEach { AchievementEvents.emit(AchievementEvent.Unlocked(it)) }
-        update.progressed.forEach { AchievementEvents.emit(AchievementEvent.Progressed(it.achievement, it.previous, it.current)) }
+        announce(update)
     }
 
     private fun resetAchievementTracking() {
