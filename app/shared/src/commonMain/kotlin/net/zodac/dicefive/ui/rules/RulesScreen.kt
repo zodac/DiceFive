@@ -44,6 +44,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
+import androidx.compose.material3.TabPosition
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.lerp
+import net.zodac.dicefive.ui.game.TurnTimerBadge
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -101,6 +109,10 @@ private sealed interface RulesBlock
 /** The default cup with a handful of dice tipped out beside it - a picture for a page with no
  * example rolls of its own, so it doesn't look empty. */
 private data object RulesIllustration : RulesBlock
+
+/** The game's own turn timer badge, stopped at [TURN_TIMER_EXAMPLE_SECONDS] so it flashes as it
+ * does when a turn is running out. */
+private data object RulesTurnTimer : RulesBlock
 
 /** A paragraph of body text. */
 private data class RulesText(val text: String) : RulesBlock
@@ -242,6 +254,7 @@ private val RULES_PAGES = listOf(
         blocks = listOf(
             text("A custom mode extending the *Standard* game mode. You get just **one roll** per turn (no holding dice, no rerolls) and the dice are rolled for you as your turn starts."),
             text("Every turn also has a **10 second** timer, which replaces the usual *Turn Timer* setting. If it runs out, the roll is scored in whichever open category it's worth the least in (the first one on the scorecard, if several tie)."),
+            RulesTurnTimer,
             text("Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules. You just have to take what the dice give you, and quickly!"),
         ),
     ),
@@ -292,6 +305,16 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 // Transparent over the backdrop, like the app bar above it, and flush with the page text.
                 containerColor = Color.Transparent,
                 edgePadding = 0.dp,
+                // Slides with the pages as they're swiped, rather than jumping once the next page is
+                // the current one - see pagerIndicatorLayout.
+                indicator = {
+                    TabRowDefaults.PrimaryIndicator(
+                        modifier = Modifier.tabIndicatorLayout { measurable, constraints, tabPositions ->
+                            pagerIndicatorLayout(measurable, constraints, tabPositions, pagerState.currentPage + pagerState.currentPageOffsetFraction)
+                        },
+                        width = Dp.Unspecified,
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .fadeOffscreenEdges(tabScrollState, clearWidth = TAB_EDGE_CLEAR, fadeWidth = TAB_EDGE_FADE, easeDistance = TAB_EDGE_EASE)
@@ -399,6 +422,17 @@ private fun RulesBlockView(block: RulesBlock) {
     when (block) {
         is RulesText -> RulesBodyText(block.text, modifier = Modifier.padding(bottom = BLOCK_GAP))
         RulesIllustration -> RulesIllustrationView(modifier = Modifier.padding(top = 24.dp, bottom = BLOCK_GAP))
+        // One TalkBack stop describing the example, in place of the badge's own live region - which
+        // would announce "time running out" as if a turn on this page really were.
+        RulesTurnTimer -> TurnTimerBadge(
+            secondsRemaining = TURN_TIMER_EXAMPLE_SECONDS,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = BLOCK_GAP)
+                .clearAndSetSemantics {
+                    contentDescription = "Example: the turn timer, turning red with $TURN_TIMER_EXAMPLE_SECONDS seconds left"
+                },
+        )
         is RulesDice -> RulesDiceRow(block, modifier = Modifier.padding(bottom = BLOCK_GAP))
         is RulesStep -> Column(modifier = Modifier.padding(bottom = BLOCK_GAP).semantics(mergeDescendants = true) {}) {
             Row {
@@ -478,6 +512,9 @@ private fun RulesDice.spokenDescription(): String {
     }
     return "Example: ${dice.joinToString(", ") { it.spoken() }}.$ignoredSentence Scores ${spokenPoints(score)}."
 }
+
+/** The seconds the Quickfire page's example timer is stopped at - inside the game's last few, so it flashes. */
+private const val TURN_TIMER_EXAMPLE_SECONDS = 4
 
 /** ScreenScaffold's side margin, which the pages' scrollbar sits in. */
 private val SCREEN_MARGIN = 20.dp
@@ -564,6 +601,32 @@ private fun RulesIllustrationView(modifier: Modifier = Modifier) {
                 )
             }
         }
+    }
+}
+
+/**
+ * Places the tab row's indicator under [pagePosition] - the pager's current page plus how far it's
+ * been swiped towards the next (`currentPage + currentPageOffsetFraction`) - so it slides between
+ * two tabs with the finger, its width easing from one label's to the other's. Read during layout,
+ * so following a swipe re-places the indicator without recomposing the tab row.
+ */
+private fun MeasureScope.pagerIndicatorLayout(
+    measurable: Measurable,
+    constraints: Constraints,
+    tabPositions: List<TabPosition>,
+    pagePosition: Float,
+): MeasureResult {
+    val position = pagePosition.coerceIn(0f, (tabPositions.size - 1).toFloat())
+    val from = tabPositions[position.toInt()]
+    val to = tabPositions[(position.toInt() + 1).coerceAtMost(tabPositions.size - 1)]
+    val fraction = position - position.toInt()
+    // Under the label, as the stock indicator sits (matchContentSize), not the whole tab.
+    val width = lerp(from.contentWidth, to.contentWidth, fraction)
+    val centre = lerp(from.left + from.width / 2, to.left + to.width / 2, fraction)
+    val widthPx = width.roundToPx()
+    val placeable = measurable.measure(constraints.copy(minWidth = widthPx, maxWidth = widthPx))
+    return layout(constraints.maxWidth, placeable.height) {
+        placeable.place(x = (centre - width / 2).roundToPx(), y = 0)
     }
 }
 

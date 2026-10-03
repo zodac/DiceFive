@@ -134,6 +134,20 @@ class RulesScreenAccessibilityTest {
     }
 
     @Test
+    fun theExampleTurnTimerIsDescribedNotAnnouncedAsALiveCountdown() {
+        showRules()
+
+        compose.onNodeWithText("Quickfire").performScrollTo().performClick()
+        compose.waitForIdle()
+
+        val timer = compose.onNodeWithContentDescription("Example: the turn timer, turning red with 4 seconds left").fetchSemanticsNode()
+        // The game's badge is a live region in its last seconds; here no turn is running, so nothing is announced.
+        assertTrue(SemanticsProperties.LiveRegion !in timer.config)
+        assertTrue(compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.LiveRegion)).fetchSemanticsNodes()
+            .none { it.config.getOrElse(SemanticsProperties.ContentDescription) { emptyList() }.any { d -> "running out" in d } })
+    }
+
+    @Test
     fun theEdgeChevronsAreNotExtraTalkBackStops() {
         showRules()
 
