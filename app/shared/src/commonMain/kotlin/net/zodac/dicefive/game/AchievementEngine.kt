@@ -347,8 +347,8 @@ object AchievementEngine {
         // Known the moment the table is set.
         award(Achievement.FULL_TABLE, players.size == FULL_TABLE_SIZE)
 
-        // Easter eggs. A roll can't be undone, so a bloom is final. A mode too short to bloom in
-        // (Quickfire, whose rolls are all made for the player) can't earn it - see rollsToBloom.
+        // Easter eggs. A roll can't be undone, so a bloom is final. A mode without 3 rolls a turn
+        // (Quickfire, whose rolls are all made for the player) can't earn it - see growsSunflower.
         award(Achievement.GREENFINGERS, anyHuman { it.hasGrownSunflower })
 
         return earned

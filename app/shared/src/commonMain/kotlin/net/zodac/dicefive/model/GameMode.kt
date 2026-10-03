@@ -70,8 +70,8 @@ enum class GameMode(
     /**
      * The most rolls one player can make in a whole game: every roll of every turn, one turn per box.
      * Declared rather than computed, with the derivation on each entry, and `GameModeTest` plays a
-     * game using every roll through the real engine to prove it. What the Flowerpot's sunflower
-     * blooms on, in a mode long enough - see [flowerpotGrowthStage].
+     * game using every roll through the real engine to prove it. What the Flowerpot's plant grows
+     * over, blooming on the last of them where the mode allows - see [flowerpotGrowthStage].
      */
     val maxRollsPerGame: Int,
     /**

@@ -15,19 +15,32 @@ class FlowerpotGrowthTest {
     }
 
     @Test
-    fun `in Tricolour it grows at the same rolls but only blooms on its 51st - its last`() {
-        assertEquals(List(10) { 0 } + List(10) { 1 } + List(10) { 2 } + List(21) { 3 } + listOf(FLOWERPOT_FULL_BLOOM), GameMode.TRICOLOUR.stages())
+    fun `in Tricolour the stages spread evenly over its 51 rolls and it blooms only on the last`() {
+        assertEquals(List(13) { 0 } + List(13) { 1 } + List(13) { 2 } + List(12) { 3 } + listOf(FLOWERPOT_FULL_BLOOM), GameMode.TRICOLOUR.stages())
     }
 
     @Test
-    fun `in Quickfire it only reaches the seedling - its 13 rolls never bring it into bloom`() {
-        assertEquals(List(10) { 0 } + List(4) { 1 }, GameMode.QUICKFIRE.stages())
+    fun `in Quickfire it grows over its 13 rolls but never blooms - one roll a turn`() {
+        assertFalse(GameMode.QUICKFIRE.growsSunflower)
+        assertEquals(List(4) { 0 } + List(3) { 1 } + List(3) { 2 } + List(4) { 3 }, GameMode.QUICKFIRE.stages())
     }
 
     @Test
-    fun `it blooms on every roll of the game - but never on fewer than 39`() {
+    fun `only a mode with 3 rolls a turn can bloom`() {
         for (mode in GameMode.entries) {
-            assertEquals(maxOf(SUNFLOWER_MIN_ROLLS, mode.maxRollsPerGame), mode.rollsToBloom, mode.id)
+            assertEquals(mode.rollsPerTurn == 3, mode.growsSunflower, mode.id)
+        }
+    }
+
+    @Test
+    fun `for any game length the stages never go backwards and the bloom comes only on the last roll`() {
+        for (canBloom in listOf(true, false)) {
+            for (maxRolls in 1..500) {
+                val stages = (0..maxRolls).map { flowerpotGrowthStage(it, maxRolls, canBloom) }
+                assertEquals(stages.sorted(), stages, "over $maxRolls")
+                assertEquals(if (canBloom) FLOWERPOT_FULL_BLOOM else FLOWERPOT_FULL_BLOOM - 1, stages.last(), "over $maxRolls")
+                assertTrue(stages.dropLast(1).all { it < FLOWERPOT_FULL_BLOOM }, "over $maxRolls bloomed early")
+            }
         }
     }
 
