@@ -27,6 +27,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -152,19 +153,29 @@ fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     // Wraps at a large font rather than ellipsising a date into something unreadable, sharing
-                    // what's left of the row with the name instead of squeezing it out.
+                    // what's left of the row with the name instead of squeezing it out. It fills its share,
+                    // end-aligned, so the score after it lands on the row's end rather than short of it.
                     textAlign = TextAlign.End,
-                    modifier = Modifier.weight(1f, fill = false),
+                    modifier = Modifier.weight(1f),
                 )
-                Text(
-                    // Space-padded to a fixed width: the name before it fills whatever's left in
-                    // the row, so a shorter score (fewer digits) would otherwise let the name grow
-                    // into that space and shove the timestamp sideways, card to card.
-                    text = player.maxScore.toString().padStart(MAX_SCORE_DISPLAY_WIDTH),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                // A fixed width, the widest score's worth of digits, with the score right-aligned in
+                // it: the name before it fills whatever's left in the row, so a shorter score would
+                // otherwise let the name grow into that space and shove the timestamp sideways, card
+                // to card. Right-aligned, its last digit lines up with the best streak's below.
+                Box(contentAlignment = Alignment.CenterEnd) {
+                    Text(
+                        text = "8".repeat(MAX_SCORE_DISPLAY_WIDTH),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.alpha(0f),
+                    )
+                    Text(
+                        text = player.maxScore.toString(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -180,15 +191,16 @@ fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
                 StatCell(label = "Won", value = player.gamesWon.toString())
                 StatCell(label = "Lost", value = player.gamesLost.toString())
                 StatCell(label = "Streak", value = player.currentWinStreak.toString())
-                StatCell(label = "Best", value = player.bestWinStreak.toString())
+                // End-aligned rather than centred, so its last digit sits on the card's edge, under the score's.
+                StatCell(label = "Best", value = player.bestWinStreak.toString(), alignment = Alignment.End)
             }
         }
     }
 }
 
 @Composable
-private fun StatCell(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun StatCell(label: String, value: String, alignment: Alignment.Horizontal = Alignment.CenterHorizontally) {
+    Column(horizontalAlignment = alignment) {
         Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

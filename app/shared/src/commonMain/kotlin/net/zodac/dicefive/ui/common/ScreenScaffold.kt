@@ -79,6 +79,9 @@ val CONTENT_MAX_WIDTH = 460.dp
  *
  * [driftingDice] is only ever false for a copy built out of sight ahead of time (the Styles page's
  * warm-up): the drift is the app's one shared one, which a second copy would move along too.
+ *
+ * [horizontalPadding] is a [scrollable] page's side margin - narrower only where the page shows
+ * the game board's own pieces (the scorecard review), which are sized for the game screen's margin.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,6 +92,7 @@ fun ScreenScaffold(
     scrollable: Boolean = false,
     footer: (@Composable () -> Unit)? = null,
     driftingDice: Boolean = true,
+    horizontalPadding: Dp = PAGE_HORIZONTAL_PADDING,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     require(footer == null || scrollable) { "A footer floats over a scrollable page" }
@@ -97,28 +101,7 @@ fun ScreenScaffold(
             // The backdrop is already drawn behind; the Scaffold only supplies structure, insets
             // and the app bar, so it must not paint its own opaque container over the top.
             containerColor = Color.Transparent,
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontFamily = SoraFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.semantics { heading() },
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        titleContentColor = MaterialTheme.colorScheme.primary,
-                    ),
-                )
-            },
+            topBar = { PageTopBar(title = title, onBack = onBack) },
         ) { innerPadding ->
             // The page's content eases in rather than appearing at once - whatever part of it is a
             // frame or two late (a loaded list, a Styles row centring on its pick) fades in with the
@@ -135,6 +118,7 @@ fun ScreenScaffold(
                     val footerReserve = if (footer == null) 0.dp else with(LocalDensity.current) { footerHeightPx.toDp() } + FOOTER_GAP * 2
                     val layoutDirection = LocalLayoutDirection.current
                     PageColumn(
+                        horizontalPadding = horizontalPadding,
                         contentPadding = PaddingValues.Absolute(
                             left = innerPadding.calculateLeftPadding(layoutDirection),
                             top = innerPadding.calculateTopPadding(),
@@ -178,6 +162,42 @@ fun ScreenScaffold(
 }
 
 /**
+ * [ScreenScaffold]'s app bar on its own, for a page that can't take the whole scaffold but still
+ * wants its title where every other page's is (the results screen, whose fireworks go between the
+ * backdrop and the page). With no [onBack] there's no back arrow, and the title stays centred.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PageTopBar(title: String, onBack: (() -> Unit)?, modifier: Modifier = Modifier) {
+    CenterAlignedTopAppBar(
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontFamily = SoraFontFamily,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.semantics { heading() },
+            )
+        },
+        navigationIcon = {
+            if (onBack != null) {
+                IconButton(onClick = onBack) {
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+            titleContentColor = MaterialTheme.colorScheme.primary,
+        ),
+        modifier = modifier,
+    )
+}
+
+/** A [PageColumn]'s side margin, unless the page asks for another. */
+private val PAGE_HORIZONTAL_PADDING = 24.dp
+
+/**
  * A page body that fills the screen but scrolls if it can't fit - the case on a short screen
  * (landscape, split-screen, a large display font).
  *
@@ -188,7 +208,7 @@ fun ScreenScaffold(
 @Composable
 fun PageColumn(
     modifier: Modifier = Modifier,
-    horizontalPadding: Dp = 24.dp,
+    horizontalPadding: Dp = PAGE_HORIZONTAL_PADDING,
     // Defaults to the system bar insets, for a page used on its own (the menu, the results
     // screen) - the app draws edge to edge, so without this its content runs under the status
     // bar's clock. A page inside a ScreenScaffold passes the Scaffold's own inner padding here

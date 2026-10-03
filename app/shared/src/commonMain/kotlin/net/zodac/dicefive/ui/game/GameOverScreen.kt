@@ -8,12 +8,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.Button
@@ -31,7 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
@@ -46,7 +50,7 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PageColumn
-import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.PageTopBar
 import net.zodac.dicefive.ui.theme.CupRimGold
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.GoldAccentDim
@@ -94,84 +98,81 @@ fun GameOverScreen(
             GoldFireworks(durationMillis = CELEBRATION_MILLIS, modifier = Modifier.fillMaxSize())
         }
 
-        PageColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Spacer(modifier = Modifier.height(24.dp))
+        // The same app bar as every other page (so "Game Over" sits where their titles do), but no
+        // back arrow: the two ways out are the buttons at the end. Fixed above the results, which
+        // scroll beneath it like any other page's content.
+        Column(modifier = Modifier.fillMaxSize()) {
+            PageTopBar(title = "Game Over", onBack = null)
+            PageColumn(
+                modifier = Modifier.weight(1f),
+                // The app bar has already taken the status bar's inset.
+                contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom).asPaddingValues(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                for (winner in winners) {
+                    WinnerCard(player = winner.player, solo = state.players.size == 1, tieBreakReason = winner.tieBreakReason)
+                }
 
-            // Styled like every other page's title (ScreenScaffold's app bar): bold Sora in the
-            // brand gold. No "X wins" line under it - the winner card below already says so.
-            Text(
-                text = "Game Over",
-                style = MaterialTheme.typography.titleLarge,
-                fontFamily = SoraFontFamily,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-            )
-
-            for (winner in winners) {
-                WinnerCard(player = winner.player, solo = state.players.size == 1, tieBreakReason = winner.tieBreakReason)
-            }
-
-            if (runnersUp.isNotEmpty()) {
-                // "=" only for a true tie (every tie-break criterion also matches, not just raw
-                // score) - a rank shared with more than one runner-up here is exactly that, since
-                // rankPlayers only ever repeats a rank for a true tie.
-                val sharedRanks = runnersUp.groupingBy { it.rank }.eachCount().filterValues { it > 1 }.keys
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                        for (runnerUp in runnersUp) {
-                            RunnerUpRow(
-                                rank = runnerUp.rank,
-                                isTrueTie = runnerUp.rank in sharedRanks,
-                                player = runnerUp.player,
-                                tieBreakReason = runnerUp.tieBreakReason,
-                            )
+                if (runnersUp.isNotEmpty()) {
+                    // "=" only for a true tie (every tie-break criterion also matches, not just raw
+                    // score) - a rank shared with more than one runner-up here is exactly that, since
+                    // rankPlayers only ever repeats a rank for a true tie.
+                    val sharedRanks = runnersUp.groupingBy { it.rank }.eachCount().filterValues { it > 1 }.keys
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                            for (runnerUp in runnersUp) {
+                                RunnerUpRow(
+                                    rank = runnerUp.rank,
+                                    isTrueTie = runnerUp.rank in sharedRanks,
+                                    player = runnerUp.player,
+                                    tieBreakReason = runnerUp.tieBreakReason,
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            // A fixed gap, not one that grows to push these to the bottom of the screen - the
-            // achievement banner stack sits over the bottom half (see AchievementBannerHost), so
-            // pinning these as a footer put them right where a banner could land on top of them.
-            // They now just follow directly after the score list instead.
-            Spacer(modifier = Modifier.height(20.dp))
+                // A fixed gap, not one that grows to push these to the bottom of the screen - the
+                // achievement banner stack sits over the bottom half (see AchievementBannerHost), so
+                // pinning these as a footer put them right where a banner could land on top of them.
+                // They now just follow directly after the score list instead.
+                Spacer(modifier = Modifier.height(20.dp))
 
-            // A full-width third action rather than squeezing into the row below - "review the
-            // board" is a detour on the way to one of the two real exits from this screen, not a
-            // third option of equal weight with them.
-            OutlinedButton(
-                onClick = onReviewScorecards,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-            ) {
-                Text(text = "Review Scorecards", style = MaterialTheme.typography.titleMedium)
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
+                // A full-width third action rather than squeezing into the row below - "review the
+                // board" is a detour on the way to one of the two real exits from this screen, not a
+                // third option of equal weight with them.
                 OutlinedButton(
-                    onClick = onBackToMenu,
-                    modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                    onClick = onReviewScorecards,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
                 ) {
-                    Text(text = "Back to Menu", style = MaterialTheme.typography.titleMedium)
+                    Text(text = "Review Scorecards", style = MaterialTheme.typography.titleMedium)
                 }
-                Button(
-                    onClick = onPlayAgain,
-                    modifier = Modifier.weight(1f).heightIn(min = 56.dp),
-                ) {
-                    Text(text = "Play Again", style = MaterialTheme.typography.titleMedium)
-                }
-            }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = onBackToMenu,
+                        modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                    ) {
+                        Text(text = "Back to Menu", style = MaterialTheme.typography.titleMedium)
+                    }
+                    Button(
+                        onClick = onPlayAgain,
+                        modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                    ) {
+                        Text(text = "Play Again", style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
         }
     }
 }
-
 
 /** [solo] keeps the gold card but drops the trophy and "Winner" label - nobody was beaten.
  * [tieBreakReason] is only set when this winner shares their raw score with the very next player

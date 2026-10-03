@@ -85,11 +85,11 @@ class AchievementEngineTest {
         assertEquals(1, update.counters[AchievementCounter.GAMES_WON])
         assertEquals(1, update.counters[AchievementCounter.WIN_STREAK])
         assertTrue(Achievement.FIRST_WIN in update.newlyUnlocked)
-        assertFalse(Achievement.SINGULARITY in update.newlyUnlocked)
+        assertFalse(Achievement.I_ROBOT in update.newlyUnlocked)
     }
 
     @Test
-    fun `losing to an AI is Singularity and resets the streak`() {
+    fun `losing to an AI is I Robot and resets the streak`() {
         val before = AchievementsState(counters = mapOf(AchievementCounter.WIN_STREAK to 4))
         val state = finishedGame(player(total = 120), player(name = "Bot", type = PlayerType.AI, total = 300))
 
@@ -97,7 +97,7 @@ class AchievementEngineTest {
 
         assertEquals(0, update.counters[AchievementCounter.WIN_STREAK])
         assertEquals(0, update.counters[AchievementCounter.GAMES_WON])
-        assertTrue(Achievement.SINGULARITY in update.newlyUnlocked)
+        assertTrue(Achievement.I_ROBOT in update.newlyUnlocked)
     }
 
     @Test
@@ -113,13 +113,13 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `losing to another human is not Singularity - that achievement is specifically about an AI`() {
+    fun `losing to another human is not I Robot - that achievement is specifically about an AI`() {
         // Player 1 loses, but the winner is a second human, not an AI - no AI at this table at all.
         val state = finishedGame(player(name = "P1", total = 120), player(name = "P2", total = 300))
 
         val update = evaluate(state)
 
-        assertFalse(Achievement.SINGULARITY in update.newlyUnlocked)
+        assertFalse(Achievement.I_ROBOT in update.newlyUnlocked)
     }
 
     @Test
@@ -171,7 +171,7 @@ class AchievementEngineTest {
         assertTrue(Achievement.FIRST_WIN in update.newlyUnlocked)
         // A tie is a 0-point margin, not a 1-point one - Photo Finish is exactly 1, no more no less.
         assertFalse(Achievement.WIN_BY_5 in update.newlyUnlocked)
-        assertFalse(Achievement.SINGULARITY in update.newlyUnlocked)
+        assertFalse(Achievement.I_ROBOT in update.newlyUnlocked)
         // Identical scorecards either side - the house rule has nothing to break here, so this is
         // still a true, unbroken tie, not a Tie Break win.
         assertFalse(Achievement.TIE_BREAK in update.newlyUnlocked)
@@ -226,8 +226,8 @@ class AchievementEngineTest {
         val hard = evaluate(table(Difficulty.HARD))
 
         assertTrue(Achievement.BEAT_THREE_AI in medium.newlyUnlocked)
-        assertFalse(Achievement.I_ROBOT in medium.newlyUnlocked)
-        assertTrue(Achievement.I_ROBOT in hard.newlyUnlocked)
+        assertFalse(Achievement.NATURAL_INTELLIGENCE in medium.newlyUnlocked)
+        assertTrue(Achievement.NATURAL_INTELLIGENCE in hard.newlyUnlocked)
         assertTrue(Achievement.FULL_TABLE in hard.newlyUnlocked)
     }
 
@@ -602,7 +602,7 @@ class AchievementEngineTest {
 
     @Test
     fun `I Robot counts toward Completionist - Completionist does not count toward itself`() {
-        assertTrue(Achievement.I_ROBOT in Achievement.COMPLETION_REQUIREMENTS)
+        assertTrue(Achievement.NATURAL_INTELLIGENCE in Achievement.COMPLETION_REQUIREMENTS)
         assertFalse(Achievement.COMPLETIONIST in Achievement.COMPLETION_REQUIREMENTS)
     }
 
