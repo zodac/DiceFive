@@ -11,8 +11,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.draw.rotate
 import net.zodac.dicefive.ui.common.VerticalScrollbar
-import net.zodac.dicefive.ui.game.style.DiceCupStyles
-import net.zodac.dicefive.ui.game.style.DiceStyles
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import net.zodac.dicefive.ui.common.LOGO_DICE
+import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.delayWhileResumed
+import net.zodac.dicefive.ui.common.logoRollPose
+import net.zodac.dicefive.ui.common.playLogoRoll
+import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
+import net.zodac.dicefive.ui.game.style.ClassicGoldDiceCupStyle
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -483,43 +492,77 @@ private val ILLUSTRATION_CUP_HEIGHT = 104.dp
 /** How big each die in [RulesIllustrationView] is. */
 private val ILLUSTRATION_DIE_SIZE = 36.dp
 
-/** The dice beside the cup: each one's value, tilt in degrees and drop below the line, in dice -
- * scattered a little, as if just tipped out. */
-private val ILLUSTRATION_DICE = listOf(
-    Triple(6, -14f, 0.10f),
-    Triple(3, 9f, -0.05f),
-    Triple(5, -4f, 0.20f),
-    Triple(1, 17f, 0.00f),
-    Triple(4, -9f, 0.15f),
-)
-
 /**
- * The default cup standing beside five of the default dice - decoration only, so it's no TalkBack
- * stop at all. Drawn still: the cup never shakes and the dice never roll, so reduced motion has
- * nothing to turn off.
+ * The Classic cup standing beside five Classic dice - always those, whatever the player has picked,
+ * as the Rules describe the game rather than their table. They play like the main menu's logo:
+ * tapping the cup shakes it, as in a game, and tapping the dice rolls them (see [playLogoRoll]),
+ * landing back on the faces they started on; a tap mid-shake or mid-roll is ignored. Unlike the
+ * menu's dice, they unlock nothing - "Not Those Dice!" is the menu's alone.
+ *
+ * Decoration all the same, so no TalkBack stop: raw taps rather than clickables, which would give
+ * TalkBack an unnamed "double tap to activate" that does nothing a screen reader user could use.
+ * Under reduced motion neither moves, as on the menu.
  */
 @Composable
 private fun RulesIllustrationView(modifier: Modifier = Modifier) {
-    val cupStyle = DiceCupStyles.default
-    val diceStyle = DiceStyles.default
+    val cupStyle = ClassicGoldDiceCupStyle
+    val diceStyle = IvoryDiceStyle
     val cupWidth = ILLUSTRATION_CUP_HEIGHT * (cupStyle.shape.gridWidth / cupStyle.shape.gridHeight)
+    val reduceMotion = LocalReduceMotion.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val scope = rememberCoroutineScope()
+    // How far into a roll the dice are, or null at rest; and whether the cup is mid-shake.
+    var rollMillis by remember { mutableStateOf<Float?>(null) }
+    var cupShaking by remember { mutableStateOf(false) }
     Row(
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.Center,
         modifier = modifier.fillMaxWidth().clearAndSetSemantics {},
     ) {
-        cupStyle.Cup(rolling = false, tilted = false, modifier = Modifier.size(width = cupWidth, height = ILLUSTRATION_CUP_HEIGHT))
+        cupStyle.Cup(
+            rolling = cupShaking,
+            tilted = false,
+            modifier = Modifier
+                .size(width = cupWidth, height = ILLUSTRATION_CUP_HEIGHT)
+                .pointerInput(reduceMotion) {
+                    detectTapGestures {
+                        if (!cupShaking && !reduceMotion) {
+                            cupShaking = true
+                            scope.launch {
+                                lifecycle.delayWhileResumed(CUP_SHAKE_MILLIS)
+                                cupShaking = false
+                            }
+                        }
+                    }
+                },
+        )
         Spacer(modifier = Modifier.width(12.dp))
-        for ((value, tilt, drop) in ILLUSTRATION_DICE) {
-            diceStyle.Die(
-                value = value,
-                held = false,
-                modifier = Modifier
-                    .padding(horizontal = 2.dp)
-                    .offset(y = ILLUSTRATION_DIE_SIZE * drop)
-                    .size(ILLUSTRATION_DIE_SIZE)
-                    .rotate(tilt),
-            )
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            modifier = Modifier.pointerInput(reduceMotion) {
+                detectTapGestures {
+                    if (rollMillis == null && !reduceMotion) {
+                        scope.launch {
+                            playLogoRoll { rollMillis = it }
+                            rollMillis = null
+                        }
+                    }
+                }
+            },
+        ) {
+            // The menu's fan, die for die: the same faces in the same order, tilts and drops.
+            LOGO_DICE.forEachIndexed { index, die ->
+                val pose = rollMillis?.let { logoRollPose(index, die.value, it) }
+                diceStyle.Die(
+                    value = pose?.value ?: die.value,
+                    held = false,
+                    modifier = Modifier
+                        .padding(horizontal = 2.dp)
+                        .offset(y = die.drop - ILLUSTRATION_DIE_SIZE * (pose?.hop ?: 0f))
+                        .size(ILLUSTRATION_DIE_SIZE)
+                        .rotate(die.tilt + (pose?.spinDegrees ?: 0f)),
+                )
+            }
         }
     }
 }
