@@ -429,7 +429,7 @@ object AchievementEngine {
             humanWon && players.size == FULL_TABLE_SIZE && aiPlayers.size == FULL_TABLE_SIZE - 1,
         )
         award(
-            Achievement.I_ROBOT,
+            Achievement.NATURAL_INTELLIGENCE,
             humanWon && players.size == FULL_TABLE_SIZE && aiPlayers.size == FULL_TABLE_SIZE - 1 &&
                 aiPlayers.all { it.difficulty == Difficulty.HARD },
         )
@@ -450,7 +450,7 @@ object AchievementEngine {
         // player 1 earning achievements now, `!humanWon` alone would also fire whenever another
         // human player at the table beat player 1, which isn't what this achievement means.
         val aiWon = players.any { it.type == PlayerType.AI && it.totalScore == state.topScore }
-        award(Achievement.SINGULARITY, multiplayer && !humanWon && aiWon)
+        award(Achievement.I_ROBOT, multiplayer && !humanWon && aiWon)
 
         award(Achievement.SOLO_GAME, players.size == 1)
         // Player 1's name and the card are fixed for the whole game, so this only needs the result.

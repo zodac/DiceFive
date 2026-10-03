@@ -1,30 +1,16 @@
 package net.zodac.dicefive.ui.game
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.ui.common.BackHandler
+import net.zodac.dicefive.ui.common.ScreenScaffold
 
 /**
  * Read-only view of every player's finished scorecard, reached from [GameOverScreen]'s "Review
@@ -43,22 +29,16 @@ fun ScorecardReviewScreen(
     var reviewedPlayerIndex by remember { mutableIntStateOf(0) }
     val reviewedPlayer = state.players.getOrElse(reviewedPlayerIndex) { state.players.first() }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+    // The same frame as every other page: the title in the app bar, and its back arrow (rather than a
+    // button at the foot of the page) returning to the results. The game screen's narrower margin, so
+    // the board's pieces come out the size they were in play.
+    ScreenScaffold(
+        title = "Scorecards",
+        onBack = onBack,
+        modifier = modifier,
+        scrollable = true,
+        horizontalPadding = 16.dp,
     ) {
-        Text(
-            text = "Scorecards",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
         PlayerHeaderBar(
             players = state.players,
             currentPlayerIndex = reviewedPlayerIndex,
@@ -81,13 +61,6 @@ fun ScorecardReviewScreen(
                 onToggleHold = {},
                 modifier = Modifier.fillMaxWidth(),
             )
-        }
-
-        OutlinedButton(
-            onClick = onBack,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-        ) {
-            Text(text = "Back to Results", style = MaterialTheme.typography.titleMedium)
         }
     }
 }

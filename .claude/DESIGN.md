@@ -1318,7 +1318,7 @@ install-over-existing succeeds:
         `GameViewModel.finishGame`, which now sequences read → persist →
         evaluate in one coroutine instead of firing persistence and
         forgetting about it.
-      - *`I_ROBOT` is not currently earnable* (AI difficulty is deferred and
+      - *`NATURAL_INTELLIGENCE` is not currently earnable* (AI difficulty is deferred and
         every AI plays the same strategy), so it is excluded from
         `COMPLETIONIST`'s requirements via `countsTowardCompletion = false`.
         Flip that back when difficulty lands.
@@ -1460,7 +1460,7 @@ install-over-existing succeeds:
         `previousTurnFiveOfAKindByPlayer` (keyed by player index, for
         `TWICE_IN_A_LIFETIME`) collapsed to a plain
         `playerOnePreviousTurnWasFiveOfAKind: Boolean` for the same reason.
-      - **`SINGULARITY` needed an explicit fix, not just a narrower `humans`
+      - **`I_ROBOT` needed an explicit fix, not just a narrower `humans`
         list**: it's the one Misfortune achievement whose description names
         an opponent type ("Lose a game to an AI"), but its condition was
         just `!humanWon`. Under the old "any human" rule that was safe -

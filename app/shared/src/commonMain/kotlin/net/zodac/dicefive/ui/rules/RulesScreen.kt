@@ -38,7 +38,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -313,7 +315,14 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                             pagerIndicatorLayout(measurable, constraints, tabPositions, pagerState.currentPage + pagerState.currentPageOffsetFraction)
                         },
                         width = Dp.Unspecified,
+                        height = TAB_INDICATOR_HEIGHT,
                     )
+                },
+                // Raised off the row's bottom edge so it runs through the middle of the indicator, which
+                // sits on that edge - left at the bottom, the indicator rests on top of the line instead.
+                // (The indicator can't be lowered onto the line: the row clips anything below its bottom.)
+                divider = {
+                    HorizontalDivider(modifier = Modifier.padding(bottom = (TAB_INDICATOR_HEIGHT - DividerDefaults.Thickness) / 2))
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -631,6 +640,9 @@ private fun MeasureScope.pagerIndicatorLayout(
         placeable.place(x = (centre - width / 2).roundToPx(), y = 0)
     }
 }
+
+/** The tab row's indicator, as thick as the stock one - named so the divider can centre itself on it. */
+private val TAB_INDICATOR_HEIGHT = 3.dp
 
 /** Space between the end of a page's text and the top of the footer, once scrolled to the bottom. */
 private val PAGE_FOOTER_GAP = 8.dp

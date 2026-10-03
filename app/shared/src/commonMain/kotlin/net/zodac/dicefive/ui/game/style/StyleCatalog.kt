@@ -198,7 +198,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 ),
                 colour(
                     "Arabic Green",
-                    NumeralDiceStyle("numeral_arabic_green", Color(0xFF1F5E3A), Color(0xFF0F3320), Color(0xFFF3EFE0), NumeralSystem.EASTERN_ARABIC),
+                    NumeralDiceStyle("numeral_arabic_green", Color(0xFF006C35), Color(0xFF00471F), Color.White, NumeralSystem.EASTERN_ARABIC),
                 ),
                 colour(
                     "Arabic",
