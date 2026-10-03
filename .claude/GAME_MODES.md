@@ -51,7 +51,7 @@ When a new rule needs a field, add it here too. This is the map of where each ru
 | `turnTimerSeconds`                       | `GameState.turnSeconds` → `GameViewModel.syncTurnTimer`; the setup screen disables the Turn Timer row      |
 | `timeoutPick`                            | `ScoreCalculator.timeoutCategory` ← `GameViewModel.autoScoreOnTimeout`                                      |
 | `autoRollAtTurnStart`                    | `GameState.awaitsAutoRoll` → `GameScreen`'s auto-tap `LaunchedEffect`                                       |
-| `maxRollsPerGame`                        | `rollsToBloom`/`flowerpotGrowthStage` - when the Flowerpot's sunflower blooms, and so Greenfingers; `GameModeTest` |
+| `maxRollsPerGame`                        | `flowerpotGrowthStage` - the Flowerpot's stages are spread evenly over it, and the sunflower blooms on its last roll (Greenfingers); `GameModeTest` |
 
 ## First, work out what kind of mode it is
 
@@ -78,7 +78,8 @@ changed something there.
   *different*.
 - `maxRollsPerGame` is declared too (boxes x rolls per turn, derivation on the entry); `GameModeTest`
   plays a game using every roll through the engine and fails if it's wrong. The Flowerpot's sunflower
-  blooms on `max(39, maxRollsPerGame)` rolls, so a mode with fewer than 39 can't earn Greenfingers.
+  grows through its stages evenly over `maxRollsPerGame` and blooms only on the last of them - and only
+  in a mode with 3 rolls a turn (`growsSunflower`), so any other mode can't earn Greenfingers.
 - `maxPossibleScore` is declared, with its derivation as a doc comment on the entry. `GameModeTest`
   plays a perfect game (every turn a 5x) through the real engine for every mode and fails if the
   number is wrong. If scoring is unchanged, it's the same as the mode it copies. A rule that changes
@@ -289,7 +290,7 @@ Famous`` in `GameAchievementsWiringTest` fails without the guard.
 | Are These Loaded Dice? (`LOADED_DICE`)         | Two rerolls                                                      |
 | Time To Let It Go (`TIME_TO_LET_IT_GO`)        | A die held after the 1st and 2nd rolls                           |
 | What Was The Point Of That? (`POINTLESS_ROLL`) | Rolling with all five held - the only roll comes before any hold |
-| Greenfingers (`GREENFINGERS`)                  | 39 rolls - Quickfire has 13 (`maxRollsPerGame`), so its plant stops at the seedling. That's the data doing it, not a guard: every Quickfire roll is made for the player, so this must stay true |
+| Greenfingers (`GREENFINGERS`)                  | 3 rolls a turn (`growsSunflower`, `SUNFLOWER_ROLLS_PER_TURN`) - Quickfire has 1, so its plant grows over its 13 rolls but stops at the bud opening. Every Quickfire roll is made for the player, so this must stay true |
 
 **Still earnable, and worth knowing:**
 
