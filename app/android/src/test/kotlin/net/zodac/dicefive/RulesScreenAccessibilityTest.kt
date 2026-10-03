@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -88,6 +89,29 @@ class RulesScreenAccessibilityTest {
 
         compose.onNodeWithText("Quickfire").assertIsSelected()
         compose.onAllNodesWithText("Mode: Quickfire")[0].assertIsDisplayed()
+    }
+
+    @Test
+    fun anExampleDiceRowIsSpokenWithWhichDiceCountAndWhatItScores() {
+        showRules()
+
+        compose.onNodeWithText("Lower Section").performScrollTo().performClick()
+        compose.waitForIdle()
+
+        // One stop for the category - its name, what it takes and the example - not five bare dice.
+        compose.onNodeWithText("Total of all five dice, if at least three dice are the same", substring = true)
+            .assertContentDescriptionEquals("Example: 5, 5, 5, 2, 6. The 2 and 6 don't count. Scores 23 points.")
+    }
+
+    @Test
+    fun aColouredExampleDieIsSpokenWithItsColour() {
+        showRules()
+
+        compose.onNodeWithText("Tricolour").performScrollTo().performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Three of one colour and two of another", substring = true)
+            .assertContentDescriptionEquals("Example: red 1, red 4, red 6, blue 2, blue 5. Scores 25 points.")
     }
 
     @Test
