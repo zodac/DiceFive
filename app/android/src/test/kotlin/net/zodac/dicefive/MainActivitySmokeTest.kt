@@ -27,6 +27,13 @@ class MainActivitySmokeTest {
     @get:Rule
     val compose = createAndroidComposeRule<MainActivity>()
 
+    companion object {
+        init {
+            // The rule's own recomposer and test clock, not the Activity's capped one - see MainActivity.useCappedFrameClock.
+            MainActivity.useCappedFrameClock = false
+        }
+    }
+
     @Test
     fun `a game can be started from the menu and system back asks before leaving it`() {
         compose.onNodeWithText("DiceFive").assertExists()

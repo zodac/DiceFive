@@ -768,10 +768,11 @@ dependencies — most unit tests live here.
   start until this one's dice are at rest, and the cup reads as disabled to TalkBack meanwhile
   (`CupPanelState.rollInHand`; `GameScreenCupGateTest`). Quickfire's auto-roll is keyed on it as
   well, so a turn that starts mid-settle rolls once the dice land. The CPU already waited the same
-  `diceTossMillis` after each roll in its own loop. The Settings switch "Simple dice roll"
-  (`SettingsRepository.simpleDiceRoll`, off by default) turns all of this back to dice
-  flicking through faces in place while rolling, scoring straight away; `GameScreen` provides it as
-  `LocalSimpleDiceRoll`.
+  `diceTossMillis` after each roll in its own loop. Under reduced motion - the Settings switch
+  "Remove animations" (`SettingsRepository.removeAnimations`, off by default; it replaced the
+  older "Simple dice roll") or the system's own - none of this plays: the dice stay where they lie
+  through the shake and snap to their result as it lands, scoring opens straight away, and a CPU
+  doesn't wait for a toss (`GameViewModel.diceAnimated`) - see UI.md's "Reduced motion".
   Shadows: dice on the mat don't draw their own drop shadow (`LocalDieCastsShadow` off - every style
   goes through `dieShadow`); the tray casts one ground shadow per die instead (`GroundShadow`), from a
   single fixed light above and left of the tray (`LIGHT_X`/`LIGHT_Y`), falling away from it by a share

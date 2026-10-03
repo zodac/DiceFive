@@ -34,6 +34,12 @@ interface PlatformServices {
      */
     fun reduceMotion(): Flow<Boolean> = flowOf(false)
 
+    /**
+     * Whether animation frames are capped at 30 a second - on while the player's "Remove animations" is, for
+     * what still moves with the decoration stopped. A platform that can't cap them ignores this.
+     */
+    fun capFrameRate(capped: Boolean) {}
+
     /** A short message that shows for a moment and needs no response (an Android toast). */
     fun showTransientMessage(message: String)
 

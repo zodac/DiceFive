@@ -167,12 +167,21 @@ class GameViewModel(
     var cupShakeMillis: Long = CUP_SHAKE_MILLIS
 
     /**
+     * Whether the screen animates the dice - tossing them onto the mat, dropping a released one back onto it.
+     * False under reduced motion (the player's "Remove animations" or the system's), where they just snap to
+     * where they end up, so a CPU has nothing to wait for. Set by the screen.
+     */
+    @Volatile
+    var diceAnimated: Boolean = true
+
+    /**
      * How long a CPU waits after a roll lands for the dice to finish tossing onto the mat before it holds,
-     * rerolls or scores - `DICE_TOSS_MILLIS`, or 0 when the screen shows the dice without the toss (simple
-     * dice roll or reduced motion). Set by the screen.
+     * rerolls or scores - `DICE_TOSS_MILLIS`, or 0 when the dice aren't animated ([diceAnimated]).
+     * Settable so a test can pin it.
      */
     @Volatile
     var diceTossMillis: Long = DICE_TOSS_MILLIS.toLong()
+        get() = if (diceAnimated) field else 0L
 
     /** Whether the game is in front of the player - see [setForeground]. */
     private val foreground = MutableStateFlow(true)
@@ -276,8 +285,7 @@ class GameViewModel(
             visualTheme,
             settingsRepository.soundEnabled,
             settingsRepository.vibrationEnabled,
-            settingsRepository.simpleDiceRoll,
-        ) { theme, sound, vibration, simpleRoll -> TableSettings(theme, sound, vibration, simpleRoll) }
+        ) { theme, sound, vibration -> TableSettings(theme, sound, vibration) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
     }
 
@@ -1571,7 +1579,8 @@ class GameViewModel(
                     // let go of gets longer: it drops from its slot onto the mat, and the shake sweeps
                     // every loose die off the mat - so after only ROLL_GAP_MS it would be gone again
                     // almost as soon as it landed, reading as a die vanishing rather than being released.
-                    pausableDelay(if (releasedAny) RELEASE_GAP_MS else ROLL_GAP_MS)
+                    // With the dice not animated, a released die is simply back on the mat: nothing to watch land.
+                    pausableDelay(if (releasedAny && diceAnimated) RELEASE_GAP_MS else ROLL_GAP_MS)
                 }
                 // Also off the main thread: Hard's category choice compares against
                 // CATEGORY_BASELINES, a `by lazy` average-over-every-outcome computed once per

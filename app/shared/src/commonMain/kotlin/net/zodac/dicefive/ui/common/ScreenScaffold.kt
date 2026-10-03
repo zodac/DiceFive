@@ -123,7 +123,9 @@ fun ScreenScaffold(
             // The page's content eases in rather than appearing at once - whatever part of it is a
             // frame or two late (a loaded list, a Styles row centring on its pick) fades in with the
             // rest instead of popping in. The app bar is left to the page transition's own fade.
-            val contentAlpha = remember { Animatable(0f) }
+            // Under reduced motion it's simply there.
+            val reduceMotion = LocalReduceMotion.current
+            val contentAlpha = remember { Animatable(if (reduceMotion) 1f else 0f) }
             LaunchedEffect(Unit) { contentAlpha.animateTo(1f, tween(PAGE_CONTENT_FADE_IN_MILLIS)) }
             Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha.value }) {
                 if (scrollable) {

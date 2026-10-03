@@ -7,6 +7,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 
 private const val SHAKE_AMPLITUDE_DEGREES = 7f
 private const val SNAP_TO_STANDING_MILLIS = 150
@@ -142,7 +144,8 @@ fun CupCanvas(
     val rotation = rememberCupRotation(rolling, tilted, if (tips) RESTING_TILT_DEGREES else 0f)
     val liquidRotation by animateFloatAsState(
         targetValue = rotation,
-        animationSpec = spring(dampingRatio = 0.3f, stiffness = Spring.StiffnessLow),
+        // No slosh under reduced motion: whatever's in the cup settles with it at once.
+        animationSpec = if (LocalReduceMotion.current) snap() else spring(dampingRatio = 0.3f, stiffness = Spring.StiffnessLow),
         label = "cupLiquid",
     )
     val pose = CupPose(rotation, liquidRotation)
@@ -183,7 +186,12 @@ fun rememberCupRotation(rolling: Boolean, tilted: Boolean, restingTiltDegrees: F
         // was indistinguishable from just shaking a still-tilted cup. Tipping back over (target
         // restingTiltDegrees) keeps the slower, deliberate tween: that's the "pouring the dice
         // out" motion once a roll resolves, which should still look unhurried.
-        animationSpec = tween(durationMillis = if (restTiltTarget == 0f) SNAP_TO_STANDING_MILLIS else POUR_TILT_MILLIS),
+        // Under reduced motion it doesn't move at all: the cup is simply standing, or simply tipped.
+        animationSpec = if (LocalReduceMotion.current) {
+            snap()
+        } else {
+            tween(durationMillis = if (restTiltTarget == 0f) SNAP_TO_STANDING_MILLIS else POUR_TILT_MILLIS)
+        },
         label = "cupTilt",
     )
     // Faded in/out over WOBBLE_FADE_MILLIS rather than switched the instant `rolling` flips:
