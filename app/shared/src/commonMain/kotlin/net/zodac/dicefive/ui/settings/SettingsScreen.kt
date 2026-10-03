@@ -8,11 +8,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MotionPhotosOff
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.Card
@@ -114,7 +114,7 @@ fun SettingsScreen(
         Card(modifier = Modifier.fillMaxWidth()) {
             SwitchSetting(Icons.AutoMirrored.Filled.VolumeUp, "Sound effects", toggles.soundEnabled, viewModel::setSoundEnabled)
             SwitchSetting(Icons.Filled.Vibration, "Vibration", toggles.vibrationEnabled, viewModel::setVibrationEnabled)
-            SwitchSetting(Icons.Filled.Casino, "Simple dice roll", toggles.simpleDiceRoll, viewModel::setSimpleDiceRoll)
+            SwitchSetting(Icons.Filled.MotionPhotosOff, "Remove animations", toggles.removeAnimations, viewModel::setRemoveAnimations)
             SwitchSetting(
                 Icons.Filled.CheckCircle,
                 "Confirm leaving game",

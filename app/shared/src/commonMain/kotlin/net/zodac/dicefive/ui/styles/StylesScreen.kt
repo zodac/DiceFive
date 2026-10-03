@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.styles
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -857,21 +858,28 @@ private fun <T : TableArt> StyleFamilyTiles(
             // to stall everything else on screen (the backdrop's drifting dice), is what made opening the page
             // feel slow. It builds just the pick; each frame after adds the next tile either side, until the
             // row is full across the screen - only then is it shown (see revealed below).
-            var firstBuilt by remember(buildOrder) { mutableIntStateOf(pickedIndex) }
-            var lastBuilt by remember(buildOrder) { mutableIntStateOf(pickedIndex) }
+            //
+            // Under reduced motion, though, there's no fade to hide that build behind, and the row would sit empty
+            // for those frames before popping in: the tiles on screen are all built on the first frame instead, so the
+            // page opens complete - one slower frame, with nothing else moving for it to stall.
+            val reduceMotion = LocalReduceMotion.current
+            val opening = remember(buildOrder) { buildOrder.take(openingTiles) }
+            var firstBuilt by remember(buildOrder) { mutableIntStateOf(if (reduceMotion) opening.min() else pickedIndex) }
+            var lastBuilt by remember(buildOrder) { mutableIntStateOf(if (reduceMotion) opening.max() else pickedIndex) }
             val openingBuilt = remember(buildOrder) { derivedStateOf { lastBuilt - firstBuilt + 1 >= min(openingTiles, families.size) } }
             val lifecycle = LocalLifecycleOwner.current.lifecycle
             LaunchedEffect(buildOrder) {
                 fun buildNext(index: Int) {
                     if (index < firstBuilt) firstBuilt = index else if (index > lastBuilt) lastBuilt = index
                 }
-                val (opening, rest) = buildOrder.take(openingTiles) to buildOrder.drop(openingTiles)
-                // The pick is built already; then a tile either side of what's built, a frame at a time.
-                for (pair in opening.drop(1).chunked(2)) {
+                val rest = buildOrder.drop(openingTiles)
+                // The pick is built already; then a tile either side of what's built, a frame at a time (all
+                // already built under reduced motion).
+                for (pair in opening.drop(1).chunked(2).takeUnless { reduceMotion }.orEmpty()) {
                     withFrameNanos { }
                     pair.forEach(::buildNext)
                 }
-                lifecycle.delayWhileResumed(PAGE_CONTENT_FADE_IN_MILLIS.toLong())
+                if (!reduceMotion) lifecycle.delayWhileResumed(PAGE_CONTENT_FADE_IN_MILLIS.toLong())
                 repeat(buildStagger) { withFrameNanos { } }
                 for (index in rest) {
                     buildNext(index)
@@ -893,7 +901,7 @@ private fun <T : TableArt> StyleFamilyTiles(
             // Faded in like the rest of the page (ScreenScaffold), not popped in a frame or two after it.
             val rowAlpha by animateFloatAsState(
                 targetValue = if (revealed) 1f else 0f,
-                animationSpec = tween(durationMillis = PAGE_CONTENT_FADE_IN_MILLIS),
+                animationSpec = if (reduceMotion) snap() else tween(durationMillis = PAGE_CONTENT_FADE_IN_MILLIS),
                 label = "styleRowAlpha",
             )
             // Where a tile's centre is in the row: every tile takes the same slot, built or not, so it's

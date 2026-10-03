@@ -421,6 +421,26 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `with the dice not animated the AI doesn't wait for them to settle`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, random = FixedValueRandom(6))
+        viewModel.diceAnimated = false
+        viewModel.setPlayerCount(2)
+        viewModel.setPlayerType(2, PlayerType.AI)
+        viewModel.setPlayerDifficulty(2, Difficulty.HARD)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.CHANCE)
+        val timeBeforeAiTurn = testDispatcher.scheduler.currentTime
+        advanceUntilIdle()
+
+        // The same one-shake turn as above, with no toss to wait out: just the shake and the pause before scoring.
+        val aiStepDelayMs = 250L
+        assertEquals(0L, viewModel.diceTossMillis)
+        assertEquals(CUP_SHAKE_MILLIS + aiStepDelayMs, testDispatcher.scheduler.currentTime - timeBeforeAiTurn)
+    }
+
+    @Test
     fun `the turn timer stops counting while the game is in the background`() = runTest(testDispatcher) {
         val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)

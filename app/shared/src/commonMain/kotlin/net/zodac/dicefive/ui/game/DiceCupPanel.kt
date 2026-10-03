@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.util.lerp
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
@@ -217,9 +218,12 @@ fun DiceCupPanel(
                                 standingForBloom = true
                             }
                         }
+                        // Under reduced motion it's simply grey once spent, with no fade.
                         val spent by animateFloatAsState(
                             targetValue = if (depleted) 1f else 0f,
-                            animationSpec = if (depleted) {
+                            animationSpec = if (LocalReduceMotion.current) {
+                                snap()
+                            } else if (depleted) {
                                 tween(DICE_TOSS_MILLIS / 2, delayMillis = DICE_TOSS_MILLIS / 2 - CUP_FADE_EARLY_MILLIS, easing = LinearEasing)
                             } else {
                                 tween(DICE_TOSS_MILLIS / 2, easing = LinearEasing)
@@ -238,10 +242,17 @@ fun DiceCupPanel(
                                 LocalCupActivity provides dice,
                                 LocalFlowerpotGrowth provides cup.flowerpotGrowth,
                             ) {
+                                // Under reduced motion the cup doesn't shake (the shake sound and buzz still play -
+                                // GameScreen) or pour: it stands while the roll is in it and is simply tipped once
+                                // the roll lands and scoring opens.
+                                val reduceMotion = LocalReduceMotion.current
                                 cupStyle.Cup(
-                                    // The shake sound and buzz still play (GameScreen); only the drawn shake goes.
-                                    rolling = cup.rolling && !cup.pouring && !LocalReduceMotion.current,
-                                    tilted = (cup.tilted || cup.pouring) && !standingForBloom,
+                                    rolling = cup.rolling && !cup.pouring && !reduceMotion,
+                                    tilted = if (reduceMotion) {
+                                        cup.tilted && !cup.rolling && !standingForBloom
+                                    } else {
+                                        (cup.tilted || cup.pouring) && !standingForBloom
+                                    },
                                     // A cup's shape grid is its size in dp here - tall or squat, both fit this 104dp box.
                                     modifier = Modifier.size(width = cupStyle.shape.gridWidth.dp, height = cupStyle.shape.gridHeight.dp),
                                 )

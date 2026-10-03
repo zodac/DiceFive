@@ -112,7 +112,8 @@ class VolcanoDiceCupStyle(override val id: String, private val palette: VolcanoP
         var eruptionSeed by remember { mutableIntStateOf(0) }
         LaunchedEffect(erupted) {
             if (!erupted) {
-                heat.animateTo(0f, tween(COOL_MILLIS))
+                // Under reduced motion it's simply cold again, with no cooling between.
+                if (reduceMotion) heat.snapTo(0f) else heat.animateTo(0f, tween(COOL_MILLIS))
                 flow.snapTo(0f)
             } else if (flow.value < 1f) {
                 eruptionSeed = Random.nextInt()

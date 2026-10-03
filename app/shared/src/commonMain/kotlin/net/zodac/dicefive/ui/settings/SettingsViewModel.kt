@@ -31,7 +31,7 @@ import net.zodac.dicefive.ui.game.style.TableBackgrounds
 data class SettingsToggles(
     val soundEnabled: Boolean = true,
     val vibrationEnabled: Boolean = true,
-    val simpleDiceRoll: Boolean = false,
+    val removeAnimations: Boolean = false,
     val confirmBeforeLeavingGame: Boolean = true,
 )
 
@@ -53,7 +53,7 @@ class SettingsViewModel(
         combine(
             settingsRepository.soundEnabled,
             settingsRepository.vibrationEnabled,
-            settingsRepository.simpleDiceRoll,
+            settingsRepository.removeAnimations,
             settingsRepository.confirmBeforeLeavingGame,
             ::SettingsToggles,
         ).stateIn(viewModelScope, SharingStarted.Eagerly, null)
@@ -74,9 +74,9 @@ class SettingsViewModel(
         viewModelScope.launch { repository.setVibrationEnabled(enabled) }
     }
 
-    fun setSimpleDiceRoll(enabled: Boolean) {
+    fun setRemoveAnimations(enabled: Boolean) {
         val repository = settingsRepository ?: return
-        viewModelScope.launch { repository.setSimpleDiceRoll(enabled) }
+        viewModelScope.launch { repository.setRemoveAnimations(enabled) }
     }
 
     /** Backs the one achievement this screen itself can earn - opening the About dialog

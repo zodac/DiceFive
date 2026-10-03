@@ -99,7 +99,7 @@ class ScreenLoadingTest {
     fun `settings switches arrive together with their saved values and never as defaults`() = runTest(testDispatcher) {
         val repository = SettingsRepository(LoadingPreferencesStore())
         repository.setSoundEnabled(false)
-        repository.setSimpleDiceRoll(true)
+        repository.setRemoveAnimations(true)
 
         val viewModel = SettingsViewModel(settingsRepository = repository)
         assertNull(viewModel.toggles.value)
@@ -112,7 +112,7 @@ class ScreenLoadingTest {
         // advanceUntilIdle stops once only background work is left - the collector above included.
         runCurrent()
 
-        val expected = SettingsToggles(soundEnabled = false, vibrationEnabled = true, simpleDiceRoll = true, confirmBeforeLeavingGame = true)
+        val expected = SettingsToggles(soundEnabled = false, vibrationEnabled = true, removeAnimations = true, confirmBeforeLeavingGame = true)
         assertEquals(listOf(expected), shown)
     }
 

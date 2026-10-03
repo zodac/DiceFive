@@ -127,9 +127,10 @@ class TreasureChestDiceCupStyle(override val id: String, private val palette: Ch
         val reduceMotion = LocalReduceMotion.current
         // Unlike a cup, a chest that first appears with the roll already poured - a game being continued
         // - stays shut until the next shake, rather than appearing open with its treasure still to load.
-        // The next roll then opens it as usual.
+        // The next roll then opens it as usual. Under reduced motion a cup is never told it's shaking, so the
+        // next roll is seen by the chest being stood back up for it instead (see DiceCupPanel).
         var heldShut by remember { mutableStateOf(tilted && !rolling) }
-        if (rolling) heldShut = false
+        if (rolling || !tilted) heldShut = false
         val open = tilted && !rolling && !heldShut
         // So it always starts shut.
         val lid = remember { Animatable(0f) }
@@ -137,13 +138,18 @@ class TreasureChestDiceCupStyle(override val id: String, private val palette: Ch
         // What spills out this time: a fresh handful every time the lid opens.
         var spills by remember { mutableStateOf(emptyList<Spill>()) }
         LaunchedEffect(open) {
+            // Under reduced motion the lid is simply shut or open, with no swing between, and no burst of gold.
             if (!open) {
-                lid.animateTo(0f, tween(LID_CLOSE_MILLIS))
+                if (reduceMotion) lid.snapTo(0f) else lid.animateTo(0f, tween(LID_CLOSE_MILLIS))
             } else if (lid.value < 1f) {
                 spills = spillHandful(Random.nextInt())
-                if (!reduceMotion) launch { flourish.snapTo(0f); flourish.animateTo(1f, tween(FLOURISH_MILLIS, easing = LinearEasing)) }
-                // Underdamped, so the lid flies back and bounces on its hinge.
-                lid.animateTo(1f, spring(dampingRatio = 0.42f, stiffness = Spring.StiffnessMediumLow))
+                if (reduceMotion) {
+                    lid.snapTo(1f)
+                } else {
+                    launch { flourish.snapTo(0f); flourish.animateTo(1f, tween(FLOURISH_MILLIS, easing = LinearEasing)) }
+                    // Underdamped, so the lid flies back and bounces on its hinge.
+                    lid.animateTo(1f, spring(dampingRatio = 0.42f, stiffness = Spring.StiffnessMediumLow))
+                }
             }
         }
         // The hoard is simulated and painted in the background from the first shake (or straight away if
@@ -151,7 +157,11 @@ class TreasureChestDiceCupStyle(override val id: String, private val palette: Ch
         // a chest that's only ever shown closed and still, like a Styles preview that hasn't been picked.
         var canvasSize by remember { mutableStateOf(IntSize.Zero) }
         var hoardWanted by remember { mutableStateOf(false) }
-        if (rolling || tilted) hoardWanted = true
+        // Under reduced motion there's no shake to start it on, so it starts with the chest on a table being played
+        // at (LocalCupActivity), well before a roll lands - else the lid could open on an empty chest, the treasure
+        // popping in after.
+        val atTable = LocalCupActivity.current != null
+        if (rolling || tilted || (reduceMotion && atTable)) hoardWanted = true
         val hoard by rememberHoardArt(id, palette, if (hoardWanted) canvasSize else IntSize.Zero)
         val shakeWeight by animateFloatAsState(if (rolling) 1f else 0f, tween(SHAKE_FADE_MILLIS), label = "chestShakeFade")
         // The shake's clock only exists while it counts, so a still chest asks for no frames.

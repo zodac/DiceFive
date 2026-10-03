@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -34,7 +35,12 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices) {
     // Held here, above the NavHost, so the menu's drifting dice carry on unbroken across every screen off it.
     val driftState = remember { DriftState() }
     // Lifecycle-aware, so the system-settings observer behind it is only registered while the app is in front.
-    val reduceMotion by remember(platform) { platform.reduceMotion() }.collectAsStateWithLifecycle(initialValue = false)
+    val systemReduceMotion by remember(platform) { platform.reduceMotion() }.collectAsStateWithLifecycle(initialValue = false)
+    // The player's own "Remove animations" asks for the same as the system's, and also caps the frame rate
+    // of whatever still moves (Material's ripples and switch thumbs, a scroll's fling) - see PlatformServices.capFrameRate.
+    val removeAnimations by container.settingsRepository.removeAnimations.collectAsStateWithLifecycle(initialValue = false)
+    LaunchedEffect(platform, removeAnimations) { platform.capFrameRate(removeAnimations) }
+    val reduceMotion = systemReduceMotion || removeAnimations
     val leaveConfirmation = remember { LeaveGameConfirmation() }
     CompositionLocalProvider(
         LocalReduceMotion provides reduceMotion,
