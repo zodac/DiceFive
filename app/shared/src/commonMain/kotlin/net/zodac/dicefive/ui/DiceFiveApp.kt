@@ -37,7 +37,7 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices) {
     // Lifecycle-aware, so the system-settings observer behind it is only registered while the app is in front.
     val systemReduceMotion by remember(platform) { platform.reduceMotion() }.collectAsStateWithLifecycle(initialValue = false)
     // The player's own "Remove animations" asks for the same as the system's, and also caps the frame rate
-    // of whatever still has to move (a banner sliding in, a chest lid opening) - see PlatformServices.capFrameRate.
+    // of whatever still moves (Material's ripples and switch thumbs, a scroll's fling) - see PlatformServices.capFrameRate.
     val removeAnimations by container.settingsRepository.removeAnimations.collectAsStateWithLifecycle(initialValue = false)
     LaunchedEffect(platform, removeAnimations) { platform.capFrameRate(removeAnimations) }
     val reduceMotion = systemReduceMotion || removeAnimations
