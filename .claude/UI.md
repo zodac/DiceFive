@@ -459,7 +459,9 @@ seen on a device" line and in the report to the user, not claimed as done.
 
 ### Known gaps
 
-- **Item 9 on the Rules pages**: their dice notation, "pts" and list dashes are read as written.
+- **Item 9 on the Rules pages**: category names like "3x" and "5x" are read as written. "pts" is
+  spoken as "points" (`spokenPoints`), the example dice rows in full ("Example: 5, 5, 5, 2, 6. The 2
+  and 6 don't count. Scores 23 points."), and lists are real numbered steps rather than typed dashes.
 - **Reduced motion is honoured on Android only.** `PlatformServices.reduceMotion()` is true while the
   system animation scale is 0 ("Remove animations"); iOS says false until it's wired to
   `UIAccessibility.isReduceMotionEnabled` (see `IOS_SUPPORT.md`), and Compose Multiplatform on iOS has
@@ -701,6 +703,11 @@ re-checking the clips and `AndroidHapticsPlayer`'s `SHAKE_HAPTIC_MILLIS`.** The 
 The Game Over fanfare and hold ticks are governed by their own settings, not by this.
 
 ## Scrollbars on long lists
+
+Plain scrolling pages (Styles, and each Rules page) use `VerticalScrollbar`, in the page's right-hand
+margin. The Rules pages share one, beside the pager, following whichever page is showing - which is
+why every scrollbar keys its "anything to scroll?" check on the state it's handed: unkeyed, it stayed
+on the first page's answer and never appeared on a longer one.
 
 Every page with a `LazyColumn` that can outgrow the screen (the Leaderboard, Statistics) wraps it
 in a `Box` and overlays `ui/common/Scrollbar.kt`'s `LazyListScrollbar` - written once and shared,
