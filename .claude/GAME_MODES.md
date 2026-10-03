@@ -90,8 +90,13 @@ changed something there.
 
 Add a `RulesPage` titled `"Mode: <Name>"`, with the bare mode name as its `tabLabel`, to the end of
 `RULES_PAGES`. Describe it relative to
-Standard ("A custom mode extending the *Standard* game mode...") and say what stays the same. Use
-`parseInlineMarkup`'s markers (`*italic*`, `**bold**`, `` `mono` ``) like the other pages. The pager
+Standard ("A custom mode extending the *Standard* game mode...") and say what stays the same. Build
+it from the page's block types, not hand-typed markup: `text(...)` for a paragraph, `RulesStep` for
+an ordered list, and `RulesCategory` (name, what it takes, an example `dice(...)` row) for each new
+scoring category - its points go in the example row's score, not the text. Style text to the one
+convention in `RulesPage`'s doc comment: `*italic*` only for a category, section, mode or setting
+name, `**bold**` only for points or a count, no dashes as bullets or asides, no dice written out as
+text. The pager
 and tab row size themselves from the list. Update the page each time the mode's rules change -
 Quickfire's changed three times after it was written.
 
