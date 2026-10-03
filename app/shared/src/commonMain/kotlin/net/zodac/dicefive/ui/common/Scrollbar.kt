@@ -319,9 +319,31 @@ fun HorizontalScrollbar(listState: LazyListState, modifier: Modifier = Modifier)
  * the page by its own actions.
  */
 @Composable
-fun VerticalScrollbar(scrollState: ScrollState, width: Dp, modifier: Modifier = Modifier) {
-    val showScrollbar by remember(scrollState) { derivedStateOf { scrollState.canScrollForward || scrollState.canScrollBackward } }
-    if (!showScrollbar) return
+fun VerticalScrollbar(scrollState: ScrollState, width: Dp, modifier: Modifier = Modifier) = VerticalScrollbar(
+    position = { scrollState.value },
+    maxPosition = { scrollState.maxValue },
+    scrollBy = { scrollState.dispatchRawDelta(it) },
+    width = width,
+    modifier = modifier,
+)
+
+/**
+ * [VerticalScrollbar] for anything else that scrolls by pixels - the Licences dialog's list, which
+ * Android scrolls in a platform ScrollView rather than a [ScrollState]. [position] and [maxPosition]
+ * are the scroll offset and its maximum in pixels, read while drawing (so they should be snapshot
+ * state, for the bar to follow them); [scrollBy] scrolls by a pixel delta, for a drag on the bar.
+ */
+@Composable
+fun VerticalScrollbar(
+    position: () -> Int,
+    maxPosition: () -> Int,
+    scrollBy: (Float) -> Unit,
+    width: Dp,
+    modifier: Modifier = Modifier,
+) {
+    // Read here only to show or hide the bar, so this recomposes when the content's length changes,
+    // not on every scrolled pixel - the thumb itself reads the position while drawing.
+    if (maxPosition() <= 0) return
 
     val thumbColor = MaterialTheme.colorScheme.primary
     val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
@@ -329,10 +351,11 @@ fun VerticalScrollbar(scrollState: ScrollState, width: Dp, modifier: Modifier = 
     var trackHeight by remember { mutableIntStateOf(0) }
     val dragState = rememberDraggableState { delta ->
         val viewport = trackHeight.toFloat()
-        val content = viewport + scrollState.maxValue
+        val max = maxPosition()
+        val content = viewport + max
         val thumb = viewport * (viewport / content).coerceIn(MIN_THUMB_FRACTION, 1f)
         val travel = viewport - thumb
-        if (travel > 0f) scrollState.dispatchRawDelta(delta * scrollState.maxValue / travel)
+        if (travel > 0f) scrollBy(delta * max / travel)
     }
 
     Canvas(
@@ -352,10 +375,11 @@ fun VerticalScrollbar(scrollState: ScrollState, width: Dp, modifier: Modifier = 
             cornerRadius = CornerRadius(thickness / 2),
         )
 
+        val max = maxPosition()
         val viewportSize = size.height
-        val contentSize = viewportSize + scrollState.maxValue
+        val contentSize = viewportSize + max
         val thumbHeight = size.height * (viewportSize / contentSize).coerceIn(MIN_THUMB_FRACTION, 1f)
-        val scrollFraction = if (scrollState.maxValue == 0) 0f else scrollState.value.toFloat() / scrollState.maxValue
+        val scrollFraction = if (max <= 0) 0f else (position().toFloat() / max).coerceIn(0f, 1f)
         drawRoundRect(
             color = thumbColor,
             topLeft = Offset(left, (size.height - thumbHeight) * scrollFraction),
@@ -364,4 +388,3 @@ fun VerticalScrollbar(scrollState: ScrollState, width: Dp, modifier: Modifier = 
         )
     }
 }
-

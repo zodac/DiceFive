@@ -1742,11 +1742,20 @@ install-over-existing succeeds:
       verified: any other entry claiming CC0 fails strict mode).
 - [x] **Dialog follow-ups**: the Settings link and dialog title are "Licences" (British spelling,
       matching the rest of the UI's "colour"; code identifiers keep `license`, matching the library's
-      API and SPDX). The whole list is **one** platform `TextView` in a platform
-      `ScrollView` (`LicenceDocument` - since Phase 18 `TextViewLicenceDocument`, in `app/android/.../device/`), its headings, rows,
-      dividers and "Show / Hide licence text" toggles all spans in one `SpannableStringBuilder`
-      (`buildLicenceDocument`) - because only within a single TextView can a selection be dragged
-      across rows. `setTextIsSelectable` gives the system's own long-press behaviour - smart
+      API and SPDX). Each licence (and the notices) is **one card, one** platform `TextView`, all
+      in one platform `ScrollView` (`LicenceDocument` - since Phase 18 `TextViewLicenceDocument`, in
+      `app/android/.../device/`), each card's heading, rows and "Show / Hide licence text" toggle
+      spans in its own `SpannableStringBuilder` (`buildLicenceCards`) - because only within a single
+      TextView can a selection be dragged across rows, and separate TextViews keep it from running on
+      into the next licence. (It was one TextView for the whole list, with divider spans, until the
+      cards: the maintainer wanted copy limited to one licence, and the dialog to match the About
+      page's cards - `surfaceContainerHighest`, 12dp corners, 16dp padding and gaps, headings in
+      `onSurface` rather than gold. `DocumentScrollView` also ignores a whole card's rect, so a card
+      taking focus on a toggle tap doesn't scroll to show all of itself. The platform scrollbar is off:
+      the dialog draws the app's own `VerticalScrollbar` (rail and rounded thumb, in its right margin,
+      as on Styles and Rules) from a `LicenceScroll` the document keeps up to date - position and
+      maximum in pixels, plus a `scrollBy` for drags - via `VerticalScrollbar`'s pixel overload, since
+      a platform ScrollView has no Compose `ScrollState`.) `setTextIsSelectable` gives the system's own long-press behaviour - smart
       selection of a whole URL and the Copy / Share / Select all toolbar - and TalkBack sees its
       links. A tap on a link opens it, on a toggle flips it (`LinkTextView`'s `GestureDetector` - a
       bare `OnGestureListener`, since a double-tap listener would swallow a quick second tap), and a
@@ -1769,7 +1778,7 @@ install-over-existing succeeds:
       doesn't produce), so selection, its magnifier and the menu all started at once - that crashed;
       (3) clearing focus didn't drop a `SelectionContainer` selection inside the dialog; (4) a
       selection can't span separate text elements (rows). `LicensesDialogTest` covers link tap, link
-      long press, the toggles, a selection spanning rows and tap-to-clear on the real view under
+      long press, the toggles, a selection spanning a card's rows but not the next card, and tap-to-clear on the real view under
       **Robolectric** (added as a test dependency for this - the sandbox has no emulator); Robolectric
       doesn't simulate the platform's long-press selection itself, so that part is device-only.
       A licence's

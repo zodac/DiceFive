@@ -3,6 +3,7 @@ package net.zodac.dicefive.platform
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import net.zodac.dicefive.ui.settings.ComposeLicenceDocument
+import net.zodac.dicefive.ui.settings.LicenceScroll
 import net.zodac.dicefive.ui.settings.LicenseReport
 import net.zodac.dicefive.ui.settings.NoSelectionClearer
 import net.zodac.dicefive.ui.settings.SelectionClearer
@@ -30,5 +31,6 @@ object SilentPlatformServices : PlatformServices {
     override fun createSelectionClearer(): SelectionClearer = NoSelectionClearer
 
     @Composable
-    override fun LicenceDocument(report: LicenseReport, modifier: Modifier) = ComposeLicenceDocument(report, modifier)
+    override fun LicenceDocument(report: LicenseReport, scroll: LicenceScroll, modifier: Modifier) =
+        ComposeLicenceDocument(report, scroll, modifier)
 }
