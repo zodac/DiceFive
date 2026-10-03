@@ -42,7 +42,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.graphics.drawable.toDrawable
 import java.util.WeakHashMap
 import net.zodac.dicefive.ui.settings.LicenseReport
 import net.zodac.dicefive.ui.settings.LocalSelectionClearer
@@ -304,8 +303,18 @@ internal fun TextViewLicenceDocument(report: LicenseReport, modifier: Modifier =
                     },
                 )
             }
+            scroll.scrollBarSize = (SCROLLBAR_THICKNESS_DP * density).toInt()
+            // The thumb gets a lane of its own beside the cards, rather than drawing over their right
+            // edges (and rounded corners).
+            scroll.scrollBarStyle = View.SCROLLBARS_OUTSIDE_OVERLAY
+            scroll.setPaddingRelative(0, 0, ((SCROLLBAR_THICKNESS_DP + SCROLLBAR_GAP_DP) * density).toInt(), 0)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                scroll.verticalScrollbarThumbDrawable = accent.toArgb().toDrawable()
+                // A pill, like the app's own Compose scrollbars (ui/common/Scrollbar.kt): a plain colour
+                // drawable is square-ended, which reads as the thumb being cut off at each end.
+                scroll.verticalScrollbarThumbDrawable = GradientDrawable().apply {
+                    setColor(accent.toArgb())
+                    cornerRadius = SCROLLBAR_THICKNESS_DP * density / 2f
+                }
             }
         },
     )
@@ -315,6 +324,12 @@ internal fun TextViewLicenceDocument(report: LicenseReport, modifier: Modifier =
 private const val CARD_CORNER_DP = 12f
 private const val CARD_PADDING_DP = 16f
 private const val CARD_GAP_DP = 16f
+
+/** The same 4dp as the app's Compose scrollbars (ui/common/Scrollbar.kt). */
+private const val SCROLLBAR_THICKNESS_DP = 4f
+
+/** Between the cards and the scrollbar's lane. */
+private const val SCROLLBAR_GAP_DP = 4f
 
 /** One card's selectable text: a tap on a link opens it, on a toggle flips it - unless a selection was
  * showing (in any card), in which case the tap only dismisses it. */
