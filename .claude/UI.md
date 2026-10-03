@@ -752,7 +752,10 @@ The Game Over fanfare and hold ticks are governed by their own settings, not by 
 ## Scrollbars on long lists
 
 Plain scrolling pages (Styles, and each Rules page) use `VerticalScrollbar`, in the page's right-hand
-margin. The Rules pages share one, beside the pager, following whichever page is showing - which is
+margin. So does the Licences dialog, in its right-hand margin: its list is a platform ScrollView on
+Android, so it uses the overload that takes a pixel position, maximum and `scrollBy` (fed by
+`LicenceScroll`) rather than a `ScrollState`, and the platform's own scrollbar is turned off. Anything
+else that scrolls should do the same rather than styling a platform scrollbar to look similar. The Rules pages share one, beside the pager, following whichever page is showing - which is
 why every scrollbar keys its "anything to scroll?" check on the state it's handed: unkeyed, it stayed
 on the first page's answer and never appeared on a longer one.
 

@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.viewinterop.AndroidView
 import java.util.WeakHashMap
+import net.zodac.dicefive.ui.settings.LicenceScroll
 import net.zodac.dicefive.ui.settings.LicenseReport
 import net.zodac.dicefive.ui.settings.LocalSelectionClearer
 import net.zodac.dicefive.ui.settings.SelectionClearer
@@ -209,7 +210,7 @@ internal fun buildLicenceCards(
  * gesture, which can't be pre-empted, and crashed; and a selection couldn't span rows.)
  */
 @Composable
-internal fun TextViewLicenceDocument(report: LicenseReport, modifier: Modifier = Modifier) {
+internal fun TextViewLicenceDocument(report: LicenseReport, scroll: LicenceScroll, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
     val clearer = LocalSelectionClearer.current
     var expanded by rememberSaveable { mutableStateOf(emptyList<String>()) }
@@ -239,17 +240,35 @@ internal fun TextViewLicenceDocument(report: LicenseReport, modifier: Modifier =
         modifier = modifier.clipToBounds(),
         factory = { context ->
             DocumentScrollView(context).apply {
-                isVerticalScrollBarEnabled = true
-                addView(LinearLayout(context).apply { orientation = LinearLayout.VERTICAL })
+                // The dialog draws the app's own scrollbar beside the list (from LicenceScroll), so the
+                // platform's stays off.
+                isVerticalScrollBarEnabled = false
+                val column = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+                addView(column)
+                fun publishScroll() {
+                    scroll.maxPosition = (column.height - height).coerceAtLeast(0)
+                    scroll.position = scrollY
+                }
+                setOnScrollChangeListener { _, _, _, _, _ -> publishScroll() }
+                addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> publishScroll() }
+                column.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> publishScroll() }
+                // A drag on the bar comes in fractions of a pixel; keep the remainder so a slow drag still moves.
+                var pending = 0f
+                scroll.scrollBy = { delta ->
+                    pending += delta
+                    val whole = pending.toInt()
+                    pending -= whole
+                    if (whole != 0) scrollBy(0, whole)
+                }
             }
         },
-        onRelease = { scroll ->
-            val column = scroll.getChildAt(0) as ViewGroup
+        onRelease = { scrollView ->
+            val column = scrollView.getChildAt(0) as ViewGroup
             for (i in 0 until column.childCount) (clearer as? TextViewSelectionClearer)?.unregister(column.getChildAt(i) as TextView)
         },
-        update = { scroll ->
-            val column = scroll.getChildAt(0) as LinearLayout
-            val density = scroll.resources.displayMetrics.density
+        update = { scrollView ->
+            val column = scrollView.getChildAt(0) as LinearLayout
+            val density = scrollView.resources.displayMetrics.density
             // One card per licence, and the licences don't change once loaded, so this only adds them
             // the first time; after that it's only a card's text that changes.
             while (column.childCount < cards.size) {
@@ -262,7 +281,7 @@ internal fun TextViewLicenceDocument(report: LicenseReport, modifier: Modifier =
                 (clearer as? TextViewSelectionClearer)?.unregister(column.getChildAt(column.childCount - 1) as TextView)
                 column.removeViewAt(column.childCount - 1)
             }
-            val scrollY = scroll.scrollY
+            val scrollY = scrollView.scrollY
             var changed = false
             cards.forEachIndexed { index, card ->
                 val view = column.getChildAt(index) as LinkTextView
@@ -290,31 +309,18 @@ internal fun TextViewLicenceDocument(report: LicenseReport, modifier: Modifier =
                 // Setting new text on a selectable TextView moves its cursor to 0 and scrolls that into
                 // view, snapping the list up whenever a licence is shown or hidden. Put the scroll back
                 // before the next frame is drawn, so there's no visible jump.
-                scroll.viewTreeObserver.addOnPreDrawListener(
+                scrollView.viewTreeObserver.addOnPreDrawListener(
                     object : ViewTreeObserver.OnPreDrawListener {
                         override fun onPreDraw(): Boolean {
-                            scroll.viewTreeObserver.removeOnPreDrawListener(this)
-                            if (scroll.scrollY != scrollY) {
-                                scroll.scrollTo(0, scrollY)
+                            scrollView.viewTreeObserver.removeOnPreDrawListener(this)
+                            if (scrollView.scrollY != scrollY) {
+                                scrollView.scrollTo(0, scrollY)
                                 return false
                             }
                             return true
                         }
                     },
                 )
-            }
-            scroll.scrollBarSize = (SCROLLBAR_THICKNESS_DP * density).toInt()
-            // The thumb gets a lane of its own beside the cards, rather than drawing over their right
-            // edges (and rounded corners).
-            scroll.scrollBarStyle = View.SCROLLBARS_OUTSIDE_OVERLAY
-            scroll.setPaddingRelative(0, 0, ((SCROLLBAR_THICKNESS_DP + SCROLLBAR_GAP_DP) * density).toInt(), 0)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                // A pill, like the app's own Compose scrollbars (ui/common/Scrollbar.kt): a plain colour
-                // drawable is square-ended, which reads as the thumb being cut off at each end.
-                scroll.verticalScrollbarThumbDrawable = GradientDrawable().apply {
-                    setColor(accent.toArgb())
-                    cornerRadius = SCROLLBAR_THICKNESS_DP * density / 2f
-                }
             }
         },
     )
@@ -324,12 +330,6 @@ internal fun TextViewLicenceDocument(report: LicenseReport, modifier: Modifier =
 private const val CARD_CORNER_DP = 12f
 private const val CARD_PADDING_DP = 16f
 private const val CARD_GAP_DP = 16f
-
-/** The same 4dp as the app's Compose scrollbars (ui/common/Scrollbar.kt). */
-private const val SCROLLBAR_THICKNESS_DP = 4f
-
-/** Between the cards and the scrollbar's lane. */
-private const val SCROLLBAR_GAP_DP = 4f
 
 /** One card's selectable text: a tap on a link opens it, on a toggle flips it - unless a selection was
  * showing (in any card), in which case the tap only dismisses it. */

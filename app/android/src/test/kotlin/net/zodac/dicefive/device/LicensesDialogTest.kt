@@ -11,17 +11,21 @@ import android.text.Spanned
 import android.text.style.URLSpan
 import android.view.ContextMenu
 import android.view.MotionEvent
-import android.view.ViewGroup
 import android.view.ViewConfiguration
+import android.view.ViewGroup
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.isDialog as isComposeDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.matcher.RootMatchers.isDialog
@@ -29,6 +33,11 @@ import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.Duration
 import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.ui.settings.ComponentKind
+import net.zodac.dicefive.ui.settings.LicenceScroll
+import net.zodac.dicefive.ui.settings.LicenseGroup
+import net.zodac.dicefive.ui.settings.LicenseReport
+import net.zodac.dicefive.ui.settings.LicensedComponent
 import net.zodac.dicefive.ui.settings.LicensesDialog
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.hamcrest.Matchers.containsString
@@ -262,6 +271,43 @@ class LicensesDialogTest {
                 assertEquals("Pixel ($x, $y) changed", before.getPixel(x, y), after.getPixel(x, y))
             }
         }
+    }
+
+    @Test
+    fun `the list's own scrollbar is off, and the dialog's follows and drives the list`() {
+        val scroll = LicenceScroll()
+        compose.setContent {
+            CompositionLocalProvider(LocalPlatformServices provides AndroidPlatformServices(application)) {
+                DiceFiveTheme {
+                    // Long enough to scroll in 400dp.
+                    val report = remember {
+                        val components = (1..80).map { LicensedComponent("Library $it", "1.0", ComponentKind.LIBRARY, website = null, copyright = null) }
+                        LicenseReport(listOf(LicenseGroup("Apache License 2.0", "Licence text", components)), notices = emptyList())
+                    }
+                    TextViewLicenceDocument(report = report, scroll = scroll, modifier = Modifier.height(400.dp))
+                }
+            }
+        }
+        compose.waitUntil(timeoutMillis = 10_000) { scroll.maxPosition > 0 }
+        val scrollView = findScrollView()
+        assertFalse(scrollView.isVerticalScrollBarEnabled)
+        assertEquals(0, scroll.position)
+
+        compose.runOnUiThread { scrollView.scrollTo(0, 300) }
+        compose.waitForIdle()
+        assertEquals(300, scroll.position)
+
+        // A drag on the dialog's bar arrives as fractions of a pixel, and none of them may be lost.
+        compose.runOnUiThread { repeat(4) { scroll.scrollBy(0.5f) } }
+        compose.waitForIdle()
+        assertEquals(302, scrollView.scrollY)
+        assertEquals(302, scroll.position)
+    }
+
+    private fun findScrollView(): ScrollView {
+        var found: ScrollView? = null
+        onView(withText(containsString("Apache License 2.0"))).check { view, _ -> found = view.parent.parent as ScrollView }
+        return checkNotNull(found)
     }
 
     private companion object {

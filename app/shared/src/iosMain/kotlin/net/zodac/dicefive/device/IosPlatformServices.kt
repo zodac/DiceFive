@@ -15,6 +15,7 @@ import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.platform.SoundEffect
 import net.zodac.dicefive.platform.SoundPlayer
 import net.zodac.dicefive.ui.settings.ComposeLicenceDocument
+import net.zodac.dicefive.ui.settings.LicenceScroll
 import net.zodac.dicefive.ui.settings.LicenseReport
 import net.zodac.dicefive.ui.settings.NoSelectionClearer
 import net.zodac.dicefive.ui.settings.SelectionClearer
@@ -62,7 +63,8 @@ class IosPlatformServices : PlatformServices {
     override fun createSelectionClearer(): SelectionClearer = NoSelectionClearer
 
     @Composable
-    override fun LicenceDocument(report: LicenseReport, modifier: Modifier) = ComposeLicenceDocument(report, modifier)
+    override fun LicenceDocument(report: LicenseReport, scroll: LicenceScroll, modifier: Modifier) =
+        ComposeLicenceDocument(report, scroll, modifier)
 }
 
 /**

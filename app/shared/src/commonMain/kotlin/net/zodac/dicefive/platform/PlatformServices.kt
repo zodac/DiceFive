@@ -5,6 +5,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import net.zodac.dicefive.ui.settings.LicenceScroll
 import net.zodac.dicefive.ui.settings.LicenseReport
 import net.zodac.dicefive.ui.settings.SelectionClearer
 
@@ -50,12 +51,14 @@ interface PlatformServices {
     fun createSelectionClearer(): SelectionClearer
 
     /**
-     * The licence report as one selectable, scrollable document, with tappable links and "Show licence
-     * text" toggles. Platform-specific because text selection is: see TextViewLicenceDocument in :app:android for
-     * why Android's is a platform TextView rather than Compose text.
+     * The licence report as a scrollable column of cards, each selectable on its own, with tappable
+     * links and "Show licence text" toggles. Platform-specific because text selection is: see
+     * TextViewLicenceDocument in :app:android for why Android's are platform TextViews rather than
+     * Compose text. It keeps [scroll] up to date, and scrolls when asked through it, so the dialog
+     * can draw the app's own scrollbar beside it rather than the document drawing one of its own.
      */
     @Composable
-    fun LicenceDocument(report: LicenseReport, modifier: Modifier)
+    fun LicenceDocument(report: LicenseReport, scroll: LicenceScroll, modifier: Modifier)
 }
 
 /**
