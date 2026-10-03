@@ -1,5 +1,7 @@
 package net.zodac.dicefive.navigation
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -17,6 +19,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -32,6 +35,8 @@ import net.zodac.dicefive.ui.achievements.AchievementsScreen
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LocalDriftState
+import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.GameScreen
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.menu.MenuScreen
@@ -55,11 +60,16 @@ import net.zodac.dicefive.ui.styles.StylesViewModel
  */
 private const val SCREEN_TRANSITION_MILLIS = 350
 
+/** How long continuing a game can take to load before it's worth showing a spinner for. */
+private const val RESUME_SPINNER_DELAY_MILLIS = 500L
+
 @Composable
 fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) {
     val container = LocalAppContainer.current
-    val fadeIn = fadeIn(animationSpec = tween(SCREEN_TRANSITION_MILLIS))
-    val fadeOut = fadeOut(animationSpec = tween(SCREEN_TRANSITION_MILLIS))
+    // Under reduced motion a page just replaces the last one, with no cross-fade.
+    val reduceMotion = LocalReduceMotion.current
+    val fadeIn = if (reduceMotion) EnterTransition.None else fadeIn(animationSpec = tween(SCREEN_TRANSITION_MILLIS))
+    val fadeOut = if (reduceMotion) ExitTransition.None else fadeOut(animationSpec = tween(SCREEN_TRANSITION_MILLIS))
 
     NavHost(
         navController = navController,
@@ -113,17 +123,31 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                     var resumed by remember { mutableStateOf<Boolean?>(null) }
                     LaunchedEffect(Unit) { resumed = viewModel.resumeGame() }
 
+                    // While the game loads, and on the way to it, the game's own backdrop - the page it's about to be
+                    // drawn on - so with no page transitions to cover the hand-off (reduced motion), nothing else
+                    // shows in between. The spinner only once the load has been slow enough to need one.
                     when (resumed) {
-                        true -> LaunchedEffect(Unit) { navController.navigate(Screen.PLAY_GAME) }
+                        true -> {
+                            BrandBackdrop(showDice = false) {}
+                            LaunchedEffect(Unit) { navController.navigate(Screen.PLAY_GAME) }
+                        }
                         // Nothing was actually found to resume (e.g. the save was cleared elsewhere) - fall back to setup.
                         false -> GameSetupScreen(
                             viewModel = viewModel,
                             onStartGame = { navController.navigate(Screen.PLAY_GAME) },
                             onBack = { navController.navigateUp() },
                         )
-                        null -> BrandBackdrop {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator()
+                        null -> BrandBackdrop(showDice = false) {
+                            var slow by remember { mutableStateOf(false) }
+                            val lifecycle = LocalLifecycleOwner.current.lifecycle
+                            LaunchedEffect(Unit) {
+                                lifecycle.delayWhileResumed(RESUME_SPINNER_DELAY_MILLIS)
+                                slow = true
+                            }
+                            if (slow) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator()
+                                }
                             }
                         }
                     }

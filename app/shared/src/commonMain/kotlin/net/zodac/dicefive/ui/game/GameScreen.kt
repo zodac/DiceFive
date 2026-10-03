@@ -66,7 +66,6 @@ import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.LocalOnRabbitSeen
-import net.zodac.dicefive.ui.game.style.LocalSimpleDiceRoll
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /** How long the cup shakes before the roll result is revealed - purely a presentation delay. Shared
@@ -105,7 +104,9 @@ fun GameScreen(
     val aiRolling by viewModel.aiRolling.collectAsStateWithLifecycle()
     val turnSecondsRemaining by viewModel.turnSecondsRemaining.collectAsStateWithLifecycle()
     val table by viewModel.tableSettings.collectAsStateWithLifecycle()
-    val currentState = state ?: return
+    // Until the game (and below, the table's settings) load, just the page the board is drawn on - the backdrop
+    // the screen before it hands over on, too - rather than nothing, which showed whatever was behind for a frame.
+    val currentState = state ?: return BrandBackdrop(modifier = modifier, showDice = false) {}
     val leaveConfirmation = LocalLeaveGameConfirmation.current
     // Whether Game Over's "Review Scorecards" button has been tapped - reset the moment the game
     // stops being over (Play Again starts a fresh one), so a stale review doesn't reappear the
@@ -161,21 +162,19 @@ fun GameScreen(
 
     // A single injection point for the pluggable dice/cup/background art and the table's settings -
     // see GameViewModel.tableSettings. Nothing's drawn until they've loaded, rather than the defaults.
-    val tableSettings = table ?: return
+    val tableSettings = table ?: return BrandBackdrop(modifier = modifier, showDice = false) {}
     val soundEnabled = tableSettings.soundEnabled
     val vibrationEnabled = tableSettings.vibrationEnabled
     val reduceMotion = LocalReduceMotion.current
     // One length for a human's tap and a CPU's roll, kept in step with the shake sound and buzz - see cupShakeMillis.
     val cupShakeMillis = cupShakeMillis(reduceMotion, soundEnabled, vibrationEnabled)
     SideEffect { viewModel.cupShakeMillis = cupShakeMillis }
-    val simpleDiceRoll = tableSettings.simpleDiceRoll || reduceMotion
-    SideEffect { viewModel.diceTossMillis = if (simpleDiceRoll) 0L else DICE_TOSS_MILLIS.toLong() }
+    // Under reduced motion the dice snap to their result, so a CPU has no toss to wait for.
+    SideEffect { viewModel.diceAnimated = !reduceMotion }
     CompositionLocalProvider(
         LocalGameVisualTheme provides tableSettings.visualTheme,
         LocalIrishTricolour provides currentState.isLuckOfTheIrish,
         LocalOnRabbitSeen provides viewModel::onRabbitSeen,
-        // Reduced motion means the simple roll: the dice appear at once and scoring doesn't wait for a toss.
-        LocalSimpleDiceRoll provides (tableSettings.simpleDiceRoll || reduceMotion),
     ) {
         // Once the game is over the board isn't what anyone is looking at, so the results get the
         // whole screen as their own themed page rather than being appended under the felt.
@@ -268,11 +267,11 @@ private fun InProgressGame(
     // The cup/tray don't care whether the shake was kicked off by a human tap or the ViewModel's
     // own AI-turn loop (GameViewModel.aiRolling) - either way it's the same "rolling" pose.
     val isRolling = isTapRolling || aiRolling
-    // With the simple roll, scattered dice (and their scramble) appear the instant the cup is
-    // tapped. With the full roll, a turn's first dice are still in the cup until they're thrown -
-    // there are no dice on the mat to gather up yet - so they appear as the roll lands.
-    val simpleDiceRoll = LocalSimpleDiceRoll.current
-    val showDice = state.phase == TurnPhase.ROLLED || (isRolling && simpleDiceRoll)
+    // A turn's first dice are still in the cup until they're thrown - there are no dice on the mat to
+    // gather up yet - so they appear as the roll lands. Under reduced motion there's no toss: the dice
+    // simply appear on their result then, and a later roll's dice stay put until they snap to theirs.
+    val reduceMotion = LocalReduceMotion.current
+    val showDice = state.phase == TurnPhase.ROLLED
 
     // The dice are still tumbling to a stop for a moment after the roll lands (see DiceTray), and
     // scoring waits for them: nothing lights up or takes a tap until they've settled. Tracked from
@@ -280,7 +279,7 @@ private fun InProgressGame(
     // before being taken away again.
     val rollTracker = remember { RollTracker(isRolling) }
     rollTracker.update(isRolling)
-    val settled = remember(rollTracker.landings) { mutableStateOf(rollTracker.landings == 0 || simpleDiceRoll) }
+    val settled = remember(rollTracker.landings) { mutableStateOf(rollTracker.landings == 0 || reduceMotion) }
     LaunchedEffect(rollTracker.landings) {
         if (!settled.value) {
             lifecycle.delayWhileResumed(DICE_TOSS_MILLIS.toLong())

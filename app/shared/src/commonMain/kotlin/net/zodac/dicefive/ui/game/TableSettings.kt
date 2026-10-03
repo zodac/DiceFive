@@ -10,5 +10,4 @@ data class TableSettings(
     val visualTheme: GameVisualTheme = GameVisualTheme(),
     val soundEnabled: Boolean = true,
     val vibrationEnabled: Boolean = true,
-    val simpleDiceRoll: Boolean = false,
 )

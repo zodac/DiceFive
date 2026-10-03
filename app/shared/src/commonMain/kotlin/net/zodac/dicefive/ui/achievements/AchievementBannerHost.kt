@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.achievements
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -38,6 +39,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -74,6 +76,7 @@ import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.LocalLeaveGameConfirmation
 import net.zodac.dicefive.ui.game.style.unlocksStyle
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ConfigureOverlayDialogWindow
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.grouped
@@ -183,6 +186,8 @@ fun AchievementBannerHost(
     val leaveConfirmation = LocalLeaveGameConfirmation.current
 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    // Under reduced motion a burst isn't dealt out one at a time: every banner that fits is there at once.
+    val reduceMotion by rememberUpdatedState(LocalReduceMotion.current)
     LaunchedEffect(Unit) {
         var nextKey = 0L
         AchievementEvents.events.collect { event ->
@@ -195,7 +200,7 @@ fun AchievementBannerHost(
             // element, which is the front slot, letting it cut in front of a banner the player can
             // already see peeking out behind the one they're about to swipe away.
             banners.add(0, BannerItem(key = nextKey++, event = event))
-            lifecycle.delayWhileResumed(STAGGER_MILLIS)
+            if (!reduceMotion) lifecycle.delayWhileResumed(STAGGER_MILLIS)
         }
     }
 
@@ -320,7 +325,11 @@ private fun BannerSlot(
 ) {
     val scope = rememberCoroutineScope()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val alpha = remember { Animatable(0f) }
+    // Under reduced motion every fade and slide here is a snap: a banner is simply there, then simply gone. A drag
+    // still follows the finger - that's the player moving it, not an animation.
+    val reduceMotion = LocalReduceMotion.current
+    // Already at full strength under reduced motion, so it's there on its very first frame, not one later.
+    val alpha = remember { Animatable(if (reduceMotion) 1f else 0f) }
     val offsetX = remember { Animatable(0f) }
     var swipedAway by remember { mutableStateOf(false) }
     // A finger on the banner - mid-swipe, or just holding it there to keep reading - holds its countdown off.
@@ -340,14 +349,14 @@ private fun BannerSlot(
         if (indicatorTick == 0) return@LaunchedEffect
         indicatorAlpha.snapTo(1f)
         lifecycle.delayWhileResumed(HOLD_INDICATOR_MILLIS)
-        indicatorAlpha.animateTo(0f, tween(HOLD_INDICATOR_FADE_MILLIS))
+        indicatorAlpha.moveTo(0f, HOLD_INDICATOR_FADE_MILLIS, reduceMotion)
     }
 
     // Fades in as soon as it's placed in the stack, whether or not it's the front banner yet -
     // every banner in a burst should be visible right away, even the ones peeking out behind the
     // front one that aren't counting down yet.
     LaunchedEffect(Unit) {
-        alpha.animateTo(1f, tween(FADE_IN_MILLIS))
+        alpha.moveTo(1f, FADE_IN_MILLIS, reduceMotion)
     }
 
     // Re-runs whenever this banner is promoted to/demoted from the front of the stack, or the
@@ -361,7 +370,7 @@ private fun BannerSlot(
     LaunchedEffect(interactive, swipedAway, paused, touched, held) {
         if (!interactive || swipedAway || paused) return@LaunchedEffect
         if (touched) {
-            alpha.animateTo(1f, tween(FADE_IN_MILLIS))
+            alpha.moveTo(1f, FADE_IN_MILLIS, reduceMotion)
             return@LaunchedEffect
         }
         if (held) return@LaunchedEffect
@@ -374,7 +383,7 @@ private fun BannerSlot(
             holdRemainingMillis = (holdRemainingMillis - holdStarted.elapsedNow().inWholeMilliseconds).coerceAtLeast(0L)
         }
         if (!swipedAway) {
-            alpha.animateTo(0f, tween(FADE_OUT_MILLIS))
+            alpha.moveTo(0f, FADE_OUT_MILLIS, reduceMotion)
             onDismissed()
         }
     }
@@ -458,11 +467,11 @@ private fun BannerSlot(
                                     if (abs(offsetX.value) > size.width * SWIPE_DISMISS_FRACTION) {
                                         swipedAway = true
                                         val target = size.width.toFloat() * if (offsetX.value > 0) 1 else -1
-                                        launch { alpha.animateTo(0f, tween(SWIPE_OUT_MILLIS)) }
-                                        offsetX.animateTo(target, tween(SWIPE_OUT_MILLIS))
+                                        launch { alpha.moveTo(0f, SWIPE_OUT_MILLIS, reduceMotion) }
+                                        offsetX.moveTo(target, SWIPE_OUT_MILLIS, reduceMotion)
                                         onDismissed()
                                     } else {
-                                        offsetX.animateTo(0f, tween(SWIPE_OUT_MILLIS))
+                                        offsetX.moveTo(0f, SWIPE_OUT_MILLIS, reduceMotion)
                                     }
                                 }
                             }
@@ -620,6 +629,11 @@ private fun StylesUnlockedBanner(event: AchievementEvent.StylesUnlocked) {
     }
 }
 
+/** Animates to [target] over [millis], or goes straight there under [reduceMotion]. */
+private suspend fun Animatable<Float, AnimationVector1D>.moveTo(target: Float, millis: Int, reduceMotion: Boolean) {
+    if (reduceMotion) snapTo(target) else animateTo(target, tween(millis))
+}
+
 /**
  * The quieter one: not earned yet, but closer. Same footprint as [UnlockedBanner] (padding, icon
  * size) so the stack doesn't jump in size as progress and unlock banners mix - only the colour
@@ -634,9 +648,15 @@ private fun StylesUnlockedBanner(event: AchievementEvent.StylesUnlocked) {
 @Composable
 private fun ProgressBanner(achievement: Achievement, previous: Int, current: Int, interactive: Boolean) {
     val animatedProgress = remember { Animatable(previous.toFloat()) }
+    // Under reduced motion it doesn't climb: the new count is simply there once this banner is at the front.
+    val reduceMotion = LocalReduceMotion.current
     LaunchedEffect(interactive) {
         if (!interactive) return@LaunchedEffect
-        animatedProgress.animateTo(current.toFloat(), tween(PROGRESS_COUNT_MILLIS))
+        if (reduceMotion) {
+            animatedProgress.snapTo(current.toFloat())
+        } else {
+            animatedProgress.animateTo(current.toFloat(), tween(PROGRESS_COUNT_MILLIS))
+        }
     }
     val displayedValue = animatedProgress.value.roundToInt()
 

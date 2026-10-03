@@ -28,7 +28,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -54,7 +53,6 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin
-import kotlin.random.Random
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -72,7 +70,6 @@ import net.zodac.dicefive.ui.game.style.LocalDieMotion
 import net.zodac.dicefive.ui.game.style.LocalDieTumbleMillis
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
-import net.zodac.dicefive.ui.game.style.LocalSimpleDiceRoll
 import net.zodac.dicefive.ui.game.style.PickUpPath
 import net.zodac.dicefive.ui.game.style.TossPath
 import net.zodac.dicefive.ui.game.style.TossPose
@@ -108,7 +105,6 @@ private const val TIPPED_FOOTPRINT = 1.06f
 private val LIGHT_X = (-48).dp
 private val LIGHT_Y = (-140).dp
 private const val SHADOW_LENGTH = 0.022f
-private const val SCRAMBLE_INTERVAL_MILLIS = 90L
 private const val CYCLE_INTERVAL_MILLIS = 1_000L
 
 /**
@@ -152,15 +148,6 @@ fun DiceTray(
     val visualTheme = LocalGameVisualTheme.current
 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    var scrambleTick by remember { mutableIntStateOf(0) }
-    // No face-flicker (about eleven changes a second) under reduced motion.
-    val reduceMotion = LocalReduceMotion.current
-    LaunchedEffect(rolling) {
-        while (rolling && !reduceMotion) {
-            lifecycle.delayWhileResumed(SCRAMBLE_INTERVAL_MILLIS)
-            scrambleTick++
-        }
-    }
 
     // rememberUpdatedState, not the raw parameters: `dice` (including whichever die is currently
     // cycling) recomposes this composable every tick, which would otherwise hand the gesture
@@ -296,10 +283,8 @@ fun DiceTray(
                     die = die,
                     show = showDice,
                     rolling = rolling,
-                    scrambleTick = scrambleTick,
                     scatter = SCATTER_OFFSETS[index % SCATTER_OFFSETS.size],
                     seed = index,
-                    gameMode = gameMode,
                     diceStyles = diceStyles,
                     mat = visualTheme.mat,
                     modifier = Modifier.weight(1f).then(dieSemantics),
@@ -327,10 +312,8 @@ private fun DiceColumn(
     die: Die,
     show: Boolean,
     rolling: Boolean,
-    scrambleTick: Int,
     scatter: ScatterOffset,
     seed: Int,
-    gameMode: GameMode,
     diceStyles: TrayDiceStyles,
     mat: DiceMat,
     modifier: Modifier = Modifier,
@@ -348,7 +331,7 @@ private fun DiceColumn(
     }
     // Which physical die this column is, so a natural-looking style can give each its own pattern.
     CompositionLocalProvider(LocalDieIndex provides seed, LocalDieMotion provides motion) {
-        DiceColumnContent(die, show, rolling, scrambleTick, scatter, seed, gameMode, diceStyles, mat, modifier)
+        DiceColumnContent(die, show, rolling, scatter, seed, diceStyles, mat, modifier)
     }
 }
 
@@ -357,10 +340,8 @@ private fun DiceColumnContent(
     die: Die,
     show: Boolean,
     rolling: Boolean,
-    scrambleTick: Int,
     scatter: ScatterOffset,
     seed: Int,
-    gameMode: GameMode,
     diceStyles: TrayDiceStyles,
     mat: DiceMat,
     modifier: Modifier,
@@ -383,7 +364,7 @@ private fun DiceColumnContent(
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        ScatterArea(die, show, rolling, scrambleTick, scatter, seed, gameMode, diceStyles)
+        ScatterArea(die, show, rolling, scatter, seed, diceStyles)
     }
 }
 
@@ -421,21 +402,20 @@ private const val PICK_UP_MILLIS = 200
  * near edge, out of sight for the rest of the shake ([PickUpPath]) - it's in the cup; the moment the
  * roll lands (with the landing sound), it's thrown back on from there - up its column into the far
  * wall, bouncing and tumbling back to rest on its result ([TossPath]). Walls either side
- * keep it in its own column. With the player's "Simple dice roll" on, it just flicks
- * through faces in place while rolling instead, as dice always used to.
+ * keep it in its own column. Under reduced motion (the player's "Remove animations", or the
+ * system's) it doesn't move at all: it stays where it lies while rolling and snaps to its result.
  */
 @Composable
 private fun ScatterArea(
     die: Die,
     show: Boolean,
     rolling: Boolean,
-    scrambleTick: Int,
     scatter: ScatterOffset,
     seed: Int,
-    gameMode: GameMode,
     diceStyles: TrayDiceStyles,
 ) {
-    val simple = LocalSimpleDiceRoll.current
+    // Under reduced motion there's no pick-up or toss: the die stays where it lies until it snaps to its result.
+    val simple = LocalReduceMotion.current
     val tracker = remember { RollTracker(rolling) }
     tracker.update(rolling)
     val pickUp = remember(tracker.starts) { Animatable(if (tracker.starts == 0 || simple) 1f else 0f) }
@@ -580,18 +560,14 @@ private fun ScatterArea(
                 }
 
                 else -> {
-                    // At rest - or, with the simple roll, flicking through faces in place while rolling.
-                    // Reads scrambleTick so each tick's recomposition seeds a fresh face - deliberately
-                    // not remember()'d, since a cached value wouldn't flicker. A coloured die tumbles
-                    // through colours as well as numbers.
-                    val displayDie = if (rolling) scrambledFace(Random(scrambleTick * 31 + seed), gameMode) else die
+                    // At rest - or, under reduced motion, lying still on its last face while the cup "shakes".
                     val restX = keptIn(scatter.xOffset, scatter.rotationDegrees)
                     Shadow(restX, scatter.yOffset, scatter.rotationDegrees, lift = 0f)
                     Track(restX, scatter.yOffset, scatter.rotationDegrees)
                     // Landed: the pupils stop with the dice, rather than sloshing on once scoring is open.
                     if (motion != null && !rolling) SideEffect { motion.settle() }
                     DieFace(
-                        die = displayDie,
+                        die = die,
                         held = false,
                         diceStyles = diceStyles,
                         modifier = rest
@@ -640,14 +616,4 @@ private class TrayDiceStyles(val plain: DiceStyle, colours: List<DieColour>, iri
 
     /** The style [die] is drawn in: recoloured in its colour when it has one. */
     fun forDie(die: Die): DiceStyle = die.colour?.let { coloured.getValue(it) } ?: plain
-}
-
-/** A random face [gameMode]'s dice could land on - its number, and its colour if it has them. */
-private fun scrambledFace(random: Random, gameMode: GameMode): Die {
-    val values = gameMode.dieValues
-    val colours = gameMode.dieColours
-    return Die(
-        value = random.nextInt(values.first, values.last + 1),
-        colour = if (colours.isEmpty()) null else colours[random.nextInt(colours.size)],
-    )
 }

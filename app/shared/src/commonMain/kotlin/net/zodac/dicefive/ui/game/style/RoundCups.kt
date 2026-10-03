@@ -640,13 +640,22 @@ class TopHatDiceCupStyle(
                 }
             }
         }
-        LaunchedEffect(tilted, rolling, activity) {
+        val reduceMotion = LocalReduceMotion.current
+        LaunchedEffect(tilted, rolling, activity, reduceMotion) {
             if (rabbitAlwaysOut) return@LaunchedEffect
-            peek.animateTo(0f, tween(RABBIT_RISE_MILLIS / 2))
+            // Under reduced motion the rabbit still peeks (its sighting is an achievement), but simply appears and
+            // is gone again for the same time out, with no rising, sinking or ear twitches.
+            if (reduceMotion) peek.snapTo(0f) else peek.animateTo(0f, tween(RABBIT_RISE_MILLIS / 2))
             if (!tilted || rolling) return@LaunchedEffect
             lifecycle.delayWhileResumed(Random.nextLong(RABBIT_IDLE_MILLIS.first, RABBIT_IDLE_MILLIS.last + 1))
-            val rise = tween<Float>(RABBIT_RISE_MILLIS, easing = FastOutSlowInEasing)
             onRabbitSeen()
+            if (reduceMotion) {
+                peek.snapTo(1f)
+                lifecycle.delayWhileResumed(RABBIT_PEEK_MILLIS)
+                peek.snapTo(0f)
+                return@LaunchedEffect
+            }
+            val rise = tween<Float>(RABBIT_RISE_MILLIS, easing = FastOutSlowInEasing)
             peek.animateTo(1f, rise)
             val twitches = 4 * RABBIT_TWITCH_MILLIS
             val hold = RABBIT_PEEK_MILLIS - 2 * RABBIT_RISE_MILLIS - twitches
@@ -876,8 +885,10 @@ class FlowerpotDiceCupStyle(
         val stage = fixedStage ?: growth.stage
         // The same grower's plant grows into its next stage; another's replaces it outright.
         val plant = remember(growth.grower) { Animatable(stage.toFloat()) }
+        // Under reduced motion it's simply at its new stage, with no growing into it.
+        val reduceMotion = LocalReduceMotion.current
         LaunchedEffect(plant, stage) {
-            plant.animateTo(stage.toFloat(), tween(PLANT_GROW_MILLIS, easing = FastOutSlowInEasing))
+            if (reduceMotion) plant.snapTo(stage.toFloat()) else plant.animateTo(stage.toFloat(), tween(PLANT_GROW_MILLIS, easing = FastOutSlowInEasing))
         }
         CupCanvas(rolling, tilted, modifier, shape) {
             drawContactShadow(19f, 56f)
