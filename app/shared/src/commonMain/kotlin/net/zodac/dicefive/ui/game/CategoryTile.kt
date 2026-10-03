@@ -150,21 +150,22 @@ fun CategoryTile(
  */
 @Composable
 private fun BoxScope.GlowBorder(shape: Shape) {
-    // Steady, at full strength, under reduced motion: still the gold that marks a good pick.
-    val glowAlpha = if (LocalReduceMotion.current) {
-        null
-    } else {
-        rememberInfiniteTransition(label = "tileGlow").animateFloat(
-            initialValue = 0.55f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(animation = tween(900, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-            label = "tileGlowAlpha",
-        )
+    // Under reduced motion, just a plain gold border at full strength - no pulse, and no layer for one:
+    // still the gold that marks a good pick.
+    if (LocalReduceMotion.current) {
+        Box(modifier = Modifier.matchParentSize().border(width = 2.dp, color = GoldAccent, shape = shape))
+        return
     }
+    val glowAlpha = rememberInfiniteTransition(label = "tileGlow").animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(animation = tween(900, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
+        label = "tileGlowAlpha",
+    )
     Box(
         modifier = Modifier
             .matchParentSize()
-            .graphicsLayer { alpha = glowAlpha?.value ?: 1f }
+            .graphicsLayer { alpha = glowAlpha.value }
             .border(width = 2.dp, color = GoldAccent, shape = shape),
     )
 }

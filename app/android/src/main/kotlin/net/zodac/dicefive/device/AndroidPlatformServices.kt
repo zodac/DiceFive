@@ -56,6 +56,11 @@ class AndroidPlatformServices(context: Context) : PlatformServices {
         awaitClose { resolver.unregisterContentObserver(observer) }
     }.distinctUntilChanged()
 
+    /** Caps the frame clock `MainActivity` gives its window's recomposer - see [CappedFrameClock]. */
+    override fun capFrameRate(capped: Boolean) {
+        CappedFrameClock.capped = capped
+    }
+
     override fun showTransientMessage(message: String) {
         Toast.makeText(appContext, message, Toast.LENGTH_SHORT).show()
     }

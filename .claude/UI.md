@@ -479,7 +479,8 @@ seen on a device" line and in the report to the user, not claimed as done.
 - **Item 9 on the Rules pages**: category names like "3x" and "5x" are read as written. "pts" is
   spoken as "points" (`spokenPoints`), the example dice rows in full ("Example: 5, 5, 5, 2, 6. The 2
   and 6 don't count. Scores 23 points."), and lists are real numbered steps rather than typed dashes.
-- **Reduced motion is honoured on Android only.** `PlatformServices.reduceMotion()` is true while the
+- **The system's reduced motion is honoured on Android only** (the app's own "Remove animations" switch works
+  everywhere, but its 30fps cap is Android-only). `PlatformServices.reduceMotion()` is true while the
   system animation scale is 0 ("Remove animations"); iOS says false until it's wired to
   `UIAccessibility.isReduceMotionEnabled` (see `IOS_SUPPORT.md`), and Compose Multiplatform on iOS has
   no equivalent of the Android behaviour below. **None of it has been seen on a device.** See
@@ -686,6 +687,16 @@ here) still uses a plain `delay`.
 
 ## Reduced motion
 
+**Two sources, one switch.** `LocalReduceMotion` is true when the system asks for less motion (below) *or*
+the player turns on the app's own **"Remove animations"** (Settings; `SettingsRepository.removeAnimations`,
+which replaced the narrower "Simple dice roll"). `DiceFiveApp` ORs the two and provides the result once, so
+everything below applies to either. The app's switch can't do what the system's does to Compose's own
+`MotionDurationScale` (that's fixed per window by the system setting), so the tweens it leaves running - a
+banner sliding in, a cup's lid opening, the spent cup greying - instead run on a frame clock **capped at
+30fps**: `MainActivity` builds the window's recomposer itself on `CappedFrameClock` (app/android), which
+`PlatformServices.capFrameRate` turns on and off with the setting. Every Compose animation, and the
+recomposer, waits on that clock. iOS doesn't cap yet (`capFrameRate` defaults to doing nothing).
+
 **Two layers.** On Android, Compose itself already follows the system animation scale (read from the
 1.12.1 bytecode, not run on a device): `WindowRecomposer` observes `animator_duration_scale` and puts
 a `MotionDurationScale` in the recomposer's coroutine context, so every `tween`, `animate*AsState` and
@@ -703,9 +714,13 @@ unchanged), the menu's drifting dice and the twinkling stars stay still, the Cau
 Takeaway's steam (the cups' ambient animation, only for players who pick them) and the drawn shake stop (the Treasure Chest's, the Volcano's rumble and the Picnic Basket's too), its gold burst on opening doesn't play (the lid just opens), the Volcano doesn't erupt (its lava is simply there, at rest), the Picnic Basket's lids open without bouncing and its apples are simply on the table, the Shipping container's doors open without bouncing, the Top Hat's always-out rabbit stays put (the peeking one still peeks - its sighting is an
 achievement - just without easing), the googly dice's pupils stay centred instead of sliding with the
 device (the menu logo and the tray), the logo dice and cup don't roll or shake when tapped (the tap still
-counts), a cup picked on the Styles screen doesn't shake or tip and a die picked there doesn't roll (the pick still counts), the dice roll is the "simple" one (`LocalSimpleDiceRoll` is forced on - so scoring doesn't wait
-for a toss), the tray doesn't flicker faces while rolling, scores appear rather than count up, and the Game
-Over fireworks don't play. **What the game does doesn't change.**
+counts), a cup picked on the Styles screen doesn't shake or tip and a die picked there doesn't roll (the pick still counts), the
+dice aren't picked up or tossed - they stay where they lie through the shake and snap to their result as it lands
+(so scoring doesn't wait for a toss, and nor does a CPU: `GameViewModel.diceAnimated`, which also drops the
+CPU's longer pause after releasing a die, `RELEASE_GAP_MS`, as there's no drop to watch), the board's cup doesn't
+shake or pour but stands while the roll is in it and is simply tipped once it lands (`rememberCupRotation` snaps, and
+its liquid doesn't slosh), a highlighted tile's gold ring is a plain steady border, pages don't cross-fade or fade
+their content in, scores appear rather than count up, and the Game Over fireworks don't play. **What the game does doesn't change.**
 
 **Audio and haptics are not motion, and stay.** The shake sound (~400ms), the shake buzz (336ms) and the
 landing sound (~490ms) are timed to the cup's `CUP_SHAKE_MILLIS` window - the first two start as it opens and
@@ -715,8 +730,10 @@ shrinks it (to 100ms, not 0: `isRolling` and the roll tracker have to be seen ch
 and there's nothing to keep in step with. The same value is used for a human's tap (`GameScreen`) and a
 CPU's roll (`GameViewModel.cupShakeMillis`, set from the screen). **Never shorten the window without
 re-checking the clips and `AndroidHapticsPlayer`'s `SHAKE_HAPTIC_MILLIS`.** The CPU's other pauses
-(`ROLL_GAP_MS`, `RELEASE_GAP_MS`, `AI_STEP_DELAY_MS`, and between its hold changes `AI_HOLD_STEP_MS` and
-`AI_RELEASE_TO_HOLD_GAP_MS`) are for following what it did, not for an animation, and never change.
+(`ROLL_GAP_MS`, `AI_STEP_DELAY_MS`, and between its hold changes `AI_HOLD_STEP_MS` and
+`AI_RELEASE_TO_HOLD_GAP_MS`) are for following what it did, not for an animation, and never change; only the
+toss it waits out (`diceTossMillis`) and `RELEASE_GAP_MS` (time to watch a released die drop) go, as both are
+animation.
 The Game Over fanfare and hold ticks are governed by their own settings, not by this.
 
 ## Scrollbars on long lists

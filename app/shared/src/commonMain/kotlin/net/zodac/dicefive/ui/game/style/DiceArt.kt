@@ -59,12 +59,6 @@ val LocalDieIndex = compositionLocalOf { 0 }
 val LocalDieTumbleMillis = compositionLocalOf<Float?> { null }
 
 /**
- * The player's "Simple dice roll" setting: when on, every die just flicks through faces
- * while rolling instead of tumbling in 3D. The game provides it; it's off everywhere else.
- */
-val LocalSimpleDiceRoll = compositionLocalOf { false }
-
-/**
  * Whether a die draws its own drop shadow. Off for dice lying on the mat, where the tray casts one
  * consistent ground shadow for every die instead, from a single light, following it as it's thrown
  * and tumbles - a die's own shadow can't follow it through a 3D tumble, so it would pop in only once

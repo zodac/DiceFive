@@ -75,13 +75,13 @@ class GameTableSettingsTest {
     fun `the table has no settings until they load - never a flash of the defaults`() = runTest {
         val settings = SettingsRepository(TablePreferencesStore())
         settings.setDiceStyleId("barrel")
-        settings.setSimpleDiceRoll(true)
+        settings.setSoundEnabled(false)
         val viewModel = GameViewModel(settingsRepository = settings, achievementsRepository = TableAchievementStore())
 
         assertNull(viewModel.tableSettings.value)
         advanceUntilIdle()
         assertEquals("barrel", viewModel.tableSettings.value?.visualTheme?.diceStyle?.id)
-        assertEquals(true, viewModel.tableSettings.value?.simpleDiceRoll)
+        assertEquals(false, viewModel.tableSettings.value?.soundEnabled)
     }
 
     @Test

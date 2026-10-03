@@ -87,11 +87,15 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[VIBRATION_ENABLED_KEY] = enabled }
     }
 
-    /** Whether dice just flick through faces while rolling, rather than tumbling in 3D - for anyone who finds the full roll too much. */
-    val simpleDiceRoll: Flow<Boolean> = dataStore.data.map { prefs -> prefs[SIMPLE_DICE_ROLL_KEY] ?: false }
+    /**
+     * The player's own "Remove animations": the app behaves as it does when the system asks for reduced
+     * motion (see `LocalReduceMotion`), whatever the system says, and what still moves is capped at 30fps.
+     * Replaced the narrower "Simple dice roll" switch, whose saved value isn't carried over.
+     */
+    val removeAnimations: Flow<Boolean> = dataStore.data.map { prefs -> prefs[REMOVE_ANIMATIONS_KEY] ?: false }
 
-    suspend fun setSimpleDiceRoll(enabled: Boolean) {
-        dataStore.edit { it[SIMPLE_DICE_ROLL_KEY] = enabled }
+    suspend fun setRemoveAnimations(enabled: Boolean) {
+        dataStore.edit { it[REMOVE_ANIMATIONS_KEY] = enabled }
     }
 
     // Style ids, not the ui.game.style types themselves - this is the data layer, and resolving an
@@ -132,7 +136,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
         val SOUND_ENABLED_KEY = booleanPreferencesKey("sound_enabled")
         val VIBRATION_ENABLED_KEY = booleanPreferencesKey("vibration_enabled")
-        val SIMPLE_DICE_ROLL_KEY = booleanPreferencesKey("simple_dice_roll")
+        val REMOVE_ANIMATIONS_KEY = booleanPreferencesKey("remove_animations")
         val PLAYER_COUNT_KEY = intPreferencesKey("player_count")
         val TURN_TIMER_KEY = stringPreferencesKey("turn_timer")
         val GAME_MODE_KEY = stringPreferencesKey("game_mode")

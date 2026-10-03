@@ -238,10 +238,17 @@ fun DiceCupPanel(
                                 LocalCupActivity provides dice,
                                 LocalFlowerpotGrowth provides cup.flowerpotGrowth,
                             ) {
+                                // Under reduced motion the cup doesn't shake (the shake sound and buzz still play -
+                                // GameScreen) or pour: it stands while the roll is in it and is simply tipped once
+                                // the roll lands and scoring opens.
+                                val reduceMotion = LocalReduceMotion.current
                                 cupStyle.Cup(
-                                    // The shake sound and buzz still play (GameScreen); only the drawn shake goes.
-                                    rolling = cup.rolling && !cup.pouring && !LocalReduceMotion.current,
-                                    tilted = (cup.tilted || cup.pouring) && !standingForBloom,
+                                    rolling = cup.rolling && !cup.pouring && !reduceMotion,
+                                    tilted = if (reduceMotion) {
+                                        cup.tilted && !cup.rolling && !standingForBloom
+                                    } else {
+                                        (cup.tilted || cup.pouring) && !standingForBloom
+                                    },
                                     // A cup's shape grid is its size in dp here - tall or squat, both fit this 104dp box.
                                     modifier = Modifier.size(width = cupStyle.shape.gridWidth.dp, height = cupStyle.shape.gridHeight.dp),
                                 )
