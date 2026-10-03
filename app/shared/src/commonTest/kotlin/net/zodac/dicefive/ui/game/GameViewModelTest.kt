@@ -275,6 +275,32 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `only a Hard CPU playing Standard is given the perfect-play table`() = runTest(testDispatcher) {
+        for ((difficulty, mode, expectAsked) in listOf(
+            Triple(Difficulty.HARD, GameMode.STANDARD, true),
+            Triple(Difficulty.MEDIUM, GameMode.STANDARD, false),
+            Triple(Difficulty.HARD, GameMode.TRICOLOUR, false),
+            Triple(Difficulty.HARD, GameMode.QUICKFIRE, false),
+        )) {
+            var asked = 0
+            val viewModel = GameViewModel(aiDispatcher = testDispatcher, standardPerfectPlay = { asked++; null })
+            viewModel.setPlayerCount(2)
+            viewModel.setPlayerType(2, PlayerType.AI)
+            viewModel.setPlayerDifficulty(2, difficulty)
+            viewModel.setGameMode(mode)
+            viewModel.startGame()
+
+            viewModel.rollDice()
+            viewModel.commitScore(viewModel.game.value!!.players[0].scorecard.keys.first())
+            advanceUntilIdle()
+
+            // At least one: Quickfire's turn timer plays the human's turns out too, so its game runs on.
+            assertTrue(viewModel.game.value!!.players[1].scorecard.values.any { it != null }, "$difficulty $mode CPU didn't play")
+            assertEquals(expectAsked, asked > 0, "$difficulty $mode")
+        }
+    }
+
+    @Test
     fun `three consecutive AI players all take their turn without further human input`() = runTest(testDispatcher) {
         val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(4)

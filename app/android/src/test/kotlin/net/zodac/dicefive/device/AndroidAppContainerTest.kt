@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import net.zodac.dicefive.game.TieBreakStats
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,6 +27,13 @@ class AndroidAppContainerTest {
     @Before
     fun clearScores() = runTest {
         container.scoreRepository.resetLeaderboard()
+    }
+
+    @Test
+    fun `the Standard perfect-play table loads from the app's resources`() = runTest {
+        // Read through Compose resources from the APK's assets, as on a device - null would mean Hard
+        // quietly falling back to estimating in Standard.
+        assertNotNull(container.standardPerfectPlayTable())
     }
 
     @Test

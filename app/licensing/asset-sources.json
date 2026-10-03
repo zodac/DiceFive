@@ -112,5 +112,11 @@
     "libraries": [
       "sora"
     ]
+  },
+  "app/shared/src/commonMain/composeResources/files/standard_perfect_play.bin": {
+    "description": "Standard mode's perfect-play table: the expected rest-of-game score of every start-of-turn state under perfect solo play, which a Hard CPU plays Standard by. Generated from the game's own rules by StandardPerfectPlayTable.solve() (regenerate with -PregeneratePerfectPlayTable - see StandardPerfectPlayTableTest)",
+    "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01Fi47YDwGxD3FKKryEtXkMe",
+    "copyright": "Copyright 2026 zodac.net",
+    "license": "LicenseRef-DiceFive-AllRightsReserved"
   }
 }
