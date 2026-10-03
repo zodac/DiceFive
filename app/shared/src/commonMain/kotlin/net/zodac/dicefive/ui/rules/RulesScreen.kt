@@ -55,6 +55,8 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -73,9 +75,10 @@ import net.zodac.dicefive.ui.game.style.palette
  * as its own kind of block rather than as hand-typed markup (a leading "- " for a bullet, "[25pts]:"
  * after a name), so every list and every category on every page is laid out the same way.
  *
- * Text may use [parseInlineMarkup]'s markers, to one convention throughout: *italic* for the name of
- * a category, section, mode or setting, and **bold** for a number of points or a count. Nothing else
- * is styled, and no dice are written out as text - a [RulesDice] row shows them instead. */
+ * Text may use [parseInlineMarkup]'s markers, to one convention throughout: `backticks` (gold
+ * monospace, like a [RulesCategory]'s heading) for a scoring category's name, *italic* for the name
+ * of a section, mode or setting, and **bold** for a number of points or a count. Nothing else is
+ * styled, and no dice are written out as text - a [RulesDice] row shows them instead. */
 private data class RulesPage(val title: String, val tabLabel: String, val blocks: List<RulesBlock>)
 
 private sealed interface RulesBlock
@@ -134,9 +137,8 @@ private val RULES_PAGES = listOf(
         title = "Scoring: Upper Section",
         tabLabel = "Upper Section",
         blocks = listOf(
-            text("Each *Upper Section* category, from *Ones* to *Sixes*, scores the total of the dice showing that number."),
-            text("For example, this roll would give a score of **15pts** in the *Fives* category."),
-            dice(5, 5, 5, 2, 1, counting = 3, score = "15pts"),
+            text("Each *Upper Section* category, from `Ones` to `Sixes`, scores the total of the dice showing that number. For example:"),
+            RulesCategory("Fives", "Total of the dice showing 5", dice(5, 5, 5, 2, 1, counting = 3, score = "15pts")),
             text("Score **63pts** or more across the whole section and you earn a bonus **35pts**! That's an average of three of each number."),
         ),
     ),
@@ -158,15 +160,15 @@ private val RULES_PAGES = listOf(
         title = "5x and the Joker Rule",
         tabLabel = "5x & Joker",
         blocks = listOf(
-            text("If you roll five matching dice, you can score a *5x* worth **50pts**."),
-            text("Roll another five matching dice after already scoring a *5x*? It earns a **100pts** bonus, on top of whatever category you then score those dice in."),
-            text("When you score a repeat *5x*, the Joker rule decides where it can go:"),
+            text("If you roll five matching dice, you can score a `5x` worth **50pts**."),
+            text("Roll another five matching dice after already scoring a `5x`? It earns a **100pts** bonus, on top of whatever category you then score those dice in."),
+            text("When you score a repeat `5x`, the Joker rule decides where it can go:"),
             RulesStep(
                 1,
-                "The matching *Upper Section* category, if it's still open. Five 4s must go in *Fours*, scored for **20pts**, in addition to the bonus.",
+                "The matching *Upper Section* category, if it's still open. Five 4s must go in `Fours`, scored for **20pts**, in addition to the bonus.",
                 dice(4, 4, 4, 4, 4, score = "20pts + 100pts"),
             ),
-            RulesStep(2, "Otherwise, any unscored category outside the *Upper Section*, in addition to the bonus. *Full House*, *Small Straight* and *Large Straight* score their full fixed amount."),
+            RulesStep(2, "Otherwise, any unscored category outside the *Upper Section*, in addition to the bonus. `Full House`, `Small Straight` and `Large Straight` score their full fixed amount."),
             RulesStep(3, "If every category outside the *Upper Section* is already filled, you must score it in an unscored *Upper Section* category for **0pts**, but you still get the **100pts** bonus."),
         ),
     ),
@@ -175,12 +177,12 @@ private val RULES_PAGES = listOf(
         tabLabel = "Tie Breaks",
         blocks = listOf(
             text("If multiple players end the game with the same score, the following checks are made in order. The first difference decides who wins the tie:"),
-            RulesStep(1, "Fewest *5x*"),
+            RulesStep(1, "Fewest `5x`"),
             RulesStep(2, "Most categories scored zero"),
             RulesStep(3, "Lower *Upper Section* total"),
-            RulesStep(4, "Lower *Chance*"),
-            RulesStep(5, "Lower *3x*"),
-            RulesStep(6, "Lower *4x*"),
+            RulesStep(4, "Lower `Chance`"),
+            RulesStep(5, "Lower `3x`"),
+            RulesStep(6, "Lower `4x`"),
             text("If all of these are equal, then it is a true tie."),
         ),
     ),
@@ -210,7 +212,7 @@ private val RULES_PAGES = listOf(
                 "Three of one colour and two of another",
                 colouredDice(1 to DieColour.RED, 4 to DieColour.RED, 6 to DieColour.RED, 2 to DieColour.BLUE, 5 to DieColour.BLUE, score = "25pts"),
             ),
-            text("Under the Joker rule, a repeat *5x* also scores *Coloured House* at its full **25pts**. Everything else plays exactly the same as the *Standard* rules, just with more opportunities to score."),
+            text("Under the Joker rule, a repeat `5x` also scores `Coloured House` at its full **25pts**. Everything else plays exactly the same as the *Standard* rules, just with more opportunities to score."),
             text("See if you can find the Easter Egg in this mode!"),
         ),
     ),
@@ -324,19 +326,36 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-/** Body text of every block, styled by its [parseInlineMarkup] markers. */
+/** Body text of every block, styled by its [parseInlineMarkup] markers - a scoring category's name
+ * in the same gold monospace as a [RulesCategory]'s heading. TalkBack hears it with "pts" spoken
+ * as "points" ([spokenPoints]). */
 @Composable
 private fun RulesBodyText(text: String, modifier: Modifier = Modifier) {
+    val categoryStyle = SpanStyle(fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary)
+    val styled = remember(text, categoryStyle) { parseInlineMarkup(text.keepCategoryNamesWhole(), codeStyle = categoryStyle) }
     Text(
-        text = parseInlineMarkup(text),
+        text = styled,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier,
+        modifier = modifier.semantics { contentDescription = spokenPoints(styled.text) },
     )
 }
 
+/** Swaps the spaces inside each `backticked` category name for non-breaking ones, so a name like
+ * "Small Straight" never wraps across two lines. */
+private fun String.keepCategoryNamesWhole(): String =
+    replace(Regex("`[^`]*`")) { match -> match.value.replace(' ', '\u00A0') }
+
+/** "15pts" as "15 points" (and "+" as "plus"), so TalkBack doesn't read the abbreviation out as letters. */
+private fun spokenPoints(text: String): String =
+    text.replace(Regex("""(\d+)pts\b"""), "$1 points").replace(" + ", " plus ")
+
 /** Space under every block, so paragraphs, steps and categories are spaced alike. */
 private val BLOCK_GAP = 10.dp
+
+/** Space under a [RulesCategory] - twice [BLOCK_GAP], so each category, with its example, reads as
+ * its own entry rather than running into the next. */
+private val CATEGORY_GAP = 20.dp
 
 /** How far a step's text (and its example) hangs in from its number. */
 private val STEP_INDENT = 24.dp
@@ -360,12 +379,13 @@ private fun RulesBlockView(block: RulesBlock) {
             block.example?.let { RulesDiceRow(it, modifier = Modifier.padding(start = STEP_INDENT, top = 6.dp)) }
         }
         // One TalkBack stop for the name, what it takes and the example, not three.
-        is RulesCategory -> Column(modifier = Modifier.padding(bottom = BLOCK_GAP).semantics(mergeDescendants = true) {}) {
+        is RulesCategory -> Column(modifier = Modifier.padding(bottom = CATEGORY_GAP).semantics(mergeDescendants = true) {}) {
             Text(
                 text = block.name,
                 style = MaterialTheme.typography.titleSmall,
+                fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.primary,
             )
             RulesBodyText(block.description)
             RulesDiceRow(block.example, modifier = Modifier.padding(top = 6.dp))
@@ -422,8 +442,7 @@ private fun RulesDice.spokenDescription(): String {
         1 -> " The ${ignored.single()} doesn't count."
         else -> " The ${ignored.dropLast(1).joinToString(", ")} and ${ignored.last()} don't count."
     }
-    val spokenScore = score.replace("pts", " points").replace("+", "plus")
-    return "Example: ${dice.joinToString(", ") { it.spoken() }}.$ignoredSentence Scores $spokenScore."
+    return "Example: ${dice.joinToString(", ") { it.spoken() }}.$ignoredSentence Scores ${spokenPoints(score)}."
 }
 
 /** Space between the end of a page's text and the top of the footer, once scrolled to the bottom. */

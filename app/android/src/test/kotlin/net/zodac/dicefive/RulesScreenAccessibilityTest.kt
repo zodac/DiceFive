@@ -100,7 +100,10 @@ class RulesScreenAccessibilityTest {
 
         // One stop for the category - its name, what it takes and the example - not five bare dice.
         compose.onNodeWithText("Total of all five dice, if at least three dice are the same", substring = true)
-            .assertContentDescriptionEquals("Example: 5, 5, 5, 2, 6. The 2 and 6 don't count. Scores 23 points.")
+            .assertContentDescriptionEquals(
+                "Total of all five dice, if at least three dice are the same",
+                "Example: 5, 5, 5, 2, 6. The 2 and 6 don't count. Scores 23 points.",
+            )
     }
 
     @Test
@@ -111,7 +114,23 @@ class RulesScreenAccessibilityTest {
         compose.waitForIdle()
 
         compose.onNodeWithText("Three of one colour and two of another", substring = true)
-            .assertContentDescriptionEquals("Example: red 1, red 4, red 6, blue 2, blue 5. Scores 25 points.")
+            .assertContentDescriptionEquals(
+                "Three of one colour and two of another",
+                "Example: red 1, red 4, red 6, blue 2, blue 5. Scores 25 points.",
+            )
+    }
+
+    @Test
+    fun pointsAreSpokenInFullNotAsPts() {
+        showRules()
+
+        compose.onNodeWithText("Upper Section").performScrollTo().performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Score 63pts or more", substring = true)
+            .assertContentDescriptionEquals(
+                "Score 63 points or more across the whole section and you earn a bonus 35 points! That's an average of three of each number.",
+            )
     }
 
     @Test

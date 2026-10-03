@@ -459,9 +459,9 @@ seen on a device" line and in the report to the user, not claimed as done.
 
 ### Known gaps
 
-- **Item 9 on the Rules pages**: "pts" in their body text is read as written. Their example dice
-  rows are spoken in full ("Example: 5, 5, 5, 2, 6. The 2 and 6 don't count. Scores 23 points."), and
-  lists are real numbered steps rather than typed dashes.
+- **Item 9 on the Rules pages**: category names like "3x" and "5x" are read as written. "pts" is
+  spoken as "points" (`spokenPoints`), the example dice rows in full ("Example: 5, 5, 5, 2, 6. The 2
+  and 6 don't count. Scores 23 points."), and lists are real numbered steps rather than typed dashes.
 - **Reduced motion is honoured on Android only.** `PlatformServices.reduceMotion()` is true while the
   system animation scale is 0 ("Remove animations"); iOS says false until it's wired to
   `UIAccessibility.isReduceMotionEnabled` (see `IOS_SUPPORT.md`), and Compose Multiplatform on iOS has
