@@ -109,8 +109,16 @@ A category's scoring rule is mode-independent; a mode only chooses which categor
   stripes), the spoken name in `BoardSemantics`. `ScoreGrid` lays out whatever `categories` holds,
   and switches to compact tiles past six rows - see `UI.md`'s "The scorecard grid and game modes"
   before adding more than two rows.
-- AI: Easy and Hard need nothing (Hard scores every outcome with `DiceScoring`). Medium's rules of
+- AI: Easy needs nothing, and Hard nothing beyond the scoring itself - it scores every hand once
+  through `DiceScoring`, in `HandScoring`, which mirrors `ScoreCalculator`'s joker rule as plain
+  arithmetic. **A change to that rule (or a new free-fill box) goes in `HandScoring.forEachLegal`
+  too**; `HandScoringTest` compares the two in every mode and fails until it does. Medium's rules of
   thumb need to know how to chase the new box, and `CATEGORY_RESTRICTIVENESS` needs it ranked.
+- **Standard's perfect-play table** (`StandardPerfectPlayTable`, bundled in `composeResources/files/`)
+  is worked out from Standard's rules: anything that changes how Standard scores - its boxes, a box's
+  scoring, its bonuses or rolls - means regenerating it (`./gradlew :app:shared:testAndroidHostTest
+  --tests '*StandardPerfectPlayTableTest*' -PregeneratePerfectPlayTable`, about 20s), or
+  `StandardPerfectPlayTableTest` fails. Other modes have no table; Hard estimates in them.
 - Tie-breaks (`game/TieBreak.kt`): a mode-only stat (Tricolour's colour-box count) goes in the live
   game's criteria but is left out of the leaderboard's, because the leaderboard mixes every mode and
   other modes have no value for it.
@@ -127,9 +135,11 @@ A category's scoring rule is mode-independent; a mode only chooses which categor
 - Achievements that compare rolls (Déjà Vu, Are These Loaded Dice?) compare whole faces via
   `faces()`, so a new property is included automatically - check that's what "the same roll" should
   mean.
-- AI Hard enumerates every distinct roll. More faces multiply its work: Tricolour's 18 faces are
-  26,334 distinct rolls of five dice (kept exact by enumerating unordered outcomes). Check a new
-  face count stays fast.
+- AI Hard plans over every distinct hand and every set of dice that can be held from one
+  (`DiceSpace`, numbered once into flat arrays). More faces multiply both: Tricolour's 18 faces are
+  26,334 hands and 33,649 held sets - about 10 MB of arrays, most of a second to build on a laptop
+  (`GameViewModel.prepareHardCpus` builds it in the background when a game with a Hard CPU starts),
+  then ~2ms a decision. Check a new face count's build time, memory and decision time stay sane.
 
 ### Turn flow: rolls, timers, undo
 
@@ -305,7 +315,7 @@ Where each kind of change is tested:
 | What the mode is, its ceiling  | `GameModeTest` (pin the fields that differ; the perfect-game test covers every entry)             |
 | Scoring and timeout choice     | `DiceScoringTest`, `ScoreCalculatorTest`                                                          |
 | Engine turn rules              | `GameEngineTest`                                                                                  |
-| AI                             | `AiTurnPlayerTest`                                                                                |
+| AI                             | `AiTurnPlayerTest`; `HandScoringTest` (Hard's copy of the joker rule); `StandardPerfectPlayTableTest` (the bundled table still matches Standard's rules) |
 | Achievement rules              | `AchievementEngineTest` - earned, and not in a loss, solo game or another mode; each guard        |
 | View-model flow, timers        | `GameViewModelTest`, `GameAchievementsWiringTest` (achievements through a real game)              |
 | Anything `GameScreen` drives   | A Robolectric test with the real screen and view model - `GameScreenAutoRollTest` is the pattern  |

@@ -64,9 +64,9 @@ import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
+import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.LocalOnRabbitSeen
 import net.zodac.dicefive.ui.game.style.LocalSimpleDiceRoll
-import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /** How long the cup shakes before the roll result is revealed - purely a presentation delay. Shared
@@ -422,8 +422,9 @@ private fun InProgressGame(
         TurnTimerBadge(secondsRemaining = turnSecondsRemaining, modifier = Modifier.fillMaxWidth())
     }
 
-    if (viewedPlayer != null) {
-        ReadOnlyScoreboard(player = viewedPlayer)
+    val viewedIndex = viewedPlayerIndex
+    if (viewedPlayer != null && viewedIndex != null) {
+        ReadOnlyScoreboard(player = viewedPlayer, seat = viewedIndex)
     } else {
         GameBoard(
             state = state,

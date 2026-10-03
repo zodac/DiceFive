@@ -185,6 +185,28 @@ class AiTurnPlayerTest {
     }
 
     @Test
+    fun `Hard keeps a set of low numbers for 5x and the upper bonus rather than loose high dice`() {
+        // Valued by raw points, the 6 and 5 looked better than three 2s - a low total - and Hard threw the 2s back.
+        val state = rolledState(bot(Difficulty.HARD), values = listOf(2, 2, 2, 6, 5), rollsRemaining = 2)
+
+        assertEquals(setOf(0, 1, 2), AiTurnPlayer.chooseHolds(state))
+    }
+
+    @Test
+    fun `Hard averages at least 230 over 200 seeded solo games`() {
+        // Seeded, so the same 200 games every run. Planning one reroll ahead by raw points, Hard averaged
+        // 219 over these; planning the whole turn by what each box is worth, it averages 239.
+        val scores = (1..SEEDED_GAMES).map { seed ->
+            val random = Random(seed)
+            var state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.AI, name = "Bot", difficulty = Difficulty.HARD)))
+            while (!state.isGameOver) state = AiTurnPlayer.playTurn(state, random)
+            state.players.single().totalScore
+        }
+
+        assertTrue(scores.average() >= 230, "Hard averaged ${scores.average()}")
+    }
+
+    @Test
     fun `Hard's playTurn always ends with exactly one newly filled category`() {
         val initial = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.AI, name = "Bot", difficulty = Difficulty.HARD)))
 
@@ -249,5 +271,9 @@ class AiTurnPlayerTest {
         )
 
         assertEquals(ScoreCategory.BLUES, AiTurnPlayer.chooseCategory(scoring))
+    }
+
+    private companion object {
+        const val SEEDED_GAMES = 200
     }
 }

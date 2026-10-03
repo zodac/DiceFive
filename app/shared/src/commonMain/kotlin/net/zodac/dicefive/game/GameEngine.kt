@@ -111,6 +111,7 @@ object GameEngine {
             scorecard = player.scorecard + (category to value),
             fiveOfAKindBonusCount = player.fiveOfAKindBonusCount + if (bonus) 1 else 0,
             lastRoll = state.dice,
+            lastScoredCategory = category,
         )
         val updatedPlayers = state.players.toMutableList().apply { this[state.currentPlayerIndex] = updatedPlayer }
         return advanceTurn(state.copy(players = updatedPlayers))

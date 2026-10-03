@@ -218,13 +218,21 @@ val IrishOrangeStripe = Color(0xFFAD5C2A)
 // this doesn't need darkening down to a readable grey the way the other two stripes do.
 val IrishWhiteStripe = Color(0xFFFFFFFF)
 
-/** Cycled by player-tab index; extend if more than 4 players are ever supported. */
-val PlayerColors = listOf(
+/**
+ * Each seat's colour, in seat order - read only through [playerColor], so a seat's colour is decided in
+ * one place: its tab, its name and score, and anything marking that player elsewhere (the outline on
+ * the box they last scored in) all come from there, and change together. Extend if more than four
+ * players are ever supported.
+ */
+private val PlayerColors = listOf(
     Color(0xFF4FD6E8),
     Color(0xFF5CE38F),
     Color(0xFFA07BF0),
     Color(0xFFF2A93B),
 )
+
+/** The colour of the player in [seat] (0 for player 1) - the one source of every player's colour; see [PlayerColors]. */
+fun playerColor(seat: Int): Color = PlayerColors[seat % PlayerColors.size]
 
 // Leaderboard podium accents for 2nd/3rd place - a fixed silver/bronze pairing, same "not a
 // colour role" reasoning as the rest of this file: M3 has no role for "silver" or "bronze", and

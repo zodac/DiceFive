@@ -39,6 +39,7 @@ import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.AchievementUpdate
 import net.zodac.dicefive.game.AiNameGenerator
 import net.zodac.dicefive.game.AiTurnPlayer
+import net.zodac.dicefive.game.StandardPerfectPlayTable
 import net.zodac.dicefive.game.DiceScoring
 import net.zodac.dicefive.game.GameAchievementContext
 import net.zodac.dicefive.game.GameEngine
@@ -139,6 +140,8 @@ class GameViewModel(
     private val aiDispatcher: CoroutineDispatcher = Dispatchers.Default,
     /** Whether this is a debug build - superuser mode never activates without it. */
     private val isDebugBuild: Boolean = false,
+    /** Standard's perfect-play table, for Hard CPUs in Standard (see [StandardPerfectPlayTable]) - without it, they estimate. */
+    private val standardPerfectPlay: (suspend () -> StandardPerfectPlayTable?)? = null,
 ) : ViewModel() {
 
     private val _setup = MutableStateFlow(GameSetupState())
@@ -477,6 +480,7 @@ class GameViewModel(
         resetSuperuserMode()
         resetAchievementTracking()
         applyGameState(GameEngine.newGame(playerConfigs, setupState.gameMode, turnTimer))
+        prepareHardCpus()
         // "Full Table" is settled the moment four seats are taken - no need to make them play it out.
         checkInProgressAchievements()
         checkGameStartAchievements(
@@ -498,6 +502,7 @@ class GameViewModel(
         resumedSecondsLeft = loaded.turnSecondsLeft
         applyGameState(loaded.copy(turnSecondsLeft = null))
         resumedSecondsLeft = null
+        prepareHardCpus()
         checkInProgressAchievements()
         checkGameStartAchievements()
         unlockAchievements(setOf(Achievement.CONTINUED_GAME))
@@ -1448,6 +1453,41 @@ class GameViewModel(
     private var aiTurnJob: Job? = null
 
     /**
+     * Gets a Hard CPU's first decision ready while the humans before it play: its mode's hands scored
+     * (most of a second for Tricolour's coloured dice - see [AiTurnPlayer.prepareHard]) and, in
+     * Standard, the perfect-play table read. Off the main thread, like the decisions themselves.
+     */
+    private fun prepareHardCpus() {
+        val state = _game.value ?: return
+        if (state.players.none { it.type == PlayerType.AI && it.difficulty == Difficulty.HARD }) return
+        viewModelScope.launch(aiDispatcher) {
+            AiTurnPlayer.prepareHard(state.gameMode)
+            if (state.gameMode == GameMode.STANDARD) standardPerfectPlay?.invoke()
+        }
+    }
+
+    /**
+     * Flips each of [indices]' holds in turn, left to right, [AI_HOLD_STEP_MS] apart, publishing every
+     * one - a CPU reaching for its dice one by one. Returns the state with all of them flipped.
+     */
+    private suspend fun toggleHoldsOneByOne(state: GameState, indices: List<Int>): GameState {
+        var current = state
+        for ((step, index) in indices.withIndex()) {
+            if (step > 0) pausableDelay(AI_HOLD_STEP_MS)
+            current = GameEngine.toggleHold(current, index)
+            applyGameState(current, checkForAiTurn = false)
+        }
+        return current
+    }
+
+    /** The perfect-play table if [state]'s current player is a Hard CPU playing Standard - see [standardPerfectPlay]. */
+    private suspend fun perfectPlayFor(state: GameState): StandardPerfectPlayTable? {
+        val player = state.currentPlayer ?: return null
+        if (state.gameMode != GameMode.STANDARD || player.type != PlayerType.AI || player.difficulty != Difficulty.HARD) return null
+        return standardPerfectPlay?.invoke()
+    }
+
+    /**
      * Starts a job that plays out every AI turn in a row from here (not just one) - e.g. with a
      * human followed by three AI, this single job carries players 2, 3 and 4 through their whole
      * turns before handing back to the human. Looping in place rather than recursively re-launching
@@ -1464,6 +1504,7 @@ class GameViewModel(
         aiTurnJob = viewModelScope.launch {
             var current = state
             while (!current.isGameOver && current.currentPlayer?.type == PlayerType.AI) {
+                val perfectPlay = perfectPlayFor(current)
                 while (current.rollsRemaining > 0) {
                     // The delay doubles as the cup's shake animation window - the same CUP_SHAKE_MILLIS
                     // a human's tap shakes for, whatever the difficulty, and the roll itself goes
@@ -1480,7 +1521,7 @@ class GameViewModel(
                     // Nothing left to decide on the turn's last roll - there's no further reroll to
                     // hold dice FOR.
                     val rolled = current
-                    val holdsChoice = if (rolled.rollsRemaining > 0) async(aiDispatcher) { AiTurnPlayer.chooseHolds(rolled) } else null
+                    val holdsChoice = if (rolled.rollsRemaining > 0) async(aiDispatcher) { AiTurnPlayer.chooseHolds(rolled, perfectPlay) } else null
 
                     // The roll is published but the dice are still tossing onto the mat: let them settle
                     // before holding, rerolling or scoring, as a human has to. The hold choice above is
@@ -1514,23 +1555,32 @@ class GameViewModel(
                     // choice worked out during the toss, the holds would otherwise land the instant the
                     // dice stop. Scoring gets the same beat from AI_STEP_DELAY_MS below.
                     pausableDelay(AI_REACTION_DELAY_MS)
-                    current = AiTurnPlayer.applyHolds(current, holds)
+                    // One die at a time, as a hand would: every release first, then every new hold, each
+                    // published as it happens - all at once, a swap of held dice read as a jump cut.
+                    val toRelease = current.dice.indices.filter { current.dice[it].isHeld && it !in holds }
+                    val toHold = current.dice.indices.filter { !current.dice[it].isHeld && it in holds }
+                    val releasedAny = toRelease.isNotEmpty()
                     setUndoSnapshot(null)
-                    applyGameState(current, checkForAiTurn = false)
+                    current = toggleHoldsOneByOne(current, toRelease)
+                    if (toRelease.isNotEmpty() && toHold.isNotEmpty()) pausableDelay(AI_RELEASE_TO_HOLD_GAP_MS)
+                    current = toggleHoldsOneByOne(current, toHold)
 
                     // A beat with the cup settled and the result visible before the next roll's
                     // shake starts - without it, back-to-back rolls (routine for Easy, which never
                     // holds anything and so never gets to skip a roll) read as one continuous blur
                     // rather than distinct rolls. Only between rolls: the very first roll and the
-                    // score are already paced by the shake above and AI_STEP_DELAY_MS below.
-                    pausableDelay(ROLL_GAP_MS)
+                    // score are already paced by the shake above and AI_STEP_DELAY_MS below. A die just
+                    // let go of gets longer: it drops from its slot onto the mat, and the shake sweeps
+                    // every loose die off the mat - so after only ROLL_GAP_MS it would be gone again
+                    // almost as soon as it landed, reading as a die vanishing rather than being released.
+                    pausableDelay(if (releasedAny) RELEASE_GAP_MS else ROLL_GAP_MS)
                 }
                 // Also off the main thread: Hard's category choice compares against
                 // CATEGORY_BASELINES, a `by lazy` average-over-every-outcome computed once per
                 // process on whichever call touches it first - same cost/rationale as the hold
                 // choice above. Worked out during the pause before scoring, not after it.
                 val toScore = current
-                val categoryChoice = async(aiDispatcher) { AiTurnPlayer.chooseCategory(toScore) }
+                val categoryChoice = async(aiDispatcher) { AiTurnPlayer.chooseCategory(toScore, perfectPlay) }
                 pausableDelay(AI_STEP_DELAY_MS)
                 val category = categoryChoice.await()
                 current = GameEngine.commitScore(current, category)
@@ -1547,8 +1597,17 @@ class GameViewModel(
         /** The AI's pause, dice settled, before it holds any of them for its next roll. */
         private const val AI_REACTION_DELAY_MS = 200L
 
+        /** Between one die the AI holds (or releases) and the next, when it changes several. */
+        private const val AI_HOLD_STEP_MS = 50L
+
+        /** Between the last die the AI releases and the first it then holds in their place. */
+        private const val AI_RELEASE_TO_HOLD_GAP_MS = 125L
+
         /** Pause between one roll settling and the next one's shake starting, within the same AI turn. */
         private const val ROLL_GAP_MS = 100L
+
+        /** [ROLL_GAP_MS] when the AI has just let go of a die: long enough to see it land on the mat before the shake sweeps it up. */
+        private const val RELEASE_GAP_MS = 500L
 
         /** What `rollsRemaining` reads before any roll has happened this turn - the mode's full allowance. */
         private val GameState.fullRolls: Int
@@ -1593,6 +1652,7 @@ class GameViewModel(
                     inProgressGameRepository = container.inProgressGameRepository,
                     achievementsRepository = container.achievementsRepository,
                     isDebugBuild = container.buildInfo.isDebug,
+                    standardPerfectPlay = container::standardPerfectPlayTable,
                 )
             }
         }

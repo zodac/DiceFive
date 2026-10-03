@@ -180,10 +180,13 @@ internal fun CategoryCell(
     // One node for a screen reader - the tile's name and the score beside it together, rather than an
     // unlabelled button and a stray number - replacing the tile's own click with the same action.
     val irish = LocalIrishTricolour.current
+    // Only on a read-only scorecard (see ReadOnlyScoreboard), and only ever a filled box.
+    val lastScored = LocalLastScoredHighlight.current?.takeIf { it.category == category && filled != null }
     val spokenState = when {
         filled != null -> buildString {
             append("Scored $filled")
             if (pendingBonusAmount > 0) append(", plus $pendingBonusAmount bonus")
+            if (lastScored != null) append(", last turn's score")
         }
         previewScore != null -> buildString {
             append("Would score $previewScore")
@@ -217,14 +220,19 @@ internal fun CategoryCell(
             compact = compact,
             scored = filled != null,
             fiveOfAKindBonusCount = fiveOfAKindBonusCount,
+            outlineColor = lastScored?.color,
             onClick = if (isLegalChoice) { { onScoreCategory(category) } } else null,
         )
         if (fiveOfAKindBonusCount > 0 || fiveOfAKindTileBonusPreview) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = (filled ?: previewScore ?: 0).toString(),
-                    color = if (isGoodChoice) GoldAccent else TileIconColor,
-                    fontWeight = if (isGoodChoice) FontWeight.Bold else FontWeight.Normal,
+                    color = when {
+                        isGoodChoice -> GoldAccent
+                        lastScored != null -> lastScored.color
+                        else -> TileIconColor
+                    },
+                    fontWeight = if (isGoodChoice || lastScored != null) FontWeight.Bold else FontWeight.Normal,
                     style = if (prominent) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Visible,
@@ -253,15 +261,19 @@ internal fun CategoryCell(
             // plain) on that one frame made it the heaviest of the roll; now it's just a swap of
             // which is visible. The number is laid out again only when it changes, as the dice
             // settle. Screen readers hear the cell's stateDescription, never these.
-            val shown = (filled ?: previewScore)?.let { ShownScore(it.toString(), gold = isGoodChoice, scored = filled != null) }
+            val shown = (filled ?: previewScore)?.let { ShownScore(it.toString(), gold = isGoodChoice, scored = filled != null, accent = lastScored?.color) }
             val lastShown = remember { arrayOfNulls<ShownScore>(1) }
             if (shown != null) lastShown[0] = shown
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 lastShown[0]?.let { number ->
                     ScoreText(
                         text = number.text,
-                        color = if (number.gold) GoldAccent else TileIconColor.copy(alpha = if (number.scored) 1f else 0.55f),
-                        fontWeight = if (number.gold) FontWeight.Bold else FontWeight.Normal,
+                        color = when {
+                            number.gold -> GoldAccent
+                            number.accent != null -> number.accent
+                            else -> TileIconColor.copy(alpha = if (number.scored) 1f else 0.55f)
+                        },
+                        fontWeight = if (number.gold || number.accent != null) FontWeight.Bold else FontWeight.Normal,
                         style = style,
                         modifier = Modifier.alpha(if (shown != null) 1f else 0f),
                     )
@@ -278,8 +290,11 @@ internal fun CategoryCell(
     }
 }
 
-/** A cell's score or preview as it was last shown: its text, whether it was a gold "worth picking" one, and whether it's scored. */
-private class ShownScore(val text: String, val gold: Boolean, val scored: Boolean)
+/**
+ * A cell's score or preview as it was last shown: its text, whether it was a gold "worth picking" one,
+ * whether it's scored, and the player's colour if it's their last turn's score (see [LastScoredHighlight]).
+ */
+private class ShownScore(val text: String, val gold: Boolean, val scored: Boolean, val accent: Color?)
 
 /** A number (or "-") beside a category tile. */
 @Composable
