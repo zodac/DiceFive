@@ -4,6 +4,7 @@ import kotlin.random.Random
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +27,10 @@ private class ScriptedRolls(private val values: List<Int>) : Random() {
     override fun nextInt(from: Int, until: Int): Int = values[index++ % values.size]
 }
 
-/** A die a CPU lets go of stays on the mat long enough to be seen there before its next roll sweeps it up. */
+/**
+ * A CPU's hold changes are paced like a hand's: one die at a time, and a die it lets go of stays on the
+ * mat long enough to be seen there before its next roll sweeps it up.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AiReleasePacingTest {
 
@@ -81,5 +85,48 @@ class AiReleasePacingTest {
         val released = assertNotNull(releasedAt, "the CPU never let go of its second 6")
         val shake = assertNotNull(nextShakeAt, "the CPU never rolled again after letting go")
         assertTrue(shake - released >= 500, "the next shake started ${shake - released}ms after the release")
+    }
+
+    @Test
+    fun `the CPU releases and holds dice one at a time with a longer beat between the two`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, random = ScriptedRolls(PAIR_THEN_STRAIGHT))
+        viewModel.setPlayerCount(2)
+        viewModel.setPlayerType(2, PlayerType.AI)
+        viewModel.startGame()
+
+        // Every change to a die's hold during the CPU's turn: when, which die, and which way.
+        val changes = mutableListOf<Triple<Long, Int, Boolean>>()
+        backgroundScope.launch(testDispatcher) {
+            var previous: List<Boolean>? = null
+            viewModel.game.collect { state ->
+                val cpuTurn = state != null && state.currentPlayerIndex == 1 && state.players[1].scorecard.values.all { it == null }
+                val held = state?.dice?.map { it.isHeld }
+                if (cpuTurn && previous != null && held != null) {
+                    held.indices.filter { held[it] != previous!![it] }.forEach { changes += Triple(testScheduler.currentTime, it, held[it]) }
+                }
+                previous = if (cpuTurn) held else null
+            }
+        }
+
+        viewModel.rollDice()
+        viewModel.commitScore(ScoreCategory.CHANCE)
+        advanceTimeBy(30_000)
+        runCurrent()
+
+        val firstHold = changes.first().first
+        val release = changes.single { !it.third }.first
+        assertEquals(
+            listOf(
+                // First roll, 6-6-1-3-2: the pair of 6s, one die after the other.
+                Triple(firstHold, 0, true), Triple(firstHold + 50, 1, true),
+                // Second, 6-6-3-4-5: let one 6 go, a longer beat, then 3, 4 and 5 one by one.
+                Triple(release, 1, false), Triple(release + 125, 2, true), Triple(release + 175, 3, true), Triple(release + 225, 4, true),
+            ),
+            changes,
+        )
+    }
+
+    private companion object {
+        val PAIR_THEN_STRAIGHT = listOf(1, 1, 1, 1, 1, 6, 6, 1, 3, 2, 3, 4, 5)
     }
 }

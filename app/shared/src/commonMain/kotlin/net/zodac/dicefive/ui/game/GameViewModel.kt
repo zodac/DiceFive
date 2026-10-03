@@ -1466,6 +1466,20 @@ class GameViewModel(
         }
     }
 
+    /**
+     * Flips each of [indices]' holds in turn, left to right, [AI_HOLD_STEP_MS] apart, publishing every
+     * one - a CPU reaching for its dice one by one. Returns the state with all of them flipped.
+     */
+    private suspend fun toggleHoldsOneByOne(state: GameState, indices: List<Int>): GameState {
+        var current = state
+        for ((step, index) in indices.withIndex()) {
+            if (step > 0) pausableDelay(AI_HOLD_STEP_MS)
+            current = GameEngine.toggleHold(current, index)
+            applyGameState(current, checkForAiTurn = false)
+        }
+        return current
+    }
+
     /** The perfect-play table if [state]'s current player is a Hard CPU playing Standard - see [standardPerfectPlay]. */
     private suspend fun perfectPlayFor(state: GameState): StandardPerfectPlayTable? {
         val player = state.currentPlayer ?: return null
@@ -1541,10 +1555,15 @@ class GameViewModel(
                     // choice worked out during the toss, the holds would otherwise land the instant the
                     // dice stop. Scoring gets the same beat from AI_STEP_DELAY_MS below.
                     pausableDelay(AI_REACTION_DELAY_MS)
-                    val releasedAny = current.dice.withIndex().any { (index, die) -> die.isHeld && index !in holds }
-                    current = AiTurnPlayer.applyHolds(current, holds)
+                    // One die at a time, as a hand would: every release first, then every new hold, each
+                    // published as it happens - all at once, a swap of held dice read as a jump cut.
+                    val toRelease = current.dice.indices.filter { current.dice[it].isHeld && it !in holds }
+                    val toHold = current.dice.indices.filter { !current.dice[it].isHeld && it in holds }
+                    val releasedAny = toRelease.isNotEmpty()
                     setUndoSnapshot(null)
-                    applyGameState(current, checkForAiTurn = false)
+                    current = toggleHoldsOneByOne(current, toRelease)
+                    if (toRelease.isNotEmpty() && toHold.isNotEmpty()) pausableDelay(AI_RELEASE_TO_HOLD_GAP_MS)
+                    current = toggleHoldsOneByOne(current, toHold)
 
                     // A beat with the cup settled and the result visible before the next roll's
                     // shake starts - without it, back-to-back rolls (routine for Easy, which never
@@ -1577,6 +1596,12 @@ class GameViewModel(
 
         /** The AI's pause, dice settled, before it holds any of them for its next roll. */
         private const val AI_REACTION_DELAY_MS = 200L
+
+        /** Between one die the AI holds (or releases) and the next, when it changes several. */
+        private const val AI_HOLD_STEP_MS = 50L
+
+        /** Between the last die the AI releases and the first it then holds in their place. */
+        private const val AI_RELEASE_TO_HOLD_GAP_MS = 125L
 
         /** Pause between one roll settling and the next one's shake starting, within the same AI turn. */
         private const val ROLL_GAP_MS = 100L

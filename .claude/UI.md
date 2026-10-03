@@ -693,7 +693,8 @@ shrinks it (to 100ms, not 0: `isRolling` and the roll tracker have to be seen ch
 and there's nothing to keep in step with. The same value is used for a human's tap (`GameScreen`) and a
 CPU's roll (`GameViewModel.cupShakeMillis`, set from the screen). **Never shorten the window without
 re-checking the clips and `AndroidHapticsPlayer`'s `SHAKE_HAPTIC_MILLIS`.** The CPU's other pauses
-(`ROLL_GAP_MS`, `AI_STEP_DELAY_MS`) are for following what it did, not for an animation, and never change.
+(`ROLL_GAP_MS`, `RELEASE_GAP_MS`, `AI_STEP_DELAY_MS`, and between its hold changes `AI_HOLD_STEP_MS` and
+`AI_RELEASE_TO_HOLD_GAP_MS`) are for following what it did, not for an animation, and never change.
 The Game Over fanfare and hold ticks are governed by their own settings, not by this.
 
 ## Scrollbars on long lists
