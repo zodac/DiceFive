@@ -32,13 +32,13 @@ decisions behind it. Read that before changing anything visual.
   bonus. It also doesn't always spend every roll: a fixed set of "good enough" shapes - Full House,
   Large Straight, a Small Straight once Large Straight is no longer open, or three-plus dice on a
   4/5/6 with that upper box still open - gets banked immediately instead of gambled on a reroll.
-  HARD: exhaustively evaluates all 32 hold/reroll subsets each roll via exact expected value
-  (every possible outcome of the freed dice, weighted equally) through every reroll left in the
-  turn (the next one only, with Tricolour's coloured dice), and both its holds and its category
-  choice value a box by how far its score beats what a whole turn chasing that box averages, plus
-  its share of the upper bonus (so a rare category like Full House can beat a nominally
-  higher-scoring but easy-to-satisfy-later one like Chance, and three low dice are worth chasing
-  for 5x) - see Phase 23.
+  HARD: evaluates every distinct hold each roll via exact expected value (every possible outcome of
+  the freed dice, weighted equally) through every reroll left in the turn, and its holds and its
+  category choice value a finished hand the same way: in Standard, by a bundled perfect-play table
+  of the rest of the game (so it plays Standard perfectly - ~254 a game on average); in other modes,
+  by how far a box's score beats what a whole turn chasing that box averages, plus its share of the
+  upper bonus (so a rare category like Full House can beat a nominally higher-scoring but
+  easy-to-satisfy-later one like Chance, and three low dice are worth chasing for 5x) - see Phase 23.
 - **Leaderboard screen**: one global leaderboard (not split by player or game
   type), sorted score-descending, paginated 50/page (originally 100; halved
   alongside a compact row style, so a page is a shorter scroll). No date
@@ -2021,7 +2021,7 @@ install-over-existing succeeds:
       strengths and moved the average within the noise (+0.7, +1.9 over 1,000 games), so it was left
       out. `AiTurnPlayerTest` pins the 2-2-2-6-5 hold and a seeded 200-game average >= 230 (old Hard
       averaged 219 on those games, new 239).
-- [ ] **Step 2 - a perfect-play table (not built; measured only)**: the value of every start-of-turn
+- [x] **Step 2 - a perfect-play table (measured first, then shipped for Standard - see below)**: the value of every start-of-turn
       state (filled boxes, upper subtotal capped at 63, 5x box scored or not) under optimal play,
       looked up by the whole-turn search as each finished hand's future. Measured with a throwaway
       prototype on the game's own scoring code:
@@ -2061,4 +2061,28 @@ install-over-existing succeeds:
         no generation - for Tricolour, whose problem is generation (and 17 MB), it doesn't help.
       - Costs: a generator, the table as a bundled resource for `commonMain`, a test that fails
         when the rules no longer match the table, and one table per mode.
+- [x] **The fast engine** (`DiceSpace`, `HandScoring`): every hand and every held set of a mode's dice
+      numbered once, with each held set's reroll outcomes and their odds in flat arrays, and every hand
+      scored in every box once, with `ScoreCalculator`'s joker rule mirrored as arithmetic
+      (`HandScoringTest` compares the two on 3,000 random cases per mode). A whole-turn decision is a
+      few passes over those arrays. It replaced `HandValues`' HashMaps: Standard decisions went from
+      1-30ms to ~0.03ms (JVM), and Tricolour, which had been held to one reroll ahead for speed (~40-100ms),
+      now plans the whole turn in ~2ms (p95 ~4ms). Building Tricolour's space - 26,334 hands, 33,649
+      held sets, ~10 MB - takes 0.6-1s on the JVM, so `GameViewModel.prepareHardCpus` starts it in the
+      background when a game with a Hard CPU starts or resumes (player 1 is always human, so it's done
+      before the CPU's first roll). Same seeded 300 Tricolour games: whole-turn 348.9 vs one reroll
+      ahead 342.4.
+- [x] **Standard's table shipped** (`StandardPerfectPlayTable`, `composeResources/files/standard_perfect_play.bin`,
+      1,072,905 bytes, +537 KB in the APK compressed): solved by the same engine and scoring the game
+      plays with, so the two can't disagree; each value to 1/32 of a point, each state solved from
+      its successors' stored values. Perfect play from the start: 254.48. `AppContainer` reads it
+      the first time a Hard CPU plays Standard (null if unreadable - Hard then estimates); `AiTurnPlayer`
+      takes it as an optional argument. Standard Hard: 239.1 by estimate -> 252.4 by the table over
+      400 seeded games. Quickfire (no rerolls) keeps the estimate for its category choice; no other mode
+      has a table.
+- [x] **Drift guard**: `StandardPerfectPlayTableTest` (JVM-only, `androidHostTest`) solves the table
+      afresh (~20s) and fails if the bundled file differs; `-PregeneratePerfectPlayTable` makes the same
+      test rewrite it. It also pins perfect play's expectation (254-255) and a seeded 200-game average
+      of at least 248 with the table. `AndroidAppContainerTest` reads it through the real container under
+      Robolectric, from the APK's assets as on a device. The file is in `asset-sources.json` as the app's own work.
 

@@ -25,14 +25,14 @@ import net.zodac.dicefive.model.ScoreSection
  *   5s/6s with that upper box still open) is banked immediately rather than gambled on a reroll -
  *   see [shouldStopEarlyMedium]. Fixed shapes, not a computed expectation, is what keeps this a
  *   notch below Hard.
- * - **HARD**: between rolls, exhaustively evaluates every one of the 32 hold/reroll subsets and
- *   picks the one with the highest expected value by the end of the turn - through every reroll
- *   left with plain dice, the next one only with coloured dice (see [HandValues] - a real expectation
- *   over every possible reroll, not a heuristic). Both that and its category choice value a hand by
- *   [HardValuation]: how far a box's score beats its [CATEGORY_BASELINES] entry - its average when a
- *   whole turn chases it - plus its share of the upper bonus. So a rare, restrictive category (e.g.
- *   Full House) can beat a nominally higher-scoring but easy-to-satisfy-later one (e.g. Chance), and a
- *   set of low numbers is worth chasing for 5x.
+ * - **HARD**: between rolls, evaluates every distinct hold and picks the one with the highest
+ *   expected value by the end of the turn, through every reroll left (see [DiceSpace] - an exact
+ *   expectation over every possible reroll, not a heuristic). Both that and its category choice value
+ *   a finished hand the same way ([HardTurn]): in Standard, by perfect play's value of the rest of
+ *   the game ([StandardPerfectPlayTable]); in other modes, by how far a box's score beats its
+ *   [CATEGORY_BASELINES] entry - its average when a whole turn chases it - plus its share of the upper
+ *   bonus. So a rare, restrictive category (e.g. Full House) can beat a nominally higher-scoring but
+ *   easy-to-satisfy-later one (e.g. Chance), and a set of low numbers is worth chasing for 5x.
  *
  * Every rule comes from the player's own [GameMode] - its dice, faces and colours, and which
  * categories are on the card. In a mode with coloured dice, a "face" is a number AND a colour, so
@@ -50,32 +50,55 @@ object AiTurnPlayer {
      * straight look like nearly 40 points' profit. Lazy per mode, so a process that only ever plays
      * one mode never pays for another's.
      */
-    private val CATEGORY_BASELINES: Map<GameMode, Lazy<Map<ScoreCategory, Double>>> =
+    private val CATEGORY_BASELINES: Map<GameMode, Lazy<DoubleArray>> =
         GameMode.entries.associateWith { mode -> lazy { categoryBaseline(mode) } }
+
+    /**
+     * Every hand of each mode's dice, scored in every one of its categories - built on a mode's first
+     * Hard decision and kept: Tricolour's 26,334 hands take a moment to score, Standard's 252 none.
+     */
+    private val HAND_SCORING: Map<GameMode, Lazy<HandScoring>> =
+        GameMode.entries.associateWith { mode -> lazy { HandScoring(mode, DiceSpace(facesOf(mode), mode.diceCount)) } }
 
     /**
      * Each box scores on its dice's numbers or on their colours, never both, so it's chased over just
      * the faces that matter to it - six numbers, or three colours - which keeps even a coloured mode's
      * whole-turn search to a few thousand hands.
      */
-    private fun categoryBaseline(mode: GameMode): Map<ScoreCategory, Double> {
-        val numberFaces = mode.dieValues.map { Die(value = it) }
-        val colourFaces = mode.dieColours.map { Die(value = mode.dieValues.first, colour = it) }
-        return mode.categories.associateWith { category ->
-            val faces = if (category.section == ScoreSection.COLOUR) colourFaces else numberFaces
-            HandValues(faces, mode.diceCount, mode.rollsPerTurn) { dice -> DiceScoring.score(category, dice).toDouble() }
-                .holdValue(IntArray(0), mode.rollsPerTurn)
+    private fun categoryBaseline(mode: GameMode): DoubleArray {
+        val numberSpace = DiceSpace(mode.dieValues.map { Die(value = it) }, mode.diceCount)
+        val colourSpace = if (mode.dieColours.isEmpty()) null else DiceSpace(mode.dieColours.map { Die(value = mode.dieValues.first, colour = it) }, mode.diceCount)
+        return DoubleArray(mode.categories.size) { index ->
+            val category = mode.categories[index]
+            val space = if (category.section == ScoreSection.COLOUR) requireNotNull(colourSpace) else numberSpace
+            val scores = DoubleArray(space.handCount) { hand -> DiceScoring.score(category, space.diceOf(hand)).toDouble() }
+            space.keepValues(scores, mode.rollsPerTurn)[space.emptyKeep]
         }
     }
 
-    /** Which dice indices an AI would hold before its next reroll, given the current (just-rolled) dice. */
-    fun chooseHolds(state: GameState): Set<Int> {
+    /**
+     * Which dice indices an AI would hold before its next reroll, given the current (just-rolled) dice.
+     * [perfectPlay] is Standard's perfect-play table, which Hard plays by in Standard when it's given
+     * (see [StandardPerfectPlayTable]); without it, or in another mode, Hard estimates.
+     */
+    fun chooseHolds(state: GameState, perfectPlay: StandardPerfectPlayTable? = null): Set<Int> {
         val player = requireNotNull(state.currentPlayer) { "No current player" }
         return when (player.difficulty) {
             Difficulty.EASY -> chooseHoldsEasy(player, state.dice)
             Difficulty.MEDIUM -> chooseHoldsMedium(player, state.dice)
-            Difficulty.HARD -> chooseHoldsHard(player, state.dice, state.rollsRemaining)
+            Difficulty.HARD -> chooseHoldsHard(player, state.dice, state.rollsRemaining, perfectPlay)
         }
+    }
+
+    /**
+     * Builds what Hard's decisions in [mode] need - every hand scored, and each box's baseline - ahead
+     * of its first one. Kept for the process, so only the first call does anything: with Tricolour's
+     * coloured dice that's most of a second on a laptop, so a game with a Hard CPU starts it in the
+     * background rather than leave the CPU's first roll to wait on it.
+     */
+    fun prepareHard(mode: GameMode) {
+        HAND_SCORING.getValue(mode).value
+        CATEGORY_BASELINES.getValue(mode).value
     }
 
     /** Applies a hold decision (e.g. from [chooseHolds]) to every die that isn't already in the right state. */
@@ -87,28 +110,28 @@ object AiTurnPlayer {
         return current
     }
 
-    /** The category an AI would choose for its current (fully-rolled) dice. */
-    fun chooseCategory(state: GameState): ScoreCategory {
+    /** The category an AI would choose for its current (fully-rolled) dice - [perfectPlay] as for [chooseHolds]. */
+    fun chooseCategory(state: GameState, perfectPlay: StandardPerfectPlayTable? = null): ScoreCategory {
         val player = requireNotNull(state.currentPlayer) { "No current player" }
         val available = ScoreCalculator.availableCategories(player, state.dice)
         check(available.isNotEmpty()) { "No available categories to score" }
         return when (player.difficulty) {
             Difficulty.EASY -> available.maxBy { ScoreCalculator.scoreFor(player, it, state.dice) }
             Difficulty.MEDIUM -> chooseCategoryMedium(player, state.dice, available)
-            Difficulty.HARD -> chooseCategoryHard(player, state.dice, available)
+            Difficulty.HARD -> HardTurn(player, perfectPlay).bestCategory(state.dice)
         }
     }
 
     /** Pure end-to-end simulation of an AI's whole turn: roll, hold, roll, hold, roll, then score. Used by tests and as a reference for GameViewModel's animated version. */
-    fun playTurn(state: GameState, random: Random = Random.Default): GameState {
+    fun playTurn(state: GameState, random: Random = Random.Default, perfectPlay: StandardPerfectPlayTable? = null): GameState {
         var current = state
         while (current.rollsRemaining > 0) {
             current = GameEngine.rollDice(current, random)
             if (current.rollsRemaining > 0) {
-                current = applyHolds(current, chooseHolds(current))
+                current = applyHolds(current, chooseHolds(current, perfectPlay))
             }
         }
-        return GameEngine.commitScore(current, chooseCategory(current))
+        return GameEngine.commitScore(current, chooseCategory(current, perfectPlay))
     }
 
     // ---- Easy: reroll everything until something scores, then take the best of it ----------------
@@ -251,26 +274,20 @@ object AiTurnPlayer {
 
     // ---- Hard: whole-turn expected-value holds, opportunity-cost category choice ---------------
 
-    private fun chooseHoldsHard(player: PlayerState, dice: List<Die>, rerollsLeft: Int): Set<Int> {
-        val faces = facesOf(player.gameMode)
-        val valuation = HardValuation(player)
-        val lookahead = minOf(rerollsLeft, maxLookahead(faces.size))
-        val hands = HandValues(faces, dice.size, lookahead) { hand ->
-            ScoreCalculator.availableCategories(player, hand).maxOf { valuation.of(it, hand) }
-        }
-        val diceFaces = dice.map { faces.indexOf(faceOf(it)) }
+    private fun chooseHoldsHard(player: PlayerState, dice: List<Die>, rerollsLeft: Int, perfectPlay: StandardPerfectPlayTable?): Set<Int> {
+        val turn = HardTurn(player, perfectPlay)
+        val space = turn.space
+        val keepValues = space.keepValues(turn.endValues(), rerollsLeft)
         val heldMask = dice.withIndex().sumOf { (index, die) -> if (die.isHeld) 1 shl index else 0 }
         var bestMask = 0
         var bestEv = Double.NEGATIVE_INFINITY
-        for (mask in 0 until (1 shl dice.size)) {
-            val heldFaces = diceFaces.filterIndexed { index, _ -> (mask shr index) and 1 == 1 }.toIntArray()
-            // Holding different dice that show the same faces (two 3s, say) is the same decision, and
-            // comes back from the same cache entry - so their EVs are exactly equal.
-            val ev = hands.holdValue(heldFaces, lookahead)
-            // A tie - always the case between two dice showing the same face - goes to whichever
-            // split changes fewer of the current holds. Without it the lowest-indexed die always won,
-            // so a CPU would let go of the 3 it was holding just to pick up another 3 that had landed
-            // further left.
+        space.forEachSubKeep(space.handOf(dice)) { keep ->
+            val mask = diceMaskFor(space, space.keepFaceCounts(keep), dice)
+            val ev = keepValues[keep]
+            // An exact tie goes to whichever hold changes fewer of the current ones. Two dice showing
+            // the same face are never a choice here - a held set is just how many of each face, and
+            // [diceMaskFor] takes it from the dice already held first - so a CPU never lets go of the 3
+            // it was holding just to pick up another 3 that landed further left.
             val changes = (mask xor heldMask).countOneBits()
             if (ev > bestEv || (ev == bestEv && changes < (bestMask xor heldMask).countOneBits())) {
                 bestEv = ev
@@ -280,107 +297,55 @@ object AiTurnPlayer {
         return dice.indices.filter { (bestMask shr it) and 1 == 1 }.toSet()
     }
 
-    /**
-     * How many of the rerolls left Hard looks ahead through. Every one, with plain dice: a whole
-     * turn's search is a few hundred thousand cheap steps. With coloured dice (18 faces) there are a
-     * hundred times as many hands, and looking past the next reroll costs too long for the pause
-     * after a CPU's roll - so there it plans one reroll at a time.
-     */
-    private fun maxLookahead(faceCount: Int): Int = if (faceCount <= MAX_FACES_FOR_FULL_LOOKAHEAD) Int.MAX_VALUE else 1
-
-    /**
-     * Hard's hold search, for one decision - and, with a single box's score as [valueOf], how its
-     * baselines are worked out. A hold's value is the average, over every way the free dice can land,
-     * of what the hand is then worth: with another reroll to come, the best hold of that hand in turn;
-     * with none, [valueOf] it. Every split of every hand ends in one of the
-     * same finished hands - Standard has only 252 of them, Tricolour 26,334 - so each hand's and each
-     * held set's value is worked out once, the first time the search reaches it, and every later
-     * visit just looks it up. Scoring a hand (every open category, each through [DiceScoring]) is
-     * the costly part: scoring every split's outcomes afresh scored each hand several times over,
-     * which a phone felt as a pause after every CPU roll.
-     *
-     * A hand (or held set) is keyed by how many of its dice show each face, packed into one [Long]
-     * with `diceCount + 1` as the base - so the key doesn't depend on die order, and a held set's key
-     * plus a reroll's key is the finished hand's key.
-     */
-    private class HandValues(
-        private val faces: List<Die>,
-        private val diceCount: Int,
-        lookahead: Int,
-        private val valueOf: (List<Die>) -> Double,
-    ) {
-        private val facePowers = LongArray(faces.size).also { powers ->
-            var power = 1L
-            for (index in powers.indices) {
-                powers[index] = power
-                if (index < powers.lastIndex) {
-                    check(power <= Long.MAX_VALUE / (diceCount + 1)) { "Too many faces to key a hand by" }
-                    power *= diceCount + 1
+    /** Which of [dice] to hold for a held set of [counts] per face: dice already held first, then the rest, left to right. */
+    private fun diceMaskFor(space: DiceSpace, counts: ByteArray, dice: List<Die>): Int {
+        var mask = 0
+        val wanted = counts.copyOf()
+        for (heldFirst in listOf(true, false)) {
+            for ((index, die) in dice.withIndex()) {
+                if (die.isHeld != heldFirst) continue
+                val face = space.faces.indexOf(faceOf(die))
+                if (wanted[face] > 0) {
+                    wanted[face]--
+                    mask = mask or (1 shl index)
                 }
             }
         }
-        private val handValues = HashMap<Long, Double>()
-
-        /** Per number of rerolls still to come after this one: each held set's value. */
-        private val holdValues = List(lookahead + 1) { HashMap<Long, Double>() }
-
-        /** Per number of rerolls still to come: each full hand's value, holding the best of it. */
-        private val bestHoldValues = List(lookahead + 1) { HashMap<Long, Double>() }
-
-        private fun keyOf(faceIndices: IntArray): Long = faceIndices.sumOf { facePowers[it] }
-
-        /**
-         * The exact expected value of keeping [heldFaces] and rerolling the rest, with [rerolls] rolls
-         * (this one included) still to come this turn.
-         */
-        fun holdValue(heldFaces: IntArray, rerolls: Int): Double {
-            val heldKey = keyOf(heldFaces)
-            return holdValues[rerolls].getOrPut(heldKey) {
-                var total = 0.0
-                var totalWeight = 0L
-                forEachOutcomeIndices(faces.size, diceCount - heldFaces.size) { rolled, weight ->
-                    var key = heldKey
-                    for (face in rolled) key += facePowers[face]
-                    val value = if (rerolls <= 1) {
-                        handValues.getOrPut(key) { valueOf(heldFaces.map { faces[it] } + rolled.map { faces[it] }) }
-                    } else {
-                        bestHoldValues[rerolls - 1].getOrPut(key) { bestHoldValue(heldFaces + rolled, rerolls - 1) }
-                    }
-                    total += weight * value
-                    totalWeight += weight
-                }
-                total / totalWeight
-            }
-        }
-
-        /** What [hand] is worth with [rerolls] still to come: its best hold, standing pat included. */
-        private fun bestHoldValue(hand: IntArray, rerolls: Int): Double {
-            var best = Double.NEGATIVE_INFINITY
-            for (mask in 0 until (1 shl hand.size)) {
-                val held = hand.filterIndexed { index, _ -> (mask shr index) and 1 == 1 }.toIntArray()
-                best = maxOf(best, holdValue(held, rerolls))
-            }
-            return best
-        }
+        return mask
     }
 
     /**
-     * What scoring a hand in a category is worth to Hard, for [player] as things stand - the one
-     * measure both its holds and its category choice go by, so it never chases a hand it then
-     * wouldn't value. Built once per decision: the search values tens of thousands of hands.
+     * One Hard decision for [player] as things stand: what every finished hand of this turn is worth,
+     * and so which box a hand goes in - the one measure its holds and its category choice both go by,
+     * so it never chases a hand it then wouldn't value. Each hand is worth its best legal box (by
+     * [HandScoring], the joker rule included), where a box is worth:
+     *
+     * - in Standard, given [perfectPlay]: the score, any 5x bonus chip and any upper bonus it earns,
+     *   plus the table's value of the scorecard it leaves - the rest of the game, played perfectly;
+     * - otherwise, an estimate: the score (with any 5x bonus chip) less what a whole turn chasing that
+     *   box averages ([CATEGORY_BASELINES] - a box is only worth filling for what it beats its usual
+     *   worth by, so a rare one like Full House can beat a nominally higher-scoring but
+     *   easy-to-satisfy-later one like Chance, and three 1s heading for 5x aren't written off as a low
+     *   total), plus in the upper section the share of the upper bonus the score earns or costs.
      */
-    private class HardValuation(private val player: PlayerState) {
-        private val baseline = CATEGORY_BASELINES.getValue(player.gameMode).value
+    private class HardTurn(player: PlayerState, perfectPlay: StandardPerfectPlayTable?) {
+        private val mode = player.gameMode
+        private val scoring = HAND_SCORING.getValue(mode).value
+        val space: DiceSpace = scoring.space
+        private val filledMask = scoring.filledMask(player)
+        private val fiveScored = scoring.fiveOfAKindScored(player)
+        private val upperTotal = player.cappedUpperTotal()
+        private val table = perfectPlay.takeIf { mode == GameMode.STANDARD }
+        private val baseline = CATEGORY_BASELINES.getValue(mode).value
 
         /**
-         * The upper bonus's stake in each point scored in the upper section: it's earned at an average
-         * of three of each number, so each point above that par (or below it) moves the player that
-         * share of the bonus nearer to (or further from) it - [GameMode.upperBonusAmount] over
-         * [GameMode.upperBonusThreshold]. Nothing once the bonus is won, or out of reach even with five
-         * of every open number.
+         * The upper bonus's stake in each point scored in the upper section, for the estimate: it's
+         * earned at an average of three of each number, so each point above that par (or below it)
+         * moves the player that share of the bonus nearer to (or further from) it -
+         * [GameMode.upperBonusAmount] over [GameMode.upperBonusThreshold]. Nothing once the bonus is
+         * won, or out of reach even with five of every open number.
          */
         private val upperBonusPerPoint: Double = run {
-            val mode = player.gameMode
             val total = player.upperSectionTotal
             val bestStillPossible = total + PlayerState.UPPER_CATEGORIES.withIndex()
                 .filter { (_, category) -> category in mode.categories && player.scorecard[category] == null }
@@ -392,28 +357,40 @@ object AiTurnPlayer {
             }
         }
 
-        /**
-         * The score (with any 5x bonus chip) less the category's [CATEGORY_BASELINES] entry - what it's
-         * worth when a whole turn chases it: a box is only worth filling for what it beats its usual
-         * worth by, so a rare, restrictive category (Full House) can beat a nominally higher-scoring but
-         * easy-to-satisfy-later one (Chance), and three 1s heading for 5x aren't written off as a low
-         * total. Plus, in the upper section, the share of the upper bonus the score earns or costs.
-         */
-        fun of(category: ScoreCategory, dice: List<Die>): Double {
-            val score = ScoreCalculator.scoreFor(player, category, dice)
-            var value = score + ScoreCalculator.fiveOfAKindBonusFor(player, dice) - baseline.getValue(category)
-            if (category.section == ScoreSection.UPPER) {
-                val par = (PlayerState.UPPER_CATEGORIES.indexOf(category) + 1) * UPPER_PAR_COUNT
-                value += (score - par) * upperBonusPerPoint
+        private fun boxValue(category: Int, score: Int, chip: Int): Double {
+            if (table != null) {
+                return StandardPerfectPlayTable.afterScoring(scoring, filledMask, upperTotal, fiveScored, category, score) { mask, upper, five, bonus ->
+                    score + chip + bonus + table.valueOf(mask, upper, five)
+                }
             }
-            return value
+            val upperValue = scoring.upperValue[category]
+            val upperShare = if (upperValue == 0) 0.0 else (score - upperValue * UPPER_PAR_COUNT) * upperBonusPerPoint
+            return score + chip - baseline[category] + upperShare
         }
-    }
 
-    /** Open category worth the most by [HardValuation] - the same measure Hard's holds chase. */
-    private fun chooseCategoryHard(player: PlayerState, dice: List<Die>, available: List<ScoreCategory>): ScoreCategory {
-        val valuation = HardValuation(player)
-        return available.maxBy { valuation.of(it, dice) }
+        /** What each finished hand is worth: its best legal box. */
+        fun endValues(): DoubleArray = DoubleArray(space.handCount) { hand ->
+            var best = Double.NEGATIVE_INFINITY
+            scoring.forEachLegal(hand, filledMask, fiveScored) { category, score, chip ->
+                val value = boxValue(category, score, chip)
+                if (value > best) best = value
+            }
+            best
+        }
+
+        /** The legal box [dice] are worth the most in. */
+        fun bestCategory(dice: List<Die>): ScoreCategory {
+            var best = -1
+            var bestValue = Double.NEGATIVE_INFINITY
+            scoring.forEachLegal(space.handOf(dice), filledMask, fiveScored) { category, score, chip ->
+                val value = boxValue(category, score, chip)
+                if (value > bestValue) {
+                    bestValue = value
+                    best = category
+                }
+            }
+            return scoring.categories[best]
+        }
     }
 
     /** Every face a die can land on in [mode] - a number, plus a colour when the mode has them - each equally likely. */
@@ -425,55 +402,9 @@ object AiTurnPlayer {
     /** A die as just its face - dropping whether it's held, which a reroll's outcome doesn't care about. */
     private fun faceOf(die: Die): Die = Die(value = die.value, colour = die.colour)
 
-    /**
-     * Invokes [action] once per distinct outcome of rolling [count] dice that each land on one of
-     * [faceCount] faces - as an unordered set of face indices, in non-decreasing order, never the
-     * same set twice - along with how many of the equally likely *ordered* rolls produce it (the
-     * multinomial coefficient). An exact expectation is then `sum(weight * value) / sum(weight)`.
-     * The array is reused between calls, so it must not be kept.
-     *
-     * Unordered rather than every ordered roll because scoring never depends on die order, and the
-     * ordered count is what coloured dice make unaffordable: five dice with 18 faces each is 1.9
-     * million ordered rolls, but only 26,334 distinct ones.
-     */
-    private fun forEachOutcomeIndices(faceCount: Int, count: Int, action: (IntArray, Long) -> Unit) {
-        val indices = IntArray(count)
-        val countFactorial = FACTORIALS[count]
-        while (true) {
-            // The indices are sorted, so each face's multiplicity is the length of its run.
-            var divisor = 1L
-            var runStart = 0
-            for (position in 1..count) {
-                if (position == count || indices[position] != indices[runStart]) {
-                    divisor *= FACTORIALS[position - runStart]
-                    runStart = position
-                }
-            }
-            action(indices, countFactorial / divisor)
-
-            // Next non-decreasing sequence of face indices: bump the rightmost one that can still
-            // go up, and reset everything after it to match, so no set of faces is ever repeated.
-            var position = count - 1
-            while (position >= 0 && indices[position] == faceCount - 1) position--
-            if (position < 0) break
-            indices[position]++
-            for (following in position + 1 until count) indices[following] = indices[position]
-        }
-    }
-
-    /** `n!` for every dice count a mode could have - far more than any does. */
-    private val FACTORIALS = LongArray(MAX_FACTORIAL + 1).also { table ->
-        table[0] = 1L
-        for (n in 1..MAX_FACTORIAL) table[n] = table[n - 1] * n
-    }
-    private const val MAX_FACTORIAL = 20
-
     private const val SMALL_STRAIGHT_LENGTH = 4
 
-    /** Hard looks ahead through every reroll left only with dice of at most this many faces - see [maxLookahead]. */
-    private const val MAX_FACES_FOR_FULL_LOOKAHEAD = 6
-
-    /** How many of a number, on average, earn the upper bonus: its threshold is three of each - see [HardValuation]. */
+    /** How many of a number, on average, earn the upper bonus: its threshold is three of each - see [HardTurn]. */
     private const val UPPER_PAR_COUNT = 3
 
     /** Medium's colour chase: this many dice already sharing a colour is one short of a set - see [colourChaseHoldIndices]. */

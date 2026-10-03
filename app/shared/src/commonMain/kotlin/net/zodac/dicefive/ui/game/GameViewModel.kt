@@ -39,6 +39,7 @@ import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.AchievementUpdate
 import net.zodac.dicefive.game.AiNameGenerator
 import net.zodac.dicefive.game.AiTurnPlayer
+import net.zodac.dicefive.game.StandardPerfectPlayTable
 import net.zodac.dicefive.game.DiceScoring
 import net.zodac.dicefive.game.GameAchievementContext
 import net.zodac.dicefive.game.GameEngine
@@ -139,6 +140,8 @@ class GameViewModel(
     private val aiDispatcher: CoroutineDispatcher = Dispatchers.Default,
     /** Whether this is a debug build - superuser mode never activates without it. */
     private val isDebugBuild: Boolean = false,
+    /** Standard's perfect-play table, for Hard CPUs in Standard (see [StandardPerfectPlayTable]) - without it, they estimate. */
+    private val standardPerfectPlay: (suspend () -> StandardPerfectPlayTable?)? = null,
 ) : ViewModel() {
 
     private val _setup = MutableStateFlow(GameSetupState())
@@ -477,6 +480,7 @@ class GameViewModel(
         resetSuperuserMode()
         resetAchievementTracking()
         applyGameState(GameEngine.newGame(playerConfigs, setupState.gameMode, turnTimer))
+        prepareHardCpus()
         // "Full Table" is settled the moment four seats are taken - no need to make them play it out.
         checkInProgressAchievements()
         checkGameStartAchievements(
@@ -498,6 +502,7 @@ class GameViewModel(
         resumedSecondsLeft = loaded.turnSecondsLeft
         applyGameState(loaded.copy(turnSecondsLeft = null))
         resumedSecondsLeft = null
+        prepareHardCpus()
         checkInProgressAchievements()
         checkGameStartAchievements()
         unlockAchievements(setOf(Achievement.CONTINUED_GAME))
@@ -1448,6 +1453,27 @@ class GameViewModel(
     private var aiTurnJob: Job? = null
 
     /**
+     * Gets a Hard CPU's first decision ready while the humans before it play: its mode's hands scored
+     * (most of a second for Tricolour's coloured dice - see [AiTurnPlayer.prepareHard]) and, in
+     * Standard, the perfect-play table read. Off the main thread, like the decisions themselves.
+     */
+    private fun prepareHardCpus() {
+        val state = _game.value ?: return
+        if (state.players.none { it.type == PlayerType.AI && it.difficulty == Difficulty.HARD }) return
+        viewModelScope.launch(aiDispatcher) {
+            AiTurnPlayer.prepareHard(state.gameMode)
+            if (state.gameMode == GameMode.STANDARD) standardPerfectPlay?.invoke()
+        }
+    }
+
+    /** The perfect-play table if [state]'s current player is a Hard CPU playing Standard - see [standardPerfectPlay]. */
+    private suspend fun perfectPlayFor(state: GameState): StandardPerfectPlayTable? {
+        val player = state.currentPlayer ?: return null
+        if (state.gameMode != GameMode.STANDARD || player.type != PlayerType.AI || player.difficulty != Difficulty.HARD) return null
+        return standardPerfectPlay?.invoke()
+    }
+
+    /**
      * Starts a job that plays out every AI turn in a row from here (not just one) - e.g. with a
      * human followed by three AI, this single job carries players 2, 3 and 4 through their whole
      * turns before handing back to the human. Looping in place rather than recursively re-launching
@@ -1464,6 +1490,7 @@ class GameViewModel(
         aiTurnJob = viewModelScope.launch {
             var current = state
             while (!current.isGameOver && current.currentPlayer?.type == PlayerType.AI) {
+                val perfectPlay = perfectPlayFor(current)
                 while (current.rollsRemaining > 0) {
                     // The delay doubles as the cup's shake animation window - the same CUP_SHAKE_MILLIS
                     // a human's tap shakes for, whatever the difficulty, and the roll itself goes
@@ -1480,7 +1507,7 @@ class GameViewModel(
                     // Nothing left to decide on the turn's last roll - there's no further reroll to
                     // hold dice FOR.
                     val rolled = current
-                    val holdsChoice = if (rolled.rollsRemaining > 0) async(aiDispatcher) { AiTurnPlayer.chooseHolds(rolled) } else null
+                    val holdsChoice = if (rolled.rollsRemaining > 0) async(aiDispatcher) { AiTurnPlayer.chooseHolds(rolled, perfectPlay) } else null
 
                     // The roll is published but the dice are still tossing onto the mat: let them settle
                     // before holding, rerolling or scoring, as a human has to. The hold choice above is
@@ -1534,7 +1561,7 @@ class GameViewModel(
                 // process on whichever call touches it first - same cost/rationale as the hold
                 // choice above. Worked out during the pause before scoring, not after it.
                 val toScore = current
-                val categoryChoice = async(aiDispatcher) { AiTurnPlayer.chooseCategory(toScore) }
+                val categoryChoice = async(aiDispatcher) { AiTurnPlayer.chooseCategory(toScore, perfectPlay) }
                 pausableDelay(AI_STEP_DELAY_MS)
                 val category = categoryChoice.await()
                 current = GameEngine.commitScore(current, category)
@@ -1600,6 +1627,7 @@ class GameViewModel(
                     inProgressGameRepository = container.inProgressGameRepository,
                     achievementsRepository = container.achievementsRepository,
                     isDebugBuild = container.buildInfo.isDebug,
+                    standardPerfectPlay = container::standardPerfectPlayTable,
                 )
             }
         }
