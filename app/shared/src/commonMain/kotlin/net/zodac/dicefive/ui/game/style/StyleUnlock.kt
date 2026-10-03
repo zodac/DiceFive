@@ -79,3 +79,18 @@ private val styleRewardsByAchievement: Map<Achievement, List<StyleReward>> by la
  */
 val Achievement.unlocksStyle: Boolean
     get() = styleRewards.isNotEmpty()
+
+/**
+ * Every style whose [StyleUnlock.AchievementCount] lock is met at [countAfter] counted achievements
+ * but wasn't at [countBefore], in the Styles screen's category order - what one update's "style
+ * unlocked" banner names. A style locked behind one particular achievement is never here.
+ */
+fun stylesUnlockedByCount(countBefore: Int, countAfter: Int): List<StyleReward> {
+    if (countAfter <= countBefore) return emptyList()
+    val crossed = (countBefore + 1)..countAfter
+    return StyleCatalogs.flatMap { catalog ->
+        catalog.families
+            .filter { family -> (family.unlock as? StyleUnlock.AchievementCount)?.let { it.count in crossed } == true }
+            .map { StyleReward(it.name, catalog.noun) }
+    }
+}

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
@@ -156,7 +157,8 @@ private data class BannerItem(val key: Long, val event: AchievementEvent)
  * real dialog itself.
  *
  * Long-pressing the front banner asks [onAchievementSelected] to take the player to that
- * achievement on the Achievements screen (see `AchievementScrollRequests`, which is how the
+ * achievement on the Achievements screen - or, for a styles banner, [onStylesSelected] to open the
+ * Styles screen (see `AchievementScrollRequests`, which is how the
  * request actually reaches that screen - this host has no reference to it, only to the
  * `NavHostController` its caller wires [onAchievementSelected] up to). Mid-game, with the
  * "confirm before leaving" setting on, and only while the game's own screen is in front
@@ -170,6 +172,7 @@ fun AchievementBannerHost(
     modifier: Modifier = Modifier,
     isOnGameScreen: () -> Boolean,
     onAchievementSelected: (Achievement) -> Unit,
+    onStylesSelected: () -> Unit,
     content: @Composable () -> Unit,
 ) {
     val banners = remember { mutableStateListOf<BannerItem>() }
@@ -212,13 +215,13 @@ fun AchievementBannerHost(
         ) {
             ConfigureOverlayDialogWindow()
             // Display order only, not the underlying list (removal below still targets `banners`
-            // directly) - a real unlock always sits in front of a progress nudge, wherever in the
+            // directly) - a real unlock (an achievement, or styles) always sits in front of a progress nudge, wherever in the
             // arrival order it actually landed. sortedBy is stable, so within each of the two
             // groups, `banners`' own order - oldest-still-queued first, since new arrivals are
             // inserted at the front of it, not appended (see the collector above) - is preserved.
             // Front is always the *last* element of this list, so within a type group it's always
             // the one that's been waiting longest, never one that only just joined the back.
-            val displayOrder = banners.sortedBy { it.event is AchievementEvent.Unlocked }
+            val displayOrder = banners.sortedBy { it.event !is AchievementEvent.Progressed }
             Layout(
                 modifier = Modifier
                     .widthIn(max = CONTENT_MAX_WIDTH)
@@ -236,11 +239,15 @@ fun AchievementBannerHost(
                                 paused = leaveConfirmation.isShowing,
                                 onDismissed = { banners.remove(item) },
                                 onLongPress = {
-                                    val achievement = item.event.achievement
+                                    val open: () -> Unit = when (val event = item.event) {
+                                        is AchievementEvent.Unlocked -> ({ onAchievementSelected(event.achievement) })
+                                        is AchievementEvent.Progressed -> ({ onAchievementSelected(event.achievement) })
+                                        is AchievementEvent.StylesUnlocked -> onStylesSelected
+                                    }
                                     if (isOnGameScreen() && hasInProgressGame && confirmBeforeLeavingGame) {
-                                        leaveConfirmation.request { onAchievementSelected(achievement) }
+                                        leaveConfirmation.request(open)
                                     } else {
-                                        onAchievementSelected(achievement)
+                                        open()
                                     }
                                 },
                                 modifier = Modifier.zIndex(index.toFloat()),
@@ -467,6 +474,7 @@ private fun BannerSlot(
         when (val event = item.event) {
             is AchievementEvent.Unlocked -> UnlockedBanner(event.achievement)
             is AchievementEvent.Progressed -> ProgressBanner(event.achievement, event.previous, event.current, interactive)
+            is AchievementEvent.StylesUnlocked -> StylesUnlockedBanner(event)
         }
         Surface(
             shape = CircleShape,
@@ -570,6 +578,43 @@ private fun UnlockedBanner(achievement: Achievement) {
             Column(modifier = Modifier.weight(1f)) {
                 BannerTitle(achievement.title)
                 BannerDescription(achievement.description)
+            }
+        }
+    }
+}
+
+/**
+ * Earned enough achievements to unlock one or more styles by count - one banner however many styles,
+ * from however many categories, a single update unlocked. Unmistakably not an achievement: the
+ * tertiary container rather than the primary one, and the style star (the badge an achievement that
+ * unlocks a style wears - see [StyleRewardStar]) is the icon itself, in a circle rather than the
+ * achievement's square. Same footprint (padding, 40dp icon, a one-line title and two-line
+ * description) as [UnlockedBanner], so the stack doesn't change height when the two mix.
+ */
+@Composable
+private fun StylesUnlockedBanner(event: AchievementEvent.StylesUnlocked) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().announced(stylesUnlockedAnnouncement(event)),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        border = BorderStroke(1.dp, BANNER_BORDER_COLOR),
+        shadowElevation = 6.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier.size(40.dp).border(width = 1.dp, color = LocalContentColor.current, shape = CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(imageVector = Icons.Filled.Star, contentDescription = null, modifier = Modifier.size(24.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                BannerTitle(stylesUnlockedTitle(event))
+                BannerDescription(stylesUnlockedDescription(event))
             }
         }
     }

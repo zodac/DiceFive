@@ -165,7 +165,7 @@ class AchievementsViewModel(
                 val update = AchievementEngine.unlockNow(locked.toSet(), before, nowEpochMillis())
                 if (!update.isEmpty) {
                     repository.record(update.unlockedAt(), update.counters)
-                    update.newlyUnlocked.forEach { AchievementEvents.emit(AchievementEvent.Unlocked(it)) }
+                    announce(update)
                 }
             } else {
                 Achievement.entries.forEach { repository.forceLock(it) }
@@ -183,7 +183,7 @@ class AchievementsViewModel(
         val update = AchievementEngine.unlockNow(setOf(achievement), before, nowEpochMillis())
         if (update.isEmpty) return
         repository.record(update.unlockedAt(), update.counters)
-        update.newlyUnlocked.forEach { AchievementEvents.emit(AchievementEvent.Unlocked(it)) }
+        announce(update)
         superuserProgressOverride.value -= achievement
     }
 

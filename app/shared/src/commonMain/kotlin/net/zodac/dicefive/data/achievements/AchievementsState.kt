@@ -21,7 +21,7 @@ data class AchievementsState(
      * a checklist item, so it can't be what stands between a player and a style.
      */
     val countedUnlocks: Int
-        get() = unlockedAt.keys.count { it.visibility != AchievementVisibility.SECRET }
+        get() = unlockedAt.keys.count { it.countsTowardStyleLocks }
 
     fun counter(counter: AchievementCounter): Int = counters[counter] ?: 0
 
@@ -29,3 +29,7 @@ data class AchievementsState(
     fun progress(achievement: Achievement): Int =
         achievement.counter?.let { counter(it).coerceAtMost(achievement.target) } ?: 0
 }
+
+/** Whether earning this achievement counts towards [AchievementsState.countedUnlocks] - every one but a secret one. */
+val Achievement.countsTowardStyleLocks: Boolean
+    get() = visibility != AchievementVisibility.SECRET
