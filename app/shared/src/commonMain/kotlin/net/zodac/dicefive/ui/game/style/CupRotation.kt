@@ -142,12 +142,14 @@ fun CupCanvas(
     onDraw: CupDrawScope.() -> Unit,
 ) {
     val rotation = rememberCupRotation(rolling, tilted, if (tips) RESTING_TILT_DEGREES else 0f)
-    val liquidRotation by animateFloatAsState(
+    val sloshing by animateFloatAsState(
         targetValue = rotation,
-        // No slosh under reduced motion: whatever's in the cup settles with it at once.
-        animationSpec = if (LocalReduceMotion.current) snap() else spring(dampingRatio = 0.3f, stiffness = Spring.StiffnessLow),
+        animationSpec = spring(dampingRatio = 0.3f, stiffness = Spring.StiffnessLow),
         label = "cupLiquid",
     )
+    // No slosh under reduced motion: whatever's in the cup moves with it, on the same frame - even a snap would
+    // trail the cup by one.
+    val liquidRotation = if (LocalReduceMotion.current) rotation else sloshing
     val pose = CupPose(rotation, liquidRotation)
     Canvas(
         modifier = modifier.graphicsLayer {

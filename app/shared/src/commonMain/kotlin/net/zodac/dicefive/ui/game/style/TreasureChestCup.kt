@@ -138,13 +138,18 @@ class TreasureChestDiceCupStyle(override val id: String, private val palette: Ch
         // What spills out this time: a fresh handful every time the lid opens.
         var spills by remember { mutableStateOf(emptyList<Spill>()) }
         LaunchedEffect(open) {
+            // Under reduced motion the lid is simply shut or open, with no swing between, and no burst of gold.
             if (!open) {
-                lid.animateTo(0f, tween(LID_CLOSE_MILLIS))
+                if (reduceMotion) lid.snapTo(0f) else lid.animateTo(0f, tween(LID_CLOSE_MILLIS))
             } else if (lid.value < 1f) {
                 spills = spillHandful(Random.nextInt())
-                if (!reduceMotion) launch { flourish.snapTo(0f); flourish.animateTo(1f, tween(FLOURISH_MILLIS, easing = LinearEasing)) }
-                // Underdamped, so the lid flies back and bounces on its hinge.
-                lid.animateTo(1f, spring(dampingRatio = 0.42f, stiffness = Spring.StiffnessMediumLow))
+                if (reduceMotion) {
+                    lid.snapTo(1f)
+                } else {
+                    launch { flourish.snapTo(0f); flourish.animateTo(1f, tween(FLOURISH_MILLIS, easing = LinearEasing)) }
+                    // Underdamped, so the lid flies back and bounces on its hinge.
+                    lid.animateTo(1f, spring(dampingRatio = 0.42f, stiffness = Spring.StiffnessMediumLow))
+                }
             }
         }
         // The hoard is simulated and painted in the background from the first shake (or straight away if

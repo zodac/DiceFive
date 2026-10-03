@@ -711,8 +711,12 @@ stopping outright.
 
 When it's true: the tile glow is steady gold, the turn timer is a steady red (its live-region warning is
 unchanged), the menu's drifting dice and the twinkling stars stay still, the Cauldron's bubbling and the
-Takeaway's steam (the cups' ambient animation, only for players who pick them) and the drawn shake stop (the Treasure Chest's, the Volcano's rumble and the Picnic Basket's too), its gold burst on opening doesn't play (the lid just opens), the Volcano doesn't erupt (its lava is simply there, at rest), the Picnic Basket's lids open without bouncing and its apples are simply on the table, the Shipping container's doors open without bouncing, the Top Hat's always-out rabbit stays put (the peeking one still peeks - its sighting is an
-achievement - just without easing), the googly dice's pupils stay centred instead of sliding with the
+Takeaway's steam (the cups' ambient animation, only for players who pick them) and the drawn shake stop (the Treasure Chest's, the Volcano's rumble and the Picnic Basket's too), its gold burst on opening doesn't play, and its lid, the Picnic Basket's lids and the Shipping container's doors snap
+open and shut with no swing (the basket's apples are simply on the table), the Volcano doesn't erupt (its lava is simply
+there, at rest, and gone again with no cooling), a spent cup is simply grey with no fade, the Flowerpot's plant is simply
+at its new stage, the Top Hat's always-out rabbit stays put (the peeking one still peeks - its sighting is an
+achievement - but just appears and disappears, with no rise or ear twitches), a cup with liquid in it moves it with the
+cup on the same frame, and `CupReducedMotionTest` checks every cup style snaps, never caught part-way, the googly dice's pupils stay centred instead of sliding with the
 device (the menu logo and the tray), the logo dice and cup don't roll or shake when tapped (the tap still
 counts), a cup picked on the Styles screen doesn't shake or tip and a die picked there doesn't roll (the pick still counts), the
 dice aren't picked up or tossed - they stay where they lie through the shake and snap to their result as it lands
