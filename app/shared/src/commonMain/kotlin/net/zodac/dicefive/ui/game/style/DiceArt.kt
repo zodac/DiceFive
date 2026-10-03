@@ -65,6 +65,14 @@ val LocalDieTumbleMillis = compositionLocalOf<Float?> { null }
 val LocalSimpleDiceRoll = compositionLocalOf { false }
 
 /**
+ * The game mode's [instant roll][net.zodac.dicefive.model.GameMode.instantRoll]: a roll's dice just
+ * appear on the mat showing their result as it lands - no toss, no flicking through faces - and the
+ * cup snaps to its poured pose (or open, for one that opens instead of tipping) rather than
+ * animating there. The game provides it; it's off everywhere else.
+ */
+val LocalInstantRoll = compositionLocalOf { false }
+
+/**
  * Whether a die draws its own drop shadow. Off for dice lying on the mat, where the tray casts one
  * consistent ground shadow for every die instead, from a single light, following it as it's thrown
  * and tumbles - a die's own shadow can't follow it through a 3D tumble, so it would pop in only once

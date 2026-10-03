@@ -8,6 +8,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
@@ -175,7 +176,8 @@ fun rememberCupRotation(rolling: Boolean, tilted: Boolean, restingTiltDegrees: F
     // ends and `tilted` is genuinely true - so every roll, not just the first of a turn, starts
     // from standing.
     val restTiltTarget = if (tilted && !rolling) restingTiltDegrees else 0f
-    val restTilt by animateFloatAsState(
+    val instantRoll = LocalInstantRoll.current
+    val animatedRestTilt by animateFloatAsState(
         targetValue = restTiltTarget,
         // Asymmetric on purpose. Standing up (target 0) is a near-snap: that's what makes
         // "standing" read as the shake's actual STARTING pose rather than a slow straighten
@@ -183,9 +185,16 @@ fun rememberCupRotation(rolling: Boolean, tilted: Boolean, restingTiltDegrees: F
         // was indistinguishable from just shaking a still-tilted cup. Tipping back over (target
         // restingTiltDegrees) keeps the slower, deliberate tween: that's the "pouring the dice
         // out" motion once a roll resolves, which should still look unhurried.
-        animationSpec = tween(durationMillis = if (restTiltTarget == 0f) SNAP_TO_STANDING_MILLIS else POUR_TILT_MILLIS),
+        animationSpec = when {
+            restTiltTarget == 0f -> tween(durationMillis = SNAP_TO_STANDING_MILLIS)
+            instantRoll -> snap()
+            else -> tween(durationMillis = POUR_TILT_MILLIS)
+        },
         label = "cupTilt",
     )
+    // An instant roll's cup is in its poured pose in the very frame the dice land (LocalInstantRoll) -
+    // read straight from the target, as even a snap() only takes effect a frame later.
+    val restTilt = if (instantRoll && restTiltTarget != 0f) restTiltTarget else animatedRestTilt
     // Faded in/out over WOBBLE_FADE_MILLIS rather than switched the instant `rolling` flips:
     // cutting the wobble's contribution off abruptly could drop the rendered rotation anywhere in a
     // +-SHAKE_AMPLITUDE_DEGREES range with nothing to smooth it out - a visible pop to a half-tilted

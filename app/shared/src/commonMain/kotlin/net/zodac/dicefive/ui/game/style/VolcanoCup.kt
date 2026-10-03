@@ -103,6 +103,7 @@ class VolcanoDiceCupStyle(override val id: String, private val palette: VolcanoP
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
         val reduceMotion = LocalReduceMotion.current
+        val instantRoll = LocalInstantRoll.current
         val erupted = tilted && !rolling
         // How far down the slopes the lava has run, and how hot it still is; a continued game's at rest.
         val flow = remember { Animatable(if (erupted) 1f else 0f) }
@@ -117,7 +118,8 @@ class VolcanoDiceCupStyle(override val id: String, private val palette: VolcanoP
             } else if (flow.value < 1f) {
                 eruptionSeed = Random.nextInt()
                 heat.snapTo(1f)
-                if (reduceMotion) {
+                // An instant roll's lava is simply there as the dice land, as under reduced motion.
+                if (reduceMotion || instantRoll) {
                     flow.snapTo(1f)
                 } else {
                     launch { burst.snapTo(0f); burst.animateTo(1f, tween(ERUPTION_MILLIS, easing = LinearEasing)) }

@@ -14,6 +14,7 @@ import net.zodac.dicefive.ui.game.GameScreen
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -77,6 +78,21 @@ class GameScreenAutoRollTest {
         compose.waitForIdle()
 
         assertEquals(TurnPhase.AWAITING_ROLL, viewModel.phase())
+    }
+
+    @Test
+    fun quickfireShowsItsRollAtOnceSoNothingWaitsForATossButStandardDoes() {
+        val quickfire = showGame(GameMode.QUICKFIRE)
+        compose.waitForIdle()
+        // What the CPU loop and the roll achievements wait on before acting on a roll.
+        assertEquals(0L, quickfire.diceTossMillis)
+    }
+
+    @Test
+    fun standardWaitsForItsDiceToBeTossed() {
+        val standard = showGame(GameMode.STANDARD)
+        compose.waitForIdle()
+        assertTrue(standard.diceTossMillis > 0L)
     }
 
     @Test

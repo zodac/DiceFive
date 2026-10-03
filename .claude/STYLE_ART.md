@@ -163,6 +163,11 @@ colour - `grep` for `Color.Green`/`Magenta` before committing.
   colours), keeping any `remember`ed state; the Styles screen keys each tile's cup on its id, so keep
   per-colour state (a fixed plant stage, an always-out rabbit) out of `remember` initialisers anywhere a
   caller might not.
+- An instant roll (`LocalInstantRoll` - Quickfire, see `GAME_MODES.md`): the cup is in its poured or
+  open pose in the very frame the dice land - no tip, no swing, no burst or spill animation (the spill
+  itself is just there). `rememberCupRotation` does this for every `CupCanvas` cup; a cup that opens
+  itself (the Treasure Chest, Picnic Basket, Volcano, Shipping container) must `snapTo` its open state.
+  The shake before it is unchanged.
 - Reduced motion (`LocalReduceMotion`, `UI.md`): stop decorative motion (shake, bursts, drift), keep
   the outcome (the lid still opens, spilled pieces still appear at rest). Don't rely on Compose's
   animation scale alone - see `UI.md`.

@@ -56,6 +56,7 @@ import net.zodac.dicefive.ui.game.style.LocalCupActivity
 import net.zodac.dicefive.ui.game.style.LocalCupAnimated
 import net.zodac.dicefive.ui.game.style.LocalFlowerpotGrowth
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
+import net.zodac.dicefive.ui.game.style.LocalInstantRoll
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 
@@ -217,6 +218,8 @@ fun DiceCupPanel(
                                 standingForBloom = true
                             }
                         }
+                        // With an instant roll there's no toss to fade over: the cup is spent the moment the dice land.
+                        val instantRoll = LocalInstantRoll.current
                         val spent by animateFloatAsState(
                             targetValue = if (depleted) 1f else 0f,
                             animationSpec = if (depleted) {
@@ -227,7 +230,8 @@ fun DiceCupPanel(
                             label = "cupSpent",
                         )
                         Box(
-                            modifier = Modifier.size(104.dp).spentLook(spent),
+                            // Read straight from its target with an instant roll: spent in the very frame the dice land.
+                            modifier = Modifier.size(104.dp).spentLook(if (depleted && instantRoll) 1f else spent),
                             contentAlignment = Alignment.Center,
                         ) {
                             val cupStyle = visualTheme.diceCupStyle

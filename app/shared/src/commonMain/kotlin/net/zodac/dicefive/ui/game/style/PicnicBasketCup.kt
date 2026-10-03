@@ -117,6 +117,7 @@ class PicnicBasketDiceCupStyle(override val id: String, private val palette: Bas
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
         val reduceMotion = LocalReduceMotion.current
+        val instantRoll = LocalInstantRoll.current
         val open = tilted && !rolling
         // A continued game's basket starts open and at rest; anything else starts shut.
         val flaps = remember { Animatable(if (open) 1f else 0f) }
@@ -127,7 +128,10 @@ class PicnicBasketDiceCupStyle(override val id: String, private val palette: Bas
                 flaps.animateTo(0f, tween(FLAP_CLOSE_MILLIS))
             } else if (flaps.value < 1f) {
                 spills = basketSpill(Random.nextInt())
-                if (reduceMotion) {
+                if (instantRoll) {
+                    // Simply open, its apples already on the table, as the dice land.
+                    flaps.snapTo(1f)
+                } else if (reduceMotion) {
                     flaps.animateTo(1f, tween(200))
                 } else {
                     launch { spill.snapTo(0f); spill.animateTo(1f, tween(SPILL_MILLIS, easing = LinearEasing)) }

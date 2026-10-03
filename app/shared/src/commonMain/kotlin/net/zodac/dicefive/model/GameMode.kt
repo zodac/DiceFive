@@ -89,6 +89,14 @@ enum class GameMode(
      * every mode.
      */
     val autoRollAtTurnStart: Boolean = false,
+    /**
+     * Whether a roll is shown at once as it lands: the dice simply appear on the mat showing their
+     * result - no toss across it, no flicking through faces on the way - and the cup snaps to its
+     * poured pose with them rather than tipping over. Scoring opens the moment they appear, for a
+     * human and a CPU alike, so a turn is over sooner. The shake before the roll, and its sound and
+     * buzz, are unchanged - see `LocalInstantRoll`.
+     */
+    val instantRoll: Boolean = false,
 ) {
     /**
      * The official rules.
@@ -171,6 +179,7 @@ enum class GameMode(
         turnTimerSeconds = 10,
         timeoutPick = TimeoutPick.LOWEST_SCORE,
         autoRollAtTurnStart = true,
+        instantRoll = true,
     ),
     ;
 

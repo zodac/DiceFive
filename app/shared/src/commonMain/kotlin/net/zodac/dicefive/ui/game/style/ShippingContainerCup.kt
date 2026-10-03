@@ -69,12 +69,15 @@ class ShippingContainerDiceCupStyle(override val id: String, private val palette
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
         val reduceMotion = LocalReduceMotion.current
+        val instantRoll = LocalInstantRoll.current
         val open = tilted && !rolling
         // A continued game's container starts with its doors open; anything else starts shut.
         val doors = remember { Animatable(if (open) 1f else 0f) }
         LaunchedEffect(open) {
             when {
                 !open -> doors.animateTo(0f, tween(DOOR_CLOSE_MILLIS))
+                // Simply open as the dice land.
+                instantRoll -> doors.snapTo(1f)
                 reduceMotion -> doors.animateTo(1f, tween(200))
                 // Underdamped, so the doors fly open and bounce on their hinges.
                 else -> doors.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = Spring.StiffnessLow))

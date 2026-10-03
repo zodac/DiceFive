@@ -70,6 +70,7 @@ import net.zodac.dicefive.ui.game.style.LocalDieCastsShadow
 import net.zodac.dicefive.ui.game.style.LocalDieIndex
 import net.zodac.dicefive.ui.game.style.LocalDieMotion
 import net.zodac.dicefive.ui.game.style.LocalDieTumbleMillis
+import net.zodac.dicefive.ui.game.style.LocalInstantRoll
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.LocalSimpleDiceRoll
@@ -154,9 +155,11 @@ fun DiceTray(
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var scrambleTick by remember { mutableIntStateOf(0) }
     // No face-flicker (about eleven changes a second) under reduced motion.
+    // Nor with an instant roll, whose dice only ever show their result.
     val reduceMotion = LocalReduceMotion.current
+    val instantRoll = LocalInstantRoll.current
     LaunchedEffect(rolling) {
-        while (rolling && !reduceMotion) {
+        while (rolling && !reduceMotion && !instantRoll) {
             lifecycle.delayWhileResumed(SCRAMBLE_INTERVAL_MILLIS)
             scrambleTick++
         }
@@ -435,7 +438,9 @@ private fun ScatterArea(
     gameMode: GameMode,
     diceStyles: TrayDiceStyles,
 ) {
-    val simple = LocalSimpleDiceRoll.current
+    // An instant roll moves nothing either: like the simple roll, the die is just at rest on its result.
+    val instantRoll = LocalInstantRoll.current
+    val simple = LocalSimpleDiceRoll.current || instantRoll
     val tracker = remember { RollTracker(rolling) }
     tracker.update(rolling)
     val pickUp = remember(tracker.starts) { Animatable(if (tracker.starts == 0 || simple) 1f else 0f) }
@@ -584,7 +589,7 @@ private fun ScatterArea(
                     // Reads scrambleTick so each tick's recomposition seeds a fresh face - deliberately
                     // not remember()'d, since a cached value wouldn't flicker. A coloured die tumbles
                     // through colours as well as numbers.
-                    val displayDie = if (rolling) scrambledFace(Random(scrambleTick * 31 + seed), gameMode) else die
+                    val displayDie = if (rolling && !instantRoll) scrambledFace(Random(scrambleTick * 31 + seed), gameMode) else die
                     val restX = keptIn(scatter.xOffset, scatter.rotationDegrees)
                     Shadow(restX, scatter.yOffset, scatter.rotationDegrees, lift = 0f)
                     Track(restX, scatter.yOffset, scatter.rotationDegrees)

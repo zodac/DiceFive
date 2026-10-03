@@ -125,6 +125,7 @@ class TreasureChestDiceCupStyle(override val id: String, private val palette: Ch
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
         val reduceMotion = LocalReduceMotion.current
+        val instantRoll = LocalInstantRoll.current
         // Unlike a cup, a chest that first appears with the roll already poured - a game being continued
         // - stays shut until the next shake, rather than appearing open with its treasure still to load.
         // The next roll then opens it as usual.
@@ -141,9 +142,14 @@ class TreasureChestDiceCupStyle(override val id: String, private val palette: Ch
                 lid.animateTo(0f, tween(LID_CLOSE_MILLIS))
             } else if (lid.value < 1f) {
                 spills = spillHandful(Random.nextInt())
-                if (!reduceMotion) launch { flourish.snapTo(0f); flourish.animateTo(1f, tween(FLOURISH_MILLIS, easing = LinearEasing)) }
-                // Underdamped, so the lid flies back and bounces on its hinge.
-                lid.animateTo(1f, spring(dampingRatio = 0.42f, stiffness = Spring.StiffnessMediumLow))
+                if (instantRoll) {
+                    // Simply open, its treasure spilled, as the dice land - no burst, no swing.
+                    lid.snapTo(1f)
+                } else {
+                    if (!reduceMotion) launch { flourish.snapTo(0f); flourish.animateTo(1f, tween(FLOURISH_MILLIS, easing = LinearEasing)) }
+                    // Underdamped, so the lid flies back and bounces on its hinge.
+                    lid.animateTo(1f, spring(dampingRatio = 0.42f, stiffness = Spring.StiffnessMediumLow))
+                }
             }
         }
         // The hoard is simulated and painted in the background from the first shake (or straight away if

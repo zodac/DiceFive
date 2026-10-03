@@ -51,6 +51,7 @@ When a new rule needs a field, add it here too. This is the map of where each ru
 | `turnTimerSeconds`                       | `GameState.turnSeconds` → `GameViewModel.syncTurnTimer`; the setup screen disables the Turn Timer row      |
 | `timeoutPick`                            | `ScoreCalculator.timeoutCategory` ← `GameViewModel.autoScoreOnTimeout`                                      |
 | `autoRollAtTurnStart`                    | `GameState.awaitsAutoRoll` → `GameScreen`'s auto-tap `LaunchedEffect`                                       |
+| `instantRoll`                            | `GameScreen` (no toss to wait for: `diceTossMillis` 0 for the CPU loop and roll achievements, scoring open at once, no pour lead) → `LocalInstantRoll` → `DiceTray` (no toss, no face scramble), `rememberCupRotation` (snaps to poured), the Treasure Chest, Picnic Basket, Volcano and Shipping container (snap open), `DiceCupPanel` (spent at once) |
 | `maxRollsPerGame`                        | `flowerpotGrowthStage` - the Flowerpot's stages are spread evenly over it, and the sunflower blooms on its last roll (Greenfingers); `GameModeTest` |
 
 ## First, work out what kind of mode it is
@@ -193,6 +194,13 @@ Rules that came out of Quickfire:
 - **The timer**: `syncTurnTimer` restarts it for each new turn (human or CPU); running out calls
   `autoScoreOnTimeout`, which rolls if the turn hasn't, then scores `ScoreCalculator.timeoutCategory`.
   A timeout's score is final - it clears the undo snapshot.
+- **A quick mode shows its roll at once** (`instantRoll`, Quickfire): the shake, its sound and buzz
+  are unchanged (they're timed to `CUP_SHAKE_MILLIS` - see `UI.md`'s "Reduced motion"), but the dice
+  appear on the mat already showing their result, the cup snaps to its poured pose with them, and
+  scoring opens straight away. The CPU's wait for the toss is the same `diceTossMillis`, so its turns
+  shorten too (Quickfire's from about 1.6s to 0.7s); its pause before scoring (`AI_STEP_DELAY_MS`) is
+  left as it is, as the moment to see what it rolled. A new cup that animates opening or pouring
+  itself must snap there under `LocalInstantRoll`.
 - `GameScreen.canHold` doesn't check rolls left, so dice can still be held after the last roll. That
   keeps the hold-only achievements alive in a one-roll mode.
 
