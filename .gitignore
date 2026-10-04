@@ -32,3 +32,6 @@ keystore.properties
 # Claude Code's ~/.claude bind-mounted into the sandbox container - auth tokens, session
 # transcripts and memory. See sandbox/README.md's Persistence section.
 /sandbox/.claude-history/
+
+# Generated image assets for Play Store
+assets/
