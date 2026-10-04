@@ -219,48 +219,52 @@ fun AchievementBannerHost(
             ),
         ) {
             ConfigureOverlayDialogWindow()
-            // Display order only, not the underlying list (removal below still targets `banners`
-            // directly) - a real unlock (an achievement, or styles) always sits in front of a progress nudge, wherever in the
-            // arrival order it actually landed. sortedBy is stable, so within each of the two
-            // groups, `banners`' own order - oldest-still-queued first, since new arrivals are
-            // inserted at the front of it, not appended (see the collector above) - is preserved.
-            // Front is always the *last* element of this list, so within a type group it's always
-            // the one that's been waiting longest, never one that only just joined the back.
-            val displayOrder = banners.sortedBy { it.event !is AchievementEvent.Progressed }
-            Layout(
-                modifier = Modifier
-                    .widthIn(max = CONTENT_MAX_WIDTH)
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                content = {
-                    displayOrder.forEachIndexed { index, item ->
-                        // 0 for the front (frontmost, drawn last so it's on top), climbing for each
-                        // one further back in the stack.
-                        val depthFromFront = displayOrder.lastIndex - index
-                        key(item.key) {
-                            BannerSlot(
-                                item = item,
-                                interactive = depthFromFront == 0,
-                                paused = leaveConfirmation.isShowing,
-                                onDismissed = { banners.remove(item) },
-                                onLongPress = {
-                                    val open: () -> Unit = when (val event = item.event) {
-                                        is AchievementEvent.Unlocked -> ({ onAchievementSelected(event.achievement) })
-                                        is AchievementEvent.Progressed -> ({ onAchievementSelected(event.achievement) })
-                                        is AchievementEvent.StylesUnlocked -> onStylesSelected
-                                    }
-                                    if (isOnGameScreen() && hasInProgressGame && confirmBeforeLeavingGame) {
-                                        leaveConfirmation.request(open)
-                                    } else {
-                                        open()
-                                    }
-                                },
-                                modifier = Modifier.zIndex(index.toFloat()),
-                            )
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+                // Display order only, not the underlying list (removal below still targets `banners`
+                // directly) - a real unlock (an achievement, or styles) always sits in front of a progress nudge, wherever in the
+                // arrival order it actually landed. sortedBy is stable, so within each of the two
+                // groups, `banners`' own order - oldest-still-queued first, since new arrivals are
+                // inserted at the front of it, not appended (see the collector above) - is preserved.
+                // Front is always the *last* element of this list, so within a type group it's always
+                // the one that's been waiting longest, never one that only just joined the back.
+                val displayOrder = banners.sortedBy { it.event !is AchievementEvent.Progressed }
+                Layout(
+                    modifier = Modifier
+                        .widthIn(max = CONTENT_MAX_WIDTH)
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    content = {
+                        displayOrder.forEachIndexed { index, item ->
+                            // 0 for the front (frontmost, drawn last so it's on top), climbing for each
+                            // one further back in the stack.
+                            val depthFromFront = displayOrder.lastIndex - index
+                            key(item.key) {
+                                BannerSlot(
+                                    item = item,
+                                    interactive = depthFromFront == 0,
+                                    paused = leaveConfirmation.isShowing,
+                                    onDismissed = { banners.remove(item) },
+                                    onLongPress = {
+                                        val open: () -> Unit = when (val event = item.event) {
+                                            is AchievementEvent.Unlocked -> ({ onAchievementSelected(event.achievement) })
+                                            is AchievementEvent.Progressed -> ({ onAchievementSelected(event.achievement) })
+                                            is AchievementEvent.StylesUnlocked -> onStylesSelected
+                                        }
+                                        if (isOnGameScreen() && hasInProgressGame && confirmBeforeLeavingGame) {
+                                            leaveConfirmation.request(open)
+                                        } else {
+                                            open()
+                                        }
+                                    },
+                                    modifier = Modifier.zIndex(index.toFloat()),
+                                )
+                            }
                         }
-                    }
-                },
-            ) { measurables, constraints ->
+                    },
+                ) { measurables, constraints ->
                 // A banner's own description can be one or two lines, so banners aren't all the
                 // same height - measured here, not assumed, so the stack's own size and each
                 // banner's peek are both based on actual heights rather than a guess that's wrong
@@ -288,6 +292,7 @@ fun AchievementBannerHost(
             }
         }
     }
+}
 }
 
 /**
