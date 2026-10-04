@@ -1,3 +1,5 @@
+[← Back to Documentation](./)
+
 # Privacy Policy
 
 **Last updated: 2 October 2026**
