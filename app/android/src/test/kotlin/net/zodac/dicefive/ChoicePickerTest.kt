@@ -7,11 +7,14 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.ui.common.ChoicePicker
+import net.zodac.dicefive.ui.common.ModifierPicker
+import net.zodac.dicefive.ui.common.ModifierSetting
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -69,5 +72,31 @@ class ChoicePickerTest {
         compose.onNodeWithText("Option 1").performClick()
         compose.onNodeWithText("Cancel").performClick()
         assertEquals("Option 1", picked)
+    }
+
+    @Test
+    fun modifierPickerSummarisesAndTogglesAndShowsValuesWhileOn() {
+        var on by mutableStateOf(false)
+        var value by mutableStateOf(1)
+        compose.setContent {
+            DiceFiveTheme {
+                ModifierPicker(
+                    title = "Mods",
+                    description = "Extras",
+                    modifiers = listOf(
+                        ModifierSetting("Timer", "A limit", on, { on = it }, listOf("30s", "60s"), value, { value = it }),
+                    ),
+                )
+            }
+        }
+        compose.onNodeWithText("None").assertExists()
+        compose.onNodeWithText("None").performClick()
+        compose.onNodeWithText("30s").assertIsNotEnabled()
+        compose.onNodeWithText("Timer").performClick()
+        assertEquals(true, on)
+        compose.onNodeWithText("30s").performClick()
+        compose.onNodeWithText("Done").performClick()
+        assertEquals(0, value)
+        compose.onNodeWithText("Timer 30s").assertExists()
     }
 }

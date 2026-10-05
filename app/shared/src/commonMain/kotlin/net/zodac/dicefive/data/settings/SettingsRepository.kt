@@ -58,6 +58,20 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[TURN_TIMER_KEY] = turnTimer.name }
     }
 
+    /**
+     * The turn timer length last chosen, kept while the timer is switched off ([turnTimer] is then
+     * [TurnTimer.NONE]) so switching it back on restores it. Falls back to the timer's own stored
+     * value from before this was kept separately, then to 60 seconds.
+     */
+    val turnTimerLength: Flow<TurnTimer> = dataStore.data.map { prefs ->
+        val stored = prefs[TURN_TIMER_LENGTH_KEY] ?: prefs[TURN_TIMER_KEY]
+        stored?.let { raw -> runCatching { TurnTimer.valueOf(raw) }.getOrNull() }?.takeIf { it != TurnTimer.NONE } ?: TurnTimer.SECONDS_60
+    }
+
+    suspend fun setTurnTimerLength(length: TurnTimer) {
+        dataStore.edit { it[TURN_TIMER_LENGTH_KEY] = length.name }
+    }
+
     /** The mode the setup form last started a game in - read back by id, falling back to the default
      * for one nothing recognises (see [GameMode.id]). */
     val gameMode: Flow<GameMode> = dataStore.data.map { prefs ->
@@ -139,6 +153,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val REMOVE_ANIMATIONS_KEY = booleanPreferencesKey("remove_animations")
         val PLAYER_COUNT_KEY = intPreferencesKey("player_count")
         val TURN_TIMER_KEY = stringPreferencesKey("turn_timer")
+        val TURN_TIMER_LENGTH_KEY = stringPreferencesKey("turn_timer_length")
         val GAME_MODE_KEY = stringPreferencesKey("game_mode")
         val DICE_STYLE_ID_KEY = stringPreferencesKey("dice_style_id")
         val DICE_CUP_STYLE_ID_KEY = stringPreferencesKey("dice_cup_style_id")

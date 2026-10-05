@@ -14,8 +14,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.TimerOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +44,8 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.ui.common.ChoicePicker
+import net.zodac.dicefive.ui.common.ModifierPicker
+import net.zodac.dicefive.ui.common.ModifierSetting
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.game.GameSetupState
@@ -170,14 +170,8 @@ private fun SetupForm(
         GameModeSelector(selected = setup.gameMode, onSelect = viewModel::setGameMode)
     }
 
-    SetupCard(title = "Turn Timer") {
-        // A mode with its own timer (Quickfire) overrides this row, so it's disabled rather than
-        // offering a choice that wouldn't apply. The pick is kept for when another mode is chosen.
-        TurnTimerSelector(
-            selected = setup.turnTimer,
-            onSelect = viewModel::setTurnTimer,
-            enabled = setup.gameMode.turnTimerSeconds == null,
-        )
+    SetupCard(title = "Modifiers") {
+        TurnTimerModifierPicker(setup = setup, onSelect = viewModel::setTurnTimer)
     }
 }
 
@@ -414,22 +408,31 @@ private fun GameModeSelector(selected: GameMode, onSelect: (GameMode) -> Unit) {
 }
 
 /**
- * Whole-turn time limit: a small exclusive set, so this uses the same segmented row as player count
- * and AI difficulty rather than a [ChoicePicker]. Disabled while the game mode sets
- * its own timer ([GameMode.turnTimerSeconds]).
+ * The setup screen's modifiers. For now only the turn timer, which is off when [TurnTimer.NONE] and
+ * otherwise one of the lengths. The length last chosen is kept in the setup state (and saved with it) while
+ * the timer is off, so switching it back on - even next game - restores it. A mode with its own timer ([GameMode.turnTimerSeconds]) overrides
+ * the setting, so it's shown locked at the mode's length; the player's pick is kept for other modes.
  */
 @Composable
-private fun TurnTimerSelector(selected: TurnTimer, onSelect: (TurnTimer) -> Unit, enabled: Boolean) {
-    SegmentedChoiceRow(
-        options = TurnTimer.entries,
-        selected = selected,
-        onSelect = onSelect,
-        label = { it.label },
-        modifier = Modifier.fillMaxWidth(),
-        // A crossed-out timer says "no timer" at a glance next to 30s/60s/120s, where the word
-        // "None" read as just another value. The label below is still its accessibility text.
-        glyph = { if (it == TurnTimer.NONE) Icons.Filled.TimerOff else null },
-        enabled = enabled,
+private fun TurnTimerModifierPicker(setup: GameSetupState, onSelect: (TurnTimer) -> Unit) {
+    val lengths = TurnTimer.entries.filter { it != TurnTimer.NONE }
+
+    val modeSeconds = setup.gameMode.turnTimerSeconds
+    ModifierPicker(
+        title = "Modifiers",
+        description = "Optional extra rules for any game mode",
+        modifiers = listOf(
+            ModifierSetting(
+                title = "Turn timer",
+                description = "A time limit for each whole turn",
+                enabled = modeSeconds != null || setup.turnTimer != TurnTimer.NONE,
+                onEnabledChange = { on -> onSelect(if (on) setup.turnTimerLength else TurnTimer.NONE) },
+                valueLabels = if (modeSeconds != null) listOf("${modeSeconds}s") else lengths.map { it.label },
+                selectedValue = if (modeSeconds != null) 0 else lengths.indexOf(setup.turnTimerLength),
+                onValueSelect = { onSelect(lengths[it]) },
+                lockedNote = if (modeSeconds != null) "Set by ${setup.gameMode.displayName}: ${modeSeconds}s" else null,
+            ),
+        ),
     )
 }
 
