@@ -171,10 +171,15 @@ bottom once the form is too tall to fit and has to scroll.
   Expressive group's inner-corner press morph needs `ButtonGroup` (1.5.0, see above) - not built by
   hand.
 - **Segmented buttons** (`ui/common/SegmentedChoiceRow.kt`) for small exclusive sets that fit one
-  line: player count 1-4, AI difficulty, turn timer. Radio rows are for options that need more
-  than a word each - the setup screen's game mode, where each row carries `GameMode.description`
-  as a second line, since "Tricolour" alone doesn't say what it changes. A disabled option (a mode
-  that isn't ready yet) would also go in a radio row, for its visible disabled state.
+  line: player count 1-4, AI difficulty, turn timer.
+- **`ChoicePicker`** (`ui/common/ChoicePicker.kt`) for a set that is long or whose options need a
+  description each: the setup screen's game mode, and the planned modifiers option. Closed, it is one
+  outlined field (name + one-line description + dropdown arrow), so the form's height doesn't grow
+  with the option count. Tapped, it opens a modal list capped at 340dp that scrolls with
+  `LazyListScrollbar`, opens with the current pick in view, and closes as soon as one is chosen
+  (Cancel leaves it alone). Reuse it rather than building another dropdown. TalkBack: the field is
+  one `DropdownList` node named by `title` with the pick as its state; the list is a collection of
+  radio rows with positions. Covered by `ChoicePickerTest`; not heard on a device.
 - **An option the rest of the form overrides is disabled, not hidden** - the Turn Timer row while
   Quickfire (which has its own timer) is picked. Hiding it would move everything below; disabling
   it keeps the layout still and shows the choice doesn't apply. The player's pick is kept, so it's

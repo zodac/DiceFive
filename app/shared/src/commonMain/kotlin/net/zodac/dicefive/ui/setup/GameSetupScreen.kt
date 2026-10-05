@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -24,7 +23,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,7 +33,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
@@ -48,6 +45,7 @@ import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.TurnTimer
+import net.zodac.dicefive.ui.common.ChoicePicker
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.game.GameSetupState
@@ -399,24 +397,25 @@ private val Difficulty.label: String
     }
 
 /**
- * One radio row per [GameMode], each with the one-line description of what it changes - a
- * segmented row has no room for that, and the name alone ("Tricolour") doesn't say what it means.
+ * The mode picker: one field showing the current mode and its one-line description, opening a
+ * scrollable list of every [GameMode] - the list is long enough to outgrow the form, so it isn't
+ * laid out inline. See [ChoicePicker].
  */
 @Composable
 private fun GameModeSelector(selected: GameMode, onSelect: (GameMode) -> Unit) {
-    for (mode in GameMode.entries) {
-        GameModeOption(
-            label = mode.displayName,
-            description = mode.description,
-            selected = selected == mode,
-            onSelect = { onSelect(mode) },
-        )
-    }
+    ChoicePicker(
+        title = "Game Mode",
+        options = GameMode.entries,
+        selected = selected,
+        onSelect = onSelect,
+        label = { it.displayName },
+        description = { it.description },
+    )
 }
 
 /**
  * Whole-turn time limit: a small exclusive set, so this uses the same segmented row as player count
- * and AI difficulty rather than [GameModeOption]'s radio rows. Disabled while the game mode sets
+ * and AI difficulty rather than a [ChoicePicker]. Disabled while the game mode sets
  * its own timer ([GameMode.turnTimerSeconds]).
  */
 @Composable
@@ -441,31 +440,3 @@ private val TurnTimer.label: String
         TurnTimer.SECONDS_60 -> "60s"
         TurnTimer.SECONDS_120 -> "120s"
     }
-
-/**
- * The whole row is the target, not just the radio dot, and `selectable` with [Role.RadioButton] is
- * what tells accessibility services this is one option in a group.
- */
-@Composable
-private fun GameModeOption(label: String, description: String, selected: Boolean, onSelect: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onSelect),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RadioButton(selected = selected, onClick = null)
-        Column(modifier = Modifier.padding(start = 8.dp)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
