@@ -172,14 +172,18 @@ bottom once the form is too tall to fit and has to scroll.
   hand.
 - **Segmented buttons** (`ui/common/SegmentedChoiceRow.kt`) for small exclusive sets that fit one
   line: player count 1-4, AI difficulty, turn timer.
-- **`ChoicePicker`** (`ui/common/ChoicePicker.kt`) for a set that is long or whose options need a
-  description each: the setup screen's game mode, and the planned modifiers option. Closed, it is one
-  outlined field (name + one-line description + dropdown arrow), so the form's height doesn't grow
-  with the option count. Tapped, it opens a modal list capped at 340dp that scrolls with
-  `LazyListScrollbar`, opens with the current pick in view, and closes as soon as one is chosen
-  (Cancel leaves it alone). Reuse it rather than building another dropdown. TalkBack: the field is
-  one `DropdownList` node named by `title` with the pick as its state; the list is a collection of
-  radio rows with positions. Covered by `ChoicePickerTest`; not heard on a device.
+- **`ChoicePicker` and `ModifierPicker`** (`ui/common/ChoicePicker.kt`) for options that are long or
+  need a description each. Closed, a picker is one outlined field (headline, supporting line,
+  dropdown arrow), so the form doesn't grow with the option count. Tapped, it opens a modal list
+  capped at 340dp that scrolls with `LazyListScrollbar`. `ChoicePicker` picks one (game mode: radio
+  rows, chosen = closed at once, Cancel). `ModifierPicker` is for modifiers - each a switch row,
+  plus a `SegmentedChoiceRow` of values (always laid out, greyed while off, so the modal never resizes under a finger), described by a `ModifierSetting`; changes apply
+  live and the modal closes with Done; a mode that overrides a modifier locks it with a note. **All
+  styling lives in the file's two shells, `PickerField` and `PickerDialog`** (and `PickerRowText`),
+  so re-theming is one place - add new pickers as contents of those, not new chrome. To add a
+  modifier: a `ModifierSetting` in the setup screen's list, plus a page section on the Rules
+  "Modifiers" page. TalkBack: the field is a `DropdownList` named by title with its value as state;
+  rows are radio/switch with collection positions. Tested in `ChoicePickerTest`; not heard on a device.
 - **An option the rest of the form overrides is disabled, not hidden** - the Turn Timer row while
   Quickfire (which has its own timer) is picked. Hiding it would move everything below; disabling
   it keeps the layout still and shows the choice doesn't apply. The player's pick is kept, so it's

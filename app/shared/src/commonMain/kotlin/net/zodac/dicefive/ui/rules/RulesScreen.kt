@@ -255,9 +255,20 @@ private val RULES_PAGES = listOf(
         tabLabel = "Quickfire",
         blocks = listOf(
             text("A custom mode extending the *Standard* game mode. You get just **one roll** per turn (no holding dice, no rerolls) and the dice are rolled for you as your turn starts."),
-            text("Every turn also has a **10 second** timer, which replaces the usual *Turn Timer* setting. If it runs out, the roll is scored in whichever open category it's worth the least in (the first one on the scorecard, if several tie)."),
+            text("Every turn also has a **10 second** timer, which replaces the *Turn timer* modifier. If it runs out, the roll is scored in whichever open category it's worth the least in (the first one on the scorecard, if several tie)."),
             RulesTurnTimer,
             text("Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules. You just have to take what the dice give you, and quickly!"),
+        ),
+    ),
+    RulesPage(
+        title = "Modifiers",
+        tabLabel = "Modifiers",
+        blocks = listOf(
+            text("*Modifiers* are optional extras you can add to any game mode. Choose them on the new game screen: each can be switched on or off, and some also have a value to set."),
+            text("*Turn timer*: a limit on how long each player has to finish their whole turn, not each roll. Choose **30**, **60** or **120** seconds. A badge shows the time left and turns red as it runs out."),
+            RulesTurnTimer,
+            text("If a player's time runs out, their roll is scored for them in whichever open category it's worth the least in (the first one on the scorecard, if several tie)."),
+            text("A game mode that has its own timer, like *Quickfire*, uses that instead, and the *Turn timer* modifier is locked while it's chosen."),
         ),
     ),
 )

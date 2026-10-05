@@ -84,6 +84,8 @@ data class GameSetupState(
     val playerSlots: List<PlayerSetupSlot> = (1..MAX_PLAYERS).map { PlayerSetupSlot(slot = it) },
     val gameMode: GameMode = GameMode.default,
     val turnTimer: TurnTimer = TurnTimer.NONE,
+    /** The length the turn timer modifier returns to when switched back on: the last one chosen, kept while [turnTimer] is [TurnTimer.NONE]. Never NONE. */
+    val turnTimerLength: TurnTimer = TurnTimer.SECONDS_60,
 ) {
     companion object {
         const val MIN_PLAYERS = 1
@@ -412,6 +414,7 @@ class GameViewModel(
                 restored = restored.copy(
                     playerSlots = slots,
                     turnTimer = repository.turnTimer.first(),
+                    turnTimerLength = repository.turnTimerLength.first(),
                     gameMode = repository.gameMode.first(),
                 )
                 _setup.value = restored
@@ -456,7 +459,7 @@ class GameViewModel(
     }
 
     fun setTurnTimer(turnTimer: TurnTimer) {
-        _setup.update { it.copy(turnTimer = turnTimer) }
+        _setup.update { it.copy(turnTimer = turnTimer, turnTimerLength = if (turnTimer == TurnTimer.NONE) it.turnTimerLength else turnTimer) }
     }
 
     /** Builds the initial [GameState] from the current setup form, generating AI names now. */
@@ -481,7 +484,7 @@ class GameViewModel(
         persistHumanNames(activeSlots)
         // The form's own pick is still what's remembered, so switching back from a mode with a fixed
         // timer finds it as it was left - but it isn't what this game plays under.
-        persistGameConfig(setupState.playerCount, activeSlots, setupState.turnTimer, setupState.gameMode)
+        persistGameConfig(setupState.playerCount, activeSlots, setupState.turnTimer, setupState.gameMode, setupState.turnTimerLength)
         val turnTimer = if (setupState.gameMode.turnTimerSeconds != null) TurnTimer.NONE else setupState.turnTimer
         setUndoSnapshot(null)
         resetSuperuserMode()
@@ -1414,11 +1417,12 @@ class GameViewModel(
         }
     }
 
-    private fun persistGameConfig(playerCount: Int, slots: List<PlayerSetupSlot>, turnTimer: TurnTimer, gameMode: GameMode) {
+    private fun persistGameConfig(playerCount: Int, slots: List<PlayerSetupSlot>, turnTimer: TurnTimer, gameMode: GameMode, turnTimerLength: TurnTimer) {
         val repository = settingsRepository ?: return
         viewModelScope.launch {
             repository.setPlayerCount(playerCount)
             repository.setTurnTimer(turnTimer)
+            repository.setTurnTimerLength(turnTimerLength)
             repository.setGameMode(gameMode)
             for (slot in slots) {
                 // Slot 1 is always Human, so its type and difficulty aren't worth persisting.

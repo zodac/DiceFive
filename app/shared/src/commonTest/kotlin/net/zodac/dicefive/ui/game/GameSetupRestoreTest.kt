@@ -89,4 +89,21 @@ class GameSetupRestoreTest {
     fun `with no saved settings to restore the form is shown straight away`() {
         assertTrue(GameViewModel(aiDispatcher = testDispatcher).setupRestored.value)
     }
+
+    @Test
+    fun `turn timer length is remembered while the timer is off`() = runTest(testDispatcher) {
+        val repository = SettingsRepository(FakePreferencesStore())
+        val first = GameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
+        advanceUntilIdle()
+        first.setTurnTimer(TurnTimer.SECONDS_120)
+        first.setTurnTimer(TurnTimer.NONE)
+        assertEquals(TurnTimer.SECONDS_120, first.setup.value.turnTimerLength)
+        first.startGame()
+        advanceUntilIdle()
+
+        val second = GameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
+        advanceUntilIdle()
+        assertEquals(TurnTimer.NONE, second.setup.value.turnTimer)
+        assertEquals(TurnTimer.SECONDS_120, second.setup.value.turnTimerLength)
+    }
 }
