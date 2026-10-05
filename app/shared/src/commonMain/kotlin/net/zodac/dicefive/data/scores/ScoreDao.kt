@@ -60,7 +60,7 @@ interface ScoreDao {
      */
     @Query(
         """
-        SELECT playerName, timestampEpochMillis, won, score
+        SELECT playerName, timestampEpochMillis, won, score, fiveOfAKindCount
         FROM scores
         WHERE playerName COLLATE NOCASE NOT IN (SELECT playerName FROM dismissed_player_stats)
         ORDER BY playerName COLLATE NOCASE ASC, timestampEpochMillis DESC

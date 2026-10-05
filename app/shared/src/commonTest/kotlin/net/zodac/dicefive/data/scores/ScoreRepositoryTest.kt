@@ -40,7 +40,7 @@ private class FakeScoreDao : ScoreDao {
         entries.filter { it.playerName !in dismissed }
             // SQLite's COLLATE NOCASE (for the names used here), then the exact name, then newest first.
             .sortedWith(compareBy<ScoreEntry>({ it.playerName.lowercase() }, { it.playerName }).thenByDescending { it.timestampEpochMillis })
-            .map { PlayerGame(it.playerName, it.timestampEpochMillis, it.won, it.score) }
+            .map { PlayerGame(it.playerName, it.timestampEpochMillis, it.won, it.score, it.fiveOfAKindCount) }
 
     override suspend fun dismissPlayer(playerName: String) {
         dismissed += playerName
@@ -66,11 +66,12 @@ private suspend fun ScoreRepository.record(
     won: Boolean? = null,
     isPrimaryPlayer: Boolean = false,
     timestampEpochMillis: Long = nowEpochMillis(),
+    fiveOfAKindCount: Int = 0,
 ) = recordScore(
     playerName = playerName,
     stats = TieBreakStats(
         score = score,
-        fiveOfAKindCount = 0,
+        fiveOfAKindCount = fiveOfAKindCount,
         zeroedCategoryCount = 0,
         tricolourScoredCount = null,
         upperSectionTotal = 0,
@@ -134,6 +135,31 @@ class ScoreRepositoryTest {
         assertEquals(2, alice.gamesPlayed)
         assertEquals(300, alice.maxScore)
         assertEquals(1_000L, alice.firstPlayedEpochMillis)
+    }
+
+    @Test
+    fun `playerStatistics totals scores and 5x and counts solo games`() = runTest {
+        val repository = ScoreRepository(FakeScoreDao())
+        repository.record("Alice", 100, won = true, fiveOfAKindCount = 1, timestampEpochMillis = 1_000L)
+        repository.record("Alice", 201, won = null, fiveOfAKindCount = 2, timestampEpochMillis = 2_000L)
+        repository.record("Alice", 100, won = null, timestampEpochMillis = 3_000L)
+
+        val alice = repository.playerStatistics().single { it.playerName == "Alice" }
+
+        assertEquals(401, alice.totalScore)
+        assertEquals(3, alice.fiveOfAKindCount)
+        assertEquals(2, alice.soloGames)
+        // 401 / 3 = 133.67, rounded to the nearest whole number.
+        assertEquals(134, alice.averageScore)
+    }
+
+    @Test
+    fun `average score rounds a half up`() = runTest {
+        val repository = ScoreRepository(FakeScoreDao())
+        repository.record("Alice", 100, timestampEpochMillis = 1_000L)
+        repository.record("Alice", 101, timestampEpochMillis = 2_000L)
+
+        assertEquals(101, repository.playerStatistics().single().averageScore)
     }
 
     @Test

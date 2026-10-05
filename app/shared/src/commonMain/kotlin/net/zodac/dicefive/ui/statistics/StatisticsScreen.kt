@@ -1,11 +1,14 @@
 package net.zodac.dicefive.ui.statistics
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,8 +19,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,26 +33,25 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.data.scores.PlayerStatistics
-import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.LazyListScrollbar
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.formatTimestamp
-
-/** [GameMode.HIGHEST_POSSIBLE_SCORE] (a perfect game in whichever mode allows the most) is the longest a score can ever be. */
-private val MAX_SCORE_DISPLAY_WIDTH = GameMode.HIGHEST_POSSIBLE_SCORE.toString().length
+import net.zodac.dicefive.ui.common.grouped
 
 @Composable
 fun StatisticsScreen(
@@ -108,36 +113,62 @@ fun StatisticsScreen(
     }
 }
 
+/**
+ * One player's card. Closed it is just their name and best score (gold, thousands-separated), with a
+ * dropdown arrow after the score; tapping the card opens the rest - first played, the win/loss record
+ * and the lifetime totals. Long-pressing deletes, open or closed.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
-    val spoken = "${player.playerName}. First played ${formatTimestamp(player.firstPlayedEpochMillis)}. Best score ${player.maxScore}. " +
-        "Played ${player.gamesPlayed}, won ${player.gamesWon}, lost ${player.gamesLost}. " +
-        "Win streak ${player.currentWinStreak}, best win streak ${player.bestWinStreak}."
+    var expanded by rememberSaveable(player.playerName) { mutableStateOf(false) }
+    val deleteLabel = "Delete ${player.playerName}'s stats"
+    val spoken = buildString {
+        append("${player.playerName}. Best score ${player.maxScore.grouped()}.")
+        if (expanded) {
+            append(" First played ${formatTimestamp(player.firstPlayedEpochMillis)}.")
+            append(" Played ${player.gamesPlayed}, won ${player.gamesWon}, lost ${player.gamesLost}.")
+            append(" Win streak ${player.currentWinStreak}, best win streak ${player.bestWinStreak}.")
+            append(" Total score ${player.totalScore.grouped()}. Average score ${player.averageScore.grouped()}.")
+            append(" ${player.fiveOfAKindCount} 5x scored. ${player.soloGames} solo games played.")
+        }
+    }
+    val toggleLabel = if (expanded) "Hide details" else "Show details"
+    val reduceMotion = LocalReduceMotion.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            // One announcement in words, not a dozen separate texts, and no "double tap to activate" for the
-            // tap that does nothing: the delete is the card's one action, in TalkBack's actions menu.
+            // One announcement in words, not a dozen separate texts. The tap opens or closes the card (its
+            // state is spoken, its action labelled), and the delete is in TalkBack's actions menu.
             .clearAndSetSemantics {
                 contentDescription = spoken
-                onLongClick(label = "Delete ${player.playerName}'s stats") {
+                stateDescription = if (expanded) "Expanded" else "Collapsed"
+                onClick(label = toggleLabel) {
+                    expanded = !expanded
+                    true
+                }
+                onLongClick(label = deleteLabel) {
                     onLongPress()
                     true
                 }
                 customActions = listOf(
-                    CustomAccessibilityAction("Delete ${player.playerName}'s stats") {
+                    CustomAccessibilityAction(deleteLabel) {
                         onLongPress()
                         true
                     },
                 )
             }
-            .combinedClickable(onClick = {}, onLongClick = onLongPress, onLongClickLabel = "Delete ${player.playerName}'s stats"),
+            .combinedClickable(
+                onClick = { expanded = !expanded },
+                onClickLabel = toggleLabel,
+                onLongClick = onLongPress,
+                onLongClickLabel = deleteLabel,
+            ),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Name, first-played timestamp, and max score share one baseline - sized down from
-            // their old solo-row/captioned style so a max-length (10-character) name, a date, and
-            // a 4-digit score all fit on one line without wrapping or crowding into each other.
+        Column(
+            modifier = Modifier.padding(16.dp).then(if (reduceMotion) Modifier else Modifier.animateContentSize()),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = player.playerName,
@@ -149,53 +180,67 @@ fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = formatTimestamp(player.firstPlayedEpochMillis),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    // Wraps at a large font rather than ellipsising a date into something unreadable, sharing
-                    // what's left of the row with the name instead of squeezing it out. It fills its share,
-                    // end-aligned, so the score after it lands on the row's end rather than short of it.
+                    text = player.maxScore.grouped(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.End,
-                    modifier = Modifier.weight(1f),
                 )
-                // A fixed width, the widest score's worth of digits, with the score right-aligned in
-                // it: the name before it fills whatever's left in the row, so a shorter score would
-                // otherwise let the name grow into that space and shove the timestamp sideways, card
-                // to card. Right-aligned, its last digit lines up with the best streak's below.
-                Box(contentAlignment = Alignment.CenterEnd) {
-                    Text(
-                        text = "8".repeat(MAX_SCORE_DISPLAY_WIDTH),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.alpha(0f),
-                    )
-                    Text(
-                        text = player.maxScore.toString(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
+                // Decorative: the card's own state and action are spoken (above).
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            if (expanded) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            // A FlowRow: at a large font the five cells no longer fit across, and the last ones drop to a
-            // second line rather than overlapping. At the normal size it's one row, as before.
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                StatCell(label = "Played", value = player.gamesPlayed.toString())
-                StatCell(label = "Won", value = player.gamesWon.toString())
-                StatCell(label = "Lost", value = player.gamesLost.toString())
-                StatCell(label = "Streak", value = player.currentWinStreak.toString())
-                // End-aligned rather than centred, so its last digit sits on the card's edge, under the score's.
-                StatCell(label = "Best", value = player.bestWinStreak.toString(), alignment = Alignment.End)
+                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "First played",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = formatTimestamp(player.firstPlayedEpochMillis),
+                        style = MaterialTheme.typography.labelMedium,
+                        textAlign = TextAlign.End,
+                    )
+                }
+
+                // FlowRows: at a large font the cells no longer fit across, and the last ones drop to a
+                // second line rather than overlapping. At the normal size each is one row.
+                StatRow {
+                    StatCell(label = "Played", value = player.gamesPlayed.toString())
+                    StatCell(label = "Won", value = player.gamesWon.toString())
+                    StatCell(label = "Lost", value = player.gamesLost.toString())
+                    StatCell(label = "Streak", value = player.currentWinStreak.toString())
+                    // End-aligned rather than centred, so its last digit sits on the card's edge.
+                    StatCell(label = "Best", value = player.bestWinStreak.toString(), alignment = Alignment.End)
+                }
+
+                StatRow {
+                    StatCell(label = "Total score", value = player.totalScore.grouped(), alignment = Alignment.Start)
+                    StatCell(label = "Average", value = player.averageScore.grouped())
+                    StatCell(label = "5x", value = player.fiveOfAKindCount.grouped())
+                    StatCell(label = "Solo", value = player.soloGames.grouped(), alignment = Alignment.End)
+                }
             }
         }
     }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun StatRow(content: @Composable FlowRowScope.() -> Unit) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        content = content,
+    )
 }
 
 @Composable
