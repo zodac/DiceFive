@@ -345,6 +345,16 @@ enum class Achievement(
         "quickfire_beat_the_clock", "Beat The Clock", "Finish a game of 'Quickfire' mode without ever running out of time",
         AchievementCategory.GAME_MODES,
     ),
+    STUD_WIN(
+        "stud_win", "Hold 'Em", "Win a game of 'Stud' mode",
+        AchievementCategory.GAME_MODES,
+    ),
+    // Judged as the dice land, like the other roll feats - held dice count, so it's five held and the
+    // last two rolled to match them, or any other way to get there.
+    STUD_LUCKY_SEVEN(
+        "stud_lucky_seven", "Lucky Seven", "Have all seven dice show the same number in 'Stud' mode",
+        AchievementCategory.GAME_MODES,
+    ),
 
     // ---- Misfortune: going badly, on purpose or otherwise --------------------------------------
     SCRATCHED_5X(

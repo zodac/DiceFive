@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -87,6 +88,8 @@ private val SCATTER_OFFSETS = listOf(
     ScatterOffset((-3).dp, 20.dp, -9f),
     ScatterOffset(5.dp, 2.dp, 17f),
     ScatterOffset((-4).dp, 26.dp, -23f),
+    ScatterOffset(3.dp, 12.dp, 14f),
+    ScatterOffset((-5).dp, 24.dp, -12f),
 )
 
 private val SCATTERED_DIE_SIZE = 44.dp
@@ -97,6 +100,11 @@ private val SCATTER_AREA_HEIGHT = 96.dp
 // Round the tray's contents, inside its rounded edge - which clips anything past it.
 private val TRAY_PADDING = 16.dp
 private val DICE_COLUMN_GAP = 14.dp
+
+// Where more dice are rolled than held (GameMode.scoresHeldDiceOnly): the mat's columns are closer,
+// and a die on it is at most this much of its column's width, so all of them fit side by side.
+private val SLOTTED_MAT_COLUMN_GAP = 6.dp
+private const val SLOTTED_MAT_DIE_FRACTION = 0.86f
 
 // How much wider than it is square a die tipping over can look, nearest edge looming (TossedCube).
 private const val TIPPED_FOOTPRINT = 1.06f
@@ -119,16 +127,12 @@ private const val CYCLE_INTERVAL_MILLIS = 1_000L
  * A die's clickable area is its ENTIRE column, top to bottom - not just the small slot or
  * scattered die graphic - so a tap anywhere from the hold spot down to the bottom of the tray
  * toggles that die's hold state, and (once [superuserModeActive]) holding a finger anywhere in an
- * already-held die's column cycles its face. The touch tracking is owned by this whole row, not
- * each column individually: Compose locks a pointer's move/up events to whichever node first
- * hit-tested its down event, so a per-column handler could never see a finger that started on a
- * sibling column and slid over - dragging across the mat has to be handled at the one shared level
- * that's under the finger the whole time. Sliding into another die's column cancels whatever the
- * previous column was doing (a pending click, or superuser cycling) and starts fresh on the new
- * one; only the column the finger is actually released over can register a click or leave cycling
- * in effect. Uses [LocalGameVisualTheme] for both the die art and the mat - in a [gameMode] whose
- * dice carry their own colour, the dice style recoloured in each die's colour (see
- * [net.zodac.dicefive.ui.game.style.DiceStyle.recoloured]).
+ * already-held die's column cycles its face - see [columnPresses]. Uses [LocalGameVisualTheme] for
+ * both the die art and the mat - in a [gameMode] whose dice carry their own colour, the dice style
+ * recoloured in each die's colour (see [net.zodac.dicefive.ui.game.style.DiceStyle.recoloured]).
+ *
+ * A [gameMode] that rolls more dice than it holds ([GameMode.scoresHeldDiceOnly]) has fewer slots
+ * than columns, so it's laid out differently - see [SlottedDice].
  */
 @Composable
 fun DiceTray(
@@ -149,12 +153,10 @@ fun DiceTray(
 ) {
     val visualTheme = LocalGameVisualTheme.current
 
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-
     // rememberUpdatedState, not the raw parameters: `dice` (including whichever die is currently
     // cycling) recomposes this composable every tick, which would otherwise hand the gesture
     // handler a stale closure over `dice`/`onToggleHold`/`onCycleValue` from whenever it started.
-    // The handler itself is keyed only on `enabled` (see the pointerInput call below) so a
+    // The handler itself is keyed only on `enabled` (see columnPresses) so a
     // value-only recomposition never restarts a press already in progress - reading everything
     // through these keeps it current regardless.
     val currentDice by rememberUpdatedState(dice)
@@ -172,108 +174,82 @@ fun DiceTray(
         // the dice - matchParentSize so it fills whatever height the Row below ends up with.
         visualTheme.mat.DiceTrayDecoration(modifier = Modifier.matchParentSize())
 
+        val irish = LocalIrishTricolour.current
+        // Built once for the game: none of the style, the mode's colours or Luck of the Irish
+        // changes mid-game, so every roll reuses the same recoloured styles.
+        val diceStyles = remember(visualTheme.diceStyle, gameMode.dieColours, irish) {
+            TrayDiceStyles(visualTheme.diceStyle, gameMode.dieColours, irish)
+        }
+
+        if (gameMode.scoresHeldDiceOnly) {
+            SlottedDice(
+                dice = dice,
+                slotCount = gameMode.scoringDiceCount,
+                enabled = enabled,
+                showDice = showDice,
+                rolling = rolling,
+                diceStyles = diceStyles,
+                mat = visualTheme.mat,
+                onToggleHold = { currentOnToggleHold(it) },
+                canCycle = { index -> currentSuperuserModeActive && currentDice.getOrNull(index)?.isHeld == true },
+                onCycleValue = { currentOnCycleValue(it) },
+                currentDice = { currentDice },
+            )
+        } else {
+            DiceColumns(
+                dice = dice,
+                enabled = enabled,
+                showDice = showDice,
+                rolling = rolling,
+                diceStyles = diceStyles,
+                mat = visualTheme.mat,
+                irish = irish,
+                canCycle = { index -> currentSuperuserModeActive && currentDice.getOrNull(index)?.isHeld == true },
+                onCycleValue = { currentOnCycleValue(it) },
+                onToggleHold = { currentOnToggleHold(it) },
+            )
+        }
+    }
+}
+
+/** [DiceTray]'s usual layout: a column per die, its hold slot at the top and the mat below. */
+@Composable
+private fun DiceColumns(
+    dice: List<Die>,
+    enabled: Boolean,
+    showDice: Boolean,
+    rolling: Boolean,
+    diceStyles: TrayDiceStyles,
+    mat: DiceMat,
+    irish: Boolean,
+    canCycle: (Int) -> Boolean,
+    onCycleValue: (Int) -> Unit,
+    onToggleHold: (Int) -> Unit,
+) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(TRAY_PADDING)
-                .then(
-                    if (enabled) {
-                        // No indication/ripple here on purpose: at the size of a whole column it
-                        // painted as an obvious translucent rectangle over the entire clickable
-                        // area, not a per-die press effect.
-                        //
-                        // Hand-rolled instead of Modifier.clickable: a plain clickable's gesture
-                        // recognizer treats enough drag as a cancel, which handed off to this
-                        // screen's enclosing verticalScroll on the slightest finger movement -
-                        // even movement that stayed well inside one column - cancelling the press
-                        // (and the superuser cycling with it). Consuming every pointer change for
-                        // as long as any pointer here stays down denies the scroll container that
-                        // drag delta, so it never has grounds to steal the gesture.
-                        Modifier.pointerInput(enabled) {
-                            // coroutineScope for a real CoroutineScope to launch the concurrent
-                            // cycle-ticking coroutine on (PointerInputScope itself isn't one). The
-                            // whole press is one awaitEachGesture, so no pointer event can slip
-                            // through between reading the down and tracking what follows; launch and
-                            // cancel aren't suspending calls, so the restricted gesture scope can
-                            // still make them against the outer coroutineScope.
-                            coroutineScope {
-                                awaitEachGesture {
-                                    val down = awaitFirstDown(requireUnconsumed = false).also { it.consume() }
-                                    val columnCount = currentDice.size
-                                    var activeIndex = columnIndexForX(down.position.x, size.width, columnCount)
-                                    var cycled = false
-
-                                    fun cycleEligible(index: Int) =
-                                        currentSuperuserModeActive && currentDice.getOrNull(index)?.isHeld == true
-
-                                    fun startCycling() =
-                                        if (cycleEligible(activeIndex)) {
-                                            val index = activeIndex
-                                            launch {
-                                                while (isActive) {
-                                                    lifecycle.delayWhileResumed(CYCLE_INTERVAL_MILLIS)
-                                                    cycled = true
-                                                    currentOnCycleValue(index)
-                                                }
-                                            }
-                                        } else {
-                                            null
-                                        }
-
-                                    var cycleJob = startCycling()
-
-                                    do {
-                                        val event = awaitPointerEvent()
-                                        event.changes.forEach { it.consume() }
-                                        val pointer = event.changes.firstOrNull { it.id == down.id }
-                                        val newIndex = pointer?.let { columnIndexForX(it.position.x, size.width, columnCount) }
-                                        if (newIndex != null && newIndex != activeIndex) {
-                                            // Crossed into a different die's column: whatever
-                                            // the previous one was doing (a pending click, or
-                                            // cycling) is abandoned, not completed - only the
-                                            // column the finger actually settles on and
-                                            // releases over acts.
-                                            cycleJob?.cancel()
-                                            activeIndex = newIndex
-                                            cycled = false
-                                            cycleJob = startCycling()
-                                        }
-                                    } while (event.changes.any { it.pressed })
-                                    cycleJob?.cancel()
-
-                                    // Only a press that lasted long enough to actually change the
-                                    // die's face suppresses the tap - a quick tap (released before
-                                    // the first 1s cycle tick) still toggles hold as normal, and
-                                    // releasing right after cycling doesn't ALSO immediately
-                                    // toggle the value just picked.
-                                    if (!cycled) currentOnToggleHold(activeIndex)
-                                }
-                            }
-                        }
-                    } else {
-                        Modifier
-                    },
+                .columnPresses(
+                    enabled = enabled,
+                    columnCount = dice.size,
+                    canCycle = canCycle,
+                    onCycle = onCycleValue,
+                    onTap = onToggleHold,
                 ),
             horizontalArrangement = Arrangement.spacedBy(DICE_COLUMN_GAP),
         ) {
-            val irish = LocalIrishTricolour.current
-            // Built once for the game: none of the style, the mode's colours or Luck of the Irish
-            // changes mid-game, so every roll reuses the same recoloured styles.
-            val diceStyles = remember(visualTheme.diceStyle, gameMode.dieColours, irish) {
-                TrayDiceStyles(visualTheme.diceStyle, gameMode.dieColours, irish)
-            }
             dice.forEachIndexed { index, die ->
                 // The tray's own touch handling is one hand-rolled gesture over the whole row, which a
                 // screen reader can't see into - so each die is its own node, named by its face (and
                 // colour), saying whether it's held, and offering hold/release as its click action.
                 val dieSemantics = if (showDice) {
                     Modifier.semantics {
-                        val colour = die.colour?.let { "${it.spokenName(irish)} " }.orEmpty()
-                        contentDescription = "Die ${index + 1}, $colour${die.value}"
+                        contentDescription = spokenDie(index, die, irish)
                         stateDescription = if (die.isHeld) "Held" else "Not held"
                         if (enabled) {
                             onClick(label = if (die.isHeld) "Release" else "Hold") {
-                                currentOnToggleHold(index)
+                                onToggleHold(index)
                                 true
                             }
                         }
@@ -288,9 +264,238 @@ fun DiceTray(
                     scatter = SCATTER_OFFSETS[index % SCATTER_OFFSETS.size],
                     seed = index,
                     diceStyles = diceStyles,
-                    mat = visualTheme.mat,
+                    mat = mat,
                     modifier = Modifier.weight(1f).then(dieSemantics),
                 )
+            }
+        }
+}
+
+/** "Die 2, 5" - or "Die 2, red 5" with coloured dice - what TalkBack names a die by. */
+private fun spokenDie(index: Int, die: Die, irish: Boolean): String {
+    val colour = die.colour?.let { "${it.spokenName(irish)} " }.orEmpty()
+    return "Die ${index + 1}, $colour${die.value}"
+}
+
+/**
+ * The tray's touch handling for one row of [columnCount] equal-width columns: a tap anywhere in a
+ * column - top to bottom, not just on the die drawn there - calls [onTap] with it, and (where
+ * [canCycle] says a column may, for superuser mode) holding a finger in it calls [onCycle] once a
+ * second instead, until released or the finger slides into a different column.
+ *
+ * The touch tracking is owned by the whole row, not each column individually: Compose locks a
+ * pointer's move/up events to whichever node first hit-tested its down event, so a per-column handler
+ * could never see a finger that started on a sibling column and slid over - dragging across the mat
+ * has to be handled at the one shared level that's under the finger the whole time. Sliding into
+ * another column cancels whatever the previous column was doing (a pending tap, or cycling) and starts
+ * fresh on the new one; only the column the finger is actually released over can register a tap or
+ * leave cycling in effect.
+ *
+ * The lambdas are read when a press happens, not when this is first applied - the handler is keyed only
+ * on [enabled] and [columnCount], so a value-only recomposition never restarts a press in progress -
+ * so they should read what they need through `rememberUpdatedState`.
+ */
+@Composable
+private fun Modifier.columnPresses(
+    enabled: Boolean,
+    columnCount: Int,
+    canCycle: (Int) -> Boolean,
+    onCycle: (Int) -> Unit,
+    onTap: (Int) -> Unit,
+): Modifier {
+    if (!enabled) return this
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    // No indication/ripple here on purpose: at the size of a whole column it painted as an obvious
+    // translucent rectangle over the entire clickable area, not a per-die press effect.
+    //
+    // Hand-rolled instead of Modifier.clickable: a plain clickable's gesture recognizer treats enough
+    // drag as a cancel, which handed off to this screen's enclosing verticalScroll on the slightest
+    // finger movement - even movement that stayed well inside one column - cancelling the press (and
+    // the superuser cycling with it). Consuming every pointer change for as long as any pointer here
+    // stays down denies the scroll container that drag delta, so it never has grounds to steal the
+    // gesture.
+    return pointerInput(enabled, columnCount) {
+        // coroutineScope for a real CoroutineScope to launch the concurrent cycle-ticking coroutine
+        // on (PointerInputScope itself isn't one). The whole press is one awaitEachGesture, so no
+        // pointer event can slip through between reading the down and tracking what follows; launch
+        // and cancel aren't suspending calls, so the restricted gesture scope can still make them
+        // against the outer coroutineScope.
+        coroutineScope {
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false).also { it.consume() }
+                var activeIndex = columnIndexForX(down.position.x, size.width, columnCount)
+                var cycled = false
+
+                fun startCycling() =
+                    if (canCycle(activeIndex)) {
+                        val index = activeIndex
+                        launch {
+                            while (isActive) {
+                                lifecycle.delayWhileResumed(CYCLE_INTERVAL_MILLIS)
+                                cycled = true
+                                onCycle(index)
+                            }
+                        }
+                    } else {
+                        null
+                    }
+
+                var cycleJob = startCycling()
+
+                do {
+                    val event = awaitPointerEvent()
+                    event.changes.forEach { it.consume() }
+                    val pointer = event.changes.firstOrNull { it.id == down.id }
+                    val newIndex = pointer?.let { columnIndexForX(it.position.x, size.width, columnCount) }
+                    if (newIndex != null && newIndex != activeIndex) {
+                        // Crossed into a different column: whatever the previous one was doing (a
+                        // pending tap, or cycling) is abandoned, not completed - only the column the
+                        // finger actually settles on and releases over acts.
+                        cycleJob?.cancel()
+                        activeIndex = newIndex
+                        cycled = false
+                        cycleJob = startCycling()
+                    }
+                } while (event.changes.any { it.pressed })
+                cycleJob?.cancel()
+
+                // Only a press that lasted long enough to actually change the die's face suppresses
+                // the tap - a quick tap (released before the first 1s cycle tick) still acts as
+                // normal, and releasing right after cycling doesn't ALSO immediately act on the value
+                // just picked.
+                if (!cycled) onTap(activeIndex)
+            }
+        }
+    }
+}
+
+/**
+ * The dice area where more dice are rolled than held ([GameMode.scoresHeldDiceOnly]): a row of
+ * [slotCount] hold slots across the top, and below it the mat, split into a narrower column per die,
+ * each die rolling and lying in its own (so they never overlap) and drawn smaller to fit. Holding and
+ * letting go are separate targets: a tap in a die's mat column holds it, into the lowest free slot
+ * (nothing happens with every slot full), and a tap on a slot lets its die go back to the mat. In
+ * superuser mode, a held die's face is cycled by holding a finger on its slot.
+ *
+ * Every die and every slot is its own screen-reader node: a die on the mat says it isn't held and
+ * offers Hold while there's a free slot; a slot names its position, and the die in it (offering
+ * Release) or that it's empty.
+ */
+@Composable
+private fun SlottedDice(
+    dice: List<Die>,
+    slotCount: Int,
+    enabled: Boolean,
+    showDice: Boolean,
+    rolling: Boolean,
+    diceStyles: TrayDiceStyles,
+    mat: DiceMat,
+    onToggleHold: (Int) -> Unit,
+    canCycle: (Int) -> Boolean,
+    onCycleValue: (Int) -> Unit,
+    currentDice: () -> List<Die>,
+) {
+    val irish = LocalIrishTricolour.current
+    // Each die keeps one DieMotion (see DiceColumn) whether it's in a slot or on the mat.
+    val motions = dice.indices.map { rememberDieMotion(it, diceStyles) }
+    fun dieInSlot(dice: List<Die>, slot: Int): Int? = dice.indexOfFirst { it.isHeld && it.heldSlot == slot }.takeIf { it >= 0 }
+    val slotsFull = dice.count { it.isHeld } >= slotCount
+
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(TRAY_PADDING)) {
+        // A slot is no bigger than a mat column, so a die is the same size held as it is on the mat; the
+        // row of them is as tall as a mode that holds every die has it, so the tray is too.
+        val matColumnWidth = (maxWidth - SLOTTED_MAT_COLUMN_GAP * (dice.size - 1)) / dice.size
+        val slotRowHeight = minOf(MAX_SLOT_DIE_SIZE, (maxWidth - DICE_COLUMN_GAP * (slotCount - 1)) / slotCount)
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(slotRowHeight)
+                    .columnPresses(
+                        enabled = enabled,
+                        columnCount = slotCount,
+                        canCycle = { slot -> dieInSlot(currentDice(), slot)?.let(canCycle) == true },
+                        onCycle = { slot -> dieInSlot(currentDice(), slot)?.let(onCycleValue) },
+                        onTap = { slot -> dieInSlot(currentDice(), slot)?.let(onToggleHold) },
+                    ),
+                horizontalArrangement = Arrangement.spacedBy(DICE_COLUMN_GAP),
+            ) {
+                for (slot in 0 until slotCount) {
+                    val index = dieInSlot(dice, slot)
+                    val die = index?.let { dice[it] }
+                    val slotSemantics = if (showDice) {
+                        Modifier.semantics {
+                            if (index != null && die != null) {
+                                contentDescription = "Hold slot ${slot + 1} of $slotCount, ${spokenDie(index, die, irish)}"
+                                stateDescription = "Held"
+                                if (enabled) {
+                                    onClick(label = "Release") {
+                                        onToggleHold(index)
+                                        true
+                                    }
+                                }
+                            } else {
+                                contentDescription = "Hold slot ${slot + 1} of $slotCount"
+                                stateDescription = "Empty"
+                            }
+                        }
+                    } else {
+                        Modifier
+                    }
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight().then(slotSemantics), contentAlignment = Alignment.Center) {
+                        CompositionLocalProvider(LocalDieIndex provides (index ?: 0), LocalDieMotion provides index?.let { motions[it] }) {
+                            HoldSlot(die = die?.takeIf { showDice }, diceStyles = diceStyles, mat = mat, matColumnWidth = matColumnWidth)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(SLOT_TO_MAT_GAP))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .columnPresses(
+                        enabled = enabled,
+                        columnCount = dice.size,
+                        canCycle = { false },
+                        onCycle = {},
+                        onTap = { index ->
+                            val now = currentDice()
+                            if (now.getOrNull(index)?.isHeld == false && now.count { it.isHeld } < slotCount) onToggleHold(index)
+                        },
+                    ),
+                horizontalArrangement = Arrangement.spacedBy(SLOTTED_MAT_COLUMN_GAP),
+            ) {
+                dice.forEachIndexed { index, die ->
+                    val dieSemantics = if (showDice && !die.isHeld) {
+                        Modifier.semantics {
+                            contentDescription = spokenDie(index, die, irish)
+                            stateDescription = if (slotsFull) "Not held, hold slots full" else "Not held"
+                            if (enabled && !slotsFull) {
+                                onClick(label = "Hold") {
+                                    onToggleHold(index)
+                                    true
+                                }
+                            }
+                        }
+                    } else {
+                        Modifier
+                    }
+                    CompositionLocalProvider(LocalDieIndex provides index, LocalDieMotion provides motions[index]) {
+                        ScatterArea(
+                            die = die,
+                            show = showDice,
+                            rolling = rolling,
+                            scatter = SCATTER_OFFSETS[index % SCATTER_OFFSETS.size],
+                            seed = index,
+                            diceStyles = diceStyles,
+                            columnGap = SLOTTED_MAT_COLUMN_GAP,
+                            fitToColumn = true,
+                            modifier = Modifier.weight(1f).then(dieSemantics),
+                        )
+                    }
+                }
             }
         }
     }
@@ -320,10 +525,21 @@ private fun DiceColumn(
     mat: DiceMat,
     modifier: Modifier = Modifier,
 ) {
-    // For a style whose faces the die's movement throws about (googly eyes): the die's movement,
-    // kept for the whole column, so a die keeps its looks as it's held and released. Moved on every
-    // frame only while the die or its pupils are moving.
-    // Not under reduced motion: pupils sliding about as the die moves are motion too, so they stay put.
+    val motion = rememberDieMotion(seed, diceStyles)
+    // Which physical die this column is, so a natural-looking style can give each its own pattern.
+    CompositionLocalProvider(LocalDieIndex provides seed, LocalDieMotion provides motion) {
+        DiceColumnContent(die, show, rolling, scatter, seed, diceStyles, mat, modifier)
+    }
+}
+
+/**
+ * For a style whose faces the die's movement throws about (googly eyes): die [seed]'s movement, kept
+ * for as long as the die is, so it keeps its looks as it's held and released. Moved on every frame
+ * only while the die or its pupils are moving. Null for any other style, and under reduced motion:
+ * pupils sliding about as the die moves are motion too, so they stay put.
+ */
+@Composable
+private fun rememberDieMotion(seed: Int, diceStyles: TrayDiceStyles): DieMotion? {
     val motion = diceStyles.plain.pupilTravel?.takeIf { !LocalReduceMotion.current }
         ?.let { travel -> remember(travel) { DieMotion(seed, travel) } }
     if (motion != null) {
@@ -331,10 +547,7 @@ private fun DiceColumn(
             if (motion.awake) motion.follow()
         }
     }
-    // Which physical die this column is, so a natural-looking style can give each its own pattern.
-    CompositionLocalProvider(LocalDieIndex provides seed, LocalDieMotion provides motion) {
-        DiceColumnContent(die, show, rolling, scatter, seed, diceStyles, mat, modifier)
-    }
+    return motion
 }
 
 @Composable
@@ -349,25 +562,54 @@ private fun DiceColumnContent(
     modifier: Modifier,
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        val shape = RoundedCornerShape(10.dp)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .sizeIn(maxWidth = MAX_SLOT_DIE_SIZE, maxHeight = MAX_SLOT_DIE_SIZE)
-                .clip(shape)
-                .background(mat.slotSocketBrush)
-                .border(1.5.dp, mat.slotSocketBorder, shape),
-        ) {
-            if (show && die.isHeld) {
-                DieFace(die = die, held = true, diceStyles = diceStyles, modifier = Modifier.fillMaxSize().padding(HELD_DIE_INSET))
-            }
-        }
+        HoldSlot(die = die.takeIf { show && it.isHeld }, diceStyles = diceStyles, mat = mat)
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(SLOT_TO_MAT_GAP))
 
-        ScatterArea(die, show, rolling, scatter, seed, diceStyles)
+        ScatterArea(die, show, rolling, scatter, seed, diceStyles, columnGap = DICE_COLUMN_GAP)
     }
+}
+
+private val SLOT_TO_MAT_GAP = 18.dp
+
+/**
+ * A hold slot, square, with [die] in it, if any. As wide as it's given up to [MAX_SLOT_DIE_SIZE], its
+ * die just inside its edge - or, given the [matColumnWidth] of a mat of more dice than slots, as wide
+ * as one of its columns up to the same, its die drawn the size it is on that mat (see SlottedDice).
+ */
+@Composable
+private fun HoldSlot(die: Die?, diceStyles: TrayDiceStyles, mat: DiceMat, matColumnWidth: Dp? = null) {
+    val shape = RoundedCornerShape(10.dp)
+    val size = if (matColumnWidth == null) Modifier.fillMaxWidth().aspectRatio(1f) else Modifier.size(matColumnWidth)
+    Box(
+        modifier = size
+            .sizeIn(maxWidth = MAX_SLOT_DIE_SIZE, maxHeight = MAX_SLOT_DIE_SIZE)
+            .clip(shape)
+            .background(mat.slotSocketBrush)
+            .border(1.5.dp, mat.slotSocketBorder, shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (die != null) {
+            val dieModifier = if (matColumnWidth == null) {
+                Modifier.fillMaxSize().padding(HELD_DIE_INSET)
+            } else {
+                Modifier.size(matDieSize(diceStyles.forDie(die), matColumnWidth, fitToColumn = true))
+            }
+            DieFace(die = die, held = true, diceStyles = diceStyles, modifier = dieModifier)
+        }
+    }
+}
+
+/**
+ * How big a die of [style] is drawn on the mat, in a column [columnWidth] wide: [SCATTERED_DIE_SIZE],
+ * or no more than [SLOTTED_MAT_DIE_FRACTION] of the column where it's [fitToColumn] - a mat of more,
+ * narrower columns than usual (see SlottedDice). A die that stands up (the Egg) isn't a cube seen from
+ * above, so it spans the column just as it spans its slot when held, rather than shrinking as it's let go.
+ */
+private fun matDieSize(style: DiceStyle, columnWidth: Dp, fitToColumn: Boolean): Dp = when {
+    style.standsUpright -> columnWidth - HELD_DIE_INSET * 2
+    fitToColumn -> minOf(SCATTERED_DIE_SIZE, columnWidth * SLOTTED_MAT_DIE_FRACTION)
+    else -> SCATTERED_DIE_SIZE
 }
 
 /**
@@ -415,6 +657,11 @@ private fun ScatterArea(
     scatter: ScatterOffset,
     seed: Int,
     diceStyles: TrayDiceStyles,
+    columnGap: Dp,
+    modifier: Modifier = Modifier,
+    // Draws the die no wider than SLOTTED_MAT_DIE_FRACTION of its column, for a mat of more, narrower
+    // columns than usual (see SlottedDice).
+    fitToColumn: Boolean = false,
 ) {
     // Under reduced motion there's no pick-up or toss: the die stays where it lies until it snaps to its result.
     val simple = LocalReduceMotion.current
@@ -432,11 +679,9 @@ private fun ScatterArea(
     // picked up, since by the time the roll lands the die already holds its new value.
     val cupFace = remember { intArrayOf(0) }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(SCATTER_AREA_HEIGHT)) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth().height(SCATTER_AREA_HEIGHT)) {
         val style = diceStyles.forDie(die)
-        // A die that stands up (the Egg) isn't a cube seen from above, so it's the same size on the
-        // mat as in its slot when held - the slot spans the column - rather than shrinking as it's let go.
-        val dieSize = if (style.standsUpright) maxWidth - HELD_DIE_INSET * 2 else SCATTERED_DIE_SIZE
+        val dieSize = matDieSize(style, maxWidth, fitToColumn)
         // Past the tray's near edge, the whole die clipped off by it: off the mat entirely - a third
         // of a die further than its own height, since a die lying at an angle pokes its corners up
         // past its square outline.
@@ -457,7 +702,7 @@ private fun ScatterArea(
         // A die's rotated footprint stays inside its own column plus half the gap to the next, so
         // neighbours can never overlap, however they're turned - pushed back in from the edge as if
         // off a wall. A little extra for a cube tipping over, whose near edge looms a touch wider.
-        val halfSlot = (maxWidth + DICE_COLUMN_GAP) / 2
+        val halfSlot = (maxWidth + columnGap) / 2
         fun keptIn(x: Dp, yawDegrees: Float): Dp {
             val radians = yawDegrees * PI.toFloat() / 180f
             val half = dieSize / 2 * (abs(cos(radians)) + abs(sin(radians))) * TIPPED_FOOTPRINT
@@ -467,7 +712,7 @@ private fun ScatterArea(
 
         // Where the die sits in the whole dice row, for its shadow: this column's place in the row
         // plus where the die is within it.
-        val columnLeft = (maxWidth + DICE_COLUMN_GAP) * seed
+        val columnLeft = (maxWidth + columnGap) * seed
 
         // Where the die is, for a style whose faces its movement throws about (DieMotion).
         val motion = LocalDieMotion.current

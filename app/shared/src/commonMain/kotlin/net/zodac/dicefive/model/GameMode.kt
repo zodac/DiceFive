@@ -42,8 +42,15 @@ enum class GameMode(
     val displayName: String,
     /** One line for the setup screen, saying what's different about this mode. */
     val description: String,
-    /** How many dice are rolled - and so how many a 5x, a colour set or a straight is measured against. */
+    /** How many dice are rolled. */
     val diceCount: Int,
+    /**
+     * How many dice a hand is scored with - what a 5x, a colour set or a straight is measured
+     * against. The same as [diceCount] in a mode where every die scores. Fewer, and only the held dice
+     * score: there are this many hold slots, and a turn can only be scored once every one is filled
+     * (see [scoresHeldDiceOnly]).
+     */
+    val scoringDiceCount: Int,
     /** Rolls each turn allows, the first included. */
     val rollsPerTurn: Int,
     /** The number faces every die can land on. */
@@ -104,6 +111,7 @@ enum class GameMode(
         displayName = "Standard",
         description = "The official rules",
         diceCount = 5,
+        scoringDiceCount = 5,
         rollsPerTurn = 3,
         dieValues = 1..6,
         dieColours = emptyList(),
@@ -132,6 +140,7 @@ enum class GameMode(
         displayName = "Tricolour",
         description = "Dice also roll red, yellow or blue, with four colour boxes to fill",
         diceCount = 5,
+        scoringDiceCount = 5,
         rollsPerTurn = 3,
         dieValues = 1..6,
         dieColours = listOf(DieColour.RED, DieColour.YELLOW, DieColour.BLUE),
@@ -159,6 +168,7 @@ enum class GameMode(
         displayName = "Quickfire",
         description = "One roll per turn, and 10 seconds to score it",
         diceCount = 5,
+        scoringDiceCount = 5,
         rollsPerTurn = 1,
         dieValues = 1..6,
         dieColours = emptyList(),
@@ -172,7 +182,41 @@ enum class GameMode(
         timeoutPick = TimeoutPick.LOWEST_SCORE,
         autoRollAtTurnStart = true,
     ),
+    /**
+     * Beyond the official rules: Standard's scorecard and three rolls, but seven dice are rolled
+     * instead of five - and only the five held dice score. There are five hold slots, so at most
+     * five dice can be held, and a turn can only be scored once all five are; the board previews what
+     * the held dice would score as soon as one is.
+     *
+     * Max score: only five dice ever score, against Standard's card and bonuses, so the same perfect
+     * game. `1575`.
+     *
+     * Max rolls: Standard's 13 boxes, 3 rolls each. `13*3 = 39`.
+     */
+    STUD(
+        id = "stud",
+        displayName = "Stud",
+        description = "Roll seven dice, but only the five you hold score",
+        diceCount = 7,
+        scoringDiceCount = 5,
+        rollsPerTurn = 3,
+        dieValues = 1..6,
+        dieColours = emptyList(),
+        categories = STANDARD_CATEGORIES,
+        upperBonusThreshold = 63,
+        upperBonusAmount = 35,
+        fiveOfAKindBonusAmount = 100,
+        maxPossibleScore = 1575,
+        maxRollsPerGame = 39,
+    ),
     ;
+
+    /**
+     * Whether only the held dice score: more dice are rolled than a hand is scored with
+     * ([diceCount] over [scoringDiceCount]), so the player picks their hand by holding it.
+     */
+    val scoresHeldDiceOnly: Boolean
+        get() = scoringDiceCount < diceCount
 
     companion object {
         val default: GameMode = STANDARD

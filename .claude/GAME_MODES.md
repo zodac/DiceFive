@@ -11,9 +11,10 @@ Modes so far:
 | `STANDARD`  | `standard`  | Nothing - the official rules. The default.                                                                          |
 | `TRICOLOUR` | `tricolour` | Dice also roll red/yellow/blue; four colour boxes join the card                                                     |
 | `QUICKFIRE` | `quickfire` | One roll per turn, made automatically; a fixed 10s timer replaces the Turn Timer pick; a timeout scores the lowest open box |
+| `STUD`      | `stud`      | Seven dice rolled, five hold slots; only the five held dice score, and only once all five are held                   |
 
-History: `DESIGN.md` Phase 14 (Tricolour, and how modes were first modelled) and Phase 20
-(Quickfire).
+History: `DESIGN.md` Phase 14 (Tricolour, and how modes were first modelled), Phase 20
+(Quickfire) and Phase 25 (Stud).
 
 ## The one rule: a mode is data
 
@@ -44,6 +45,7 @@ When a new rule needs a field, add it here too. This is the map of where each ru
 | Field                                    | Read by                                                                                                    |
 |------------------------------------------|------------------------------------------------------------------------------------------------------------|
 | `diceCount`, `dieValues`, `dieColours`   | `GameEngine.newGame`/`rollDice`/`cycleDieValue`, `DiceTray` (incl. the rolling scramble, and a coloured die's `DiceStyle.recoloured`), `AiTurnPlayer` |
+| `scoringDiceCount` (`scoresHeldDiceOnly`) | `GameState.scoringDice`/`hasFullHand` (what the board previews, what `GameEngine.commitScore` scores, and whether it may); `GameEngine.toggleHold`/`canHold`/`fillHand` (hold slots, `Die.heldSlot`); `DiceTray` (`SlottedDice`); `AiTurnPlayer` (`RollSpace`, `chooseHand`); the timeout; achievements judged on a roll (guarded) or a hand (read `scoringDice`); A Cunning Strategy's "all five" |
 | `rollsPerTurn`                           | `GameEngine` (turn reset) and the `GameState` default set `rollsRemaining`, which the cup's `xN` badge and the AI loop read; `GameViewModel`'s `fullRolls`/`rollsRemainingAfter*` helpers; Impatient/Naturally Gifted's guard |
 | `categories`                             | `PlayerState` (card, totals, completeness), `ScoreCalculator`, `ScoreGrid`, `GameStateJson`, `AiTurnPlayer` baselines, "How Do You Play This Game?" |
 | `upperBonus*`, `fiveOfAKindBonusAmount`  | `PlayerState` totals, `ScoreCalculator`, the 5x tile's bonus preview                                       |
@@ -61,6 +63,8 @@ Most of the work depends on which of these the mode touches. A mode can touch se
   achievements and tests. Everything else follows.
 - **New scoring** (new boxes): see [New categories](#new-categories).
 - **New dice** (a new property, faces, or dice count): see [New dice](#new-dice).
+- **More dice rolled than score** (a hand picked from the roll): see
+  [More dice than score](#more-dice-than-score). This is where Stud's problems were.
 - **The turn's flow** (when rolls happen, timing, what's automatic): see
   [Turn flow](#turn-flow-rolls-timers-undo). This is where Quickfire's problems were.
 - **Another setup option** (it fixes or overrides one): see [New Game screen](#new-game-screen).
@@ -146,6 +150,39 @@ A category's scoring rule is mode-independent; a mode only chooses which categor
   26,334 hands and 33,649 held sets - about 10 MB of arrays, most of a second to build on a laptop
   (`GameViewModel.prepareHardCpus` builds it in the background when a game with a Hard CPU starts),
   then ~2ms a decision. Check a new face count's build time, memory and decision time stay sane.
+
+### More dice than score
+
+Stud rolls seven dice and scores the five held (`scoringDiceCount < diceCount`, i.e.
+`scoresHeldDiceOnly`). Almost everything was written assuming "the dice" and "the hand" are the same
+list. They aren't here, so:
+
+- **Score `GameState.scoringDice`, never `state.dice`.** That's the board's preview, `commitScore`,
+  the AI's category choice, the timeout's category, and every achievement judged on the scored hand.
+  `state.dice` is still right for what's *on the table*: `lastRoll`, Déjà Vu, Loaded Dice, Lucky
+  Seven, die indices. Grep each `state.dice` read and decide which it means.
+- **A part-held hand is scored and previewed**, so scoring must cope with fewer dice than a full
+  hand. `DiceScoring.isFiveOfAKind` needed a dice-count check: three held 6s were "all the same" and
+  previewed a 5x, and could have triggered the joker rule.
+- **Scoring needs a full hand** (`hasFullHand`): `commitScore` throws without one, the board
+  disables the boxes, and a timeout first fills the hand (`GameEngine.fillHand`).
+- **Holding is capped** (`canHold`). Anything that changes holds in bulk must release before it
+  holds: the AI's `applyHolds` swapped dice in the wrong order and hit the cap.
+- **The AI**: `AiTurnPlayer` used "every die held" to mean "stop rolling", and five held no longer
+  is. Hard's exact search plans over hands. `RollSpace` maps each seven-dice roll to its best five-dice
+  hand, and `DiceSpace(maxHeld)` caps the held sets, so the same search works. After the last roll the
+  CPU must pick and hold its hand (`chooseHand`) before scoring, visibly and with a reaction delay.
+- **The tray**: more dice than a column each need their own layout (`DiceTray`'s `SlottedDice`).
+  - Holding and releasing are separate targets: tap the mat to hold, tap a slot to release.
+  - The maintainer's calls on how it looks:
+    - A held die is the same size in its slot as on the mat, so a slot is only as big as a mat column.
+    - The tray keeps the usual height.
+    - A held die goes to the *free* slot nearest its own column and **never moves once it's there**.
+      An order-preserving version that slid held dice along to make room was rejected.
+  - Render it at 411dp and 360dp for review before any APK. Both sizing problems were caught on
+    the renders.
+- **Achievements**: a roll isn't a hand, so anything judged on the roll as it lands needs a guard -
+  see [Stud](#stud-seven-dice-rolled-five-held-to-score).
 
 ### Turn flow: rolls, timers, undo
 
@@ -305,6 +342,34 @@ Famous`` in `GameAchievementsWiringTest` fails without the guard.
   harder.
 - Well Rolled (10,000 dice) - slower, at most 5 dice a turn.
 
+### Stud (seven dice rolled, five held to score)
+
+In Stud a roll isn't a hand - nothing is held straight out of the cup, and the hand is whichever
+five dice the player holds. So achievements that judge a hand at the moment of scoring read
+`GameState.scoringDice` (Wasted 5x, Why Did You Do That?, Empty/Fuller House, Time To Let It Go,
+Twice in a Lifetime), and the ones that judge the roll as it lands are guarded, since seven dice
+make the pattern far easier (or meaningless):
+
+**Guarded - can't be earned in Stud** (`!scoresHeldDiceOnly`, in `GameViewModel`; each test fails
+without its guard):
+
+| Achievement                                            | Why it would come too easily                                      |
+|--------------------------------------------------------|-------------------------------------------------------------------|
+| House Call, Straight Away, Five on the Fly (first roll) | Seven dice hold a straight or five matching far more often - and nothing is held yet, so it isn't a hand |
+| Natural 5x (`NATURAL_5X`)                               | Same, on a reroll with nothing held                               |
+| The Dice Hate Me (`DICE_HATE_ME`)                       | Judged on the roll, which isn't what scores                        |
+| Almost Famous (`ALMOST_FAMOUS`)                         | A 5x among seven dice never shows as one, so "never landed the 5x" was always true |
+
+**Can't be earned in Stud - no guard needed**: I Can Count! and Product Placement (seven dice never
+equal a five-dice sequence); What Was The Point Of That? (every die can never be held - with five
+held, two still roll).
+
+**Still earnable, and worth knowing**: A Cunning Strategy and Commitment Issues count "all five" as
+every hold slot (`scoringDiceCount`), so they work as in Standard. Déjà Vu and Are These Loaded
+Dice? compare all seven dice, so they're harder. Well Rolled counts seven dice a roll. Greenfingers
+grows as in Standard (3 rolls a turn, 39 a game). Lucky Seven (`STUD_LUCKY_SEVEN`) is Stud's own:
+all seven dice showing one number after a roll - most often five held and the last two matching.
+
 ### Tricolour (coloured dice, four colour boxes)
 
 Nothing guarded, nothing blocked. Déjà Vu and Are These Loaded Dice? compare number *and* colour.
@@ -348,7 +413,12 @@ Useful tools, and what tripped this work up:
 - **Timing constants**: a test that measures an AI turn's length should use `CUP_SHAKE_MILLIS`
   (internal) rather than a copied number.
 - **No commas or parentheses in `commonTest` test names** - Kotlin/Native rejects them (see
-  `IOS_SUPPORT.md`).
+  `IOS_SUPPORT.md`). Stud's first run broke the iOS compile on two of them; the JVM tests don't catch
+  it, only the root `testDebugUnitTest` does.
+- **A tray screenshot for review**: a throwaway Robolectric test with `@GraphicsMode(NATIVE)` and
+  `@Config(qualifiers = "w411dp-h891dp-xxhdpi")`. It sets up `GameScreen` as in the screen harness,
+  rolls with a scripted `Random`, holds, steps the clocks, then `onRoot().captureToImage()` to a PNG
+  in the scratchpad. Delete it afterwards.
 
 ## Docs, verification and commit
 

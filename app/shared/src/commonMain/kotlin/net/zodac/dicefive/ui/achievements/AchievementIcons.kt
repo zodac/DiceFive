@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.EmojiPeople
 import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.Filter7
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Filter1
 import androidx.compose.material.icons.filled.Filter3
@@ -73,6 +74,7 @@ import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Storefront
@@ -229,6 +231,9 @@ val Achievement.icon: ImageVector
         // Fast-forward rather than Speed or a bolt - those are Solid Round's and Dice Deity's.
         Achievement.QUICKFIRE_WIN -> Icons.Filled.FastForward
         Achievement.QUICKFIRE_BEAT_THE_CLOCK -> Icons.Filled.AlarmOn
+        // A hand of cards, for the poker game the mode is named after.
+        Achievement.STUD_WIN -> Icons.Filled.Style
+        Achievement.STUD_LUCKY_SEVEN -> Icons.Filled.Filter7
 
         // ---- Misfortune -------------------------------------------------------------------------
         Achievement.SCRATCHED_5X -> Icons.Filled.Cancel

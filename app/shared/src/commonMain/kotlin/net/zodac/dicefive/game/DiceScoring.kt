@@ -45,8 +45,14 @@ object DiceScoring {
             fixedScoreIf(category, dice.all { it.colour != null } && isHouse(dice.groupingBy { it.colour }.eachCount()))
     }
 
+    /**
+     * Whether [dice] are a 5x: at least five of them, all matching. Fewer never are - a part-held
+     * hand in a mode where only held dice score is previewed, and three matching dice there aren't one.
+     */
     fun isFiveOfAKind(dice: List<Die>): Boolean =
-        dice.isNotEmpty() && dice.all { it.value == dice.first().value }
+        dice.size >= FIVE_OF_A_KIND_DICE && dice.all { it.value == dice.first().value }
+
+    private const val FIVE_OF_A_KIND_DICE = 5
 
     private fun fixedScoreIf(category: ScoreCategory, matched: Boolean): Int =
         if (matched) requireNotNull(category.fixedScore) else 0

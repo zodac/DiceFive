@@ -626,6 +626,17 @@ band looking much thinner than the corners) in the deeper `stripe` shades, with 
 the glyph so white or gold still reads on the yellow band. These colours live in `Color.kt`'s
 game-table block - a fixed meaning (the dice's own colours), not a theme role.
 
+**More dice than hold slots (Stud) gets its own tray layout** (`DiceTray`'s `SlottedDice`): the
+five hold slots across the top, then the mat split into a column per die - seven narrower columns,
+6dp apart, a die at most 86% of its column, so they never overlap. Holding and letting go are
+separate targets (a tap in a mat column holds, into the free slot nearest that column, and a held die
+never moves; a tap on a slot lets go),
+where the usual layout's whole column toggles. Both layouts share one column gesture
+(`columnPresses`), and the tray is the same height either way. Each slot and each die on the mat is
+its own TalkBack node (`SlottedDiceTrayTest`). A slot is only as big as a mat column, so a held
+die is drawn the same size as on the mat (`matDieSize`), the slot row keeping the usual layout's
+height. Robolectric renders only - not seen on a device.
+
 ## Constraints worth knowing
 
 **Player names cap at a length that varies with player count** (`GameSetupState.

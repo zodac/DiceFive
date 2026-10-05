@@ -1267,6 +1267,8 @@ class AchievementEngineTest {
                 Achievement.TRICOLOUR_ALL_COLOURS,
                 Achievement.QUICKFIRE_WIN,
                 Achievement.QUICKFIRE_BEAT_THE_CLOCK,
+                Achievement.STUD_WIN,
+                Achievement.STUD_LUCKY_SEVEN,
             ),
             gameModes,
         )
@@ -1288,6 +1290,23 @@ class AchievementEngineTest {
         assertFalse(Achievement.QUICKFIRE_WIN in evaluate(game(GameMode.QUICKFIRE, 100)).newlyUnlocked)
         assertFalse(Achievement.QUICKFIRE_WIN in evaluate(game(GameMode.QUICKFIRE, 300, withBot = false)).newlyUnlocked)
         assertFalse(Achievement.QUICKFIRE_WIN in evaluate(game(GameMode.STANDARD, 300)).newlyUnlocked)
+    }
+
+    @Test
+    fun `winning a multiplayer game of Stud unlocks Hold Em - and only Stud`() {
+        fun game(mode: GameMode, humanTotal: Int, withBot: Boolean = true) = if (withBot) {
+            finishedGame(
+                player(total = humanTotal, gameMode = mode),
+                player(name = "Bot", type = PlayerType.AI, total = 200, gameMode = mode),
+            )
+        } else {
+            finishedGame(player(total = humanTotal, gameMode = mode))
+        }
+
+        assertTrue(Achievement.STUD_WIN in evaluate(game(GameMode.STUD, 300)).newlyUnlocked)
+        assertFalse(Achievement.STUD_WIN in evaluate(game(GameMode.STUD, 100)).newlyUnlocked)
+        assertFalse(Achievement.STUD_WIN in evaluate(game(GameMode.STUD, 300, withBot = false)).newlyUnlocked)
+        assertFalse(Achievement.STUD_WIN in evaluate(game(GameMode.STANDARD, 300)).newlyUnlocked)
     }
 
     @Test

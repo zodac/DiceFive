@@ -635,6 +635,9 @@ class GameViewModel(
     // this if that turns out to matter more in practice than being able to undo a bad category
     // pick.
     fun commitScore(category: ScoreCategory) {
+        // The board only offers a box once the hand is whole (every hold slot filled, where only held
+        // dice score) - a tap that gets here otherwise has nothing to score.
+        if (_game.value?.hasFullHand == false) return
         // Only player 1 - "You" - earns achievements; another human seat can still commit a score
         // normally, it just doesn't feed any Achievement tracking. Read before onHumanAction below,
         // which ends this player's turn and advances currentPlayerIndex to the next seat.
@@ -875,8 +878,10 @@ class GameViewModel(
         if (state.phase != TurnPhase.ROLLED) {
             state = GameEngine.rollDice(state, random)
         }
+        // Where only held dice score, the empty hold slots are filled for the player first.
+        state = GameEngine.fillHand(state)
         val player = state.currentPlayer ?: return
-        val category = ScoreCalculator.timeoutCategory(player, state.dice)
+        val category = ScoreCalculator.timeoutCategory(player, state.scoringDice)
         setUndoSnapshot(null)
         applyGameState(GameEngine.commitScore(state, category))
         if (isPlayerOneTurn) {
@@ -1050,6 +1055,8 @@ class GameViewModel(
     private fun checkFirstRollAchievements() {
         val state = _game.value ?: return
         if (state.rollsRemaining != state.rollsRemainingAfterFirst) return
+        // Where only held dice score, a roll isn't a hand - nothing is held straight out of the cup.
+        if (state.gameMode.scoresHeldDiceOnly) return
         val player = state.currentPlayer ?: return
 
         val dice = state.dice
@@ -1091,6 +1098,14 @@ class GameViewModel(
         val values = dice.map { it.value }
         // Number and colour together: in a mode with coloured dice, "the same result" means both.
         val faces = dice.faces()
+        // Where only held dice score, a roll isn't a hand: the feats judged on one as it lands (Natural
+        // 5x, The Dice Hate Me, Almost Famous) aren't earned there. Seven dice would hand them out.
+        val rollIsHand = !state.gameMode.scoresHeldDiceOnly
+
+        // Lucky Seven: every one of 'Stud' mode's seven dice showing the same number.
+        if (state.gameMode == GameMode.STUD && values.toSet().size == 1) {
+            unlockAchievements(setOf(Achievement.STUD_LUCKY_SEVEN))
+        }
 
         // Déjà Vu: the same result as the immediately previous roll THIS turn, with nothing held -
         // not just unchanged since the last roll (that's Are These Loaded Dice?'s territory, the
@@ -1113,7 +1128,8 @@ class GameViewModel(
         // Natural 5x: landed without holding anything for this roll, and it wasn't the first one
         // (rolling nothing-held on roll 1 is just how every turn starts) - and, same as First
         // Roll 5x, only if the 5x could actually be scored as one (see fiveOfAKindScorable).
-        if (rollsRemainingBeforeRoll < state.fullRolls &&
+        if (rollIsHand &&
+            rollsRemainingBeforeRoll < state.fullRolls &&
             diceBeforeRoll.none { it.isHeld } &&
             DiceScoring.isFiveOfAKind(dice) &&
             fiveOfAKindScorable(player, dice, ScoreCalculator.availableCategories(player, dice))
@@ -1127,7 +1143,7 @@ class GameViewModel(
         // whether a real 5x ever turns up on it anyway.
         if (rollsRemainingBeforeRoll == state.fullRolls) {
             val fourOfAKindValue = values.groupingBy { it }.eachCount().entries.firstOrNull { it.value == FOUR_OF_A_KIND_COUNT }?.key
-            fourOfAKindIndicesFromFirstRoll = fourOfAKindValue?.let { value ->
+            fourOfAKindIndicesFromFirstRoll = fourOfAKindValue?.takeIf { rollIsHand }?.let { value ->
                 values.withIndex().filter { it.value == value }.map { it.index }.toSet()
             }
             heldFourOfAKindThroughTurn = fourOfAKindIndicesFromFirstRoll != null
@@ -1142,7 +1158,9 @@ class GameViewModel(
 
         // The Dice Hate Me: a real (non-zero) scoring option existed after roll 2, but none at all
         // after roll 3.
-        if (rollsRemainingBeforeRoll == state.rollsRemainingAfterFirst) {
+        if (!rollIsHand) {
+            hadScoringOptionAfterSecondRoll = false
+        } else if (rollsRemainingBeforeRoll == state.rollsRemainingAfterFirst) {
             hadScoringOptionAfterSecondRoll = hasScoringOption(player, dice)
         } else if (rollsRemainingBeforeRoll == state.rollsRemainingAfterSecond) {
             if (hadScoringOptionAfterSecondRoll && !hasScoringOption(player, dice)) {
@@ -1205,8 +1223,10 @@ class GameViewModel(
         }
 
         // A Cunning Strategy: reached all-five-held at some point this turn, then all-none-held afterward.
+        // "All five" is every hold slot - every die, unless the mode rolls more dice than it scores.
+        val fullHand = state.gameMode.scoringDiceCount
         when {
-            heldIndices.size == dice.size -> everHeldAllFiveThisTurn = true
+            heldIndices.size == fullHand -> everHeldAllFiveThisTurn = true
             heldIndices.isEmpty() && everHeldAllFiveThisTurn -> unlockAchievements(setOf(Achievement.CUNNING_STRATEGY))
         }
 
@@ -1235,7 +1255,7 @@ class GameViewModel(
                 pendingCommitmentGroupIndices = heldIndices
                 // A real 5x - not indecision - taints it: crediting whatever this shrinks back down
                 // through afterwards would call rolling a genuine 5x "holding a group", which it isn't.
-                if (heldIndices.size == dice.size) commitmentGroupTainted = true
+                if (heldIndices.size == fullHand) commitmentGroupTainted = true
             }
             else -> {
                 pendingCommitmentGroupValue = null
@@ -1256,7 +1276,7 @@ class GameViewModel(
         val state = _game.value ?: return
         val player = state.currentPlayer ?: return
         if (player.type != PlayerType.HUMAN) return
-        val dice = state.dice
+        val dice = state.scoringDice
         if (!DiceScoring.isFiveOfAKind(dice)) return
         if (ScoreCalculator.scoreFor(player, category, dice) != 0) return
         unlockAchievements(setOf(Achievement.WASTED_5X))
@@ -1268,7 +1288,8 @@ class GameViewModel(
         val state = _game.value ?: return
         val player = state.currentPlayer ?: return
         if (player.type != PlayerType.HUMAN) return
-        val dice = state.dice
+        // The hand being scored - every die, or where only held dice score, the held ones.
+        val dice = state.scoringDice
 
         // Why Did You Do That?: the small straight scored while the large straight sat right
         // there, open and legal.
@@ -1328,7 +1349,7 @@ class GameViewModel(
         // held die go, so it doesn't count.
         if (category in PlayerState.UPPER_CATEGORIES && DiceScoring.score(category, dice) > 0) {
             val target = PlayerState.UPPER_CATEGORIES.indexOf(category) + 1
-            if (heldThroughBothRerolls.any { dice[it].value != target }) {
+            if (heldThroughBothRerolls.any { state.dice[it].value != target }) {
                 unlockAchievements(setOf(Achievement.TIME_TO_LET_IT_GO))
             }
         }
@@ -1600,6 +1621,20 @@ class GameViewModel(
                     // almost as soon as it landed, reading as a die vanishing rather than being released.
                     // With the dice not animated, a released die is simply back on the mat: nothing to watch land.
                     pausableDelay(if (releasedAny && diceAnimated) RELEASE_GAP_MS else ROLL_GAP_MS)
+                }
+                // Where only held dice score, the CPU picks out its hand now it's done rolling - held as a
+                // human would, so the hand it scores is the one in its slots.
+                if (current.gameMode.scoresHeldDiceOnly) {
+                    val toHold = current
+                    val handChoice = async(aiDispatcher) { AiTurnPlayer.chooseHand(toHold, perfectPlay) }
+                    pausableDelay(AI_REACTION_DELAY_MS)
+                    val hand = handChoice.await()
+                    setUndoSnapshot(null)
+                    current = changeHolds(
+                        current,
+                        toRelease = current.dice.indices.filter { current.dice[it].isHeld && it !in hand },
+                        toHold = current.dice.indices.filter { !current.dice[it].isHeld && it in hand },
+                    )
                 }
                 // Also off the main thread: Hard's category choice compares against
                 // CATEGORY_BASELINES, a `by lazy` average-over-every-outcome computed once per

@@ -301,6 +301,48 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `a Stud CPU of every difficulty holds a five-dice hand before it scores`() = runTest(testDispatcher) {
+        for (difficulty in Difficulty.entries) {
+            val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+            viewModel.setPlayerCount(2)
+            viewModel.setPlayerType(2, PlayerType.AI)
+            viewModel.setPlayerDifficulty(2, difficulty)
+            viewModel.setGameMode(GameMode.STUD)
+            viewModel.startGame()
+
+            viewModel.rollDice()
+            for (index in 0 until 5) viewModel.toggleHold(index)
+            viewModel.commitScore(ScoreCategory.CHANCE)
+            advanceUntilIdle()
+
+            val cpu = viewModel.game.value!!.players[1]
+            assertEquals(1, cpu.scorecard.values.count { it != null }, "$difficulty CPU didn't play")
+            assertEquals(5, cpu.lastRoll!!.count { it.isHeld }, "$difficulty")
+            assertEquals(7, cpu.lastRoll.size, "$difficulty")
+        }
+    }
+
+    @Test
+    fun `a Stud score can't be committed until all five hold slots are full`() {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setPlayerCount(1)
+        viewModel.setGameMode(GameMode.STUD)
+        viewModel.startGame()
+        viewModel.rollDice()
+        for (index in 0 until 4) viewModel.toggleHold(index)
+
+        viewModel.commitScore(ScoreCategory.CHANCE)
+        assertNull(viewModel.game.value!!.players.single().scorecard[ScoreCategory.CHANCE])
+
+        viewModel.toggleHold(4)
+        // A sixth die can't be held: the slots are full.
+        viewModel.toggleHold(5)
+        assertEquals(5, viewModel.game.value!!.dice.count { it.isHeld })
+        viewModel.commitScore(ScoreCategory.CHANCE)
+        assertNotNull(viewModel.game.value!!.players.single().scorecard[ScoreCategory.CHANCE])
+    }
+
+    @Test
     fun `three consecutive AI players all take their turn without further human input`() = runTest(testDispatcher) {
         val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(4)

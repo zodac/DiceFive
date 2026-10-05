@@ -418,6 +418,7 @@ object AchievementEngine {
         award(Achievement.TRICOLOUR_WIN, multiplayer && humanWon && state.gameMode == GameMode.TRICOLOUR)
         award(Achievement.QUICKFIRE_WIN, multiplayer && humanWon && state.gameMode == GameMode.QUICKFIRE)
         award(Achievement.QUICKFIRE_BEAT_THE_CLOCK, state.gameMode == GameMode.QUICKFIRE && context.playerOneTimeouts == 0)
+        award(Achievement.STUD_WIN, multiplayer && humanWon && state.gameMode == GameMode.STUD)
         // Any mode - the card size comes from player 1's own mode, so it's "all but 3" of 13 boxes in
         // Standard or Quickfire, and of 17 in Tricolour.
         val playerOneScoredThemselves = players[0].gameMode.categories.size - context.playerOneTimeouts

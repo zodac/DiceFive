@@ -137,6 +137,30 @@ class GameStateJsonTest {
     }
 
     @Test
+    fun `round trips a Stud game - including which hold slot each held die is in`() {
+        val mode = GameMode.STUD
+        val state = GameState(
+            gameMode = mode,
+            players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, gameMode = mode)),
+            dice = listOf(
+                Die(value = 6, isHeld = true, heldSlot = 2),
+                Die(value = 1),
+                Die(value = 6, isHeld = true, heldSlot = 0),
+                Die(value = 3),
+                Die(value = 4),
+                Die(value = 6, isHeld = true, heldSlot = 1),
+                Die(value = 2),
+            ),
+            phase = TurnPhase.ROLLED,
+        )
+
+        val decoded = GameStateJson.decode(GameStateJson.encode(state))
+
+        assertEquals(state, decoded)
+        assertEquals(listOf(6, 6, 6), decoded.scoringDice.map { it.value })
+    }
+
+    @Test
     fun `round trips a player's lastRoll - held state included`() {
         val lastRoll = List(5) { Die(value = it % 6 + 1, isHeld = it % 2 == 0) }
         val state = GameState(

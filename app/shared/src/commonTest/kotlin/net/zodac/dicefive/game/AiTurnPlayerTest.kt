@@ -273,7 +273,88 @@ class AiTurnPlayerTest {
         assertEquals(ScoreCategory.BLUES, AiTurnPlayer.chooseCategory(scoring))
     }
 
+    // ---- Stud ------------------------------------------------------------------------------------
+
+    private fun studBot(difficulty: Difficulty) =
+        PlayerState(name = "Bot", type = PlayerType.AI, difficulty = difficulty, gameMode = GameMode.STUD)
+
+    private fun rolledStud(difficulty: Difficulty, values: List<Int>, rollsRemaining: Int) = GameState(
+        gameMode = GameMode.STUD,
+        players = listOf(studBot(difficulty)),
+        dice = values.map { Die(value = it) },
+        rollsRemaining = rollsRemaining,
+        phase = TurnPhase.ROLLED,
+    )
+
+    @Test
+    fun `every difficulty plays whole legal Stud games - scoring a full held hand every turn`() {
+        for (difficulty in Difficulty.entries) {
+            val random = Random(difficulty.ordinal)
+            var state = GameState(gameMode = GameMode.STUD, players = listOf(studBot(difficulty)))
+            while (!state.isGameOver) {
+                state = AiTurnPlayer.playTurn(state, random)
+                val last = requireNotNull(state.players.single().lastRoll)
+                assertEquals(7, last.size, "$difficulty")
+                assertEquals(5, last.count { it.isHeld }, "$difficulty")
+            }
+            assertTrue(state.players.single().isScorecardComplete, "$difficulty")
+        }
+    }
+
+    @Test
+    fun `a Stud hold never asks for more dice than there are slots - except every die to stop`() {
+        val random = Random(3)
+        for (difficulty in Difficulty.entries) {
+            repeat(STUD_HOLD_CASES) {
+                val state = rolledStud(difficulty, List(7) { random.nextInt(1, 7) }, rollsRemaining = 2)
+                val holds = AiTurnPlayer.chooseHolds(state)
+                assertTrue(holds.size <= 5 || holds.size == 7, "$difficulty held $holds of ${state.dice.map { it.value }}")
+            }
+        }
+    }
+
+    @Test
+    fun `Hard holds the four 6s of a Stud roll and rerolls the rest`() {
+        val state = rolledStud(Difficulty.HARD, listOf(6, 2, 6, 1, 6, 3, 6), rollsRemaining = 2)
+
+        assertTrue(AiTurnPlayer.chooseHolds(state).containsAll(setOf(0, 2, 4, 6)))
+    }
+
+    @Test
+    fun `every difficulty picks the 5x out of a Stud roll as its hand`() {
+        for (difficulty in Difficulty.entries) {
+            val state = rolledStud(difficulty, listOf(4, 4, 1, 4, 4, 6, 4), rollsRemaining = 0)
+
+            assertEquals(setOf(0, 1, 3, 4, 6), AiTurnPlayer.chooseHand(state), "$difficulty")
+        }
+    }
+
+    @Test
+    fun `a Stud category is chosen from the held hand alone`() {
+        // Five 2s held; the two 6s left on the mat would make Sixes or Chance worth more, but don't score.
+        val dice = listOf(2, 2, 2, 2, 2).mapIndexed { slot, value -> Die(value = value, isHeld = true, heldSlot = slot) } +
+            List(2) { Die(value = 6) }
+        val state = GameState(gameMode = GameMode.STUD, players = listOf(studBot(Difficulty.EASY)), dice = dice, rollsRemaining = 0, phase = TurnPhase.ROLLED)
+
+        assertEquals(ScoreCategory.FIVE_OF_A_KIND, AiTurnPlayer.chooseCategory(state))
+    }
+
+    @Test
+    fun `Hard scores more in Stud than in Standard over the same seeded games`() {
+        fun average(mode: GameMode) = (1..STUD_SEEDED_GAMES).map { seed ->
+            val random = Random(seed)
+            var state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.AI, name = "Bot", difficulty = Difficulty.HARD)), mode)
+            while (!state.isGameOver) state = AiTurnPlayer.playTurn(state, random)
+            state.players.single().totalScore
+        }.average()
+
+        val stud = average(GameMode.STUD)
+        assertTrue(stud > average(GameMode.STANDARD), "Hard averaged $stud in Stud")
+    }
+
     private companion object {
         const val SEEDED_GAMES = 200
+        const val STUD_HOLD_CASES = 200
+        const val STUD_SEEDED_GAMES = 40
     }
 }

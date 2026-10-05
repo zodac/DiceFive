@@ -123,16 +123,21 @@ fun GameBoard(
     // finishes and the new dice actually land), and once they land they're still tumbling to a stop
     // ([diceSettling]) - so nothing is highlighted or tappable until the dice the scores are for
     // are sitting still, and a tap can never score against dice about to change.
+    //
+    // Where only held dice score (GameMode.scoresHeldDiceOnly), the board reads the held hand: it
+    // previews what those dice would score as soon as one is held, but a box can only be tapped once
+    // every hold slot is filled.
     val rollInHand = rolling || diceSettling
-    val canScore = rolled && player?.type == PlayerType.HUMAN && !rollInHand
-    val available = player?.let { ScoreCalculator.availableCategories(it, state.dice) }.orEmpty().toSet()
+    val hand = state.scoringDice
+    val canScore = rolled && player?.type == PlayerType.HUMAN && !rollInHand && state.hasFullHand
+    val available = player?.let { ScoreCalculator.availableCategories(it, hand) }.orEmpty().toSet()
 
     ScoreBoardRow(
         gameMode = state.gameMode,
         player = player,
-        dice = state.dice,
+        dice = hand,
         canScore = canScore,
-        showPreview = rolled && !rollInHand,
+        showPreview = rolled && !rollInHand && hand.isNotEmpty(),
         available = available,
         onScoreCategory = onScoreCategory,
         cup = CupPanelState(
