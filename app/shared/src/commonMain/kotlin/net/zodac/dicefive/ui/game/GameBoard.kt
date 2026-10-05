@@ -24,7 +24,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
-import net.zodac.dicefive.model.flowerpotGrowthStage
+import net.zodac.dicefive.model.flowerpotStage
 import net.zodac.dicefive.ui.game.style.FlowerpotGrowth
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.playerColor
@@ -159,7 +159,7 @@ fun GameBoard(
             onCupTap = onCupTap,
             onUndo = onUndo,
             flowerpotGrowth = FlowerpotGrowth(
-                stage = state.gameMode.flowerpotGrowthStage(player?.rollCount ?: 0),
+                stage = player?.flowerpotStage ?: 0,
                 grower = state.currentPlayerIndex,
             ),
         ),

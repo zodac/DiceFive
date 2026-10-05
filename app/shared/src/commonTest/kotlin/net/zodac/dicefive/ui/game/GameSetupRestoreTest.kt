@@ -24,6 +24,7 @@ import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
+import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.TurnTimer
 
 /** In-memory preferences, so a real [SettingsRepository] can hold the saved setup. */
@@ -105,5 +106,46 @@ class GameSetupRestoreTest {
         advanceUntilIdle()
         assertEquals(TurnTimer.NONE, second.setup.value.turnTimer)
         assertEquals(TurnTimer.SECONDS_120, second.setup.value.turnTimerLength)
+    }
+
+    @Test
+    fun `roll modifiers are remembered and the rolls value is kept while off`() = runTest(testDispatcher) {
+        val repository = SettingsRepository(FakePreferencesStore())
+        val first = GameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
+        advanceUntilIdle()
+        first.setRollsPerTurn(7)
+        first.setRollsPerTurn(null)
+        first.setStoredRolls(true)
+        first.setStoredRollsMax(12)
+        first.startGame()
+        advanceUntilIdle()
+
+        val second = GameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
+        advanceUntilIdle()
+        assertEquals(RollModifiers(rollsPerTurn = null, storedRolls = true, storedRollsMax = 12), second.setup.value.rollModifiers)
+        assertEquals(7, second.setup.value.rollsPerTurnLength)
+    }
+
+    @Test
+    fun `a game starts with the chosen roll modifiers`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setRollsPerTurn(5)
+        viewModel.setStoredRolls(true)
+        viewModel.startGame()
+
+        val game = checkNotNull(viewModel.game.value)
+        assertEquals(RollModifiers(rollsPerTurn = 5, storedRolls = true), game.rollModifiers)
+        assertEquals(5, game.rollsRemaining)
+    }
+
+    @Test
+    fun `a mode that doesn't allow roll modifiers starts without them but keeps the pick`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setRollsPerTurn(5)
+        viewModel.setGameMode(GameMode.QUICKFIRE)
+        viewModel.startGame()
+
+        assertEquals(RollModifiers(), checkNotNull(viewModel.game.value).rollModifiers)
+        assertEquals(5, viewModel.setup.value.rollModifiers.rollsPerTurn)
     }
 }

@@ -56,6 +56,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
+import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.hasGrownSunflower
 import net.zodac.dicefive.model.isLuckOfTheIrish
@@ -86,6 +87,9 @@ data class GameSetupState(
     val turnTimer: TurnTimer = TurnTimer.NONE,
     /** The length the turn timer modifier returns to when switched back on: the last one chosen, kept while [turnTimer] is [TurnTimer.NONE]. Never NONE. */
     val turnTimerLength: TurnTimer = TurnTimer.SECONDS_60,
+    val rollModifiers: RollModifiers = RollModifiers(),
+    /** The Number of Rolls value the modifier returns to when switched back on: the last one chosen, kept while [RollModifiers.rollsPerTurn] is null. */
+    val rollsPerTurnLength: Int = RollModifiers.DEFAULT_ROLLS,
 ) {
     companion object {
         const val MIN_PLAYERS = 1
@@ -415,6 +419,8 @@ class GameViewModel(
                     playerSlots = slots,
                     turnTimer = repository.turnTimer.first(),
                     turnTimerLength = repository.turnTimerLength.first(),
+                    rollModifiers = repository.rollModifiers.first(),
+                    rollsPerTurnLength = repository.rollsPerTurnLength.first(),
                     gameMode = repository.gameMode.first(),
                 )
                 _setup.value = restored
@@ -462,6 +468,26 @@ class GameViewModel(
         _setup.update { it.copy(turnTimer = turnTimer, turnTimerLength = if (turnTimer == TurnTimer.NONE) it.turnTimerLength else turnTimer) }
     }
 
+    /** Switches the Number of Rolls modifier on at [rolls], or off with null - the value is remembered either way. */
+    fun setRollsPerTurn(rolls: Int?) {
+        _setup.update {
+            it.copy(
+                rollModifiers = it.rollModifiers.copy(rollsPerTurn = rolls),
+                rollsPerTurnLength = rolls ?: it.rollsPerTurnLength,
+            )
+        }
+    }
+
+    /** Switches the Stored Rolls modifier on or off. Its cap is kept while it's off. */
+    fun setStoredRolls(enabled: Boolean) {
+        _setup.update { it.copy(rollModifiers = it.rollModifiers.copy(storedRolls = enabled)) }
+    }
+
+    /** Sets the most rolls Stored Rolls may keep, or null for no cap. */
+    fun setStoredRollsMax(max: Int?) {
+        _setup.update { it.copy(rollModifiers = it.rollModifiers.copy(storedRollsMax = max)) }
+    }
+
     /** Builds the initial [GameState] from the current setup form, generating AI names now. */
     fun startGame() {
         // Read before anything below overwrites it: "One More Time" is about the game THIS call is
@@ -484,17 +510,18 @@ class GameViewModel(
         persistHumanNames(activeSlots)
         // The form's own pick is still what's remembered, so switching back from a mode with a fixed
         // timer finds it as it was left - but it isn't what this game plays under.
-        persistGameConfig(setupState.playerCount, activeSlots, setupState.turnTimer, setupState.gameMode, setupState.turnTimerLength)
+        persistGameConfig(setupState)
         val turnTimer = if (setupState.gameMode.turnTimerSeconds != null) TurnTimer.NONE else setupState.turnTimer
+        val rollModifiers = if (setupState.gameMode.allowsRollModifiers) setupState.rollModifiers else RollModifiers()
         setUndoSnapshot(null)
         resetSuperuserMode()
         resetAchievementTracking()
-        applyGameState(GameEngine.newGame(playerConfigs, setupState.gameMode, turnTimer))
+        applyGameState(GameEngine.newGame(playerConfigs, setupState.gameMode, turnTimer, rollModifiers))
         prepareHardCpus()
         // "Full Table" is settled the moment four seats are taken - no need to make them play it out.
         checkInProgressAchievements()
         checkGameStartAchievements(
-            customizedGameSettings = turnTimer != TurnTimer.NONE || setupState.gameMode != GameMode.default,
+            customizedGameSettings = turnTimer != TurnTimer.NONE || rollModifiers.isActive || setupState.gameMode != GameMode.default,
         )
 
         if (previousGame != null && previousGame.isGameOver && !humanWonGame(previousGame)) {
@@ -1438,13 +1465,15 @@ class GameViewModel(
         }
     }
 
-    private fun persistGameConfig(playerCount: Int, slots: List<PlayerSetupSlot>, turnTimer: TurnTimer, gameMode: GameMode, turnTimerLength: TurnTimer) {
+    private fun persistGameConfig(setup: GameSetupState) {
         val repository = settingsRepository ?: return
+        val slots = setup.playerSlots.take(setup.playerCount)
         viewModelScope.launch {
-            repository.setPlayerCount(playerCount)
-            repository.setTurnTimer(turnTimer)
-            repository.setTurnTimerLength(turnTimerLength)
-            repository.setGameMode(gameMode)
+            repository.setPlayerCount(setup.playerCount)
+            repository.setTurnTimer(setup.turnTimer)
+            repository.setTurnTimerLength(setup.turnTimerLength)
+            repository.setRollModifiers(setup.rollModifiers, setup.rollsPerTurnLength)
+            repository.setGameMode(setup.gameMode)
             for (slot in slots) {
                 // Slot 1 is always Human, so its type and difficulty aren't worth persisting.
                 if (slot.slot == 1) continue
@@ -1676,17 +1705,17 @@ class GameViewModel(
         /** [ROLL_GAP_MS] when the AI has just let go of a die: long enough to see it land on the mat before the shake sweeps it up. */
         private const val RELEASE_GAP_MS = 500L
 
-        /** What `rollsRemaining` reads before any roll has happened this turn - the mode's full allowance. */
+        /** What `rollsRemaining` reads before any roll has happened this turn - the turn's full allowance, stored rolls included. */
         private val GameState.fullRolls: Int
-            get() = gameMode.rollsPerTurn
+            get() = turnRolls
 
         /** What `rollsRemaining` reads once the first of a turn's rolls has been used. */
         private val GameState.rollsRemainingAfterFirst: Int
-            get() = gameMode.rollsPerTurn - 1
+            get() = turnRolls - 1
 
         /** What `rollsRemaining` reads once the second of a turn's rolls has been used. */
         private val GameState.rollsRemainingAfterSecond: Int
-            get() = gameMode.rollsPerTurn - 2
+            get() = turnRolls - 2
 
         /** Each die's face - number and colour - without whether it's held, for comparing one roll to another. */
         private fun List<Die>.faces(): List<Die> = map { Die(value = it.value, colour = it.colour) }

@@ -2246,3 +2246,29 @@ install-over-existing succeeds:
       just left of Undo. Both buttons are icon-only (`BoardButtonIcon`, the labels dropped on review),
       the glyph shrinking only on a row too short for its 26dp, at a 48dp minimum touch target.
       Rendered at 411dp, 320dp and 200% font; not seen on a device.
+
+### Phase 27 — Modifiers: Number of Rolls and Stored Rolls
+
+- [x] **Number of Rolls** (1-9, default 3, remembered while off) replaces the mode's rolls per turn;
+      **Stored Rolls** keeps a player's unused rolls for their own next turn, optionally capped by a typed
+      number (empty is no cap). Both are `RollModifiers`, carried on `GameState`, saved by
+      `GameStateJson` and `SettingsRepository`. Like the turn timer, either one takes a game off the Leaderboard.
+- [x] **Engine**: `PlayerState.storedRolls` is set when a turn is scored (`RollModifiers.stored`) and
+      added to the next turn's allowance in `advanceTurn`. `GameState.turnRolls` is what the turn started
+      with, so the first/second-roll achievement checks (`fullRolls`, `rollsRemainingAfterFirst`) still
+      mean the same with stored rolls in hand.
+- [x] **Quickfire locks both** (`GameMode.allowsRollModifiers = false`): its single roll is made for the
+      player, and a stored roll would be a second kind of roll. Shown locked, game starts with them off.
+- [x] **Cup count**: "x12" overflowed the panel at 360dp - already at two digits. The count now takes the
+      room left beside the cup and shrinks to fit (down to 12sp); at 10 or more it drops the 10dp gap.
+      Rendered at 360dp: x9, x17 and x105 all fit.
+- [x] **Setup**: Number of Rolls is a stepper (nine segments don't fit the modal), Stored Rolls a switch
+      with a numeric field, both in `ModifierPicker` (`ModifierStepper`, `ModifierNumberField`).
+- [x] **Achievements**: `PlayerState.rollsModified` guards the score ladder, Upper/Lower Class, Spotless,
+      Bonus Round and the Flowerpot sunflower (`flowerpotStage`); Impatient/Naturally Gifted read the
+      game's rolls per turn. Not guarded, and easier with extra rolls: the 5x ones, first-roll feats and
+      Well Rolled.
+- [x] **AI**: Hard plans over at most 9 rerolls (`MAX_PLANNED_ROLLS`); it doesn't save rolls on purpose.
+- [ ] **Not seen on a device**: the text field in the modal (Robolectric never goes idle with a text field
+      in any dialog, so it was not rendered), and what TalkBack says.
+

@@ -53,4 +53,12 @@ class FlowerpotGrowthTest {
         assertFalse(player.copy(gameMode = GameMode.TRICOLOUR, rollCount = 50).hasGrownSunflower)
         assertTrue(player.copy(gameMode = GameMode.TRICOLOUR, rollCount = 51).hasGrownSunflower)
     }
+
+    @Test
+    fun `a roll modifier keeps the plant from blooming - however many rolls`() {
+        val player = PlayerState(name = "Player 1", type = PlayerType.HUMAN, rollsModified = true)
+
+        assertEquals(3, player.copy(rollCount = 39).flowerpotStage)
+        assertFalse(player.copy(rollCount = 400).hasGrownSunflower)
+    }
 }

@@ -12,6 +12,7 @@ import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
+import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
@@ -419,5 +420,126 @@ class GameEngineTest {
         }
         assertEquals(39, turns)
         assertTrue(state.players.single().scorecard.values.all { it.size == 3 })
+    }
+
+    // ---- Roll modifiers ---------------------------------------------------------------------------
+
+    private fun scoreNow(state: GameState, category: ScoreCategory = ScoreCategory.CHANCE) =
+        GameEngine.commitScore(state, category)
+
+    @Test
+    fun `Number of Rolls replaces the mode's rolls every turn`() {
+        var state = GameEngine.newGame(twoPlayers, rollModifiers = RollModifiers(rollsPerTurn = 7))
+
+        assertEquals(7, state.rollsRemaining)
+        assertEquals(7, state.turnRolls)
+        state = scoreNow(GameEngine.rollDice(state))
+
+        assertEquals(7, state.rollsRemaining)
+        assertEquals(7, state.turnRolls)
+    }
+
+    @Test
+    fun `Number of Rolls lets a turn roll that many times and no more`() {
+        var state = GameEngine.newGame(onePlayer, rollModifiers = RollModifiers(rollsPerTurn = 9))
+        repeat(9) { state = GameEngine.rollDice(state) }
+
+        assertEquals(0, state.rollsRemaining)
+        assertFailsWith<IllegalStateException> { GameEngine.rollDice(state) }
+    }
+
+    @Test
+    fun `without Stored Rolls unused rolls are lost`() {
+        var state = GameEngine.newGame(onePlayer)
+        state = scoreNow(GameEngine.rollDice(state))
+
+        assertEquals(3, state.rollsRemaining)
+        assertEquals(0, state.players.single().storedRolls)
+    }
+
+    @Test
+    fun `Stored Rolls carries unused rolls into that player's next turn`() {
+        var state = GameEngine.newGame(onePlayer, rollModifiers = RollModifiers(storedRolls = true))
+        state = scoreNow(GameEngine.rollDice(state)) // 1 of 3 used, 2 kept
+
+        assertEquals(2, state.players.single().storedRolls)
+        assertEquals(5, state.rollsRemaining)
+        assertEquals(5, state.turnRolls)
+
+        state = scoreNow(GameEngine.rollDice(state), ScoreCategory.ONES) // 1 of 5 used, 4 kept
+
+        assertEquals(4, state.players.single().storedRolls)
+        assertEquals(7, state.rollsRemaining)
+    }
+
+    @Test
+    fun `Stored Rolls waits for each player's own turn`() {
+        var state = GameEngine.newGame(twoPlayers, rollModifiers = RollModifiers(storedRolls = true))
+        state = scoreNow(GameEngine.rollDice(state)) // player 1 keeps 2
+
+        // Player 2 has nothing stored, so gets the plain 3.
+        assertEquals(1, state.currentPlayerIndex)
+        assertEquals(3, state.rollsRemaining)
+        state = scoreNow(GameEngine.rollDice(GameEngine.rollDice(GameEngine.rollDice(state)))) // player 2 uses all 3
+
+        assertEquals(0, state.players[1].storedRolls)
+        // Back to player 1, who gets their 2 on top of 3.
+        assertEquals(0, state.currentPlayerIndex)
+        assertEquals(5, state.rollsRemaining)
+    }
+
+    @Test
+    fun `a Stored Rolls cap limits what is kept and the rest are lost`() {
+        var state = GameEngine.newGame(onePlayer, rollModifiers = RollModifiers(storedRolls = true, storedRollsMax = 1))
+        state = scoreNow(GameEngine.rollDice(state)) // 2 unused, only 1 kept
+
+        assertEquals(1, state.players.single().storedRolls)
+        assertEquals(4, state.rollsRemaining)
+    }
+
+    @Test
+    fun `a Stored Rolls cap of zero keeps nothing`() {
+        var state = GameEngine.newGame(onePlayer, rollModifiers = RollModifiers(storedRolls = true, storedRollsMax = 0))
+        state = scoreNow(GameEngine.rollDice(state))
+
+        assertEquals(3, state.rollsRemaining)
+    }
+
+    @Test
+    fun `Stored Rolls adds to a changed Number of Rolls`() {
+        var state = GameEngine.newGame(onePlayer, rollModifiers = RollModifiers(rollsPerTurn = 2, storedRolls = true))
+        state = scoreNow(GameEngine.rollDice(state)) // 1 of 2 used, 1 kept
+
+        assertEquals(3, state.rollsRemaining)
+        assertEquals(3, state.turnRolls)
+    }
+
+    @Test
+    fun `stored rolls can run to several digits`() {
+        var state = GameEngine.newGame(onePlayer, rollModifiers = RollModifiers(rollsPerTurn = 9, storedRolls = true))
+        repeat(11) { state = scoreNow(state.copy(phase = TurnPhase.ROLLED), ScoreCategory.entries.first { state.players.single().isOpen(it) }) }
+
+        // Nothing was rolled for 11 turns: 9 kept each time on top of 9.
+        assertEquals(9 + 9 * 11, state.rollsRemaining)
+    }
+
+    @Test
+    fun `a roll modifier takes the game off the leaderboard`() {
+        assertFalse(GameEngine.newGame(onePlayer, rollModifiers = RollModifiers(rollsPerTurn = 3)).countsOnLeaderboard)
+        assertFalse(GameEngine.newGame(onePlayer, rollModifiers = RollModifiers(storedRolls = true)).countsOnLeaderboard)
+        assertTrue(GameEngine.newGame(onePlayer, rollModifiers = RollModifiers()).countsOnLeaderboard)
+    }
+
+    @Test
+    fun `a roll modifier is set on every player`() {
+        assertTrue(GameEngine.newGame(twoPlayers, rollModifiers = RollModifiers(storedRolls = true)).players.all { it.rollsModified })
+        assertTrue(GameEngine.newGame(twoPlayers).players.none { it.rollsModified })
+    }
+
+    @Test
+    fun `Number of Rolls only accepts 1 to 9`() {
+        assertFailsWith<IllegalArgumentException> { RollModifiers(rollsPerTurn = 0) }
+        assertFailsWith<IllegalArgumentException> { RollModifiers(rollsPerTurn = 10) }
+        assertFailsWith<IllegalArgumentException> { RollModifiers(storedRollsMax = -1) }
     }
 }

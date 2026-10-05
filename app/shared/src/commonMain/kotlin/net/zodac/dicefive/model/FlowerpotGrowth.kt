@@ -9,7 +9,7 @@ const val SUNFLOWER_ROLLS_PER_TURN = 3
 /**
  * Whether the Flowerpot's plant can bloom in this mode: only with [SUNFLOWER_ROLLS_PER_TURN] rolls
  * a turn (Standard, Tricolour). Quickfire's single roll is made for the player, so its plant grows
- * but never blooms.
+ * but never blooms. A game with a roll modifier on never blooms either - see [flowerpotStage].
  */
 val GameMode.growsSunflower: Boolean
     get() = rollsPerTurn == SUNFLOWER_ROLLS_PER_TURN
@@ -35,6 +35,14 @@ internal fun flowerpotGrowthStage(rolls: Int, maxRolls: Int, canBloom: Boolean):
     return (1 until FLOWERPOT_FULL_BLOOM).count { stage -> stage * maxRolls <= rolls * FLOWERPOT_FULL_BLOOM }
 }
 
-/** Whether this player's rolls have brought the Flowerpot's plant into bloom - see [flowerpotGrowthStage]. */
+/**
+ * How far this player's Flowerpot plant has grown - [flowerpotGrowthStage], except that it stops short
+ * of bloom while a roll modifier is on: the game's last possible roll is [GameMode.maxRollsPerGame]
+ * only under the mode's own rolls, and more of them would hand the bloom out for free.
+ */
+val PlayerState.flowerpotStage: Int
+    get() = flowerpotGrowthStage(rollCount, gameMode.maxRollsPerGame, gameMode.growsSunflower && !rollsModified)
+
+/** Whether this player's rolls have brought the Flowerpot's plant into bloom - see [flowerpotStage]. */
 val PlayerState.hasGrownSunflower: Boolean
-    get() = gameMode.flowerpotGrowthStage(rollCount) == FLOWERPOT_FULL_BLOOM
+    get() = flowerpotStage == FLOWERPOT_FULL_BLOOM

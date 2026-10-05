@@ -346,7 +346,7 @@ object AchievementEngine {
         // A box "holds" a score if any one of its slots does, so these mean one turn's score.
         award(Achievement.CHANCE_30, anyHuman { it.hasScore(ScoreCategory.CHANCE, MAX_CHANCE) })
         award(Achievement.SIXES_30, anyHuman { it.hasScore(ScoreCategory.SIXES, MAX_SIXES) })
-        award(Achievement.UPPER_BONUS, anyHuman { it.upperSectionBonus > 0 })
+        award(Achievement.UPPER_BONUS, anyHuman { !it.rollsModified && it.upperSectionBonus > 0 })
         // Section totals over a card scored three times over (Third Wind) would pass these with ease.
         award(Achievement.UPPER_84, anyHuman { it.hasSingleScoreCard && it.upperSectionTotal >= UPPER_CLASS_THRESHOLD })
         award(Achievement.LOWER_150, anyHuman { it.hasSingleScoreCard && it.lowerSectionTotalExcludingFiveOfAKind >= LOWER_CLASS_THRESHOLD })
@@ -394,7 +394,7 @@ object AchievementEngine {
         }
 
         // A card scored three times over (Third Wind) has its own version of Spotless instead.
-        val singleScoreCard = state.gameMode.scoresPerCategory == 1
+        val singleScoreCard = state.gameMode.scoresPerCategory == 1 && !state.rollModifiers.isActive
         val noZeroes = anyHuman { player -> player.allScores.none { it == 0 } }
         award(Achievement.NO_ZEROES, singleScoreCard && noZeroes)
         award(Achievement.THIRD_WIND_NO_ZEROES, state.gameMode == GameMode.THIRD_WIND && noZeroes)
@@ -428,7 +428,7 @@ object AchievementEngine {
         award(
             Achievement.ZERO_TO_HERO,
             // Three zeroes over 39 turns (Third Wind) is the usual run of things, not a comeback.
-            singleScoreCard && multiplayer && humanWon &&
+            state.gameMode.scoresPerCategory == 1 && multiplayer && humanWon &&
                 humans.any { it.totalScore == state.topScore && it.allScores.count { v -> v == 0 } >= ZEROES_FOR_HERO },
         )
         award(Achievement.TRICOLOUR_WIN, multiplayer && humanWon && state.gameMode == GameMode.TRICOLOUR)
@@ -480,7 +480,7 @@ object AchievementEngine {
 
         // Impatient/Naturally Gifted: player 1 took every one of their own turns on a single roll -
         // by choice, so never in a mode that only allows one (Quickfire), where it would be free.
-        val playerOneNeverRolledTwice = !context.playerOneTookExtraRoll && state.gameMode.rollsPerTurn > 1
+        val playerOneNeverRolledTwice = !context.playerOneTookExtraRoll && state.rollsPerTurn > 1
         award(Achievement.IMPATIENT, playerOneNeverRolledTwice)
         award(Achievement.NATURALLY_GIFTED, multiplayer && playerOneNeverRolledTwice && humanWon)
 
@@ -611,9 +611,11 @@ object AchievementEngine {
     /** Whether any of [category]'s slots holds more than zero. */
     private fun PlayerState.scored(category: ScoreCategory): Boolean = scoresIn(category).any { it > 0 }
 
-    /** Whether each box is scored only once, as in every mode but Third Wind. */
+    /** Whether each box is scored only once, as in every mode but Third Wind, with the mode's own rolls -
+     * the totals-based achievements assume both, since a card scored three times over or a turn with
+     * extra rolls clears them as a matter of course. */
     private val PlayerState.hasSingleScoreCard: Boolean
-        get() = gameMode.scoresPerCategory == 1
+        get() = gameMode.scoresPerCategory == 1 && !rollsModified
 
     /** ONES holds exactly 1, TWOS exactly 2, ... SIXES exactly 6 (in any one of its slots) -
      * [PlayerState.UPPER_CATEGORIES] is already declared in that order, so its index doubles as the

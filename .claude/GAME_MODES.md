@@ -47,7 +47,7 @@ When a new rule needs a field, add it here too. This is the map of where each ru
 |------------------------------------------|------------------------------------------------------------------------------------------------------------|
 | `diceCount`, `dieValues`, `dieColours`   | `GameEngine.newGame`/`rollDice`/`cycleDieValue`, `DiceTray` (incl. the rolling scramble, and a coloured die's `DiceStyle.recoloured`), `AiTurnPlayer` |
 | `scoringDiceCount` (`scoresHeldDiceOnly`) | `GameState.scoringDice`/`hasFullHand` (what the board previews, what `GameEngine.commitScore` scores, and whether it may); `GameEngine.toggleHold`/`canHold`/`fillHand` (hold slots, `Die.heldSlot`); `DiceTray` (`SlottedDice`); `AiTurnPlayer` (`RollSpace`, `chooseHand`); the timeout; achievements judged on a roll (guarded) or a hand (read `scoringDice`); A Cunning Strategy's "all five" |
-| `rollsPerTurn`                           | `GameEngine` (turn reset) and the `GameState` default set `rollsRemaining`, which the cup's `xN` badge and the AI loop read; `GameViewModel`'s `fullRolls`/`rollsRemainingAfter*` helpers; Impatient/Naturally Gifted's guard |
+| `rollsPerTurn` (the game's own is `GameState.rollsPerTurn`: the Number of Rolls modifier, else this) | `GameEngine` (turn reset) and the `GameState` default set `rollsRemaining`, which the cup's `xN` badge and the AI loop read; `GameViewModel`'s `fullRolls`/`rollsRemainingAfter*` helpers; Impatient/Naturally Gifted's guard |
 | `categories`                             | `PlayerState` (card, totals, completeness), `ScoreCalculator`, `ScoreGrid`, `GameStateJson`, `AiTurnPlayer` baselines, "How Do You Play This Game?" |
 | `upperBonus*`, `fiveOfAKindBonusAmount`  | `PlayerState` totals, `ScoreCalculator`, the 5x tile's bonus preview                                       |
 | `maxPossibleScore`                       | `HIGHEST_POSSIBLE_SCORE` (Leaderboard/Statistics column width), `GameModeTest`                              |
@@ -56,6 +56,7 @@ When a new rule needs a field, add it here too. This is the map of where each ru
 | `autoRollAtTurnStart`                    | `GameState.awaitsAutoRoll` → `GameScreen`'s auto-tap `LaunchedEffect`                                       |
 | `scoresPerCategory` (`turnsPerGame`)     | `PlayerState` (`scorecard` is a list per box; `isOpen`, `turnsTaken`/`turnsLeft`, `isScorecardComplete`, totals, `fiveOfAKindJokerActive`), `ScoreCalculator` (open boxes, the joker), `HandScoring.filledMask` (a full box), `AiTurnPlayer` (upper-bonus reach), `TieBreak` (every zero slot counts), `GameStateJson`, `CategoryCell` (`StackedScores`, spoken state), `GameViewModel` (turn timer's turn count, final round), the achievement guards, Luck Of The Draw's turn count |
 | `countsOnLeaderboard` (also off whenever a modifier, i.e. the turn timer, is on - `GameState.countsOnLeaderboard`) | `GameViewModel.persistHumanScores` → `ScoreEntry.onLeaderboard`, which `ScoreDao`'s Leaderboard page/count, best score and distinct scores filter on (Statistics and career points don't); New Personal Best's guard |
+| `allowsRollModifiers`                    | `GameViewModel.startGame` (starts a game with `RollModifiers()`), the setup screen's locked Number of Rolls / Stored Rolls rows |
 | `maxRollsPerGame`                        | `flowerpotGrowthStage` - the Flowerpot's stages are spread evenly over it, and the sunflower blooms on its last roll (Greenfingers); `GameModeTest` |
 
 ## First, work out what kind of mode it is
@@ -233,6 +234,11 @@ sandbox - the fake DAOs in `ScoreRepositoryTest` and `GameAchievementsWiringTest
 mode off the board also needs New Personal Best guarded: the "previous best" comes from the board.
 
 ### Turn flow: rolls, timers, undo
+
+The Number of Rolls and Stored Rolls modifiers (`RollModifiers`, Phase 27) change how many rolls a turn has
+in any mode that allows them (`allowsRollModifiers`). **Read the rolls a turn started with from
+`GameState.turnRolls`, not `gameMode.rollsPerTurn`** - stored rolls make it bigger - and the game's rolls
+per turn from `GameState.rollsPerTurn`. Totals-based achievements are guarded on `PlayerState.rollsModified`.
 
 How a roll happens today, in every mode:
 

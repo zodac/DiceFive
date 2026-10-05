@@ -177,7 +177,7 @@ bottom once the form is too tall to fit and has to scroll.
   dropdown arrow), so the form doesn't grow with the option count. Tapped, it opens a modal list
   capped at 340dp that scrolls with `LazyListScrollbar`. `ChoicePicker` picks one (game mode: radio
   rows, chosen = closed at once, Cancel). `ModifierPicker` is for modifiers - each a switch row,
-  plus a `SegmentedChoiceRow` of values (always laid out, greyed while off, so the modal never resizes under a finger), described by a `ModifierSetting`; changes apply
+  plus a `SegmentedChoiceRow` of values, a `ModifierStepper` (Number of Rolls: nine segments don't fit) or a `ModifierNumberField` (Stored Rolls' cap; digits only) (always laid out, greyed while off, so the modal never resizes under a finger), described by a `ModifierSetting`; changes apply
   live and the modal closes with Done; a mode that overrides a modifier locks it with a note. **All
   styling lives in the file's two shells, `PickerField` and `PickerDialog`** (and `PickerRowText`),
   so re-theming is one place - add new pickers as contents of those, not new chrome. To add a

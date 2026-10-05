@@ -7,6 +7,7 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerState
+import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
@@ -22,13 +23,21 @@ object GameEngine {
         players: List<PlayerConfig>,
         gameMode: GameMode = GameMode.default,
         turnTimer: TurnTimer = TurnTimer.NONE,
+        rollModifiers: RollModifiers = RollModifiers(),
     ): GameState {
         require(players.isNotEmpty()) { "At least one player is required" }
         return GameState(
             gameMode = gameMode,
             turnTimer = turnTimer,
+            rollModifiers = rollModifiers,
             players = players.map {
-                PlayerState(name = it.name, type = it.type, difficulty = it.difficulty, gameMode = gameMode)
+                PlayerState(
+                    name = it.name,
+                    type = it.type,
+                    difficulty = it.difficulty,
+                    gameMode = gameMode,
+                    rollsModified = rollModifiers.isActive,
+                )
             },
         )
     }
@@ -168,6 +177,8 @@ object GameEngine {
             fiveOfAKindBonusCount = player.fiveOfAKindBonusCount + if (bonus) 1 else 0,
             lastRoll = state.dice,
             lastScoredCategory = category,
+            // Whatever is left of this turn's rolls waits for their next one (none, unless Stored Rolls is on).
+            storedRolls = state.rollModifiers.stored(state.rollsRemaining),
         )
         val updatedPlayers = state.players.toMutableList().apply { this[state.currentPlayerIndex] = updatedPlayer }
         return advanceTurn(state.copy(players = updatedPlayers))
@@ -177,10 +188,13 @@ object GameEngine {
         if (state.players.all { it.isScorecardComplete }) {
             return state.copy(isGameOver = true)
         }
+        val nextIndex = (state.currentPlayerIndex + 1) % state.players.size
+        val turnRolls = state.rollsPerTurn + state.players[nextIndex].storedRolls
         return state.copy(
-            currentPlayerIndex = (state.currentPlayerIndex + 1) % state.players.size,
+            currentPlayerIndex = nextIndex,
             dice = List(state.gameMode.diceCount) { Die() },
-            rollsRemaining = state.gameMode.rollsPerTurn,
+            rollsRemaining = turnRolls,
+            turnRolls = turnRolls,
             phase = TurnPhase.AWAITING_ROLL,
         )
     }

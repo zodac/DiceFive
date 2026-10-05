@@ -42,6 +42,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
@@ -71,6 +72,11 @@ private const val SPENT_CUP_BRIGHTNESS = 0.55f
 // How long a Flowerpot that's just bloomed rests tipped over after pouring before it stands back up
 // to show the sunflower off: time for the dice to settle and the bloom to finish growing in.
 private const val BLOOM_STAND_UP_MILLIS = 1_400L
+
+/** The smallest the cup's roll count shrinks to, and how much it shrinks a step - see [DiceCupPanel]. */
+private val MIN_COUNT_SIZE = 12.sp
+private const val TWO_DIGIT_ROLLS = 10
+private const val COUNT_SHRINK_STEP = 0.92f
 
 data class CupPanelState(
     val rollsRemaining: Int,
@@ -190,9 +196,10 @@ fun DiceCupPanel(
             ) {
                 if (cup != null) {
                     Row(
-                        modifier = Modifier.fillMaxHeight(),
+                        modifier = Modifier.fillMaxSize(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        // Two or more digits need the gap's room too.
+                        horizontalArrangement = Arrangement.spacedBy(if (cup.rollsRemaining >= TWO_DIGIT_ROLLS) 0.dp else 10.dp),
                     ) {
                         // Greyed and darkened once rolls run out - the cup stays tappable (see the comment on
                         // this Box's parent) but visually reads as spent rather than still live. Done by
@@ -254,11 +261,22 @@ fun DiceCupPanel(
                                 )
                             }
                         }
+                        // Rolls can run past one digit (a game with more rolls a turn, or stored rolls) and the panel
+                        // beside the cup is narrow, so the count shrinks until it fits what room is left.
+                        val countStyle = MaterialTheme.typography.titleLarge
+                        var countSize by remember(cup.rollsRemaining) { mutableStateOf(countStyle.fontSize) }
                         Text(
                             text = "x${cup.rollsRemaining}",
                             color = TileIconColor,
                             fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleLarge,
+                            style = countStyle,
+                            fontSize = countSize,
+                            maxLines = 1,
+                            softWrap = false,
+                            onTextLayout = { layout ->
+                                if (layout.didOverflowWidth && countSize > MIN_COUNT_SIZE) countSize *= COUNT_SHRINK_STEP
+                            },
+                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
