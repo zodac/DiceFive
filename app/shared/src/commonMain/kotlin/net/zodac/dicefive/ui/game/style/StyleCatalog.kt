@@ -437,6 +437,15 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             ),
             unlock = AchievementCount(9),
         ),
+        StyleFamily(
+            "Egg",
+            listOf(
+                // Each egg's pips are the other's shell colour.
+                colour("White", EggDiceStyle("egg_white", EggWhiteShell, Color(0xFFD9D2C3), EggBrownShell)),
+                colour("Brown", EggDiceStyle("egg_brown", EggBrownShell, Color(0xFFA8683F), EggWhiteShell)),
+            ),
+            unlock = AchievementCount(28),
+        ),
     ),
 )
 
@@ -626,6 +635,26 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
             ),
             unlock = AchievementCount(42),
         ),
+        StyleFamily(
+            "Chicken",
+            listOf(
+                colour(
+                    "White",
+                    ChickenDiceCupStyle(
+                        "chicken_white",
+                        HenPalette(feather = Color(0xFFF7F4EE), light = Color.White, dark = Color(0xFFB9B0A2), tail = Color(0xFFE6E0D4)),
+                    ),
+                ),
+                colour(
+                    "Brown",
+                    ChickenDiceCupStyle(
+                        "chicken_brown",
+                        HenPalette(feather = Color(0xFFB5652B), light = Color(0xFFE0955A), dark = Color(0xFF6E3412), tail = Color(0xFF3A2A1E)),
+                    ),
+                ),
+            ),
+            unlock = AchievementCount(32),
+        ),
     ),
 )
 
@@ -760,6 +789,10 @@ object DiceMats : StyleCatalog<DiceMat>(
         StyleFamily("Marble", listOf(StyleColour("White", Color(0xFFF2F1EE), MarbleDiceMat)), unlock = AchievementCount(72)),
     ),
 )
+
+// The Egg dice's shells - each also the other's pips.
+private val EggWhiteShell = Color(0xFFFBF8F1)
+private val EggBrownShell = Color(0xFFD9A27A)
 
 // The Mahjong dice's tiles: an ivory face over a jade back.
 private val MahjongFace = Color(0xFFFBF7EC)

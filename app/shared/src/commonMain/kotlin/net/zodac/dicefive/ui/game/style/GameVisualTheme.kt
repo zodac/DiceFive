@@ -30,6 +30,12 @@ interface DiceStyle : TableArt {
     val tumblesItself: Boolean get() = false
 
     /**
+     * Whether this die comes to rest standing straight up (the Egg) rather than lying at its own
+     * angle on the mat, as a cube does - the tray then lands it unturned.
+     */
+    val standsUpright: Boolean get() = false
+
+    /**
      * For a style with loose pupils on its faces that the die's movement throws about (googly eyes),
      * how far each can roll from its socket's centre, as a fraction of the die's size - the tray then
      * keeps each die a [DieMotion] to move them, handed down as [LocalDieMotion]. Null for a style
@@ -112,6 +118,12 @@ interface DiceCupStyle : TableArt {
      * moment the player should see its bloom in full), never one held at a fixed stage.
      */
     fun showsOffWhenSpent(growth: FlowerpotGrowth): Boolean = false
+
+    /**
+     * Whether the cup looks different once its dice are poured - tipped over, its doors or lid open.
+     * False for one that only plays something as it pours and is then just as it was (the Chicken).
+     */
+    val changesWhenPoured: Boolean get() = true
 }
 
 /**

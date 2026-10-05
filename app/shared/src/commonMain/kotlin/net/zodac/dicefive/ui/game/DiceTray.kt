@@ -91,6 +91,8 @@ private val SCATTER_OFFSETS = listOf(
 
 private val SCATTERED_DIE_SIZE = 44.dp
 private val MAX_SLOT_DIE_SIZE = 52.dp
+// How far a held die sits inside its slot's edge.
+private val HELD_DIE_INSET = 3.dp
 private val SCATTER_AREA_HEIGHT = 96.dp
 // Round the tray's contents, inside its rounded edge - which clips anything past it.
 private val TRAY_PADDING = 16.dp
@@ -358,7 +360,7 @@ private fun DiceColumnContent(
                 .border(1.5.dp, mat.slotSocketBorder, shape),
         ) {
             if (show && die.isHeld) {
-                DieFace(die = die, held = true, diceStyles = diceStyles, modifier = Modifier.fillMaxSize().padding(3.dp))
+                DieFace(die = die, held = true, diceStyles = diceStyles, modifier = Modifier.fillMaxSize().padding(HELD_DIE_INSET))
             }
         }
 
@@ -431,21 +433,26 @@ private fun ScatterArea(
     val cupFace = remember { intArrayOf(0) }
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(SCATTER_AREA_HEIGHT)) {
+        val style = diceStyles.forDie(die)
+        // A die that stands up (the Egg) isn't a cube seen from above, so it's the same size on the
+        // mat as in its slot when held - the slot spans the column - rather than shrinking as it's let go.
+        val dieSize = if (style.standsUpright) maxWidth - HELD_DIE_INSET * 2 else SCATTERED_DIE_SIZE
         // Past the tray's near edge, the whole die clipped off by it: off the mat entirely - a third
         // of a die further than its own height, since a die lying at an angle pokes its corners up
         // past its square outline.
-        val startY = (SCATTER_AREA_HEIGHT + TRAY_PADDING + SCATTERED_DIE_SIZE / 3).value
+        val startY = (SCATTER_AREA_HEIGHT + TRAY_PADDING + dieSize / 3).value
         val restY = scatter.yOffset.value
-        val size = SCATTERED_DIE_SIZE.value
+        val size = dieSize.value
         if (rolling && !(show && !die.isHeld)) cupFace[0] = 0
         // A turn's first dice aren't on the mat while the cup shakes, but they're built waiting off
         // its near edge all the same - where a later roll's dice have been swept to by then - so the
         // throw carries on in them instead of building them on the frame the cup tips.
         val offMat = !show && rolling && !simple
         if ((!show && !offMat) || die.isHeld) return@BoxWithConstraints
-        val rest = Modifier.align(Alignment.TopCenter).size(SCATTERED_DIE_SIZE)
-        val style = diceStyles.forDie(die)
+        val rest = Modifier.align(Alignment.TopCenter).size(dieSize)
         val selfTumbling = style.tumblesItself
+        // How the die lies at rest: at its own angle, or straight up for one that stands (the Egg).
+        val restYaw = if (style.standsUpright) 0f else scatter.rotationDegrees
 
         // A die's rotated footprint stays inside its own column plus half the gap to the next, so
         // neighbours can never overlap, however they're turned - pushed back in from the edge as if
@@ -453,7 +460,7 @@ private fun ScatterArea(
         val halfSlot = (maxWidth + DICE_COLUMN_GAP) / 2
         fun keptIn(x: Dp, yawDegrees: Float): Dp {
             val radians = yawDegrees * PI.toFloat() / 180f
-            val half = SCATTERED_DIE_SIZE / 2 * (abs(cos(radians)) + abs(sin(radians))) * TIPPED_FOOTPRINT
+            val half = dieSize / 2 * (abs(cos(radians)) + abs(sin(radians))) * TIPPED_FOOTPRINT
             val room = (halfSlot - half).coerceAtLeast(0.dp)
             return x.coerceIn(-room, room)
         }
@@ -472,7 +479,7 @@ private fun ScatterArea(
         @Composable
         fun Track(x: Dp, y: Dp, yawDegrees: Float, roll: Float = 0f) {
             if (motion == null) return
-            val centre = Offset((columnLeft + maxWidth / 2 + x) / SCATTERED_DIE_SIZE, (y + SCATTERED_DIE_SIZE / 2) / SCATTERED_DIE_SIZE)
+            val centre = Offset((columnLeft + maxWidth / 2 + x) / dieSize, (y + dieSize / 2) / dieSize)
             // The face mostly in view: tipping away over its top edge for the first half of each
             // quarter-turn, then the next one tipping up to take its place.
             val tipped = roll - floor(roll)
@@ -489,7 +496,7 @@ private fun ScatterArea(
         fun Shadow(x: Dp, y: Dp, yawDegrees: Float, lift: Float, tumbleMillis: Float? = null) {
             val shape = style.shadowShape(die.value, seed, tumbleMillis)
             val centreX = columnLeft + maxWidth / 2 + x
-            val centreY = y + SCATTERED_DIE_SIZE / 2
+            val centreY = y + dieSize / 2
             // Away from the light, further the further the die is from it - and further again, and
             // softer, the higher the die is off the mat.
             val reach = SHADOW_LENGTH * (1f + lift * 2f)
@@ -504,7 +511,7 @@ private fun ScatterArea(
 
         @Composable
         fun Moving(pose: TossPose, ring: List<Int>, finalTurns: Int, tossMillis: Float?) {
-            val yaw = scatter.rotationDegrees + pose.yawDegrees
+            val yaw = restYaw + pose.yawDegrees
             val x = keptIn(scatter.xOffset + pose.dx.dp, yaw)
             val y = scatter.yOffset + pose.dy.dp
             // A cube tipping over an edge rises off the mat, highest halfway over.
@@ -533,7 +540,7 @@ private fun ScatterArea(
                     // Swept off the mat while the cup shakes, still showing the last roll...
                     val pickUpPath = remember(tracker.starts, die.value) { PickUpPath(die.value, startY, restY) }
                     // ...then thrown back on once it lands.
-                    val sideRoom = ((maxWidth - SCATTERED_DIE_SIZE) / 2 - abs(scatter.xOffset.value).dp).value.coerceAtLeast(0f)
+                    val sideRoom = ((maxWidth - dieSize) / 2 - abs(scatter.xOffset.value).dp).value.coerceAtLeast(0f)
                     val tossPath = remember(tracker.landings) {
                         TossPath(
                             seed = tracker.landings * 7 + seed,
@@ -561,9 +568,9 @@ private fun ScatterArea(
 
                 else -> {
                     // At rest - or, under reduced motion, lying still on its last face while the cup "shakes".
-                    val restX = keptIn(scatter.xOffset, scatter.rotationDegrees)
-                    Shadow(restX, scatter.yOffset, scatter.rotationDegrees, lift = 0f)
-                    Track(restX, scatter.yOffset, scatter.rotationDegrees)
+                    val restX = keptIn(scatter.xOffset, restYaw)
+                    Shadow(restX, scatter.yOffset, restYaw, lift = 0f)
+                    Track(restX, scatter.yOffset, restYaw)
                     // Landed: the pupils stop with the dice, rather than sloshing on once scoring is open.
                     if (motion != null && !rolling) SideEffect { motion.settle() }
                     DieFace(
@@ -572,7 +579,7 @@ private fun ScatterArea(
                         diceStyles = diceStyles,
                         modifier = rest
                             .offset(x = restX, y = scatter.yOffset)
-                            .graphicsLayer { rotationZ = scatter.rotationDegrees },
+                            .graphicsLayer { rotationZ = restYaw },
                     )
                 }
             }
