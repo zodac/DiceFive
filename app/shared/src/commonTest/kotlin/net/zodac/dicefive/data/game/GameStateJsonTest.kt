@@ -4,6 +4,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import net.zodac.dicefive.data.JsonArray
+import net.zodac.dicefive.data.JsonNull
+import net.zodac.dicefive.data.JsonNumber
 import net.zodac.dicefive.data.JsonObject
 import net.zodac.dicefive.data.parseJson
 import net.zodac.dicefive.data.toJson
@@ -17,6 +19,7 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
+import net.zodac.dicefive.oneScoreEach
 
 class GameStateJsonTest {
 
@@ -83,20 +86,20 @@ class GameStateJsonTest {
             }
         }
         val state = GameState(
-            players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, scorecard = scorecard, fiveOfAKindBonusCount = 2)),
+            players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, scorecard = oneScoreEach(scorecard), fiveOfAKindBonusCount = 2)),
         )
 
         val decoded = GameStateJson.decode(GameStateJson.encode(state))
 
         assertEquals(state, decoded)
-        assertEquals(3, decoded.players.single().scorecard[ScoreCategory.ONES])
-        assertEquals(0, decoded.players.single().scorecard[ScoreCategory.FULL_HOUSE])
-        assertEquals(null, decoded.players.single().scorecard[ScoreCategory.CHANCE])
+        assertEquals(3, decoded.players.single().scoresIn(ScoreCategory.ONES).singleOrNull())
+        assertEquals(0, decoded.players.single().scoresIn(ScoreCategory.FULL_HOUSE).singleOrNull())
+        assertEquals(null, decoded.players.single().scoresIn(ScoreCategory.CHANCE).singleOrNull())
     }
 
     @Test
     fun `round trips a finished game`() {
-        val scorecard = GameMode.STANDARD.categories.associateWith { 10 }
+        val scorecard = GameMode.STANDARD.categories.associateWith { listOf(10) }
         val state = GameState(
             players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, scorecard = scorecard)),
             isGameOver = true,
@@ -119,7 +122,7 @@ class GameStateJsonTest {
         }
         val state = GameState(
             gameMode = mode,
-            players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, gameMode = mode, scorecard = scorecard)),
+            players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, gameMode = mode, scorecard = oneScoreEach(scorecard))),
             dice = listOf(
                 Die(value = 1, colour = DieColour.RED),
                 Die(value = 2, colour = DieColour.YELLOW, isHeld = true),
@@ -220,6 +223,50 @@ class GameStateJsonTest {
         val decoded = GameStateJson.decode(withoutRollCount)
 
         assertEquals(0, decoded.players.single().rollCount)
+    }
+
+    @Test
+    fun `round trips a Third Wind game - every slot of every box in the order it was scored`() {
+        val mode = GameMode.THIRD_WIND
+        val base = PlayerState(name = "Player 1", type = PlayerType.HUMAN, gameMode = mode)
+        val player = base.copy(
+            scorecard = base.scorecard + mapOf(
+                ScoreCategory.FIVES to listOf(15, 10, 20),
+                ScoreCategory.CHANCE to listOf(22, 0),
+                ScoreCategory.FIVE_OF_A_KIND to listOf(50),
+            ),
+        )
+        val state = GameState(gameMode = mode, players = listOf(player))
+
+        val decoded = GameStateJson.decode(GameStateJson.encode(state))
+
+        assertEquals(state, decoded)
+        assertEquals(listOf(22, 0), decoded.players.single().scoresIn(ScoreCategory.CHANCE))
+        assertEquals(emptyList<Int>(), decoded.players.single().scoresIn(ScoreCategory.ONES))
+    }
+
+    @Test
+    fun `decodes a save from before a box could hold several scores - a number per filled box and null per open one`() {
+        val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
+        val saved = GameStateJson.encode(state).toJsonObject()
+        val player = (saved["players"] as JsonArray).items[0] as JsonObject
+        val oldScorecard = JsonObject(
+            GameMode.STANDARD.categories.associate { category ->
+                category.name to when (category) {
+                    ScoreCategory.ONES -> JsonNumber("3")
+                    ScoreCategory.FULL_HOUSE -> JsonNumber("0")
+                    else -> JsonNull
+                }
+            },
+        )
+        val older = JsonObject(saved.fields + ("players" to JsonArray(listOf(JsonObject(player.fields + ("scorecard" to oldScorecard)))))).toJson()
+
+        val decoded = GameStateJson.decode(older).players.single()
+
+        assertEquals(listOf(3), decoded.scoresIn(ScoreCategory.ONES))
+        assertEquals(listOf(0), decoded.scoresIn(ScoreCategory.FULL_HOUSE))
+        assertEquals(emptyList<Int>(), decoded.scoresIn(ScoreCategory.CHANCE))
+        assertEquals(2, decoded.turnsTaken)
     }
 
     @Test

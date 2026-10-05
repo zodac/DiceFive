@@ -434,7 +434,7 @@ object AiTurnPlayer {
 
         /**
          * The upper bonus's stake in each point scored in the upper section, for the estimate: it's
-         * earned at an average of three of each number, so each point above that par (or below it)
+         * earned at an average of three of each number (in every slot of each box), so each point above that par (or below it)
          * moves the player that share of the bonus nearer to (or further from) it -
          * [GameMode.upperBonusAmount] over [GameMode.upperBonusThreshold]. Nothing once the bonus is
          * won, or out of reach even with five of every open number.
@@ -442,8 +442,8 @@ object AiTurnPlayer {
         private val upperBonusPerPoint: Double = run {
             val total = player.upperSectionTotal
             val bestStillPossible = total + PlayerState.UPPER_CATEGORIES.withIndex()
-                .filter { (_, category) -> category in mode.categories && player.scorecard[category] == null }
-                .sumOf { (index, _) -> (index + 1) * mode.scoringDiceCount }
+                .filter { (_, category) -> category in mode.categories }
+                .sumOf { (index, category) -> (index + 1) * mode.scoringDiceCount * (mode.scoresPerCategory - player.scoresIn(category).size) }
             if (total >= mode.upperBonusThreshold || bestStillPossible < mode.upperBonusThreshold) {
                 0.0
             } else {

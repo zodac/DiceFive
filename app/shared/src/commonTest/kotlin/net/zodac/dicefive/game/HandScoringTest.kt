@@ -34,7 +34,14 @@ class HandScoringTest {
                 val scorecard = base.scorecard.toMutableMap()
                 for ((index, category) in mode.categories.withIndex()) {
                     if ((filled shr index) and 1 == 1) {
-                        scorecard[category] = if (index == fiveOfAKind && random.nextBoolean()) requireNotNull(category.fixedScore) else 0
+                        // A filled box is full - every slot of it - with a 50 in one of the 5x box's at random.
+                        val fifty = index == fiveOfAKind && random.nextBoolean()
+                        scorecard[category] = List(mode.scoresPerCategory) { slot -> if (fifty && slot == 0) requireNotNull(category.fixedScore) else 0 }
+                    } else {
+                        // An open box can still have some of its slots used, where it has more than one -
+                        // a 5x box holding a 50 with a slot to spare is no joker yet.
+                        val fifty = index == fiveOfAKind && random.nextBoolean()
+                        scorecard[category] = List(random.nextInt(mode.scoresPerCategory)) { slot -> if (fifty && slot == 0) requireNotNull(category.fixedScore) else 0 }
                     }
                 }
                 val player = base.copy(scorecard = scorecard)

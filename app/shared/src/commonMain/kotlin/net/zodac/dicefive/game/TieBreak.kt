@@ -41,20 +41,22 @@ data class TieBreakStats(
 /**
  * [TieBreakStats] for a finished player's own scorecard. Only meaningful once every box is filled,
  * which is the only time anything ranks players (the results screen, the end-of-game achievements).
+ * Where a box is scored more than once (Third Wind), every zero in it counts as a zeroed category,
+ * and Chance, 3x and 4x are each the box's whole total.
  */
 fun PlayerState.toTieBreakStats(): TieBreakStats = TieBreakStats(
     score = totalScore,
     fiveOfAKindCount = fiveOfAKindCount,
-    zeroedCategoryCount = scorecard.values.count { it == 0 },
+    zeroedCategoryCount = allScores.count { it == 0 },
     tricolourScoredCount = if (gameMode == GameMode.TRICOLOUR) {
-        gameMode.categories.count { it.section == ScoreSection.COLOUR && (scorecard[it] ?: 0) > 0 }
+        gameMode.categories.filter { it.section == ScoreSection.COLOUR }.sumOf { category -> scoresIn(category).count { it > 0 } }
     } else {
         null
     },
     upperSectionTotal = upperSectionTotal,
-    chance = scorecard[ScoreCategory.CHANCE] ?: 0,
-    threeOfAKind = scorecard[ScoreCategory.THREE_OF_A_KIND] ?: 0,
-    fourOfAKind = scorecard[ScoreCategory.FOUR_OF_A_KIND] ?: 0,
+    chance = scoresIn(ScoreCategory.CHANCE).sum(),
+    threeOfAKind = scoresIn(ScoreCategory.THREE_OF_A_KIND).sum(),
+    fourOfAKind = scoresIn(ScoreCategory.FOUR_OF_A_KIND).sum(),
 )
 
 private data class Criterion(

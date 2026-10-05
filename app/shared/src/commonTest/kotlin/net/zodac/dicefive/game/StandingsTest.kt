@@ -7,18 +7,19 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.oneScoreEach
 
 class StandingsTest {
 
     private fun player(vararg scores: Pair<ScoreCategory, Int>) =
-        PlayerState(name = "P", type = PlayerType.HUMAN).let { it.copy(scorecard = it.scorecard + scores) }
+        PlayerState(name = "P", type = PlayerType.HUMAN).let { it.copy(scorecard = it.scorecard + oneScoreEach(scores.toMap())) }
 
     /** A full Standard scorecard adding up to [total]: all in Chance, or one point of it in Ones - so one fewer zeroed box. */
     private fun finished(total: Int, zeroes: Boolean) = PlayerState(name = "P", type = PlayerType.HUMAN).let { base ->
         val card = GameMode.STANDARD.categories.associateWith<ScoreCategory, Int?> { 0 }.toMutableMap()
         card[ScoreCategory.CHANCE] = if (zeroes) total else total - 1
         if (!zeroes) card[ScoreCategory.ONES] = 1
-        base.copy(scorecard = card)
+        base.copy(scorecard = oneScoreEach(card))
     }
 
     @Test

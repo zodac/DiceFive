@@ -3,7 +3,7 @@ package net.zodac.dicefive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.PlayerConfig
@@ -33,8 +33,8 @@ class GameStateTest {
 
         assertEquals(2, state.players.size)
         for (player in state.players) {
-            for (value in player.scorecard.values) {
-                assertNull(value)
+            for (scores in player.scorecard.values) {
+                assertTrue(scores.isEmpty())
             }
         }
     }

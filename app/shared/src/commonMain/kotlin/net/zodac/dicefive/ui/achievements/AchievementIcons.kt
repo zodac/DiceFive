@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.AlarmOn
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.Cyclone
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.EmojiPeople
@@ -234,6 +236,8 @@ val Achievement.icon: ImageVector
         // A hand of cards, for the poker game the mode is named after.
         Achievement.STUD_WIN -> Icons.Filled.Style
         Achievement.STUD_LUCKY_SEVEN -> Icons.Filled.Filter7
+        Achievement.THIRD_WIND_WIN -> Icons.Filled.Cyclone
+        Achievement.THIRD_WIND_NO_ZEROES -> Icons.Filled.Air
 
         // ---- Misfortune -------------------------------------------------------------------------
         Achievement.SCRATCHED_5X -> Icons.Filled.Cancel

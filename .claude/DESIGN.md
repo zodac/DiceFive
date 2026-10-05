@@ -357,10 +357,12 @@ decisions behind it. Read that before changing anything visual.
   back as today's default (`"casino_gold"`), since that's what's drawn for them, so neither counts as
   a non-default pick for `STYLE_CUP`.
 - **Game modes** (`model/GameMode.kt`, was `GameType`): `STANDARD` (the official rules, formerly
-  `CLASSIC`), `TRICOLOUR` (see Phase 14), `QUICKFIRE` (see Phase 20) and `STUD` (see Phase 25). **Every rule that can
+  `CLASSIC`), `TRICOLOUR` (see Phase 14), `QUICKFIRE` (see Phase 20), `STUD` (see Phase 25) and `THIRD_WIND` (see Phase 26). **Every rule that can
   differ between modes is a field on the mode**, even where the modes agree today: dice count, how
   many of them score (`scoringDiceCount` - fewer, and only the held dice score), rolls
-  per turn, die faces, die colours, the scorecard's categories (which is also the number of turns),
+  per turn, die faces, die colours, the scorecard's categories, how many times each is scored
+  (`scoresPerCategory` - the two together are the number of turns), whether its scores go on the
+  Leaderboard (`countsOnLeaderboard`),
   the upper-bonus threshold/amount, the 5x bonus chip, the max possible score, a fixed turn
   timer that overrides the setup pick (`turnTimerSeconds`), where a timed-out turn is scored
   (`timeoutPick`), and whether a human's first roll is tapped for them (`autoRollAtTurnStart`). `.claude/GAME_MODES.md` has the
@@ -369,7 +371,7 @@ decisions behind it. Read that before changing anything visual.
   genuinely new scoring rule, and nothing else learning it exists. A category's own scoring rule is
   fixed and mode-independent (`ScoreCategory` carries its `section`, `fixedScore`, `jokerFreeFill`
   and `matchingColour`); a mode just chooses which categories are on its card.
-- **Achievements**: 97 of them, **player 1 only** (`state.players[0]`, "You" on the setup
+- **Achievements**: 101 of them, **player 1 only** (`state.players[0]`, "You" on the setup
   screen) rather than any human at the table - the one exception is the ledger (the score-band and
   career-points achievements at the tail of `AchievementCategory.COLLECTION`), which stays measured
   against the leaderboard as a whole, i.e. every human who has played on this device, not just
@@ -553,7 +555,7 @@ net.zodac.dicefive/
   model/
     Die.kt                             — a die's value, colour (coloured modes only) and held state
     ScoreCategory.kt                   — every category any mode can use: section, fixed score, joker free-fill, colour
-    GameMode.kt                        — STANDARD, TRICOLOUR, QUICKFIRE, STUD: every per-mode rule (see "Game modes" above)
+    GameMode.kt                        — STANDARD, TRICOLOUR, QUICKFIRE, STUD, THIRD_WIND: every per-mode rule (see "Game modes" above)
     TurnTimer.kt                       — the setup screen's turn timer choices (NONE, 30s, 60s, 120s)
     TimeoutPick.kt                     — FIRST_OPEN, LOWEST_SCORE: where a mode scores a timed-out turn
     DieColour.kt                       — RED, YELLOW, BLUE (Tricolour's die colours)
@@ -691,21 +693,23 @@ The numbers here are Standard's - dice count, rolls per turn and the rest come f
   running out rolls if needed, fills any empty hold slots from the left in Stud
   (`GameEngine.fillHand`), and scores `ScoreCalculator.timeoutCategory` - the first open box, or
   in Quickfire the lowest-scoring one.
-- Game ends when every player's scorecard is full; `GameViewModel` persists
+- Game ends when every player's scorecard is full (every slot of every box, in Third Wind); `GameViewModel` persists
   each **human** player's final total to `ScoreRepository` (one row per
-  human player; AI scores are not saved) and sets `isGameOver = true` so
+  human player; AI scores are not saved; a mode with `countsOnLeaderboard` false - Third Wind - is
+  saved with `onLeaderboard = false`, so only Statistics and career points see it) and sets `isGameOver = true` so
   `GameScreen` shows a results summary.
 
 `DiceScoring`/`GameEngine` are pure functions with no Android
 dependencies — most unit tests live here.
 
-- **Maximum possible score, per mode: 1575 Standard, Quickfire and Stud, 2120 Tricolour** (`GameMode.maxPossibleScore`,
+- **Maximum possible score, per mode: 1575 Standard, Quickfire and Stud, 2120 Tricolour, 4725 Third Wind** (`GameMode.maxPossibleScore`,
   with each derivation as a doc comment on its entry, locked by `GameModeTest` playing the perfect
   game through the real `GameEngine`) — every upper box maxed plus the 63+ bonus, every other box
   maxed, and every turn after the 5x box also landing a 5x for its +100 bonus chip (12 of them in
-  Standard, 16 in Tricolour, whose three colour boxes take five 6s all of one colour and whose
+  Standard, 36 in Third Wind - three of Standard's perfect game, its 5x box taking the first three -
+  16 in Tricolour, whose three colour boxes take five 6s all of one colour and whose
   Coloured House takes the joker free-fill). Every screen that shows a score (Leaderboard) pads it to the digit width of the highest of these
-  (`GameMode.HIGHEST_POSSIBLE_SCORE`, 4 digits) so the column stays a fixed width
+  (`GameMode.HIGHEST_POSSIBLE_SCORE`, 4 digits - Third Wind's 4725, though it isn't on the Leaderboard, since Statistics shares it) so the column stays a fixed width
   regardless of how many digits a given score has (Statistics' max score doesn't: it's right-aligned and comma-grouped on its own row); current-game score displays (`PlayerHeaderBar`,
   `GameOverScreen`) don't need this — the player-name column next to them is already capped at 10
   characters, so there's nothing there for a short score to let grow sideways.
@@ -2187,3 +2191,58 @@ install-over-existing succeeds:
 - [ ] **Not yet seen on a device**: rendered under Robolectric only at 360dp and 411dp; the seven-die
       toss animation, the Egg and googly-eyed styles at the smaller size, and what TalkBack actually
       says for the slots, not seen or heard.
+
+### Phase 26 — Game mode: Third Wind
+- [x] **Rules** (beyond the official rules): Standard's dice, rolls and card, but every box is scored
+      three times - three slots each, a turn per slot, the box worth all three added up - so a game is
+      39 turns. One upper bonus, threshold and amount tripled (189 earns 105). The 5x box's slots each
+      take a 5x for 50; the joker rule and its +100 chip only start once all three are used with a 50
+      among them. Ceiling 4725 (three of Standard's), 117 rolls a game. Scores don't go on the
+      Leaderboard; Statistics and career points still count them.
+- [x] **Model**: `PlayerState.scorecard` is now a list of scores per box (empty while untouched) in
+      every mode, with `scoresIn`, `isOpen`, `hasScore`, `allScores`, `turnsTaken`/`turnsLeft` and
+      `fiveOfAKindJokerActive` (the joker's "box full, a 50 in it"). New mode fields
+      `scoresPerCategory` (1 elsewhere) and `countsOnLeaderboard`, and the derived `turnsPerGame`.
+      Saves write each box as a list and still read the old number-or-null form.
+- [x] **Leaderboard**: `ScoreEntry.onLeaderboard` (database version 2, an `AutoMigration` with every
+      existing row on it). The Leaderboard's page and count, a player's best (New Personal Best) and
+      the score-collection bands read only rows on it; Statistics and career points read every row.
+- [x] **Board**: a box with several slots shows them stacked beside its tile (`StackedScores`): filled
+      slots, the dice's preview in the next open one (gold when worth picking) and "-" for the rest; the
+      5x tile adds its bonus line underneath. The tile only greys once every slot is used. Each line keeps
+      its number laid out and only swaps which of it and "-" is visible, and is skipped when its score
+      hasn't changed (`ShownScore` compares by value), so a roll recomposes only the preview lines.
+      Benchmarked against Standard on the whole game screen (see `BENCHMARKS.md`): no score line
+      recomposes on a shake or toss frame; the cup-tap frame recomposes the 13 boxes and their preview
+      lines (about 2ms more composition under Robolectric), and every frame carries ~0.4ms more for the
+      extra text nodes.
+- [x] **TalkBack**: a box is still one node - "Scored 15, 10, would score 20", "Would score 16, 2 more
+      open", "3 open", with "plus N bonus" and "last turn's score N" (`stackedSpokenState`).
+- [x] **AI**: no new code path - like Tricolour and Stud, Hard estimates (the perfect-play table is
+      Standard's alone; one for Third Wind would need ~4^13 card states before the upper total). The
+      upper-bonus estimate counts each upper box's open slots. Over 60 seeded games: Easy 413, Medium 624,
+      Hard 736 (Standard, all estimating: 126/185/244). Tried and rejected: dropping the upper-bonus
+      share (723) and halving a box's baseline while two slots are open (734), against 751 over 120 games.
+- [x] **Achievements**: `THIRD_WIND_WIN` "Gone With The Wind" (win, multiplayer) and
+      `THIRD_WIND_NO_ZEROES` "Third Time's The Charm" (all 39 slots without a zero), Third Wind's own
+      Spotless, which is blocked there. Score thresholds, Upper/Lower Class, New
+      Personal Best and Zero To Hero are guarded; Encore/Hat Trick now count 5x rather than chips; the
+      audit is in `.claude/GAME_MODES.md`.
+- [x] **Rules page**: "Mode: Third Wind", after Stud, with an example turn filling the last `Fives` slot.
+- [x] Tests: `GameModeTest`, `PlayerStateTest`, `ScoreCalculatorTest`, `GameEngineTest`,
+      `HandScoringTest` (part-used boxes too), `AiTurnPlayerTest`, `AchievementEngineTest` (each guard
+      proven by removing it), `GameStateJsonTest`, `ScoreRepositoryTest`, `GameAchievementsWiringTest`,
+      `StackedSpokenStateTest`, `BoardSemanticsTest`.
+- [x] **Large font**: three lines fill the tile's height exactly, so past 100% the stack scrolls in
+      the tile's height instead, kept on the next slot to score (or a full box's last score), with a fade
+      at a cut-off edge - see `UI.md`. Rendered at 130% and 200%. Tested on a device: no noticeable
+      stutter (normal font).
+- [ ] **Not yet seen on a device**: rendered under Robolectric only at 360dp and 411dp; the large-font
+      scrolling, the migration on a real database (the SQL filters aren't run in the sandbox - the
+      tests' fake DAOs mirror them), and what TalkBack actually says.
+- [x] **Totals button** (every mode): the Upper/Bonus/Lower lines beside the cup, which wrapped at 130%
+      font and broke at 200%, are now a Σ "Totals" button (`TotalsButton`) that shows them in a tooltip
+      on a tap or a long press - gold once the upper bonus is earned, the totals spoken as its state -
+      just left of Undo. Both buttons are icon-only (`BoardButtonIcon`, the labels dropped on review),
+      the glyph shrinking only on a row too short for its 26dp, at a 48dp minimum touch target.
+      Rendered at 411dp, 320dp and 200% font; not seen on a device.

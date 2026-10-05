@@ -1,5 +1,6 @@
 package net.zodac.dicefive.data.scores
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import net.zodac.dicefive.game.TieBreakStats
@@ -44,6 +45,14 @@ data class ScoreEntry(
     val chanceScore: Int,
     val threeOfAKindScore: Int,
     val fourOfAKindScore: Int,
+    /**
+     * Whether this game's mode puts its scores on the Leaderboard ([net.zodac.dicefive.model.GameMode.countsOnLeaderboard]).
+     * A row that doesn't is still a game played - Statistics and career points count it - but the
+     * Leaderboard, a personal best and the score-collection achievements leave it out. Every row
+     * recorded before the column existed was a game that counted.
+     */
+    @ColumnInfo(defaultValue = "1")
+    val onLeaderboard: Boolean = true,
 ) {
 
     /** For [ScoreDao.pagedScores]'s ORDER BY to translate into the Leaderboard's own displayed

@@ -15,10 +15,11 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
+import net.zodac.dicefive.oneScoreEach
 
 class AiTurnPlayerTest {
 
-    private fun bot(difficulty: Difficulty, scorecard: Map<ScoreCategory, Int?> = PlayerState(name = "Bot", type = PlayerType.AI).scorecard) =
+    private fun bot(difficulty: Difficulty, scorecard: Map<ScoreCategory, List<Int>> = PlayerState(name = "Bot", type = PlayerType.AI).scorecard) =
         PlayerState(name = "Bot", type = PlayerType.AI, difficulty = difficulty, scorecard = scorecard)
 
     private fun rolledState(player: PlayerState, values: List<Int>, rollsRemaining: Int = 1) = GameState(
@@ -42,7 +43,7 @@ class AiTurnPlayerTest {
 
     @Test
     fun `chooseCategory never picks an already-filled category`() {
-        val scorecard = PlayerState(name = "Bot", type = PlayerType.AI).scorecard + (ScoreCategory.FIVE_OF_A_KIND to 50)
+        val scorecard = PlayerState(name = "Bot", type = PlayerType.AI).scorecard + (ScoreCategory.FIVE_OF_A_KIND to listOf(50))
         val state = GameState(
             players = listOf(PlayerState(name = "Bot", type = PlayerType.AI, scorecard = scorecard)),
             dice = List(5) { Die(value = 6) },
@@ -59,7 +60,7 @@ class AiTurnPlayerTest {
 
         val result = AiTurnPlayer.playTurn(initial, random = Random(42))
 
-        val filled = result.players.single().scorecard.values.count { it != null }
+        val filled = result.players.single().turnsTaken
         assertEquals(1, filled)
         assertEquals(TurnPhase.AWAITING_ROLL, result.phase)
         assertEquals(3, result.rollsRemaining)
@@ -80,7 +81,7 @@ class AiTurnPlayerTest {
         // Every category filled except ONES, and no 1s among the dice - the only open category
         // scores zero here, so Easy has nothing to stop for and holds nothing.
         val scorecard = GameMode.STANDARD.categories.associateWith { category -> if (category == ScoreCategory.ONES) null else 0 }
-        val state = rolledState(bot(Difficulty.EASY, scorecard = scorecard), values = listOf(2, 3, 4, 5, 6))
+        val state = rolledState(bot(Difficulty.EASY, scorecard = oneScoreEach(scorecard)), values = listOf(2, 3, 4, 5, 6))
 
         assertEquals(emptySet<Int>(), AiTurnPlayer.chooseHolds(state))
     }
@@ -132,7 +133,7 @@ class AiTurnPlayerTest {
 
     @Test
     fun `Medium stops rolling on a Small Straight once Large Straight is no longer available`() {
-        val scorecard = PlayerState(name = "Bot", type = PlayerType.AI).scorecard + (ScoreCategory.LARGE_STRAIGHT to 40)
+        val scorecard = PlayerState(name = "Bot", type = PlayerType.AI).scorecard + (ScoreCategory.LARGE_STRAIGHT to listOf(40))
         val state = rolledState(bot(Difficulty.MEDIUM, scorecard = scorecard), values = listOf(1, 2, 3, 4, 6))
 
         assertEquals(setOf(0, 1, 2, 3, 4), AiTurnPlayer.chooseHolds(state))
@@ -212,7 +213,7 @@ class AiTurnPlayerTest {
 
         val result = AiTurnPlayer.playTurn(initial, random = Random(7))
 
-        assertEquals(1, result.players.single().scorecard.values.count { it != null })
+        assertEquals(1, result.players.single().turnsTaken)
     }
 
     // ---- Tricolour -------------------------------------------------------------------------------
@@ -227,7 +228,7 @@ class AiTurnPlayerTest {
 
             val after = AiTurnPlayer.playTurn(state, Random(difficulty.ordinal))
 
-            assertEquals(1, after.players.single().scorecard.values.count { it != null }, "$difficulty")
+            assertEquals(1, after.players.single().turnsTaken, "$difficulty")
         }
     }
 
@@ -352,7 +353,37 @@ class AiTurnPlayerTest {
         assertTrue(stud > average(GameMode.STANDARD), "Hard averaged $stud in Stud")
     }
 
+    @Test
+    fun `every difficulty plays whole legal Third Wind games - every box three times`() {
+        for (difficulty in Difficulty.entries) {
+            val random = Random(difficulty.ordinal)
+            var state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.AI, name = "Bot", difficulty = difficulty)), GameMode.THIRD_WIND)
+            var turns = 0
+            while (!state.isGameOver) {
+                state = AiTurnPlayer.playTurn(state, random)
+                turns++
+            }
+            assertEquals(39, turns, "$difficulty")
+            assertTrue(state.players.single().scorecard.values.all { it.size == 3 }, "$difficulty")
+        }
+    }
+
+    @Test
+    fun `Hard outscores Medium in Third Wind over the same seeded games`() {
+        fun average(difficulty: Difficulty) = (1..THIRD_WIND_SEEDED_GAMES).map { seed ->
+            val random = Random(seed)
+            var state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.AI, name = "Bot", difficulty = difficulty)), GameMode.THIRD_WIND)
+            while (!state.isGameOver) state = AiTurnPlayer.playTurn(state, random)
+            state.players.single().totalScore
+        }.average()
+
+        val hard = average(Difficulty.HARD)
+        val medium = average(Difficulty.MEDIUM)
+        assertTrue(hard > medium, "Hard averaged $hard to Medium's $medium in Third Wind")
+    }
+
     private companion object {
+        const val THIRD_WIND_SEEDED_GAMES = 30
         const val SEEDED_GAMES = 200
         const val STUD_HOLD_CASES = 200
         const val STUD_SEEDED_GAMES = 40

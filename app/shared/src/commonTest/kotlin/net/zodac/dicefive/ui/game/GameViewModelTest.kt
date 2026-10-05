@@ -87,7 +87,7 @@ class GameViewModelTest {
         advanceTimeBy(10_000)
         runCurrent()
 
-        assertEquals(1, viewModel.game.value!!.players.single().scorecard.values.count { it != null })
+        assertEquals(1, viewModel.game.value!!.players.single().turnsTaken)
         assertEquals(10, viewModel.turnSecondsRemaining.value)
     }
 
@@ -102,9 +102,9 @@ class GameViewModelTest {
         advanceTimeBy(10_000)
         runCurrent()
 
-        val scorecard = viewModel.game.value!!.players.single().scorecard
-        assertEquals(0, scorecard[ScoreCategory.TWOS])
-        assertNull(scorecard[ScoreCategory.ONES])
+        val player = viewModel.game.value!!.players.single()
+        assertEquals(listOf(0), player.scoresIn(ScoreCategory.TWOS))
+        assertTrue(player.scoresIn(ScoreCategory.ONES).isEmpty())
     }
 
     @Test
@@ -163,7 +163,7 @@ class GameViewModelTest {
         viewModel.commitScore(ScoreCategory.CHANCE)
 
         val afterScore = viewModel.game.value!!
-        assertEquals(1, afterScore.players.single().scorecard.values.count { it != null })
+        assertEquals(1, afterScore.players.single().turnsTaken)
     }
 
     @Test
@@ -198,7 +198,7 @@ class GameViewModelTest {
         runCurrent()
 
         val state = viewModel.game.value!!
-        assertEquals(1, state.players.single().scorecard.values.count { it != null })
+        assertEquals(1, state.players.single().turnsTaken)
         // The very next turn's timer (same lone player) is already ticking again by this point.
         assertEquals(30, viewModel.turnSecondsRemaining.value)
     }
@@ -254,7 +254,7 @@ class GameViewModelTest {
 
         val state = viewModel.game.value!!
         assertEquals(0, state.currentPlayerIndex)
-        assertEquals(1, state.players[1].scorecard.values.count { it != null })
+        assertEquals(1, state.players[1].turnsTaken)
     }
 
     @Test
@@ -271,7 +271,7 @@ class GameViewModelTest {
 
         val state = viewModel.game.value!!
         assertEquals(0, state.currentPlayerIndex)
-        assertTrue(state.players[1].scorecard.values.any { it != null })
+        assertTrue(state.players[1].turnsTaken > 0)
     }
 
     @Test
@@ -295,7 +295,7 @@ class GameViewModelTest {
             advanceUntilIdle()
 
             // At least one: Quickfire's turn timer plays the human's turns out too, so its game runs on.
-            assertTrue(viewModel.game.value!!.players[1].scorecard.values.any { it != null }, "$difficulty $mode CPU didn't play")
+            assertTrue(viewModel.game.value!!.players[1].turnsTaken > 0, "$difficulty $mode CPU didn't play")
             assertEquals(expectAsked, asked > 0, "$difficulty $mode")
         }
     }
@@ -316,7 +316,7 @@ class GameViewModelTest {
             advanceUntilIdle()
 
             val cpu = viewModel.game.value!!.players[1]
-            assertEquals(1, cpu.scorecard.values.count { it != null }, "$difficulty CPU didn't play")
+            assertEquals(1, cpu.turnsTaken, "$difficulty CPU didn't play")
             assertEquals(5, cpu.lastRoll!!.count { it.isHeld }, "$difficulty")
             assertEquals(7, cpu.lastRoll.size, "$difficulty")
         }
@@ -332,14 +332,14 @@ class GameViewModelTest {
         for (index in 0 until 4) viewModel.toggleHold(index)
 
         viewModel.commitScore(ScoreCategory.CHANCE)
-        assertNull(viewModel.game.value!!.players.single().scorecard[ScoreCategory.CHANCE])
+        assertNull(viewModel.game.value!!.players.single().scoresIn(ScoreCategory.CHANCE).singleOrNull())
 
         viewModel.toggleHold(4)
         // A sixth die can't be held: the slots are full.
         viewModel.toggleHold(5)
         assertEquals(5, viewModel.game.value!!.dice.count { it.isHeld })
         viewModel.commitScore(ScoreCategory.CHANCE)
-        assertNotNull(viewModel.game.value!!.players.single().scorecard[ScoreCategory.CHANCE])
+        assertNotNull(viewModel.game.value!!.players.single().scoresIn(ScoreCategory.CHANCE).singleOrNull())
     }
 
     @Test
@@ -358,9 +358,9 @@ class GameViewModelTest {
 
         val state = viewModel.game.value!!
         assertEquals(0, state.currentPlayerIndex)
-        assertTrue(state.players[1].scorecard.values.any { it != null }, "Player 2 (AI) never took a turn")
-        assertTrue(state.players[2].scorecard.values.any { it != null }, "Player 3 (AI) never took a turn")
-        assertTrue(state.players[3].scorecard.values.any { it != null }, "Player 4 (AI) never took a turn")
+        assertTrue(state.players[1].turnsTaken > 0, "Player 2 (AI) never took a turn")
+        assertTrue(state.players[2].turnsTaken > 0, "Player 3 (AI) never took a turn")
+        assertTrue(state.players[3].turnsTaken > 0, "Player 4 (AI) never took a turn")
     }
 
     @Test
@@ -378,7 +378,7 @@ class GameViewModelTest {
 
         val afterPlayerTwo = viewModel.game.value!!
         assertEquals(2, afterPlayerTwo.currentPlayerIndex)
-        assertTrue(afterPlayerTwo.players[1].scorecard.values.any { it != null }, "Player 2 (AI) never took a turn")
+        assertTrue(afterPlayerTwo.players[1].turnsTaken > 0, "Player 2 (AI) never took a turn")
         assertTrue(afterPlayerTwo.rollsRemaining == 3, "Player 3 (human) should be waiting for input, not mid-AI-turn")
 
         viewModel.rollDice()
@@ -387,7 +387,7 @@ class GameViewModelTest {
 
         val afterPlayerFour = viewModel.game.value!!
         assertEquals(0, afterPlayerFour.currentPlayerIndex)
-        assertTrue(afterPlayerFour.players[3].scorecard.values.any { it != null }, "Player 4 (AI) never took a turn")
+        assertTrue(afterPlayerFour.players[3].turnsTaken > 0, "Player 4 (AI) never took a turn")
     }
 
     @Test
@@ -405,8 +405,8 @@ class GameViewModelTest {
 
         val afterPlayerThree = viewModel.game.value!!
         assertEquals(3, afterPlayerThree.currentPlayerIndex)
-        assertTrue(afterPlayerThree.players[1].scorecard.values.any { it != null }, "Player 2 (AI) never took a turn")
-        assertTrue(afterPlayerThree.players[2].scorecard.values.any { it != null }, "Player 3 (AI) never took a turn")
+        assertTrue(afterPlayerThree.players[1].turnsTaken > 0, "Player 2 (AI) never took a turn")
+        assertTrue(afterPlayerThree.players[2].turnsTaken > 0, "Player 3 (AI) never took a turn")
         assertEquals(3, afterPlayerThree.rollsRemaining, "Player 4 (human) should be waiting for input")
 
         // Player 4 (human) takes their turn; nothing should auto-advance beyond wrapping to Player 1.
@@ -439,7 +439,7 @@ class GameViewModelTest {
         // 3 shakes plus the pause before scoring; this one should take only 1 shake, the dice's toss and that pause.
         val aiStepDelayMs = 250L // matches GameViewModel.AI_STEP_DELAY_MS, which is private to it
         assertEquals(CUP_SHAKE_MILLIS + DICE_TOSS_MILLIS + aiStepDelayMs, testDispatcher.scheduler.currentTime - timeBeforeAiTurn)
-        assertEquals(50, viewModel.game.value!!.players[1].scorecard[ScoreCategory.FIVE_OF_A_KIND])
+        assertEquals(50, viewModel.game.value!!.players[1].scoresIn(ScoreCategory.FIVE_OF_A_KIND).singleOrNull())
     }
 
     @Test
@@ -498,7 +498,7 @@ class GameViewModelTest {
         runCurrent()
         // Nothing ran down, and the turn wasn't forfeited behind the player's back.
         assertEquals(25, viewModel.turnSecondsRemaining.value)
-        assertEquals(0, viewModel.game.value!!.players.single().scorecard.values.count { it != null })
+        assertEquals(0, viewModel.game.value!!.players.single().turnsTaken)
 
         viewModel.setForeground(true)
         advanceTimeBy(2_000)
@@ -519,11 +519,11 @@ class GameViewModelTest {
         viewModel.commitScore(ScoreCategory.CHANCE)
         advanceTimeBy(120_000)
         runCurrent()
-        assertEquals(0, viewModel.game.value!!.players[1].scorecard.values.count { it != null })
+        assertEquals(0, viewModel.game.value!!.players[1].turnsTaken)
 
         viewModel.setForeground(true)
         advanceUntilIdle()
-        assertEquals(1, viewModel.game.value!!.players[1].scorecard.values.count { it != null })
+        assertEquals(1, viewModel.game.value!!.players[1].turnsTaken)
     }
 
     @Test
@@ -569,14 +569,14 @@ class GameViewModelTest {
 
         viewModel.commitScore(ScoreCategory.CHANCE)
 
-        assertEquals(1, viewModel.game.value!!.players.single().scorecard.values.count { it != null })
+        assertEquals(1, viewModel.game.value!!.players.single().turnsTaken)
         assertTrue(viewModel.canUndo.value)
 
         viewModel.undo()
 
         val state = viewModel.game.value!!
         assertEquals(TurnPhase.ROLLED, state.phase)
-        assertEquals(0, state.players.single().scorecard.values.count { it != null })
+        assertEquals(0, state.players.single().turnsTaken)
         assertFalse(viewModel.canUndo.value)
     }
 

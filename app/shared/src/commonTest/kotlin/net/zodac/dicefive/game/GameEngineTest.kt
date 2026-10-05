@@ -3,6 +3,7 @@ package net.zodac.dicefive.game
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
@@ -14,6 +15,7 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
+import net.zodac.dicefive.oneScoreEach
 
 class GameEngineTest {
 
@@ -198,7 +200,7 @@ class GameEngineTest {
 
         val state = GameState(
             players = listOf(
-                PlayerState(name = "Player 1", type = PlayerType.HUMAN, scorecard = almostFullScorecard),
+                PlayerState(name = "Player 1", type = PlayerType.HUMAN, scorecard = oneScoreEach(almostFullScorecard)),
             ),
             dice = List(5) { Die(value = 4) },
             rollsRemaining = 1,
@@ -271,7 +273,7 @@ class GameEngineTest {
         val almostFull = mode.categories.associateWith { category -> if (category == ScoreCategory.COLOURED_HOUSE) null else 0 }
         val state = GameEngine.newGame(onePlayer, mode).let {
             it.copy(
-                players = listOf(it.players.single().copy(scorecard = almostFull)),
+                players = listOf(it.players.single().copy(scorecard = oneScoreEach(almostFull))),
                 dice = List(5) { index -> Die(value = index + 1, colour = DieColour.RED) },
                 phase = TurnPhase.ROLLED,
             )
@@ -349,7 +351,7 @@ class GameEngineTest {
         state = GameEngine.toggleHold(state, 1)
         val scored = GameEngine.commitScore(state, ScoreCategory.SIXES).players.single()
         // Four 6s and the held 1 - the last 6 on the mat doesn't count.
-        assertEquals(24, scored.scorecard[ScoreCategory.SIXES])
+        assertEquals(24, scored.scoresIn(ScoreCategory.SIXES).singleOrNull())
         assertEquals(7, scored.lastRoll?.size)
     }
 
@@ -379,5 +381,37 @@ class GameEngineTest {
         state = GameEngine.commitScore(GameEngine.fillHand(state), ScoreCategory.CHANCE)
         assertEquals(7, state.dice.size)
         assertTrue(state.dice.none { it.isHeld || it.heldSlot != null })
+    }
+
+    @Test
+    fun `in Third Wind scoring a box fills its next slot until all three are used`() {
+        var state = GameEngine.newGame(onePlayer, GameMode.THIRD_WIND)
+        for (value in 1..3) {
+            state = GameEngine.commitScore(state.copy(dice = List(5) { Die(value = value) }, phase = TurnPhase.ROLLED), ScoreCategory.CHANCE)
+        }
+        val player = state.players.single()
+
+        assertEquals(listOf(5, 10, 15), player.scoresIn(ScoreCategory.CHANCE))
+        assertEquals(30, player.totalScore)
+        assertEquals(36, player.turnsLeft)
+        assertFalse(state.isGameOver)
+        // A fourth time is one too many.
+        assertFailsWith<IllegalStateException> {
+            GameEngine.commitScore(state.copy(dice = List(5) { Die(value = 6) }, phase = TurnPhase.ROLLED), ScoreCategory.CHANCE)
+        }
+    }
+
+    @Test
+    fun `a Third Wind game ends after 39 turns - every box scored three times`() {
+        var state = GameEngine.newGame(onePlayer, GameMode.THIRD_WIND)
+        var turns = 0
+        while (!state.isGameOver) {
+            val player = state.players.single()
+            val open = GameMode.THIRD_WIND.categories.first { player.isOpen(it) }
+            state = GameEngine.commitScore(state.copy(dice = List(5) { Die(value = 1) }, phase = TurnPhase.ROLLED), open)
+            turns++
+        }
+        assertEquals(39, turns)
+        assertTrue(state.players.single().scorecard.values.all { it.size == 3 })
     }
 }

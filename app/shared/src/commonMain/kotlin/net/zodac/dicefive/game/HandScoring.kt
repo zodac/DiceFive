@@ -12,8 +12,9 @@ import net.zodac.dicefive.model.ScoreSection
  * scoring any of them again. [ScoreCalculator] stays the rule; this mirrors it, and `HandScoringTest`
  * checks the two agree.
  *
- * A scorecard is described here by which boxes are filled (a bit per category, in [mode]'s order) and
- * whether the 5x box holds its full score - all the joker rule looks at.
+ * A scorecard is described here by which boxes are full - no slot left to score in - (a bit per
+ * category, in [mode]'s order) and whether the 5x box makes another 5x a joker - all the joker rule
+ * looks at.
  */
 internal class HandScoring(val mode: GameMode, val space: DiceSpace) {
 
@@ -48,13 +49,12 @@ internal class HandScoring(val mode: GameMode, val space: DiceSpace) {
         }
     }
 
-    /** The scorecard state of [player], as [forEachLegal] reads it: a bit per filled box. */
+    /** The scorecard state of [player], as [forEachLegal] reads it: a bit per full box. */
     fun filledMask(player: PlayerState): Int =
-        categories.withIndex().sumOf { (index, category) -> if (player.scorecard[category] != null) 1 shl index else 0 }
+        categories.withIndex().sumOf { (index, category) -> if (!player.isOpen(category)) 1 shl index else 0 }
 
-    /** Whether [player]'s 5x box holds its full score - what makes another 5x a joker. */
-    fun fiveOfAKindScored(player: PlayerState): Boolean =
-        fiveOfAKindIndex >= 0 && player.scorecard[categories[fiveOfAKindIndex]] == fiveOfAKindScore
+    /** Whether [player]'s 5x box makes another 5x a joker - see [PlayerState.fiveOfAKindJokerActive]. */
+    fun fiveOfAKindScored(player: PlayerState): Boolean = fiveOfAKindIndex >= 0 && player.fiveOfAKindJokerActive
 
     /** Whether scoring [score] in [category] fills the 5x box with its full score. */
     fun scoresFiveOfAKind(category: Int, score: Int): Boolean = category == fiveOfAKindIndex && score == fiveOfAKindScore

@@ -806,8 +806,8 @@ class GameViewModel(
 
     private var turnTimerJob: Job? = null
 
-    /** The total number of categories scored across every player as of the turn [turnTimerJob] is
-     * currently counting down for - a turn always ends by scoring exactly one category, so this
+    /** The total number of turns scored across every player as of the turn [turnTimerJob] is
+     * currently counting down for - a turn always ends by scoring exactly one slot, so this
      * strictly increases by one turn to turn and uniquely identifies "a new turn started" even in
      * a single-player game, where [GameState.currentPlayerIndex] alone would stay 0 forever. A
      * state update that doesn't actually change whose turn it is (e.g. a superuser die cycle,
@@ -827,7 +827,7 @@ class GameViewModel(
             cancelTurnTimer()
             return
         }
-        val turnSequence = newState.players.sumOf { player -> player.scorecard.values.count { it != null } }
+        val turnSequence = newState.players.sumOf { it.turnsTaken }
         if (turnTimerTurnSequence == turnSequence && turnTimerJob?.isActive == true) return
         turnTimerTurnSequence = turnSequence
         startTurnTimer(seconds, resumedSecondsLeft?.coerceIn(1, seconds) ?: seconds)
@@ -902,7 +902,7 @@ class GameViewModel(
         if (state.currentPlayerIndex != 0) return
         val player = state.currentPlayer ?: return
         if (player.type != PlayerType.HUMAN) return
-        if (player.scorecard.values.count { it == null } != 1) return
+        if (player.turnsLeft != 1) return
 
         val bestOther = state.players
             .filterIndexed { index, _ -> index != state.currentPlayerIndex }
@@ -1470,7 +1470,13 @@ class GameViewModel(
                 // achievements/statistics untouched.
                 val tieBreakStats = player.toTieBreakStats()
                 // Index 0 is always the primary player ("You") - see AchievementEngine's class doc.
-                repository.recordScore(player.name, tieBreakStats, won = won, isPrimaryPlayer = index == 0)
+                repository.recordScore(
+                    player.name,
+                    tieBreakStats,
+                    won = won,
+                    isPrimaryPlayer = index == 0,
+                    onLeaderboard = state.gameMode.countsOnLeaderboard,
+                )
             }
         }
     }

@@ -104,7 +104,7 @@ class AiReleasePacingTest {
         backgroundScope.launch(testDispatcher) {
             var previous: List<Boolean>? = null
             viewModel.game.collect { state ->
-                val cpuTurn = state != null && state.currentPlayerIndex == 1 && state.players[1].scorecard.values.all { it == null }
+                val cpuTurn = state != null && state.currentPlayerIndex == 1 && state.players[1].turnsTaken == 0
                 val held = state?.dice?.map { it.isHeld }
                 if (cpuTurn && previous != null && held != null) {
                     held.indices.filter { held[it] != previous!![it] }.forEach { changes += Triple(testScheduler.currentTime, it, held[it]) }

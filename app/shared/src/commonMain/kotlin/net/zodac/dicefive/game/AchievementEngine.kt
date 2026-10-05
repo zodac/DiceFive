@@ -162,6 +162,8 @@ object AchievementEngine {
     private const val PHOTO_FINISH_MARGIN = 1
     private const val PIPPED_MARGIN = 1
     private const val ZEROES_FOR_HERO = 3
+    private const val ENCORE_5X_COUNT = 2
+    private const val HAT_TRICK_5X_COUNT = 3
     private const val COLD_DICE_SCORE = 100
     private const val LOW_ROLLS_SCORE = 20
 
@@ -332,20 +334,23 @@ object AchievementEngine {
 
         fun anyHuman(predicate: (PlayerState) -> Boolean) = humans.any(predicate)
 
-        // Dice feats.
+        // Dice feats. 5x are counted, not bonus chips: where the 5x box has more than one slot
+        // (Third Wind), the second and third 5x can go in it with no chip.
         award(Achievement.FIRST_5X, anyHuman { it.fiveOfAKindCount > 0 })
-        award(Achievement.ENCORE_5X, anyHuman { it.fiveOfAKindBonusCount >= 1 })
-        award(Achievement.HAT_TRICK_5X, anyHuman { it.fiveOfAKindBonusCount >= 2 })
+        award(Achievement.ENCORE_5X, anyHuman { it.fiveOfAKindCount >= ENCORE_5X_COUNT })
+        award(Achievement.HAT_TRICK_5X, anyHuman { it.fiveOfAKindCount >= HAT_TRICK_5X_COUNT })
         award(
             Achievement.BOTH_STRAIGHTS,
             anyHuman { it.scored(ScoreCategory.SMALL_STRAIGHT) && it.scored(ScoreCategory.LARGE_STRAIGHT) },
         )
-        award(Achievement.CHANCE_30, anyHuman { it.scorecard[ScoreCategory.CHANCE] == MAX_CHANCE })
-        award(Achievement.SIXES_30, anyHuman { it.scorecard[ScoreCategory.SIXES] == MAX_SIXES })
+        // A box "holds" a score if any one of its slots does, so these mean one turn's score.
+        award(Achievement.CHANCE_30, anyHuman { it.hasScore(ScoreCategory.CHANCE, MAX_CHANCE) })
+        award(Achievement.SIXES_30, anyHuman { it.hasScore(ScoreCategory.SIXES, MAX_SIXES) })
         award(Achievement.UPPER_BONUS, anyHuman { it.upperSectionBonus > 0 })
-        award(Achievement.UPPER_84, anyHuman { it.upperSectionTotal >= UPPER_CLASS_THRESHOLD })
-        award(Achievement.LOWER_150, anyHuman { it.lowerSectionTotalExcludingFiveOfAKind >= LOWER_CLASS_THRESHOLD })
-        award(Achievement.SCRATCHED_5X, anyHuman { it.scorecard[ScoreCategory.FIVE_OF_A_KIND] == 0 })
+        // Section totals over a card scored three times over (Third Wind) would pass these with ease.
+        award(Achievement.UPPER_84, anyHuman { it.hasSingleScoreCard && it.upperSectionTotal >= UPPER_CLASS_THRESHOLD })
+        award(Achievement.LOWER_150, anyHuman { it.hasSingleScoreCard && it.lowerSectionTotalExcludingFiveOfAKind >= LOWER_CLASS_THRESHOLD })
+        award(Achievement.SCRATCHED_5X, anyHuman { it.hasScore(ScoreCategory.FIVE_OF_A_KIND, 0) })
 
         // Game modes. Only a Tricolour scorecard has these boxes at all, so no separate mode check.
         award(Achievement.TRICOLOUR_ALL_COLOURS, anyHuman { player -> TRICOLOUR_SET.all { player.scored(it) } })
@@ -388,15 +393,24 @@ object AchievementEngine {
             award(achievement, (counters[counter] ?: 0) >= achievement.target)
         }
 
-        award(Achievement.NO_ZEROES, anyHuman { player -> player.scorecard.values.none { it == 0 } })
-        award(Achievement.PERSONAL_BEST, context.previousBestScore != null && bestHumanScore > context.previousBestScore)
+        // A card scored three times over (Third Wind) has its own version of Spotless instead.
+        val singleScoreCard = state.gameMode.scoresPerCategory == 1
+        val noZeroes = anyHuman { player -> player.allScores.none { it == 0 } }
+        award(Achievement.NO_ZEROES, singleScoreCard && noZeroes)
+        award(Achievement.THIRD_WIND_NO_ZEROES, state.gameMode == GameMode.THIRD_WIND && noZeroes)
+        // The best is off the Leaderboard, so a game that isn't on it has nothing to compare with.
+        award(
+            Achievement.PERSONAL_BEST,
+            state.gameMode.countsOnLeaderboard && context.previousBestScore != null && bestHumanScore > context.previousBestScore,
+        )
 
         // Score thresholds - see earnedDuringPlay's doc comment for why these wait for the actual
-        // result rather than firing off a total that's already passed the mark mid-game.
-        award(Achievement.SCORE_200, bestHumanScore >= 200)
-        award(Achievement.SCORE_300, bestHumanScore >= 300)
-        award(Achievement.SCORE_400, bestHumanScore >= 400)
-        award(Achievement.SCORE_500, bestHumanScore >= 500)
+        // result rather than firing off a total that's already passed the mark mid-game. Not on a
+        // card scored three times over, whose totals clear every rung as a matter of course.
+        award(Achievement.SCORE_200, singleScoreCard && bestHumanScore >= 200)
+        award(Achievement.SCORE_300, singleScoreCard && bestHumanScore >= 300)
+        award(Achievement.SCORE_400, singleScoreCard && bestHumanScore >= 400)
+        award(Achievement.SCORE_500, singleScoreCard && bestHumanScore >= 500)
 
         // Winning.
         // Judged directly off this game's own result, not off the GAMES_WON counter (unlike
@@ -413,15 +427,18 @@ object AchievementEngine {
         award(Achievement.COMEBACK, multiplayer && humanWon && context.trailedIntoFinalRound)
         award(
             Achievement.ZERO_TO_HERO,
-            multiplayer && humanWon && humans.any { it.totalScore == state.topScore && it.scorecard.values.count { v -> v == 0 } >= ZEROES_FOR_HERO },
+            // Three zeroes over 39 turns (Third Wind) is the usual run of things, not a comeback.
+            singleScoreCard && multiplayer && humanWon &&
+                humans.any { it.totalScore == state.topScore && it.allScores.count { v -> v == 0 } >= ZEROES_FOR_HERO },
         )
         award(Achievement.TRICOLOUR_WIN, multiplayer && humanWon && state.gameMode == GameMode.TRICOLOUR)
         award(Achievement.QUICKFIRE_WIN, multiplayer && humanWon && state.gameMode == GameMode.QUICKFIRE)
         award(Achievement.QUICKFIRE_BEAT_THE_CLOCK, state.gameMode == GameMode.QUICKFIRE && context.playerOneTimeouts == 0)
         award(Achievement.STUD_WIN, multiplayer && humanWon && state.gameMode == GameMode.STUD)
-        // Any mode - the card size comes from player 1's own mode, so it's "all but 3" of 13 boxes in
-        // Standard or Quickfire, and of 17 in Tricolour.
-        val playerOneScoredThemselves = players[0].gameMode.categories.size - context.playerOneTimeouts
+        award(Achievement.THIRD_WIND_WIN, multiplayer && humanWon && state.gameMode == GameMode.THIRD_WIND)
+        // Any mode - the game's length comes from player 1's own mode, so it's "all but 3" of 13 turns
+        // in Standard or Quickfire, of 17 in Tricolour, and of 39 in Third Wind.
+        val playerOneScoredThemselves = players[0].gameMode.turnsPerGame - context.playerOneTimeouts
         award(Achievement.LUCK_OF_THE_DRAW, multiplayer && humanWon && playerOneScoredThemselves <= LUCK_OF_THE_DRAW_MAX_OWN_SCORES)
         award(Achievement.PIPPED_TO_THE_POST, multiplayer && !humanWon && state.topScore - bestHumanScore == PIPPED_MARGIN)
         award(Achievement.JAWS_OF_VICTORY, multiplayer && !humanWon && context.ledIntoFinalRound)
@@ -442,7 +459,7 @@ object AchievementEngine {
         award(
             Achievement.ALL_ZEROES,
             anyHuman { player ->
-                player.gameMode.categories.filter { it != ScoreCategory.CHANCE }.all { player.scorecard[it] == 0 }
+                player.gameMode.categories.filter { it != ScoreCategory.CHANCE }.all { category -> player.scoresIn(category).all { it == 0 } }
             },
         )
         award(Achievement.EXTREME_LOW_ROLLS, anyHuman { it.totalScore == LOWEST_POSSIBLE_SCORE })
@@ -591,10 +608,16 @@ object AchievementEngine {
         return topHuman.totalScore - bestOther
     }
 
-    private fun PlayerState.scored(category: ScoreCategory): Boolean = (scorecard[category] ?: 0) > 0
+    /** Whether any of [category]'s slots holds more than zero. */
+    private fun PlayerState.scored(category: ScoreCategory): Boolean = scoresIn(category).any { it > 0 }
 
-    /** ONES holds exactly 1, TWOS exactly 2, ... SIXES exactly 6 - [PlayerState.UPPER_CATEGORIES]
-     * is already declared in that order, so its index doubles as the target value. */
+    /** Whether each box is scored only once, as in every mode but Third Wind. */
+    private val PlayerState.hasSingleScoreCard: Boolean
+        get() = gameMode.scoresPerCategory == 1
+
+    /** ONES holds exactly 1, TWOS exactly 2, ... SIXES exactly 6 (in any one of its slots) -
+     * [PlayerState.UPPER_CATEGORIES] is already declared in that order, so its index doubles as the
+     * target value. */
     private fun PlayerState.matchesExactUpperLadder(): Boolean =
-        PlayerState.UPPER_CATEGORIES.withIndex().all { (index, category) -> scorecard[category] == index + 1 }
+        PlayerState.UPPER_CATEGORIES.withIndex().all { (index, category) -> hasScore(category, index + 1) }
 }

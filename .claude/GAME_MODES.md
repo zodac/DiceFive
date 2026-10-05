@@ -12,9 +12,10 @@ Modes so far:
 | `TRICOLOUR` | `tricolour` | Dice also roll red/yellow/blue; four colour boxes join the card                                                     |
 | `QUICKFIRE` | `quickfire` | One roll per turn, made automatically; a fixed 10s timer replaces the Turn Timer pick; a timeout scores the lowest open box |
 | `STUD`      | `stud`      | Seven dice rolled, five hold slots; only the five held dice score, and only once all five are held                   |
+| `THIRD_WIND` | `third_wind` | Every box scored three times (39 turns); one upper bonus, 189 earns 105; joker once the 5x box's 3 slots are used; off the Leaderboard |
 
 History: `DESIGN.md` Phase 14 (Tricolour, and how modes were first modelled), Phase 20
-(Quickfire) and Phase 25 (Stud).
+(Quickfire), Phase 25 (Stud) and Phase 26 (Third Wind).
 
 ## The one rule: a mode is data
 
@@ -53,6 +54,8 @@ When a new rule needs a field, add it here too. This is the map of where each ru
 | `turnTimerSeconds`                       | `GameState.turnSeconds` → `GameViewModel.syncTurnTimer`; the setup screen disables the Turn Timer row      |
 | `timeoutPick`                            | `ScoreCalculator.timeoutCategory` ← `GameViewModel.autoScoreOnTimeout`                                      |
 | `autoRollAtTurnStart`                    | `GameState.awaitsAutoRoll` → `GameScreen`'s auto-tap `LaunchedEffect`                                       |
+| `scoresPerCategory` (`turnsPerGame`)     | `PlayerState` (`scorecard` is a list per box; `isOpen`, `turnsTaken`/`turnsLeft`, `isScorecardComplete`, totals, `fiveOfAKindJokerActive`), `ScoreCalculator` (open boxes, the joker), `HandScoring.filledMask` (a full box), `AiTurnPlayer` (upper-bonus reach), `TieBreak` (every zero slot counts), `GameStateJson`, `CategoryCell` (`StackedScores`, spoken state), `GameViewModel` (turn timer's turn count, final round), the achievement guards, Luck Of The Draw's turn count |
+| `countsOnLeaderboard`                    | `GameViewModel.persistHumanScores` → `ScoreEntry.onLeaderboard`, which `ScoreDao`'s Leaderboard page/count, best score and distinct scores filter on (Statistics and career points don't); New Personal Best's guard |
 | `maxRollsPerGame`                        | `flowerpotGrowthStage` - the Flowerpot's stages are spread evenly over it, and the sunflower blooms on its last roll (Greenfingers); `GameModeTest` |
 
 ## First, work out what kind of mode it is
@@ -65,6 +68,10 @@ Most of the work depends on which of these the mode touches. A mode can touch se
 - **New dice** (a new property, faces, or dice count): see [New dice](#new-dice).
 - **More dice rolled than score** (a hand picked from the roll): see
   [More dice than score](#more-dice-than-score). This is where Stud's problems were.
+- **A box scored more than once** (more turns, a bigger card): see
+  [More than one score a box](#more-than-one-score-a-box). This is where Third Wind's problems were.
+- **Scores that shouldn't sit with the others** (off the Leaderboard): see
+  [Off the Leaderboard](#off-the-leaderboard).
 - **The turn's flow** (when rolls happen, timing, what's automatic): see
   [Turn flow](#turn-flow-rolls-timers-undo). This is where Quickfire's problems were.
 - **Another setup option** (it fixes or overrides one): see [New Game screen](#new-game-screen).
@@ -183,6 +190,47 @@ list. They aren't here, so:
     the renders.
 - **Achievements**: a roll isn't a hand, so anything judged on the roll as it lands needs a guard -
   see [Stud](#stud-seven-dice-rolled-five-held-to-score).
+
+### More than one score a box
+
+Third Wind scores every box three times (`scoresPerCategory`). Everything had assumed one score a
+box, one turn a box. `PlayerState.scorecard` is now a list of scores per box in every mode (empty
+while untouched), so:
+
+- **Never read a box as `scorecard[c]`.** Use `scoresIn(c)` (its scores), `isOpen(c)` (a slot left),
+  `hasScore(c, n)`, `allScores`, and `turnsTaken`/`turnsLeft`/`isScorecardComplete`. **Trap:**
+  `scorecard[c] != null` and `scorecard.values.count { it != null }` still *compile* against a list -
+  and are always true. Changing the type turned most misuses into compile errors; those silent ones
+  had to be found by grepping, in tests above all (a "CPU took a turn" check that could never fail).
+- **"One turn per box" is gone.** A game is `GameMode.turnsPerGame` turns. Everything that counted
+  boxes to mean turns needed it: the turn timer's new-turn detection (`turnsTaken`), the final-round
+  check (`turnsLeft == 1`), Luck Of The Draw's "3 or fewer of your own turns", and test helpers that
+  loop `categories.size` times.
+- **Rules that look at "the box" need deciding per slot.** The joker is "the 5x box is full and one
+  slot holds 50" (`fiveOfAKindJokerActive`), so the 2nd and 3rd 5x go in the box for 50 with no chip.
+  Hard's `HandScoring.filledMask` means "no slot left" - the joker and the mask both have to agree with
+  `ScoreCalculator`, and `HandScoringTest` now builds part-used boxes too.
+- **Totals scale, so does everything measured on them**: the ceiling (`maxPossibleScore` - the
+  perfect-game test fills each box's slots in turn), the upper bonus (its own threshold and amount
+  fields), the Hard estimate's upper-bonus reach (counted per open slot), and the score-threshold
+  achievements (guarded - see the audit below).
+- **Saves**: each box is written as a list; old saves (a number or null) still load.
+- **The AI**: no new code - Hard estimates outside Standard (the bundled table is Standard's alone, and
+  a Third Wind table would need ~4^13 card states before the upper total). Measure each difficulty in
+  the mode against its Standard per-turn average before tuning: two plausible tweaks (no upper-bonus
+  pull; a cheaper baseline while slots remain) both made Hard worse - `DESIGN.md` Phase 26.
+- **The board** (`StackedScores`): one line per slot beside the tile, the preview only in the next open
+  slot. See `UI.md` - the lines fill a tile exactly, so a large font scrolls them.
+
+### Off the Leaderboard
+
+`countsOnLeaderboard = false` records a game's scores with `ScoreEntry.onLeaderboard = false`: the
+Leaderboard, a personal best and the score-collection bands skip it (`ScoreDao`'s queries filter on
+it); Statistics and career points don't. That took a database version (2, an `AutoMigration` with
+`@ColumnInfo(defaultValue = "1")` so every existing row stays on the board). The SQL never runs in the
+sandbox - the fake DAOs in `ScoreRepositoryTest` and `GameAchievementsWiringTest` mirror its filters, so
+**a new filter has to be added to both fakes too**, and the real one is only checked on a device. A
+mode off the board also needs New Personal Best guarded: the "previous best" comes from the board.
 
 ### Turn flow: rolls, timers, undo
 
@@ -370,6 +418,46 @@ Dice? compare all seven dice, so they're harder. Well Rolled counts seven dice a
 grows as in Standard (3 rolls a turn, 39 a game). Lucky Seven (`STUD_LUCKY_SEVEN`) is Stud's own:
 all seven dice showing one number after a roll - most often five held and the last two matching.
 
+### Third Wind (every box scored three times)
+
+A box "holds" a score if any one of its slots does - Six Appeal and Taking A Chance need a 30 in one
+slot (three slots adding to 30 don't count), Exact Change a 1 in one Ones slot and so on, Scratched a
+zero in one 5x slot, Straight Talker a non-zero slot in each straight. Every zero slot is a zero (Zero
+To Hero's count, How Do You Play This Game?, the tie-break). "Scored a 5x" counts every 50 in the 5x
+box plus chips (`fiveOfAKindCount`), so Encore and Hat Trick now read that count rather than bonus
+chips - the same thing in a one-slot mode, but a Third Wind 5x in the box's 2nd or 3rd slot earns no chip.
+
+**Guarded - would be free in Third Wind** (`scoresPerCategory == 1`, or `countsOnLeaderboard`; each
+test in `AchievementEngineTest` fails without its guard):
+
+| Achievement                                      | Why it would be free                                                    |
+|--------------------------------------------------|-------------------------------------------------------------------------|
+| Solid Round ... Dice Deity (`SCORE_200`-`500`)   | Totals are three times Standard's - Hard averages over 700              |
+| Upper Class (`UPPER_84`), Lower Class (`LOWER_150`) | Section totals over 18/21 slots pass them as a matter of course       |
+| New Personal Best (`PERSONAL_BEST`)              | The best is read off the Leaderboard, which a Third Wind total dwarfs   |
+| Zero To Hero (`ZERO_TO_HERO`)                    | Three zeroes over 39 turns is the usual run of things                    |
+| Spotless (`NO_ZEROES`)                           | Not free, but replaced: Third Time's The Charm is Third Wind's own       |
+
+**Can't be earned in Third Wind - no guard needed**: Rock Bottom (the lowest total is 15, Chance's
+three slots); the score-collection bands (the rows aren't on the Leaderboard).
+
+**Still earnable, and worth knowing**: Bonus Round (the 105 bonus, as hard to reach as Standard's 35);
+Landslide (margins triple, so easier); Encore, Hat Trick and Dice Whisperer (three times the turns);
+Cold Dice, Low Rolls, Ton! and Nice (harder); Luck Of The Draw counts all 39 turns (36 timeouts);
+Professional Roller counts Third Wind points, which are earned a turn at a time like any others;
+Greenfingers grows over 117 rolls. The mode's own two: Gone With The Wind (`THIRD_WIND_WIN`, a win,
+multiplayer) and Third Time's The Charm (`THIRD_WIND_NO_ZEROES`), all 39 slots scored without a zero.
+
+### Third Wind: what it showed
+
+- **Easier isn't free.** Landslide, Encore, Hat Trick and Dice Whisperer all come more easily over 39
+  turns but still need the dice, so they weren't guarded; the totals-based ones were, because any
+  finished game passes them. Report the "easier" list to the user rather than deciding it alone.
+- **Prove a guard per guard.** One test covered both the score ladder and Upper/Lower Class; stripping
+  every guard at once made it fail, which proved nothing about each. Strip them one at a time.
+- **Count the thing, not its proxy.** Encore and Hat Trick read bonus chips, which equalled "2nd/3rd
+  5x" only while the 5x box had one slot. They now count `fiveOfAKindCount`.
+
 ### Tricolour (coloured dice, four colour boxes)
 
 Nothing guarded, nothing blocked. Déjà Vu and Are These Loaded Dice? compare number *and* colour.
@@ -415,6 +503,16 @@ Useful tools, and what tripped this work up:
 - **No commas or parentheses in `commonTest` test names** - Kotlin/Native rejects them (see
   `IOS_SUPPORT.md`). Stud's first run broke the iOS compile on two of them; the JVM tests don't catch
   it, only the root `testDebugUnitTest` does.
+- **Scorecards in tests**: `oneScoreEach(map)` (in `commonTest`) turns the old "a score or null per
+  box" map into the list-per-box scorecard, for tests of one-slot modes.
+- **A render that looks wrong may be right.** Third Wind's renders showed zeros in boxes that were never
+  scored - they were the roll's dimmed 0 *previews*, in the next open slot. Print the card alongside a
+  render before chasing a bug. And re-run a scratch test with `--rerun`, then check the PNG's
+  timestamp: Gradle skips an unchanged test, leaving the old picture in place.
+- **Measuring a board change's frame cost**: the frame loop in `BENCHMARKS.md`, plus a throwaway
+  counter (a `var` on an `object`, bumped at the top of the composables in question) printed per frame,
+  shows *which* frames recompose what - Third Wind's showed only the tap and landing frames do, which
+  the timings alone couldn't.
 - **A tray screenshot for review**: a throwaway Robolectric test with `@GraphicsMode(NATIVE)` and
   `@Config(qualifiers = "w411dp-h891dp-xxhdpi")`. It sets up `GameScreen` as in the screen harness,
   rolls with a scripted `Random`, holds, steps the clocks, then `onRoot().captureToImage()` to a PNG

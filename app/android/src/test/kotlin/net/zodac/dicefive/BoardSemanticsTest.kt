@@ -13,9 +13,12 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
@@ -25,6 +28,7 @@ import net.zodac.dicefive.ui.game.DiceTray
 import net.zodac.dicefive.ui.game.PlayerHeaderBar
 import net.zodac.dicefive.ui.game.ReadOnlyScoreboard
 import net.zodac.dicefive.ui.game.ScoreGrid
+import net.zodac.dicefive.ui.game.TotalsButton
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -96,9 +100,9 @@ class BoardSemanticsTest {
     @Test
     fun `a player tab says the player's place - and the drawn place isn't a stop of its own`() {
         val players = listOf(
-            PlayerState(name = "Alex", type = PlayerType.HUMAN).let { it.copy(scorecard = it.scorecard + (ScoreCategory.CHANCE to 20)) },
-            PlayerState(name = "Robo", type = PlayerType.AI).let { it.copy(scorecard = it.scorecard + (ScoreCategory.FULL_HOUSE to 25)) },
-            PlayerState(name = "Sam", type = PlayerType.HUMAN).let { it.copy(scorecard = it.scorecard + (ScoreCategory.SIXES to 20)) },
+            PlayerState(name = "Alex", type = PlayerType.HUMAN).let { it.copy(scorecard = it.scorecard + (ScoreCategory.CHANCE to listOf(20))) },
+            PlayerState(name = "Robo", type = PlayerType.AI).let { it.copy(scorecard = it.scorecard + (ScoreCategory.FULL_HOUSE to listOf(25))) },
+            PlayerState(name = "Sam", type = PlayerType.HUMAN).let { it.copy(scorecard = it.scorecard + (ScoreCategory.SIXES to listOf(20))) },
         )
         compose.setContent {
             DiceFiveTheme {
@@ -116,7 +120,7 @@ class BoardSemanticsTest {
     @Test
     fun `another player's scorecard says which box was their last turn's score`() {
         val player = PlayerState(name = "Robo", type = PlayerType.AI).let {
-            it.copy(scorecard = it.scorecard + (ScoreCategory.THREES to 9) + (ScoreCategory.FULL_HOUSE to 25), lastScoredCategory = ScoreCategory.FULL_HOUSE)
+            it.copy(scorecard = it.scorecard + (ScoreCategory.THREES to listOf(9)) + (ScoreCategory.FULL_HOUSE to listOf(25)), lastScoredCategory = ScoreCategory.FULL_HOUSE)
         }
         compose.setContent {
             DiceFiveTheme {
@@ -127,5 +131,73 @@ class BoardSemanticsTest {
         compose.onNodeWithContentDescription("Full House").assert(hasStateDescription("Scored 25, last turn's score"))
         compose.onNodeWithContentDescription("Threes").assert(hasStateDescription("Scored 9"))
     }
-}
 
+    @Test
+    fun `a Third Wind box says each slot's score - what the dice would score next - and how many are left`() {
+        val player = PlayerState(name = "Tester", type = PlayerType.HUMAN, gameMode = GameMode.THIRD_WIND).let {
+            it.copy(scorecard = it.scorecard + (ScoreCategory.FIVES to listOf(15, 10)) + (ScoreCategory.SIXES to listOf(12, 6, 18)))
+        }
+        val dice = listOf(Die(5), Die(5), Die(2), Die(3), Die(1))
+        val scored = mutableListOf<ScoreCategory>()
+        compose.setContent {
+            DiceFiveTheme {
+                ScoreGrid(
+                    gameMode = GameMode.THIRD_WIND,
+                    player = player,
+                    dice = dice,
+                    canScore = true,
+                    showPreview = true,
+                    available = ScoreCalculator.availableCategories(player, dice).toSet(),
+                    onScoreCategory = { scored += it },
+                    modifier = Modifier.width(300.dp).height(380.dp),
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Fives").assert(hasStateDescription("Scored 15, 10, would score 10")).performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithContentDescription("Chance").assert(hasStateDescription("Would score 16, 2 more open"))
+        // Full: nothing to preview, and nothing to tap.
+        compose.onNodeWithContentDescription("Sixes").assert(hasStateDescription("Scored 12, 6, 18")).assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+
+        assertEquals(listOf(ScoreCategory.FIVES), scored)
+    }
+
+    @Test
+    fun `another player's Third Wind box says which of its scores was their last turn's`() {
+        val player = PlayerState(name = "Robo", type = PlayerType.AI, gameMode = GameMode.THIRD_WIND).let {
+            it.copy(scorecard = it.scorecard + (ScoreCategory.FULL_HOUSE to listOf(0, 25)), lastScoredCategory = ScoreCategory.FULL_HOUSE)
+        }
+        compose.setContent {
+            DiceFiveTheme {
+                ReadOnlyScoreboard(player = player, seat = 1, modifier = Modifier.width(400.dp))
+            }
+        }
+
+        compose.onNodeWithContentDescription("Full House").assert(hasStateDescription("Scored 0, 25, 1 open, last turn's score 25"))
+        compose.onNodeWithContentDescription("Threes").assert(hasStateDescription("3 open"))
+    }
+
+    @Test
+    fun `the Totals button says every total - and a tap shows them`() {
+        compose.setContent {
+            DiceFiveTheme { TotalsButton(upperTotal = 70, upperBonus = 35, lowerTotal = 140) }
+        }
+
+        compose.onNodeWithContentDescription("Totals")
+            .assert(hasStateDescription("Upper 70, bonus 35 earned, lower 140"))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+            .performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Lower: 140", substring = true).assertExists()
+    }
+
+    @Test
+    fun `the Totals button says when the bonus isn't earned yet`() {
+        compose.setContent {
+            DiceFiveTheme { TotalsButton(upperTotal = 40, upperBonus = 0, lowerTotal = 90) }
+        }
+
+        compose.onNodeWithContentDescription("Totals").assert(hasStateDescription("Upper 40, no bonus yet, lower 90"))
+    }
+}

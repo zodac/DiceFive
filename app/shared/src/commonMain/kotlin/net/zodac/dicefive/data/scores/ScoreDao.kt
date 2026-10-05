@@ -21,6 +21,7 @@ interface ScoreDao {
     @Query(
         """
         SELECT * FROM scores
+        WHERE onLeaderboard = 1
         ORDER BY
             score DESC,
             fiveOfAKindCount ASC,
@@ -34,17 +35,18 @@ interface ScoreDao {
     )
     suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry>
 
-    @Query("SELECT COUNT(*) FROM scores")
+    /** How many rows the Leaderboard shows - see [ScoreEntry.onLeaderboard]. */
+    @Query("SELECT COUNT(*) FROM scores WHERE onLeaderboard = 1")
     suspend fun count(): Int
 
     /** One player's best score, by name - null if that name has never recorded one. Used for the
      * "New Personal Best" achievement, which is player 1's own best, not the leaderboard's overall
-     * best. */
-    @Query("SELECT MAX(score) FROM scores WHERE playerName = :playerName COLLATE NOCASE")
+     * best. Leaderboard rows only - see [ScoreEntry.onLeaderboard]. */
+    @Query("SELECT MAX(score) FROM scores WHERE playerName = :playerName COLLATE NOCASE AND onLeaderboard = 1")
     suspend fun bestScoreForPlayer(playerName: String): Int?
 
-    /** Every score that has ever been recorded, once each - what the score-collection achievements count. */
-    @Query("SELECT DISTINCT score FROM scores")
+    /** Every score that has ever been recorded on the Leaderboard, once each - what the score-collection achievements count. */
+    @Query("SELECT DISTINCT score FROM scores WHERE onLeaderboard = 1")
     suspend fun distinctScores(): List<Int>
 
     /** Every point the primary player alone has ever scored, added up - see
@@ -55,7 +57,8 @@ interface ScoreDao {
     /**
      * Every recorded game, grouped by player name alphabetically and most recent first within each
      * player - excluding anyone dismissed from the Statistics screen (see [DismissedPlayerStats]).
-     * Their scores are still counted on the Leaderboard; this query backs Statistics only. Names are
+     * Their scores are still counted on the Leaderboard; this query backs Statistics only, and counts
+     * every game, on the Leaderboard or not (see [ScoreEntry.onLeaderboard]). Names are
      * compared ignoring case, as the New Game screen does, so "bob" and "Bob" are one player.
      */
     @Query(
