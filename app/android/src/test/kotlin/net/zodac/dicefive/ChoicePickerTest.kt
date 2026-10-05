@@ -9,12 +9,14 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.ui.common.ChoicePicker
 import net.zodac.dicefive.ui.common.ModifierPicker
 import net.zodac.dicefive.ui.common.ModifierSetting
+import net.zodac.dicefive.ui.common.ModifierStepper
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -97,6 +99,55 @@ class ChoicePickerTest {
         compose.onNodeWithText("30s").performClick()
         compose.onNodeWithText("Done").performClick()
         assertEquals(0, value)
-        compose.onNodeWithText("Timer 30s").assertExists()
+        compose.onNodeWithText("1 enabled").assertExists()
+    }
+
+    @Test
+    fun modifierStepperStepsWithinItsRangeAndSpeaksItsValue() {
+        var rolls by mutableStateOf(1)
+        compose.setContent {
+            DiceFiveTheme {
+                ModifierPicker(
+                    title = "Mods",
+                    description = "Extras",
+                    modifiers = listOf(
+                        ModifierSetting(
+                            "Rolls", "How many", true, {},
+                            stepper = ModifierStepper(rolls, 1..2, { rolls = it }, "Rolls per turn", "rolls", "roll"),
+                        ),
+                    ),
+                )
+            }
+        }
+        compose.onNodeWithText("1 enabled").performClick()
+        compose.onNodeWithContentDescription("Rolls per turn, 1 roll").assertExists()
+        compose.onNodeWithContentDescription("Decrease rolls per turn").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Increase rolls per turn").performClick()
+        assertEquals(2, rolls)
+        compose.onNodeWithContentDescription("Rolls per turn, 2 rolls").assertExists()
+        compose.onNodeWithContentDescription("Increase rolls per turn").assertIsNotEnabled()
+    }
+
+    @Test
+    fun modifierPickerCountsWhatIsOnAndNotesTheLeaderboardOnlyWhileAnyIs() {
+        var on by mutableStateOf(false)
+        compose.setContent {
+            DiceFiveTheme {
+                ModifierPicker(
+                    title = "Mods",
+                    description = "Extras",
+                    activeNote = "Off the board",
+                    modifiers = listOf(
+                        ModifierSetting("A", "a", on, { on = it }),
+                        ModifierSetting("B", "b", true, {}, lockedNote = "Set by the mode"),
+                    ),
+                )
+            }
+        }
+        compose.onNodeWithText("None").assertExists()
+        compose.onNodeWithText("Off the board", substring = true).assertDoesNotExist()
+        on = true
+        compose.onNodeWithText("1 enabled").assertExists()
+        compose.onNodeWithText("Off the board", substring = true).assertExists()
     }
 }

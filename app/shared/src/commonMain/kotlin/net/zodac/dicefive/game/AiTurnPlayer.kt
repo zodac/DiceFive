@@ -367,10 +367,15 @@ object AiTurnPlayer {
 
     // ---- Hard: whole-turn expected-value holds, opportunity-cost category choice ---------------
 
+    /** The most rerolls Hard plans over at once - see [chooseHoldsHard]. */
+    private const val MAX_PLANNED_ROLLS = 9
+
     private fun chooseHoldsHard(player: PlayerState, dice: List<Die>, rerollsLeft: Int, perfectPlay: StandardPerfectPlayTable?): Set<Int> {
         val turn = HardTurn(player, perfectPlay)
         val space = turn.rolls.rolls
-        val keepValues = space.keepValues(turn.rolls.rollValues(turn.endValues()), rerollsLeft)
+        // Stored rolls can pile up past what's worth planning for: each extra pass adds a search over every
+        // hold and past a handful of rerolls the values have stopped moving.
+        val keepValues = space.keepValues(turn.rolls.rollValues(turn.endValues()), rerollsLeft.coerceAtMost(MAX_PLANNED_ROLLS))
         val heldMask = dice.withIndex().sumOf { (index, die) -> if (die.isHeld) 1 shl index else 0 }
         var bestMask = 0
         var bestEv = Double.NEGATIVE_INFINITY

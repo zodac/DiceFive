@@ -153,6 +153,11 @@ class GameModeTest {
     }
 
     @Test
+    fun `only Quickfire turns the roll modifiers off`() {
+        assertEquals(listOf(GameMode.QUICKFIRE), GameMode.entries.filter { !it.allowsRollModifiers })
+    }
+
+    @Test
     fun `a Quickfire turn is one roll - then the cup is empty`() {
         var state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "P")), GameMode.QUICKFIRE)
         assertEquals(1, state.rollsRemaining)

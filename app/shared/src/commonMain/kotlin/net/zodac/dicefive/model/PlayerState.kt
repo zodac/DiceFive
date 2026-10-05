@@ -31,6 +31,12 @@ data class PlayerState(
     /** How many times this player has rolled so far this game, every turn's rolls added up - what
      * the Flowerpot cup's plant grows by (see [flowerpotGrowthStage]). */
     val rollCount: Int = 0,
+    /** Rolls this player left unused at the end of their last turn and keeps for their next - always 0
+     * unless the Stored Rolls modifier is on. */
+    val storedRolls: Int = 0,
+    /** Whether a roll modifier is on, so this player's rolls (and so their totals) aren't what the
+     * mode's own rules would give - what keeps the achievements measured on totals from being handed out. */
+    val rollsModified: Boolean = false,
 ) {
 
     /** The scores filled into [category] so far, in the order they went in. */

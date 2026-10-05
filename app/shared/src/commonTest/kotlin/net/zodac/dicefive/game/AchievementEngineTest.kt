@@ -14,6 +14,7 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
+import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.oneScoreEach
 
@@ -1385,6 +1386,46 @@ class AchievementEngineTest {
 
         assertFalse(Achievement.ALL_ZEROES in zeroesButRed.newlyUnlocked)
         assertTrue(Achievement.ALL_ZEROES in allZeroes.newlyUnlocked)
+    }
+
+    // ---- Roll modifiers ----------------------------------------------------------------------------
+
+    private fun modifiedGame(vararg players: PlayerState) = finishedGame(*players.map { it.copy(rollsModified = true) }.toTypedArray())
+        .copy(rollModifiers = RollModifiers(storedRolls = true))
+
+    @Test
+    fun `extra rolls don't hand out the score ladder or the section thresholds`() {
+        val strong = player(total = 520, overrides = GameMode.STANDARD.categories.associateWith { 30 })
+
+        val plain = evaluate(finishedGame(strong))
+        val modified = evaluate(modifiedGame(strong))
+
+        for (achievement in listOf(Achievement.SCORE_200, Achievement.SCORE_300, Achievement.SCORE_400, Achievement.SCORE_500)) {
+            assertTrue(achievement in plain.newlyUnlocked, "$achievement in a plain game")
+            assertFalse(achievement in modified.newlyUnlocked, "$achievement with roll modifiers")
+        }
+        assertTrue(Achievement.UPPER_84 in plain.newlyUnlocked)
+        assertFalse(Achievement.UPPER_84 in modified.newlyUnlocked)
+        assertTrue(Achievement.LOWER_150 in plain.newlyUnlocked)
+        assertFalse(Achievement.LOWER_150 in modified.newlyUnlocked)
+    }
+
+    @Test
+    fun `extra rolls don't hand out Spotless or Bonus Round`() {
+        val clean = player(total = 250, overrides = GameMode.STANDARD.categories.associateWith { 10 } + mapOf(ScoreCategory.SIXES to 30))
+
+        assertTrue(Achievement.NO_ZEROES in evaluate(finishedGame(clean)).newlyUnlocked)
+        assertFalse(Achievement.NO_ZEROES in evaluate(modifiedGame(clean)).newlyUnlocked)
+        assertTrue(Achievement.UPPER_BONUS in evaluate(finishedGame(clean)).newlyUnlocked)
+        assertFalse(Achievement.UPPER_BONUS in evaluate(modifiedGame(clean)).newlyUnlocked)
+    }
+
+    @Test
+    fun `a single roll chosen with Number of Rolls isn't Impatient`() {
+        val game = finishedGame(player()).copy(rollModifiers = RollModifiers(rollsPerTurn = 1))
+
+        assertFalse(Achievement.IMPATIENT in evaluate(game).newlyUnlocked)
+        assertTrue(Achievement.IMPATIENT in evaluate(finishedGame(player())).newlyUnlocked)
     }
 
     // ---- Third Wind: every box scored three times -----------------------------------------------

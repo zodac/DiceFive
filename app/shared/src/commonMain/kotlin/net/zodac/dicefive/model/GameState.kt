@@ -8,10 +8,14 @@ package net.zodac.dicefive.model
 data class GameState(
     val gameMode: GameMode = GameMode.default,
     val turnTimer: TurnTimer = TurnTimer.NONE,
+    val rollModifiers: RollModifiers = RollModifiers(),
     val players: List<PlayerState> = emptyList(),
     val currentPlayerIndex: Int = 0,
     val dice: List<Die> = List(gameMode.diceCount) { Die() },
-    val rollsRemaining: Int = gameMode.rollsPerTurn,
+    val rollsRemaining: Int = rollModifiers.rollsPerTurn ?: gameMode.rollsPerTurn,
+    /** How many rolls this turn started with: the turn's allowance plus any stored rolls the
+     * player brought in. What "the first roll" and "the last roll" of the turn are measured from. */
+    val turnRolls: Int = rollsRemaining,
     val phase: TurnPhase = TurnPhase.AWAITING_ROLL,
     val isGameOver: Boolean = false,
     /** Seconds that were left on the turn timer when the game was saved mid-turn, so resuming picks
@@ -19,6 +23,10 @@ data class GameState(
      * set on the saved copy, never on the live game. */
     val turnSecondsLeft: Int? = null,
 ) {
+
+    /** Rolls a turn allows before any stored rolls: the Number of Rolls modifier's, else the mode's. */
+    val rollsPerTurn: Int
+        get() = rollModifiers.rollsPerTurn ?: gameMode.rollsPerTurn
 
     val currentPlayer: PlayerState?
         get() = players.getOrNull(currentPlayerIndex)
@@ -45,9 +53,9 @@ data class GameState(
         get() = gameMode.turnTimerSeconds ?: turnTimer.seconds
 
     /** Whether this game's scores go on the Leaderboard: its mode must allow it ([GameMode.countsOnLeaderboard])
-     * and no modifier, like the [turnTimer], may be on - modifiers are for fun, not for the records. */
+     * and no modifier, like the [turnTimer] or [rollModifiers], may be on - modifiers are for fun, not for the records. */
     val countsOnLeaderboard: Boolean
-        get() = gameMode.countsOnLeaderboard && turnTimer == TurnTimer.NONE
+        get() = gameMode.countsOnLeaderboard && turnTimer == TurnTimer.NONE && !rollModifiers.isActive
 
     /** A human's turn, not yet rolled, in a mode that taps the cup for them at the start of it
      * ([GameMode.autoRollAtTurnStart]). An AI's turn is never this - its own turn loop rolls. */

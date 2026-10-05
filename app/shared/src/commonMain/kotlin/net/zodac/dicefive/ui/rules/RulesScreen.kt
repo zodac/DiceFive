@@ -319,6 +319,11 @@ private val RULES_PAGES = listOf(
             RulesTurnTimer,
             text("If a player's time runs out, their roll is scored for them in whichever open category it's worth the least in (the first one on the scorecard, if several tie)."),
             text("A game mode that has its own timer, like *Quickfire*, uses that instead, and the *Turn timer* modifier is locked while it's chosen."),
+            text("*Number of Rolls*: how many times a player may roll each turn, from **1** to **9**. Without it, a turn has the game mode's own number of rolls, which is **3** in most modes."),
+            text("*Stored Rolls*: any rolls a player doesn't use before scoring are kept for their next turn, on top of that turn's usual rolls, and so on. The dice cup shows the total, so it can pass **9**. Each player keeps their own."),
+            text("*Stored Rolls* can also have a most rolls you can store: whatever is left over beyond it is lost when the turn is scored. Leave it empty for no limit."),
+            text("A game mode built around its rolls, like *Quickfire*, locks both of these while it's chosen."),
+            text("Extra rolls make big scores much easier, so with either of these on, the achievements for a high score, a section total, a clean scorecard or the upper bonus can't be earned, and neither can the sunflower."),
         ),
     ),
 )

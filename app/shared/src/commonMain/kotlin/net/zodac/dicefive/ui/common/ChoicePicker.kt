@@ -4,10 +4,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
@@ -16,11 +19,15 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -34,14 +41,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.CollectionInfo
 import androidx.compose.ui.semantics.CollectionItemInfo
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.collectionInfo
 import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -54,6 +64,9 @@ import androidx.compose.ui.unit.dp
 
 /** The most the modal's list may grow before it scrolls - about five two-line options. */
 private val PICKER_LIST_MAX_HEIGHT = 340.dp
+
+/** Room kept at the right of the modal's list for the scrollbar drawn over it. */
+private val PICKER_SCROLLBAR_CLEARANCE = 12.dp
 
 /**
  * The closed state of every picker: an outlined field with a [headline], a [supporting] line under
@@ -124,6 +137,8 @@ private fun PickerDialog(
                 LazyColumn(
                     state = listState,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
+                    // Clear of the scrollbar, which is drawn over the list's right edge.
+                    contentPadding = PaddingValues(end = PICKER_SCROLLBAR_CLEARANCE),
                     modifier = Modifier.semantics { collectionInfo = CollectionInfo(rowCount = collectionSize, columnCount = 1) },
                     content = items,
                 )
@@ -230,17 +245,40 @@ class ModifierSetting(
     val selectedValue: Int = 0,
     val onValueSelect: (Int) -> Unit = {},
     val lockedNote: String? = null,
-) {
-    /** "Turn timer 60s", or just the title for a modifier without a value. */
-    val summary: String
-        get() = if (valueLabels.isEmpty()) title else "$title ${valueLabels[selectedValue]}"
-}
+    /** A value counted up and down in steps instead of picked from [valueLabels], for more choices than a row of segments holds. */
+    val stepper: ModifierStepper? = null,
+    /** A value typed in, for one that has no short list of choices. */
+    val numberField: ModifierNumberField? = null,
+)
+
+/** A [ModifierSetting]'s stepped value: [value] within [range], shown as "[value] [unit]" and spoken the same way after [label]. */
+class ModifierStepper(
+    val value: Int,
+    val range: IntRange,
+    val onValueChange: (Int) -> Unit,
+    val label: String,
+    val unit: String,
+    val unitSingular: String = unit,
+)
+
+/**
+ * A [ModifierSetting]'s typed number: [initial] is the starting text (empty for no value), and
+ * [onValueChange] gets the number typed, or null while the field is empty. Only digits are accepted, up to [maxDigits].
+ */
+class ModifierNumberField(
+    val label: String,
+    val hint: String,
+    val initial: String,
+    val maxDigits: Int,
+    val onValueChange: (Int?) -> Unit,
+)
 
 /**
  * The same dropdown-and-modal as [ChoicePicker], for a set of [modifiers] that are each switched on
- * or off independently - and, for those with a value, set. Closed, the field lists what is on
- * ("None" when nothing is) over [description]; open, each modifier is a switch row with its value
- * choices beneath, greyed while it is off so the modal never changes height. Changes apply as they are made, so the modal just closes ("Done").
+ * or off independently - and, for those with a value, set. Closed, the field counts what is on
+ * ("None" when nothing is) over [description], and [activeNote] too while any is on; open, each
+ * modifier is a switch row with its value beneath, greyed while it is off so the modal never changes
+ * height. Changes apply as they are made, so the modal just closes ("Done").
  */
 @Composable
 fun ModifierPicker(
@@ -248,12 +286,15 @@ fun ModifierPicker(
     description: String,
     modifiers: List<ModifierSetting>,
     modifier: Modifier = Modifier,
+    activeNote: String? = null,
 ) {
     var open by rememberSaveable { mutableStateOf(false) }
+    // A modifier locked by the game mode isn't the player's choice, so isn't counted.
+    val enabledCount = modifiers.count { it.enabled && it.lockedNote == null }
     PickerField(
         title = title,
-        headline = modifiers.filter { it.enabled }.joinToString(", ") { it.summary }.ifEmpty { "None" },
-        supporting = description,
+        headline = if (enabledCount == 0) "None" else "$enabledCount enabled",
+        supporting = if (enabledCount == 0 || activeNote == null) description else "$description\n$activeNote",
         onClick = { open = true },
         modifier = modifier,
     )
@@ -287,6 +328,12 @@ private fun ModifierRow(setting: ModifierSetting, modifier: Modifier = Modifier)
         }
         // Always laid out, greyed while the modifier is off: showing it only when on made the modal grow
         // under a finger that had just tapped the switch, so whatever was beneath it moved.
+        setting.stepper?.let { stepper ->
+            ModifierStepperRow(stepper, enabled = unlocked && setting.enabled, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+        }
+        setting.numberField?.let { field ->
+            ModifierNumberFieldRow(field, enabled = unlocked && setting.enabled, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+        }
         if (setting.valueLabels.isNotEmpty()) {
             SegmentedChoiceRow(
                 options = setting.valueLabels.indices.toList(),
@@ -299,3 +346,49 @@ private fun ModifierRow(setting: ModifierSetting, modifier: Modifier = Modifier)
         }
     }
 }
+
+@Composable
+private fun ModifierStepperRow(stepper: ModifierStepper, enabled: Boolean, modifier: Modifier = Modifier) {
+    val unit = if (stepper.value == 1) stepper.unitSingular else stepper.unit
+    Row(modifier = modifier, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = { stepper.onValueChange(stepper.value - 1) }, enabled = enabled && stepper.value > stepper.range.first) {
+            Icon(Icons.Filled.Remove, contentDescription = "Decrease ${stepper.label.lowercase()}")
+        }
+        Text(
+            text = "${stepper.value} $unit",
+            style = MaterialTheme.typography.titleMedium,
+            color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA),
+            textAlign = TextAlign.Center,
+            // Polite live region: the new count is spoken after a tap on either button.
+            modifier = Modifier.widthIn(min = 96.dp).semantics {
+                contentDescription = "${stepper.label}, ${stepper.value} $unit"
+                liveRegion = LiveRegionMode.Polite
+            },
+        )
+        IconButton(onClick = { stepper.onValueChange(stepper.value + 1) }, enabled = enabled && stepper.value < stepper.range.last) {
+            Icon(Icons.Filled.Add, contentDescription = "Increase ${stepper.label.lowercase()}")
+        }
+    }
+}
+
+@Composable
+private fun ModifierNumberFieldRow(field: ModifierNumberField, enabled: Boolean, modifier: Modifier = Modifier) {
+    var text by rememberSaveable { mutableStateOf(field.initial) }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { typed ->
+            val digits = typed.filter { it in '0'..'9' }.take(field.maxDigits)
+            text = digits
+            field.onValueChange(digits.toIntOrNull())
+        },
+        label = { Text(field.label) },
+        placeholder = { Text(field.hint) },
+        enabled = enabled,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = modifier,
+    )
+}
+
+/** Material's own alpha for disabled content. */
+private const val DISABLED_ALPHA = 0.38f

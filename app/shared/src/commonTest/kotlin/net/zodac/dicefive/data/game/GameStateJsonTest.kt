@@ -2,6 +2,7 @@ package net.zodac.dicefive.data.game
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
 import net.zodac.dicefive.data.JsonArray
 import net.zodac.dicefive.data.JsonNull
@@ -18,6 +19,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
+import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.oneScoreEach
 
@@ -53,6 +55,32 @@ class GameStateJsonTest {
         val decoded = GameStateJson.decode(GameStateJson.encode(state))
 
         assertEquals(TurnTimer.SECONDS_60, decoded.turnTimer)
+    }
+
+    @Test
+    fun `round trips the roll modifiers and a player's stored rolls`() {
+        val state = GameState(
+            rollModifiers = RollModifiers(rollsPerTurn = 6, storedRolls = true, storedRollsMax = 12),
+            rollsRemaining = 134,
+            turnRolls = 140,
+            players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, storedRolls = 128, rollsModified = true)),
+        )
+
+        assertEquals(state, GameStateJson.decode(GameStateJson.encode(state)))
+    }
+
+    @Test
+    fun `a save from before roll modifiers loads with them off and the full allowance`() {
+        val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)), rollsRemaining = 2)
+        val old = GameStateJson.encode(state)
+            .replace(Regex("\"turnRolls\":[^,}]*,?"), "")
+
+        val decoded = GameStateJson.decode(old)
+
+        assertEquals(RollModifiers(), decoded.rollModifiers)
+        assertEquals(3, decoded.turnRolls)
+        assertEquals(0, decoded.players.single().storedRolls)
+        assertFalse(decoded.players.single().rollsModified)
     }
 
     @Test

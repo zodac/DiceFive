@@ -108,6 +108,12 @@ enum class GameMode(
      * recorded, and Statistics counts them.
      */
     val countsOnLeaderboard: Boolean = true,
+    /**
+     * Whether the roll modifiers (Number of Rolls, Stored Rolls - see [RollModifiers]) apply. A mode whose
+     * rules are built on its rolls turns them off; the setup screen shows them locked and the game starts
+     * with them off.
+     */
+    val allowsRollModifiers: Boolean = true,
 ) {
     /**
      * The official rules.
@@ -193,6 +199,7 @@ enum class GameMode(
         turnTimerSeconds = 10,
         timeoutPick = TimeoutPick.LOWEST_SCORE,
         autoRollAtTurnStart = true,
+        allowsRollModifiers = false,
     ),
     /**
      * Beyond the official rules: Standard's scorecard and three rolls, but seven dice are rolled

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.map
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
+import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.TurnTimer
 
 /**
@@ -70,6 +71,33 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setTurnTimerLength(length: TurnTimer) {
         dataStore.edit { it[TURN_TIMER_LENGTH_KEY] = length.name }
+    }
+
+    /**
+     * The roll modifiers the setup form last started a game with. The Number of Rolls length is read
+     * separately ([rollsPerTurnLength]) because it's kept while that modifier is off.
+     */
+    val rollModifiers: Flow<RollModifiers> = dataStore.data.map { prefs ->
+        RollModifiers(
+            rollsPerTurn = prefs[ROLLS_PER_TURN_KEY]?.takeIf { it in RollModifiers.MIN_ROLLS..RollModifiers.MAX_ROLLS },
+            storedRolls = prefs[STORED_ROLLS_KEY] ?: false,
+            storedRollsMax = prefs[STORED_ROLLS_MAX_KEY]?.takeIf { it >= 0 },
+        )
+    }
+
+    /** The Number of Rolls value last chosen, kept while the modifier is off so switching it back on restores it. */
+    val rollsPerTurnLength: Flow<Int> = dataStore.data.map { prefs ->
+        (prefs[ROLLS_PER_TURN_LENGTH_KEY] ?: prefs[ROLLS_PER_TURN_KEY])
+            ?.takeIf { it in RollModifiers.MIN_ROLLS..RollModifiers.MAX_ROLLS } ?: RollModifiers.DEFAULT_ROLLS
+    }
+
+    suspend fun setRollModifiers(modifiers: RollModifiers, rollsPerTurnLength: Int) {
+        dataStore.edit { prefs ->
+            modifiers.rollsPerTurn?.let { prefs[ROLLS_PER_TURN_KEY] = it } ?: prefs.remove(ROLLS_PER_TURN_KEY)
+            prefs[ROLLS_PER_TURN_LENGTH_KEY] = rollsPerTurnLength
+            prefs[STORED_ROLLS_KEY] = modifiers.storedRolls
+            modifiers.storedRollsMax?.let { prefs[STORED_ROLLS_MAX_KEY] = it } ?: prefs.remove(STORED_ROLLS_MAX_KEY)
+        }
     }
 
     /** The mode the setup form last started a game in - read back by id, falling back to the default
@@ -154,6 +182,10 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val PLAYER_COUNT_KEY = intPreferencesKey("player_count")
         val TURN_TIMER_KEY = stringPreferencesKey("turn_timer")
         val TURN_TIMER_LENGTH_KEY = stringPreferencesKey("turn_timer_length")
+        val ROLLS_PER_TURN_KEY = intPreferencesKey("rolls_per_turn_modifier")
+        val ROLLS_PER_TURN_LENGTH_KEY = intPreferencesKey("rolls_per_turn_modifier_length")
+        val STORED_ROLLS_KEY = booleanPreferencesKey("stored_rolls_modifier")
+        val STORED_ROLLS_MAX_KEY = intPreferencesKey("stored_rolls_modifier_max")
         val GAME_MODE_KEY = stringPreferencesKey("game_mode")
         val DICE_STYLE_ID_KEY = stringPreferencesKey("dice_style_id")
         val DICE_CUP_STYLE_ID_KEY = stringPreferencesKey("dice_cup_style_id")

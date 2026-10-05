@@ -42,10 +42,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
+import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.ui.common.ChoicePicker
+import net.zodac.dicefive.ui.common.ModifierNumberField
 import net.zodac.dicefive.ui.common.ModifierPicker
 import net.zodac.dicefive.ui.common.ModifierSetting
+import net.zodac.dicefive.ui.common.ModifierStepper
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.game.GameSetupState
@@ -171,7 +174,13 @@ private fun SetupForm(
     }
 
     SetupCard(title = "Modifiers") {
-        TurnTimerModifierPicker(setup = setup, onSelect = viewModel::setTurnTimer)
+        SetupModifierPicker(
+            setup = setup,
+            onTurnTimer = viewModel::setTurnTimer,
+            onRollsPerTurn = viewModel::setRollsPerTurn,
+            onStoredRolls = viewModel::setStoredRolls,
+            onStoredRollsMax = viewModel::setStoredRollsMax,
+        )
     }
 }
 
@@ -408,19 +417,34 @@ private fun GameModeSelector(selected: GameMode, onSelect: (GameMode) -> Unit) {
 }
 
 /**
- * The setup screen's modifiers. For now only the turn timer, which is off when [TurnTimer.NONE] and
+ * The setup screen's modifiers. The turn timer is off when [TurnTimer.NONE] and
  * otherwise one of the lengths. The length last chosen is kept in the setup state (and saved with it) while
  * the timer is off, so switching it back on - even next game - restores it. A mode with its own timer ([GameMode.turnTimerSeconds]) overrides
  * the setting, so it's shown locked at the mode's length; the player's pick is kept for other modes.
+ *
+ * Number of Rolls and Stored Rolls (see [RollModifiers]) work the same way: a mode that doesn't allow
+ * them ([GameMode.allowsRollModifiers]) shows them locked and off, and the player's pick is kept. Stored
+ * Rolls' cap is a typed number, empty for none.
  */
 @Composable
-private fun TurnTimerModifierPicker(setup: GameSetupState, onSelect: (TurnTimer) -> Unit) {
+private fun SetupModifierPicker(
+    setup: GameSetupState,
+    onTurnTimer: (TurnTimer) -> Unit,
+    onRollsPerTurn: (Int?) -> Unit,
+    onStoredRolls: (Boolean) -> Unit,
+    onStoredRollsMax: (Int?) -> Unit,
+) {
+    val onSelect = onTurnTimer
     val lengths = TurnTimer.entries.filter { it != TurnTimer.NONE }
+    val rolls = setup.rollModifiers
+    val rollsLocked = !setup.gameMode.allowsRollModifiers
+    val rollsLockedNote = if (rollsLocked) "Not used in ${setup.gameMode.displayName}" else null
 
     val modeSeconds = setup.gameMode.turnTimerSeconds
     ModifierPicker(
         title = "Modifiers",
         description = "Optional extra rules for any game mode",
+        activeNote = "Scores won't go on the Leaderboard",
         modifiers = listOf(
             ModifierSetting(
                 title = "Turn timer",
@@ -431,6 +455,35 @@ private fun TurnTimerModifierPicker(setup: GameSetupState, onSelect: (TurnTimer)
                 selectedValue = if (modeSeconds != null) 0 else lengths.indexOf(setup.turnTimerLength),
                 onValueSelect = { onSelect(lengths[it]) },
                 lockedNote = if (modeSeconds != null) "Set by ${setup.gameMode.displayName}: ${modeSeconds}s" else null,
+            ),
+            ModifierSetting(
+                title = "Number of Rolls",
+                description = "How many rolls each turn gets",
+                enabled = !rollsLocked && rolls.rollsPerTurn != null,
+                onEnabledChange = { on -> onRollsPerTurn(if (on) setup.rollsPerTurnLength else null) },
+                lockedNote = rollsLockedNote,
+                stepper = ModifierStepper(
+                    value = setup.rollsPerTurnLength,
+                    range = RollModifiers.MIN_ROLLS..RollModifiers.MAX_ROLLS,
+                    onValueChange = onRollsPerTurn,
+                    label = "Rolls per turn",
+                    unit = "rolls",
+                    unitSingular = "roll",
+                ),
+            ),
+            ModifierSetting(
+                title = "Stored Rolls",
+                description = "Rolls you don't use carry over to your next turn",
+                enabled = !rollsLocked && rolls.storedRolls,
+                onEnabledChange = onStoredRolls,
+                lockedNote = rollsLockedNote,
+                numberField = ModifierNumberField(
+                    label = "Most rolls you can store",
+                    hint = "No max",
+                    initial = rolls.storedRollsMax?.toString().orEmpty(),
+                    maxDigits = RollModifiers.MAX_CAP_DIGITS,
+                    onValueChange = onStoredRollsMax,
+                ),
             ),
         ),
     )
