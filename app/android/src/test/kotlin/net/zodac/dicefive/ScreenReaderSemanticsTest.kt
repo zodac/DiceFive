@@ -48,6 +48,9 @@ class ScreenReaderSemanticsTest {
         currentWinStreak = 1,
         bestWinStreak = 2,
         maxScore = 250,
+        totalScore = 1_001,
+        fiveOfAKindCount = 4,
+        soloGames = 2,
     )
 
     private fun hasRole(role: Role) = SemanticsMatcher.expectValue(SemanticsProperties.Role, role)
@@ -91,18 +94,27 @@ class ScreenReaderSemanticsTest {
     }
 
     @Test
-    fun `a stats card reads as one sentence and its only action deletes`() {
+    fun `a stats card is collapsed to name and best score and its tap opens it`() {
         var deleted = 0
         compose.setContent { DiceFiveTheme { PlayerStatsCard(player = player, onLongPress = { deleted++ }) } }
 
         val node = compose.onNodeWithContentDescription("Ann", substring = true)
-        val config = node.fetchSemanticsNode().config
-        val spoken = config[SemanticsProperties.ContentDescription].single()
-        assertTrue(spoken.contains("Best score 250"))
-        assertTrue(spoken.contains("Played 5, won 3, lost 2"))
-        // No no-op "activate": the tap does nothing, so it isn't offered.
-        assertFalse(SemanticsActions.OnClick in config)
+        var config = node.fetchSemanticsNode().config
+        assertEquals("Ann. Best score 250.", config[SemanticsProperties.ContentDescription].single())
+        assertEquals("Collapsed", config[SemanticsProperties.StateDescription])
+        assertEquals("Show details", config[SemanticsActions.OnClick].label)
         assertEquals("Delete Ann's stats", config[SemanticsActions.OnLongClick].label)
+
+        node.performSemanticsAction(SemanticsActions.OnClick)
+        compose.waitForIdle()
+
+        config = compose.onNodeWithContentDescription("Ann", substring = true).fetchSemanticsNode().config
+        val spoken = config[SemanticsProperties.ContentDescription].single()
+        assertEquals("Expanded", config[SemanticsProperties.StateDescription])
+        assertEquals("Hide details", config[SemanticsActions.OnClick].label)
+        assertTrue(spoken.contains("Played 5, won 3, lost 2"))
+        assertTrue(spoken.contains("Total score 1,001. Average score 200."))
+        assertTrue(spoken.contains("4 5x scored. 2 solo games played."))
 
         node.performSemanticsAction(SemanticsActions.OnLongClick)
         config[SemanticsActions.CustomActions].single().action()

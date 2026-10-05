@@ -105,6 +105,9 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
                 currentWinStreak = streaks.current,
                 bestWinStreak = streaks.best,
                 maxScore = games.maxOf { it.score },
+                totalScore = games.sumOf { it.score },
+                fiveOfAKindCount = games.sumOf { it.fiveOfAKindCount },
+                soloGames = games.count { it.won == null },
             )
         }
 

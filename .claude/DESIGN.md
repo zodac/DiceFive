@@ -576,9 +576,12 @@ net.zodac.dicefive/
       ScoresScreen.kt                  — paginated table (50/page), long-press row shows date tooltip
       ScoresViewModel.kt               — talks to ScoreRepository, tracks current page
     statistics/
-      StatisticsScreen.kt              — one card per distinct human player name: max score, games
-                                          played/won/lost, current/best win streak, first-played date
-                                          + time; a drawn scrollbar hints at cards below the fold
+      StatisticsScreen.kt              — one card per distinct human player name. Closed: name + max
+                                          score (gold, comma-grouped) + dropdown arrow. Tap opens it:
+                                          first-played date + time, played/won/lost, current/best win
+                                          streak, total score, average (rounded half up), 5x scored,
+                                          solo games. Long-press deletes; a drawn scrollbar hints at
+                                          cards below the fold
       StatisticsViewModel.kt           — talks to ScoreRepository.playerStatistics()
     achievements/                       — AchievementsScreen (one themed list, easiest-first per
                                           theme; unlocked ones highlighted in place rather than
@@ -681,10 +684,9 @@ dependencies — most unit tests live here.
   game through the real `GameEngine`) — every upper box maxed plus the 63+ bonus, every other box
   maxed, and every turn after the 5x box also landing a 5x for its +100 bonus chip (12 of them in
   Standard, 16 in Tricolour, whose three colour boxes take five 6s all of one colour and whose
-  Coloured House takes the joker free-fill). Every screen that shows a score (Leaderboard,
-  Statistics' max score) pads it to the digit width of the highest of these
+  Coloured House takes the joker free-fill). Every screen that shows a score (Leaderboard) pads it to the digit width of the highest of these
   (`GameMode.HIGHEST_POSSIBLE_SCORE`, 4 digits) so the column stays a fixed width
-  regardless of how many digits a given score has; current-game score displays (`PlayerHeaderBar`,
+  regardless of how many digits a given score has (Statistics' max score doesn't: it's right-aligned and comma-grouped on its own row); current-game score displays (`PlayerHeaderBar`,
   `GameOverScreen`) don't need this — the player-name column next to them is already capped at 10
   characters, so there's nothing there for a short score to let grow sideways.
 

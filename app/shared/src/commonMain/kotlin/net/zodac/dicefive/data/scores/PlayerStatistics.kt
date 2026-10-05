@@ -14,7 +14,18 @@ data class PlayerStatistics(
     val currentWinStreak: Int,
     val bestWinStreak: Int,
     val maxScore: Int,
-)
+    /** Every point scored across every recorded game, solo or multiplayer. */
+    val totalScore: Int,
+    /** How many 5x this player has scored, summed over every recorded game. */
+    val fiveOfAKindCount: Int,
+    /** Games with nobody to beat - the ones recorded with a null outcome, so counted in [gamesPlayed] only. */
+    val soloGames: Int,
+) {
+
+    /** [totalScore] over [gamesPlayed], rounded half up to a whole number; 0 for a player with no games. */
+    val averageScore: Int
+        get() = if (gamesPlayed == 0) 0 else ((totalScore.toLong() * 2 + gamesPlayed) / (gamesPlayed * 2L)).toInt()
+}
 
 /**
  * [ScoreDao.playerGames]'s projection: one recorded game, just the columns the Statistics screen
@@ -27,4 +38,5 @@ data class PlayerGame(
     val timestampEpochMillis: Long,
     val won: Boolean?,
     val score: Int,
+    val fiveOfAKindCount: Int,
 )
