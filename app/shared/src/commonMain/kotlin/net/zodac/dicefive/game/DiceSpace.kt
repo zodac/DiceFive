@@ -13,11 +13,15 @@ import net.zodac.dicefive.model.Die
  * Hands and held sets are unordered - how many dice show each face - since scoring never depends on
  * die order: five dice of 18 faces is 1.9 million ordered rolls, but only 26,334 hands. Standard's
  * six faces make 252 hands and 462 held sets; Tricolour's 18 make 26,334 and 33,649.
+ *
+ * [maxHeld] caps how many of the dice a held set can have - fewer than [diceCount] where there are
+ * fewer hold slots than dice (`GameMode.scoresHeldDiceOnly`), so some dice are always rerolled.
  */
-internal class DiceSpace(val faces: List<Die>, val diceCount: Int) {
+internal class DiceSpace(val faces: List<Die>, val diceCount: Int, val maxHeld: Int = diceCount) {
 
     init {
         require(diceCount <= MAX_DICE) { "More dice than a space is built for" }
+        require(maxHeld in 0..diceCount) { "Can't hold more dice than are rolled" }
     }
 
     private val faceCount = faces.size
@@ -44,7 +48,7 @@ internal class DiceSpace(val faces: List<Die>, val diceCount: Int) {
             handIndexByKey[keyOf(counts)] = handFaceCounts.size
             handFaceCounts += counts
         }
-        for (held in 0..diceCount) {
+        for (held in 0..maxHeld) {
             forEachCounts(held) { counts ->
                 keepIndexByKey[keyOf(counts)] = keepFaceCounts.size
                 keepFaceCounts += counts
@@ -91,7 +95,7 @@ internal class DiceSpace(val faces: List<Die>, val diceCount: Int) {
         val subKeeps = ArrayList<Int>()
         for ((hand, counts) in handFaceCounts.withIndex()) {
             subKeepStart[hand] = subKeeps.size
-            forEachSubCounts(counts) { held -> subKeeps += keepIndexByKey.getValue(keyOf(held)) }
+            forEachSubCounts(counts) { held -> if (held.sum() <= maxHeld) subKeeps += keepIndexByKey.getValue(keyOf(held)) }
         }
         subKeepStart[handCount] = subKeeps.size
         subKeep = subKeeps.toIntArray()
@@ -109,7 +113,7 @@ internal class DiceSpace(val faces: List<Die>, val diceCount: Int) {
     /** [hand] as dice, in face order. */
     fun diceOf(hand: Int): List<Die> = handFaceCounts[hand].withIndex().flatMap { (face, count) -> List(count.toInt()) { faces[face] } }
 
-    /** Calls [action] with each distinct set of dice that can be held out of [hand], holding all of them included. */
+    /** Calls [action] with each distinct set of dice that can be held out of [hand] - holding all of them included, unless that's more than [maxHeld]. */
     inline fun forEachSubKeep(hand: Int, action: (keep: Int) -> Unit) {
         for (index in subKeepStartOf(hand) until subKeepStartOf(hand + 1)) action(subKeepAt(index))
     }

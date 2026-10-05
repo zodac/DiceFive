@@ -83,6 +83,17 @@ class DiceScoringTest {
     }
 
     @Test
+    fun `a part-held hand of matching dice is no 5x - but still scores what it can`() {
+        val threeSixes = diceOf(6, 6, 6)
+
+        assertEquals(false, DiceScoring.isFiveOfAKind(threeSixes))
+        assertEquals(0, DiceScoring.score(ScoreCategory.FIVE_OF_A_KIND, threeSixes))
+        assertEquals(18, DiceScoring.score(ScoreCategory.SIXES, threeSixes))
+        assertEquals(18, DiceScoring.score(ScoreCategory.THREE_OF_A_KIND, threeSixes))
+        assertEquals(0, DiceScoring.score(ScoreCategory.FULL_HOUSE, threeSixes))
+    }
+
+    @Test
     fun `chance sums every die`() {
         val dice = diceOf(1, 2, 3, 4, 5)
 

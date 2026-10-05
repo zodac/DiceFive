@@ -3,9 +3,15 @@ package net.zodac.dicefive.model
 /**
  * A single six-sided die in the player's roll. [colour] is null in a [GameMode] whose dice have no
  * colour of their own (drawn in the player's chosen dice style instead) - see [GameMode.dieColours].
+ *
+ * [heldSlot] is which hold slot a held die sits in, in a mode that rolls more dice than it scores
+ * ([GameMode.scoresHeldDiceOnly]), where the slots are fewer than the dice: the free one nearest
+ * its column when it was held, kept until it's let go (see GameEngine.toggleHold). Null for an unheld die, and for every die in a mode with a slot per die (where
+ * a held die simply sits in its own column's slot).
  */
 data class Die(
     val value: Int = 1,
     val isHeld: Boolean = false,
     val colour: DieColour? = null,
+    val heldSlot: Int? = null,
 )

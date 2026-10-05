@@ -19,16 +19,16 @@ class HandScoringTest {
             val faces = mode.dieValues.flatMap { value ->
                 if (mode.dieColours.isEmpty()) listOf(Die(value = value)) else mode.dieColours.map { Die(value = value, colour = it) }
             }
-            val scoring = HandScoring(mode, DiceSpace(faces, mode.diceCount))
+            val scoring = HandScoring(mode, DiceSpace(faces, mode.scoringDiceCount))
             val fiveOfAKind = mode.categories.indexOf(ScoreCategory.FIVE_OF_A_KIND)
             repeat(CASES_PER_MODE) {
                 val filled = random.nextInt(0, (1 shl mode.categories.size) - 1)
                 // Joker cases are rare by chance alone, so half the hands are made five of a kind.
                 val hand = if (random.nextBoolean()) {
-                    scoring.space.handOf(List(mode.diceCount) { faces[random.nextInt(faces.size)] })
+                    scoring.space.handOf(List(mode.scoringDiceCount) { faces[random.nextInt(faces.size)] })
                 } else {
                     val value = mode.dieValues.random(random)
-                    scoring.space.handOf(List(mode.diceCount) { faces.filter { it.value == value }.random(random) })
+                    scoring.space.handOf(List(mode.scoringDiceCount) { faces.filter { it.value == value }.random(random) })
                 }
                 val base = PlayerState(name = "Bot", type = PlayerType.AI, gameMode = mode)
                 val scorecard = base.scorecard.toMutableMap()

@@ -25,7 +25,8 @@ class GameModeTest {
             val value = if (upperValue > 0) upperValue else mode.dieValues.last
             val colour = category.matchingColour ?: mode.dieColours.firstOrNull()
             val dice = List(mode.diceCount) { Die(value = value, colour = colour) }
-            state = GameEngine.commitScore(state.copy(dice = dice, phase = TurnPhase.ROLLED), category)
+            // Where only held dice score, the hand is held first - five of the matching dice.
+            state = GameEngine.commitScore(GameEngine.fillHand(state.copy(dice = dice, phase = TurnPhase.ROLLED)), category)
         }
         assertTrue(state.isGameOver)
         return state.players.single()
@@ -45,19 +46,21 @@ class GameModeTest {
             while (!state.isGameOver) {
                 while (state.rollsRemaining > 0) state = GameEngine.rollDice(state, Random(1))
                 val player = state.players.single()
-                state = GameEngine.commitScore(state, mode.categories.first { player.scorecard[it] == null })
+                state = GameEngine.commitScore(GameEngine.fillHand(state), mode.categories.first { player.scorecard[it] == null })
             }
             assertEquals(mode.maxRollsPerGame, state.players.single().rollCount, "$mode")
         }
         assertEquals(39, GameMode.STANDARD.maxRollsPerGame)
         assertEquals(51, GameMode.TRICOLOUR.maxRollsPerGame)
         assertEquals(13, GameMode.QUICKFIRE.maxRollsPerGame)
+        assertEquals(39, GameMode.STUD.maxRollsPerGame)
     }
 
     @Test
     fun `Standard's ceiling is 1575 - as is Quickfire's - and Tricolour's is 2120`() {
         assertEquals(1575, GameMode.STANDARD.maxPossibleScore)
         assertEquals(1575, GameMode.QUICKFIRE.maxPossibleScore)
+        assertEquals(1575, GameMode.STUD.maxPossibleScore)
         assertEquals(2120, GameMode.TRICOLOUR.maxPossibleScore)
         assertEquals(2120, GameMode.HIGHEST_POSSIBLE_SCORE)
     }
@@ -89,6 +92,30 @@ class GameModeTest {
         assertEquals(standard.upperBonusThreshold, quickfire.upperBonusThreshold)
         assertEquals(standard.upperBonusAmount, quickfire.upperBonusAmount)
         assertEquals(standard.fiveOfAKindBonusAmount, quickfire.fiveOfAKindBonusAmount)
+    }
+
+    @Test
+    fun `Stud is Standard with seven dice rolled - and five of them held to score`() {
+        val stud = GameMode.STUD
+        val standard = GameMode.STANDARD
+        assertEquals(7, stud.diceCount)
+        assertEquals(5, stud.scoringDiceCount)
+        assertTrue(stud.scoresHeldDiceOnly)
+        assertEquals(standard.rollsPerTurn, stud.rollsPerTurn)
+        assertEquals(standard.categories, stud.categories)
+        assertEquals(standard.dieValues, stud.dieValues)
+        assertEquals(standard.upperBonusThreshold, stud.upperBonusThreshold)
+        assertEquals(standard.upperBonusAmount, stud.upperBonusAmount)
+        assertEquals(standard.fiveOfAKindBonusAmount, stud.fiveOfAKindBonusAmount)
+        assertNull(stud.turnTimerSeconds)
+    }
+
+    @Test
+    fun `every other mode scores every die it rolls`() {
+        for (mode in GameMode.entries - GameMode.STUD) {
+            assertEquals(mode.diceCount, mode.scoringDiceCount, "$mode")
+            assertFalse(mode.scoresHeldDiceOnly, "$mode")
+        }
     }
 
     @Test

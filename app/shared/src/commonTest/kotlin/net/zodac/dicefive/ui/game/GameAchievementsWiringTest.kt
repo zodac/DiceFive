@@ -1331,6 +1331,80 @@ class GameAchievementsWiringTest {
     }
 
     @Test
+    fun `all seven Stud dice matching unlocks Lucky Seven - but no first-roll 5x since nothing is held yet`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
+        viewModel.setPlayerCount(1)
+        viewModel.setGameMode(GameMode.STUD)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        advanceUntilIdle()
+
+        assertTrue(Achievement.STUD_LUCKY_SEVEN in store.unlocked, "STUD_LUCKY_SEVEN should pop, got ${store.unlocked}")
+        assertFalse(Achievement.FIRST_ROLL_5X in store.unlocked, "a Stud roll isn't a hand: ${store.unlocked}")
+    }
+
+    @Test
+    fun `seven matching dice rerolled with nothing held is no Natural 5x in Stud`() = runTest {
+        val store = FakeAchievementStore()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = LoadedDice(6))
+        viewModel.setPlayerCount(1)
+        viewModel.setGameMode(GameMode.STUD)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.rollDice()
+        advanceUntilIdle()
+
+        assertFalse(Achievement.NATURAL_5X in store.unlocked, "NATURAL_5X should not pop in Stud, got ${store.unlocked}")
+    }
+
+    @Test
+    fun `holding a first-roll four of a kind through every Stud roll does not unlock Almost Famous`() = runTest {
+        val store = FakeAchievementStore()
+        // Four 6s and three others; the 6s are held, the other three rerolled twice and never a 6.
+        val viewModel = GameViewModel(
+            aiDispatcher = testDispatcher,
+            achievementsRepository = store,
+            random = ScriptedDice(listOf(6, 6, 6, 6, 1, 2, 3, 2, 3, 4, 3, 4, 5)),
+        )
+        viewModel.setPlayerCount(1)
+        viewModel.setGameMode(GameMode.STUD)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        for (index in 0 until 4) viewModel.toggleHold(index)
+        viewModel.rollDice()
+        viewModel.rollDice()
+        viewModel.toggleHold(6)
+        viewModel.commitScore(ScoreCategory.SIXES)
+        advanceUntilIdle()
+
+        assertFalse(Achievement.ALMOST_FAMOUS in store.unlocked, "ALMOST_FAMOUS should not pop in Stud, got ${store.unlocked}")
+    }
+
+    @Test
+    fun `a Stud turn that times out fills the empty slots from the left - and scores only that hand`() = runTest {
+        // 6, 1, 6, 2, 6, 3, 1: the player holds the first 1 (die 2), then lets the timer run out. The
+        // slots fill with dice 1, 3, 4 and 5 - so the last 1, left on the mat, isn't counted in Ones.
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, random = ScriptedDice(listOf(6, 1, 6, 2, 6, 3, 1)))
+        viewModel.setPlayerCount(1)
+        viewModel.setGameMode(GameMode.STUD)
+        viewModel.setTurnTimer(TurnTimer.SECONDS_30)
+        viewModel.startGame()
+
+        viewModel.rollDice()
+        viewModel.toggleHold(1)
+        testDispatcher.scheduler.advanceTimeBy(30_000)
+        testDispatcher.scheduler.runCurrent()
+
+        val player = viewModel.game.value!!.players.single()
+        assertEquals(1, player.scorecard[ScoreCategory.ONES])
+        assertEquals(listOf(true, true, true, true, true, false, false), player.lastRoll!!.map { it.isHeld })
+    }
+
+    @Test
     fun `a four of a kind flag from an abandoned turn does not leak into the next turn's Almost Famous`() = runTest {
         val store = FakeAchievementStore()
         // Turn 1: four 6s on the first roll, committed immediately - not "almost" anything (see

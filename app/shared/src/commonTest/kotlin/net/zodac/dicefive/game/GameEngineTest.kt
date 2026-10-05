@@ -279,4 +279,105 @@ class GameEngineTest {
 
         assertTrue(GameEngine.commitScore(state, ScoreCategory.COLOURED_HOUSE).isGameOver)
     }
+
+    // ---- Stud: seven dice, five hold slots, only the held dice score ----------------------------
+
+    private fun rolledStud(vararg values: Int): GameState =
+        GameEngine.newGame(onePlayer, GameMode.STUD).copy(dice = values.map { Die(value = it) }, phase = TurnPhase.ROLLED, rollsRemaining = 2)
+
+    @Test
+    fun `a Stud die held goes to the slot nearest its column and stays there until let go`() {
+        var state = rolledStud(1, 2, 3, 4, 5, 6, 6)
+        state = GameEngine.toggleHold(state, 4)
+        state = GameEngine.toggleHold(state, 1)
+        state = GameEngine.toggleHold(state, 6)
+        assertEquals(listOf(null, 1, null, null, 3, null, 4), state.dice.map { it.heldSlot })
+
+        state = GameEngine.toggleHold(state, 4)
+        assertEquals(null, state.dice[4].heldSlot)
+        assertEquals(false, state.dice[4].isHeld)
+        // The others stay where they are.
+        state = GameEngine.toggleHold(state, 0)
+        assertEquals(listOf(0, 1, null, null, null, null, 4), state.dice.map { it.heldSlot })
+    }
+
+    @Test
+    fun `a Stud die held where its slot is taken goes to the nearest free one - and the held dice never move`() {
+        var state = rolledStud(1, 2, 3, 4, 5, 6, 6)
+        for (index in listOf(3, 2, 1)) state = GameEngine.toggleHold(state, index)
+        assertEquals(listOf(null, 0, 1, 2, null, null, null), state.dice.map { it.heldSlot })
+
+        // Die 1's slot is taken, so it goes in the leftmost free one.
+        state = GameEngine.toggleHold(state, 0)
+        assertEquals(listOf(3, 0, 1, 2, null, null, null), state.dice.map { it.heldSlot })
+        state = GameEngine.toggleHold(state, 6)
+        assertEquals(listOf(3, 0, 1, 2, null, null, 4), state.dice.map { it.heldSlot })
+    }
+
+    @Test
+    fun `between two free slots equally near a Stud die takes the one that keeps column order`() {
+        var state = rolledStud(1, 2, 3, 4, 5, 6, 6)
+        state = GameEngine.toggleHold(state, 1)
+        state = GameEngine.toggleHold(state, 2)
+        state = GameEngine.toggleHold(state, 1)
+        assertEquals(listOf(null, null, 2, null, null, null, null), state.dice.map { it.heldSlot })
+
+        // Die 4 sits under the middle slot, which die 3 has; slots 2 and 4 are as near, but only slot 4 is right of die 3.
+        state = GameEngine.toggleHold(state, 3)
+        assertEquals(3, state.dice[3].heldSlot)
+    }
+
+    @Test
+    fun `a Stud die can't be held once all five slots are full`() {
+        var state = rolledStud(1, 2, 3, 4, 5, 6, 6)
+        for (index in 0 until 5) state = GameEngine.toggleHold(state, index)
+        assertEquals(false, GameEngine.canHold(state))
+
+        assertEquals(state, GameEngine.toggleHold(state, 5))
+        // Letting one go frees its slot for another - the dice already held stay where they are.
+        state = GameEngine.toggleHold(GameEngine.toggleHold(state, 2), 5)
+        assertEquals(listOf(0, 1, null, 3, 4, 2, null), state.dice.map { it.heldSlot })
+    }
+
+    @Test
+    fun `Stud scores only the held dice - and only once all five slots are full`() {
+        var state = rolledStud(6, 1, 6, 6, 1, 6, 6)
+        for (index in listOf(0, 2, 3, 5)) state = GameEngine.toggleHold(state, index)
+        assertEquals(4, state.scoringDice.size)
+        assertFailsWith<IllegalStateException> { GameEngine.commitScore(state, ScoreCategory.SIXES) }
+
+        state = GameEngine.toggleHold(state, 1)
+        val scored = GameEngine.commitScore(state, ScoreCategory.SIXES).players.single()
+        // Four 6s and the held 1 - the last 6 on the mat doesn't count.
+        assertEquals(24, scored.scorecard[ScoreCategory.SIXES])
+        assertEquals(7, scored.lastRoll?.size)
+    }
+
+    @Test
+    fun `a Stud hand is in slot order whichever dice the slots hold`() {
+        var state = rolledStud(1, 2, 3, 4, 5, 6, 6)
+        for (index in listOf(3, 2, 1, 0)) state = GameEngine.toggleHold(state, index)
+        assertEquals(listOf(2, 3, 4, 1), state.scoringDice.map { it.value })
+    }
+
+    @Test
+    fun `fillHand holds the leftmost unheld dice until the Stud hand is full - and leaves other modes alone`() {
+        var state = rolledStud(1, 2, 3, 4, 5, 6, 6)
+        state = GameEngine.toggleHold(state, 5)
+        state = GameEngine.fillHand(state)
+        assertTrue(state.hasFullHand)
+        assertEquals(listOf(true, true, true, true, false, true, false), state.dice.map { it.isHeld })
+
+        val standard = GameEngine.rollDice(GameEngine.newGame(onePlayer))
+        assertEquals(standard, GameEngine.fillHand(standard))
+    }
+
+    @Test
+    fun `a Stud turn rolls seven dice and the next turn starts with seven unheld`() {
+        var state = GameEngine.rollDice(GameEngine.newGame(onePlayer, GameMode.STUD))
+        assertEquals(7, state.dice.size)
+        state = GameEngine.commitScore(GameEngine.fillHand(state), ScoreCategory.CHANCE)
+        assertEquals(7, state.dice.size)
+        assertTrue(state.dice.none { it.isHeld || it.heldSlot != null })
+    }
 }

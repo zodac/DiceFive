@@ -58,7 +58,11 @@ object AiTurnPlayer {
      * Hard decision and kept: Tricolour's 26,334 hands take a moment to score, Standard's 252 none.
      */
     private val HAND_SCORING: Map<GameMode, Lazy<HandScoring>> =
-        GameMode.entries.associateWith { mode -> lazy { HandScoring(mode, DiceSpace(facesOf(mode), mode.diceCount)) } }
+        GameMode.entries.associateWith { mode -> lazy { HandScoring(mode, ROLL_SPACES.getValue(mode).value.hands) } }
+
+    /** Every roll of each mode's dice and the hands they're scored as - see [RollSpace]. Built with [HAND_SCORING]. */
+    private val ROLL_SPACES: Map<GameMode, Lazy<RollSpace>> =
+        GameMode.entries.associateWith { mode -> lazy { RollSpace(facesOf(mode), mode) } }
 
     /**
      * Each box scores on its dice's numbers or on their colours, never both, so it's chased over just
@@ -66,13 +70,13 @@ object AiTurnPlayer {
      * whole-turn search to a few thousand hands.
      */
     private fun categoryBaseline(mode: GameMode): DoubleArray {
-        val numberSpace = DiceSpace(mode.dieValues.map { Die(value = it) }, mode.diceCount)
-        val colourSpace = if (mode.dieColours.isEmpty()) null else DiceSpace(mode.dieColours.map { Die(value = mode.dieValues.first, colour = it) }, mode.diceCount)
+        val numberSpace = RollSpace(mode.dieValues.map { Die(value = it) }, mode)
+        val colourSpace = if (mode.dieColours.isEmpty()) null else RollSpace(mode.dieColours.map { Die(value = mode.dieValues.first, colour = it) }, mode)
         return DoubleArray(mode.categories.size) { index ->
             val category = mode.categories[index]
             val space = if (category.section == ScoreSection.COLOUR) requireNotNull(colourSpace) else numberSpace
-            val scores = DoubleArray(space.handCount) { hand -> DiceScoring.score(category, space.diceOf(hand)).toDouble() }
-            space.keepValues(scores, mode.rollsPerTurn)[space.emptyKeep]
+            val scores = DoubleArray(space.hands.handCount) { hand -> DiceScoring.score(category, space.hands.diceOf(hand)).toDouble() }
+            space.rolls.keepValues(space.rollValues(scores), mode.rollsPerTurn)[space.rolls.emptyKeep]
         }
     }
 
@@ -80,13 +84,86 @@ object AiTurnPlayer {
      * Which dice indices an AI would hold before its next reroll, given the current (just-rolled) dice.
      * [perfectPlay] is Standard's perfect-play table, which Hard plays by in Standard when it's given
      * (see [StandardPerfectPlayTable]); without it, or in another mode, Hard estimates.
+     *
+     * Every die means "stop rolling": the turn is scored as it stands. In a mode where only held dice
+     * score ([GameMode.scoresHeldDiceOnly]) that's the only way to ask for all of them, since there
+     * are fewer hold slots than dice - every other answer there holds no more than the slots allow,
+     * and the hand to score is then picked by [chooseHand].
      */
     fun chooseHolds(state: GameState, perfectPlay: StandardPerfectPlayTable? = null): Set<Int> {
         val player = requireNotNull(state.currentPlayer) { "No current player" }
+        if (state.gameMode.scoresHeldDiceOnly) return chooseHoldsFromRoll(state, player, perfectPlay)
         return when (player.difficulty) {
             Difficulty.EASY -> chooseHoldsEasy(player, state.dice)
             Difficulty.MEDIUM -> chooseHoldsMedium(player, state.dice)
             Difficulty.HARD -> chooseHoldsHard(player, state.dice, state.rollsRemaining, perfectPlay)
+        }
+    }
+
+    /**
+     * [chooseHolds] where only held dice score: Easy and Medium judge the hand they'd hold now
+     * ([chooseHand]) - Easy stopping as soon as it scores at all, Medium on its "good enough" shapes -
+     * and otherwise Medium keeps to its rules of thumb, no more dice than there are slots; and Hard
+     * searches every hold of the dice it's allowed, as in any mode.
+     */
+    private fun chooseHoldsFromRoll(state: GameState, player: PlayerState, perfectPlay: StandardPerfectPlayTable?): Set<Int> {
+        val dice = state.dice
+        val stop = dice.indices.toSet()
+        val slots = state.gameMode.scoringDiceCount
+        if (player.difficulty == Difficulty.HARD) return chooseHoldsHard(player, dice, state.rollsRemaining, perfectPlay)
+
+        val hand = chooseHand(state, perfectPlay).sorted().map { dice[it] }
+        return when (player.difficulty) {
+            Difficulty.EASY -> if (hasPossibleScore(player, hand)) stop else emptySet()
+            else -> {
+                if (shouldStopEarlyMedium(player, hand)) return stop
+                val holds = chooseHoldsMedium(player, dice)
+                // Every slot's worth of one shape (five matching, say) is as good as Medium gets.
+                if (holds.size >= slots) stop else holds
+            }
+        }
+    }
+
+    /**
+     * Which dice an AI would score with, in a mode where only held dice score - the
+     * [GameMode.scoringDiceCount] of them it holds once it's done rolling. Easy and Medium take the
+     * hand that scores the most anywhere open; Hard the one its valuation rates highest. On a tie, the
+     * hand that changes fewer of the dice already held.
+     */
+    fun chooseHand(state: GameState, perfectPlay: StandardPerfectPlayTable? = null): Set<Int> {
+        val player = requireNotNull(state.currentPlayer) { "No current player" }
+        val dice = state.dice
+        val hard = if (player.difficulty == Difficulty.HARD) HardTurn(player, perfectPlay) else null
+        var best = emptySet<Int>()
+        var bestValue = Double.NEGATIVE_INFINITY
+        var bestChanges = Int.MAX_VALUE
+        forEachCombination(dice.size, state.gameMode.scoringDiceCount) { indices ->
+            val hand = indices.map { dice[it] }
+            val value = hard?.bestValue(hand) ?: bestRawScore(player, hand).toDouble()
+            val changes = dice.indices.count { dice[it].isHeld != (it in indices) }
+            if (value > bestValue || (value == bestValue && changes < bestChanges)) {
+                best = indices.toSet()
+                bestValue = value
+                bestChanges = changes
+            }
+        }
+        return best
+    }
+
+    private fun bestRawScore(player: PlayerState, hand: List<Die>): Int =
+        ScoreCalculator.availableCategories(player, hand).maxOf { ScoreCalculator.scoreFor(player, it, hand) }
+
+    /** Calls [action] with every way of picking [size] of the indices `0 until [count]`, in ascending order. */
+    private inline fun forEachCombination(count: Int, size: Int, action: (List<Int>) -> Unit) {
+        val picked = IntArray(size) { it }
+        if (size > count) return
+        while (true) {
+            action(picked.toList())
+            var position = size - 1
+            while (position >= 0 && picked[position] == count - size + position) position--
+            if (position < 0) return
+            picked[position]++
+            for (next in position + 1 until size) picked[next] = picked[next - 1] + 1
         }
     }
 
@@ -97,40 +174,56 @@ object AiTurnPlayer {
      * background rather than leave the CPU's first roll to wait on it.
      */
     fun prepareHard(mode: GameMode) {
+        ROLL_SPACES.getValue(mode).value
         HAND_SCORING.getValue(mode).value
         CATEGORY_BASELINES.getValue(mode).value
     }
 
-    /** Applies a hold decision (e.g. from [chooseHolds]) to every die that isn't already in the right state. */
+    /**
+     * Applies a hold decision (e.g. from [chooseHolds]) to every die that isn't already in the right
+     * state - every release first, so a hold slot let go of is free for a die held in its place.
+     */
     fun applyHolds(state: GameState, holdIndices: Set<Int>): GameState {
         var current = state
         state.dice.forEachIndexed { index, die ->
-            if (die.isHeld != (index in holdIndices)) current = GameEngine.toggleHold(current, index)
+            if (die.isHeld && index !in holdIndices) current = GameEngine.toggleHold(current, index)
+        }
+        state.dice.forEachIndexed { index, die ->
+            if (!die.isHeld && index in holdIndices) current = GameEngine.toggleHold(current, index)
         }
         return current
     }
 
     /** The category an AI would choose for its current (fully-rolled) dice - [perfectPlay] as for [chooseHolds]. */
+    /** The category an AI would choose for its current (fully-rolled) hand - [GameState.scoringDice] - [perfectPlay] as for [chooseHolds]. */
     fun chooseCategory(state: GameState, perfectPlay: StandardPerfectPlayTable? = null): ScoreCategory {
         val player = requireNotNull(state.currentPlayer) { "No current player" }
-        val available = ScoreCalculator.availableCategories(player, state.dice)
+        val hand = state.scoringDice
+        val available = ScoreCalculator.availableCategories(player, hand)
         check(available.isNotEmpty()) { "No available categories to score" }
         return when (player.difficulty) {
-            Difficulty.EASY -> available.maxBy { ScoreCalculator.scoreFor(player, it, state.dice) }
-            Difficulty.MEDIUM -> chooseCategoryMedium(player, state.dice, available)
-            Difficulty.HARD -> HardTurn(player, perfectPlay).bestCategory(state.dice)
+            Difficulty.EASY -> available.maxBy { ScoreCalculator.scoreFor(player, it, hand) }
+            Difficulty.MEDIUM -> chooseCategoryMedium(player, hand, available)
+            Difficulty.HARD -> HardTurn(player, perfectPlay).bestCategory(hand)
         }
     }
 
-    /** Pure end-to-end simulation of an AI's whole turn: roll, hold, roll, hold, roll, then score. Used by tests and as a reference for GameViewModel's animated version. */
+    /**
+     * Pure end-to-end simulation of an AI's whole turn: roll, hold, roll, hold, roll, then - where only
+     * held dice score - hold the hand, then score. Used by tests and as a reference for GameViewModel's
+     * animated version.
+     */
     fun playTurn(state: GameState, random: Random = Random.Default, perfectPlay: StandardPerfectPlayTable? = null): GameState {
         var current = state
         while (current.rollsRemaining > 0) {
             current = GameEngine.rollDice(current, random)
             if (current.rollsRemaining > 0) {
-                current = applyHolds(current, chooseHolds(current, perfectPlay))
+                val holds = chooseHolds(current, perfectPlay)
+                if (holds.size == current.dice.size) break
+                current = applyHolds(current, holds)
             }
         }
+        if (current.gameMode.scoresHeldDiceOnly) current = applyHolds(current, chooseHand(current, perfectPlay))
         return GameEngine.commitScore(current, chooseCategory(current, perfectPlay))
     }
 
@@ -142,11 +235,11 @@ object AiTurnPlayer {
      * "stop rolling" signal Medium/Hard use) rather than spend a roll it doesn't need; while nothing
      * scores, it holds nothing and lets every die reroll.
      */
-    private fun chooseHoldsEasy(player: PlayerState, dice: List<Die>): Set<Int> {
-        val available = ScoreCalculator.availableCategories(player, dice)
-        val hasPossibleScore = available.any { ScoreCalculator.scoreFor(player, it, dice) > 0 }
-        return if (hasPossibleScore) dice.indices.toSet() else emptySet()
-    }
+    private fun chooseHoldsEasy(player: PlayerState, dice: List<Die>): Set<Int> =
+        if (hasPossibleScore(player, dice)) dice.indices.toSet() else emptySet()
+
+    private fun hasPossibleScore(player: PlayerState, dice: List<Die>): Boolean =
+        ScoreCalculator.availableCategories(player, dice).any { ScoreCalculator.scoreFor(player, it, dice) > 0 }
 
     // ---- Medium: rule-of-thumb holds, fixed-priority category tie-break -------------------------
 
@@ -276,8 +369,8 @@ object AiTurnPlayer {
 
     private fun chooseHoldsHard(player: PlayerState, dice: List<Die>, rerollsLeft: Int, perfectPlay: StandardPerfectPlayTable?): Set<Int> {
         val turn = HardTurn(player, perfectPlay)
-        val space = turn.space
-        val keepValues = space.keepValues(turn.endValues(), rerollsLeft)
+        val space = turn.rolls.rolls
+        val keepValues = space.keepValues(turn.rolls.rollValues(turn.endValues()), rerollsLeft)
         val heldMask = dice.withIndex().sumOf { (index, die) -> if (die.isHeld) 1 shl index else 0 }
         var bestMask = 0
         var bestEv = Double.NEGATIVE_INFINITY
@@ -332,6 +425,7 @@ object AiTurnPlayer {
         private val mode = player.gameMode
         private val scoring = HAND_SCORING.getValue(mode).value
         val space: DiceSpace = scoring.space
+        val rolls: RollSpace = ROLL_SPACES.getValue(mode).value
         private val filledMask = scoring.filledMask(player)
         private val fiveScored = scoring.fiveOfAKindScored(player)
         private val upperTotal = player.cappedUpperTotal()
@@ -349,7 +443,7 @@ object AiTurnPlayer {
             val total = player.upperSectionTotal
             val bestStillPossible = total + PlayerState.UPPER_CATEGORIES.withIndex()
                 .filter { (_, category) -> category in mode.categories && player.scorecard[category] == null }
-                .sumOf { (index, _) -> (index + 1) * mode.diceCount }
+                .sumOf { (index, _) -> (index + 1) * mode.scoringDiceCount }
             if (total >= mode.upperBonusThreshold || bestStillPossible < mode.upperBonusThreshold) {
                 0.0
             } else {
@@ -376,6 +470,16 @@ object AiTurnPlayer {
                 if (value > best) best = value
             }
             best
+        }
+
+        /** What [dice], a whole hand, are worth: their best legal box, as [endValues] rates it. */
+        fun bestValue(dice: List<Die>): Double {
+            var best = Double.NEGATIVE_INFINITY
+            scoring.forEachLegal(space.handOf(dice), filledMask, fiveScored) { category, score, chip ->
+                val value = boxValue(category, score, chip)
+                if (value > best) best = value
+            }
+            return best
         }
 
         /** The legal box [dice] are worth the most in. */

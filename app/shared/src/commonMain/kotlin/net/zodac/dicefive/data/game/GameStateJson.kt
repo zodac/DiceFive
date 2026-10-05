@@ -65,12 +65,14 @@ object GameStateJson {
         put("value", die.value)
         put("isHeld", die.isHeld)
         die.colour?.let { put("colour", it.name) }
+        die.heldSlot?.let { put("heldSlot", it) }
     }
 
     private fun decodeDie(obj: JsonObject) = Die(
         value = obj.getInt("value"),
         isHeld = obj.getBoolean("isHeld"),
         colour = obj.optString("colour").takeIf { it.isNotEmpty() }?.let { DieColour.valueOf(it) },
+        heldSlot = (obj["heldSlot"] as? JsonNumber)?.toInt(),
     )
 
     private fun encodePlayer(player: PlayerState): JsonObject = buildJsonObject {

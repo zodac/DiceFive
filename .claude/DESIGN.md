@@ -357,8 +357,9 @@ decisions behind it. Read that before changing anything visual.
   back as today's default (`"casino_gold"`), since that's what's drawn for them, so neither counts as
   a non-default pick for `STYLE_CUP`.
 - **Game modes** (`model/GameMode.kt`, was `GameType`): `STANDARD` (the official rules, formerly
-  `CLASSIC`), `TRICOLOUR` (see Phase 14) and `QUICKFIRE` (see Phase 20). **Every rule that can
-  differ between modes is a field on the mode**, even where the modes agree today: dice count, rolls
+  `CLASSIC`), `TRICOLOUR` (see Phase 14), `QUICKFIRE` (see Phase 20) and `STUD` (see Phase 25). **Every rule that can
+  differ between modes is a field on the mode**, even where the modes agree today: dice count, how
+  many of them score (`scoringDiceCount` - fewer, and only the held dice score), rolls
   per turn, die faces, die colours, the scorecard's categories (which is also the number of turns),
   the upper-bonus threshold/amount, the 5x bonus chip, the max possible score, a fixed turn
   timer that overrides the setup pick (`turnTimerSeconds`), where a timed-out turn is scored
@@ -552,7 +553,7 @@ net.zodac.dicefive/
   model/
     Die.kt                             — a die's value, colour (coloured modes only) and held state
     ScoreCategory.kt                   — every category any mode can use: section, fixed score, joker free-fill, colour
-    GameMode.kt                        — STANDARD, TRICOLOUR, QUICKFIRE: every per-mode rule (see "Game modes" above)
+    GameMode.kt                        — STANDARD, TRICOLOUR, QUICKFIRE, STUD: every per-mode rule (see "Game modes" above)
     TurnTimer.kt                       — the setup screen's turn timer choices (NONE, 30s, 60s, 120s)
     TimeoutPick.kt                     — FIRST_OPEN, LOWEST_SCORE: where a mode scores a timed-out turn
     DieColour.kt                       — RED, YELLOW, BLUE (Tricolour's die colours)
@@ -665,7 +666,11 @@ The numbers here are Standard's - dice count, rolls per turn and the rest come f
   `autoRollAtTurnStart` (Quickfire), a human's turn starts with `GameScreen` tapping the cup for
   them - the same tap a finger makes.
 - Roll: rolls all non-held dice, decrements `rollsRemaining`.
-- Hold: toggles a die's `isHeld` — only after ≥1 roll this turn. Still allowed once the last
+- Hold: toggles a die's `isHeld` — only after ≥1 roll this turn. In a mode that rolls more dice
+  than it scores (Stud), a held die goes to the free hold slot nearest its column and keeps it until let go
+  (`Die.heldSlot`; die 1 prefers the first slot, die 7 the last), only
+  `scoringDiceCount` can be held at once, and only the held dice score (`GameState.scoringDice`) -
+  once every slot is full (`hasFullHand`). Still allowed once the last
   roll is spent (it has no effect then, but disabling the dice looked broken - see `GameScreen`'s
   `canHold`).
 - Every roll, human or AI, lands through `GameViewModel.performRoll`, after the cup shakes for
@@ -683,7 +688,8 @@ The numbers here are Standard's - dice count, rolls per turn and the rest come f
   its rolls (up to the mode's `rollsPerTurn`, stopping early once it holds every die) and then a
   score, with brief coroutine delays so it's visibly animated, not instant.
 - Turn timer: when one is set (the Turn Timer setting, or the mode's own `turnTimerSeconds`),
-  running out rolls if needed and scores `ScoreCalculator.timeoutCategory` - the first open box, or
+  running out rolls if needed, fills any empty hold slots from the left in Stud
+  (`GameEngine.fillHand`), and scores `ScoreCalculator.timeoutCategory` - the first open box, or
   in Quickfire the lowest-scoring one.
 - Game ends when every player's scorecard is full; `GameViewModel` persists
   each **human** player's final total to `ScoreRepository` (one row per
@@ -693,7 +699,7 @@ The numbers here are Standard's - dice count, rolls per turn and the rest come f
 `DiceScoring`/`GameEngine` are pure functions with no Android
 dependencies — most unit tests live here.
 
-- **Maximum possible score, per mode: 1575 Standard and Quickfire, 2120 Tricolour** (`GameMode.maxPossibleScore`,
+- **Maximum possible score, per mode: 1575 Standard, Quickfire and Stud, 2120 Tricolour** (`GameMode.maxPossibleScore`,
   with each derivation as a doc comment on its entry, locked by `GameModeTest` playing the perfect
   game through the real `GameEngine`) — every upper box maxed plus the 63+ bonus, every other box
   maxed, and every turn after the 5x box also landing a 5x for its +100 bonus chip (12 of them in
@@ -2136,3 +2142,48 @@ install-over-existing succeeds:
 - [ ] **Not yet seen on a device**: rendered under Robolectric only, and TalkBack's reading of the
       places and the last score not heard.
 
+### Phase 25 — Game mode: Stud
+- [x] **Rules** (beyond the official rules): Standard's card, scoring and three rolls, but seven
+      dice are rolled and only the five held dice score. There are five hold slots, so at most five
+      dice can be held, and a turn can only be scored once all five are; the board previews what the
+      held dice would score from the first one held. Same 1575 ceiling as Standard (only five dice
+      ever score), 39 rolls a game.
+- [x] **New mode fields**: `GameMode.scoringDiceCount` (5 in every mode) and the derived
+      `scoresHeldDiceOnly` (`scoringDiceCount < diceCount`). `Die.heldSlot` (saved with the game;
+      older saves load it as none) keeps a held die in the slot it took; `GameState.scoringDice` is
+      the hand (held dice in slot order where only held dice score, else every die) and
+      `hasFullHand` gates scoring - in `GameEngine.commitScore`, `GameBoard`'s `canScore` and
+      `GameViewModel.commitScore`. `DiceScoring.isFiveOfAKind` now needs at least five dice, so a
+      part-held hand of matching dice previews no 5x (and no joker).
+- [x] **The tray** (`DiceTray`'s `SlottedDice`): five hold slots in a row across the top and the mat
+      split into seven narrower columns (6dp apart, a die at most 86% of its column - about 36-42dp
+      on a phone, against 44dp) so every die rolls and lies in its own. A slot is no bigger than a
+      mat column, so a held die is the same size as on the mat. Holding and letting go are
+      separate targets: a tap in a die's mat column holds it into the free slot nearest its column (nothing with
+      the slots full), a tap on a slot lets its die go; a slot never holds and the mat never lets go.
+      Superuser cycling is a long press on a slot. The column gesture is now one shared
+      `columnPresses` modifier, used by both layouts; Standard's tray is unchanged. The tray is the
+      same height as before.
+- [x] **TalkBack**: each slot is a node - "Hold slot 2 of 5, Die 4, 6", Held, action Release - or
+      "Hold slot 3 of 5", Empty; each die on the mat is "Die 1, 2", Not held, action Hold, or "Not
+      held, hold slots full" with no action. A held die is only a node in its slot.
+- [x] **AI**: `RollSpace` maps every roll of seven dice to its best five-dice hand, so Hard's exact
+      whole-turn search runs over 792 rolls and 462 held sets (`DiceSpace` gained `maxHeld`, capping a
+      held set at the slots). Easy and Medium judge the hand they'd hold now (`AiTurnPlayer.chooseHand`)
+      for their early stop, Medium keeping to its rules of thumb within five dice. After its last roll
+      the CPU holds its hand (`chooseHand`), visibly, then scores it. Hard averages more in Stud than in
+      Standard over the same seeded games.
+- [x] **Achievements**: `STUD_WIN` "Hold 'Em" (win, multiplayer) and `STUD_LUCKY_SEVEN` "Lucky Seven"
+      (all seven dice showing one number, judged as the roll lands). First-roll feats, Natural 5x, The
+      Dice Hate Me and Almost Famous are guarded (a Stud roll isn't a hand); the audit is in
+      `.claude/GAME_MODES.md`.
+- [x] **Rules page**: "Mode: Stud", after Quickfire, with an example turn (each roll's seven dice,
+      the held ones full and the rest faded, then the hand scored). Example roll rows have no score and
+      are read as "Example roll: ... Held: ...".
+- [x] Tests: `GameEngineTest`, `GameModeTest`, `DiceScoringTest`, `AiTurnPlayerTest`,
+      `HandScoringTest`, `GameStateJsonTest`, `AchievementEngineTest`, `GameViewModelTest`,
+      `GameAchievementsWiringTest` (each guard proven by removing it), `SlottedDiceTrayTest`
+      (Robolectric: the gestures and the semantics).
+- [ ] **Not yet seen on a device**: rendered under Robolectric only at 360dp and 411dp; the seven-die
+      toss animation, the Egg and googly-eyed styles at the smaller size, and what TalkBack actually
+      says for the slots, not seen or heard.

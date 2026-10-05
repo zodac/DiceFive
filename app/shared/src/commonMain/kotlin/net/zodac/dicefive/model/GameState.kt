@@ -23,6 +23,18 @@ data class GameState(
     val currentPlayer: PlayerState?
         get() = players.getOrNull(currentPlayerIndex)
 
+    /**
+     * The dice this turn would be scored with: every die, or - in a mode where only held dice score
+     * ([GameMode.scoresHeldDiceOnly]) - just the held ones, in hold-slot order. What the board
+     * previews and what a committed score is worked out from.
+     */
+    val scoringDice: List<Die>
+        get() = if (gameMode.scoresHeldDiceOnly) dice.filter { it.isHeld }.sortedBy { it.heldSlot } else dice
+
+    /** Whether [scoringDice] is a whole hand - [GameMode.scoringDiceCount] dice - so the turn can be scored. */
+    val hasFullHand: Boolean
+        get() = scoringDice.size == gameMode.scoringDiceCount
+
     /** The highest total score among every player, including AI - what "winning" is measured against. */
     val topScore: Int
         get() = players.maxOf { it.totalScore }

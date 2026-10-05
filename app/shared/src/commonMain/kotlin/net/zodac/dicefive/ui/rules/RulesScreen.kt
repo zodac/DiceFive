@@ -131,14 +131,22 @@ private data class RulesCategory(val name: String, val description: String, val 
  * shown (the rest are drawn faded), and the [colour] it rolled in Tricolour, if any. */
 private data class ExampleDie(val value: Int, val counts: Boolean = true, val colour: DieColour? = null)
 
-/** A row of five example dice illustrating the rule above it, with what they score alongside. */
-private data class RulesDice(val dice: List<ExampleDie>, val score: String) : RulesBlock
+/**
+ * A row of example dice illustrating the rule above it, with what they score alongside - or, with no
+ * [score], a roll on its way to a hand. The faded dice don't count towards it, or with [fadedNotHeld]
+ * are the ones left unheld.
+ */
+private data class RulesDice(val dice: List<ExampleDie>, val score: String?, val fadedNotHeld: Boolean = false) : RulesBlock
 
 private fun text(text: String) = RulesText(text)
 
 /** Five example dice, the first [counting] of which make the category. */
 private fun dice(vararg values: Int, counting: Int = values.size, score: String): RulesDice =
     RulesDice(values.mapIndexed { index, value -> ExampleDie(value, counts = index < counting) }, score)
+
+/** A roll of example dice, the first [held] of which are held - drawn and read out as such, with no score. */
+private fun roll(vararg values: Int, held: Int): RulesDice =
+    RulesDice(values.mapIndexed { index, value -> ExampleDie(value, counts = index < held) }, score = null, fadedNotHeld = true)
 
 /** Five coloured example dice for Tricolour, the first [counting] of which make the category. */
 private fun colouredDice(vararg dice: Pair<Int, DieColour>, counting: Int = dice.size, score: String): RulesDice =
@@ -258,6 +266,25 @@ private val RULES_PAGES = listOf(
             text("Every turn also has a **10 second** timer, which replaces the *Turn timer* modifier. If it runs out, the roll is scored in whichever open category it's worth the least in (the first one on the scorecard, if several tie)."),
             RulesTurnTimer,
             text("Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules. You just have to take what the dice give you, and quickly!"),
+        ),
+    ),
+    RulesPage(
+        title = "Mode: Stud",
+        tabLabel = "Stud",
+        blocks = listOf(
+            text("A custom mode extending the *Standard* game mode. Every roll is **seven** dice instead of five, but only **five** of them can score."),
+            text("There are still only **five** hold slots. Tap a die on the mat to hold it - it goes to the free slot nearest it - and tap a hold slot to put its die back. Only the dice you hold score, so you can only score once all **five** slots are full. Until then, your scorecard shows what the dice you've held so far would score."),
+            text("Here's an example turn:"),
+            RulesStep(1, "The first roll lands three 6s. Hold them, and roll the other **four** dice again.", roll(6, 6, 6, 2, 3, 5, 1, held = 3)),
+            RulesStep(2, "Another 6! Hold it too, and roll the last **three** dice.", roll(6, 6, 6, 6, 4, 2, 4, held = 4)),
+            RulesStep(3, "No more 6s, but a 5 is the best of the rest. Hold it to fill the fifth slot.", roll(6, 6, 6, 6, 5, 1, 3, held = 5)),
+            RulesStep(
+                4,
+                "Score the five held dice. They're worth **29pts** in `4x`, or **24pts** in `Sixes`.",
+                dice(6, 6, 6, 6, 5, score = "29pts"),
+            ),
+            text("If the *Turn timer* runs out, any empty hold slots are filled from the dice on the mat, left to right, and that hand is scored for you."),
+            text("Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules. You just get more dice to choose your hand from!"),
         ),
     ),
     RulesPage(
@@ -511,26 +538,40 @@ private fun RulesDiceRow(example: RulesDice, modifier: Modifier = Modifier) {
                     .graphicsLayer { alpha = if (die.counts) 1f else EXAMPLE_DIE_FADED_ALPHA },
             )
         }
-        Text(
-            text = "= ${example.score}",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 6.dp),
-        )
+        example.score?.let { score ->
+            Text(
+                text = "= $score",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 6.dp),
+            )
+        }
     }
 }
 
-/** "Example: 5, 5, 5, 2, 6. The 2 and 6 don't count. Scores 23 points." - the row read aloud. */
+/**
+ * "Example: 5, 5, 5, 2, 6. The 2 and 6 don't count. Scores 23 points." - the row read aloud. A roll
+ * on its way to a hand says which dice are held instead: "Example roll: 6, 6, 6, 2, 3. Held: 6, 6
+ * and 6."
+ */
 private fun RulesDice.spokenDescription(): String {
     fun ExampleDie.spoken() = colour?.let { "${it.name.lowercase()} $value" } ?: value.toString()
+    fun List<String>.spokenList() = if (size == 1) single() else "${dropLast(1).joinToString(", ")} and ${last()}"
+    val all = dice.joinToString(", ") { it.spoken() }
+    if (fadedNotHeld) {
+        val held = dice.filter { it.counts }.map { it.spoken() }
+        val heldSentence = if (held.isEmpty()) " Nothing held." else " Held: ${held.spokenList()}."
+        return "Example roll: $all.$heldSentence"
+    }
     val ignored = dice.filterNot { it.counts }.map { it.spoken() }
     val ignoredSentence = when (ignored.size) {
         0 -> ""
         1 -> " The ${ignored.single()} doesn't count."
-        else -> " The ${ignored.dropLast(1).joinToString(", ")} and ${ignored.last()} don't count."
+        else -> " The ${ignored.spokenList()} don't count."
     }
-    return "Example: ${dice.joinToString(", ") { it.spoken() }}.$ignoredSentence Scores ${spokenPoints(score)}."
+    val scoreSentence = score?.let { " Scores ${spokenPoints(it)}." }.orEmpty()
+    return "Example: $all.$ignoredSentence$scoreSentence"
 }
 
 /** The seconds the Quickfire page's example timer is stopped at - inside the game's last few, so it flashes. */
