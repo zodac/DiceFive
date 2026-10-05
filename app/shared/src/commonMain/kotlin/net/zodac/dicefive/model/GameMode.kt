@@ -61,7 +61,7 @@ enum class GameMode(
      * recoloured in its colour (see `DiceStyle.recoloured`).
      */
     val dieColours: List<DieColour>,
-    /** The scorecard, in display order. One turn per category, so this is also the length of a game. */
+    /** The scorecard, in display order. Each one is scored [scoresPerCategory] times, a turn each. */
     val categories: List<ScoreCategory>,
     /** The upper-section total that earns [upperBonusAmount]. */
     val upperBonusThreshold: Int,
@@ -96,6 +96,18 @@ enum class GameMode(
      * every mode.
      */
     val autoRollAtTurnStart: Boolean = false,
+    /**
+     * How many times each category is scored - a box has this many slots, each filled by its own
+     * turn, and the box's score is all of them added up. So a game lasts [categories] times this
+     * many turns. See [PlayerState.scorecard].
+     */
+    val scoresPerCategory: Int = 1,
+    /**
+     * Whether a finished game's scores go on the Leaderboard - and so count towards a personal best
+     * and the score-collection achievements, which are measured against it. Either way they're
+     * recorded, and Statistics counts them.
+     */
+    val countsOnLeaderboard: Boolean = true,
 ) {
     /**
      * The official rules.
@@ -209,7 +221,43 @@ enum class GameMode(
         maxPossibleScore = 1575,
         maxRollsPerGame = 39,
     ),
+
+    /**
+     * Beyond the official rules: Standard's dice, rolls and scorecard, but every category is scored
+     * three times - three slots a box, each its own turn. The upper bonus is still a single bonus,
+     * with both its threshold and its amount tripled (189 earns 105). The 5x box's three slots take
+     * a 5x for 50 like any other box; the joker rule and its bonus chip only start once all three are
+     * used and at least one holds 50. Its scores don't go on the Leaderboard.
+     *
+     * Max score: three of Standard's card - every box filled three times at its maximum. `3*105 = 315`
+     * upper, `+105` bonus, `+3*50 = 150` the 5x box, `+3*185 = 555` the other six lower boxes, `+36*100`
+     * every one of the other 36 turns also being a 5x = 3600. `315+105+150+555+3600 = 4725`.
+     *
+     * Max rolls: Standard's 13 boxes three times over, 3 rolls each. `13*3*3 = 117`.
+     */
+    THIRD_WIND(
+        id = "third_wind",
+        displayName = "Third Wind",
+        description = "Every category is scored three times",
+        diceCount = 5,
+        scoringDiceCount = 5,
+        rollsPerTurn = 3,
+        dieValues = 1..6,
+        dieColours = emptyList(),
+        categories = STANDARD_CATEGORIES,
+        upperBonusThreshold = 189,
+        upperBonusAmount = 105,
+        fiveOfAKindBonusAmount = 100,
+        maxPossibleScore = 4725,
+        maxRollsPerGame = 117,
+        scoresPerCategory = 3,
+        countsOnLeaderboard = false,
+    ),
     ;
+
+    /** How many turns each player takes in a game: one for every slot of every category. */
+    val turnsPerGame: Int
+        get() = categories.size * scoresPerCategory
 
     /**
      * Whether only the held dice score: more dice are rolled than a hand is scored with

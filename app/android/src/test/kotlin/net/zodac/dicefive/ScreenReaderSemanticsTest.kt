@@ -140,15 +140,15 @@ class ScreenReaderSemanticsTest {
     }
 
     @Test
-    fun `undo is one button named by its label - the icon is not a stop of its own`() {
+    fun `undo is one button named by its icon - not a button and a separate image`() {
         var undone = 0
         compose.setContent { DiceFiveTheme { UndoButton(enabled = true, onClick = { undone++ }) } }
 
-        val undo = compose.onNodeWithText("Undo")
+        val undo = compose.onNodeWithContentDescription("Undo")
         assertEquals(Role.Button, undo.fetchSemanticsNode().config[SemanticsProperties.Role])
-        // Text and icon are one merged node: the icon has no description that could add a second stop.
+        // The icon's description merges into the button: one stop, named once.
         assertEquals(1, compose.onAllNodes(hasRole(Role.Button)).fetchSemanticsNodes().size)
-        assertTrue(compose.onAllNodes(hasContentDescription("", substring = true)).fetchSemanticsNodes().isEmpty())
+        assertEquals(1, compose.onAllNodes(hasContentDescription("Undo")).fetchSemanticsNodes().size)
         undo.performSemanticsAction(SemanticsActions.OnClick)
         assertEquals(1, undone)
     }

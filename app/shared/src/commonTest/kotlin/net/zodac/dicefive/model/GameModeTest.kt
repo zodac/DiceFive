@@ -8,6 +8,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.game.ScoreCalculator
+import net.zodac.dicefive.oneScoreEach
 
 class GameModeTest {
 
@@ -19,7 +20,9 @@ class GameModeTest {
      */
     private fun perfectGame(mode: GameMode): PlayerState {
         var state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Perfect")), mode)
-        val turnOrder = listOf(ScoreCategory.FIVE_OF_A_KIND) + mode.categories.filter { it != ScoreCategory.FIVE_OF_A_KIND }
+        // Every slot of the 5x box first, so every later 5x is a joker; then each box's slots in turn.
+        val turnOrder = (listOf(ScoreCategory.FIVE_OF_A_KIND) + mode.categories.filter { it != ScoreCategory.FIVE_OF_A_KIND })
+            .flatMap { category -> List(mode.scoresPerCategory) { category } }
         for (category in turnOrder) {
             val upperValue = PlayerState.UPPER_CATEGORIES.indexOf(category) + 1
             val value = if (upperValue > 0) upperValue else mode.dieValues.last
@@ -46,7 +49,7 @@ class GameModeTest {
             while (!state.isGameOver) {
                 while (state.rollsRemaining > 0) state = GameEngine.rollDice(state, Random(1))
                 val player = state.players.single()
-                state = GameEngine.commitScore(GameEngine.fillHand(state), mode.categories.first { player.scorecard[it] == null })
+                state = GameEngine.commitScore(GameEngine.fillHand(state), mode.categories.first { player.isOpen(it) })
             }
             assertEquals(mode.maxRollsPerGame, state.players.single().rollCount, "$mode")
         }
@@ -54,15 +57,39 @@ class GameModeTest {
         assertEquals(51, GameMode.TRICOLOUR.maxRollsPerGame)
         assertEquals(13, GameMode.QUICKFIRE.maxRollsPerGame)
         assertEquals(39, GameMode.STUD.maxRollsPerGame)
+        assertEquals(117, GameMode.THIRD_WIND.maxRollsPerGame)
     }
 
     @Test
-    fun `Standard's ceiling is 1575 - as is Quickfire's - and Tricolour's is 2120`() {
+    fun `Standard's ceiling is 1575 - as is Quickfire's - Tricolour's is 2120 and Third Wind's 4725`() {
         assertEquals(1575, GameMode.STANDARD.maxPossibleScore)
         assertEquals(1575, GameMode.QUICKFIRE.maxPossibleScore)
         assertEquals(1575, GameMode.STUD.maxPossibleScore)
         assertEquals(2120, GameMode.TRICOLOUR.maxPossibleScore)
-        assertEquals(2120, GameMode.HIGHEST_POSSIBLE_SCORE)
+        // Exactly three of Standard's perfect game.
+        assertEquals(3 * GameMode.STANDARD.maxPossibleScore, GameMode.THIRD_WIND.maxPossibleScore)
+        assertEquals(4725, GameMode.HIGHEST_POSSIBLE_SCORE)
+    }
+
+    @Test
+    fun `Third Wind is Standard with every box scored three times - a tripled bonus - and off the Leaderboard`() {
+        val thirdWind = GameMode.THIRD_WIND
+        val standard = GameMode.STANDARD
+        assertEquals(3, thirdWind.scoresPerCategory)
+        assertEquals(39, thirdWind.turnsPerGame)
+        assertEquals(189, thirdWind.upperBonusThreshold)
+        assertEquals(105, thirdWind.upperBonusAmount)
+        assertEquals(standard.fiveOfAKindBonusAmount, thirdWind.fiveOfAKindBonusAmount)
+        assertEquals(standard.categories, thirdWind.categories)
+        assertEquals(standard.diceCount, thirdWind.diceCount)
+        assertEquals(standard.rollsPerTurn, thirdWind.rollsPerTurn)
+        assertFalse(thirdWind.countsOnLeaderboard)
+        // Every other mode scores each box once and goes on the Leaderboard.
+        for (mode in GameMode.entries - thirdWind) {
+            assertEquals(1, mode.scoresPerCategory, "$mode")
+            assertEquals(mode.categories.size, mode.turnsPerGame, "$mode")
+            assertTrue(mode.countsOnLeaderboard, "$mode")
+        }
     }
 
     @Test
@@ -169,7 +196,7 @@ class GameModeTest {
         for (mode in GameMode.entries) {
             val player = PlayerState(name = "P", type = PlayerType.HUMAN, gameMode = mode)
             assertEquals(mode.categories, player.scorecard.keys.toList())
-            assertTrue(player.scorecard.values.all { it == null })
+            assertTrue(player.turnsTaken == 0)
             assertEquals(mode.categories, ScoreCalculator.availableCategories(player, List(mode.diceCount) { Die() }))
         }
     }
@@ -181,10 +208,12 @@ class GameModeTest {
             name = "P",
             type = PlayerType.HUMAN,
             gameMode = mode,
-            scorecard = mode.categories.associateWith { null } + mapOf(
-                ScoreCategory.CHANCE to 20,
-                ScoreCategory.REDS to 40,
-                ScoreCategory.COLOURED_HOUSE to 25,
+            scorecard = oneScoreEach(
+                mode.categories.associateWith { null } + mapOf(
+                    ScoreCategory.CHANCE to 20,
+                    ScoreCategory.REDS to 40,
+                    ScoreCategory.COLOURED_HOUSE to 25,
+                ),
             ),
         )
 

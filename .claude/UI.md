@@ -626,6 +626,41 @@ band looking much thinner than the corners) in the deeper `stripe` shades, with 
 the glyph so white or gold still reads on the yellow band. These colours live in `Color.kt`'s
 game-table block - a fixed meaning (the dice's own colours), not a theme role.
 
+**More than one score a box (Third Wind) stacks them** (`StackedScores` in `ScoreGrid.kt`): one line per
+slot beside the tile, top to bottom in the order they fill - each filled slot's score, the dice's
+preview in the next open one (gold when worth picking), "-" in the rest - `labelMedium` beside a grid
+tile (3 x 16sp fills its 48dp) and `bodyMedium` beside the 5x tile, with the bonus line under them. The
+tile greys only once every slot is used; on another player's card, the box's last score is in their
+colour. Each line (`SlotScore`) keeps its last number laid out under the "-", as a one-slot cell does,
+and `ShownScore` compares by value so an unchanged line is skipped: a roll recomposes only the preview
+lines (see `BENCHMARKS.md`). The box is one TalkBack node, "Scored 15, 10, would score 20"
+(`stackedSpokenState`). The lines exactly fill the tile's height, so a larger system font overflows it:
+then the stack scrolls within the tile's height instead (`heightIn` + `verticalScroll`), kept on the
+line that matters - the next slot to score, or a full box's last score (`stackedScrollTarget`) - and
+re-scrolled only when that changes; whichever edge has more beyond it fades out (an offscreen layer
+with a `DstOut` gradient, drawn only while it overflows, read in the draw phase). The stack is as wide
+as its numbers (`wrapContentWidth(unbounded = true)`), since the scroll's clip and the fade's layer
+otherwise cut off the digits that spill into the gap beside the column. Rendered at 100%, 130% (two
+lines show) and 200% (one) - Robolectric only, not seen on a device. Pre-existing and not Third
+Wind's, and since fixed: the Upper/Bonus/Lower lines beside the cup wrapped at 130% and broke at 200%
+- they're now behind the Totals button (below).
+
+**The section totals are a button** (`TotalsButton`), not three lines beside the cup: an icon-only Σ,
+styled like Undo and sitting just left of it (both at the right of the row), that shows Upper, Bonus
+and Lower in the shared `AppTooltip` on a tap or a long press. The glyph turns gold once the upper
+bonus is earned, as the old Bonus line did. A tooltip isn't announced, so TalkBack hears the totals as
+the button's state ("Upper 61, no bonus yet, lower 91") and its action ("Show totals") opens the
+tooltip too. **Gotcha:** `TooltipBox`'s anchor merges its content into one node of its own, which keeps
+the name, state and actions but drops the role - so `Role.Button` goes on the tooltip's modifier as
+well (`BoardSemanticsTest`).
+
+**Undo and Totals are icon-only** (`BoardButtonIcon`): the small "Undo"/"Totals" labels under the
+glyphs were dropped on review - the pair looked better without, and a label was what a large font
+broke. Undo's glyph carries its name ("Undo") for TalkBack. With no text, a large font changes
+nothing here; the glyph is 26dp, and only shrinks (staying square) if the row the board gives it is
+shorter than that - a short screen. Both keep a 48dp minimum touch target where there's room. Rendered
+at 411dp, 320dp and 200% font - Robolectric only.
+
 **More dice than hold slots (Stud) gets its own tray layout** (`DiceTray`'s `SlottedDice`): the
 five hold slots across the top, then the mat split into a column per die - seven narrower columns,
 6dp apart, a die at most 86% of its column, so they never overlap. Holding and letting go are

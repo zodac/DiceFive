@@ -151,7 +151,7 @@ object GameEngine {
         return die.copy(value = values.first, colour = nextColour)
     }
 
-    /** Scores [GameState.scoringDice] in [category] and moves on to the next turn. */
+    /** Scores [GameState.scoringDice] in [category]'s next open slot and moves on to the next turn. */
     fun commitScore(state: GameState, category: ScoreCategory): GameState {
         check(state.phase == TurnPhase.ROLLED) { "Cannot score before rolling" }
         check(state.hasFullHand) { "Cannot score before every hold slot is filled" }
@@ -164,7 +164,7 @@ object GameEngine {
         val value = ScoreCalculator.scoreFor(player, category, hand)
         val bonus = ScoreCalculator.awardsFiveOfAKindBonus(player, hand)
         val updatedPlayer = player.copy(
-            scorecard = player.scorecard + (category to value),
+            scorecard = player.scorecard + (category to player.scoresIn(category) + value),
             fiveOfAKindBonusCount = player.fiveOfAKindBonusCount + if (bonus) 1 else 0,
             lastRoll = state.dice,
             lastScoredCategory = category,

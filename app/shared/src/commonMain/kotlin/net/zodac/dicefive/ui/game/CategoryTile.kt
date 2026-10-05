@@ -49,7 +49,7 @@ import net.zodac.dicefive.ui.theme.TileTealTop
  * [COMPACT_TILE_SIZE] is for a grid with more rows than Standard's six - see `scoreBoardHeight`. */
 internal val REGULAR_TILE_SIZE = 48.dp
 internal val COMPACT_TILE_SIZE = 40.dp
-private val PROMINENT_TILE_SIZE = 76.dp
+internal val PROMINENT_TILE_SIZE = 76.dp
 
 /** How faint the Coloured House tile's stripes go once it's scored, matching the dimmed glyphs. */
 private const val SCORED_STRIPE_ALPHA = 0.35f

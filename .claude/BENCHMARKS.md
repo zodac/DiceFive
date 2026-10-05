@@ -366,6 +366,19 @@ their bodies are painted once.
 
 ---
 
+### Third Wind's stacked scores (designed to it)
+
+Third Wind shows three scores beside every box - about 50 more text nodes on the board. Measured on
+the whole game screen (set-up above, 411dp, a part-filled card, the third of three rolls), composition
+ms per frame, Standard vs Third Wind: idle 0.44 vs 0.58, over a roll 1.0 vs 1.5 on average, the cup-tap
+frame 3.9 vs 6.1 and the landing frame 3.3 vs 4.5; draw (mostly the capture) the same in both.
+Counting recompositions per frame: no score cell or line recomposes on a shake or toss frame; the tap
+recomposes the 13 boxes and only the preview lines, since each line keeps its number laid out
+(`SlotScore`) and `ShownScore` compares by value (it was a plain class, so every filled line recomposed
+too - the peak barely moved for it under Robolectric, but it's work for nothing). The flat ~0.15-0.4ms on
+every frame tracks node count, not recomposition; it couldn't be told apart from the harness's own
+per-node work here. Not measured on a device.
+
 ## Still on the table
 
 - **The toss itself** costs ~1.5x a normal frame for its 900ms: each tossed die's position and

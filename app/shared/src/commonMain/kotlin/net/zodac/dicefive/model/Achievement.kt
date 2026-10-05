@@ -355,6 +355,16 @@ enum class Achievement(
         "stud_lucky_seven", "Lucky Seven", "Have all seven dice show the same number in 'Stud' mode",
         AchievementCategory.GAME_MODES,
     ),
+    THIRD_WIND_WIN(
+        "third_wind_win", "Gone With The Wind", "Win a game of 'Third Wind' mode",
+        AchievementCategory.GAME_MODES,
+    ),
+    // Third Wind's own Spotless, which can't be earned there - every one of the 39 slots, no zeroes.
+    THIRD_WIND_NO_ZEROES(
+        "third_wind_no_zeroes", "Third Time's The Charm",
+        "Fill all three slots of every category without a zero in 'Third Wind' mode",
+        AchievementCategory.GAME_MODES,
+    ),
 
     // ---- Misfortune: going badly, on purpose or otherwise --------------------------------------
     SCRATCHED_5X(

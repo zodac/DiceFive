@@ -8,6 +8,7 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.oneScoreEach
 
 private val BASE_STATS = TieBreakStats(
     score = 100,
@@ -111,12 +112,14 @@ class TieBreakTest {
             name = "Player",
             type = PlayerType.HUMAN,
             gameMode = gameMode,
-            scorecard = gameMode.categories.associateWith { 0 } + mapOf(
-                ScoreCategory.ONES to 3,
-                ScoreCategory.CHANCE to 12,
-                ScoreCategory.THREE_OF_A_KIND to 15,
-                ScoreCategory.FOUR_OF_A_KIND to 20,
-                ScoreCategory.REDS to 40,
+            scorecard = oneScoreEach(
+                gameMode.categories.associateWith { 0 } + mapOf(
+                    ScoreCategory.ONES to 3,
+                    ScoreCategory.CHANCE to 12,
+                    ScoreCategory.THREE_OF_A_KIND to 15,
+                    ScoreCategory.FOUR_OF_A_KIND to 20,
+                    ScoreCategory.REDS to 40,
+                ),
             ),
             fiveOfAKindBonusCount = 2,
         )
@@ -140,7 +143,7 @@ class TieBreakTest {
             name = "Player",
             type = PlayerType.HUMAN,
             gameMode = GameMode.STANDARD,
-            scorecard = GameMode.STANDARD.categories.associateWith { 0 },
+            scorecard = GameMode.STANDARD.categories.associateWith { listOf(0) },
         )
 
         assertNull(player.toTieBreakStats().tricolourScoredCount)

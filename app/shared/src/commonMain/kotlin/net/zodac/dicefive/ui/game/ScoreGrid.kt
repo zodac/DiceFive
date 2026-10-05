@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui.game
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,14 +8,31 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -145,7 +163,12 @@ internal fun CategoryCell(
     prominent: Boolean = false,
     compact: Boolean = false,
 ) {
-    val filled = player?.scorecard?.get(category)
+    val scores = player?.scoresIn(category).orEmpty()
+    // How many scores the box takes - three in Third Wind, which stacks them (see StackedScores).
+    val slotCount = player?.gameMode?.scoresPerCategory ?: 1
+    // A one-slot box's score; a box with several slots is "filled" once every one of them is.
+    val filled = if (slotCount == 1) scores.firstOrNull() else null
+    val boxFull = scores.size >= slotCount
     // Legal-to-tap (canScore, human-only) and legal-to-preview (showPreview, any player whose
     // dice have actually been rolled) are deliberately separate: tapping a box to score it only
     // ever makes sense for the human at the controls, but the gold "worth picking" glow and the
@@ -180,9 +203,10 @@ internal fun CategoryCell(
     // One node for a screen reader - the tile's name and the score beside it together, rather than an
     // unlabelled button and a stray number - replacing the tile's own click with the same action.
     val irish = LocalIrishTricolour.current
-    // Only on a read-only scorecard (see ReadOnlyScoreboard), and only ever a filled box.
-    val lastScored = LocalLastScoredHighlight.current?.takeIf { it.category == category && filled != null }
+    // Only on a read-only scorecard (see ReadOnlyScoreboard), and only ever a filled box - or slot.
+    val lastScored = LocalLastScoredHighlight.current?.takeIf { it.category == category && scores.isNotEmpty() }
     val spokenState = when {
+        slotCount > 1 -> stackedSpokenState(scores, slotCount, previewScore, if (fiveOfAKindTileBonusPreview || fiveOfAKindBonusCount > 0) pendingBonusAmount else 0, lastScored != null)
         filled != null -> buildString {
             append("Scored $filled")
             if (pendingBonusAmount > 0) append(", plus $pendingBonusAmount bonus")
@@ -218,12 +242,29 @@ internal fun CategoryCell(
             highlighted = isGoodChoice,
             prominent = prominent,
             compact = compact,
-            scored = filled != null,
+            scored = boxFull,
             fiveOfAKindBonusCount = fiveOfAKindBonusCount,
             outlineColor = lastScored?.color,
             onClick = if (isLegalChoice) { { onScoreCategory(category) } } else null,
         )
-        if (fiveOfAKindBonusCount > 0 || fiveOfAKindTileBonusPreview) {
+        if (slotCount > 1) {
+            StackedScores(
+                scores = scores,
+                slotCount = slotCount,
+                previewScore = previewScore,
+                previewGold = isGoodChoice,
+                lastScoredColor = lastScored?.color,
+                bonusAmount = if (fiveOfAKindBonusCount > 0 || fiveOfAKindTileBonusPreview) pendingBonusAmount else 0,
+                prominent = prominent,
+                // No taller than the tile beside it - see StackedScores.
+                maxHeight = when {
+                    prominent -> PROMINENT_TILE_SIZE
+                    compact -> COMPACT_TILE_SIZE
+                    else -> REGULAR_TILE_SIZE
+                },
+                modifier = Modifier.weight(1f),
+            )
+        } else if (fiveOfAKindBonusCount > 0 || fiveOfAKindTileBonusPreview) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = (filled ?: previewScore ?: 0).toString(),
@@ -291,10 +332,186 @@ internal fun CategoryCell(
 }
 
 /**
+ * What a screen reader hears for a box with [slotCount] slots: what's in each filled one, what the
+ * dice would score in the next, and how many are left open - "Scored 12, 9, would score 15", "Scored
+ * 12, 2 open" - then any 5x bonus and whether its last score was the player's last turn.
+ */
+internal fun stackedSpokenState(scores: List<Int>, slotCount: Int, previewScore: Int?, bonusAmount: Int, lastScored: Boolean): String {
+    val stillOpen = slotCount - scores.size - if (previewScore != null) 1 else 0
+    val parts = listOfNotNull(
+        scores.takeIf { it.isNotEmpty() }?.joinToString(", ", prefix = "Scored "),
+        previewScore?.let { "would score $it" },
+        when {
+            stillOpen <= 0 -> null
+            previewScore != null -> "$stillOpen more open"
+            else -> "$stillOpen open"
+        },
+        bonusAmount.takeIf { it > 0 }?.let { "plus $it bonus" },
+        scores.lastOrNull()?.takeIf { lastScored }?.let { "last turn's score $it" },
+    )
+    return parts.joinToString(", ").replaceFirstChar { it.uppercase() }
+}
+
+/**
+ * A box's scores, one line per slot, top to bottom in the order they're filled: each filled slot's
+ * score, the dice's preview in the next open one (gold when it's worth picking), and a "-" in the
+ * rest - with the 5x tile's bonus under them when it has one. The player's colour marks the last
+ * score in the box on another player's scorecard ([lastScoredColor]).
+ *
+ * Every line is a [SlotScore], laid out once and only shown or hidden after that - a filled line
+ * never changes again, and the preview line keeps its number laid out under the "-" while the dice
+ * are rolling, just as a one-slot cell does. So a roll that hides every preview is a swap of which
+ * text is visible on one line per box, not a fresh layout of three.
+ *
+ * The lines are sized to fill the tile's height ([maxHeight]) exactly, so a larger system font
+ * overflows it. Then the stack scrolls within that height instead of spilling over the next row: it
+ * keeps the line that matters now in view - the next slot to score, or once the box is full its last
+ * score ([stackedScrollTarget]) - re-scrolling only when that changes, and fades out at whichever
+ * edge has more beyond it. A player can drag it to see the rest; a screen reader hears every slot
+ * anyway, from the cell's state. At the usual font size it fits, and none of this does anything.
+ */
+@Composable
+private fun StackedScores(
+    scores: List<Int>,
+    slotCount: Int,
+    previewScore: Int?,
+    previewGold: Boolean,
+    lastScoredColor: Color?,
+    bonusAmount: Int,
+    prominent: Boolean,
+    maxHeight: Dp,
+    modifier: Modifier = Modifier,
+) {
+    // Three lines fill the tile's height: 3 x 16sp beside a 48dp tile, 3 x 20sp (+ a bonus line)
+    // beside the 76dp 5x tile.
+    val style = if (prominent) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.labelMedium
+    val scrollState = rememberScrollState()
+    val targetLine = if (scores.size < slotCount) scores.size else scores.lastIndex
+    var contentHeight by remember { mutableIntStateOf(0) }
+    var viewportHeight by remember { mutableIntStateOf(0) }
+    // Only ever does anything while the stack overflows (maxValue > 0), and only when the line to show,
+    // or the sizes, change - once a turn, not once a frame.
+    LaunchedEffect(targetLine, contentHeight, viewportHeight) {
+        if (scrollState.maxValue > 0) {
+            scrollState.scrollTo(stackedScrollTarget(contentHeight, viewportHeight, lineCount = slotCount + if (bonusAmount > 0) 1 else 0, targetLine, scrollState.maxValue))
+        }
+    }
+    val fadeHeight = with(LocalDensity.current) { STACK_FADE_HEIGHT.toPx() }
+    Column(
+        modifier = modifier
+            // As wide as its numbers, not just its slot - like a one-slot cell's number, they spill
+            // into the gap beside it, which the scroll's clip and the fade's layer would otherwise cut.
+            .wrapContentWidth(Alignment.Start, unbounded = true)
+            .heightIn(max = maxHeight)
+            .onSizeChanged { viewportHeight = it.height }
+            .then(if (contentHeight > viewportHeight && viewportHeight > 0) Modifier.overflowFade(scrollState, fadeHeight) else Modifier)
+            .verticalScroll(scrollState),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Column(modifier = Modifier.onSizeChanged { contentHeight = it.height }) {
+            for (slot in 0 until slotCount) {
+                val filled = scores.getOrNull(slot)
+                val isPreviewSlot = slot == scores.size
+                val shown = when {
+                    filled != null -> ShownScore(filled.toString(), gold = false, scored = true, accent = lastScoredColor?.takeIf { slot == scores.lastIndex })
+                    isPreviewSlot && previewScore != null -> ShownScore(previewScore.toString(), gold = previewGold, scored = false, accent = null)
+                    else -> null
+                }
+                SlotScore(shown = shown, style = style)
+            }
+            if (bonusAmount > 0) {
+                Text(
+                    text = "+$bonusAmount",
+                    color = GoldAccent,
+                    fontWeight = FontWeight.Bold,
+                    style = if (prominent) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Visible,
+                    softWrap = false,
+                )
+            }
+        }
+    }
+}
+
+/** How far the fade at a cut-off edge of an overflowing [StackedScores] reaches in. */
+private val STACK_FADE_HEIGHT = 8.dp
+
+/**
+ * Where to scroll an overflowing [StackedScores] so its [targetLine] is in view - centred where it can
+ * be, clamped to the scroll's range ([maxScroll]). The lines are all one height, so each is
+ * [contentHeight] over [lineCount] tall.
+ */
+internal fun stackedScrollTarget(contentHeight: Int, viewportHeight: Int, lineCount: Int, targetLine: Int, maxScroll: Int): Int {
+    if (lineCount <= 0) return 0
+    val lineHeight = contentHeight / lineCount
+    return (lineHeight * targetLine - (viewportHeight - lineHeight) / 2).coerceIn(0, maxScroll)
+}
+
+/**
+ * Fades out the top and bottom edges of a scrolled stack wherever there's more beyond them - read in
+ * the draw phase, so scrolling repaints it without recomposing anything.
+ */
+private fun Modifier.overflowFade(scrollState: ScrollState, fadeHeight: Float): Modifier = this
+    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        if (scrollState.value > 0) {
+            drawRect(
+                brush = Brush.verticalGradient(listOf(Color.Black, Color.Transparent), startY = 0f, endY = fadeHeight),
+                size = Size(size.width, fadeHeight),
+                blendMode = BlendMode.DstOut,
+            )
+        }
+        if (scrollState.value < scrollState.maxValue) {
+            drawRect(
+                brush = Brush.verticalGradient(listOf(Color.Transparent, Color.Black), startY = size.height - fadeHeight, endY = size.height),
+                topLeft = Offset(0f, size.height - fadeHeight),
+                size = Size(size.width, fadeHeight),
+                blendMode = BlendMode.DstOut,
+            )
+        }
+    }
+
+/**
+ * One line of [StackedScores]: [shown], or a "-" while there's nothing to show - with the last number
+ * shown kept laid out but hidden behind it, so showing it again is only a change of which is visible.
+ */
+@Composable
+private fun SlotScore(shown: ShownScore?, style: TextStyle) {
+    val lastShown = remember { arrayOfNulls<ShownScore>(1) }
+    if (shown != null) lastShown[0] = shown
+    Box(contentAlignment = Alignment.CenterStart) {
+        lastShown[0]?.let { number ->
+            ScoreText(
+                text = number.text,
+                color = when {
+                    number.gold -> GoldAccent
+                    number.accent != null -> number.accent
+                    else -> TileIconColor.copy(alpha = if (number.scored) 1f else 0.55f)
+                },
+                fontWeight = if (number.gold || number.accent != null) FontWeight.Bold else FontWeight.Normal,
+                style = style,
+                modifier = Modifier.alpha(if (shown != null) 1f else 0f),
+            )
+        }
+        ScoreText(
+            text = "-",
+            color = TileIconColor.copy(alpha = 0.55f),
+            fontWeight = FontWeight.Normal,
+            style = style,
+            modifier = Modifier.alpha(if (shown == null) 1f else 0f),
+        )
+    }
+}
+
+/**
  * A cell's score or preview as it was last shown: its text, whether it was a gold "worth picking" one,
  * whether it's scored, and the player's colour if it's their last turn's score (see [LastScoredHighlight]).
+ * Compared by value, so a [SlotScore] handed the same score again - every filled slot, every time the
+ * board recomposes - is skipped rather than recomposed.
  */
-private class ShownScore(val text: String, val gold: Boolean, val scored: Boolean, val accent: Color?)
+private data class ShownScore(val text: String, val gold: Boolean, val scored: Boolean, val accent: Color?)
 
 /** A number (or "-") beside a category tile. */
 @Composable

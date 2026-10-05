@@ -1,5 +1,6 @@
 package net.zodac.dicefive.data.scores
 
+import androidx.room.AutoMigration
 import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
@@ -17,7 +18,15 @@ import kotlinx.coroutines.IO
  * release. Every schema change from here on needs a version bump and a migration; the exported
  * schemas in app/shared/schemas/ are what a migration test compares against.
  */
-@Database(entities = [ScoreEntry::class, DismissedPlayerStats::class], version = 1, exportSchema = true)
+@Database(
+    entities = [ScoreEntry::class, DismissedPlayerStats::class],
+    version = 2,
+    exportSchema = true,
+    autoMigrations = [
+        // 2: ScoreEntry.onLeaderboard, every existing row on it.
+        AutoMigration(from = 1, to = 2),
+    ],
+)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
 

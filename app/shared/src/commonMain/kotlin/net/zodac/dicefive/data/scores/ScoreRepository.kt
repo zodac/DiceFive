@@ -12,13 +12,15 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
     /**
      * Records one human player's finished game: their score and tie-break stats (see
      * [PlayerState.toTieBreakStats][net.zodac.dicefive.game.toTieBreakStats]), whether they won
-     * (null for a solo game), and whether they were player 1.
+     * (null for a solo game), whether they were player 1, and whether the game's mode puts it on the
+     * Leaderboard ([ScoreEntry.onLeaderboard]).
      */
     suspend fun recordScore(
         playerName: String,
         stats: TieBreakStats,
         won: Boolean?,
         isPrimaryPlayer: Boolean,
+        onLeaderboard: Boolean = true,
         timestampEpochMillis: Long = nowEpochMillis(),
     ) {
         scoreDao.insert(
@@ -34,6 +36,7 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
                 chanceScore = stats.chance,
                 threeOfAKindScore = stats.threeOfAKind,
                 fourOfAKindScore = stats.fourOfAKind,
+                onLeaderboard = onLeaderboard,
             ),
         )
         // A dismissed player who plays again clearly cares about their stats once more.

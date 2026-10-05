@@ -88,18 +88,18 @@ class GameScreenAutoRollTest {
                 val state = viewModel.game.value!!
                 state.currentPlayerIndex == 0 && state.phase == TurnPhase.ROLLED
             }
-            val open = viewModel.game.value!!.players[0].scorecard.filterValues { it == null }.keys
+            val open = viewModel.game.value!!.players[0].let { player -> player.scorecard.keys.filter { player.isOpen(it) } }
             compose.runOnIdle { viewModel.commitScore(open.first { it != ScoreCategory.FIVE_OF_A_KIND }) }
 
             // The CPU takes its turn - one roll, one score - and play comes back round.
             waitFor("the CPU's turn $turn", viewModel) {
                 val state = viewModel.game.value!!
-                state.currentPlayerIndex == 0 && state.players[1].scorecard.values.count { it != null } == turn + 1
+                state.currentPlayerIndex == 0 && state.players[1].turnsTaken == turn + 1
             }
         }
 
         val state = viewModel.game.value!!
-        assertEquals(3, state.players[0].scorecard.values.count { it != null })
-        assertEquals(3, state.players[1].scorecard.values.count { it != null })
+        assertEquals(3, state.players[0].turnsTaken)
+        assertEquals(3, state.players[1].turnsTaken)
     }
 }

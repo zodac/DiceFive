@@ -17,7 +17,6 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
-import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
 
@@ -86,8 +85,9 @@ object GameStateJson {
         put(
             "scorecard",
             buildJsonObject {
-                for ((category, value) in player.scorecard) {
-                    put(category.name, value)
+                // A list per box, its scores in the order they went in - see PlayerState.scorecard.
+                for ((category, scores) in player.scorecard) {
+                    put(category.name, JsonArray(scores.map { JsonNumber(it.toString()) }))
                 }
             },
         )
@@ -95,9 +95,7 @@ object GameStateJson {
 
     private fun decodePlayer(obj: JsonObject, gameMode: GameMode): PlayerState {
         val scorecardJson = obj.getObject("scorecard")
-        val scorecard = gameMode.categories.associateWith { category ->
-            (scorecardJson[category.name] as? JsonNumber)?.toInt()
-        }
+        val scorecard = gameMode.categories.associateWith { category -> decodeScores(scorecardJson[category.name]) }
         return PlayerState(
             name = obj.getString("name"),
             type = PlayerType.valueOf(obj.getString("type")),
@@ -115,6 +113,16 @@ object GameStateJson {
             // can only keep the Flowerpot's sunflower from blooming that game, never hand it out.
             rollCount = if ("rollCount" in obj) obj.getInt("rollCount") else 0,
         )
+    }
+
+    /**
+     * One box's scores: a list of them, or - from a game saved before a box could be scored more than
+     * once - a single number for a filled box and null (or nothing) for an open one.
+     */
+    private fun decodeScores(value: JsonValue?): List<Int> = when (value) {
+        is JsonArray -> value.items.map { (it as? JsonNumber)?.toInt() ?: throw JsonParseException("A score isn't a number") }
+        is JsonNumber -> listOf(value.toInt())
+        else -> emptyList()
     }
 
     private fun JsonObject.field(key: String): JsonValue = this[key] ?: throw JsonParseException("Missing \"$key\"")

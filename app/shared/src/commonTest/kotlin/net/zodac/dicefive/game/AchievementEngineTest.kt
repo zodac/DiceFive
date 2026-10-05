@@ -15,6 +15,7 @@ import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.oneScoreEach
 
 private const val NOW = 1_700_000_000_000L
 
@@ -43,7 +44,7 @@ class AchievementEngineTest {
             type = type,
             difficulty = difficulty,
             gameMode = gameMode,
-            scorecard = scorecard,
+            scorecard = oneScoreEach(scorecard),
             fiveOfAKindBonusCount = fiveOfAKindBonusCount,
         )
     }
@@ -1041,7 +1042,7 @@ class AchievementEngineTest {
         name = "Player 1",
         type = type,
         gameMode = gameMode,
-        scorecard = gameMode.categories.associateWith { null } + scored,
+        scorecard = oneScoreEach(gameMode.categories.associateWith { null } + scored),
         fiveOfAKindBonusCount = fiveOfAKindBonusCount,
     )
 
@@ -1269,6 +1270,8 @@ class AchievementEngineTest {
                 Achievement.QUICKFIRE_BEAT_THE_CLOCK,
                 Achievement.STUD_WIN,
                 Achievement.STUD_LUCKY_SEVEN,
+                Achievement.THIRD_WIND_WIN,
+                Achievement.THIRD_WIND_NO_ZEROES,
             ),
             gameModes,
         )
@@ -1382,5 +1385,116 @@ class AchievementEngineTest {
 
         assertFalse(Achievement.ALL_ZEROES in zeroesButRed.newlyUnlocked)
         assertTrue(Achievement.ALL_ZEROES in allZeroes.newlyUnlocked)
+    }
+
+    // ---- Third Wind: every box scored three times -----------------------------------------------
+
+    /** A finished Third Wind card - all three slots of every box filled - each slot scoring [slotScore]. */
+    private fun thirdWindPlayer(
+        name: String = "Player 1",
+        type: PlayerType = PlayerType.HUMAN,
+        fiveOfAKindBonusCount: Int = 0,
+        slotScore: (category: ScoreCategory, slot: Int) -> Int,
+    ) = PlayerState(
+        name = name,
+        type = type,
+        gameMode = GameMode.THIRD_WIND,
+        scorecard = GameMode.THIRD_WIND.categories.associateWith { category -> List(GameMode.THIRD_WIND.scoresPerCategory) { slotScore(category, it) } },
+        fiveOfAKindBonusCount = fiveOfAKindBonusCount,
+    )
+
+    /** A Third Wind card with no zero anywhere: 10 in every slot - 390 points, and a 5x box of three 10s (never a 5x). */
+    private fun thirdWindNoZeroes(name: String = "Player 1", type: PlayerType = PlayerType.HUMAN) =
+        thirdWindPlayer(name = name, type = type) { _, _ -> 10 }
+
+    @Test
+    fun `Third Time's The Charm is Third Wind's Spotless - and Spotless itself can't be earned there`() {
+        val update = evaluate(finishedGame(thirdWindNoZeroes()))
+
+        assertTrue(Achievement.THIRD_WIND_NO_ZEROES in update.newlyUnlocked)
+        assertFalse(Achievement.NO_ZEROES in update.newlyUnlocked)
+    }
+
+    @Test
+    fun `winning a game of Third Wind is Gone With The Wind - not a loss - a solo game or another mode`() {
+        val bot = thirdWindPlayer(name = "Bot", type = PlayerType.AI) { _, _ -> 1 }
+        val strongBot = thirdWindPlayer(name = "Bot", type = PlayerType.AI) { _, _ -> 30 }
+
+        assertTrue(Achievement.THIRD_WIND_WIN in evaluate(finishedGame(thirdWindNoZeroes(), bot)).newlyUnlocked)
+        assertFalse(Achievement.THIRD_WIND_WIN in evaluate(finishedGame(thirdWindNoZeroes(), strongBot)).newlyUnlocked)
+        assertFalse(Achievement.THIRD_WIND_WIN in evaluate(finishedGame(thirdWindNoZeroes())).newlyUnlocked)
+        assertFalse(
+            Achievement.THIRD_WIND_WIN in evaluate(finishedGame(player(total = 250), player(name = "Bot", type = PlayerType.AI, total = 100))).newlyUnlocked,
+        )
+    }
+
+    @Test
+    fun `one zero in any of Third Wind's 39 slots misses Third Time's The Charm`() {
+        val oneZero = thirdWindPlayer { category, slot -> if (category == ScoreCategory.LARGE_STRAIGHT && slot == 2) 0 else 10 }
+
+        assertFalse(Achievement.THIRD_WIND_NO_ZEROES in evaluate(finishedGame(oneZero)).newlyUnlocked)
+    }
+
+    @Test
+    fun `a Standard game without a zero is Spotless - not Third Time's The Charm`() {
+        val update = evaluate(finishedGame(player(total = 250, overrides = GameMode.STANDARD.categories.associateWith { 10 })))
+
+        assertTrue(Achievement.NO_ZEROES in update.newlyUnlocked)
+        assertFalse(Achievement.THIRD_WIND_NO_ZEROES in update.newlyUnlocked)
+    }
+
+    @Test
+    fun `Third Wind's tripled totals don't hand out the score or section thresholds`() {
+        // 30 in every slot: 540 upper, 870 lower without the 5x box - past every rung in one go.
+        val update = evaluate(finishedGame(thirdWindPlayer { _, _ -> 30 }))
+
+        for (achievement in listOf(Achievement.SCORE_200, Achievement.SCORE_300, Achievement.SCORE_400, Achievement.SCORE_500)) {
+            assertFalse(achievement in update.newlyUnlocked, "$achievement")
+        }
+        assertFalse(Achievement.UPPER_84 in update.newlyUnlocked)
+        assertFalse(Achievement.LOWER_150 in update.newlyUnlocked)
+    }
+
+    @Test
+    fun `a Third Wind game is never a New Personal Best - it isn't on the Leaderboard`() {
+        val update = evaluate(finishedGame(thirdWindNoZeroes()), context = GameAchievementContext(previousBestScore = 100))
+
+        assertFalse(Achievement.PERSONAL_BEST in update.newlyUnlocked)
+    }
+
+    @Test
+    fun `winning Third Wind with three zeroes isn't Zero To Hero - over 39 turns that's the usual run of things`() {
+        val threeZeroes = thirdWindPlayer { category, _ -> if (category == ScoreCategory.LARGE_STRAIGHT) 0 else 10 }
+        val bot = thirdWindPlayer(name = "Bot", type = PlayerType.AI) { _, _ -> 1 }
+
+        assertFalse(Achievement.ZERO_TO_HERO in evaluate(finishedGame(threeZeroes, bot)).newlyUnlocked)
+    }
+
+    @Test
+    fun `three 50s in Third Wind's 5x box are a Hat Trick with no bonus chip`() {
+        val update = evaluate(finishedGame(thirdWindPlayer { category, _ -> if (category == ScoreCategory.FIVE_OF_A_KIND) 50 else 10 }))
+
+        assertEquals(3, update.counters[AchievementCounter.SCORED_5X])
+        assertTrue(Achievement.ENCORE_5X in update.newlyUnlocked)
+        assertTrue(Achievement.HAT_TRICK_5X in update.newlyUnlocked)
+    }
+
+    @Test
+    fun `Six Appeal in Third Wind needs a 30 in one Sixes slot - not three slots adding up to it`() {
+        val thirtyInOne = thirdWindPlayer { category, slot -> if (category == ScoreCategory.SIXES && slot == 1) 30 else 6 }
+        val thirtyAcrossThree = thirdWindPlayer { category, slot -> if (category == ScoreCategory.SIXES) listOf(12, 12, 6)[slot] else 6 }
+
+        assertTrue(Achievement.SIXES_30 in evaluate(finishedGame(thirtyInOne)).newlyUnlocked)
+        assertFalse(Achievement.SIXES_30 in evaluate(finishedGame(thirtyAcrossThree)).newlyUnlocked)
+    }
+
+    @Test
+    fun `Luck Of The Draw in Third Wind is still 3 or fewer of its 39 turns scored yourself`() {
+        val state = finishedGame(thirdWindNoZeroes(), thirdWindPlayer(name = "Bot", type = PlayerType.AI) { _, _ -> 1 })
+        fun earned(timeouts: Int) =
+            Achievement.LUCK_OF_THE_DRAW in evaluate(state, context = GameAchievementContext(playerOneTimeouts = timeouts)).newlyUnlocked
+
+        assertTrue(earned(36))
+        assertFalse(earned(35))
     }
 }

@@ -2,20 +2,21 @@ package net.zodac.dicefive.model
 
 /**
  * A player's live state within a game: identity plus their scorecard.
- * [scorecard] maps every one of [gameMode]'s categories to its filled-in value, or `null`
- * while the box is still open. [fiveOfAKindBonusCount] tracks how many extra
- * 5x bonus chips this player has earned.
+ * [scorecard] maps every one of [gameMode]'s categories to the scores filled into it so far, in the
+ * order they went in - empty while the box is untouched, and full once it holds
+ * [GameMode.scoresPerCategory] of them (one, in every mode but Third Wind). [fiveOfAKindBonusCount]
+ * tracks how many extra 5x bonus chips this player has earned.
  *
  * [gameMode] is carried here as well as on [GameState] because it decides how this scorecard adds
- * up - which boxes it has, the upper-section bonus, what a bonus chip is worth - so a player's totals
- * never need the game around them to be read.
+ * up - which boxes it has, how many slots each, the upper-section bonus, what a bonus chip is worth -
+ * so a player's totals never need the game around them to be read.
  */
 data class PlayerState(
     val name: String,
     val type: PlayerType,
     val difficulty: Difficulty = Difficulty.MEDIUM,
     val gameMode: GameMode = GameMode.default,
-    val scorecard: Map<ScoreCategory, Int?> = gameMode.categories.associateWith { null },
+    val scorecard: Map<ScoreCategory, List<Int>> = gameMode.categories.associateWith { emptyList() },
     val fiveOfAKindBonusCount: Int = 0,
     /** The dice this player's last completed turn was scored with - value and held/unheld state
      * both, as they stood the moment they tapped a category. Null before this player's first turn
@@ -32,8 +33,29 @@ data class PlayerState(
     val rollCount: Int = 0,
 ) {
 
+    /** The scores filled into [category] so far, in the order they went in. */
+    fun scoresIn(category: ScoreCategory): List<Int> = scorecard[category].orEmpty()
+
+    /** Whether [category] still has a slot to score in. */
+    fun isOpen(category: ScoreCategory): Boolean = scoresIn(category).size < gameMode.scoresPerCategory
+
+    /** Whether [category] holds [score] in any of its slots. */
+    fun hasScore(category: ScoreCategory, score: Int): Boolean = score in scoresIn(category)
+
+    /** Every score on the card, one per turn taken. */
+    val allScores: List<Int>
+        get() = gameMode.categories.flatMap { scoresIn(it) }
+
+    /** How many turns this player has scored so far - one per filled slot. */
+    val turnsTaken: Int
+        get() = gameMode.categories.sumOf { scoresIn(it).size }
+
+    /** How many turns this player has still to take - one per open slot. */
+    val turnsLeft: Int
+        get() = gameMode.turnsPerGame - turnsTaken
+
     val isScorecardComplete: Boolean
-        get() = gameMode.categories.all { scorecard[it] != null }
+        get() = turnsLeft == 0
 
     val upperSectionTotal: Int
         get() = sectionTotal(ScoreSection.UPPER)
@@ -52,7 +74,7 @@ data class PlayerState(
      * for those.
      */
     val lowerSectionTotalExcludingFiveOfAKind: Int
-        get() = lowerSectionTotal - (scorecard[ScoreCategory.FIVE_OF_A_KIND] ?: 0)
+        get() = lowerSectionTotal - scoresIn(ScoreCategory.FIVE_OF_A_KIND).sum()
 
     /** Zero in a mode with no colour boxes. */
     val colourSectionTotal: Int
@@ -62,23 +84,32 @@ data class PlayerState(
         get() = fiveOfAKindBonusCount * gameMode.fiveOfAKindBonusAmount
 
     /**
-     * How many 5x this player actually scored: the 5x box itself if it holds its full score (a
+     * Whether the 5x box is full and at least one of its slots holds its full score - what makes
+     * another 5x a joker, earning a bonus chip (see `ScoreCalculator`). In a one-slot mode, simply
+     * that the box shows 50.
+     */
+    val fiveOfAKindJokerActive: Boolean
+        get() = !isOpen(ScoreCategory.FIVE_OF_A_KIND) && hasScore(ScoreCategory.FIVE_OF_A_KIND, FIVE_OF_A_KIND_FULL_SCORE)
+
+    /**
+     * How many 5x this player actually scored: every slot of the 5x box holding its full score (a
      * zero there was never a 5x), plus one for every bonus chip, each of which is a later 5x. The
      * one definition both the leaderboard ([net.zodac.dicefive.data.scores.ScoreEntry]) and the
      * achievements' "scored a 5x" counter use.
      */
     val fiveOfAKindCount: Int
-        get() = (if (scorecard[ScoreCategory.FIVE_OF_A_KIND] == ScoreCategory.FIVE_OF_A_KIND.fixedScore) 1 else 0) +
-            fiveOfAKindBonusCount
+        get() = scoresIn(ScoreCategory.FIVE_OF_A_KIND).count { it == FIVE_OF_A_KIND_FULL_SCORE } + fiveOfAKindBonusCount
 
     val totalScore: Int
         get() = upperSectionTotal + upperSectionBonus + lowerSectionTotal + colourSectionTotal + fiveOfAKindBonusTotal
 
     private fun sectionTotal(section: ScoreSection): Int =
-        gameMode.categories.filter { it.section == section }.sumOf { scorecard[it] ?: 0 }
+        gameMode.categories.filter { it.section == section }.sumOf { scoresIn(it).sum() }
 
     companion object {
         /** ONES..SIXES, in pip order - so a category's index here, plus one, is the pip value it counts. */
         val UPPER_CATEGORIES: List<ScoreCategory> = ScoreCategory.entries.filter { it.section == ScoreSection.UPPER }
+
+        private val FIVE_OF_A_KIND_FULL_SCORE: Int = requireNotNull(ScoreCategory.FIVE_OF_A_KIND.fixedScore)
     }
 }

@@ -23,15 +23,19 @@ private class FakeScoreDao : ScoreDao {
         entries += entry.copy(id = nextId++)
     }
 
-    override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> =
-        entries.sortedByDescending { it.score }.drop(offset).take(limit)
+    // As the real queries do, only Leaderboard rows (ScoreEntry.onLeaderboard) are paged, counted,
+    // best or collected; career points and Statistics count every row.
+    private val leaderboard get() = entries.filter { it.onLeaderboard }
 
-    override suspend fun count(): Int = entries.size
+    override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> =
+        leaderboard.sortedByDescending { it.score }.drop(offset).take(limit)
+
+    override suspend fun count(): Int = leaderboard.size
 
     override suspend fun bestScoreForPlayer(playerName: String): Int? =
-        entries.filter { it.playerName == playerName }.maxOfOrNull { it.score }
+        leaderboard.filter { it.playerName == playerName }.maxOfOrNull { it.score }
 
-    override suspend fun distinctScores(): List<Int> = entries.map { it.score }.distinct()
+    override suspend fun distinctScores(): List<Int> = leaderboard.map { it.score }.distinct()
 
     override suspend fun primaryPlayerTotalPoints(): Int? =
         entries.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
@@ -67,6 +71,7 @@ private suspend fun ScoreRepository.record(
     isPrimaryPlayer: Boolean = false,
     timestampEpochMillis: Long = nowEpochMillis(),
     fiveOfAKindCount: Int = 0,
+    onLeaderboard: Boolean = true,
 ) = recordScore(
     playerName = playerName,
     stats = TieBreakStats(
@@ -81,6 +86,7 @@ private suspend fun ScoreRepository.record(
     ),
     won = won,
     isPrimaryPlayer = isPrimaryPlayer,
+    onLeaderboard = onLeaderboard,
     timestampEpochMillis = timestampEpochMillis,
 )
 
@@ -291,5 +297,22 @@ class ScoreRepositoryTest {
         val repository = ScoreRepository(FakeScoreDao())
 
         assertEquals(0, repository.primaryPlayerTotalPoints())
+    }
+
+    @Test
+    fun `a game off the Leaderboard still counts in Statistics and career points`() = runTest {
+        val repository = ScoreRepository(FakeScoreDao())
+        repository.record("Alice", 200, isPrimaryPlayer = true)
+        repository.record("Alice", 750, isPrimaryPlayer = true, onLeaderboard = false)
+
+        assertEquals(1, repository.totalCount())
+        assertEquals(listOf(200), repository.page(0).map { it.score })
+        assertEquals(200, repository.bestScoreForPlayer("Alice"))
+        assertEquals(setOf(200), repository.distinctScores())
+
+        val alice = repository.playerStatistics().single()
+        assertEquals(2, alice.gamesPlayed)
+        assertEquals(750, alice.maxScore)
+        assertEquals(950, repository.primaryPlayerTotalPoints())
     }
 }

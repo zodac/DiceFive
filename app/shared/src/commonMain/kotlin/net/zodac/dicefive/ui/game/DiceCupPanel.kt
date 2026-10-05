@@ -7,13 +7,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,7 +40,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -57,13 +54,12 @@ import net.zodac.dicefive.ui.game.style.LocalCupActivity
 import net.zodac.dicefive.ui.game.style.LocalCupAnimated
 import net.zodac.dicefive.ui.game.style.LocalFlowerpotGrowth
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
-import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 
 /**
  * [DiceCupPanel]'s cup-specific behaviour - the parts of the panel that only make sense for a turn
  * actually being played right now. [ReadOnlyScoreboard] passes `cup = null` instead of a second,
- * hand-copied panel layout, so its 5x tile and Upper/Bonus/Lower tracker can never drift out of
+ * hand-copied panel layout, so its 5x tile and Totals button can never drift out of
  * sync with [GameBoard]'s - only the cup, roll count and undo button disappear.
  */
 // The board deliberately avoids theme colour roles (see .claude/UI.md), so "disabled" here means
@@ -102,9 +98,9 @@ data class CupPanelState(
 
 /**
  * The right-hand column beside the category grid: the prominent 5x tile (its top level with the
- * grid's first row), the (tappable) dice cup with its remaining-rolls count, and the upper-section
- * bonus tracker with undo - the last three only when [cup] is non-null, i.e. an actual turn is in
- * progress rather than a read-only look at someone else's scorecard.
+ * grid's first row), the (tappable) dice cup with its remaining-rolls count, and the Totals button
+ * (Upper/Bonus/Lower, see [TotalsButton]) with undo - the cup and undo only when [cup] is non-null,
+ * i.e. an actual turn is in progress rather than a read-only look at someone else's scorecard.
  */
 @Composable
 fun DiceCupPanel(
@@ -271,7 +267,8 @@ fun DiceCupPanel(
             Row(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+                // Both buttons at the right, Totals just left of Undo - Undo where it always was.
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
             ) {
                 val upperTotal = player?.upperSectionTotal ?: 0
                 val upperBonus = player?.upperSectionBonus ?: 0
@@ -280,50 +277,12 @@ fun DiceCupPanel(
                 // past its own column's edge - comes from GameBoard's inter-panel gap and weight split,
                 // not from padding here specifically, so every row of this panel (this one, the cup, the
                 // 5x tile above) gets the same protection instead of just this one.
-                Column {
-                    SectionStatRow(label = "Upper:", value = upperTotal)
-                    SectionStatRow(
-                        label = "Bonus:",
-                        value = upperBonus,
-                        color = if (upperBonus > 0) GoldAccent else TileIconColor,
-                        fontWeight = if (upperBonus > 0) FontWeight.Bold else FontWeight.Normal,
-                    )
-                    SectionStatRow(label = "Lower:", value = lowerTotal)
-                }
+                TotalsButton(upperTotal = upperTotal, upperBonus = upperBonus, lowerTotal = lowerTotal)
                 if (cup != null && cup.showUndo) {
-                    Spacer(modifier = Modifier.width(8.dp))
                     UndoButton(enabled = cup.canUndo, onClick = cup.onUndo)
                 }
             }
         }
-    }
-}
-
-/**
- * One line of the Upper/Bonus/Lower summary. The label sits in a fixed-width column so the values
- * line up regardless of how wide "Upper:"/"Bonus:"/"Lower:" render in a proportional font.
- */
-@Composable
-internal fun SectionStatRow(
-    label: String,
-    value: Int,
-    color: Color = TileIconColor,
-    fontWeight: FontWeight = FontWeight.Normal,
-) {
-    Row {
-        Text(
-            text = label,
-            color = color,
-            fontWeight = fontWeight,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.width(48.dp),
-        )
-        Text(
-            text = "$value",
-            color = color,
-            fontWeight = fontWeight,
-            style = MaterialTheme.typography.bodyMedium,
-        )
     }
 }
 

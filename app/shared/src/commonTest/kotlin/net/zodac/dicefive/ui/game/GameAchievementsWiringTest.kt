@@ -92,15 +92,19 @@ private class FakeScoreDao : ScoreDao {
         entries += entry
     }
 
-    override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> =
-        entries.sortedByDescending { it.score }.drop(offset).take(limit)
+    // As the real queries do, only Leaderboard rows (ScoreEntry.onLeaderboard) are paged, counted,
+    // best or collected; career points count every row.
+    private val leaderboard get() = entries.filter { it.onLeaderboard }
 
-    override suspend fun count(): Int = entries.size
+    override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> =
+        leaderboard.sortedByDescending { it.score }.drop(offset).take(limit)
+
+    override suspend fun count(): Int = leaderboard.size
 
     override suspend fun bestScoreForPlayer(playerName: String): Int? =
-        entries.filter { it.playerName == playerName }.maxOfOrNull { it.score }
+        leaderboard.filter { it.playerName == playerName }.maxOfOrNull { it.score }
 
-    override suspend fun distinctScores(): List<Int> = entries.map { it.score }.distinct()
+    override suspend fun distinctScores(): List<Int> = leaderboard.map { it.score }.distinct()
 
     override suspend fun primaryPlayerTotalPoints(): Int? =
         entries.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
@@ -144,12 +148,13 @@ class GameAchievementsWiringTest {
 
     /** Plays every turn of every player to the end: roll once, then take the first open category. */
     private fun GameViewModel.playToCompletion() {
-        repeat(GameMode.STANDARD.categories.size * (game.value?.players?.size ?: 1)) {
+        val mode = game.value?.gameMode ?: GameMode.STANDARD
+        repeat(mode.turnsPerGame * (game.value?.players?.size ?: 1)) {
             val state = game.value ?: return
             if (state.isGameOver) return
             rollDice()
             val player = state.currentPlayer ?: return
-            val open = GameMode.STANDARD.categories.first { player.scorecard[it] == null }
+            val open = mode.categories.first { player.isOpen(it) }
             commitScore(open)
         }
     }
@@ -558,7 +563,7 @@ class GameAchievementsWiringTest {
             if (state.currentPlayer?.type != PlayerType.HUMAN) return@repeat
             viewModel.rollDice()
             val player = state.currentPlayer ?: return@repeat
-            viewModel.commitScore(GameMode.STANDARD.categories.first { player.scorecard[it] == null })
+            viewModel.commitScore(GameMode.STANDARD.categories.first { player.isOpen(it) })
         }
         advanceUntilIdle()
 
@@ -578,6 +583,40 @@ class GameAchievementsWiringTest {
 
         assertEquals(1, dao.recorded().size)
         assertEquals(null, dao.recorded().single().won)
+    }
+
+    @Test
+    fun `a Third Wind game is recorded for Statistics but kept off the Leaderboard`() = runTest {
+        val dao = FakeScoreDao()
+        val repository = ScoreRepository(dao)
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, scoreRepository = repository)
+        viewModel.setPlayerCount(1)
+        viewModel.setGameMode(GameMode.THIRD_WIND)
+        viewModel.startGame()
+
+        viewModel.playToCompletion()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.game.value?.isGameOver == true, "all 39 turns should finish the game")
+        val row = dao.recorded().single()
+        assertFalse(row.onLeaderboard)
+        assertEquals(viewModel.game.value!!.players.single().totalScore, row.score)
+        assertEquals(0, repository.totalCount(), "the Leaderboard shows no row for it")
+        assertEquals(null, repository.bestScoreForPlayer(row.playerName))
+        assertEquals(emptySet(), repository.distinctScores())
+    }
+
+    @Test
+    fun `a Standard game goes on the Leaderboard`() = runTest {
+        val dao = FakeScoreDao()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, scoreRepository = ScoreRepository(dao))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+
+        viewModel.playToCompletion()
+        advanceUntilIdle()
+
+        assertTrue(dao.recorded().single().onLeaderboard)
     }
 
     @Test
@@ -1146,7 +1185,7 @@ class GameAchievementsWiringTest {
         repeat(GameMode.STANDARD.categories.size - 1) { turn ->
             repeat(rollsOnTurn(turn)) { rollDice() }
             val player = game.value?.currentPlayer ?: return
-            commitScore(GameMode.STANDARD.categories.first { player.scorecard[it] == null })
+            commitScore(GameMode.STANDARD.categories.first { player.isOpen(it) })
         }
     }
 
@@ -1178,7 +1217,7 @@ class GameAchievementsWiringTest {
 
         viewModel.playEveryTurnButTheLast { turn -> if (turn == 5) 2 else 3 }
         repeat(3) { viewModel.rollDice() }
-        viewModel.commitScore(GameMode.STANDARD.categories.first { viewModel.game.value?.currentPlayer?.scorecard?.get(it) == null })
+        viewModel.commitScore(GameMode.STANDARD.categories.first { viewModel.game.value?.currentPlayer?.isOpen(it) != false })
         advanceUntilIdle()
 
         assertEquals(true, viewModel.game.value?.isGameOver)
@@ -1400,7 +1439,7 @@ class GameAchievementsWiringTest {
         testDispatcher.scheduler.runCurrent()
 
         val player = viewModel.game.value!!.players.single()
-        assertEquals(1, player.scorecard[ScoreCategory.ONES])
+        assertEquals(1, player.scoresIn(ScoreCategory.ONES).singleOrNull())
         assertEquals(listOf(true, true, true, true, true, false, false), player.lastRoll!!.map { it.isHeld })
     }
 

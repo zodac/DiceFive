@@ -288,6 +288,28 @@ private val RULES_PAGES = listOf(
         ),
     ),
     RulesPage(
+        title = "Mode: Third Wind",
+        tabLabel = "Third Wind",
+        blocks = listOf(
+            text("A custom mode extending the *Standard* game mode. Every category is scored **three** times instead of once, so a game lasts **39** turns."),
+            text("Each category has **three** slots, stacked beside it on your scorecard. Scoring a category fills its next empty slot, and the category is worth all of its slots added up. It stays open until all **three** are filled."),
+            text("There's still just one *Upper Section* bonus, but it's tripled too: score **189pts** or more across the section to earn **105pts**."),
+            text("Each of the `5x` slots takes a `5x` for **50pts**. The **100pts** bonus and the Joker rule only begin once all **three** are filled, with at least one of them scoring **50pts**."),
+            text("Here's an example turn, with `Fives` already holding **15pts** and **10pts**:"),
+            RulesStep(1, "The first roll lands three 5s. Hold them, and roll the other **two** dice again.", roll(5, 5, 5, 2, 1, held = 3)),
+            RulesStep(2, "Another 5! Hold it too, and roll the last die.", roll(5, 5, 5, 5, 3, held = 4)),
+            RulesStep(3, "The last roll is a 6. That's worth **26pts** in `4x`, or **20pts** in `Fives`."),
+            RulesStep(
+                4,
+                "Score it in `Fives`. It fills the last of its **three** slots, so `Fives` is closed for the rest of the game, worth **45pts** in total.",
+                dice(5, 5, 5, 5, 6, counting = 4, score = "20pts"),
+            ),
+            text("In a tie break, every slot that scored **0pts** counts as a category scored **0pts**."),
+            text("Scores from this mode don't go on the *Leaderboard*, but they still count towards your *Statistics*."),
+            text("Everything else plays exactly the same as the *Standard* rules, just three times over!"),
+        ),
+    ),
+    RulesPage(
         title = "Modifiers",
         tabLabel = "Modifiers",
         blocks = listOf(
