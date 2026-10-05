@@ -31,6 +31,12 @@ class GameEngineTest {
     }
 
     @Test
+    fun `a modifier takes the game off the leaderboard`() {
+        assertTrue(GameEngine.newGame(onePlayer).countsOnLeaderboard)
+        assertFalse(GameEngine.newGame(onePlayer, turnTimer = TurnTimer.SECONDS_30).countsOnLeaderboard)
+    }
+
+    @Test
     fun `newGame defaults to no turn timer but carries a chosen one`() {
         assertEquals(TurnTimer.NONE, GameEngine.newGame(onePlayer).turnTimer)
         assertEquals(TurnTimer.SECONDS_30, GameEngine.newGame(onePlayer, turnTimer = TurnTimer.SECONDS_30).turnTimer)

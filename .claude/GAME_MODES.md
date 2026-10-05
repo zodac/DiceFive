@@ -55,7 +55,7 @@ When a new rule needs a field, add it here too. This is the map of where each ru
 | `timeoutPick`                            | `ScoreCalculator.timeoutCategory` ← `GameViewModel.autoScoreOnTimeout`                                      |
 | `autoRollAtTurnStart`                    | `GameState.awaitsAutoRoll` → `GameScreen`'s auto-tap `LaunchedEffect`                                       |
 | `scoresPerCategory` (`turnsPerGame`)     | `PlayerState` (`scorecard` is a list per box; `isOpen`, `turnsTaken`/`turnsLeft`, `isScorecardComplete`, totals, `fiveOfAKindJokerActive`), `ScoreCalculator` (open boxes, the joker), `HandScoring.filledMask` (a full box), `AiTurnPlayer` (upper-bonus reach), `TieBreak` (every zero slot counts), `GameStateJson`, `CategoryCell` (`StackedScores`, spoken state), `GameViewModel` (turn timer's turn count, final round), the achievement guards, Luck Of The Draw's turn count |
-| `countsOnLeaderboard`                    | `GameViewModel.persistHumanScores` → `ScoreEntry.onLeaderboard`, which `ScoreDao`'s Leaderboard page/count, best score and distinct scores filter on (Statistics and career points don't); New Personal Best's guard |
+| `countsOnLeaderboard` (also off whenever a modifier, i.e. the turn timer, is on - `GameState.countsOnLeaderboard`) | `GameViewModel.persistHumanScores` → `ScoreEntry.onLeaderboard`, which `ScoreDao`'s Leaderboard page/count, best score and distinct scores filter on (Statistics and career points don't); New Personal Best's guard |
 | `maxRollsPerGame`                        | `flowerpotGrowthStage` - the Flowerpot's stages are spread evenly over it, and the sunflower blooms on its last roll (Greenfingers); `GameModeTest` |
 
 ## First, work out what kind of mode it is

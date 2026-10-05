@@ -44,6 +44,11 @@ data class GameState(
     val turnSeconds: Int?
         get() = gameMode.turnTimerSeconds ?: turnTimer.seconds
 
+    /** Whether this game's scores go on the Leaderboard: its mode must allow it ([GameMode.countsOnLeaderboard])
+     * and no modifier, like the [turnTimer], may be on - modifiers are for fun, not for the records. */
+    val countsOnLeaderboard: Boolean
+        get() = gameMode.countsOnLeaderboard && turnTimer == TurnTimer.NONE
+
     /** A human's turn, not yet rolled, in a mode that taps the cup for them at the start of it
      * ([GameMode.autoRollAtTurnStart]). An AI's turn is never this - its own turn loop rolls. */
     val awaitsAutoRoll: Boolean

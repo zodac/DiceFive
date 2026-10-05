@@ -401,7 +401,7 @@ object AchievementEngine {
         // The best is off the Leaderboard, so a game that isn't on it has nothing to compare with.
         award(
             Achievement.PERSONAL_BEST,
-            state.gameMode.countsOnLeaderboard && context.previousBestScore != null && bestHumanScore > context.previousBestScore,
+            state.countsOnLeaderboard && context.previousBestScore != null && bestHumanScore > context.previousBestScore,
         )
 
         // Score thresholds - see earnedDuringPlay's doc comment for why these wait for the actual
