@@ -324,7 +324,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
 # permission bits intact — `jar xf` (the JDK's own zip extractor, which would let this
 # live in the JDK-adjacent stable region) silently drops the executable bit on every
 # tool under cmdline-tools/*/bin, which then fails with "Permission denied" the first
-# time sdkmanager shells out to one of them. Confirmed by hand before pinning below.
+# time sdkmanager (or any cmdline-tools script) shells out to one of them. Confirmed by hand before pinning below.
 #
 # There is no official upstream Docker image that is just "the Android SDK" the way
 # eclipse-temurin/maven/node are for their toolchains, so — unlike those three — this
@@ -344,17 +344,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
 # 9.4.1 enforces build-tools >= 36.0.0 regardless of compileSdk and overrides (with a
 # network fetch) anything pinned lower.
 #
-# `yes |` answers the SDK Terms-of-Service prompt sdkmanager still shows on first
-# run (piped, not interactive, same technique as the license-acceptance pattern
-# common in CI); `--sdk_root` is required because $ANDROID_HOME does not exist as a
-# real directory yet at the point sdkmanager runs.
+# `android sdk install` replaces the deprecated sdkmanager and asks nothing, so no `yes |`;
+# `--sdk` is required because $ANDROID_HOME does not exist as a real directory yet at
+# the point it runs.
 #
-# `|| true` on that pipeline, not a bare `set -eux` check: this stage's SHELL runs
-# with `pipefail` (see the SHELL directive near the top), and `yes` always dies of
-# SIGPIPE (exit 141) the moment sdkmanager stops reading stdin — a SUCCESSFUL run
-# still trips pipefail and aborts the build. The three `test` lines right after are
-# what actually verify success (and, unlike trusting sdkmanager's exit code, they
-# check the one thing that matters: did the packages land on disk); a genuine
+# `|| true` on that command, not a bare `set -eux` check: the three `test` lines right
+# after are what actually verify success (and, unlike trusting the installer's exit
+# code, they check the one thing that matters: did the packages land on disk); a genuine
 # install failure leaves one of them false and `set -e` stops the build there. The
 # final chmod is defensive: a no-op after unzip (permissions are already correct),
 # it just guards against a future change back to a non-permission-preserving
@@ -367,8 +363,8 @@ RUN set -eux; \
     unzip -q /tmp/cmdline-tools.zip -d /opt/android-sdk/cmdline-tools; \
     mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest; \
     rm -f /tmp/cmdline-tools.zip; \
-    yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/opt/android-sdk \
-        "platform-tools" "platforms;android-37.2" "build-tools;36.0.0" >/dev/null || true; \
+    /opt/android-sdk/cmdline-tools/latest/bin/android sdk install --sdk=/opt/android-sdk \
+        "platform-tools" "platforms;android-37.2" "build-tools;36.0.0" </dev/null >/dev/null || true; \
     test -x /opt/android-sdk/platform-tools/adb; \
     test -d /opt/android-sdk/platforms/android-37.2; \
     test -d /opt/android-sdk/build-tools/36.0.0; \
@@ -377,7 +373,7 @@ RUN set -eux; \
 # ── Android emulator + one virtual device (so `sandbox/emulator.sh start` boots at once) ───────────────
 # Its own layers, below the SDK block, so a bump to the SDK pins above never re-downloads the ~1.5 GB
 # image and a change here never re-downloads the SDK. The emulator and the system image are named by
-# package only - sdkmanager has no way to pin a revision, the same as `platform-tools` above - so what
+# package only - the installer has no way to pin a revision, the same as `platform-tools` above - so what
 # is baked is whatever Google serves on the day this layer is built; it is rebuilt only when this text
 # changes, which is how `EMULATOR_API` below moves it.
 #
@@ -392,15 +388,16 @@ RUN set -eux; \
 # the former allows `adb root`, which the Baseline Profile run and the renderer workaround need (see
 # .claude/EMULATOR.md). entrypoint.sh forwards this variable to `dev` (sudo strips the environment).
 #
-# The SDK was installed root-owned, and sdkmanager unpacks the emulator without the other-user execute
+# The SDK was installed root-owned, and the installer, run as root, unpacks the emulator without the other-user execute
 # bit, so the `chmod -R a+rX` at the end is what lets `dev` run it (X grants execute only where someone
 # already had it). The virtual device is made as `dev` - the user that boots it - under dev's own
-# ~/.android/avd, which no volume mounts over. Same `yes | ... || true` shape and for the same reason as
-# the SDK block: the `test` lines are what verify the install, since `yes` dies of SIGPIPE under pipefail.
+# ~/.android/avd, which no volume mounts over. This layer uses `android sdk install`, since sdkmanager
+# is deprecated in favour of it; the SDK block above uses it too. The `test` lines are what
+# verify the install, not the exit code.
 ENV EMULATOR_API=37.0
 RUN set -eux; \
-    yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/opt/android-sdk \
-        "emulator" "system-images;android-${EMULATOR_API};google_apis;x86_64" >/dev/null || true; \
+    /opt/android-sdk/cmdline-tools/latest/bin/android sdk install --sdk=/opt/android-sdk \
+        "emulator" "system-images;android-${EMULATOR_API};google_apis;x86_64" </dev/null >/dev/null || true; \
     test -x /opt/android-sdk/emulator/emulator; \
     test -d "/opt/android-sdk/system-images/android-${EMULATOR_API}/google_apis/x86_64"; \
     chmod -R a+rX /opt/android-sdk

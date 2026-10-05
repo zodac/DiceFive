@@ -3,7 +3,7 @@
 # Script Name:  android_sdk_packages.sh
 #
 # Description:  Prints the Android SDK packages this project builds against, space-separated and ready
-#               to hand to sdkmanager: the platform for compileSdk (+ compileSdkMinor) and the
+#               to hand to `android sdk install`: the platform for compileSdk (+ compileSdkMinor) and the
 #               build-tools for buildToolsVersion, both read from app/android/build.gradle.kts. The workflows
 #               call this instead of pinning the packages themselves, so a compileSdk or build-tools
 #               change never has to edit a workflow file (which the monthly dependency update, pushing
@@ -12,8 +12,8 @@
 #               The platform's package NAME is not derivable from the API level alone: a minor release
 #               is android-<api>.<minor>, and a base release is android-<api> before API 37 but
 #               android-<api>.0 from API 37 on. So the candidates are checked against Google's SDK
-#               repository manifest (the one sdkmanager itself reads), and the first one it lists wins.
-#               (Not `sdkmanager --list`: it needs a writable SDK just to take its lock, and it is being
+#               repository manifest (the one the installer itself reads), and the first one it lists wins.
+#               (Not `sdkmanager --list` / `android sdk list`: it needs a writable SDK just to take its lock, and it is being
 #               replaced by the `android sdk` CLI, so its output format is not one to depend on.)
 #
 # Usage:        .github/scripts/android_sdk_packages.sh      (from the repository root)

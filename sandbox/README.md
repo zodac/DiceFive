@@ -69,6 +69,18 @@ A launch rebuilds first, so this is rarely needed on its own.
 ./sandbox/sandbox.sh prune      # reclaim disk in the nested docker (see Persistence)
 ```
 
+**Restart the sandbox and resume the last Claude session:**
+
+```bash
+./sandbox/sandbox.sh run claude --dangerously-skip-permissions --continue   # --resume to pick from a list
+```
+
+The bare launcher always starts a fresh session (`entrypoint.sh` only supplies `claude
+--dangerously-skip-permissions` when no command is given), so resuming means passing the command
+yourself. `run <cmd>` does that, and the transcripts it resumes from live in the bind-mounted
+`sandbox/.claude-history/` (see Persistence), which survives the restart. Run `build` first to pick up
+Dockerfile changes.
+
 **A launch replaces any sandbox that is already running.** Two of them cannot coexist — they share the
 container name, the published port and the persisted state, in particular `/home/dev/.claude`, whose
 login/session state Claude rewrites in place — so starting a second one used to take *both* down. A

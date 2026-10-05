@@ -47,20 +47,21 @@ ensure_kvm() {
   fi
 }
 
-# The SDK is root-owned in the image, so packages go in through sudo - and sdkmanager, run as root,
+# The SDK is root-owned in the image, so packages go in through sudo - and the installer, run as root,
 # unpacks them without the other-users read/execute bits the emulator then needs.
 ensure_packages() {
   if [[ -x "${sdk}/emulator/emulator" && -d "${sdk}/system-images/android-${api}/google_apis/x86_64" ]]; then
     return
   fi
   echo "[emulator] installing the emulator and the API ${api} system image (~1.5 GB to download)..."
-  # `|| true`: `yes` always dies of SIGPIPE once sdkmanager stops reading, which pipefail turns into a
-  # failure of a SUCCESSFUL install; the directory check after the permissions fix is what decides.
-  yes | sudo -E env "PATH=${PATH}" "${sdk}/cmdline-tools/latest/bin/sdkmanager" "emulator" "${image}" >/dev/null || true
+  # `android sdk install` replaces the deprecated sdkmanager; it asks nothing, so no `yes |`. The
+  # `|| true` stays: the directory check after the permissions fix is what decides, not the exit code.
+  sudo -E env "PATH=${PATH}" "${sdk}/cmdline-tools/latest/bin/android" sdk install --sdk="${sdk}" \
+    "emulator" "${image}" </dev/null >/dev/null || true
   sudo chmod -R a+rX "${sdk}/emulator" "${sdk}/system-images"
   sudo find "${sdk}/emulator" -type f -perm -u+x -exec chmod a+x {} +
   if [[ ! -x "${sdk}/emulator/emulator" || ! -d "${sdk}/system-images/android-${api}/google_apis/x86_64" ]]; then
-    echo "[emulator] installing ${image} failed (is it published? see sdkmanager --list)." >&2
+    echo "[emulator] installing ${image} failed (is it published? see `android sdk list`)." >&2
     exit 1
   fi
 }

@@ -426,7 +426,7 @@ print_update_summary() {
 
 # ── Android SDK helpers ───────────────────────────────────────────────────────
 
-# Google's SDK repository manifest (the one sdkmanager reads), fetched once per run.
+# Google's SDK repository manifest (the one the SDK installer reads), fetched once per run.
 sdk_repository_manifest() {
     local file="${WORK_DIR}/repository2-3.xml"
     [[ -s "${file}" ]] || curl_get -o "${file}" "${ANDROID_SDK_REPOSITORY}/repository2-3.xml" 2>/dev/null || return 1
@@ -448,21 +448,20 @@ android_sdk_dir() {
 # directory under the SDK that proves it landed.
 install_sdk_package() {
     local package="${1}" check_dir="${2}"
-    local sdk sdkmanager
+    local sdk android
     sdk=$(android_sdk_dir)
     [[ -n "${sdk}" ]] || { warn "No Android SDK found (local.properties sdk.dir / ANDROID_HOME)"; return 1; }
     [[ -d "${sdk}/${check_dir}" ]] && return 0
 
-    sdkmanager="${sdk}/cmdline-tools/latest/bin/sdkmanager"
-    [[ -x "${sdkmanager}" ]] || { warn "No sdkmanager at ${sdkmanager}"; return 1; }
+    android="${sdk}/cmdline-tools/latest/bin/android"
+    [[ -x "${android}" ]] || { warn "No android CLI at ${android}"; return 1; }
     local runner=()
     if [[ ! -w "${sdk}" ]]; then
         sudo -n true 2>/dev/null || { warn "${sdk} is not writable and sudo needs a password"; return 1; }
         runner=(sudo -n)
     fi
-    # `yes` answers the licence prompt; it dies of SIGPIPE once sdkmanager stops reading, so the
-    # exit status is ignored and the directory check below is what decides.
-    yes 2>/dev/null | "${runner[@]}" "${sdkmanager}" --sdk_root="${sdk}" "${package}" >/dev/null 2>&1 || true
+    # The exit status is ignored; the directory check below is what decides.
+    "${runner[@]}" "${android}" sdk install --sdk="${sdk}" "${package}" </dev/null >/dev/null 2>&1 || true
     [[ -d "${sdk}/${check_dir}" ]]
 }
 
@@ -497,7 +496,7 @@ show_build_failure() {
 # leaving it behind freezes most of the catalog. It is adopted the same way as a JDK major: for each
 # newer stable Android platform (newest first), install it, set compileSdk, and build + unit-test the
 # project exactly as committed; the first that passes is kept, and written into sandbox/Dockerfile's
-# sdkmanager install + its check (the workflows pin no platform - .github/scripts/android_sdk_packages.sh
+# SDK package install + its check (the workflows pin no platform - .github/scripts/android_sdk_packages.sh
 # reads it from app/android/build.gradle.kts at run time). Runs FIRST, before any dependency moves, so a failure is the platform's alone - and so the
 # catalog step then vets libraries against the new value.
 #
@@ -915,7 +914,7 @@ update_playwright() {
 
 # ── 6. Android cmdline-tools (sandbox/Dockerfile) ─────────────────────────────
 # The cmdline-tools archive is a direct download verified by sha1, both taken from Google's own SDK
-# repository manifest - the same one sdkmanager reads - for the stable-channel `cmdline-tools;latest`
+# repository manifest - the same one the SDK installer reads - for the stable-channel `cmdline-tools;latest`
 # package's Linux archive. The URL, the checksum and the "(tool revision N.M)" note in the comment
 # above them move together or not at all.
 #

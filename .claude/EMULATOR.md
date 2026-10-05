@@ -55,7 +55,7 @@ sandbox/emulator.sh stop
 | Step | Why |
 |---|---|
 | `sudo chmod 666 /dev/kvm` if it isn't read-write | The sandbox is `--privileged` so the host's KVM is present, but the node is `root:<host's kvm gid>` and `dev` isn't in that group. Without KVM the emulator falls back to software CPU emulation - far too slow to drive an app. Only this container's copy of the node changes. |
-| Installs the `emulator` package, the system image or the virtual device **only if missing** | They are baked into `sandbox/Dockerfile`, so normally nothing happens here. It is the fallback for a container from an image built before they were added, or for another `EMULATOR_API`: the SDK is root-owned, so `sdkmanager` runs under `sudo` and the permissions are then fixed (it unpacks without the other-user execute bit); about 1.5 GB to download (5 GB unpacked), for that container only. |
+| Installs the `emulator` package, the system image or the virtual device **only if missing** | They are baked into `sandbox/Dockerfile`, so normally nothing happens here. It is the fallback for a container from an image built before they were added, or for another `EMULATOR_API`: the SDK is root-owned, so `android sdk install` runs under `sudo` and the permissions are then fixed (it unpacks without the other-user execute bit); about 1.5 GB to download (5 GB unpacked), for that container only. |
 | Boots with `-no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect` | Headless; `-no-snapshot` for a clean boot every time. |
 | `adb root`, then `setprop debug.hwui.renderer skiavk` | **The important one** - see below. |
 
@@ -123,7 +123,7 @@ disabled in the AVD.
   image, the emulator stays where it is. The guard at the end then fails the run if the Dockerfile and the
   fallback disagree, if the image is no longer a stable image in Google's manifest, or if an image for
   compileSdk's level exists but the emulator isn't on it; if none exists yet it only warns.
-- The emulator and image are named by package only; sdkmanager cannot pin a revision (same as
+- The emulator and image are named by package only; `android sdk install` cannot pin a revision (same as
   `platform-tools`), so the revision baked in is whatever Google served when the layer was last built. The
   layer is rebuilt only when its text changes, i.e. when `EMULATOR_API` does.
 - **To test on a different Android version** (an older one, say, to reproduce a bug): `EMULATOR_API=<N>
