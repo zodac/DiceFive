@@ -1475,7 +1475,7 @@ class GameViewModel(
                     tieBreakStats,
                     won = won,
                     isPrimaryPlayer = index == 0,
-                    onLeaderboard = state.gameMode.countsOnLeaderboard,
+                    onLeaderboard = state.countsOnLeaderboard,
                 )
             }
         }

@@ -314,6 +314,7 @@ private val RULES_PAGES = listOf(
         tabLabel = "Modifiers",
         blocks = listOf(
             text("*Modifiers* are optional extras you can add to any game mode. Choose them on the new game screen: each can be switched on or off, and some also have a value to set."),
+            text("*Modifiers* are just for fun. Scores from a game with any modifier switched on don't go on the *Leaderboard*, but they still count towards your *Statistics*."),
             text("*Turn timer*: a limit on how long each player has to finish their whole turn, not each roll. Choose **30**, **60** or **120** seconds. A badge shows the time left and turns red as it runs out."),
             RulesTurnTimer,
             text("If a player's time runs out, their roll is scored for them in whichever open category it's worth the least in (the first one on the scorecard, if several tie)."),
