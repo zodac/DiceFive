@@ -177,6 +177,11 @@ decisions behind it. Read that before changing anything visual.
   purple-tipped scales; many small pointed ones read as a pine cone), 5 eggplants, 6 onions. A top-level `Path` must be
   `by lazy`: built when its file's class loads, it broke every plain-JVM test that touched
   `DiceStyles` (a `Path` needs the platform's graphics).
+  Egg (`EggDice.kt`; White, Brown - unlocked at 28): not cubes but eggs standing on their broad end,
+  speckled all over (differently on every face of every die), with a die's pips painted on the front
+  in the other egg's shell colour (brown pips on the white egg, cream on the brown).
+  It `tumblesItself` - a toss rolls it end over end, then it rocks to a stop - and it's the one style
+  that `standsUpright`: the tray lands it unturned instead of at its column's scatter angle.
   Stone (`StoneDice.kt`; Granite, Slate, Sandstone, Limestone, Basalt, then White and Black Marble -
   the Marble dice, once a style of their own at 60 achievements, merged in, their ids unchanged so
   saved picks still resolve, and given the same carved pips - `drawCarvedPips`, shared): one class
@@ -220,6 +225,15 @@ decisions behind it. Read that before changing anything visual.
   but no channels down it (they read as lava's paths before there was any lava) - and a ring of rocks
   of every size is heaped round its foot. All of that is painted once; only the crater, the five
   flows and the burst are live.
+  The Chicken cup (`ChickenCup.kt`; White, Brown - unlocked at 32) is a hen sitting in a straw nest
+  (MEDIUM grid). She shakes like any cup, her wing flapping with the shake, but never tips: as the
+  dice are poured she crouches, hops up a tenth of her height (`HOP_HEIGHT`) beating both wings (the
+  far one shows only once raised), beak open and two feathers flying, and settles back as the dice
+  land (`FLAP_MILLIS`, a toss's length). She ends exactly as she began - the dice on the mat are the
+  outcome (`changesWhenPoured = false`, which `CupReducedMotionTest` allows) - and fades like any
+  cup once the rolls are spent. The nest's back and front wall are each painted once and stamped
+  either side of her, kept inside the grid (a cached image the canvas's size cuts off anything past
+  it - the first nest's bottom was sliced flat); she's about a dozen live shapes.
   The Picnic Basket cup (`PicnicBasketCup.kt`) is a turned 3D box like the chest (both drawn 20%
   larger than their grid, about their footprint's middle - `BASKET_SCALE`, `CHEST_SCALE` - their
   cached images painted at that scale and stamped with it undone, `unscaledAbout`), its top split

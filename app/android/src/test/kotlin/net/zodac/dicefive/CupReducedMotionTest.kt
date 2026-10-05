@@ -115,7 +115,10 @@ class CupReducedMotionTest {
                 settledShot()
             }
             val landed = assertSnaps("tipping or opening") { set { tilted = true } }
-            assertTrue("${style.id} doesn't change when its roll lands", differingPixels(standing, landed) > CHANGED_PIXELS)
+            // A cup that only plays something as it pours (the Chicken's squawk) ends as it began.
+            if (cup.changesWhenPoured) {
+                assertTrue("${style.id} doesn't change when its roll lands", differingPixels(standing, landed) > CHANGED_PIXELS)
+            }
             assertSnaps("standing back up or closing") { set { tilted = false } }
             set { tilted = true }
             settledShot()
@@ -127,7 +130,9 @@ class CupReducedMotionTest {
             settledShot()
             set { tilted = true }
             val landedAgain = settledShot()
-            assertTrue("${style.id} first drawn poured doesn't change when its next roll lands", differingPixels(standing, landedAgain) > CHANGED_PIXELS)
+            if (cup.changesWhenPoured) {
+                assertTrue("${style.id} first drawn poured doesn't change when its next roll lands", differingPixels(standing, landedAgain) > CHANGED_PIXELS)
+            }
         }
     }
 
