@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -83,6 +84,8 @@ private fun PickerField(
     enabled: Boolean = true,
 ) {
     OutlinedCard(
+        // The blue of a chosen segment (the player count beside it on the setup screen), so a picker reads as a choice made.
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
         modifier = modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) {
@@ -97,10 +100,10 @@ private fun PickerField(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = headline, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-                Text(text = supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(text = headline, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                Text(text = supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
             }
-            Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
         }
     }
 }
@@ -276,7 +279,7 @@ class ModifierNumberField(
 /**
  * The same dropdown-and-modal as [ChoicePicker], for a set of [modifiers] that are each switched on
  * or off independently - and, for those with a value, set. Closed, the field counts what is on
- * ("None" when nothing is) over [description], and [activeNote] too while any is on; open, each
+ * ("None" when nothing is) over [description], or [activeNote] in its place while any is on; open, each
  * modifier is a switch row with its value beneath, greyed while it is off so the modal never changes
  * height. Changes apply as they are made, so the modal just closes ("Done").
  */
@@ -294,7 +297,7 @@ fun ModifierPicker(
     PickerField(
         title = title,
         headline = if (enabledCount == 0) "None" else "$enabledCount enabled",
-        supporting = if (enabledCount == 0 || activeNote == null) description else "$description\n$activeNote",
+        supporting = if (enabledCount == 0) description else activeNote ?: description,
         onClick = { open = true },
         modifier = modifier,
     )

@@ -146,7 +146,9 @@ class ChoicePickerTest {
         }
         compose.onNodeWithText("None").assertExists()
         compose.onNodeWithText("Off the board", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Extras").assertExists()
         on = true
+        compose.onNodeWithText("Extras").assertDoesNotExist()
         compose.onNodeWithText("1 enabled").assertExists()
         compose.onNodeWithText("Off the board", substring = true).assertExists()
     }
