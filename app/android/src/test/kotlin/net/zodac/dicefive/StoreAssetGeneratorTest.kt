@@ -55,13 +55,15 @@ class StoreAssetGeneratorTest {
             container.inProgressGameRepository.clear()
 
             val now = System.currentTimeMillis()
-            container.scoreRepository.recordScore(
-                playerName = "Player 1",
-                stats = TieBreakStats(312, 2, 0, null, 63, 24, 28, 35),
-                won = true,
-                isPrimaryPlayer = true,
-                timestampEpochMillis = now - 86_400_000L * 4
-            )
+            for (i in 1..400) {
+                container.scoreRepository.recordScore(
+                    playerName = "Player 1",
+                    stats = TieBreakStats(if (i == 1) 312 else 310, 1, 0, null, 63, 24, 28, 35),
+                    won = true,
+                    isPrimaryPlayer = true,
+                    timestampEpochMillis = now - 86_400_000L * 4 + i * 1000L
+                )
+            }
             container.scoreRepository.recordScore(
                 playerName = "Player 2",
                 stats = TieBreakStats(198, 0, 2, null, 45, 18, 15, 20),
@@ -89,39 +91,60 @@ class StoreAssetGeneratorTest {
         }
     }
 
+    private val assetsDir: File
+        get() {
+            var dir = File(System.getProperty("user.dir") ?: ".")
+            while (true) {
+                if (File(dir, "settings.gradle.kts").exists()) {
+                    return File(dir, "assets")
+                }
+                val parent = dir.parentFile ?: break
+                dir = parent
+            }
+            return File(System.getProperty("user.dir") ?: ".", "assets")
+        }
+
     private fun saveScreenshot(subpath: String, filename: String) {
-        val dir = File("/home/arouge/git/DiceFive/assets/screenshots/$subpath")
-        dir.mkdirs()
-        val bmp = compose.onRoot().captureToImage().asAndroidBitmap()
-        File(dir, filename).outputStream().use { stream ->
-            bmp.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        try {
+            val dir = File(assetsDir, "screenshots/$subpath")
+            dir.mkdirs()
+            val bmp = compose.onRoot().captureToImage().asAndroidBitmap()
+            File(dir, filename).outputStream().use { stream ->
+                bmp.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            }
+        } catch (_: Exception) {
+            // Read-only or restricted filesystem in CI environments
         }
     }
 
     private fun generateAppIcon() {
-        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-        val dir = File("/home/arouge/git/DiceFive/assets")
-        dir.mkdirs()
+        try {
+            val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+            val dir = assetsDir
+            dir.mkdirs()
 
-        val highResIcon = Bitmap.createBitmap(1024, 1024, Bitmap.Config.ARGB_8888)
-        val iconCanvas = Canvas(highResIcon)
-        iconCanvas.setDrawFilter(PaintFlagsDrawFilter(0, Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
-        iconCanvas.drawColor(android.graphics.Color.parseColor("#0B132B"))
+            val highResIcon = Bitmap.createBitmap(1024, 1024, Bitmap.Config.ARGB_8888)
+            val iconCanvas = Canvas(highResIcon)
+            iconCanvas.setDrawFilter(PaintFlagsDrawFilter(0, Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
+            iconCanvas.drawColor(android.graphics.Color.parseColor("#0B132B"))
 
-        val foregroundDrawable = ContextCompat.getDrawable(context, R.drawable.ic_launcher_foreground)
-        if (foregroundDrawable != null) {
-            val margin = 80
-            foregroundDrawable.setBounds(margin, margin, 1024 - margin, 1024 - margin)
-            foregroundDrawable.draw(iconCanvas)
+            val foregroundDrawable = ContextCompat.getDrawable(context, R.drawable.ic_launcher_foreground)
+            if (foregroundDrawable != null) {
+                val margin = 80
+                foregroundDrawable.setBounds(margin, margin, 1024 - margin, 1024 - margin)
+                foregroundDrawable.draw(iconCanvas)
+            }
+            val iconBmp = Bitmap.createScaledBitmap(highResIcon, 512, 512, true)
+            File(dir, "app_icon_512.png").outputStream().use { stream ->
+                iconBmp.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            }
+
+            File(dir, "feature_graphic.png").delete()
+            // Remove tablet_10 if it exists
+            File(dir, "screenshots/tablet_10").deleteRecursively()
+        } catch (_: Exception) {
+            // Read-only or restricted filesystem in CI environments
         }
-        val iconBmp = Bitmap.createScaledBitmap(highResIcon, 512, 512, true)
-        File(dir, "app_icon_512.png").outputStream().use { stream ->
-            iconBmp.compress(Bitmap.CompressFormat.PNG, 100, stream)
-        }
-
-        File(dir, "feature_graphic.png").delete()
-        // Remove tablet_10 if it exists
-        File(dir, "screenshots/tablet_10").deleteRecursively()
     }
 
     private fun captureAllScreens(subpath: String) {
@@ -169,6 +192,12 @@ class StoreAssetGeneratorTest {
         AchievementEvents.emit(AchievementEvent.Unlocked(Achievement.THE_JOURNEY_BEGINS))
         compose.waitForIdle()
         saveScreenshot(subpath, "achievements.png")
+        androidx.test.espresso.Espresso.pressBack()
+
+        // 7. Statistics Screen
+        compose.onNodeWithText("Statistics").performClick()
+        compose.waitForIdle()
+        saveScreenshot(subpath, "statistics.png")
         androidx.test.espresso.Espresso.pressBack()
     }
 
