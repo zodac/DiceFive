@@ -76,10 +76,16 @@ jobs:
       # long-removed legacy "tools" package.)
       - name: Install required Android SDK packages
         run: |
-          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKMANAGER" --licenses > /dev/null
+          ANDROID_CLI="$ANDROID_HOME/cmdline-tools/latest/bin/android"
           read -ra packages <<< "$(.github/scripts/android_sdk_packages.sh)"
-          "$SDKMANAGER" "${packages[@]}"
+          if [ -x "$ANDROID_CLI" ]; then
+            "$ANDROID_CLI" sdk install --sdk="$ANDROID_HOME" "${packages[@]}"
+          else
+            # The runner's cmdline-tools predate the android CLI, so sdkmanager is the only installer.
+            SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+            yes | "$SDKMANAGER" --licenses > /dev/null
+            "$SDKMANAGER" "${packages[@]}"
+          fi
 
       # The normalizeOggAudio task shells out to ffmpeg to peak-normalise the
       # .ogg clips in app/android/src/main/rawAudioSource/, and ubuntu-latest runners

@@ -110,6 +110,7 @@
   | `[Icon]`         | The app's launcher icon                                              |
   | `[Leaderboard]`  | The Leaderboard (scores) screen and the score records behind it      |
   | `[Project]`      | Repo-wide setup that isn't any one feature (initial commit, tooling) |
+  | `[Sandbox]`      | The Docker sandbox and its emulator tooling (`sandbox/`)             |
   | `[Settings]`     | The Settings screen and the preferences behind it                    |
   | `[Styles]`       | The Styles screen and the table art - dice, cups, mats, backgrounds  |
   | `[UI]`           | App-wide layout and navigation - main menu, shared chrome, dialogs   |
