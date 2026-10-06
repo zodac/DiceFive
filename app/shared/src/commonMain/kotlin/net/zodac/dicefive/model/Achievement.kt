@@ -658,9 +658,9 @@ enum class Achievement(
     ),
     // Excluded from COMPLETIONIST like the rest of this category - nothing hints that a player
     // name means anything, let alone this one. Standard mode only (not a re-skinned or shortened
-    // card) and solo only, so it can't be had by beating anybody.
+    // card) and solo only, so it can't be had by beating anybody, and with no modifiers on.
     THE_SOLUTION(
-        "the_solution", "The Solution", "Play a solo standard game as Phil Woodward and score exactly 255 points",
+        "the_solution", "The Solution", "Play a solo standard game, no modifiers, as Phil Woodward and score exactly 255 points",
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     ;

@@ -18,6 +18,7 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
+import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.oneScoreEach
 
@@ -1105,6 +1106,13 @@ class AchievementEngineTest {
         assertFalse(earned(finishedGame(player(name = "Player 1", total = 300))))
         assertFalse(earned(finishedGame(player(name = "Phil Woodward", total = 300), player(name = "P2", total = 100))))
         assertFalse(earned(finishedGame(player(name = "Phil Woodward", total = 300, gameMode = GameMode.TRICOLOUR))))
+        // Any modifier rules it out.
+        val phil = finishedGame(player(name = "Phil Woodward", total = 255))
+        assertFalse(earned(phil.copy(turnTimer = TurnTimer.SECONDS_30)))
+        assertFalse(earned(phil.copy(rollModifiers = RollModifiers(rollsPerTurn = 5))))
+        assertFalse(earned(phil.copy(rollModifiers = RollModifiers(storedRolls = true))))
+        assertFalse(earned(phil.copy(extendedScores = true)))
+        assertFalse(earned(phil.copy(unluckyDice = UnluckyDice())))
     }
 
     @Test
