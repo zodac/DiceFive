@@ -12,6 +12,7 @@ import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
+import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.model.TurnTimer
 
 /**
@@ -107,6 +108,31 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[EXTENDED_SCORES_KEY] = enabled }
     }
 
+    /** Whether the Unlucky Dice modifier was on the last time the setup form started a game. */
+    val unluckyDiceEnabled: Flow<Boolean> = dataStore.data.map { prefs -> prefs[UNLUCKY_DICE_KEY] ?: false }
+
+    /**
+     * The Unlucky Dice odds and cap the setup form last had, kept while the modifier is off so switching it back
+     * on restores them. A stored value outside the allowed range - or one that isn't a step - falls back to the default.
+     */
+    val unluckyDice: Flow<UnluckyDice> = dataStore.data.map { prefs ->
+        UnluckyDice(
+            oddsPercent = prefs[UNLUCKY_ODDS_KEY]
+                ?.takeIf { it in UnluckyDice.MIN_ODDS_PERCENT..UnluckyDice.MAX_ODDS_PERCENT && it % UnluckyDice.ODDS_STEP_PERCENT == 0 }
+                ?: UnluckyDice.DEFAULT_ODDS_PERCENT,
+            maxDice = prefs[UNLUCKY_MAX_DICE_KEY]?.takeIf { it in UnluckyDice.MIN_MAX_DICE..UnluckyDice.MAX_MAX_DICE }
+                ?: UnluckyDice.DEFAULT_MAX_DICE,
+        )
+    }
+
+    suspend fun setUnluckyDice(enabled: Boolean, settings: UnluckyDice) {
+        dataStore.edit { prefs ->
+            prefs[UNLUCKY_DICE_KEY] = enabled
+            prefs[UNLUCKY_ODDS_KEY] = settings.oddsPercent
+            prefs[UNLUCKY_MAX_DICE_KEY] = settings.maxDice
+        }
+    }
+
     /** The mode the setup form last started a game in - read back by id, falling back to the default
      * for one nothing recognises (see [GameMode.id]). */
     val gameMode: Flow<GameMode> = dataStore.data.map { prefs ->
@@ -194,6 +220,9 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val STORED_ROLLS_KEY = booleanPreferencesKey("stored_rolls_modifier")
         val STORED_ROLLS_MAX_KEY = intPreferencesKey("stored_rolls_modifier_max")
         val EXTENDED_SCORES_KEY = booleanPreferencesKey("extended_scores_modifier")
+        val UNLUCKY_DICE_KEY = booleanPreferencesKey("unlucky_dice_modifier")
+        val UNLUCKY_ODDS_KEY = intPreferencesKey("unlucky_dice_odds")
+        val UNLUCKY_MAX_DICE_KEY = intPreferencesKey("unlucky_dice_max")
         val GAME_MODE_KEY = stringPreferencesKey("game_mode")
         val DICE_STYLE_ID_KEY = stringPreferencesKey("dice_style_id")
         val DICE_CUP_STYLE_ID_KEY = stringPreferencesKey("dice_cup_style_id")

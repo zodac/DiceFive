@@ -2302,3 +2302,36 @@ install-over-existing succeeds:
 - [x] **Achievements**: score ladder and Zero To Hero guarded; How Do You Play This Game and Luck Of The Draw
       read the real card; the Flowerpot's last roll stretches (`PlayerState.maxRollsPerGame`).
 - [ ] **Not seen on a device**; Tricolour + Extended Scores' tall board against the dice tray.
+
+### Phase 29 — Modifier: Unlucky Dice
+
+- [x] **Unlucky Dice** is a modifier with two values, in any mode: after every roll each die that was rolled is
+      `oddsPercent` (10-50% in steps of 10, default 10) likely to land **locked in chains** (`Die.isUnlucky`),
+      but no more than `maxDice` (1-5, default 1) per roll - if more come up, that many are picked at random.
+      A locked die can't be held and isn't in the hand that scores; a held die is never locked; a locked die
+      is rolled again (and re-drawn) with the rest on the next roll. Settings are `UnluckyDice`, carried as
+      `GameState.unluckyDice` (null = off); the setup form keeps the odds and cap while it's off.
+- [x] **Engine**: `GameEngine.rollDice` draws the curse **only when the modifier is on**, so a game without
+      it deals exactly the dice it always did (`GameEngineTest` pins this). `toggleHold`/`canHold`/`fillHand`
+      skip a locked die. **Score `GameState.scoringDice`**, which now leaves locked dice out in every mode
+      (as Stud's held-only hand already did), and test a whole hand with `hasFullHand` (= `handSize`: the mode's
+      `scoringDiceCount`, or fewer when so many are locked that fewer dice are left). Scoring copes with
+      fewer dice (no 5x or Large Straight with one locked; a hand of none scores 0 everywhere), so five
+      locked dice is a forced zero - allowed, since the cap goes to 5.
+- [x] **Takes a game off the Leaderboard** like the other modifiers; saved by `GameStateJson` (`unluckyOdds`,
+      `unluckyMaxDice`, per-die `isUnlucky`; all left out when off) and `SettingsRepository`.
+- [x] **Setup**: `ModifierSetting.steppers` (a list now; was one `stepper`) gives the modal an odds stepper
+      (`ModifierStepper.step`, `unitSeparator`: "10%") and a "most dice per roll" stepper.
+- [x] **Board**: `LockedChains` (`ui/game`) draws a red cross of two chains on a red veil over the die once
+      it lands (not while it tumbles), slamming in over 260ms - there at once under reduced motion. TalkBack:
+      the die says "Locked in chains, can't be held or scored" and has no Hold action; a tap on it makes no
+      sound, buzz or achievement-tracking call.
+- [x] **AI**: `AiTurnPlayer` works on the dice that aren't locked (`withoutUnluckyDice`). **Hard plays a
+      turn with a locked die as Medium** - its exact search needs whole hands - and doesn't anticipate a coming
+      curse. Not tuned.
+- [x] **Achievements**: Zero To Hero can't be earned (zeroes are cheap). The first-roll feats and the roll
+      feats judged on a hand (Natural 5x, Almost Famous, The Dice Hate Me) read the dice that can score / need
+      a roll with none locked.
+- [ ] **Not seen on a device**: the chains' slam-in against real tossing dice, TalkBack, and how a 50%/5 game
+      feels to play.
+

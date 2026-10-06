@@ -57,6 +57,7 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.RollModifiers
+import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.hasGrownSunflower
 import net.zodac.dicefive.model.isLuckOfTheIrish
@@ -92,7 +93,15 @@ data class GameSetupState(
     val rollsPerTurnLength: Int = RollModifiers.DEFAULT_ROLLS,
     /** The Extended Scores modifier: Two Pair, Evens and Odds join the scorecard. */
     val extendedScores: Boolean = false,
+    /** Whether the Unlucky Dice modifier is on. Its [unluckyDice] settings are kept while it's off. */
+    val unluckyDiceEnabled: Boolean = false,
+    /** The Unlucky Dice odds and cap the modifier returns to when switched back on. */
+    val unluckyDice: UnluckyDice = UnluckyDice(),
 ) {
+    /** What a game started now plays with: the Unlucky Dice settings, or null with the modifier off. */
+    val activeUnluckyDice: UnluckyDice?
+        get() = unluckyDice.takeIf { unluckyDiceEnabled }
+
     companion object {
         const val MIN_PLAYERS = 1
         const val MAX_PLAYERS = 4
@@ -424,6 +433,8 @@ class GameViewModel(
                     rollModifiers = repository.rollModifiers.first(),
                     rollsPerTurnLength = repository.rollsPerTurnLength.first(),
                     extendedScores = repository.extendedScores.first(),
+                    unluckyDiceEnabled = repository.unluckyDiceEnabled.first(),
+                    unluckyDice = repository.unluckyDice.first(),
                     gameMode = repository.gameMode.first(),
                 )
                 _setup.value = restored
@@ -496,6 +507,21 @@ class GameViewModel(
         _setup.update { it.copy(extendedScores = enabled) }
     }
 
+    /** Switches the Unlucky Dice modifier on or off. Its odds and cap are kept while it's off. */
+    fun setUnluckyDiceEnabled(enabled: Boolean) {
+        _setup.update { it.copy(unluckyDiceEnabled = enabled) }
+    }
+
+    /** Sets the Unlucky Dice odds of a rolled die being locked, in percent. */
+    fun setUnluckyOdds(oddsPercent: Int) {
+        _setup.update { it.copy(unluckyDice = it.unluckyDice.copy(oddsPercent = oddsPercent.coerceIn(UnluckyDice.MIN_ODDS_PERCENT, UnluckyDice.MAX_ODDS_PERCENT))) }
+    }
+
+    /** Sets the most dice Unlucky Dice can lock on one roll. */
+    fun setUnluckyMaxDice(maxDice: Int) {
+        _setup.update { it.copy(unluckyDice = it.unluckyDice.copy(maxDice = maxDice.coerceIn(UnluckyDice.MIN_MAX_DICE, UnluckyDice.MAX_MAX_DICE))) }
+    }
+
     /** Builds the initial [GameState] from the current setup form, generating AI names now. */
     fun startGame() {
         // Read before anything below overwrites it: "One More Time" is about the game THIS call is
@@ -524,12 +550,13 @@ class GameViewModel(
         setUndoSnapshot(null)
         resetSuperuserMode()
         resetAchievementTracking()
-        applyGameState(GameEngine.newGame(playerConfigs, setupState.gameMode, turnTimer, rollModifiers, setupState.extendedScores))
+        applyGameState(GameEngine.newGame(playerConfigs, setupState.gameMode, turnTimer, rollModifiers, setupState.extendedScores, setupState.activeUnluckyDice))
         prepareHardCpus()
         // "Full Table" is settled the moment four seats are taken - no need to make them play it out.
         checkInProgressAchievements()
         checkGameStartAchievements(
-            customizedGameSettings = turnTimer != TurnTimer.NONE || rollModifiers.isActive || setupState.extendedScores || setupState.gameMode != GameMode.default,
+            customizedGameSettings = turnTimer != TurnTimer.NONE || rollModifiers.isActive || setupState.extendedScores ||
+                setupState.unluckyDiceEnabled || setupState.gameMode != GameMode.default,
         )
 
         if (previousGame != null && previousGame.isGameOver && !humanWonGame(previousGame)) {
@@ -637,6 +664,8 @@ class GameViewModel(
     // Not undoable, same reasoning as rollDice: holding/unholding just selects what a future roll
     // will touch, it doesn't itself score anything.
     fun toggleHold(dieIndex: Int) {
+        // A die locked by Unlucky Dice can't be held, and a tap on it is no hold-or-release to track.
+        if (_game.value?.dice?.getOrNull(dieIndex)?.isUnlucky == true) return
         trackSuperuserSequence(dieIndex)
         val state = _game.value
         val wasHeld = state?.dice?.getOrNull(dieIndex)?.isHeld == true
@@ -1094,7 +1123,8 @@ class GameViewModel(
         if (state.gameMode.scoresHeldDiceOnly) return
         val player = state.currentPlayer ?: return
 
-        val dice = state.dice
+        // Not a die locked by Unlucky Dice: a hand with one missing is none of these.
+        val dice = state.scoringDice
         val available = ScoreCalculator.availableCategories(player, dice)
         val earned = buildSet {
             if (ScoreCategory.FULL_HOUSE in available && DiceScoring.score(ScoreCategory.FULL_HOUSE, dice) > 0) {
@@ -1135,7 +1165,8 @@ class GameViewModel(
         val faces = dice.faces()
         // Where only held dice score, a roll isn't a hand: the feats judged on one as it lands (Natural
         // 5x, The Dice Hate Me, Almost Famous) aren't earned there. Seven dice would hand them out.
-        val rollIsHand = !state.gameMode.scoresHeldDiceOnly
+        // A roll with a die locked by Unlucky Dice isn't a whole hand either.
+        val rollIsHand = !state.gameMode.scoresHeldDiceOnly && dice.none { it.isUnlucky }
 
         // Lucky Seven: every one of 'Stud' mode's seven dice showing the same number.
         if (state.gameMode == GameMode.STUD && values.toSet().size == 1) {
@@ -1482,6 +1513,7 @@ class GameViewModel(
             repository.setTurnTimerLength(setup.turnTimerLength)
             repository.setRollModifiers(setup.rollModifiers, setup.rollsPerTurnLength)
             repository.setExtendedScores(setup.extendedScores)
+            repository.setUnluckyDice(setup.unluckyDiceEnabled, setup.unluckyDice)
             repository.setGameMode(setup.gameMode)
             for (slot in slots) {
                 // Slot 1 is always Human, so its type and difficulty aren't worth persisting.

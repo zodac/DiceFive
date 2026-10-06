@@ -107,6 +107,7 @@ object AiTurnPlayer {
      */
     fun chooseHolds(state: GameState, perfectPlay: StandardPerfectPlayTable? = null): Set<Int> {
         val player = requireNotNull(state.currentPlayer) { "No current player" }
+        if (state.dice.any { it.isUnlucky }) return withoutUnluckyDice(state) { reduced -> chooseHolds(reduced, perfectPlay) }
         if (state.gameMode.scoresHeldDiceOnly) return chooseHoldsFromRoll(state, player, perfectPlay)
         return when (player.difficulty) {
             Difficulty.EASY -> chooseHoldsEasy(player, state.dice)
@@ -147,12 +148,13 @@ object AiTurnPlayer {
      */
     fun chooseHand(state: GameState, perfectPlay: StandardPerfectPlayTable? = null): Set<Int> {
         val player = requireNotNull(state.currentPlayer) { "No current player" }
+        if (state.dice.any { it.isUnlucky }) return withoutUnluckyDice(state) { reduced -> chooseHand(reduced, perfectPlay) }
         val dice = state.dice
         val hard = if (player.difficulty == Difficulty.HARD) HardTurn(player, perfectPlay) else null
         var best = emptySet<Int>()
         var bestValue = Double.NEGATIVE_INFINITY
         var bestChanges = Int.MAX_VALUE
-        forEachCombination(dice.size, state.gameMode.scoringDiceCount) { indices ->
+        forEachCombination(dice.size, minOf(state.gameMode.scoringDiceCount, dice.size)) { indices ->
             val hand = indices.map { dice[it] }
             val value = hard?.bestValue(hand) ?: bestRawScore(player, hand).toDouble()
             val changes = dice.indices.count { dice[it].isHeld != (it in indices) }
@@ -163,6 +165,28 @@ object AiTurnPlayer {
             }
         }
         return best
+    }
+
+    /**
+     * Runs [choose] on [state] as it would be with its unlucky dice ([Die.isUnlucky]) taken off the table - they can't
+     * be held and don't score, so they aren't the AI's to weigh - and maps the indices it answers with back to
+     * [state]'s own dice. An answer that keeps every remaining die (the "stop rolling" signal) becomes every die.
+     *
+     * Hard plans over whole hands of every die ([DiceSpace]), which a hand with dice missing isn't, so it plays
+     * the turn as Medium does: its rules of thumb on the dice that are left. It doesn't anticipate a die being
+     * locked on a coming roll either.
+     */
+    private fun withoutUnluckyDice(state: GameState, choose: (GameState) -> Set<Int>): Set<Int> {
+        val player = requireNotNull(state.currentPlayer) { "No current player" }
+        val usable = state.dice.indices.filter { !state.dice[it].isUnlucky }
+        val playedAs = if (player.difficulty == Difficulty.HARD) player.copy(difficulty = Difficulty.MEDIUM) else player
+        val reduced = state.copy(
+            dice = usable.map { state.dice[it] },
+            players = state.players.mapIndexed { index, each -> if (index == state.currentPlayerIndex) playedAs else each },
+        )
+        val chosen = choose(reduced)
+        if (chosen.size == reduced.dice.size && reduced.dice.isNotEmpty()) return state.dice.indices.toSet()
+        return chosen.map { usable[it] }.toSet()
     }
 
     private fun bestRawScore(player: PlayerState, hand: List<Die>): Int =
@@ -220,7 +244,10 @@ object AiTurnPlayer {
         return when (player.difficulty) {
             Difficulty.EASY -> available.maxBy { ScoreCalculator.scoreFor(player, it, hand) }
             Difficulty.MEDIUM -> chooseCategoryMedium(player, hand, available)
-            Difficulty.HARD -> HardTurn(player, perfectPlay).bestCategory(hand)
+            // Hard values whole hands; one with dice missing (locked by Unlucky Dice) is chosen for as Medium would.
+            Difficulty.HARD ->
+                if (hand.size < state.gameMode.scoringDiceCount) chooseCategoryMedium(player, hand, available)
+                else HardTurn(player, perfectPlay).bestCategory(hand)
         }
     }
 

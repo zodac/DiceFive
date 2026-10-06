@@ -2,8 +2,9 @@ package net.zodac.dicefive.data.game
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import net.zodac.dicefive.data.JsonArray
 import net.zodac.dicefive.data.JsonNull
 import net.zodac.dicefive.data.JsonNumber
@@ -21,6 +22,7 @@ import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.TurnTimer
+import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.oneScoreEach
 
 class GameStateJsonTest {
@@ -335,6 +337,32 @@ class GameStateJsonTest {
         val decoded = GameStateJson.decode(saved)
         assertFalse(decoded.extendedScores)
         assertEquals(13, decoded.players.single().scorecard.size)
+    }
+
+    @Test
+    fun `round trips Unlucky Dice and a locked die`() {
+        val state = GameState(
+            unluckyDice = UnluckyDice(oddsPercent = 30, maxDice = 2),
+            dice = List(5) { Die(value = it + 1, isUnlucky = it == 3) },
+            players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)),
+        )
+
+        val decoded = GameStateJson.decode(GameStateJson.encode(state))
+
+        assertEquals(state, decoded)
+        assertTrue(decoded.dice[3].isUnlucky)
+    }
+
+    @Test
+    fun `a save without Unlucky Dice loads with it off and no locked die`() {
+        val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
+        val saved = GameStateJson.encode(state)
+
+        assertFalse("unluckyOdds" in saved)
+        assertFalse("isUnlucky" in saved)
+        val decoded = GameStateJson.decode(saved)
+        assertEquals(null, decoded.unluckyDice)
+        assertTrue(decoded.dice.none { it.isUnlucky })
     }
 }
 

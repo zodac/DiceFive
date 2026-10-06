@@ -429,8 +429,10 @@ object AchievementEngine {
         award(Achievement.COMEBACK, multiplayer && humanWon && context.trailedIntoFinalRound)
         award(
             Achievement.ZERO_TO_HERO,
-            // Three zeroes over 39 turns (Third Wind), or with Two Pair on the card, is the usual run of things, not a comeback.
-            state.gameMode.scoresPerCategory == 1 && !state.extendedScores && multiplayer && humanWon &&
+            // Three zeroes over 39 turns (Third Wind), with Two Pair on the card, or with dice locked by
+            // Unlucky Dice, is the usual run of things, not a comeback.
+            state.gameMode.scoresPerCategory == 1 && !state.extendedScores && state.unluckyDice == null &&
+                multiplayer && humanWon &&
                 humans.any { it.totalScore == state.topScore && it.allScores.count { v -> v == 0 } >= ZEROES_FOR_HERO },
         )
         award(Achievement.TRICOLOUR_WIN, multiplayer && humanWon && state.gameMode == GameMode.TRICOLOUR)

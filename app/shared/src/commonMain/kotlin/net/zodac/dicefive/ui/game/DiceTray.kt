@@ -245,8 +245,8 @@ private fun DiceColumns(
                 val dieSemantics = if (showDice) {
                     Modifier.semantics {
                         contentDescription = spokenDie(index, die, irish)
-                        stateDescription = if (die.isHeld) "Held" else "Not held"
-                        if (enabled) {
+                        stateDescription = if (die.isHeld) "Held" else if (die.isUnlucky) LOCKED_STATE else "Not held"
+                        if (enabled && !die.isUnlucky) {
                             onClick(label = if (die.isHeld) "Release" else "Hold") {
                                 onToggleHold(index)
                                 true
@@ -269,6 +269,9 @@ private fun DiceColumns(
             }
         }
 }
+
+/** What TalkBack says of a die locked by Unlucky Dice: the chains drawn over it, in words. */
+private const val LOCKED_STATE = "Locked in chains, can't be held or scored"
 
 /** "Die 2, 5" - or "Die 2, red 5" with coloured dice - what TalkBack names a die by. */
 private fun spokenDie(index: Int, die: Die, irish: Boolean): String {
@@ -461,7 +464,8 @@ private fun SlottedDice(
                         onCycle = {},
                         onTap = { index ->
                             val now = currentDice()
-                            if (now.getOrNull(index)?.isHeld == false && now.count { it.isHeld } < slotCount) onToggleHold(index)
+                            val tapped = now.getOrNull(index)
+                            if (tapped?.isHeld == false && !tapped.isUnlucky && now.count { it.isHeld } < slotCount) onToggleHold(index)
                         },
                     ),
                 horizontalArrangement = Arrangement.spacedBy(SLOTTED_MAT_COLUMN_GAP),
@@ -470,8 +474,12 @@ private fun SlottedDice(
                     val dieSemantics = if (showDice && !die.isHeld) {
                         Modifier.semantics {
                             contentDescription = spokenDie(index, die, irish)
-                            stateDescription = if (slotsFull) "Not held, hold slots full" else "Not held"
-                            if (enabled && !slotsFull) {
+                            stateDescription = when {
+                                die.isUnlucky -> LOCKED_STATE
+                                slotsFull -> "Not held, hold slots full"
+                                else -> "Not held"
+                            }
+                            if (enabled && !slotsFull && !die.isUnlucky) {
                                 onClick(label = "Hold") {
                                     onToggleHold(index)
                                     true
@@ -779,7 +787,8 @@ private fun ScatterArea(
             if (selfTumbling) {
                 // A D20 turns itself as it goes, landing on its face as it stops.
                 CompositionLocalProvider(LocalDieTumbleMillis provides tumbleMillis) {
-                    DieFace(die = die, held = false, diceStyles = diceStyles, modifier = placed)
+                    // Chains only once it has landed, not on a die still tumbling.
+                    DieFace(die = die.copy(isUnlucky = false), held = false, diceStyles = diceStyles, modifier = placed)
                 }
             } else {
                 style.TossedDie(roll = pose.roll, finalTurns = finalTurns, ring = ring, modifier = placed)
@@ -864,7 +873,20 @@ private fun GroundShadow(shape: Shape, lift: Float, modifier: Modifier = Modifie
 /** A die in the player's chosen dice style - in its own colour, when it has one (see [TrayDiceStyles]). */
 @Composable
 private fun DieFace(die: Die, held: Boolean, diceStyles: TrayDiceStyles, modifier: Modifier) {
-    diceStyles.forDie(die).Die(value = die.value, held = held, modifier = modifier)
+    val style = diceStyles.forDie(die)
+    if (!die.isUnlucky) {
+        style.Die(value = die.value, held = held, modifier = modifier)
+        return
+    }
+    // A die locked by Unlucky Dice: the chains are laid over it, so they follow it wherever it lies.
+    Box(modifier = modifier) {
+        style.Die(value = die.value, held = held, modifier = Modifier.fillMaxSize())
+        LockedChains(
+            shape = style.shadowShape(die.value, LocalDieIndex.current, null),
+            reach = style.lockedChainReach,
+            modifier = Modifier.matchParentSize(),
+        )
+    }
 }
 
 /**

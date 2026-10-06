@@ -27,6 +27,7 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnTimer
+import net.zodac.dicefive.model.UnluckyDice
 
 /** In-memory preferences, so a real [SettingsRepository] can hold the saved setup. */
 private class FakePreferencesStore : DataStore<Preferences> {
@@ -176,6 +177,51 @@ class GameSetupRestoreTest {
             val game = checkNotNull(viewModel.game.value)
             assertTrue(game.extendedScores, mode.id)
             assertEquals(mode.categories + ScoreCategory.EXTENDED, game.players.first().categories, mode.id)
+        }
+    }
+
+    @Test
+    fun `Unlucky Dice and its settings are remembered between games`() = runTest(testDispatcher) {
+        val repository = SettingsRepository(FakePreferencesStore())
+        val first = GameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
+        advanceUntilIdle()
+        assertFalse(first.setup.value.unluckyDiceEnabled)
+        assertEquals(UnluckyDice(10, 1), first.setup.value.unluckyDice)
+        first.setUnluckyDiceEnabled(true)
+        first.setUnluckyOdds(40)
+        first.setUnluckyMaxDice(3)
+        first.startGame()
+        advanceUntilIdle()
+
+        val second = GameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
+        advanceUntilIdle()
+        assertTrue(second.setup.value.unluckyDiceEnabled)
+        assertEquals(UnluckyDice(40, 3), second.setup.value.unluckyDice)
+    }
+
+    @Test
+    fun `the Unlucky Dice settings are kept while it is switched off and a game starts without it`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setUnluckyOdds(50)
+        viewModel.setUnluckyDiceEnabled(true)
+        viewModel.setUnluckyDiceEnabled(false)
+        viewModel.startGame()
+
+        assertEquals(null, checkNotNull(viewModel.game.value).unluckyDice)
+        assertEquals(50, viewModel.setup.value.unluckyDice.oddsPercent)
+    }
+
+    @Test
+    fun `a game starts with Unlucky Dice in any mode`() = runTest(testDispatcher) {
+        for (mode in GameMode.entries) {
+            val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+            viewModel.setGameMode(mode)
+            viewModel.setUnluckyDiceEnabled(true)
+            viewModel.setUnluckyOdds(20)
+            viewModel.setUnluckyMaxDice(2)
+            viewModel.startGame()
+
+            assertEquals(UnluckyDice(20, 2), checkNotNull(viewModel.game.value).unluckyDice, mode.id)
         }
     }
 }

@@ -207,6 +207,7 @@ class D20DiceStyle(
 ) : DiceStyle, Swatched {
     override val swatch: Color = light
     override val tumblesItself: Boolean = true
+    override val lockedChainReach: Float = 0.6f
 
     override fun recoloured(palette: DieColourPalette): DiceStyle =
         D20DiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, palette.heldRing)

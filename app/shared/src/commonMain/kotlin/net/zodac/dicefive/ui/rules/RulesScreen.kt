@@ -53,6 +53,7 @@ import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.lerp
+import net.zodac.dicefive.ui.game.LockedChains
 import net.zodac.dicefive.ui.game.TurnTimerBadge
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -128,8 +129,9 @@ private data class RulesStep(val number: Int, val text: String, val example: Rul
 private data class RulesCategory(val name: String, val description: String, val example: RulesDice) : RulesBlock
 
 /** One die in a [RulesDice] example: its [value], whether it [counts] towards the category being
- * shown (the rest are drawn faded), and the [colour] it rolled in Tricolour, if any. */
-private data class ExampleDie(val value: Int, val counts: Boolean = true, val colour: DieColour? = null)
+ * shown (the rest are drawn faded), the [colour] it rolled in Tricolour, if any, and whether it is [locked]
+ * in chains by Unlucky Dice (drawn at full strength with the chains over it, and never counting). */
+private data class ExampleDie(val value: Int, val counts: Boolean = true, val colour: DieColour? = null, val locked: Boolean = false)
 
 /**
  * A row of example dice illustrating the rule above it, with what they score alongside - or, with no
@@ -139,6 +141,17 @@ private data class ExampleDie(val value: Int, val counts: Boolean = true, val co
 private data class RulesDice(val dice: List<ExampleDie>, val score: String?, val fadedNotHeld: Boolean = false) : RulesBlock
 
 private fun text(text: String) = RulesText(text)
+
+/** Five example dice where the die at [lockedIndex] is locked by Unlucky Dice and the first [counting] of the others make the category. */
+private fun lockedDice(vararg values: Int, lockedIndex: Int, counting: Int, score: String): RulesDice {
+    var seen = 0
+    return RulesDice(
+        values.mapIndexed { index, value ->
+            if (index == lockedIndex) ExampleDie(value, counts = false, locked = true) else ExampleDie(value, counts = seen++ < counting)
+        },
+        score,
+    )
+}
 
 /** Five example dice, the first [counting] of which make the category. */
 private fun dice(vararg values: Int, counting: Int = values.size, score: String): RulesDice =
@@ -329,6 +342,11 @@ private val RULES_PAGES = listOf(
             RulesCategory("Evens", "Total of the dice showing 2, 4 or 6", dice(6, 4, 2, 3, 1, counting = 3, score = "12pts")),
             RulesCategory("Odds", "Total of the dice showing 1, 3 or 5", dice(5, 3, 3, 6, 2, counting = 3, score = "11pts")),
             text("The extra categories have their own section, so they don't count towards the upper bonus or the lower section's total. With *Extended Scores* on, the achievements for a high score or for winning from behind after scoring three zeroes can't be earned."),
+            text("*Unlucky Dice*: each time the dice are rolled, every die that was rolled has a chance of landing locked in a red cross of chains. A locked die can't be held and doesn't score, so the others are scored without it: a category that needs all five dice, like *5x* or the *Large Straight*, can't be made. Dice you are holding are never locked, and a locked die is rolled again, with the rest, on the next roll."),
+            lockedDice(5, 5, 5, 2, 5, lockedIndex = 4, counting = 3, score = "15pts"),
+            text("Here the last **5** is locked, so it can't be held or scored. Only the other three **5**s score in *Fives*; with the locked one it would have been **20pts**. The **2** doesn't count, as usual."),
+            text("Choose the chance each rolled die has of being locked, from **10%** to **50%** in steps of **10%**, and the most dice that can be locked on one roll, from **1** to **5**. If more dice come up locked than that, a few are picked at random to be."),
+            text("Locked dice make a bad turn easier, so with *Unlucky Dice* on, the achievement for winning from behind after scoring three zeroes can't be earned."),
         ),
     ),
 )
@@ -562,14 +580,18 @@ private fun RulesDiceRow(example: RulesDice, modifier: Modifier = Modifier) {
     ) {
         for (die in example.dice) {
             val style = die.colour?.let { IvoryDiceStyle.recoloured(it.palette) } ?: IvoryDiceStyle
-            style.Die(
-                value = die.value,
-                held = false,
-                modifier = Modifier
-                    .padding(end = 6.dp)
-                    .size(EXAMPLE_DIE_SIZE)
-                    .graphicsLayer { alpha = if (die.counts) 1f else EXAMPLE_DIE_FADED_ALPHA },
-            )
+            val dieModifier = Modifier
+                .padding(end = 6.dp)
+                .size(EXAMPLE_DIE_SIZE)
+                .graphicsLayer { alpha = if (die.counts || die.locked) 1f else EXAMPLE_DIE_FADED_ALPHA }
+            if (die.locked) {
+                Box(modifier = dieModifier) {
+                    style.Die(value = die.value, held = false, modifier = Modifier.fillMaxSize())
+                    LockedChains(shape = style.shadowShape(die.value, 0, null), reach = style.lockedChainReach, modifier = Modifier.matchParentSize())
+                }
+            } else {
+                style.Die(value = die.value, held = false, modifier = dieModifier)
+            }
         }
         example.score?.let { score ->
             Text(
@@ -597,8 +619,10 @@ private fun RulesDice.spokenDescription(): String {
         val heldSentence = if (held.isEmpty()) " Nothing held." else " Held: ${held.spokenList()}."
         return "Example roll: $all.$heldSentence"
     }
-    val ignored = dice.filterNot { it.counts }.map { it.spoken() }
-    val ignoredSentence = when (ignored.size) {
+    val lockedSentence = dice.filter { it.locked }.map { it.spoken() }.takeIf { it.isNotEmpty() }
+        ?.let { locked -> " The ${locked.spokenList()} ${if (locked.size == 1) "is" else "are"} locked in chains." }.orEmpty()
+    val ignored = dice.filterNot { it.counts || it.locked }.map { it.spoken() }
+    val ignoredSentence = lockedSentence + when (ignored.size) {
         0 -> ""
         1 -> " The ${ignored.single()} doesn't count."
         else -> " The ${ignored.spokenList()} don't count."

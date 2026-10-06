@@ -16,6 +16,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.oneScoreEach
 
 private const val NOW = 1_700_000_000_000L
@@ -1454,6 +1455,14 @@ class AchievementEngineTest {
 
         assertTrue(Achievement.ZERO_TO_HERO in evaluate(finishedGame(threeZeroes, bot)).newlyUnlocked)
         assertFalse(Achievement.ZERO_TO_HERO in evaluate(extendedGame(threeZeroes, bot)).newlyUnlocked)
+    }
+
+    @Test
+    fun `Unlucky Dice doesn't hand out Zero To Hero`() {
+        val threeZeroes = player(total = 200, overrides = mapOf(ScoreCategory.ONES to 0, ScoreCategory.TWOS to 0, ScoreCategory.THREES to 0, ScoreCategory.SIXES to 30))
+        val bot = player(name = "Bot", type = PlayerType.AI, total = 100)
+
+        assertFalse(Achievement.ZERO_TO_HERO in evaluate(finishedGame(threeZeroes, bot).copy(unluckyDice = UnluckyDice())).newlyUnlocked)
     }
 
     @Test
