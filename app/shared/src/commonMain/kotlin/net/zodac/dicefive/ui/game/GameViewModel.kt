@@ -349,6 +349,21 @@ class GameViewModel(
 
     private val achievementLock = Mutex()
 
+    /**
+     * Whether this is the first 5x the player in [playerIndex]'s seat has had this game: true once per seat, then false.
+     * Kept on the player ([PlayerState.fiveOfAKindFlashed]) and saved with the game, so a resume doesn't flash it again.
+     * Stored without going through [applyGameState]: nothing about the turn changes, so the AI and timer have no reason to react.
+     */
+    fun claimFiveOfAKindFlash(playerIndex: Int): Boolean {
+        val state = _game.value ?: return false
+        val player = state.players.getOrNull(playerIndex) ?: return false
+        if (player.fiveOfAKindFlashed) return false
+        val updated = state.copy(players = state.players.toMutableList().also { it[playerIndex] = player.copy(fiveOfAKindFlashed = true) })
+        _game.value = updated
+        persistInProgressGame(updated)
+        return true
+    }
+
     // Per-turn achievement tracking: how THIS turn's rolls and holds actually played out, which a
     // finished scorecard can't reconstruct afterwards. Reset at the start of every one of player
     // 1's own turns (its first roll - see resetPerTurnTracking, called from rollDice). Nobody

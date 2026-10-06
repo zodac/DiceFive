@@ -78,6 +78,22 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `a seat's first 5x flash is claimed once per game, and again after a new game`() {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setPlayerCount(2)
+        viewModel.startGame()
+
+        assertTrue(viewModel.claimFiveOfAKindFlash(0))
+        assertFalse(viewModel.claimFiveOfAKindFlash(0))
+        assertTrue(viewModel.claimFiveOfAKindFlash(1))
+
+        assertTrue(viewModel.game.value!!.players.all { it.fiveOfAKindFlashed })
+
+        viewModel.startGame()
+        assertTrue(viewModel.claimFiveOfAKindFlash(0))
+    }
+
+    @Test
     fun `startGame builds a game with the configured players`() {
         val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(2)

@@ -163,6 +163,7 @@ object GameStateJson {
         put("fiveOfAKindBonusCount", player.fiveOfAKindBonusCount)
         put("rollCount", player.rollCount)
         if (player.storedRolls > 0) put("storedRolls", player.storedRolls)
+        if (player.fiveOfAKindFlashed) put("fiveOfAKindFlashed", true)
         player.lastRoll?.let { put("lastRoll", JsonArray(it.map(::encodeDie))) }
         player.lastScoredCategory?.let { put("lastScoredCategory", it.name) }
         put(
@@ -208,6 +209,8 @@ object GameStateJson {
             rollCount = if ("rollCount" in obj) obj.getInt("rollCount") else 0,
             storedRolls = if ("storedRolls" in obj) obj.getInt("storedRolls") else 0,
             rollsModified = rollsModified,
+            // Left out unless set, and from a game saved before it existed: that player's flash is still to come.
+            fiveOfAKindFlashed = (obj["fiveOfAKindFlashed"] as? JsonBoolean)?.value == true,
         )
     }
 

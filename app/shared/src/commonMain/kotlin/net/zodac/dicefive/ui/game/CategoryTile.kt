@@ -2,9 +2,11 @@ package net.zodac.dicefive.ui.game
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,6 +34,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
@@ -50,8 +54,8 @@ import net.zodac.dicefive.ui.theme.TileIconColor
 import net.zodac.dicefive.ui.theme.TileScoredBorder
 import net.zodac.dicefive.ui.theme.TileScoredBottom
 import net.zodac.dicefive.ui.theme.TileScoredTop
-import net.zodac.dicefive.ui.theme.TileTealBorder
 import net.zodac.dicefive.ui.theme.TileTealBottom
+import net.zodac.dicefive.ui.theme.TileTealBorder
 import net.zodac.dicefive.ui.theme.TileTealTop
 
 /** Fixed intrinsic sizes - deliberately NOT derived from ambient row height/aspectRatio, which
@@ -82,6 +86,8 @@ fun CategoryTile(
     category: ScoreCategory,
     highlighted: Boolean,
     modifier: Modifier = Modifier,
+    // A solid gold flash, ink inverted to the tile's dark green: a player's first 5x of the game.
+    flashing: Boolean = false,
     // Stretched across the width it's given (5x spans two columns), at the usual height.
     wide: Boolean = false,
     // A square of this side instead of the usual size: 5x, over two rows, when nothing sits under it.
@@ -122,11 +128,20 @@ fun CategoryTile(
         else -> TileIconColor
     }
 
+    // Gold in and out over the same 400 ms as an achievement row's flash; straight on and off under reduced motion.
+    val flash by animateFloatAsState(
+        targetValue = if (flashing) 1f else 0f,
+        animationSpec = if (LocalReduceMotion.current) snap() else tween(FLASH_TRANSITION_MILLIS),
+        label = "tileFlash",
+    )
+    val flashedColors = if (flash > 0f) backgroundColors.map { lerp(it, GoldAccent, flash) } else backgroundColors
+    val flashedIconColor = if (flash > 0f) lerp(iconColor, TileTealBottom, flash) else iconColor
+
     Box(
         modifier = modifier
             .then(if (wide) Modifier.height(tileSize) else Modifier.size(tileSize))
             .clip(shape)
-            .background(Brush.linearGradient(backgroundColors))
+            .background(Brush.linearGradient(flashedColors))
             .then(
                 if (category == ScoreCategory.COLOURED_HOUSE) {
                     Modifier.drawBehind { drawColourStripes(alpha = if (scored) SCORED_STRIPE_ALPHA else 1f, irish = irishTricolour) }
@@ -147,7 +162,7 @@ fun CategoryTile(
     ) {
         CategoryIcon(
             category = category,
-            color = iconColor,
+            color = flashedIconColor,
             modifier = Modifier.fillMaxSize(),
             labelFontSize = when {
                 squareSize != null -> 36.sp
@@ -165,6 +180,8 @@ fun CategoryTile(
         if (highlighted) GlowBorder(shape)
     }
 }
+
+private const val FLASH_TRANSITION_MILLIS = 400
 
 /** How faint a disabled tile's glyph, dashes and slash are - the glyph stays readable, but unmistakably not in play. */
 private const val DISABLED_ICON_ALPHA = 0.3f

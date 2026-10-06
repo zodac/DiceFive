@@ -36,8 +36,10 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
@@ -268,9 +270,12 @@ internal fun CategoryCell(
         }
         else -> "Open"
     }
+    // A player's first 5x of the game, flashed gold: spoken as well, as a polite live region that announces the change once.
+    val flashing = category == ScoreCategory.FIVE_OF_A_KIND && LocalFiveOfAKindFlash.current
     val cellSemantics: SemanticsPropertyReceiver.() -> Unit = {
         contentDescription = target?.let { "${category.spokenName(irish)}, ${it.spokenName()}" } ?: category.spokenName(irish)
-        stateDescription = spokenState
+        stateDescription = if (flashing) "First 5x of the game, $spokenState" else spokenState
+        if (flashing) liveRegion = LiveRegionMode.Polite
         if (switchedOff) disabled()
         if (isLegalChoice) {
             role = Role.Button
@@ -289,6 +294,7 @@ internal fun CategoryCell(
             // would be misleading - the +score line below is the preview, the tile's look doesn't
             // change.
             highlighted = tileLit,
+            flashing = flashing,
             wide = wide,
             squareSize = squareSize,
             compact = compact,
