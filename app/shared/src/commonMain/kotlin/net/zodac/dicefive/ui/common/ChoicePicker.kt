@@ -52,6 +52,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -128,7 +129,11 @@ private fun PickerDialog(
         title = {
             Text(
                 text = title,
+                // The page titles' face and gold, as every dialog in the app has it.
                 style = MaterialTheme.typography.headlineSmall,
+                fontFamily = SoraFontFamily,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
