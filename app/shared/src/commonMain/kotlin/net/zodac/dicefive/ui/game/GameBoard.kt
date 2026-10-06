@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.Die
@@ -32,6 +33,9 @@ import net.zodac.dicefive.ui.theme.playerColor
 /** Inset of the score-grid + cup section's content. Its height is fixed per game mode (see
  * [scoreBoardHeight]), so its two columns line up row-for-row. */
 private val BOARD_PADDING = 14.dp
+
+/** How tall [gameMode]'s score board is, padding and all - see [scoreBoardHeight]. */
+internal fun gameBoardHeight(gameMode: GameMode): Dp = scoreBoardHeight(gameMode, BOARD_PADDING)
 
 /**
  * The scoring area shared by a live turn ([GameBoard]) and a read-only look at another player
@@ -53,6 +57,7 @@ private fun ScoreBoardRow(
     onScoreCategory: (ScoreCategory) -> Unit,
     cup: CupPanelState?,
     modifier: Modifier = Modifier,
+    showCup: Boolean = true,
 ) {
     val visualTheme = LocalGameVisualTheme.current
     visualTheme.background.Animate()
@@ -60,7 +65,7 @@ private fun ScoreBoardRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(scoreBoardHeight(gameMode, BOARD_PADDING))
+            .height(gameBoardHeight(gameMode))
             .clip(RoundedCornerShape(16.dp))
             .background(visualTheme.background.scoreAreaBrush)
             .drawBehind { with(visualTheme.background) { drawScoreAreaDecoration() } }
@@ -93,6 +98,7 @@ private fun ScoreBoardRow(
             available = available,
             onScoreCategory = onScoreCategory,
             cup = cup,
+            showCup = showCup,
             modifier = Modifier.weight(1f),
         )
     }
@@ -109,6 +115,8 @@ fun GameBoard(
     modifier: Modifier = Modifier,
     pouring: Boolean = false,
     diceSettling: Boolean = false,
+    // False where the game is laid out side by side: the cup is drawn over the dice tray instead (GameCup).
+    showCup: Boolean = true,
 ) {
     val player = state.currentPlayer
     val rolled = state.phase == TurnPhase.ROLLED
@@ -140,30 +148,69 @@ fun GameBoard(
         showPreview = rolled && !rollInHand && hand.isNotEmpty(),
         available = available,
         onScoreCategory = onScoreCategory,
-        cup = CupPanelState(
-            rollsRemaining = state.rollsRemaining,
-            // Directly from state.phase, not persisted across turns: a new turn resets it to
-            // AWAITING_ROLL, and the cup should go back to standing right then, before anyone has
-            // rolled - not stay tipped over from the previous player's last roll. What makes THIS
-            // roll's shake look the same as a same-turn reroll's isn't keeping this true across
-            // the boundary; it's that Cup already forces itself upright the instant a shake
-            // starts, whatever `tilted` was beforehand (see rememberCupRotation).
-            tilted = state.phase == TurnPhase.ROLLED,
-            rolling = rolling,
-            pouring = pouring,
-            rollInHand = rollInHand,
-            canUndo = canUndo,
-            // Undo is solo-only: with other players it either reaches back into their finished turn
-            // or is cleared by the AI's move almost at once.
-            showUndo = state.players.size == 1,
-            onCupTap = onCupTap,
-            onUndo = onUndo,
-            flowerpotGrowth = FlowerpotGrowth(
-                stage = player?.flowerpotStage ?: 0,
-                grower = state.currentPlayerIndex,
-            ),
-        ),
+        cup = cupPanelState(state, rolling, pouring, rollInHand, canUndo, onCupTap, onUndo),
+        showCup = showCup,
         modifier = modifier,
+    )
+}
+
+/** The cup's part of [state]'s turn, the same whether it's drawn in the board or beside it ([GameCup]). */
+private fun cupPanelState(
+    state: GameState,
+    rolling: Boolean,
+    pouring: Boolean,
+    rollInHand: Boolean,
+    canUndo: Boolean,
+    onCupTap: () -> Unit,
+    onUndo: () -> Unit,
+): CupPanelState {
+    val player = state.currentPlayer
+    return CupPanelState(
+        rollsRemaining = state.rollsRemaining,
+        // Directly from state.phase, not persisted across turns: a new turn resets it to
+        // AWAITING_ROLL, and the cup should go back to standing right then, before anyone has
+        // rolled - not stay tipped over from the previous player's last roll. What makes THIS
+        // roll's shake look the same as a same-turn reroll's isn't keeping this true across
+        // the boundary; it's that Cup already forces itself upright the instant a shake
+        // starts, whatever `tilted` was beforehand (see rememberCupRotation).
+        tilted = state.phase == TurnPhase.ROLLED,
+        rolling = rolling,
+        pouring = pouring,
+        rollInHand = rollInHand,
+        canUndo = canUndo,
+        // Undo is solo-only: with other players it either reaches back into their finished turn
+        // or is cleared by the AI's move almost at once.
+        showUndo = state.players.size == 1,
+        onCupTap = onCupTap,
+        onUndo = onUndo,
+        flowerpotGrowth = FlowerpotGrowth(
+            stage = player?.flowerpotStage ?: 0,
+            grower = state.currentPlayerIndex,
+        ),
+    )
+}
+
+/**
+ * The live turn's dice cup on its own, for where the game is laid out side by side: the board on the
+ * left without it ([GameBoard]'s `showCup = false`), and this over the dice tray on the right, so the
+ * cup is still on the right-hand side and the dice pour out under it.
+ */
+@Composable
+fun GameCup(
+    state: GameState,
+    rolling: Boolean,
+    canUndo: Boolean,
+    onCupTap: () -> Unit,
+    onUndo: () -> Unit,
+    modifier: Modifier = Modifier,
+    pouring: Boolean = false,
+    diceSettling: Boolean = false,
+) {
+    DiceCup(
+        cup = cupPanelState(state, rolling, pouring, rolling || diceSettling, canUndo, onCupTap, onUndo),
+        dice = state.scoringDice,
+        modifier = modifier,
+        countFirst = true,
     )
 }
 
