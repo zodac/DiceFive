@@ -158,7 +158,7 @@ fun GameOverScreen(
                         onClick = onBackToMenu,
                         modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                     ) {
-                        Text(text = "Back to Menu", style = MaterialTheme.typography.titleMedium)
+                        Text(text = "Main Menu", style = MaterialTheme.typography.titleMedium)
                     }
                     Button(
                         onClick = onPlayAgain,
