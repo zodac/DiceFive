@@ -7,14 +7,21 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -38,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -45,6 +53,8 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import androidx.lifecycle.Lifecycle
@@ -52,6 +62,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
@@ -200,43 +211,62 @@ fun GameScreen(
 
         // The same colours as the menu and every page off it, but with no dice: the table's own art sits on top.
         BrandBackdrop(modifier = modifier, showDice = false) {
-            Column(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
                     // Without this, the player header row rendered flush against the very top of the
                     // screen and sat under the status bar's clock/icons on some devices - a fixed
                     // padding amount can't account for how tall that area actually is per device, so
-                    // ask the system for its real inset instead.
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .verticalScroll(rememberScrollState())
-                    .padding(GAME_PADDING),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                    // ask the system for its real inset instead. The sides too: in landscape a camera
+                    // cutout or the navigation buttons sit there.
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)),
+                contentAlignment = Alignment.TopCenter,
             ) {
-                InProgressGame(
-                    state = currentState,
-                    canUndo = canUndo,
-                    superuserModeActive = superuserModeActive,
-                    aiRolling = aiRolling,
-                    turnSecondsRemaining = turnSecondsRemaining,
-                    onBack = leaveGame,
-                    onUndo = viewModel::undo,
-                    onRoll = viewModel::rollDice,
-                    onToggleHold = viewModel::toggleHold,
-                    onCycleValue = viewModel::cycleHeldDieValue,
-                    onScoreCategory = viewModel::commitScore,
-                    onTapCupWithNoRollsLeft = viewModel::tapCupWithNoRollsLeft,
-                    onShakeRollDetected = viewModel::onShakeRollDetected,
-                    soundEnabled = soundEnabled,
-                    vibrationEnabled = vibrationEnabled,
-                    cupShakeMillis = cupShakeMillis,
-                )
+                val layout = gameLayout(maxWidth, maxHeight, currentState.gameMode)
+                val density = LocalDensity.current
+                // The board is a drawn object, so on a bigger screen all of it is drawn bigger - art, text and
+                // touch targets together - rather than its pieces spreading apart. The player's font scale is kept.
+                CompositionLocalProvider(LocalDensity provides Density(density.density * layout.scale, density.fontScale)) {
+                    Column(
+                        modifier = Modifier
+                            .widthIn(max = layout.maxWidth)
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(GAME_PADDING),
+                        verticalArrangement = Arrangement.spacedBy(SECTION_GAP),
+                    ) {
+                        InProgressGame(
+                            state = currentState,
+                            sideBySide = layout.sideBySide,
+                            cupScale = layout.cupScale,
+                            canUndo = canUndo,
+                            superuserModeActive = superuserModeActive,
+                            aiRolling = aiRolling,
+                            turnSecondsRemaining = turnSecondsRemaining,
+                            onBack = leaveGame,
+                            onUndo = viewModel::undo,
+                            onRoll = viewModel::rollDice,
+                            onToggleHold = viewModel::toggleHold,
+                            onCycleValue = viewModel::cycleHeldDieValue,
+                            onScoreCategory = viewModel::commitScore,
+                            onTapCupWithNoRollsLeft = viewModel::tapCupWithNoRollsLeft,
+                            onShakeRollDetected = viewModel::onShakeRollDetected,
+                            soundEnabled = soundEnabled,
+                            vibrationEnabled = vibrationEnabled,
+                            cupShakeMillis = cupShakeMillis,
+                        )
+                    }
+                }
             }
         }
     }
-        }
+}
+
 @Composable
 private fun InProgressGame(
     state: GameState,
+    sideBySide: Boolean,
+    cupScale: Float,
     canUndo: Boolean,
     superuserModeActive: Boolean,
     aiRolling: Boolean,
@@ -421,42 +451,137 @@ private fun InProgressGame(
         TurnTimerBadge(secondsRemaining = turnSecondsRemaining, modifier = Modifier.fillMaxWidth())
     }
 
-    val viewedIndex = viewedPlayerIndex
-    if (viewedPlayer != null && viewedIndex != null) {
-        ReadOnlyScoreboard(player = viewedPlayer, seat = viewedIndex)
-    } else {
-        GameBoard(
-            state = state,
-            rolling = isRolling,
-            pouring = pouring,
-            diceSettling = diceSettling,
-            canUndo = canUndo,
-            onScoreCategory = onScoreCategory,
-            onCupTap = onCupTap,
-            onUndo = onUndo,
-        )
+    val board = @Composable {
+        val viewedIndex = viewedPlayerIndex
+        if (viewedPlayer != null && viewedIndex != null) {
+            ReadOnlyScoreboard(player = viewedPlayer, seat = viewedIndex)
+        } else {
+            GameBoard(
+                state = state,
+                rolling = isRolling,
+                pouring = pouring,
+                diceSettling = diceSettling,
+                canUndo = canUndo,
+                onScoreCategory = onScoreCategory,
+                onCupTap = onCupTap,
+                onUndo = onUndo,
+                showCup = !sideBySide,
+            )
+        }
     }
 
     // The one DiceTray call for both branches above - a live turn's own dice, or a viewed player's
-    // last roll - so the gap above it (this Column's own Arrangement.spacedBy, in GameScreen) is
-    // identical either way, not a second hand-picked layout that only one branch remembers to
-    // apply. Skipped entirely for a viewed player who hasn't finished a turn yet - there's no roll
-    // of theirs to show, not even an empty mat.
+    // last roll - so the gap beside it is identical either way, not a second hand-picked layout that
+    // only one branch remembers to apply. Skipped entirely for a viewed player who hasn't finished a
+    // turn yet - there's no roll of theirs to show, not even an empty mat.
     val viewedLastRoll = viewedPlayer?.lastRoll
-    if (viewedPlayer == null || viewedLastRoll != null) {
-        DiceTray(
-            dice = viewedLastRoll ?: state.dice,
-            gameMode = viewedPlayer?.gameMode ?: state.gameMode,
-            // No mat interactivity for a viewed player - it's not their turn playing out, just their
-            // last one on display.
-            enabled = viewedPlayer == null && canHold,
-            showDice = viewedPlayer != null || showDice,
-            rolling = viewedPlayer == null && isRolling,
-            onToggleHold = if (viewedPlayer == null) onToggleHoldWithSound else NO_OP_TOGGLE_HOLD,
-            superuserModeActive = viewedPlayer == null && superuserModeActive,
-            onCycleValue = if (viewedPlayer == null) onCycleValue else NO_OP_TOGGLE_HOLD,
-            modifier = Modifier.fillMaxWidth(),
-        )
+    val tray = @Composable {
+        if (viewedPlayer == null || viewedLastRoll != null) {
+            DiceTray(
+                dice = viewedLastRoll ?: state.dice,
+                gameMode = viewedPlayer?.gameMode ?: state.gameMode,
+                // No mat interactivity for a viewed player - it's not their turn playing out, just their
+                // last one on display.
+                enabled = viewedPlayer == null && canHold,
+                showDice = viewedPlayer != null || showDice,
+                rolling = viewedPlayer == null && isRolling,
+                onToggleHold = if (viewedPlayer == null) onToggleHoldWithSound else NO_OP_TOGGLE_HOLD,
+                superuserModeActive = viewedPlayer == null && superuserModeActive,
+                onCycleValue = if (viewedPlayer == null) onCycleValue else NO_OP_TOGGLE_HOLD,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+
+    if (sideBySide) {
+        // The board on the left, and on the right the cup with the tray under it - the cup is on the
+        // right-hand side as it is in the board on a phone, and the dice pour out just below it.
+        Row(horizontalArrangement = Arrangement.spacedBy(SECTION_GAP), verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.weight(1f)) { board() }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(SECTION_GAP)) {
+                // At the pane's right-hand edge, where it's easiest to reach, and drawn larger than in the
+                // board - over the mat it would otherwise look small beside the dice and tiles.
+                val density = LocalDensity.current
+                CompositionLocalProvider(LocalDensity provides Density(density.density * cupScale, density.fontScale)) {
+                    // Its space is kept while another player's scorecard is up (no cup then), so the tray stays put.
+                    val cupModifier = Modifier.align(Alignment.End).size(width = SIDE_CUP_WIDTH, height = SIDE_CUP_HEIGHT)
+                    if (viewedPlayer == null) {
+                        GameCup(
+                            state = state,
+                            rolling = isRolling,
+                            pouring = pouring,
+                            diceSettling = diceSettling,
+                            canUndo = canUndo,
+                            onCupTap = onCupTap,
+                            onUndo = onUndo,
+                            modifier = cupModifier,
+                        )
+                    } else {
+                        Spacer(modifier = cupModifier)
+                    }
+                }
+                tray()
+            }
+        }
+    } else {
+        board()
+        tray()
+    }
+}
+
+/** The gap between the header, the board and the tray. */
+private val SECTION_GAP = 14.dp
+
+/** The phone width the board was laid out on: the game is drawn at its own size here, and scaled up from it. */
+private val REFERENCE_WIDTH = 411.dp
+
+/** Roughly how tall the player tabs' row is - near enough to choose a layout by; the page scrolls if it's off. */
+private val HEADER_HEIGHT = 82.dp
+
+/** The cup and its roll count over the tray, side by side: the cup's 104dp square and room for "x10" beside it -
+ * up to [SIDE_CUP_SCALE] times larger than that (see gameLayout). */
+private val SIDE_CUP_WIDTH = 170.dp
+private val SIDE_CUP_HEIGHT = 120.dp
+private const val SIDE_CUP_SCALE = 1.5f
+
+/** How far the game is ever scaled up - past this, a larger screen just has more space around the board. */
+private const val MAX_GAME_SCALE = 2f
+
+/** Widest the game is laid out at (before scaling), one above the other: a squarish screen centres it rather
+ * than stretching the board's columns apart. */
+private val STACKED_MAX_WIDTH = 480.dp
+
+/** The same, with the board and the tray side by side. */
+private val SIDE_BY_SIDE_MAX_WIDTH = STACKED_MAX_WIDTH * 2
+
+/** Whether the board and the tray sit side by side, how much the game is scaled up, and how wide it's laid out. */
+internal data class GameLayout(val sideBySide: Boolean, val scale: Float, val maxWidth: Dp, val cupScale: Float = 1f)
+
+/**
+ * How the game fits a [width] x [height] screen: the board and the tray one above the other (a phone,
+ * a tablet held upright) or side by side (landscape), whichever lets them be drawn larger, and how
+ * much larger than on [REFERENCE_WIDTH]'s phone - never smaller than that, as the tiles and dice would
+ * fall under their minimum touch size, so a screen too short for either scrolls instead.
+ */
+internal fun gameLayout(width: Dp, height: Dp, gameMode: GameMode): GameLayout {
+    val board = gameBoardHeight(gameMode)
+    val chrome = GAME_PADDING * 2 + HEADER_HEIGHT + SECTION_GAP
+    val paneWidth = REFERENCE_WIDTH - GAME_PADDING * 2
+    val tray = diceTrayHeight(paneWidth)
+    val stacked = minOf(width / REFERENCE_WIDTH, height / (chrome + board + SECTION_GAP + tray))
+    val sideBySideWidth = GAME_PADDING * 2 + paneWidth * 2 + SECTION_GAP
+    val sideBySide = minOf(width / sideBySideWidth, height / (chrome + maxOf(board, SIDE_CUP_HEIGHT * SIDE_CUP_SCALE + SECTION_GAP + tray)))
+    // On a screen too short for the side-by-side layout even at 1x (a phone on its side), the cup is only
+    // enlarged as far as still keeps it and the tray level with the board, rather than pushing the tray off.
+    val cupScale = if (sideBySide >= 1f) {
+        SIDE_CUP_SCALE
+    } else {
+        ((board - SECTION_GAP - tray) / SIDE_CUP_HEIGHT).coerceIn(1f, SIDE_CUP_SCALE)
+    }
+    return if (sideBySide > stacked) {
+        GameLayout(sideBySide = true, scale = sideBySide.coerceIn(1f, MAX_GAME_SCALE), maxWidth = SIDE_BY_SIDE_MAX_WIDTH, cupScale = cupScale)
+    } else {
+        GameLayout(sideBySide = false, scale = stacked.coerceIn(1f, MAX_GAME_SCALE), maxWidth = STACKED_MAX_WIDTH)
     }
 }
 

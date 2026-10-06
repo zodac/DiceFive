@@ -672,6 +672,36 @@ its own TalkBack node (`SlottedDiceTrayTest`). A slot is only as big as a mat co
 die is drawn the same size as on the mat (`matDieSize`), the slot row keeping the usual layout's
 height. Robolectric renders only - not seen on a device.
 
+## Tablets and landscape
+
+**The game screen scales as one object** (`GameScreen`'s `gameLayout`). It is laid out at a phone's size
+(`REFERENCE_WIDTH`, 411dp) and then drawn larger through a scaled `LocalDensity` (font scale kept), so
+art, text and touch targets grow together rather than the board's pieces drifting apart. The scale is
+never below 1: a screen too short for the layout scrolls rather than shrinking tiles under 48dp. The
+cap is `MAX_GAME_SCALE` (2x), and the width cap is `STACKED_MAX_WIDTH` (480dp before scaling), so a
+squarish screen centres the board. It picks whichever of two arrangements draws larger:
+
+- **Stacked** (phones, tablets held upright): header, board, tray - the original layout. A 411dp phone
+  is unchanged.
+- **Side by side** (landscape): header across the top; the board on the left with its cup column left
+  empty (`showCup = false`, the 5x tile and Σ/Undo stay put); and on the right the cup (`GameCup`, the
+  same `DiceCup` the board uses) with the tray under it. The maintainer asked for this: the cup stays on
+  the right-hand side, with the dice pouring out below it. On review the cup was too small beside the
+  tiles and dice, and too far from the edge to reach easily. So it's drawn `SIDE_CUP_SCALE` (1.5x)
+  larger, at the pane's right edge, with its roll count on its left (`countFirst`). On a screen too
+  short for even 1x (a phone on its side) it's enlarged only as far as keeps the pane level with the
+  board (`GameLayout.cupScale`, about 1.2x). While another player's scorecard is up, the cup's space is kept empty so the tray doesn't move.
+
+**A die on the mat is the size it is held**: column width less `HELD_DIE_INSET` either side
+(`matDieSize`), so the two scale together. It was a fixed 44dp against a column-wide slot, which looked
+mismatched on a phone and much worse on a tablet. The slot's old 52dp `sizeIn` cap sat after
+`fillMaxWidth` and never took effect, so it was removed; Stud's slot row still uses `MAX_SLOT_DIE_SIZE`.
+
+The game screen pads for `safeDrawing` top and sides (a landscape camera cutout or side navigation
+buttons). Other pages already cap at `CONTENT_MAX_WIDTH` and scroll, and they looked fine on tablets and
+in landscape. Rendered in Robolectric at 411x891, 891x411, 600x960, 960x600, 800x1280 and 1280x800, in
+Standard, Tricolour and Stud. Not seen on a device.
+
 ## Constraints worth knowing
 
 **Player names cap at a length that varies with player count** (`GameSetupState.

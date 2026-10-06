@@ -41,6 +41,7 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -119,9 +120,9 @@ fun DiceCupPanel(
     onScoreCategory: (ScoreCategory) -> Unit,
     cup: CupPanelState?,
     modifier: Modifier = Modifier,
+    // False where the cup is drawn beside the board instead (see DiceCup): its space here stays, empty.
+    showCup: Boolean = true,
 ) {
-    val visualTheme = LocalGameVisualTheme.current
-
     // Same height as the grid beside it (both fill the board's padded Row), which is what lets
     // firstRowTileInset find where that grid's first row sits.
     BoxWithConstraints(modifier = modifier.fillMaxHeight()) {
@@ -143,144 +144,15 @@ fun DiceCupPanel(
                 )
             }
 
-            val cupInteractionSource = remember { MutableInteractionSource() }
-            Box(
-                modifier = Modifier
-                    // weight(3f) reproduces the same row height this area already had - only the width
-                    // changes here (fillMaxWidth, below), not the height. Kept even with no cup to draw
-                    // (cup == null) so the 5x tile and the stats row below stay at the same heights
-                    // either way - only this box's own content disappears.
-                    .weight(3f)
-                    .fillMaxWidth()
-                    // The cup itself rotates (shake + tilt) via graphicsLayer, which only affects
-                    // painting, not this composable's own layout/hit-test bounds. Rather than rely on
-                    // Compose's hit-testing following that rotation (unreliable in practice - the tap
-                    // target stayed pinned to the upright pose after the visual tilted), the clickable
-                    // area is this separate, non-rotating Box wrapping the cup and its label, widened to
-                    // the full row width so the tap target reaches as far right as the undo button
-                    // below it - not just the 104dp square the cup art itself occupies.
-                    //
-                    // indication = null drops the default ripple: at this size it painted as an
-                    // obvious translucent white rectangle over the whole tap target on press, which
-                    // read as a rendering glitch rather than a press effect.
-                    //
-                    // Enabled even with no rolls left: onCupTap itself decides what a tap does in that
-                    // case (see GameScreen) - counting it towards "No More Rolls" rather than the cup
-                    // simply going dead once the useful taps run out. Only disabled while a roll is in
-                    // hand, until its dice have settled - the same wait scoring has.
-                    .then(
-                        if (cup != null) {
-                            Modifier
-                                .clickable(
-                                    interactionSource = cupInteractionSource,
-                                    indication = null,
-                                    enabled = !cup.rollInHand,
-                                    onClickLabel = "Roll",
-                                    role = Role.Button,
-                                    onClick = cup.onCupTap,
-                                )
-                                // Said instead of the "x3" drawn beside the cup.
-                                .clearAndSetSemantics {
-                                    contentDescription = "Dice cup, ${cup.rollsRemaining} ${if (cup.rollsRemaining == 1) "roll" else "rolls"} left"
-                                    role = Role.Button
-                                    if (cup.rollInHand) disabled()
-                                    onClick(label = "Roll") {
-                                        cup.onCupTap()
-                                        true
-                                    }
-                                }
-                        } else {
-                            Modifier
-                        },
-                    ),
-            ) {
-                if (cup != null) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        // Two or more digits need the gap's room too.
-                        horizontalArrangement = Arrangement.spacedBy(if (cup.rollsRemaining >= TWO_DIGIT_ROLLS) 0.dp else 10.dp),
-                    ) {
-                        // Greyed and darkened once rolls run out - the cup stays tappable (see the comment on
-                        // this Box's parent) but visually reads as spent rather than still live. Done by
-                        // recolouring rather than fading, so the cup stays opaque and the table behind it
-                        // (stars, say) doesn't show through. Fades over the second half of the last roll's
-                        // toss, ending a little before the dice settle.
-                        // The exception is a Flowerpot that's grown its sunflower, which keeps its colour
-                        // and, once it's poured, stands back up so its bloom is seen in full - it still
-                        // can't be rolled.
-                        val outOfRolls = cup.rollsRemaining <= 0 && !cup.rolling
-                        val showingOff = outOfRolls && visualTheme.diceCupStyle.showsOffWhenSpent(cup.flowerpotGrowth)
-                        val depleted = outOfRolls && !showingOff
-                        val lifecycle = LocalLifecycleOwner.current.lifecycle
-                        var standingForBloom by remember { mutableStateOf(false) }
-                        LaunchedEffect(showingOff) {
-                            standingForBloom = false
-                            if (showingOff) {
-                                lifecycle.delayWhileResumed(BLOOM_STAND_UP_MILLIS)
-                                standingForBloom = true
-                            }
-                        }
-                        // Under reduced motion it's simply grey once spent, with no fade.
-                        val spent by animateFloatAsState(
-                            targetValue = if (depleted) 1f else 0f,
-                            animationSpec = if (LocalReduceMotion.current) {
-                                snap()
-                            } else if (depleted) {
-                                tween(DICE_TOSS_MILLIS / 2, delayMillis = DICE_TOSS_MILLIS / 2 - CUP_FADE_EARLY_MILLIS, easing = LinearEasing)
-                            } else {
-                                tween(DICE_TOSS_MILLIS / 2, easing = LinearEasing)
-                            },
-                            label = "cupSpent",
-                        )
-                        Box(
-                            modifier = Modifier.size(104.dp).spentLook(spent),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            val cupStyle = visualTheme.diceCupStyle
-                            // A spent cup sits still: no ambient animation once it's dimmed. The dice
-                            // double as the table's activity - holding one counts as doing something.
-                            CompositionLocalProvider(
-                                LocalCupAnimated provides (cup.rollsRemaining > 0),
-                                LocalCupActivity provides dice,
-                                LocalFlowerpotGrowth provides cup.flowerpotGrowth,
-                            ) {
-                                // Under reduced motion the cup doesn't shake (the shake sound and buzz still play -
-                                // GameScreen) or pour: it stands while the roll is in it and is simply tipped once
-                                // the roll lands and scoring opens.
-                                val reduceMotion = LocalReduceMotion.current
-                                cupStyle.Cup(
-                                    rolling = cup.rolling && !cup.pouring && !reduceMotion,
-                                    tilted = if (reduceMotion) {
-                                        cup.tilted && !cup.rolling && !standingForBloom
-                                    } else {
-                                        (cup.tilted || cup.pouring) && !standingForBloom
-                                    },
-                                    // A cup's shape grid is its size in dp here - tall or squat, both fit this 104dp box.
-                                    modifier = Modifier.size(width = cupStyle.shape.gridWidth.dp, height = cupStyle.shape.gridHeight.dp),
-                                )
-                            }
-                        }
-                        // Rolls can run past one digit (a game with more rolls a turn, or stored rolls) and the panel
-                        // beside the cup is narrow, so the count shrinks until it fits what room is left.
-                        val countStyle = MaterialTheme.typography.titleLarge
-                        var countSize by remember(cup.rollsRemaining) { mutableStateOf(countStyle.fontSize) }
-                        Text(
-                            text = "x${cup.rollsRemaining}",
-                            color = TileIconColor,
-                            fontWeight = FontWeight.Bold,
-                            style = countStyle,
-                            fontSize = countSize,
-                            maxLines = 1,
-                            softWrap = false,
-                            onTextLayout = { layout ->
-                                if (layout.didOverflowWidth && countSize > MIN_COUNT_SIZE) countSize *= COUNT_SHRINK_STEP
-                            },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            }
+            DiceCup(
+                cup = cup.takeIf { showCup },
+                dice = dice,
+                // weight(3f) reproduces the same row height this area already had - only the width
+                // changes here (fillMaxWidth), not the height. Kept even with no cup to draw (cup ==
+                // null, or drawn beside the board) so the 5x tile and the stats row below stay at the
+                // same heights either way - only this box's own content disappears.
+                modifier = Modifier.weight(3f).fillMaxWidth(),
+            )
 
             Row(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -299,6 +171,160 @@ fun DiceCupPanel(
                 if (cup != null && cup.showUndo) {
                     UndoButton(enabled = cup.canUndo, onClick = cup.onUndo)
                 }
+            }
+        }
+    }
+}
+
+/**
+ * The (tappable) dice cup with its remaining-rolls count - in [DiceCupPanel] on a phone, or beside the
+ * board, over the dice tray, where the game is laid out side by side (see `gameLayout`). Draws nothing
+ * when [cup] is null - a read-only look at someone else's scorecard - while still taking its space.
+ */
+@Composable
+internal fun DiceCup(
+    cup: CupPanelState?,
+    dice: List<Die>,
+    modifier: Modifier = Modifier,
+    // The count on the cup's left instead, the cup at the right-hand edge - beside the board, where
+    // that puts it nearest a right thumb.
+    countFirst: Boolean = false,
+) {
+    val visualTheme = LocalGameVisualTheme.current
+    val cupInteractionSource = remember { MutableInteractionSource() }
+    Box(
+        modifier = modifier
+            // The cup itself rotates (shake + tilt) via graphicsLayer, which only affects
+            // painting, not this composable's own layout/hit-test bounds. Rather than rely on
+            // Compose's hit-testing following that rotation (unreliable in practice - the tap
+            // target stayed pinned to the upright pose after the visual tilted), the clickable
+            // area is this separate, non-rotating Box wrapping the cup and its label, widened to
+            // the full row width so the tap target reaches as far right as the undo button
+            // below it - not just the 104dp square the cup art itself occupies.
+            //
+            // indication = null drops the default ripple: at this size it painted as an
+            // obvious translucent white rectangle over the whole tap target on press, which
+            // read as a rendering glitch rather than a press effect.
+            //
+            // Enabled even with no rolls left: onCupTap itself decides what a tap does in that
+            // case (see GameScreen) - counting it towards "No More Rolls" rather than the cup
+            // simply going dead once the useful taps run out. Only disabled while a roll is in
+            // hand, until its dice have settled - the same wait scoring has.
+            .then(
+                if (cup != null) {
+                    Modifier
+                        .clickable(
+                            interactionSource = cupInteractionSource,
+                            indication = null,
+                            enabled = !cup.rollInHand,
+                            onClickLabel = "Roll",
+                            role = Role.Button,
+                            onClick = cup.onCupTap,
+                        )
+                        // Said instead of the "x3" drawn beside the cup.
+                        .clearAndSetSemantics {
+                            contentDescription = "Dice cup, ${cup.rollsRemaining} ${if (cup.rollsRemaining == 1) "roll" else "rolls"} left"
+                            role = Role.Button
+                            if (cup.rollInHand) disabled()
+                            onClick(label = "Roll") {
+                                cup.onCupTap()
+                                true
+                            }
+                        }
+                } else {
+                    Modifier
+                },
+            ),
+    ) {
+        if (cup != null) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
+                // Two or more digits need the gap's room too.
+                horizontalArrangement = Arrangement.spacedBy(if (cup.rollsRemaining >= TWO_DIGIT_ROLLS) 0.dp else 10.dp),
+            ) {
+                // Rolls can run past one digit (a game with more rolls a turn, or stored rolls) and the panel
+                // beside the cup is narrow, so the count shrinks until it fits what room is left.
+                val countStyle = MaterialTheme.typography.titleLarge
+                var countSize by remember(cup.rollsRemaining) { mutableStateOf(countStyle.fontSize) }
+                val count = @Composable { countModifier: Modifier ->
+                    Text(
+                        text = "x${cup.rollsRemaining}",
+                        color = TileIconColor,
+                        fontWeight = FontWeight.Bold,
+                        style = countStyle,
+                        fontSize = countSize,
+                        textAlign = if (countFirst) TextAlign.End else TextAlign.Start,
+                        maxLines = 1,
+                        softWrap = false,
+                        onTextLayout = { layout ->
+                            if (layout.didOverflowWidth && countSize > MIN_COUNT_SIZE) countSize *= COUNT_SHRINK_STEP
+                        },
+                        modifier = countModifier,
+                    )
+                }
+                if (countFirst) count(Modifier.weight(1f))
+                // Greyed and darkened once rolls run out - the cup stays tappable (see the comment on
+                // this Box's parent) but visually reads as spent rather than still live. Done by
+                // recolouring rather than fading, so the cup stays opaque and the table behind it
+                // (stars, say) doesn't show through. Fades over the second half of the last roll's
+                // toss, ending a little before the dice settle.
+                // The exception is a Flowerpot that's grown its sunflower, which keeps its colour
+                // and, once it's poured, stands back up so its bloom is seen in full - it still
+                // can't be rolled.
+                val outOfRolls = cup.rollsRemaining <= 0 && !cup.rolling
+                val showingOff = outOfRolls && visualTheme.diceCupStyle.showsOffWhenSpent(cup.flowerpotGrowth)
+                val depleted = outOfRolls && !showingOff
+                val lifecycle = LocalLifecycleOwner.current.lifecycle
+                var standingForBloom by remember { mutableStateOf(false) }
+                LaunchedEffect(showingOff) {
+                    standingForBloom = false
+                    if (showingOff) {
+                        lifecycle.delayWhileResumed(BLOOM_STAND_UP_MILLIS)
+                        standingForBloom = true
+                    }
+                }
+                // Under reduced motion it's simply grey once spent, with no fade.
+                val spent by animateFloatAsState(
+                    targetValue = if (depleted) 1f else 0f,
+                    animationSpec = if (LocalReduceMotion.current) {
+                        snap()
+                    } else if (depleted) {
+                        tween(DICE_TOSS_MILLIS / 2, delayMillis = DICE_TOSS_MILLIS / 2 - CUP_FADE_EARLY_MILLIS, easing = LinearEasing)
+                    } else {
+                        tween(DICE_TOSS_MILLIS / 2, easing = LinearEasing)
+                    },
+                    label = "cupSpent",
+                )
+                Box(
+                    modifier = Modifier.size(104.dp).spentLook(spent),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val cupStyle = visualTheme.diceCupStyle
+                    // A spent cup sits still: no ambient animation once it's dimmed. The dice
+                    // double as the table's activity - holding one counts as doing something.
+                    CompositionLocalProvider(
+                        LocalCupAnimated provides (cup.rollsRemaining > 0),
+                        LocalCupActivity provides dice,
+                        LocalFlowerpotGrowth provides cup.flowerpotGrowth,
+                    ) {
+                        // Under reduced motion the cup doesn't shake (the shake sound and buzz still play -
+                        // GameScreen) or pour: it stands while the roll is in it and is simply tipped once
+                        // the roll lands and scoring opens.
+                        val reduceMotion = LocalReduceMotion.current
+                        cupStyle.Cup(
+                            rolling = cup.rolling && !cup.pouring && !reduceMotion,
+                            tilted = if (reduceMotion) {
+                                cup.tilted && !cup.rolling && !standingForBloom
+                            } else {
+                                (cup.tilted || cup.pouring) && !standingForBloom
+                            },
+                            // A cup's shape grid is its size in dp here - tall or squat, both fit this 104dp box.
+                            modifier = Modifier.size(width = cupStyle.shape.gridWidth.dp, height = cupStyle.shape.gridHeight.dp),
+                        )
+                    }
+                }
+                if (!countFirst) count(Modifier.weight(1f))
             }
         }
     }

@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -572,10 +571,20 @@ private fun DiceColumnContent(
 
 private val SLOT_TO_MAT_GAP = 18.dp
 
+/** How tall the usual tray is, [width] wide: its padding, the row of hold slots (each a column wide) and the mat. */
+internal fun diceTrayHeight(width: Dp): Dp {
+    val slot = (width - TRAY_PADDING * 2 - DICE_COLUMN_GAP * (DICE_COUNT - 1)) / DICE_COUNT
+    return TRAY_PADDING * 2 + slot + SLOT_TO_MAT_GAP + SCATTER_AREA_HEIGHT
+}
+
+private const val DICE_COUNT = 5
+
 /**
- * A hold slot, square, with [die] in it, if any. As wide as it's given up to [MAX_SLOT_DIE_SIZE], its
- * die just inside its edge - or, given the [matColumnWidth] of a mat of more dice than slots, as wide
- * as one of its columns up to the same, its die drawn the size it is on that mat (see SlottedDice).
+ * A hold slot, square, with [die] in it, if any. As wide as its column, its die just inside its edge -
+ * or, given the [matColumnWidth] of a mat of more dice than slots, as wide as one of those columns, its
+ * die drawn the size it is on that mat (see SlottedDice). It once also had a 52dp cap, placed after the
+ * size, where it could never take effect - so every phone's slots have always been their column's
+ * width, and that's kept. The game screen's widest layout (see gameLayout) is what bounds them now.
  */
 @Composable
 private fun HoldSlot(die: Die?, diceStyles: TrayDiceStyles, mat: DiceMat, matColumnWidth: Dp? = null) {
@@ -583,7 +592,6 @@ private fun HoldSlot(die: Die?, diceStyles: TrayDiceStyles, mat: DiceMat, matCol
     val size = if (matColumnWidth == null) Modifier.fillMaxWidth().aspectRatio(1f) else Modifier.size(matColumnWidth)
     Box(
         modifier = size
-            .sizeIn(maxWidth = MAX_SLOT_DIE_SIZE, maxHeight = MAX_SLOT_DIE_SIZE)
             .clip(shape)
             .background(mat.slotSocketBrush)
             .border(1.5.dp, mat.slotSocketBorder, shape),
@@ -601,15 +609,16 @@ private fun HoldSlot(die: Die?, diceStyles: TrayDiceStyles, mat: DiceMat, matCol
 }
 
 /**
- * How big a die of [style] is drawn on the mat, in a column [columnWidth] wide: [SCATTERED_DIE_SIZE],
- * or no more than [SLOTTED_MAT_DIE_FRACTION] of the column where it's [fitToColumn] - a mat of more,
- * narrower columns than usual (see SlottedDice). A die that stands up (the Egg) isn't a cube seen from
- * above, so it spans the column just as it spans its slot when held, rather than shrinking as it's let go.
+ * How big a die of [style] is drawn on the mat, in a column [columnWidth] wide: the size it is held -
+ * its slot is a column wide, the die just inside it - so a die is the same size held or let go, and the
+ * two scale together with the screen (see gameLayout). Where it's [fitToColumn] - a mat of more, narrower
+ * columns than usual (see SlottedDice) - it's no more than [SCATTERED_DIE_SIZE] or
+ * [SLOTTED_MAT_DIE_FRACTION] of the column, and its slot draws it the same. A die that stands up (the
+ * Egg) isn't a cube seen from above, so it always spans the column, as it spans its slot when held.
  */
 private fun matDieSize(style: DiceStyle, columnWidth: Dp, fitToColumn: Boolean): Dp = when {
-    style.standsUpright -> columnWidth - HELD_DIE_INSET * 2
-    fitToColumn -> minOf(SCATTERED_DIE_SIZE, columnWidth * SLOTTED_MAT_DIE_FRACTION)
-    else -> SCATTERED_DIE_SIZE
+    fitToColumn && !style.standsUpright -> minOf(SCATTERED_DIE_SIZE, columnWidth * SLOTTED_MAT_DIE_FRACTION)
+    else -> columnWidth - HELD_DIE_INSET * 2
 }
 
 /**
