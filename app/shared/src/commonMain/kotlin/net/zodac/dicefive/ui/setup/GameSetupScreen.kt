@@ -424,11 +424,9 @@ private fun GameModeSelector(selected: GameMode, onSelect: (GameMode) -> Unit) {
 /**
  * The setup screen's modifiers. The turn timer is off when [TurnTimer.NONE] and
  * otherwise one of the lengths. The length last chosen is kept in the setup state (and saved with it) while
- * the timer is off, so switching it back on - even next game - restores it. A mode with its own timer ([GameMode.turnTimerSeconds]) overrides
- * the setting, so it's shown locked at the mode's length; the player's pick is kept for other modes.
+ * the timer is off, so switching it back on - even next game - restores it.
  *
- * Number of Rolls and Stored Rolls (see [RollModifiers]) work the same way: a mode that doesn't allow
- * them ([GameMode.allowsRollModifiers]) shows them locked and off, and the player's pick is kept. Stored
+ * Number of Rolls and Stored Rolls (see [RollModifiers]) apply in every mode. Stored
  * Rolls' cap is a typed number, empty for none.
  *
  * Extended Scores is a plain switch with nothing to set, and applies in every mode. Unlucky Dice
@@ -450,10 +448,6 @@ private fun SetupModifierPicker(
     val onSelect = onTurnTimer
     val lengths = TurnTimer.entries.filter { it != TurnTimer.NONE }
     val rolls = setup.rollModifiers
-    val rollsLocked = !setup.gameMode.allowsRollModifiers
-    val rollsLockedNote = if (rollsLocked) "Not used in ${setup.gameMode.displayName}" else null
-
-    val modeSeconds = setup.gameMode.turnTimerSeconds
     ModifierPicker(
         title = "Modifiers",
         description = "Optional extra rules for any game mode",
@@ -462,19 +456,17 @@ private fun SetupModifierPicker(
             ModifierSetting(
                 title = "Turn timer",
                 description = "A time limit for each whole turn",
-                enabled = modeSeconds != null || setup.turnTimer != TurnTimer.NONE,
+                enabled = setup.turnTimer != TurnTimer.NONE,
                 onEnabledChange = { on -> onSelect(if (on) setup.turnTimerLength else TurnTimer.NONE) },
-                valueLabels = if (modeSeconds != null) listOf("${modeSeconds}s") else lengths.map { it.label },
-                selectedValue = if (modeSeconds != null) 0 else lengths.indexOf(setup.turnTimerLength),
+                valueLabels = lengths.map { it.label },
+                selectedValue = lengths.indexOf(setup.turnTimerLength),
                 onValueSelect = { onSelect(lengths[it]) },
-                lockedNote = if (modeSeconds != null) "Set by ${setup.gameMode.displayName}: ${modeSeconds}s" else null,
             ),
             ModifierSetting(
                 title = "Number of Rolls",
                 description = "How many rolls each turn gets",
-                enabled = !rollsLocked && rolls.rollsPerTurn != null,
+                enabled = rolls.rollsPerTurn != null,
                 onEnabledChange = { on -> onRollsPerTurn(if (on) setup.rollsPerTurnLength else null) },
-                lockedNote = rollsLockedNote,
                 steppers = listOf(
                     ModifierStepper(
                         value = setup.rollsPerTurnLength,
@@ -489,9 +481,8 @@ private fun SetupModifierPicker(
             ModifierSetting(
                 title = "Stored Rolls",
                 description = "Rolls you don't use carry over to your next turn",
-                enabled = !rollsLocked && rolls.storedRolls,
+                enabled = rolls.storedRolls,
                 onEnabledChange = onStoredRolls,
-                lockedNote = rollsLockedNote,
                 numberField = ModifierNumberField(
                     label = "Most rolls you can store",
                     hint = "No max",

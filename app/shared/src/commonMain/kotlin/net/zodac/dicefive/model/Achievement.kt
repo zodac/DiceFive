@@ -340,9 +340,10 @@ enum class Achievement(
         "quickfire_win", "Quick On The Draw", "Win a game of 'Quickfire' mode",
         AchievementCategory.GAME_MODES,
     ),
-    // Player 1 only, like every other achievement - an opponent timing out doesn't cost you this.
-    QUICKFIRE_BEAT_THE_CLOCK(
-        "quickfire_beat_the_clock", "Beat The Clock", "Finish a game of 'Quickfire' mode without ever running out of time",
+    // Judged on the finished game's total. Not with extra rolls or Extended Scores' three boxes, which
+    // make a total that high far easier.
+    QUICKFIRE_SCORE(
+        "quickfire_score_150", "Six Of The Best", "Score 150 or more in a game of 'Quickfire' mode",
         AchievementCategory.GAME_MODES,
     ),
     STUD_WIN(
@@ -443,8 +444,7 @@ enum class Achievement(
         "impatient", "Impatient", "Finish a game never rolling more than once in any turn",
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
-    // Any mode with a turn timer - the Turn Timer setting, or Quickfire's own. Needs an opponent,
-    // like every win.
+    // Any game with the Turn Timer modifier on. Needs an opponent, like every win.
     LUCK_OF_THE_DRAW(
         "luck_of_the_draw", "Luck Of The Draw",
         "Win a game scoring 3 or fewer categories yourself - the turn timer did the rest",
@@ -607,7 +607,7 @@ enum class Achievement(
     ),
     // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the
     // Flowerpot grows a plant, let alone that using every roll of every turn brings it into bloom.
-    // Never in a mode without 3 rolls a turn (Quickfire), where it can't bloom at all.
+    // Never in a mode without 3 rolls a turn, where it can't bloom at all.
     GREENFINGERS(
         "greenfingers", "Greenfingers", "Grow a Sunflower",
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,

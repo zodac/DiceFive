@@ -8,8 +8,7 @@ const val SUNFLOWER_ROLLS_PER_TURN = 3
 
 /**
  * Whether the Flowerpot's plant can bloom in this mode: only with [SUNFLOWER_ROLLS_PER_TURN] rolls
- * a turn (Standard, Tricolour). Quickfire's single roll is made for the player, so its plant grows
- * but never blooms. A game with a roll modifier on never blooms either - see [flowerpotStage].
+ * a turn (every mode today). A game with a roll modifier on never blooms - see [flowerpotStage].
  */
 val GameMode.growsSunflower: Boolean
     get() = rollsPerTurn == SUNFLOWER_ROLLS_PER_TURN

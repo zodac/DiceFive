@@ -328,8 +328,7 @@ decisions behind it. Read that before changing anything visual.
   10, 20, 30 in Standard's 39, 13, 26, 39 in Tricolour's 51. The bloom is not on that schedule: it
   comes only once the count reaches `maxRollsPerGame`, so rounding can never bring it early, and
   only in a mode with 3 rolls a turn (`growsSunflower`). So it only blooms for a player who uses
-  every roll of every turn: the 39th in Standard, the 51st in Tricolour, and never in Quickfire (one
-  roll a turn - its plant grows over its 13 rolls but stops at the bud opening). `GameBoard` hands the
+  every roll of every turn: the 39th in Standard, the 51st in Tricolour, the 18th in Quickfire (six turns). `GameBoard` hands the
   cup a `FlowerpotGrowth` (stage plus whose plant it is) through `LocalFlowerpotGrowth`: the same
   player's plant grows into its next stage over `PLANT_GROW_MILLIS`, a different player's replaces
   it outright. The bloom stands well above the pot, into the room over the cup on the board (the
@@ -364,8 +363,8 @@ decisions behind it. Read that before changing anything visual.
   (`scoresPerCategory` - the two together are the number of turns), whether its scores go on the
   Leaderboard (`countsOnLeaderboard`),
   the upper-bonus threshold/amount, the 5x bonus chip, the max possible score, a fixed turn
-  timer that overrides the setup pick (`turnTimerSeconds`), where a timed-out turn is scored
-  (`timeoutPick`), and whether a human's first roll is tapped for them (`autoRollAtTurnStart`). `.claude/GAME_MODES.md` has the
+  which boxes are switched off
+  (`disabledCategories`, `randomDisabledCategories`). `.claude/GAME_MODES.md` has the
   checklist for adding a mode. The engine, AI, achievements,
   persistence and board all read the rules from there - a new mode should be a new entry plus any
   genuinely new scoring rule, and nothing else learning it exists. A category's own scoring rule is
@@ -557,7 +556,6 @@ net.zodac.dicefive/
     ScoreCategory.kt                   — every category any mode can use: section, fixed score, joker free-fill, colour
     GameMode.kt                        — STANDARD, TRICOLOUR, QUICKFIRE, STUD, THIRD_WIND: every per-mode rule (see "Game modes" above)
     TurnTimer.kt                       — the setup screen's turn timer choices (NONE, 30s, 60s, 120s)
-    TimeoutPick.kt                     — FIRST_OPEN, LOWEST_SCORE: where a mode scores a timed-out turn
     DieColour.kt                       — RED, YELLOW, BLUE (Tricolour's die colours)
     PlayerType.kt                      — HUMAN, AI
     Difficulty.kt                      — EASY, MEDIUM, HARD (picked per CPU seat on the setup screen)
@@ -565,7 +563,7 @@ net.zodac.dicefive/
     PlayerState.kt                     — in-game: name, type, difficulty, scorecard (Map<ScoreCategory, Int?>), fiveOfAKindBonusCount
     GameState.kt                       — gameMode, turnTimer, players: List<PlayerState>, currentPlayerIndex,
                                           dice: List<Die>, rollsRemaining, phase (AWAITING_ROLL / ROLLED), isGameOver;
-                                          turnSeconds and awaitsAutoRoll resolve the mode's turn rules
+                                          turnSeconds is the setup's turn timer
   game/
     DiceScoring.kt                     — pure functions: score(category, dice), isFiveOfAKind etc.
     ScoreCalculator.kt                 — resolves a category pick against current scorecard incl. upper bonus (63+ => +35)
@@ -652,8 +650,7 @@ nav arguments or introducing a singleton holder.
 - Game mode: radio group, one row per `GameMode` with its one-line description. Remembered
   between games (`SettingsRepository.gameMode`, stored by `GameMode.id`).
 - Turn timer: segmented row, remembered between games. Disabled while the picked mode sets its own
-  timer (`GameMode.turnTimerSeconds` - Quickfire's 10s); the pick is kept for when another mode is
-  chosen, and the game itself starts with `TurnTimer.NONE`.
+  timer (the first Quickfire's, removed in Phase 30).
 - "Start Game": builds initial `GameState` — generates AI names via
   `AiNameGenerator` (no duplicates within the game) at this point — and
   flips `GameViewModel` phase from CONFIGURING to PLAYING, navigating from
@@ -664,9 +661,7 @@ nav arguments or introducing a singleton holder.
 The numbers here are Standard's - dice count, rolls per turn and the rest come from the game's
 `GameMode` (see "Game modes" under Decisions, and `.claude/GAME_MODES.md`).
 
-- Start of turn: 5 dice, 3 rolls remaining, all unheld. In a mode with
-  `autoRollAtTurnStart` (Quickfire), a human's turn starts with `GameScreen` tapping the cup for
-  them - the same tap a finger makes.
+- Start of turn: 5 dice, 3 rolls remaining, all unheld.
 - Roll: rolls all non-held dice, decrements `rollsRemaining`.
 - Hold: toggles a die's `isHeld` — only after ≥1 roll this turn. In a mode that rolls more dice
   than it scores (Stud), a held die goes to the free hold slot nearest its column and keeps it until let go
@@ -689,10 +684,9 @@ The numbers here are Standard's - dice count, rolls per turn and the rest come f
   current player is AI, `GameViewModel` drives `AiTurnPlayer` through
   its rolls (up to the mode's `rollsPerTurn`, stopping early once it holds every die) and then a
   score, with brief coroutine delays so it's visibly animated, not instant.
-- Turn timer: when one is set (the Turn Timer setting, or the mode's own `turnTimerSeconds`),
+- Turn timer: when one is set (the Turn Timer modifier),
   running out rolls if needed, fills any empty hold slots from the left in Stud
-  (`GameEngine.fillHand`), and scores `ScoreCalculator.timeoutCategory` - the first open box, or
-  in Quickfire the lowest-scoring one.
+  (`GameEngine.fillHand`), and scores `ScoreCalculator.timeoutCategory` - the first open box (a box switched off is never open).
 - Game ends when every player's scorecard is full (every slot of every box, in Third Wind); `GameViewModel` persists
   each **human** player's final total to `ScoreRepository` (one row per
   human player; AI scores are not saved; a mode with `countsOnLeaderboard` false - Third Wind - is
@@ -702,7 +696,7 @@ The numbers here are Standard's - dice count, rolls per turn and the rest come f
 `DiceScoring`/`GameEngine` are pure functions with no Android
 dependencies — most unit tests live here.
 
-- **Maximum possible score, per mode: 1575 Standard, Quickfire and Stud, 2120 Tricolour, 4725 Third Wind** (`GameMode.maxPossibleScore`,
+- **Maximum possible score, per mode: 1575 Standard and Stud, 225 Quickfire (the best six boxes it can draw - see Phase 30), 2120 Tricolour, 4725 Third Wind** (`GameMode.maxPossibleScore`,
   with each derivation as a doc comment on its entry, locked by `GameModeTest` playing the perfect
   game through the real `GameEngine`) — every upper box maxed plus the 63+ bonus, every other box
   maxed, and every turn after the 5x box also landing a 5x for its +100 bonus chip (12 of them in
@@ -1930,6 +1924,9 @@ install-over-existing succeeds:
       plugin upgrade.
 
 ### Phase 20 — Game mode: Quickfire
+
+**Replaced in Phase 30** - this is the original one-roll, ten-second mode; nothing below describes Quickfire today,
+and its `GameMode` fields (`turnTimerSeconds`, `timeoutPick`, `autoRollAtTurnStart`, `allowsRollModifiers`) were removed with it.
 - [x] **Rules** (beyond the official rules): Standard's dice, card and scoring, but `rollsPerTurn = 1`
       (no rerolls) and a fixed 10-second turn timer. Same 1575 ceiling as Standard. Engine, AI,
       board and persistence needed no change for the one roll - they already read it from the mode.
@@ -2259,7 +2256,7 @@ install-over-existing succeeds:
       added to the next turn's allowance in `advanceTurn`. `GameState.turnRolls` is what the turn started
       with, so the first/second-roll achievement checks (`fullRolls`, `rollsRemainingAfterFirst`) still
       mean the same with stored rolls in hand.
-- [x] **Quickfire locks both** (`GameMode.allowsRollModifiers = false`): its single roll is made for the
+- [x] **Quickfire locked both** (`GameMode.allowsRollModifiers = false`, removed in Phase 30): its single roll was made for the
       player, and a stored roll would be a second kind of roll. Shown locked, game starts with them off.
 - [x] **Cup count**: "x12" overflowed the panel at 360dp - already at two digits. The count now takes the
       room left beside the cup and shrinks to fit (down to 12sp); at 10 or more it drops the 10dp gap.
@@ -2335,3 +2332,38 @@ install-over-existing succeeds:
 - [ ] **Not seen on a device**: the chains' slam-in against real tossing dice, TalkBack, and how a 50%/5 game
       feels to play.
 
+### Phase 30 — Game mode: Quickfire, redone
+
+- [x] **Replaces Phase 20's Quickfire** (same `id` `"quickfire"`, same name; the old one-roll, ten-second rules are
+      gone). Standard's dice, three rolls and card, but every game starts with seven of its thirteen boxes
+      switched off: **5x always** (`GameMode.disabledCategories`) and **six more of the other twelve at random**
+      (`randomDisabledCategories`, drawn by `GameMode.drawDisabledCategories` in `GameEngine.newGame`, only
+      when the mode has any - so other modes' seeded games are unchanged). A game is six turns, 18 rolls.
+- [x] **State**: `GameState.disabledCategories` and `PlayerState.disabledCategories`, the same set on every
+      player. A disabled box stays in `categories` (so the board lays out as ever) but `PlayerState.isOpen` is false
+      for it, so `ScoreCalculator`, the AI's `filledMask`, Hard's upper-bonus estimate and the turn count
+      (`turnsPerGame`, `GameMode.turnsPerGame`) all skip it with no mode check. The Extended Scores boxes are
+      never disabled. `GameStateJson` saves them (`disabledCategories`, only for a mode that draws some).
+      **A save of the old Quickfire has none and fails to decode**, which resumes as "nothing to resume".
+- [x] **Upper bonus scaled** (`PlayerState.upperBonusThreshold`): the mode's 63 times the faces still on over 21,
+      so each disabled upper box takes three of its number off - 54 with the 3s gone. The amount stays 35. With
+      no upper box left there's no bonus (`hasUpperBonus`; 0 would otherwise reach a threshold of 0).
+- [x] **No 5x**, so no joker and no chips; five matching dice score wherever they fit.
+- [x] **Off the Leaderboard** (`countsOnLeaderboard = false`): each game's card differs, so totals aren't comparable.
+- [x] **Ceiling 225**: Large Straight 40, five of the 30s (Sixes, 3x, 4x, Small Straight, Chance) and the 35 bonus.
+      `GameModeTest` plays a perfect game for every one of the 924 draws and takes the highest.
+- [x] **Board**: a disabled box is an outline only - see `UI.md`, "A disabled scorecard box".
+- [x] **Rules page**: "Mode: Quickfire" rewritten; the Modifiers page no longer says a mode can lock the timer or
+      the roll modifiers.
+- [x] **Achievements**: `QUICKFIRE_BEAT_THE_CLOCK` removed (no timer in the mode); one already unlocked is simply
+      no longer counted. Guarded on a card with boxes off (`hasFullCard`): Spotless, Cold Dice, Low Rolls, Rock Bottom,
+      How Do You Play This Game?, the score ladder, Upper/Lower Class and Bonus Round. See `GAME_MODES.md`.
+- [x] **Removed with the old mode**: its tests (`GameScreenAutoRollTest`, the timer, timeout-pick, roll-modifier-lock
+      and auto-roll tests). Where a test only needed a one-roll game it now uses the Number of Rolls modifier.
+- [x] **Dead code removed**: `GameMode.turnTimerSeconds`, `timeoutPick` (and `TimeoutPick`), `autoRollAtTurnStart`
+      (and `GameState.awaitsAutoRoll`, `GameScreen`'s auto-roll effect) and `allowsRollModifiers` (and the setup
+      screen's locked rows). `GameState.turnSeconds` is now just the Turn Timer modifier's; a timeout always scores
+      the first open box. `ModifierSetting.lockedNote` stays as a generic picker feature (`ChoicePickerTest`).
+- [x] **New achievement** `QUICKFIRE_SCORE` "Six Of The Best": a total of 150 or more in Quickfire (ceiling 225),
+      not with a roll modifier or Extended Scores. Replaces Beat The Clock; bullseye icon.
+- [ ] **Not seen on a device**: the disabled tile, TalkBack on it, and how a six-turn game feels to play.

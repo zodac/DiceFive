@@ -184,8 +184,8 @@ bottom once the form is too tall to fit and has to scroll.
   modifier: a `ModifierSetting` in the setup screen's list, plus a page section on the Rules
   "Modifiers" page. TalkBack: the field is a `DropdownList` named by title with its value as state;
   rows are radio/switch with collection positions. Tested in `ChoicePickerTest`; not heard on a device.
-- **An option the rest of the form overrides is disabled, not hidden** - the Turn Timer row while
-  Quickfire (which has its own timer) is picked. Hiding it would move everything below; disabling
+- **An option the rest of the form overrides is disabled, not hidden** - the Turn Timer row was, while
+  the first Quickfire was picked (`ModifierSetting.lockedNote` is the hook; no mode uses it now). Hiding it would move everything below; disabling
   it keeps the layout still and shows the choice doesn't apply. The player's pick is kept, so it's
   back when they pick another mode.
 - **Cards** group a section. A `ListItem` inside a Card needs
@@ -752,8 +752,7 @@ human name and ~58dp for a CPU's, against ~63dp for a widest-ordinary 8-letter n
 longest 4-player CPU pool name, so 8 (CPU 6) still fits on one line; 3, 2 and 1 players have more room
 than their caps need. At 320dp a 4-player human name of 8 wide letters is the tightest case.
 
-**Every roll is one cup tap.** A human's roll - a finger on the cup, a phone shake, or Quickfire
-tapping the cup for them as their turn starts (`GameState.awaitsAutoRoll`) - goes through
+**Every roll is one cup tap.** A human's roll - a finger on the cup, or a phone shake - goes through
 `GameScreen`'s `onCupTap`: the cup shakes for `CUP_SHAKE_MILLIS`, the shake sound and haptics play,
 then `GameViewModel.rollDice`. A CPU's roll shakes for the same `CUP_SHAKE_MILLIS` (the view model
 sets `aiRolling`, which the screen treats like its own tap) and lands through the same
@@ -1032,3 +1031,17 @@ SilentPlatformServices`) and steps both the compose clock and the paused main lo
   space, and a zero-size node is never hit, so the target is the whole logo's own `detectTapGestures`
   plus `isOnLogoCup`'s rectangle; a die's tap is consumed by the fan's click first, so it never
   shakes the cup. Not exposed to TalkBack, like the dice tap.
+
+## A disabled scorecard box
+
+A box switched off for the game (`PlayerState.disabledCategories`, Quickfire) stays on the board, so the layout
+never moves, but is drawn unlike every other state. Every other look is a filled tile - teal (open), gold (a good
+pick), flat grey (scored) - so a disabled one is **only an outline**: no fill, a dashed border, the glyph at 30%,
+a slash through it, and the word **Off** where an open box shows "-" and a scored one its number
+(`CategoryTile(disabled)`, `CategoryCell`). Don't give it a fill or a solid border, or it reads as "scored".
+
+- **TalkBack**: the cell says its name, "Disabled for this game, can't be scored", has the `disabled()` semantic
+  and no Score action. A scored box says "Scored N" and an open one "Open", so the three can't be confused by
+  ear either. `BoardSemanticsTest` pins it.
+- Not seen on a device: the dashes and slash at 360dp and under a large font, and the dashed outline against
+  every table background.

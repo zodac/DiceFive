@@ -91,7 +91,7 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
   THREE WAYS TO PLAY
   • Standard - the classic rules: 13 boxes, three rolls a turn, a 35-point upper bonus and 100-point bonuses for every extra 5x.
   • Tricolour - every die also lands red, yellow or blue, and four colour boxes join the card. Five of one colour, or a coloured full house, opens up new ways to score.
-  • Quickfire - one roll per turn and ten seconds to decide where it goes. No holds, no rerolls, just quick thinking.
+  • Quickfire - every game starts with 5x and six random boxes disabled, leaving a short six-turn game with a smaller upper bonus to match.
 
   ACHIEVEMENTS TO CHASE
   Nearly 100 achievements, from your first win and your first 5x to long win streaks, near-perfect cards and unlikely runs of bad luck. A few are secret, and you'll only find out what they are when you earn them.

@@ -195,4 +195,4 @@ class StandardPerfectPlayTable private constructor(private val values: ShortArra
 }
 
 /** [player]'s upper total as the table counts it - capped at the bonus threshold. */
-internal fun PlayerState.cappedUpperTotal(): Int = minOf(upperSectionTotal, gameMode.upperBonusThreshold)
+internal fun PlayerState.cappedUpperTotal(): Int = minOf(upperSectionTotal, upperBonusThreshold)

@@ -1,5 +1,7 @@
 package net.zodac.dicefive.model
 
+import kotlin.random.Random
+
 private val STANDARD_CATEGORIES = listOf(
     ScoreCategory.ONES,
     ScoreCategory.TWOS,
@@ -82,21 +84,6 @@ enum class GameMode(
      */
     val maxRollsPerGame: Int,
     /**
-     * A per-turn time limit the rules themselves set, in seconds, replacing whatever the setup
-     * screen's Turn Timer is set to (that row is disabled while such a mode is picked). Null leaves
-     * the timer to the player - see [GameState.turnSeconds].
-     */
-    val turnTimerSeconds: Int? = null,
-    /** Which open category a turn that runs out of time is scored in - see [TimeoutPick]. */
-    val timeoutPick: TimeoutPick = TimeoutPick.FIRST_OPEN,
-    /**
-     * Whether a human's turn starts with the cup tapped for them - the game screen makes the same
-     * tap a player would (see [GameState.awaitsAutoRoll]), so the roll is indistinguishable from
-     * one they made themselves. An AI's turn needs nothing: its turn loop starts with a roll in
-     * every mode.
-     */
-    val autoRollAtTurnStart: Boolean = false,
-    /**
      * How many times each category is scored - a box has this many slots, each filled by its own
      * turn, and the box's score is all of them added up. So a game lasts [categories] times this
      * many turns. See [PlayerState.scorecard].
@@ -109,11 +96,15 @@ enum class GameMode(
      */
     val countsOnLeaderboard: Boolean = true,
     /**
-     * Whether the roll modifiers (Number of Rolls, Stored Rolls - see [RollModifiers]) apply. A mode whose
-     * rules are built on its rolls turns them off; the setup screen shows them locked and the game starts
-     * with them off.
+     * Boxes of [categories] that are off the card in every game of this mode - shown, but never open to score
+     * in (see [PlayerState.disabledCategories]).
      */
-    val allowsRollModifiers: Boolean = true,
+    val disabledCategories: Set<ScoreCategory> = emptySet(),
+    /**
+     * How many more boxes of [categories] (not [disabledCategories]) are switched off, drawn at random when a
+     * game starts - see [drawDisabledCategories]. The same ones for every player of that game.
+     */
+    val randomDisabledCategories: Int = 0,
 ) {
 
     /**
@@ -172,36 +163,39 @@ enum class GameMode(
     ),
 
     /**
-     * Beyond the official rules: Standard's dice and scorecard, but only one roll per turn - no holds,
-     * no rerolls - against a fixed 10-second turn timer. Running out of time scores the roll in the
-     * open category it's worth *least* in, rather than the first open one. The one roll is made
-     * automatically as each turn starts.
+     * Beyond the official rules: Standard's dice, three rolls and scorecard, but every game starts with
+     * seven of the thirteen boxes switched off - the 5x box always, and six more of the other twelve at
+     * random. A disabled box can't be scored in, so a game is only the six turns left. Every other rule
+     * applies, and the upper bonus is scaled to the upper boxes that remain: three of each number still
+     * earns it (`3*(1+2+...)` over the enabled upper numbers, 63 with all six). With no upper box left there
+     * is no bonus. Its scores don't go on the Leaderboard, since each game's card is different.
      *
-     * Max score: the same card and bonuses as Standard, so the same perfect game - a single roll can
-     * still land five 6s. `1575`.
+     * Max score: the best six boxes there can be, with no 5x and so no joker or chips - Large Straight 40,
+     * and five of the 30s (Sixes, 3x, 4x, Small Straight, Chance) = 190, `+35` the upper bonus, which five
+     * 6s earn on their own (30 against a threshold of 18). `190+35 = 225`.
      *
-     * Max rolls: Standard's 13 boxes, 1 roll each. `13*1 = 13`.
+     * Max rolls: six boxes, 3 rolls each. `6*3 = 18`.
      */
     QUICKFIRE(
         id = "quickfire",
         displayName = "Quickfire",
-        description = "One roll per turn, and 10 seconds to score it",
+        description = "5x and six random boxes are disabled every game",
         diceCount = 5,
         scoringDiceCount = 5,
-        rollsPerTurn = 1,
+        rollsPerTurn = 3,
         dieValues = 1..6,
         dieColours = emptyList(),
         categories = STANDARD_CATEGORIES,
         upperBonusThreshold = 63,
         upperBonusAmount = 35,
         fiveOfAKindBonusAmount = 100,
-        maxPossibleScore = 1575,
-        maxRollsPerGame = 13,
-        turnTimerSeconds = 10,
-        timeoutPick = TimeoutPick.LOWEST_SCORE,
-        autoRollAtTurnStart = true,
-        allowsRollModifiers = false,
+        maxPossibleScore = 225,
+        maxRollsPerGame = 18,
+        countsOnLeaderboard = false,
+        disabledCategories = setOf(ScoreCategory.FIVE_OF_A_KIND),
+        randomDisabledCategories = 6,
     ),
+
     /**
      * Beyond the official rules: Standard's scorecard and three rolls, but seven dice are rolled
      * instead of five - and only the five held dice score. There are five hold slots, so at most
@@ -270,9 +264,23 @@ enum class GameMode(
     fun categoriesWith(extendedScores: Boolean): List<ScoreCategory> =
         if (extendedScores) categories + ScoreCategory.EXTENDED else categories
 
-    /** How many turns each player takes in a game: one for every slot of every category. */
+    /** How many boxes of [categories] are switched off in a game: [disabledCategories], and the random ones drawn. */
+    val disabledCategoryCount: Int
+        get() = disabledCategories.size + randomDisabledCategories
+
+    /** How many turns each player takes in a game: one for every slot of every box that isn't switched off. */
     val turnsPerGame: Int
-        get() = categories.size * scoresPerCategory
+        get() = (categories.size - disabledCategoryCount) * scoresPerCategory
+
+    /**
+     * The boxes a new game of this mode switches off: [disabledCategories] and [randomDisabledCategories] more
+     * picked from the rest of [categories] with [random]. Nothing is drawn from [random] in a mode without
+     * random ones, so every other mode's seeded games come out as they always did.
+     */
+    fun drawDisabledCategories(random: Random): Set<ScoreCategory> {
+        if (randomDisabledCategories == 0) return disabledCategories
+        return disabledCategories + (categories - disabledCategories).shuffled(random).take(randomDisabledCategories)
+    }
 
     /**
      * Whether only the held dice score: more dice are rolled than a hand is scored with

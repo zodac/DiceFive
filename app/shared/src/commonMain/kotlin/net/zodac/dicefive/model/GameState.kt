@@ -13,6 +13,8 @@ data class GameState(
     val extendedScores: Boolean = false,
     /** The Unlucky Dice modifier's settings, or null while it's off. */
     val unluckyDice: UnluckyDice? = null,
+    /** The boxes switched off for this game, the same on every player's card - see [PlayerState.disabledCategories]. */
+    val disabledCategories: Set<ScoreCategory> = emptySet(),
     val players: List<PlayerState> = emptyList(),
     val currentPlayerIndex: Int = 0,
     val dice: List<Die> = List(gameMode.diceCount) { Die() },
@@ -66,21 +68,12 @@ data class GameState(
     val topScore: Int
         get() = players.maxOf { it.totalScore }
 
-    /** How long each turn is allowed, in seconds, or null for no limit: the mode's own fixed timer
-     * ([GameMode.turnTimerSeconds]) if it has one, otherwise the [turnTimer] picked at setup. */
+    /** How long each turn is allowed, in seconds, or null for no limit: the [turnTimer] picked at setup. */
     val turnSeconds: Int?
-        get() = gameMode.turnTimerSeconds ?: turnTimer.seconds
+        get() = turnTimer.seconds
 
     /** Whether this game's scores go on the Leaderboard: its mode must allow it ([GameMode.countsOnLeaderboard])
      * and no modifier, like the [turnTimer], [rollModifiers], [extendedScores] or [unluckyDice], may be on - modifiers are for fun, not for the records. */
     val countsOnLeaderboard: Boolean
         get() = gameMode.countsOnLeaderboard && turnTimer == TurnTimer.NONE && !rollModifiers.isActive && !extendedScores && unluckyDice == null
-
-    /** A human's turn, not yet rolled, in a mode that taps the cup for them at the start of it
-     * ([GameMode.autoRollAtTurnStart]). An AI's turn is never this - its own turn loop rolls. */
-    val awaitsAutoRoll: Boolean
-        get() = gameMode.autoRollAtTurnStart &&
-            !isGameOver &&
-            currentPlayer?.type == PlayerType.HUMAN &&
-            phase == TurnPhase.AWAITING_ROLL
 }

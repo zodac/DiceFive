@@ -1,5 +1,6 @@
 package net.zodac.dicefive.data.game
 
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -9,13 +10,16 @@ import net.zodac.dicefive.data.JsonArray
 import net.zodac.dicefive.data.JsonNull
 import net.zodac.dicefive.data.JsonNumber
 import net.zodac.dicefive.data.JsonObject
+import net.zodac.dicefive.data.JsonParseException
 import net.zodac.dicefive.data.parseJson
 import net.zodac.dicefive.data.toJson
+import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
+import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
@@ -363,6 +367,45 @@ class GameStateJsonTest {
         val decoded = GameStateJson.decode(saved)
         assertEquals(null, decoded.unluckyDice)
         assertTrue(decoded.dice.none { it.isUnlucky })
+    }
+
+    @Test
+    fun `round trips a Quickfire game - the boxes switched off on the game and every card`() {
+        val players = listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Player 1"), PlayerConfig(slot = 2, type = PlayerType.AI, name = "Bot"))
+        val started = GameEngine.newGame(players, GameMode.QUICKFIRE, random = Random(4))
+        val open = started.players[0].categories.first { started.players[0].isOpen(it) }
+        val state = GameEngine.commitScore(
+            started.copy(phase = TurnPhase.ROLLED, dice = List(5) { Die(value = 2) }),
+            open,
+        )
+
+        val decoded = GameStateJson.decode(GameStateJson.encode(state))
+
+        assertEquals(state, decoded)
+        assertEquals(7, decoded.disabledCategories.size)
+        assertTrue(ScoreCategory.FIVE_OF_A_KIND in decoded.disabledCategories)
+        assertTrue(decoded.players.all { it.disabledCategories == decoded.disabledCategories })
+    }
+
+    @Test
+    fun `a Quickfire save from before the disabled boxes - the old one roll mode - has nothing to resume`() {
+        val state = GameEngine.newGame(
+            listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Player 1")),
+            GameMode.QUICKFIRE,
+        )
+        val saved = GameStateJson.encode(state).toJsonObject()
+        val older = JsonObject(saved.fields - "disabledCategories").toJson()
+
+        assertFailsWith<JsonParseException> { GameStateJson.decode(older) }
+    }
+
+    @Test
+    fun `a mode that switches nothing off at random writes no disabled boxes - and loads with none`() {
+        val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
+        val saved = GameStateJson.encode(state)
+
+        assertFalse("disabledCategories" in saved)
+        assertEquals(emptySet(), GameStateJson.decode(saved).disabledCategories)
     }
 }
 

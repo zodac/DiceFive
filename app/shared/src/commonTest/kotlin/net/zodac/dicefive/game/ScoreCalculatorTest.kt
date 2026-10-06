@@ -143,44 +143,11 @@ class ScoreCalculatorTest {
 
     // ---- Where a timed-out turn is scored -----------------------------------------------------
 
-    private val quickfirePlayer = PlayerState(name = "Player 1", type = PlayerType.HUMAN, gameMode = GameMode.QUICKFIRE)
-
     @Test
     fun `a Standard timeout scores the first open category - whatever it's worth`() {
         val player = freshPlayer.copy(scorecard = freshPlayer.scorecard + (ScoreCategory.ONES to listOf(3)))
 
         assertEquals(ScoreCategory.TWOS, ScoreCalculator.timeoutCategory(player, diceOf(2, 2, 3, 4, 6)))
-    }
-
-    @Test
-    fun `a Quickfire timeout scores the open category worth the least`() {
-        val player = quickfirePlayer.copy(scorecard = quickfirePlayer.scorecard + (ScoreCategory.ONES to listOf(3)))
-        // Twos 4, Threes 3, Fours 4, Fives 0 - the first open box would be Twos, the lowest is Fives.
-        val dice = diceOf(2, 2, 3, 4, 6)
-
-        assertEquals(ScoreCategory.FIVES, ScoreCalculator.timeoutCategory(player, dice))
-    }
-
-    @Test
-    fun `a Quickfire timeout takes the first category in scorecard order when several tie for lowest`() {
-        // Ones 4, Twos 2, then Threes/Fours/Fives/Sixes and more all 0 - Threes is the first of them.
-        assertEquals(ScoreCategory.THREES, ScoreCalculator.timeoutCategory(quickfirePlayer, diceOf(1, 1, 1, 1, 2)))
-
-        // A non-zero tie too: only Twos and Fours open, both worth 4 - Twos comes first.
-        val twosAndFoursOpen = quickfirePlayer.copy(
-            scorecard = quickfirePlayer.scorecard + GameMode.QUICKFIRE.categories
-                .filter { it != ScoreCategory.TWOS && it != ScoreCategory.FOURS }
-                .associateWith { listOf(0) },
-        )
-        assertEquals(ScoreCategory.TWOS, ScoreCalculator.timeoutCategory(twosAndFoursOpen, diceOf(2, 2, 4, 1, 1)))
-    }
-
-    @Test
-    fun `a Quickfire timeout still obeys the joker rule's forced box`() {
-        val player = quickfirePlayer.copy(scorecard = quickfirePlayer.scorecard + (ScoreCategory.FIVE_OF_A_KIND to listOf(50)))
-
-        // A repeat 5x of 4s must go in Fours, even though other open boxes would score less.
-        assertEquals(ScoreCategory.FOURS, ScoreCalculator.timeoutCategory(player, diceOf(4, 4, 4, 4, 4)))
     }
 
     // ---- Third Wind: three slots a box -----------------------------------------------------------

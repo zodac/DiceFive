@@ -27,14 +27,17 @@ object GameEngine {
         rollModifiers: RollModifiers = RollModifiers(),
         extendedScores: Boolean = false,
         unluckyDice: UnluckyDice? = null,
+        random: Random = Random.Default,
     ): GameState {
         require(players.isNotEmpty()) { "At least one player is required" }
+        val disabledCategories = gameMode.drawDisabledCategories(random)
         return GameState(
             gameMode = gameMode,
             turnTimer = turnTimer,
             rollModifiers = rollModifiers,
             extendedScores = extendedScores,
             unluckyDice = unluckyDice,
+            disabledCategories = disabledCategories,
             players = players.map {
                 PlayerState(
                     name = it.name,
@@ -42,6 +45,7 @@ object GameEngine {
                     difficulty = it.difficulty,
                     gameMode = gameMode,
                     extendedScores = extendedScores,
+                    disabledCategories = disabledCategories,
                     rollsModified = rollModifiers.isActive,
                 )
             },

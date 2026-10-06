@@ -16,6 +16,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.oneScoreEach
 
@@ -1247,9 +1248,15 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `Quickfire never unlocks Greenfingers - its 13 rolls are too few to bloom`() {
-        // Every one of its rolls is made for the player, so using them all takes no trying at all.
-        assertFalse(Achievement.GREENFINGERS in afterRolls(13, GameMode.QUICKFIRE).newlyUnlocked)
+    fun `Quickfire's sunflower takes every roll of its six turns - 18 - and one short does not`() {
+        fun afterQuickfireRolls(rolls: Int) = AchievementEngine.evaluateInProgress(
+            inProgress(midGamePlayer(emptyMap(), gameMode = GameMode.QUICKFIRE).copy(rollCount = rolls, disabledCategories = QUICKFIRE_OFF)),
+            AchievementsState(),
+            NOW,
+        )
+
+        assertTrue(Achievement.GREENFINGERS in afterQuickfireRolls(18).newlyUnlocked)
+        assertFalse(Achievement.GREENFINGERS in afterQuickfireRolls(17).newlyUnlocked)
     }
 
     @Test
@@ -1269,7 +1276,7 @@ class AchievementEngineTest {
                 Achievement.TRICOLOUR_WIN,
                 Achievement.TRICOLOUR_ALL_COLOURS,
                 Achievement.QUICKFIRE_WIN,
-                Achievement.QUICKFIRE_BEAT_THE_CLOCK,
+                Achievement.QUICKFIRE_SCORE,
                 Achievement.STUD_WIN,
                 Achievement.STUD_LUCKY_SEVEN,
                 Achievement.THIRD_WIND_WIN,
@@ -1298,6 +1305,19 @@ class AchievementEngineTest {
     }
 
     @Test
+    fun `scoring 150 in Quickfire unlocks Six Of The Best - win or lose - but not with extra rolls or boxes or in another mode`() {
+        fun game(mode: GameMode, total: Int) = quickfireGame(quickfirePlayer(total = total)).copy(gameMode = mode)
+
+        assertTrue(Achievement.QUICKFIRE_SCORE in unlocked(game(GameMode.QUICKFIRE, 150)))
+        assertFalse(Achievement.QUICKFIRE_SCORE in unlocked(game(GameMode.QUICKFIRE, 149)))
+        assertFalse(Achievement.QUICKFIRE_SCORE in unlocked(game(GameMode.STANDARD, 200)))
+        assertFalse(Achievement.QUICKFIRE_SCORE in unlocked(game(GameMode.QUICKFIRE, 200).copy(rollModifiers = RollModifiers(rollsPerTurn = 5))))
+        assertFalse(Achievement.QUICKFIRE_SCORE in unlocked(game(GameMode.QUICKFIRE, 200).copy(extendedScores = true)))
+        val lost = quickfireGame(quickfirePlayer(total = 160), quickfirePlayer(total = 200, name = "Bot", type = PlayerType.AI))
+        assertTrue(Achievement.QUICKFIRE_SCORE in unlocked(lost))
+    }
+
+    @Test
     fun `winning a multiplayer game of Stud unlocks Hold Em - and only Stud`() {
         fun game(mode: GameMode, humanTotal: Int, withBot: Boolean = true) = if (withBot) {
             finishedGame(
@@ -1315,32 +1335,114 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `finishing Quickfire without player 1 timing out unlocks Beat The Clock - win or lose`() {
-        val quickfireLoss = finishedGame(
-            player(total = 100, gameMode = GameMode.QUICKFIRE),
-            player(name = "Bot", type = PlayerType.AI, total = 200, gameMode = GameMode.QUICKFIRE),
+    fun `Impatient and Naturally Gifted aren't handed out when Number of Rolls makes it one roll - Quickfire has three`() {
+        fun won(mode: GameMode) = finishedGame(
+            player(total = 200, gameMode = mode),
+            player(name = "Bot", type = PlayerType.AI, total = 150, gameMode = mode),
         )
+        val context = GameAchievementContext(playerOneTookExtraRoll = false)
 
-        val inTime = evaluate(quickfireLoss, context = GameAchievementContext(playerOneTimeouts = 0))
-        val timedOut = evaluate(quickfireLoss, context = GameAchievementContext(playerOneTimeouts = 1))
-        val standard = evaluate(finishedGame(player(total = 100)), context = GameAchievementContext(playerOneTimeouts = 0))
+        val oneRoll = evaluate(won(GameMode.STANDARD).copy(rollModifiers = RollModifiers(rollsPerTurn = 1)), context = context)
+        assertFalse(Achievement.IMPATIENT in oneRoll.newlyUnlocked)
+        assertFalse(Achievement.NATURALLY_GIFTED in oneRoll.newlyUnlocked)
 
-        assertTrue(Achievement.QUICKFIRE_BEAT_THE_CLOCK in inTime.newlyUnlocked)
-        assertFalse(Achievement.QUICKFIRE_BEAT_THE_CLOCK in timedOut.newlyUnlocked)
-        assertFalse(Achievement.QUICKFIRE_BEAT_THE_CLOCK in standard.newlyUnlocked)
+        val quickfire = evaluate(won(GameMode.QUICKFIRE), context = context)
+        assertTrue(Achievement.IMPATIENT in quickfire.newlyUnlocked)
+        assertTrue(Achievement.NATURALLY_GIFTED in quickfire.newlyUnlocked)
+    }
+
+    // ---- Quickfire: a card with boxes switched off -------------------------------------------------
+
+    /** A Quickfire draw leaving Sixes, 3x, 4x, both straights and Chance on. */
+    private val QUICKFIRE_OFF = setOf(
+        ScoreCategory.FIVE_OF_A_KIND,
+        ScoreCategory.ONES,
+        ScoreCategory.TWOS,
+        ScoreCategory.THREES,
+        ScoreCategory.FOURS,
+        ScoreCategory.FIVES,
+        ScoreCategory.FULL_HOUSE,
+    )
+
+    /** A Quickfire player whose [off] boxes are switched off - empty, as in a real game - and the rest scored as [player] says. */
+    private fun quickfirePlayer(
+        total: Int = 100,
+        overrides: Map<ScoreCategory, Int> = emptyMap(),
+        off: Set<ScoreCategory> = QUICKFIRE_OFF,
+        name: String = "Player 1",
+        type: PlayerType = PlayerType.HUMAN,
+    ): PlayerState {
+        val scored = player(name = name, type = type, total = total, overrides = overrides, gameMode = GameMode.QUICKFIRE)
+        return scored.copy(disabledCategories = off, scorecard = scored.scorecard.mapValues { (category, slots) -> if (category in off) emptyList() else slots })
+    }
+
+    private fun quickfireGame(vararg players: PlayerState, off: Set<ScoreCategory> = QUICKFIRE_OFF) =
+        finishedGame(*players).copy(disabledCategories = off)
+
+    /** Everything a finished [game] unlocks. */
+    private fun unlocked(game: GameState) = evaluate(game).newlyUnlocked
+
+    @Test
+    fun `a Quickfire card with no zero doesn't unlock Spotless - a full Standard one does`() {
+        val enabled = GameMode.QUICKFIRE.categories - QUICKFIRE_OFF
+        val quickfire = quickfirePlayer(total = 100, overrides = enabled.associateWith { 10 })
+        val standard = player(total = 100, overrides = GameMode.STANDARD.categories.associateWith { 10 })
+
+        assertFalse(Achievement.NO_ZEROES in unlocked(quickfireGame(quickfire)))
+        assertTrue(Achievement.NO_ZEROES in unlocked(finishedGame(standard)))
     }
 
     @Test
-    fun `Impatient and Naturally Gifted aren't handed out by Quickfire - one roll there isn't a choice`() {
-        val won = finishedGame(
-            player(total = 200, gameMode = GameMode.QUICKFIRE),
-            player(name = "Bot", type = PlayerType.AI, total = 150, gameMode = GameMode.QUICKFIRE),
+    fun `a low Quickfire total doesn't unlock Cold Dice or Low Rolls or Rock Bottom - a Standard one does`() {
+        for ((total, achievements) in listOf(
+            90 to listOf(Achievement.SCORE_UNDER_100),
+            15 to listOf(Achievement.SCORE_UNDER_100, Achievement.LOW_ROLLS),
+            5 to listOf(Achievement.SCORE_UNDER_100, Achievement.LOW_ROLLS, Achievement.EXTREME_LOW_ROLLS),
+        )) {
+            val quickfire = unlocked(quickfireGame(quickfirePlayer(total = total)))
+            val standard = unlocked(finishedGame(player(total = total)))
+            for (achievement in achievements) {
+                assertFalse(achievement in quickfire, "$achievement at $total in Quickfire")
+                assertTrue(achievement in standard, "$achievement at $total in Standard")
+            }
+        }
+    }
+
+    @Test
+    fun `zeroing every Quickfire box but Chance doesn't unlock How Do You Play This Game`() {
+        assertFalse(Achievement.ALL_ZEROES in unlocked(quickfireGame(quickfirePlayer(total = 20))))
+        assertTrue(Achievement.ALL_ZEROES in unlocked(finishedGame(player(total = 20))))
+    }
+
+    @Test
+    fun `the score ladder isn't climbed in Quickfire however high the total`() {
+        val update = unlocked(quickfireGame(quickfirePlayer(total = 210)))
+
+        assertFalse(Achievement.SCORE_200 in update)
+        assertTrue(Achievement.SCORE_200 in unlocked(finishedGame(player(total = 210))))
+    }
+
+    @Test
+    fun `a scaled Quickfire upper bonus doesn't unlock Bonus Round - nor do the section totals unlock Upper or Lower Class`() {
+        val onlySixes = GameMode.QUICKFIRE.categories.filter { it != ScoreCategory.SIXES && it.section == ScoreSection.UPPER }.toSet() + ScoreCategory.FIVE_OF_A_KIND
+        val bonus = midGamePlayer(mapOf(ScoreCategory.SIXES to 18), gameMode = GameMode.QUICKFIRE).copy(disabledCategories = onlySixes)
+        assertEquals(35, bonus.upperSectionBonus)
+        assertFalse(Achievement.UPPER_BONUS in AchievementEngine.evaluateInProgress(inProgress(bonus), AchievementsState(), NOW).newlyUnlocked)
+        val standard = midGamePlayer(PlayerState.UPPER_CATEGORIES.associateWith { 3 * (PlayerState.UPPER_CATEGORIES.indexOf(it) + 1) })
+        assertTrue(Achievement.UPPER_BONUS in AchievementEngine.evaluateInProgress(inProgress(standard), AchievementsState(), NOW).newlyUnlocked)
+
+        val upper = quickfirePlayer(
+            overrides = mapOf(ScoreCategory.SIXES to 30, ScoreCategory.FIVES to 25, ScoreCategory.FOURS to 20, ScoreCategory.THREES to 15),
+            off = setOf(ScoreCategory.FIVE_OF_A_KIND, ScoreCategory.ONES, ScoreCategory.TWOS, ScoreCategory.FULL_HOUSE, ScoreCategory.SMALL_STRAIGHT, ScoreCategory.LARGE_STRAIGHT),
         )
-
-        val update = evaluate(won, context = GameAchievementContext(playerOneTookExtraRoll = false))
-
-        assertFalse(Achievement.IMPATIENT in update.newlyUnlocked)
-        assertFalse(Achievement.NATURALLY_GIFTED in update.newlyUnlocked)
+        assertEquals(90, upper.upperSectionTotal)
+        assertFalse(Achievement.UPPER_84 in unlocked(quickfireGame(upper, off = upper.disabledCategories)))
+        val lower = quickfirePlayer(
+            total = 200,
+            overrides = mapOf(ScoreCategory.THREE_OF_A_KIND to 30, ScoreCategory.FOUR_OF_A_KIND to 30, ScoreCategory.LARGE_STRAIGHT to 40, ScoreCategory.SMALL_STRAIGHT to 30),
+        )
+        assertTrue(lower.lowerSectionTotalExcludingFiveOfAKind >= 150)
+        assertFalse(Achievement.LOWER_150 in unlocked(quickfireGame(lower)))
     }
 
     // ---- Luck Of The Draw -------------------------------------------------------------------------
@@ -1372,7 +1474,10 @@ class AchievementEngineTest {
 
     @Test
     fun `Luck Of The Draw works in every mode - measured against that mode's own card`() {
-        assertTrue(luckOfTheDraw(wonGame(GameMode.QUICKFIRE), timeouts = 10))
+        // Quickfire's six boxes: 3 timeouts leaves 3 by hand, 2 leaves 4.
+        val quickfire = quickfireGame(quickfirePlayer(total = 300), quickfirePlayer(total = 200, name = "Bot", type = PlayerType.AI))
+        assertTrue(luckOfTheDraw(quickfire, timeouts = 3))
+        assertFalse(luckOfTheDraw(quickfire, timeouts = 2))
         // Tricolour's 17 boxes: 14 timeouts leaves 3 by hand, 13 leaves 4.
         assertTrue(luckOfTheDraw(wonGame(GameMode.TRICOLOUR), timeouts = 14))
         assertFalse(luckOfTheDraw(wonGame(GameMode.TRICOLOUR), timeouts = 13))

@@ -20,9 +20,8 @@ class FlowerpotGrowthTest {
     }
 
     @Test
-    fun `in Quickfire it grows over its 13 rolls but never blooms - one roll a turn`() {
-        assertFalse(GameMode.QUICKFIRE.growsSunflower)
-        assertEquals(List(4) { 0 } + List(3) { 1 } + List(3) { 2 } + List(4) { 3 }, GameMode.QUICKFIRE.stages())
+    fun `in Quickfire the stages spread evenly over its 18 rolls and it blooms only on the last`() {
+        assertEquals(List(5) { 0 } + List(4) { 1 } + List(5) { 2 } + List(4) { 3 } + listOf(FLOWERPOT_FULL_BLOOM), GameMode.QUICKFIRE.stages())
     }
 
     @Test

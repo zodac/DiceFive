@@ -31,10 +31,14 @@ class HandScoringTest {
                     val value = mode.dieValues.random(random)
                     scoring.space.handOf(List(mode.scoringDiceCount) { faces.filter { it.value == value }.random(random) })
                 }
-                val base = PlayerState(name = "Bot", type = PlayerType.AI, gameMode = mode, extendedScores = extended)
+                // Quickfire's boxes are switched off too, which leaves no score in them and no turn to take there.
+                val off = if (mode.randomDisabledCategories > 0) mode.drawDisabledCategories(random) else emptySet()
+                val base = PlayerState(name = "Bot", type = PlayerType.AI, gameMode = mode, extendedScores = extended, disabledCategories = off)
                 val scorecard = base.scorecard.toMutableMap()
                 for ((index, category) in categories.withIndex()) {
-                    if ((filled shr index) and 1 == 1) {
+                    if (category in off) {
+                        scorecard[category] = emptyList()
+                    } else if ((filled shr index) and 1 == 1) {
                         // A filled box is full - every slot of it - with a 50 in one of the 5x box's at random.
                         val fifty = index == fiveOfAKind && random.nextBoolean()
                         scorecard[category] = List(mode.scoresPerCategory) { slot -> if (fifty && slot == 0) requireNotNull(category.fixedScore) else 0 }

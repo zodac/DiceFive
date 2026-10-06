@@ -494,13 +494,16 @@ object AiTurnPlayer {
          */
         private val upperBonusPerPoint: Double = run {
             val total = player.upperSectionTotal
+            val threshold = player.upperBonusThreshold
             val bestStillPossible = total + PlayerState.UPPER_CATEGORIES.withIndex()
                 .filter { (_, category) -> category in mode.categories }
-                .sumOf { (index, category) -> (index + 1) * mode.scoringDiceCount * (mode.scoresPerCategory - player.scoresIn(category).size) }
-            if (total >= mode.upperBonusThreshold || bestStillPossible < mode.upperBonusThreshold) {
+                .sumOf { (index, category) ->
+                    if (player.isOpen(category)) (index + 1) * mode.scoringDiceCount * (mode.scoresPerCategory - player.scoresIn(category).size) else 0
+                }
+            if (!player.hasUpperBonus || total >= threshold || bestStillPossible < threshold) {
                 0.0
             } else {
-                mode.upperBonusAmount.toDouble() / mode.upperBonusThreshold
+                mode.upperBonusAmount.toDouble() / threshold
             }
         }
 
