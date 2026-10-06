@@ -90,6 +90,15 @@ class GameStateJsonTest {
     }
 
     @Test
+    fun `round trips whether a player's first 5x has been flashed and loads an old save as not yet`() {
+        val flashed = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN, fiveOfAKindFlashed = true)))
+        val fresh = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
+
+        assertTrue(GameStateJson.decode(GameStateJson.encode(flashed)).players.single().fiveOfAKindFlashed)
+        assertFalse(GameStateJson.decode(GameStateJson.encode(fresh)).players.single().fiveOfAKindFlashed)
+    }
+
+    @Test
     fun `round trips the seconds left on the turn timer`() {
         val state = GameState(
             turnTimer = TurnTimer.SECONDS_60,

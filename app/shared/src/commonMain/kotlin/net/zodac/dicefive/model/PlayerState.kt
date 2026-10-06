@@ -49,6 +49,8 @@ data class PlayerState(
     /** Whether a roll modifier is on, so this player's rolls (and so their totals) aren't what the
      * mode's own rules would give - what keeps the achievements measured on totals from being handed out. */
     val rollsModified: Boolean = false,
+    /** Whether this player's first 5x of the game has had its gold flash on the scorecard - so it plays once, even across a resume. */
+    val fiveOfAKindFlashed: Boolean = false,
 ) {
 
     /** Every box on this player's card: [gameMode]'s own, plus the Extended Scores modifier's when it's on. */

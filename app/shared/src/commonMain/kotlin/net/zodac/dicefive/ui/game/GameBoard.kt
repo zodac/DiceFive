@@ -10,6 +10,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,6 +23,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import net.zodac.dicefive.game.DiceScoring
 import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
@@ -26,6 +34,7 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.flowerpotStage
+import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.style.FlowerpotGrowth
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.playerColor
@@ -117,6 +126,8 @@ fun GameBoard(
     diceSettling: Boolean = false,
     // False where the game is laid out side by side: the cup is drawn over the dice tray instead (GameCup).
     showCup: Boolean = true,
+    // Whether a seat's first 5x of the game is still to be flashed: true once per seat, see GameViewModel.claimFiveOfAKindFlash.
+    claimFiveOfAKindFlash: (Int) -> Boolean = { false },
 ) {
     val player = state.currentPlayer
     val rolled = state.phase == TurnPhase.ROLLED
@@ -140,19 +151,40 @@ fun GameBoard(
     val canScore = rolled && player?.type == PlayerType.HUMAN && !rollInHand && state.hasFullHand
     val available = player?.let { ScoreCalculator.availableCategories(it, hand) }.orEmpty().toSet()
 
-    ScoreBoardRow(
-        categories = state.categories,
-        player = player,
-        dice = hand,
-        canScore = canScore,
-        showPreview = rolled && !rollInHand && hand.isNotEmpty(),
-        available = available,
-        onScoreCategory = onScoreCategory,
-        cup = cupPanelState(state, rolling, pouring, rollInHand, canUndo, onCupTap, onUndo),
-        showCup = showCup,
-        modifier = modifier,
-    )
+    // The 5x tile flashes gold the first time each player's dice settle on a 5x they can score as one.
+    val showPreview = rolled && !rollInHand && hand.isNotEmpty()
+    val fiveOfAKindShowing = showPreview && ScoreCategory.FIVE_OF_A_KIND in available && DiceScoring.isFiveOfAKind(hand)
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    var flashFiveOfAKind by remember { mutableStateOf(false) }
+    LaunchedEffect(fiveOfAKindShowing, state.currentPlayerIndex) {
+        if (fiveOfAKindShowing && claimFiveOfAKindFlash(state.currentPlayerIndex)) {
+            flashFiveOfAKind = true
+            lifecycle.delayWhileResumed(FIVE_OF_A_KIND_FLASH_HOLD_MILLIS)
+            flashFiveOfAKind = false
+        }
+    }
+
+    CompositionLocalProvider(LocalFiveOfAKindFlash provides flashFiveOfAKind) {
+        ScoreBoardRow(
+            categories = state.categories,
+            player = player,
+            dice = hand,
+            canScore = canScore,
+            showPreview = showPreview,
+            available = available,
+            onScoreCategory = onScoreCategory,
+            cup = cupPanelState(state, rolling, pouring, rollInHand, canUndo, onCupTap, onUndo),
+            showCup = showCup,
+            modifier = modifier,
+        )
+    }
 }
+
+/** How long the 5x tile stays solid gold before fading back - the same hold as an achievement row's flash. */
+private const val FIVE_OF_A_KIND_FLASH_HOLD_MILLIS = 900L
+
+/** Whether the 5x tile is flashing gold for a player's first 5x - provided by [GameBoard] for [CategoryCell] to find. */
+internal val LocalFiveOfAKindFlash = compositionLocalOf { false }
 
 /** The cup's part of [state]'s turn, the same whether it's drawn in the board or beside it ([GameCup]). */
 private fun cupPanelState(
