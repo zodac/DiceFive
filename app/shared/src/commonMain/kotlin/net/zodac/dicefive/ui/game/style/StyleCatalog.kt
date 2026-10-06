@@ -872,7 +872,6 @@ object DiceMats : StyleCatalog<DiceMat>(
             "Wood",
             listOf(
                 StyleColour("Brown", BarrelTrayTop, BarrelDiceMat),
-                StyleColour("Hardwood", Color(0xFFA8703F), HardwoodDiceMat),
             ),
             unlock = AchievementCount(16),
         ),
@@ -909,7 +908,6 @@ object DiceMats : StyleCatalog<DiceMat>(
             ),
             unlock = AchievementCount(69),
         ),
-        StyleFamily("Marble", listOf(StyleColour("White", Color(0xFFF2F1EE), MarbleDiceMat)), unlock = AchievementCount(72)),
         StyleFamily(
             "Honeycomb",
             listOf(mat("Honey", ::HoneycombDiceMat, "honeycomb_honey", 0xFFF2A81E, 0xFF9A5A06, 0xFF5A3A0E, 0xFF3E2806, 0xFFFFD27A, 0xFFE8B850)),

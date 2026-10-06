@@ -77,18 +77,6 @@
     "copyright": "Copyright 2026 zodac.net",
     "license": "LicenseRef-DiceFive-AllRightsReserved"
   },
-  "app/shared/src/commonMain/composeResources/drawable/mat_hardwood.webp": {
-    "description": "Hardwood dice mat texture: procedurally generated oak floorboards (no photographic source) - scripts/art/generate_hardwood_mat.py, seed 3",
-    "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_018xvFVCzRinGAF3ieZB9im4",
-    "copyright": "Copyright 2026 zodac.net",
-    "license": "LicenseRef-DiceFive-AllRightsReserved"
-  },
-  "app/shared/src/commonMain/composeResources/drawable/mat_marble.webp": {
-    "description": "Marble dice mat texture: procedurally generated white marble (no photographic source) - scripts/art/generate_marble_mat.py, seed 11",
-    "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_018xvFVCzRinGAF3ieZB9im4",
-    "copyright": "Copyright 2026 zodac.net",
-    "license": "LicenseRef-DiceFive-AllRightsReserved"
-  },
   "app/shared/src/commonMain/composeResources/font/mathjax_main_regular.otf": {
     "description": "MathJax_Main Regular (Computer Modern roman, as in Wikipedia's formulas) for the Maths dice's digits, root sign and factorial - unmodified, only the file renamed to a valid resource name (fonts/HTML-CSS/TeX/otf/MathJax_Main-Regular.otf in MathJax 2.7.9)",
     "source": "https://cdn.jsdelivr.net/npm/mathjax@2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Main-Regular.otf",
