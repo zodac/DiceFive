@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardOptions
@@ -22,7 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,7 +31,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,15 +45,15 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.collectionInfo
 import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
 /*
  * The app's dropdown-and-modal pickers. Every colour, shape, size and text style of the closed field and
@@ -63,9 +61,6 @@ import androidx.compose.ui.unit.dp
  * rows share [PickerRowText], so a re-theme is made in this one file. [ChoicePicker] (pick one) and
  * [ModifierPicker] (switch several on, each with an optional value) are only the contents they hold.
  */
-
-/** The most the modal's list may grow before it scrolls - about five two-line options. */
-private val PICKER_LIST_MAX_HEIGHT = 340.dp
 
 /** Room kept at the right of the modal's list for the scrollbar drawn over it. */
 private val PICKER_SCROLLBAR_CLEARANCE = 12.dp
@@ -110,10 +105,11 @@ private fun PickerField(
 }
 
 /**
- * The open state of every picker: a modal with a centred heading, a list capped at
- * [PICKER_LIST_MAX_HEIGHT] that scrolls (with the app's scrollbar) past that, and one closing button.
- * [items] fills the list; [collectionSize] is how many rows it will hold, for a screen reader's
- * "2 of 10".
+ * The open state of every picker: a full-screen page over the form (a dialog window, so the setup
+ * screen and its state stay where they are and Back returns to them), titled like any other page,
+ * with the list filling the room and one closing button under it. The list scrolls (with the app's
+ * scrollbar) once it outgrows the screen. [items] fills the list; [collectionSize] is how many rows
+ * it will hold, for a screen reader's "2 of 10".
  */
 @Composable
 private fun PickerDialog(
@@ -124,24 +120,12 @@ private fun PickerDialog(
     listState: LazyListState,
     items: LazyListScope.() -> Unit,
 ) {
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismissRequest,
-        title = {
-            Text(
-                text = title,
-                // The page titles' face and gold, as every dialog in the app has it.
-                style = MaterialTheme.typography.headlineSmall,
-                fontFamily = SoraFontFamily,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { heading() },
-            )
-        },
-        text = {
-            Box(modifier = Modifier.heightIn(max = PICKER_LIST_MAX_HEIGHT)) {
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
+        ScreenScaffold(title = title, onBack = onDismissRequest) {
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 LazyColumn(
                     state = listState,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -152,12 +136,9 @@ private fun PickerDialog(
                 )
                 LazyListScrollbar(listState)
             }
-        },
-        confirmButton = { TextButton(onClick = onDismissRequest) { Text(closeLabel) } },
-        shape = MaterialTheme.shapes.extraLarge,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 6.dp,
-    )
+            Button(onClick = onDismissRequest, modifier = Modifier.fillMaxWidth()) { Text(closeLabel) }
+        }
+    }
 }
 
 /** A row's name and its one-line description, as every picker row writes them. */
