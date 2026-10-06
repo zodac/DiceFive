@@ -253,13 +253,16 @@ class ModifierSetting(
     val selectedValue: Int = 0,
     val onValueSelect: (Int) -> Unit = {},
     val lockedNote: String? = null,
-    /** A value counted up and down in steps instead of picked from [valueLabels], for more choices than a row of segments holds. */
-    val stepper: ModifierStepper? = null,
+    /** Values counted up and down in steps instead of picked from [valueLabels], for more choices than a row of segments holds - one row each, in order. */
+    val steppers: List<ModifierStepper> = emptyList(),
     /** A value typed in, for one that has no short list of choices. */
     val numberField: ModifierNumberField? = null,
 )
 
-/** A [ModifierSetting]'s stepped value: [value] within [range], shown as "[value] [unit]" and spoken the same way after [label]. */
+/**
+ * A [ModifierSetting]'s stepped value: [value] within [range], moved [step] at a time, shown as "[value] [unit]" and
+ * spoken the same way after [label]. A [unit] that attaches to its number (a "%") sets [unitSeparator] to "".
+ */
 class ModifierStepper(
     val value: Int,
     val range: IntRange,
@@ -267,6 +270,8 @@ class ModifierStepper(
     val label: String,
     val unit: String,
     val unitSingular: String = unit,
+    val step: Int = 1,
+    val unitSeparator: String = " ",
 )
 
 /**
@@ -336,7 +341,7 @@ private fun ModifierRow(setting: ModifierSetting, modifier: Modifier = Modifier)
         }
         // Always laid out, greyed while the modifier is off: showing it only when on made the modal grow
         // under a finger that had just tapped the switch, so whatever was beneath it moved.
-        setting.stepper?.let { stepper ->
+        setting.steppers.forEach { stepper ->
             ModifierStepperRow(stepper, enabled = unlocked && setting.enabled, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
         }
         setting.numberField?.let { field ->
@@ -359,21 +364,21 @@ private fun ModifierRow(setting: ModifierSetting, modifier: Modifier = Modifier)
 private fun ModifierStepperRow(stepper: ModifierStepper, enabled: Boolean, modifier: Modifier = Modifier) {
     val unit = if (stepper.value == 1) stepper.unitSingular else stepper.unit
     Row(modifier = modifier, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = { stepper.onValueChange(stepper.value - 1) }, enabled = enabled && stepper.value > stepper.range.first) {
+        IconButton(onClick = { stepper.onValueChange(stepper.value - stepper.step) }, enabled = enabled && stepper.value - stepper.step >= stepper.range.first) {
             Icon(Icons.Filled.Remove, contentDescription = "Decrease ${stepper.label.lowercase()}")
         }
         Text(
-            text = "${stepper.value} $unit",
+            text = "${stepper.value}${stepper.unitSeparator}$unit",
             style = MaterialTheme.typography.titleMedium,
             color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA),
             textAlign = TextAlign.Center,
             // Polite live region: the new count is spoken after a tap on either button.
             modifier = Modifier.widthIn(min = 96.dp).semantics {
-                contentDescription = "${stepper.label}, ${stepper.value} $unit"
+                contentDescription = "${stepper.label}, ${stepper.value}${stepper.unitSeparator}$unit"
                 liveRegion = LiveRegionMode.Polite
             },
         )
-        IconButton(onClick = { stepper.onValueChange(stepper.value + 1) }, enabled = enabled && stepper.value < stepper.range.last) {
+        IconButton(onClick = { stepper.onValueChange(stepper.value + stepper.step) }, enabled = enabled && stepper.value + stepper.step <= stepper.range.last) {
             Icon(Icons.Filled.Add, contentDescription = "Increase ${stepper.label.lowercase()}")
         }
     }

@@ -11,6 +11,8 @@ data class GameState(
     val rollModifiers: RollModifiers = RollModifiers(),
     /** Whether the Extended Scores modifier is on: Two Pair, Evens and Odds join every player's card. */
     val extendedScores: Boolean = false,
+    /** The Unlucky Dice modifier's settings, or null while it's off. */
+    val unluckyDice: UnluckyDice? = null,
     val players: List<PlayerState> = emptyList(),
     val currentPlayerIndex: Int = 0,
     val dice: List<Die> = List(gameMode.diceCount) { Die() },
@@ -43,11 +45,22 @@ data class GameState(
      * previews and what a committed score is worked out from.
      */
     val scoringDice: List<Die>
-        get() = if (gameMode.scoresHeldDiceOnly) dice.filter { it.isHeld }.sortedBy { it.heldSlot } else dice
+        get() = if (gameMode.scoresHeldDiceOnly) {
+            dice.filter { it.isHeld }.sortedBy { it.heldSlot }
+        } else {
+            dice.filterNot { it.isUnlucky }
+        }
 
-    /** Whether [scoringDice] is a whole hand - [GameMode.scoringDiceCount] dice - so the turn can be scored. */
+    /**
+     * How many dice make a whole hand: [GameMode.scoringDiceCount], or - when the Unlucky Dice modifier has
+     * locked so many that fewer than that are left to score - every die that isn't locked.
+     */
+    val handSize: Int
+        get() = minOf(gameMode.scoringDiceCount, dice.count { !it.isUnlucky })
+
+    /** Whether [scoringDice] is a whole hand - [handSize] dice - so the turn can be scored. */
     val hasFullHand: Boolean
-        get() = scoringDice.size == gameMode.scoringDiceCount
+        get() = scoringDice.size == handSize
 
     /** The highest total score among every player, including AI - what "winning" is measured against. */
     val topScore: Int
@@ -59,9 +72,9 @@ data class GameState(
         get() = gameMode.turnTimerSeconds ?: turnTimer.seconds
 
     /** Whether this game's scores go on the Leaderboard: its mode must allow it ([GameMode.countsOnLeaderboard])
-     * and no modifier, like the [turnTimer], [rollModifiers] or [extendedScores], may be on - modifiers are for fun, not for the records. */
+     * and no modifier, like the [turnTimer], [rollModifiers], [extendedScores] or [unluckyDice], may be on - modifiers are for fun, not for the records. */
     val countsOnLeaderboard: Boolean
-        get() = gameMode.countsOnLeaderboard && turnTimer == TurnTimer.NONE && !rollModifiers.isActive && !extendedScores
+        get() = gameMode.countsOnLeaderboard && turnTimer == TurnTimer.NONE && !rollModifiers.isActive && !extendedScores && unluckyDice == null
 
     /** A human's turn, not yet rolled, in a mode that taps the cup for them at the start of it
      * ([GameMode.autoRollAtTurnStart]). An AI's turn is never this - its own turn loop rolls. */

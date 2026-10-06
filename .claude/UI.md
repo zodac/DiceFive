@@ -676,6 +676,16 @@ its own TalkBack node (`SlottedDiceTrayTest`). A slot is only as big as a mat co
 die is drawn the same size as on the mat (`matDieSize`), the slot row keeping the usual layout's
 height. Robolectric renders only - not seen on a device.
 
+**A die locked by Unlucky Dice** (`LockedChains`, drawn by `DiceTray`'s `DieFace`) is the die with a red
+veil (in the die's own outline, its style's `shadowShape`: rounded, square, egg, D20) and a red cross of two chains (reaching less far, `DiceStyle.lockedChainReach`, on the egg and D20 so they stay inside the outline) (five links each, alternately seen face-on and edge-on, edged dark so they
+read on any die colour) laid over it, so it follows the die wherever it lies. It's drawn only once the die has
+landed (a tumbling die is drawn plain), slams in over 260ms (larger and transparent to size and opaque) and just
+appears under reduced motion (`LocalReduceMotion`). The pips are covered on purpose: a locked die's number
+doesn't matter. Spoken twin: the die's state is "Locked in chains, can't be held or scored" in both tray layouts,
+with no Hold action and no hold sound or haptic on a tap (`BoardSemanticsTest`). Modifier modal: Unlucky Dice is
+a switch with two stepper rows beneath (`ModifierSetting.steppers`), the odds in 10% steps and the cap in dice.
+Robolectric renders only (both layouts) - not seen on a device.
+
 ## Tablets and landscape
 
 **The game screen scales as one object** (`GameScreen`'s `gameLayout`). It is laid out at a phone's size

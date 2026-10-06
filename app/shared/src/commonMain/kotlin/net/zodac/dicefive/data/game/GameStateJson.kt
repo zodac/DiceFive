@@ -20,6 +20,7 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
+import net.zodac.dicefive.model.UnluckyDice
 
 /** Hand-rolled (de)serialization for [GameState], used to persist an in-progress game across sessions. */
 object GameStateJson {
@@ -35,6 +36,10 @@ object GameStateJson {
         if (state.rollModifiers.storedRolls) put("storedRolls", true)
         state.rollModifiers.storedRollsMax?.let { put("storedRollsMax", it) }
         if (state.extendedScores) put("extendedScores", true)
+        state.unluckyDice?.let {
+            put("unluckyOdds", it.oddsPercent)
+            put("unluckyMaxDice", it.maxDice)
+        }
         put("phase", state.phase.name)
         put("isGameOver", state.isGameOver)
         put("turnSecondsLeft", state.turnSecondsLeft)
@@ -57,6 +62,7 @@ object GameStateJson {
             turnTimer = TurnTimer.valueOf(obj.getString("turnTimer")),
             rollModifiers = rollModifiers,
             extendedScores = extendedScores,
+            unluckyDice = decodeUnluckyDice(obj),
             currentPlayerIndex = obj.getInt("currentPlayerIndex"),
             rollsRemaining = rollsRemaining,
             // Missing from a game saved before stored rolls: the turn started with the full allowance.
@@ -83,6 +89,7 @@ object GameStateJson {
         put("isHeld", die.isHeld)
         die.colour?.let { put("colour", it.name) }
         die.heldSlot?.let { put("heldSlot", it) }
+        if (die.isUnlucky) put("isUnlucky", true)
     }
 
     private fun decodeDie(obj: JsonObject) = Die(
@@ -90,7 +97,15 @@ object GameStateJson {
         isHeld = obj.getBoolean("isHeld"),
         colour = obj.optString("colour").takeIf { it.isNotEmpty() }?.let { DieColour.valueOf(it) },
         heldSlot = (obj["heldSlot"] as? JsonNumber)?.toInt(),
+        isUnlucky = "isUnlucky" in obj && obj.getBoolean("isUnlucky"),
     )
+
+    /** The Unlucky Dice modifier, or null when the save has none - as every game saved before it existed. */
+    private fun decodeUnluckyDice(obj: JsonObject): UnluckyDice? {
+        val odds = (obj["unluckyOdds"] as? JsonNumber)?.toInt() ?: return null
+        val maxDice = (obj["unluckyMaxDice"] as? JsonNumber)?.toInt() ?: return null
+        return UnluckyDice(odds, maxDice)
+    }
 
     private fun encodePlayer(player: PlayerState): JsonObject = buildJsonObject {
         put("name", player.name)

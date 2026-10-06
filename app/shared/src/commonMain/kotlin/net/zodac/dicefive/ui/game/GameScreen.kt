@@ -359,13 +359,16 @@ private fun InProgressGame(
     // result, since onToggleHold only forwards the tapped index - it doesn't report which way
     // the hold flipped.
     val onToggleHoldWithSound = { dieIndex: Int ->
-        if (state.dice.getOrNull(dieIndex)?.isHeld == true) {
-            soundEffects.playUnhold()
-        } else {
-            soundEffects.playHold()
+        // A die locked by Unlucky Dice can't be held: nothing to hear or feel, and nothing to do.
+        if (state.dice.getOrNull(dieIndex)?.isUnlucky != true) {
+            if (state.dice.getOrNull(dieIndex)?.isHeld == true) {
+                soundEffects.playUnhold()
+            } else {
+                soundEffects.playHold()
+            }
+            haptics.playHoldTick()
+            onToggleHold(dieIndex)
         }
-        haptics.playHoldTick()
-        onToggleHold(dieIndex)
     }
 
     // Which other player's scorecard the active player has tapped into viewing, if any - keyed on

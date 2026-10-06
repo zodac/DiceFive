@@ -15,6 +15,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
+import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.oneScoreEach
 
 class AiTurnPlayerTest {
@@ -401,6 +402,35 @@ class AiTurnPlayerTest {
             }
             assertEquals(mode.categories.size + 3, turns, "$mode $difficulty")
             assertTrue(state.players.single().scorecard.values.all { it.size == 1 }, "$mode $difficulty")
+        }
+    }
+
+    @Test
+    fun `the AI never holds a locked die and plays whole legal Unlucky Dice games at every difficulty`() {
+        for (mode in listOf(GameMode.STANDARD, GameMode.TRICOLOUR, GameMode.STUD)) for (difficulty in Difficulty.entries) {
+            val random = Random(difficulty.ordinal + 11)
+            var state = GameEngine.newGame(
+                listOf(PlayerConfig(slot = 1, type = PlayerType.AI, name = "Bot", difficulty = difficulty)),
+                mode,
+                unluckyDice = UnluckyDice(oddsPercent = 50, maxDice = 5),
+            )
+            var turns = 0
+            while (!state.isGameOver) {
+                var turn = state
+                while (turn.rollsRemaining > 0) {
+                    turn = GameEngine.rollDice(turn, random)
+                    if (turn.rollsRemaining == 0) break
+                    val holds = AiTurnPlayer.chooseHolds(turn)
+                    assertTrue(holds.none { turn.dice[it].isUnlucky && holds.size < turn.dice.size }, "$mode $difficulty held a locked die")
+                    if (holds.size == turn.dice.size) break
+                    turn = AiTurnPlayer.applyHolds(turn, holds)
+                }
+                if (turn.gameMode.scoresHeldDiceOnly) turn = AiTurnPlayer.applyHolds(turn, AiTurnPlayer.chooseHand(turn))
+                assertTrue(turn.hasFullHand, "$mode $difficulty")
+                state = GameEngine.commitScore(turn, AiTurnPlayer.chooseCategory(turn))
+                turns++
+            }
+            assertEquals(mode.categories.size * mode.scoresPerCategory, turns, "$mode $difficulty")
         }
     }
 }

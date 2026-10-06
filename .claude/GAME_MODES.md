@@ -223,6 +223,20 @@ while untouched), so:
 - **The board** (`StackedScores`): one line per slot beside the tile, the preview only in the next open
   slot. See `UI.md` - the lines fill a tile exactly, so a large font scrolls them.
 
+### Unlucky Dice (a modifier that changes what a roll is)
+
+Unlucky Dice (`UnluckyDice`, `DESIGN.md` Phase 29) locks rolled dice (`Die.isUnlucky`): they can't be held and
+don't score, in every mode. It's a modifier, not a mode field, but it changes assumptions a mode can too:
+
+- **A hand can be smaller than `scoringDiceCount`.** Score `GameState.scoringDice` and ask `hasFullHand`
+  (`handSize`), never `dice.size` or `scoringDiceCount` - the same rule as [More dice than score](#more-dice-than-score).
+- **Never hold a locked die**: `GameEngine.toggleHold`/`canHold`/`fillHand` refuse it; anything that picks holds
+  (the AI, a new auto-hold) must leave them out. `AiTurnPlayer.withoutUnluckyDice` does it for the AI and plays
+  Hard as Medium, because Hard's search is over whole hands.
+- **Achievements judged on a roll** need `dice.none { it.isUnlucky }` (see `checkPostRollAchievements`); a hand is
+  `scoringDice`. Luck-driven zeroes (Zero To Hero) are guarded on `GameState.unluckyDice`.
+- A new draw from the `Random` happens only when the modifier is on, so seeded tests of every other game are unchanged.
+
 ### Off the Leaderboard
 
 `countsOnLeaderboard = false` records a game's scores with `ScoreEntry.onLeaderboard = false`: the

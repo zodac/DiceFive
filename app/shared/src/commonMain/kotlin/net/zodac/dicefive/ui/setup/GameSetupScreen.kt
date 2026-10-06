@@ -43,6 +43,7 @@ import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
+import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.ui.common.ChoicePicker
 import net.zodac.dicefive.ui.common.ModifierNumberField
@@ -181,6 +182,9 @@ private fun SetupForm(
             onStoredRolls = viewModel::setStoredRolls,
             onStoredRollsMax = viewModel::setStoredRollsMax,
             onExtendedScores = viewModel::setExtendedScores,
+            onUnluckyDiceEnabled = viewModel::setUnluckyDiceEnabled,
+            onUnluckyOdds = viewModel::setUnluckyOdds,
+            onUnluckyMaxDice = viewModel::setUnluckyMaxDice,
         )
     }
 }
@@ -427,7 +431,9 @@ private fun GameModeSelector(selected: GameMode, onSelect: (GameMode) -> Unit) {
  * them ([GameMode.allowsRollModifiers]) shows them locked and off, and the player's pick is kept. Stored
  * Rolls' cap is a typed number, empty for none.
  *
- * Extended Scores is a plain switch with nothing to set, and applies in every mode.
+ * Extended Scores is a plain switch with nothing to set, and applies in every mode. Unlucky Dice
+ * ([UnluckyDice]) is a switch with two steppers, the odds and the most dice locked a roll, and applies in every mode too;
+ * both are kept while it's off.
  */
 @Composable
 private fun SetupModifierPicker(
@@ -437,6 +443,9 @@ private fun SetupModifierPicker(
     onStoredRolls: (Boolean) -> Unit,
     onStoredRollsMax: (Int?) -> Unit,
     onExtendedScores: (Boolean) -> Unit,
+    onUnluckyDiceEnabled: (Boolean) -> Unit,
+    onUnluckyOdds: (Int) -> Unit,
+    onUnluckyMaxDice: (Int) -> Unit,
 ) {
     val onSelect = onTurnTimer
     val lengths = TurnTimer.entries.filter { it != TurnTimer.NONE }
@@ -466,13 +475,15 @@ private fun SetupModifierPicker(
                 enabled = !rollsLocked && rolls.rollsPerTurn != null,
                 onEnabledChange = { on -> onRollsPerTurn(if (on) setup.rollsPerTurnLength else null) },
                 lockedNote = rollsLockedNote,
-                stepper = ModifierStepper(
-                    value = setup.rollsPerTurnLength,
-                    range = RollModifiers.MIN_ROLLS..RollModifiers.MAX_ROLLS,
-                    onValueChange = onRollsPerTurn,
-                    label = "Rolls per turn",
-                    unit = "rolls",
-                    unitSingular = "roll",
+                steppers = listOf(
+                    ModifierStepper(
+                        value = setup.rollsPerTurnLength,
+                        range = RollModifiers.MIN_ROLLS..RollModifiers.MAX_ROLLS,
+                        onValueChange = onRollsPerTurn,
+                        label = "Rolls per turn",
+                        unit = "rolls",
+                        unitSingular = "roll",
+                    ),
                 ),
             ),
             ModifierSetting(
@@ -494,6 +505,31 @@ private fun SetupModifierPicker(
                 description = "Adds Two Pair, Evens and Odds to the scorecard",
                 enabled = setup.extendedScores,
                 onEnabledChange = onExtendedScores,
+            ),
+            ModifierSetting(
+                title = "Unlucky Dice",
+                description = "Rolled dice can be locked in chains: they can't be held or scored",
+                enabled = setup.unluckyDiceEnabled,
+                onEnabledChange = onUnluckyDiceEnabled,
+                steppers = listOf(
+                    ModifierStepper(
+                        value = setup.unluckyDice.oddsPercent,
+                        range = UnluckyDice.MIN_ODDS_PERCENT..UnluckyDice.MAX_ODDS_PERCENT,
+                        onValueChange = onUnluckyOdds,
+                        label = "Odds a rolled die is locked",
+                        unit = "%",
+                        step = UnluckyDice.ODDS_STEP_PERCENT,
+                        unitSeparator = "",
+                    ),
+                    ModifierStepper(
+                        value = setup.unluckyDice.maxDice,
+                        range = UnluckyDice.MIN_MAX_DICE..UnluckyDice.MAX_MAX_DICE,
+                        onValueChange = onUnluckyMaxDice,
+                        label = "Most dice locked per roll",
+                        unit = "dice",
+                        unitSingular = "die",
+                    ),
+                ),
             ),
         ),
     )

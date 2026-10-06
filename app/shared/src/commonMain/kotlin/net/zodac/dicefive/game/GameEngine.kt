@@ -11,6 +11,7 @@ import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
+import net.zodac.dicefive.model.UnluckyDice
 
 /**
  * Pure reducers for the turn flow. None of these touch Android APIs
@@ -25,6 +26,7 @@ object GameEngine {
         turnTimer: TurnTimer = TurnTimer.NONE,
         rollModifiers: RollModifiers = RollModifiers(),
         extendedScores: Boolean = false,
+        unluckyDice: UnluckyDice? = null,
     ): GameState {
         require(players.isNotEmpty()) { "At least one player is required" }
         return GameState(
@@ -32,6 +34,7 @@ object GameEngine {
             turnTimer = turnTimer,
             rollModifiers = rollModifiers,
             extendedScores = extendedScores,
+            unluckyDice = unluckyDice,
             players = players.map {
                 PlayerState(
                     name = it.name,
@@ -49,6 +52,10 @@ object GameEngine {
      * Rerolls every unheld die: a number from [GameMode.dieValues], then - only in a mode whose dice
      * have colours - a colour from [GameMode.dieColours], each equally likely. A colourless mode
      * never draws that second number, so its dice come out of [random] exactly as they always have.
+     *
+     * With the Unlucky Dice modifier on ([GameState.unluckyDice]), each die just rolled is then locked with its
+     * odds, [UnluckyDice.maxDice] of them at most (chosen at random when more come up). A die that was
+     * unlucky and is rolled again starts clear. Without the modifier nothing more is drawn from [random].
      */
     fun rollDice(state: GameState, random: Random = Random.Default): GameState {
         check(state.rollsRemaining > 0) { "No rolls remaining this turn" }
@@ -60,9 +67,9 @@ object GameEngine {
             } else {
                 val value = random.nextInt(values.first, values.last + 1)
                 val colour = if (colours.isEmpty()) null else colours[random.nextInt(colours.size)]
-                die.copy(value = value, colour = colour)
+                die.copy(value = value, colour = colour, isUnlucky = false)
             }
-        }
+        }.let { dice -> state.unluckyDice?.let { curse(dice, state.dice, it, random) } ?: dice }
         val players = state.players.mapIndexed { index, player ->
             if (index == state.currentPlayerIndex) player.copy(rollCount = player.rollCount + 1) else player
         }
@@ -72,6 +79,19 @@ object GameEngine {
             rollsRemaining = state.rollsRemaining - 1,
             phase = TurnPhase.ROLLED,
         )
+    }
+
+    /**
+     * Locks the dice that were just rolled ([rolled], each one that wasn't held in [before]) by [unlucky]'s
+     * odds, no more than its cap - a die held through the roll is never touched.
+     */
+    private fun curse(rolled: List<Die>, before: List<Die>, unlucky: UnluckyDice, random: Random): List<Die> {
+        val cursed = rolled.indices
+            .filter { !before[it].isHeld && random.nextInt(PERCENT) < unlucky.oddsPercent }
+            .shuffled(random)
+            .take(unlucky.maxDice)
+            .toSet()
+        return rolled.mapIndexed { index, die -> if (index in cursed) die.copy(isUnlucky = true) else die }
     }
 
     // No rollsRemaining check (there used to be one, forbidding it after the final roll): holding
@@ -86,7 +106,7 @@ object GameEngine {
     fun toggleHold(state: GameState, dieIndex: Int): GameState {
         check(state.phase == TurnPhase.ROLLED) { "Cannot hold dice before rolling" }
         val die = state.dice[dieIndex]
-        if (!die.isHeld && !canHold(state)) return state
+        if (!die.isHeld && !canHold(state, dieIndex)) return state
         val newDice = state.dice.mapIndexed { index, current ->
             if (index == dieIndex) current.copy(isHeld = !current.isHeld, heldSlot = null) else current
         }
@@ -94,9 +114,13 @@ object GameEngine {
         return state.copy(dice = placed)
     }
 
-    /** Whether another die can be held: always, unless every hold slot of a mode with fewer slots than dice is taken. */
-    fun canHold(state: GameState): Boolean =
-        !state.gameMode.scoresHeldDiceOnly || state.dice.count { it.isHeld } < state.gameMode.scoringDiceCount
+    /**
+     * Whether another die can be held: always, unless every hold slot of a mode with fewer slots than dice is
+     * taken - and never an unlucky die ([Die.isUnlucky]), when [dieIndex] says which one is meant.
+     */
+    fun canHold(state: GameState, dieIndex: Int? = null): Boolean =
+        state.dice.getOrNull(dieIndex ?: -1)?.isUnlucky != true &&
+            (!state.gameMode.scoresHeldDiceOnly || state.dice.count { it.isHeld } < state.gameMode.scoringDiceCount)
 
     /**
      * Holds unheld dice, left to right, until the hand is full ([GameState.hasFullHand]) - what a turn
@@ -107,7 +131,7 @@ object GameEngine {
         var current = state
         for (index in state.dice.indices) {
             if (current.hasFullHand) break
-            if (!current.dice[index].isHeld) current = toggleHold(current, index)
+            if (!current.dice[index].isHeld && !current.dice[index].isUnlucky) current = toggleHold(current, index)
         }
         return current
     }
@@ -186,6 +210,8 @@ object GameEngine {
         val updatedPlayers = state.players.toMutableList().apply { this[state.currentPlayerIndex] = updatedPlayer }
         return advanceTurn(state.copy(players = updatedPlayers))
     }
+
+    private const val PERCENT = 100
 
     private fun advanceTurn(state: GameState): GameState {
         if (state.players.all { it.isScorecardComplete }) {

@@ -1,5 +1,6 @@
 package net.zodac.dicefive.game
 
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -16,6 +17,7 @@ import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
+import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.oneScoreEach
 
 class GameEngineTest {
@@ -576,5 +578,156 @@ class GameEngineTest {
 
         assertEquals(listOf(22), scored.players.single().scoresIn(ScoreCategory.TWO_PAIR))
         assertEquals(22, scored.players.single().totalScore)
+    }
+
+    // ---- Unlucky Dice -----------------------------------------------------------------------------
+
+    private fun unluckyGame(odds: Int = 50, maxDice: Int = 5, mode: GameMode = GameMode.STANDARD) =
+        GameEngine.newGame(onePlayer, mode, unluckyDice = UnluckyDice(odds, maxDice))
+
+    @Test
+    fun `Unlucky Dice takes the game off the leaderboard`() {
+        assertFalse(unluckyGame().countsOnLeaderboard)
+        assertTrue(GameEngine.newGame(onePlayer).unluckyDice == null)
+    }
+
+    @Test
+    fun `Unlucky Dice odds and cap must be in range`() {
+        assertFailsWith<IllegalArgumentException> { UnluckyDice(oddsPercent = 0) }
+        assertFailsWith<IllegalArgumentException> { UnluckyDice(oddsPercent = 60) }
+        assertFailsWith<IllegalArgumentException> { UnluckyDice(maxDice = 0) }
+        assertFailsWith<IllegalArgumentException> { UnluckyDice(maxDice = 6) }
+    }
+
+    @Test
+    fun `no die is unlucky without the modifier`() {
+        repeat(200) { seed ->
+            assertTrue(GameEngine.rollDice(GameEngine.newGame(onePlayer), Random(seed)).dice.none { it.isUnlucky })
+        }
+    }
+
+    @Test
+    fun `a game without Unlucky Dice rolls exactly the dice it always has`() {
+        val plain = GameEngine.rollDice(GameEngine.newGame(onePlayer), Random(7)).dice.map { it.value }
+        val expected = Random(7).let { random -> List(5) { random.nextInt(1, 7) } }
+
+        assertEquals(expected, plain)
+    }
+
+    @Test
+    fun `a roll never locks more dice than the cap`() {
+        for (cap in 1..5) repeat(300) { seed ->
+            val rolled = GameEngine.rollDice(unluckyGame(odds = 50, maxDice = cap), Random(seed))
+            assertTrue(rolled.dice.count { it.isUnlucky } <= cap, "cap $cap seed $seed")
+        }
+    }
+
+    @Test
+    fun `the odds decide how often a die is locked`() {
+        fun lockedShare(odds: Int): Double {
+            val random = Random(odds)
+            var locked = 0
+            repeat(2_000) { locked += GameEngine.rollDice(unluckyGame(odds), random).dice.count { it.isUnlucky } }
+            return locked / (2_000 * 5.0)
+        }
+
+        assertEquals(0.1, lockedShare(10), 0.03)
+        assertEquals(0.3, lockedShare(30), 0.03)
+        assertEquals(0.5, lockedShare(50), 0.03)
+    }
+
+    @Test
+    fun `a locked die is always one of the cap's choice when more come up`() {
+        // At 50% over five dice a cap of one is hit often, and the die picked varies roll to roll.
+        val picked = (0 until 300).mapNotNull { seed ->
+            GameEngine.rollDice(unluckyGame(odds = 50, maxDice = 1), Random(seed)).dice.indexOfFirst { it.isUnlucky }.takeIf { it >= 0 }
+        }.toSet()
+
+        assertEquals(setOf(0, 1, 2, 3, 4), picked)
+    }
+
+    @Test
+    fun `a held die is never locked`() {
+        repeat(300) { seed ->
+            val held = unluckyGame().copy(phase = TurnPhase.ROLLED, rollsRemaining = 2, dice = List(5) { Die(value = 3, isHeld = it < 2) })
+            val rolled = GameEngine.rollDice(held, Random(seed))
+
+            assertTrue(rolled.dice.take(2).none { it.isUnlucky }, "seed $seed")
+            assertTrue(rolled.dice.take(2).all { it.isHeld && it.value == 3 })
+        }
+    }
+
+    @Test
+    fun `a locked die is rolled again and starts clear`() {
+        val locked = unluckyGame(odds = 10, maxDice = 1).copy(
+            phase = TurnPhase.ROLLED,
+            rollsRemaining = 2,
+            dice = List(5) { Die(value = 2, isUnlucky = it == 0) },
+        )
+
+        // Odds of 10% leave most rolls clear: the die that was locked can't stay so by itself.
+        val clear = (0 until 50).count { seed -> GameEngine.rollDice(locked, Random(seed)).dice[0].isUnlucky.not() }
+
+        assertTrue(clear > 25)
+    }
+
+    @Test
+    fun `a locked die can't be held`() {
+        val state = unluckyGame().copy(
+            phase = TurnPhase.ROLLED,
+            dice = List(5) { Die(value = it + 1, isUnlucky = it == 2) },
+        )
+
+        assertFalse(GameEngine.canHold(state, 2))
+        assertTrue(GameEngine.canHold(state, 1))
+        assertEquals(state, GameEngine.toggleHold(state, 2))
+        assertTrue(GameEngine.toggleHold(state, 1).dice[1].isHeld)
+    }
+
+    @Test
+    fun `a locked die isn't in the hand that is scored`() {
+        val state = unluckyGame().copy(
+            phase = TurnPhase.ROLLED,
+            dice = listOf(6, 6, 6, 6, 6).mapIndexed { index, value -> Die(value = value, isUnlucky = index == 4) },
+        )
+
+        assertEquals(4, state.scoringDice.size)
+        assertEquals(4, state.handSize)
+        assertTrue(state.hasFullHand)
+        val scored = GameEngine.commitScore(state, ScoreCategory.SIXES)
+        assertEquals(listOf(24), scored.players.single().scoresIn(ScoreCategory.SIXES))
+    }
+
+    @Test
+    fun `five matching dice with one locked are not a 5x`() {
+        val state = unluckyGame().copy(
+            phase = TurnPhase.ROLLED,
+            dice = List(5) { Die(value = 4, isUnlucky = it == 0) },
+        )
+
+        assertEquals(0, ScoreCalculator.scoreFor(state.players.single(), ScoreCategory.FIVE_OF_A_KIND, state.scoringDice))
+        assertEquals(0, ScoreCalculator.scoreFor(state.players.single(), ScoreCategory.LARGE_STRAIGHT, state.scoringDice))
+    }
+
+    @Test
+    fun `every die locked leaves a hand of nothing that scores zero`() {
+        val state = unluckyGame().copy(phase = TurnPhase.ROLLED, dice = List(5) { Die(value = 6, isUnlucky = true) })
+
+        assertTrue(state.scoringDice.isEmpty())
+        assertTrue(state.hasFullHand)
+        val scored = GameEngine.commitScore(state, ScoreCategory.CHANCE)
+        assertEquals(listOf(0), scored.players.single().scoresIn(ScoreCategory.CHANCE))
+    }
+
+    @Test
+    fun `with seven dice and five slots locked dice shrink the hand to the dice left`() {
+        val locked = GameEngine.newGame(onePlayer, GameMode.STUD, unluckyDice = UnluckyDice())
+            .copy(phase = TurnPhase.ROLLED, dice = List(7) { Die(value = it % 6 + 1, isUnlucky = it >= 4) })
+
+        assertEquals(4, locked.handSize)
+        val filled = GameEngine.fillHand(locked)
+        assertEquals(listOf(0, 1, 2, 3), filled.dice.withIndex().filter { it.value.isHeld }.map { it.index })
+        assertTrue(filled.hasFullHand)
+        assertEquals(4, filled.scoringDice.size)
     }
 }

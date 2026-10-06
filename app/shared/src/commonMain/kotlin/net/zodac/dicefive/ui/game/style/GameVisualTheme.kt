@@ -58,6 +58,13 @@ interface DiceStyle : TableArt {
     fun shadowShape(value: Int, dieIndex: Int, tumbleMillis: Float?): Shape = RoundedCornerShape(cornerPercent)
 
     /**
+     * How far along each diagonal of the die's square the chains of a die locked by Unlucky Dice reach, 1 being
+     * nearly corner to corner. A die whose outline doesn't fill its square (the egg, the D20) takes less, so the
+     * chains end inside it instead of hanging over its edge.
+     */
+    val lockedChainReach: Float get() = 1f
+
+    /**
      * How rounded the die's corners are, as a percentage of its size - the one figure its face, its
      * shadow and its tumble ([TossedCube]) all round to, so a square-cornered die doesn't tumble
      * rounded and then snap square as it lands.

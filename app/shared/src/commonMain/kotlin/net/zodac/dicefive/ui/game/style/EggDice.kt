@@ -91,6 +91,7 @@ class EggDiceStyle(
 ) : DiceStyle, Swatched {
     override val swatch: Color = shell
     override val tumblesItself: Boolean = true
+    override val lockedChainReach: Float = 0.58f
     override val standsUpright: Boolean = true
 
     override fun recoloured(palette: DieColourPalette): DiceStyle =

@@ -78,6 +78,50 @@ class BoardSemanticsTest {
     }
 
     @Test
+    fun `a die locked by Unlucky Dice says so and offers no hold`() {
+        val toggled = mutableListOf<Int>()
+        compose.setContent {
+            DiceFiveTheme {
+                DiceTray(
+                    dice = listOf(Die(2), Die(5, isUnlucky = true), Die(3), Die(6), Die(1)),
+                    gameMode = GameMode.STANDARD,
+                    enabled = true,
+                    showDice = true,
+                    rolling = false,
+                    onToggleHold = { toggled += it },
+                    modifier = Modifier.width(500.dp),
+                )
+            }
+        }
+
+        val locked = compose.onNodeWithContentDescription("Die 2, 5")
+        locked.assert(hasStateDescription("Locked in chains, can't be held or scored"))
+        locked.assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+        compose.onNodeWithContentDescription("Die 1, 2").assert(hasStateDescription("Not held"))
+    }
+
+    @Test
+    fun `a locked die in a seven dice mode offers no hold either`() {
+        compose.setContent {
+            DiceFiveTheme {
+                DiceTray(
+                    dice = List(7) { Die(it % 6 + 1, isUnlucky = it == 6) },
+                    gameMode = GameMode.STUD,
+                    enabled = true,
+                    showDice = true,
+                    rolling = false,
+                    onToggleHold = {},
+                    modifier = Modifier.width(500.dp),
+                )
+            }
+        }
+
+        val locked = compose.onNodeWithContentDescription("Die 7, 1")
+        locked.assert(hasStateDescription("Locked in chains, can't be held or scored"))
+        locked.assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+    }
+
+    @Test
     fun `a score box says what it would score - and its action scores it`() {
         val scored = mutableListOf<ScoreCategory>()
         val player = PlayerState(name = "Tester", type = PlayerType.HUMAN)
