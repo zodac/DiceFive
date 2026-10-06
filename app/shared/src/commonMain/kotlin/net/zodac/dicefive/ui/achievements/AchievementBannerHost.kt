@@ -70,6 +70,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.achievements.AchievementEvent
+import net.zodac.dicefive.data.achievements.UnlockedStyle
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.ui.common.delayWhileResumed
@@ -161,8 +162,8 @@ private data class BannerItem(val key: Long, val event: AchievementEvent)
  *
  * Long-pressing the front banner asks [onAchievementSelected] to take the player to that
  * achievement on the Achievements screen - or, for a styles banner, [onStylesSelected] to open the
- * Styles screen (see `AchievementScrollRequests`, which is how the
- * request actually reaches that screen - this host has no reference to it, only to the
+ * Styles screen (see `AchievementScrollRequests` and `StyleScrollRequests`, which is how the
+ * request actually reaches those screens - this host has no reference to it, only to the
  * `NavHostController` its caller wires [onAchievementSelected] up to). Mid-game, with the
  * "confirm before leaving" setting on, and only while the game's own screen is in front
  * ([isOnGameScreen] - a saved game elsewhere, or the Achievements page itself, has nothing being
@@ -175,7 +176,7 @@ fun AchievementBannerHost(
     modifier: Modifier = Modifier,
     isOnGameScreen: () -> Boolean,
     onAchievementSelected: (Achievement) -> Unit,
-    onStylesSelected: () -> Unit,
+    onStylesSelected: (List<UnlockedStyle>) -> Unit,
     content: @Composable () -> Unit,
 ) {
     val banners = remember { mutableStateListOf<BannerItem>() }
@@ -253,7 +254,7 @@ fun AchievementBannerHost(
                                         val open: () -> Unit = when (val event = item.event) {
                                             is AchievementEvent.Unlocked -> ({ onAchievementSelected(event.achievement) })
                                             is AchievementEvent.Progressed -> ({ onAchievementSelected(event.achievement) })
-                                            is AchievementEvent.StylesUnlocked -> onStylesSelected
+                                            is AchievementEvent.StylesUnlocked -> ({ onStylesSelected(event.styles) })
                                         }
                                         if (isOnGameScreen() && hasInProgressGame && confirmBeforeLeavingGame) {
                                             leaveConfirmation.request(open)

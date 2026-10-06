@@ -13,6 +13,7 @@ import androidx.navigation.compose.rememberNavController
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.achievements.AchievementScrollRequests
+import net.zodac.dicefive.data.achievements.StyleScrollRequests
 import net.zodac.dicefive.navigation.DiceFiveNavHost
 import net.zodac.dicefive.navigation.Screen
 import net.zodac.dicefive.platform.LocalPlatformServices
@@ -71,8 +72,11 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices) {
                             navController.navigate(Screen.ACHIEVEMENTS)
                         }
                     },
-                    onStylesSelected = {
-                        if (navController.currentDestination?.route != Screen.STYLES) {
+                    onStylesSelected = { styles ->
+                        val alreadyOnStyles = navController.currentDestination?.route == Screen.STYLES
+                        // Before navigating, for the same reason as the achievement request above.
+                        StyleScrollRequests.request(styles, animate = alreadyOnStyles)
+                        if (!alreadyOnStyles) {
                             navController.navigate(Screen.STYLES)
                         }
                     },

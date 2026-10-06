@@ -51,7 +51,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import kotlinx.coroutines.flow.collectLatest
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.game.style.DieMotion
 import net.zodac.dicefive.ui.game.style.LocalDieMotion
 import androidx.compose.runtime.getValue
@@ -91,6 +93,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.Role
@@ -136,6 +139,8 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.Lifecycle
 import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.achievements.StyleScrollRequest
+import net.zodac.dicefive.data.achievements.StyleScrollRequests
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
@@ -216,8 +221,18 @@ private const val LOCKED_PADLOCK_ALPHA = 0.8f
 @Composable
 fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val saved by viewModel.savedStyles.collectAsStateWithLifecycle()
+    // A long-pressed styles banner (see StyleScrollRequests) asks for its styles' rows to scroll to them and
+    // flash them gold. Read here as the screen first composes, so a fresh arrival opens already in place.
+    var focus by remember { mutableStateOf(StyleScrollRequests.pending()) }
+    LaunchedEffect(Unit) {
+        StyleScrollRequests.requests.collect { request ->
+            focus = request
+            StyleScrollRequests.consumePending()
+        }
+    }
     StylesScaffold(
         picks = saved,
+        focus = focus,
         onBack = onBack,
         onSelect = { category ->
             when (category) {
@@ -238,6 +253,7 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
 @Composable
 private fun StylesScaffold(
     picks: SavedStyles?,
+    focus: StyleScrollRequest?,
     onBack: () -> Unit,
     onSelect: (StyleCategory) -> (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -252,13 +268,13 @@ private fun StylesScaffold(
     ) {
         // Nothing until the saved picks have loaded, so each row can open scrolled to its real pick.
         // They're normally in already (AppContainer.savedStyles), so the page has them from its first frame.
-        StylesPage(picks = picks ?: return@ScreenScaffold, onSelect = onSelect)
+        StylesPage(picks = picks ?: return@ScreenScaffold, focus = focus, onSelect = onSelect)
     }
 }
 
 /** Everything under the Styles screen's app bar: a card per category, the page scrolling when they don't fit, and its scrollbar. */
 @Composable
-private fun ColumnScope.StylesPage(picks: SavedStyles, onSelect: (StyleCategory) -> (String) -> Unit) {
+private fun ColumnScope.StylesPage(picks: SavedStyles, focus: StyleScrollRequest?, onSelect: (StyleCategory) -> (String) -> Unit) {
     // One text measurer for every tile's name, kept across openings - see rememberTileLabelMeasurer.
     val labelMeasurer = rememberTileLabelMeasurer()
     CompositionLocalProvider(LocalTileLabelMeasurer provides labelMeasurer) {
@@ -268,7 +284,7 @@ private fun ColumnScope.StylesPage(picks: SavedStyles, onSelect: (StyleCategory)
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
             Column(modifier = Modifier.verticalScroll(pageScroll), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 for (category in StyleCategory.entries) {
-                    StyleCategorySection(category = category, picks = picks, onSelect = onSelect(category))
+                    StyleCategorySection(category = category, picks = picks, onSelect = onSelect(category), focus = focus)
                 }
             }
             // In the page's right-hand margin, beside the cards rather than over them - see VerticalScrollbar.
@@ -280,6 +296,13 @@ private fun ColumnScope.StylesPage(picks: SavedStyles, onSelect: (StyleCategory)
         }
     }
 }
+
+// How long a tile a banner brought you to stays flashed gold, and how long it takes to fade in and out - as an achievement row's.
+private const val STYLE_FLASH_HOLD_MILLIS = 900L
+private const val STYLE_FLASH_TRANSITION_MILLIS = 400
+
+// How strongly the gold washes over a mat or background tile, whose art would otherwise hide it.
+private const val FLASH_OVER_ART_ALPHA = 0.55f
 
 // ScreenScaffold's side margin, which the page's scrollbar sits in.
 private val PAGE_MARGIN = 20.dp
@@ -371,7 +394,13 @@ private fun StyleCategory.tileCount(achievements: AchievementsState): Int {
  * gallery toggle is on.
  */
 @Composable
-private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, onSelect: (String) -> Unit, warmUp: IntRange? = null) {
+private fun StyleCategorySection(
+    category: StyleCategory,
+    picks: SavedStyles,
+    onSelect: (String) -> Unit,
+    warmUp: IntRange? = null,
+    focus: StyleScrollRequest? = null,
+) {
     val achievements = picks.achievements
     var gallery by rememberSaveable { mutableStateOf(false) }
     @Composable
@@ -393,6 +422,7 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
                 gallery = gallery,
                 warmUp = warmUp,
                 buildStagger = category.ordinal,
+                focus = focus,
             ) { style ->
                 DicePreview(style, roll = roll.takeIf { it.dieId == style.id })
             }
@@ -413,6 +443,7 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
                 gallery = gallery,
                 warmUp = warmUp,
                 buildStagger = category.ordinal,
+                focus = focus,
             ) { style ->
                 // One cup per style, not one per tile: a tile showing another colour of the same
                 // family would otherwise inherit the last one's state - the Flowerpot's plant
@@ -443,6 +474,8 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
                 gallery = gallery,
                 warmUp = warmUp,
                 buildStagger = category.ordinal,
+                focus = focus,
+                flashOverArt = true,
             ) { mat ->
                 mat.DiceTrayDecoration(modifier = Modifier.matchParentSize())
             }
@@ -459,6 +492,8 @@ private fun StyleCategorySection(category: StyleCategory, picks: SavedStyles, on
                 gallery = gallery,
                 warmUp = warmUp,
                 buildStagger = category.ordinal,
+                focus = focus,
+                flashOverArt = true,
             ) { background ->
                 background.Animate()
                 Canvas(modifier = Modifier.matchParentSize()) { with(background) { drawScoreAreaDecoration() } }
@@ -672,8 +707,8 @@ fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier) 
                 when (pass) {
                     is WarmUpPass.Tiles -> StyleCategorySection(category = pass.category, picks = picks, onSelect = {}, warmUp = pass.tiles)
                     is WarmUpPass.Card -> StyleCategorySection(category = pass.category, picks = picks, onSelect = {})
-                    WarmUpPass.Frame -> StylesScaffold(picks = null, onBack = {}, onSelect = { {} }, driftingDice = false)
-                    WarmUpPass.Page -> StylesScaffold(picks = picks, onBack = {}, onSelect = { {} }, driftingDice = false)
+                    WarmUpPass.Frame -> StylesScaffold(picks = null, focus = null, onBack = {}, onSelect = { {} }, driftingDice = false)
+                    WarmUpPass.Page -> StylesScaffold(picks = picks, focus = null, onBack = {}, onSelect = { {} }, driftingDice = false)
                 }
             }
         }
@@ -798,15 +833,23 @@ private fun <T : TableArt> StyleFamilyTiles(
     gallery: Boolean = false,
     warmUp: IntRange? = null,
     buildStagger: Int = 0,
+    focus: StyleScrollRequest? = null,
+    flashOverArt: Boolean = false,
     preview: @Composable BoxScope.(T) -> Unit,
 ) {
+    // The styles of this category a banner asked to be shown: scrolled to, and flashed for a moment.
+    var flashing by remember { mutableStateOf(false) }
+    val focusNames = remember(focus, catalog) { focus?.styles.orEmpty().filter { it.categoryNoun == catalog.noun }.map { it.name }.toSet() }
     val shownSelectedId = catalog.unlockedById(selectedId, achievements).id
     val (unlocked, shownLocked) = catalog.shownFamilies(achievements)
 
     @Composable
     fun Tile(index: Int) {
         if (index < unlocked.size) {
-            StyleFamilyTile(unlocked[index], achievements, shownSelectedId, onSelect, previewSize, backgroundBrush, preview, index)
+            StyleFamilyTile(
+                unlocked[index], achievements, shownSelectedId, onSelect, previewSize, backgroundBrush, preview, index,
+                flashing = flashing && unlocked[index].name in focusNames, flashOverArt = flashOverArt,
+            )
         } else {
             LockedStyleFamilyTile(shownLocked[index - unlocked.size], achievements, previewSize, backgroundBrush, preview, index)
         }
@@ -824,8 +867,10 @@ private fun <T : TableArt> StyleFamilyTiles(
     // Opens with the current pick in the middle. Only the pick the row opened with: the build below
     // is keyed on it, so following a later pick would throw away every other tile and build them all
     // again, flashing the whole row each time a new style was picked.
+    // Or, arriving from a styles banner, with the style it unlocked there instead.
     val pickedIndex = remember(families.size) {
-        unlocked.indexOfFirst { it.colourOf(shownSelectedId) != null }.coerceAtLeast(0)
+        unlocked.indexOfFirst { it.name in focusNames }.takeIf { it >= 0 }
+            ?: unlocked.indexOfFirst { it.colourOf(shownSelectedId) != null }.coerceAtLeast(0)
     }
     val scrollState = rememberScrollState()
 
@@ -924,6 +969,19 @@ private fun <T : TableArt> StyleFamilyTiles(
                 val viewport = snapshotFlow { scrollState.viewportSize }.first { it > 0 }
                 scrollState.scrollTo(pickedCentrePx - viewport / 2)
                 revealed = true
+            }
+            // A banner asking for a style while the page is already open: slide the row to it.
+            // Then, as an achievement row does, the flash starts once it's there and holds for a moment.
+            LaunchedEffect(focus) {
+                flashing = false
+                val index = unlocked.indexOfFirst { it.name in focusNames }
+                if (index < 0 || focus == null) return@LaunchedEffect
+                snapshotFlow { revealed }.first { it }
+                val target = centrePx(index) - scrollState.viewportSize / 2
+                if (focus.animate && !reduceMotion) scrollState.animateScrollTo(target) else scrollState.scrollTo(target)
+                flashing = true
+                lifecycle.delayWhileResumed(STYLE_FLASH_HOLD_MILLIS)
+                flashing = false
             }
 
             // Each tile's composition, movable between the row and the gallery - see the doc comment. Handed
@@ -1103,6 +1161,8 @@ private fun <T : TableArt> StyleFamilyTile(
     backgroundBrush: @Composable (T) -> Brush,
     preview: @Composable BoxScope.(T) -> Unit,
     position: Int,
+    flashing: Boolean = false,
+    flashOverArt: Boolean = false,
 ) {
     val colours = family.availableColours(achievements)
     val picked = colours.firstOrNull { it.style.id == selectedId }
@@ -1131,6 +1191,8 @@ private fun <T : TableArt> StyleFamilyTile(
                 selected = picked != null,
                 backgroundBrush = backgroundBrush,
                 preview = preview,
+                flashing = flashing,
+                flashOverArt = flashOverArt,
                 modifier = Modifier
                     // One radio button in a row of them: the style (and the colour showing, if it has
                     // several), whether it's the pick, and the colour chooser as an action, so neither
@@ -1334,9 +1396,18 @@ private fun <T : TableArt> StylePreview(
     backgroundBrush: @Composable (T) -> Brush,
     preview: @Composable BoxScope.(T) -> Unit,
     modifier: Modifier = Modifier,
+    flashing: Boolean = false,
+    flashOverArt: Boolean = false,
     overlay: @Composable BoxScope.() -> Unit = {},
 ) {
     val shape = RoundedCornerShape(16.dp)
+    // The gold flash of a tile a banner brought you to, like an achievement row's: behind the art (the
+    // die sits on it), or - for a mat or background, which is the whole tile - washed over it.
+    val flash by animateFloatAsState(
+        targetValue = if (flashing) 1f else 0f,
+        animationSpec = if (LocalReduceMotion.current) snap() else tween(STYLE_FLASH_TRANSITION_MILLIS),
+        label = "styleTileFlash",
+    )
     Box(
         modifier = Modifier
             .size(size)
@@ -1349,6 +1420,11 @@ private fun <T : TableArt> StylePreview(
             .clip(shape)
             .then(modifier)
             .background(backgroundBrush(style))
+            .drawWithContent {
+                if (!flashOverArt) drawRect(GoldAccent, alpha = flash)
+                drawContent()
+                if (flashOverArt) drawRect(GoldAccent, alpha = flash * FLASH_OVER_ART_ALPHA)
+            }
             .border(
                 width = if (selected) 2.dp else 1.dp,
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
