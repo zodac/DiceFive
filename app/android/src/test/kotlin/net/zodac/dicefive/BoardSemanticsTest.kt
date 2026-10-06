@@ -18,14 +18,18 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.ui.game.DiceTray
 import net.zodac.dicefive.ui.game.PlayerHeaderBar
+import net.zodac.dicefive.ui.game.GameBoard
 import net.zodac.dicefive.ui.game.ReadOnlyScoreboard
 import net.zodac.dicefive.ui.game.ScoreGrid
 import net.zodac.dicefive.ui.game.TotalsButton
@@ -80,7 +84,7 @@ class BoardSemanticsTest {
         compose.setContent {
             DiceFiveTheme {
                 ScoreGrid(
-                    gameMode = GameMode.STANDARD,
+                    categories = GameMode.STANDARD.categories,
                     player = player,
                     dice = listOf(Die(5), Die(5), Die(2), Die(3), Die(1)),
                     canScore = true,
@@ -95,6 +99,32 @@ class BoardSemanticsTest {
         compose.onNodeWithContentDescription("Fives").assert(hasStateDescription("Would score 10")).performSemanticsAction(SemanticsActions.OnClick)
 
         assertEquals(listOf(ScoreCategory.FIVES), scored)
+    }
+
+    @Test
+    fun `the Extended Scores boxes are named and say what they would score`() {
+        val scored = mutableListOf<ScoreCategory>()
+        val state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Tester")), extendedScores = true)
+            .copy(phase = TurnPhase.ROLLED, rollsRemaining = 2, dice = listOf(6, 6, 5, 5, 1).map { Die(it) })
+        compose.setContent {
+            DiceFiveTheme {
+                GameBoard(
+                    state = state,
+                    rolling = false,
+                    canUndo = false,
+                    onScoreCategory = { scored += it },
+                    onCupTap = {},
+                    onUndo = {},
+                    modifier = Modifier.width(360.dp),
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Two Pair").assert(hasStateDescription("Would score 22")).performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithContentDescription("Evens").assert(hasStateDescription("Would score 12"))
+        compose.onNodeWithContentDescription("Odds").assert(hasStateDescription("Would score 11"))
+
+        assertEquals(listOf(ScoreCategory.TWO_PAIR), scored)
     }
 
     @Test
@@ -142,7 +172,7 @@ class BoardSemanticsTest {
         compose.setContent {
             DiceFiveTheme {
                 ScoreGrid(
-                    gameMode = GameMode.THIRD_WIND,
+                    categories = GameMode.THIRD_WIND.categories,
                     player = player,
                     dice = dice,
                     canScore = true,

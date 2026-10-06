@@ -6,7 +6,7 @@ import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
 
 /**
- * Every hand of [space] scored in every category of [mode] once, up front, and [ScoreCalculator]'s
+ * Every hand of [space] scored in every one of [categories] (a [mode]'s card) once, up front, and [ScoreCalculator]'s
  * joker rule as plain arithmetic over them - which boxes a hand may go in and what each scores - so
  * Hard can value every finished hand of a turn, tens of thousands of them with coloured dice, without
  * scoring any of them again. [ScoreCalculator] stays the rule; this mirrors it, and `HandScoringTest`
@@ -16,9 +16,12 @@ import net.zodac.dicefive.model.ScoreSection
  * category, in [mode]'s order) and whether the 5x box makes another 5x a joker - all the joker rule
  * looks at.
  */
-internal class HandScoring(val mode: GameMode, val space: DiceSpace) {
-
-    val categories: List<ScoreCategory> = mode.categories
+internal class HandScoring(
+    val mode: GameMode,
+    val space: DiceSpace,
+    /** The boxes on the card: [mode]'s own, or with the Extended Scores modifier's too. */
+    val categories: List<ScoreCategory> = mode.categories,
+) {
     private val categoryCount = categories.size
 
     /** Where the 5x box sits in [categories]. */

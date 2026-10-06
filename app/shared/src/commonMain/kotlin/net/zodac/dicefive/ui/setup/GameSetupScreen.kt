@@ -180,6 +180,7 @@ private fun SetupForm(
             onRollsPerTurn = viewModel::setRollsPerTurn,
             onStoredRolls = viewModel::setStoredRolls,
             onStoredRollsMax = viewModel::setStoredRollsMax,
+            onExtendedScores = viewModel::setExtendedScores,
         )
     }
 }
@@ -425,6 +426,8 @@ private fun GameModeSelector(selected: GameMode, onSelect: (GameMode) -> Unit) {
  * Number of Rolls and Stored Rolls (see [RollModifiers]) work the same way: a mode that doesn't allow
  * them ([GameMode.allowsRollModifiers]) shows them locked and off, and the player's pick is kept. Stored
  * Rolls' cap is a typed number, empty for none.
+ *
+ * Extended Scores is a plain switch with nothing to set, and applies in every mode.
  */
 @Composable
 private fun SetupModifierPicker(
@@ -433,6 +436,7 @@ private fun SetupModifierPicker(
     onRollsPerTurn: (Int?) -> Unit,
     onStoredRolls: (Boolean) -> Unit,
     onStoredRollsMax: (Int?) -> Unit,
+    onExtendedScores: (Boolean) -> Unit,
 ) {
     val onSelect = onTurnTimer
     val lengths = TurnTimer.entries.filter { it != TurnTimer.NONE }
@@ -484,6 +488,12 @@ private fun SetupModifierPicker(
                     maxDigits = RollModifiers.MAX_CAP_DIGITS,
                     onValueChange = onStoredRollsMax,
                 ),
+            ),
+            ModifierSetting(
+                title = "Extended Scores",
+                description = "Adds Two Pair, Evens and Odds to the scorecard",
+                enabled = setup.extendedScores,
+                onEnabledChange = onExtendedScores,
             ),
         ),
     )

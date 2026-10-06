@@ -24,18 +24,21 @@ object GameEngine {
         gameMode: GameMode = GameMode.default,
         turnTimer: TurnTimer = TurnTimer.NONE,
         rollModifiers: RollModifiers = RollModifiers(),
+        extendedScores: Boolean = false,
     ): GameState {
         require(players.isNotEmpty()) { "At least one player is required" }
         return GameState(
             gameMode = gameMode,
             turnTimer = turnTimer,
             rollModifiers = rollModifiers,
+            extendedScores = extendedScores,
             players = players.map {
                 PlayerState(
                     name = it.name,
                     type = it.type,
                     difficulty = it.difficulty,
                     gameMode = gameMode,
+                    extendedScores = extendedScores,
                     rollsModified = rollModifiers.isActive,
                 )
             },

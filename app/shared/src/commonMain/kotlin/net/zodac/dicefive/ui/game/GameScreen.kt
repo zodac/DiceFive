@@ -222,7 +222,7 @@ fun GameScreen(
                     .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)),
                 contentAlignment = Alignment.TopCenter,
             ) {
-                val layout = gameLayout(maxWidth, maxHeight, currentState.gameMode)
+                val layout = gameLayout(maxWidth, maxHeight, currentState.categories)
                 val density = LocalDensity.current
                 // The board is a drawn object, so on a bigger screen all of it is drawn bigger - art, text and
                 // touch targets together - rather than its pieces spreading apart. The player's font scale is kept.
@@ -563,8 +563,8 @@ internal data class GameLayout(val sideBySide: Boolean, val scale: Float, val ma
  * much larger than on [REFERENCE_WIDTH]'s phone - never smaller than that, as the tiles and dice would
  * fall under their minimum touch size, so a screen too short for either scrolls instead.
  */
-internal fun gameLayout(width: Dp, height: Dp, gameMode: GameMode): GameLayout {
-    val board = gameBoardHeight(gameMode)
+internal fun gameLayout(width: Dp, height: Dp, categories: List<ScoreCategory>): GameLayout {
+    val board = gameBoardHeight(categories)
     val chrome = GAME_PADDING * 2 + HEADER_HEIGHT + SECTION_GAP
     val paneWidth = REFERENCE_WIDTH - GAME_PADDING * 2
     val tray = diceTrayHeight(paneWidth)

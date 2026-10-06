@@ -542,4 +542,39 @@ class GameEngineTest {
         assertFailsWith<IllegalArgumentException> { RollModifiers(rollsPerTurn = 10) }
         assertFailsWith<IllegalArgumentException> { RollModifiers(storedRollsMax = -1) }
     }
+
+    @Test
+    fun `Extended Scores takes the game off the leaderboard and puts its boxes on every card`() {
+        val game = GameEngine.newGame(twoPlayers, extendedScores = true)
+
+        assertFalse(game.countsOnLeaderboard)
+        assertTrue(game.extendedScores)
+        assertEquals(GameMode.STANDARD.categories + ScoreCategory.EXTENDED, game.categories)
+        assertTrue(game.players.all { it.extendedScores && it.categories == game.categories })
+        assertTrue(GameEngine.newGame(twoPlayers).countsOnLeaderboard)
+    }
+
+    @Test
+    fun `an Extended Scores game is over only once all 16 boxes are scored`() {
+        var state = GameEngine.newGame(onePlayer, extendedScores = true)
+        repeat(15) {
+            state = scoreNow(state.copy(phase = TurnPhase.ROLLED), state.categories.first { state.players.single().isOpen(it) })
+            assertFalse(state.isGameOver)
+        }
+        state = scoreNow(state.copy(phase = TurnPhase.ROLLED), state.categories.first { state.players.single().isOpen(it) })
+
+        assertTrue(state.isGameOver)
+        assertTrue(state.players.single().isScorecardComplete)
+    }
+
+    @Test
+    fun `a roll can be scored in an Extended Scores box`() {
+        val state = GameEngine.newGame(onePlayer, extendedScores = true)
+            .copy(phase = TurnPhase.ROLLED, dice = listOf(6, 6, 5, 5, 2).map { Die(value = it) })
+
+        val scored = GameEngine.commitScore(state, ScoreCategory.TWO_PAIR)
+
+        assertEquals(listOf(22), scored.players.single().scoresIn(ScoreCategory.TWO_PAIR))
+        assertEquals(22, scored.players.single().totalScore)
+    }
 }

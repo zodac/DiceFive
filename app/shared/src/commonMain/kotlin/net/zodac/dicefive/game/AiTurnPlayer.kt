@@ -50,15 +50,29 @@ object AiTurnPlayer {
      * straight look like nearly 40 points' profit. Lazy per mode, so a process that only ever plays
      * one mode never pays for another's.
      */
-    private val CATEGORY_BASELINES: Map<GameMode, Lazy<DoubleArray>> =
-        GameMode.entries.associateWith { mode -> lazy { categoryBaseline(mode) } }
+    private val CATEGORY_BASELINES: Map<Card, Lazy<DoubleArray>> =
+        Card.all.associateWith { card -> lazy { categoryBaseline(card) } }
+
+    /**
+     * A scorecard's shape: a [mode]'s boxes, with or without the Extended Scores modifier's three. What
+     * Hard's per-mode tables are built for, since the extra boxes change every hand's scores.
+     */
+    private data class Card(val mode: GameMode, val extendedScores: Boolean) {
+        val categories: List<ScoreCategory> = mode.categoriesWith(extendedScores)
+
+        companion object {
+            val all: List<Card> = GameMode.entries.flatMap { listOf(Card(it, false), Card(it, true)) }
+
+            fun of(player: PlayerState) = Card(player.gameMode, player.extendedScores)
+        }
+    }
 
     /**
      * Every hand of each mode's dice, scored in every one of its categories - built on a mode's first
      * Hard decision and kept: Tricolour's 26,334 hands take a moment to score, Standard's 252 none.
      */
-    private val HAND_SCORING: Map<GameMode, Lazy<HandScoring>> =
-        GameMode.entries.associateWith { mode -> lazy { HandScoring(mode, ROLL_SPACES.getValue(mode).value.hands) } }
+    private val HAND_SCORING: Map<Card, Lazy<HandScoring>> =
+        Card.all.associateWith { card -> lazy { HandScoring(card.mode, ROLL_SPACES.getValue(card.mode).value.hands, card.categories) } }
 
     /** Every roll of each mode's dice and the hands they're scored as - see [RollSpace]. Built with [HAND_SCORING]. */
     private val ROLL_SPACES: Map<GameMode, Lazy<RollSpace>> =
@@ -69,11 +83,12 @@ object AiTurnPlayer {
      * the faces that matter to it - six numbers, or three colours - which keeps even a coloured mode's
      * whole-turn search to a few thousand hands.
      */
-    private fun categoryBaseline(mode: GameMode): DoubleArray {
+    private fun categoryBaseline(card: Card): DoubleArray {
+        val mode = card.mode
         val numberSpace = RollSpace(mode.dieValues.map { Die(value = it) }, mode)
         val colourSpace = if (mode.dieColours.isEmpty()) null else RollSpace(mode.dieColours.map { Die(value = mode.dieValues.first, colour = it) }, mode)
-        return DoubleArray(mode.categories.size) { index ->
-            val category = mode.categories[index]
+        return DoubleArray(card.categories.size) { index ->
+            val category = card.categories[index]
             val space = if (category.section == ScoreSection.COLOUR) requireNotNull(colourSpace) else numberSpace
             val scores = DoubleArray(space.hands.handCount) { hand -> DiceScoring.score(category, space.hands.diceOf(hand)).toDouble() }
             space.rolls.keepValues(space.rollValues(scores), mode.rollsPerTurn)[space.rolls.emptyKeep]
@@ -168,15 +183,16 @@ object AiTurnPlayer {
     }
 
     /**
-     * Builds what Hard's decisions in [mode] need - every hand scored, and each box's baseline - ahead
+     * Builds what Hard's decisions in [mode] (with the Extended Scores boxes, if [extendedScores]) need - every hand scored, and each box's baseline - ahead
      * of its first one. Kept for the process, so only the first call does anything: with Tricolour's
      * coloured dice that's most of a second on a laptop, so a game with a Hard CPU starts it in the
      * background rather than leave the CPU's first roll to wait on it.
      */
-    fun prepareHard(mode: GameMode) {
+    fun prepareHard(mode: GameMode, extendedScores: Boolean = false) {
+        val card = Card(mode, extendedScores)
         ROLL_SPACES.getValue(mode).value
-        HAND_SCORING.getValue(mode).value
-        CATEGORY_BASELINES.getValue(mode).value
+        HAND_SCORING.getValue(card).value
+        CATEGORY_BASELINES.getValue(card).value
     }
 
     /**
@@ -356,12 +372,15 @@ object AiTurnPlayer {
         ScoreCategory.COLOURED_HOUSE,
         ScoreCategory.FOUR_OF_A_KIND,
         ScoreCategory.THREE_OF_A_KIND,
+        ScoreCategory.TWO_PAIR,
         ScoreCategory.SIXES,
         ScoreCategory.FIVES,
         ScoreCategory.FOURS,
         ScoreCategory.THREES,
         ScoreCategory.TWOS,
         ScoreCategory.ONES,
+        ScoreCategory.EVENS,
+        ScoreCategory.ODDS,
         ScoreCategory.CHANCE,
     ).withIndex().associate { (index, category) -> category to index }
 
@@ -428,14 +447,16 @@ object AiTurnPlayer {
      */
     private class HardTurn(player: PlayerState, perfectPlay: StandardPerfectPlayTable?) {
         private val mode = player.gameMode
-        private val scoring = HAND_SCORING.getValue(mode).value
+        private val card = Card.of(player)
+        private val scoring = HAND_SCORING.getValue(card).value
         val space: DiceSpace = scoring.space
         val rolls: RollSpace = ROLL_SPACES.getValue(mode).value
         private val filledMask = scoring.filledMask(player)
         private val fiveScored = scoring.fiveOfAKindScored(player)
         private val upperTotal = player.cappedUpperTotal()
-        private val table = perfectPlay.takeIf { mode == GameMode.STANDARD }
-        private val baseline = CATEGORY_BASELINES.getValue(mode).value
+        // The bundled table is Standard's own card, so the extra boxes put a game outside it.
+        private val table = perfectPlay.takeIf { mode == GameMode.STANDARD && !player.extendedScores }
+        private val baseline = CATEGORY_BASELINES.getValue(card).value
 
         /**
          * The upper bonus's stake in each point scored in the upper section, for the estimate: it's

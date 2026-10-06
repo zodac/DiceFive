@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -49,6 +52,7 @@ import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.style.FlowerpotGrowth
@@ -103,15 +107,27 @@ data class CupPanelState(
     val flowerpotGrowth: FlowerpotGrowth,
 )
 
+/** The cup's own square - what the rows it sits over must be tall enough for: two in a six-row board, more beyond that. */
+internal val CUP_SIZE = 104.dp
+
+/** The room kept beside the large 5x tile for its score and bonus. */
+private val LARGE_FIVE_SCORE_ROOM = 44.dp
+
+/** The first of the board rows the dice cup sits in. */
+private const val CUP_FIRST_ROW = 3
+
 /**
- * The right-hand column beside the category grid: the prominent 5x tile (its top level with the
- * grid's first row), the (tappable) dice cup with its remaining-rolls count, and the Totals button
- * (Upper/Bonus/Lower, see [TotalsButton]) with undo - the cup and undo only when [cup] is non-null,
- * i.e. an actual turn is in progress rather than a read-only look at someone else's scorecard.
+ * The right-hand half of the board, beside the category grid, in the same rows as it: the wide 5x tile
+ * across the first (or, with nothing under it, a large square over the first two), then the boxes that sit under it ([BoardLayout.sideRows] - Tricolour's colours, or the
+ * Extended Scores modifier's three), the (tappable) dice cup with its remaining-rolls count over two rows
+ * from the fourth, and the Totals button (Upper/Bonus/Lower, see [TotalsButton]) with undo in the last row - the
+ * cup and undo only when [cup] is non-null, i.e. an actual turn is in progress rather than a read-only look
+ * at someone else's scorecard. The cup is the same place with or without the boxes above it, so switching
+ * Extended Scores on or off moves nothing.
  */
 @Composable
 fun DiceCupPanel(
-    gameMode: GameMode,
+    categories: List<ScoreCategory>,
     player: PlayerState?,
     dice: List<Die>,
     canScore: Boolean,
@@ -123,56 +139,98 @@ fun DiceCupPanel(
     // False where the cup is drawn beside the board instead (see DiceCup): its space here stays, empty.
     showCup: Boolean = true,
 ) {
-    // Same height as the grid beside it (both fill the board's padded Row), which is what lets
-    // firstRowTileInset find where that grid's first row sits.
+    val layout = boardLayout(categories)
+    val rows = layout.rowCount
+    val compact = gridTileSize(rows) == COMPACT_TILE_SIZE
+    // Nothing under 5x: it takes that room, as a large square.
+    val largeFive = layout.sideRows.isEmpty()
+    // Same height as the grid beside it (both fill the board's padded Row), with the same rows and gaps,
+    // so each row here is level with the grid's.
     BoxWithConstraints(modifier = modifier.fillMaxHeight()) {
-        val topInset = firstRowTileInset(gameMode, maxHeight)
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Top-aligned, topInset down, so the tile's top edge is level with Ones and 3x in the
-            // grid beside it - it used to sit centred in this space, noticeably lower than that row.
-            Box(modifier = Modifier.weight(2f).fillMaxWidth()) {
-                CategoryCell(
-                    category = ScoreCategory.FIVE_OF_A_KIND,
-                    player = player,
-                    canScore = canScore,
-                    showPreview = showPreview,
-                    available = available,
-                    dice = dice,
-                    onScoreCategory = onScoreCategory,
-                    prominent = true,
-                    modifier = Modifier.padding(top = topInset).fillMaxWidth(),
-                )
-            }
+        val rowHeight = (maxHeight - GRID_ROW_SPACING * (rows - 1)) / rows
+        // The cup is centred in the rows between the boxes under 5x and the buttons: two on Standard's six rows,
+        // more with more - where its own size no longer needs them all, but it stays put between the two.
+        val cupRows = rows - 1 - CUP_FIRST_ROW
+        val cupHeight = rowHeight * cupRows + GRID_ROW_SPACING * (cupRows - 1)
+        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(GRID_ROW_SPACING)) {
+            for (row in 0 until rows) {
+                when {
+                    row == 0 && !largeFive -> CategoryCell(
+                        category = ScoreCategory.FIVE_OF_A_KIND,
+                        player = player,
+                        canScore = canScore,
+                        showPreview = showPreview,
+                        available = available,
+                        dice = dice,
+                        onScoreCategory = onScoreCategory,
+                        wide = true,
+                        compact = compact,
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                    )
 
-            DiceCup(
-                cup = cup.takeIf { showCup },
-                dice = dice,
-                // weight(3f) reproduces the same row height this area already had - only the width
-                // changes here (fillMaxWidth), not the height. Kept even with no cup to draw (cup ==
-                // null, or drawn beside the board) so the 5x tile and the stats row below stay at the
-                // same heights either way - only this box's own content disappears.
-                modifier = Modifier.weight(3f).fillMaxWidth(),
-            )
+                    row - 1 in layout.sideRows.indices -> CellRow(
+                        categories = layout.sideRows[row - 1],
+                        player = player,
+                        canScore = canScore,
+                        showPreview = showPreview,
+                        available = available,
+                        dice = dice,
+                        onScoreCategory = onScoreCategory,
+                        compact = compact,
+                        modifier = Modifier.weight(1f),
+                    )
 
-            Row(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                // Both buttons at the right, Totals just left of Undo - Undo where it always was.
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-            ) {
-                val upperTotal = player?.upperSectionTotal ?: 0
-                val upperBonus = player?.upperSectionBonus ?: 0
-                val lowerTotal = (player?.lowerSectionTotal ?: 0) + (player?.fiveOfAKindBonusTotal ?: 0)
-                // Clearance from the score grid's rightmost column - which can render a 2-digit score
-                // past its own column's edge - comes from GameBoard's inter-panel gap and weight split,
-                // not from padding here specifically, so every row of this panel (this one, the cup, the
-                // 5x tile above) gets the same protection instead of just this one.
-                TotalsButton(upperTotal = upperTotal, upperBonus = upperBonus, lowerTotal = lowerTotal)
-                if (cup != null && cup.showUndo) {
-                    UndoButton(enabled = cup.canUndo, onClick = cup.onUndo)
+                    row == rows - 1 -> Row(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        // Both buttons at the right, Totals just left of Undo - Undo where it always was.
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    ) {
+                        val upperTotal = player?.upperSectionTotal ?: 0
+                        val upperBonus = player?.upperSectionBonus ?: 0
+                        val lowerTotal = (player?.lowerSectionTotal ?: 0) + (player?.fiveOfAKindBonusTotal ?: 0)
+                        // Clearance from the score grid's rightmost column - which can render a 2-digit score
+                        // past its own column's edge - comes from GameBoard's inter-panel gap and weight split,
+                        // not from padding here specifically, so every row of this panel gets the same
+                        // protection instead of just this one.
+                        // As big as a tile in the same row.
+                        val buttonSize = gridTileSize(rows)
+                        TotalsButton(upperTotal = upperTotal, upperBonus = upperBonus, lowerTotal = lowerTotal, minSize = buttonSize)
+                        if (cup != null && cup.showUndo) {
+                            UndoButton(enabled = cup.canUndo, onClick = cup.onUndo, minSize = buttonSize)
+                        }
+                    }
+
+                    else -> Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
+        if (largeFive) {
+            // Laid over the first two rows, which it spans: a square as tall as both, leaving the score room beside it.
+            val height = rowHeight * 2 + GRID_ROW_SPACING
+            CategoryCell(
+                category = ScoreCategory.FIVE_OF_A_KIND,
+                player = player,
+                canScore = canScore,
+                showPreview = showPreview,
+                available = available,
+                dice = dice,
+                onScoreCategory = onScoreCategory,
+                squareSize = minOf(height, maxWidth - LARGE_FIVE_SCORE_ROOM),
+                modifier = Modifier.fillMaxWidth().height(height),
+            )
+        }
+        // Laid over the rows it sits in rather than in them, since it spans both: the rows' own height,
+        // and the gap between them. Kept even with no cup to draw (cup == null, or drawn beside the board)
+        // so the rows around it stay as they are - only its own content disappears.
+        DiceCup(
+            cup = cup.takeIf { showCup },
+            dice = dice,
+            modifier = Modifier
+                .offset(y = (rowHeight + GRID_ROW_SPACING) * CUP_FIRST_ROW)
+                .fillMaxWidth()
+                .height(cupHeight),
+        )
     }
 }
 
@@ -297,7 +355,7 @@ internal fun DiceCup(
                     label = "cupSpent",
                 )
                 Box(
-                    modifier = Modifier.size(104.dp).spentLook(spent),
+                    modifier = Modifier.size(CUP_SIZE).spentLook(spent),
                     contentAlignment = Alignment.Center,
                 ) {
                     val cupStyle = visualTheme.diceCupStyle

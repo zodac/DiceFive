@@ -587,25 +587,29 @@ shake clock at weight zero, which kept the whole board recomposing for the entir
 
 ## The scorecard grid and game modes
 
-`ScoreGrid` doesn't hard-code a scorecard: `scoreGridRows(gameMode)` lays out whatever
-`GameMode.categories` holds - the upper section down the left column beside the lower section
-(5x excluded, it has its own tile by the cup), then any leftovers two to a row underneath. Standard
-is the original six rows. Tricolour's four colour boxes add two more rows (Reds | Yellows, Blues |
-Coloured House).
+The board is **four equal columns in rows shared by two panes** (`boardLayout`). `ScoreGrid` is the left pane:
+the upper section down column 1 beside the lower section in column 2, whatever card it's given
+(`PlayerState.categories`). `DiceCupPanel` is the right pane, in the same rows: 5x as one wide tile across
+columns 3-4 in row 1, then up to two rows of boxes under it (`BoardLayout.sideRows`: Tricolour's colours as a
+2x2, or Extended Scores' Evens | Odds / Two Pair), the cup laid over rows 4-5 and Totals/Undo in row 6. The
+cup is in the same place whether or not the boxes above it are there, and Totals/Undo are in the last row
+(row 8 with eight rows), at the size of a tile in that row - 40dp when compact, below M3's 48dp touch target like
+the compact tiles. The cup is centred in the rows between the boxes under 5x and the buttons. Extended Scores wins the place under 5x;
+Tricolour's colours then go after the lower section in the grid, two to a row (eight rows).
 
-More than six rows switches every grid tile to `COMPACT_TILE_SIZE` (40dp, from 48dp) and grows the
-board to fit - `scoreBoardHeight`: one tile plus the 6dp row gap per row, inside the board's
-padding, which is 396dp for Tricolour against Standard's 380dp. The alternatives were worse: a third
-column doesn't fit (at 360dp wide each grid column is already ~60dp), and eight rows of 48dp tiles
-would push the dice tray under the fold. A 2x2 block of colour boxes under the 5x tile, beside the
-grid, was also built and tried - and reverted on review in favour of this.
+More than six rows switches every tile to `COMPACT_TILE_SIZE` (40dp, from 48dp) and grows the board to fit
+(`scoreBoardHeight`, 390dp for eight rows); the cup's two rows are then shorter than `CUP_SIZE`, so it's
+given that height regardless (it needs rows 4-6; Totals/Undo moved below it). Standard and Tricolour are both
+six rows and 380dp.
 
-**The 5x tile's top is level with Ones and 3x, in every mode.** It sits top-aligned in its space
-beside the grid, `firstRowTileInset` down - worked out from the grid's own row count, tile size and
-height (rows share the height equally and centre their tile), since those differ between Standard
-(six 48dp rows, 380dp board) and Tricolour (eight 40dp rows, 396dp board), so no one hand-tuned
-offset suits both. It used to sit centred in that space, noticeably lower than the first row.
-Arithmetic only - not yet seen on a device.
+**With nothing under it, 5x is a large square** over rows 1-2 (`squareSize`, as tall as both rows, 16dp
+corners, its score and bonus beside it); the rows under it are empty.
+
+**Otherwise the 5x tile is a wide tile**, not a square: `CategoryTile(wide = true)` takes the width it's given at the
+usual tile height - its right edge level with the right edge of the tile in column 4, the score beside it where
+column 4's scores are, and the 5x bonus written inside the tile (there's no room beside it). The cup is drawn over
+the two rows it spans, offset from the pane's row height and gap, rather than sized by weights - which would
+not line up with the grid's rows.
 
 **Coloured dice keep the dice style, in the roll's colour.** In a mode with `GameMode.dieColours`,
 each die's colour is part of the roll, so `DiceTray` draws it with the player's style

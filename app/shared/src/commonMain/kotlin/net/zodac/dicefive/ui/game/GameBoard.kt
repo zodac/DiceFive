@@ -34,8 +34,8 @@ import net.zodac.dicefive.ui.theme.playerColor
  * [scoreBoardHeight]), so its two columns line up row-for-row. */
 private val BOARD_PADDING = 14.dp
 
-/** How tall [gameMode]'s score board is, padding and all - see [scoreBoardHeight]. */
-internal fun gameBoardHeight(gameMode: GameMode): Dp = scoreBoardHeight(gameMode, BOARD_PADDING)
+/** How tall the score board is for a card of [categories], padding and all - see [scoreBoardHeight]. */
+internal fun gameBoardHeight(categories: List<ScoreCategory>): Dp = scoreBoardHeight(categories, BOARD_PADDING)
 
 /**
  * The scoring area shared by a live turn ([GameBoard]) and a read-only look at another player
@@ -48,7 +48,7 @@ internal fun gameBoardHeight(gameMode: GameMode): Dp = scoreBoardHeight(gameMode
  */
 @Composable
 private fun ScoreBoardRow(
-    gameMode: GameMode,
+    categories: List<ScoreCategory>,
     player: PlayerState?,
     dice: List<Die>,
     canScore: Boolean,
@@ -65,14 +65,14 @@ private fun ScoreBoardRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(gameBoardHeight(gameMode))
+            .height(gameBoardHeight(categories))
             .clip(RoundedCornerShape(16.dp))
             .background(visualTheme.background.scoreAreaBrush)
             .drawBehind { with(visualTheme.background) { drawScoreAreaDecoration() } }
             .padding(BOARD_PADDING),
     ) {
         ScoreGrid(
-            gameMode = gameMode,
+            categories = categories,
             player = player,
             dice = dice,
             canScore = canScore,
@@ -90,7 +90,7 @@ private fun ScoreBoardRow(
         // harmlessly, before it would otherwise reach the cup panel's content.
         Spacer(modifier = Modifier.width(20.dp))
         DiceCupPanel(
-            gameMode = gameMode,
+            categories = categories,
             player = player,
             dice = dice,
             canScore = canScore,
@@ -141,7 +141,7 @@ fun GameBoard(
     val available = player?.let { ScoreCalculator.availableCategories(it, hand) }.orEmpty().toSet()
 
     ScoreBoardRow(
-        gameMode = state.gameMode,
+        categories = state.categories,
         player = player,
         dice = hand,
         canScore = canScore,
@@ -247,7 +247,7 @@ internal val LocalLastScoredHighlight = staticCompositionLocalOf<LastScoredHighl
 @Composable
 private fun ReadOnlyScoreboardRow(player: PlayerState, modifier: Modifier) {
     ScoreBoardRow(
-        gameMode = player.gameMode,
+        categories = player.categories,
         player = player,
         dice = emptyList(),
         canScore = false,

@@ -115,6 +115,7 @@ enum class GameMode(
      */
     val allowsRollModifiers: Boolean = true,
 ) {
+
     /**
      * The official rules.
      *
@@ -261,6 +262,13 @@ enum class GameMode(
         countsOnLeaderboard = false,
     ),
     ;
+
+    /**
+     * The scorecard this mode plays with: [categories], plus the Extended Scores modifier's boxes after them
+     * when [extendedScores] is on. What a game's own card is read from - never [categories] directly.
+     */
+    fun categoriesWith(extendedScores: Boolean): List<ScoreCategory> =
+        if (extendedScores) categories + ScoreCategory.EXTENDED else categories
 
     /** How many turns each player takes in a game: one for every slot of every category. */
     val turnsPerGame: Int

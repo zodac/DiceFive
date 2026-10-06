@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.House
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,6 +29,7 @@ import net.zodac.dicefive.resources.ic_stairs
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.PipFace
 import net.zodac.dicefive.ui.game.style.palette
+import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 import org.jetbrains.compose.resources.painterResource
 
@@ -49,6 +51,8 @@ fun CategoryIcon(
     // Extra 5x beyond the first (see PlayerState.fiveOfAKindBonusCount) - only ever nonzero for
     // ScoreCategory.FIVE_OF_A_KIND, so a corner badge can show the total count once there's more than one.
     fiveOfAKindBonusCount: Int = 0,
+    // The bonus those extra 5x are worth, written at the tile's right end - only for the wide 5x tile, which has the room.
+    fiveOfAKindBonusAmount: Int = 0,
 ) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         when (category) {
@@ -59,7 +63,7 @@ fun CategoryIcon(
 
             ScoreCategory.THREE_OF_A_KIND -> BadgeLabel("3x", color, labelFontSize)
             ScoreCategory.FOUR_OF_A_KIND -> BadgeLabel("4x", color, labelFontSize)
-            ScoreCategory.FIVE_OF_A_KIND -> FiveOfAKindIcon(color, labelFontSize, fiveOfAKindBonusCount)
+            ScoreCategory.FIVE_OF_A_KIND -> FiveOfAKindIcon(color, labelFontSize, fiveOfAKindBonusCount, fiveOfAKindBonusAmount)
             ScoreCategory.CHANCE -> BadgeLabel("?", color, labelFontSize)
             // A stock glyph rather than a hand-drawn one (a previous roof/body Canvas silhouette
             // read as too tall for the tile). The tile itself is always square (CategoryTile sizes
@@ -83,6 +87,11 @@ fun CategoryIcon(
             // that used to come from the hand-drawn version's step count.
             ScoreCategory.SMALL_STRAIGHT -> StairsWithRunBadge(color, runLength = 4, dimmed = dimmed)
             ScoreCategory.LARGE_STRAIGHT -> StairsWithRunBadge(color, runLength = 5, dimmed = dimmed)
+            // Text badges like 3x and ?, since there's no picture that says "two pairs" or "evens" better than
+            // the words themselves. The spoken name is on the tile (see BoardSemantics).
+            ScoreCategory.TWO_PAIR -> BadgeLabel("2+2", color, labelFontSize)
+            ScoreCategory.EVENS -> BadgeLabel("Ev", color, labelFontSize)
+            ScoreCategory.ODDS -> BadgeLabel("Od", color, labelFontSize)
             else -> Unit
         }
     }
@@ -90,11 +99,13 @@ fun CategoryIcon(
 
 // Both corner badges (run-length and 5x count) size and inset themselves as a fraction of
 // their OWN tile's rendered width, not a fixed dp value - a fixed 2dp/14dp reads as generous
-// clearance on a 48dp regular tile but sits nearly flush with the edge on the 76dp prominent
-// 5x tile, since the same absolute gap is proportionally much smaller there. Fractions are
+// clearance on a 48dp regular tile but sits nearly flush with the edge on a bigger
+// tile, since the same absolute gap is proportionally much smaller there. Fractions are
 // of the REGULAR_TILE_SIZE case (see CategoryTile.kt) - the original hand-tuned 2dp inset / 14dp
 // badge size on a 48dp tile - so both badges keep the same relative position and weight at any
 // tile size.
+/** The most of a tile's height the 5x count badge is sized from - on the large square 5x tile it would otherwise be huge. */
+private val LARGE_TILE_BADGE_BASIS = 76.dp
 private const val BADGE_EDGE_INSET_FRACTION = 2f / 48f
 private const val BADGE_SIZE_FRACTION = 14f / 48f
 
@@ -135,20 +146,31 @@ private fun BadgeLabel(text: String, color: Color, fontSize: TextUnit, modifier:
  * highlighted/scored does for Small vs Large Straight.
  */
 @Composable
-private fun FiveOfAKindIcon(color: Color, fontSize: TextUnit, bonusCount: Int) {
+private fun FiveOfAKindIcon(color: Color, fontSize: TextUnit, bonusCount: Int, bonusAmount: Int) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         BadgeLabel("5x", color, fontSize, modifier = Modifier.align(Alignment.Center))
+        if (bonusAmount > 0) {
+            Text(
+                text = "+$bonusAmount",
+                color = GoldAccent,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                modifier = Modifier.align(Alignment.CenterEnd).padding(end = 10.dp),
+            )
+        }
         if (bonusCount > 0) {
-            val inset = maxWidth * BADGE_EDGE_INSET_FRACTION
-            val badgeSize = maxWidth * BADGE_SIZE_FRACTION
+            // Of the tile's height, which the wide 5x tile shares with a square one.
+            val basis = minOf(maxHeight, LARGE_TILE_BADGE_BASIS)
+            val inset = basis * BADGE_EDGE_INSET_FRACTION
+            val badgeSize = basis * BADGE_SIZE_FRACTION
             SegmentBadge(
                 // Total 5x, not just the bonus count: the first one (the 50 itself) counts
                 // too.
                 count = bonusCount + 1,
                 color = color,
                 // Top-left, matching the Small/Large Straight run-length badge's position (see
-                // StairsWithRunBadge) - same proportional clearance off the tile edge, scaled up
-                // for this tile being PROMINENT-sized (76dp) rather than regular (48dp).
+                // StairsWithRunBadge) - same proportional clearance off the tile edge.
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(top = inset, start = inset)

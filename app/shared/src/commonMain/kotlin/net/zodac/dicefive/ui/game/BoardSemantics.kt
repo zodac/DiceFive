@@ -25,6 +25,9 @@ internal fun ScoreCategory.spokenName(irish: Boolean): String = when (this) {
     ScoreCategory.YELLOWS -> "${DieColour.YELLOW.spokenName(irish)}s"
     ScoreCategory.BLUES -> "${DieColour.BLUE.spokenName(irish)}s"
     ScoreCategory.COLOURED_HOUSE -> "Coloured House"
+    ScoreCategory.TWO_PAIR -> "Two Pair"
+    ScoreCategory.EVENS -> "Evens"
+    ScoreCategory.ODDS -> "Odds"
 }
 
 /** A die colour's name - the Irish flag's colours in its place while [irish] (see DieColour.palette). */

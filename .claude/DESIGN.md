@@ -2274,3 +2274,31 @@ install-over-existing succeeds:
 - [ ] **Not seen on a device**: the text field in the modal (Robolectric never goes idle with a text field
       in any dialog, so it was not rendered), and what TalkBack says.
 
+
+### Phase 28 — Modifier: Extended Scores
+
+- [x] **Extended Scores** is a plain on/off modifier (no value) that adds three boxes after the mode's own:
+      `TWO_PAIR` (two different numbers each on 2+ dice: the four dice making them are added, a fifth is
+      never counted, four of one number is not two pair), `EVENS` and `ODDS` (the even / odd dice added up).
+      They are their own `ScoreSection.EXTENDED`, in `totalScore` but in neither the upper nor lower total.
+      Works in every mode; a game takes three more turns per slot-set (16 in Standard).
+- [x] **Plumbing**: `GameState.extendedScores` and `PlayerState.extendedScores`; **read a card from
+      `PlayerState.categories` / `GameState.categories` (`GameMode.categoriesWith`), never `gameMode.categories`**,
+      and a game's length from `PlayerState.turnsPerGame`. Saved by `GameStateJson` (left out when off) and
+      `SettingsRepository`. Takes a game off the Leaderboard like the other modifiers.
+- [x] **Board is four columns**: the grid is columns 1-2 (upper, lower), the right pane (`DiceCupPanel`) columns
+      3-4, in the same rows (`BoardLayout`, `boardLayout`). 5x is a wide tile across both columns of row 1
+      (`CategoryTile(wide)`, replacing the 76dp square); rows 2-3 hold the boxes under it - Extended Scores'
+      Evens | Odds then Two Pair, or Tricolour's colours as a 2x2 (they used to be two extra grid rows, so
+      Tricolour is now six rows); the dice cup sits over rows 4-5 and Totals/Undo in row 6, in every mode, so
+      the modifier moves nothing. Tricolour + Extended Scores gives the Extended boxes that place and moves
+      the four colour boxes to the grid after the lower section (eight compact rows, a 390dp board); its two
+      cup rows are only 86dp, so Totals/Undo move to the last row (level with Blues | Coloured House, drawn
+      at tile size - 40dp) and the cup keeps its full size, centred between Two Pair's row and the buttons.
+      With nothing under 5x (no Tricolour, no Extended Scores) 5x is a large square over rows 1-2 instead. Tiles are text badges "2+2",
+      "Ev", "Od"; TalkBack says "Two Pair", "Evens", "Odds".
+- [x] **AI**: Hard's per-mode tables are keyed by card (`AiTurnPlayer.Card`); the Standard perfect-play table is
+      not used with the extra boxes. Medium only gained a tie-break rank for the new boxes; neither was tuned.
+- [x] **Achievements**: score ladder and Zero To Hero guarded; How Do You Play This Game and Luck Of The Draw
+      read the real card; the Flowerpot's last roll stretches (`PlayerState.maxRollsPerGame`).
+- [ ] **Not seen on a device**; Tricolour + Extended Scores' tall board against the dice tray.

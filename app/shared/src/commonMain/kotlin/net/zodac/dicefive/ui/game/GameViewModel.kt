@@ -90,6 +90,8 @@ data class GameSetupState(
     val rollModifiers: RollModifiers = RollModifiers(),
     /** The Number of Rolls value the modifier returns to when switched back on: the last one chosen, kept while [RollModifiers.rollsPerTurn] is null. */
     val rollsPerTurnLength: Int = RollModifiers.DEFAULT_ROLLS,
+    /** The Extended Scores modifier: Two Pair, Evens and Odds join the scorecard. */
+    val extendedScores: Boolean = false,
 ) {
     companion object {
         const val MIN_PLAYERS = 1
@@ -421,6 +423,7 @@ class GameViewModel(
                     turnTimerLength = repository.turnTimerLength.first(),
                     rollModifiers = repository.rollModifiers.first(),
                     rollsPerTurnLength = repository.rollsPerTurnLength.first(),
+                    extendedScores = repository.extendedScores.first(),
                     gameMode = repository.gameMode.first(),
                 )
                 _setup.value = restored
@@ -488,6 +491,11 @@ class GameViewModel(
         _setup.update { it.copy(rollModifiers = it.rollModifiers.copy(storedRollsMax = max)) }
     }
 
+    /** Switches the Extended Scores modifier on or off. */
+    fun setExtendedScores(enabled: Boolean) {
+        _setup.update { it.copy(extendedScores = enabled) }
+    }
+
     /** Builds the initial [GameState] from the current setup form, generating AI names now. */
     fun startGame() {
         // Read before anything below overwrites it: "One More Time" is about the game THIS call is
@@ -516,12 +524,12 @@ class GameViewModel(
         setUndoSnapshot(null)
         resetSuperuserMode()
         resetAchievementTracking()
-        applyGameState(GameEngine.newGame(playerConfigs, setupState.gameMode, turnTimer, rollModifiers))
+        applyGameState(GameEngine.newGame(playerConfigs, setupState.gameMode, turnTimer, rollModifiers, setupState.extendedScores))
         prepareHardCpus()
         // "Full Table" is settled the moment four seats are taken - no need to make them play it out.
         checkInProgressAchievements()
         checkGameStartAchievements(
-            customizedGameSettings = turnTimer != TurnTimer.NONE || rollModifiers.isActive || setupState.gameMode != GameMode.default,
+            customizedGameSettings = turnTimer != TurnTimer.NONE || rollModifiers.isActive || setupState.extendedScores || setupState.gameMode != GameMode.default,
         )
 
         if (previousGame != null && previousGame.isGameOver && !humanWonGame(previousGame)) {
@@ -1473,6 +1481,7 @@ class GameViewModel(
             repository.setTurnTimer(setup.turnTimer)
             repository.setTurnTimerLength(setup.turnTimerLength)
             repository.setRollModifiers(setup.rollModifiers, setup.rollsPerTurnLength)
+            repository.setExtendedScores(setup.extendedScores)
             repository.setGameMode(setup.gameMode)
             for (slot in slots) {
                 // Slot 1 is always Human, so its type and difficulty aren't worth persisting.
@@ -1527,8 +1536,8 @@ class GameViewModel(
         val state = _game.value ?: return
         if (state.players.none { it.type == PlayerType.AI && it.difficulty == Difficulty.HARD }) return
         viewModelScope.launch(aiDispatcher) {
-            AiTurnPlayer.prepareHard(state.gameMode)
-            if (state.gameMode == GameMode.STANDARD) standardPerfectPlay?.invoke()
+            AiTurnPlayer.prepareHard(state.gameMode, state.extendedScores)
+            if (state.gameMode == GameMode.STANDARD && !state.extendedScores) standardPerfectPlay?.invoke()
         }
     }
 
@@ -1566,7 +1575,7 @@ class GameViewModel(
     /** The perfect-play table if [state]'s current player is a Hard CPU playing Standard - see [standardPerfectPlay]. */
     private suspend fun perfectPlayFor(state: GameState): StandardPerfectPlayTable? {
         val player = state.currentPlayer ?: return null
-        if (state.gameMode != GameMode.STANDARD || player.type != PlayerType.AI || player.difficulty != Difficulty.HARD) return null
+        if (state.gameMode != GameMode.STANDARD || state.extendedScores || player.type != PlayerType.AI || player.difficulty != Difficulty.HARD) return null
         return standardPerfectPlay?.invoke()
     }
 

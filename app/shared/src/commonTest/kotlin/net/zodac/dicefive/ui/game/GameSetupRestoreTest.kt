@@ -25,6 +25,7 @@ import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
+import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnTimer
 
 /** In-memory preferences, so a real [SettingsRepository] can hold the saved setup. */
@@ -147,5 +148,34 @@ class GameSetupRestoreTest {
 
         assertEquals(RollModifiers(), checkNotNull(viewModel.game.value).rollModifiers)
         assertEquals(5, viewModel.setup.value.rollModifiers.rollsPerTurn)
+    }
+
+    @Test
+    fun `Extended Scores is remembered between games`() = runTest(testDispatcher) {
+        val repository = SettingsRepository(FakePreferencesStore())
+        val first = GameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
+        advanceUntilIdle()
+        assertFalse(first.setup.value.extendedScores)
+        first.setExtendedScores(true)
+        first.startGame()
+        advanceUntilIdle()
+
+        val second = GameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
+        advanceUntilIdle()
+        assertTrue(second.setup.value.extendedScores)
+    }
+
+    @Test
+    fun `a game starts with Extended Scores in any mode`() = runTest(testDispatcher) {
+        for (mode in GameMode.entries) {
+            val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+            viewModel.setGameMode(mode)
+            viewModel.setExtendedScores(true)
+            viewModel.startGame()
+
+            val game = checkNotNull(viewModel.game.value)
+            assertTrue(game.extendedScores, mode.id)
+            assertEquals(mode.categories + ScoreCategory.EXTENDED, game.players.first().categories, mode.id)
+        }
     }
 }

@@ -34,6 +34,7 @@ object GameStateJson {
         state.rollModifiers.rollsPerTurn?.let { put("rollsPerTurnModifier", it) }
         if (state.rollModifiers.storedRolls) put("storedRolls", true)
         state.rollModifiers.storedRollsMax?.let { put("storedRollsMax", it) }
+        if (state.extendedScores) put("extendedScores", true)
         put("phase", state.phase.name)
         put("isGameOver", state.isGameOver)
         put("turnSecondsLeft", state.turnSecondsLeft)
@@ -50,10 +51,12 @@ object GameStateJson {
             storedRollsMax = (obj["storedRollsMax"] as? JsonNumber)?.toInt(),
         )
         val rollsRemaining = obj.getInt("rollsRemaining")
+        val extendedScores = "extendedScores" in obj && obj.getBoolean("extendedScores")
         return GameState(
             gameMode = gameMode,
             turnTimer = TurnTimer.valueOf(obj.getString("turnTimer")),
             rollModifiers = rollModifiers,
+            extendedScores = extendedScores,
             currentPlayerIndex = obj.getInt("currentPlayerIndex"),
             rollsRemaining = rollsRemaining,
             // Missing from a game saved before stored rolls: the turn started with the full allowance.
@@ -62,7 +65,7 @@ object GameStateJson {
             isGameOver = obj.getBoolean("isGameOver"),
             turnSecondsLeft = (obj["turnSecondsLeft"] as? JsonNumber)?.toInt(),
             dice = obj.getObjectList("dice").map(::decodeDie),
-            players = obj.getObjectList("players").map { decodePlayer(it, gameMode, rollModifiers.isActive) },
+            players = obj.getObjectList("players").map { decodePlayer(it, gameMode, extendedScores, rollModifiers.isActive) },
         )
     }
 
@@ -109,14 +112,16 @@ object GameStateJson {
         )
     }
 
-    private fun decodePlayer(obj: JsonObject, gameMode: GameMode, rollsModified: Boolean): PlayerState {
+    private fun decodePlayer(obj: JsonObject, gameMode: GameMode, extendedScores: Boolean, rollsModified: Boolean): PlayerState {
         val scorecardJson = obj.getObject("scorecard")
-        val scorecard = gameMode.categories.associateWith { category -> decodeScores(scorecardJson[category.name]) }
+        val categories = gameMode.categoriesWith(extendedScores)
+        val scorecard = categories.associateWith { category -> decodeScores(scorecardJson[category.name]) }
         return PlayerState(
             name = obj.getString("name"),
             type = PlayerType.valueOf(obj.getString("type")),
             difficulty = Difficulty.valueOf(obj.getString("difficulty")),
             gameMode = gameMode,
+            extendedScores = extendedScores,
             scorecard = scorecard,
             fiveOfAKindBonusCount = obj.getInt("fiveOfAKindBonusCount"),
             // Left out by encode for a player with no finished turn yet - no last roll to show.
@@ -124,7 +129,7 @@ object GameStateJson {
             // Missing before the first turn ends, and from a game saved before it was kept: nothing
             // is highlighted as that player's last score until their next one.
             lastScoredCategory = obj.optString("lastScoredCategory").takeIf { it.isNotEmpty() }
-                ?.let { name -> gameMode.categories.firstOrNull { it.name == name } },
+                ?.let { name -> categories.firstOrNull { it.name == name } },
             // Missing from a game saved before rolls were counted: it picks up from zero, which
             // can only keep the Flowerpot's sunflower from blooming that game, never hand it out.
             rollCount = if ("rollCount" in obj) obj.getInt("rollCount") else 0,

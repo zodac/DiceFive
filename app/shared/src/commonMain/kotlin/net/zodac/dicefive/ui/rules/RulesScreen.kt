@@ -324,6 +324,11 @@ private val RULES_PAGES = listOf(
             text("*Stored Rolls* can also have a most rolls you can store: whatever is left over beyond it is lost when the turn is scored. Leave it empty for no limit."),
             text("A game mode built around its rolls, like *Quickfire*, locks both of these while it's chosen."),
             text("Extra rolls make big scores much easier, so with either of these on, the achievements for a high score, a section total, a clean scorecard or the upper bonus can't be earned, and neither can the sunflower."),
+            text("*Extended Scores*: adds three more scoring categories to every player's scorecard, after the others. It works in every game mode, so the game lasts three turns longer."),
+            RulesCategory("Two Pair", "Total of the four dice making two pairs of different numbers. A fifth die is never counted, even if it matches a pair", dice(4, 4, 2, 2, 4, counting = 4, score = "12pts")),
+            RulesCategory("Evens", "Total of the dice showing 2, 4 or 6", dice(6, 4, 2, 3, 1, counting = 3, score = "12pts")),
+            RulesCategory("Odds", "Total of the dice showing 1, 3 or 5", dice(5, 3, 3, 6, 2, counting = 3, score = "11pts")),
+            text("The extra categories have their own section, so they don't count towards the upper bonus or the lower section's total. With *Extended Scores* on, the achievements for a high score or for winning from behind after scoring three zeroes can't be earned."),
         ),
     ),
 )

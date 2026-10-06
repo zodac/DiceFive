@@ -135,4 +135,46 @@ class DiceScoringTest {
         assertEquals(0, DiceScoring.score(ScoreCategory.COLOURED_HOUSE, dice))
         assertEquals(0, DiceScoring.score(ScoreCategory.REDS, dice))
     }
+
+    @Test
+    fun `two pair scores the four dice making the pairs`() {
+        assertEquals(22, DiceScoring.score(ScoreCategory.TWO_PAIR, diceOf(6, 6, 5, 5, 1)))
+        assertEquals(6, DiceScoring.score(ScoreCategory.TWO_PAIR, diceOf(2, 1, 1, 2, 4)))
+    }
+
+    @Test
+    fun `two pair ignores a fifth die even when it matches a pair`() {
+        // 4+4+2+2 - the third 4 is a full house's, not part of the two pair.
+        assertEquals(12, DiceScoring.score(ScoreCategory.TWO_PAIR, diceOf(4, 4, 2, 2, 4)))
+        assertEquals(12, DiceScoring.score(ScoreCategory.TWO_PAIR, diceOf(4, 2, 4, 4, 2)))
+    }
+
+    @Test
+    fun `two pair needs two different numbers`() {
+        assertEquals(0, DiceScoring.score(ScoreCategory.TWO_PAIR, diceOf(3, 3, 3, 3, 5)))
+        assertEquals(0, DiceScoring.score(ScoreCategory.TWO_PAIR, diceOf(6, 6, 6, 6, 6)))
+        assertEquals(0, DiceScoring.score(ScoreCategory.TWO_PAIR, diceOf(6, 6, 5, 3, 1)))
+        assertEquals(0, DiceScoring.score(ScoreCategory.TWO_PAIR, diceOf(1, 2, 3, 4, 5)))
+    }
+
+    @Test
+    fun `evens and odds each add up only their own dice`() {
+        val dice = diceOf(6, 4, 3, 3, 1)
+
+        assertEquals(10, DiceScoring.score(ScoreCategory.EVENS, dice))
+        assertEquals(7, DiceScoring.score(ScoreCategory.ODDS, dice))
+    }
+
+    @Test
+    fun `evens or odds is zero when no die is of that kind`() {
+        assertEquals(0, DiceScoring.score(ScoreCategory.EVENS, diceOf(1, 3, 5, 5, 1)))
+        assertEquals(0, DiceScoring.score(ScoreCategory.ODDS, diceOf(2, 4, 6, 6, 2)))
+    }
+
+    @Test
+    fun `evens and odds together are the whole roll - a part-held Stud hand scores what it holds`() {
+        assertEquals(30, DiceScoring.score(ScoreCategory.EVENS, diceOf(6, 6, 6, 6, 6)))
+        assertEquals(6, DiceScoring.score(ScoreCategory.EVENS, diceOf(6)))
+        assertEquals(0, DiceScoring.score(ScoreCategory.TWO_PAIR, diceOf(6, 6, 5)))
+    }
 }

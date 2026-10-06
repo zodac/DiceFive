@@ -72,4 +72,48 @@ class PlayerStateTest {
         assertTrue(thirdWind(ScoreCategory.FIVE_OF_A_KIND to listOf(0, 50, 0)).fiveOfAKindJokerActive)
         assertFalse(thirdWind(ScoreCategory.FIVE_OF_A_KIND to listOf(0, 0, 0)).fiveOfAKindJokerActive)
     }
+
+    // ---- Extended Scores: Two Pair, Evens and Odds ----------------------------------------------
+
+    private fun extended(mode: GameMode = GameMode.STANDARD) =
+        PlayerState(name = "P", type = PlayerType.HUMAN, gameMode = mode, extendedScores = true)
+
+    @Test
+    fun `the Extended Scores boxes follow the mode's own and are on the card only when asked for`() {
+        assertEquals(GameMode.STANDARD.categories + listOf(ScoreCategory.TWO_PAIR, ScoreCategory.EVENS, ScoreCategory.ODDS), extended().categories)
+        assertEquals(extended().categories.toSet(), extended().scorecard.keys)
+        assertEquals(GameMode.STANDARD.categories, PlayerState(name = "P", type = PlayerType.HUMAN).categories)
+        assertEquals(GameMode.TRICOLOUR.categories + ScoreCategory.EXTENDED, extended(GameMode.TRICOLOUR).categories)
+    }
+
+    @Test
+    fun `an Extended Scores game lasts a turn per box - three more than the mode's own`() {
+        assertEquals(16, extended().turnsPerGame)
+        assertEquals(20, extended(GameMode.TRICOLOUR).turnsPerGame)
+        assertEquals(48, extended(GameMode.THIRD_WIND).turnsPerGame)
+        assertEquals(13, PlayerState(name = "P", type = PlayerType.HUMAN).turnsPerGame)
+        assertEquals(16, extended().turnsLeft)
+    }
+
+    @Test
+    fun `the Extended Scores boxes are their own section - in the total but in neither the upper nor lower one`() {
+        val player = extended().let {
+            it.copy(scorecard = it.scorecard + mapOf(ScoreCategory.TWO_PAIR to listOf(22), ScoreCategory.EVENS to listOf(12), ScoreCategory.CHANCE to listOf(20)))
+        }
+
+        assertEquals(34, player.extendedSectionTotal)
+        assertEquals(20, player.lowerSectionTotal)
+        assertEquals(0, player.upperSectionTotal)
+        assertEquals(54, player.totalScore)
+        assertEquals(3, player.turnsTaken)
+    }
+
+    @Test
+    fun `the plant's last roll stretches over the extra turns`() {
+        assertEquals(39, PlayerState(name = "P", type = PlayerType.HUMAN).maxRollsPerGame)
+        assertEquals(48, extended().maxRollsPerGame)
+        assertEquals(60, extended(GameMode.TRICOLOUR).maxRollsPerGame)
+        assertEquals(144, extended(GameMode.THIRD_WIND).maxRollsPerGame)
+        assertEquals(16, extended(GameMode.QUICKFIRE).maxRollsPerGame)
+    }
 }

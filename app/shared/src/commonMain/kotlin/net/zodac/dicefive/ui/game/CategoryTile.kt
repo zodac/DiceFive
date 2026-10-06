@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -26,6 +27,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.zodac.dicefive.model.DieColour
@@ -49,7 +51,6 @@ import net.zodac.dicefive.ui.theme.TileTealTop
  * [COMPACT_TILE_SIZE] is for a grid with more rows than Standard's six - see `scoreBoardHeight`. */
 internal val REGULAR_TILE_SIZE = 48.dp
 internal val COMPACT_TILE_SIZE = 40.dp
-internal val PROMINENT_TILE_SIZE = 76.dp
 
 /** How faint the Coloured House tile's stripes go once it's scored, matching the dimmed glyphs. */
 private const val SCORED_STRIPE_ALPHA = 0.35f
@@ -72,21 +73,22 @@ fun CategoryTile(
     category: ScoreCategory,
     highlighted: Boolean,
     modifier: Modifier = Modifier,
-    prominent: Boolean = false,
+    // Stretched across the width it's given (5x spans two columns), at the usual height.
+    wide: Boolean = false,
+    // A square of this side instead of the usual size: 5x, over two rows, when nothing sits under it.
+    squareSize: Dp? = null,
     compact: Boolean = false,
     scored: Boolean = false,
     fiveOfAKindBonusCount: Int = 0,
+    /** The 5x bonus so far, written on a [wide] tile - 0 for none. */
+    fiveOfAKindBonusAmount: Int = 0,
     /** A solid outline in this colour in place of the usual border - the box a player last scored in (see [LastScoredHighlight]). */
     outlineColor: Color? = null,
     onClick: (() -> Unit)? = null,
 ) {
     val irishTricolour = LocalIrishTricolour.current
-    val shape = RoundedCornerShape(if (prominent) 16.dp else 10.dp)
-    val tileSize = when {
-        prominent -> PROMINENT_TILE_SIZE
-        compact -> COMPACT_TILE_SIZE
-        else -> REGULAR_TILE_SIZE
-    }
+    val shape = RoundedCornerShape(if (squareSize != null) 16.dp else 10.dp)
+    val tileSize = squareSize ?: if (compact) COMPACT_TILE_SIZE else REGULAR_TILE_SIZE
     // Three distinct looks, never overlapping in practice (a scored category is never a legal,
     // highlightable choice): gold glow for "score this now", flat grey for "already used", teal
     // otherwise. Without the grey state a scored tile looked identical to an ordinary open one -
@@ -106,7 +108,7 @@ fun CategoryTile(
 
     Box(
         modifier = modifier
-            .size(tileSize)
+            .then(if (wide) Modifier.height(tileSize) else Modifier.size(tileSize))
             .clip(shape)
             .background(Brush.linearGradient(backgroundColors))
             .then(
@@ -131,12 +133,14 @@ fun CategoryTile(
             color = iconColor,
             modifier = Modifier.fillMaxSize(),
             labelFontSize = when {
-                prominent -> 30.sp
+                squareSize != null -> 36.sp
+                wide -> if (compact) 20.sp else 24.sp
                 compact -> 16.sp
                 else -> 18.sp
             },
             dimmed = scored,
             fiveOfAKindBonusCount = fiveOfAKindBonusCount,
+            fiveOfAKindBonusAmount = fiveOfAKindBonusAmount,
         )
         if (highlighted) GlowBorder(shape)
     }

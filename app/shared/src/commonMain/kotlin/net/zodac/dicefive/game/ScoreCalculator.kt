@@ -22,14 +22,14 @@ import net.zodac.dicefive.model.TimeoutPick
  *      the player's choice of which one eats the zero (an upper box scores 0 there naturally,
  *      since none of the dice match a different number).
  *
- * Which categories exist at all comes from the player's own [PlayerState.gameMode]. "Open" means a
+ * Which categories exist at all comes from the player's own [PlayerState.categories]. "Open" means a
  * box with a slot still to score in ([PlayerState.isOpen]).
  */
 object ScoreCalculator {
 
     /** Categories the player may legally choose for their current dice - see the class doc for the joker rule's forcing order. */
     fun availableCategories(player: PlayerState, dice: List<Die>): List<ScoreCategory> {
-        val open = player.gameMode.categories.filter { player.isOpen(it) }
+        val open = player.categories.filter { player.isOpen(it) }
         if (!isJokerSituation(player, dice)) return open
 
         val forcedUpper = PlayerState.UPPER_CATEGORIES[dice.first().value - 1].takeIf { it in open }

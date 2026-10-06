@@ -4,12 +4,13 @@ package net.zodac.dicefive.model
  * Which part of the scorecard a [ScoreCategory] belongs to. [UPPER] is what the upper-section bonus
  * is measured against, and what the joker rule forces a matching 5x into first. [COLOUR] is kept
  * apart from [LOWER] rather than folded into it, so a lower-section total (and "Lower Class") means
- * the same thing in every [GameMode].
+ * the same thing in every [GameMode]. [EXTENDED] is the same for the Extended Scores modifier's boxes.
  */
 enum class ScoreSection {
     UPPER,
     LOWER,
     COLOUR,
+    EXTENDED,
 }
 
 /**
@@ -23,7 +24,8 @@ enum class ScoreSection {
  * `ScoreCalculator`). [matchingColour] is the colour a single-colour box needs all five dice to show.
  *
  * Declaration order is scorecard order: the upper section (ONES..SIXES), then the lower section,
- * then the colour section.
+ * then the colour section, then the extended one - the three boxes the Extended Scores modifier adds
+ * to whichever mode's card (see [GameMode.categoriesWith]).
  */
 enum class ScoreCategory(
     val section: ScoreSection,
@@ -51,4 +53,19 @@ enum class ScoreCategory(
 
     /** Three dice of one colour and two of another - a full house by colour rather than by number. */
     COLOURED_HOUSE(ScoreSection.COLOUR, fixedScore = 25, jokerFreeFill = true),
+
+    /** Two different numbers each on at least two dice: the four dice making the pairs are added up, whatever the fifth shows. */
+    TWO_PAIR(ScoreSection.EXTENDED),
+
+    /** The even dice added up. */
+    EVENS(ScoreSection.EXTENDED),
+
+    /** The odd dice added up. */
+    ODDS(ScoreSection.EXTENDED),
+    ;
+
+    companion object {
+        /** The boxes the Extended Scores modifier adds to a card, in scorecard order. */
+        val EXTENDED: List<ScoreCategory> = entries.filter { it.section == ScoreSection.EXTENDED }
+    }
 }

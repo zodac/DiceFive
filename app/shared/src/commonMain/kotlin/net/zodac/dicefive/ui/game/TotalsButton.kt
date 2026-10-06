@@ -27,6 +27,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.ui.common.AppTooltip
@@ -48,7 +49,7 @@ import net.zodac.dicefive.ui.theme.TileTealTop
  * action shows the tooltip too.
  */
 @Composable
-fun TotalsButton(upperTotal: Int, upperBonus: Int, lowerTotal: Int, modifier: Modifier = Modifier) {
+fun TotalsButton(upperTotal: Int, upperBonus: Int, lowerTotal: Int, modifier: Modifier = Modifier, minSize: Dp = 48.dp) {
     val tooltipState = rememberAppTooltipState()
     val scope = rememberCoroutineScope()
     val bonusEarned = upperBonus > 0
@@ -77,12 +78,12 @@ fun TotalsButton(upperTotal: Int, upperBonus: Int, lowerTotal: Int, modifier: Mo
                     }
                 }
                 // M3's 48dp minimum touch target, which the glyph alone (when a large font drops the label) is short of.
-                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                .sizeIn(minWidth = minSize, minHeight = minSize)
                 .clip(shape)
                 .background(Brush.linearGradient(listOf(TileTealTop, TileTealBottom)))
                 .border(1.dp, TileTealBorder, shape)
                 .clickable(role = Role.Button) { scope.launch { tooltipState.show() } }
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+                .padding(horizontal = 6.dp, vertical = 6.dp),
             contentAlignment = Alignment.Center,
         ) {
             // Decorative: the button's own semantics, above, name it and say the totals.
