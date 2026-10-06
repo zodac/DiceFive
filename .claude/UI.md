@@ -877,6 +877,24 @@ together, `GameViewModel.changeHolds`) go, as all are animation. They make no so
 TalkBack user loses nothing by them landing at once.
 The Game Over fanfare and hold ticks are governed by their own settings, not by this.
 
+## The Leaderboard's two views
+
+A `SegmentedChoiceRow` at the top (Combined | Game Mode; always shown) switches
+`CombinedLeaderboard` - the original table, with the gold/silver/bronze podium, its card as tall as its rows until it has the page - and
+`GameModeLeaderboard`: a card per mode that has a score (including modes that never reach the Combined table) in a scrolling page, **no podium colours** there. A card is
+capped at ten rows (`modeCardListHeight`, from `bodyMedium`'s line height so it follows the font) and
+scrolls inside; its Previous/Next are its list's last item, not pinned. The page's own scrollbar is in
+the 20dp side margin (as on Styles) - the way to scroll the page when a finger is on a card's list.
+Adding the switch shortens the Combined table by its own height; nothing else moved.
+TalkBack: card titles are headings; the switch is the stock segmented row (radio buttons); a row's
+`stateDescription` carries what its long press shows. Rows use `OnDemandTooltip` (`ui/common/AppTooltip.kt`) - a plain gesture and a "Show details" long-click action until the first long press, then a real `AppTooltip` - because a `TooltipBox` per row was a real share of the list's first frame; use it for any long list of rarely long-pressed rows.
+
+`ScoresWarmUp` (on the menu, like `StylesWarmUp`) draws both views once from a made-up board, 2s after the menu
+settles, in a 1dp clipped box under its backdrop: the Leaderboard's first-time code was the lag on opening it,
+with only a couple of scores, so entry count had nothing to do with it. It needs no database - the page runs
+off a `ScoresViewModel(initialState = ...)` with no repository. `ScoresWarmUpTest`. The first open within 2s
+of launch isn't warmed.
+
 ## Scrollbars on long lists
 
 Plain scrolling pages (Styles, and each Rules page) use `VerticalScrollbar`, in the page's right-hand

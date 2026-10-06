@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import net.zodac.dicefive.game.TieBreakStats
+import net.zodac.dicefive.model.GameMode
 
 /**
  * One finished game's final score for a human player - AI scores are never recorded - with the
@@ -53,7 +54,17 @@ data class ScoreEntry(
      */
     @ColumnInfo(defaultValue = "1")
     val onLeaderboard: Boolean = true,
+    /**
+     * The [GameMode.id] this game was played in, for the Leaderboard's per-mode cards and the mode
+     * its long-press names. Every row recorded before the column existed was a Standard game as far
+     * as can be told - the mode wasn't kept - so that is its default.
+     */
+    @ColumnInfo(defaultValue = "'standard'")
+    val gameModeId: String = GameMode.STANDARD.id,
 ) {
+
+    /** The mode [gameModeId] names, or null for an id this build doesn't know (a mode since removed). */
+    val gameMode: GameMode? get() = GameMode.fromId(gameModeId)
 
     /** For [ScoreDao.pagedScores]'s ORDER BY to translate into the Leaderboard's own displayed
      * ranks/`=` ties - see [ScoresScreen][net.zodac.dicefive.ui.scores.ScoresScreen]. */

@@ -4,6 +4,16 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 
+/** The Leaderboard's row order - see [ScoreDao.pagedScores]. Shared by every query that pages it. */
+private const val LEADERBOARD_ORDER = """
+            score DESC,
+            fiveOfAKindCount ASC,
+            zeroedCategoryCount DESC,
+            upperSectionTotal ASC,
+            chanceScore ASC,
+            threeOfAKindScore ASC,
+            fourOfAKindScore ASC"""
+
 @Dao
 interface ScoreDao {
 
@@ -22,22 +32,35 @@ interface ScoreDao {
         """
         SELECT * FROM scores
         WHERE onLeaderboard = 1
-        ORDER BY
-            score DESC,
-            fiveOfAKindCount ASC,
-            zeroedCategoryCount DESC,
-            upperSectionTotal ASC,
-            chanceScore ASC,
-            threeOfAKindScore ASC,
-            fourOfAKindScore ASC
+        ORDER BY $LEADERBOARD_ORDER
         LIMIT :limit OFFSET :offset
         """,
     )
     suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry>
 
+    /**
+     * [pagedScores] for one game mode's own Leaderboard card - the same ordering, [gameModeId] rows only.
+     * [includeOffBoard] also takes the rows [ScoreEntry.onLeaderboard] leaves off the Combined table: true for
+     * a mode that never counts on it (its card is the only place its scores are listed), false for one that
+     * does, where an off-board row is a game with modifiers on and stays out of the card as it does the table.
+     */
+    @Query(
+        """
+        SELECT * FROM scores
+        WHERE (onLeaderboard = 1 OR :includeOffBoard) AND gameModeId = :gameModeId
+        ORDER BY $LEADERBOARD_ORDER
+        LIMIT :limit OFFSET :offset
+        """,
+    )
+    suspend fun pagedScoresForMode(gameModeId: String, includeOffBoard: Boolean, limit: Int, offset: Int): List<ScoreEntry>
+
     /** How many rows the Leaderboard shows - see [ScoreEntry.onLeaderboard]. */
     @Query("SELECT COUNT(*) FROM scores WHERE onLeaderboard = 1")
     suspend fun count(): Int
+
+    /** How many rows one game mode's Leaderboard card lists - see [pagedScoresForMode]. */
+    @Query("SELECT COUNT(*) FROM scores WHERE (onLeaderboard = 1 OR :includeOffBoard) AND gameModeId = :gameModeId")
+    suspend fun countForMode(gameModeId: String, includeOffBoard: Boolean): Int
 
     /** One player's best score, by name - null if that name has never recorded one. Used for the
      * "New Personal Best" achievement, which is player 1's own best, not the leaderboard's overall

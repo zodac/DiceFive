@@ -45,6 +45,7 @@ import net.zodac.dicefive.ui.menu.MenuScreen
 import net.zodac.dicefive.ui.menu.MenuViewModel
 import net.zodac.dicefive.ui.rules.RulesScreen
 import net.zodac.dicefive.ui.scores.ScoresScreen
+import net.zodac.dicefive.ui.scores.ScoresWarmUp
 import net.zodac.dicefive.ui.scores.ScoresViewModel
 import net.zodac.dicefive.ui.settings.SettingsScreen
 import net.zodac.dicefive.ui.settings.SettingsViewModel
@@ -90,11 +91,16 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                 // Under the menu, which is opaque: runs the Styles page's drawing code once while the
                 // menu idles, so opening Styles isn't the first time it runs - see StylesWarmUp.
                 val warmUpScope = rememberCoroutineScope()
+                // Opens the scores database now, while the menu idles, so the Leaderboard's first read isn't
+                // also the database's first open.
+                LaunchedEffect(Unit) { container.scoreRepository.totalCount() }
                 StylesWarmUp(
                     picks = savedStyles,
                     width = maxWidth,
                     onPageFit = { fit -> warmUpScope.launch { container.settingsRepository.setStylesPageFit(fit) } },
                 )
+                // Likewise for the Leaderboard.
+                ScoresWarmUp(width = maxWidth)
                 MenuScreen(
                     hasInProgressGame = hasInProgressGame,
                     onContinue = { navController.navigate(Screen.playSetup(resume = true)) },

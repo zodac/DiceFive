@@ -1607,6 +1607,7 @@ class GameViewModel(
                     won = won,
                     isPrimaryPlayer = index == 0,
                     onLeaderboard = state.countsOnLeaderboard,
+                    gameMode = state.gameMode,
                 )
             }
         }

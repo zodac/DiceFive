@@ -101,7 +101,15 @@ private class FakeScoreDao : ScoreDao {
     override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> =
         leaderboard.sortedByDescending { it.score }.drop(offset).take(limit)
 
+    private fun forMode(gameModeId: String, includeOffBoard: Boolean) =
+        entries.filter { (it.onLeaderboard || includeOffBoard) && it.gameModeId == gameModeId }
+
+    override suspend fun pagedScoresForMode(gameModeId: String, includeOffBoard: Boolean, limit: Int, offset: Int): List<ScoreEntry> =
+        forMode(gameModeId, includeOffBoard).sortedByDescending { it.score }.drop(offset).take(limit)
+
     override suspend fun count(): Int = leaderboard.size
+
+    override suspend fun countForMode(gameModeId: String, includeOffBoard: Boolean): Int = forMode(gameModeId, includeOffBoard).size
 
     override suspend fun bestScoreForPlayer(playerName: String): Int? =
         leaderboard.filter { it.playerName == playerName }.maxOfOrNull { it.score }

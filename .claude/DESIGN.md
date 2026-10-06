@@ -39,10 +39,12 @@ decisions behind it. Read that before changing anything visual.
   by how far a box's score beats what a whole turn chasing that box averages, plus its share of the
   upper bonus (so a rare category like Full House can beat a nominally higher-scoring but
   easy-to-satisfy-later one like Chance, and three low dice are worth chasing for 5x) - see Phase 23.
-- **Leaderboard screen**: one global leaderboard (not split by player or game
-  type), sorted score-descending, paginated 50/page (originally 100; halved
-  alongside a compact row style, so a page is a shorter scroll). No date
-  column — date is shown via a long-press tooltip.
+- **Leaderboard screen**: a switch at the top picks **Combined** - the one global table (not split by
+  player), sorted score-descending, paginated 50/page (originally 100; halved alongside a compact row
+  style, so a page is a shorter scroll), 1st-3rd in gold/silver/bronze - or **Game Mode**, one card per
+  mode that has a score (a mode that never counts on the Combined table - Quickfire, Third Wind, Hit List - is
+  listed here and only here), each ranked and paged on its own, with no medal colours. No date
+  column — date is shown via a long-press tooltip, which on the Combined table names the mode too.
 - **Statistics screen**: one card per distinct human player *name* (a rename starts a new "user",
   same as the leaderboard). Win/loss and the current win streak are only tracked for multiplayer
   games — a solo game has nobody to beat, so it's recorded with a null outcome that counts toward
@@ -632,7 +634,7 @@ net.zodac.dicefive/
       GameBoard.kt / ScoreGrid.kt      — the felt board: the scorecard grid (laid out from the mode's categories)
       DiceCupPanel.kt / DiceTray.kt    — the cup (and its rolls-left badge) and the dice on the mat
     scores/
-      ScoresScreen.kt                  — paginated table (50/page), long-press row shows date tooltip
+      ScoresScreen.kt                  — Combined table (50/page) or one card per mode; long-press row shows date (and mode) tooltip
       ScoresViewModel.kt               — talks to ScoreRepository, tracks current page
     statistics/
       StatisticsScreen.kt              — one card per distinct human player name. Closed: name + max
@@ -766,6 +768,16 @@ dependencies — most unit tests live here.
   `timestampEpochMillis`. The next/prev controls only render when there is
   more than one page, but their height is always reserved, so the table ends
   in the same place either way.
+- **Game Mode view**: `ScoreEntry.gameModeId` (schema v3, auto-migration; rows from before it count as
+  Standard, since the mode wasn't kept) feeds `ScoreDao.pagedScoresForMode`/`countForMode`, which share
+  the Combined table's ORDER BY. The cards (`ModeCard`) are read the first time the view is shown
+  (`ScoresViewModel.modeBoards`), stacked in a page that scrolls with a `VerticalScrollbar` in the side
+  margin. Each card's list is `heightIn(max = 10 rows)` - a row is a `bodyMedium` line plus padding, so
+  it grows with the font - with its own `LazyListScrollbar`; its page controls are the list's last item
+  (only when there is more than one page), so they appear at the end of the card's scroll, and a new
+  page scrolls back to the top. A mode with no scores has no card (none at all shows "No scores yet"). `includeOffBoard` on the per-mode queries is true only for a mode that never counts, so a Standard game with modifiers (also off-board) stays out. Rows from before the mode column are Standard, so an old off-board Quickfire/Third Wind/Hit List game isn't listed anywhere. A row's tooltip is built on its first long press (`OnDemandTooltip`), not one per row; the menu opens the scores database while it idles. A row's
+  `stateDescription` is its long-press text (date, plus the mode on the Combined table), since a
+  tooltip isn't announced. `ScoresScreenTest`, `ScoresViewModelTest`. Not heard on a device.
 
 ## Settings & theme
 
