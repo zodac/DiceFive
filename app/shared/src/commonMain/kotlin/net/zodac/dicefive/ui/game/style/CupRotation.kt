@@ -36,7 +36,7 @@ private const val RESTING_TILT_DEGREES = -32f
 // base (so the settled tilt still reads as the cup resting on its base) but not exactly on it (so
 // during a shake the base visibly moves too, not just the rim - fixing the earlier "only the top
 // half shakes" complaint without needing a second, switched pivot).
-private const val PIVOT_Y_FRACTION = 0.75f
+internal const val PIVOT_Y_FRACTION = 0.75f
 
 // Tall cups are authored on a 58 x 84 grid - the in-game cup's own size in dp - and scaled to the canvas.
 const val CUP_GRID_WIDTH = 58f

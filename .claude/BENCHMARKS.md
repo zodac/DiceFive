@@ -366,6 +366,36 @@ their bodies are painted once.
 
 ---
 
+### Bestagon, Pyramid, Glitch, Ribbon, Neon and Glitter, with their mats, backgrounds and cups (designed to it)
+
+Measured when they were added, the second of two passes in one run (warm), ms per frame, interquartile
+range (max). Five dice at 48dp, at rest (20 frames) and tossed (30):
+
+| Dice | First | Rest | Tossed |
+|---|---|---|---|
+| Ivory (baseline) | 3.4 | 0.9 | 3.4-4.3 (7.0) |
+| Bestagon | 4.0 | 0.7-0.9 | 1.4-1.7 (2.0) |
+| Pyramid | 3.7 | 0.7-0.9 | 1.2-1.4 (1.9) |
+| Glitch (animated at rest) | 2.6 | 1.1-1.2 | 4.1-5.0 (8.1) |
+| Ribbon (painted once per face) | 3.3 | 0.8 | 3.1-4.1 (6.5) |
+| Neon (pulsing at rest) | 3.6 | 1.6-1.7 | 3.7-5.2 (7.9) |
+| Glitter (sparkling at rest) | 2.9 | 1.3 | 3.8-4.9 (13.6 - a cold face's glitter being painted) |
+
+Bestagon and Pyramid toss cheaper than a cube: they spin one flat face rather than rolling two.
+Cups alone at their game size - idle 20 frames, shake 26, poured 40: Classic Gold 0.6-0.7 / 1.6-2.2 /
+1.3-1.9; Glitter 1.2-1.5 / 2.0-2.5 / 1.5-3.1 (5.1); Neon 1.0-1.1 / 1.6-1.8 / 1.4-1.9; Gift Box
+0.6-0.7 / 1.4-1.9 / 1.3-1.5. Board plus tray, idle (first frame, then 20): mats - Classic Blue 3.1,
+3.0-3.4; Honeycomb 9.6, 4.0-4.8 (the bee); Hex Tiles 8.0, 3.0-3.5; Sand 7.4, 3.0-3.6; Circuit 9.4,
+3.1-3.7; Neon 8.9, 3.4-3.7; Gift Wrap 7.5, 3.0-3.3; Glitter 7.4, 3.2-3.5. Backgrounds - Navy 6.4,
+1.9-2.0; Honeycomb Honey 6.7, 2.4; Brick 7.0, 2.4-2.5; Glitch 7.3, 3.1-3.3; Desert 7.6, 2.7-2.8;
+Gift Wrap 7.6, 2.6-3.0; Glitter 7.4, 3.5-4.1. Each first frame is its pattern being painted once
+(`drawCachedSurface`). Live per frame: 2 sparkles per glitter die, 6 on the glitter mat, 5 on its
+background, 2 on the cup; a neon tube's five strokes per die, the mat's two framed tubes, the cup's two
+rings; the bee's ~40 small shapes; the glitch's band slices only during a burst; the gift box's lid
+only while it rattles or falls.
+
+---
+
 ### Third Wind's stacked scores (designed to it)
 
 Third Wind shows three scores beside every box - about 50 more text nodes on the board. Measured on

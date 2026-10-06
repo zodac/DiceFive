@@ -74,11 +74,11 @@ import net.zodac.dicefive.ui.theme.SunflowerSeed
 data class CupPalette(val dark: Color, val light: Color, val mid: Color, val accent: Color, val interior: Color)
 
 /** The radius at [y] of a side tapering straight from [topRadius] at [topY] to [bottomRadius] at [bottomY]. */
-private fun taper(topRadius: Float, topY: Float, bottomRadius: Float, bottomY: Float, y: Float): Float =
+internal fun taper(topRadius: Float, topY: Float, bottomRadius: Float, bottomY: Float, y: Float): Float =
     topRadius + (bottomRadius - topRadius) * (y - topY) / (bottomY - topY)
 
 /** Adds the front half of the circle of [radius] at [y], left to right or right to left. */
-private fun CupDrawScope.frontArc(path: Path, radius: Float, y: Float, leftToRight: Boolean = true) {
+internal fun CupDrawScope.frontArc(path: Path, radius: Float, y: Float, leftToRight: Boolean = true) {
     // 4/3 of the ellipse's half-height puts a cubic's midpoint exactly on the ellipse.
     val controlY = gy(y + radius * CUP_VIEW_SQUASH * 4f / 3f)
     val from = if (leftToRight) centreX - radius else centreX + radius
@@ -87,7 +87,7 @@ private fun CupDrawScope.frontArc(path: Path, radius: Float, y: Float, leftToRig
 }
 
 /** The front half of the circle of [radius] at [y] on its own, for a band or a line of stitching. */
-private fun CupDrawScope.frontArcPath(radius: Float, y: Float): Path = Path().apply {
+internal fun CupDrawScope.frontArcPath(radius: Float, y: Float): Path = Path().apply {
     moveTo(gx(centreX - radius), gy(y))
     frontArc(this, radius, y)
 }
@@ -97,7 +97,7 @@ private fun CupDrawScope.frontArcPath(radius: Float, y: Float): Path = Path().ap
  * [curvedTop] false its top is a straight line - right for a body whose top the mouth covers; true
  * follows the front of the top circle instead, for a band or collar drawn over the body.
  */
-private fun CupDrawScope.roundSection(
+internal fun CupDrawScope.roundSection(
     topRadius: Float,
     topY: Float,
     bottomRadius: Float,
@@ -113,7 +113,7 @@ private fun CupDrawScope.roundSection(
 }
 
 /** Dark edges and a lit band left of centre, so a flat outline reads as a curved surface. */
-private fun CupDrawScope.roundShading(palette: CupPalette, radius: Float): Brush = Brush.horizontalGradient(
+internal fun CupDrawScope.roundShading(palette: CupPalette, radius: Float): Brush = Brush.horizontalGradient(
     0f to palette.dark,
     0.3f to palette.light,
     0.58f to palette.mid,
@@ -122,7 +122,7 @@ private fun CupDrawScope.roundShading(palette: CupPalette, radius: Float): Brush
     endX = gx(centreX + radius),
 )
 
-private fun CupDrawScope.drawContactShadow(radius: Float, baseY: Float, alpha: Float = 0.4f) {
+internal fun CupDrawScope.drawContactShadow(radius: Float, baseY: Float, alpha: Float = 0.4f) {
     val shadowRadius = radius + 3f
     drawOval(
         color = Color.Black.copy(alpha = alpha),
@@ -131,14 +131,14 @@ private fun CupDrawScope.drawContactShadow(radius: Float, baseY: Float, alpha: F
     )
 }
 
-private fun CupDrawScope.mouthBounds(radius: Float, y: Float): Rect =
+internal fun CupDrawScope.mouthBounds(radius: Float, y: Float): Rect =
     Rect(Offset(gx(centreX - radius), gy(y - radius * CUP_VIEW_SQUASH)), Size(gx(2f * radius), gy(2f * radius * CUP_VIEW_SQUASH)))
 
 /**
  * The open top: the inside of the far wall lit in [wall] just below the rim, falling into
  * [interior] further down, ringed by a [rim] lip [rimWidth] grid units thick.
  */
-private fun CupDrawScope.drawOpenMouth(radius: Float, y: Float, wall: Color, interior: Color, rim: Color, rimWidth: Float) {
+internal fun CupDrawScope.drawOpenMouth(radius: Float, y: Float, wall: Color, interior: Color, rim: Color, rimWidth: Float) {
     val bounds = mouthBounds(radius, y)
     val mouth = Path().apply { addOval(bounds) }
     // Worked out here: the cup grid isn't reachable from inside clipPath's own DrawScope.
@@ -278,7 +278,7 @@ private fun CupDrawScope.drawSteamLines(
  * Read the value only inside the cup's draw, so each tick just repaints it.
  */
 @Composable
-private fun rememberAmbientCycle(millis: Int): State<Float>? {
+internal fun rememberAmbientCycle(millis: Int): State<Float>? {
     if (!LocalCupAnimated.current || LocalReduceMotion.current) return null
     return rememberInfiniteTransition(label = "cupAmbient").animateFloat(
         initialValue = 0f,

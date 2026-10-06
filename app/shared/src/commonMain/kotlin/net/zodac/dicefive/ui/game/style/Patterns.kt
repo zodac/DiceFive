@@ -1,8 +1,8 @@
 package net.zodac.dicefive.ui.game.style
 
+import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -67,15 +67,19 @@ private const val STAR_WAIST = 0.3f
 // How far a star dims at the bottom of its twinkle, as a fraction of its brightness.
 private const val TWINKLE_DEPTH = 0.55f
 
-/** Calls [onTick] with the time in seconds on every frame, for as long as it's in the composition. */
+/**
+ * Calls [onTick] with the time in seconds on every frame, for as long as it's in the composition - an
+ * infinite animation, so it follows the infinite-animation policy (as the backdrop's drift does):
+ * where one's in force, as in UI tests, it stops rather than keeping Compose busy forever.
+ */
 @Composable
 internal fun TwinkleClock(onTick: (Float) -> Unit) {
-    // No clock at all under reduced motion: the stars stay at the brightness they were drawn at.
+    // No clock at all under reduced motion: the art stays as it was drawn.
     if (LocalReduceMotion.current) return
     LaunchedEffect(Unit) {
         while (true) {
             // Wrapped so the float stays precise however long the app has been up.
-            withFrameNanos { onTick((it / 1_000_000L % 3_600_000L) / 1000f) }
+            withInfiniteAnimationFrameNanos { onTick((it / 1_000_000L % 3_600_000L) / 1000f) }
         }
     }
 }
