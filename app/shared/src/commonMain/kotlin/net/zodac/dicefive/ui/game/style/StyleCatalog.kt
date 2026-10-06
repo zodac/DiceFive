@@ -330,10 +330,10 @@ object DiceStyles : StyleCatalog<DiceStyle>(
         StyleFamily(
             "Cake",
             listOf(
+                colour("Strawberry", CakeDiceStyle("cake_pink", Color(0xFFFFD3DE), Color(0xFFEFA9BA))),
                 colour("Vanilla", CakeDiceStyle("cake_vanilla", Color(0xFFFFF6E6), Color(0xFFEBD9BC))),
                 // Milk chocolate, light enough for the strawberries to stand out, each on a dollop of cream.
                 colour("Chocolate", CakeDiceStyle("cake_chocolate", Color(0xFFA06A45), Color(0xFF70452B), dollop = Color(0xFFFFF6E6))),
-                colour("Pink", CakeDiceStyle("cake_pink", Color(0xFFFFD3DE), Color(0xFFEFA9BA))),
             ),
             unlock = AchievementCount(7),
         ),
