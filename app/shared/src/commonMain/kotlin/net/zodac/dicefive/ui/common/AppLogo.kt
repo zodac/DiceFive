@@ -56,21 +56,36 @@ import net.zodac.dicefive.ui.game.style.LocalDieMotion
 import org.jetbrains.compose.resources.Font
 
 /**
- * The brand typeface: Sora (`composeResources/font/sora.ttf`), used on the logo wordmark here, on [ScreenScaffold]'s
- * page titles, and on the in-game corner badges (5x bonus count, Small/Large Straight run length -
- * see `SegmentBadge`). This is a deliberate, narrow departure from stock M3 type ([UI.md]'s "no
+ * The brand typeface: Sora (`composeResources/font/sora.ttf`), used on the logo wordmark here, on
+ * [ScreenScaffold]'s page titles and every dialog title, and on the game's own marks: the scorecard
+ * tiles' labels and Hit List targets, the corner badges (see `SegmentBadge`), the rolls left by the
+ * cup, the scores on the player tabs and Game Over, the Leaderboard's mode-card titles, an
+ * unlock banner's title and the labels (not the numbers) in the board's totals tooltip. This is a deliberate, narrow departure from stock M3 type ([UI.md]'s "no
  * typography overrides" rule is about the type *scale*, not a call site): these are brand marks,
  * not body text, so they earn their own face the same way the game board earns its own palette.
  *
+ * Never for a player's name or anything else a player types: the font only covers ASCII and
+ * Latin-1, so a name in any other script (or with an emoji) would come out in two faces.
+ *
+ * Not for a column of numbers either (the Leaderboard's scores, Statistics, the totals tooltip's
+ * values): Sora's default digits are proportional - a "1" is narrower than a "0" - so right-aligned
+ * numbers in it don't line up digit for digit. The system font's digits are all one width. Sora
+ * does carry tabular digits (`fontFeatureSettings = "tnum"`) if a column ever has to be in it.
+ *
  * The upstream font ships as a variable font (a 100-800 weight axis); since this app only ever
  * uses the bold instance, `sora.ttf` here is a static weight-700 instance produced with
- * `fontTools.varLib.instancer`, then subset with `fontTools.subset` to just printable ASCII (every
- * string rendered in this face is a short English title or a digit badge) - variable-axis and
- * unused-script data was most of the original file's size.
+ * `fontTools.varLib.instancer`, then subset with `fontTools.subset` (`layout_features=['*']`,
+ * `name_IDs=['*']`) to U+0020-007E and U+00A0-00FF - printable ASCII plus Latin-1, for an
+ * achievement title like "Déjà Vu" and the Hit List's "·" any-place mark. Variable-axis and
+ * unused-script data was most of the original file's size. It is the only weight there is, so a
+ * Sora call site asks for [FontWeight.Bold] - a lighter or heavier one would get Bold anyway.
  */
 internal val SoraFontFamily: FontFamily
     @Composable
     get() = FontFamily(Font(Res.font.sora, weight = FontWeight.Bold))
+
+/** Whether `sora.ttf` has a glyph for this character - printable ASCII or Latin-1, as cut (see [SoraFontFamily]). */
+internal fun Char.isInSoraFont(): Boolean = this in ' '..'~' || this in '\u00A0'..'\u00FF'
 
 /**
  * The five dice of the logo fan - the name's worth of dice - each with the tilt and the vertical

@@ -74,6 +74,22 @@ that's how an app quietly loses the system's sizing, tracking and optical correc
 Per-use deviations (`style = MaterialTheme.typography.titleMedium` on a button label) belong
 at the call site.
 
+**The brand face, Sora (`SoraFontFamily` in `AppLogo.kt`), is a call-site choice for brand
+marks, not body text.** It's on the wordmark, page and dialog titles, Rules page headings, the
+Leaderboard's mode-card titles, an unlock banner's title, the labels in the board's totals
+tooltip, and the game's own marks: scorecard tile labels ("3x", "2+2", "Alibi"), Hit List targets,
+corner badges, the rolls left by the cup, and the scores on the player tabs and Game Over.
+Everything else - body, buttons, labels, text fields, small grey section headings, tooltips'
+text - stays on the system font. **Columns of numbers stay on the system font too** (the
+Leaderboard's scores, Statistics, the totals tooltip's values, with thousands commas via
+`grouped()`): Sora's digits are proportional, so right-aligned numbers don't stack digit under
+digit. The maintainer turned Sora down there for exactly that; it has tabular digits (`tnum`) if
+it's ever wanted. Two limits: the file holds only weight
+700 (ask for `FontWeight.Bold`), and only ASCII plus Latin-1, so **never put a player's name or
+other typed text in Sora** - a name in another script or with an emoji would mix two faces. A new
+fixed string in Sora must stay inside U+0020-007E / U+00A0-00FF, or the font must be re-cut (the
+recipe is on `SoraFontFamily`).
+
 **`primary` is the one brand accent, and it means "this is gold" everywhere it's used** - the
 Statistics max score, the Leaderboard/Statistics scrollbar thumb, the backdrop's spotlight, a
 page title (`ScreenScaffold`'s top app bar). When something needs to read as "branded" or
@@ -681,8 +697,9 @@ Wind's, and since fixed: the Upper/Bonus/Lower lines beside the cup wrapped at 1
 
 **The section totals are a button** (`TotalsButton`), not three lines beside the cup: an icon-only Σ,
 styled like Undo and sitting just left of it (both at the right of the row), that shows Upper, Bonus
-and Lower in the shared `AppTooltip` on a tap or a long press. The glyph turns gold once the upper
-bonus is earned, as the old Bonus line did. A tooltip isn't announced, so TalkBack hears the totals as
+and Lower in the shared `AppTooltip` on a tap or a long press - as a two-column table (`TotalsTable`):
+labels left in Sora, numbers right in the system font with thousands commas, the Bonus line gold once
+earned. The glyph turns gold once the upper bonus is earned, as the old Bonus line did. A tooltip isn't announced, so TalkBack hears the totals as
 the button's state ("Upper 61, no bonus yet, lower 91") and its action ("Show totals") opens the
 tooltip too. **Gotcha:** `TooltipBox`'s anchor merges its content into one node of its own, which keeps
 the name, state and actions but drops the role - so `Role.Button` goes on the tooltip's modifier as
@@ -1035,7 +1052,9 @@ Anything new that marks a player in their colour should read it too, never a sea
   renders a 34x28 box, not a 34x34 one lowered by 6dp. Use `offset` to move something without
   resizing it - this is what made the logo dice non-square.
 - **Every tooltip is `AppTooltip`** (`ui/common/AppTooltip.kt`) - never `TooltipBox` directly - so the
-  look and behaviour change in one place. `rememberAppTooltipState()` lets a tap show one too. Material's
+  look and behaviour change in one place. `rememberAppTooltipState()` lets a tap show one too. Most
+  take a `message`; one that needs a layout of its own (the totals table) passes `body` instead, and
+  keeps the same container, outline and padding. Material's
   `rememberPlainTooltipPositionProvider` is deprecated with no replacement in 1.4.0 (the successor
   arrives with 1.5.0); it's suppressed once, there.
 - **`ViewModelConstructorInComposable`** fires on `@Preview` functions that build a view model.

@@ -309,7 +309,21 @@ class BoardSemanticsTest {
             .performClick()
         compose.waitForIdle()
 
-        compose.onNodeWithText("Lower: 140", substring = true).assertExists()
+        // The tooltip is a table: the label and its number are texts of their own.
+        compose.onNodeWithText("Lower").assertExists()
+        compose.onNodeWithText("140").assertExists()
+    }
+
+    @Test
+    fun `the Totals tooltip groups a total's thousands`() {
+        compose.setContent {
+            DiceFiveTheme { TotalsButton(upperTotal = 70, upperBonus = 35, lowerTotal = 1088) }
+        }
+
+        compose.onNodeWithContentDescription("Totals").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("1,088").assertExists()
     }
 
     @Test

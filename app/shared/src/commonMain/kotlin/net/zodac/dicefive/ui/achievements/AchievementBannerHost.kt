@@ -55,6 +55,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -73,6 +74,7 @@ import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.UnlockedStyle
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.LocalLeaveGameConfirmation
 import net.zodac.dicefive.ui.game.style.unlocksStyle
@@ -510,14 +512,19 @@ private fun BannerSlot(
 }
 
 /**
- * An achievement's title: always ONE line, so every banner is the same height. titleMedium when it
- * fits, otherwise stepped down until it does, but never below [MIN_READABLE_FONT_SIZE]; a title too
+ * An achievement's title: always ONE line, so every banner is the same height. Set in the brand
+ * face ([SoraFontFamily], bold - its only weight), at titleMedium when it fits, otherwise stepped down until it does, but never below [MIN_READABLE_FONT_SIZE]; a title too
  * long even then is ellipsised, not wrapped. `MAX_ACHIEVEMENT_TITLE_LENGTH` keeps every title short
  * enough not to get that far on a normal phone.
  */
 @Composable
 private fun BannerTitle(title: String, modifier: Modifier = Modifier) {
-    ShrinkThenWrapText(text = title, style = MaterialTheme.typography.titleMedium, wrappedMaxLines = 1, modifier = modifier)
+    ShrinkThenWrapText(
+        text = title,
+        style = MaterialTheme.typography.titleMedium.copy(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold),
+        wrappedMaxLines = 1,
+        modifier = modifier,
+    )
 }
 
 /** How many lines an unlock banner's description gets, always - a short one reserves the same space as a

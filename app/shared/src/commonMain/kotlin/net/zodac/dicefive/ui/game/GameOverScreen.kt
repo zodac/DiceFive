@@ -51,6 +51,7 @@ import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PageColumn
 import net.zodac.dicefive.ui.common.PageTopBar
+import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.theme.CupRimGold
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.GoldAccentDim
@@ -229,6 +230,7 @@ private fun WinnerCard(player: PlayerState, solo: Boolean, tieBreakReason: TieBr
             Text(
                 text = player.totalScore.toString(),
                 style = MaterialTheme.typography.displaySmall,
+                fontFamily = SoraFontFamily,
                 fontWeight = FontWeight.Bold,
             )
         }
@@ -275,6 +277,7 @@ private fun RunnerUpRow(rank: Int, isTrueTie: Boolean, player: PlayerState, tieB
         Text(
             text = player.totalScore.toString(),
             style = MaterialTheme.typography.titleLarge,
+            fontFamily = SoraFontFamily,
             fontWeight = FontWeight.Bold,
         )
     }

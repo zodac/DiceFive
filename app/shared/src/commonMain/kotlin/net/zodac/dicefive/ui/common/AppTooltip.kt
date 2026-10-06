@@ -43,7 +43,9 @@ fun rememberAppTooltipState(): AppTooltipState {
 
 /**
  * The one tooltip every screen uses - a plain tooltip over [content] - so its look, placement and
- * behaviour are changed here and nowhere else. Don't reach for `TooltipBox` directly.
+ * behaviour are changed here and nowhere else. Don't reach for `TooltipBox` directly. [body] is what
+ * it shows: usually a [message] of text (the overloads below), or a layout of its own (the board's
+ * totals, a two-column table).
  *
  * By default a long press shows it ([enabled] false switches that off). Pass [state] to show it from
  * something else too, such as a tap: `state.show()` in a coroutine. Give the content a matching action
@@ -55,7 +57,7 @@ fun rememberAppTooltipState(): AppTooltipState {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppTooltip(
-    message: AnnotatedString,
+    body: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     state: AppTooltipState = rememberAppTooltipState(),
     enabled: Boolean = true,
@@ -74,7 +76,7 @@ fun AppTooltip(
                 contentColor = MaterialTheme.colorScheme.onSurface,
                 shadowElevation = TOOLTIP_ELEVATION,
             ) {
-                Text(text = message, style = MaterialTheme.typography.bodyMedium)
+                body()
             }
         },
         state = state.state,
@@ -83,6 +85,22 @@ fun AppTooltip(
         content = content,
     )
 }
+
+/** [AppTooltip] for a [message] of text - what nearly every tooltip is. */
+@Composable
+fun AppTooltip(
+    message: AnnotatedString,
+    modifier: Modifier = Modifier,
+    state: AppTooltipState = rememberAppTooltipState(),
+    enabled: Boolean = true,
+    content: @Composable () -> Unit,
+) = AppTooltip(
+    body = { Text(text = message, style = MaterialTheme.typography.bodyMedium) },
+    modifier = modifier,
+    state = state,
+    enabled = enabled,
+    content = content,
+)
 
 /** [AppTooltip] for a plain-text [message]. */
 @Composable
