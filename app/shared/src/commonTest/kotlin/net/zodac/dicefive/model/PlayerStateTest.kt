@@ -114,6 +114,8 @@ class PlayerStateTest {
         assertEquals(48, extended().maxRollsPerGame)
         assertEquals(60, extended(GameMode.TRICOLOUR).maxRollsPerGame)
         assertEquals(144, extended(GameMode.THIRD_WIND).maxRollsPerGame)
-        assertEquals(16, extended(GameMode.QUICKFIRE).maxRollsPerGame)
+        // Quickfire's six turns, and Extended Scores' three: the boxes switched off don't stretch it.
+        val quickfire = extended(GameMode.QUICKFIRE).copy(disabledCategories = GameMode.QUICKFIRE.categories.take(7).toSet())
+        assertEquals(27, quickfire.maxRollsPerGame)
     }
 }

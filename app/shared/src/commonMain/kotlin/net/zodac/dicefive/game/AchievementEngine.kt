@@ -40,8 +40,7 @@ data class GameAchievementContext(
     /**
      * How many of player 1's own turns the turn timer ran out on (and so scored for them) this game.
      * Every turn ends either that way or by player 1 scoring it, so the rest of their card is what
-     * they scored themselves. [Achievement.QUICKFIRE_BEAT_THE_CLOCK] needs this to be 0,
-     * [Achievement.LUCK_OF_THE_DRAW] needs it high enough.
+     * they scored themselves. [Achievement.LUCK_OF_THE_DRAW] needs it high enough.
      */
     val playerOneTimeouts: Int = 0,
     /**
@@ -166,6 +165,9 @@ object AchievementEngine {
     private const val HAT_TRICK_5X_COUNT = 3
     private const val COLD_DICE_SCORE = 100
     private const val LOW_ROLLS_SCORE = 20
+
+    /** The total [Achievement.QUICKFIRE_SCORE] needs - a perfect Quickfire game is 225. */
+    private const val QUICKFIRE_SCORE_TARGET = 150
 
     /**
      * The lowest total the rules permit. Legal, if perverse: five 1s taken as Chance scores 5,
@@ -346,7 +348,7 @@ object AchievementEngine {
         // A box "holds" a score if any one of its slots does, so these mean one turn's score.
         award(Achievement.CHANCE_30, anyHuman { it.hasScore(ScoreCategory.CHANCE, MAX_CHANCE) })
         award(Achievement.SIXES_30, anyHuman { it.hasScore(ScoreCategory.SIXES, MAX_SIXES) })
-        award(Achievement.UPPER_BONUS, anyHuman { !it.rollsModified && it.upperSectionBonus > 0 })
+        award(Achievement.UPPER_BONUS, anyHuman { !it.rollsModified && it.hasFullCard && it.upperSectionBonus > 0 })
         // Section totals over a card scored three times over (Third Wind) would pass these with ease.
         award(Achievement.UPPER_84, anyHuman { it.hasSingleScoreCard && it.upperSectionTotal >= UPPER_CLASS_THRESHOLD })
         award(Achievement.LOWER_150, anyHuman { it.hasSingleScoreCard && it.lowerSectionTotalExcludingFiveOfAKind >= LOWER_CLASS_THRESHOLD })
@@ -359,7 +361,7 @@ object AchievementEngine {
         award(Achievement.FULL_TABLE, players.size == FULL_TABLE_SIZE)
 
         // Easter eggs. A roll can't be undone, so a bloom is final. A mode without 3 rolls a turn
-        // (Quickfire, whose rolls are all made for the player) can't earn it - see growsSunflower.
+        // can't earn it - see growsSunflower.
         award(Achievement.GREENFINGERS, anyHuman { it.hasGrownSunflower })
 
         return earned
@@ -393,8 +395,9 @@ object AchievementEngine {
             award(achievement, (counters[counter] ?: 0) >= achievement.target)
         }
 
-        // A card scored three times over (Third Wind) has its own version of Spotless instead.
-        val singleScoreCard = state.gameMode.scoresPerCategory == 1 && !state.rollModifiers.isActive
+        // A card scored three times over (Third Wind) has its own version of Spotless instead. Nor does one with
+        // boxes switched off (Quickfire) - six turns without a zero is nothing like thirteen.
+        val singleScoreCard = state.gameMode.scoresPerCategory == 1 && !state.rollModifiers.isActive && state.disabledCategories.isEmpty()
         val noZeroes = anyHuman { player -> player.allScores.none { it == 0 } }
         award(Achievement.NO_ZEROES, singleScoreCard && noZeroes)
         award(Achievement.THIRD_WIND_NO_ZEROES, state.gameMode == GameMode.THIRD_WIND && noZeroes)
@@ -437,11 +440,15 @@ object AchievementEngine {
         )
         award(Achievement.TRICOLOUR_WIN, multiplayer && humanWon && state.gameMode == GameMode.TRICOLOUR)
         award(Achievement.QUICKFIRE_WIN, multiplayer && humanWon && state.gameMode == GameMode.QUICKFIRE)
-        award(Achievement.QUICKFIRE_BEAT_THE_CLOCK, state.gameMode == GameMode.QUICKFIRE && context.playerOneTimeouts == 0)
+        award(
+            Achievement.QUICKFIRE_SCORE,
+            state.gameMode == GameMode.QUICKFIRE && !state.rollModifiers.isActive && !state.extendedScores &&
+                bestHumanScore >= QUICKFIRE_SCORE_TARGET,
+        )
         award(Achievement.STUD_WIN, multiplayer && humanWon && state.gameMode == GameMode.STUD)
         award(Achievement.THIRD_WIND_WIN, multiplayer && humanWon && state.gameMode == GameMode.THIRD_WIND)
         // Any mode - the game's length comes from player 1's own mode, so it's "all but 3" of 13 turns
-        // in Standard or Quickfire, of 17 in Tricolour, and of 39 in Third Wind.
+        // in Standard, of 6 in Quickfire, of 17 in Tricolour, and of 39 in Third Wind.
         val playerOneScoredThemselves = players[0].turnsPerGame - context.playerOneTimeouts
         award(Achievement.LUCK_OF_THE_DRAW, multiplayer && humanWon && playerOneScoredThemselves <= LUCK_OF_THE_DRAW_MAX_OWN_SCORES)
         award(Achievement.PIPPED_TO_THE_POST, multiplayer && !humanWon && state.topScore - bestHumanScore == PIPPED_MARGIN)
@@ -457,16 +464,17 @@ object AchievementEngine {
         )
 
         // Misfortune that only a finished score can settle.
-        award(Achievement.SCORE_UNDER_100, anyHuman { it.totalScore < COLD_DICE_SCORE })
-        award(Achievement.LOW_ROLLS, anyHuman { it.totalScore < LOW_ROLLS_SCORE })
+        // Not on a card with boxes switched off (Quickfire), where a total is low by construction.
+        award(Achievement.SCORE_UNDER_100, anyHuman { it.hasFullCard && it.totalScore < COLD_DICE_SCORE })
+        award(Achievement.LOW_ROLLS, anyHuman { it.hasFullCard && it.totalScore < LOW_ROLLS_SCORE })
         // Chance is excluded because it cannot be zeroed - five dice always sum to at least 5.
         award(
             Achievement.ALL_ZEROES,
             anyHuman { player ->
-                player.categories.filter { it != ScoreCategory.CHANCE }.all { category -> player.scoresIn(category).all { it == 0 } }
+                player.hasFullCard && player.categories.filter { it != ScoreCategory.CHANCE }.all { category -> player.scoresIn(category).all { it == 0 } }
             },
         )
-        award(Achievement.EXTREME_LOW_ROLLS, anyHuman { it.totalScore == LOWEST_POSSIBLE_SCORE })
+        award(Achievement.EXTREME_LOW_ROLLS, anyHuman { it.hasFullCard && it.totalScore == LOWEST_POSSIBLE_SCORE })
         // "Lose a game to a CPU player" specifically - not just any loss. Losing to another human seat is
         // still a loss (PIPPED_TO_THE_POST/JAWS_OF_VICTORY don't care who won), but with only
         // player 1 earning achievements now, `!humanWon` alone would also fire whenever another
@@ -483,7 +491,7 @@ object AchievementEngine {
         )
 
         // Impatient/Naturally Gifted: player 1 took every one of their own turns on a single roll -
-        // by choice, so never in a mode that only allows one (Quickfire), where it would be free.
+        // by choice, so never when a turn has only one roll (the Number of Rolls modifier), where it would be free.
         val playerOneNeverRolledTwice = !context.playerOneTookExtraRoll && state.rollsPerTurn > 1
         award(Achievement.IMPATIENT, playerOneNeverRolledTwice)
         award(Achievement.NATURALLY_GIFTED, multiplayer && playerOneNeverRolledTwice && humanWon)
@@ -619,7 +627,12 @@ object AchievementEngine {
      * the totals-based achievements assume both, since a card scored three times over or a turn with
      * extra rolls clears them as a matter of course. */
     private val PlayerState.hasSingleScoreCard: Boolean
-        get() = gameMode.scoresPerCategory == 1 && !rollsModified
+        get() = gameMode.scoresPerCategory == 1 && !rollsModified && hasFullCard
+
+    /** Whether every box on the card can be scored - none switched off, as Quickfire does. With fewer turns and
+     * boxes, the totals and the zeroes the achievements count are a different measure. */
+    private val PlayerState.hasFullCard: Boolean
+        get() = disabledCategories.isEmpty()
 
     /** ONES holds exactly 1, TWOS exactly 2, ... SIXES exactly 6 (in any one of its slots) -
      * [PlayerState.UPPER_CATEGORIES] is already declared in that order, so its index doubles as the

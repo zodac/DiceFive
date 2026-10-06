@@ -40,6 +40,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.stateDescription
@@ -194,6 +195,8 @@ internal fun CategoryCell(
     compact: Boolean = false,
 ) {
     val scores = player?.scoresIn(category).orEmpty()
+    // Switched off for this game: never open, never scored, drawn apart from every other state.
+    val switchedOff = player?.isDisabled(category) == true
     // How many scores the box takes - three in Third Wind, which stacks them (see StackedScores).
     val slotCount = player?.gameMode?.scoresPerCategory ?: 1
     // A one-slot box's score; a box with several slots is "filled" once every one of them is.
@@ -236,6 +239,7 @@ internal fun CategoryCell(
     // Only on a read-only scorecard (see ReadOnlyScoreboard), and only ever a filled box - or slot.
     val lastScored = LocalLastScoredHighlight.current?.takeIf { it.category == category && scores.isNotEmpty() }
     val spokenState = when {
+        switchedOff -> "Disabled for this game, can't be scored"
         slotCount > 1 -> stackedSpokenState(scores, slotCount, previewScore, if (fiveOfAKindTileBonusPreview || fiveOfAKindBonusCount > 0) pendingBonusAmount else 0, lastScored != null)
         filled != null -> buildString {
             append("Scored $filled")
@@ -251,6 +255,7 @@ internal fun CategoryCell(
     val cellSemantics: SemanticsPropertyReceiver.() -> Unit = {
         contentDescription = category.spokenName(irish)
         stateDescription = spokenState
+        if (switchedOff) disabled()
         if (isLegalChoice) {
             role = Role.Button
             onClick(label = "Score") {
@@ -272,6 +277,7 @@ internal fun CategoryCell(
             squareSize = squareSize,
             compact = compact,
             scored = boxFull,
+            disabled = switchedOff,
             fiveOfAKindBonusCount = fiveOfAKindBonusCount,
             // On the wide tile, which has the room, rather than under the score beside it, which hasn't.
             fiveOfAKindBonusAmount = if (wide) pendingBonusAmount else 0,
@@ -280,7 +286,16 @@ internal fun CategoryCell(
         )
     }
     val scoreContent = @Composable { scoreModifier: Modifier ->
-        if (slotCount > 1) {
+        if (switchedOff) {
+            // Words, not a number or the "-" of an open box: what's here is that there's nothing to score.
+            ScoreText(
+                text = "Off",
+                color = TileIconColor.copy(alpha = 0.55f),
+                fontWeight = FontWeight.Normal,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = scoreModifier,
+            )
+        } else if (slotCount > 1) {
             StackedScores(
                 scores = scores,
                 slotCount = slotCount,

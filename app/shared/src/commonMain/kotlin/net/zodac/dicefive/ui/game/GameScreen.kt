@@ -80,7 +80,7 @@ import net.zodac.dicefive.ui.game.style.LocalOnRabbitSeen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /** How long the cup shakes before the roll result is revealed - purely a presentation delay. Shared
- * by every roll: a tap (or Quickfire's automatic one) here, and an AI's in [GameViewModel]. */
+ * by every roll: a tap here, and an AI's in [GameViewModel]. */
 internal const val CUP_SHAKE_MILLIS = 420L
 
 /** How long before the roll lands the cup stops shaking and starts to tip the dice out - a few frames,
@@ -318,8 +318,8 @@ private fun InProgressGame(
     }
     val diceSettling = !settled.value
     // A roll is in hand from the cup's first shake until its dice have come to rest - the same window
-    // GameBoard holds scoring for. The cup takes no tap in it either (a finger, a phone shake or
-    // Quickfire's auto-roll): the next roll waits until this one's dice have settled.
+    // GameBoard holds scoring for. The cup takes no tap in it either (a finger or a phone shake):
+    // the next roll waits until this one's dice have settled.
     val rollInHand = isRolling || diceSettling
 
     // The last CUP_POUR_LEAD_MILLIS of a shake, a human's or a CPU's: the cup starts pouring then, a
@@ -400,15 +400,6 @@ private fun InProgressGame(
         if (!canRoll && isHumanTurn && state.rollsRemaining == 0 && !rollInHand) {
             onTapCupWithNoRollsLeft()
         }
-    }
-
-    // Quickfire taps the cup for the player as their turn starts - the very same tap, so the shake,
-    // sound, haptics and roll are exactly what a real one gives. Keyed on awaitsAutoRoll, which
-    // goes false once the roll lands and true again on the next human turn - and on rollInHand, so a
-    // turn that starts while the last one's dice are still settling (a timeout scoring the moment
-    // they land) rolls once they have, rather than its tap being ignored and never made again.
-    LaunchedEffect(state.awaitsAutoRoll, rollInHand) {
-        if (state.awaitsAutoRoll && !rollInHand) onCupTap()
     }
 
     // Shaking the phone is just another way to "tap" the cup - same gating, same animation/sound,

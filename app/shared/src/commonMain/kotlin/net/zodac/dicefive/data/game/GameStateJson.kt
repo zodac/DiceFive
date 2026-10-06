@@ -18,6 +18,7 @@ import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
+import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.UnluckyDice
@@ -40,6 +41,8 @@ object GameStateJson {
             put("unluckyOdds", it.oddsPercent)
             put("unluckyMaxDice", it.maxDice)
         }
+        // Only a mode that switches boxes off at random has any - see GameMode.drawDisabledCategories.
+        if (state.gameMode.randomDisabledCategories > 0) put("disabledCategories", JsonArray(state.disabledCategories.map { JsonString(it.name) }))
         put("phase", state.phase.name)
         put("isGameOver", state.isGameOver)
         put("turnSecondsLeft", state.turnSecondsLeft)
@@ -57,12 +60,14 @@ object GameStateJson {
         )
         val rollsRemaining = obj.getInt("rollsRemaining")
         val extendedScores = "extendedScores" in obj && obj.getBoolean("extendedScores")
+        val disabledCategories = decodeDisabledCategories(obj, gameMode)
         return GameState(
             gameMode = gameMode,
             turnTimer = TurnTimer.valueOf(obj.getString("turnTimer")),
             rollModifiers = rollModifiers,
             extendedScores = extendedScores,
             unluckyDice = decodeUnluckyDice(obj),
+            disabledCategories = disabledCategories,
             currentPlayerIndex = obj.getInt("currentPlayerIndex"),
             rollsRemaining = rollsRemaining,
             // Missing from a game saved before stored rolls: the turn started with the full allowance.
@@ -71,7 +76,7 @@ object GameStateJson {
             isGameOver = obj.getBoolean("isGameOver"),
             turnSecondsLeft = (obj["turnSecondsLeft"] as? JsonNumber)?.toInt(),
             dice = obj.getObjectList("dice").map(::decodeDie),
-            players = obj.getObjectList("players").map { decodePlayer(it, gameMode, extendedScores, rollModifiers.isActive) },
+            players = obj.getObjectList("players").map { decodePlayer(it, gameMode, extendedScores, disabledCategories, rollModifiers.isActive) },
         )
     }
 
@@ -82,6 +87,18 @@ object GameStateJson {
     private fun decodeGameMode(obj: JsonObject): GameMode {
         val id = obj.getString("gameMode")
         return checkNotNull(GameMode.fromId(id)) { "Unknown game mode: $id" }
+    }
+
+    /**
+     * The boxes switched off, which a mode that draws some at random must have saved: a game saved without them
+     * (Quickfire's old one-roll rules shared its id) has no card to resume, so it fails the decode like an
+     * unknown mode, and `InProgressGameRepository.load` treats it as nothing to resume.
+     */
+    private fun decodeDisabledCategories(obj: JsonObject, gameMode: GameMode): Set<ScoreCategory> {
+        if (gameMode.randomDisabledCategories == 0) return gameMode.disabledCategories
+        if ("disabledCategories" !in obj) throw JsonParseException("A ${gameMode.displayName} game saved without its disabled boxes")
+        val names = obj.getStringList("disabledCategories")
+        return names.map { name -> checkNotNull(ScoreCategory.entries.firstOrNull { it.name == name }) { "Unknown category: $name" } }.toSet()
     }
 
     private fun encodeDie(die: Die): JsonObject = buildJsonObject {
@@ -127,7 +144,13 @@ object GameStateJson {
         )
     }
 
-    private fun decodePlayer(obj: JsonObject, gameMode: GameMode, extendedScores: Boolean, rollsModified: Boolean): PlayerState {
+    private fun decodePlayer(
+        obj: JsonObject,
+        gameMode: GameMode,
+        extendedScores: Boolean,
+        disabledCategories: Set<ScoreCategory>,
+        rollsModified: Boolean,
+    ): PlayerState {
         val scorecardJson = obj.getObject("scorecard")
         val categories = gameMode.categoriesWith(extendedScores)
         val scorecard = categories.associateWith { category -> decodeScores(scorecardJson[category.name]) }
@@ -137,6 +160,7 @@ object GameStateJson {
             difficulty = Difficulty.valueOf(obj.getString("difficulty")),
             gameMode = gameMode,
             extendedScores = extendedScores,
+            disabledCategories = disabledCategories,
             scorecard = scorecard,
             fiveOfAKindBonusCount = obj.getInt("fiveOfAKindBonusCount"),
             // Left out by encode for a player with no finished turn yet - no last roll to show.
@@ -179,6 +203,11 @@ object GameStateJson {
 
     private fun JsonObject.getObject(key: String): JsonObject =
         field(key) as? JsonObject ?: throw JsonParseException("\"$key\" isn't an object")
+
+    private fun JsonObject.getStringList(key: String): List<String> =
+        (field(key) as? JsonArray ?: throw JsonParseException("\"$key\" isn't an array")).items.map {
+            (it as? JsonString)?.value ?: throw JsonParseException("\"$key\" holds a non-string")
+        }
 
     private fun JsonObject.getObjectList(key: String): List<JsonObject> =
         (field(key) as? JsonArray ?: throw JsonParseException("\"$key\" isn't an array")).items.map {

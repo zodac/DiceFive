@@ -275,10 +275,12 @@ private val RULES_PAGES = listOf(
         title = "Mode: Quickfire",
         tabLabel = "Quickfire",
         blocks = listOf(
-            text("A custom mode extending the *Standard* game mode. You get just **one roll** per turn (no holding dice, no rerolls) and the dice are rolled for you as your turn starts."),
-            text("Every turn also has a **10 second** timer, which replaces the *Turn timer* modifier. If it runs out, the roll is scored in whichever open category it's worth the least in (the first one on the scorecard, if several tie)."),
-            RulesTurnTimer,
-            text("Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules. You just have to take what the dice give you, and quickly!"),
+            text("A custom mode extending the *Standard* game mode. Every game starts with the `5x` category and **six** others, picked at random, disabled. That leaves just **six** categories to score, so a game lasts only **six** turns."),
+            text("A disabled category is drawn on your scorecard as a dashed outline with a slash through it, and the word Off where its score would be. It can't be scored in, not even to take a zero. Every player in a game has the same ones disabled, and a new set is picked for each game."),
+            text("With `5x` disabled, there is no Joker rule and no bonus for repeat 5x. You can still roll five matching dice, but they have to be scored in another category."),
+            text("The *Upper Section* bonus shrinks with the categories. It's still **35pts**, but each disabled category lowers the **63pts** you need by three of its number. For example, with `Threes` disabled you need **54pts**, which is **9pts** less. If every *Upper Section* category is disabled, there's no bonus."),
+            text("The *Extended Scores* modifier's categories are never disabled."),
+            text("Everything else plays exactly the same as the *Standard* rules, with three rolls a turn. Scores from this mode don't go on the *Leaderboard*, since every game has a different scorecard, but they still count towards your *Statistics*."),
         ),
     ),
     RulesPage(
@@ -331,11 +333,9 @@ private val RULES_PAGES = listOf(
             text("*Turn timer*: a limit on how long each player has to finish their whole turn, not each roll. Choose **30**, **60** or **120** seconds. A badge shows the time left and turns red as it runs out."),
             RulesTurnTimer,
             text("If a player's time runs out, their roll is scored for them in whichever open category it's worth the least in (the first one on the scorecard, if several tie)."),
-            text("A game mode that has its own timer, like *Quickfire*, uses that instead, and the *Turn timer* modifier is locked while it's chosen."),
-            text("*Number of Rolls*: how many times a player may roll each turn, from **1** to **9**. Without it, a turn has the game mode's own number of rolls, which is **3** in most modes."),
+            text("*Number of Rolls*: how many times a player may roll each turn, from **1** to **9**. Without it, a turn has the game mode's own number of rolls, which is **3** in every game mode."),
             text("*Stored Rolls*: any rolls a player doesn't use before scoring are kept for their next turn, on top of that turn's usual rolls, and so on. The dice cup shows the total, so it can pass **9**. Each player keeps their own."),
             text("*Stored Rolls* can also have a most rolls you can store: whatever is left over beyond it is lost when the turn is scored. Leave it empty for no limit."),
-            text("A game mode built around its rolls, like *Quickfire*, locks both of these while it's chosen."),
             text("Extra rolls make big scores much easier, so with either of these on, the achievements for a high score, a section total, a clean scorecard or the upper bonus can't be earned, and neither can the sunflower."),
             text("*Extended Scores*: adds three more scoring categories to every player's scorecard, after the others. It works in every game mode, so the game lasts three turns longer."),
             RulesCategory("Two Pair", "Total of the four dice making two pairs of different numbers. A fifth die is never counted, even if it matches a pair", dice(4, 4, 2, 2, 4, counting = 4, score = "12pts")),
@@ -631,7 +631,7 @@ private fun RulesDice.spokenDescription(): String {
     return "Example: $all.$ignoredSentence$scoreSentence"
 }
 
-/** The seconds the Quickfire page's example timer is stopped at - inside the game's last few, so it flashes. */
+/** The seconds the Modifiers page's example timer is stopped at - inside the game's last few, so it flashes. */
 private const val TURN_TIMER_EXAMPLE_SECONDS = 4
 
 /** ScreenScaffold's side margin, which the pages' scrollbar sits in. */

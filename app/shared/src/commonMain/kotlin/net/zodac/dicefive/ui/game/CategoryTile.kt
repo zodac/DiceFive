@@ -20,11 +20,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
@@ -66,7 +72,8 @@ private const val STRIPE_CORNER_LEG = 2f / 3f
 
 /**
  * One scoring-category slot in the grid: an icon tile that glows gold and pulses when the
- * player's current dice can legally score it, or reads as visibly "spent" once [scored].
+ * player's current dice can legally score it, or reads as visibly "spent" once [scored]. A [disabled] one
+ * is the odd one out on purpose: every other look is a filled tile, and this is only an outline.
  */
 @Composable
 fun CategoryTile(
@@ -79,6 +86,8 @@ fun CategoryTile(
     squareSize: Dp? = null,
     compact: Boolean = false,
     scored: Boolean = false,
+    /** Switched off for this game (see [net.zodac.dicefive.model.PlayerState.disabledCategories]): drawn as an empty, dashed outline with a slash through it. */
+    disabled: Boolean = false,
     fiveOfAKindBonusCount: Int = 0,
     /** The 5x bonus so far, written on a [wide] tile - 0 for none. */
     fiveOfAKindBonusAmount: Int = 0,
@@ -94,6 +103,7 @@ fun CategoryTile(
     // otherwise. Without the grey state a scored tile looked identical to an ordinary open one -
     // only the (small, low-contrast) score text beside it showed anything had happened.
     val backgroundColors = when {
+        disabled -> listOf(Color.Transparent, Color.Transparent)
         highlighted -> listOf(TileHighlightTop, TileHighlightBottom)
         scored -> listOf(TileScoredTop, TileScoredBottom)
         else -> listOf(TileTealTop, TileTealBottom)
@@ -101,6 +111,7 @@ fun CategoryTile(
     // A highlighted tile's pulsing gold border is drawn by GlowBorder instead, over the content.
     val borderColor = if (scored) TileScoredBorder else TileTealBorder
     val iconColor = when {
+        disabled -> TileIconColor.copy(alpha = DISABLED_ICON_ALPHA)
         highlighted -> GoldAccent
         scored -> TileIconColor.copy(alpha = 0.4f)
         else -> TileIconColor
@@ -120,6 +131,7 @@ fun CategoryTile(
             )
             .then(
                 when {
+                    disabled -> Modifier.drawBehind { drawDashedOutline() }
                     highlighted -> Modifier
                     outlineColor != null -> Modifier.border(width = 2.dp, color = outlineColor, shape = shape)
                     else -> Modifier.border(width = 1.dp, color = borderColor, shape = shape)
@@ -138,13 +150,51 @@ fun CategoryTile(
                 compact -> 16.sp
                 else -> 18.sp
             },
-            dimmed = scored,
+            dimmed = scored || disabled,
             fiveOfAKindBonusCount = fiveOfAKindBonusCount,
             fiveOfAKindBonusAmount = fiveOfAKindBonusAmount,
         )
+        if (disabled) Box(modifier = Modifier.matchParentSize().drawBehind { drawSlash() })
         if (highlighted) GlowBorder(shape)
     }
 }
+
+/** How faint a disabled tile's glyph, dashes and slash are - the glyph stays readable, but unmistakably not in play. */
+private const val DISABLED_ICON_ALPHA = 0.3f
+
+/** The dashed outline of a disabled tile, inside the tile's own edge - the one look with no fill and a broken line. */
+private fun DrawScope.drawDashedOutline() {
+    val stroke = DISABLED_STROKE.toPx()
+    val inset = stroke / 2
+    val radius = DISABLED_CORNER_RADIUS_FRACTION * minOf(size.width, size.height)
+    drawRoundRect(
+        color = TileIconColor.copy(alpha = DISABLED_OUTLINE_ALPHA),
+        topLeft = Offset(inset, inset),
+        size = Size(size.width - stroke, size.height - stroke),
+        cornerRadius = CornerRadius(radius),
+        style = Stroke(width = stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(DASH_ON.toPx(), DASH_OFF.toPx()))),
+    )
+}
+
+/** A diagonal slash through the middle of a disabled tile, as long as the tile is high however wide it is. */
+private fun DrawScope.drawSlash() {
+    val half = minOf(size.width, size.height) * SLASH_HALF_FRACTION
+    val centre = Offset(size.width / 2, size.height / 2)
+    drawLine(
+        color = TileIconColor.copy(alpha = DISABLED_OUTLINE_ALPHA),
+        start = Offset(centre.x - half, centre.y + half),
+        end = Offset(centre.x + half, centre.y - half),
+        strokeWidth = DISABLED_STROKE.toPx(),
+        cap = StrokeCap.Round,
+    )
+}
+
+private val DISABLED_STROKE = 2.dp
+private val DASH_ON = 5.dp
+private val DASH_OFF = 4.dp
+private const val DISABLED_OUTLINE_ALPHA = 0.5f
+private const val SLASH_HALF_FRACTION = 0.34f
+private const val DISABLED_CORNER_RADIUS_FRACTION = 0.2f
 
 /**
  * A highlighted tile's gold border, pulsing. Only composed on a highlighted tile, and its alpha is

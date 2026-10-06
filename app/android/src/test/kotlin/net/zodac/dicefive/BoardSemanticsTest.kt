@@ -172,6 +172,50 @@ class BoardSemanticsTest {
     }
 
     @Test
+    fun `a disabled box says it is disabled and offers no score - unlike an open or a scored one`() {
+        val scored = mutableListOf<ScoreCategory>()
+        val state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Tester")), GameMode.QUICKFIRE)
+        val off = setOf(ScoreCategory.FIVE_OF_A_KIND, ScoreCategory.THREES)
+        val ready = state.copy(
+            disabledCategories = off,
+            players = state.players.map { it.copy(disabledCategories = off, scorecard = it.scorecard + (ScoreCategory.CHANCE to listOf(22))) },
+            phase = TurnPhase.ROLLED,
+            rollsRemaining = 2,
+            dice = listOf(3, 3, 3, 3, 3).map { Die(it) },
+        )
+        compose.setContent {
+            DiceFiveTheme {
+                GameBoard(
+                    state = ready,
+                    rolling = false,
+                    canUndo = false,
+                    onScoreCategory = { scored += it },
+                    onCupTap = {},
+                    onUndo = {},
+                    modifier = Modifier.width(360.dp),
+                )
+            }
+        }
+
+        // Five 3s, and neither the 3s nor the 5x box they'd go in can be used.
+        for (name in listOf("3x", "5x", "Threes")) {
+            val box = compose.onNodeWithContentDescription(name)
+            if (name == "3x") {
+                box.assert(hasStateDescription("Would score 15")).performSemanticsAction(SemanticsActions.OnClick)
+            } else {
+                box.assert(hasStateDescription("Disabled for this game, can't be scored"))
+                box.assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Disabled))
+                box.assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+            }
+        }
+        // A scored box is a different thing, and says so.
+        compose.onNodeWithContentDescription("Chance").assert(hasStateDescription("Scored 22"))
+        compose.onNodeWithContentDescription("Chance").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Disabled))
+
+        assertEquals(listOf(ScoreCategory.THREE_OF_A_KIND), scored)
+    }
+
+    @Test
     fun `a player tab says the player's place - and the drawn place isn't a stop of its own`() {
         val players = listOf(
             PlayerState(name = "Alex", type = PlayerType.HUMAN).let { it.copy(scorecard = it.scorecard + (ScoreCategory.CHANCE to listOf(20))) },

@@ -60,60 +60,12 @@ class GameViewModelTest {
     }
 
     @Test
-    fun `Quickfire plays one roll a turn on its own 10 second timer - whatever the form's timer says`() {
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
-        viewModel.setPlayerCount(1)
-        viewModel.setTurnTimer(TurnTimer.SECONDS_60)
-        viewModel.setGameMode(GameMode.QUICKFIRE)
-        viewModel.startGame()
-
-        assertEquals(10, viewModel.turnSecondsRemaining.value)
-        // The game doesn't carry the overridden pick, but the form still remembers it.
-        assertEquals(TurnTimer.NONE, viewModel.game.value!!.turnTimer)
-        assertEquals(TurnTimer.SECONDS_60, viewModel.setup.value.turnTimer)
-
-        viewModel.rollDice()
-        assertEquals(TurnPhase.ROLLED, viewModel.game.value!!.phase)
-        assertEquals(0, viewModel.game.value!!.rollsRemaining)
-    }
-
-    @Test
-    fun `a Quickfire turn left to run out is forfeited after 10 seconds`() = runTest(testDispatcher) {
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
-        viewModel.setPlayerCount(1)
-        viewModel.setGameMode(GameMode.QUICKFIRE)
-        viewModel.startGame()
-
-        advanceTimeBy(10_000)
-        runCurrent()
-
-        assertEquals(1, viewModel.game.value!!.players.single().turnsTaken)
-        assertEquals(10, viewModel.turnSecondsRemaining.value)
-    }
-
-    @Test
-    fun `a Quickfire timeout scores the lowest-scoring category - not the first open one`() = runTest(testDispatcher) {
-        // Five 1s: Ones would score 5, Twos is the first box they score 0 in.
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher, random = FixedValueRandom(1))
-        viewModel.setPlayerCount(1)
-        viewModel.setGameMode(GameMode.QUICKFIRE)
-        viewModel.startGame()
-
-        advanceTimeBy(10_000)
-        runCurrent()
-
-        val player = viewModel.game.value!!.players.single()
-        assertEquals(listOf(0), player.scoresIn(ScoreCategory.TWOS))
-        assertTrue(player.scoresIn(ScoreCategory.ONES).isEmpty())
-    }
-
-    @Test
     fun `a roll that lands after Undo took the turn back to one with no rolls left is ignored`() {
-        // The cup shakes before a roll lands; Undo in that window restores the previous turn. In
-        // Quickfire the cup is tapped for the player right after they score, so this is likely there.
+        // The cup shakes before a roll lands; Undo in that window restores the previous turn. With one
+        // roll a turn (the Number of Rolls modifier) that turn has none left.
         val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)
-        viewModel.setGameMode(GameMode.QUICKFIRE)
+        viewModel.setRollsPerTurn(1)
         viewModel.startGame()
         viewModel.rollDice()
         viewModel.commitScore(ScoreCategory.CHANCE)
@@ -291,10 +243,11 @@ class GameViewModelTest {
             viewModel.startGame()
 
             viewModel.rollDice()
-            viewModel.commitScore(viewModel.game.value!!.players[0].scorecard.keys.first())
+            // The first box still open: Quickfire switches some off.
+            val human = viewModel.game.value!!.players[0]
+            viewModel.commitScore(human.categories.first { human.isOpen(it) })
             advanceUntilIdle()
 
-            // At least one: Quickfire's turn timer plays the human's turns out too, so its game runs on.
             assertTrue(viewModel.game.value!!.players[1].turnsTaken > 0, "$difficulty $mode CPU didn't play")
             assertEquals(expectAsked, asked > 0, "$difficulty $mode")
         }

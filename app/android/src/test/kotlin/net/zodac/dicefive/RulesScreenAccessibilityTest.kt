@@ -137,7 +137,7 @@ class RulesScreenAccessibilityTest {
     fun theExampleTurnTimerIsDescribedNotAnnouncedAsALiveCountdown() {
         showRules()
 
-        compose.onNodeWithText("Quickfire").performScrollTo().performClick()
+        compose.onNodeWithText("Modifiers").performScrollTo().performClick()
         compose.waitForIdle()
 
         val timer = compose.onNodeWithContentDescription("Example: the turn timer, turning red with 4 seconds left").fetchSemanticsNode()

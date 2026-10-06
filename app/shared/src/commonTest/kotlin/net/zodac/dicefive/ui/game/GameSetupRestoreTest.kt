@@ -141,17 +141,6 @@ class GameSetupRestoreTest {
     }
 
     @Test
-    fun `a mode that doesn't allow roll modifiers starts without them but keeps the pick`() = runTest(testDispatcher) {
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
-        viewModel.setRollsPerTurn(5)
-        viewModel.setGameMode(GameMode.QUICKFIRE)
-        viewModel.startGame()
-
-        assertEquals(RollModifiers(), checkNotNull(viewModel.game.value).rollModifiers)
-        assertEquals(5, viewModel.setup.value.rollModifiers.rollsPerTurn)
-    }
-
-    @Test
     fun `Extended Scores is remembered between games`() = runTest(testDispatcher) {
         val repository = SettingsRepository(FakePreferencesStore())
         val first = GameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)

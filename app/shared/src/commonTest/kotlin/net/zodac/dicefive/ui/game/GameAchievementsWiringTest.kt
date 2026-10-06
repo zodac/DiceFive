@@ -1353,20 +1353,20 @@ class GameAchievementsWiringTest {
     }
 
     @Test
-    fun `a first-roll four of a kind in Quickfire does not unlock Almost Famous`() = runTest {
+    fun `a first-roll four of a kind with one roll a turn does not unlock Almost Famous`() = runTest {
         val store = FakeAchievementStore()
-        // Quickfire's one roll is also its last, so "every roll spent" is true straight away and
-        // nothing was ever rerolled to break the hold - this is the case the one-roll guard is for.
+        // One roll is also the last, so "every roll spent" is true straight away and nothing was
+        // ever rerolled to break the hold - this is the case the one-roll guard is for.
         val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(listOf(6, 6, 6, 6, 1)))
         viewModel.setPlayerCount(1)
-        viewModel.setGameMode(GameMode.QUICKFIRE)
+        viewModel.setRollsPerTurn(1)
         viewModel.startGame()
 
         viewModel.rollDice()
         viewModel.commitScore(ScoreCategory.SIXES)
         advanceUntilIdle()
 
-        assertFalse(Achievement.ALMOST_FAMOUS in store.unlocked, "ALMOST_FAMOUS should not pop in Quickfire, got ${store.unlocked}")
+        assertFalse(Achievement.ALMOST_FAMOUS in store.unlocked, "ALMOST_FAMOUS should not pop with one roll a turn, got ${store.unlocked}")
     }
 
     @Test

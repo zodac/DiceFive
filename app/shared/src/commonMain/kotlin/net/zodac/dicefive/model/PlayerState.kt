@@ -18,6 +18,11 @@ data class PlayerState(
     val gameMode: GameMode = GameMode.default,
     /** Whether the Extended Scores modifier is on, adding its boxes to [categories]. */
     val extendedScores: Boolean = false,
+    /**
+     * The boxes on [categories] switched off for this game ([GameMode.drawDisabledCategories]): on the card,
+     * but never open to score in and never part of a turn. Empty in every mode that doesn't switch any off.
+     */
+    val disabledCategories: Set<ScoreCategory> = emptySet(),
     val scorecard: Map<ScoreCategory, List<Int>> = gameMode.categoriesWith(extendedScores).associateWith { emptyList() },
     val fiveOfAKindBonusCount: Int = 0,
     /** The dice this player's last completed turn was scored with - value and held/unheld state
@@ -45,9 +50,9 @@ data class PlayerState(
     val categories: List<ScoreCategory>
         get() = gameMode.categoriesWith(extendedScores)
 
-    /** How many turns this player's game lasts: a turn for every slot of every box on the card. */
+    /** How many turns this player's game lasts: a turn for every slot of every box on the card that isn't switched off. */
     val turnsPerGame: Int
-        get() = categories.size * gameMode.scoresPerCategory
+        get() = (categories.size - disabledCategories.size) * gameMode.scoresPerCategory
 
     /**
      * The most rolls this player can make in their game - [GameMode.maxRollsPerGame], stretched over the
@@ -59,8 +64,12 @@ data class PlayerState(
     /** The scores filled into [category] so far, in the order they went in. */
     fun scoresIn(category: ScoreCategory): List<Int> = scorecard[category].orEmpty()
 
-    /** Whether [category] still has a slot to score in. */
-    fun isOpen(category: ScoreCategory): Boolean = scoresIn(category).size < gameMode.scoresPerCategory
+    /** Whether [category] still has a slot to score in - never one that's switched off. */
+    fun isOpen(category: ScoreCategory): Boolean =
+        category !in disabledCategories && scoresIn(category).size < gameMode.scoresPerCategory
+
+    /** Whether [category] is switched off for this game. */
+    fun isDisabled(category: ScoreCategory): Boolean = category in disabledCategories
 
     /** Whether [category] holds [score] in any of its slots. */
     fun hasScore(category: ScoreCategory, score: Int): Boolean = score in scoresIn(category)
@@ -83,8 +92,25 @@ data class PlayerState(
     val upperSectionTotal: Int
         get() = sectionTotal(ScoreSection.UPPER)
 
+    /**
+     * What the upper section must add up to for [GameMode.upperBonusAmount]: the mode's threshold, less its share
+     * for every upper box that's switched off. The threshold is an average of so many of each number, so a
+     * box takes its number's share of it with it - 9 for the 3s, with Standard's 63.
+     */
+    val upperBonusThreshold: Int
+        get() {
+            val onCard = UPPER_CATEGORIES.filter { it in categories }
+            val faces = onCard.sumOf { faceOf(it) }
+            if (faces == 0) return gameMode.upperBonusThreshold
+            return gameMode.upperBonusThreshold * onCard.filter { it !in disabledCategories }.sumOf { faceOf(it) } / faces
+        }
+
+    /** Whether there's an upper box left to score in at all - without one there's no bonus to earn. */
+    val hasUpperBonus: Boolean
+        get() = UPPER_CATEGORIES.any { it in categories && it !in disabledCategories }
+
     val upperSectionBonus: Int
-        get() = if (upperSectionTotal >= gameMode.upperBonusThreshold) gameMode.upperBonusAmount else 0
+        get() = if (hasUpperBonus && upperSectionTotal >= upperBonusThreshold) gameMode.upperBonusAmount else 0
 
     val lowerSectionTotal: Int
         get() = sectionTotal(ScoreSection.LOWER)
@@ -136,6 +162,9 @@ data class PlayerState(
     companion object {
         /** ONES..SIXES, in pip order - so a category's index here, plus one, is the pip value it counts. */
         val UPPER_CATEGORIES: List<ScoreCategory> = ScoreCategory.entries.filter { it.section == ScoreSection.UPPER }
+
+        /** The number an upper box counts: ONES 1, ... SIXES 6. */
+        private fun faceOf(category: ScoreCategory): Int = UPPER_CATEGORIES.indexOf(category) + 1
 
         private val FIVE_OF_A_KIND_FULL_SCORE: Int = requireNotNull(ScoreCategory.FIVE_OF_A_KIND.fixedScore)
     }

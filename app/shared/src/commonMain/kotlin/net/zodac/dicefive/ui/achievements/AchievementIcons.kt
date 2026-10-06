@@ -9,8 +9,8 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.Adjust
 import androidx.compose.material.icons.filled.Air
-import androidx.compose.material.icons.filled.AlarmOn
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
@@ -232,7 +232,8 @@ val Achievement.icon: ImageVector
         Achievement.TRICOLOUR_ALL_COLOURS -> Icons.Filled.ColorLens
         // Fast-forward rather than Speed or a bolt - those are Solid Round's and Dice Deity's.
         Achievement.QUICKFIRE_WIN -> Icons.Filled.FastForward
-        Achievement.QUICKFIRE_BEAT_THE_CLOCK -> Icons.Filled.AlarmOn
+        // A bullseye, for hitting the mark with so few boxes to do it in.
+        Achievement.QUICKFIRE_SCORE -> Icons.Filled.Adjust
         // A hand of cards, for the poker game the mode is named after.
         Achievement.STUD_WIN -> Icons.Filled.Style
         Achievement.STUD_LUCKY_SEVEN -> Icons.Filled.Filter7

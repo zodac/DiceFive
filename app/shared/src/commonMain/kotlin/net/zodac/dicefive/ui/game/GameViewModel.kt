@@ -339,7 +339,7 @@ class GameViewModel(
     private var playerOneTookExtraRoll = false
 
     /** How many of player 1's own turns the turn timer has run out on this game - see
-     * [Achievement.QUICKFIRE_BEAT_THE_CLOCK] and [Achievement.LUCK_OF_THE_DRAW]. A timed-out score
+     * [Achievement.LUCK_OF_THE_DRAW]. A timed-out score
      * can't be undone, so this never needs counting back down. */
     private var playerOneTimeouts = 0
 
@@ -542,11 +542,9 @@ class GameViewModel(
             PlayerConfig(slot = slot.slot, type = slot.type, name = name, difficulty = slot.difficulty)
         }
         persistHumanNames(activeSlots)
-        // The form's own pick is still what's remembered, so switching back from a mode with a fixed
-        // timer finds it as it was left - but it isn't what this game plays under.
         persistGameConfig(setupState)
-        val turnTimer = if (setupState.gameMode.turnTimerSeconds != null) TurnTimer.NONE else setupState.turnTimer
-        val rollModifiers = if (setupState.gameMode.allowsRollModifiers) setupState.rollModifiers else RollModifiers()
+        val turnTimer = setupState.turnTimer
+        val rollModifiers = setupState.rollModifiers
         setUndoSnapshot(null)
         resetSuperuserMode()
         resetAchievementTracking()
@@ -587,8 +585,8 @@ class GameViewModel(
         val state = _game.value ?: return
         if (state.currentPlayer?.type != PlayerType.HUMAN) return
         // A roll can arrive after the turn it was tapped for has gone: the cup shakes before the
-        // roll lands, and Undo in that window restores the previous turn - with no rolls left in
-        // Quickfire, where the cup is tapped automatically right after a score.
+        // roll lands, and Undo in that window restores the previous turn - with no rolls left when
+        // a turn has only one.
         if (state.rollsRemaining <= 0) return
 
         // Only player 1 - "You" - earns achievements; another human seat still plays normally
@@ -768,7 +766,7 @@ class GameViewModel(
     }
 
     /**
-     * Every roll in the game - a human's (tapped, or tapped for them in Quickfire) via [rollDice],
+     * Every roll in the game - a human's via [rollDice],
      * and an AI's via [maybeStartAiTurn] - so they all land the same way. Not undoable, like
      * rolling always has been: only a committed score is. Returns the rolled state for the AI loop,
      * which carries its own copy of it.
@@ -921,9 +919,8 @@ class GameViewModel(
     /**
      * The turn timer running out: forfeits the rest of this turn's rolls (rolling first, if the
      * player hadn't yet, since a category can't be committed before that) and commits into the
-     * category the mode's [net.zodac.dicefive.model.TimeoutPick] names - the first open one
-     * (scoring zero if the dice don't match it), or in Quickfire the one the dice score least in.
-     * Either way a forced miss rather than picking the player's best option for them. Applies equally to an AI
+     * the first open category (scoring zero if the dice don't match it).
+     * A forced miss rather than picking the player's best option for them. Applies equally to an AI
      * seat that's taken too long to decide - Hard's exhaustive search is the only realistic way
      * this fires for one - cancelling its in-flight turn job first so it can't keep acting after
      * being timed out from under it.
@@ -1371,7 +1368,7 @@ class GameViewModel(
         // getting re-rolled, and it never turned into a real 5x. Committing after only one or two
         // rolls isn't "almost" anything; rollsRemaining == 0 here means all three rolls this turn
         // were spent (see the fullRolls/rollsRemainingAfter* helpers) - and there has to have
-        // been a reroll to spend at all, or a one-roll mode (Quickfire) would hand it to any
+        // been a reroll to spend at all, or a one-roll turn would hand it to any
         // first-roll 4x. Whether the 5x could even have been scored doesn't matter - only that it
         // was rolled for and missed.
         if (state.fullRolls > 1 &&

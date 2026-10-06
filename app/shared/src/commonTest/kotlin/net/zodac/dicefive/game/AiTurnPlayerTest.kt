@@ -370,6 +370,27 @@ class AiTurnPlayerTest {
     }
 
     @Test
+    fun `every difficulty plays whole legal Quickfire games - six turns - never scoring a switched off box`() {
+        for (difficulty in Difficulty.entries) for (seed in 1..QUICKFIRE_SEEDED_GAMES) {
+            val random = Random(seed)
+            var state = GameEngine.newGame(
+                listOf(PlayerConfig(slot = 1, type = PlayerType.AI, name = "Bot", difficulty = difficulty)),
+                GameMode.QUICKFIRE,
+                random = random,
+            )
+            var turns = 0
+            while (!state.isGameOver) {
+                state = AiTurnPlayer.playTurn(state, random)
+                turns++
+            }
+            val player = state.players.single()
+            assertEquals(6, turns, "$difficulty seed $seed")
+            assertTrue(state.disabledCategories.all { player.scoresIn(it).isEmpty() }, "$difficulty seed $seed")
+            assertEquals(6, player.allScores.size, "$difficulty seed $seed")
+        }
+    }
+
+    @Test
     fun `Hard outscores Medium in Third Wind over the same seeded games`() {
         fun average(difficulty: Difficulty) = (1..THIRD_WIND_SEEDED_GAMES).map { seed ->
             val random = Random(seed)
@@ -385,6 +406,7 @@ class AiTurnPlayerTest {
 
     private companion object {
         const val THIRD_WIND_SEEDED_GAMES = 30
+        const val QUICKFIRE_SEEDED_GAMES = 25
         const val SEEDED_GAMES = 200
         const val STUD_HOLD_CASES = 200
         const val STUD_SEEDED_GAMES = 40
