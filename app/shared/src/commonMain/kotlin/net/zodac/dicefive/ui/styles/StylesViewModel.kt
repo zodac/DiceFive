@@ -30,7 +30,7 @@ class StylesViewModel(
 ) : ViewModel() {
 
     /**
-     * The four saved picks and what's been earned so far, which decides which styles are unlocked -
+     * The five saved picks and what's been earned so far, which decides which styles are unlocked -
      * see [StyleUnlock][net.zodac.dicefive.ui.game.style.StyleUnlock]. Null until they've loaded,
      * since until then every pick would look like the default and every style locked. From the app's
      * copy, that's normally already done before this screen is opened.
@@ -62,6 +62,11 @@ class StylesViewModel(
     fun setDiceMatId(id: String) {
         val repository = settingsRepository ?: return
         viewModelScope.launch { repository.setDiceMatId(id) }
+    }
+
+    fun setScoreFrameId(id: String) {
+        val repository = settingsRepository ?: return
+        viewModelScope.launch { repository.setScoreFrameId(id) }
     }
 
     companion object {

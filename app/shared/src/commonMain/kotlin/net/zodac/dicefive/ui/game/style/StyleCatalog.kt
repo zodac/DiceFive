@@ -73,9 +73,10 @@ data class StyleFamily<T : TableArt>(
 /**
  * Every [StyleFamily] in one category of table art, in the order they're offered on the Styles
  * screen. Every colour of every family is a separately saved pick, by its own [TableArt.id].
- * [noun] is what one of the category is called in a sentence - "the 'Irish' dice style".
+ * [noun] is what one of the category is called in a sentence - "the 'Irish' dice style" - and
+ * [variantNoun] what one of a family's [StyleFamily.colours] is: a colour, except where they're shapes.
  */
-open class StyleCatalog<T : TableArt>(val noun: String, val families: List<StyleFamily<T>>) {
+open class StyleCatalog<T : TableArt>(val noun: String, val families: List<StyleFamily<T>>, val variantNoun: String = "colour") {
     val all: List<T> = families.flatMap { family -> family.colours.map { it.style } }
 
     /** The first colour of the first family. */
@@ -108,7 +109,7 @@ private fun classicDie(id: String, colour: DieColour): StyleColour<DiceStyle> =
     StyleColour(colour.name.lowercase().replaceFirstChar { it.uppercase() }, colour.palette.swatch, ColouredClassicDiceStyle(id, colour.palette))
 
 /** Every category's catalog, in the Styles screen's order. */
-val StyleCatalogs: List<StyleCatalog<*>> by lazy { listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds) }
+val StyleCatalogs: List<StyleCatalog<*>> by lazy { listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds, ScoreFrames) }
 
 object DiceStyles : StyleCatalog<DiceStyle>(
     "dice",
@@ -962,6 +963,54 @@ object DiceMats : StyleCatalog<DiceMat>(
         ),
     ),
 )
+
+/**
+ * The frame round the player whose turn it is. Every one is drawn in the player's own colour, so a
+ * family's "colours" here are its variants - different shapes, not different colours - each shown on
+ * the Styles screen in player 1's default colour.
+ */
+object ScoreFrames : StyleCatalog<ScoreFrame>(
+    "frame",
+    listOf(
+        StyleFamily("Classic", listOf(frame("Ring", ScoreFrameArt.classic))),
+        StyleFamily(
+            "Floral",
+            listOf(frame("Rose", ScoreFrameArt.rose), frame("Daisy", ScoreFrameArt.daisy), frame("Vine", ScoreFrameArt.vine)),
+            unlock = AchievementCount(4),
+        ),
+        StyleFamily(
+            "Art Deco",
+            listOf(frame("Fan", ScoreFrameArt.decoFan), frame("Stepped", ScoreFrameArt.decoStepped)),
+            unlock = AchievementCount(8),
+        ),
+        StyleFamily(
+            "Tribal",
+            listOf(frame("Swirl", ScoreFrameArt.tribalSwirl), frame("Flame", ScoreFrameArt.tribalFlame)),
+            unlock = AchievementCount(13),
+        ),
+        StyleFamily(
+            "Wreath",
+            listOf(frame("Laurel", ScoreFrameArt.laurel), frame("Olive", ScoreFrameArt.olive)),
+            unlock = AchievementCount(22),
+        ),
+        StyleFamily(
+            "Greek",
+            listOf(frame("Key", ScoreFrameArt.greekKey), frame("Waves", ScoreFrameArt.greekWaves)),
+            unlock = AchievementCount(24),
+        ),
+        StyleFamily("Celtic", listOf(frame("Knot", ScoreFrameArt.celticKnot)), unlock = AchievementCount(70)),
+        StyleFamily(
+            "Neon",
+            listOf(frame("Single", ScoreFrameArt.neon), frame("Double", ScoreFrameArt.neonDouble)),
+            unlock = AchievementCount(72),
+        ),
+        StyleFamily("Pixel", listOf(frame("Retro", ScoreFrameArt.pixel)), unlock = AchievementCount(77)),
+    ),
+    variantNoun = "design",
+)
+
+/** A frame's variant: its swatch is the colour its tile shows it in, as every variant is drawn in the player's colour. */
+private fun frame(name: String, style: ScoreFrame): StyleColour<ScoreFrame> = StyleColour(name, ScoreFramePreviewColour, style)
 
 // The Egg dice's shells - each also the other's pips.
 private val EggWhiteShell = Color(0xFFFBF8F1)

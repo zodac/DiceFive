@@ -8,6 +8,7 @@ import androidx.core.content.ContextCompat
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -169,6 +170,8 @@ class StoreAssetGeneratorTest {
         // 3. Styles Screen (Open gallery view for 'Dice Cups')
         compose.onNodeWithText("Styles").performClick()
         compose.waitForIdle()
+        // The page appears once the navigation has settled, which an idle wait doesn't always cover.
+        compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithContentDescription("Dice Cup gallery").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithContentDescription("Dice Cup gallery").performClick()
         compose.waitForIdle()
         saveScreenshot(subpath, "styles.png")

@@ -394,6 +394,23 @@ the category's default instead. So resetting achievements re-locks without losin
 and earning it back restores it. A new place that draws a saved style must use `unlockedById`, not
 `byId`.
 
+**The cards are shrunk to fit a screen they only just overflow - worked out in the warm-up, never on
+opening.** `StylesWarmUp` (below), after drawing the tiles, also lays the whole page out off screen at full
+size and, if that scrolls, at `MIN_PAGE_FIT_SCALE` (75%). The text keeps its size (the cards get a
+`Density` with smaller dp but the same sp), so the two heights split the page into the part that scales and
+the part that doesn't, and `fittedPageScale` gives the scale that just fits. That `PageFit` (keyed on the
+window size, density and font scale) is **saved with the Styles picks** (`styles_page_fit`, in
+`SavedStyles`), which load at launch, so every launch after the first knows it from its first frame;
+opening the page just reads it - no measuring, no relayout. The warm-up measures again each launch and
+saves only a change (a new version of the page can change its height). A page that fits, or that would
+need less than 75%, stays full size (the latter scrolls); one opened before any measure exists (a fresh
+install, within a couple of seconds of launch) or on a screen it wasn't measured for is full size, and the
+warm-up measures again (only that) when the menu next shows on a changed screen. Measuring first in the
+warm-up was rejected: it would load the whole page's first-time code onto the menu 0.6s after launch,
+the hitch the warm-up's order exists to avoid. Asked for by the maintainer, whose phone (~369 x 816dp)
+needs about 76%; a runtime fit measured on opening was rejected as too costly for an already heavy page.
+`PageFitTest`, `StylesPageFitTest`; checked on the sandbox emulator at 1080 x 2400, 470dpi.
+
 **Each category's tile row is a `LazyRow`, not a `horizontalScroll` `Row`.** Every tile's art is its
 own drawing code, some of it animated, and composing every tile of every category at once (40-odd
 and growing) made the first open after a restart hold the menu for several frames before the page
@@ -432,7 +449,7 @@ cheap and a cup mid-shake carries on. To TalkBack the toggle is a switch, "Dice 
 **The menu warms the Styles page up (`StylesWarmUp`).** Even lazily, the first open after a launch
 was slow in a release build too: it's the first time each tile's drawing code runs, and that's a
 one-off cost per process. So once the menu has settled (600ms), `StylesWarmUp` draws the page's
-four category cards one per frame, at screen width, in a 1dp clipped box under the menu's opaque
+five category cards one per frame, at screen width, in a 1dp clipped box under the menu's opaque
 backdrop, then drops them - once per process. Compose doesn't cull clipped content, so the art
 really is drawn. The screen and the warm-up share `StyleCategorySection`, so a new category or a
 change to how tiles draw is warmed automatically; keep it that way rather than giving the warm-up
@@ -958,6 +975,9 @@ edges are pinned.
 the box they last scored in (`ReadOnlyScoreboard` reads `player.colour`) all use it, so they always match.
 Anything new that marks a player in their colour should read it too, never a seat index.
 
+- **The active tab's frame** is the player's chosen `ScoreFrame` (Styles > Frame; `DESIGN.md`), drawn
+  behind the tab in their colour - Classic is the plain ring. It's decoration over meaning already said:
+  the tab's "Current turn" state description is unchanged, whatever the frame.
 - **Setup**: a 28dp circle (48dp touch target) left of each player's name or difficulty
   (`ui/setup/PlayerColourPicker.kt`); tapping opens a `DropdownMenu` of the eight as a 4x2 grid, the
   current one ticked. It's a curated set, not a free picker: M3 has no colour-picker component, and

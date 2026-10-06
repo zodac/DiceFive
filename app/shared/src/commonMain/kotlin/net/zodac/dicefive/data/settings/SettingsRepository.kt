@@ -216,6 +216,21 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[DICE_MAT_ID_KEY] = id }
     }
 
+    // The frame round the player whose turn it is - "classic" is ScoreFrames.default's id.
+    val scoreFrameId: Flow<String> = dataStore.data.map { prefs -> prefs[SCORE_FRAME_ID_KEY] ?: "classic" }
+
+    suspend fun setScoreFrameId(id: String) {
+        dataStore.edit { it[SCORE_FRAME_ID_KEY] = id }
+    }
+
+    // The Styles page's fitted size for the screen it was measured on, as the Styles screen writes it -
+    // opaque here. Null until it's first measured.
+    val stylesPageFit: Flow<String?> = dataStore.data.map { prefs -> prefs[STYLES_PAGE_FIT_KEY] }
+
+    suspend fun setStylesPageFit(fit: String) {
+        dataStore.edit { it[STYLES_PAGE_FIT_KEY] = fit }
+    }
+
     private companion object {
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
         val SOUND_ENABLED_KEY = booleanPreferencesKey("sound_enabled")
@@ -237,6 +252,8 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val DICE_CUP_STYLE_ID_KEY = stringPreferencesKey("dice_cup_style_id")
         val TABLE_BACKGROUND_ID_KEY = stringPreferencesKey("table_background_id")
         val DICE_MAT_ID_KEY = stringPreferencesKey("dice_mat_id")
+        val SCORE_FRAME_ID_KEY = stringPreferencesKey("score_frame_id")
+        val STYLES_PAGE_FIT_KEY = stringPreferencesKey("styles_page_fit")
         val DROPPED_DICE_CUP_STYLE_IDS = setOf("leather", "casino_burgundy")
         fun playerNameKey(slot: Int) = stringPreferencesKey("player_name_$slot")
         fun playerTypeKey(slot: Int) = stringPreferencesKey("player_type_$slot")

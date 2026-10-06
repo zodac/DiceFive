@@ -50,8 +50,9 @@ class StylesUnlockedBannerTest {
     @Test
     fun `reaching a style's count unlocks exactly that style - one short or one past does not`() {
         assertEquals(listOf(StyleReward("Frosted", "dice")), stylesUnlockedByCount(22, 23))
-        assertEquals(emptyList(), stylesUnlockedByCount(21, 22))
-        assertEquals(emptyList(), stylesUnlockedByCount(23, 24))
+        // Each neighbour unlocks a style of its own (a frame), but never Frosted.
+        assertEquals(listOf(StyleReward("Wreath", "frame")), stylesUnlockedByCount(21, 22))
+        assertEquals(listOf(StyleReward("Greek", "frame")), stylesUnlockedByCount(23, 24))
     }
 
     @Test
