@@ -33,6 +33,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -59,6 +60,9 @@ import net.zodac.dicefive.ui.theme.color
 private const val SCORE_RISE_MIN_MILLIS = 1000
 private const val SCORE_RISE_MAX_MILLIS = 2000
 private const val SCORE_RISE_MILLIS_PER_POINT = 40
+
+/** How much of the player's colour the tab's panel takes on, over `surfaceContainer` - see `UI.md`'s "Player colours". */
+private const val PANEL_TINT = 0.08f
 
 /** How far below the tab's top padding its name sits - see `UI.md`'s "Player colours". */
 private val NAME_TOP_DROP = 3.dp
@@ -136,7 +140,8 @@ private fun PlayerTab(
         modifier = modifier
             .padding(horizontal = 3.dp)
             // Every tab sits on its own panel rather than straight on the page; the frame draws over it.
-            .background(MaterialTheme.colorScheme.surfaceContainer, shape)
+            // Tinted a touch with the player's colour - any more and Purple's name drops below 4.5:1.
+            .background(color.copy(alpha = PANEL_TINT).compositeOver(MaterialTheme.colorScheme.surfaceContainer), shape)
             // Whose turn it is: the player's chosen frame, behind the name and score. Ahead of the clip,
             // so a frame's glow or ornaments can spread a little past the tab, into the gap beside it.
             .then(if (active) Modifier.drawBehind { with(frame) { drawFrame(color) } } else Modifier)
