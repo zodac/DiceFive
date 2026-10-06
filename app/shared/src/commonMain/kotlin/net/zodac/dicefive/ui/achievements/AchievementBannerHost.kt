@@ -219,8 +219,10 @@ fun AchievementBannerHost(
             ),
         ) {
             ConfigureOverlayDialogWindow()
+            // Not fillMaxSize: the window wraps this height, and a full-screen window would swallow every touch
+            // meant for the screen beneath - see ConfigureOverlayDialogWindow.
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.BottomCenter,
             ) {
                 // Display order only, not the underlying list (removal below still targets `banners`

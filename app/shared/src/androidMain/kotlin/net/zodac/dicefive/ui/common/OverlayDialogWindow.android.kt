@@ -13,6 +13,10 @@ internal actual fun ConfigureOverlayDialogWindow() {
     SideEffect {
         val window = (view.parent as? DialogWindowProvider)?.window ?: return@SideEffect
         window.setDimAmount(0f)
+        // Compose makes a `usePlatformDefaultWidth = false` dialog window match-parent in both directions, and a full-screen
+        // window takes every touch (NOT_TOUCH_MODAL only passes touches *outside* its bounds). Wrap the height so only the
+        // strip the content occupies intercepts anything.
+        window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT)
         window.setGravity(Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL)
         window.addFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
     }
