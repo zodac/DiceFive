@@ -496,9 +496,10 @@ object AchievementEngine {
 
         award(Achievement.SOLO_GAME, players.size == 1)
         // Player 1's name and the card are fixed for the whole game, so this only needs the result.
+        // No modifier may be on (timer, roll modifiers, Extended Scores, Unlucky Dice): they change the score.
         award(
             Achievement.THE_SOLUTION,
-            players.size == 1 && state.gameMode == GameMode.STANDARD && isPhilWoodward(players[0].name) &&
+            players.size == 1 && state.gameMode == GameMode.STANDARD && !state.hasModifiers && isPhilWoodward(players[0].name) &&
                 players[0].totalScore == THE_SOLUTION_SCORE,
         )
 

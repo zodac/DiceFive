@@ -74,8 +74,12 @@ data class GameState(
     val turnSeconds: Int?
         get() = turnTimer.seconds
 
+    /** Whether any modifier - the [turnTimer], [rollModifiers], [extendedScores] or [unluckyDice] - is on. */
+    val hasModifiers: Boolean
+        get() = turnTimer != TurnTimer.NONE || rollModifiers.isActive || extendedScores || unluckyDice != null
+
     /** Whether this game's scores go on the Leaderboard: its mode must allow it ([GameMode.countsOnLeaderboard])
      * and no modifier, like the [turnTimer], [rollModifiers], [extendedScores] or [unluckyDice], may be on - modifiers are for fun, not for the records. */
     val countsOnLeaderboard: Boolean
-        get() = gameMode.countsOnLeaderboard && turnTimer == TurnTimer.NONE && !rollModifiers.isActive && !extendedScores && unluckyDice == null
+        get() = gameMode.countsOnLeaderboard && !hasModifiers
 }
