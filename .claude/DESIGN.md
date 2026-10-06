@@ -289,7 +289,9 @@ decisions behind it. Read that before changing anything visual.
   Wreath (Laurel, Olive, 22), Greek (Key, Waves, 24), Celtic (Knot, 70 - the gaps at its crossings are
   cleared in a layer of its own), Neon (Single, Double, 72), Pixel (Retro, 77). Authored in dp
   (`inDp`), mirrored per corner, stretched to any tab width; static, built only when the tab redraws,
-  and allowed a few dp past the tab into the gap beside it (drawn ahead of the tab's clip).
+  and allowed a few dp past the tab into the gap beside it (drawn ahead of the tab's clip). Each keeps 1.5dp clear
+  of the tab's text at the tightest width (`ScoreFrameClearanceTest`; `UI.md`'s "Player colours"), and every
+  tab sits on a plain `surfaceContainer` panel the frame draws over.
   The Styles screen (`ui/styles/`) is the picker: one tile per family, showing the picked colour
   (or the family's first), colour dots along the bottom when it has more than one, and a long
   press popping up a scrollable row of previews, one per colour (no colour names on screen - the

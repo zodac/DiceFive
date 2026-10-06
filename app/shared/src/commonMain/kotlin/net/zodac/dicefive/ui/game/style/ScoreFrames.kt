@@ -161,14 +161,14 @@ private val RoseScoreFrame: ScoreFrame = DrawnScoreFrame("rose") { w, h, colour 
     drawTabOutline(w, h, colour.copy(alpha = 0.7f), width = 1.1f)
     val leafColour = colour.darker(0.45f)
     val rose: DrawScope.() -> Unit = {
-        placed(Offset(7f, 7f), 0f) {
-            placed(Offset(5f, -5.5f), -6f) { drawLeaf(leafColour, 11f, 3.2f) }
-            placed(Offset(-5.5f, 5f), 96f) { drawLeaf(leafColour, 11f, 3.2f) }
-            drawRose(colour, 7.5f)
+        placed(Offset(5.5f, 5.5f), 0f) {
+            placed(Offset(4.5f, -5f), -6f) { drawLeaf(leafColour, 10f, 3f) }
+            placed(Offset(-5f, 4.5f), 96f) { drawLeaf(leafColour, 10f, 3f) }
+            drawRose(colour, 5.8f)
         }
     }
     val bud: DrawScope.() -> Unit = {
-        placed(Offset(w - 5f, 5f), 0f) {
+        placed(Offset(w - 4f, 4f), 0f) {
             placed(Offset(-1f, 1f), 165f) { drawLeaf(leafColour, 7f, 2.2f, vein = false) }
             placed(Offset(-1f, 1f), 105f) { drawLeaf(leafColour, 7f, 2.2f, vein = false) }
             drawCircle(colour.darker(0.35f), 3.4f, Offset.Zero)
@@ -257,7 +257,7 @@ private val DecoFanScoreFrame: ScoreFrame = DrawnScoreFrame("deco_fan") { w, h, 
     eachCorner(w, h) {
         // A quarter sunburst fanning out of the inner outline's corner.
         val hub = Offset(3f, 3f)
-        val radius = 9.5f
+        val radius = 7.5f
         for (i in 0..4) {
             val angle = (i / 4f) * PI.toFloat() / 2
             drawLine(colour.copy(alpha = 0.85f), hub + Offset(cos(angle), sin(angle)) * 3.5f, hub + Offset(cos(angle), sin(angle)) * radius, strokeWidth = 0.6f)
@@ -319,8 +319,8 @@ private fun koruSpiral(hub: Offset, radius: Float): List<Offset> {
 private val TribalSwirlScoreFrame: ScoreFrame = DrawnScoreFrame("tribal_swirl") { w, h, colour ->
     val ink = colour
     eachCorner(w, h) {
-        val radius = 6.2f
-        val hub = Offset(1.6f + radius, 1.6f + radius)
+        val radius = 4.8f
+        val hub = Offset(1.4f + radius, 1.4f + radius)
         val spiral = koruSpiral(hub, radius)
         // The spiral, thickening as it winds out, then a tail along the top edge to near the middle.
         val tailEnd = w * 0.44f
@@ -345,13 +345,13 @@ private val TribalFlameScoreFrame: ScoreFrame = DrawnScoreFrame("tribal_flame") 
     eachCorner(w, h) {
         // Three curved blades sweeping out of the corner: along the top, down the side, and a short
         // hooked one between, curling back on itself.
-        val top = sampled(24) { t -> Offset(2f + t * (w * 0.4f - 2f), 2f + 3f * (t - t * t) * 0.6f + (1 - t) * 3f) }
-        drawPath(taperedPath(top) { t -> 3.4f * (1 - t).pow(0.7f) + 0.2f }, colour)
-        val side = sampled(24) { t -> Offset(2f + 3f * (t - t * t) * 0.6f + (1 - t) * 3f, 2f + t * (h * 0.4f - 2f)) }
-        drawPath(taperedPath(side) { t -> 3.4f * (1 - t).pow(0.7f) + 0.2f }, colour)
+        val top = sampled(24) { t -> Offset(1.6f + t * (w * 0.4f - 1.6f), 1.6f + 3f * (t - t * t) * 0.4f + (1 - t) * 1.6f) }
+        drawPath(taperedPath(top) { t -> 3f * (1 - t).pow(0.7f) + 0.2f }, colour)
+        val side = sampled(24) { t -> Offset(1.6f + 3f * (t - t * t) * 0.4f + (1 - t) * 1.6f, 1.6f + t * (h * 0.4f - 1.6f)) }
+        drawPath(taperedPath(side) { t -> 3f * (1 - t).pow(0.7f) + 0.2f }, colour)
         val hook = sampled(20) { t ->
             val angle = -PI.toFloat() * 0.25f + t * PI.toFloat() * 0.9f
-            Offset(4f, 4f) + Offset(t * 6f, t * 6f) + Offset(cos(angle), sin(angle)) * (2.5f * t)
+            Offset(4f, 4f) + Offset(t * 4.5f, t * 4.5f) + Offset(cos(angle), sin(angle)) * (2f * t)
         }
         drawPath(taperedPath(hook) { t -> 2.6f * (1 - t) + 0.2f }, colour.darker(0.15f))
     }
@@ -415,16 +415,16 @@ private fun DrawScope.drawTrefoil(colour: Color, scale: Float, degrees: Float, s
 private val CelticKnotScoreFrame: ScoreFrame = DrawnScoreFrame("celtic_knot") { w, h, colour ->
     // Its own layer, so cutting the knots' gaps clears only the frame, never what's behind the tab.
     drawIntoCanvas { it.saveLayer(Rect(-4f, -4f, w + 4f, h + 4f), Paint()) }
-    val knot = 8f
+    val knot = 5.8f
     // A double line between the knots, round all four sides.
-    for (inset in listOf(1.3f, 3.6f)) {
+    for (inset in listOf(1.1f, 2.6f)) {
         drawLine(colour, Offset(knot + 4f, inset), Offset(w - knot - 4f, inset), strokeWidth = 0.8f)
         drawLine(colour, Offset(knot + 4f, h - inset), Offset(w - knot - 4f, h - inset), strokeWidth = 0.8f)
         drawLine(colour, Offset(inset, knot + 4f), Offset(inset, h - knot - 4f), strokeWidth = 0.8f)
         drawLine(colour, Offset(w - inset, knot + 4f), Offset(w - inset, h - knot - 4f), strokeWidth = 0.8f)
     }
     eachCorner(w, h) {
-        placed(Offset(knot, knot), 0f) { drawTrefoil(colour, 2.15f, -45f, 1.2f) }
+        placed(Offset(knot, knot), 0f) { drawTrefoil(colour, 1.6f, -45f, 1f) }
     }
     drawIntoCanvas { it.restore() }
 }
@@ -449,7 +449,8 @@ private fun DrawScope.drawWreathBranch(w: Float, h: Float, colour: Color, leafLe
             add(Offset(inset + corner + cos(angle) * corner, h - inset - corner + sin(angle) * corner))
         }
         var y = h - inset - corner - 1f
-        while (y > h * 0.14f) { add(Offset(inset, y)); y -= 1f }
+        // Up to below the name, which sits across the top of the tab: a wreath open at the top.
+        while (y > WREATH_TOP * h + leafLength) { add(Offset(inset, y)); y -= 1f }
     }
     drawPath(smoothPath(stem), colour.darker(0.3f), style = Stroke(0.8f, cap = StrokeCap.Round))
     var travelled = 0f
@@ -471,6 +472,9 @@ private fun DrawScope.drawWreathBranch(w: Float, h: Float, colour: Color, leafLe
     // The tip: one last leaf pointing on up the side.
     placed(stem.last(), -90f) { drawLeaf(colour, leafLength, leafWidth) }
 }
+
+/** How far down the tab, as a fraction of its height, a wreath's leaves stop - clear of the name above them. */
+private const val WREATH_TOP = 0.36f
 
 private val LaurelScoreFrame: ScoreFrame = DrawnScoreFrame("laurel") { w, h, colour ->
     bothSides(w) { drawWreathBranch(w, h, colour, leafLength = 5f, leafWidth = 2.3f, spacing = 3.2f, berries = false) }
@@ -567,7 +571,7 @@ private val NeonScoreFrame: ScoreFrame = DrawnScoreFrame("neon") { w, h, colour 
 
 private val NeonDoubleScoreFrame: ScoreFrame = DrawnScoreFrame("neon_double") { w, h, colour ->
     drawNeonTube(w, h, colour, inset = 1.2f, core = 0.8f)
-    drawNeonTube(w, h, colour, inset = 4.4f, core = 0.6f)
+    drawNeonTube(w, h, colour, inset = 3.6f, core = 0.6f)
 }
 
 // ---------------------------------------------------------------------------------------------
