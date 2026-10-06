@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -30,6 +31,7 @@ import net.zodac.dicefive.model.AchievementCounter
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.model.TurnTimer
 
 /** In-memory [AchievementStore], so the whole game -> unlock path runs with no Context. */
@@ -1539,6 +1541,59 @@ class GameAchievementsWiringTest {
         advanceUntilIdle()
 
         assertTrue(Achievement.DICE_HATE_ME in store.unlocked, "DICE_HATE_ME should pop, got ${store.unlocked}")
+    }
+
+    /**
+     * A solo game taken to its last turn with Sixes the only box open and the upper section on 60 - three short of the bonus,
+     * so a single 6 would earn it. The last turn then rolls [finalRolls] (five dice a roll) and scores Sixes with them.
+     */
+    private fun TestScope.playToSixesNeedingOneDie(finalRolls: List<List<Int>>, rollsToTake: Int = finalRolls.size): FakeAchievementStore {
+        val store = FakeAchievementStore()
+        val upperTurns = listOf(
+            ScoreCategory.ONES to listOf(1, 1, 1, 1, 2),
+            ScoreCategory.TWOS to listOf(2, 2, 2, 2, 3),
+            ScoreCategory.THREES to listOf(3, 3, 3, 3, 2),
+            ScoreCategory.FOURS to listOf(4, 4, 4, 4, 2),
+            ScoreCategory.FIVES to listOf(5, 5, 5, 5, 2),
+        )
+        val lowerBoxes = GameMode.STANDARD.categories.filter { it.section != ScoreSection.UPPER }
+        val script = upperTurns.flatMap { it.second } + List(5 * lowerBoxes.size) { 2 } + finalRolls.flatten()
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher, achievementsRepository = store, random = ScriptedDice(script))
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+        for ((category, _) in upperTurns) {
+            viewModel.rollDice()
+            viewModel.commitScore(category)
+        }
+        for (category in lowerBoxes) {
+            viewModel.rollDice()
+            viewModel.commitScore(category)
+        }
+        repeat(rollsToTake) { viewModel.rollDice() }
+        viewModel.commitScore(ScoreCategory.SIXES)
+        advanceUntilIdle()
+        return store
+    }
+
+    @Test
+    fun `scoring a zero in the last box, one die short of the upper bonus after every roll, unlocks Probability Never Heard of Her`() = runTest {
+        val store = playToSixesNeedingOneDie(List(3) { List(5) { 2 } })
+
+        assertTrue(Achievement.PROBABILITY_NEVER_HEARD_OF_HER in store.unlocked, "should pop, got ${store.unlocked}")
+    }
+
+    @Test
+    fun `Probability Never Heard of Her needs every roll spent`() = runTest {
+        val store = playToSixesNeedingOneDie(List(3) { List(5) { 2 } }, rollsToTake = 2)
+
+        assertFalse(Achievement.PROBABILITY_NEVER_HEARD_OF_HER in store.unlocked, "scored with a roll to spare, got ${store.unlocked}")
+    }
+
+    @Test
+    fun `Probability Never Heard of Her needs the last box to score nothing`() = runTest {
+        val store = playToSixesNeedingOneDie(listOf(List(5) { 2 }, List(5) { 2 }, listOf(6, 2, 2, 2, 2)))
+
+        assertFalse(Achievement.PROBABILITY_NEVER_HEARD_OF_HER in store.unlocked, "the bonus was earned, got ${store.unlocked}")
     }
 
     @Test

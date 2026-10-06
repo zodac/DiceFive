@@ -114,6 +114,16 @@ data class PlayerState(
     val hasUpperBonus: Boolean
         get() = UPPER_CATEGORIES.any { it in categories && it !in disabledCategories }
 
+    /**
+     * Whether the upper bonus is still unearned, but a single die showing [category]'s number in [category] would earn it:
+     * the section is short of [upperBonusThreshold] by no more than that number. False for anything but an upper box.
+     */
+    fun needsOneDieForBonus(category: ScoreCategory): Boolean {
+        if (!hasUpperBonus || category !in UPPER_CATEGORIES) return false
+        val total = upperSectionTotal
+        return total < upperBonusThreshold && total + faceOf(category) >= upperBonusThreshold
+    }
+
     val upperSectionBonus: Int
         get() = if (hasUpperBonus && upperSectionTotal >= upperBonusThreshold) gameMode.upperBonusAmount else 0
 

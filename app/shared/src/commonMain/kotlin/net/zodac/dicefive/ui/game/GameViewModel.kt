@@ -1382,6 +1382,19 @@ class GameViewModel(
             unlockAchievements(setOf(Achievement.ALMOST_FAMOUS))
         }
 
+        // Probability? Never Heard of Her: the last box on the card is an upper one that one die would have turned into the
+        // bonus, and every roll of the turn - there has to be more than one - still left it a zero.
+        if (state.fullRolls > 1 &&
+            state.rollsRemaining == 0 &&
+            state.unluckyDice == null &&
+            player.turnsLeft == 1 &&
+            player.isOpen(category) &&
+            player.needsOneDieForBonus(category) &&
+            ScoreCalculator.scoreFor(player, category, dice) == 0
+        ) {
+            unlockAchievements(setOf(Achievement.PROBABILITY_NEVER_HEARD_OF_HER))
+        }
+
         // Empty House: the worst full house there is - three 1s and two 2s specifically, which a
         // 5x-as-joker full house (all five dice the same value) can never produce.
         if (category == ScoreCategory.FULL_HOUSE && dice.map { it.value }.sorted() == EMPTY_HOUSE_VALUES) {

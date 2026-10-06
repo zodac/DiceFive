@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.achievements
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.unit.dp
@@ -83,5 +84,26 @@ internal val BULLSEYE_ARROW_ICON: ImageVector by lazy {
                 ),
             )
         }
+    }
+}
+
+/** [pathData] as a round-ended line [width] wide - for the thin strokes of a numeral, which a filled outline would clog at this size. */
+private fun ImageVector.Builder.line(pathData: String, width: Float) {
+    addPath(addPathNodes(pathData), stroke = INK, strokeLineWidth = width, strokeLineCap = StrokeCap.Round)
+}
+
+/**
+ * The upper bonus's 63 in a ring with a diagonal struck through both - the "no" sign. For Probability? Never Heard of
+ * Her, the bonus that one die would have earned, missed. The slash runs through the middle of both numerals.
+ */
+internal val STRUCK_THROUGH_63_ICON: ImageVector by lazy {
+    icon("StruckThrough63") {
+        line(circle(12f, 12f, 10f), 1.8f)
+        // A 6: a stem sweeping down the left to a round bowl.
+        line("M10.6,8.2C8.2,8.5 6.8,10.5 6.8,13.5", 1.5f)
+        line(circle(8.9f, 13.6f, 2.1f), 1.5f)
+        // A 3: a flat top over a bowl.
+        line("M13.2,8.3H16.9L15,11C16.7,11 17.5,12.1 17.5,13.4C17.5,14.8 16.5,15.9 15.2,15.9C14.3,15.9 13.7,15.6 13.2,15.1", 1.5f)
+        line("M5.2,5.2L18.8,18.8", 1.8f)
     }
 }

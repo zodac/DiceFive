@@ -255,6 +255,8 @@ val Achievement.icon: ImageVector
         Achievement.SCORE_UNDER_100 -> Icons.Filled.AcUnit
         Achievement.LOW_ROLLS -> Icons.AutoMirrored.Filled.TrendingDown
         Achievement.OUT_OF_TIME -> Icons.Filled.TimerOff
+        // Drawn for this app: the bonus's 63, struck through.
+        Achievement.PROBABILITY_NEVER_HEARD_OF_HER -> STRUCK_THROUGH_63_ICON
 
         // ---- Miscellaneous (hidden) ---------------------------------------------------------------
         Achievement.I_DID_IT_MY_WAY -> Icons.Filled.Palette
