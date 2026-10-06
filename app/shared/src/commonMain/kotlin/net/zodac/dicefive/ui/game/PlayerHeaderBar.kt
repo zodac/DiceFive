@@ -64,7 +64,7 @@ internal fun scoreRiseMillis(pointsGained: Int): Int =
 
 /**
  * The top row of player tabs: name, running total, place in the game so far (see [standings] - none
- * in a solo game, or while every total is level), and (for the active player) a colored outline
+ * in a solo game, or before anyone has scored a turn), and (for the active player) a colored outline
  * plus a small dot underneath - the only "whose turn is it" indicator, since the scoring grid
  * below always shows just the active player's own card. Tapping a tab shows that player's
  * scorecard read-only in place of the live board (see [PlayerHeaderBar]'s `onPlayerTap`) - the

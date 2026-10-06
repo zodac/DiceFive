@@ -2131,7 +2131,8 @@ and its `GameMode` fields (`turnTimerSeconds`, `timeoutPick`, `autoRollAtTurnSta
       player's place under their score - "1st", "2nd", "=2nd" for a shared place, as the results
       screen marks one - beside the whose-turn dot, in a row whose height is kept in any multiplayer
       game so the tabs don't grow when the first score puts someone ahead. None in a solo game, or
-      while every total is level mid-game (the start). Mid-game, places go by total score alone - the
+      before anyone has scored a turn; after that, level totals share a place ("=1st" each - once
+      hidden whenever totals were level, which hid a real tie late in a game). Mid-game, places go by total score alone - the
       tie-break house rule only means anything on a finished scorecard - and once every card is full
       they come from `TieBreak.rank`, so the scorecard review agrees with Game Over. TalkBack hears the
       place in the tab's state ("Current turn, tied 2nd place").
