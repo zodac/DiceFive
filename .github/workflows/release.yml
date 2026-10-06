@@ -1,6 +1,6 @@
 name: Release
 
-# Every push to main builds, tests, and publishes a GitHub Release for the
+# Every push to main that changes shipped code (see the paths filter below) builds, tests, and publishes a GitHub Release for the
 # version currently in the root VERSION file, then commits VERSION bumped
 # to the next patch version back to main (e.g. 0.0.1 -> 0.0.2) so
 # development always continues one patch ahead of the last release. That
@@ -21,9 +21,26 @@ name: Release
 # marked as GitHub pre-releases and get no APK asset - just a version bump
 # recorded as a tagged release. Signing/building only happens once VERSION
 # reaches 1.0.0, unless the force_apk dispatch input below overrides that.
+#
+# Only a push that touches what ships triggers a release: app sources and resources, the Gradle
+# build and the VERSION file. Docs, CI, tooling, test code and Markdown files don't build a new
+# release. The workflow_dispatch trigger below still releases on demand.
 on:
   push:
     branches: [main]
+    paths:
+      - "app/**"
+      - "gradle/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - "VERSION"
+      # ...except test code and documentation inside those.
+      - "!app/**/src/test/**"
+      - "!app/**/src/commonTest/**"
+      - "!app/**/src/androidHostTest/**"
+      - "!app/**/src/androidTest/**"
+      - "!app/**/*.md"
   # Lets a release for the VERSION currently on main be triggered on demand
   # (Actions tab, or `gh workflow run release.yml`) instead of only ever
   # firing from a push - useful when a push-triggered run failed partway
