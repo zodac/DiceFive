@@ -30,10 +30,13 @@ fun DrawScope.drawPips(value: Int, color: Color, pipRadiusFraction: Float = 0.09
     drawPipPositions(value) { centre -> drawCircle(color = color, radius = radius, center = centre) }
 }
 
-/** Calls [drawPip] at the centre of each pip for [value] (1..6), laid out across this draw scope. */
-fun DrawScope.drawPipPositions(value: Int, drawPip: DrawScope.(Offset) -> Unit) {
+/**
+ * Calls [drawPip] at the centre of each pip for [value] (1..6), laid out across this draw scope. A [spread]
+ * over 1 moves the pips that much further from the face's centre, and so from each other.
+ */
+fun DrawScope.drawPipPositions(value: Int, spread: Float = 1f, drawPip: DrawScope.(Offset) -> Unit) {
     for (position in pipLayout(value)) {
-        drawPip(Offset(position.x * size.width, position.y * size.height))
+        drawPip(Offset((0.5f + (position.x - 0.5f) * spread) * size.width, (0.5f + (position.y - 0.5f) * spread) * size.height))
     }
 }
 

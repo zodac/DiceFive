@@ -17,8 +17,9 @@ import kotlin.math.sin
 import kotlin.random.Random
 import net.zodac.dicefive.ui.theme.GoldAccent
 
-// A strawberry's size, as a fraction of the pip area.
-private const val STRAWBERRY_RADIUS_FRACTION = 0.15f
+// A strawberry's size, as a fraction of the pip area, and how far apart they sit (see drawPipPositions).
+private const val STRAWBERRY_RADIUS_FRACTION = 0.14f
+private const val STRAWBERRY_SPREAD = 1.07f
 
 // The piped border: how many rosettes run along each side, and how far in from the edge they sit, as
 // fractions of the face.
@@ -82,9 +83,9 @@ class CakeDiceStyle(
         val cream = dollop
         if (cream != null) {
             // The cream first, under every berry: a swirled dollop a little wider than the berry.
-            drawPipPositions(value) { centre -> drawRosette(centre + Offset(0f, radius * 0.25f), radius * 1.15f, cream, lerp(cream, Color.Black, 0.18f), 30f) }
+            drawPipPositions(value, STRAWBERRY_SPREAD) { centre -> drawRosette(centre + Offset(0f, radius * 0.25f), radius * 1.15f, cream, lerp(cream, Color.Black, 0.18f), 30f) }
         }
-        drawPipPositions(value) { centre -> drawStrawberry(centre, radius, (random.nextFloat() - 0.5f) * 50f, berry, leaf, seed, random.nextInt()) }
+        drawPipPositions(value, STRAWBERRY_SPREAD) { centre -> drawStrawberry(centre, radius, (random.nextFloat() - 0.5f) * 50f, berry, leaf, seed, random.nextInt()) }
     }
 }
 
