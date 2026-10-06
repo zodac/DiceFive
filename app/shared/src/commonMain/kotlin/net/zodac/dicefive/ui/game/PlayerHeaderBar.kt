@@ -60,11 +60,14 @@ private const val SCORE_RISE_MIN_MILLIS = 1000
 private const val SCORE_RISE_MAX_MILLIS = 2000
 private const val SCORE_RISE_MILLIS_PER_POINT = 40
 
+/** How far below the tab's top padding its name sits - see `UI.md`'s "Player colours". */
+private val NAME_TOP_DROP = 3.dp
+
 internal fun scoreRiseMillis(pointsGained: Int): Int =
     (pointsGained * SCORE_RISE_MILLIS_PER_POINT).coerceIn(SCORE_RISE_MIN_MILLIS, SCORE_RISE_MAX_MILLIS)
 
 /**
- * The top row of player tabs: name, running total, place in the game so far (see [standings] - none
+ * The top row of player tabs, each on a plain surface panel: name, running total, place in the game so far (see [standings] - none
  * in a solo game, or before anyone has scored a turn), and (for the active player) a frame in their
  * colour - the ring of the Classic frame, or whichever [ScoreFrame][net.zodac.dicefive.ui.game.style.ScoreFrame]
  * they've picked on the Styles screen - plus a small dot underneath: the only "whose turn is it" indicator, since the scoring grid
@@ -132,6 +135,8 @@ private fun PlayerTab(
     Column(
         modifier = modifier
             .padding(horizontal = 3.dp)
+            // Every tab sits on its own panel rather than straight on the page; the frame draws over it.
+            .background(MaterialTheme.colorScheme.surfaceContainer, shape)
             // Whose turn it is: the player's chosen frame, behind the name and score. Ahead of the clip,
             // so a frame's glow or ornaments can spread a little past the tab, into the gap beside it.
             .then(if (active) Modifier.drawBehind { with(frame) { drawFrame(color) } } else Modifier)
@@ -150,6 +155,8 @@ private fun PlayerTab(
     ) {
         val nameStyle = if (compactName) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge
         Row(
+            // Dropped a little below the tab's top, out of the way of the corner ornaments most frames draw there.
+            modifier = Modifier.padding(top = NAME_TOP_DROP),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
         ) {

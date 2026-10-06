@@ -978,6 +978,15 @@ Anything new that marks a player in their colour should read it too, never a sea
 - **The active tab's frame** is the player's chosen `ScoreFrame` (Styles > Frame; `DESIGN.md`), drawn
   behind the tab in their colour - Classic is the plain ring. It's decoration over meaning already said:
   the tab's "Current turn" state description is unchanged, whatever the frame.
+- **Every tab sits on a panel**: a plain `surfaceContainer` fill in the tab's 10dp rounded shape, the same
+  for every player and every frame, drawn under the frame. Without it the names and scores floated on the
+  page. It's neutral on purpose - a fill tinted with the player's colour dropped Purple and Red below 4.5:1
+  for the name; on `surfaceContainer` the lowest is Purple at 5.2:1.
+- **Frames stay off the tab's text.** The name sits `NAME_TOP_DROP` (3dp) below the tab's top padding, clear
+  of the corner ornaments, and every frame keeps 1.5dp from the active tab's name, score, place and dot at
+  360dp with four players and the widest names - which `ScoreFrameClearanceTest` measures from renders. A new
+  frame that fails it is drawn smaller or further out (a frame may spill a few dp past the tab), not given
+  more room: the wreaths stop below the name, and the rose, swirl and knots are tucked into the corners.
 - **Setup**: a 28dp circle (48dp touch target) left of each player's name or difficulty
   (`ui/setup/PlayerColourPicker.kt`); tapping opens a `DropdownMenu` of the eight as a 4x2 grid, the
   current one ticked. It's a curated set, not a free picker: M3 has no colour-picker component, and
