@@ -182,6 +182,39 @@ decisions behind it. Read that before changing anything visual.
   in the other egg's shell colour (brown pips on the white egg, cream on the brown).
   It `tumblesItself` - a toss rolls it end over end, then it rocks to a stop - and it's the one style
   that `standsUpright`: the tray lands it unturned instead of at its column's scatter angle.
+  Six dice styles with matching table art, added together (mocked up and agreed over several
+  rounds first). Bestagon (`PolygonDice.kt`; Honey, Slate - 75): bevelled hexagonal tiles, the pips
+  laid out to suit the shape (6 a ring into the corners, 3 a triangle, 4 a rectangle, 5 that round a
+  centre). Pyramid (same file; Sandstone, Lapis - 76): a stepped triangular pyramid from above, two
+  lit tiers to a flat platform with every pip on it (pips on the slopes read as stuck on, and spilled
+  past the edges when held), stacked in a triangle's rows so 6 is a pyramid of pips; sized to stay in
+  its square at any twist. Both `tumblesItself` - a toss spins them flat (`PolygonShape.angle`) - and
+  cast shadows in their own shape. Glitch (`GlitchDice.kt`; Black, White - 35): a scanlined screen,
+  pips with colour fringes; a full burst (bands of the face jumping sideways) every 1.2-4.6s per die,
+  never longer than 150ms (the maintainer's cap is 250ms), and in between a small glitch about every
+  half-second confined to the outer 17% of the face, which no pip reaches (`GLITCH_EDGE_BAND`).
+  Ribbon (`RibbonNeonDice.kt`, `RibbonDigits.kt`; White, Black - 37): each number a flowing cursive
+  length of satin ribbon, a different colour per number - built in slices along its centreline, each
+  shaded by which way it faces, narrowing through its twists, swallowtail ends cut with
+  `BlendMode.Clear` (so no tail may lie across the ribbon) - painted once per face. The first try
+  folded sharp corners; "more flowing, like the river dice but not the same" asked for curves. Neon
+  (same file; Night - 40): the number bent from a neon tube on a black panel (`StrokeDigits.kt`'s
+  single-stroke digits), a different colour per number, pulsing gently. Glitter (`GlitterArt.kt`;
+  Mixed - 46): every number its own colour of glitter, painted once per face, with up to 2 live
+  sparkles per die. Recoloured (Tricolour), Ribbon and Neon take the one roll colour for every number.
+  Their mats: Honeycomb (`HoneycombArt.kt`; Honey - 60) - real comb, honey, caps and the odd empty
+  cell, painted once, with a honeybee near the bottom-left corner that flicks its wings every 3.6s
+  (the only live part); Hex Tiles (`ThemedMats.kt`; Honey, Slate - 51); Sand (52); Circuit (Green,
+  Black - 54); Neon (two pulsing tubes round the tray, kept clear of the hold slots - 56); Gift Wrap
+  (Red, Kraft - 58, with a ribbon and bow); Glitter (seven colours - 59). Backgrounds
+  (`ThemedBackgrounds.kt`): Brick (62), Glitch (scanlines, a roll bar and a rare 120ms tear - 63),
+  Desert (64), Gift Wrap (Green, Red - 66), Glitter (seven colours - 68), and a Honey colour of
+  Honeycomb - real comb dimmed well back (`HoneycombCombBackground`), a different class from its
+  outline colours. Cups (`ThemedCups.kt`): Glitter (Gold, Pink - 71), Neon (two glowing rings - 73)
+  and Gift Box (Red, Blue - 74), a box on the MEDIUM grid whose lid rattles in the shake and, as it
+  tips, pops up and off, tumbles and lands on the table in front with a bounce (drawn in screen
+  space, undoing the box's turn, so it lands level) - back on when it stands up again. The round-cup
+  helpers in `RoundCups.kt` became `internal` for these.
   Stone (`StoneDice.kt`; Granite, Slate, Sandstone, Limestone, Basalt, then White and Black Marble -
   the Marble dice, once a style of their own at 60 achievements, merged in, their ids unchanged so
   saved picks still resolve, and given the same carved pips - `drawCarvedPips`, shared): one class

@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.game.style
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontFamily
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
@@ -446,6 +447,49 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             ),
             unlock = AchievementCount(28),
         ),
+        StyleFamily(
+            "Bestagon",
+            listOf(
+                colour("Honey", BestagonDiceStyle("bestagon_honey", Color(0xFFF5BE45), Color(0xFFC4801A), Color(0xFF4A2A08))),
+                colour("Slate", BestagonDiceStyle("bestagon_slate", Color(0xFF6E7F8F), Color(0xFF39444F), Color(0xFFF2F4F6))),
+            ),
+            unlock = AchievementCount(75),
+        ),
+        StyleFamily(
+            "Pyramid",
+            listOf(
+                colour("Sandstone", PyramidDiceStyle("pyramid_sandstone", Color(0xFFEACB8E), Color(0xFFB0824E), Color(0xFF4A2C12))),
+                // Lapis lazuli and gold - the gold pips would swallow the usual gold held ring, so theirs is white.
+                colour("Lapis", PyramidDiceStyle("pyramid_lapis", Color(0xFF3C63B8), Color(0xFF162E6A), Color(0xFFE8C66A), heldRing = Color.White)),
+            ),
+            unlock = AchievementCount(76),
+        ),
+        StyleFamily(
+            "Glitch",
+            listOf(
+                colour("Black", GlitchDiceStyle("glitch_black", Color(0xFF101018), Color(0xFFF4F6FF), Color(0xFF2A2A3A))),
+                colour("White", GlitchDiceStyle("glitch_white", Color(0xFFF2F2F4), Color(0xFF15151C), Color(0xFFD0D0D8))),
+            ),
+            unlock = AchievementCount(35),
+        ),
+        StyleFamily(
+            "Ribbon",
+            listOf(
+                colour("White", RibbonDiceStyle("ribbon_white", Color(0xFFFCFBF7), Color(0xFFE4E1D8), RibbonColours)),
+                colour("Black", RibbonDiceStyle("ribbon_black", Color(0xFF2E2E33), Color(0xFF161618), RibbonColours)),
+            ),
+            unlock = AchievementCount(37),
+        ),
+        StyleFamily(
+            "Neon",
+            listOf(colour("Night", NeonDiceStyle("neon_night", Color(0xFF141418), NeonColours))),
+            unlock = AchievementCount(40),
+        ),
+        StyleFamily(
+            "Glitter",
+            listOf(colour("Mixed", GlitterDiceStyle("glitter_mixed", GlitterColours, Color(0xFFFFFBF2)))),
+            unlock = AchievementCount(46),
+        ),
     ),
 )
 
@@ -655,6 +699,43 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
             ),
             unlock = AchievementCount(32),
         ),
+        StyleFamily(
+            "Glitter",
+            listOf(
+                colour("Gold", GlitterDiceCupStyle("glitter_gold", Color(0xFFD9A030), Color(0xFFFFE08A))),
+                colour("Pink", GlitterDiceCupStyle("glitter_pink", Color(0xFFE0458F), Color(0xFFF2F2F6))),
+            ),
+            unlock = AchievementCount(71),
+        ),
+        StyleFamily(
+            "Neon",
+            listOf(
+                colour(
+                    "Pink & Blue",
+                    NeonDiceCupStyle(
+                        "neon_pink_blue",
+                        CupPalette(Color(0xFF050506), Color(0xFF3A3A40), Color(0xFF1A1A1E), Color(0xFF3A3A40), Color(0xFF020203)),
+                        upper = Color(0xFFFF3FA4),
+                        lower = Color(0xFF3FE6FF),
+                    ),
+                ),
+            ),
+            unlock = AchievementCount(73),
+        ),
+        StyleFamily(
+            "Gift Box",
+            listOf(
+                colour(
+                    "Red",
+                    GiftBoxDiceCupStyle("gift_box_red", CupPalette(Color(0xFF7A1418), Color(0xFFE85A5E), Color(0xFFC8282E), Color(0xFFFFFFFF), Color(0xFF2A0608)), Color(0xFFF2C14E)),
+                ),
+                colour(
+                    "Blue",
+                    GiftBoxDiceCupStyle("gift_box_blue", CupPalette(Color(0xFF173A70), Color(0xFF5A8AD8), Color(0xFF2C5CA8), Color(0xFFBFD6F7), Color(0xFF081428)), Color(0xFFE8E8EE)),
+                ),
+            ),
+            unlock = AchievementCount(74),
+        ),
     ),
 )
 
@@ -715,6 +796,12 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
             listOf(
                 background("Charcoal", ::HoneycombBackground, "honeycomb_charcoal", 0xFF2A2D33, 0xFF16181C),
                 background("Indigo", ::HoneycombBackground, "honeycomb_indigo", 0xFF262A5A, 0xFF12142E),
+                // Real comb, wax and honey, dimmed well back - to go with the Bestagon dice and the Honeycomb mat.
+                StyleColour(
+                    "Honey",
+                    Color(0xFFD9A040),
+                    HoneycombCombBackground("honeycomb_honey", BackgroundPalette(Color(0xFF3A2406), Color(0xFF1E1203), Color(0xFFD9A040))),
+                ),
             ),
             unlock = AchievementCount(6),
         ),
@@ -725,6 +812,42 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 background("Amber", ::SunburstBackground, "sunburst_amber", 0xFF7A4A0E, 0xFF331E04),
             ),
             unlock = AchievementCount(39),
+        ),
+        StyleFamily(
+            "Brick",
+            listOf(StyleColour("Neon", Color(0xFF2A1A1C), BrickWallBackground("brick_neon", BackgroundPalette(Color(0xFF2A1A1C), Color(0xFF140C0E), Color(0xFFFF3FA4))))),
+            unlock = AchievementCount(62),
+        ),
+        StyleFamily(
+            "Glitch",
+            listOf(StyleColour("Screen", Color(0xFF14141E), GlitchBackground("glitch_screen", BackgroundPalette(Color(0xFF14141E), Color(0xFF07070C), Color(0xFF9FB4FF))))),
+            unlock = AchievementCount(63),
+        ),
+        StyleFamily(
+            "Desert",
+            listOf(StyleColour("Night", Color(0xFF4A3020), DesertBackground("desert_night", BackgroundPalette(Color(0xFF1C1838), Color(0xFF4A3020), Color(0xFFF2C88A))))),
+            unlock = AchievementCount(64),
+        ),
+        StyleFamily(
+            "Gift Wrap",
+            listOf(
+                background("Green", ::GiftWrapBackground, "gift_wrap_green", 0xFF1E5A34, 0xFF0E3A1E),
+                background("Red", ::GiftWrapBackground, "gift_wrap_red", 0xFF7A1A20, 0xFF4E0E12),
+            ),
+            unlock = AchievementCount(66),
+        ),
+        StyleFamily(
+            "Glitter",
+            listOf(
+                glitterBackground("Gold", "glitter_gold", 0xFF241C2C, 0xFF0E0A12, 0xFFE8C66A),
+                glitterBackground("Silver", "glitter_silver", 0xFF2A2D32, 0xFF111316, 0xFFE8ECF2),
+                glitterBackground("Rose Gold", "glitter_rose_gold", 0xFF3A2024, 0xFF1A0C0E, 0xFFF6C8B8),
+                glitterBackground("Pink", "glitter_pink", 0xFF4E1636, 0xFF22081A, 0xFFFFB8E0),
+                glitterBackground("Purple", "glitter_purple", 0xFF2E1650, 0xFF12082A, 0xFFD8B8FF),
+                glitterBackground("Blue", "glitter_blue", 0xFF122650, 0xFF060E26, 0xFFB8DCFF),
+                glitterBackground("Emerald", "glitter_emerald", 0xFF0C3A2A, 0xFF041A12, 0xFFA8F6D0),
+            ),
+            unlock = AchievementCount(68),
         ),
         // Secret: not on the Styles screen at all until Not Those Dice! is earned.
         StyleFamily(
@@ -787,6 +910,58 @@ object DiceMats : StyleCatalog<DiceMat>(
             unlock = AchievementCount(69),
         ),
         StyleFamily("Marble", listOf(StyleColour("White", Color(0xFFF2F1EE), MarbleDiceMat)), unlock = AchievementCount(72)),
+        StyleFamily(
+            "Honeycomb",
+            listOf(mat("Honey", ::HoneycombDiceMat, "honeycomb_honey", 0xFFF2A81E, 0xFF9A5A06, 0xFF5A3A0E, 0xFF3E2806, 0xFFFFD27A, 0xFFE8B850)),
+            unlock = AchievementCount(60),
+        ),
+        StyleFamily(
+            "Hex Tiles",
+            listOf(
+                mat("Honey", ::HexTileDiceMat, "hex_tiles_honey", 0xFFE6A53A, 0xFFB87818, 0xFF5A3A0E, 0xFF3E2806, 0xFFFFD27A, 0xFF3E2806),
+                mat("Slate", ::HexTileDiceMat, "hex_tiles_slate", 0xFF5C6B78, 0xFF3A4550, 0xFF232A31, 0xFF151A1F, 0xFFAEBBC6, 0xFF1C2228),
+            ),
+            unlock = AchievementCount(51),
+        ),
+        StyleFamily(
+            "Sand",
+            listOf(mat("Dunes", ::SandDiceMat, "sand_dunes", 0xFFE2C084, 0xFFC9A062, 0xFF8A6430, 0xFF6A4A20, 0xFFF7E2B5, 0xFF8A6430)),
+            unlock = AchievementCount(52),
+        ),
+        StyleFamily(
+            "Circuit",
+            listOf(
+                mat("Green", ::CircuitDiceMat, "circuit_green", 0xFF16503A, 0xFF0B3325, 0xFF07231A, 0xFF041710, 0xFF6BE0A6, 0xFFD9A84A),
+                mat("Black", ::CircuitDiceMat, "circuit_black", 0xFF1E2024, 0xFF111215, 0xFF0A0B0D, 0xFF050506, 0xFF6A6E78, 0xFF3FE6FF),
+            ),
+            unlock = AchievementCount(54),
+        ),
+        StyleFamily(
+            "Neon",
+            listOf(mat("Pink & Blue", ::NeonDiceMat, "neon_pink_blue", 0xFF2A1C24, 0xFF140C12, 0xFF0E080C, 0xFF060305, 0xFF3FE6FF, 0xFFFF3FA4)),
+            unlock = AchievementCount(56),
+        ),
+        StyleFamily(
+            "Gift Wrap",
+            listOf(
+                mat("Red", ::GiftWrapDiceMat, "gift_wrap_red", 0xFFB8282E, 0xFF8E1A20, 0xFF5A0E12, 0xFF3E080B, 0xFFF2C14E, 0xFFFFFFFF),
+                mat("Kraft", ::GiftWrapDiceMat, "gift_wrap_kraft", 0xFFC49A6C, 0xFFA77D50, 0xFF6A4A2A, 0xFF4A321C, 0xFFD32F2F, 0xFFF7EDE0),
+            ),
+            unlock = AchievementCount(58),
+        ),
+        StyleFamily(
+            "Glitter",
+            listOf(
+                glitterMat("Gold", "glitter_gold", 0xFF2A2230, 0xFF141018, 0xFFE8C66A, 0xFFF2D27A),
+                glitterMat("Silver", "glitter_silver", 0xFF34383E, 0xFF1A1C20, 0xFFD8DDE3, 0xFFE8ECF2),
+                glitterMat("Rose Gold", "glitter_rose_gold", 0xFF4A2A2E, 0xFF261417, 0xFFF0B8A8, 0xFFF6C8B8),
+                glitterMat("Pink", "glitter_pink", 0xFF6A1E48, 0xFF3E0E2A, 0xFFFF9AD0, 0xFFFFB8E0),
+                glitterMat("Purple", "glitter_purple", 0xFF3E1E6A, 0xFF1E0E3A, 0xFFC8A0FF, 0xFFD8B8FF),
+                glitterMat("Blue", "glitter_blue", 0xFF16306A, 0xFF0A1838, 0xFF9AC8FF, 0xFFB8DCFF),
+                glitterMat("Emerald", "glitter_emerald", 0xFF0E4A34, 0xFF06261A, 0xFF8AF0C0, 0xFFA8F6D0),
+            ),
+            unlock = AchievementCount(59),
+        ),
     ),
 )
 
@@ -861,6 +1036,18 @@ private fun mat(
     slotBorder: Long,
     detail: Long,
 ): StyleColour<DiceMat> = StyleColour(name, Color(top), create(id, matPalette(top, bottom, slotTop, slotBottom, slotBorder, detail)))
+
+/** A Glitter mat: [flakes] of glitter over a [top]-to-[bottom] tray, its slots sunk darker and ringed in [border]. */
+private fun glitterMat(name: String, id: String, top: Long, bottom: Long, border: Long, flakes: Long): StyleColour<DiceMat> =
+    StyleColour(
+        name,
+        Color(flakes),
+        GlitterDiceMat(id, MatPalette(Color(top), Color(bottom), lerp(Color(bottom), Color.Black, 0.45f), lerp(Color(bottom), Color.Black, 0.7f), Color(border), Color(flakes))),
+    )
+
+/** A Glitter background: [flakes] of glitter over a [top]-to-[bottom] gradient. */
+private fun glitterBackground(name: String, id: String, top: Long, bottom: Long, flakes: Long): StyleColour<TableBackground> =
+    StyleColour(name, Color(flakes), GlitterBackground(id, BackgroundPalette(Color(top), Color(bottom), Color(flakes))))
 
 private fun background(
     name: String,
