@@ -52,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.HitTarget
+import net.zodac.dicefive.model.PlaceMatch
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
@@ -69,15 +71,21 @@ internal val REGULAR_BOARD_HEIGHT = 380.dp
 /**
  * Where every box of a card sits on the board: four equal columns, in rows shared by the left pane (the
  * grid: the upper section in column 1, the lower section in column 2) and the right pane (columns 3 and 4:
- * 5x across both in the first row, [sideRows] under it, the dice cup over the next two rows, and the
- * Totals and Undo buttons in the sixth). Both panes have [rowCount] rows of the same height.
+ * the [featured] box - 5x, or on a card without one the Alibi - across both in the first row, [sideRows] under it, the
+ * dice cup over the next two rows, and the Totals and Undo buttons in the sixth). Both panes have [rowCount] rows of
+ * the same height. Hit List's targets have no upper section to sit beside, so they fill the grid two to a row, in
+ * card order.
  *
  * [leftRows] are the grid's rows, each one or two categories wide. [sideRows] are the boxes that sit under
  * the 5x tile: the Extended Scores modifier's three - Evens and Odds, then Two Pair - or, without it,
  * Tricolour's four colour boxes, two to a row. A card with both gives the Extended Scores boxes that place,
  * and the colour boxes go on after the lower section in [leftRows], two to a row.
  */
-internal class BoardLayout(val leftRows: List<List<ScoreCategory>>, val sideRows: List<List<ScoreCategory>>) {
+internal class BoardLayout(
+    val leftRows: List<List<ScoreCategory>>,
+    val sideRows: List<List<ScoreCategory>>,
+    val featured: ScoreCategory = ScoreCategory.FIVE_OF_A_KIND,
+) {
     val rowCount: Int
         get() = leftRows.size
 }
@@ -85,16 +93,17 @@ internal class BoardLayout(val leftRows: List<List<ScoreCategory>>, val sideRows
 /** The Extended Scores boxes under the 5x tile, by row. */
 private val EXTENDED_SIDE_ROWS = listOf(listOf(ScoreCategory.EVENS, ScoreCategory.ODDS), listOf(ScoreCategory.TWO_PAIR))
 
-/** How a card of [categories] is laid out - see [BoardLayout]. 5x is left out of both: it has its own wide tile. */
+/** How a card of [categories] is laid out - see [BoardLayout]. The featured box is left out of both: it has its own tile. */
 internal fun boardLayout(categories: List<ScoreCategory>): BoardLayout {
-    val gridCategories = categories.filter { it != ScoreCategory.FIVE_OF_A_KIND }
+    val featured = categories.firstOrNull { it.featured } ?: ScoreCategory.FIVE_OF_A_KIND
+    val gridCategories = categories.filter { it != featured }
     val extended = EXTENDED_SIDE_ROWS.map { row -> row.filter { it in gridCategories } }.filter { it.isNotEmpty() }
     val sideRows = extended.ifEmpty { gridCategories.filter { it.section == ScoreSection.COLOUR }.chunked(2) }
     val upper = gridCategories.filter { it.section == ScoreSection.UPPER }
     val others = gridCategories - upper.toSet() - sideRows.flatten().toSet()
     val sideBySide = upper.zip(others) { left, right -> listOf(left, right) }
     val leftOver = upper.drop(others.size) + others.drop(upper.size)
-    return BoardLayout(sideBySide + leftOver.chunked(2), sideRows)
+    return BoardLayout(sideBySide + leftOver.chunked(2), sideRows, featured)
 }
 
 /**
@@ -211,6 +220,12 @@ internal fun CategoryCell(
     val canPreview = player != null && showPreview && category in available
     val previewScore = if (canPreview) ScoreCalculator.scoreFor(player, category, dice) else null
     val isGoodChoice = previewScore != null && previewScore > 0
+    // A Hit List target: what it calls, and - while its dice are being previewed - how each place stands against them.
+    val target = player?.hitList?.get(category)
+    val matches = if (target != null && canPreview) target.matches(dice) else null
+    // A target's tile lights up for a hit, not a partial one - nearly every roll scores a little on most targets, and a
+    // board of lit tiles would hide the hits. A partial score is still gold beside it.
+    val tileLit = isGoodChoice && (target == null || target.isHit(dice))
     // Every 5x after the first earns a +100 bonus chip tracked separately from the scorecard
     // entry itself (which stays 50) - see PlayerState.fiveOfAKindBonusCount/Total and
     // ScoreCalculator.awardsFiveOfAKindBonus. Zero for every other category.
@@ -249,11 +264,12 @@ internal fun CategoryCell(
         previewScore != null -> buildString {
             append("Would score $previewScore")
             if (fiveOfAKindTileBonusPreview) append(", plus $pendingBonusAmount bonus")
+            if (target != null && matches != null) append(", ${targetProgress(target, matches, previewScore)}")
         }
         else -> "Open"
     }
     val cellSemantics: SemanticsPropertyReceiver.() -> Unit = {
-        contentDescription = category.spokenName(irish)
+        contentDescription = target?.let { "${category.spokenName(irish)}, ${it.spokenName()}" } ?: category.spokenName(irish)
         stateDescription = spokenState
         if (switchedOff) disabled()
         if (isLegalChoice) {
@@ -272,7 +288,7 @@ internal fun CategoryCell(
             // once scored (it isn't a legal choice), so glowing it like an open, scorable box
             // would be misleading - the +score line below is the preview, the tile's look doesn't
             // change.
-            highlighted = isGoodChoice,
+            highlighted = tileLit,
             wide = wide,
             squareSize = squareSize,
             compact = compact,
@@ -282,6 +298,8 @@ internal fun CategoryCell(
             // On the wide tile, which has the room, rather than under the score beside it, which hasn't.
             fiveOfAKindBonusAmount = if (wide) pendingBonusAmount else 0,
             outlineColor = lastScored?.color,
+            target = target,
+            matches = matches,
             onClick = if (isLegalChoice) { { onScoreCategory(category) } } else null,
         )
     }
@@ -403,6 +421,26 @@ internal fun CategoryCell(
 
 /** The gap between a tile and its score. */
 private val TILE_SCORE_GAP = 8.dp
+
+/** What a target calls, said aloud - "4, 1, 3, 2, any. 20 points, 40 exact" - since its tile shows it only as art. */
+internal fun HitTarget.spokenName(): String =
+    places.joinToString(", ") { it?.toString() ?: "any" } + ". $points points, $exactPoints exact"
+
+/**
+ * The spoken twin of a target tile's underlines: how many of its numbers the dice show, and how many are in their
+ * places - or, once it's hit, which kind of hit it is (a [previewScore] of its exact points is an exact hit). A
+ * partial hit's points are said as such.
+ */
+internal fun targetProgress(target: HitTarget, matches: List<PlaceMatch>, previewScore: Int): String {
+    val rolled = matches.count { it == PlaceMatch.ROLLED || it == PlaceMatch.IN_PLACE }
+    val inPlace = matches.count { it == PlaceMatch.IN_PLACE }
+    return when {
+        previewScore == target.exactPoints -> "exact hit"
+        rolled == target.called.size -> "hit, $inPlace of ${target.called.size} in place"
+        previewScore > 0 -> "partial hit, $rolled of ${target.called.size} rolled, $inPlace in place"
+        else -> "$rolled of ${target.called.size} rolled, $inPlace in place"
+    }
+}
 
 /**
  * What a screen reader hears for a box with [slotCount] slots: what's in each filled one, what the

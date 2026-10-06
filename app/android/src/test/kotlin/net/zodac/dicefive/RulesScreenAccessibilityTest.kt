@@ -206,4 +206,18 @@ class RulesScreenAccessibilityTest {
         val footerTop = compose.onNode(hasContentDescription("Page ", substring = true)).fetchSemanticsNode().boundsInRoot.top
         assertTrue("last line ends at $lastLineBottom, footer starts at $footerTop", lastLineBottom <= footerTop)
     }
+
+    @Test
+    fun hitListExamplesSayWhatTheTargetsTileShows() {
+        showRules()
+        compose.onNodeWithText("Hit List").performScrollTo().performClick()
+        compose.mainClock.advanceTimeBy(3000)
+
+        compose.onNode(hasContentDescription("Example target: 4, 1, 3, 2, any. Worth 20 points.")).assertExists()
+        compose.onNode(hasContentDescription("Its tile shows hit, 0 of 4 in place.", substring = true)).assertExists()
+        compose.onNode(hasContentDescription("Example roll: 4, 1, 5, 6, 2. Held: 4, 1 and 2. Its tile shows partial hit, 3 of 4 rolled, 2 in place.")).assertExists()
+        compose.onNode(hasContentDescription("Example: 4, 1, 6, 2, 5. The 6 and 5 don't count. Scores 10 points. Its tile shows partial hit, 3 of 4 rolled, 3 in place.")).assertExists()
+        compose.onAllNodes(hasContentDescription("Its tile shows exact hit.", substring = true)).fetchSemanticsNodes().let { assertEquals(2, it.size) }
+        compose.onNode(hasContentDescription("The Alibi lights up.", substring = true)).assertExists()
+    }
 }

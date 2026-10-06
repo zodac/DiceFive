@@ -1,5 +1,6 @@
 package net.zodac.dicefive.game
 
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -1281,6 +1282,8 @@ class AchievementEngineTest {
                 Achievement.STUD_LUCKY_SEVEN,
                 Achievement.THIRD_WIND_WIN,
                 Achievement.THIRD_WIND_NO_ZEROES,
+                Achievement.HIT_LIST_WIN,
+                Achievement.HIT_LIST_RIGHT_ON_TARGET,
             ),
             gameModes,
         )
@@ -1702,5 +1705,83 @@ class AchievementEngineTest {
 
         assertTrue(earned(36))
         assertFalse(earned(35))
+    }
+
+    /** A Hit List card dealt [HIT_LIST]: every box holding what [scores] gives it, zero otherwise, and [total] made up in the first target. */
+    private fun hitListPlayer(
+        name: String = "Player 1",
+        type: PlayerType = PlayerType.HUMAN,
+        scores: Map<ScoreCategory, Int> = emptyMap(),
+        total: Int? = null,
+    ): PlayerState {
+        val filled = GameMode.HIT_LIST.categories.associateWith { 0 } + scores
+        val topUp = total?.let { it - filled.values.sum() } ?: 0
+        return PlayerState(
+            name = name,
+            type = type,
+            gameMode = GameMode.HIT_LIST,
+            hitList = HIT_LIST,
+            scorecard = oneScoreEach(filled + (ScoreCategory.TARGET_1 to (filled.getValue(ScoreCategory.TARGET_1) + topUp))),
+        )
+    }
+
+    @Test
+    fun `Right On Target unlocks mid-game for an exact hit on a five-number target - not a plain hit or one with any places`() {
+        val (fiveNumbers, target) = HIT_LIST.entries.first { it.value.called.size == 5 }.toPair()
+        val (withAnyPlace, anyTarget) = HIT_LIST.entries.first { it.value.called.size < 5 }.toPair()
+        fun earned(scores: Map<ScoreCategory, Int>) = Achievement.HIT_LIST_RIGHT_ON_TARGET in
+            AchievementEngine.evaluateInProgress(inProgress(hitListPlayer(scores = scores)), AchievementsState(), NOW).newlyUnlocked
+
+        assertTrue(earned(mapOf(fiveNumbers to target.exactPoints)))
+        assertFalse(earned(mapOf(fiveNumbers to target.points)))
+        assertFalse(earned(mapOf(withAnyPlace to anyTarget.exactPoints)))
+        // The Alibi never takes an exact hit's points, whatever it holds.
+        assertFalse(earned(mapOf(ScoreCategory.ALIBI to target.points)))
+    }
+
+    @Test
+    fun `winning a multiplayer Hit List game unlocks Contract Fulfilled - not a loss or a solo game or another mode`() {
+        fun earned(state: GameState) = Achievement.HIT_LIST_WIN in evaluate(state).newlyUnlocked
+
+        assertTrue(earned(finishedGame(hitListPlayer(total = 200), hitListPlayer(name = "Bot", type = PlayerType.AI, total = 150))))
+        assertFalse(earned(finishedGame(hitListPlayer(total = 100), hitListPlayer(name = "Bot", type = PlayerType.AI, total = 150))))
+        assertFalse(earned(finishedGame(hitListPlayer(total = 200))))
+        assertFalse(earned(finishedGame(player(total = 200), player(name = "Bot", type = PlayerType.AI, total = 150))))
+    }
+
+    @Test
+    fun `a Hit List total earns no rung of the score ladder`() {
+        val unlocked = evaluate(finishedGame(hitListPlayer(total = 500))).newlyUnlocked
+
+        assertFalse(Achievement.SCORE_200 in unlocked)
+        assertFalse(Achievement.SCORE_500 in unlocked)
+        assertTrue(Achievement.SCORE_200 in evaluate(finishedGame(player(total = 200))).newlyUnlocked)
+    }
+
+    @Test
+    fun `a low Hit List total is neither Cold Dice nor Low Rolls`() {
+        assertFalse(Achievement.SCORE_UNDER_100 in evaluate(finishedGame(hitListPlayer(total = 60))).newlyUnlocked)
+        assertFalse(Achievement.LOW_ROLLS in evaluate(finishedGame(hitListPlayer(total = 15))).newlyUnlocked)
+    }
+
+    @Test
+    fun `winning Hit List with three zeroes isn't Zero To Hero - misses are the usual run of things there`() {
+        // Every box but the first is a zero: far more than three.
+        val state = finishedGame(hitListPlayer(total = 200), hitListPlayer(name = "Bot", type = PlayerType.AI, total = 150))
+
+        assertFalse(Achievement.ZERO_TO_HERO in evaluate(state).newlyUnlocked)
+    }
+
+    @Test
+    fun `a Hit List card without a zero isn't Spotless - partial hits leave few`() {
+        val noZeroes = hitListPlayer(scores = GameMode.HIT_LIST.categories.associateWith { 5 })
+
+        assertFalse(Achievement.NO_ZEROES in evaluate(finishedGame(noZeroes)).newlyUnlocked)
+        assertTrue(Achievement.NO_ZEROES in evaluate(finishedGame(player(overrides = GameMode.STANDARD.categories.associateWith { 5 }, total = 100))).newlyUnlocked)
+    }
+
+    private companion object HitListCard {
+        /** One Hit List game's targets, drawn the way a real game draws them. */
+        val HIT_LIST = GameMode.HIT_LIST.drawHitList(Random(7))
     }
 }

@@ -407,6 +407,31 @@ class GameStateJsonTest {
         assertFalse("disabledCategories" in saved)
         assertEquals(emptySet(), GameStateJson.decode(saved).disabledCategories)
     }
+
+    @Test
+    fun `round trips a Hit List game - its targets on the game and every card - with a score in the Alibi`() {
+        var state = GameEngine.newGame(
+            listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Player 1"), PlayerConfig(slot = 2, type = PlayerType.AI, name = "Bot")),
+            GameMode.HIT_LIST,
+            random = Random(9),
+        )
+        state = GameEngine.commitScore(state.copy(dice = List(5) { Die(value = 6) }, phase = TurnPhase.ROLLED), ScoreCategory.ALIBI)
+
+        val decoded = GameStateJson.decode(GameStateJson.encode(state))
+
+        assertEquals(state, decoded)
+        assertTrue(decoded.hitList.values.any { target -> target.places.any { it == null } })
+        assertTrue(decoded.players.all { it.hitList == state.hitList })
+    }
+
+    @Test
+    fun `a Hit List save without its targets has nothing to resume - and other modes write none`() {
+        val state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Player 1")), GameMode.HIT_LIST)
+        val saved = GameStateJson.encode(state).toJsonObject()
+
+        assertFailsWith<JsonParseException> { GameStateJson.decode(JsonObject(saved.fields - "hitList").toJson()) }
+        assertFalse("hitList" in GameStateJson.encode(GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))))
+    }
 }
 
 private fun String.toJsonObject(): JsonObject = parseJson(this) as JsonObject

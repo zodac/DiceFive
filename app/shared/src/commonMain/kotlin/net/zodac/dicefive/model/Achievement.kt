@@ -366,6 +366,16 @@ enum class Achievement(
         "Fill all three slots of every category without a zero in 'Third Wind' mode",
         AchievementCategory.GAME_MODES,
     ),
+    HIT_LIST_WIN(
+        "hit_list_win", "Contract Fulfilled", "Win a game of 'Hit List' mode",
+        AchievementCategory.GAME_MODES,
+    ),
+    // Judged mid-game, the moment the exact hit goes in its target - only a target with no any places counts.
+    HIT_LIST_RIGHT_ON_TARGET(
+        "hit_list_right_on_target", "Right On Target",
+        "Score an exact hit on a target with all five numbers named in 'Hit List' mode",
+        AchievementCategory.GAME_MODES,
+    ),
 
     // ---- Misfortune: going badly, on purpose or otherwise --------------------------------------
     SCRATCHED_5X(

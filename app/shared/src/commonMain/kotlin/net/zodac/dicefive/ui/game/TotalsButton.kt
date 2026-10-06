@@ -50,15 +50,49 @@ import net.zodac.dicefive.ui.theme.TileTealTop
  */
 @Composable
 fun TotalsButton(upperTotal: Int, upperBonus: Int, lowerTotal: Int, modifier: Modifier = Modifier, minSize: Dp = 48.dp) {
+    TotalsButton(
+        lines = listOf(
+            TotalLine("Upper", upperTotal),
+            TotalLine("Bonus", upperBonus, gold = upperBonus > 0),
+            TotalLine("Lower", lowerTotal),
+        ),
+        highlighted = upperBonus > 0,
+        spokenState = totalsSpokenState(upperTotal, upperBonus, lowerTotal),
+        modifier = modifier,
+        minSize = minSize,
+    )
+}
+
+/**
+ * Hit List's totals - its targets, and the Alibi - behind the same button: a card of targets has no sections or
+ * bonus to show.
+ */
+@Composable
+fun HitListTotalsButton(targetsTotal: Int, alibiTotal: Int, modifier: Modifier = Modifier, minSize: Dp = 48.dp) {
+    TotalsButton(
+        lines = listOf(TotalLine("Targets", targetsTotal), TotalLine("Alibi", alibiTotal)),
+        highlighted = false,
+        spokenState = hitListTotalsSpokenState(targetsTotal, alibiTotal),
+        modifier = modifier,
+        minSize = minSize,
+    )
+}
+
+/** One line of a [TotalsButton]'s tooltip: "[label]: [value]", in bold gold when [gold]. */
+private class TotalLine(val label: String, val value: Int, val gold: Boolean = false)
+
+/** The button itself: [lines] in its tooltip, its glyph gold while [highlighted], and [spokenState] what TalkBack hears. */
+@Composable
+private fun TotalsButton(lines: List<TotalLine>, highlighted: Boolean, spokenState: String, modifier: Modifier, minSize: Dp) {
     val tooltipState = rememberAppTooltipState()
     val scope = rememberCoroutineScope()
-    val bonusEarned = upperBonus > 0
-    val color = if (bonusEarned) GoldAccent else TileIconColor
-    val message = remember(upperTotal, upperBonus, lowerTotal) {
+    val color = if (highlighted) GoldAccent else TileIconColor
+    val message = remember(spokenState) {
         buildAnnotatedString {
-            append("Upper: $upperTotal\n")
-            if (bonusEarned) withStyle(SpanStyle(color = GoldAccent, fontWeight = FontWeight.Bold)) { append("Bonus: $upperBonus") } else append("Bonus: 0")
-            append("\nLower: $lowerTotal")
+            lines.forEachIndexed { index, line ->
+                if (index > 0) append("\n")
+                if (line.gold) withStyle(SpanStyle(color = GoldAccent, fontWeight = FontWeight.Bold)) { append("${line.label}: ${line.value}") } else append("${line.label}: ${line.value}")
+            }
         }
     }
     val shape = RoundedCornerShape(10.dp)
@@ -70,7 +104,7 @@ fun TotalsButton(upperTotal: Int, upperBonus: Int, lowerTotal: Int, modifier: Mo
                 // Before clickable, so its own click semantics don't leak through - see UI.md.
                 .clearAndSetSemantics {
                     contentDescription = "Totals"
-                    stateDescription = totalsSpokenState(upperTotal, upperBonus, lowerTotal)
+                    stateDescription = spokenState
                     role = Role.Button
                     onClick(label = "Show totals") {
                         scope.launch { tooltipState.show() }
@@ -95,3 +129,6 @@ fun TotalsButton(upperTotal: Int, upperBonus: Int, lowerTotal: Int, modifier: Mo
 /** What a screen reader hears for [TotalsButton]: every total, the bonus said to be earned once it is. */
 internal fun totalsSpokenState(upperTotal: Int, upperBonus: Int, lowerTotal: Int): String =
     "Upper $upperTotal, " + (if (upperBonus > 0) "bonus $upperBonus earned" else "no bonus yet") + ", lower $lowerTotal"
+
+/** What a screen reader hears for [HitListTotalsButton]. */
+internal fun hitListTotalsSpokenState(targetsTotal: Int, alibiTotal: Int): String = "Targets $targetsTotal, alibi $alibiTotal"

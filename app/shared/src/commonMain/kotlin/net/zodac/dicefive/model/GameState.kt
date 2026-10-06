@@ -15,6 +15,8 @@ data class GameState(
     val unluckyDice: UnluckyDice? = null,
     /** The boxes switched off for this game, the same on every player's card - see [PlayerState.disabledCategories]. */
     val disabledCategories: Set<ScoreCategory> = emptySet(),
+    /** The targets drawn for this game, the same on every player's card - see [PlayerState.hitList]. */
+    val hitList: Map<ScoreCategory, HitTarget> = emptyMap(),
     val players: List<PlayerState> = emptyList(),
     val currentPlayerIndex: Int = 0,
     val dice: List<Die> = List(gameMode.diceCount) { Die() },

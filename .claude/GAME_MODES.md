@@ -13,9 +13,11 @@ Modes so far:
 | `QUICKFIRE` | `quickfire` | 5x and six random other boxes are switched off every game: six turns, a scaled upper bonus, off the Leaderboard |
 | `STUD`      | `stud`      | Seven dice rolled, five hold slots; only the five held dice score, and only once all five are held                   |
 | `THIRD_WIND` | `third_wind` | Every box scored three times (39 turns); one upper bonus, 189 earns 105; joker once the 5x box's 3 slots are used; off the Leaderboard |
+| `HIT_LIST`  | `hit_list`  | No Standard boxes: 12 targets drawn each game (numbers by place, up to 2 any) plus the Alibi; exact order doubles; partial hits (2+ numbers rolled) score half the share rolled; no Extended Scores; off the Leaderboard |
 
 History: `DESIGN.md` Phase 14 (Tricolour, and how modes were first modelled), Phase 20
-(the first Quickfire, replaced), Phase 25 (Stud), Phase 26 (Third Wind) and Phase 30 (the new Quickfire).
+(the first Quickfire, replaced), Phase 25 (Stud), Phase 26 (Third Wind), Phase 30 (the new Quickfire) and Phase 31
+(Hit List).
 
 ## The one rule: a mode is data
 
@@ -56,6 +58,8 @@ When a new rule needs a field, add it here too. This is the map of where each ru
 | `countsOnLeaderboard` (also off whenever a modifier, i.e. the turn timer, is on - `GameState.countsOnLeaderboard`) | `GameViewModel.persistHumanScores` → `ScoreEntry.onLeaderboard`, which `ScoreDao`'s Leaderboard page/count, best score and distinct scores filter on (Statistics and career points don't); New Personal Best's guard |
 | `allowsRollModifiers` (every mode allows them now) | `GameViewModel.startGame` (starts a game with `RollModifiers()`), the setup screen's locked Number of Rolls / Stored Rolls rows |
 | `maxRollsPerGame`                        | `flowerpotGrowthStage` - the Flowerpot's stages are spread evenly over it, and the sunflower blooms on its last roll (Greenfingers); `GameModeTest` |
+| `hitListShapes` (`hasHitList`; a game's own targets are `GameState`/`PlayerState.hitList`, drawn by `drawHitList` in `GameEngine.newGame`) | `ScoreCalculator.scoreFor` (targets and the Alibi - `DiceScoring` refuses them), `GameStateJson`, `AiTurnPlayer` (hands the whole turn to `HitListPlay`; `prepareHard` does nothing), `CategoryCell`/`CategoryIcon` (the target drawn on its tile, with progress bars), the achievement guards and Right On Target |
+| `allowsExtendedScores`                   | `categoriesWith` (ignores the modifier), `GameEngine.newGame`, `GameViewModel.startGame`, the setup screen's locked Extended Scores row |
 
 ## First, work out what kind of mode it is
 
@@ -222,6 +226,32 @@ while untouched), so:
   pull; a cheaper baseline while slots remain) both made Hard worse - `DESIGN.md` Phase 26.
 - **The board** (`StackedScores`): one line per slot beside the tile, the preview only in the next open
   slot. See `UI.md` - the lines fill a tile exactly, so a large font scrolls them.
+
+### A card of targets (Hit List)
+
+Hit List's boxes (`ScoreSection.HIT_LIST`: `TARGET_1`..`TARGET_12` and `ALIBI`) have no rule of their own - what each
+target calls is drawn per game (`HitTarget`, from the mode's `TargetShape`s), so:
+
+- **Score them through `ScoreCalculator.scoreFor`, which has the player and so their `hitList`.** `DiceScoring.score`
+  throws for them. Anything that scores every box of a card up front (Hard's `HandScoring`, `categoryBaseline`) must
+  never be built for this card - `HandScoringTest` skips it, and `prepareHard` returns early.
+- **Order matters for the first time**: an exact hit needs each named number on the die in its own column, so the
+  dice must be passed in column order (`GameState.scoringDice` is). A hand short of a die (Unlucky Dice) can hit but
+  never be exact.
+- **A partial hit** (short of a hit) scores half the points times the share of the target's numbers rolled, rounded
+  to the nearest 5, a half rounding up (`HitTarget.partialPoints`) - but only with at least two of its numbers rolled
+  (`HitTarget.MIN_PARTIAL_ROLLED`); one alone scores 0, however the rounding would fall (1 of 3 on a 15 is 2.5, which
+  would round up to 5). Always less than a hit, so a box's score still tells which it was. It
+  leaves few zeros (under one a game for a CPU), which is why Spotless is guarded. A CPU must count the partial its
+  held dice keep when a chase fails: without that, Hard stopped on partials and fell behind Medium.
+- **The Alibi** is worth the best open target's points the dice hit, never doubled, and leaves that target open. Once
+  every target is closed it can only score 0 - a CPU that keeps it to the end wastes it (Medium did, until it was
+  taught to use it on a plain hit of a five-number target).
+- **The board's featured box** (`ScoreCategory.featured`) is 5x on every other card and the Alibi here, the large
+  square over rows 1-2. The targets have no upper section to pair with, so they fill the grid two to a row.
+- **The AI** is `HitListPlay` at every difficulty: the odds of hitting a target's remaining numbers in the rolls left
+  (`hitOdds`, exact and memoised) and of an exact hit (`exactOdds`), and what keeping a box open is worth.
+  `HitListPlayTest` checks Hard > Medium > Easy on average (about 255 / 227 / 188).
 
 ### Boxes switched off
 
@@ -495,6 +525,33 @@ multiplayer) and Third Time's The Charm (`THIRD_WIND_NO_ZEROES`), all 39 slots s
   every guard at once made it fail, which proved nothing about each. Strip them one at a time.
 - **Count the thing, not its proxy.** Encore and Hat Trick read bonus chips, which equalled "2nd/3rd
   5x" only while the 5x box had one slot. They now count `fiveOfAKindCount`.
+
+### Hit List (twelve targets and the Alibi)
+
+No upper or lower boxes, no 5x, and totals (ceiling 785, about 200 a game) that mean nothing beside Standard's.
+Points, partial hits included, are multiples of five.
+
+**Guarded - would be free, or measure something else, on a card of targets** (`GameMode.hasHitList`; each test in
+`AchievementEngineTest` fails without its guard):
+
+| Achievement                                           | Why                                                                      |
+|-------------------------------------------------------|--------------------------------------------------------------------------|
+| Solid Round ... Dice Deity (`SCORE_200`-`500`)        | A total over a different card measures nothing - and 200 is an average game |
+| Cold Dice (`SCORE_UNDER_100`), Low Rolls (`LOW_ROLLS`) | A total under 100 is an ordinary run of misses (`hasStandardTotals`)    |
+| Zero To Hero (`ZERO_TO_HERO`)                         | Misses (and partial hits) are the usual run of things                     |
+| Spotless (`NO_ZEROES`)                                | Partial hits leave under one zero a game                                  |
+
+**Can't be earned in Hit List - no guard needed**: every 5x one (no box, no joker), Upper/Lower Class, Bonus Round,
+Exact Change, Six Appeal, Taking A Chance, Both Straights, the house and straight roll feats (their boxes aren't on
+the card), Nice (69 isn't a multiple of five), Rock Bottom (5 isn't reachable), New Personal Best and the
+score-collection bands (off the Leaderboard).
+
+**Still earnable, and worth knowing**: How Do You
+Play This Game? (zeroing every box on purpose, as in Standard); Ton!; Wasted 5x (five matching dice never hit a target,
+so scoring them is always a zero); The Dice Hate Me (more likely - chasing an exact hit can lose the plain one);
+Greenfingers (39 rolls, as Standard); Luck Of The Draw (13 turns). The mode's own: Contract Fulfilled
+(`HIT_LIST_WIN`, a multiplayer win) and Right On Target (`HIT_LIST_RIGHT_ON_TARGET`, an exact hit on a target naming
+all five numbers - judged mid-game, from the score its box holds).
 
 ### Tricolour (coloured dice, four colour boxes)
 

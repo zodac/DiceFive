@@ -156,8 +156,8 @@ class GameSetupRestoreTest {
     }
 
     @Test
-    fun `a game starts with Extended Scores in any mode`() = runTest(testDispatcher) {
-        for (mode in GameMode.entries) {
+    fun `a game starts with Extended Scores in any mode that allows it`() = runTest(testDispatcher) {
+        for (mode in GameMode.entries.filter { it.allowsExtendedScores }) {
             val viewModel = GameViewModel(aiDispatcher = testDispatcher)
             viewModel.setGameMode(mode)
             viewModel.setExtendedScores(true)
@@ -167,6 +167,23 @@ class GameSetupRestoreTest {
             assertTrue(game.extendedScores, mode.id)
             assertEquals(mode.categories + ScoreCategory.EXTENDED, game.players.first().categories, mode.id)
         }
+    }
+
+    @Test
+    fun `Hit List starts without Extended Scores - and keeps the switch on for the next mode`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setExtendedScores(true)
+        viewModel.setGameMode(GameMode.HIT_LIST)
+        viewModel.startGame()
+
+        val game = checkNotNull(viewModel.game.value)
+        assertFalse(game.extendedScores)
+        assertEquals(GameMode.HIT_LIST.categories, game.players.first().categories)
+        assertTrue(viewModel.setup.value.extendedScores)
+
+        viewModel.setGameMode(GameMode.STANDARD)
+        viewModel.startGame()
+        assertTrue(checkNotNull(viewModel.game.value).extendedScores)
     }
 
     @Test

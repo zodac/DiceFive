@@ -356,7 +356,7 @@ decisions behind it. Read that before changing anything visual.
   back as today's default (`"casino_gold"`), since that's what's drawn for them, so neither counts as
   a non-default pick for `STYLE_CUP`.
 - **Game modes** (`model/GameMode.kt`, was `GameType`): `STANDARD` (the official rules, formerly
-  `CLASSIC`), `TRICOLOUR` (see Phase 14), `QUICKFIRE` (see Phase 20), `STUD` (see Phase 25) and `THIRD_WIND` (see Phase 26). **Every rule that can
+  `CLASSIC`), `TRICOLOUR` (see Phase 14), `QUICKFIRE` (see Phase 20, redone in Phase 30), `STUD` (see Phase 25), `THIRD_WIND` (see Phase 26) and `HIT_LIST` (see Phase 31). **Every rule that can
   differ between modes is a field on the mode**, even where the modes agree today: dice count, how
   many of them score (`scoringDiceCount` - fewer, and only the held dice score), rolls
   per turn, die faces, die colours, the scorecard's categories, how many times each is scored
@@ -364,7 +364,8 @@ decisions behind it. Read that before changing anything visual.
   Leaderboard (`countsOnLeaderboard`),
   the upper-bonus threshold/amount, the 5x bonus chip, the max possible score, a fixed turn
   which boxes are switched off
-  (`disabledCategories`, `randomDisabledCategories`). `.claude/GAME_MODES.md` has the
+  (`disabledCategories`, `randomDisabledCategories`), the targets a game deals (`hitListShapes`) and whether the
+  Extended Scores modifier is allowed (`allowsExtendedScores`). `.claude/GAME_MODES.md` has the
   checklist for adding a mode. The engine, AI, achievements,
   persistence and board all read the rules from there - a new mode should be a new entry plus any
   genuinely new scoring rule, and nothing else learning it exists. A category's own scoring rule is
@@ -554,7 +555,8 @@ net.zodac.dicefive/
   model/
     Die.kt                             — a die's value, colour (coloured modes only) and held state
     ScoreCategory.kt                   — every category any mode can use: section, fixed score, joker free-fill, colour
-    GameMode.kt                        — STANDARD, TRICOLOUR, QUICKFIRE, STUD, THIRD_WIND: every per-mode rule (see "Game modes" above)
+    GameMode.kt                        — STANDARD, TRICOLOUR, QUICKFIRE, STUD, THIRD_WIND, HIT_LIST: every per-mode rule (see "Game modes" above)
+    HitList.kt                         — Hit List's TargetShape and drawn HitTarget: hits, exact hits, per-place matches
     TurnTimer.kt                       — the setup screen's turn timer choices (NONE, 30s, 60s, 120s)
     DieColour.kt                       — RED, YELLOW, BLUE (Tricolour's die colours)
     PlayerType.kt                      — HUMAN, AI
@@ -696,7 +698,7 @@ The numbers here are Standard's - dice count, rolls per turn and the rest come f
 `DiceScoring`/`GameEngine` are pure functions with no Android
 dependencies — most unit tests live here.
 
-- **Maximum possible score, per mode: 1575 Standard and Stud, 225 Quickfire (the best six boxes it can draw - see Phase 30), 2120 Tricolour, 4725 Third Wind** (`GameMode.maxPossibleScore`,
+- **Maximum possible score, per mode: 1575 Standard and Stud, 225 Quickfire (the best six boxes it can draw - see Phase 30), 2120 Tricolour, 4725 Third Wind, 785 Hit List (every target exact, plus the Alibi's best - see Phase 31)** (`GameMode.maxPossibleScore`,
   with each derivation as a doc comment on its entry, locked by `GameModeTest` playing the perfect
   game through the real `GameEngine`) — every upper box maxed plus the 63+ bonus, every other box
   maxed, and every turn after the 5x box also landing a 5x for its +100 bonus chip (12 of them in
@@ -2367,3 +2369,51 @@ and its `GameMode` fields (`turnTimerSeconds`, `timeoutPick`, `autoRollAtTurnSta
 - [x] **New achievement** `QUICKFIRE_SCORE` "Six Of The Best": a total of 150 or more in Quickfire (ceiling 225),
       not with a roll modifier or Extended Scores. Replaces Beat The Clock; bullseye icon.
 - [ ] **Not seen on a device**: the disabled tile, TalkBack on it, and how a six-turn game feels to play.
+
+### Phase 31 — Game mode: Hit List
+
+- [x] **Rules** (`GameMode.HIT_LIST`, `id` `"hit_list"`): Standard's dice and three rolls, none of its boxes. The card is
+      twelve targets (`ScoreCategory.TARGET_1`..`12`) and the Alibi (`ALIBI`), 13 turns, 39 rolls. A target names a
+      number for each die's column, with up to two any places (`TargetShape.MAX_ANY_PLACES`). Every named number among
+      the dice is a hit for its points; every one in its own column is an exact hit for double. Nothing hit crosses a box
+      off for 0. Designed with the maintainer from a mockup: the literal first idea (five numbers named on every target)
+      missed about 10 turns in 13 when simulated, hence the any places.
+- [x] **Targets drawn per game** (`GameMode.drawHitList`, in `GameEngine.newGame`, only for a mode with shapes - other
+      modes' seeded games are unchanged): each `TargetShape` ("aab··" and so on) gets a different number per letter, its
+      places shuffled, no two targets alike. The same on every card; `GameState`/`PlayerState.hitList`, saved by
+      `GameStateJson` (a save without them fails to decode).
+- [x] **Points from the odds**, roughly inverse to a whole turn's chance of hitting the shape (67% for "abc··" down to
+      11% for "aabbc"): 10, 10, 15, 15, 20, 20, 25, 30, 40, 40, 55, 75. Any target with an any place is worth less than
+      every one with five numbers named (the maintainer's rule; `HitListTest`).
+- [x] **Partial hits** (asked for once the maintainer saw how many zeros a game had): short of a hit, a target scores
+      half its points times the share of its numbers rolled, rounded to the nearest 5 (`HitTarget.partialPoints`) - 4 of 5 on
+      the 75 is 30, 3 of 4 on a 20 (7.5) is 10, 1 of 3 on a 10 is 0. First rounded down; the maintainer asked for the
+      nearest 5, a half rounding up, and then a minimum of two of the target's numbers rolled (one alone scores 0;
+      `MIN_PARTIAL_ROLLED`). Simulated first: zeros fell from about 4.5 a game to 0.3, the average rose by
+      about 23, and exact hits went up a little (a failed chase no longer costs a zero). The Alibi takes hits only.
+- [x] **The Alibi**: a hit scored in place of its target, worth the best open target the dice hit, never doubled; the
+      target stays open for another try at the exact hit. The large square where 5x sits (`ScoreCategory.featured`).
+- [x] **Scoring** in `ScoreCalculator.scoreFor` (it has the player's targets); `DiceScoring.score` throws for these boxes.
+      Unlucky Dice: a locked die can't count, and a hand missing one can't be exact.
+- [x] **No Extended Scores** (`allowsExtendedScores = false`): the setup row is locked with a note, the player's pick
+      kept for the next mode, and `startGame`/`newGame` play without it.
+- [x] **Board**: each target tile shows its five places and its points, drawn at a size taken from the tile (not the
+      system font); while a roll is previewed, a bar under each named place the dice show, gold when in its column, and
+      a number the dice don't show faint white (it was the tile's colour, so gold on a lit tile - a missing 6 read as one
+      in place on the maintainer's phone). A tile glows only for a hit; a partial score is gold beside an unlit one. The
+      Totals button shows Targets and Alibi. TalkBack: "Target 5, 4, 1, 3, 2, any. 20 points, 40 exact", state "Would
+      score 40, exact hit" / "Would score 0, 3 of 4 rolled, 1 in place" (`BoardSemanticsTest`).
+- [x] **AI** (`game/HitListPlay.kt`, every difficulty): exact odds of a hit in the rolls left, and of an exact hit; Hard
+      weighs stopping against both - each falling back on the partial hit its held dice keep - and scores where a box
+      most beats its worth kept open (so it uses the Alibi). Easy and Medium stop on a real hit, not a partial one.
+      Averages over 300 games: Easy 188, Medium 227, Hard 255.
+- [x] **Off the Leaderboard**: each game's list differs.
+- [x] **Rules page** "Mode: Hit List", with an example target, Hit / Exact Hit / Alibi examples and an example turn.
+      Each of those dice rows ends with the box's tile as the board draws it for those dice (`RulesTile`, the real
+      `CategoryTile`): the target on its own, part filled, a hit, an exact hit and a partial hit; the Alibi lit. TalkBack hears it in
+      the row's description ("Its tile shows 3 of 4 rolled, 2 in place" - `RulesScreenAccessibilityTest`).
+- [x] **Achievements** (108 now): Contract Fulfilled (`HIT_LIST_WIN`, clipboard-tick icon) and Right On Target
+      (`HIT_LIST_RIGHT_ON_TARGET`, an exact hit on a five-number target; a bullseye with an arrow in it, drawn for the
+      app). Guarded: the score ladder, Cold Dice, Low Rolls, Zero To Hero and Spotless - see `GAME_MODES.md`.
+- [ ] **Not seen on a device**: the target tiles at a real phone's density, TalkBack on them and the Alibi, the locked
+      Extended Scores row, and how a game plays.

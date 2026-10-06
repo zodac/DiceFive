@@ -52,12 +52,24 @@ class BoardLayoutTest {
     }
 
     @Test
-    fun `every box of every card is on the board exactly once - 5x apart`() {
+    fun `every box of every card is on the board exactly once - its featured box apart`() {
         for (mode in GameMode.entries) for (extended in listOf(false, true)) {
             val categories = mode.categoriesWith(extended)
-            val placed = boardLayout(categories).let { it.leftRows.flatten() + it.sideRows.flatten() }
+            val layout = boardLayout(categories)
+            val placed = layout.leftRows.flatten() + layout.sideRows.flatten()
 
-            assertEquals(categories.filter { it != ScoreCategory.FIVE_OF_A_KIND }.sorted(), placed.sorted(), "${mode.id} $extended")
+            assertEquals(categories.filter { it != layout.featured }.sorted(), placed.sorted(), "${mode.id} $extended")
         }
+    }
+
+    @Test
+    fun `Hit List's targets fill the grid two to a row in card order - with the Alibi as the large square`() {
+        val layout = layout(GameMode.HIT_LIST, extended = false)
+
+        assertEquals(ScoreCategory.ALIBI, layout.featured)
+        assertEquals(ScoreCategory.TARGETS.chunked(2), layout.leftRows)
+        assertEquals(emptyList(), layout.sideRows)
+        assertEquals(6, layout.rowCount)
+        assertEquals(ScoreCategory.FIVE_OF_A_KIND, layout(GameMode.STANDARD, extended = false).featured)
     }
 }

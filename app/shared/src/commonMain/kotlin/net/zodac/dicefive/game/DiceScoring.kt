@@ -46,6 +46,12 @@ object DiceScoring {
         ScoreCategory.TWO_PAIR -> scoreTwoPair(dice)
         ScoreCategory.EVENS -> dice.sumOf { if (it.value % 2 == 0) it.value else 0 }
         ScoreCategory.ODDS -> dice.sumOf { if (it.value % 2 != 0) it.value else 0 }
+        // Each game draws its own targets, so there's no rule here to score them by.
+        ScoreCategory.TARGET_1, ScoreCategory.TARGET_2, ScoreCategory.TARGET_3, ScoreCategory.TARGET_4,
+        ScoreCategory.TARGET_5, ScoreCategory.TARGET_6, ScoreCategory.TARGET_7, ScoreCategory.TARGET_8,
+        ScoreCategory.TARGET_9, ScoreCategory.TARGET_10, ScoreCategory.TARGET_11, ScoreCategory.TARGET_12,
+        ScoreCategory.ALIBI,
+        -> throw IllegalArgumentException("$category is scored against the player's hit list - see ScoreCalculator.scoreFor")
     }
 
     /**

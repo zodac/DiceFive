@@ -602,6 +602,17 @@ More than six rows switches every tile to `COMPACT_TILE_SIZE` (40dp, from 48dp) 
 given that height regardless (it needs rows 4-6; Totals/Undo moved below it). Standard and Tricolour are both
 six rows and 380dp.
 
+**Hit List's card** (no 5x) puts its featured box (`ScoreCategory.featured`, `BoardLayout.featured`) - the Alibi -
+where 5x goes, and its twelve targets fill the grid two to a row in card order (easiest at the top). A target's tile
+(`CategoryIcon`'s `TargetIcon`) shows its five places - a number, or a dot for an any place - over its points, sized as
+fractions of the tile, not the font: five places must fit a fixed width at any system font, and the spoken name says
+the target in full. While a roll is previewed, each named place the dice show gets a short bar under it (white; gold,
+with the number, when the die is in its own column) - a bar per place, since a text underline ran neighbouring places
+into one number on the renders. Spoken twin: the cell's state adds "3 of 4 rolled, 1 in place", "partial hit, 3 of 4
+rolled, 1 in place", "hit, 0 of 3 in place" or "exact hit". A target's tile glows only for a hit; a partial score is gold beside an unlit tile
+(`tileLit`), since nearly every target has one and a board of lit tiles hid the hits. The Totals button shows Targets and Alibi on this card (`HitListTotalsButton`). Rendered at
+411dp and 360dp - Robolectric only.
+
 **With nothing under it, 5x is a large square** over rows 1-2 (`squareSize`, as tall as both rows, 16dp
 corners, its score and bonus beside it); the rows under it are empty.
 

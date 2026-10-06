@@ -429,7 +429,8 @@ private fun GameModeSelector(selected: GameMode, onSelect: (GameMode) -> Unit) {
  * Number of Rolls and Stored Rolls (see [RollModifiers]) apply in every mode. Stored
  * Rolls' cap is a typed number, empty for none.
  *
- * Extended Scores is a plain switch with nothing to set, and applies in every mode. Unlucky Dice
+ * Extended Scores is a plain switch with nothing to set, and applies in every mode that allows it
+ * ([GameMode.allowsExtendedScores]) - locked off, with the player's pick kept, in one that doesn't. Unlucky Dice
  * ([UnluckyDice]) is a switch with two steppers, the odds and the most dice locked a roll, and applies in every mode too;
  * both are kept while it's off.
  */
@@ -494,8 +495,10 @@ private fun SetupModifierPicker(
             ModifierSetting(
                 title = "Extended Scores",
                 description = "Adds Two Pair, Evens and Odds to the scorecard",
-                enabled = setup.extendedScores,
+                // Locked off in a mode whose card it doesn't fit - the player's own pick is kept for the next mode.
+                enabled = setup.extendedScores && setup.gameMode.allowsExtendedScores,
                 onEnabledChange = onExtendedScores,
+                lockedNote = if (setup.gameMode.allowsExtendedScores) null else "Not used in ${setup.gameMode.displayName} mode",
             ),
             ModifierSetting(
                 title = "Unlucky Dice",

@@ -548,12 +548,14 @@ class GameViewModel(
         setUndoSnapshot(null)
         resetSuperuserMode()
         resetAchievementTracking()
-        applyGameState(GameEngine.newGame(playerConfigs, setupState.gameMode, turnTimer, rollModifiers, setupState.extendedScores, setupState.activeUnluckyDice))
+        // Off in a mode that doesn't allow it, whatever the switch says - the switch keeps the player's pick for the next mode.
+        val extendedScores = setupState.extendedScores && setupState.gameMode.allowsExtendedScores
+        applyGameState(GameEngine.newGame(playerConfigs, setupState.gameMode, turnTimer, rollModifiers, extendedScores, setupState.activeUnluckyDice))
         prepareHardCpus()
         // "Full Table" is settled the moment four seats are taken - no need to make them play it out.
         checkInProgressAchievements()
         checkGameStartAchievements(
-            customizedGameSettings = turnTimer != TurnTimer.NONE || rollModifiers.isActive || setupState.extendedScores ||
+            customizedGameSettings = turnTimer != TurnTimer.NONE || rollModifiers.isActive || extendedScores ||
                 setupState.unluckyDiceEnabled || setupState.gameMode != GameMode.default,
         )
 

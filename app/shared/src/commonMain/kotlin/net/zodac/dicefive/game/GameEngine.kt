@@ -31,21 +31,26 @@ object GameEngine {
     ): GameState {
         require(players.isNotEmpty()) { "At least one player is required" }
         val disabledCategories = gameMode.drawDisabledCategories(random)
+        val hitList = gameMode.drawHitList(random)
+        // A mode that doesn't allow the Extended Scores boxes plays without them, whatever was asked for.
+        val extended = extendedScores && gameMode.allowsExtendedScores
         return GameState(
             gameMode = gameMode,
             turnTimer = turnTimer,
             rollModifiers = rollModifiers,
-            extendedScores = extendedScores,
+            extendedScores = extended,
             unluckyDice = unluckyDice,
             disabledCategories = disabledCategories,
+            hitList = hitList,
             players = players.map {
                 PlayerState(
                     name = it.name,
                     type = it.type,
                     difficulty = it.difficulty,
                     gameMode = gameMode,
-                    extendedScores = extendedScores,
+                    extendedScores = extended,
                     disabledCategories = disabledCategories,
+                    hitList = hitList,
                     rollsModified = rollModifiers.isActive,
                 )
             },
