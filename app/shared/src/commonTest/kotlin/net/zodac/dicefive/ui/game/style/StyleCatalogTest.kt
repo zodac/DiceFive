@@ -24,11 +24,12 @@ class StyleCatalogTest {
             DiceCupStyles to listOf("casino_gold", "casino_black", "casino_green", "faceted", "fire", "barrel"),
             DiceMats to listOf("tray_blue", "fire", "barrel"),
             TableBackgrounds to listOf("midnight_felt", "fire", "barrel"),
+            ScoreFrames to listOf("classic"),
         )
         for ((catalog, ids) in shipped) {
             for (id in ids) assertEquals(id, catalog.byId(id).id)
         }
-        for (catalog in listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds)) {
+        for (catalog in listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds, ScoreFrames)) {
             for (art in catalog.all) {
                 assertEquals(art, catalog.byId(art.id))
             }
@@ -37,7 +38,7 @@ class StyleCatalogTest {
 
     @Test
     fun everyStyleComesInAtLeastOneColour() {
-        for (catalog in listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds)) {
+        for (catalog in listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds, ScoreFrames)) {
             for (family in catalog.families) {
                 assertTrue(family.colours.isNotEmpty(), "${family.name} has no colours")
             }
@@ -46,7 +47,7 @@ class StyleCatalogTest {
 
     @Test
     fun everyDefaultStyleIsCalledClassic() {
-        for (catalog in listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds)) {
+        for (catalog in listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds, ScoreFrames)) {
             assertEquals("Classic", catalog.familyOf(catalog.default.id).name)
         }
     }
@@ -83,7 +84,7 @@ class StyleCatalogTest {
 
     @Test
     fun onlyTheClassicStylesAreFree() {
-        for (catalog in listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds)) {
+        for (catalog in listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds, ScoreFrames)) {
             for (family in catalog.families) {
                 assertEquals(family.name == "Classic", family.unlock == StyleUnlock.Free, "${family.name}'s unlock is ${family.unlock}")
             }
@@ -93,7 +94,7 @@ class StyleCatalogTest {
     @Test
     fun everyAchievementCountLockIsDistinctAndEarnable() {
         val earnable = Achievement.entries.count { it.visibility != AchievementVisibility.SECRET }
-        val counts = listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds)
+        val counts = listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds, ScoreFrames)
             .flatMap { it.families }
             .mapNotNull { (it.unlock as? StyleUnlock.AchievementCount)?.count }
         assertEquals(counts.size, counts.toSet().size, "Two styles share an achievement count: $counts")
@@ -292,5 +293,25 @@ class StyleCatalogTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun theClassicFrameIsTheDefaultAndEveryOtherFrameIsLocked() {
+        // SettingsRepository's and SavedStyles' literal default must be this id.
+        assertEquals("classic", ScoreFrames.default.id)
+        assertEquals("Classic", ScoreFrames.familyOf("classic").name)
+        val none = AchievementsState()
+        for (frame in ScoreFrames.all) {
+            assertEquals(frame.id == "classic", ScoreFrames.isUnlocked(frame.id, none), frame.id)
+        }
+    }
+
+    @Test
+    fun aFramesVariantsAreDesignsAllShownInTheSameColour() {
+        assertEquals("design", ScoreFrames.variantNoun)
+        assertEquals("colour", DiceStyles.variantNoun)
+        // Every frame is drawn in the player's colour, so every variant's dot is the one colour.
+        assertEquals(1, ScoreFrames.families.flatMap { family -> family.colours.map { it.swatch } }.toSet().size)
+        assertTrue(ScoreFrames.families.drop(1).all { it.colours.size in 1..3 })
     }
 }

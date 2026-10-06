@@ -93,6 +93,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.CollectionItemInfo
@@ -111,8 +112,10 @@ import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -164,10 +167,13 @@ import net.zodac.dicefive.ui.game.style.StyleFamily
 import net.zodac.dicefive.ui.game.style.StyleUnlock
 import net.zodac.dicefive.ui.game.style.TableArt
 import net.zodac.dicefive.ui.game.style.TableBackground
+import net.zodac.dicefive.ui.game.style.ScoreFrame
+import net.zodac.dicefive.ui.game.style.ScoreFramePreviewColour
+import net.zodac.dicefive.ui.game.style.ScoreFrames
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
-// Kept small enough that all four categories (Dice, Dice Cup, Mat, Background) fit on one screen
+// Kept small enough that the categories (Dice, Dice Cup, Mat, Background, Frame) fit on one screen
 // without needing to scroll - see StylesScreen's doc comment.
 private val DICE_PREVIEW_SIZE = 72.dp
 private val DIE_ART_SIZE = 44.dp
@@ -183,6 +189,14 @@ private val MAT_PREVIEW_HEIGHT = 65.dp
 // padding), a little taller than wide on most phones - not the mat's: it's what a background fills.
 private val BACKGROUND_PREVIEW_WIDTH = 72.dp
 private val BACKGROUND_PREVIEW_HEIGHT = 80.dp
+// A frame round a player's tab, as on the game screen's page background: the mat's width, so three fit
+// across a gallery, and tall enough for a tab-sized frame above the variant dots.
+private val FRAME_PREVIEW_WIDTH = 97.dp
+private val FRAME_PREVIEW_HEIGHT = 76.dp
+// The tab drawn inside it - about a four-player game's - and how far it sits below the tile's top.
+private val FRAME_TAB_WIDTH = 84.dp
+private val FRAME_TAB_HEIGHT = 56.dp
+private val FRAME_TAB_TOP = 5.dp
 private val COLOUR_DOT_SIZE = 7.dp
 private val COLOUR_DOT_SIZE_MORE_BEYOND = 4.dp
 // More colours than this and the tile's dots show a window of them; the pop-up still lists every one.
@@ -193,7 +207,7 @@ private const val LOCKED_PADLOCK_ALPHA = 0.8f
 
 /**
  * Lets a player pick, rather than read, the option for each independently swappable piece of table
- * art - [DiceStyle], [DiceCupStyle], [DiceMat] and [TableBackground]. One [Card] per category, a
+ * art - [DiceStyle], [DiceCupStyle], [DiceMat], [TableBackground] and [ScoreFrame]. One [Card] per category, a
  * horizontally scrolling row of preview tiles inside it, so a category isn't stuck at whatever tile
  * count fits one page width once more options are added.
  *
@@ -209,7 +223,7 @@ private const val LOCKED_PADLOCK_ALPHA = 0.8f
  *
  * Mat and background are separate categories - each previews only its own brush (the mat's own
  * [DiceMat.DiceTrayDecoration] shows up on its tile too), not the two composed together, since
- * they're independently selectable rather than a single paired option. All four categories'
+ * they're independently selectable rather than a single paired option. All the categories'
  * tiles are sized to fit on one screen without scrolling vertically, and the tile row within a
  * category scrolls horizontally; on a screen too short for all four (a small phone, a large font)
  * the page scrolls vertically too.
@@ -240,6 +254,7 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
                 StyleCategory.DICE_CUP -> viewModel::setDiceCupStyleId
                 StyleCategory.MAT -> viewModel::setDiceMatId
                 StyleCategory.BACKGROUND -> viewModel::setTableBackgroundId
+                StyleCategory.FRAME -> viewModel::setScoreFrameId
             }
         },
         modifier = modifier,
@@ -258,6 +273,8 @@ private fun StylesScaffold(
     onSelect: (StyleCategory) -> (String) -> Unit,
     modifier: Modifier = Modifier,
     driftingDice: Boolean = true,
+    pageScale: Float? = null,
+    onPageMeasured: ((PageMeasure) -> Unit)? = null,
 ) {
     ScreenScaffold(
         title = "Styles",
@@ -268,23 +285,53 @@ private fun StylesScaffold(
     ) {
         // Nothing until the saved picks have loaded, so each row can open scrolled to its real pick.
         // They're normally in already (AppContainer.savedStyles), so the page has them from its first frame.
-        StylesPage(picks = picks ?: return@ScreenScaffold, focus = focus, onSelect = onSelect)
+        StylesPage(picks = picks ?: return@ScreenScaffold, focus = focus, onSelect = onSelect, scale = pageScale, onMeasured = onPageMeasured)
     }
 }
 
-/** Everything under the Styles screen's app bar: a card per category, the page scrolling when they don't fit, and its scrollbar. */
+/**
+ * Everything under the Styles screen's app bar: a card per category, the page scrolling when they don't fit, and its scrollbar.
+ * The cards are drawn at the size [StylesWarmUp] worked out and saved for this screen ([PageFit]) - or at [scale], for the warm-up's own
+ * copies, which report their height through [onMeasured].
+ */
 @Composable
-private fun ColumnScope.StylesPage(picks: SavedStyles, focus: StyleScrollRequest?, onSelect: (StyleCategory) -> (String) -> Unit) {
+private fun ColumnScope.StylesPage(
+    picks: SavedStyles,
+    focus: StyleScrollRequest?,
+    onSelect: (StyleCategory) -> (String) -> Unit,
+    scale: Float? = null,
+    onMeasured: ((PageMeasure) -> Unit)? = null,
+) {
     // One text measurer for every tile's name, kept across openings - see rememberTileLabelMeasurer.
     val labelMeasurer = rememberTileLabelMeasurer()
     CompositionLocalProvider(LocalTileLabelMeasurer provides labelMeasurer) {
         // Sized to fit one screen, but free to scroll when it can't - a small phone, a large font,
         // an open gallery - rather than cutting the last category off out of reach.
         val pageScroll = rememberScrollState()
+        val density = LocalDensity.current
+        val fitKey = PageFitKey(LocalWindowInfo.current.containerSize, density.density, density.fontScale)
+        // Read once: the size the page opens at is the size it keeps, even if a warm-up finishes meanwhile.
+        val cardsScale = scale ?: remember(fitKey) { PageFit.decode(picks.stylesPageFit)?.takeIf { it.key == fitKey }?.scale ?: 1f }
+        // Smaller dp for the cards, the same sp: tiles, art and gaps shrink, but no text does.
+        val cardsDensity = remember(density, cardsScale) {
+            if (cardsScale == 1f) density else Density(density.density * cardsScale, density.fontScale / cardsScale)
+        }
+        if (onMeasured != null) {
+            LaunchedEffect(fitKey, cardsScale) {
+                // Once it's laid out at this scale - a frame on, so not the size it was before - and has a
+                // viewport and an end to its scroll.
+                withFrameNanos { }
+                val (overflow, viewport) = snapshotFlow { pageScroll.maxValue to pageScroll.viewportSize }
+                    .first { (overflow, viewport) -> viewport > 0 && overflow != Int.MAX_VALUE }
+                onMeasured(PageMeasure(content = overflow + viewport, viewport = viewport))
+            }
+        }
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            Column(modifier = Modifier.verticalScroll(pageScroll), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                for (category in StyleCategory.entries) {
-                    StyleCategorySection(category = category, picks = picks, onSelect = onSelect(category), focus = focus)
+            CompositionLocalProvider(LocalDensity provides cardsDensity) {
+                Column(modifier = Modifier.verticalScroll(pageScroll), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    for (category in StyleCategory.entries) {
+                        StyleCategorySection(category = category, picks = picks, onSelect = onSelect(category), focus = focus)
+                    }
                 }
             }
             // In the page's right-hand margin, beside the cards rather than over them - see VerticalScrollbar.
@@ -295,6 +342,54 @@ private fun ColumnScope.StylesPage(picks: SavedStyles, focus: StyleScrollRequest
             )
         }
     }
+}
+
+/** What a page measured: its cards' whole height and the room it has for them, in px. */
+private class PageMeasure(val content: Int, val viewport: Int)
+
+/** The screen a [PageFit] was worked out for: the window, its density and font scale. */
+internal data class PageFitKey(val window: IntSize, val density: Float, val fontScale: Float)
+
+/**
+ * How much the cards are scaled down on the screen [key] they were measured on, so the page fits without
+ * scrolling there. [StylesWarmUp] measures the page out of sight, after it has drawn the tiles once, and
+ * saves this with the Styles picks ([SavedStyles.stylesPageFit]), so it's known from the first frame of
+ * every later launch and opening the page costs nothing extra. [scale] is 1 for a page that fits as it is,
+ * or one that would need shrinking below [MIN_PAGE_FIT_SCALE]: a phone that much shorter, or a large font,
+ * still scrolls, rather than every tile getting tiny - so only a page a little too tall for its screen is
+ * touched. Not measured yet (a fresh install, opened within moments of launching) or measured for another
+ * screen (a resized window, a new font scale), the page is full size.
+ */
+internal data class PageFit(val key: PageFitKey, val scale: Float) {
+    /** As it's saved: "1080x2400:2.9375:1.0=0.757". */
+    fun encode(): String = "${key.window.width}x${key.window.height}:${key.density}:${key.fontScale}=$scale"
+
+    companion object {
+        fun decode(saved: String?): PageFit? = runCatching {
+            val (screen, scale) = saved!!.split("=")
+            val (window, density, fontScale) = screen.split(":")
+            val (width, height) = window.split("x")
+            PageFit(PageFitKey(IntSize(width.toInt(), height.toInt()), density.toFloat(), fontScale.toFloat()), scale.toFloat())
+        }.getOrNull()
+    }
+}
+
+// No smaller than this, or the page is left full size and scrolls. Low enough for the maintainer's own
+// phone (~369 x 816dp), where the page needs about 79%.
+private const val MIN_PAGE_FIT_SCALE = 0.75f
+// A hair under the exact fit, so a pixel's rounding doesn't leave it scrolling by one.
+private const val PAGE_FIT_SLACK = 0.995f
+
+/**
+ * The scale that fits a page measured at [full] size and at [smallest] ([MIN_PAGE_FIT_SCALE]) - see
+ * [PageFit]. The text keeps its size, so the height isn't proportional to the scale: the two measures
+ * split it into the part that scales and the part that doesn't.
+ */
+internal fun fittedPageScale(full: Int, smallest: Int, viewport: Int): Float {
+    if (full <= viewport || smallest > viewport) return 1f
+    val scaling = (full - smallest) / (1f - MIN_PAGE_FIT_SCALE)
+    val fixed = full - scaling
+    return ((viewport - fixed) / scaling * PAGE_FIT_SLACK).coerceIn(MIN_PAGE_FIT_SCALE, 1f)
 }
 
 // How long a tile a banner brought you to stays flashed gold, and how long it takes to fade in and out - as an achievement row's.
@@ -308,7 +403,7 @@ private const val FLASH_OVER_ART_ALPHA = 0.55f
 private val PAGE_MARGIN = 20.dp
 
 /** The Styles screen's categories, in its order. */
-private enum class StyleCategory { DICE, DICE_CUP, MAT, BACKGROUND }
+private enum class StyleCategory { DICE, DICE_CUP, MAT, BACKGROUND, FRAME }
 
 // The gap between tiles in a row.
 private val TILE_SPACING = 12.dp
@@ -383,6 +478,7 @@ private fun StyleCategory.tileCount(achievements: AchievementsState): Int {
         StyleCategory.DICE_CUP -> DiceCupStyles
         StyleCategory.MAT -> DiceMats
         StyleCategory.BACKGROUND -> TableBackgrounds
+        StyleCategory.FRAME -> ScoreFrames
     }
     val (unlocked, locked) = catalog.shownFamilies(achievements)
     return unlocked.size + locked.size
@@ -497,6 +593,23 @@ private fun StyleCategorySection(
             ) { background ->
                 background.Animate()
                 Canvas(modifier = Modifier.matchParentSize()) { with(background) { drawScoreAreaDecoration() } }
+            }
+        }
+
+        StyleCategory.FRAME -> CategoryCard(title = "Frame") {
+            StyleFamilyTiles(
+                catalog = ScoreFrames,
+                selectedId = picks.scoreFrameId,
+                achievements = achievements,
+                onSelect = onSelect,
+                previewSize = DpSize(FRAME_PREVIEW_WIDTH, FRAME_PREVIEW_HEIGHT),
+                backgroundBrush = { SolidColor(MaterialTheme.colorScheme.background) },
+                gallery = gallery,
+                warmUp = warmUp,
+                buildStagger = category.ordinal,
+                focus = focus,
+            ) { frame ->
+                FramePreview(frame, modifier = Modifier.align(Alignment.TopCenter))
             }
         }
     }
@@ -656,6 +769,27 @@ private fun DicePreview(style: DiceStyle, roll: DicePickRoll? = null) {
 }
 
 /**
+ * A frame's tile: a player's tab - a name and a score - framed as it would be on their turn, in player 1's
+ * default colour ([ScoreFramePreviewColour]); in a game each player's frame takes their own. Silent to a
+ * screen reader: the tile says which frame it is.
+ */
+@Composable
+private fun FramePreview(frame: ScoreFrame, modifier: Modifier = Modifier) {
+    val colour = ScoreFramePreviewColour
+    Column(
+        modifier = modifier
+            .padding(top = FRAME_TAB_TOP)
+            .size(FRAME_TAB_WIDTH, FRAME_TAB_HEIGHT)
+            .drawBehind { with(frame) { drawFrame(colour) } },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(text = "You", color = colour, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+        Text(text = "24", color = colour, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, maxLines = 1)
+    }
+}
+
+/**
  * Draws every tile of the Styles screen once, out of sight, so the page's code has already run by the
  * time a player opens it or scrolls a row. Each tile's art is its own drawing code, and the first time
  * any of it runs after a launch it's slow (loading a mat's texture, painting a marble die, compiling
@@ -673,11 +807,15 @@ private fun DicePreview(style: DiceStyle, roll: DicePickRoll? = null) {
  * launch doesn't load all of that at once on its opening frame (it was most of that frame).
  */
 @Composable
-fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier) {
-    if (stylesWarmedUp || picks == null) return
+fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier, onPageFit: (String) -> Unit = {}) {
+    val density = LocalDensity.current
+    val fitKey = PageFitKey(LocalWindowInfo.current.containerSize, density.density, density.fontScale)
+    // Done - unless the screen has changed since the page was measured for it (a resized window, a new
+    // font scale), when it's measured again, though nothing else is redone.
+    if (picks == null || (stylesWarmedUp && PageFit.decode(picks.stylesPageFit)?.key == fitKey)) return
     var current by remember { mutableStateOf<WarmUpPass?>(null) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    LaunchedEffect(Unit) {
+    LaunchedEffect(fitKey) {
         lifecycle.delayWhileResumed(WARM_UP_DELAY_MILLIS)
         suspend fun pass(next: WarmUpPass) {
             current = next
@@ -685,16 +823,38 @@ fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier) 
             withFrameNanos { }
             withFrameNanos { }
         }
-        for (category in StyleCategory.entries) {
-            for (first in 0 until category.tileCount(picks.achievements) step WARM_UP_TILES_PER_PASS) {
-                pass(WarmUpPass.Tiles(category, first until first + WARM_UP_TILES_PER_PASS))
+        if (!stylesWarmedUp) {
+            for (category in StyleCategory.entries) {
+                for (first in 0 until category.tileCount(picks.achievements) step WARM_UP_TILES_PER_PASS) {
+                    pass(WarmUpPass.Tiles(category, first until first + WARM_UP_TILES_PER_PASS))
+                }
             }
+            for (category in StyleCategory.entries) pass(WarmUpPass.Card(category))
+            // The screen's frame on its own first, then with the page in it: each its own first-time code.
+            pass(WarmUpPass.Frame)
         }
-        for (category in StyleCategory.entries) pass(WarmUpPass.Card(category))
-        // The screen's frame on its own first, then with the page in it: each its own first-time code.
-        pass(WarmUpPass.Frame)
-        pass(WarmUpPass.Page)
+        // The whole page also measures itself, so it can open already sized to fit (PageFit): full size,
+        // then - only if it doesn't fit - at the smallest it may be drawn. Every launch, after the tiles,
+        // so the saved fit follows any change to the page.
+        suspend fun measured(at: Float): PageMeasure? {
+            pageMeasure = null
+            current = WarmUpPass.Page(at)
+            repeat(WARM_UP_MEASURE_FRAMES) {
+                withFrameNanos { }
+                pageMeasure?.let { return it }
+            }
+            return null
+        }
+        val full = measured(1f)
+        val smallest = when {
+            full == null || full.content <= full.viewport -> full?.content
+            else -> measured(MIN_PAGE_FIT_SCALE)?.content
+        }
         stylesWarmedUp = true
+        // Full size where it couldn't be measured, so as not to try again for this screen. Saved only when it's
+        // changed: normally it's the same each launch, but a new version of the page can change its height.
+        val fit = PageFit(fitKey, if (full == null || smallest == null) 1f else fittedPageScale(full.content, smallest, full.viewport))
+        if (PageFit.decode(picks.stylesPageFit) != fit) onPageFit(fit.encode())
         current = null
     }
     val pass = current ?: return
@@ -708,7 +868,15 @@ fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier) 
                     is WarmUpPass.Tiles -> StyleCategorySection(category = pass.category, picks = picks, onSelect = {}, warmUp = pass.tiles)
                     is WarmUpPass.Card -> StyleCategorySection(category = pass.category, picks = picks, onSelect = {})
                     WarmUpPass.Frame -> StylesScaffold(picks = null, focus = null, onBack = {}, onSelect = { {} }, driftingDice = false)
-                    WarmUpPass.Page -> StylesScaffold(picks = picks, focus = null, onBack = {}, onSelect = { {} }, driftingDice = false)
+                    is WarmUpPass.Page -> StylesScaffold(
+                        picks = picks,
+                        focus = null,
+                        onBack = {},
+                        onSelect = { {} },
+                        driftingDice = false,
+                        pageScale = pass.scale,
+                        onPageMeasured = { pageMeasure = it },
+                    )
                 }
             }
         }
@@ -720,8 +888,15 @@ private sealed interface WarmUpPass {
     data class Tiles(val category: StyleCategory, val tiles: IntRange) : WarmUpPass
     data class Card(val category: StyleCategory) : WarmUpPass
     data object Frame : WarmUpPass
-    data object Page : WarmUpPass
+    /** The whole screen, its cards at [scale] - see [PageFit]. */
+    data class Page(val scale: Float) : WarmUpPass
 }
+
+// The last measure a warm-up page reported, if any - see StylesWarmUp. Main thread only.
+private var pageMeasure: PageMeasure? = null
+
+// How many frames a measured warm-up page has to lay itself out and report, before it's given up on.
+private const val WARM_UP_MEASURE_FRAMES = 10
 
 /** Set once [StylesWarmUp] has drawn every category, for the life of the process. */
 private var stylesWarmedUp = false
@@ -848,7 +1023,7 @@ private fun <T : TableArt> StyleFamilyTiles(
         if (index < unlocked.size) {
             StyleFamilyTile(
                 unlocked[index], achievements, shownSelectedId, onSelect, previewSize, backgroundBrush, preview, index,
-                flashing = flashing && unlocked[index].name in focusNames, flashOverArt = flashOverArt,
+                flashing = flashing && unlocked[index].name in focusNames, flashOverArt = flashOverArt, variantNoun = catalog.variantNoun,
             )
         } else {
             LockedStyleFamilyTile(shownLocked[index - unlocked.size], achievements, previewSize, backgroundBrush, preview, index)
@@ -1163,6 +1338,7 @@ private fun <T : TableArt> StyleFamilyTile(
     position: Int,
     flashing: Boolean = false,
     flashOverArt: Boolean = false,
+    variantNoun: String = "colour",
 ) {
     val colours = family.availableColours(achievements)
     val picked = colours.firstOrNull { it.style.id == selectedId }
@@ -1208,7 +1384,7 @@ private fun <T : TableArt> StyleFamilyTile(
                             true
                         }
                         if (hasColours) {
-                            onLongClick(label = "Choose ${family.name} colour") {
+                            onLongClick(label = "Choose ${family.name} $variantNoun") {
                                 choosingColour = true
                                 true
                             }
@@ -1217,7 +1393,7 @@ private fun <T : TableArt> StyleFamilyTile(
                     .combinedClickable(
                         onClick = { select(shown.style.id) },
                         onLongClick = if (hasColours) ({ choosingColour = true }) else null,
-                        onLongClickLabel = if (hasColours) "Choose ${family.name} colour" else null,
+                        onLongClickLabel = if (hasColours) "Choose ${family.name} $variantNoun" else null,
                     ),
             ) {
                 if (hasColours) {

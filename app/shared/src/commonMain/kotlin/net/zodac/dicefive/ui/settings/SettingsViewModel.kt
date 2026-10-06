@@ -25,6 +25,7 @@ import net.zodac.dicefive.ui.achievements.announce
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.game.style.ScoreFrames
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 
 /** The Settings screen's switches, as saved. */
@@ -115,6 +116,7 @@ class SettingsViewModel(
         if (!DiceCupStyles.isUnlocked(settings.diceCupStyleId.first(), none)) settings.setDiceCupStyleId(DiceCupStyles.default.id)
         if (!TableBackgrounds.isUnlocked(settings.tableBackgroundId.first(), none)) settings.setTableBackgroundId(TableBackgrounds.default.id)
         if (!DiceMats.isUnlocked(settings.diceMatId.first(), none)) settings.setDiceMatId(DiceMats.default.id)
+        if (!ScoreFrames.isUnlocked(settings.scoreFrameId.first(), none)) settings.setScoreFrameId(ScoreFrames.default.id)
     }
 
     /**

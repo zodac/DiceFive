@@ -279,6 +279,17 @@ decisions behind it. Read that before changing anything visual.
   basket composed already poured appears open at rest - its contents are drawn live and cheaply, so
   there's nothing to wait for. A lid is only drawn behind the contents once it's swung past upright;
   a lid rattling low in the shake is over them. The woven body and shadow are painted once.
+  **Frames** (`ScoreFrame`, `ScoreFrames.kt`, the fifth Styles category, saved as `score_frame_id`):
+  what marks the player whose turn it is in the row of player tabs (`PlayerHeaderBar`), drawn behind
+  the active tab's name and score - only that tab, as the ring always was. Classic (Ring) is that old
+  1.5dp ring, unchanged. The rest are drawn only in shades of the player's own colour, so one pick
+  serves all four players; a family's "colours" are therefore *designs* (`StyleCatalog.variantNoun`,
+  read out as "Choose Floral design"), every one shown in player 1's default colour on the Styles screen.
+  Floral (Rose, Daisy, Vine, 4 achievements), Art Deco (Fan, Stepped, 8), Tribal (Swirl, Flame, 13),
+  Wreath (Laurel, Olive, 22), Greek (Key, Waves, 24), Celtic (Knot, 70 - the gaps at its crossings are
+  cleared in a layer of its own), Neon (Single, Double, 72), Pixel (Retro, 77). Authored in dp
+  (`inDp`), mirrored per corner, stretched to any tab width; static, built only when the tab redraws,
+  and allowed a few dp past the tab into the gap beside it (drawn ahead of the tab's clip).
   The Styles screen (`ui/styles/`) is the picker: one tile per family, showing the picked colour
   (or the family's first), colour dots along the bottom when it has more than one, and a long
   press popping up a scrollable row of previews, one per colour (no colour names on screen - the

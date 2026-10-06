@@ -7,7 +7,7 @@ import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
 
 /**
- * The four saved Styles picks, as ids, with the achievements that decide which of them are unlocked -
+ * The five saved Styles picks, as ids, with the achievements that decide which of them are unlocked -
  * everything the menu's logo and the Styles screen need to draw a player's picks. Ids rather than
  * the styles themselves, as in [SettingsRepository]: resolving them is the UI's job.
  */
@@ -17,6 +17,10 @@ data class SavedStyles(
     val tableBackgroundId: String,
     val diceMatId: String,
     val achievements: AchievementsState,
+    // Last, with ScoreFrames.default's id, as it came after the other four.
+    val scoreFrameId: String = "classic",
+    /** The size the Styles page's cards fit its screen at, as the Styles screen saved it - null until it's measured. */
+    val stylesPageFit: String? = null,
 )
 
 /**
@@ -33,4 +37,5 @@ fun savedStylesFlow(settings: SettingsRepository, achievements: AchievementStore
         achievements?.state ?: flowOf(AchievementsState()),
     ) { diceId, cupId, backgroundId, matId, achievementsState ->
         SavedStyles(diceId, cupId, backgroundId, matId, achievementsState)
-    }
+    }.combine(settings.scoreFrameId) { styles, frameId -> styles.copy(scoreFrameId = frameId) }
+        .combine(settings.stylesPageFit) { styles, fit -> styles.copy(stylesPageFit = fit) }

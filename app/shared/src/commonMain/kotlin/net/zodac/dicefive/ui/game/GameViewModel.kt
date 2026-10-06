@@ -69,6 +69,7 @@ import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.GameVisualTheme
 import net.zodac.dicefive.ui.game.style.StyleCatalog
 import net.zodac.dicefive.ui.game.style.TableArt
+import net.zodac.dicefive.ui.game.style.ScoreFrames
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 
 /**
@@ -300,7 +301,11 @@ class GameViewModel(
                 background = TableBackgrounds.unlockedById(backgroundId, achievements),
                 mat = DiceMats.unlockedById(matId, achievements),
             )
-        }
+        }.combine(
+            combine(settingsRepository.scoreFrameId, achievementsRepository?.state ?: flowOf(AchievementsState())) { frameId, achievements ->
+                ScoreFrames.unlockedById(frameId, achievements)
+            },
+        ) { theme, frame -> theme.copy(frame = frame) }
         combine(
             visualTheme,
             settingsRepository.soundEnabled,
@@ -1073,7 +1078,8 @@ class GameViewModel(
             val playedNonDefaultStyle = isNonDefaultStyle(settings.diceStyleId, DiceStyles, achievements) ||
                 isNonDefaultStyle(settings.diceCupStyleId, DiceCupStyles, achievements) ||
                 isNonDefaultStyle(settings.tableBackgroundId, TableBackgrounds, achievements) ||
-                isNonDefaultStyle(settings.diceMatId, DiceMats, achievements)
+                isNonDefaultStyle(settings.diceMatId, DiceMats, achievements) ||
+                isNonDefaultStyle(settings.scoreFrameId, ScoreFrames, achievements)
             val context = GameStartContext(
                 playedNonDefaultStyle = playedNonDefaultStyle,
                 hasHumanPlayerNamedZodac = hasZodacAsPlayerTwo,

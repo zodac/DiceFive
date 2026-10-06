@@ -15,6 +15,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -30,6 +31,7 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.savedstate.read
+import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.ui.achievements.AchievementsScreen
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
@@ -87,7 +89,12 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 // Under the menu, which is opaque: runs the Styles page's drawing code once while the
                 // menu idles, so opening Styles isn't the first time it runs - see StylesWarmUp.
-                StylesWarmUp(picks = savedStyles, width = maxWidth)
+                val warmUpScope = rememberCoroutineScope()
+                StylesWarmUp(
+                    picks = savedStyles,
+                    width = maxWidth,
+                    onPageFit = { fit -> warmUpScope.launch { container.settingsRepository.setStylesPageFit(fit) } },
+                )
                 MenuScreen(
                     hasInProgressGame = hasInProgressGame,
                     onContinue = { navController.navigate(Screen.playSetup(resume = true)) },

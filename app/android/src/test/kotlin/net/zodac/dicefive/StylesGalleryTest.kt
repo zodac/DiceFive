@@ -15,6 +15,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -76,7 +77,7 @@ class StylesGalleryTest {
     @Test
     fun `every category has a gallery switch, off to start with`() {
         open()
-        for (title in listOf("Dice", "Dice Cup", "Mat", "Background")) {
+        for (title in listOf("Dice", "Dice Cup", "Mat", "Background", "Frame")) {
             val toggle = compose.onNodeWithContentDescription("$title gallery")
             toggle.assertIsOff()
             val node = toggle.fetchSemanticsNode()
@@ -118,11 +119,11 @@ class StylesGalleryTest {
 
     @Test
     @Config(qualifiers = "w360dp-h780dp")
-    fun `a narrow phone's galleries fit four dice, cups and backgrounds to a line, and three mats`() {
+    fun `a narrow phone's galleries fit four dice, cups and backgrounds to a line, and three mats and frames`() {
         open()
         // Frame by frame: the mats' and backgrounds' animated art never lets the page go idle once it's on screen.
         compose.mainClock.autoAdvance = false
-        val expected = listOf(Triple("Dice", "Dice Cup", 4), Triple("Dice Cup", "Mat", 4), Triple("Mat", "Background", 3))
+        val expected = listOf(Triple("Dice", "Dice Cup", 4), Triple("Dice Cup", "Mat", 4), Triple("Mat", "Background", 3), Triple("Background", "Frame", 4))
         for ((title, next, perLine) in expected) {
             compose.onNodeWithContentDescription("$title gallery").performClick()
             settle()
@@ -136,11 +137,15 @@ class StylesGalleryTest {
             settle()
         }
         // The last card: everything below its title.
-        compose.onNodeWithContentDescription("Background gallery").performClick()
+        // Below the fold on this phone: the page swiped up to it first, so the tap lands on its toggle.
+        compose.onRoot().performTouchInput { swipeUp(startY = bottom - 100f, endY = top + 100f) }
         settle()
-        val top = compose.onNode(isHeading() and hasText("Background")).fetchSemanticsNode().positionInRoot.y
+        compose.onNodeWithContentDescription("Frame gallery").performClick()
+        settle()
+        compose.onNodeWithContentDescription("Frame gallery").assertIsOn()
+        val top = compose.onNode(isHeading() and hasText("Frame")).fetchSemanticsNode().positionInRoot.y
         val lines = compose.onAllNodes(tiles).fetchSemanticsNodes().filter { it.positionInRoot.y > top }.groupBy { it.positionInRoot.y }
-        assertEquals("Background: ${lines.values.map { it.size }}", 4, lines.values.first().size)
+        assertEquals("Frame: ${lines.values.map { it.size }}", 3, lines.values.first().size)
     }
 
     @Test
@@ -167,7 +172,7 @@ class StylesGalleryTest {
     fun `every category spaces its tiles the same in its row and its gallery`() {
         open()
         compose.mainClock.autoAdvance = false
-        val titles = listOf("Dice", "Dice Cup", "Mat", "Background")
+        val titles = listOf("Dice", "Dice Cup", "Mat", "Background", "Frame")
         // Each category's tiles, left to right in their first line: those below its title and above the next's.
         fun steps(index: Int): List<Float> {
             val top = compose.onNode(isHeading() and hasText(titles[index])).fetchSemanticsNode().positionInRoot.y

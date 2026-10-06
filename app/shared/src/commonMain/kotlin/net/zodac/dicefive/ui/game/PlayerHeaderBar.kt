@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -51,6 +51,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
+import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.color
 
 /** How long a score takes to count up: most turns' points rise in [SCORE_RISE_MIN_MILLIS], a bigger
@@ -64,11 +65,12 @@ internal fun scoreRiseMillis(pointsGained: Int): Int =
 
 /**
  * The top row of player tabs: name, running total, place in the game so far (see [standings] - none
- * in a solo game, or before anyone has scored a turn), and (for the active player) a colored outline
- * plus a small dot underneath - the only "whose turn is it" indicator, since the scoring grid
+ * in a solo game, or before anyone has scored a turn), and (for the active player) a frame in their
+ * colour - the ring of the Classic frame, or whichever [ScoreFrame][net.zodac.dicefive.ui.game.style.ScoreFrame]
+ * they've picked on the Styles screen - plus a small dot underneath: the only "whose turn is it" indicator, since the scoring grid
  * below always shows just the active player's own card. Tapping a tab shows that player's
  * scorecard read-only in place of the live board (see [PlayerHeaderBar]'s `onPlayerTap`) - the
- * active player's own ring never moves for this, but the tab being viewed gets a dashed outline
+ * active player's own frame never moves for this, but the tab being viewed gets a dashed outline
  * so it's clear the board on screen isn't the current turn's.
  *
  * Tabs are only tappable when [enabled] - an AI's turn plays out on its own with nobody to ask it
@@ -126,11 +128,14 @@ private fun PlayerTab(
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(10.dp)
+    val frame = LocalGameVisualTheme.current.frame
     Column(
         modifier = modifier
             .padding(horizontal = 3.dp)
+            // Whose turn it is: the player's chosen frame, behind the name and score. Ahead of the clip,
+            // so a frame's glow or ornaments can spread a little past the tab, into the gap beside it.
+            .then(if (active) Modifier.drawBehind { with(frame) { drawFrame(color) } } else Modifier)
             .clip(shape)
-            .then(if (active) Modifier.border(1.5.dp, color.copy(alpha = 0.85f), shape) else Modifier)
             .then(if (viewed) Modifier.dashedBorder(1.5.dp, color.copy(alpha = 0.85f), 10.dp) else Modifier)
             .clickable(enabled = enabled, role = Role.Tab, onClickLabel = "View scorecard", onClick = onClick)
             // Selected is the scorecard on view; the border's other meaning - whose turn it is - is said

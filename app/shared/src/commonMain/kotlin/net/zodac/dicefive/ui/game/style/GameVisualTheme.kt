@@ -10,8 +10,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 
 /**
- * One swappable piece of table art in one colour - a [DiceStyle], [DiceCupStyle], [TableBackground]
- * or [DiceMat]. [id] is what the player's pick is saved as, so it must never change once shipped.
+ * One swappable piece of table art in one colour - a [DiceStyle], [DiceCupStyle], [TableBackground],
+ * [DiceMat] or [ScoreFrame]. [id] is what the player's pick is saved as, so it must never change once shipped.
  */
 interface TableArt {
     val id: String
@@ -174,12 +174,27 @@ interface DiceMat : TableArt {
     fun DiceTrayDecoration(modifier: Modifier) {}
 }
 
+/**
+ * Frames the tab of the player whose turn it is, in the row of player tabs above the board - in place
+ * of the plain ring it once had (Classic). Drawn in that player's own colour, so one frame serves every
+ * player: shades of [drawFrame]'s colour only, never a colour of its own.
+ */
+interface ScoreFrame : TableArt {
+    /**
+     * Draws the frame round a tab this DrawScope's size, in the player's [color]. It's drawn behind the
+     * tab's name and score, so it can't hide them, and may spread a few dp past the tab's edges into the
+     * gaps between tabs, but no further.
+     */
+    fun DrawScope.drawFrame(color: Color)
+}
+
 /** Bundles the pluggable game-table art. Swap any field to re-skin that piece independently. */
 data class GameVisualTheme(
     val diceStyle: DiceStyle = DiceStyles.default,
     val diceCupStyle: DiceCupStyle = DiceCupStyles.default,
     val background: TableBackground = TableBackgrounds.default,
     val mat: DiceMat = DiceMats.default,
+    val frame: ScoreFrame = ScoreFrames.default,
 )
 
 val LocalGameVisualTheme = staticCompositionLocalOf { GameVisualTheme() }
