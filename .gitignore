@@ -14,9 +14,6 @@ build/
 *.jpg
 *.jpeg
 *.webp
-# ...except the app's own bundled art, which ships in the build (each one has its source and
-# license in app/licensing/asset-sources.json, which verifyAssetSources checks).
-!/app/shared/src/commonMain/composeResources/drawable/*.webp
 
 # Release signing material must never be committed - CI decodes it from secrets at build time.
 *.jks
