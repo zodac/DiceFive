@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Balance
 import androidx.compose.material.icons.filled.Block
@@ -239,6 +240,10 @@ val Achievement.icon: ImageVector
         Achievement.STUD_LUCKY_SEVEN -> Icons.Filled.Filter7
         Achievement.THIRD_WIND_WIN -> Icons.Filled.Cyclone
         Achievement.THIRD_WIND_NO_ZEROES -> Icons.Filled.Air
+        // A list with every job ticked off - the contract seen through.
+        Achievement.HIT_LIST_WIN -> Icons.Filled.AssignmentTurnedIn
+        // Drawn for this app: Material's bullseyes have no arrow in them.
+        Achievement.HIT_LIST_RIGHT_ON_TARGET -> BULLSEYE_ARROW_ICON
 
         // ---- Misfortune -------------------------------------------------------------------------
         Achievement.SCRATCHED_5X -> Icons.Filled.Cancel

@@ -28,6 +28,11 @@ internal fun ScoreCategory.spokenName(irish: Boolean): String = when (this) {
     ScoreCategory.TWO_PAIR -> "Two Pair"
     ScoreCategory.EVENS -> "Evens"
     ScoreCategory.ODDS -> "Odds"
+    ScoreCategory.TARGET_1, ScoreCategory.TARGET_2, ScoreCategory.TARGET_3, ScoreCategory.TARGET_4,
+    ScoreCategory.TARGET_5, ScoreCategory.TARGET_6, ScoreCategory.TARGET_7, ScoreCategory.TARGET_8,
+    ScoreCategory.TARGET_9, ScoreCategory.TARGET_10, ScoreCategory.TARGET_11, ScoreCategory.TARGET_12,
+    -> "Target ${ScoreCategory.TARGETS.indexOf(this) + 1}"
+    ScoreCategory.ALIBI -> "Alibi"
 }
 
 /** A die colour's name - the Irish flag's colours in its place while [irish] (see DieColour.palette). */

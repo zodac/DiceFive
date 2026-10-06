@@ -23,6 +23,10 @@ import net.zodac.dicefive.model.ScoreSection
  *
  * Which categories exist at all comes from the player's own [PlayerState.categories]. "Open" means a
  * box with a slot still to score in ([PlayerState.isOpen]).
+ *
+ * Hit List's boxes ([ScoreSection.HIT_LIST]) score against the player's own [PlayerState.hitList]: a target its
+ * [net.zodac.dicefive.model.HitTarget.score], and the Alibi [alibiScore]. The dice must be in their columns' order
+ * for an exact hit - [net.zodac.dicefive.model.GameState.scoringDice] is.
  */
 object ScoreCalculator {
 
@@ -45,12 +49,19 @@ object ScoreCalculator {
     fun timeoutCategory(player: PlayerState, dice: List<Die>): ScoreCategory = availableCategories(player, dice).first()
 
     /** The scorecard cell value for [category] with the current [dice] (excludes any 5x bonus chip). */
-    fun scoreFor(player: PlayerState, category: ScoreCategory, dice: List<Die>): Int =
-        if (category.jokerFreeFill && isJokerSituation(player, dice)) {
-            requireNotNull(category.fixedScore)
-        } else {
-            DiceScoring.score(category, dice)
-        }
+    fun scoreFor(player: PlayerState, category: ScoreCategory, dice: List<Die>): Int = when {
+        category == ScoreCategory.ALIBI -> alibiScore(player, dice)
+        category.isTarget -> player.targetOf(category).score(dice)
+        category.jokerFreeFill && isJokerSituation(player, dice) -> requireNotNull(category.fixedScore)
+        else -> DiceScoring.score(category, dice)
+    }
+
+    /**
+     * What the Alibi scores for [dice]: the points of the best open target they hit, as a plain hit - an exact one
+     * isn't doubled here - or nothing when they hit none.
+     */
+    fun alibiScore(player: PlayerState, dice: List<Die>): Int =
+        player.hitList.filter { (category, target) -> player.isOpen(category) && target.isHit(dice) }.maxOfOrNull { it.value.points } ?: 0
 
     /** Whether committing this roll (in whichever category ends up chosen) earns the 5x bonus chip. */
     fun awardsFiveOfAKindBonus(player: PlayerState, dice: List<Die>): Boolean = isJokerSituation(player, dice)

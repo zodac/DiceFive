@@ -356,6 +356,13 @@ object AchievementEngine {
 
         // Game modes. Only a Tricolour scorecard has these boxes at all, so no separate mode check.
         award(Achievement.TRICOLOUR_ALL_COLOURS, anyHuman { player -> TRICOLOUR_SET.all { player.scored(it) } })
+        // Only a Hit List card has targets. A target's exact hit is the only score worth its exact points.
+        award(
+            Achievement.HIT_LIST_RIGHT_ON_TARGET,
+            anyHuman { player ->
+                player.hitList.any { (category, target) -> target.called.size == target.places.size && player.hasScore(category, target.exactPoints) }
+            },
+        )
 
         // Known the moment the table is set.
         award(Achievement.FULL_TABLE, players.size == FULL_TABLE_SIZE)
@@ -399,7 +406,8 @@ object AchievementEngine {
         // boxes switched off (Quickfire) - six turns without a zero is nothing like thirteen.
         val singleScoreCard = state.gameMode.scoresPerCategory == 1 && !state.rollModifiers.isActive && state.disabledCategories.isEmpty()
         val noZeroes = anyHuman { player -> player.allScores.none { it == 0 } }
-        award(Achievement.NO_ZEROES, singleScoreCard && noZeroes)
+        // Nor on a card of targets (Hit List), where a partial hit leaves a zero only now and then.
+        award(Achievement.NO_ZEROES, singleScoreCard && !state.gameMode.hasHitList && noZeroes)
         award(Achievement.THIRD_WIND_NO_ZEROES, state.gameMode == GameMode.THIRD_WIND && noZeroes)
         // The best is off the Leaderboard, so a game that isn't on it has nothing to compare with.
         award(
@@ -411,7 +419,8 @@ object AchievementEngine {
         // result rather than firing off a total that's already passed the mark mid-game. Not on a
         // card scored three times over, whose totals clear every rung as a matter of course.
         // Nor with the Extended Scores modifier's three extra boxes, which add around 50 points to a card.
-        val standardCard = singleScoreCard && !state.extendedScores
+        // Nor on a card of targets (Hit List), whose totals are a different measure altogether.
+        val standardCard = singleScoreCard && !state.extendedScores && !state.gameMode.hasHitList
         award(Achievement.SCORE_200, standardCard && bestHumanScore >= 200)
         award(Achievement.SCORE_300, standardCard && bestHumanScore >= 300)
         award(Achievement.SCORE_400, standardCard && bestHumanScore >= 400)
@@ -432,9 +441,10 @@ object AchievementEngine {
         award(Achievement.COMEBACK, multiplayer && humanWon && context.trailedIntoFinalRound)
         award(
             Achievement.ZERO_TO_HERO,
-            // Three zeroes over 39 turns (Third Wind), with Two Pair on the card, or with dice locked by
-            // Unlucky Dice, is the usual run of things, not a comeback.
-            state.gameMode.scoresPerCategory == 1 && !state.extendedScores && state.unluckyDice == null &&
+            // Three zeroes over 39 turns (Third Wind), with Two Pair on the card, with dice locked by
+            // Unlucky Dice, or on a card of targets (Hit List) that misses about half of them, is the usual run of
+            // things, not a comeback.
+            state.gameMode.scoresPerCategory == 1 && !state.extendedScores && state.unluckyDice == null && !state.gameMode.hasHitList &&
                 multiplayer && humanWon &&
                 humans.any { it.totalScore == state.topScore && it.allScores.count { v -> v == 0 } >= ZEROES_FOR_HERO },
         )
@@ -447,6 +457,7 @@ object AchievementEngine {
         )
         award(Achievement.STUD_WIN, multiplayer && humanWon && state.gameMode == GameMode.STUD)
         award(Achievement.THIRD_WIND_WIN, multiplayer && humanWon && state.gameMode == GameMode.THIRD_WIND)
+        award(Achievement.HIT_LIST_WIN, multiplayer && humanWon && state.gameMode == GameMode.HIT_LIST)
         // Any mode - the game's length comes from player 1's own mode, so it's "all but 3" of 13 turns
         // in Standard, of 6 in Quickfire, of 17 in Tricolour, and of 39 in Third Wind.
         val playerOneScoredThemselves = players[0].turnsPerGame - context.playerOneTimeouts
@@ -464,9 +475,10 @@ object AchievementEngine {
         )
 
         // Misfortune that only a finished score can settle.
-        // Not on a card with boxes switched off (Quickfire), where a total is low by construction.
-        award(Achievement.SCORE_UNDER_100, anyHuman { it.hasFullCard && it.totalScore < COLD_DICE_SCORE })
-        award(Achievement.LOW_ROLLS, anyHuman { it.hasFullCard && it.totalScore < LOW_ROLLS_SCORE })
+        // Not on a card with boxes switched off (Quickfire), where a total is low by construction, nor on a card of
+        // targets (Hit List), where a total under 100 comes of an ordinary run of misses.
+        award(Achievement.SCORE_UNDER_100, anyHuman { it.hasStandardTotals && it.totalScore < COLD_DICE_SCORE })
+        award(Achievement.LOW_ROLLS, anyHuman { it.hasStandardTotals && it.totalScore < LOW_ROLLS_SCORE })
         // Chance is excluded because it cannot be zeroed - five dice always sum to at least 5.
         award(
             Achievement.ALL_ZEROES,
@@ -633,6 +645,10 @@ object AchievementEngine {
      * boxes, the totals and the zeroes the achievements count are a different measure. */
     private val PlayerState.hasFullCard: Boolean
         get() = disabledCategories.isEmpty()
+
+    /** Whether this card's total means what Standard's does: every box on it ([hasFullCard]), and boxes, not targets. */
+    private val PlayerState.hasStandardTotals: Boolean
+        get() = hasFullCard && !gameMode.hasHitList
 
     /** ONES holds exactly 1, TWOS exactly 2, ... SIXES exactly 6 (in any one of its slots) -
      * [PlayerState.UPPER_CATEGORIES] is already declared in that order, so its index doubles as the

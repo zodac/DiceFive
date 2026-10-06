@@ -22,6 +22,7 @@ import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.HitTarget
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
@@ -33,6 +34,7 @@ import net.zodac.dicefive.ui.game.GameBoard
 import net.zodac.dicefive.ui.game.ReadOnlyScoreboard
 import net.zodac.dicefive.ui.game.ScoreGrid
 import net.zodac.dicefive.ui.game.TotalsButton
+import net.zodac.dicefive.ui.game.HitListTotalsButton
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -317,5 +319,51 @@ class BoardSemanticsTest {
         }
 
         compose.onNodeWithContentDescription("Totals").assert(hasStateDescription("Upper 40, no bonus yet, lower 90"))
+    }
+
+    @Test
+    fun `a Hit List target says what it calls - what it would score and how close the dice are - and the Alibi what it stands in for`() {
+        val scored = mutableListOf<ScoreCategory>()
+        // The rest call three 5s, which these dice never hit.
+        val hitList = ScoreCategory.TARGETS.associateWith { HitTarget(listOf(5, 5, null, null, 5), points = 25) } + mapOf(
+            ScoreCategory.TARGET_1 to HitTarget(listOf(4, 1, 3, 2, null), points = 20),
+            ScoreCategory.TARGET_2 to HitTarget(listOf(5, null, 5, null, 1), points = 15),
+            ScoreCategory.TARGET_3 to HitTarget(listOf(1, 2, 3, 4, 5), points = 40),
+            ScoreCategory.TARGET_4 to HitTarget(listOf(null, 6, null, 1, 4), points = 10),
+        )
+        val state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Tester")), GameMode.HIT_LIST).let { game ->
+            game.copy(
+                hitList = hitList,
+                players = game.players.map { it.copy(hitList = hitList) },
+                phase = TurnPhase.ROLLED,
+                rollsRemaining = 1,
+                dice = listOf(4, 1, 3, 2, 6).map { Die(it) },
+            )
+        }
+        compose.setContent {
+            DiceFiveTheme {
+                GameBoard(state = state, rolling = false, canUndo = false, onScoreCategory = { scored += it }, onCupTap = {}, onUndo = {}, modifier = Modifier.width(360.dp))
+            }
+        }
+
+        compose.onNodeWithContentDescription("Target 1, 4, 1, 3, 2, any. 20 points, 40 exact")
+            .assert(hasStateDescription("Would score 40, exact hit"))
+            .performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithContentDescription("Target 4, any, 6, any, 1, 4. 10 points, 20 exact").assert(hasStateDescription("Would score 10, hit, 0 of 3 in place"))
+        compose.onNodeWithContentDescription("Target 3, 1, 2, 3, 4, 5. 40 points, 80 exact").assert(hasStateDescription("Would score 15, partial hit, 4 of 5 rolled, 1 in place"))
+        compose.onNodeWithContentDescription("Target 2, 5, any, 5, any, 1. 15 points, 30 exact").assert(hasStateDescription("Would score 0, 1 of 3 rolled, 0 in place"))
+        // The best target hit is the 20, which the Alibi takes undoubled.
+        compose.onNodeWithContentDescription("Alibi").assert(hasStateDescription("Would score 20"))
+
+        assertEquals(listOf(ScoreCategory.TARGET_1), scored)
+    }
+
+    @Test
+    fun `the Hit List Totals button says the targets' total and the Alibi's`() {
+        compose.setContent {
+            DiceFiveTheme { HitListTotalsButton(targetsTotal = 60, alibiTotal = 20) }
+        }
+
+        compose.onNodeWithContentDescription("Totals").assert(hasStateDescription("Targets 60, alibi 20"))
     }
 }

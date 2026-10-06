@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.zodac.dicefive.model.DieColour
+import net.zodac.dicefive.model.HitTarget
+import net.zodac.dicefive.model.PlaceMatch
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
@@ -93,6 +95,9 @@ fun CategoryTile(
     fiveOfAKindBonusAmount: Int = 0,
     /** A solid outline in this colour in place of the usual border - the box a player last scored in (see [LastScoredHighlight]). */
     outlineColor: Color? = null,
+    /** The target a Hit List target box calls, drawn in place of a glyph - and with [matches], how the dice stand against it. */
+    target: HitTarget? = null,
+    matches: List<PlaceMatch>? = null,
     onClick: (() -> Unit)? = null,
 ) {
     val irishTricolour = LocalIrishTricolour.current
@@ -153,6 +158,8 @@ fun CategoryTile(
             dimmed = scored || disabled,
             fiveOfAKindBonusCount = fiveOfAKindBonusCount,
             fiveOfAKindBonusAmount = fiveOfAKindBonusAmount,
+            target = target,
+            matches = matches,
         )
         if (disabled) Box(modifier = Modifier.matchParentSize().drawBehind { drawSlash() })
         if (highlighted) GlowBorder(shape)

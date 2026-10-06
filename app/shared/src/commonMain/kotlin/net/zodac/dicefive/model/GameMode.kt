@@ -26,6 +26,30 @@ private val TRICOLOUR_CATEGORIES = STANDARD_CATEGORIES + listOf(
 )
 
 /**
+ * Hit List's card: twelve targets, from the easiest (three numbers named, two any places) to the hardest, then the
+ * Alibi. Points come from the odds of hitting the shape in a whole turn chasing it (three rolls, holding what matches):
+ * about 67% for "abc··" down to 11% for "aabbc" - roughly inversely, rounded to fives, with a little extra on the
+ * hardest. An exact hit's odds are the same for every shape with the same number of named places: 7.5% with two any
+ * places, 3.2% with one, 1.3% with none.
+ */
+private val HIT_LIST_SHAPES = listOf(
+    TargetShape("abc··", points = 10),
+    TargetShape("abc··", points = 10),
+    TargetShape("aab··", points = 15),
+    TargetShape("aab··", points = 15),
+    TargetShape("abcd·", points = 20),
+    TargetShape("abcd·", points = 20),
+    TargetShape("aabc·", points = 25),
+    TargetShape("aabb·", points = 30),
+    TargetShape("abcde", points = 40),
+    TargetShape("abcde", points = 40),
+    TargetShape("aabcd", points = 55),
+    TargetShape("aabbc", points = 75),
+)
+
+private val HIT_LIST_CATEGORIES = ScoreCategory.TARGETS.take(HIT_LIST_SHAPES.size) + ScoreCategory.ALIBI
+
+/**
  * A set of rules a game can be played under, chosen on the setup screen and carried on [GameState]
  * (and each [PlayerState]) for the life of the game.
  *
@@ -105,6 +129,13 @@ enum class GameMode(
      * game starts - see [drawDisabledCategories]. The same ones for every player of that game.
      */
     val randomDisabledCategories: Int = 0,
+    /**
+     * The shapes of the targets a game of this mode draws, one per [ScoreCategory.TARGETS] box on [categories], in
+     * order - see [drawHitList]. Empty in every mode without targets.
+     */
+    val hitListShapes: List<TargetShape> = emptyList(),
+    /** Whether the Extended Scores modifier can be switched on for this mode - its boxes need a card they mean something on. */
+    val allowsExtendedScores: Boolean = true,
 ) {
 
     /**
@@ -255,14 +286,50 @@ enum class GameMode(
         scoresPerCategory = 3,
         countsOnLeaderboard = false,
     ),
+
+    /**
+     * Beyond the official rules: Standard's dice and three rolls, but none of its boxes. The card is twelve targets,
+     * drawn fresh each game (the same for every player) from [HIT_LIST_SHAPES], and an Alibi. A target names a
+     * number for each die's place, left to right, with up to two places any die fills. Every named number among the
+     * dice, in any order, hits it for its points; every one in its own place is an exact hit, for double. Short of a hit,
+     * a partial hit scores half the points times the share of its numbers rolled, rounded to the nearest 5 - once at
+     * least two of them are rolled. The Alibi takes a hit in place of its target - the highest-scoring open target the
+     * dice hit, never doubled - leaving the target open to try again; it takes no partial hits. The Extended Scores
+     * modifier isn't allowed. Its scores don't go on the Leaderboard, since each game's card is different.
+     *
+     * Max score: every target an exact hit, `2*(10+10+15+15+20+20+25+30+40+40+55+75) = 710`, `+75` the Alibi taking
+     * the 75-point target before its exact hit. `710+75 = 785`.
+     *
+     * Max rolls: twelve targets and the Alibi, 3 rolls each. `13*3 = 39`.
+     */
+    HIT_LIST(
+        id = "hit_list",
+        displayName = "Hit List",
+        description = "Roll a list of number targets - double points with every die in place",
+        diceCount = 5,
+        scoringDiceCount = 5,
+        rollsPerTurn = 3,
+        dieValues = 1..6,
+        dieColours = emptyList(),
+        categories = HIT_LIST_CATEGORIES,
+        upperBonusThreshold = 63,
+        upperBonusAmount = 35,
+        fiveOfAKindBonusAmount = 100,
+        maxPossibleScore = 785,
+        maxRollsPerGame = 39,
+        countsOnLeaderboard = false,
+        hitListShapes = HIT_LIST_SHAPES,
+        allowsExtendedScores = false,
+    ),
     ;
 
     /**
      * The scorecard this mode plays with: [categories], plus the Extended Scores modifier's boxes after them
-     * when [extendedScores] is on. What a game's own card is read from - never [categories] directly.
+     * when [extendedScores] is on and the mode allows them ([allowsExtendedScores]). What a game's own card is read
+     * from - never [categories] directly.
      */
     fun categoriesWith(extendedScores: Boolean): List<ScoreCategory> =
-        if (extendedScores) categories + ScoreCategory.EXTENDED else categories
+        if (extendedScores && allowsExtendedScores) categories + ScoreCategory.EXTENDED else categories
 
     /** How many boxes of [categories] are switched off in a game: [disabledCategories], and the random ones drawn. */
     val disabledCategoryCount: Int
@@ -280,6 +347,26 @@ enum class GameMode(
     fun drawDisabledCategories(random: Random): Set<ScoreCategory> {
         if (randomDisabledCategories == 0) return disabledCategories
         return disabledCategories + (categories - disabledCategories).shuffled(random).take(randomDisabledCategories)
+    }
+
+    /** Whether this mode's card is a list of targets (see [hitListShapes]). */
+    val hasHitList: Boolean
+        get() = hitListShapes.isNotEmpty()
+
+    /**
+     * The targets a new game of this mode deals every player: one drawn from each of [hitListShapes] with [random],
+     * for each target box in order - none of them the same. Nothing is drawn from [random] in a mode without them, so
+     * every other mode's seeded games come out as they always did.
+     */
+    fun drawHitList(random: Random): Map<ScoreCategory, HitTarget> {
+        if (!hasHitList) return emptyMap()
+        val drawn = mutableListOf<HitTarget>()
+        for (shape in hitListShapes) {
+            var target = HitTarget.draw(shape, random)
+            while (drawn.any { it.places == target.places }) target = HitTarget.draw(shape, random)
+            drawn += target
+        }
+        return categories.filter { it.isTarget }.zip(drawn).toMap()
     }
 
     /**

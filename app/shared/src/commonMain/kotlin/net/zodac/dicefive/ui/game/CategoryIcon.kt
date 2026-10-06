@@ -3,6 +3,9 @@ package net.zodac.dicefive.ui.game
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -16,12 +19,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import net.zodac.dicefive.model.HitTarget
+import net.zodac.dicefive.model.PlaceMatch
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.resources.Res
@@ -36,7 +45,8 @@ import org.jetbrains.compose.resources.painterResource
 /**
  * The small glyph shown inside a [CategoryTile]: dice pips for the upper section, and a bespoke
  * mark (Nx badge, house, staircase, "?") for each lower-section category, and a flat colour square
- * (or, for Coloured House, the house again) for each colour-section category.
+ * (or, for Coloured House, the house again) for each colour-section category. A Hit List target shows the
+ * [target] it calls, and how the dice stand against it ([matches]) - see [TargetIcon].
  */
 @Composable
 fun CategoryIcon(
@@ -53,8 +63,15 @@ fun CategoryIcon(
     fiveOfAKindBonusCount: Int = 0,
     // The bonus those extra 5x are worth, written at the tile's right end - only for the wide 5x tile, which has the room.
     fiveOfAKindBonusAmount: Int = 0,
+    // The target a Hit List target box calls, and - while there are dice to compare - how each place stands.
+    target: HitTarget? = null,
+    matches: List<PlaceMatch>? = null,
 ) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        if (target != null) {
+            TargetIcon(target, matches, color)
+            return@Box
+        }
         when (category) {
             in PlayerState.UPPER_CATEGORIES -> {
                 val pipValue = PlayerState.UPPER_CATEGORIES.indexOf(category) + 1
@@ -92,6 +109,8 @@ fun CategoryIcon(
             ScoreCategory.TWO_PAIR -> BadgeLabel("2+2", color, labelFontSize)
             ScoreCategory.EVENS -> BadgeLabel("Ev", color, labelFontSize)
             ScoreCategory.ODDS -> BadgeLabel("Od", color, labelFontSize)
+            // A word, like the text badges: there's no picture of an alibi. Smaller than 5x's two characters.
+            ScoreCategory.ALIBI -> BadgeLabel("Alibi", color, labelFontSize * ALIBI_LABEL_SCALE)
             else -> Unit
         }
     }
@@ -108,6 +127,91 @@ fun CategoryIcon(
 private val LARGE_TILE_BADGE_BASIS = 76.dp
 private const val BADGE_EDGE_INSET_FRACTION = 2f / 48f
 private const val BADGE_SIZE_FRACTION = 14f / 48f
+
+/** How much smaller the Alibi's five letters are than 5x's two, so they fit the same tile. */
+private const val ALIBI_LABEL_SCALE = 0.6f
+
+/** A target's places as a fraction of its tile's width, and its points line's. */
+private const val TARGET_PLACE_TEXT_FRACTION = 0.25f
+private const val TARGET_POINTS_TEXT_FRACTION = 0.2f
+private const val TARGET_PLACE_WIDTH_FRACTION = 0.165f
+private const val ANY_PLACE_ALPHA = 0.45f
+
+/** How faint a number the dice don't show is, while they're being compared - below a rolled one's full white. */
+private const val MISSING_PLACE_ALPHA = 0.55f
+private const val TARGET_POINTS_ALPHA = 0.75f
+
+/** The bar under a matched place: how much of the place's width it spans, how thick it is, and its gap above. */
+private const val MATCH_BAR_WIDTH_FRACTION = 0.7f
+private val MATCH_BAR_HEIGHT = 1.5.dp
+private val MATCH_BAR_GAP = 1.dp
+
+/**
+ * A Hit List target: its five places in a row, left to right - a number, or a dot for any die - over its points.
+ * Sized from the tile, not the system font: it's part of the tile's art, five places in a fixed width, and the box's
+ * spoken name says it in full (see `CategoryCell`).
+ *
+ * With [matches], each named place shows how the dice stand against it: a short bar under it once a die shows its
+ * number, and the number and bar gold once that die is in its place, so how close the dice are can be seen at a
+ * glance. A bar of its own under each place, not a text underline, which runs neighbouring places together. A number
+ * the dice don't show is faint white, never the tile's own colour: that's gold on a lit tile, the colour of in place.
+ */
+@Composable
+private fun TargetIcon(target: HitTarget, matches: List<PlaceMatch>?, color: Color) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        val density = LocalDensity.current
+        val placeSize = with(density) { (maxWidth * TARGET_PLACE_TEXT_FRACTION).toSp() }
+        val pointsSize = with(density) { (maxWidth * TARGET_POINTS_TEXT_FRACTION).toSp() }
+        val placeWidth = maxWidth * TARGET_PLACE_WIDTH_FRACTION
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Row {
+                target.places.forEachIndexed { index, value ->
+                    val match = matches?.getOrNull(index)
+                    val barColor = when (match) {
+                        PlaceMatch.IN_PLACE -> GoldAccent
+                        PlaceMatch.ROLLED -> TileIconColor
+                        else -> null
+                    }
+                    Text(
+                        text = value?.toString() ?: "\u00B7",
+                        color = when {
+                            value == null -> color.copy(alpha = color.alpha * ANY_PLACE_ALPHA)
+                            match == PlaceMatch.IN_PLACE -> GoldAccent
+                            match == PlaceMatch.ROLLED -> TileIconColor
+                            // Not the tile's own colour, which is gold on a lit tile - a number the dice don't show
+                            // would read as one in place.
+                            match == PlaceMatch.MISSING -> TileIconColor.copy(alpha = MISSING_PLACE_ALPHA)
+                            else -> color
+                        },
+                        style = TextStyle(fontWeight = FontWeight.Black, fontSize = placeSize, lineHeight = placeSize, textAlign = TextAlign.Center),
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier
+                            .width(placeWidth)
+                            .padding(bottom = MATCH_BAR_HEIGHT + MATCH_BAR_GAP)
+                            .drawBehind {
+                                if (barColor != null) {
+                                    val barWidth = size.width * MATCH_BAR_WIDTH_FRACTION
+                                    drawRect(
+                                        color = barColor,
+                                        topLeft = Offset((size.width - barWidth) / 2, size.height + MATCH_BAR_GAP.toPx()),
+                                        size = Size(barWidth, MATCH_BAR_HEIGHT.toPx()),
+                                    )
+                                }
+                            },
+                    )
+                }
+            }
+            Text(
+                text = target.points.toString(),
+                color = color.copy(alpha = color.alpha * TARGET_POINTS_ALPHA),
+                style = TextStyle(fontWeight = FontWeight.Bold, fontSize = pointsSize, lineHeight = pointsSize, textAlign = TextAlign.Center),
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
+    }
+}
 
 @Composable
 private fun HouseIcon(color: Color, shadowed: Boolean = false) {

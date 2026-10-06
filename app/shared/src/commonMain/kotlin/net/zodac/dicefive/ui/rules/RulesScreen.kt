@@ -64,11 +64,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.CollectionInfo
@@ -92,7 +97,12 @@ import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.FooterPill
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.parseInlineMarkup
+import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
+import net.zodac.dicefive.model.HitTarget
+import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.ui.game.CategoryTile
+import net.zodac.dicefive.ui.game.targetProgress
 import net.zodac.dicefive.ui.game.style.IvoryDiceStyle
 import net.zodac.dicefive.ui.game.style.palette
 
@@ -131,14 +141,39 @@ private data class RulesCategory(val name: String, val description: String, val 
 /** One die in a [RulesDice] example: its [value], whether it [counts] towards the category being
  * shown (the rest are drawn faded), the [colour] it rolled in Tricolour, if any, and whether it is [locked]
  * in chains by Unlucky Dice (drawn at full strength with the chains over it, and never counting). */
-private data class ExampleDie(val value: Int, val counts: Boolean = true, val colour: DieColour? = null, val locked: Boolean = false)
+private data class ExampleDie(val value: Int, val counts: Boolean = true, val colour: DieColour? = null, val locked: Boolean = false) {
+    /** A Hit List target's place that any die fills - drawn as an empty, dashed die. */
+    val anyPlace: Boolean
+        get() = value == ANY_PLACE
+}
 
 /**
  * A row of example dice illustrating the rule above it, with what they score alongside - or, with no
  * [score], a roll on its way to a hand. The faded dice don't count towards it, or with [fadedNotHeld]
- * are the ones left unheld.
+ * are the ones left unheld. With [isTarget], it's a Hit List target rather than a roll - its places, any die
+ * filling an [ExampleDie.anyPlace] - and [score] what it's worth.
  */
-private data class RulesDice(val dice: List<ExampleDie>, val score: String?, val fadedNotHeld: Boolean = false) : RulesBlock
+private data class RulesDice(
+    val dice: List<ExampleDie>,
+    val score: String?,
+    val fadedNotHeld: Boolean = false,
+    val isTarget: Boolean = false,
+    val tile: RulesTile? = null,
+) : RulesBlock
+
+/**
+ * A Hit List box drawn at the end of a [RulesDice] row, as the board shows it for those dice - so the page shows what
+ * a target's tile looks like on its own, part filled and fully filled. A [Target] is matched against the row's dice
+ * (not for the row that is the target itself); the [Alibi] lights up as a box the dice can score in.
+ */
+private sealed interface RulesTile {
+    data class Target(val target: HitTarget) : RulesTile
+
+    data object Alibi : RulesTile
+}
+
+/** This row with [tile] drawn at its end. */
+private fun RulesDice.showing(tile: RulesTile): RulesDice = copy(tile = tile)
 
 private fun text(text: String) = RulesText(text)
 
@@ -160,6 +195,29 @@ private fun dice(vararg values: Int, counting: Int = values.size, score: String)
 /** A roll of example dice, the first [held] of which are held - drawn and read out as such, with no score. */
 private fun roll(vararg values: Int, held: Int): RulesDice =
     RulesDice(values.mapIndexed { index, value -> ExampleDie(value, counts = index < held) }, score = null, fadedNotHeld = true)
+
+/** Five example dice, the ones at [counting] making the category - for a category whose dice aren't simply the first few. */
+private fun diceCounting(vararg values: Int, counting: Set<Int>, score: String): RulesDice =
+    RulesDice(values.mapIndexed { index, value -> ExampleDie(value, counts = index in counting) }, score)
+
+/** A roll of example dice, the ones at [held] held - for a roll whose held dice aren't simply the first few. */
+private fun rollHolding(vararg values: Int, held: Set<Int>): RulesDice =
+    RulesDice(values.mapIndexed { index, value -> ExampleDie(value, counts = index in held) }, score = null, fadedNotHeld = true)
+
+/** What a Hit List [target] example writes for a place any die fills. */
+private const val ANY_PLACE = 0
+
+/** A Hit List target's places, left to right - [ANY_PLACE] where any die will do - worth [points], with its tile. */
+private fun target(vararg places: Int, points: Int): RulesDice =
+    RulesDice(
+        places.map { ExampleDie(it) },
+        score = "${points}pts",
+        isTarget = true,
+        tile = RulesTile.Target(HitTarget(places.map { it.takeIf { place -> place != ANY_PLACE } }, points)),
+    )
+
+/** The target the Hit List page's examples chase: 4 1 3 2 and an open place, worth 20. */
+private val EXAMPLE_TARGET = HitTarget(listOf(4, 1, 3, 2, null), points = 20)
 
 /** Five coloured example dice for Tricolour, the first [counting] of which make the category. */
 private fun colouredDice(vararg dice: Pair<Int, DieColour>, counting: Int = dice.size, score: String): RulesDice =
@@ -322,6 +380,50 @@ private val RULES_PAGES = listOf(
             text("In a tie break, every slot that scored **0pts** counts as a category scored **0pts**."),
             text("Scores from this mode don't go on the *Leaderboard*, but they still count towards your *Statistics*."),
             text("Everything else plays exactly the same as the *Standard* rules, just three times over!"),
+        ),
+    ),
+    RulesPage(
+        title = "Mode: Hit List",
+        tabLabel = "Hit List",
+        blocks = listOf(
+            text("A custom mode with the *Standard* dice and **three** rolls a turn, but none of its categories. Instead, every game deals a list of **12** targets, new each game and the same for every player, plus the `Alibi`. That makes **13** turns."),
+            text("A target names a number for the die in each place, left to right. Up to **two** places are left open, and any die fills those. This target is worth **20pts**:"),
+            target(4, 1, 3, 2, ANY_PLACE, points = 20),
+            RulesCategory(
+                "Hit",
+                "Every number the target names is among your dice, in any order. Scores the target's points",
+                dice(2, 4, 1, 3, 5, counting = 4, score = "20pts").showing(RulesTile.Target(EXAMPLE_TARGET)),
+            ),
+            RulesCategory(
+                "Exact Hit",
+                "Every number the target names is on the die in its own place. Scores double",
+                dice(4, 1, 3, 2, 6, counting = 4, score = "40pts").showing(RulesTile.Target(EXAMPLE_TARGET)),
+            ),
+            RulesCategory(
+                "Partial Hit",
+                "At least **two** of the numbers the target names are among your dice, but not all of them. Scores half the target's points, times the share of its numbers you rolled, rounded to the nearest **5pts**",
+                diceCounting(4, 1, 6, 2, 5, counting = setOf(0, 1, 3), score = "10pts").showing(RulesTile.Target(EXAMPLE_TARGET)),
+            ),
+            text("With only **one** of a target's numbers rolled, it scores **0pts**. A partial hit still uses up its target, so the full points are gone for the rest of the game. The `Alibi` only takes a full hit."),
+            text("Harder targets are worth more, and each target's tile shows its points. Naming **three** numbers is worth **10pts** or **15pts**, **four** numbers **20pts** to **30pts**, and all **five** **40pts** to **75pts**. An open place makes a target easier to hit, so it's worth less."),
+            text("As you roll, each target's tile marks the numbers your dice already show with a bar beneath them, gold once a die is in its own place, and the tile lights up once it's hit."),
+            RulesCategory(
+                "Alibi",
+                "Score a hit here instead of in its target. It's worth the points of the best open target your dice hit, never doubled, and that target stays open for another try at an exact hit",
+                dice(2, 4, 1, 3, 5, counting = 4, score = "20pts").showing(RulesTile.Alibi),
+            ),
+            text("Held dice stay where they are, so a die in the wrong place stays there until you roll it again. If nothing scores, cross off a target or the `Alibi` for **0pts**."),
+            text("Here's an example turn, chasing the target above:"),
+            RulesStep(1, "The first roll has the 4 and the 1 in their places, and a 2 in the open place. Hold all **three**: the 2 counts towards a hit wherever it is.", rollHolding(4, 1, 5, 6, 2, held = setOf(0, 1, 4)).showing(RulesTile.Target(EXAMPLE_TARGET))),
+            RulesStep(2, "A 3 lands in its place. That's a hit for **20pts**, but the 2 is in the open place, not the fourth. Hold the 3 too.", rollHolding(4, 1, 3, 6, 2, held = setOf(0, 1, 2, 4)).showing(RulesTile.Target(EXAMPLE_TARGET))),
+            RulesStep(3, "Roll the fourth die on its own. A 2 there is an exact hit, and if it misses, the hit is safe: the last die is still a 2."),
+            RulesStep(
+                4,
+                "It's a 2! Score the exact hit for **40pts**. Had it missed, you could take the hit for **20pts**, or score it in the `Alibi` and keep this target for another try.",
+                dice(4, 1, 3, 2, 2, counting = 4, score = "40pts").showing(RulesTile.Target(EXAMPLE_TARGET)),
+            ),
+            text("The *Extended Scores* modifier can't be used in this mode. With *Unlucky Dice*, a locked die can't count towards a target, and a roll with one locked can't be an exact hit."),
+            text("Totals here don't compare with other modes, so the achievements for a high or low score, a scorecard with no zeroes, or for winning from behind after scoring three zeroes, can't be earned in it. Scores from this mode don't go on the *Leaderboard*, since every game has a different list, but they still count towards your *Statistics*."),
         ),
     ),
     RulesPage(
@@ -578,13 +680,16 @@ private fun RulesDiceRow(example: RulesDice, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.clearAndSetSemantics { contentDescription = spoken },
     ) {
+        val anyPlaceColor = MaterialTheme.colorScheme.onSurfaceVariant
         for (die in example.dice) {
             val style = die.colour?.let { IvoryDiceStyle.recoloured(it.palette) } ?: IvoryDiceStyle
             val dieModifier = Modifier
                 .padding(end = 6.dp)
                 .size(EXAMPLE_DIE_SIZE)
                 .graphicsLayer { alpha = if (die.counts || die.locked) 1f else EXAMPLE_DIE_FADED_ALPHA }
-            if (die.locked) {
+            if (example.isTarget && die.anyPlace) {
+                Box(modifier = dieModifier.drawBehind { drawAnyPlace(anyPlaceColor) })
+            } else if (die.locked) {
                 Box(modifier = dieModifier) {
                     style.Die(value = die.value, held = false, modifier = Modifier.fillMaxSize())
                     LockedChains(shape = style.shadowShape(die.value, 0, null), reach = style.lockedChainReach, modifier = Modifier.matchParentSize())
@@ -602,22 +707,73 @@ private fun RulesDiceRow(example: RulesDice, modifier: Modifier = Modifier) {
                 modifier = Modifier.padding(start = 6.dp),
             )
         }
+        example.tile?.let { tile ->
+            Spacer(modifier = Modifier.weight(1f))
+            RulesTileView(tile, example)
+        }
     }
 }
+
+/** [tile] as the board draws it for [example]'s dice - see [RulesTile]. */
+@Composable
+private fun RulesTileView(tile: RulesTile, example: RulesDice) {
+    when (tile) {
+        is RulesTile.Target -> {
+            val dice = example.dice.map { Die(value = it.value) }
+            val matches = if (example.isTarget) null else tile.target.matches(dice)
+            CategoryTile(
+                category = ScoreCategory.TARGET_1,
+                // Lit, as on the board, for a hit - not a partial one.
+                highlighted = !example.isTarget && tile.target.isHit(dice),
+                target = tile.target,
+                matches = matches,
+            )
+        }
+        RulesTile.Alibi -> CategoryTile(category = ScoreCategory.ALIBI, highlighted = true)
+    }
+}
+
+/** A target's open place: a die's outline, dashed, with nothing on it. */
+private fun DrawScope.drawAnyPlace(color: Color) {
+    val stroke = ANY_PLACE_STROKE.toPx()
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(stroke / 2, stroke / 2),
+        size = Size(size.width - stroke, size.height - stroke),
+        cornerRadius = CornerRadius(size.minDimension * ANY_PLACE_CORNER_FRACTION),
+        style = Stroke(width = stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(ANY_PLACE_DASH.toPx(), ANY_PLACE_DASH.toPx()))),
+    )
+}
+
+private val ANY_PLACE_STROKE = 1.5.dp
+private val ANY_PLACE_DASH = 3.dp
+private const val ANY_PLACE_CORNER_FRACTION = 0.2f
 
 /**
  * "Example: 5, 5, 5, 2, 6. The 2 and 6 don't count. Scores 23 points." - the row read aloud. A roll
  * on its way to a hand says which dice are held instead: "Example roll: 6, 6, 6, 2, 3. Held: 6, 6
- * and 6."
+ * and 6." A Hit List target says its places: "Example target: 4, 1, 3, 2, any. Worth 20 points."
  */
 private fun RulesDice.spokenDescription(): String {
     fun ExampleDie.spoken() = colour?.let { "${it.name.lowercase()} $value" } ?: value.toString()
     fun List<String>.spokenList() = if (size == 1) single() else "${dropLast(1).joinToString(", ")} and ${last()}"
+    if (isTarget) {
+        val places = dice.joinToString(", ") { if (it.anyPlace) "any" else it.spoken() }
+        return "Example target: $places.${score?.let { " Worth ${spokenPoints(it)}." }.orEmpty()}"
+    }
+    val tileSentence = when (val shown = tile) {
+        is RulesTile.Target -> {
+            val hand = dice.map { Die(value = it.value) }
+            " Its tile shows ${targetProgress(shown.target, shown.target.matches(hand), shown.target.score(hand))}."
+        }
+        RulesTile.Alibi -> " The Alibi lights up."
+        null -> ""
+    }
     val all = dice.joinToString(", ") { it.spoken() }
     if (fadedNotHeld) {
         val held = dice.filter { it.counts }.map { it.spoken() }
         val heldSentence = if (held.isEmpty()) " Nothing held." else " Held: ${held.spokenList()}."
-        return "Example roll: $all.$heldSentence"
+        return "Example roll: $all.$heldSentence$tileSentence"
     }
     val lockedSentence = dice.filter { it.locked }.map { it.spoken() }.takeIf { it.isNotEmpty() }
         ?.let { locked -> " The ${locked.spokenList()} ${if (locked.size == 1) "is" else "are"} locked in chains." }.orEmpty()
@@ -628,7 +784,7 @@ private fun RulesDice.spokenDescription(): String {
         else -> " The ${ignored.spokenList()} don't count."
     }
     val scoreSentence = score?.let { " Scores ${spokenPoints(it)}." }.orEmpty()
-    return "Example: $all.$ignoredSentence$scoreSentence"
+    return "Example: $all.$ignoredSentence$scoreSentence$tileSentence"
 }
 
 /** The seconds the Modifiers page's example timer is stopped at - inside the game's last few, so it flashes. */

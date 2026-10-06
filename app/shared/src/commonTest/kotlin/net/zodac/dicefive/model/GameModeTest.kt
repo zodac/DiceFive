@@ -39,8 +39,8 @@ class GameModeTest {
 
     @Test
     fun `every mode's max possible score is exactly what a perfect game through the engine totals`() {
-        // Quickfire's card changes every game and has no 5x to play, so it has its own test below.
-        for (mode in GameMode.entries - GameMode.QUICKFIRE) {
+        // Quickfire's card changes every game and has no 5x to play, and Hit List has no 5x at all, so each has its own test below.
+        for (mode in GameMode.entries - GameMode.QUICKFIRE - GameMode.HIT_LIST) {
             assertEquals(mode.maxPossibleScore, perfectGame(mode).totalScore, "$mode")
         }
     }
@@ -126,8 +126,8 @@ class GameModeTest {
             assertEquals(1, mode.scoresPerCategory, "$mode")
             assertEquals(mode.categories.size - mode.disabledCategoryCount, mode.turnsPerGame, "$mode")
         }
-        // Only these two keep their scores off the Leaderboard.
-        assertEquals(listOf(GameMode.QUICKFIRE, GameMode.THIRD_WIND), GameMode.entries.filter { !it.countsOnLeaderboard })
+        // Only these keep their scores off the Leaderboard.
+        assertEquals(listOf(GameMode.QUICKFIRE, GameMode.THIRD_WIND, GameMode.HIT_LIST), GameMode.entries.filter { !it.countsOnLeaderboard })
     }
 
     @Test

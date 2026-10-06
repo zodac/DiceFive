@@ -23,6 +23,11 @@ data class PlayerState(
      * but never open to score in and never part of a turn. Empty in every mode that doesn't switch any off.
      */
     val disabledCategories: Set<ScoreCategory> = emptySet(),
+    /**
+     * What each of this game's target boxes calls ([GameMode.drawHitList]) - the same on every player's card. Empty in
+     * every mode without targets.
+     */
+    val hitList: Map<ScoreCategory, HitTarget> = emptyMap(),
     val scorecard: Map<ScoreCategory, List<Int>> = gameMode.categoriesWith(extendedScores).associateWith { emptyList() },
     val fiveOfAKindBonusCount: Int = 0,
     /** The dice this player's last completed turn was scored with - value and held/unheld state
@@ -133,6 +138,14 @@ data class PlayerState(
     val extendedSectionTotal: Int
         get() = sectionTotal(ScoreSection.EXTENDED)
 
+    /** Zero in a mode without targets. */
+    val hitListSectionTotal: Int
+        get() = sectionTotal(ScoreSection.HIT_LIST)
+
+    /** The target [category] calls, in a mode with targets. */
+    fun targetOf(category: ScoreCategory): HitTarget =
+        requireNotNull(hitList[category]) { "$category has no target on this card" }
+
     val fiveOfAKindBonusTotal: Int
         get() = fiveOfAKindBonusCount * gameMode.fiveOfAKindBonusAmount
 
@@ -154,7 +167,8 @@ data class PlayerState(
         get() = scoresIn(ScoreCategory.FIVE_OF_A_KIND).count { it == FIVE_OF_A_KIND_FULL_SCORE } + fiveOfAKindBonusCount
 
     val totalScore: Int
-        get() = upperSectionTotal + upperSectionBonus + lowerSectionTotal + colourSectionTotal + extendedSectionTotal + fiveOfAKindBonusTotal
+        get() = upperSectionTotal + upperSectionBonus + lowerSectionTotal + colourSectionTotal + extendedSectionTotal + hitListSectionTotal +
+            fiveOfAKindBonusTotal
 
     private fun sectionTotal(section: ScoreSection): Int =
         categories.filter { it.section == section }.sumOf { scoresIn(it).sum() }

@@ -9,13 +9,14 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 
-/** [HandScoring] mirrors [ScoreCalculator] - which boxes a hand may go in, what it scores there and any 5x chip - in every mode. */
+/** [HandScoring] mirrors [ScoreCalculator] - which boxes a hand may go in, what it scores there and any 5x chip - in every mode but Hit List. */
 class HandScoringTest {
 
     @Test
     fun `HandScoring agrees with ScoreCalculator on random scorecards and hands in every mode`() {
         val random = Random(1)
-        for (mode in GameMode.entries) for (extended in listOf(false, true)) {
+        // Hard plays a card of targets by HitListPlay, which never builds a HandScoring - there are no fixed rules to score by.
+        for (mode in GameMode.entries.filterNot { it.hasHitList }) for (extended in listOf(false, true)) {
             val categories = mode.categoriesWith(extended)
             val faces = mode.dieValues.flatMap { value ->
                 if (mode.dieColours.isEmpty()) listOf(Die(value = value)) else mode.dieColours.map { Die(value = value, colour = it) }

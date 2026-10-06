@@ -69,7 +69,7 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
   - **The short description's "Fully offline"** stops being true the moment Play Games sign-in,
     cloud save, ads or Pro ship - rewrite it then (and the listing must declare ads).
   - **Counts and lists**: a new game mode goes under "Three ways to play"; "Nearly 100
-    achievements" (106 today, 7 of them secret and uncounted) and the style examples must match
+    achievements" (108 today, 7 of them secret and uncounted) and the style examples must match
     what ships.
   - **The trademark rule applies here too**: never the banned word from `CLAUDE.md` - Play also
     rejects listings that lean on another product's trademark. "3x", "4x" and "5x" are the

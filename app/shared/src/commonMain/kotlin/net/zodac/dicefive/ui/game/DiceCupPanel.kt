@@ -156,7 +156,7 @@ fun DiceCupPanel(
             for (row in 0 until rows) {
                 when {
                     row == 0 && !largeFive -> CategoryCell(
-                        category = ScoreCategory.FIVE_OF_A_KIND,
+                        category = layout.featured,
                         player = player,
                         canScore = canScore,
                         showPreview = showPreview,
@@ -186,16 +186,21 @@ fun DiceCupPanel(
                         // Both buttons at the right, Totals just left of Undo - Undo where it always was.
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                     ) {
-                        val upperTotal = player?.upperSectionTotal ?: 0
-                        val upperBonus = player?.upperSectionBonus ?: 0
-                        val lowerTotal = (player?.lowerSectionTotal ?: 0) + (player?.fiveOfAKindBonusTotal ?: 0)
                         // Clearance from the score grid's rightmost column - which can render a 2-digit score
                         // past its own column's edge - comes from GameBoard's inter-panel gap and weight split,
                         // not from padding here specifically, so every row of this panel gets the same
                         // protection instead of just this one.
                         // As big as a tile in the same row.
                         val buttonSize = gridTileSize(rows)
-                        TotalsButton(upperTotal = upperTotal, upperBonus = upperBonus, lowerTotal = lowerTotal, minSize = buttonSize)
+                        if (layout.featured == ScoreCategory.ALIBI) {
+                            val alibiTotal = player?.scoresIn(ScoreCategory.ALIBI)?.sum() ?: 0
+                            HitListTotalsButton(targetsTotal = (player?.hitListSectionTotal ?: 0) - alibiTotal, alibiTotal = alibiTotal, minSize = buttonSize)
+                        } else {
+                            val upperTotal = player?.upperSectionTotal ?: 0
+                            val upperBonus = player?.upperSectionBonus ?: 0
+                            val lowerTotal = (player?.lowerSectionTotal ?: 0) + (player?.fiveOfAKindBonusTotal ?: 0)
+                            TotalsButton(upperTotal = upperTotal, upperBonus = upperBonus, lowerTotal = lowerTotal, minSize = buttonSize)
+                        }
                         if (cup != null && cup.showUndo) {
                             UndoButton(enabled = cup.canUndo, onClick = cup.onUndo, minSize = buttonSize)
                         }
@@ -209,7 +214,7 @@ fun DiceCupPanel(
             // Laid over the first two rows, which it spans: a square as tall as both, leaving the score room beside it.
             val height = rowHeight * 2 + GRID_ROW_SPACING
             CategoryCell(
-                category = ScoreCategory.FIVE_OF_A_KIND,
+                category = layout.featured,
                 player = player,
                 canScore = canScore,
                 showPreview = showPreview,

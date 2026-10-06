@@ -36,7 +36,8 @@ import net.zodac.dicefive.model.ScoreSection
  *
  * Every rule comes from the player's own [GameMode] - its dice, faces and colours, and which
  * categories are on the card. In a mode with coloured dice, a "face" is a number AND a colour, so
- * Hard's expectation covers both, and Medium's rules of thumb also chase a colour set.
+ * Hard's expectation covers both, and Medium's rules of thumb also chase a colour set. A card of
+ * targets ([GameMode.hasHitList]) is played by [HitListPlay] instead, at every difficulty.
  */
 object AiTurnPlayer {
 
@@ -108,6 +109,7 @@ object AiTurnPlayer {
     fun chooseHolds(state: GameState, perfectPlay: StandardPerfectPlayTable? = null): Set<Int> {
         val player = requireNotNull(state.currentPlayer) { "No current player" }
         if (state.dice.any { it.isUnlucky }) return withoutUnluckyDice(state) { reduced -> chooseHolds(reduced, perfectPlay) }
+        if (state.gameMode.hasHitList) return HitListPlay.chooseHolds(player, state.dice, state.rollsRemaining)
         if (state.gameMode.scoresHeldDiceOnly) return chooseHoldsFromRoll(state, player, perfectPlay)
         return when (player.difficulty) {
             Difficulty.EASY -> chooseHoldsEasy(player, state.dice)
@@ -210,9 +212,11 @@ object AiTurnPlayer {
      * Builds what Hard's decisions in [mode] (with the Extended Scores boxes, if [extendedScores]) need - every hand scored, and each box's baseline - ahead
      * of its first one. Kept for the process, so only the first call does anything: with Tricolour's
      * coloured dice that's most of a second on a laptop, so a game with a Hard CPU starts it in the
-     * background rather than leave the CPU's first roll to wait on it.
+     * background rather than leave the CPU's first roll to wait on it. Nothing in a mode with targets, which Hard
+     * plays by [HitListPlay].
      */
     fun prepareHard(mode: GameMode, extendedScores: Boolean = false) {
+        if (mode.hasHitList) return
         val card = Card(mode, extendedScores)
         ROLL_SPACES.getValue(mode).value
         HAND_SCORING.getValue(card).value
@@ -234,13 +238,13 @@ object AiTurnPlayer {
         return current
     }
 
-    /** The category an AI would choose for its current (fully-rolled) dice - [perfectPlay] as for [chooseHolds]. */
     /** The category an AI would choose for its current (fully-rolled) hand - [GameState.scoringDice] - [perfectPlay] as for [chooseHolds]. */
     fun chooseCategory(state: GameState, perfectPlay: StandardPerfectPlayTable? = null): ScoreCategory {
         val player = requireNotNull(state.currentPlayer) { "No current player" }
         val hand = state.scoringDice
         val available = ScoreCalculator.availableCategories(player, hand)
         check(available.isNotEmpty()) { "No available categories to score" }
+        if (state.gameMode.hasHitList) return HitListPlay.chooseCategory(player, hand, available, state.rollsPerTurn)
         return when (player.difficulty) {
             Difficulty.EASY -> available.maxBy { ScoreCalculator.scoreFor(player, it, hand) }
             Difficulty.MEDIUM -> chooseCategoryMedium(player, hand, available)
