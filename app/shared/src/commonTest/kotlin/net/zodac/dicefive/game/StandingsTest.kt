@@ -28,9 +28,16 @@ class StandingsTest {
     }
 
     @Test
-    fun `every total still level shows no places - as at the start`() {
+    fun `no places show before anyone has scored a turn`() {
         assertNull(standings(listOf(player(), player(), player())))
-        assertNull(standings(listOf(player(ScoreCategory.CHANCE to 20), player(ScoreCategory.SIXES to 20))))
+    }
+
+    @Test
+    fun `level totals once turns are scored share first place`() {
+        val tied = Standing(1, tied = true)
+        assertEquals(listOf(tied, tied), standings(listOf(player(ScoreCategory.CHANCE to 20), player(ScoreCategory.SIXES to 20))))
+        // A zero is a scored turn too.
+        assertEquals(listOf(tied, tied), standings(listOf(player(ScoreCategory.ONES to 0), player())))
     }
 
     @Test
