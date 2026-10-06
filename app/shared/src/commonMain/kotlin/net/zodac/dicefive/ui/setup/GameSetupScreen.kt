@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -39,8 +40,16 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.sp
+import net.zodac.dicefive.ui.common.FontFit
+import net.zodac.dicefive.ui.common.MIN_READABLE_FONT_SIZE
+import net.zodac.dicefive.ui.common.fitFontSize
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.PlayerColour
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.UnluckyDice
@@ -154,6 +163,7 @@ private fun SetupForm(
     // holding all of them rather than a card per player: stacked cards, each with its own title,
     // padding and controls, is what pushed the form off the screen. No card title here - every
     // row already names its own player.
+    val colourHolders = activeSlots.associate { it.colour to it.slot }
     SetupCard(rowSpacing = 2.dp) {
         activeSlots.forEachIndexed { index, slot ->
             if (index > 0) {
@@ -163,6 +173,8 @@ private fun SetupForm(
                 slot = slot,
                 isTypeLocked = slot.slot == 1,
                 isNameDuplicate = slot.slot in duplicateNameSlots,
+                colourHolders = colourHolders,
+                onColourChange = { colour -> viewModel.setPlayerColour(slot.slot, colour) },
                 onTypeChange = { type -> viewModel.setPlayerType(slot.slot, type) },
                 onNameChange = { name -> viewModel.setPlayerName(slot.slot, name) },
                 onDifficultyChange = { difficulty -> viewModel.setPlayerDifficulty(slot.slot, difficulty) },
@@ -249,6 +261,8 @@ private fun PlayerRow(
     slot: PlayerSetupSlot,
     isTypeLocked: Boolean,
     isNameDuplicate: Boolean,
+    colourHolders: Map<PlayerColour, Int>,
+    onColourChange: (PlayerColour) -> Unit,
     onTypeChange: (PlayerType) -> Unit,
     onNameChange: (String) -> Unit,
     onDifficultyChange: (Difficulty) -> Unit,
@@ -259,24 +273,28 @@ private fun PlayerRow(
     val fontScale = LocalDensity.current.fontScale
     val stacked = fontScale > STACKED_PLAYER_ROW_FONT_SCALE
     val nameOrDifficulty: @Composable (Modifier) -> Unit = { controlModifier ->
-        when (slot.type) {
-            PlayerType.HUMAN -> CompactNameField(
-                value = slot.name,
-                onValueChange = onNameChange,
-                isError = isNameDuplicate,
-                // The field has no visible label (its value names the row), so a screen reader is
-                // given one - and told why it's red, which the outline alone only shows.
-                modifier = controlModifier.semantics {
-                    contentDescription = "Player ${slot.slot} name"
-                    if (isNameDuplicate) error(NAMES_MUST_BE_UNIQUE)
-                },
-            )
+        // The colour circle leads the name (or difficulty), whichever the row shows, so both seat types line up.
+        Row(modifier = controlModifier, verticalAlignment = Alignment.CenterVertically) {
+            PlayerColourPicker(slot = slot.slot, colour = slot.colour, holders = colourHolders, onColourChange = onColourChange)
+            when (slot.type) {
+                PlayerType.HUMAN -> CompactNameField(
+                    value = slot.name,
+                    onValueChange = onNameChange,
+                    isError = isNameDuplicate,
+                    // The field has no visible label (its value names the row), so a screen reader is
+                    // given one - and told why it's red, which the outline alone only shows.
+                    modifier = Modifier.weight(1f).semantics {
+                        contentDescription = "Player ${slot.slot} name"
+                        if (isNameDuplicate) error(NAMES_MUST_BE_UNIQUE)
+                    },
+                )
 
-            PlayerType.AI -> DifficultySelector(
-                selected = slot.difficulty,
-                onSelect = onDifficultyChange,
-                modifier = controlModifier,
-            )
+                PlayerType.AI -> DifficultySelector(
+                    selected = slot.difficulty,
+                    onSelect = onDifficultyChange,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
     // Grows with the font so "User" and "CPU" fit; the same for "You", so every row's control still lines up.
@@ -384,18 +402,48 @@ private fun CompactNameField(
 /**
  * Compact Easy/Medium/Hard picker for one AI slot - a segmented row rather than a full row of
  * chips, since it has to fit inside the player row alongside the name column.
+ *
+ * The labels are sized together, so the three always match: [DIFFICULTY_LABEL_MAX_SIZE] when the widest
+ * ("Medium") fits its segment, stepping down to [MIN_READABLE_FONT_SIZE] when it doesn't, and only if
+ * even that is too wide - a narrow screen - all three become their initials (E / M / H) at that size.
+ * A screen reader still hears the full word.
  */
 @Composable
-private fun DifficultySelector(selected: Difficulty, onSelect: (Difficulty) -> Unit, modifier: Modifier = Modifier) {
-    SegmentedChoiceRow(
-        options = Difficulty.entries,
-        selected = selected,
-        onSelect = onSelect,
-        label = { it.label },
-        modifier = modifier,
-        labelStyle = MaterialTheme.typography.labelSmall,
-    )
+fun DifficultySelector(selected: Difficulty, onSelect: (Difficulty) -> Unit, modifier: Modifier = Modifier) {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    BoxWithConstraints(modifier = modifier) {
+        val textStyle = MaterialTheme.typography.labelLarge
+        val fit = remember(constraints.maxWidth, textStyle, density) {
+            // A segment's width less its side padding and the 1dp outline each side; the row is infinite
+            // only in a measuring pass, where the largest size will do.
+            val room = with(density) { (constraints.maxWidth / Difficulty.entries.size) - (DIFFICULTY_LABEL_PADDING * 2 + 2.dp).roundToPx() }
+            if (constraints.maxWidth == Constraints.Infinity) {
+                FontFit(DIFFICULTY_LABEL_MAX_SIZE, wraps = false)
+            } else {
+                fitFontSize(DIFFICULTY_LABEL_MAX_SIZE, MIN_READABLE_FONT_SIZE, 0.5.sp) { size ->
+                    Difficulty.entries.all {
+                        measurer.measure(text = it.label, style = textStyle.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= room
+                    }
+                }
+            }
+        }
+        SegmentedChoiceRow(
+            options = Difficulty.entries,
+            selected = selected,
+            onSelect = onSelect,
+            label = { if (fit.wraps) it.label.take(1) else it.label },
+            spokenLabel = { it.label },
+            modifier = Modifier.fillMaxWidth(),
+            labelStyle = textStyle.copy(fontSize = fit.size),
+            // Tighter than M3's 12dp a side: with the colour circle beside it each segment is narrow.
+            contentPadding = PaddingValues(horizontal = DIFFICULTY_LABEL_PADDING),
+        )
+    }
 }
+
+private val DIFFICULTY_LABEL_PADDING = 4.dp
+private val DIFFICULTY_LABEL_MAX_SIZE = 14.sp
 
 private val Difficulty.label: String
     get() = when (this) {

@@ -15,6 +15,8 @@ data class PlayerState(
     val name: String,
     val type: PlayerType,
     val difficulty: Difficulty = Difficulty.MEDIUM,
+    /** The colour this player is marked in everywhere - their tab, name and score, and the outline on their last-scored box. */
+    val colour: PlayerColour = PlayerColour.CYAN,
     val gameMode: GameMode = GameMode.default,
     /** Whether the Extended Scores modifier is on, adding its boxes to [categories]. */
     val extendedScores: Boolean = false,

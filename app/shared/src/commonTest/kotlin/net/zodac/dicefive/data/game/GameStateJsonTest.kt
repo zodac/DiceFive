@@ -19,6 +19,7 @@ import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
+import net.zodac.dicefive.model.PlayerColour
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
@@ -87,6 +88,22 @@ class GameStateJsonTest {
         assertEquals(3, decoded.turnRolls)
         assertEquals(0, decoded.players.single().storedRolls)
         assertFalse(decoded.players.single().rollsModified)
+    }
+
+    @Test
+    fun `round trips a player's colour and gives an old save each seat's default`() {
+        val state = GameState(
+            players = listOf(
+                PlayerState(name = "A", type = PlayerType.HUMAN, colour = PlayerColour.LIME),
+                PlayerState(name = "B", type = PlayerType.HUMAN, colour = PlayerColour.PINK),
+            ),
+        )
+        assertEquals(listOf(PlayerColour.LIME, PlayerColour.PINK), GameStateJson.decode(GameStateJson.encode(state)).players.map { it.colour })
+
+        val saved = GameStateJson.encode(state).toJsonObject()
+        val players = (saved.fields.getValue("players") as JsonArray).items.map { JsonObject((it as JsonObject).fields - "colour") }
+        val older = JsonObject(saved.fields + ("players" to JsonArray(players))).toJson()
+        assertEquals(listOf(PlayerColour.CYAN, PlayerColour.GREEN), GameStateJson.decode(older).players.map { it.colour })
     }
 
     @Test

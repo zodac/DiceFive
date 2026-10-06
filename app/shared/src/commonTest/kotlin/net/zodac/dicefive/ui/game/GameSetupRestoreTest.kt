@@ -23,6 +23,7 @@ import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.PlayerColour
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
@@ -86,6 +87,59 @@ class GameSetupRestoreTest {
         assertEquals(PlayerType.AI, restored.playerSlots[1].type)
         assertEquals(Difficulty.HARD, restored.playerSlots[1].difficulty)
         assertEquals(restored, viewModel.setup.value)
+    }
+
+    @Test
+    fun `each seat starts in its own colour`() {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        assertEquals(
+            listOf(PlayerColour.CYAN, PlayerColour.GREEN, PlayerColour.PURPLE, PlayerColour.AMBER),
+            viewModel.setup.value.playerSlots.map { it.colour },
+        )
+    }
+
+    @Test
+    fun `picking a colour another player has swaps the two and a free one just replaces`() {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+
+        viewModel.setPlayerColour(1, PlayerColour.GREEN)
+        assertEquals(
+            listOf(PlayerColour.GREEN, PlayerColour.CYAN, PlayerColour.PURPLE, PlayerColour.AMBER),
+            viewModel.setup.value.playerSlots.map { it.colour },
+        )
+
+        viewModel.setPlayerColour(3, PlayerColour.PINK)
+        val colours = viewModel.setup.value.playerSlots.map { it.colour }
+        assertEquals(PlayerColour.PINK, colours[2])
+        assertEquals(4, colours.toSet().size)
+    }
+
+    @Test
+    fun `colours are remembered and carried into the game and its players`() = runTest(testDispatcher) {
+        val repository = SettingsRepository(FakePreferencesStore())
+        val first = GameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
+        advanceUntilIdle()
+        first.setPlayerColour(2, PlayerColour.LIME)
+        first.startGame()
+        advanceUntilIdle()
+        assertEquals(PlayerColour.LIME, checkNotNull(first.game.value).players[1].colour)
+
+        val second = GameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
+        advanceUntilIdle()
+        assertEquals(PlayerColour.LIME, second.setup.value.playerSlots[1].colour)
+        assertEquals(4, second.setup.value.playerSlots.map { it.colour }.toSet().size)
+    }
+
+    @Test
+    fun `saved colours that clash are dropped for the defaults`() = runTest(testDispatcher) {
+        val repository = SettingsRepository(FakePreferencesStore())
+        for (slot in 1..4) repository.setPlayerColour(slot, PlayerColour.RED)
+        val viewModel = GameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
+        advanceUntilIdle()
+        assertEquals(
+            listOf(PlayerColour.CYAN, PlayerColour.GREEN, PlayerColour.PURPLE, PlayerColour.AMBER),
+            viewModel.setup.value.playerSlots.map { it.colour },
+        )
     }
 
     @Test

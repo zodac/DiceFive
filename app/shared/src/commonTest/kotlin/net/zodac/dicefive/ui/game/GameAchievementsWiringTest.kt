@@ -1576,7 +1576,7 @@ class GameAchievementsWiringTest {
     }
 
     @Test
-    fun `scoring a zero in the last box, one die short of the upper bonus after every roll, unlocks Probability Never Heard of Her`() = runTest {
+    fun `scoring a zero in the last box with one die short of the upper bonus after every roll unlocks Probability Never Heard of Her`() = runTest {
         val store = playToSixesNeedingOneDie(List(3) { List(5) { 2 } })
 
         assertTrue(Achievement.PROBABILITY_NEVER_HEARD_OF_HER in store.unlocked, "should pop, got ${store.unlocked}")

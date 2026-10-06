@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import net.zodac.dicefive.model.PlayerColour
 
 // ---------------------------------------------------------------------------------------------
 // Material 3 colour roles.
@@ -219,20 +220,22 @@ val IrishOrangeStripe = Color(0xFFAD5C2A)
 val IrishWhiteStripe = Color(0xFFFFFFFF)
 
 /**
- * Each seat's colour, in seat order - read only through [playerColor], so a seat's colour is decided in
- * one place: its tab, its name and score, and anything marking that player elsewhere (the outline on
- * the box they last scored in) all come from there, and change together. Extend if more than four
- * players are ever supported.
+ * What a [PlayerColour] looks like - the one place a player's colour is turned into a [Color], so their
+ * tab, name and score, the swatch on the setup screen and anything else marking that player (the outline
+ * on the box they last scored in) all come from here, and change together. Each is a light, mid-chroma
+ * tone that reads on the dark table and the dark page; keep a new one that way and clear of the others.
  */
-private val PlayerColors = listOf(
-    Color(0xFF4FD6E8),
-    Color(0xFF5CE38F),
-    Color(0xFFA07BF0),
-    Color(0xFFF2A93B),
-)
-
-/** The colour of the player in [seat] (0 for player 1) - the one source of every player's colour; see [PlayerColors]. */
-fun playerColor(seat: Int): Color = PlayerColors[seat % PlayerColors.size]
+val PlayerColour.color: Color
+    get() = when (this) {
+        PlayerColour.CYAN -> Color(0xFF4FD6E8)
+        PlayerColour.GREEN -> Color(0xFF5CE38F)
+        PlayerColour.PURPLE -> Color(0xFFA07BF0)
+        PlayerColour.AMBER -> Color(0xFFF2A93B)
+        PlayerColour.PINK -> Color(0xFFF58BC0)
+        PlayerColour.RED -> Color(0xFFF2675F)
+        PlayerColour.BLUE -> Color(0xFF6C9CFF)
+        PlayerColour.LIME -> Color(0xFFD2E55C)
+    }
 
 // Leaderboard podium accents for 2nd/3rd place - a fixed silver/bronze pairing, same "not a
 // colour role" reasoning as the rest of this file: M3 has no role for "silver" or "bronze", and

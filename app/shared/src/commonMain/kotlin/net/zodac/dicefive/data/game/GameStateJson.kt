@@ -16,6 +16,7 @@ import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.HitTarget
+import net.zodac.dicefive.model.PlayerColour
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
@@ -81,7 +82,7 @@ object GameStateJson {
             isGameOver = obj.getBoolean("isGameOver"),
             turnSecondsLeft = (obj["turnSecondsLeft"] as? JsonNumber)?.toInt(),
             dice = obj.getObjectList("dice").map(::decodeDie),
-            players = obj.getObjectList("players").map { decodePlayer(it, gameMode, extendedScores, disabledCategories, hitList, rollModifiers.isActive) },
+            players = obj.getObjectList("players").mapIndexed { seat, it -> decodePlayer(it, seat, gameMode, extendedScores, disabledCategories, hitList, rollModifiers.isActive) },
         )
     }
 
@@ -160,6 +161,7 @@ object GameStateJson {
         put("name", player.name)
         put("type", player.type.name)
         put("difficulty", player.difficulty.name)
+        put("colour", player.colour.name)
         put("fiveOfAKindBonusCount", player.fiveOfAKindBonusCount)
         put("rollCount", player.rollCount)
         if (player.storedRolls > 0) put("storedRolls", player.storedRolls)
@@ -179,6 +181,7 @@ object GameStateJson {
 
     private fun decodePlayer(
         obj: JsonObject,
+        seat: Int,
         gameMode: GameMode,
         extendedScores: Boolean,
         disabledCategories: Set<ScoreCategory>,
@@ -192,6 +195,9 @@ object GameStateJson {
             name = obj.getString("name"),
             type = PlayerType.valueOf(obj.getString("type")),
             difficulty = Difficulty.valueOf(obj.getString("difficulty")),
+            // Missing from a game saved before colours were chosen: the seat's default, which is what it was drawn in.
+            colour = obj.optString("colour").takeIf { it.isNotEmpty() }?.let { runCatching { PlayerColour.valueOf(it) }.getOrNull() }
+                ?: PlayerColour.defaultFor(seat),
             gameMode = gameMode,
             extendedScores = extendedScores,
             disabledCategories = disabledCategories,

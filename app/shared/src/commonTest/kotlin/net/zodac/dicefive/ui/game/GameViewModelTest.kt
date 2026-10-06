@@ -78,7 +78,7 @@ class GameViewModelTest {
     }
 
     @Test
-    fun `a seat's first 5x flash is claimed once per game, and again after a new game`() {
+    fun `a seat's first 5x flash is claimed once per game and again after a new game`() {
         val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(2)
         viewModel.startGame()

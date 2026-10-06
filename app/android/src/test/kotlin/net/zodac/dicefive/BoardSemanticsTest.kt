@@ -244,7 +244,7 @@ class BoardSemanticsTest {
         }
         compose.setContent {
             DiceFiveTheme {
-                ReadOnlyScoreboard(player = player, seat = 1, modifier = Modifier.width(400.dp))
+                ReadOnlyScoreboard(player = player, modifier = Modifier.width(400.dp))
             }
         }
 
@@ -289,7 +289,7 @@ class BoardSemanticsTest {
         }
         compose.setContent {
             DiceFiveTheme {
-                ReadOnlyScoreboard(player = player, seat = 1, modifier = Modifier.width(400.dp))
+                ReadOnlyScoreboard(player = player, modifier = Modifier.width(400.dp))
             }
         }
 

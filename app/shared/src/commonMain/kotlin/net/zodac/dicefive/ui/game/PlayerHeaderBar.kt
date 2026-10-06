@@ -51,7 +51,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
-import net.zodac.dicefive.ui.theme.playerColor
+import net.zodac.dicefive.ui.theme.color
 
 /** How long a score takes to count up: most turns' points rise in [SCORE_RISE_MIN_MILLIS], a bigger
  * jump gets [SCORE_RISE_MILLIS_PER_POINT] each, and past [SCORE_RISE_MAX_MILLIS] it just counts faster. */
@@ -96,7 +96,7 @@ fun PlayerHeaderBar(
                 name = player.name,
                 cpu = player.type == PlayerType.AI,
                 score = player.totalScore,
-                color = playerColor(index),
+                color = player.colour.color,
                 active = index == currentPlayerIndex,
                 viewed = index == viewedPlayerIndex,
                 compactName = compactNames,
