@@ -1143,7 +1143,9 @@ install-over-existing succeeds:
       set produces an APK whose signing cert SHA-256 matches the generated
       keystore's, and `versionCode`/`versionName` land correctly (verified
       via `aapt dump badging`).
-- [x] `.github/workflows/release.yml`: triggers on every push to `main`.
+- [x] `.github/workflows/release.yml`: triggers on a push to `main` that changes what ships (`app/**`,
+      the Gradle build files, `VERSION`), not on docs, CI, tooling, `.md` or test-code-only pushes;
+      `workflow_dispatch` still releases on demand.
       Steps: checkout, JDK 21 (matches the sandbox's pin), Android SDK
       (explicit `sdkmanager` call installing `platforms;android-35` /
       `build-tools;35.0.0` against the SDK already on the `ubuntu-latest`
