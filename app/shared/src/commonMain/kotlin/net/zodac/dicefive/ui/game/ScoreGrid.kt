@@ -3,12 +3,15 @@ package net.zodac.dicefive.ui.game
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +37,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
@@ -55,62 +59,67 @@ import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 
 /** Standard's grid: six rows, upper section beside lower. More than this and the tiles go compact. */
-private const val REGULAR_GRID_ROWS = 6
-private val GRID_ROW_SPACING = 6.dp
+internal const val REGULAR_GRID_ROWS = 6
+internal val GRID_ROW_SPACING = 6.dp
 
 /** The board's height for a Standard-sized grid - see [scoreBoardHeight]. */
 internal val REGULAR_BOARD_HEIGHT = 380.dp
 
 /**
- * The grid's rows for [gameMode], top to bottom, each one or two categories wide: the upper section
- * down the left column beside the lower section, then anything left over (Tricolour's colour boxes)
- * two to a row underneath. 5x is left out - it has its own prominent tile beside the cup.
+ * Where every box of a card sits on the board: four equal columns, in rows shared by the left pane (the
+ * grid: the upper section in column 1, the lower section in column 2) and the right pane (columns 3 and 4:
+ * 5x across both in the first row, [sideRows] under it, the dice cup over the next two rows, and the
+ * Totals and Undo buttons in the sixth). Both panes have [rowCount] rows of the same height.
+ *
+ * [leftRows] are the grid's rows, each one or two categories wide. [sideRows] are the boxes that sit under
+ * the 5x tile: the Extended Scores modifier's three - Evens and Odds, then Two Pair - or, without it,
+ * Tricolour's four colour boxes, two to a row. A card with both gives the Extended Scores boxes that place,
+ * and the colour boxes go on after the lower section in [leftRows], two to a row.
  */
-internal fun scoreGridRows(gameMode: GameMode): List<List<ScoreCategory>> {
-    val gridCategories = gameMode.categories.filter { it != ScoreCategory.FIVE_OF_A_KIND }
+internal class BoardLayout(val leftRows: List<List<ScoreCategory>>, val sideRows: List<List<ScoreCategory>>) {
+    val rowCount: Int
+        get() = leftRows.size
+}
+
+/** The Extended Scores boxes under the 5x tile, by row. */
+private val EXTENDED_SIDE_ROWS = listOf(listOf(ScoreCategory.EVENS, ScoreCategory.ODDS), listOf(ScoreCategory.TWO_PAIR))
+
+/** How a card of [categories] is laid out - see [BoardLayout]. 5x is left out of both: it has its own wide tile. */
+internal fun boardLayout(categories: List<ScoreCategory>): BoardLayout {
+    val gridCategories = categories.filter { it != ScoreCategory.FIVE_OF_A_KIND }
+    val extended = EXTENDED_SIDE_ROWS.map { row -> row.filter { it in gridCategories } }.filter { it.isNotEmpty() }
+    val sideRows = extended.ifEmpty { gridCategories.filter { it.section == ScoreSection.COLOUR }.chunked(2) }
     val upper = gridCategories.filter { it.section == ScoreSection.UPPER }
-    val others = gridCategories - upper.toSet()
+    val others = gridCategories - upper.toSet() - sideRows.flatten().toSet()
     val sideBySide = upper.zip(others) { left, right -> listOf(left, right) }
     val leftOver = upper.drop(others.size) + others.drop(upper.size)
-    return sideBySide + leftOver.chunked(2)
+    return BoardLayout(sideBySide + leftOver.chunked(2), sideRows)
 }
 
 /**
- * How tall the scoring area is for [gameMode]'s grid. Standard's six rows keep the board's original
+ * How tall the scoring area is for a card of [categories]. Standard's six rows keep the board's original
  * height; more rows than that switch to compact tiles (see [CategoryTile]) and grow the board just
- * enough to fit one per row: [COMPACT_TILE_SIZE] plus the row gap each, inside [padding] top and
- * bottom. At Tricolour's eight rows that's 396dp, only 16dp taller than Standard.
+ * enough to fit one per row inside [padding] top and bottom. The dice cup is no shorter for it: the right
+ * pane has free rows for it to take (see [DiceCupPanel]).
  */
-internal fun scoreBoardHeight(gameMode: GameMode, padding: Dp): Dp {
-    val rows = scoreGridRows(gameMode).size
+internal fun scoreBoardHeight(categories: List<ScoreCategory>, padding: Dp): Dp {
+    val rows = boardLayout(categories).rowCount
     if (rows <= REGULAR_GRID_ROWS) return REGULAR_BOARD_HEIGHT
-    return maxOf(REGULAR_BOARD_HEIGHT, (COMPACT_TILE_SIZE + GRID_ROW_SPACING) * rows + padding * 2)
+    return maxOf(REGULAR_BOARD_HEIGHT, (COMPACT_TILE_SIZE + GRID_ROW_SPACING) * rows - GRID_ROW_SPACING + padding * 2)
 }
 
 /** The grid's tile size for [rowCount] rows - regular for Standard's six, compact beyond that. */
-private fun gridTileSize(rowCount: Int): Dp = if (rowCount > REGULAR_GRID_ROWS) COMPACT_TILE_SIZE else REGULAR_TILE_SIZE
-
-/**
- * How far below the top of [gameMode]'s [gridHeight]-tall grid its first row's tiles sit: the rows
- * share the height equally and centre their tile vertically in it. The 5x tile beside the grid uses
- * this to put its top level with Ones and 3x in every mode, rather than a hand-tuned nudge that would
- * only suit one mode's row count and tile size.
- */
-internal fun firstRowTileInset(gameMode: GameMode, gridHeight: Dp): Dp {
-    val rows = scoreGridRows(gameMode).size
-    val rowHeight = (gridHeight - GRID_ROW_SPACING * (rows - 1)) / rows
-    return ((rowHeight - gridTileSize(rows)) / 2).coerceAtLeast(0.dp)
-}
+internal fun gridTileSize(rowCount: Int): Dp = if (rowCount > REGULAR_GRID_ROWS) COMPACT_TILE_SIZE else REGULAR_TILE_SIZE
 
 /**
  * The two-column scorecard grid for the active player only - other players' progress is
  * summarized in the header tabs instead, matching the reference layout. [canScore] and
- * [available] are precomputed once by the caller and shared with the 5x tile beside the cup.
- * Which boxes it shows, and how they're laid out, come from [gameMode] (see [scoreGridRows]).
+ * [available] are precomputed once by the caller and shared with the 5x tile beside it.
+ * Which boxes it shows, and how they're laid out, come from [categories] (see [boardLayout]).
  */
 @Composable
 fun ScoreGrid(
-    gameMode: GameMode,
+    categories: List<ScoreCategory>,
     player: PlayerState?,
     dice: List<Die>,
     canScore: Boolean,
@@ -119,36 +128,54 @@ fun ScoreGrid(
     onScoreCategory: (ScoreCategory) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val rows = scoreGridRows(gameMode)
+    val rows = boardLayout(categories).leftRows
     val compact = gridTileSize(rows.size) == COMPACT_TILE_SIZE
     Column(modifier = modifier.fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(GRID_ROW_SPACING)) {
         for (row in rows) {
-            Row(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                // Gives the first column's score text (up to 2 digits) clearance before the
-                // second column's tile starts - otherwise they visually touch/overlap.
-                horizontalArrangement = Arrangement.spacedBy(20.dp),
-            ) {
-                for (category in row) {
-                    CategoryCell(
-                        category = category,
-                        player = player,
-                        canScore = canScore,
-                        showPreview = showPreview,
-                        available = available,
-                        dice = dice,
-                        onScoreCategory = onScoreCategory,
-                        compact = compact,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                    )
-                }
-                // A lone category on the last row keeps to the left column's width.
-                if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
-            }
+            CellRow(row, player, canScore, showPreview, available, dice, onScoreCategory, compact, Modifier.weight(1f))
         }
     }
 }
+
+/** One row of the board: one or two [categories], each in half of it. A lone one keeps to the first half's width. */
+@Composable
+internal fun CellRow(
+    categories: List<ScoreCategory>,
+    player: PlayerState?,
+    canScore: Boolean,
+    showPreview: Boolean,
+    available: Set<ScoreCategory>,
+    dice: List<Die>,
+    onScoreCategory: (ScoreCategory) -> Unit,
+    compact: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        // Gives the first column's score text (up to 2 digits) clearance before the
+        // second column's tile starts - otherwise they visually touch/overlap.
+        horizontalArrangement = Arrangement.spacedBy(COLUMN_GAP),
+    ) {
+        for (category in categories) {
+            CategoryCell(
+                category = category,
+                player = player,
+                canScore = canScore,
+                showPreview = showPreview,
+                available = available,
+                dice = dice,
+                onScoreCategory = onScoreCategory,
+                compact = compact,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
+        }
+        if (categories.size == 1) Spacer(modifier = Modifier.weight(1f))
+    }
+}
+
+/** The gap between the board's columns. */
+internal val COLUMN_GAP = 20.dp
 
 @Composable
 internal fun CategoryCell(
@@ -160,7 +187,10 @@ internal fun CategoryCell(
     dice: List<Die>,
     onScoreCategory: (ScoreCategory) -> Unit,
     modifier: Modifier = Modifier,
-    prominent: Boolean = false,
+    // The tile stretched across the width it's given, for 5x: two columns wide, one row tall.
+    wide: Boolean = false,
+    // A square tile of this side, with its score beside it, for 5x over two rows.
+    squareSize: Dp? = null,
     compact: Boolean = false,
 ) {
     val scores = player?.scoresIn(category).orEmpty()
@@ -218,35 +248,38 @@ internal fun CategoryCell(
         }
         else -> "Open"
     }
-    Row(
-        modifier = modifier.clearAndSetSemantics {
-            contentDescription = category.spokenName(irish)
-            stateDescription = spokenState
-            if (isLegalChoice) {
-                role = Role.Button
-                onClick(label = "Score") {
-                    onScoreCategory(category)
-                    true
-                }
+    val cellSemantics: SemanticsPropertyReceiver.() -> Unit = {
+        contentDescription = category.spokenName(irish)
+        stateDescription = spokenState
+        if (isLegalChoice) {
+            role = Role.Button
+            onClick(label = "Score") {
+                onScoreCategory(category)
+                true
             }
-        },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+        }
+    }
+    val tile = @Composable { tileModifier: Modifier ->
         CategoryTile(
             category = category,
+            modifier = tileModifier,
             // Not `|| fiveOfAKindTileBonusPreview`: the 5x tile is never actually pickable again
             // once scored (it isn't a legal choice), so glowing it like an open, scorable box
             // would be misleading - the +score line below is the preview, the tile's look doesn't
             // change.
             highlighted = isGoodChoice,
-            prominent = prominent,
+            wide = wide,
+            squareSize = squareSize,
             compact = compact,
             scored = boxFull,
             fiveOfAKindBonusCount = fiveOfAKindBonusCount,
+            // On the wide tile, which has the room, rather than under the score beside it, which hasn't.
+            fiveOfAKindBonusAmount = if (wide) pendingBonusAmount else 0,
             outlineColor = lastScored?.color,
             onClick = if (isLegalChoice) { { onScoreCategory(category) } } else null,
         )
+    }
+    val scoreContent = @Composable { scoreModifier: Modifier ->
         if (slotCount > 1) {
             StackedScores(
                 scores = scores,
@@ -254,18 +287,17 @@ internal fun CategoryCell(
                 previewScore = previewScore,
                 previewGold = isGoodChoice,
                 lastScoredColor = lastScored?.color,
-                bonusAmount = if (fiveOfAKindBonusCount > 0 || fiveOfAKindTileBonusPreview) pendingBonusAmount else 0,
-                prominent = prominent,
+                bonusAmount = if (!wide && (fiveOfAKindBonusCount > 0 || fiveOfAKindTileBonusPreview)) pendingBonusAmount else 0,
                 // No taller than the tile beside it - see StackedScores.
                 maxHeight = when {
-                    prominent -> PROMINENT_TILE_SIZE
+                    squareSize != null -> squareSize
                     compact -> COMPACT_TILE_SIZE
                     else -> REGULAR_TILE_SIZE
                 },
-                modifier = Modifier.weight(1f),
+                modifier = scoreModifier,
             )
-        } else if (fiveOfAKindBonusCount > 0 || fiveOfAKindTileBonusPreview) {
-            Column(modifier = Modifier.weight(1f)) {
+        } else if (!wide && (fiveOfAKindBonusCount > 0 || fiveOfAKindTileBonusPreview)) {
+            Column(modifier = scoreModifier) {
                 Text(
                     text = (filled ?: previewScore ?: 0).toString(),
                     color = when {
@@ -274,7 +306,7 @@ internal fun CategoryCell(
                         else -> TileIconColor
                     },
                     fontWeight = if (isGoodChoice || lastScored != null) FontWeight.Bold else FontWeight.Normal,
-                    style = if (prominent) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Visible,
                     softWrap = false,
@@ -285,17 +317,15 @@ internal fun CategoryCell(
                     text = "+$pendingBonusAmount",
                     color = GoldAccent,
                     fontWeight = FontWeight.Bold,
-                    // Smaller than the 5x tile's own bonus line for a regular (non-prominent)
-                    // category cell - those rows are much shorter, with far less vertical room to
-                    // spare for a second line than the big prominent 5x tile has.
-                    style = if (prominent) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelSmall,
+                    // Small: a row has little vertical room to spare for a second line.
+                    style = MaterialTheme.typography.labelSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Visible,
                     softWrap = false,
                 )
             }
         } else {
-            val style = if (prominent) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium
+            val style = MaterialTheme.typography.bodyMedium
             // The score or preview on show - or, while there isn't one, the last one that was, kept
             // laid out but hidden behind the "-". Every cell's preview hides the moment the cup is
             // tapped for a reroll, and laying all their text out again (a number to "-", bold to
@@ -305,7 +335,7 @@ internal fun CategoryCell(
             val shown = (filled ?: previewScore)?.let { ShownScore(it.toString(), gold = isGoodChoice, scored = filled != null, accent = lastScored?.color) }
             val lastShown = remember { arrayOfNulls<ShownScore>(1) }
             if (shown != null) lastShown[0] = shown
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+            Box(modifier = scoreModifier, contentAlignment = Alignment.CenterStart) {
                 lastShown[0]?.let { number ->
                     ScoreText(
                         text = number.text,
@@ -329,7 +359,35 @@ internal fun CategoryCell(
             }
         }
     }
+    if (wide) {
+        // Two columns wide, its right edge level with the right edge of the tile in the second of them: the
+        // score then sits where that column's scores do.
+        BoxWithConstraints(modifier = modifier.clearAndSetSemantics(cellSemantics)) {
+            val tileSize = if (compact) COMPACT_TILE_SIZE else REGULAR_TILE_SIZE
+            val scoreWidth = (maxWidth - COLUMN_GAP) / 2 - tileSize - TILE_SCORE_GAP
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(TILE_SCORE_GAP),
+            ) {
+                tile(Modifier.weight(1f))
+                scoreContent(Modifier.width(scoreWidth))
+            }
+        }
+    } else {
+        Row(
+            modifier = modifier.clearAndSetSemantics(cellSemantics),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(TILE_SCORE_GAP),
+        ) {
+            tile(Modifier)
+            scoreContent(Modifier.weight(1f))
+        }
+    }
 }
+
+/** The gap between a tile and its score. */
+private val TILE_SCORE_GAP = 8.dp
 
 /**
  * What a screen reader hears for a box with [slotCount] slots: what's in each filled one, what the
@@ -378,13 +436,11 @@ private fun StackedScores(
     previewGold: Boolean,
     lastScoredColor: Color?,
     bonusAmount: Int,
-    prominent: Boolean,
     maxHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
-    // Three lines fill the tile's height: 3 x 16sp beside a 48dp tile, 3 x 20sp (+ a bonus line)
-    // beside the 76dp 5x tile.
-    val style = if (prominent) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.labelMedium
+    // Three lines fill the tile's height: 3 x 16sp beside a 48dp tile.
+    val style = MaterialTheme.typography.labelMedium
     val scrollState = rememberScrollState()
     val targetLine = if (scores.size < slotCount) scores.size else scores.lastIndex
     var contentHeight by remember { mutableIntStateOf(0) }
@@ -424,7 +480,7 @@ private fun StackedScores(
                     text = "+$bonusAmount",
                     color = GoldAccent,
                     fontWeight = FontWeight.Bold,
-                    style = if (prominent) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Visible,
                     softWrap = false,

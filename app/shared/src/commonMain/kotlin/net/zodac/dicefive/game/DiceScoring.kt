@@ -43,6 +43,9 @@ object DiceScoring {
         // Every die needs a colour: a colourless mode's dice would otherwise all group under null.
         ScoreCategory.COLOURED_HOUSE ->
             fixedScoreIf(category, dice.all { it.colour != null } && isHouse(dice.groupingBy { it.colour }.eachCount()))
+        ScoreCategory.TWO_PAIR -> scoreTwoPair(dice)
+        ScoreCategory.EVENS -> dice.sumOf { if (it.value % 2 == 0) it.value else 0 }
+        ScoreCategory.ODDS -> dice.sumOf { if (it.value % 2 != 0) it.value else 0 }
     }
 
     /**
@@ -61,6 +64,15 @@ object DiceScoring {
         dice.count { it.value == target } * target
 
     private fun valueCounts(dice: List<Die>): Map<Int, Int> = dice.groupingBy { it.value }.eachCount()
+
+    /**
+     * Two different numbers each on at least two dice: the four dice making those pairs, added up. A third
+     * die matching one of the pairs isn't counted, and four of one number is one pair, not two.
+     */
+    private fun scoreTwoPair(dice: List<Die>): Int {
+        val pairs = valueCounts(dice).filterValues { it >= 2 }.keys
+        return if (pairs.size == 2) pairs.sum() * 2 else 0
+    }
 
     /** Three of one thing and two of another - numbers for Full House, colours for Coloured House. */
     private fun isHouse(counts: Map<*, Int>): Boolean =

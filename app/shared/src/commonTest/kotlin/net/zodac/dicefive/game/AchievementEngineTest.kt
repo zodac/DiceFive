@@ -1428,6 +1428,57 @@ class AchievementEngineTest {
         assertTrue(Achievement.IMPATIENT in evaluate(finishedGame(player())).newlyUnlocked)
     }
 
+    // ---- Extended Scores: Two Pair, Evens and Odds ----------------------------------------------
+
+    private fun extendedGame(vararg players: PlayerState) =
+        finishedGame(*players.map { it.copy(extendedScores = true, scorecard = it.scorecard + ScoreCategory.EXTENDED.associateWith { listOf(0) }) }.toTypedArray())
+            .copy(extendedScores = true)
+
+    @Test
+    fun `Extended Scores doesn't hand out the score ladder`() {
+        val strong = player(total = 520, overrides = GameMode.STANDARD.categories.associateWith { 30 })
+
+        val plain = evaluate(finishedGame(strong))
+        val extended = evaluate(extendedGame(strong))
+
+        for (achievement in listOf(Achievement.SCORE_200, Achievement.SCORE_300, Achievement.SCORE_400, Achievement.SCORE_500)) {
+            assertTrue(achievement in plain.newlyUnlocked, "$achievement in a plain game")
+            assertFalse(achievement in extended.newlyUnlocked, "$achievement with Extended Scores")
+        }
+    }
+
+    @Test
+    fun `Extended Scores doesn't hand out Zero To Hero`() {
+        val threeZeroes = player(total = 200, overrides = mapOf(ScoreCategory.ONES to 0, ScoreCategory.TWOS to 0, ScoreCategory.THREES to 0, ScoreCategory.SIXES to 30))
+        val bot = player(name = "Bot", type = PlayerType.AI, total = 100)
+
+        assertTrue(Achievement.ZERO_TO_HERO in evaluate(finishedGame(threeZeroes, bot)).newlyUnlocked)
+        assertFalse(Achievement.ZERO_TO_HERO in evaluate(extendedGame(threeZeroes, bot)).newlyUnlocked)
+    }
+
+    @Test
+    fun `How Do You Play This Game with Extended Scores needs its boxes zeroed too`() {
+        val standardZeroes = player(total = 5)
+        val withEvens = standardZeroes.copy(extendedScores = true, scorecard = standardZeroes.scorecard + ScoreCategory.EXTENDED.associateWith { listOf(0) } + (ScoreCategory.EVENS to listOf(12)))
+        val allZeroes = standardZeroes.copy(extendedScores = true, scorecard = standardZeroes.scorecard + ScoreCategory.EXTENDED.associateWith { listOf(0) })
+
+        assertFalse(Achievement.ALL_ZEROES in evaluate(finishedGame(withEvens).copy(extendedScores = true)).newlyUnlocked)
+        assertTrue(Achievement.ALL_ZEROES in evaluate(finishedGame(allZeroes).copy(extendedScores = true)).newlyUnlocked)
+    }
+
+    @Test
+    fun `Luck Of The Draw counts the Extended Scores turns too`() {
+        fun won(extended: Boolean): GameState {
+            val me = player(total = 300).let { if (extended) it.copy(extendedScores = true, scorecard = it.scorecard + ScoreCategory.EXTENDED.associateWith { listOf(0) }) else it }
+            return finishedGame(me, player(name = "Bot", type = PlayerType.AI, total = 100)).copy(extendedScores = extended)
+        }
+
+        // 13 boxes: 10 timeouts leaves 3 by hand. 16 boxes: 13 timeouts does.
+        assertTrue(evaluate(won(false), GameAchievementContext(playerOneTimeouts = 10)).newlyUnlocked.contains(Achievement.LUCK_OF_THE_DRAW))
+        assertFalse(evaluate(won(true), GameAchievementContext(playerOneTimeouts = 10)).newlyUnlocked.contains(Achievement.LUCK_OF_THE_DRAW))
+        assertTrue(evaluate(won(true), GameAchievementContext(playerOneTimeouts = 13)).newlyUnlocked.contains(Achievement.LUCK_OF_THE_DRAW))
+    }
+
     // ---- Third Wind: every box scored three times -----------------------------------------------
 
     /** A finished Third Wind card - all three slots of every box filled - each slot scoring [slotScore]. */

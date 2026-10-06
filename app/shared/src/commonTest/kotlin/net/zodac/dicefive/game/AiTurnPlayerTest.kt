@@ -388,4 +388,19 @@ class AiTurnPlayerTest {
         const val STUD_HOLD_CASES = 200
         const val STUD_SEEDED_GAMES = 40
     }
+
+    @Test
+    fun `every difficulty plays whole legal Extended Scores games in Standard and Tricolour`() {
+        for (mode in listOf(GameMode.STANDARD, GameMode.TRICOLOUR)) for (difficulty in Difficulty.entries) {
+            val random = Random(difficulty.ordinal)
+            var state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.AI, name = "Bot", difficulty = difficulty)), mode, extendedScores = true)
+            var turns = 0
+            while (!state.isGameOver) {
+                state = AiTurnPlayer.playTurn(state, random)
+                turns++
+            }
+            assertEquals(mode.categories.size + 3, turns, "$mode $difficulty")
+            assertTrue(state.players.single().scorecard.values.all { it.size == 1 }, "$mode $difficulty")
+        }
+    }
 }

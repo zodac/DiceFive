@@ -100,6 +100,13 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    /** Whether the Extended Scores modifier was on the last time the setup form started a game. */
+    val extendedScores: Flow<Boolean> = dataStore.data.map { prefs -> prefs[EXTENDED_SCORES_KEY] ?: false }
+
+    suspend fun setExtendedScores(enabled: Boolean) {
+        dataStore.edit { it[EXTENDED_SCORES_KEY] = enabled }
+    }
+
     /** The mode the setup form last started a game in - read back by id, falling back to the default
      * for one nothing recognises (see [GameMode.id]). */
     val gameMode: Flow<GameMode> = dataStore.data.map { prefs ->
@@ -186,6 +193,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val ROLLS_PER_TURN_LENGTH_KEY = intPreferencesKey("rolls_per_turn_modifier_length")
         val STORED_ROLLS_KEY = booleanPreferencesKey("stored_rolls_modifier")
         val STORED_ROLLS_MAX_KEY = intPreferencesKey("stored_rolls_modifier_max")
+        val EXTENDED_SCORES_KEY = booleanPreferencesKey("extended_scores_modifier")
         val GAME_MODE_KEY = stringPreferencesKey("game_mode")
         val DICE_STYLE_ID_KEY = stringPreferencesKey("dice_style_id")
         val DICE_CUP_STYLE_ID_KEY = stringPreferencesKey("dice_cup_style_id")

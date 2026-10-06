@@ -61,4 +61,13 @@ class FlowerpotGrowthTest {
         assertEquals(3, player.copy(rollCount = 39).flowerpotStage)
         assertFalse(player.copy(rollCount = 400).hasGrownSunflower)
     }
+
+    @Test
+    fun `with Extended Scores the plant blooms on the last of its 48 rolls - not the 39th`() {
+        val player = PlayerState(name = "Player 1", type = PlayerType.HUMAN, extendedScores = true)
+
+        assertFalse(player.copy(rollCount = 39).hasGrownSunflower)
+        assertFalse(player.copy(rollCount = 47).hasGrownSunflower)
+        assertTrue(player.copy(rollCount = 48).hasGrownSunflower)
+    }
 }

@@ -37,11 +37,12 @@ internal fun flowerpotGrowthStage(rolls: Int, maxRolls: Int, canBloom: Boolean):
 
 /**
  * How far this player's Flowerpot plant has grown - [flowerpotGrowthStage], except that it stops short
- * of bloom while a roll modifier is on: the game's last possible roll is [GameMode.maxRollsPerGame]
- * only under the mode's own rolls, and more of them would hand the bloom out for free.
+ * of bloom while a roll modifier is on: the game's last possible roll is [PlayerState.maxRollsPerGame]
+ * only under the mode's own rolls, and more of them would hand the bloom out for free. The Extended
+ * Scores modifier's extra turns stretch that last roll out with them.
  */
 val PlayerState.flowerpotStage: Int
-    get() = flowerpotGrowthStage(rollCount, gameMode.maxRollsPerGame, gameMode.growsSunflower && !rollsModified)
+    get() = flowerpotGrowthStage(rollCount, maxRollsPerGame, gameMode.growsSunflower && !rollsModified)
 
 /** Whether this player's rolls have brought the Flowerpot's plant into bloom - see [flowerpotStage]. */
 val PlayerState.hasGrownSunflower: Boolean

@@ -306,6 +306,36 @@ class GameStateJsonTest {
             assertFailsWith<IllegalArgumentException>("missing $field") { GameStateJson.decode(incomplete) }
         }
     }
+
+    @Test
+    fun `round trips Extended Scores and a card with its boxes`() {
+        val player = PlayerState(name = "Player 1", type = PlayerType.HUMAN, extendedScores = true)
+        val state = GameState(
+            extendedScores = true,
+            players = listOf(
+                player.copy(
+                    scorecard = player.scorecard + mapOf(ScoreCategory.TWO_PAIR to listOf(22), ScoreCategory.ODDS to listOf(0)),
+                    lastScoredCategory = ScoreCategory.TWO_PAIR,
+                ),
+            ),
+        )
+
+        val decoded = GameStateJson.decode(GameStateJson.encode(state))
+
+        assertEquals(state, decoded)
+        assertEquals(16, decoded.players.single().scorecard.size)
+    }
+
+    @Test
+    fun `a save without Extended Scores loads with it off and the mode's own card`() {
+        val state = GameState(players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)))
+        val saved = GameStateJson.encode(state)
+
+        assertFalse("extendedScores" in saved)
+        val decoded = GameStateJson.decode(saved)
+        assertFalse(decoded.extendedScores)
+        assertEquals(13, decoded.players.single().scorecard.size)
+    }
 }
 
 private fun String.toJsonObject(): JsonObject = parseJson(this) as JsonObject

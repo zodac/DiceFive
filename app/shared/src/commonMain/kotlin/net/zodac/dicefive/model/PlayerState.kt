@@ -2,7 +2,7 @@ package net.zodac.dicefive.model
 
 /**
  * A player's live state within a game: identity plus their scorecard.
- * [scorecard] maps every one of [gameMode]'s categories to the scores filled into it so far, in the
+ * [scorecard] maps every one of this player's [categories] to the scores filled into it so far, in the
  * order they went in - empty while the box is untouched, and full once it holds
  * [GameMode.scoresPerCategory] of them (one, in every mode but Third Wind). [fiveOfAKindBonusCount]
  * tracks how many extra 5x bonus chips this player has earned.
@@ -16,7 +16,9 @@ data class PlayerState(
     val type: PlayerType,
     val difficulty: Difficulty = Difficulty.MEDIUM,
     val gameMode: GameMode = GameMode.default,
-    val scorecard: Map<ScoreCategory, List<Int>> = gameMode.categories.associateWith { emptyList() },
+    /** Whether the Extended Scores modifier is on, adding its boxes to [categories]. */
+    val extendedScores: Boolean = false,
+    val scorecard: Map<ScoreCategory, List<Int>> = gameMode.categoriesWith(extendedScores).associateWith { emptyList() },
     val fiveOfAKindBonusCount: Int = 0,
     /** The dice this player's last completed turn was scored with - value and held/unheld state
      * both, as they stood the moment they tapped a category. Null before this player's first turn
@@ -39,6 +41,21 @@ data class PlayerState(
     val rollsModified: Boolean = false,
 ) {
 
+    /** Every box on this player's card: [gameMode]'s own, plus the Extended Scores modifier's when it's on. */
+    val categories: List<ScoreCategory>
+        get() = gameMode.categoriesWith(extendedScores)
+
+    /** How many turns this player's game lasts: a turn for every slot of every box on the card. */
+    val turnsPerGame: Int
+        get() = categories.size * gameMode.scoresPerCategory
+
+    /**
+     * The most rolls this player can make in their game - [GameMode.maxRollsPerGame], stretched over the
+     * turns the extra boxes add. Always a whole number: it's the mode's rolls a turn times its turns.
+     */
+    val maxRollsPerGame: Int
+        get() = gameMode.maxRollsPerGame / gameMode.turnsPerGame * turnsPerGame
+
     /** The scores filled into [category] so far, in the order they went in. */
     fun scoresIn(category: ScoreCategory): List<Int> = scorecard[category].orEmpty()
 
@@ -50,15 +67,15 @@ data class PlayerState(
 
     /** Every score on the card, one per turn taken. */
     val allScores: List<Int>
-        get() = gameMode.categories.flatMap { scoresIn(it) }
+        get() = categories.flatMap { scoresIn(it) }
 
     /** How many turns this player has scored so far - one per filled slot. */
     val turnsTaken: Int
-        get() = gameMode.categories.sumOf { scoresIn(it).size }
+        get() = categories.sumOf { scoresIn(it).size }
 
     /** How many turns this player has still to take - one per open slot. */
     val turnsLeft: Int
-        get() = gameMode.turnsPerGame - turnsTaken
+        get() = turnsPerGame - turnsTaken
 
     val isScorecardComplete: Boolean
         get() = turnsLeft == 0
@@ -86,6 +103,10 @@ data class PlayerState(
     val colourSectionTotal: Int
         get() = sectionTotal(ScoreSection.COLOUR)
 
+    /** Zero without the Extended Scores modifier. */
+    val extendedSectionTotal: Int
+        get() = sectionTotal(ScoreSection.EXTENDED)
+
     val fiveOfAKindBonusTotal: Int
         get() = fiveOfAKindBonusCount * gameMode.fiveOfAKindBonusAmount
 
@@ -107,10 +128,10 @@ data class PlayerState(
         get() = scoresIn(ScoreCategory.FIVE_OF_A_KIND).count { it == FIVE_OF_A_KIND_FULL_SCORE } + fiveOfAKindBonusCount
 
     val totalScore: Int
-        get() = upperSectionTotal + upperSectionBonus + lowerSectionTotal + colourSectionTotal + fiveOfAKindBonusTotal
+        get() = upperSectionTotal + upperSectionBonus + lowerSectionTotal + colourSectionTotal + extendedSectionTotal + fiveOfAKindBonusTotal
 
     private fun sectionTotal(section: ScoreSection): Int =
-        gameMode.categories.filter { it.section == section }.sumOf { scoresIn(it).sum() }
+        categories.filter { it.section == section }.sumOf { scoresIn(it).sum() }
 
     companion object {
         /** ONES..SIXES, in pip order - so a category's index here, plus one, is the pip value it counts. */

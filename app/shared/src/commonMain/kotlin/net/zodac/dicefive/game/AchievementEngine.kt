@@ -407,10 +407,12 @@ object AchievementEngine {
         // Score thresholds - see earnedDuringPlay's doc comment for why these wait for the actual
         // result rather than firing off a total that's already passed the mark mid-game. Not on a
         // card scored three times over, whose totals clear every rung as a matter of course.
-        award(Achievement.SCORE_200, singleScoreCard && bestHumanScore >= 200)
-        award(Achievement.SCORE_300, singleScoreCard && bestHumanScore >= 300)
-        award(Achievement.SCORE_400, singleScoreCard && bestHumanScore >= 400)
-        award(Achievement.SCORE_500, singleScoreCard && bestHumanScore >= 500)
+        // Nor with the Extended Scores modifier's three extra boxes, which add around 50 points to a card.
+        val standardCard = singleScoreCard && !state.extendedScores
+        award(Achievement.SCORE_200, standardCard && bestHumanScore >= 200)
+        award(Achievement.SCORE_300, standardCard && bestHumanScore >= 300)
+        award(Achievement.SCORE_400, standardCard && bestHumanScore >= 400)
+        award(Achievement.SCORE_500, standardCard && bestHumanScore >= 500)
 
         // Winning.
         // Judged directly off this game's own result, not off the GAMES_WON counter (unlike
@@ -427,8 +429,8 @@ object AchievementEngine {
         award(Achievement.COMEBACK, multiplayer && humanWon && context.trailedIntoFinalRound)
         award(
             Achievement.ZERO_TO_HERO,
-            // Three zeroes over 39 turns (Third Wind) is the usual run of things, not a comeback.
-            state.gameMode.scoresPerCategory == 1 && multiplayer && humanWon &&
+            // Three zeroes over 39 turns (Third Wind), or with Two Pair on the card, is the usual run of things, not a comeback.
+            state.gameMode.scoresPerCategory == 1 && !state.extendedScores && multiplayer && humanWon &&
                 humans.any { it.totalScore == state.topScore && it.allScores.count { v -> v == 0 } >= ZEROES_FOR_HERO },
         )
         award(Achievement.TRICOLOUR_WIN, multiplayer && humanWon && state.gameMode == GameMode.TRICOLOUR)
@@ -438,7 +440,7 @@ object AchievementEngine {
         award(Achievement.THIRD_WIND_WIN, multiplayer && humanWon && state.gameMode == GameMode.THIRD_WIND)
         // Any mode - the game's length comes from player 1's own mode, so it's "all but 3" of 13 turns
         // in Standard or Quickfire, of 17 in Tricolour, and of 39 in Third Wind.
-        val playerOneScoredThemselves = players[0].gameMode.turnsPerGame - context.playerOneTimeouts
+        val playerOneScoredThemselves = players[0].turnsPerGame - context.playerOneTimeouts
         award(Achievement.LUCK_OF_THE_DRAW, multiplayer && humanWon && playerOneScoredThemselves <= LUCK_OF_THE_DRAW_MAX_OWN_SCORES)
         award(Achievement.PIPPED_TO_THE_POST, multiplayer && !humanWon && state.topScore - bestHumanScore == PIPPED_MARGIN)
         award(Achievement.JAWS_OF_VICTORY, multiplayer && !humanWon && context.ledIntoFinalRound)
@@ -459,7 +461,7 @@ object AchievementEngine {
         award(
             Achievement.ALL_ZEROES,
             anyHuman { player ->
-                player.gameMode.categories.filter { it != ScoreCategory.CHANCE }.all { category -> player.scoresIn(category).all { it == 0 } }
+                player.categories.filter { it != ScoreCategory.CHANCE }.all { category -> player.scoresIn(category).all { it == 0 } }
             },
         )
         award(Achievement.EXTREME_LOW_ROLLS, anyHuman { it.totalScore == LOWEST_POSSIBLE_SCORE })

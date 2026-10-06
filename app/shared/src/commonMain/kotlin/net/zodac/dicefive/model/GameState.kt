@@ -9,6 +9,8 @@ data class GameState(
     val gameMode: GameMode = GameMode.default,
     val turnTimer: TurnTimer = TurnTimer.NONE,
     val rollModifiers: RollModifiers = RollModifiers(),
+    /** Whether the Extended Scores modifier is on: Two Pair, Evens and Odds join every player's card. */
+    val extendedScores: Boolean = false,
     val players: List<PlayerState> = emptyList(),
     val currentPlayerIndex: Int = 0,
     val dice: List<Die> = List(gameMode.diceCount) { Die() },
@@ -27,6 +29,10 @@ data class GameState(
     /** Rolls a turn allows before any stored rolls: the Number of Rolls modifier's, else the mode's. */
     val rollsPerTurn: Int
         get() = rollModifiers.rollsPerTurn ?: gameMode.rollsPerTurn
+
+    /** The boxes on this game's cards - the mode's own, plus the Extended Scores modifier's. */
+    val categories: List<ScoreCategory>
+        get() = gameMode.categoriesWith(extendedScores)
 
     val currentPlayer: PlayerState?
         get() = players.getOrNull(currentPlayerIndex)
@@ -53,9 +59,9 @@ data class GameState(
         get() = gameMode.turnTimerSeconds ?: turnTimer.seconds
 
     /** Whether this game's scores go on the Leaderboard: its mode must allow it ([GameMode.countsOnLeaderboard])
-     * and no modifier, like the [turnTimer] or [rollModifiers], may be on - modifiers are for fun, not for the records. */
+     * and no modifier, like the [turnTimer], [rollModifiers] or [extendedScores], may be on - modifiers are for fun, not for the records. */
     val countsOnLeaderboard: Boolean
-        get() = gameMode.countsOnLeaderboard && turnTimer == TurnTimer.NONE && !rollModifiers.isActive
+        get() = gameMode.countsOnLeaderboard && turnTimer == TurnTimer.NONE && !rollModifiers.isActive && !extendedScores
 
     /** A human's turn, not yet rolled, in a mode that taps the cup for them at the start of it
      * ([GameMode.autoRollAtTurnStart]). An AI's turn is never this - its own turn loop rolls. */
