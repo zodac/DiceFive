@@ -51,6 +51,7 @@ import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
+import net.zodac.dicefive.model.PlayerColour
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
@@ -79,6 +80,8 @@ data class PlayerSetupSlot(
     val type: PlayerType = PlayerType.HUMAN,
     val name: String = "Player $slot",
     val difficulty: Difficulty = Difficulty.MEDIUM,
+    /** Distinct per seat by default; [GameViewModel.setPlayerColour] keeps all four slots distinct. */
+    val colour: PlayerColour = PlayerColour.defaultFor(slot - 1),
 )
 
 data class GameSetupState(
@@ -441,8 +444,12 @@ class GameViewModel(
                     }
                     updated
                 }
+                // A saved set that isn't four different colours (never written by this app, but a hand-edited
+                // or partly written store could) is dropped for the defaults, so no two players ever match.
+                val colours = slots.map { slot -> repository.playerColourFor(slot.slot).first() }
+                val restoredColours = colours.takeIf { saved -> saved.none { it == null } && saved.toSet().size == saved.size }
                 restored = restored.copy(
-                    playerSlots = slots,
+                    playerSlots = if (restoredColours == null) slots else slots.mapIndexed { i, slot -> slot.copy(colour = restoredColours[i]!!) },
                     turnTimer = repository.turnTimer.first(),
                     turnTimerLength = repository.turnTimerLength.first(),
                     rollModifiers = repository.rollModifiers.first(),
@@ -483,6 +490,25 @@ class GameViewModel(
     fun setPlayerName(slot: Int, name: String) {
         val cap = GameSetupState.maxPlayerNameLength(_setup.value.playerCount)
         updateSlot(slot) { it.copy(name = name.take(cap)) }
+    }
+
+    /**
+     * Gives [slot] the colour, and its old one to whichever slot held it - every slot, shown or not, so
+     * the four are always distinct and raising the player count can never produce two of a colour.
+     */
+    fun setPlayerColour(slot: Int, colour: PlayerColour) {
+        _setup.update { state ->
+            val previous = state.playerSlots.firstOrNull { it.slot == slot }?.colour ?: return@update state
+            state.copy(
+                playerSlots = state.playerSlots.map {
+                    when {
+                        it.slot == slot -> it.copy(colour = colour)
+                        it.colour == colour -> it.copy(colour = previous)
+                        else -> it
+                    }
+                },
+            )
+        }
     }
 
     fun setPlayerDifficulty(slot: Int, difficulty: Difficulty) {
@@ -554,7 +580,7 @@ class GameViewModel(
                 PlayerType.HUMAN -> slot.name.trim().ifBlank { "Player ${slot.slot}" }
                 PlayerType.AI -> aiNames.next()
             }
-            PlayerConfig(slot = slot.slot, type = slot.type, name = name, difficulty = slot.difficulty)
+            PlayerConfig(slot = slot.slot, type = slot.type, name = name, difficulty = slot.difficulty, colour = slot.colour)
         }
         persistHumanNames(activeSlots)
         persistGameConfig(setupState)
@@ -1542,6 +1568,8 @@ class GameViewModel(
             repository.setExtendedScores(setup.extendedScores)
             repository.setUnluckyDice(setup.unluckyDiceEnabled, setup.unluckyDice)
             repository.setGameMode(setup.gameMode)
+            // All four, not just the shown ones: they're kept distinct together (see setPlayerColour).
+            for (slot in setup.playerSlots) repository.setPlayerColour(slot.slot, slot.colour)
             for (slot in slots) {
                 // Slot 1 is always Human, so its type and difficulty aren't worth persisting.
                 if (slot.slot == 1) continue

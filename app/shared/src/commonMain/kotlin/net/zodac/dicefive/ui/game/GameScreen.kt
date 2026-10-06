@@ -450,7 +450,7 @@ private fun InProgressGame(
     val board = @Composable {
         val viewedIndex = viewedPlayerIndex
         if (viewedPlayer != null && viewedIndex != null) {
-            ReadOnlyScoreboard(player = viewedPlayer, seat = viewedIndex)
+            ReadOnlyScoreboard(player = viewedPlayer)
         } else {
             GameBoard(
                 state = state,

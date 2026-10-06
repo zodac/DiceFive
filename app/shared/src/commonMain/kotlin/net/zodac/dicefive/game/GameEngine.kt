@@ -47,6 +47,7 @@ object GameEngine {
                     name = it.name,
                     type = it.type,
                     difficulty = it.difficulty,
+                    colour = it.colour,
                     gameMode = gameMode,
                     extendedScores = extended,
                     disabledCategories = disabledCategories,

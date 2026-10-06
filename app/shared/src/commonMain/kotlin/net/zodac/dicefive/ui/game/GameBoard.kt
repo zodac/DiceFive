@@ -37,7 +37,7 @@ import net.zodac.dicefive.model.flowerpotStage
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.style.FlowerpotGrowth
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
-import net.zodac.dicefive.ui.theme.playerColor
+import net.zodac.dicefive.ui.theme.color
 
 /** Inset of the score-grid + cup section's content. Its height is fixed per game mode (see
  * [scoreBoardHeight]), so its two columns line up row-for-row. */
@@ -257,11 +257,11 @@ fun GameCup(
  * either way rather than a second copy that can silently drift from the first.
  */
 @Composable
-fun ReadOnlyScoreboard(player: PlayerState, seat: Int, modifier: Modifier = Modifier) {
+fun ReadOnlyScoreboard(player: PlayerState, modifier: Modifier = Modifier) {
     // The box this player's last turn went in, picked out in their colour - the scorecard on its own
     // shows what they've scored, but not which of it was their last turn (see LastScoredHighlight).
-    // Their colour from their seat, through the same playerColor their tab uses, so the two always match.
-    val lastScored = player.lastScoredCategory?.let { LastScoredHighlight(it, playerColor(seat)) }
+    // Their colour is the one picked at setup, through the same PlayerColour.color their tab uses, so the two always match.
+    val lastScored = player.lastScoredCategory?.let { LastScoredHighlight(it, player.colour.color) }
     CompositionLocalProvider(LocalLastScoredHighlight provides lastScored) {
         ReadOnlyScoreboardRow(player, modifier)
     }

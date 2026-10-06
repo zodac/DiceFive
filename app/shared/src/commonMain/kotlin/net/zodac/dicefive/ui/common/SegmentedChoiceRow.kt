@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui.common
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
@@ -10,6 +11,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 
@@ -25,9 +28,14 @@ import androidx.compose.ui.text.style.TextOverflow
  * turn timer's "no timer"). [label] is still required for that option: it becomes the icon's
  * content description, so a screen reader announces the same thing the text would have said.
  *
+ * [spokenLabel] is what a screen reader says for a text option when the drawn [label] is an abbreviation.
+ *
  * [enabled] false greys out every segment and ignores taps, while still showing which one is
  * picked - for a choice the rest of the form has overridden (the turn timer under a game mode that
  * sets its own).
+ *
+ * [contentPadding] is the segment's own side padding (M3's 12dp by default): the New Game difficulty row
+ * tightens it so "Medium" still fits, and sits centred, once the colour circle has taken a share of the row.
  */
 @Composable
 fun <T> SegmentedChoiceRow(
@@ -39,6 +47,8 @@ fun <T> SegmentedChoiceRow(
     labelStyle: TextStyle = LocalTextStyle.current,
     glyph: (T) -> ImageVector? = { null },
     enabled: Boolean = true,
+    contentPadding: PaddingValues = SegmentedButtonDefaults.ContentPadding,
+    spokenLabel: (T) -> String = label,
 ) {
     SingleChoiceSegmentedButtonRow(modifier = modifier) {
         options.forEachIndexed { index, option ->
@@ -49,6 +59,7 @@ fun <T> SegmentedChoiceRow(
                 enabled = enabled,
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                 icon = {},
+                contentPadding = contentPadding,
                 label = {
                     if (optionGlyph != null) {
                         Icon(
@@ -59,7 +70,15 @@ fun <T> SegmentedChoiceRow(
                     } else {
                         // One unbroken line: a label too wide for its segment at a large font spills into the
                         // segment's own padding rather than breaking mid-word ("Medi-um").
-                        Text(text = label(option), style = labelStyle, maxLines = 1, softWrap = false, overflow = TextOverflow.Visible)
+                        Text(
+                            text = label(option),
+                            style = labelStyle,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Visible,
+                            // What a screen reader says, when the drawn label is a shortened one.
+                            modifier = Modifier.semantics { contentDescription = spokenLabel(option) },
+                        )
                     }
                 },
             )

@@ -9,4 +9,5 @@ data class PlayerConfig(
     val type: PlayerType,
     val name: String,
     val difficulty: Difficulty = Difficulty.MEDIUM,
+    val colour: PlayerColour = PlayerColour.defaultFor(slot - 1),
 )

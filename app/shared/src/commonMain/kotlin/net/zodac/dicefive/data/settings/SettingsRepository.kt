@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.PlayerColour
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.UnluckyDice
@@ -44,6 +45,14 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setPlayerDifficulty(slot: Int, difficulty: Difficulty) {
         dataStore.edit { it[playerDifficultyKey(slot)] = difficulty.name }
+    }
+
+    fun playerColourFor(slot: Int): Flow<PlayerColour?> = dataStore.data.map { prefs ->
+        prefs[playerColourKey(slot)]?.let { raw -> runCatching { PlayerColour.valueOf(raw) }.getOrNull() }
+    }
+
+    suspend fun setPlayerColour(slot: Int, colour: PlayerColour) {
+        dataStore.edit { it[playerColourKey(slot)] = colour.name }
     }
 
     val playerCount: Flow<Int?> = dataStore.data.map { prefs -> prefs[PLAYER_COUNT_KEY] }
@@ -231,6 +240,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val DROPPED_DICE_CUP_STYLE_IDS = setOf("leather", "casino_burgundy")
         fun playerNameKey(slot: Int) = stringPreferencesKey("player_name_$slot")
         fun playerTypeKey(slot: Int) = stringPreferencesKey("player_type_$slot")
+        fun playerColourKey(slot: Int) = stringPreferencesKey("player_colour_$slot")
         fun playerDifficultyKey(slot: Int) = stringPreferencesKey("player_difficulty_$slot")
     }
 }

@@ -952,10 +952,28 @@ edges are pinned.
 
 ## Player colours
 
-**A player's colour comes from `playerColor(seat)` (`ui/theme/Color.kt`) and nowhere else** - the list
-behind it is private. Their tab, name and score, and the outline on the box they last scored in (see
-`ReadOnlyScoreboard`, which takes the seat, not a colour) all read it, so changing a seat's colour there
-changes every place it's shown. Anything new that marks a player in their colour should read it too.
+**A player's colour is chosen on the New Game screen and read from `PlayerState.colour`** - a
+`PlayerColour` (`model/PlayerColour.kt`, eight of them), drawn through `PlayerColour.color`
+(`ui/theme/Color.kt`, the only place one becomes a `Color`). Their tab, name and score, and the outline on
+the box they last scored in (`ReadOnlyScoreboard` reads `player.colour`) all use it, so they always match.
+Anything new that marks a player in their colour should read it too, never a seat index.
+
+- **Setup**: a 28dp circle (48dp touch target) left of each player's name or difficulty
+  (`ui/setup/PlayerColourPicker.kt`); tapping opens a `DropdownMenu` of the eight as a 4x2 grid, the
+  current one ticked. It's a curated set, not a free picker: M3 has no colour-picker component, and
+  Google's own apps (Calendar, Keep, Tasks) offer a small fixed palette, with a custom picker as an extra
+  at most. Here a custom one would let two players look alike, or pick something unreadable on the dark
+  table, so there isn't one. Add to the set only with a tone that's light enough for the dark page and
+  clear of the others.
+- **Always four distinct**: `GameViewModel.setPlayerColour` gives a colour another slot holds to that slot
+  in exchange (all four slots, shown or not, so raising the player count can't produce a clash). Defaults
+  are `PlayerColour.defaultFor(seat)`: cyan, green, purple, amber - what the seats were before it was a choice.
+- **Persisted** per slot in settings (`player_colour_N`, written when a game starts; a saved set that isn't
+  four different colours falls back to the defaults) and saved with an in-progress game (`colour` per
+  player; an older save gets its seat's default).
+- **TalkBack**: the circle is a button, "Player 2 colour, Pink", action "Choose colour"; the pop-up's choices
+  are radio buttons named by colour, the current one selected, and one another player holds says "swaps with
+  player 1". `PlayerColourPickerTest`. Not heard on a device.
 
 ## Gotchas hit while building this
 
