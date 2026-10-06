@@ -409,7 +409,7 @@ Families to check:
 
 | Family              | Achievements                                                                                 | What to ask                                                                 |
 |---------------------|----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| Roll count          | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Loaded Dice, Time To Let It Go, Pointless Roll, Greenfingers | Does "only one roll used" or "every roll used" become automatic or impossible? |
+| Roll count          | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Loaded Dice, Time To Let It Go, Pointless Roll, Greenfingers, Probability? Never Heard of Her | Does "only one roll used" or "every roll used" become automatic or impossible? |
 | First roll          | House Call, Straight Away, Five on the Fly, I Can Count!                             | Is every roll now a first roll, or none?                                    |
 | Holds               | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues                     | Can dice still be held?                                                     |
 | Timer               | Out Of Time, Beat The Clock, Luck Of The Draw                                                | Is there always, or never, a timer?                                         |

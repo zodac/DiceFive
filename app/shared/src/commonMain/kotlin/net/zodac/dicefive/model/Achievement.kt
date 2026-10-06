@@ -410,6 +410,13 @@ enum class Achievement(
         "low_rolls", "Low Rolls", "Finish a game with under 20 points",
         AchievementCategory.MISFORTUNE,
     ),
+    // Judged at the commit: the last box on the card is an upper one, a single die in it would have earned the bonus, and all
+    // the rolls went on a zero. Not with Unlucky Dice, which rigs the dice against you.
+    PROBABILITY_NEVER_HEARD_OF_HER(
+        "probability_never_heard_of_her", "Probability? Never Heard of Her",
+        "Enter your final turn needing a single die to score your bonus, but fail",
+        AchievementCategory.MISFORTUNE,
+    ),
     // The turn timer forcing a category on you, not a bad roll - a different flavor of misfortune
     // than everything above it, so it sits last in the category rather than being slotted by rank.
     OUT_OF_TIME(
