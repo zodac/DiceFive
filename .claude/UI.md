@@ -317,7 +317,9 @@ with "confirm before leaving" on, that asks first - and every banner's countdown
 confirmation is up, restarting at a full hold when it closes.
 
 The stack lives in its own non-modal `Dialog` window, not in the app's content, so a banner that
-fires while another dialog is open still draws above it.
+fires while another dialog is open still draws above it. The window is full width but wraps the
+stack's height; it must never be full-screen (`fillMaxSize`), or it swallows every touch meant for the
+screen beneath - the not-touch-modal flag only passes touches outside the window's bounds.
 
 Two achievement variants, deliberately unequal: an **unlock** banner is `primaryContainer` with the
 achievement's own icon (`Achievement.icon`, the same one its unlocked row shows - a generic trophy
