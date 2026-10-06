@@ -1,6 +1,8 @@
 package net.zodac.dicefive.ui.common
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
@@ -10,8 +12,16 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.TooltipState
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -93,5 +103,32 @@ fun tooltipMarkup(text: String): AnnotatedString {
     val gold = MaterialTheme.colorScheme.primary
     return remember(text, gold) {
         parseInlineMarkup(text, codeStyle = SpanStyle(fontWeight = FontWeight.Bold, color = gold))
+    }
+}
+
+/**
+ * [AppTooltip] for content that's long-pressed rarely - a row among hundreds - so the tooltip is built only
+ * when it's asked for. Until then [content] is drawn bare, with the long press picked up by a plain gesture
+ * (a `TooltipBox` per row was a real share of a list's first frame); the first long press arms the real
+ * tooltip around it and shows it, and from then on it behaves as [AppTooltip] does. [message] is read only
+ * then, or when a screen reader asks - the `stateDescription` carries the same words, since a tooltip isn't
+ * announced - so nothing is formatted for rows nobody touches.
+ */
+@Composable
+fun OnDemandTooltip(message: () -> String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    var armed by remember { mutableStateOf(false) }
+    // Spoken whether or not it's armed. Read lazily: the block runs when semantics are collected.
+    val spoken = Modifier.semantics(mergeDescendants = true) { stateDescription = message().replace("\n", ", ") }
+    if (armed) {
+        val state = rememberAppTooltipState()
+        LaunchedEffect(Unit) { state.show() }
+        AppTooltip(message = message(), modifier = modifier.then(spoken), state = state, content = content)
+    } else {
+        Box(
+            modifier = modifier
+                .then(spoken)
+                .semantics { onLongClick(label = "Show details") { armed = true; true } }
+                .pointerInput(Unit) { detectTapGestures(onLongPress = { armed = true }) },
+        ) { content() }
     }
 }

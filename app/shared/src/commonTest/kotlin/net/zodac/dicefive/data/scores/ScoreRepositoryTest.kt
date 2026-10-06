@@ -6,6 +6,7 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
 import net.zodac.dicefive.game.TieBreakStats
 import net.zodac.dicefive.game.nowEpochMillis
+import net.zodac.dicefive.model.GameMode
 
 /**
  * Hand-written in-memory double for [ScoreDao] - lets [ScoreRepository]'s
@@ -30,7 +31,15 @@ private class FakeScoreDao : ScoreDao {
     override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> =
         leaderboard.sortedByDescending { it.score }.drop(offset).take(limit)
 
+    private fun forMode(gameModeId: String, includeOffBoard: Boolean) =
+        entries.filter { (it.onLeaderboard || includeOffBoard) && it.gameModeId == gameModeId }
+
+    override suspend fun pagedScoresForMode(gameModeId: String, includeOffBoard: Boolean, limit: Int, offset: Int): List<ScoreEntry> =
+        forMode(gameModeId, includeOffBoard).sortedByDescending { it.score }.drop(offset).take(limit)
+
     override suspend fun count(): Int = leaderboard.size
+
+    override suspend fun countForMode(gameModeId: String, includeOffBoard: Boolean): Int = forMode(gameModeId, includeOffBoard).size
 
     override suspend fun bestScoreForPlayer(playerName: String): Int? =
         leaderboard.filter { it.playerName == playerName }.maxOfOrNull { it.score }
@@ -72,6 +81,7 @@ private suspend fun ScoreRepository.record(
     timestampEpochMillis: Long = nowEpochMillis(),
     fiveOfAKindCount: Int = 0,
     onLeaderboard: Boolean = true,
+    gameMode: GameMode = GameMode.STANDARD,
 ) = recordScore(
     playerName = playerName,
     stats = TieBreakStats(
@@ -87,6 +97,7 @@ private suspend fun ScoreRepository.record(
     won = won,
     isPrimaryPlayer = isPrimaryPlayer,
     onLeaderboard = onLeaderboard,
+    gameMode = gameMode,
     timestampEpochMillis = timestampEpochMillis,
 )
 
@@ -125,6 +136,22 @@ class ScoreRepositoryTest {
         assertEquals(2, firstPage.size)
         assertEquals(2, secondPage.size)
         assertTrue(firstPage.none { entry -> entry.score in secondPage.map { it.score } })
+    }
+
+    @Test
+    fun `a mode's page and count hold only that mode's scores`() = runTest {
+        val repository = ScoreRepository(FakeScoreDao())
+        repository.record("Alice", 150, gameMode = GameMode.STANDARD)
+        repository.record("Bob", 300, gameMode = GameMode.TRICOLOUR)
+        repository.record("Carol", 220, gameMode = GameMode.TRICOLOUR)
+        repository.record("Dave", 400, gameMode = GameMode.TRICOLOUR, onLeaderboard = false)
+
+        assertEquals(listOf("Bob", "Carol"), repository.pageForMode(GameMode.TRICOLOUR, pageIndex = 0).map { it.playerName })
+        assertEquals(2, repository.totalCountForMode(GameMode.TRICOLOUR))
+        assertEquals(listOf("Alice"), repository.pageForMode(GameMode.STANDARD, pageIndex = 0).map { it.playerName })
+        assertEquals(0, repository.totalCountForMode(GameMode.STUD))
+        // The combined board still has them all, each saying which mode it was.
+        assertEquals(listOf(GameMode.TRICOLOUR, GameMode.TRICOLOUR, GameMode.STANDARD), repository.page(0).map { it.gameMode })
     }
 
     @Test

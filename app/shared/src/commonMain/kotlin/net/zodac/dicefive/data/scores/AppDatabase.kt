@@ -20,11 +20,13 @@ import kotlinx.coroutines.IO
  */
 @Database(
     entities = [ScoreEntry::class, DismissedPlayerStats::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
     autoMigrations = [
         // 2: ScoreEntry.onLeaderboard, every existing row on it.
         AutoMigration(from = 1, to = 2),
+        // 3: ScoreEntry.gameModeId, every existing row a Standard game.
+        AutoMigration(from = 2, to = 3),
     ],
 )
 @ConstructedBy(AppDatabaseConstructor::class)

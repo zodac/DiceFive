@@ -54,7 +54,10 @@ private class GatedEmptyScoreDao : ScoreDao {
 
     override suspend fun insert(entry: ScoreEntry) = Unit
     override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> = gate.await().let { emptyList() }
+    override suspend fun pagedScoresForMode(gameModeId: String, includeOffBoard: Boolean, limit: Int, offset: Int): List<ScoreEntry> =
+        gate.await().let { emptyList() }
     override suspend fun count(): Int = gate.await().let { 0 }
+    override suspend fun countForMode(gameModeId: String, includeOffBoard: Boolean): Int = gate.await().let { 0 }
     override suspend fun bestScoreForPlayer(playerName: String): Int? = gate.await().let { null }
     override suspend fun distinctScores(): List<Int> = gate.await().let { emptyList() }
     override suspend fun primaryPlayerTotalPoints(): Int? = gate.await().let { null }

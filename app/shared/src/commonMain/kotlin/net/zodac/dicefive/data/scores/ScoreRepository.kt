@@ -3,6 +3,7 @@ package net.zodac.dicefive.data.scores
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.game.TieBreakStats
 import net.zodac.dicefive.game.nowEpochMillis
+import net.zodac.dicefive.model.GameMode
 
 /** How many leaderboard rows make up one page. Was 100; halved so a page is a shorter scroll. */
 const val SCORES_PAGE_SIZE = 50
@@ -12,8 +13,8 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
     /**
      * Records one human player's finished game: their score and tie-break stats (see
      * [PlayerState.toTieBreakStats][net.zodac.dicefive.game.toTieBreakStats]), whether they won
-     * (null for a solo game), whether they were player 1, and whether the game's mode puts it on the
-     * Leaderboard ([ScoreEntry.onLeaderboard]).
+     * (null for a solo game), whether they were player 1, whether the game's mode puts it on the
+     * Leaderboard ([ScoreEntry.onLeaderboard]), and which [gameMode] it was played in.
      */
     suspend fun recordScore(
         playerName: String,
@@ -21,6 +22,7 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
         won: Boolean?,
         isPrimaryPlayer: Boolean,
         onLeaderboard: Boolean = true,
+        gameMode: GameMode = GameMode.STANDARD,
         timestampEpochMillis: Long = nowEpochMillis(),
     ) {
         scoreDao.insert(
@@ -37,6 +39,7 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
                 threeOfAKindScore = stats.threeOfAKind,
                 fourOfAKindScore = stats.fourOfAKind,
                 onLeaderboard = onLeaderboard,
+                gameModeId = gameMode.id,
             ),
         )
         // A dismissed player who plays again clearly cares about their stats once more.
@@ -47,6 +50,22 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
         scoreDao.pagedScores(limit = pageSize, offset = pageIndex * pageSize)
 
     suspend fun totalCount(): Int = scoreDao.count()
+
+    /**
+     * One page of [gameMode]'s own Leaderboard card, in the same order as [page]. A mode that doesn't count on
+     * the Combined board ([GameMode.countsOnLeaderboard]) is listed here in full; its scores stay off [page],
+     * [totalCount] and everything measured against the board (a personal best, the score achievements).
+     */
+    suspend fun pageForMode(gameMode: GameMode, pageIndex: Int, pageSize: Int = SCORES_PAGE_SIZE): List<ScoreEntry> =
+        scoreDao.pagedScoresForMode(
+            gameMode.id,
+            includeOffBoard = !gameMode.countsOnLeaderboard,
+            limit = pageSize,
+            offset = pageIndex * pageSize,
+        )
+
+    suspend fun totalCountForMode(gameMode: GameMode): Int =
+        scoreDao.countForMode(gameMode.id, includeOffBoard = !gameMode.countsOnLeaderboard)
 
     /**
      * Wipes every recorded score, which necessarily empties the Statistics screen too - it's

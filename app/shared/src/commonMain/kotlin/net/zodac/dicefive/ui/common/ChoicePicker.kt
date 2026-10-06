@@ -53,7 +53,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 
 /*
  * The app's dropdown-and-modal pickers. Every colour, shape, size and text style of the closed field and
@@ -122,7 +121,7 @@ private fun PickerDialog(
 ) {
     Dialog(
         onDismissRequest = onDismissRequest,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+        properties = fullScreenDialogProperties(),
     ) {
         ScreenScaffold(title = title, onBack = onDismissRequest) {
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
