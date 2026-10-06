@@ -8,8 +8,16 @@ import kotlin.test.assertTrue
 import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.oneScoreEach
+import net.zodac.dicefive.ui.common.isInSoraFont
 
 class GameModeTest {
+
+    @Test
+    fun `every mode name is in the brand font's character set`() {
+        // The Leaderboard's mode cards set the name in Sora, which only holds ASCII and Latin-1.
+        val outside = GameMode.entries.filterNot { it.displayName.all { c -> c.isInSoraFont() } }
+        assertTrue(outside.isEmpty(), "Mode names Sora can't draw: ${outside.map { it.displayName }}")
+    }
 
     /**
      * Plays [mode]'s "perfect game" through the real engine: every turn is a 5x of sixes (or of the

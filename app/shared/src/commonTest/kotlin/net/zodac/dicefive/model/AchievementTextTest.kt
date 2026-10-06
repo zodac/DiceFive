@@ -3,6 +3,7 @@ package net.zodac.dicefive.model
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import net.zodac.dicefive.ui.common.isInSoraFont
 
 /**
  * The unlock banner shows a title on one line and never wraps it - see [MAX_ACHIEVEMENT_TITLE_LENGTH].
@@ -25,5 +26,12 @@ class AchievementTextTest {
     @Test
     fun `the longest title is the one that sets the cap`() {
         assertEquals(MAX_ACHIEVEMENT_TITLE_LENGTH, Achievement.entries.maxOf { it.title.length })
+    }
+
+    @Test
+    fun `every title is in the brand font's character set`() {
+        // The banner sets its title in Sora, which only holds ASCII and Latin-1 - anything else would draw in a second face.
+        val outside = Achievement.entries.filterNot { it.title.all { c -> c.isInSoraFont() } }
+        assertTrue(outside.isEmpty(), "Titles Sora can't draw: ${outside.map { it.title }}")
     }
 }

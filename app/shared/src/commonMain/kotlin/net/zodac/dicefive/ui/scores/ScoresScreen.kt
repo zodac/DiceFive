@@ -61,6 +61,7 @@ import net.zodac.dicefive.game.TieBreak
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.OnDemandTooltip
+import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
@@ -266,6 +267,7 @@ private fun ModeCard(mode: GameMode, board: ModeBoard, onPrevious: () -> Unit, o
             Text(
                 text = mode.displayName,
                 style = MaterialTheme.typography.titleMedium,
+                fontFamily = SoraFontFamily,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp).semantics { heading() },

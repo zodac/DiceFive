@@ -4,18 +4,25 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Functions
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -23,14 +30,14 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.ui.common.AppTooltip
+import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
@@ -78,7 +85,35 @@ fun HitListTotalsButton(targetsTotal: Int, alibiTotal: Int, modifier: Modifier =
     )
 }
 
-/** One line of a [TotalsButton]'s tooltip: "[label]: [value]", in bold gold when [gold]. */
+/**
+ * The tooltip's totals as a small table: each [TotalLine]'s label flush left, in the board's face (Sora, bold
+ * only), and its number flush right, with thousands separators, in the system font - Sora's digits are
+ * proportional, a "1" narrower than a "0", where the system font's are all one width and line up down the
+ * column. The column is as wide as the widest line, so the gap between the two sides is the same on every line.
+ */
+@Composable
+private fun TotalsTable(lines: List<TotalLine>) {
+    val style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+    Column(modifier = Modifier.width(IntrinsicSize.Max)) {
+        for (line in lines) {
+            val color = if (line.gold) GoldAccent else Color.Unspecified
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(text = line.label, style = style.copy(fontFamily = SoraFontFamily), color = color, modifier = Modifier.weight(1f))
+                Text(
+                    text = line.value.grouped(),
+                    style = style,
+                    color = color,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.padding(start = TOTALS_COLUMN_GAP),
+                )
+            }
+        }
+    }
+}
+
+private val TOTALS_COLUMN_GAP = 16.dp
+
+/** One line of a [TotalsButton]'s tooltip: [label] and [value], in gold when [gold]. */
 private class TotalLine(val label: String, val value: Int, val gold: Boolean = false)
 
 /** The button itself: [lines] in its tooltip, its glyph gold while [highlighted], and [spokenState] what TalkBack hears. */
@@ -87,18 +122,10 @@ private fun TotalsButton(lines: List<TotalLine>, highlighted: Boolean, spokenSta
     val tooltipState = rememberAppTooltipState()
     val scope = rememberCoroutineScope()
     val color = if (highlighted) GoldAccent else TileIconColor
-    val message = remember(spokenState) {
-        buildAnnotatedString {
-            lines.forEachIndexed { index, line ->
-                if (index > 0) append("\n")
-                if (line.gold) withStyle(SpanStyle(color = GoldAccent, fontWeight = FontWeight.Bold)) { append("${line.label}: ${line.value}") } else append("${line.label}: ${line.value}")
-            }
-        }
-    }
     val shape = RoundedCornerShape(10.dp)
     // The tooltip's own anchor merges this button into one TalkBack node of its own, which keeps the
     // name, state and actions but not the role - so the role goes on that node too.
-    AppTooltip(message = message, state = tooltipState, modifier = modifier.semantics { role = Role.Button }) {
+    AppTooltip(body = { TotalsTable(lines) }, state = tooltipState, modifier = modifier.semantics { role = Role.Button }) {
         Box(
             modifier = Modifier
                 // Before clickable, so its own click semantics don't leak through - see UI.md.

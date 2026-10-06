@@ -1978,6 +1978,11 @@ install-over-existing succeeds:
       own task inputs (`BaseAboutLibrariesTask`), on its latest version (15.2.0); nothing in our
       script triggers it, and the classpaths are resolved during the build anyway. Revisit on a
       plugin upgrade.
+- [ ] **Not fixed: AGP calls the deprecated `Configuration.setVisible`** ("scheduled to be removed in
+      Gradle 11", shown under `--warning-mode all`). It's in AGP's own `BasePlugin`
+      (`createAndroidJdkImageConfiguration`) on 9.4.1, the latest stable; nothing in our script
+      calls it, and Gradle has no per-plugin way to silence one deprecation. Revisit on an AGP
+      upgrade - it must be gone before moving to Gradle 11.
 
 ### Phase 20 — Game mode: Quickfire
 

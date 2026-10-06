@@ -94,7 +94,7 @@
     ]
   },
   "app/shared/src/commonMain/composeResources/font/sora.ttf": {
-    "description": "Sora, reduced to a static weight-700 instance for the wordmark and page titles (commit f939500/fce850f) - a modification the OFL permits; Sora declares no Reserved Font Name, so the name can stay",
+    "description": "Sora, reduced to a static weight-700 instance subset to ASCII and Latin-1, for the wordmark, titles and game-board marks (commit f939500/fce850f; Latin-1 added later) - a modification the OFL permits; Sora declares no Reserved Font Name, so the name can stay",
     "source": "https://github.com/sora-xor/sora-font",
     "license": "OFL-1.1",
     "libraries": [

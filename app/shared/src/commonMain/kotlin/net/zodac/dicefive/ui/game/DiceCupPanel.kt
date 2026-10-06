@@ -54,6 +54,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.style.FlowerpotGrowth
 import net.zodac.dicefive.ui.game.style.LocalCupActivity
@@ -316,6 +317,7 @@ internal fun DiceCup(
                         color = TileIconColor,
                         fontWeight = FontWeight.Bold,
                         style = countStyle,
+                        fontFamily = SoraFontFamily,
                         fontSize = countSize,
                         textAlign = if (countFirst) TextAlign.End else TextAlign.Start,
                         maxLines = 1,

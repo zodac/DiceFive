@@ -52,6 +52,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
+import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.color
 
@@ -184,6 +185,7 @@ private fun PlayerTab(
         Text(
             text = risingScore(score).toString(),
             color = color,
+            fontFamily = SoraFontFamily,
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.headlineSmall,
         )

@@ -35,6 +35,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.ic_stairs
+import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.PipFace
 import net.zodac.dicefive.ui.game.style.palette
@@ -183,7 +184,7 @@ private fun TargetIcon(target: HitTarget, matches: List<PlaceMatch>?, color: Col
                             match == PlaceMatch.MISSING -> TileIconColor.copy(alpha = MISSING_PLACE_ALPHA)
                             else -> color
                         },
-                        style = TextStyle(fontWeight = FontWeight.Black, fontSize = placeSize, lineHeight = placeSize, textAlign = TextAlign.Center),
+                        style = TextStyle(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold, fontSize = placeSize, lineHeight = placeSize, textAlign = TextAlign.Center),
                         maxLines = 1,
                         softWrap = false,
                         modifier = Modifier
@@ -205,7 +206,7 @@ private fun TargetIcon(target: HitTarget, matches: List<PlaceMatch>?, color: Col
             Text(
                 text = target.points.toString(),
                 color = color.copy(alpha = color.alpha * TARGET_POINTS_ALPHA),
-                style = TextStyle(fontWeight = FontWeight.Bold, fontSize = pointsSize, lineHeight = pointsSize, textAlign = TextAlign.Center),
+                style = TextStyle(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold, fontSize = pointsSize, lineHeight = pointsSize, textAlign = TextAlign.Center),
                 maxLines = 1,
                 softWrap = false,
             )
@@ -236,7 +237,7 @@ private fun BadgeLabel(text: String, color: Color, fontSize: TextUnit, modifier:
     Text(
         text = text,
         color = color,
-        style = TextStyle(fontWeight = FontWeight.Black, fontSize = fontSize, textAlign = TextAlign.Center),
+        style = TextStyle(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold, fontSize = fontSize, textAlign = TextAlign.Center),
         modifier = modifier,
     )
 }
