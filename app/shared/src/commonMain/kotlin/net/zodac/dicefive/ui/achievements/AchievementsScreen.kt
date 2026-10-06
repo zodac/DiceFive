@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.achievements
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
@@ -30,6 +31,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -396,6 +400,16 @@ private fun AchievementRow(
 ) {
     val unlocked = item.unlockedAt != null
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    // The flash is gold, which the usual text, icon and border colours (light, or gold itself) vanish into: on it,
+    // they all become the unlocked row's own blue instead.
+    val flashInk = MaterialTheme.colorScheme.secondaryContainer
+    // Fades in step with the card's own colour, so the text never sits dark on the old blue (or pale on the gold).
+    val flash by animateFloatAsState(
+        targetValue = if (highlighted) 1f else 0f,
+        animationSpec = tween(ROW_FLASH_TRANSITION_MILLIS),
+        label = "achievementRowFlashInk",
+    )
+    fun ink(normal: Color): Color = lerp(normal, flashInk, flash)
 
     StyleRewardTooltip(item.achievement, unlocked, enabled = !superuserModeActive) { tooltipModifier ->
         Card(
@@ -457,11 +471,9 @@ private fun AchievementRow(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val tint = if (unlocked) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
+                val tint = ink(
+                    if (unlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Box(modifier = Modifier.size(40.dp)) {
                     Box(
                         modifier = Modifier.fillMaxSize().border(width = 1.dp, color = tint),
@@ -478,7 +490,11 @@ private fun AchievementRow(
                 }
 
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(text = item.achievement.title, style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        text = item.achievement.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = ink(LocalContentColor.current),
+                    )
                     Text(
                         text = if (item.achievement.visibility == AchievementVisibility.HIDDEN && !unlocked) {
                             "???"
@@ -486,18 +502,18 @@ private fun AchievementRow(
                             item.achievement.description
                         },
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = ink(MaterialTheme.colorScheme.onSurfaceVariant),
                     )
 
                     when {
                         item.unlockedAt != null -> Text(
                             text = "Unlocked ${formatTimestamp(item.unlockedAt)}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = ink(MaterialTheme.colorScheme.onSurfaceVariant),
                             modifier = Modifier.padding(top = 2.dp),
                         )
 
-                        item.achievement.hasProgressBar -> ProgressRow(item)
+                        item.achievement.hasProgressBar -> ProgressRow(item, ::ink)
                     }
                 }
             }
@@ -546,16 +562,18 @@ private fun StyleRewardTooltip(
 
 /** The progress bar on a locked, countable achievement - a win streak, or a running total. */
 @Composable
-private fun ProgressRow(item: AchievementItem) {
+private fun ProgressRow(item: AchievementItem, ink: (Color) -> Color) {
     Column(modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) {
         LinearProgressIndicator(
             progress = { item.progressFraction },
             modifier = Modifier.fillMaxWidth(),
+            color = ink(ProgressIndicatorDefaults.linearColor),
+            trackColor = ink(ProgressIndicatorDefaults.linearTrackColor),
         )
         Text(
             text = "${item.progress.grouped()} of ${item.achievement.target.grouped()}",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = ink(MaterialTheme.colorScheme.onSurfaceVariant),
             modifier = Modifier.padding(top = 4.dp),
         )
     }
