@@ -1315,7 +1315,7 @@ private fun RulesIllustrationView(modifier: Modifier = Modifier) {
  * two tabs with the finger, its width easing from one label's to the other's. Read during layout,
  * so following a swipe re-places the indicator without recomposing the tab row.
  */
-private fun MeasureScope.pagerIndicatorLayout(
+fun MeasureScope.pagerIndicatorLayout(
     measurable: Measurable,
     constraints: Constraints,
     tabPositions: List<TabPosition>,
@@ -1325,16 +1325,22 @@ private fun MeasureScope.pagerIndicatorLayout(
     val from = tabPositions[position.toInt()]
     val to = tabPositions[(position.toInt() + 1).coerceAtMost(tabPositions.size - 1)]
     val fraction = position - position.toInt()
-    // Under the label, as the stock indicator sits (matchContentSize), not the whole tab. The
-    // positions a scrollable tab row hands a custom indicator start at the label, not the tab - its
-    // `left` is already in by the tab's padding - so the label's centre is half its width along.
+    // Under the label, as the stock indicator sits (matchContentSize): centred on its tab, as wide as its label.
+    // Each position's `left` is its tab's start (not its label's), and `width` its whole tab - a tab can be wider
+    // than its label (a minimum width, or the tab's padding), so the tab's centre is `left + width / 2`.
     val width = lerp(from.contentWidth, to.contentWidth, fraction)
-    val centre = lerp(from.left + from.contentWidth / 2, to.left + to.contentWidth / 2, fraction)
+    val centre = lerp(from.left + from.width / 2, to.left + to.width / 2, fraction)
     val widthPx = width.roundToPx()
     val placeable = measurable.measure(constraints.copy(minWidth = widthPx, maxWidth = widthPx))
+    // Material then places the indicator itself, centred under the row's *selected* tab: in by half of that tab's
+    // width less the indicator's own (SecondaryScrollableTabRow, for the tab `selectedTabIndex` names - always 0 here,
+    // see PageTabRow; not clamped at 0 in material3 1.4.0, as it later is - RulesTabIndicatorTest catches an upgrade changing
+    // it). Whatever that comes to is already added, so it's taken off - leaving it in puts the indicator out by half the
+    // difference between tab 0's width and the shown tab's, which only shows once the tabs differ in width.
+    val materialInset = (tabPositions[0].width.roundToPx() - placeable.width) / 2
     return layout(placeable.width, placeable.height) {
         // Relative, so a right-to-left row (whose tab positions count from the right) puts it under its tab, not mirrored away.
-        placeable.placeRelative(x = (centre - width / 2).roundToPx(), y = 0)
+        placeable.placeRelative(x = (centre - width / 2).roundToPx() - materialInset, y = 0)
     }
 }
 

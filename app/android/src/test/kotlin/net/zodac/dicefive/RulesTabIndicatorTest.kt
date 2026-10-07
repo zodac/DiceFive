@@ -1,6 +1,17 @@
 package net.zodac.dicefive
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SecondaryScrollableTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -18,6 +29,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.rules.RulesScreen
+import net.zodac.dicefive.ui.rules.pagerIndicatorLayout
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -91,4 +103,55 @@ class RulesTabIndicatorTest {
     @Test
     @Config(qualifiers = "ar-w360dp-h800dp")
     fun `a swipe to a page whose tab is off screen brings it into view right to left`() = checkSwipedToTabComesIntoView(rtl = true)
+
+    /**
+     * The indicator is under its tab when the tabs differ in width, as they do on a device (the labels' own widths;
+     * the test fonts make every label alike, so the Rules screen's own tabs can't show it). Material places the
+     * indicator itself, relative to the selected tab - which the Rules rows keep at tab 0 - so a layout that ignores that
+     * is out by half the difference between tab 0's width and the shown tab's.
+     */
+    @OptIn(ExperimentalMaterial3Api::class)
+    private fun checkIndicatorUnderUnevenTabs(position: Float) {
+        val widths = listOf(90.dp, 200.dp, 130.dp, 160.dp)
+        compose.setContent {
+            val pagePosition = remember { mutableFloatStateOf(position) }
+            SecondaryScrollableTabRow(
+                selectedTabIndex = 0,
+                edgePadding = 0.dp,
+                indicator = {
+                    TabRowDefaults.SecondaryIndicator(
+                        modifier = Modifier.tabIndicatorLayout { measurable, constraints, tabPositions ->
+                            pagerIndicatorLayout(measurable, constraints, tabPositions, pagePosition.floatValue)
+                        }.testTag("rulesTabIndicator"),
+                    )
+                },
+            ) {
+                widths.forEachIndexed { index, width ->
+                    Tab(selected = index == 0, onClick = {}, text = { Text("Tab $index") }, modifier = Modifier.width(width))
+                }
+            }
+        }
+        compose.waitForIdle()
+        val tabs = compose.onAllNodes(isTab).fetchSemanticsNodes().map { it.boundsInRoot }
+        val indicator = compose.onNodeWithTag("rulesTabIndicator").fetchSemanticsNode().boundsInRoot
+        val whole = position.toInt()
+        val expected = tabs[whole].center.x + (tabs[(whole + 1).coerceAtMost(tabs.size - 1)].center.x - tabs[whole].center.x) * (position - whole)
+        assertEquals("indicator $indicator vs tabs $tabs at $position", expected, indicator.center.x, 2f)
+    }
+
+    @Test
+    @Config(qualifiers = "w600dp-h800dp")
+    fun `the indicator is under the third of tabs of different widths`() = checkIndicatorUnderUnevenTabs(2f)
+
+    @Test
+    @Config(qualifiers = "w600dp-h800dp")
+    fun `the indicator is under a tab of a different width than the first`() = checkIndicatorUnderUnevenTabs(1f)
+
+    @Test
+    @Config(qualifiers = "w600dp-h800dp")
+    fun `the indicator is between tabs of different widths part way through a swipe`() = checkIndicatorUnderUnevenTabs(2.5f)
+
+    @Test
+    @Config(qualifiers = "ar-w600dp-h800dp")
+    fun `the indicator is under a tab of a different width than the first right to left`() = checkIndicatorUnderUnevenTabs(3f)
 }
