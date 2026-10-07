@@ -688,9 +688,10 @@ nav arguments or introducing a singleton holder.
 - Player count stepper/selector: 1-4.
 - Player 1 is always Human, locked (no type toggle) — 1P mode forces Human.
 - Players 2-4: toggle Human/AI.
-  - Human: text field for name, default `"Player N"`; prefilled from
+  - Human: text field for name. Empty by default: it shows `"Player N"` (in the app's language) as a
+    hint and a game started with it empty gets that name. Prefilled from
     `SettingsRepository` if previously entered for that slot, saved back on
-    change.
+    change as typed (an older version's saved English default reads as empty).
   - AI: no name field (generated at Start Game); a disabled difficulty
     selector (Easy/Medium/Hard) defaulting to Medium, greyed out.
 - Game mode: radio group, one row per `GameMode` with its one-line description. Remembered
