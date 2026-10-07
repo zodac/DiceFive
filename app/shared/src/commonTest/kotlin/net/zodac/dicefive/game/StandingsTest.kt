@@ -62,15 +62,4 @@ class StandingsTest {
 
         assertEquals(listOf(Standing(2, tied = false), Standing(1, tied = false)), standings(players))
     }
-
-    @Test
-    fun `places read as ordinals with an equals sign for a shared place and spoken without it`() {
-        assertEquals(
-            listOf("1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "22nd"),
-            listOf(1, 2, 3, 4, 11, 12, 13, 21, 22).map { Standing(it, tied = false).label() },
-        )
-        assertEquals("=2nd", Standing(2, tied = true).label())
-        assertEquals("tied 2nd place", Standing(2, tied = true).spoken())
-        assertEquals("1st place", Standing(1, tied = false).spoken())
-    }
 }

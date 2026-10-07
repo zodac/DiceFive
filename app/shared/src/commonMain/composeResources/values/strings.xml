@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Every player-visible and spoken string in the shared UI, in British English (the base locale).
+    Conventions - key names, positional arguments, plurals, what stays out of here - are in
+    .claude/I18N.md. A translation goes in values-xx/strings.xml beside this file.
+-->
+<resources>
+
+    <!--
+        The language of this file, as a BCP 47 tag. Not shown: it's what numbers inside the text are
+        formatted in (ordinals, so far), so they always match the words around them - a French phone
+        on an untranslated app gets English text and "1st", not English text and "1er". Every
+        translation sets its own ("fr", "de"...). See .claude/I18N.md.
+    -->
+    <string name="common_locale">en-GB</string>
+
+    <!-- Leave game confirmation (ui/game/LeaveGameConfirmation.kt) -->
+    <string name="game_leave_title">Leave game?</string>
+    <string name="game_leave_message">Your progress is saved - you can continue this game later.</string>
+    <string name="game_leave_confirm">Leave</string>
+    <string name="game_leave_dismiss">Cancel</string>
+
+    <!-- Dice cup (ui/game/DiceCupPanel.kt) -->
+    <!-- What TalkBack says for the cup, in place of the "x3" drawn beside it. -->
+    <plurals name="game_cup_cd">
+        <item quantity="one">Dice cup, %1$d roll left</item>
+        <item quantity="other">Dice cup, %1$d rolls left</item>
+    </plurals>
+    <!-- TalkBack's name for tapping the cup: "Double-tap to roll". -->
+    <string name="game_cup_roll_action">Roll</string>
+
+    <!-- A player's place, on their tab (ui/game/PlayerHeaderBar.kt). %1$s is an ordinal, "2nd". -->
+    <!-- Shown under the score when the place is shared with another player. -->
+    <string name="game_standing_tied">=%1$s</string>
+    <!-- Spoken in place of the shown place ("=" would be read as "equals"). -->
+    <string name="game_standing_spoken">%1$s place</string>
+    <string name="game_standing_tied_spoken">tied %1$s place</string>
+
+</resources>

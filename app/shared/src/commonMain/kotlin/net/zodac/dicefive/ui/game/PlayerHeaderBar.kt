@@ -44,15 +44,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import org.jetbrains.compose.resources.stringResource
 import net.zodac.dicefive.game.Standing
-import net.zodac.dicefive.game.label
-import net.zodac.dicefive.game.spoken
 import net.zodac.dicefive.game.standings
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.game_standing_spoken
+import net.zodac.dicefive.resources.game_standing_tied
+import net.zodac.dicefive.resources.game_standing_tied_spoken
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.ordinal
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.color
 
@@ -137,6 +141,8 @@ private fun PlayerTab(
 ) {
     val shape = RoundedCornerShape(10.dp)
     val frame = LocalGameVisualTheme.current.frame
+    // Resolved here, in composition: the semantics block below can't read resources itself.
+    val spokenStanding = standing?.spoken()
     Column(
         modifier = modifier
             .padding(horizontal = 3.dp)
@@ -153,7 +159,7 @@ private fun PlayerTab(
             // instead, with the player's place (the visible "=2nd" is cleared below: read as "equals").
             .semantics {
                 selected = viewed
-                val state = listOfNotNull("Current turn".takeIf { active }, standing?.spoken()).joinToString(", ")
+                val state = listOfNotNull("Current turn".takeIf { active }, spokenStanding).joinToString(", ")
                 if (state.isNotEmpty()) stateDescription = state
             }
             .padding(vertical = 6.dp, horizontal = 2.dp),
@@ -270,3 +276,13 @@ private fun risingScore(score: Int): Int {
     }
     return shown.value.roundToInt()
 }
+
+/** As the tab shows it: "1st", "2nd", "=3rd" - an "=" for a shared place, as the results screen marks one. */
+@Composable
+internal fun Standing.label(): String =
+    if (tied) stringResource(Res.string.game_standing_tied, ordinal(place)) else ordinal(place)
+
+/** As a screen reader says it: "1st place", "tied 2nd place" - the "=" would be read as "equals". */
+@Composable
+internal fun Standing.spoken(): String =
+    stringResource(if (tied) Res.string.game_standing_tied_spoken else Res.string.game_standing_spoken, ordinal(place))

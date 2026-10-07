@@ -7,7 +7,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.game_leave_confirm
+import net.zodac.dicefive.resources.game_leave_dismiss
+import net.zodac.dicefive.resources.game_leave_message
+import net.zodac.dicefive.resources.game_leave_title
 import net.zodac.dicefive.ui.common.DiceFiveDialog
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The one "Leave game?" confirmation, whichever way the player is leaving - the system back
@@ -48,11 +54,11 @@ fun LeaveGameConfirmationDialog(confirmation: LeaveGameConfirmation) {
     if (!confirmation.isShowing) return
     DiceFiveDialog(
         icon = Icons.AutoMirrored.Filled.Logout,
-        title = "Leave game?",
-        message = "Your progress is saved - you can continue this game later.",
-        confirmLabel = "Leave",
+        title = stringResource(Res.string.game_leave_title),
+        message = stringResource(Res.string.game_leave_message),
+        confirmLabel = stringResource(Res.string.game_leave_confirm),
         onConfirm = confirmation::confirm,
-        dismissLabel = "Cancel",
+        dismissLabel = stringResource(Res.string.game_leave_dismiss),
         onDismiss = confirmation::dismiss,
         onDismissRequest = confirmation::dismiss,
     )

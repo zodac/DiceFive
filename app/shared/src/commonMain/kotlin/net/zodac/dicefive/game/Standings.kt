@@ -25,23 +25,3 @@ fun standings(players: List<PlayerState>): List<Standing>? {
     }
     return places.map { place -> Standing(place, tied = places.count { it == place } > 1) }
 }
-
-/** As the header shows it: "1st", "2nd", "=3rd" - an "=" for a shared place, as the results screen marks one. */
-fun Standing.label(): String = (if (tied) "=" else "") + ordinal(place)
-
-/** As a screen reader says it: "1st place", "tied 2nd place" - the "=" would be read as "equals". */
-fun Standing.spoken(): String = (if (tied) "tied " else "") + ordinal(place) + " place"
-
-private fun ordinal(place: Int): String {
-    val suffix = if (place % 100 in 11..13) {
-        "th"
-    } else {
-        when (place % 10) {
-            1 -> "st"
-            2 -> "nd"
-            3 -> "rd"
-            else -> "th"
-        }
-    }
-    return "$place$suffix"
-}

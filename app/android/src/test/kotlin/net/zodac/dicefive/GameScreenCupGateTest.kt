@@ -112,6 +112,23 @@ class GameScreenCupGateTest {
         assertEquals(2, viewModel.rollsRemaining())
     }
 
+    // The count is a plural from the string resources: "rolls" for 3 and 2, "roll" for 1.
+    @Test
+    fun theCupSaysHowManyRollsAreLeftInTheRightForm() {
+        val viewModel = showSoloGame()
+        compose.onNodeWithContentDescription("Dice cup, 3 rolls left").assertExists()
+        assertEquals("Roll", cup().fetchSemanticsNode().config[SemanticsActions.OnClick].label)
+
+        tapCup()
+        waitFor("the first roll to land") { viewModel.rollsRemaining() == 2 }
+        compose.onNodeWithContentDescription("Dice cup, 2 rolls left").assertExists()
+
+        waitFor("the dice to settle") { runCatching { cup().assertIsEnabled() }.isSuccess }
+        tapCup()
+        waitFor("the second roll to land") { viewModel.rollsRemaining() == 1 }
+        compose.onNodeWithContentDescription("Dice cup, 1 roll left").assertExists()
+    }
+
     private companion object {
         const val STEP_MILLIS = 50L
     }
