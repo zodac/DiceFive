@@ -42,26 +42,25 @@ private const val RGB_FACE_OFFSET = 1f / 6f
  * core and a bloom on the panel round it - cycling through the colours of the rainbow like the lighting
  * on a gaming keyboard. By default the whole face changes together, with a strong glow lighting the
  * panel; with [wave], a wave of colour sweeps across the lamps instead. Each number starts its cycle
- * at its own point, the same on every die. Still, in one colour ([still]) once recoloured, and under
- * reduced motion (see [rememberArtSeconds]).
+ * at its own point, the same on every die. Recoloured (Tricolour) it takes the roll's face colours, its lamps
+ * still cycling; still under reduced motion (see [rememberArtSeconds]).
  */
 class RgbDiceStyle(
     override val id: String,
     private val panel: Color,
     private val panelShade: Color = panel,
     private val wave: Boolean = false,
-    private val still: Color? = null,
     private val heldRing: Color = GoldAccent,
 ) : DiceStyle, Swatched {
-    override val swatch: Color = still ?: Color(0xFFFF3B6B)
+    override val swatch: Color = Color(0xFFFF3B6B)
     override val bodyColor: Color = panel
     override val cornerPercent: Int = RGB_CORNER_PERCENT
 
     // A pale panel (the white dice) can't be lit by its lamps the way a dark one is, so their light is turned up to show.
     private val light = panel.luminance() > 0.5f
 
-    /** Its colour is its light: the panel stays as it is, the lamps take the roll's colour and stop cycling. */
-    override fun recoloured(palette: DieColourPalette): DiceStyle = RgbDiceStyle(id, panel, panelShade, wave, palette.swatch, palette.heldRing)
+    /** Recoloured (Tricolour), the face takes the roll's colours; the lamps keep cycling through theirs. */
+    override fun recoloured(palette: DieColourPalette): DiceStyle = RgbDiceStyle(id, palette.diceTop, palette.diceBottom, wave, palette.heldRing)
 
     @Composable
     override fun Die(value: Int, held: Boolean, modifier: Modifier) {
@@ -90,7 +89,7 @@ class RgbDiceStyle(
      */
     private fun DrawScope.drawLeds(value: Int, phase: Float) {
         val lens = size.minDimension * 0.062f
-        fun colourAt(position: Offset) = still ?: Color.hsv((((phase - if (wave) (position.x + position.y * 0.5f) * RGB_WAVE_SPREAD * 2f else 0f) % 1f) + 1f) % 1f * 360f, 0.9f, 1f)
+        fun colourAt(position: Offset) = Color.hsv((((phase - if (wave) (position.x + position.y * 0.5f) * RGB_WAVE_SPREAD * 2f else 0f) % 1f) + 1f) % 1f * 360f, 0.9f, 1f)
         fun tint(colour: Color) = ColorFilter.tint(colour, BlendMode.SrcIn)
         val centre = Offset(size.width / 2f, size.height / 2f)
         val layout = pipLayout(value)
