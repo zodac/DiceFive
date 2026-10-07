@@ -60,14 +60,23 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.game_box_disabled_spoken
+import net.zodac.dicefive.resources.game_box_first_five_spoken
+import net.zodac.dicefive.resources.game_box_last_turn_spoken
+import net.zodac.dicefive.resources.game_box_off
+import net.zodac.dicefive.resources.game_box_open_spoken
+import net.zodac.dicefive.resources.game_box_score_action
+import net.zodac.dicefive.resources.game_box_target_name_spoken
 import net.zodac.dicefive.resources.game_slots_bonus_spoken
 import net.zodac.dicefive.resources.game_slots_last_score_spoken
 import net.zodac.dicefive.resources.game_slots_more_open_spoken
 import net.zodac.dicefive.resources.game_slots_open_spoken
 import net.zodac.dicefive.resources.game_slots_scored_spoken
 import net.zodac.dicefive.resources.game_slots_would_score_spoken
+import net.zodac.dicefive.resources.game_target_any_place_spoken
 import net.zodac.dicefive.resources.game_target_exact_hit_spoken
 import net.zodac.dicefive.resources.game_target_hit_spoken
+import net.zodac.dicefive.resources.game_target_name_spoken
 import net.zodac.dicefive.resources.game_target_partial_hit_spoken
 import net.zodac.dicefive.resources.game_target_progress_spoken
 import net.zodac.dicefive.ui.common.joinClauses
@@ -268,31 +277,40 @@ internal fun CategoryCell(
     val irish = LocalIrishTricolour.current
     // Only on a read-only scorecard (see ReadOnlyScoreboard), and only ever a filled box - or slot.
     val lastScored = LocalLastScoredHighlight.current?.takeIf { it.category == category && scores.isNotEmpty() }
+    val categoryName = category.spokenName(irish)
     val spokenState = when {
-        switchedOff -> "Disabled for this game, can't be scored"
+        switchedOff -> stringResource(Res.string.game_box_disabled_spoken)
         slotCount > 1 -> stackedSpokenState(scores, slotCount, previewScore, if (fiveOfAKindTileBonusPreview || fiveOfAKindBonusCount > 0) pendingBonusAmount else 0, lastScored != null)
-        filled != null -> buildString {
-            append("Scored $filled")
-            if (pendingBonusAmount > 0) append(", plus $pendingBonusAmount bonus")
-            if (lastScored != null) append(", last turn's score")
-        }
-        previewScore != null -> buildString {
-            append("Would score $previewScore")
-            if (fiveOfAKindTileBonusPreview) append(", plus $pendingBonusAmount bonus")
-            if (target != null && matches != null) append(", ${targetProgress(target, matches, previewScore)}")
-        }
-        else -> "Open"
+        filled != null -> joinClauses(
+            listOfNotNull(
+                stringResource(Res.string.game_slots_scored_spoken, filled.toString()),
+                stringResource(Res.string.game_slots_bonus_spoken, pendingBonusAmount).takeIf { pendingBonusAmount > 0 },
+                stringResource(Res.string.game_box_last_turn_spoken).takeIf { lastScored != null },
+            ),
+        )
+        previewScore != null -> joinClauses(
+            listOfNotNull(
+                stringResource(Res.string.game_slots_would_score_spoken, previewScore).replaceFirstChar { it.uppercase() },
+                stringResource(Res.string.game_slots_bonus_spoken, pendingBonusAmount).takeIf { fiveOfAKindTileBonusPreview },
+                if (target != null && matches != null) targetProgress(target, matches, previewScore) else null,
+            ),
+        )
+        else -> stringResource(Res.string.game_box_open_spoken)
     }
     // A player's first 5x of the game, flashed gold: spoken as well, as a polite live region that announces the change once.
     val flashing = category == ScoreCategory.FIVE_OF_A_KIND && LocalFiveOfAKindFlash.current
+    val targetName = target?.spokenName()
+    val boxName = if (targetName != null) stringResource(Res.string.game_box_target_name_spoken, categoryName, targetName) else categoryName
+    val firstFiveState = stringResource(Res.string.game_box_first_five_spoken, spokenState)
+    val scoreActionLabel = stringResource(Res.string.game_box_score_action)
     val cellSemantics: SemanticsPropertyReceiver.() -> Unit = {
-        contentDescription = target?.let { "${category.spokenName(irish)}, ${it.spokenName()}" } ?: category.spokenName(irish)
-        stateDescription = if (flashing) "First 5x of the game, $spokenState" else spokenState
+        contentDescription = boxName
+        stateDescription = if (flashing) firstFiveState else spokenState
         if (flashing) liveRegion = LiveRegionMode.Polite
         if (switchedOff) disabled()
         if (isLegalChoice) {
             role = Role.Button
-            onClick(label = "Score") {
+            onClick(label = scoreActionLabel) {
                 onScoreCategory(category)
                 true
             }
@@ -326,7 +344,7 @@ internal fun CategoryCell(
         if (switchedOff) {
             // Words, not a number or the "-" of an open box: what's here is that there's nothing to score.
             ScoreText(
-                text = "Off",
+                text = stringResource(Res.string.game_box_off),
                 color = TileIconColor.copy(alpha = 0.55f),
                 fontWeight = FontWeight.Normal,
                 style = MaterialTheme.typography.bodyMedium,
@@ -442,8 +460,11 @@ internal fun CategoryCell(
 private val TILE_SCORE_GAP = 8.dp
 
 /** What a target calls, said aloud - "4, 1, 3, 2, any. 20 points, 40 exact" - since its tile shows it only as art. */
-internal fun HitTarget.spokenName(): String =
-    places.joinToString(", ") { it?.toString() ?: "any" } + ". $points points, $exactPoints exact"
+@Composable
+internal fun HitTarget.spokenName(): String {
+    val anyPlace = stringResource(Res.string.game_target_any_place_spoken)
+    return stringResource(Res.string.game_target_name_spoken, joinClauses(places.map { it?.toString() ?: anyPlace }), points, exactPoints)
+}
 
 /**
  * The spoken twin of a target tile's underlines: how many of its numbers the dice show, and how many are in their

@@ -71,7 +71,10 @@ import net.zodac.dicefive.model.isLuckOfTheIrish
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_back_cd
+import net.zodac.dicefive.resources.game_timer_left
 import net.zodac.dicefive.resources.game_timer_left_cd
+import net.zodac.dicefive.resources.game_timer_running_out_cd
 import net.zodac.dicefive.ui.common.BackHandler
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LocalReduceMotion
@@ -81,6 +84,7 @@ import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.LocalOnRabbitSeen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 
 /** How long the cup shakes before the roll result is revealed - purely a presentation delay. Shared
  * by every roll: a tap here, and an AI's in [GameViewModel]. */
@@ -433,7 +437,7 @@ private fun InProgressGame(
         // Lifted so its centre is ScreenScaffold's 32dp below the status bar: the screen's top padding
         // puts this row at 16dp, and a bar's 48dp button sits 8dp down in it. Drawn only - the row's height is unchanged.
         IconButton(onClick = onBack, modifier = Modifier.offset(y = BACK_ARROW_TOP - GAME_PADDING)) {
-            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back_cd))
         }
         PlayerHeaderBar(
             players = state.players,
@@ -595,6 +599,7 @@ private val NO_OP_TOGGLE_HOLD: (Int) -> Unit = {}
 @Composable
 fun TurnTimerBadge(secondsRemaining: Int, modifier: Modifier = Modifier) {
     val flashing = secondsRemaining in 1..TURN_TIMER_FLASH_SECONDS
+    val runningOutDescription = pluralStringResource(Res.plurals.game_timer_running_out_cd, TURN_TIMER_FLASH_SECONDS, TURN_TIMER_FLASH_SECONDS)
     val timeLeftDescription = pluralStringResource(Res.plurals.game_timer_left_cd, secondsRemaining, secondsRemaining)
     val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
     // The flash's clock only runs in those last seconds - left running all turn, it recomposed the
@@ -606,14 +611,14 @@ fun TurnTimerBadge(secondsRemaining: Int, modifier: Modifier = Modifier) {
         else -> rememberFlashColor(mutedColor)
     }
     Text(
-        text = "Time left: ${secondsRemaining}s",
+        text = stringResource(Res.string.game_timer_left, secondsRemaining),
         // The flash is colour alone, so its spoken twin: once the flash starts, the badge is a polite live
         // region whose text is the same for every second of it - TalkBack announces the warning once,
         // not a count every second. Before that the seconds change silently, and read in words ("12s"
         // would be spoken as letters).
         modifier = modifier.clearAndSetSemantics {
             if (flashing) {
-                contentDescription = "Time running out, $TURN_TIMER_FLASH_SECONDS seconds or less left"
+                contentDescription = runningOutDescription
                 liveRegion = LiveRegionMode.Polite
             } else {
                 contentDescription = timeLeftDescription
@@ -629,14 +634,14 @@ fun TurnTimerBadge(secondsRemaining: Int, modifier: Modifier = Modifier) {
 /** [TurnTimerBadge]'s flash: the error red and back to [mutedColor], round and round. */
 @Composable
 private fun rememberFlashColor(mutedColor: Color): Color {
-    val flashColor by rememberInfiniteTransition(label = "turnTimerFlash").animateColor(
+    val flashColor by rememberInfiniteTransition(label = "turnTimerFlash").animateColor( // i18n: not translated - an animation label, not shown
         initialValue = MaterialTheme.colorScheme.error,
         targetValue = mutedColor,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = TURN_TIMER_FLASH_PERIOD_MILLIS, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
         ),
-        label = "turnTimerFlashColor",
+        label = "turnTimerFlashColor", // i18n: not translated - an animation label, not shown
     )
     return flashColor
 }

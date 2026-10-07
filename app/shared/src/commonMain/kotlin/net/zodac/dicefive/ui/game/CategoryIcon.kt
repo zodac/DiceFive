@@ -5,11 +5,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.House
 import androidx.compose.material3.Icon
@@ -34,6 +34,8 @@ import net.zodac.dicefive.model.PlaceMatch
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.game_badge_evens
+import net.zodac.dicefive.resources.game_badge_odds
 import net.zodac.dicefive.resources.ic_stairs
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
@@ -42,6 +44,7 @@ import net.zodac.dicefive.ui.game.style.palette
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The small glyph shown inside a [CategoryTile]: dice pips for the upper section, and a bespoke
@@ -79,8 +82,8 @@ fun CategoryIcon(
                 PipFace(value = pipValue, color = color, modifier = Modifier.fillMaxSize().padding(6.dp))
             }
 
-            ScoreCategory.THREE_OF_A_KIND -> BadgeLabel("3x", color, labelFontSize)
-            ScoreCategory.FOUR_OF_A_KIND -> BadgeLabel("4x", color, labelFontSize)
+            ScoreCategory.THREE_OF_A_KIND -> BadgeLabel("3x", color, labelFontSize) // i18n: not translated - the game's mark for the box
+            ScoreCategory.FOUR_OF_A_KIND -> BadgeLabel("4x", color, labelFontSize) // i18n: not translated - the game's mark for the box
             ScoreCategory.FIVE_OF_A_KIND -> FiveOfAKindIcon(color, labelFontSize, fiveOfAKindBonusCount, fiveOfAKindBonusAmount)
             ScoreCategory.CHANCE -> BadgeLabel("?", color, labelFontSize)
             // A stock glyph rather than a hand-drawn one (a previous roof/body Canvas silhouette
@@ -108,10 +111,10 @@ fun CategoryIcon(
             // Text badges like 3x and ?, since there's no picture that says "two pairs" or "evens" better than
             // the words themselves. The spoken name is on the tile (see BoardSemantics).
             ScoreCategory.TWO_PAIR -> BadgeLabel("2+2", color, labelFontSize)
-            ScoreCategory.EVENS -> BadgeLabel("Ev", color, labelFontSize)
-            ScoreCategory.ODDS -> BadgeLabel("Od", color, labelFontSize)
+            ScoreCategory.EVENS -> BadgeLabel(stringResource(Res.string.game_badge_evens), color, labelFontSize)
+            ScoreCategory.ODDS -> BadgeLabel(stringResource(Res.string.game_badge_odds), color, labelFontSize)
             // A word, like the text badges: there's no picture of an alibi. Smaller than 5x's two characters.
-            ScoreCategory.ALIBI -> BadgeLabel("Alibi", color, labelFontSize * ALIBI_LABEL_SCALE)
+            ScoreCategory.ALIBI -> BadgeLabel("Alibi", color, labelFontSize * ALIBI_LABEL_SCALE) // i18n: not translated - the game's mark for the box
             else -> Unit
         }
     }
@@ -253,7 +256,7 @@ private fun BadgeLabel(text: String, color: Color, fontSize: TextUnit, modifier:
 @Composable
 private fun FiveOfAKindIcon(color: Color, fontSize: TextUnit, bonusCount: Int, bonusAmount: Int) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        BadgeLabel("5x", color, fontSize, modifier = Modifier.align(Alignment.Center))
+        BadgeLabel("5x", color, fontSize, modifier = Modifier.align(Alignment.Center)) // i18n: not translated - the game's mark for the box
         if (bonusAmount > 0) {
             Text(
                 text = "+$bonusAmount",

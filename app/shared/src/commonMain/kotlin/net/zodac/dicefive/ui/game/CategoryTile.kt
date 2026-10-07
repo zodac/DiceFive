@@ -132,7 +132,7 @@ fun CategoryTile(
     val flash by animateFloatAsState(
         targetValue = if (flashing) 1f else 0f,
         animationSpec = if (LocalReduceMotion.current) snap() else tween(FLASH_TRANSITION_MILLIS),
-        label = "tileFlash",
+        label = "tileFlash", // i18n: not translated - an animation label, not shown
     )
     val flashedColors = if (flash > 0f) backgroundColors.map { lerp(it, GoldAccent, flash) } else backgroundColors
     val flashedIconColor = if (flash > 0f) lerp(iconColor, TileTealBottom, flash) else iconColor
@@ -234,11 +234,11 @@ private fun BoxScope.GlowBorder(shape: Shape) {
         Box(modifier = Modifier.matchParentSize().border(width = 2.dp, color = GoldAccent, shape = shape))
         return
     }
-    val glowAlpha = rememberInfiniteTransition(label = "tileGlow").animateFloat(
+    val glowAlpha = rememberInfiniteTransition(label = "tileGlow").animateFloat( // i18n: not translated - an animation label, not shown
         initialValue = 0.55f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(animation = tween(900, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-        label = "tileGlowAlpha",
+        label = "tileGlowAlpha", // i18n: not translated - an animation label, not shown
     )
     Box(
         modifier = Modifier

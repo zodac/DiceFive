@@ -59,6 +59,18 @@ import kotlinx.coroutines.launch
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.game_die_coloured_spoken
+import net.zodac.dicefive.resources.game_die_held_spoken
+import net.zodac.dicefive.resources.game_die_hold_action
+import net.zodac.dicefive.resources.game_die_locked_spoken
+import net.zodac.dicefive.resources.game_die_not_held_slots_full_spoken
+import net.zodac.dicefive.resources.game_die_not_held_spoken
+import net.zodac.dicefive.resources.game_die_release_action
+import net.zodac.dicefive.resources.game_die_spoken
+import net.zodac.dicefive.resources.game_slot_empty_spoken
+import net.zodac.dicefive.resources.game_slot_held_spoken
+import net.zodac.dicefive.resources.game_slot_spoken
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.style.DiceMat
@@ -74,6 +86,7 @@ import net.zodac.dicefive.ui.game.style.PickUpPath
 import net.zodac.dicefive.ui.game.style.TossPath
 import net.zodac.dicefive.ui.game.style.TossPose
 import net.zodac.dicefive.ui.game.style.palette
+import org.jetbrains.compose.resources.stringResource
 
 private data class ScatterOffset(val xOffset: Dp, val yOffset: Dp, val rotationDegrees: Float)
 
@@ -225,6 +238,11 @@ private fun DiceColumns(
     onCycleValue: (Int) -> Unit,
     onToggleHold: (Int) -> Unit,
 ) {
+        val heldText = stringResource(Res.string.game_die_held_spoken)
+        val notHeldText = stringResource(Res.string.game_die_not_held_spoken)
+        val lockedText = stringResource(Res.string.game_die_locked_spoken)
+        val holdLabel = stringResource(Res.string.game_die_hold_action)
+        val releaseLabel = stringResource(Res.string.game_die_release_action)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -242,12 +260,13 @@ private fun DiceColumns(
                 // The tray's own touch handling is one hand-rolled gesture over the whole row, which a
                 // screen reader can't see into - so each die is its own node, named by its face (and
                 // colour), saying whether it's held, and offering hold/release as its click action.
+                val dieName = spokenDie(index, die, irish)
                 val dieSemantics = if (showDice) {
                     Modifier.semantics {
-                        contentDescription = spokenDie(index, die, irish)
-                        stateDescription = if (die.isHeld) "Held" else if (die.isUnlucky) LOCKED_STATE else "Not held"
+                        contentDescription = dieName
+                        stateDescription = if (die.isHeld) heldText else if (die.isUnlucky) lockedText else notHeldText
                         if (enabled && !die.isUnlucky) {
-                            onClick(label = if (die.isHeld) "Release" else "Hold") {
+                            onClick(label = if (die.isHeld) releaseLabel else holdLabel) {
                                 onToggleHold(index)
                                 true
                             }
@@ -271,12 +290,15 @@ private fun DiceColumns(
 }
 
 /** What TalkBack says of a die locked by Unlucky Dice: the chains drawn over it, in words. */
-private const val LOCKED_STATE = "Locked in chains, can't be held or scored"
-
 /** "Die 2, 5" - or "Die 2, red 5" with coloured dice - what TalkBack names a die by. */
+@Composable
 private fun spokenDie(index: Int, die: Die, irish: Boolean): String {
-    val colour = die.colour?.let { "${it.spokenName(irish)} " }.orEmpty()
-    return "Die ${index + 1}, $colour${die.value}"
+    val colour = die.colour
+    return if (colour == null) {
+        stringResource(Res.string.game_die_spoken, index + 1, die.value)
+    } else {
+        stringResource(Res.string.game_die_coloured_spoken, index + 1, colour.spokenName(irish), die.value)
+    }
 }
 
 /**
@@ -398,6 +420,13 @@ private fun SlottedDice(
     currentDice: () -> List<Die>,
 ) {
     val irish = LocalIrishTricolour.current
+    val heldText = stringResource(Res.string.game_die_held_spoken)
+    val notHeldText = stringResource(Res.string.game_die_not_held_spoken)
+    val lockedText = stringResource(Res.string.game_die_locked_spoken)
+    val holdLabel = stringResource(Res.string.game_die_hold_action)
+    val releaseLabel = stringResource(Res.string.game_die_release_action)
+    val emptyText = stringResource(Res.string.game_slot_empty_spoken)
+    val slotsFullText = stringResource(Res.string.game_die_not_held_slots_full_spoken)
     // Each die keeps one DieMotion (see DiceColumn) whether it's in a slot or on the mat.
     val motions = dice.indices.map { rememberDieMotion(it, diceStyles) }
     fun dieInSlot(dice: List<Die>, slot: Int): Int? = dice.indexOfFirst { it.isHeld && it.heldSlot == slot }.takeIf { it >= 0 }
@@ -425,20 +454,26 @@ private fun SlottedDice(
                 for (slot in 0 until slotCount) {
                     val index = dieInSlot(dice, slot)
                     val die = index?.let { dice[it] }
+                    val slotName = stringResource(Res.string.game_slot_spoken, slot + 1, slotCount)
+                    val heldSlotName = if (index != null && die != null) {
+                        stringResource(Res.string.game_slot_held_spoken, slot + 1, slotCount, spokenDie(index, die, irish))
+                    } else {
+                        slotName
+                    }
                     val slotSemantics = if (showDice) {
                         Modifier.semantics {
                             if (index != null && die != null) {
-                                contentDescription = "Hold slot ${slot + 1} of $slotCount, ${spokenDie(index, die, irish)}"
-                                stateDescription = "Held"
+                                contentDescription = heldSlotName
+                                stateDescription = heldText
                                 if (enabled) {
-                                    onClick(label = "Release") {
+                                    onClick(label = releaseLabel) {
                                         onToggleHold(index)
                                         true
                                     }
                                 }
                             } else {
-                                contentDescription = "Hold slot ${slot + 1} of $slotCount"
-                                stateDescription = "Empty"
+                                contentDescription = slotName
+                                stateDescription = emptyText
                             }
                         }
                     } else {
@@ -471,16 +506,17 @@ private fun SlottedDice(
                 horizontalArrangement = Arrangement.spacedBy(SLOTTED_MAT_COLUMN_GAP),
             ) {
                 dice.forEachIndexed { index, die ->
+                    val dieName = spokenDie(index, die, irish)
                     val dieSemantics = if (showDice && !die.isHeld) {
                         Modifier.semantics {
-                            contentDescription = spokenDie(index, die, irish)
+                            contentDescription = dieName
                             stateDescription = when {
-                                die.isUnlucky -> LOCKED_STATE
-                                slotsFull -> "Not held, hold slots full"
-                                else -> "Not held"
+                                die.isUnlucky -> lockedText
+                                slotsFull -> slotsFullText
+                                else -> notHeldText
                             }
                             if (enabled && !slotsFull && !die.isUnlucky) {
-                                onClick(label = "Hold") {
+                                onClick(label = holdLabel) {
                                     onToggleHold(index)
                                     true
                                 }

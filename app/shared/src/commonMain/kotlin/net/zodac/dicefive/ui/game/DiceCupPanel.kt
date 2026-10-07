@@ -1,5 +1,9 @@
 package net.zodac.dicefive.ui.game
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -8,11 +12,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
@@ -20,15 +24,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
-import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.semantics.Role
@@ -37,19 +42,12 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
-import androidx.compose.ui.util.lerp
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.tween
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.lerp
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
@@ -58,6 +56,7 @@ import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.game_cup_cd
 import net.zodac.dicefive.resources.game_cup_roll_action
+import net.zodac.dicefive.resources.game_cup_rolls_left
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
@@ -67,6 +66,8 @@ import net.zodac.dicefive.ui.game.style.LocalCupAnimated
 import net.zodac.dicefive.ui.game.style.LocalFlowerpotGrowth
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.TileIconColor
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * [DiceCupPanel]'s cup-specific behaviour - the parts of the panel that only make sense for a turn
@@ -321,7 +322,7 @@ internal fun DiceCup(
                 var countSize by remember(cup.rollsRemaining) { mutableStateOf(countStyle.fontSize) }
                 val count = @Composable { countModifier: Modifier ->
                     Text(
-                        text = "x${cup.rollsRemaining}",
+                        text = stringResource(Res.string.game_cup_rolls_left, cup.rollsRemaining),
                         color = TileIconColor,
                         fontWeight = FontWeight.Bold,
                         style = countStyle,
@@ -367,7 +368,7 @@ internal fun DiceCup(
                     } else {
                         tween(DICE_TOSS_MILLIS / 2, easing = LinearEasing)
                     },
-                    label = "cupSpent",
+                    label = "cupSpent", // i18n: not translated - an animation label, not shown
                 )
                 Box(
                     modifier = Modifier.size(CUP_SIZE).spentLook(spent),

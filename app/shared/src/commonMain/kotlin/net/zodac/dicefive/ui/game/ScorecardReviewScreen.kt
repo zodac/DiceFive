@@ -9,8 +9,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.model.GameState
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.game_review_title
 import net.zodac.dicefive.ui.common.BackHandler
 import net.zodac.dicefive.ui.common.ScreenScaffold
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Read-only view of every player's finished scorecard, reached from [GameOverScreen]'s "Review
@@ -33,7 +36,7 @@ fun ScorecardReviewScreen(
     // button at the foot of the page) returning to the results. The game screen's narrower margin, so
     // the board's pieces come out the size they were in play.
     ScreenScaffold(
-        title = "Scorecards",
+        title = stringResource(Res.string.game_review_title),
         onBack = onBack,
         modifier = modifier,
         scrollable = true,
