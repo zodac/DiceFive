@@ -14,10 +14,10 @@ import net.zodac.dicefive.resources.achievements_styles_unlocked_spoken_style
 import net.zodac.dicefive.resources.achievements_styles_unlocked_title
 import net.zodac.dicefive.resources.achievements_styles_unlocked_two
 import net.zodac.dicefive.ui.common.joinClauses
+import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.spokenList
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.style.stylesUnlockedByCount
-import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 
 /**
  * Puts everything a recorded [update] earned up as banners: each unlock, then one banner for any styles

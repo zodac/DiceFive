@@ -60,14 +60,14 @@ import net.zodac.dicefive.resources.game_cup_rolls_left
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
+import net.zodac.dicefive.ui.common.pluralStringResource
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.style.FlowerpotGrowth
 import net.zodac.dicefive.ui.game.style.LocalCupActivity
 import net.zodac.dicefive.ui.game.style.LocalCupAnimated
 import net.zodac.dicefive.ui.game.style.LocalFlowerpotGrowth
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.TileIconColor
-import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 
 /**
  * [DiceCupPanel]'s cup-specific behaviour - the parts of the panel that only make sense for a turn

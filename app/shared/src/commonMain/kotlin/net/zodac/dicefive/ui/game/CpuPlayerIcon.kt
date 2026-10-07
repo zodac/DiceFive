@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_cpu_cd
-import org.jetbrains.compose.resources.stringResource
+import net.zodac.dicefive.ui.common.stringResource
 
 /**
  * The little processor chip shown before a CPU player's name, wherever players are listed (the

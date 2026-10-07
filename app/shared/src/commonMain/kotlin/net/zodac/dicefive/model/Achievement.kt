@@ -239,6 +239,10 @@ enum class AchievementCounter {
  * Rules"), which the banner's text column holds on a 360dp phone. Narrower screens ellipsise it
  * first. A longer title is a project-rule breach - shorten it; see CLAUDE.md. `AchievementTextTest`
  * enforces this.
+ *
+ * That is the English figure. A character is not the same width in every language, so each translation
+ * may set its own `achievement_title_max_length` (a lower one for full-width scripts, say), which the
+ * test then holds that language's titles to; one that leaves it out gets this.
  */
 const val MAX_ACHIEVEMENT_TITLE_LENGTH = 38
 

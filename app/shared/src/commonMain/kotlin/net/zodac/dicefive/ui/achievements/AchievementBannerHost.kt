@@ -90,9 +90,9 @@ import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.grouped
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.LocalLeaveGameConfirmation
 import net.zodac.dicefive.ui.game.style.unlocksStyle
-import org.jetbrains.compose.resources.stringResource
 
 /**
  * How long a banner sits at full opacity before it starts to go - with the fades either side, 5s on

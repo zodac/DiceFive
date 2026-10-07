@@ -173,7 +173,9 @@ import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.parseInlineMarkup
+import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.common.tooltipMarkup
 import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 import net.zodac.dicefive.ui.game.style.DiceCupStyle
@@ -198,8 +200,6 @@ import net.zodac.dicefive.ui.game.style.TableBackgrounds
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import net.zodac.dicefive.ui.theme.GoldAccent
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 
 // Kept small enough that the categories (Dice, Dice Cup, Mat, Background, Frame) fit on one screen
 // without needing to scroll - see StylesScreen's doc comment.

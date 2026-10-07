@@ -33,7 +33,7 @@ import net.zodac.dicefive.resources.licences_hide_text
 import net.zodac.dicefive.resources.licences_notices_subtitle
 import net.zodac.dicefive.resources.licences_notices_title
 import net.zodac.dicefive.resources.licences_show_text
-import org.jetbrains.compose.resources.stringResource
+import net.zodac.dicefive.ui.common.stringResource
 
 /** A [SelectionClearer] with nothing to clear - each [ComposeLicenceDocument] section keeps its own selection. */
 internal object NoSelectionClearer : SelectionClearer {

@@ -79,12 +79,12 @@ import net.zodac.dicefive.ui.common.BackHandler
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
+import net.zodac.dicefive.ui.common.pluralStringResource
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.LocalOnRabbitSeen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
-import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 
 /** How long the cup shakes before the roll result is revealed - purely a presentation delay. Shared
  * by every roll: a tap here, and an AI's in [GameViewModel]. */

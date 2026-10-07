@@ -41,8 +41,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -102,11 +102,12 @@ import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.fitFontSize
+import net.zodac.dicefive.ui.common.localised
+import net.zodac.dicefive.ui.common.pluralStringResource
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.GameSetupState
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.game.PlayerSetupSlot
-import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 
 /**
  * Fixed width for the per-row User/CPU control, so the name fields above and below it all end at
@@ -291,7 +292,7 @@ private fun PlayerCountSelector(count: Int, onCountChange: (Int) -> Unit) {
         options = (GameSetupState.MIN_PLAYERS..GameSetupState.MAX_PLAYERS).toList(),
         selected = count,
         onSelect = onCountChange,
-        label = { it.toString() },
+        label = { it.localised() },
         modifier = Modifier.fillMaxWidth(),
         brandFont = true,
     )
@@ -593,7 +594,7 @@ private fun SetupModifierPicker(
                 numberField = ModifierNumberField(
                     label = stringResource(Res.string.setup_stored_field),
                     hint = stringResource(Res.string.setup_stored_hint),
-                    initial = rolls.storedRollsMax?.toString().orEmpty(),
+                    initial = rolls.storedRollsMax?.localised().orEmpty(),
                     maxDigits = RollModifiers.MAX_CAP_DIGITS,
                     onValueChange = onStoredRollsMax,
                 ),

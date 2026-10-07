@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.theme.TileBadgeBackground
 
 /**
@@ -30,7 +31,7 @@ import net.zodac.dicefive.ui.theme.TileBadgeBackground
  */
 @Composable
 fun SegmentBadge(count: Int, color: Color, modifier: Modifier = Modifier) {
-    val digits = count.coerceIn(0, 99).toString()
+    val digits = count.coerceIn(0, 99).localised()
     BoxWithConstraints(
         modifier = modifier
             .clip(CircleShape)

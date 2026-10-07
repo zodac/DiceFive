@@ -35,3 +35,11 @@ internal actual fun formatGrouped(number: Int, languageTag: String): String {
 
 internal actual fun formatList(items: List<String>, languageTag: String): String =
     ListFormatter.getInstance(Locale.forLanguageTag(languageTag)).format(items)
+
+private var integerFormat: Pair<String, NumberFormat>? = null
+
+internal actual fun formatInteger(number: Int, languageTag: String): String {
+    val format = integerFormat?.takeIf { it.first == languageTag }?.second
+        ?: NumberFormat.getIntegerInstance(Locale.forLanguageTag(languageTag)).apply { isGroupingUsed = false }.also { integerFormat = languageTag to it }
+    return format.format(number)
+}

@@ -38,13 +38,14 @@ import net.zodac.dicefive.resources.game_badge_evens
 import net.zodac.dicefive.resources.game_badge_odds
 import net.zodac.dicefive.resources.ic_stairs
 import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.localised
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.PipFace
 import net.zodac.dicefive.ui.game.style.palette
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
 
 /**
  * The small glyph shown inside a [CategoryTile]: dice pips for the upper section, and a bespoke
@@ -177,7 +178,7 @@ private fun TargetIcon(target: HitTarget, matches: List<PlaceMatch>?, color: Col
                         else -> null
                     }
                     Text(
-                        text = value?.toString() ?: "\u00B7",
+                        text = value?.localised() ?: "\u00B7",
                         color = when {
                             value == null -> color.copy(alpha = color.alpha * ANY_PLACE_ALPHA)
                             match == PlaceMatch.IN_PLACE -> GoldAccent
@@ -207,7 +208,7 @@ private fun TargetIcon(target: HitTarget, matches: List<PlaceMatch>?, color: Col
                 }
             }
             Text(
-                text = target.points.toString(),
+                text = target.points.localised(),
                 color = color.copy(alpha = color.alpha * TARGET_POINTS_ALPHA),
                 style = TextStyle(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold, fontSize = pointsSize, lineHeight = pointsSize, textAlign = TextAlign.Center),
                 maxLines = 1,
@@ -259,7 +260,7 @@ private fun FiveOfAKindIcon(color: Color, fontSize: TextUnit, bonusCount: Int, b
         BadgeLabel("5x", color, fontSize, modifier = Modifier.align(Alignment.Center)) // i18n: not translated - the game's mark for the box
         if (bonusAmount > 0) {
             Text(
-                text = "+$bonusAmount",
+                text = "+${bonusAmount.localised()}",
                 color = GoldAccent,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.labelMedium,

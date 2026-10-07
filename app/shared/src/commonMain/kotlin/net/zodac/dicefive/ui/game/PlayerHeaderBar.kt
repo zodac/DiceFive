@@ -58,10 +58,11 @@ import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.joinClauses
+import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.ordinal
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.color
-import org.jetbrains.compose.resources.stringResource
 
 /** How long a score takes to count up: most turns' points rise in [SCORE_RISE_MIN_MILLIS], a bigger
  * jump gets [SCORE_RISE_MILLIS_PER_POINT] each, and past [SCORE_RISE_MAX_MILLIS] it just counts faster. */
@@ -194,7 +195,7 @@ private fun PlayerTab(
             )
         }
         Text(
-            text = risingScore(score).toString(),
+            text = risingScore(score).localised(),
             color = color,
             fontFamily = SoraFontFamily,
             fontWeight = FontWeight.Bold,

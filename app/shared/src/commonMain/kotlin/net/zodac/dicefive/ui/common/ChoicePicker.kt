@@ -75,8 +75,6 @@ import net.zodac.dicefive.resources.common_picker_state_spoken
 import net.zodac.dicefive.resources.common_stepper_decrease_cd
 import net.zodac.dicefive.resources.common_stepper_increase_cd
 import net.zodac.dicefive.resources.common_stepper_value_spoken
-import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 
 /*
  * The app's dropdown-and-modal pickers. Every colour, shape, size and text style of the closed field and
@@ -426,9 +424,10 @@ private fun ModifierNumberFieldRow(field: ModifierNumberField, enabled: Boolean,
     OutlinedTextField(
         value = text,
         onValueChange = { typed ->
-            val digits = typed.filter { it in '0'..'9' }.take(field.maxDigits)
+            // Any script's digits are taken (a keyboard in Arabic types "٣"), and read as the number they are.
+            val digits = typed.filter { it.isDigit() }.take(field.maxDigits)
             text = digits
-            field.onValueChange(digits.toIntOrNull())
+            field.onValueChange(digits.map { it.digitToInt() }.joinToString("").toIntOrNull())
         },
         label = { Text(field.label) },
         placeholder = { Text(field.hint) },

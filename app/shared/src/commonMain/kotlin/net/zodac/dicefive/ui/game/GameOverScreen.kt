@@ -59,10 +59,11 @@ import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PageColumn
 import net.zodac.dicefive.ui.common.PageTopBar
 import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.localised
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.theme.CupRimGold
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.GoldAccentDim
-import org.jetbrains.compose.resources.stringResource
 
 /** Matches the length of celebration.ogg, so the fireworks burst finishes right as the fanfare does. */
 private const val CELEBRATION_MILLIS = 3300
@@ -236,7 +237,7 @@ private fun WinnerCard(player: PlayerState, solo: Boolean, tieBreakReason: TieBr
                 }
             }
             Text(
-                text = player.totalScore.toString(),
+                text = player.totalScore.localised(),
                 style = MaterialTheme.typography.displaySmall,
                 fontFamily = SoraFontFamily,
                 fontWeight = FontWeight.Bold,
@@ -257,7 +258,7 @@ private fun RunnerUpRow(rank: Int, isTrueTie: Boolean, player: PlayerState, tieB
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text = if (isTrueTie) stringResource(Res.string.common_tied_rank, rank) else rank.toString(),
+            text = if (isTrueTie) stringResource(Res.string.common_tied_rank, rank) else rank.localised(),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -283,7 +284,7 @@ private fun RunnerUpRow(rank: Int, isTrueTie: Boolean, player: PlayerState, tieB
             }
         }
         Text(
-            text = player.totalScore.toString(),
+            text = player.totalScore.localised(),
             style = MaterialTheme.typography.titleLarge,
             fontFamily = SoraFontFamily,
             fontWeight = FontWeight.Bold,

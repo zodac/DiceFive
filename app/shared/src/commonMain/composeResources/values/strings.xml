@@ -74,6 +74,15 @@
     <string name="game_standing_spoken">%1$s place</string>
     <string name="game_standing_tied_spoken">tied %1$s place</string>
 
+    <!--
+        The longest an achievement's title may be, in characters, in this language: the unlock banner draws it on ONE
+        line, at 12sp or larger and never wrapped. 38 holds for English; a language whose letters are wider (full-width
+        scripts) needs a lower number and one with longer words may need a bigger one *and a banner render to check it
+        fits* (AchievementTextTest enforces whatever is set here, against every title of that language). A translation
+        that leaves this out gets the English figure.
+    -->
+    <string name="achievement_title_max_length">38</string>
+
     <!-- Achievement categories: the section headers (model/Achievement.kt, AchievementCategory). -->
     <string name="category_milestones">Milestones</string>
     <string name="category_dice">Dice feats</string>
@@ -948,7 +957,12 @@
     <string name="stats_spoken_record">Played %1$d, won %2$d, lost %3$d.</string>
     <string name="stats_spoken_streaks">Win streak %1$d, best win streak %2$d.</string>
     <string name="stats_spoken_scores">Total score %1$s. Average score %2$s.</string>
-    <string name="stats_spoken_fives_solo">%1$d 5x scored. %2$d solo games played.</string>
+    <string name="stats_spoken_fives">%1$d 5x scored.</string>
+    <!-- Chosen by the number of solo games (%1$d). -->
+    <plurals name="stats_spoken_solo">
+        <item quantity="one">%1$d solo game played.</item>
+        <item quantity="other">%1$d solo games played.</item>
+    </plurals>
     <string name="stats_first_played">First played</string>
     <!-- Labels under each number on an opened card. -->
     <string name="stats_played">Played</string>

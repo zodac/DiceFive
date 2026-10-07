@@ -53,12 +53,12 @@ import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 import net.zodac.dicefive.ui.theme.TileTealBorder
 import net.zodac.dicefive.ui.theme.TileTealBottom
 import net.zodac.dicefive.ui.theme.TileTealTop
-import org.jetbrains.compose.resources.stringResource
 
 /**
  * The scorecard's section totals - Upper, the upper bonus and Lower - behind an icon-only Σ button,

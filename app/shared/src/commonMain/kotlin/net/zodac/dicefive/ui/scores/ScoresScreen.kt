@@ -76,9 +76,10 @@ import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.formatTimestamp
+import net.zodac.dicefive.ui.common.localised
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.theme.Bronze
 import net.zodac.dicefive.ui.theme.Silver
-import org.jetbrains.compose.resources.stringResource
 
 /** [GameMode.HIGHEST_POSSIBLE_SCORE] (a perfect game in whichever mode allows the most) is the longest a score can ever be. */
 private val SCORE_DISPLAY_WIDTH = GameMode.HIGHEST_POSSIBLE_SCORE.toString().length
@@ -446,7 +447,7 @@ private fun ScoreRow(
             // the whole distinction, a second (font) one on top of it was redundant.
             Text(
                 // "=" only for a true tie (every tie-break criterion also matches) - see rankEntries.
-                text = if (isTrueTie) stringResource(Res.string.common_tied_rank, rank) else rank.toString(),
+                text = if (isTrueTie) stringResource(Res.string.common_tied_rank, rank) else rank.localised(),
                 modifier = Modifier.weight(columns.rank),
                 style = MaterialTheme.typography.bodySmall,
                 color = accent ?: MaterialTheme.colorScheme.onSurfaceVariant,
@@ -464,7 +465,7 @@ private fun ScoreRow(
             // How many 5x that game scored - a quiet secondary column, so it takes the rank's muted
             // colour rather than competing with the score.
             Text(
-                text = entry.fiveOfAKindCount.toString(),
+                text = entry.fiveOfAKindCount.localised(),
                 modifier = Modifier.weight(columns.fiveOfAKind),
                 style = MaterialTheme.typography.bodySmall,
                 color = accent ?: MaterialTheme.colorScheme.onSurfaceVariant,
@@ -476,7 +477,7 @@ private fun ScoreRow(
                 // every row's score the same width regardless of digit count. Always bodyMedium,
                 // podium or not - the row's own background tint is what calls out a podium finish
                 // now, not a second size bump on top of it.
-                text = entry.score.toString().padStart(SCORE_DISPLAY_WIDTH),
+                text = entry.score.localised().padStart(SCORE_DISPLAY_WIDTH),
                 modifier = Modifier.weight(columns.score),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,

@@ -7,9 +7,9 @@ import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.styles_reward_hidden_colours
 import net.zodac.dicefive.resources.styles_reward_style
+import net.zodac.dicefive.ui.common.pluralStringResource
+import net.zodac.dicefive.ui.common.stringResource
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 
 /**
  * What a [StyleFamily] takes to be usable. The lock is on the style as a whole: once it's met, every

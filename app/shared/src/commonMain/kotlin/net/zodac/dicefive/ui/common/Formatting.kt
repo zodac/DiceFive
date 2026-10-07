@@ -47,6 +47,18 @@ internal fun Int.grouped(): String = formatGrouped(this, stringResource(Res.stri
 internal expect fun formatGrouped(number: Int, languageTag: String): String
 
 /**
+ * [this] in the strings' own numerals, ungrouped - "3" in English, "٣" where the language writes Arabic-Indic digits - for a
+ * number that is drawn or said on its own ("x3", a score). Numbers inside a string resource are done for you by this
+ * package's [stringResource] and [pluralStringResource]; use this for the ones that aren't, and say which numerals a
+ * language uses by its `common_locale` tag ("ar-u-nu-arab"). See .claude/I18N.md.
+ */
+@Composable
+internal fun Int.localised(): String = formatInteger(this, stringResource(Res.string.common_locale))
+
+/** [number] with no grouping, in the numerals the language [languageTag] (BCP 47, may carry a "-u-nu-" extension) writes. Use [localised] in the UI. */
+internal expect fun formatInteger(number: Int, languageTag: String): String
+
+/**
  * [items] as a spoken list in the strings' own language - "6, 6 and 6" in English. The platform's list
  * formatter does the joining, because the last separator and its spacing differ by language.
  */

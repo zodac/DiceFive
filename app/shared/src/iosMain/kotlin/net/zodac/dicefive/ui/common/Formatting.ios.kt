@@ -46,3 +46,15 @@ internal actual fun formatList(items: List<String>, languageTag: String): String
     NSListFormatter().apply {
         locale = NSLocale.localeWithLocaleIdentifier(NSLocale.canonicalLocaleIdentifierFromString(languageTag))
     }.stringFromItems(items) ?: items.joinToString()
+
+private var integerFormatter: Pair<String, NSNumberFormatter>? = null
+
+internal actual fun formatInteger(number: Int, languageTag: String): String {
+    val formatter = integerFormatter?.takeIf { it.first == languageTag }?.second
+        ?: NSNumberFormatter().apply {
+            numberStyle = NSNumberFormatterDecimalStyle
+            usesGroupingSeparator = false
+            locale = NSLocale.localeWithLocaleIdentifier(NSLocale.canonicalLocaleIdentifierFromString(languageTag))
+        }.also { integerFormatter = languageTag to it }
+    return formatter.stringFromNumber(NSNumber(int = number)) ?: number.toString()
+}
