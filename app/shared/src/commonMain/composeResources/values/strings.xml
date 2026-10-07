@@ -668,4 +668,23 @@
     <!-- A colour in the pop-up that another seat already has: picking it swaps the two. -->
     <string name="setup_colour_swaps_cd">%1$s, swaps with player %2$d</string>
 
+    <!-- Settings screen (ui/settings/SettingsScreen.kt) -->
+    <string name="settings_title">Settings</string>
+    <!-- The footer. %1$s is the app's version number. -->
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_sound">Sound effects</string>
+    <string name="settings_vibration">Vibration</string>
+    <string name="settings_remove_animations">Remove animations</string>
+    <string name="settings_confirm_leaving">Confirm leaving game</string>
+    <string name="settings_reset_achievements">Reset achievements</string>
+    <string name="settings_reset_achievements_description">Lock every achievement again</string>
+    <string name="settings_reset_leaderboard">Reset leaderboard</string>
+    <string name="settings_reset_leaderboard_description">Delete all recorded scores</string>
+    <!-- The red button of both "are you sure" dialogs. -->
+    <string name="settings_reset_confirm">Reset</string>
+    <string name="settings_reset_achievements_title">Reset Achievements?</string>
+    <string name="settings_reset_achievements_message">Every achievement will be locked again and all progress towards them lost. This can't be undone. Your scores and settings are not affected.</string>
+    <string name="settings_reset_leaderboard_title">Reset Leaderboard?</string>
+    <string name="settings_reset_leaderboard_message">Every recorded score will be deleted, clearing the Leaderboard screen - and Statistics with it, since it's calculated from the same scores. This can't be undone. Achievements and settings are not affected, though any achievement progress measured against the leaderboard will start over.</string>
+
 </resources>

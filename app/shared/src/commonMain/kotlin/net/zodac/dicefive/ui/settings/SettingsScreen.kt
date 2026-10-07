@@ -36,10 +36,30 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.app.LocalAppContainer
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.about_title
+import net.zodac.dicefive.resources.common_cancel
+import net.zodac.dicefive.resources.licences_title
+import net.zodac.dicefive.resources.settings_confirm_leaving
+import net.zodac.dicefive.resources.settings_remove_animations
+import net.zodac.dicefive.resources.settings_reset_achievements
+import net.zodac.dicefive.resources.settings_reset_achievements_description
+import net.zodac.dicefive.resources.settings_reset_achievements_message
+import net.zodac.dicefive.resources.settings_reset_achievements_title
+import net.zodac.dicefive.resources.settings_reset_confirm
+import net.zodac.dicefive.resources.settings_reset_leaderboard
+import net.zodac.dicefive.resources.settings_reset_leaderboard_description
+import net.zodac.dicefive.resources.settings_reset_leaderboard_message
+import net.zodac.dicefive.resources.settings_reset_leaderboard_title
+import net.zodac.dicefive.resources.settings_sound
+import net.zodac.dicefive.resources.settings_title
+import net.zodac.dicefive.resources.settings_version
+import net.zodac.dicefive.resources.settings_vibration
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.FooterPill
-import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.ScreenScaffold
+import net.zodac.dicefive.ui.common.ShrinkThenWrapText
+import org.jetbrains.compose.resources.stringResource
 
 /** A setting's label: bodyLarge on one line when it fits, stepped down to [MIN_READABLE_FONT_SIZE] on a
  * narrow screen, and wrapped to a second line (the row grows) rather than shrunk further. */
@@ -102,22 +122,22 @@ fun SettingsScreen(
     var showAbout by rememberSaveable { mutableStateOf(false) }
 
     ScreenScaffold(
-        title = "Settings",
+        title = stringResource(Res.string.settings_title),
         onBack = onBack,
         modifier = modifier,
         scrollable = true,
-        footer = { FooterPill("Version ${LocalAppContainer.current.buildInfo.versionName}") },
+        footer = { FooterPill(stringResource(Res.string.settings_version, LocalAppContainer.current.buildInfo.versionName)) },
     ) {
         // Nothing but the title bar until the saved switches are back, rather than drawing them in
         // their default positions and then flipping the ones the player has changed.
         val toggles = loadedToggles ?: return@ScreenScaffold
         Card(modifier = Modifier.fillMaxWidth()) {
-            SwitchSetting(Icons.AutoMirrored.Filled.VolumeUp, "Sound effects", toggles.soundEnabled, viewModel::setSoundEnabled)
-            SwitchSetting(Icons.Filled.Vibration, "Vibration", toggles.vibrationEnabled, viewModel::setVibrationEnabled)
-            SwitchSetting(Icons.Filled.MotionPhotosOff, "Remove animations", toggles.removeAnimations, viewModel::setRemoveAnimations)
+            SwitchSetting(Icons.AutoMirrored.Filled.VolumeUp, stringResource(Res.string.settings_sound), toggles.soundEnabled, viewModel::setSoundEnabled)
+            SwitchSetting(Icons.Filled.Vibration, stringResource(Res.string.settings_vibration), toggles.vibrationEnabled, viewModel::setVibrationEnabled)
+            SwitchSetting(Icons.Filled.MotionPhotosOff, stringResource(Res.string.settings_remove_animations), toggles.removeAnimations, viewModel::setRemoveAnimations)
             SwitchSetting(
                 Icons.Filled.CheckCircle,
-                "Confirm leaving game",
+                stringResource(Res.string.settings_confirm_leaving),
                 toggles.confirmBeforeLeavingGame,
                 viewModel::setConfirmBeforeLeavingGame,
             )
@@ -126,14 +146,14 @@ fun SettingsScreen(
         Card(modifier = Modifier.fillMaxWidth()) {
             ResetSetting(
                 icon = Icons.Filled.RestartAlt,
-                label = "Reset achievements",
-                description = "Lock every achievement again",
+                label = stringResource(Res.string.settings_reset_achievements),
+                description = stringResource(Res.string.settings_reset_achievements_description),
                 onClick = { showResetAchievementsConfirmation = true },
             )
             ResetSetting(
                 icon = Icons.Filled.DeleteSweep,
-                label = "Reset leaderboard",
-                description = "Delete all recorded scores",
+                label = stringResource(Res.string.settings_reset_leaderboard),
+                description = stringResource(Res.string.settings_reset_leaderboard_description),
                 onClick = { showResetLeaderboardConfirmation = true },
             )
         }
@@ -158,7 +178,7 @@ fun SettingsScreen(
                     contentDescription = null,
                     modifier = Modifier.padding(end = 8.dp),
                 )
-                Text("About")
+                Text(stringResource(Res.string.about_title))
             }
             TextButton(onClick = { showLicenses = true }, modifier = Modifier.weight(1f)) {
                 Icon(
@@ -166,7 +186,7 @@ fun SettingsScreen(
                     contentDescription = null,
                     modifier = Modifier.padding(end = 8.dp),
                 )
-                Text("Licences")
+                Text(stringResource(Res.string.licences_title))
             }
         }
     }
@@ -182,15 +202,14 @@ fun SettingsScreen(
     if (showResetAchievementsConfirmation) {
         DiceFiveDialog(
             icon = Icons.Filled.RestartAlt,
-            title = "Reset Achievements?",
-            message = "Every achievement will be locked again and all progress towards them lost. " +
-                "This can't be undone. Your scores and settings are not affected.",
-            confirmLabel = "Reset",
+            title = stringResource(Res.string.settings_reset_achievements_title),
+            message = stringResource(Res.string.settings_reset_achievements_message),
+            confirmLabel = stringResource(Res.string.settings_reset_confirm),
             onConfirm = {
                 viewModel.resetAchievements()
                 showResetAchievementsConfirmation = false
             },
-            dismissLabel = "Cancel",
+            dismissLabel = stringResource(Res.string.common_cancel),
             onDismiss = { showResetAchievementsConfirmation = false },
             onDismissRequest = { showResetAchievementsConfirmation = false },
         )
@@ -199,16 +218,14 @@ fun SettingsScreen(
     if (showResetLeaderboardConfirmation) {
         DiceFiveDialog(
             icon = Icons.Filled.RestartAlt,
-            title = "Reset Leaderboard?",
-            message = "Every recorded score will be deleted, clearing the Leaderboard screen - and Statistics with " +
-                "it, since it's calculated from the same scores. This can't be undone. Achievements and settings " +
-                "are not affected, though any achievement progress measured against the leaderboard will start over.",
-            confirmLabel = "Reset",
+            title = stringResource(Res.string.settings_reset_leaderboard_title),
+            message = stringResource(Res.string.settings_reset_leaderboard_message),
+            confirmLabel = stringResource(Res.string.settings_reset_confirm),
             onConfirm = {
                 viewModel.resetLeaderboard()
                 showResetLeaderboardConfirmation = false
             },
-            dismissLabel = "Cancel",
+            dismissLabel = stringResource(Res.string.common_cancel),
             onDismiss = { showResetLeaderboardConfirmation = false },
             onDismissRequest = { showResetLeaderboardConfirmation = false },
         )
