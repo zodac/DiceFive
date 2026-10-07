@@ -79,6 +79,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -667,7 +668,7 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     TabRowDefaults.PrimaryIndicator(
                         modifier = Modifier.tabIndicatorLayout { measurable, constraints, tabPositions ->
                             pagerIndicatorLayout(measurable, constraints, tabPositions, pagerState.currentPage + pagerState.currentPageOffsetFraction)
-                        },
+                        }.testTag(TAB_INDICATOR_TAG),
                         width = Dp.Unspecified,
                         height = TAB_INDICATOR_HEIGHT,
                     )
@@ -1113,9 +1114,13 @@ private fun MeasureScope.pagerIndicatorLayout(
     val widthPx = width.roundToPx()
     val placeable = measurable.measure(constraints.copy(minWidth = widthPx, maxWidth = widthPx))
     return layout(placeable.width, placeable.height) {
-        placeable.place(x = (centre - width / 2).roundToPx(), y = 0)
+        // Relative, so a right-to-left row (whose tab positions count from the right) puts it under its tab, not mirrored away.
+        placeable.placeRelative(x = (centre - width / 2).roundToPx(), y = 0)
     }
 }
+
+/** Test tag of the tab row's indicator, so a test can check it sits under the selected tab. */
+internal const val TAB_INDICATOR_TAG = "rulesTabIndicator"
 
 /** The tab row's indicator, as thick as the stock one - named so the divider can centre itself on it. */
 private val TAB_INDICATOR_HEIGHT = 3.dp
