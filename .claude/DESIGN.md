@@ -206,7 +206,7 @@ decisions behind it. Read that before changing anything visual.
   before (by value, not die, so every 3 matches), and the white ones sit on the Classic ivory, where the
   glow is a soft, lopsided diffusion (a smooth bloom and one seeded patch per lamp, `SCATTER`) rather than a
   ring. The light is painted once per face as white and tinted as it's drawn (see `BENCHMARKS.md`, "7 Dice
-  Stud"). Recoloured (Tricolour), it stops cycling and takes the roll's colour. Still under reduced motion.
+  Stud"). Recoloured (Tricolour), the face takes the roll's colours and the lamps keep cycling. Still under reduced motion.
   Their mats: Honeycomb (`HoneycombArt.kt`; Honey - 60) - real comb, honey, caps and the odd empty
   cell, painted once, with a honeybee near the bottom-left corner that flicks its wings every 3.6s
   (the only live part); Hex Tiles (`ThemedMats.kt`; Honey, Slate - 51); Sand (52); Circuit (Green,
