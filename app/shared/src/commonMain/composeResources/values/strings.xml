@@ -446,7 +446,7 @@
     <string name="about_privacy_body">DiceFive holds no user data. Your games, scores and settings stay on this device, and there are no ads, analytics or tracking.</string>
     <string name="about_privacy_link">Full privacy policy</string>
 
-    <!-- Licences dialog (ui/settings/LicensesDialog.kt, ComposeLicenceDocument.kt). Android's own licence list has its own copies in app/android/src/main/res. -->
+    <!-- Licences dialog (ui/settings/LicensesDialog.kt, ComposeLicenceDocument.kt, and Android's TextViewLicenceDocument via LicenceLabels). -->
     <string name="licences_title">Licences</string>
     <string name="licences_close_cd">Close licences</string>
     <string name="licences_intro">DiceFive is built with the open-source software, fonts and sounds below, each used under the licence it's listed with.</string>
@@ -454,6 +454,33 @@
     <string name="licences_hide_text">Hide licence text</string>
     <string name="licences_notices_title">Notices</string>
     <string name="licences_notices_subtitle">Attribution notices shipped with the libraries above</string>
+    <!-- The long-press menu on a link in the list. -->
+    <string name="licences_copy_link">Copy link</string>
+    <string name="licences_copy_text">Copy text</string>
+    <!-- What the clipboard calls what was copied. -->
+    <string name="licences_link">Link</string>
+    <string name="licences_text">Text</string>
+    <!-- Shown on Android 12 and older after a copy; newer versions confirm it themselves. -->
+    <string name="licences_link_copied">Link copied</string>
+    <string name="licences_text_copied">Text copied</string>
+    <!-- Under each licence's name. %1$s is a list of what it covers, from the four plurals below: "2 libraries, 1 font and 1 sound". -->
+    <string name="licences_used_by">Used by %1$s</string>
+    <plurals name="licences_count_library">
+        <item quantity="one">%1$d library</item>
+        <item quantity="other">%1$d libraries</item>
+    </plurals>
+    <plurals name="licences_count_font">
+        <item quantity="one">%1$d font</item>
+        <item quantity="other">%1$d fonts</item>
+    </plurals>
+    <plurals name="licences_count_sound">
+        <item quantity="one">%1$d sound</item>
+        <item quantity="other">%1$d sounds</item>
+    </plurals>
+    <plurals name="licences_count_image">
+        <item quantity="one">%1$d image</item>
+        <item quantity="other">%1$d images</item>
+    </plurals>
 
     <!-- Main menu (ui/menu/MenuScreen.kt) -->
     <string name="menu_achievements">Achievements</string>

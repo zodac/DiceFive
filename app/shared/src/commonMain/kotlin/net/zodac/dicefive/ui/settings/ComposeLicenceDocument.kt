@@ -63,6 +63,7 @@ internal fun ComposeLicenceDocument(report: LicenseReport, scroll: LicenceScroll
             scroll.maxPosition = max
         }
     }
+    val labels = licenceLabels(report)
     val colors = MaterialTheme.colorScheme
     val typography = MaterialTheme.typography
     val links = TextLinkStyles(SpanStyle(color = colors.primary, textDecoration = TextDecoration.Underline))
@@ -71,10 +72,10 @@ internal fun ComposeLicenceDocument(report: LicenseReport, scroll: LicenceScroll
     // knows its exact length, which the scrollbar needs.
     Column(modifier = modifier.verticalScroll(scrollState), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         for (group in report.groups) {
-            LicenceCard(title = group.name, subtitle = group.usage) {
+            LicenceCard(title = group.name, subtitle = labels.usageOf(group)) {
                 val isExpanded = group.name in expanded
                 TextButton(onClick = { expanded = if (isExpanded) expanded - group.name else expanded + group.name }) {
-                    Text(text = stringResource(if (isExpanded) Res.string.licences_hide_text else Res.string.licences_show_text))
+                    Text(text = if (isExpanded) labels.hideText else labels.showText)
                 }
                 if (isExpanded) {
                     Text(text = linked(group.text, links), style = typography.bodySmall, color = colors.onSurfaceVariant)
@@ -88,7 +89,7 @@ internal fun ComposeLicenceDocument(report: LicenseReport, scroll: LicenceScroll
             }
         }
         if (report.notices.isNotEmpty()) {
-            LicenceCard(title = stringResource(Res.string.licences_notices_title), subtitle = stringResource(Res.string.licences_notices_subtitle)) {
+            LicenceCard(title = labels.noticesTitle, subtitle = labels.noticesSubtitle) {
                 for (notice in report.notices) {
                     Column(modifier = Modifier.padding(top = 8.dp)) {
                         Text(text = notice.library, style = typography.bodyMedium)
