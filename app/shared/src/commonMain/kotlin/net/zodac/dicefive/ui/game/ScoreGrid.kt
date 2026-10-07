@@ -81,6 +81,7 @@ import net.zodac.dicefive.resources.game_target_partial_hit_spoken
 import net.zodac.dicefive.resources.game_target_progress_spoken
 import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.common.localised
+import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.theme.GoldAccent
@@ -464,7 +465,7 @@ private val TILE_SCORE_GAP = 8.dp
 @Composable
 internal fun HitTarget.spokenName(): String {
     val anyPlace = stringResource(Res.string.game_target_any_place_spoken)
-    return stringResource(Res.string.game_target_name_spoken, joinClauses(places.map { it?.localised() ?: anyPlace }), points, exactPoints)
+    return pluralStringResource(Res.plurals.game_target_name_spoken, points, joinClauses(places.map { it?.localised() ?: anyPlace }), points, exactPoints)
 }
 
 /**
@@ -497,8 +498,8 @@ internal fun stackedSpokenState(scores: List<Int>, slotCount: Int, previewScore:
         previewScore?.let { stringResource(Res.string.game_slots_would_score_spoken, it) },
         when {
             stillOpen <= 0 -> null
-            previewScore != null -> stringResource(Res.string.game_slots_more_open_spoken, stillOpen)
-            else -> stringResource(Res.string.game_slots_open_spoken, stillOpen)
+            previewScore != null -> pluralStringResource(Res.plurals.game_slots_more_open_spoken, stillOpen, stillOpen)
+            else -> pluralStringResource(Res.plurals.game_slots_open_spoken, stillOpen, stillOpen)
         },
         bonusAmount.takeIf { it > 0 }?.let { stringResource(Res.string.game_slots_bonus_spoken, it) },
         scores.lastOrNull()?.takeIf { lastScored }?.let { stringResource(Res.string.game_slots_last_score_spoken, it) },

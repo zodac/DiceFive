@@ -62,8 +62,14 @@
     <string name="game_slots_scored_spoken">Scored %1$s</string>
     <string name="game_slots_would_score_spoken">would score %1$d</string>
     <!-- Slots still open after the one the dice would fill. -->
-    <string name="game_slots_more_open_spoken">%1$d more open</string>
-    <string name="game_slots_open_spoken">%1$d open</string>
+    <plurals name="game_slots_more_open_spoken">
+        <item quantity="one">%1$d more open</item>
+        <item quantity="other">%1$d more open</item>
+    </plurals>
+    <plurals name="game_slots_open_spoken">
+        <item quantity="one">%1$d open</item>
+        <item quantity="other">%1$d open</item>
+    </plurals>
     <string name="game_slots_bonus_spoken">plus %1$d bonus</string>
     <string name="game_slots_last_score_spoken">last turn's score %1$d</string>
 
@@ -351,21 +357,29 @@
     <!-- One unlocked style as the banner names it: %1$s is its name ("Frosted"), %2$s what it is ("dice", "mat"). -->
     <string name="achievements_styles_unlocked_named">'%1$s' %2$s</string>
     <!-- %1$d is how many achievements are earned, %2$s the style as named above. -->
-    <string name="achievements_styles_unlocked_one">Earned %1$d achievements: the %2$s style</string>
+    <string name="achievements_styles_unlocked_one">the %1$s style</string>
     <!-- %2$s is the two styles, joined into a list. -->
-    <string name="achievements_styles_unlocked_two">Earned %1$d achievements: %2$s</string>
-    <!-- Chosen by how many more styles there are than the two named. %2$s is the two named, %3$d the rest. -->
+    <!-- Chosen by how many achievements are earned (%1$d), which the text shows. -->
+    <plurals name="achievements_styles_unlocked_earned">
+        <item quantity="one">Earned %1$d achievement</item>
+        <item quantity="other">Earned %1$d achievements</item>
+    </plurals>
+    <!-- The banner's description: %1$s is the line above, %2$s the styles - the one style, the two styles, or the two and how many more. -->
+    <string name="achievements_styles_unlocked_with">%1$s: %2$s</string>
+    <!-- Chosen by how many more styles there are than the two named. %1$s is the two named, %2$d the rest. -->
     <plurals name="achievements_styles_unlocked_more">
-        <item quantity="one">Earned %1$d achievements: %2$s and %3$d more</item>
-        <item quantity="other">Earned %1$d achievements: %2$s and %3$d more</item>
+        <item quantity="one">%1$s and %2$d more</item>
+        <item quantity="other">%1$s and %2$d more</item>
     </plurals>
     <!-- One unlocked style as TalkBack says it, without the quote marks the banner draws round it. -->
     <string name="achievements_styles_unlocked_spoken_style">%1$s %2$s</string>
-    <!-- Chosen by how many styles were unlocked. %1$s is all of them, joined into a list, %2$d the achievements earned. -->
+    <!-- Chosen by how many styles were unlocked. %1$s is all of them, joined into a list. -->
     <plurals name="achievements_styles_unlocked_announcement">
-        <item quantity="one">Style unlocked: %1$s. Earned %2$d achievements</item>
-        <item quantity="other">Styles unlocked: %1$s. Earned %2$d achievements</item>
+        <item quantity="one">Style unlocked: %1$s</item>
+        <item quantity="other">Styles unlocked: %1$s</item>
     </plurals>
+    <!-- The announcement's two sentences: %1$s the one above, %2$s the achievements earned. -->
+    <string name="achievements_styles_unlocked_announce_join">%1$s. %2$s</string>
 
     <!-- What a locked style needs (ui/styles/StylesScreen.kt): the short tooltip, then the longer pop-up. Text in `backticks` is highlighted. -->
     <string name="styles_requirement_free">Always available</string>
@@ -544,9 +558,9 @@
     <string name="game_undo_cd">Undo</string>
     <!-- Title of the page that shows each player's final scorecard. -->
     <string name="game_review_title">Scorecards</string>
-    <!-- Drawn beside the dice cup: how many rolls are left ("x3"). -->
+    <!-- Drawn beside the dice cup: how many rolls are left ("x3"). The "x" is a multiplication sign: use the one the language writes ("×"), on the side it reads from - "×%1$d" or "%1$d×" - and the number comes in the language's own digits. -->
     <string name="game_cup_rolls_left">x%1$d</string>
-    <!-- The turn timer: seconds left ("Time left: 12s"). The "s" is the unit. -->
+    <!-- The turn timer: seconds left ("Time left: 12s"). Write the unit the way the language abbreviates seconds, with or without a space ("12 s", "12 с", "12秒") - or drop "Time left:" if it is too long for the one centred line. -->
     <string name="game_timer_left">Time left: %1$ds</string>
     <!-- Spoken once when the turn timer starts flashing. -->
     <plurals name="game_timer_running_out_cd">
@@ -589,7 +603,11 @@
     <!-- A Hit List target place that takes any number. -->
     <string name="game_target_any_place_spoken">any</string>
     <!-- What a Hit List target calls, read aloud: its places ("4, 1, 3, 2, any"), then its points and exact-hit points. -->
-    <string name="game_target_name_spoken">%1$s. %2$d points, %3$d exact</string>
+    <!-- Chosen by the points (%2$d). -->
+    <plurals name="game_target_name_spoken">
+        <item quantity="one">%1$s. %2$d point, %3$d exact</item>
+        <item quantity="other">%1$s. %2$d points, %3$d exact</item>
+    </plurals>
     <!-- Each die's state: held, not held, or chained by Unlucky Dice. -->
     <string name="game_die_held_spoken">Held</string>
     <string name="game_die_not_held_spoken">Not held</string>
@@ -651,7 +669,7 @@
     <string name="setup_timer_title">Turn Timer</string>
     <string name="setup_timer_description">A time limit for each whole turn</string>
     <string name="setup_timer_none">No timer</string>
-    <!-- A turn timer length: "30s". The "s" is seconds. -->
+    <!-- A turn timer length: "30s", "60s", "120s". Seconds, abbreviated as the language does ("30 s", "30 с", "30秒"). -->
     <string name="setup_timer_seconds">%1$ds</string>
     <string name="setup_rolls_title">Number of Rolls</string>
     <string name="setup_rolls_description">How many rolls each turn gets</string>
@@ -957,7 +975,10 @@
     <string name="stats_spoken_record">Played %1$d, won %2$d, lost %3$d.</string>
     <string name="stats_spoken_streaks">Win streak %1$d, best win streak %2$d.</string>
     <string name="stats_spoken_scores">Total score %1$s. Average score %2$s.</string>
-    <string name="stats_spoken_fives">%1$d 5x scored.</string>
+    <plurals name="stats_spoken_fives">
+        <item quantity="one">%1$d 5x scored.</item>
+        <item quantity="other">%1$d 5x scored.</item>
+    </plurals>
     <!-- Chosen by the number of solo games (%1$d). -->
     <plurals name="stats_spoken_solo">
         <item quantity="one">%1$d solo game played.</item>

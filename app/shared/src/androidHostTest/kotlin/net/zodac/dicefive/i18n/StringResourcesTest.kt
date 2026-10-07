@@ -35,6 +35,11 @@ class StringResourcesTest {
     }
 
     @Test
+    fun `every base plural has a one item as well as an other`() {
+        assertEquals(emptyList(), StringChecks.pluralsWithoutOne(locales.getValue("values")))
+    }
+
+    @Test
     fun `the banned-word check finds what it should`() {
         val found = StringChecks.bannedWords(
             mapOf(

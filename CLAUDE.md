@@ -77,8 +77,11 @@
 
 - **An achievement's title must fit on ONE line of the unlock banner, at 12sp or larger - never
   wrapped or shrunk further.** That caps it at `MAX_ACHIEVEMENT_TITLE_LENGTH` (38) characters
-  (`model/Achievement.kt`), which `AchievementTextTest` enforces. Every banner is the same size, so
-  a title that doesn't fit is shortened, not accommodated. A description gets exactly two lines.
+  (`model/Achievement.kt`) in English, which `AchievementTextTest` enforces. A translation may set its
+  own cap (`achievement_title_max_length` in its `strings.xml`: a character is not the same width in
+  every script), which the test then holds that language's titles to - and its banner is rendered to
+  check they fit. Every banner is the same size, so a title that doesn't fit is shortened, not
+  accommodated. A description gets exactly two lines.
 
 - After implementing a code change (a fix, feature, or refactor the user asked for), build a
   debug APK with `./gradlew assembleDebug` and send the resulting `.apk` from
