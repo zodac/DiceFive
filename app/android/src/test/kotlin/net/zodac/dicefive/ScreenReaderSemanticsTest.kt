@@ -116,9 +116,21 @@ class ScreenReaderSemanticsTest {
         assertTrue(spoken.contains("Total score 1,001. Average score 200."))
         assertTrue(spoken.contains("4 5x scored. 2 solo games played."))
 
+
         node.performSemanticsAction(SemanticsActions.OnLongClick)
         config[SemanticsActions.CustomActions].single().action()
         assertEquals(2, deleted)
+    }
+
+    @Test
+    fun `one solo game is said as game - not games`() {
+        compose.setContent { DiceFiveTheme { PlayerStatsCard(player = player.copy(soloGames = 1), onLongPress = {}) } }
+        compose.onNodeWithContentDescription("Ann", substring = true).performSemanticsAction(SemanticsActions.OnClick)
+        compose.waitForIdle()
+
+        val spoken = compose.onNodeWithContentDescription("Ann", substring = true).fetchSemanticsNode().config[SemanticsProperties.ContentDescription].single()
+        assertTrue(spoken, spoken.contains("1 solo game played."))
+        assertTrue(spoken, !spoken.contains("1 solo games"))
     }
 
     @Test

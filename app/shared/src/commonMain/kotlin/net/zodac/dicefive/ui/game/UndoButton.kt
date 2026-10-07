@@ -19,11 +19,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.game_undo_cd
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.theme.TileIconColor
 import net.zodac.dicefive.ui.theme.TileTealBorder
 import net.zodac.dicefive.ui.theme.TileTealBottom
 import net.zodac.dicefive.ui.theme.TileTealTop
-import org.jetbrains.compose.resources.stringResource
 
 /**
  * A dark, rounded, icon-only button with the standard Material "undo" glyph ([BoardButtonIcon]), named

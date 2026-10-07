@@ -33,10 +33,19 @@ class AchievementTextTest {
         assertEquals(Achievement.entries.size, titles.count { it.first == "values" })
     }
 
+    /** The longest a title may be in [locale]: its own `achievement_title_max_length`, else the base language's. */
+    private fun capFor(locale: String): Int =
+        (locales[locale]?.get("achievement_title_max_length") ?: locales.getValue("values").getValue("achievement_title_max_length")).toInt()
+
     @Test
-    fun `every title fits the banner's one line`() {
-        val tooLong = titles.filter { it.third.length > MAX_ACHIEVEMENT_TITLE_LENGTH }
-        assertTrue(tooLong.isEmpty(), "Titles over $MAX_ACHIEVEMENT_TITLE_LENGTH characters: ${tooLong.map { "${it.first} ${it.third} (${it.third.length})" }}")
+    fun `the base language's cap is the one the app is built around`() {
+        assertEquals(MAX_ACHIEVEMENT_TITLE_LENGTH, capFor("values"))
+    }
+
+    @Test
+    fun `every title fits the banner's one line in its own language`() {
+        val tooLong = titles.filter { it.third.length > capFor(it.first) }
+        assertTrue(tooLong.isEmpty(), "Titles over their language's cap: ${tooLong.map { "${it.first} ${it.third} (${it.third.length} > ${capFor(it.first)})" }}")
     }
 
     @Test

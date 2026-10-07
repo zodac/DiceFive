@@ -54,8 +54,8 @@ import net.zodac.dicefive.resources.about_title
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.parseInlineMarkup
+import net.zodac.dicefive.ui.common.stringResource
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 
 private const val GITHUB_REPO_URL = "https://github.com/zodac/DiceFive"
 private const val DICE_ME_ONLINE_URL = "https://play.google.com/store/apps/details?id=com.giu.diceme"

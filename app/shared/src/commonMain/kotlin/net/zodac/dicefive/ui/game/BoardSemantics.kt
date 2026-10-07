@@ -31,7 +31,7 @@ import net.zodac.dicefive.resources.score_two_pair
 import net.zodac.dicefive.resources.score_twos
 import net.zodac.dicefive.resources.score_yellows
 import net.zodac.dicefive.resources.score_yellows_irish
-import org.jetbrains.compose.resources.stringResource
+import net.zodac.dicefive.ui.common.stringResource
 
 // What a screen reader says for the board's drawn art - the dice, the score tiles - which has no
 // text of its own to read. Names match what the Rules pages call each category.

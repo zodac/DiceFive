@@ -49,7 +49,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_back_cd
-import org.jetbrains.compose.resources.stringResource
 
 /** How long a page's content takes to fade in once it's opened - see [ScreenScaffold]. */
 const val PAGE_CONTENT_FADE_IN_MILLIS = 100

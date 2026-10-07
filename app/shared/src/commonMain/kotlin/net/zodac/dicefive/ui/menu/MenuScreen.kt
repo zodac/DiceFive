@@ -37,10 +37,10 @@ import net.zodac.dicefive.resources.menu_styles
 import net.zodac.dicefive.ui.common.AppLogo
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.PageColumn
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
-import org.jetbrains.compose.resources.stringResource
 
 /**
  * Taller than a default M3 button (40dp), which reads as a form control rather than a menu

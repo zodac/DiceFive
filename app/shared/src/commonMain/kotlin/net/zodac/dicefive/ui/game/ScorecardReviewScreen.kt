@@ -13,7 +13,7 @@ import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.game_review_title
 import net.zodac.dicefive.ui.common.BackHandler
 import net.zodac.dicefive.ui.common.ScreenScaffold
-import org.jetbrains.compose.resources.stringResource
+import net.zodac.dicefive.ui.common.stringResource
 
 /**
  * Read-only view of every player's finished scorecard, reached from [GameOverScreen]'s "Review

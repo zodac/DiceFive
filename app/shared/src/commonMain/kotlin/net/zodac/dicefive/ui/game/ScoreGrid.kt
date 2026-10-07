@@ -80,10 +80,11 @@ import net.zodac.dicefive.resources.game_target_name_spoken
 import net.zodac.dicefive.resources.game_target_partial_hit_spoken
 import net.zodac.dicefive.resources.game_target_progress_spoken
 import net.zodac.dicefive.ui.common.joinClauses
+import net.zodac.dicefive.ui.common.localised
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
-import org.jetbrains.compose.resources.stringResource
 
 /** Standard's grid: six rows, upper section beside lower. More than this and the tiles go compact. */
 internal const val REGULAR_GRID_ROWS = 6
@@ -283,7 +284,7 @@ internal fun CategoryCell(
         slotCount > 1 -> stackedSpokenState(scores, slotCount, previewScore, if (fiveOfAKindTileBonusPreview || fiveOfAKindBonusCount > 0) pendingBonusAmount else 0, lastScored != null)
         filled != null -> joinClauses(
             listOfNotNull(
-                stringResource(Res.string.game_slots_scored_spoken, filled.toString()),
+                stringResource(Res.string.game_slots_scored_spoken, filled.localised()),
                 stringResource(Res.string.game_slots_bonus_spoken, pendingBonusAmount).takeIf { pendingBonusAmount > 0 },
                 stringResource(Res.string.game_box_last_turn_spoken).takeIf { lastScored != null },
             ),
@@ -369,7 +370,7 @@ internal fun CategoryCell(
         } else if (!wide && (fiveOfAKindBonusCount > 0 || fiveOfAKindTileBonusPreview)) {
             Column(modifier = scoreModifier) {
                 Text(
-                    text = (filled ?: previewScore ?: 0).toString(),
+                    text = (filled ?: previewScore ?: 0).localised(),
                     color = when {
                         isGoodChoice -> GoldAccent
                         lastScored != null -> lastScored.color
@@ -384,7 +385,7 @@ internal fun CategoryCell(
                 Text(
                     // The total bonus on the 5x tile, not one line per extra 5x - ten of
                     // them is still just one "+900" line, not ten "+100"s.
-                    text = "+$pendingBonusAmount",
+                    text = "+${pendingBonusAmount.localised()}",
                     color = GoldAccent,
                     fontWeight = FontWeight.Bold,
                     // Small: a row has little vertical room to spare for a second line.
@@ -402,7 +403,7 @@ internal fun CategoryCell(
             // plain) on that one frame made it the heaviest of the roll; now it's just a swap of
             // which is visible. The number is laid out again only when it changes, as the dice
             // settle. Screen readers hear the cell's stateDescription, never these.
-            val shown = (filled ?: previewScore)?.let { ShownScore(it.toString(), gold = isGoodChoice, scored = filled != null, accent = lastScored?.color) }
+            val shown = (filled ?: previewScore)?.let { ShownScore(it.localised(), gold = isGoodChoice, scored = filled != null, accent = lastScored?.color) }
             val lastShown = remember { arrayOfNulls<ShownScore>(1) }
             if (shown != null) lastShown[0] = shown
             Box(modifier = scoreModifier, contentAlignment = Alignment.CenterStart) {
@@ -463,7 +464,7 @@ private val TILE_SCORE_GAP = 8.dp
 @Composable
 internal fun HitTarget.spokenName(): String {
     val anyPlace = stringResource(Res.string.game_target_any_place_spoken)
-    return stringResource(Res.string.game_target_name_spoken, joinClauses(places.map { it?.toString() ?: anyPlace }), points, exactPoints)
+    return stringResource(Res.string.game_target_name_spoken, joinClauses(places.map { it?.localised() ?: anyPlace }), points, exactPoints)
 }
 
 /**
@@ -564,15 +565,15 @@ private fun StackedScores(
                 val filled = scores.getOrNull(slot)
                 val isPreviewSlot = slot == scores.size
                 val shown = when {
-                    filled != null -> ShownScore(filled.toString(), gold = false, scored = true, accent = lastScoredColor?.takeIf { slot == scores.lastIndex })
-                    isPreviewSlot && previewScore != null -> ShownScore(previewScore.toString(), gold = previewGold, scored = false, accent = null)
+                    filled != null -> ShownScore(filled.localised(), gold = false, scored = true, accent = lastScoredColor?.takeIf { slot == scores.lastIndex })
+                    isPreviewSlot && previewScore != null -> ShownScore(previewScore.localised(), gold = previewGold, scored = false, accent = null)
                     else -> null
                 }
                 SlotScore(shown = shown, style = style)
             }
             if (bonusAmount > 0) {
                 Text(
-                    text = "+$bonusAmount",
+                    text = "+${bonusAmount.localised()}",
                     color = GoldAccent,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.labelSmall,

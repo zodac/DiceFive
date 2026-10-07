@@ -87,10 +87,10 @@ import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.formatTimestamp
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.style.styleRewards
 import net.zodac.dicefive.ui.game.style.unlocksStyle
 import net.zodac.dicefive.ui.theme.GoldAccent
-import org.jetbrains.compose.resources.stringResource
 
 // contentType tags, so hiddenUnderPinnedHeader can tell a category header from a row by the list's
 // own layout info rather than by parsing keys.

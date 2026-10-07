@@ -38,8 +38,8 @@ import net.zodac.dicefive.resources.setup_colour_cd
 import net.zodac.dicefive.resources.setup_colour_choose_action
 import net.zodac.dicefive.resources.setup_colour_select_action
 import net.zodac.dicefive.resources.setup_colour_swaps_cd
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.theme.color
-import org.jetbrains.compose.resources.stringResource
 
 /** The coloured dot on a player's row and in the pop-up: [SWATCH_SIZE] drawn inside a 48dp touch target. */
 private val SWATCH_SIZE = 28.dp

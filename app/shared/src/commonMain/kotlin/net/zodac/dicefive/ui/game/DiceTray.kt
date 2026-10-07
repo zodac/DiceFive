@@ -73,6 +73,7 @@ import net.zodac.dicefive.resources.game_slot_held_spoken
 import net.zodac.dicefive.resources.game_slot_spoken
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.style.DiceMat
 import net.zodac.dicefive.ui.game.style.DiceStyle
 import net.zodac.dicefive.ui.game.style.DieMotion
@@ -86,7 +87,6 @@ import net.zodac.dicefive.ui.game.style.PickUpPath
 import net.zodac.dicefive.ui.game.style.TossPath
 import net.zodac.dicefive.ui.game.style.TossPose
 import net.zodac.dicefive.ui.game.style.palette
-import org.jetbrains.compose.resources.stringResource
 
 private data class ScatterOffset(val xOffset: Dp, val yOffset: Dp, val rotationDegrees: Float)
 

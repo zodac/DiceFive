@@ -59,7 +59,7 @@ import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.FooterPill
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
-import org.jetbrains.compose.resources.stringResource
+import net.zodac.dicefive.ui.common.stringResource
 
 /** A setting's label: bodyLarge on one line when it fits, stepped down to [MIN_READABLE_FONT_SIZE] on a
  * narrow screen, and wrapped to a second line (the row grows) rather than shrunk further. */

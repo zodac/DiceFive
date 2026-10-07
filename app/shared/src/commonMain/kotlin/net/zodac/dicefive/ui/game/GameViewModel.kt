@@ -37,13 +37,13 @@ import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.AchievementUpdate
 import net.zodac.dicefive.game.AiNameGenerator
 import net.zodac.dicefive.game.AiTurnPlayer
-import net.zodac.dicefive.game.StandardPerfectPlayTable
 import net.zodac.dicefive.game.DiceScoring
 import net.zodac.dicefive.game.GameAchievementContext
 import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.game.GameStartContext
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.game.ScoreCalculator
+import net.zodac.dicefive.game.StandardPerfectPlayTable
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.game.toTieBreakStats
 import net.zodac.dicefive.model.Achievement
@@ -55,21 +55,22 @@ import net.zodac.dicefive.model.PlayerColour
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
+import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
-import net.zodac.dicefive.model.RollModifiers
-import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.model.TurnTimer
+import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.model.hasGrownSunflower
 import net.zodac.dicefive.model.isLuckOfTheIrish
+import net.zodac.dicefive.model.takeNameWidth
 import net.zodac.dicefive.ui.achievements.announce
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.GameVisualTheme
+import net.zodac.dicefive.ui.game.style.ScoreFrames
 import net.zodac.dicefive.ui.game.style.StyleCatalog
 import net.zodac.dicefive.ui.game.style.TableArt
-import net.zodac.dicefive.ui.game.style.ScoreFrames
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 
 /**
@@ -113,7 +114,7 @@ data class GameSetupState(
 
         /**
          * The longest name that fits its own tab in the in-game header without being ellipsised -
-         * not a database or gameplay limit, a layout one. Every seat shares that one row, so the
+         * not a database or gameplay limit, a layout one. In characters' worth of width (see [nameWidth]): full-width scripts count double. Every seat shares that one row, so the
          * more of them there are the less width (and, for a CPU seat, the less width left over
          * once its chip icon takes its own share) each tab - and so each name - gets.
          */
@@ -445,7 +446,7 @@ class GameViewModel(
                     // A name saved before defaults were left blank may be the English default itself: that's not something
                     // the player typed, so it's put back to blank to be shown in the current language.
                     val savedName = repository.playerNameFor(slot.slot).first()?.takeUnless { it == "Player ${slot.slot}" } // i18n: not translated - the English default older versions saved
-                    var updated = slot.copy(name = (savedName ?: slot.name).take(cap))
+                    var updated = slot.copy(name = (savedName ?: slot.name).takeNameWidth(cap))
                     // Slot 1 is always Human, so its type and difficulty are never saved/restored.
                     if (slot.slot >= 2) {
                         repository.playerTypeFor(slot.slot).first()?.let { updated = updated.copy(type = it) }
@@ -482,7 +483,7 @@ class GameViewModel(
         // including ones for currently-inactive seats beyond the new count, which keeps them
         // already-valid if the count is raised back before the game starts.
         val cap = GameSetupState.maxPlayerNameLength(newCount)
-        _setup.update { state -> state.copy(playerSlots = state.playerSlots.map { it.copy(name = it.name.take(cap)) }) }
+        _setup.update { state -> state.copy(playerSlots = state.playerSlots.map { it.copy(name = it.name.takeNameWidth(cap)) }) }
     }
 
     fun setPlayerType(slot: Int, type: PlayerType) {
@@ -498,7 +499,7 @@ class GameViewModel(
      */
     fun setPlayerName(slot: Int, name: String) {
         val cap = GameSetupState.maxPlayerNameLength(_setup.value.playerCount)
-        updateSlot(slot) { it.copy(name = name.take(cap)) }
+        updateSlot(slot) { it.copy(name = name.takeNameWidth(cap)) }
     }
 
     /**

@@ -64,10 +64,10 @@ import net.zodac.dicefive.resources.licences_used_by
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.VerticalScrollbar
+import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.spokenList
+import net.zodac.dicefive.ui.common.stringResource
 import org.jetbrains.compose.resources.PluralStringResource
-import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 
 /**
  * What a licensed item is, so a licence's heading can say "Used by 4 sounds" rather than calling a

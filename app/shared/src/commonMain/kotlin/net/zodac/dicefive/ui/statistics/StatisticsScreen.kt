@@ -65,9 +65,10 @@ import net.zodac.dicefive.resources.stats_show_action
 import net.zodac.dicefive.resources.stats_solo
 import net.zodac.dicefive.resources.stats_spoken_best
 import net.zodac.dicefive.resources.stats_spoken_first_played
-import net.zodac.dicefive.resources.stats_spoken_fives_solo
+import net.zodac.dicefive.resources.stats_spoken_fives
 import net.zodac.dicefive.resources.stats_spoken_record
 import net.zodac.dicefive.resources.stats_spoken_scores
+import net.zodac.dicefive.resources.stats_spoken_solo
 import net.zodac.dicefive.resources.stats_spoken_streaks
 import net.zodac.dicefive.resources.stats_streak
 import net.zodac.dicefive.resources.stats_title
@@ -80,7 +81,9 @@ import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.formatTimestamp
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.joinSentences
-import org.jetbrains.compose.resources.stringResource
+import net.zodac.dicefive.ui.common.localised
+import net.zodac.dicefive.ui.common.pluralStringResource
+import net.zodac.dicefive.ui.common.stringResource
 
 @Composable
 fun StatisticsScreen(
@@ -160,7 +163,8 @@ fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
         sentences += stringResource(Res.string.stats_spoken_record, player.gamesPlayed, player.gamesWon, player.gamesLost)
         sentences += stringResource(Res.string.stats_spoken_streaks, player.currentWinStreak, player.bestWinStreak)
         sentences += stringResource(Res.string.stats_spoken_scores, player.totalScore.grouped(), player.averageScore.grouped())
-        sentences += stringResource(Res.string.stats_spoken_fives_solo, player.fiveOfAKindCount, player.soloGames)
+        sentences += stringResource(Res.string.stats_spoken_fives, player.fiveOfAKindCount)
+        sentences += pluralStringResource(Res.plurals.stats_spoken_solo, player.soloGames, player.soloGames)
     }
     val spoken = joinSentences(sentences)
     val toggleLabel = stringResource(if (expanded) Res.string.stats_hide_action else Res.string.stats_show_action)
@@ -244,12 +248,12 @@ fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
                 // FlowRows: at a large font the cells no longer fit across, and the last ones drop to a
                 // second line rather than overlapping. At the normal size each is one row.
                 StatRow {
-                    StatCell(label = stringResource(Res.string.stats_played), value = player.gamesPlayed.toString())
-                    StatCell(label = stringResource(Res.string.stats_won), value = player.gamesWon.toString())
-                    StatCell(label = stringResource(Res.string.stats_lost), value = player.gamesLost.toString())
-                    StatCell(label = stringResource(Res.string.stats_streak), value = player.currentWinStreak.toString())
+                    StatCell(label = stringResource(Res.string.stats_played), value = player.gamesPlayed.localised())
+                    StatCell(label = stringResource(Res.string.stats_won), value = player.gamesWon.localised())
+                    StatCell(label = stringResource(Res.string.stats_lost), value = player.gamesLost.localised())
+                    StatCell(label = stringResource(Res.string.stats_streak), value = player.currentWinStreak.localised())
                     // End-aligned rather than centred, so its last digit sits on the card's edge.
-                    StatCell(label = stringResource(Res.string.stats_best), value = player.bestWinStreak.toString(), alignment = Alignment.End)
+                    StatCell(label = stringResource(Res.string.stats_best), value = player.bestWinStreak.localised(), alignment = Alignment.End)
                 }
 
                 StatRow {

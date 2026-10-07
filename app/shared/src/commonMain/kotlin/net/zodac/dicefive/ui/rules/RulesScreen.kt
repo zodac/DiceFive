@@ -255,10 +255,13 @@ import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.common.joinSentences
+import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.logoRollPose
 import net.zodac.dicefive.ui.common.parseInlineMarkup
 import net.zodac.dicefive.ui.common.playLogoRoll
+import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.spokenList
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 import net.zodac.dicefive.ui.game.CategoryTile
 import net.zodac.dicefive.ui.game.LockedChains
@@ -268,8 +271,6 @@ import net.zodac.dicefive.ui.game.style.IvoryDiceStyle
 import net.zodac.dicefive.ui.game.style.palette
 import net.zodac.dicefive.ui.game.targetProgress
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 
 /** One page of [RulesScreen]. [title] heads the page itself; [tabLabel] is the shorter name its tab
  * carries, so the tab row shows more than one or two tabs at a time. [blocks] render in order, each
@@ -942,7 +943,7 @@ private const val ANY_PLACE_CORNER_FRACTION = 0.2f
 private fun RulesDice.spokenDescription(): String {
     val anyPlace = stringResource(Res.string.rules_example_any_place_spoken)
     @Composable
-    fun ExampleDie.spoken() = colour?.let { stringResource(Res.string.rules_example_coloured_die_spoken, it.name.lowercase(), value) } ?: value.toString()
+    fun ExampleDie.spoken() = colour?.let { stringResource(Res.string.rules_example_coloured_die_spoken, it.name.lowercase(), value) } ?: value.localised()
     if (isTarget) {
         val places = joinClauses(dice.map { if (it.anyPlace) anyPlace else it.spoken() })
         return joinSentences(

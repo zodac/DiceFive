@@ -13,7 +13,7 @@ import net.zodac.dicefive.resources.game_leave_dismiss
 import net.zodac.dicefive.resources.game_leave_message
 import net.zodac.dicefive.resources.game_leave_title
 import net.zodac.dicefive.ui.common.DiceFiveDialog
-import org.jetbrains.compose.resources.stringResource
+import net.zodac.dicefive.ui.common.stringResource
 
 /**
  * The one "Leave game?" confirmation, whichever way the player is leaving - the system back
