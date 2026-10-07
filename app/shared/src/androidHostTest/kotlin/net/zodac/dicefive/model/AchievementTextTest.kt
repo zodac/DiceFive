@@ -3,6 +3,7 @@ package net.zodac.dicefive.model
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import net.zodac.dicefive.i18n.StringChecks
 import net.zodac.dicefive.i18n.StringResourceFiles
 import net.zodac.dicefive.ui.common.isInSoraFont
 
@@ -62,7 +63,7 @@ class AchievementTextTest {
     @Test
     fun `every title is in the brand font's character set`() {
         // The banner sets its title in Sora, which only holds ASCII and Latin-1 - anything else would draw in a second face.
-        val outside = titles.filterNot { it.third.all { c -> c.isInSoraFont() } }
+        val outside = titles.filter { it.first !in StringChecks.localesOutsideSora }.filterNot { it.third.all { c -> c.isInSoraFont() } }
         assertTrue(outside.isEmpty(), "Titles Sora can't draw: ${outside.map { "${it.first} ${it.third}" }}")
     }
 

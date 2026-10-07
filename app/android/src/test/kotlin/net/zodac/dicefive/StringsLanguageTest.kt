@@ -63,12 +63,6 @@ class StringsLanguageTest {
     }
 
     @Test
-    @Config(qualifiers = "ar")
-    fun `an Arabic phone lays the English app out left to right`() {
-        assertEquals(LayoutDirection.Ltr, layoutDirection())
-    }
-
-    @Test
     @Config(qualifiers = "fa")
     fun `a Persian phone lays the English app out left to right`() {
         assertEquals(LayoutDirection.Ltr, layoutDirection())
@@ -81,8 +75,8 @@ class StringsLanguageTest {
     }
 
     @Test
-    @Config(qualifiers = "ar-w360dp-h800dp")
-    fun `on an Arabic phone the back arrow is on the left`() {
+    @Config(qualifiers = "fa-w360dp-h800dp")
+    fun `on a Persian phone the back arrow is on the left`() {
         val viewModel = GameViewModel()
         compose.setContent { DiceFiveTheme { GameSetupScreen(viewModel = viewModel, onStartGame = {}, onBack = {}) } }
         compose.waitForIdle()
@@ -101,8 +95,8 @@ class StringsLanguageTest {
     }
 
     @Test
-    @Config(qualifiers = "ar")
-    fun `on an Arabic phone the English date has an English month`() {
+    @Config(qualifiers = "fa")
+    fun `on a Persian phone the English date has an English month`() {
         val spoken = openedCard(player)
         assertTrue(spoken, Regex("""First played [A-Z][a-z]{2,3} \d\d, \d{4} \d\d:\d\d\.""").containsMatchIn(spoken))
     }

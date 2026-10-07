@@ -3,6 +3,12 @@ package net.zodac.dicefive.i18n
 /** The rules a translation file has to keep to, as functions over parsed entries so they can be tested on hand-made input. */
 internal object StringChecks {
 
+    /**
+     * Locale folders in a script the brand font (Sora, Latin-1 only) doesn't hold at all. Their titles and mode names are drawn in the
+     * system font by design, so the Sora character-set guards skip them; every other locale is held to Latin-1.
+     */
+    val localesOutsideSora = setOf("values-ar")
+
     private val argument = Regex("""%\d+\$[sd]""")
 
     /** Plural entries are keyed `name[quantity]`. */
