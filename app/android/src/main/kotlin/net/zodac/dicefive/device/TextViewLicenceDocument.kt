@@ -40,16 +40,16 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.viewinterop.AndroidView
 import java.util.WeakHashMap
-import net.zodac.dicefive.R
+import net.zodac.dicefive.ui.settings.LicenceLabels
 import net.zodac.dicefive.ui.settings.LicenceScroll
 import net.zodac.dicefive.ui.settings.LicenseReport
 import net.zodac.dicefive.ui.settings.LocalSelectionClearer
 import net.zodac.dicefive.ui.settings.SelectionClearer
 import net.zodac.dicefive.ui.settings.URL_TAG
+import net.zodac.dicefive.ui.settings.licenceLabels
 import net.zodac.dicefive.ui.settings.linkifyUrls
 
 /**
@@ -104,14 +104,6 @@ internal class LicenceCard(val key: String, val text: SpannableStringBuilder)
 
 internal const val NOTICES_KEY = "Notices"
 
-/** The words this list shows, resolved from Android's own string resources (the list is built from views, which can't reach the shared Compose ones). */
-internal class LicenceLabels(
-    val showText: String,
-    val hideText: String,
-    val noticesTitle: String,
-    val noticesSubtitle: String,
-)
-
 /**
  * The licence report as one piece of styled text per card: one card per licence - its heading,
  * "Show licence text" toggle, (when expanded) the full text, and every item under it - then one for
@@ -161,7 +153,7 @@ internal fun buildLicenceCards(
     }
 
     for (group in report.groups) {
-        card(group.name, group.name, group.usage) {
+        card(group.name, group.name, labels.usageOf(group)) {
             val isExpanded = group.name in expanded
             appendStyled(
                 if (isExpanded) labels.hideText else labels.showText,
@@ -235,13 +227,8 @@ internal fun TextViewLicenceDocument(report: LicenseReport, scroll: LicenceScrol
         headingScale = typography.titleMedium.fontSize.value / typography.bodyMedium.fontSize.value,
         smallScale = typography.bodySmall.fontSize.value / typography.bodyMedium.fontSize.value,
     )
-    val labels = LicenceLabels(
-        showText = stringResource(R.string.licences_show_text),
-        hideText = stringResource(R.string.licences_hide_text),
-        noticesTitle = stringResource(R.string.licences_notices_title),
-        noticesSubtitle = stringResource(R.string.licences_notices_subtitle),
-    )
-    val cards = remember(report, expanded, style, labels.showText, labels.hideText) {
+    val labels = licenceLabels(report)
+    val cards = remember(report, expanded, style, labels) {
         buildLicenceCards(report, expanded.toSet(), style, labels) { name ->
             expanded = if (name in expanded) expanded - name else expanded + name
         }
@@ -321,6 +308,7 @@ internal fun TextViewLicenceDocument(report: LicenseReport, scroll: LicenceScrol
                 view.setTextSize(TypedValue.COMPLEX_UNIT_SP, bodySize)
                 view.setLineSpacing(2f * density, 1f)
                 view.tintSelection(accent)
+                view.labels = labels
             }
             if (changed) {
                 // Setting new text on a selectable TextView moves its cursor to 0 and scrolls that into
@@ -412,6 +400,9 @@ private class ToggleSpan(private val color: Int, private val onToggle: () -> Uni
 internal class LinkTextView(context: Context) : TextView(context) {
     var onTap: (MotionEvent) -> Boolean = { false }
 
+    /** The words of the long-press menu and its confirmation; set with the card's text. */
+    var labels: LicenceLabels? = null
+
     /** Where the current press went down - a long click itself carries no position. */
     private var downX = 0f
     private var downY = 0f
@@ -464,17 +455,18 @@ internal class LinkTextView(context: Context) : TextView(context) {
 
     override fun onCreateContextMenu(menu: ContextMenu) {
         val (url, label) = menuLink ?: return super.onCreateContextMenu(menu)
+        val labels = labels ?: return super.onCreateContextMenu(menu)
         menuLink = null
         menu.setHeaderTitle(url)
-        menu.add(Menu.NONE, COPY_LINK, Menu.NONE, context.getString(R.string.licences_copy_link)).setOnMenuItemClickListener { copy(context.getString(R.string.licences_link), url) }
-        menu.add(Menu.NONE, COPY_TEXT, Menu.NONE, context.getString(R.string.licences_copy_text)).setOnMenuItemClickListener { copy(context.getString(R.string.licences_text), label) }
+        menu.add(Menu.NONE, COPY_LINK, Menu.NONE, labels.copyLink).setOnMenuItemClickListener { copy(labels.linkClip, labels.linkCopied, url) }
+        menu.add(Menu.NONE, COPY_TEXT, Menu.NONE, labels.copyText).setOnMenuItemClickListener { copy(labels.textClip, labels.textCopied, label) }
     }
 
-    private fun copy(what: String, value: String): Boolean {
-        context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText(what, value))
+    private fun copy(clipLabel: String, confirmation: String, value: String): Boolean {
+        context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText(clipLabel, value))
         // Android 13+ confirms a copy itself; before that, nothing would say it worked.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            Toast.makeText(context, context.getString(R.string.licences_copied, what), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, confirmation, Toast.LENGTH_SHORT).show()
         }
         return true
     }

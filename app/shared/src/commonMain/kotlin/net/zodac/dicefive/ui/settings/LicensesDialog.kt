@@ -44,23 +44,42 @@ import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.licences_close_cd
+import net.zodac.dicefive.resources.licences_copy_link
+import net.zodac.dicefive.resources.licences_copy_text
+import net.zodac.dicefive.resources.licences_count_font
+import net.zodac.dicefive.resources.licences_count_image
+import net.zodac.dicefive.resources.licences_count_library
+import net.zodac.dicefive.resources.licences_count_sound
+import net.zodac.dicefive.resources.licences_hide_text
 import net.zodac.dicefive.resources.licences_intro
+import net.zodac.dicefive.resources.licences_link
+import net.zodac.dicefive.resources.licences_link_copied
+import net.zodac.dicefive.resources.licences_notices_subtitle
+import net.zodac.dicefive.resources.licences_notices_title
+import net.zodac.dicefive.resources.licences_show_text
+import net.zodac.dicefive.resources.licences_text
+import net.zodac.dicefive.resources.licences_text_copied
 import net.zodac.dicefive.resources.licences_title
+import net.zodac.dicefive.resources.licences_used_by
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.VerticalScrollbar
+import net.zodac.dicefive.ui.common.spokenList
+import org.jetbrains.compose.resources.PluralStringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
  * What a licensed item is, so a licence's heading can say "Used by 4 sounds" rather than calling a
  * recording a library. Everything the plugin discovers from Gradle is a [LIBRARY]; a hand-written
- * app/licensing/libraries/ entry for an asset says which kind it is in its `tag` field.
+ * app/licensing/libraries/ entry for an asset says which kind it is in its `tag` field. [count] is the
+ * kind's name with a number in front, in the singular or plural the number needs.
  */
-enum class ComponentKind(val tag: String?, val singular: String, val plural: String) {
-    LIBRARY(tag = null, singular = "library", plural = "libraries"),
-    FONT(tag = "font", singular = "font", plural = "fonts"),
-    SOUND(tag = "sound", singular = "sound", plural = "sounds"),
-    IMAGE(tag = "image", singular = "image", plural = "images"),
+enum class ComponentKind(val tag: String?, val count: PluralStringResource) {
+    LIBRARY(tag = null, count = Res.plurals.licences_count_library),
+    FONT(tag = "font", count = Res.plurals.licences_count_font),
+    SOUND(tag = "sound", count = Res.plurals.licences_count_sound),
+    IMAGE(tag = "image", count = Res.plurals.licences_count_image),
     ;
 
     companion object {
@@ -81,21 +100,61 @@ data class LicensedComponent(
 /** One licence, its full text shown once, and every item the app ships under it. */
 data class LicenseGroup(val name: String, val text: String, val components: List<LicensedComponent>) {
     /**
-     * "Used by 84 libraries", "Used by 1 library and 1 font", "Used by 2 libraries, 1 font and
-     * 1 sound" - one licence can cover any mix of kinds; each is counted, most common first.
-     *
-     * i18n: not translated, by decision (.claude/I18N.md, Step 3). The Android licence list is built from
-     * Android views, which can't reach the string resources, and this one rarely-seen line isn't worth
-     * a new platform interface. A language that wants it needs that decision revisited.
+     * How many items of each kind this licence covers, most common first - "Used by 84 libraries", "Used by 1
+     * library and 1 font", "Used by 2 libraries, 1 font and 1 sound" once [LicenceLabels] has put it into words.
      */
-    val usage: String
-        get() {
-            val counts = components.groupingBy { it.kind }.eachCount().entries
-                .sortedWith(compareByDescending<Map.Entry<ComponentKind, Int>> { it.value }.thenBy { it.key.ordinal })
-                .map { (kind, count) -> "$count ${if (count == 1) kind.singular else kind.plural}" }
-            val list = if (counts.size <= 1) counts.joinToString() else counts.dropLast(1).joinToString() + " and " + counts.last()
-            return "Used by $list"
-        }
+    val kindCounts: List<Pair<ComponentKind, Int>>
+        get() = components.groupingBy { it.kind }.eachCount().entries
+            .sortedWith(compareByDescending<Map.Entry<ComponentKind, Int>> { it.value }.thenBy { it.key.ordinal })
+            .map { it.key to it.value }
+}
+
+/**
+ * Every word a licence list shows besides the licences themselves, resolved from the shared string
+ * resources. The Android list is built from views, which can't reach those resources, so it gets its
+ * words through this instead - one set of strings for both lists, and for a translation.
+ * [usageOf] is each licence's "Used by 2 libraries" line.
+ */
+data class LicenceLabels(
+    val showText: String,
+    val hideText: String,
+    val noticesTitle: String,
+    val noticesSubtitle: String,
+    val copyLink: String,
+    val copyText: String,
+    /** What the clipboard calls a copied link, and a copied piece of text. */
+    val linkClip: String,
+    val textClip: String,
+    /** The confirmation on Android 12 and older, which don't show their own. */
+    val linkCopied: String,
+    val textCopied: String,
+    private val usage: Map<String, String>,
+) {
+    fun usageOf(group: LicenseGroup): String = usage.getValue(group.name)
+}
+
+/** The words for a licence list showing [report]. */
+@Composable
+fun licenceLabels(report: LicenseReport): LicenceLabels {
+    val usage = report.groups.associate { group ->
+        group.name to stringResource(
+            Res.string.licences_used_by,
+            spokenList(group.kindCounts.map { (kind, count) -> pluralStringResource(kind.count, count, count) }),
+        )
+    }
+    return LicenceLabels(
+        showText = stringResource(Res.string.licences_show_text),
+        hideText = stringResource(Res.string.licences_hide_text),
+        noticesTitle = stringResource(Res.string.licences_notices_title),
+        noticesSubtitle = stringResource(Res.string.licences_notices_subtitle),
+        copyLink = stringResource(Res.string.licences_copy_link),
+        copyText = stringResource(Res.string.licences_copy_text),
+        linkClip = stringResource(Res.string.licences_link),
+        textClip = stringResource(Res.string.licences_text),
+        linkCopied = stringResource(Res.string.licences_link_copied),
+        textCopied = stringResource(Res.string.licences_text_copied),
+        usage = usage,
+    )
 }
 
 /** A dependency's Apache-2.0 NOTICE file, which must be passed on alongside the licence itself. */

@@ -51,10 +51,10 @@ class LicenseReportTest {
     }
 
     @Test
-    fun `usage names each kind of item - not everything as a library`() {
-        assertEquals("Used by 2 libraries", report.groups[0].usage)
-        assertEquals("Used by 1 library and 1 font", report.groups[1].usage)
-        assertEquals("Used by 2 sounds", report.groups[2].usage)
+    fun `a licence counts each kind of item - not everything as a library`() {
+        assertEquals(listOf(ComponentKind.LIBRARY to 2), report.groups[0].kindCounts)
+        assertEquals(listOf(ComponentKind.LIBRARY to 1, ComponentKind.FONT to 1), report.groups[1].kindCounts)
+        assertEquals(listOf(ComponentKind.SOUND to 2), report.groups[2].kindCounts)
     }
 
     @Test
@@ -77,7 +77,10 @@ class LicenseReportTest {
 
         val group = mixed.groups.single()
         assertEquals(5, group.components.size)
-        assertEquals("Used by 2 libraries, 1 font, 1 sound and 1 image", group.usage)
+        assertEquals(
+            listOf(ComponentKind.LIBRARY to 2, ComponentKind.FONT to 1, ComponentKind.SOUND to 1, ComponentKind.IMAGE to 1),
+            group.kindCounts,
+        )
     }
 
     @Test
