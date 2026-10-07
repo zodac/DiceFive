@@ -48,10 +48,10 @@ import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_tied_rank
 import net.zodac.dicefive.resources.gameover_main_menu
 import net.zodac.dicefive.resources.gameover_play_again
 import net.zodac.dicefive.resources.gameover_review
-import net.zodac.dicefive.resources.gameover_tied_rank
 import net.zodac.dicefive.resources.gameover_title
 import net.zodac.dicefive.resources.gameover_winner
 import net.zodac.dicefive.ui.common.BrandBackdrop
@@ -257,7 +257,7 @@ private fun RunnerUpRow(rank: Int, isTrueTie: Boolean, player: PlayerState, tieB
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text = if (isTrueTie) stringResource(Res.string.gameover_tied_rank, rank) else rank.toString(),
+            text = if (isTrueTie) stringResource(Res.string.common_tied_rank, rank) else rank.toString(),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

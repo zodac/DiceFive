@@ -15,14 +15,18 @@ import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.scores_view_combined
+import net.zodac.dicefive.resources.scores_view_game_mode
+import org.jetbrains.compose.resources.StringResource
 
 /** The two ways to read the Leaderboard, switched at the top of its screen. */
-enum class LeaderboardView(val label: String) {
+enum class LeaderboardView(val label: StringResource) {
     /** Every game mode's scores in one ranked table. */
-    COMBINED("Combined"),
+    COMBINED(Res.string.scores_view_combined),
 
     /** One card per game mode, each ranked on its own. */
-    GAME_MODE("Game Mode"),
+    GAME_MODE(Res.string.scores_view_game_mode),
 }
 
 /** The game modes that can get a card in [LeaderboardView.GAME_MODE] - every one, including those that stay off the Combined table - once it has a score. */

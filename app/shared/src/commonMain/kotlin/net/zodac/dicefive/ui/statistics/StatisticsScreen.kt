@@ -46,12 +46,41 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.data.scores.PlayerStatistics
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_cancel
+import net.zodac.dicefive.resources.stats_average
+import net.zodac.dicefive.resources.stats_best
+import net.zodac.dicefive.resources.stats_collapsed_spoken
+import net.zodac.dicefive.resources.stats_delete_action
+import net.zodac.dicefive.resources.stats_delete_confirm
+import net.zodac.dicefive.resources.stats_delete_message
+import net.zodac.dicefive.resources.stats_delete_title
+import net.zodac.dicefive.resources.stats_empty
+import net.zodac.dicefive.resources.stats_expanded_spoken
+import net.zodac.dicefive.resources.stats_first_played
+import net.zodac.dicefive.resources.stats_hide_action
+import net.zodac.dicefive.resources.stats_lost
+import net.zodac.dicefive.resources.stats_played
+import net.zodac.dicefive.resources.stats_show_action
+import net.zodac.dicefive.resources.stats_solo
+import net.zodac.dicefive.resources.stats_spoken_best
+import net.zodac.dicefive.resources.stats_spoken_first_played
+import net.zodac.dicefive.resources.stats_spoken_fives_solo
+import net.zodac.dicefive.resources.stats_spoken_record
+import net.zodac.dicefive.resources.stats_spoken_scores
+import net.zodac.dicefive.resources.stats_spoken_streaks
+import net.zodac.dicefive.resources.stats_streak
+import net.zodac.dicefive.resources.stats_title
+import net.zodac.dicefive.resources.stats_total_score
+import net.zodac.dicefive.resources.stats_won
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.formatTimestamp
 import net.zodac.dicefive.ui.common.grouped
+import net.zodac.dicefive.ui.common.joinSentences
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun StatisticsScreen(
@@ -62,14 +91,14 @@ fun StatisticsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingDeleteName by rememberSaveable { mutableStateOf<String?>(null) }
 
-    ScreenScaffold(title = "Statistics", onBack = onBack, modifier = modifier) {
+    ScreenScaffold(title = stringResource(Res.string.stats_title), onBack = onBack, modifier = modifier) {
         // Nothing but the title bar until the stats are read, so "No stats yet" never flashes up
         // before the player cards.
         if (!state.isLoaded) return@ScreenScaffold
         if (state.players.isEmpty()) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "No stats yet - play a game!",
+                    text = stringResource(Res.string.stats_empty),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -98,14 +127,14 @@ fun StatisticsScreen(
         pendingDeleteName?.let { playerName ->
             DiceFiveDialog(
                 icon = Icons.Filled.DeleteForever,
-                title = "Delete stats?",
-                message = "Would you like to delete $playerName's stats? Their leaderboard scores will not be affected.",
-                confirmLabel = "Delete",
+                title = stringResource(Res.string.stats_delete_title),
+                message = stringResource(Res.string.stats_delete_message, playerName),
+                confirmLabel = stringResource(Res.string.stats_delete_confirm),
                 onConfirm = {
                     viewModel.dismissPlayer(playerName)
                     pendingDeleteName = null
                 },
-                dismissLabel = "Cancel",
+                dismissLabel = stringResource(Res.string.common_cancel),
                 onDismiss = { pendingDeleteName = null },
                 onDismissRequest = { pendingDeleteName = null },
             )
@@ -122,18 +151,20 @@ fun StatisticsScreen(
 @Composable
 fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
     var expanded by rememberSaveable(player.playerName) { mutableStateOf(false) }
-    val deleteLabel = "Delete ${player.playerName}'s stats"
-    val spoken = buildString {
-        append("${player.playerName}. Best score ${player.maxScore.grouped()}.")
-        if (expanded) {
-            append(" First played ${formatTimestamp(player.firstPlayedEpochMillis)}.")
-            append(" Played ${player.gamesPlayed}, won ${player.gamesWon}, lost ${player.gamesLost}.")
-            append(" Win streak ${player.currentWinStreak}, best win streak ${player.bestWinStreak}.")
-            append(" Total score ${player.totalScore.grouped()}. Average score ${player.averageScore.grouped()}.")
-            append(" ${player.fiveOfAKindCount} 5x scored. ${player.soloGames} solo games played.")
-        }
+    val deleteLabel = stringResource(Res.string.stats_delete_action, player.playerName)
+    val maxScore = player.maxScore.grouped()
+    val firstPlayed = formatTimestamp(player.firstPlayedEpochMillis)
+    val sentences = mutableListOf(stringResource(Res.string.stats_spoken_best, player.playerName, maxScore))
+    if (expanded) {
+        sentences += stringResource(Res.string.stats_spoken_first_played, firstPlayed)
+        sentences += stringResource(Res.string.stats_spoken_record, player.gamesPlayed, player.gamesWon, player.gamesLost)
+        sentences += stringResource(Res.string.stats_spoken_streaks, player.currentWinStreak, player.bestWinStreak)
+        sentences += stringResource(Res.string.stats_spoken_scores, player.totalScore.grouped(), player.averageScore.grouped())
+        sentences += stringResource(Res.string.stats_spoken_fives_solo, player.fiveOfAKindCount, player.soloGames)
     }
-    val toggleLabel = if (expanded) "Hide details" else "Show details"
+    val spoken = joinSentences(sentences)
+    val toggleLabel = stringResource(if (expanded) Res.string.stats_hide_action else Res.string.stats_show_action)
+    val stateText = stringResource(if (expanded) Res.string.stats_expanded_spoken else Res.string.stats_collapsed_spoken)
     val reduceMotion = LocalReduceMotion.current
     Card(
         modifier = Modifier
@@ -142,7 +173,7 @@ fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
             // state is spoken, its action labelled), and the delete is in TalkBack's actions menu.
             .clearAndSetSemantics {
                 contentDescription = spoken
-                stateDescription = if (expanded) "Expanded" else "Collapsed"
+                stateDescription = stateText
                 onClick(label = toggleLabel) {
                     expanded = !expanded
                     true
@@ -199,7 +230,7 @@ fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
 
                 Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "First played",
+                        text = stringResource(Res.string.stats_first_played),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -213,19 +244,19 @@ fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
                 // FlowRows: at a large font the cells no longer fit across, and the last ones drop to a
                 // second line rather than overlapping. At the normal size each is one row.
                 StatRow {
-                    StatCell(label = "Played", value = player.gamesPlayed.toString())
-                    StatCell(label = "Won", value = player.gamesWon.toString())
-                    StatCell(label = "Lost", value = player.gamesLost.toString())
-                    StatCell(label = "Streak", value = player.currentWinStreak.toString())
+                    StatCell(label = stringResource(Res.string.stats_played), value = player.gamesPlayed.toString())
+                    StatCell(label = stringResource(Res.string.stats_won), value = player.gamesWon.toString())
+                    StatCell(label = stringResource(Res.string.stats_lost), value = player.gamesLost.toString())
+                    StatCell(label = stringResource(Res.string.stats_streak), value = player.currentWinStreak.toString())
                     // End-aligned rather than centred, so its last digit sits on the card's edge.
-                    StatCell(label = "Best", value = player.bestWinStreak.toString(), alignment = Alignment.End)
+                    StatCell(label = stringResource(Res.string.stats_best), value = player.bestWinStreak.toString(), alignment = Alignment.End)
                 }
 
                 StatRow {
-                    StatCell(label = "Total score", value = player.totalScore.grouped(), alignment = Alignment.Start)
-                    StatCell(label = "Average", value = player.averageScore.grouped())
-                    StatCell(label = "5x", value = player.fiveOfAKindCount.grouped())
-                    StatCell(label = "Solo", value = player.soloGames.grouped(), alignment = Alignment.End)
+                    StatCell(label = stringResource(Res.string.stats_total_score), value = player.totalScore.grouped(), alignment = Alignment.Start)
+                    StatCell(label = stringResource(Res.string.stats_average), value = player.averageScore.grouped())
+                    StatCell(label = "5x", value = player.fiveOfAKindCount.grouped()) // i18n: not translated - the game's mark
+                    StatCell(label = stringResource(Res.string.stats_solo), value = player.soloGames.grouped(), alignment = Alignment.End)
                 }
             }
         }
