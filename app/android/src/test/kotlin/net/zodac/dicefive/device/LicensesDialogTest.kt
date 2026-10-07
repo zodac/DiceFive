@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.isDialog as isComposeDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
@@ -89,6 +90,15 @@ class LicensesDialogTest {
             onView(withText(containsString("Apache License 2.0"))).inRoot(isDialog()).check { view, _ -> found = view as? TextView }
         }
         return found
+    }
+
+    @Test
+    fun `the dialog has a title, an introduction and a named close button`() {
+        showDialog()
+
+        compose.onNodeWithContentDescription("Close licences", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Licences").assertExists()
+        compose.onNodeWithText("DiceFive is built with the open-source software, fonts and sounds below, each used under the licence it's listed with.").assertExists()
     }
 
     /** Every card, top to bottom - the TextViews in the column the scroll view holds. */

@@ -329,7 +329,7 @@ fun AppLogo(
         }
 
         Text(
-            text = "DiceFive",
+            text = "DiceFive", // i18n: not translated - the app's name
             modifier = Modifier.padding(top = 16.dp),
             style = MaterialTheme.typography.displayMedium,
             fontFamily = SoraFontFamily,

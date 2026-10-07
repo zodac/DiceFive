@@ -409,4 +409,61 @@
     <!-- %1$s is a score: "23 points". -->
     <string name="rules_example_scores_spoken">Scores %1$s.</string>
 
+    <!-- Shared chrome (ui/common/*) -->
+    <!-- TalkBack's name for the back arrow in every screen's title bar. -->
+    <string name="common_back_cd">Back</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_done">Done</string>
+    <!-- TalkBack's name for a long press on a row that has a tooltip: "Double-tap and hold to show details". -->
+    <string name="common_tooltip_show_details_action">Show details</string>
+    <!-- TalkBack's name for tapping a picker field. %1$s is the picker's title ("Game Mode"). -->
+    <string name="common_picker_choose_action">Choose %1$s</string>
+    <!-- What TalkBack says for a picker field after its title: the current choice, then its description. -->
+    <string name="common_picker_state_spoken">%1$s. %2$s</string>
+    <!-- The modifiers field when no modifier is on. -->
+    <string name="common_modifiers_none">None</string>
+    <!-- The modifiers field when some are on: how many. -->
+    <plurals name="common_modifiers_enabled">
+        <item quantity="one">%1$d enabled</item>
+        <item quantity="other">%1$d enabled</item>
+    </plurals>
+    <!-- A modifier stepper's value as TalkBack says it: its label ("Rolls per turn"), then the value ("3 rolls"). -->
+    <string name="common_stepper_value_spoken">%1$s, %2$s</string>
+    <!-- %1$s is the stepper's label in lower case ("rolls per turn"). -->
+    <string name="common_stepper_decrease_cd">Decrease %1$s</string>
+    <string name="common_stepper_increase_cd">Increase %1$s</string>
+
+    <!-- About dialog (ui/settings/AboutDialog.kt). Text in `backticks` is highlighted as a name. -->
+    <string name="about_title">About</string>
+    <string name="about_close_cd">Close about</string>
+    <string name="about_author_heading">Author</string>
+    <string name="about_author_body">DiceFive is created by `zodac`.</string>
+    <string name="about_author_link">Source code on GitHub</string>
+    <string name="about_inspiration_heading">Inspiration</string>
+    <string name="about_inspiration_body">DiceFive was inspired by `Dice Me Online`, created by `Arturo Gutierrez`.</string>
+    <string name="about_inspiration_link">Dice Me Online on Google Play</string>
+    <string name="about_privacy_heading">Privacy</string>
+    <string name="about_privacy_body">DiceFive holds no user data. Your games, scores and settings stay on this device, and there are no ads, analytics or tracking.</string>
+    <string name="about_privacy_link">Full privacy policy</string>
+
+    <!-- Licences dialog (ui/settings/LicensesDialog.kt, ComposeLicenceDocument.kt). Android's own licence list has its own copies in app/android/src/main/res. -->
+    <string name="licences_title">Licences</string>
+    <string name="licences_close_cd">Close licences</string>
+    <string name="licences_intro">DiceFive is built with the open-source software, fonts and sounds below, each used under the licence it's listed with.</string>
+    <string name="licences_show_text">Show licence text</string>
+    <string name="licences_hide_text">Hide licence text</string>
+    <string name="licences_notices_title">Notices</string>
+    <string name="licences_notices_subtitle">Attribution notices shipped with the libraries above</string>
+
+    <!-- Main menu (ui/menu/MenuScreen.kt) -->
+    <string name="menu_achievements">Achievements</string>
+    <string name="menu_styles">Styles</string>
+    <string name="menu_leaderboard">Leaderboard</string>
+    <string name="menu_statistics">Statistics</string>
+    <string name="menu_rules">Rules</string>
+    <string name="menu_settings">Settings</string>
+    <string name="menu_play">Play</string>
+    <string name="menu_new_game">New Game</string>
+    <string name="menu_continue">Continue</string>
+
 </resources>

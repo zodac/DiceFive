@@ -1,3 +1,20 @@
 <resources>
     <string name="app_name">DiceFive</string>
+
+    <!--
+        The Licences dialog's list, which Android draws with its own views (TextViewLicenceDocument) and so
+        can't use the shared Compose strings. The same words as the shared file's licences_* strings; keep them
+        in step, and translate both.
+    -->
+    <string name="licences_show_text">Show licence text</string>
+    <string name="licences_hide_text">Hide licence text</string>
+    <string name="licences_notices_title">Notices</string>
+    <string name="licences_notices_subtitle">Attribution notices shipped with the libraries above</string>
+    <!-- The long-press menu on a link in the list. -->
+    <string name="licences_copy_link">Copy link</string>
+    <string name="licences_copy_text">Copy text</string>
+    <!-- What was copied: the clipboard's label, and %1$s in "%1$s copied" (a toast on Android 12 and older). -->
+    <string name="licences_link">Link</string>
+    <string name="licences_text">Text</string>
+    <string name="licences_copied">%1$s copied</string>
 </resources>

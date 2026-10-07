@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
@@ -25,6 +24,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -65,6 +65,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_cancel
+import net.zodac.dicefive.resources.common_done
+import net.zodac.dicefive.resources.common_modifiers_enabled
+import net.zodac.dicefive.resources.common_modifiers_none
+import net.zodac.dicefive.resources.common_picker_choose_action
+import net.zodac.dicefive.resources.common_picker_state_spoken
+import net.zodac.dicefive.resources.common_stepper_decrease_cd
+import net.zodac.dicefive.resources.common_stepper_increase_cd
+import net.zodac.dicefive.resources.common_stepper_value_spoken
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 
 /*
  * The app's dropdown-and-modal pickers. Every colour, shape, size and text style of the closed field and
@@ -90,6 +102,7 @@ private fun PickerField(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val state = stringResource(Res.string.common_picker_state_spoken, headline, supporting)
     OutlinedCard(
         // The blue of a chosen segment (the player count beside it on the setup screen), so a picker reads as a choice made.
         colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
@@ -98,9 +111,9 @@ private fun PickerField(
             .semantics(mergeDescendants = true) {
                 role = Role.DropdownList
                 contentDescription = title
-                stateDescription = "$headline. $supporting"
+                stateDescription = state
             }
-            .clickable(enabled = enabled, onClickLabel = "Choose $title", onClick = onClick),
+            .clickable(enabled = enabled, onClickLabel = stringResource(Res.string.common_picker_choose_action, title), onClick = onClick),
     ) {
         Row(
             modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 8.dp),
@@ -208,7 +221,7 @@ fun <T> ChoicePicker(
         PickerDialog(
             title = title,
             collectionSize = options.size,
-            closeLabel = "Cancel",
+            closeLabel = stringResource(Res.string.common_cancel),
             onDismissRequest = { open = false },
             listState = listState,
         ) {
@@ -307,7 +320,11 @@ fun ModifierPicker(
     val enabledCount = modifiers.count { it.enabled && it.lockedNote == null }
     PickerField(
         title = title,
-        headline = if (enabledCount == 0) "None" else "$enabledCount enabled",
+        headline = if (enabledCount == 0) {
+            stringResource(Res.string.common_modifiers_none)
+        } else {
+            pluralStringResource(Res.plurals.common_modifiers_enabled, enabledCount, enabledCount)
+        },
         supporting = if (enabledCount == 0) description else activeNote ?: description,
         onClick = { open = true },
         modifier = modifier,
@@ -316,7 +333,7 @@ fun ModifierPicker(
         PickerDialog(
             title = title,
             collectionSize = modifiers.size,
-            closeLabel = "Done",
+            closeLabel = stringResource(Res.string.common_done),
             onDismissRequest = { open = false },
             listState = rememberLazyListState(),
             // The New Game form's gap between its cards.
@@ -379,9 +396,10 @@ private fun ModifierRow(setting: ModifierSetting, modifier: Modifier = Modifier)
 @Composable
 private fun ModifierStepperRow(stepper: ModifierStepper, enabled: Boolean, modifier: Modifier = Modifier) {
     val valueText = stepper.valueText(stepper.value)
+    val spokenValue = stringResource(Res.string.common_stepper_value_spoken, stepper.label, valueText)
     Row(modifier = modifier, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { stepper.onValueChange(stepper.value - stepper.step) }, enabled = enabled && stepper.value - stepper.step >= stepper.range.first) {
-            Icon(Icons.Filled.Remove, contentDescription = "Decrease ${stepper.label.lowercase()}")
+            Icon(Icons.Filled.Remove, contentDescription = stringResource(Res.string.common_stepper_decrease_cd, stepper.label.lowercase()))
         }
         Text(
             text = valueText,
@@ -392,12 +410,12 @@ private fun ModifierStepperRow(stepper: ModifierStepper, enabled: Boolean, modif
             textAlign = TextAlign.Center,
             // Polite live region: the new count is spoken after a tap on either button.
             modifier = Modifier.widthIn(min = 96.dp).semantics {
-                contentDescription = "${stepper.label}, $valueText"
+                contentDescription = spokenValue
                 liveRegion = LiveRegionMode.Polite
             },
         )
         IconButton(onClick = { stepper.onValueChange(stepper.value + stepper.step) }, enabled = enabled && stepper.value + stepper.step <= stepper.range.last) {
-            Icon(Icons.Filled.Add, contentDescription = "Increase ${stepper.label.lowercase()}")
+            Icon(Icons.Filled.Add, contentDescription = stringResource(Res.string.common_stepper_increase_cd, stepper.label.lowercase()))
         }
     }
 }
