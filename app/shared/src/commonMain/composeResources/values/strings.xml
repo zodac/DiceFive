@@ -786,6 +786,7 @@
     <string name="style_family_poker">Poker</string>
     <string name="style_family_pyramid">Pyramid</string>
     <string name="style_family_retro">Retro</string>
+    <string name="style_family_rgb">RGB</string>
     <string name="style_family_ribbon">Ribbon</string>
     <string name="style_family_sand">Sand</string>
     <string name="style_family_spotlight">Spotlight</string>
@@ -900,10 +901,13 @@
     <string name="style_colour_vanilla">Vanilla</string>
     <string name="style_colour_vine">Vine</string>
     <string name="style_colour_walnut">Walnut</string>
+    <string name="style_colour_wave">Wave</string>
     <string name="style_colour_waves">Waves</string>
     <string name="style_colour_western">Western</string>
     <string name="style_colour_white">White</string>
     <string name="style_colour_white_marble">White Marble</string>
+    <string name="style_colour_white_rainbow">White Rainbow</string>
+    <string name="style_colour_white_wave">White Wave</string>
     <string name="style_colour_wicker">Wicker</string>
     <string name="style_colour_yellow">Yellow</string>
 

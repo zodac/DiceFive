@@ -602,6 +602,7 @@
     <string name="style_family_poker">Póker</string>
     <string name="style_family_pyramid">Pirámide</string>
     <string name="style_family_retro">Retro</string>
+    <string name="style_family_rgb">RGB</string>
     <string name="style_family_ribbon">Cinta</string>
     <string name="style_family_sand">Arena</string>
     <string name="style_family_spotlight">Foco</string>
@@ -716,10 +717,13 @@
     <string name="style_colour_vanilla">Vainilla</string>
     <string name="style_colour_vine">Vid</string>
     <string name="style_colour_walnut">Nogal</string>
+    <string name="style_colour_wave">Ola</string>
     <string name="style_colour_waves">Olas</string>
     <string name="style_colour_western">Occidental</string>
     <string name="style_colour_white">Blanco</string>
     <string name="style_colour_white_marble">Mármol blanco</string>
+    <string name="style_colour_white_rainbow">Arcoíris blanco</string>
+    <string name="style_colour_white_wave">Ola blanca</string>
     <string name="style_colour_wicker">Mimbre</string>
     <string name="style_colour_yellow">Amarillo</string>
     <string name="style_noun_dice">dados</string>

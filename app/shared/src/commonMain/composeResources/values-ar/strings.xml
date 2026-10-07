@@ -687,6 +687,7 @@
     <string name="style_family_poker">بوكر</string>
     <string name="style_family_pyramid">هرم</string>
     <string name="style_family_retro">قديم</string>
+    <string name="style_family_rgb">آر جي بي</string>
     <string name="style_family_ribbon">شريط</string>
     <string name="style_family_sand">رمل</string>
     <string name="style_family_spotlight">مسلّطة ضوء</string>
@@ -801,10 +802,13 @@
     <string name="style_colour_vanilla">فانيلا</string>
     <string name="style_colour_vine">كرمة</string>
     <string name="style_colour_walnut">جوزي</string>
+    <string name="style_colour_wave">موجة</string>
     <string name="style_colour_waves">أمواج</string>
     <string name="style_colour_western">غربي</string>
     <string name="style_colour_white">أبيض</string>
     <string name="style_colour_white_marble">رخام أبيض</string>
+    <string name="style_colour_white_rainbow">قوس قزح أبيض</string>
+    <string name="style_colour_white_wave">موجة بيضاء</string>
     <string name="style_colour_wicker">خوص</string>
     <string name="style_colour_yellow">أصفر</string>
     <string name="style_noun_dice">نرد</string>

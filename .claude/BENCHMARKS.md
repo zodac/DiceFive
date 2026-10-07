@@ -409,6 +409,65 @@ too - the peak barely moved for it under Robolectric, but it's work for nothing)
 every frame tracks node count, not recomposition; it couldn't be told apart from the harness's own
 per-node work here. Not measured on a device.
 
+### 7 Dice Stud: every dice style, at rest and tumbling (RGB and Neon reworked)
+
+The Stud tray rolls seven dice, so the dice styles were measured seven at a time: a `Row` of seven 54dp dice
+(`LocalDieIndex` 0-6, faces 6 3 1 5 2 4 6), **only that row captured** (`onNodeWithTag(...).captureToImage()`), one style at
+a time, 80 frames at rest and 120 tumbling (`style.TossedDie`, `roll` stepped 0 to 3.9 and round again), against a
+`_blank` style whose `Die` is an empty `Box`. **Percentiles over every frame** (p50/p90/p95/max), not averages - a mean
+or a best-of hides the frames a player sees. Judge a style by **p95**.
+
+Two traps that cost an afternoon:
+
+- **Don't capture the whole screen or the whole tray.** Capturing `onRoot()` (411x891dp) or the Stud `DiceTray` (mat,
+  cup, shadows) put a floor of 9-12ms under every style, the blank one included, which buried every difference.
+  Capturing just the row gives the blank die 2.7ms at rest and 6.3 tumbling.
+- **One full-catalogue run is noise.** On a shared host the same style swung 7.5 to 14.9ms p95 between runs, and a run's
+  "slow" list shared almost nothing with the last one. Run the catalogue three times and take each style's median.
+  Running a few styles alone reads lower than running all 84 in one process. Pass the styles in an environment variable and use `--rerun`,
+  or Gradle serves the last results from cache (an environment variable isn't a task input).
+
+At rest, the median of three full runs: **no style over 10ms p95** (highest Tally Forestry 9.1, Tally Western 8.6, Glitter
+8.6; the blank die 3-4; Classic ivory ~6.5). RGB: Rainbow 7.8, Wave 7.9, White Rainbow 7.7, White Wave 8.2, Neon 7.1.
+Tumbling is a different story: **every style is over 10ms p95** - median style 15.4, range 12 to 20, and the blank die 6.9
+(see "The tumble").
+
+**What was reworked.** The first RGB version (a bloom, a patch and a wash, each a radial gradient built per lamp per
+frame) measured 10-12ms; Neon (nine strokes of halo per digit rebuilt every frame) ~10. Now:
+
+- Neon paints its tube once per face and colour (`cachedSurface`) and the pulse is only the image's opacity.
+- RGB paints its *light* once per face as white and tints it as it's drawn (`ColorFilter.tint(.., SrcIn)`): all of Rainbow's
+  light in one image tinted once per die; a dark Wave keeps one small gradient per lamp (each lamp's own colour); a pale
+  Wave takes the face's light in the middle's colour, so the colour wave reads in its lenses only. Lenses and sockets are
+  plain circles - a tinted image per lamp was slower than a gradient (0.18ms each, 25 lamps), and a cached sockets image
+  was slower than two small circles.
+
+Quality given up: Neon's core dims a little at the bottom of the pulse (the whole tube fades, not just the halo); a pale
+Wave's glow is one hue across the face. Not measured on a device.
+
+### The tumble (reviewed, not changed)
+
+Seven tumbling dice cost 12-20ms p95 for any style and 6.9 for a die that draws nothing, so the cost is the tumble
+(`TossedCube`, `RollingDie.kt`), not the styles. Composition and layout are ~0.8ms of a ~13ms frame (measured separately):
+it is all draw. Every frame, for each die's two faces in view:
+
+- Each face goes in a `graphicsLayer` with `CompositingStrategy.Offscreen`, `requiredSize` **twice the die's size** in each
+  direction (so a tipped-up face isn't clipped) - four times the area, allocated, cleared and blended back, 14 times a frame.
+- Inside it the face's own art is **drawn again** under a perspective `Matrix` (`withTransform`) - through `clipPath` of a
+  fresh anti-aliased silhouette `Path` - so every gradient, path and image a style draws is re-rasterised, twice per die per
+  frame, under perspective (which has no fast path), though the face looks the same on every frame. That is why heavy
+  styles cost 2-3x more tumbling than the blank die, and why the p50 of a tumble is 2-3x the p50 of rest.
+- A fresh shade `drawRect` with `SrcAtop` over each, and a body `Canvas` under both.
+- `roll` is a parameter, so `TossedCube` (a `BoxWithConstraints`, which subcomposes) recomposes every frame: the faces,
+  `cubeFaceProjection`, `convexHull`, `insetConvex` and `roundedConvexPath` are rebuilt in lists and `Path`s each time.
+- In the tray itself (`DiceTray.kt`), `toss.value` is read in composition, so each column's whole `ScatterArea` recomposes
+  every frame with `offset(x, y)` (a layout change, not a layout-lambda), and `GroundShadow` re-creates its `Outline` and draws it four times per die.
+
+The p95 is not much above the p50 in the row harness (1-2ms), so these are not spikes but a steady heavy frame; the larger
+spikes seen in full-tray runs (the blank die's max of 57ms) were the harness's own capture. Ideas, untried: rasterise each
+face once per (style, value, size) to an image and draw only that under the matrix, so the cost stops depending on the style;
+keep the layer at the die's size and cut the face to its silhouette; read `roll` in a draw/layer lambda; move the tray's offsets to lambdas.
+
 ## Still on the table
 
 - **The toss itself** costs ~1.5x a normal frame for its 900ms: each tossed die's position and

@@ -78,15 +78,17 @@ private data class RibbonSurface(val value: Int, val colour: Color)
 
 private const val NEON_CORNER_PERCENT = 12
 
+private data class NeonTube(val value: Int, val colour: Color)
+
 // A neon tube's slow pulse: a full swell and fade every NEON_PULSE_SECONDS, never dimmer than NEON_PULSE_FLOOR.
 private const val NEON_PULSE_SECONDS = 1.8f
-private const val NEON_PULSE_FLOOR = 0.5f
+private const val NEON_PULSE_FLOOR = 0.7f
 
 /**
  * Neon dice: a black panel with its number bent out of a glowing neon tube - layered halos round a
  * bright core, a little capped electrode at each end, the panel itself lit by its glow - and every
  * number a different colour of gas ([colours]). The glow pulses gently, each die on its own beat;
- * steady under reduced motion.
+ * steady under reduced motion. Painted once per face and colour - the pulse is the image's opacity.
  */
 class NeonDiceStyle(
     override val id: String,
@@ -116,7 +118,9 @@ class NeonDiceStyle(
             pipPadding = 0.dp,
             customPips = {
                 val swell = 0.5f + 0.5f * sin(2f * PI.toFloat() * seconds.value / NEON_PULSE_SECONDS + phase)
-                drawNeonDigit(it, colours[it], glow = NEON_PULSE_FLOOR + (1f - NEON_PULSE_FLOOR) * swell)
+                // The tube is painted once, at full glow, and the pulse is just how opaque it's drawn.
+                val tube = cachedSurface(NeonTube(it, colours[it])) { drawNeonDigit(it, colours[it], glow = 1f) }
+                tube?.let { image -> drawImage(image, alpha = NEON_PULSE_FLOOR + (1f - NEON_PULSE_FLOOR) * swell) }
             },
             heldRingColor = heldRing,
         ) {
@@ -135,15 +139,16 @@ internal fun DrawScope.drawNeonDigit(value: Int, colour: Color, glow: Float) {
     val centre = Offset(size.width / 2f, size.height / 2f)
     // The tube lights the panel round it.
     drawCircle(
-        Brush.radialGradient(listOf(colour.copy(alpha = 0.28f * glow), Color.Transparent), center = centre, radius = side * 0.55f),
-        side * 0.55f,
+        Brush.radialGradient(listOf(colour.copy(alpha = 0.5f * glow), Color.Transparent), center = centre, radius = side * 0.75f),
+        side * 0.75f,
         centre,
     )
     for (stroke in strokeDigitPaths(value, Offset(side * 0.1f, side * 0.09f), side * 0.8f)) {
         fun tube(c: Color, w: Float) = drawPath(stroke.path, c, style = Stroke(width = w, cap = StrokeCap.Round, join = StrokeJoin.Round))
-        tube(colour.copy(alpha = 0.1f * glow), side * 0.3f)
-        tube(colour.copy(alpha = 0.18f * glow), side * 0.19f)
-        tube(colour.copy(alpha = 0.35f * glow), side * 0.115f)
+        tube(colour.copy(alpha = 0.16f * glow), side * 0.36f)
+        tube(colour.copy(alpha = 0.26f * glow), side * 0.28f)
+        tube(colour.copy(alpha = 0.45f * glow), side * 0.17f)
+        tube(colour.copy(alpha = 0.7f * glow), side * 0.1f)
         tube(lerp(colour, Color.White, 0.2f), side * 0.065f)
         tube(lerp(colour, Color.White, 0.75f).copy(alpha = 0.6f + 0.4f * glow), side * 0.026f)
         // The electrodes: a dark cap on each end of the tube.

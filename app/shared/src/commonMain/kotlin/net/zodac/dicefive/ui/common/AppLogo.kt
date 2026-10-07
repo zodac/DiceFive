@@ -52,6 +52,7 @@ import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceStyle
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.DieMotion
+import net.zodac.dicefive.ui.game.style.LocalDieIndex
 import net.zodac.dicefive.ui.game.style.LocalDieMotion
 import org.jetbrains.compose.resources.Font
 
@@ -314,7 +315,8 @@ fun AppLogo(
             ) {
                 LOGO_DICE.forEachIndexed { i, die ->
                     val pose = rollMillis?.let { logoRollPose(i, die.value, it) }
-                    CompositionLocalProvider(LocalDieMotion provides motions?.get(i)) {
+                    // Each die its own index, so a style that varies by die (glitch, neon's pulse, natural patterns) isn't in step.
+                    CompositionLocalProvider(LocalDieIndex provides i, LocalDieMotion provides motions?.get(i)) {
                         diceStyle.Die(
                             value = pose?.value ?: die.value,
                             held = false,

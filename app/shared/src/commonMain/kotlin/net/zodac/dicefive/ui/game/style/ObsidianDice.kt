@@ -20,9 +20,11 @@ import kotlin.random.Random
 import net.zodac.dicefive.ui.theme.GoldAccent
 
 // A lava pip's molten opening, as a fraction of the pip area, and how far off its pip's spot it can burst through.
-private const val VENT_RADIUS_FRACTION = 0.115f
-private const val VENT_SHOVE = 0.05f
+// Vents are laid out VENT_SPREAD times wider than a plain die's pips, so each one - its glow, cracks and spatter - reads on its own.
+private const val VENT_RADIUS_FRACTION = 0.085f
+private const val VENT_SHOVE = 0.025f
 // Where the vents are laid out: StyledDie's usual pip area.
+private const val VENT_SPREAD = 1.18f
 private val PIP_AREA_INSET = 6.dp
 
 /**
@@ -96,9 +98,9 @@ class ObsidianDiceStyle(
         val random = Random(pattern * 5 + 1)
         val shove = size.minDimension * VENT_SHOVE
         // The lava's forced its own way out: each vent pushed a little off its pip's spot, and its own size.
-        drawPipPositions(value) { centre ->
+        drawPipPositions(value, spread = VENT_SPREAD) { centre ->
             val at = centre + Offset((random.nextFloat() - 0.5f) * 2f * shove, (random.nextFloat() - 0.5f) * 2f * shove)
-            drawVent(at, radius * (0.8f + random.nextFloat() * 0.45f), lava, random.nextInt())
+            drawVent(at, radius * (0.85f + random.nextFloat() * 0.3f), lava, random.nextInt())
         }
     }
 }

@@ -105,10 +105,13 @@ import net.zodac.dicefive.resources.style_colour_tricolour
 import net.zodac.dicefive.resources.style_colour_vanilla
 import net.zodac.dicefive.resources.style_colour_vine
 import net.zodac.dicefive.resources.style_colour_walnut
+import net.zodac.dicefive.resources.style_colour_wave
 import net.zodac.dicefive.resources.style_colour_waves
 import net.zodac.dicefive.resources.style_colour_western
 import net.zodac.dicefive.resources.style_colour_white
 import net.zodac.dicefive.resources.style_colour_white_marble
+import net.zodac.dicefive.resources.style_colour_white_rainbow
+import net.zodac.dicefive.resources.style_colour_white_wave
 import net.zodac.dicefive.resources.style_colour_wicker
 import net.zodac.dicefive.resources.style_colour_yellow
 import net.zodac.dicefive.resources.style_family_art_deco
@@ -163,6 +166,7 @@ import net.zodac.dicefive.resources.style_family_planks
 import net.zodac.dicefive.resources.style_family_poker
 import net.zodac.dicefive.resources.style_family_pyramid
 import net.zodac.dicefive.resources.style_family_retro
+import net.zodac.dicefive.resources.style_family_rgb
 import net.zodac.dicefive.resources.style_family_ribbon
 import net.zodac.dicefive.resources.style_family_sand
 import net.zodac.dicefive.resources.style_family_spotlight
@@ -476,6 +480,16 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(Res.string.style_colour_white, LcdDiceStyle("lcd_white", Color(0xFFF4F4F0), Color(0xFFE2E4DE), Color(0xFF151515), glow = false)),
             ),
             unlock = AchievementCount(49),
+        ),
+        StyleFamily(
+            Res.string.style_family_rgb,
+            listOf(
+                colour(Res.string.style_colour_rainbow, RgbDiceStyle("rgb_rainbow", Color(0xFF0E0E11))),
+                colour(Res.string.style_colour_wave, RgbDiceStyle("rgb_wave", Color(0xFF0E0E11), wave = true)),
+                colour(Res.string.style_colour_white_rainbow, RgbDiceStyle("rgb_white_rainbow", IvoryDiceTop, IvoryDiceBottom)),
+                colour(Res.string.style_colour_white_wave, RgbDiceStyle("rgb_white_wave", IvoryDiceTop, IvoryDiceBottom, wave = true)),
+            ),
+            unlock = AchievementCount(78),
         ),
         StyleFamily(
             Res.string.style_family_d20,
