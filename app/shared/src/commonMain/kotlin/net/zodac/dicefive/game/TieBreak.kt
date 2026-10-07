@@ -4,22 +4,31 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.tiebreak_chance
+import net.zodac.dicefive.resources.tiebreak_five_of_a_kind_count
+import net.zodac.dicefive.resources.tiebreak_four_of_a_kind
+import net.zodac.dicefive.resources.tiebreak_three_of_a_kind
+import net.zodac.dicefive.resources.tiebreak_tricolour_scored_count
+import net.zodac.dicefive.resources.tiebreak_upper_section_total
+import net.zodac.dicefive.resources.tiebreak_zeroed_categories
+import org.jetbrains.compose.resources.StringResource
 
 /**
  * A house rule, not in the official rules (see `.claude/DESIGN.md`'s "Tie-break house rules"):
  * whoever matched the top score with more handicaps - less luck, more empty boxes - ranks above
  * the other(s). Declaration order is priority order; the first criterion that differs between two
- * equal scores decides it. [reasonText] is what a player row says was the deciding factor, e.g.
- * "Won with fewer 5x".
+ * equal scores decides it. [reasonText] is what a player row says was the deciding factor, as a whole
+ * sentence: "Won on fewer 5x".
  */
-enum class TieBreakCriterion(val reasonText: String) {
-    FIVE_OF_A_KIND_COUNT("fewer 5x"),
-    ZEROED_CATEGORIES("more zeroed categories"),
-    TRICOLOUR_SCORED_COUNT("fewer tricolour scores"),
-    UPPER_SECTION_TOTAL("a lower upper section"),
-    CHANCE("a lower Chance score"),
-    THREE_OF_A_KIND("a lower 3x"),
-    FOUR_OF_A_KIND("a lower 4x"),
+enum class TieBreakCriterion(val reasonText: StringResource) {
+    FIVE_OF_A_KIND_COUNT(Res.string.tiebreak_five_of_a_kind_count),
+    ZEROED_CATEGORIES(Res.string.tiebreak_zeroed_categories),
+    TRICOLOUR_SCORED_COUNT(Res.string.tiebreak_tricolour_scored_count),
+    UPPER_SECTION_TOTAL(Res.string.tiebreak_upper_section_total),
+    CHANCE(Res.string.tiebreak_chance),
+    THREE_OF_A_KIND(Res.string.tiebreak_three_of_a_kind),
+    FOUR_OF_A_KIND(Res.string.tiebreak_four_of_a_kind),
 }
 
 /**

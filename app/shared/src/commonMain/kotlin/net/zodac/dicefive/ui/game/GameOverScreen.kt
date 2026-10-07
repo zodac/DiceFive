@@ -47,6 +47,13 @@ import net.zodac.dicefive.game.TieBreakCriterion
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.gameover_main_menu
+import net.zodac.dicefive.resources.gameover_play_again
+import net.zodac.dicefive.resources.gameover_review
+import net.zodac.dicefive.resources.gameover_tied_rank
+import net.zodac.dicefive.resources.gameover_title
+import net.zodac.dicefive.resources.gameover_winner
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PageColumn
@@ -55,6 +62,7 @@ import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.theme.CupRimGold
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.GoldAccentDim
+import org.jetbrains.compose.resources.stringResource
 
 /** Matches the length of celebration.ogg, so the fireworks burst finishes right as the fanfare does. */
 private const val CELEBRATION_MILLIS = 3300
@@ -103,7 +111,7 @@ fun GameOverScreen(
         // back arrow: the two ways out are the buttons at the end. Fixed above the results, which
         // scroll beneath it like any other page's content.
         Column(modifier = Modifier.fillMaxSize()) {
-            PageTopBar(title = "Game Over", onBack = null)
+            PageTopBar(title = stringResource(Res.string.gameover_title), onBack = null)
             PageColumn(
                 modifier = Modifier.weight(1f),
                 // The app bar has already taken the status bar's inset.
@@ -146,7 +154,7 @@ fun GameOverScreen(
                     onClick = onReviewScorecards,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
                 ) {
-                    Text(text = "Review Scorecards", style = MaterialTheme.typography.titleMedium)
+                    Text(text = stringResource(Res.string.gameover_review), style = MaterialTheme.typography.titleMedium)
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -159,13 +167,13 @@ fun GameOverScreen(
                         onClick = onBackToMenu,
                         modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                     ) {
-                        Text(text = "Main Menu", style = MaterialTheme.typography.titleMedium)
+                        Text(text = stringResource(Res.string.gameover_main_menu), style = MaterialTheme.typography.titleMedium)
                     }
                     Button(
                         onClick = onPlayAgain,
                         modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                     ) {
-                        Text(text = "Play Again", style = MaterialTheme.typography.titleMedium)
+                        Text(text = stringResource(Res.string.gameover_play_again), style = MaterialTheme.typography.titleMedium)
                     }
                 }
 
@@ -197,7 +205,7 @@ private fun WinnerCard(player: PlayerState, solo: Boolean, tieBreakReason: TieBr
             if (!solo) {
                 Icon(
                     imageVector = Icons.Filled.EmojiEvents,
-                    contentDescription = "Winner",
+                    contentDescription = stringResource(Res.string.gameover_winner),
                     modifier = Modifier.size(44.dp),
                 )
             }
@@ -218,11 +226,11 @@ private fun WinnerCard(player: PlayerState, solo: Boolean, tieBreakReason: TieBr
                     )
                 }
                 if (!solo) {
-                    Text(text = "Winner", style = MaterialTheme.typography.labelLarge)
+                    Text(text = stringResource(Res.string.gameover_winner), style = MaterialTheme.typography.labelLarge)
                 }
                 if (tieBreakReason != null) {
                     Text(
-                        text = "Won on ${tieBreakReason.reasonText}",
+                        text = stringResource(tieBreakReason.reasonText),
                         style = MaterialTheme.typography.labelMedium,
                     )
                 }
@@ -249,7 +257,7 @@ private fun RunnerUpRow(rank: Int, isTrueTie: Boolean, player: PlayerState, tieB
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text = if (isTrueTie) "=$rank" else rank.toString(),
+            text = if (isTrueTie) stringResource(Res.string.gameover_tied_rank, rank) else rank.toString(),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -268,7 +276,7 @@ private fun RunnerUpRow(rank: Int, isTrueTie: Boolean, player: PlayerState, tieB
             }
             if (tieBreakReason != null) {
                 Text(
-                    text = "Won on ${tieBreakReason.reasonText}",
+                    text = stringResource(tieBreakReason.reasonText),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
