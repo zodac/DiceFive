@@ -45,6 +45,7 @@ import kotlin.math.tan
 import kotlin.random.Random
 import net.zodac.dicefive.model.FLOWERPOT_FULL_BLOOM
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.ambientMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.theme.FlowerpotLeaf
 import net.zodac.dicefive.ui.theme.FlowerpotLeafDark
@@ -279,7 +280,7 @@ private fun CupDrawScope.drawSteamLines(
  */
 @Composable
 internal fun rememberAmbientCycle(millis: Int): State<Float>? {
-    if (!LocalCupAnimated.current || LocalReduceMotion.current) return null
+    if (!LocalCupAnimated.current || !ambientMotion) return null
     return rememberInfiniteTransition(label = "cupAmbient").animateFloat( // i18n: not translated - an animation label, not shown
         initialValue = 0f,
         targetValue = 1f,

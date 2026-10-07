@@ -213,7 +213,7 @@ fun AppLogo(
     // Not under reduced motion: pupils sliding about with the device are motion too, so they stay put.
     val reduceMotion = LocalReduceMotion.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val travel = diceStyle.pupilTravel?.takeIf { pupilsFollowDevice && !reduceMotion }
+    val travel = diceStyle.pupilTravel?.takeIf { pupilsFollowDevice && ambientMotion }
     val motions = travel?.let {
         remember(it) { LOGO_DICE.mapIndexed { i, die -> DieMotion(seed = i, travel = it).apply { moveTo(Offset.Zero, die.tilt) } } }
     }

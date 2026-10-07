@@ -539,7 +539,14 @@
     <string name="settings_version">Versión %1$s</string>
     <string name="settings_sound">Efectos de sonido</string>
     <string name="settings_vibration">Vibración</string>
-    <string name="settings_remove_animations">Quitar animaciones</string>
+    <string name="settings_animations">Animaciones</string>
+    <string name="settings_animations_high">Altas</string>
+    <string name="settings_animations_medium">Medias</string>
+    <string name="settings_animations_low">Bajas</string>
+    <string name="settings_animations_high_short">A</string>
+    <string name="settings_animations_medium_short">M</string>
+    <string name="settings_animations_low_short">B</string>
+    <string name="settings_animations_off">No</string>
     <string name="settings_confirm_leaving">Confirmar al salir de la partida</string>
     <string name="settings_reset_achievements">Restablecer logros</string>
     <string name="settings_reset_achievements_description">Vuelve a bloquear todos los logros</string>

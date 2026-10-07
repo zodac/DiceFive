@@ -2,12 +2,14 @@ package net.zodac.dicefive.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Animation
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Gavel
@@ -36,12 +38,20 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.app.LocalAppContainer
+import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.about_title
 import net.zodac.dicefive.resources.common_cancel
 import net.zodac.dicefive.resources.licences_title
+import net.zodac.dicefive.resources.settings_animations
+import net.zodac.dicefive.resources.settings_animations_high
+import net.zodac.dicefive.resources.settings_animations_high_short
+import net.zodac.dicefive.resources.settings_animations_low
+import net.zodac.dicefive.resources.settings_animations_low_short
+import net.zodac.dicefive.resources.settings_animations_medium
+import net.zodac.dicefive.resources.settings_animations_medium_short
+import net.zodac.dicefive.resources.settings_animations_off
 import net.zodac.dicefive.resources.settings_confirm_leaving
-import net.zodac.dicefive.resources.settings_remove_animations
 import net.zodac.dicefive.resources.settings_reset_achievements
 import net.zodac.dicefive.resources.settings_reset_achievements_description
 import net.zodac.dicefive.resources.settings_reset_achievements_message
@@ -55,6 +65,7 @@ import net.zodac.dicefive.resources.settings_sound
 import net.zodac.dicefive.resources.settings_title
 import net.zodac.dicefive.resources.settings_version
 import net.zodac.dicefive.resources.settings_vibration
+import net.zodac.dicefive.ui.common.FittedSegmentedChoiceRow
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.FooterPill
 import net.zodac.dicefive.ui.common.ScreenScaffold
@@ -108,6 +119,65 @@ private fun ResetSetting(icon: ImageVector, label: String, description: String, 
     )
 }
 
+/**
+ * One pick-one setting from a few options: icon and label as a [SwitchSetting] has them, with a segmented row of the
+ * options under the label (as the New Game screen's AI difficulty is chosen - [FittedSegmentedChoiceRow], so the
+ * labels shrink together and then go [compactLabel]/[compactGlyph] on a narrow screen). TalkBack hears the label, then
+ * each option as a selectable button ("Medium, selected").
+ */
+@Composable
+private fun <T> SegmentedSetting(
+    icon: ImageVector,
+    label: String,
+    options: List<T>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    optionLabel: @Composable (T) -> String,
+    compactLabel: @Composable (T) -> String,
+    compactGlyph: (T) -> ImageVector?,
+) {
+    // The icon and label in a ListItem, so they sit exactly as the switch rows' do; the options below it, not in its
+    // supporting slot, which ListItem measures intrinsically - and the fitted row (a BoxWithConstraints) can't be.
+    Column {
+        ListItem(
+            leadingContent = { Icon(imageVector = icon, contentDescription = null) },
+            headlineContent = { SettingLabel(label) },
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        )
+        FittedSegmentedChoiceRow(
+            options = options,
+            selected = selected,
+            onSelect = onSelect,
+            label = optionLabel,
+            // Lined up under the label: ListItem's 16dp start, the 24dp icon and the 16dp gap after it; its 24dp end.
+            modifier = Modifier.padding(start = SETTING_TEXT_START, end = 24.dp, bottom = 16.dp),
+            compactLabel = compactLabel,
+            compactGlyph = compactGlyph,
+        )
+    }
+}
+
+private val SETTING_TEXT_START = 56.dp
+
+@Composable
+private fun animationLevelLabel(level: AnimationLevel): String = stringResource(
+    when (level) {
+        AnimationLevel.HIGH -> Res.string.settings_animations_high
+        AnimationLevel.MEDIUM -> Res.string.settings_animations_medium
+        AnimationLevel.LOW -> Res.string.settings_animations_low
+        AnimationLevel.OFF -> Res.string.settings_animations_off
+    },
+)
+
+/** The level's initial for a narrow screen - its own string, as a translation's initials can collide. Off is a glyph. */
+@Composable
+private fun animationLevelShortLabel(level: AnimationLevel): String = when (level) {
+    AnimationLevel.HIGH -> stringResource(Res.string.settings_animations_high_short)
+    AnimationLevel.MEDIUM -> stringResource(Res.string.settings_animations_medium_short)
+    AnimationLevel.LOW -> stringResource(Res.string.settings_animations_low_short)
+    AnimationLevel.OFF -> animationLevelLabel(level)
+}
+
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
@@ -134,12 +204,27 @@ fun SettingsScreen(
         Card(modifier = Modifier.fillMaxWidth()) {
             SwitchSetting(Icons.AutoMirrored.Filled.VolumeUp, stringResource(Res.string.settings_sound), toggles.soundEnabled, viewModel::setSoundEnabled)
             SwitchSetting(Icons.Filled.Vibration, stringResource(Res.string.settings_vibration), toggles.vibrationEnabled, viewModel::setVibrationEnabled)
-            SwitchSetting(Icons.Filled.MotionPhotosOff, stringResource(Res.string.settings_remove_animations), toggles.removeAnimations, viewModel::setRemoveAnimations)
             SwitchSetting(
                 Icons.Filled.CheckCircle,
                 stringResource(Res.string.settings_confirm_leaving),
                 toggles.confirmBeforeLeavingGame,
                 viewModel::setConfirmBeforeLeavingGame,
+            )
+        }
+
+        // A card of its own: a row of choices under its label isn't the same shape as the switch rows above.
+        Card(modifier = Modifier.fillMaxWidth()) {
+            SegmentedSetting(
+                icon = Icons.Filled.Animation,
+                label = stringResource(Res.string.settings_animations),
+                // Least to most, Off first: from the start edge, so left to right here and mirrored in a right-to-left language.
+                options = AnimationLevel.entries.reversed(),
+                selected = toggles.animationLevel,
+                onSelect = viewModel::setAnimationLevel,
+                optionLabel = { animationLevelLabel(it) },
+                compactLabel = { animationLevelShortLabel(it) },
+                // "Off" as a symbol when there's no room for words: an initial would be "O", or a translation's own.
+                compactGlyph = { if (it == AnimationLevel.OFF) Icons.Filled.MotionPhotosOff else null },
             )
         }
 

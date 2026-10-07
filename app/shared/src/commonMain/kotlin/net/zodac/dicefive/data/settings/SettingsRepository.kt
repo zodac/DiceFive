@@ -172,14 +172,21 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     }
 
     /**
-     * The player's own "Remove animations": the app behaves as it does when the system asks for reduced
-     * motion (see `LocalReduceMotion`), whatever the system says, and what still moves is capped at 30fps.
-     * Replaced the narrower "Simple dice roll" switch, whose saved value isn't carried over.
+     * The player's "Animations" level - see [AnimationLevel]. Replaced the "Remove animations" switch: a player who
+     * had it on starts at [AnimationLevel.OFF], which is what it did, and everyone else at the default. The old
+     * switch (itself the successor of "Simple dice roll", whose value wasn't carried over) is dropped on the first
+     * save of a level.
      */
-    val removeAnimations: Flow<Boolean> = dataStore.data.map { prefs -> prefs[REMOVE_ANIMATIONS_KEY] ?: false }
+    val animationLevel: Flow<AnimationLevel> = dataStore.data.map { prefs ->
+        prefs[ANIMATION_LEVEL_KEY]?.let { raw -> runCatching { AnimationLevel.valueOf(raw) }.getOrNull() }
+            ?: if (prefs[REMOVE_ANIMATIONS_KEY] == true) AnimationLevel.OFF else AnimationLevel.default
+    }
 
-    suspend fun setRemoveAnimations(enabled: Boolean) {
-        dataStore.edit { it[REMOVE_ANIMATIONS_KEY] = enabled }
+    suspend fun setAnimationLevel(level: AnimationLevel) {
+        dataStore.edit { prefs ->
+            prefs[ANIMATION_LEVEL_KEY] = level.name
+            prefs.remove(REMOVE_ANIMATIONS_KEY)
+        }
     }
 
     // Style ids, not the ui.game.style types themselves - this is the data layer, and resolving an
@@ -236,6 +243,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val SOUND_ENABLED_KEY = booleanPreferencesKey("sound_enabled")
         val VIBRATION_ENABLED_KEY = booleanPreferencesKey("vibration_enabled")
         val REMOVE_ANIMATIONS_KEY = booleanPreferencesKey("remove_animations")
+        val ANIMATION_LEVEL_KEY = stringPreferencesKey("animation_level")
         val PLAYER_COUNT_KEY = intPreferencesKey("player_count")
         val TURN_TIMER_KEY = stringPreferencesKey("turn_timer")
         val TURN_TIMER_LENGTH_KEY = stringPreferencesKey("turn_timer_length")

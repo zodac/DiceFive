@@ -72,6 +72,7 @@ import net.zodac.dicefive.resources.game_slot_empty_spoken
 import net.zodac.dicefive.resources.game_slot_held_spoken
 import net.zodac.dicefive.resources.game_slot_spoken
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.ambientMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.style.DiceMat
@@ -583,7 +584,7 @@ private fun DiceColumn(
  */
 @Composable
 private fun rememberDieMotion(seed: Int, diceStyles: TrayDiceStyles): DieMotion? {
-    val motion = diceStyles.plain.pupilTravel?.takeIf { !LocalReduceMotion.current }
+    val motion = diceStyles.plain.pupilTravel?.takeIf { ambientMotion }
         ?.let { travel -> remember(travel) { DieMotion(seed, travel) } }
     if (motion != null) {
         LaunchedEffect(motion, motion.awake) {
@@ -699,7 +700,7 @@ private const val PICK_UP_MILLIS = 200
  * near edge, out of sight for the rest of the shake ([PickUpPath]) - it's in the cup; the moment the
  * roll lands (with the landing sound), it's thrown back on from there - up its column into the far
  * wall, bouncing and tumbling back to rest on its result ([TossPath]). Walls either side
- * keep it in its own column. Under reduced motion (the player's "Remove animations", or the
+ * keep it in its own column. Under reduced motion (the player's "Animations" at Off, or the
  * system's) it doesn't move at all: it stays where it lies while rolling and snaps to its result.
  */
 @Composable

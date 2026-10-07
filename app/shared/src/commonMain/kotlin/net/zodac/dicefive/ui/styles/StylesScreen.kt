@@ -171,6 +171,7 @@ import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PAGE_CONTENT_FADE_IN_MILLIS
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.VerticalScrollbar
+import net.zodac.dicefive.ui.common.ambientMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.parseInlineMarkup
 import net.zodac.dicefive.ui.common.pluralStringResource
@@ -773,7 +774,7 @@ private fun Modifier.rolling(roll: DicePickRoll?): Modifier =
 private fun DicePreview(style: DiceStyle, roll: DicePickRoll? = null) {
     // Recomposed only as the face changes; the turning and lifting are drawn (Modifier.rolling).
     val face by remember(roll) { derivedStateOf { roll?.face() ?: DICE_TILE_FACE } }
-    val travel = style.pupilTravel?.takeIf { !LocalReduceMotion.current }
+    val travel = style.pupilTravel?.takeIf { ambientMotion }
     if (travel == null) {
         style.Die(value = face, held = false, modifier = Modifier.size(DIE_ART_SIZE).rolling(roll))
         return

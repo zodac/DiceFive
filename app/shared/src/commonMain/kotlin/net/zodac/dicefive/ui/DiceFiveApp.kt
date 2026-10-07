@@ -14,12 +14,14 @@ import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.achievements.AchievementScrollRequests
 import net.zodac.dicefive.data.achievements.StyleScrollRequests
+import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.navigation.DiceFiveNavHost
 import net.zodac.dicefive.navigation.Screen
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
 import net.zodac.dicefive.ui.common.DriftState
+import net.zodac.dicefive.ui.common.LocalAnimationLevel
 import net.zodac.dicefive.ui.common.LocalDriftState
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.game.LeaveGameConfirmation
@@ -37,14 +39,17 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices) {
     val driftState = remember { DriftState() }
     // Lifecycle-aware, so the system-settings observer behind it is only registered while the app is in front.
     val systemReduceMotion by remember(platform) { platform.reduceMotion() }.collectAsStateWithLifecycle(initialValue = false)
-    // The player's own "Remove animations" asks for the same as the system's, and also caps the frame rate
-    // of whatever still moves (Material's ripples and switch thumbs, a scroll's fling) - see PlatformServices.capFrameRate.
-    val removeAnimations by container.settingsRepository.removeAnimations.collectAsStateWithLifecycle(initialValue = false)
-    LaunchedEffect(platform, removeAnimations) { platform.capFrameRate(removeAnimations) }
-    val reduceMotion = systemReduceMotion || removeAnimations
+    // The player's own "Animations" level: Off asks for the same as the system's reduced motion, and every level
+    // below High caps the frame rate of whatever moves - see PlatformServices.capFrameRate. Only the player's
+    // choice caps it: the system's reduced motion stops the motion, not the frames.
+    val savedLevel by container.settingsRepository.animationLevel.collectAsStateWithLifecycle(initialValue = AnimationLevel.default)
+    LaunchedEffect(platform, savedLevel) { platform.capFrameRate(savedLevel.maxFramesPerSecond) }
+    val animationLevel = if (systemReduceMotion) AnimationLevel.OFF else savedLevel
+    val reduceMotion = !animationLevel.gameplayMotion
     val leaveConfirmation = remember { LeaveGameConfirmation() }
     CompositionLocalProvider(
         LocalReduceMotion provides reduceMotion,
+        LocalAnimationLevel provides animationLevel,
         LocalAppContainer provides container,
         LocalPlatformServices provides platform,
         LocalDriftState provides driftState,

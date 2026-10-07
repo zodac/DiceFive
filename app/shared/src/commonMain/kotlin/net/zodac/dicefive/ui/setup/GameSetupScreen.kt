@@ -3,10 +3,8 @@ package net.zodac.dicefive.ui.setup
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,7 +40,6 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDirection
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,7 +95,7 @@ import net.zodac.dicefive.resources.setup_unlucky_odds_increase_cd
 import net.zodac.dicefive.resources.setup_unlucky_odds_value
 import net.zodac.dicefive.resources.setup_unlucky_title
 import net.zodac.dicefive.ui.common.ChoicePicker
-import net.zodac.dicefive.ui.common.FontFit
+import net.zodac.dicefive.ui.common.FittedSegmentedChoiceRow
 import net.zodac.dicefive.ui.common.MIN_READABLE_FONT_SIZE
 import net.zodac.dicefive.ui.common.ModifierNumberField
 import net.zodac.dicefive.ui.common.ModifierPicker
@@ -107,7 +104,6 @@ import net.zodac.dicefive.ui.common.ModifierStepper
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.common.SoraFontFamily
-import net.zodac.dicefive.ui.common.fitFontSize
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
@@ -478,41 +474,20 @@ private fun CompactNameField(
  * The labels are sized together, so the three always match: [DIFFICULTY_LABEL_MAX_SIZE] when the widest
  * ("Medium") fits its segment, stepping down to [MIN_READABLE_FONT_SIZE] when it doesn't, and only if
  * even that is too wide - a narrow screen - all three become their initials (E / M / H) at that size.
- * A screen reader still hears the full word.
+ * A screen reader still hears the full word. See [FittedSegmentedChoiceRow].
  */
 @Composable
 fun DifficultySelector(selected: Difficulty, onSelect: (Difficulty) -> Unit, modifier: Modifier = Modifier) {
-    val measurer = rememberTextMeasurer()
-    val density = LocalDensity.current
-    val labels = Difficulty.entries.associateWith { it.label() }
-    BoxWithConstraints(modifier = modifier) {
-        val textStyle = MaterialTheme.typography.labelLarge
-        val fit = remember(constraints.maxWidth, textStyle, density, labels) {
-            // A segment's width less its side padding and the 1dp outline each side; the row is infinite
-            // only in a measuring pass, where the largest size will do.
-            val room = with(density) { (constraints.maxWidth / Difficulty.entries.size) - (DIFFICULTY_LABEL_PADDING * 2 + 2.dp).roundToPx() }
-            if (constraints.maxWidth == Constraints.Infinity) {
-                FontFit(DIFFICULTY_LABEL_MAX_SIZE, wraps = false)
-            } else {
-                fitFontSize(DIFFICULTY_LABEL_MAX_SIZE, MIN_READABLE_FONT_SIZE, 0.5.sp) { size ->
-                    Difficulty.entries.all {
-                        measurer.measure(text = labels.getValue(it), style = textStyle.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= room
-                    }
-                }
-            }
-        }
-        SegmentedChoiceRow(
-            options = Difficulty.entries,
-            selected = selected,
-            onSelect = onSelect,
-            label = { if (fit.wraps) labels.getValue(it).take(1) else labels.getValue(it) },
-            spokenLabel = { labels.getValue(it) },
-            modifier = Modifier.fillMaxWidth(),
-            labelStyle = textStyle.copy(fontSize = fit.size),
-            // Tighter than M3's 12dp a side: with the colour circle beside it each segment is narrow.
-            contentPadding = PaddingValues(horizontal = DIFFICULTY_LABEL_PADDING),
-        )
-    }
+    FittedSegmentedChoiceRow(
+        options = Difficulty.entries,
+        selected = selected,
+        onSelect = onSelect,
+        label = { it.label() },
+        modifier = modifier,
+        maxFontSize = DIFFICULTY_LABEL_MAX_SIZE,
+        // Tighter than M3's 12dp a side: with the colour circle beside it each segment is narrow.
+        labelPadding = DIFFICULTY_LABEL_PADDING,
+    )
 }
 
 private val DIFFICULTY_LABEL_PADDING = 4.dp

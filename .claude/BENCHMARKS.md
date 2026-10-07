@@ -493,6 +493,26 @@ the style's art - at the price of a style's animation (neon's pulse, RGB's cycle
 unless the snapshot is refreshed; and the tray's own per-frame work (`toss.value` read in composition, `offset(x, y)`, the
 four-pass `GroundShadow`), which the row harness leaves out.
 
+### The Settings page opening (fit cache)
+
+Reported as "a little slow to render" once the Animations row (a `FittedSegmentedChoiceRow`) was added. Opening the
+page, frame by frame (the "Opening a page" set-up with `SettingsScreen`, 411x891dp), composition + layout of its first
+frame, warm (later openings):
+
+| | First frame |
+|---|---|
+| Before the Animations row | ~22-28ms |
+| With it | ~26-35ms |
+| With it, and the fit cache | ~26-30ms |
+
+Sampling the first frame: about 38% is Compose's own text layout, 10% was `ShrinkThenWrapText` measuring each setting's
+label to choose its size and 5% the segmented row doing the same for its four labels - on every opening, though the
+answer never changes. Fix: `FontFitCache` (`ShrinkThenWrapText.kt`), an LRU of 256 fits keyed on the texts, style,
+limits, width and screen scale, shared by both; a page opened again skips the measuring (samples down ~19%). Every
+page with a `ShrinkThenWrapText` label gets it. The rest is the page's base cost (Scaffold, cards, list items,
+switches, text), as on any page. A debug build on a phone is several times slower than this again; a release build,
+with the Baseline Profile (whose Settings visit now taps a level too), is the one to judge.
+
 ## Still on the table
 
 - **The toss itself** costs ~1.5x a normal frame for its 900ms: each tossed die's position and

@@ -213,8 +213,8 @@ prefixed with the platform's name (`AndroidSoundPlayer`, `IosSoundPlayer`).
   natively - the first real check of `stripDiacritics`, Room/DataStore on iOS, etc.
 - **Haptics tuning**: the impact styles in `IosHapticsPlayer` are a first guess.
 - **Reduce Motion**: `PlatformServices.reduceMotion()` defaults to `flowOf(false)`, so on iOS the
-  shared `LocalReduceMotion` is only on through the app's own "Remove animations" switch, and that
-  switch's 30fps cap (`PlatformServices.capFrameRate`, Android's `CappedFrameClock`) does nothing there
+  shared `LocalReduceMotion` is only on through the app's own "Animations" set to Off, and the
+  levels' frame caps (`PlatformServices.capFrameRate`, Android's `CappedFrameClock`) do nothing there
   yet. Implement it in `IosPlatformServices` from
   `UIAccessibilityIsReduceMotionEnabled()`, re-emitting on
   `UIAccessibilityReduceMotionStatusDidChangeNotification` - not written here because it can't be

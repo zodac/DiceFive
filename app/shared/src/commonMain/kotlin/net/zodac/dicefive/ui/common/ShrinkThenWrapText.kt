@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -44,14 +45,17 @@ fun ShrinkThenWrapText(
 ) {
     val measurer = rememberTextMeasurer()
     val base = if (fontWeight != null) style.copy(fontWeight = fontWeight) else style
+    val density = LocalDensity.current
     BoxWithConstraints(modifier = modifier) {
         val available = constraints.maxWidth
-        val fit = remember(text, base, minFontSize, fontStep, available) {
+        val fit = remember(text, base, minFontSize, fontStep, available, density) {
             if (available == Constraints.Infinity) {
                 FontFit(base.fontSize, wraps = false)
             } else {
-                fitFontSize(base.fontSize, minFontSize, fontStep) { size ->
-                    measurer.measure(text = text, style = base.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= available
+                FontFitCache.getOrPut(FontFitKey(listOf(text), base, minFontSize, fontStep, available, density.density, density.fontScale)) {
+                    fitFontSize(base.fontSize, minFontSize, fontStep) { size ->
+                        measurer.measure(text = text, style = base.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= available
+                    }
                 }
             }
         }
@@ -67,6 +71,38 @@ fun ShrinkThenWrapText(
 
 /** A [fitFontSize] result: the size to draw at, and whether even the smallest didn't fit a line. */
 internal data class FontFit(val size: TextUnit, val wraps: Boolean)
+
+/** Everything a [FontFit] depends on: the [texts] sized together, the style, the limits, the width and the screen's scale. */
+internal data class FontFitKey(
+    val texts: List<String>,
+    val style: TextStyle,
+    val min: TextUnit,
+    val step: TextUnit,
+    val availablePx: Int,
+    val density: Float,
+    val fontScale: Float,
+)
+
+/**
+ * The fits worked out so far, so a page opened again doesn't measure its labels again to choose a size: a measure
+ * per label per size tried, on top of the label's own layout, was a tenth of opening Settings. An LRU of
+ * [FONT_FIT_CACHE_SIZE], touched only from composition - the main thread - so it needs no lock.
+ */
+internal object FontFitCache {
+    // Insertion-ordered, and a hit is moved to the end, so the first entry is always the least recently used.
+    private val fits = LinkedHashMap<FontFitKey, FontFit>()
+
+    fun getOrPut(key: FontFitKey, fit: () -> FontFit): FontFit {
+        fits.remove(key)?.let { hit -> return hit.also { fits[key] = it } }
+        return fit().also {
+            fits[key] = it
+            if (fits.size > FONT_FIT_CACHE_SIZE) fits.remove(fits.keys.first())
+        }
+    }
+}
+
+// Room for every label on every page at once, a few times over (rotation, a font scale change).
+private const val FONT_FIT_CACHE_SIZE = 256
 
 /**
  * The largest size from [max] down to [min] in [step]s at which [fitsOneLine] holds; if none does,

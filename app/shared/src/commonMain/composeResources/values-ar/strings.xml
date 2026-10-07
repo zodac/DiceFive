@@ -624,7 +624,14 @@
     <string name="settings_version">الإصدار %1$s</string>
     <string name="settings_sound">المؤثرات الصوتية</string>
     <string name="settings_vibration">الاهتزاز</string>
-    <string name="settings_remove_animations">إزالة الحركات</string>
+    <string name="settings_animations">الحركات</string>
+    <string name="settings_animations_high">عالية</string>
+    <string name="settings_animations_medium">متوسطة</string>
+    <string name="settings_animations_low">منخفضة</string>
+    <string name="settings_animations_high_short">ع</string>
+    <string name="settings_animations_medium_short">م</string>
+    <string name="settings_animations_low_short">خ</string>
+    <string name="settings_animations_off">متوقفة</string>
     <string name="settings_confirm_leaving">تأكيد مغادرة اللعبة</string>
     <string name="settings_reset_achievements">إعادة ضبط الإنجازات</string>
     <string name="settings_reset_achievements_description">أقفل كل إنجاز من جديد</string>

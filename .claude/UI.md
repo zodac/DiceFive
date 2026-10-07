@@ -528,8 +528,8 @@ seen on a device" line and in the report to the user, not claimed as done.
 - **Item 9 on the Rules pages**: category names like "3x" and "5x" are read as written. "pts" is
   spoken as "points" (`spokenPoints`), the example dice rows in full ("Example: 5, 5, 5, 2, 6. The 2
   and 6 don't count. Scores 23 points."), and lists are real numbered steps rather than typed dashes.
-- **The system's reduced motion is honoured on Android only** (the app's own "Remove animations" switch works
-  everywhere, but its 30fps cap is Android-only). `PlatformServices.reduceMotion()` is true while the
+- **The system's reduced motion is honoured on Android only** (the app's own "Animations" levels work
+  everywhere, but their frame caps are Android-only). `PlatformServices.reduceMotion()` is true while the
   system animation scale is 0 ("Remove animations"); iOS says false until it's wired to
   `UIAccessibility.isReduceMotionEnabled` (see `IOS_SUPPORT.md`), and Compose Multiplatform on iOS has
   no equivalent of the Android behaviour below. **None of it has been seen on a device.** See
@@ -837,15 +837,45 @@ here) still uses a plain `delay`.
 
 ## Reduced motion
 
+**The player's "Animations" level.** Settings has one row, **Animations** (`AnimationLevel`, saved by
+`SettingsRepository.animationLevel`; it replaced the "Remove animations" switch, which itself replaced "Simple dice
+roll" - a player who had the switch on starts at Off). It's a `SegmentedSetting` in a card of its own, between the
+switches and the resets: icon and label as a switch row has them, and a segmented row of the four levels under the
+label, Off to High from the start edge (so mirrored in Arabic) (`FittedSegmentedChoiceRow`, shared with the New Game AI difficulty: labels shrink together, then turn into
+initials - their own `_short` strings, as Arabic's Medium and Low share a letter - with Off as a crossed-out motion
+icon). No description line - the maintainer judged the levels self-explanatory; what each does is in the table below.
+The segmented row isn't inside the `ListItem`: its supporting slot is measured intrinsically, which the fitted row's
+`BoxWithConstraints` throws on.
+
+| Level | Decoration that moves on its own | Gameplay motion | Score tile pulse | Frames |
+|---|---|---|---|---|
+| **High** (default) | moves | plays | pulses | the screen's own rate (90/120Hz where it has one) |
+| **Medium** | still | plays | pulses | up to 60 |
+| **Low** | still | plays | steady | up to 30 |
+| **Off** | still | none (`LocalReduceMotion`) | steady | up to 30 |
+
+"Decoration that moves on its own" is what keeps an idle screen drawing every refresh: the menu's drifting dice,
+`FloatingDiceBackground`, everything on `TwinkleClock`/`rememberArtSeconds` (stars, sparkles, Neon, RGB, Glitch, the
+bee...), the cups' ambient cycle (`rememberAmbientCycle` - steam, bubbles) and the googly dice's pupils. Each reads
+`ambientMotion` (`ui/common/ReduceMotion.kt`), true only at High, and below it holds the same still pose it has
+under reduced motion - so no new art. The score tile reads `scorePulse`. Both are false under a `LocalReduceMotion`
+provided further down, which is how a Styles tile off screen is still held. **Anything new that loops while nothing
+is happening must read `ambientMotion`**; anything that answers play reads `LocalReduceMotion`, as below.
+
+**Frames:** `MainActivity` builds the window's recomposer itself on `CappedFrameClock` (app/android), which
+`PlatformServices.capFrameRate` sets from the level; every Compose animation, and the recomposer, waits on it. It
+only skips whole refreshes, so a 60 cap gives 60 on a 60 or 120Hz screen but 45 on 90Hz and 48 on 144Hz - which
+is why a capped level also asks the window for the lowest refresh rate from 60Hz up (`preferRefreshRateFor`,
+`RefreshRateTest`): a panel that can drop to 60Hz does, giving a true 60 and saving the panel's own power. Never below
+60Hz, even at a 30 cap, so touch and scrolling stay responsive. Only the player's level caps frames - the system's
+reduced motion doesn't. iOS doesn't cap yet (`capFrameRate` defaults to doing nothing). The 60fps floor (no
+animation below 60) holds for High and Medium; 30 is only ever the player's own choice of Low or Off.
+
 **Two sources, one switch.** `LocalReduceMotion` is true when the system asks for less motion (below) *or*
-the player turns on the app's own **"Remove animations"** (Settings; `SettingsRepository.removeAnimations`,
-which replaced the narrower "Simple dice roll"). `DiceFiveApp` ORs the two and provides the result once, so
-everything below applies to either. The app's switch can't do what the system's does to Compose's own
-`MotionDurationScale` (that's fixed per window by the system setting), so what it leaves moving - Material's own
-touch ripples and switch thumbs, a scroll's fling - instead runs on a frame clock **capped at
-30fps**: `MainActivity` builds the window's recomposer itself on `CappedFrameClock` (app/android), which
-`PlatformServices.capFrameRate` turns on and off with the setting. Every Compose animation, and the
-recomposer, waits on that clock. iOS doesn't cap yet (`capFrameRate` defaults to doing nothing).
+the player sets "Animations" to **Off**. `DiceFiveApp` provides it, and `LocalAnimationLevel` beside it (Off while
+the system asks for less motion), once, so everything below applies to either. The app's level can't do what the
+system's does to Compose's own `MotionDurationScale` (that's fixed per window by the system setting), so what Off
+leaves moving - Material's own touch ripples and switch thumbs, a scroll's fling - runs at its 30fps cap instead.
 
 **Two layers.** On Android, Compose itself already follows the system animation scale (read from the
 1.12.1 bytecode, not run on a device): `WindowRecomposer` observes `animator_duration_scale` and puts
