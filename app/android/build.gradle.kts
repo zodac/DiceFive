@@ -604,7 +604,12 @@ val verifyAssetSources = tasks.register<VerifyAssetSourcesTask>("verifyAssetSour
         include("*/res/**", "*/rawAudioSource/**", "*/assets/**")
         exclude("*/res/values*/**")
     })
-    assetFiles.from(project(":app:shared").fileTree("src") { include("*/composeResources/**") })
+    // values*/ holds the shared UI's strings - the app's own text, as with res/values*/ above, not a
+    // bundled asset with a source to record.
+    assetFiles.from(project(":app:shared").fileTree("src") {
+        include("*/composeResources/**")
+        exclude("*/composeResources/values*/**")
+    })
     sourcesManifest.set(licensingDir.file("asset-sources.json"))
     librariesDirectory.set(licensingDir.dir("libraries"))
     rootDirectory.set(rootProject.layout.projectDirectory)

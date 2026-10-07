@@ -48,11 +48,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.game_cup_cd
+import net.zodac.dicefive.resources.game_cup_roll_action
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
@@ -256,6 +261,9 @@ internal fun DiceCup(
 ) {
     val visualTheme = LocalGameVisualTheme.current
     val cupInteractionSource = remember { MutableInteractionSource() }
+    // Resolved here, in composition: the semantics block below can't read resources itself.
+    val rollLabel = stringResource(Res.string.game_cup_roll_action)
+    val cupDescription = cup?.let { pluralStringResource(Res.plurals.game_cup_cd, it.rollsRemaining, it.rollsRemaining) }
     Box(
         modifier = modifier
             // The cup itself rotates (shake + tilt) via graphicsLayer, which only affects
@@ -281,16 +289,16 @@ internal fun DiceCup(
                             interactionSource = cupInteractionSource,
                             indication = null,
                             enabled = !cup.rollInHand,
-                            onClickLabel = "Roll",
+                            onClickLabel = rollLabel,
                             role = Role.Button,
                             onClick = cup.onCupTap,
                         )
                         // Said instead of the "x3" drawn beside the cup.
                         .clearAndSetSemantics {
-                            contentDescription = "Dice cup, ${cup.rollsRemaining} ${if (cup.rollsRemaining == 1) "roll" else "rolls"} left"
+                            contentDescription = cupDescription.orEmpty()
                             role = Role.Button
                             if (cup.rollInHand) disabled()
-                            onClick(label = "Roll") {
+                            onClick(label = rollLabel) {
                                 cup.onCupTap()
                                 true
                             }

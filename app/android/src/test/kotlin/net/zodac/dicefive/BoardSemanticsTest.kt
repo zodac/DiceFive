@@ -18,6 +18,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import java.util.Locale
 import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.Die
@@ -235,6 +236,37 @@ class BoardSemanticsTest {
         compose.onNode(hasText("Robo") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)).assert(hasStateDescription("1st place"))
         // "=2nd" would be read as "equals 2nd" - the tab's state says it instead.
         compose.onAllNodesWithText("=2nd", useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    // The places come from the platform's ordinal formatter (ICU on Android), not a hand-written
+    // English suffix - this checks it says what the hand-written one did for every place a game has.
+    @Test
+    fun `every place a four-player game can have is said as an English ordinal`() {
+        assertFourPlacesSaidInEnglish()
+    }
+
+    // The ordinals follow the strings' language, not the device's: the app has no French yet, so a
+    // French phone gets English text - and English places with it, not "1er" among English words.
+    @Test
+    @Config(qualifiers = "fr")
+    fun `on a phone in a language the app isn't in the places stay English like the text around them`() {
+        assertEquals("fr", Locale.getDefault().language)
+        assertFourPlacesSaidInEnglish()
+    }
+
+    private fun assertFourPlacesSaidInEnglish() {
+        val players = listOf(30, 25, 20, 10).mapIndexed { index, chance ->
+            PlayerState(name = "P${index + 1}", type = PlayerType.HUMAN).let { it.copy(scorecard = it.scorecard + (ScoreCategory.CHANCE to listOf(chance))) }
+        }
+        compose.setContent {
+            DiceFiveTheme {
+                PlayerHeaderBar(players = players, currentPlayerIndex = 1, viewedPlayerIndex = null, enabled = true, onPlayerTap = {}, modifier = Modifier.width(400.dp))
+            }
+        }
+
+        listOf("1st place", "Current turn, 2nd place", "3rd place", "4th place").forEachIndexed { index, state ->
+            compose.onNode(hasText("P${index + 1}") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)).assert(hasStateDescription(state))
+        }
     }
 
     @Test
