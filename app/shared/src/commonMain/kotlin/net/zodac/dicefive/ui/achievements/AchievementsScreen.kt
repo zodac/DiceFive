@@ -78,6 +78,7 @@ import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.formatTimestamp
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.theme.GoldAccent
+import org.jetbrains.compose.resources.stringResource
 
 // contentType tags, so hiddenUnderPinnedHeader can tell a category header from a row by the list's
 // own layout info rather than by parsing keys.
@@ -312,7 +313,7 @@ fun AchievementsScreen(
                 state.groups.forEachIndexed { groupIndex, group ->
                     stickyHeader(key = "group-${group.category.name}", contentType = HEADER_CONTENT_TYPE) {
                         GroupHeader(
-                            text = group.category.label,
+                            text = stringResource(group.category.label),
                             onPrevious = headerIndices.getOrNull(groupIndex - 1)?.let { target ->
                                 { scope.launch { listState.animateScrollToItem(target) } }
                             },
@@ -491,7 +492,7 @@ private fun AchievementRow(
 
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = item.achievement.title,
+                        text = stringResource(item.achievement.title),
                         style = MaterialTheme.typography.titleSmall,
                         color = ink(LocalContentColor.current),
                     )
@@ -499,7 +500,7 @@ private fun AchievementRow(
                         text = if (item.achievement.visibility == AchievementVisibility.HIDDEN && !unlocked) {
                             "???"
                         } else {
-                            item.achievement.description
+                            stringResource(item.achievement.description)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = ink(MaterialTheme.colorScheme.onSurfaceVariant),

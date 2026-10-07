@@ -54,6 +54,7 @@ import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.flow.collectLatest
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.theme.GoldAccent
+import org.jetbrains.compose.resources.stringResource
 import net.zodac.dicefive.ui.game.style.DieMotion
 import net.zodac.dicefive.ui.game.style.LocalDieMotion
 import androidx.compose.runtime.getValue
@@ -1536,12 +1537,13 @@ private fun <T : TableArt> LockedStyleFamilyTile(
 }
 
 /** Just the core requirement for [family], for the tooltip a tap on its locked tile shows - [tooltipMarkup]'s markup. */
+@Composable
 private fun shortRequirement(family: StyleFamily<*>): String =
     when (val unlock = family.unlock) {
         StyleUnlock.Free -> "Always available"
         is StyleUnlock.AchievementCount ->
             "`${unlock.count}` ${if (unlock.count == 1) "achievement" else "achievements"} needed"
-        is StyleUnlock.SpecificAchievement -> "`${unlock.achievement.title}` achievement needed"
+        is StyleUnlock.SpecificAchievement -> "`${stringResource(unlock.achievement.title)}` achievement needed"
     }
 
 /**
@@ -1549,6 +1551,7 @@ private fun shortRequirement(family: StyleFamily<*>): String =
  * says it - in [parseInlineMarkup]'s markup, with the counts and any achievement's name in backticks
  * so they're highlighted.
  */
+@Composable
 private fun unlockRequirement(family: StyleFamily<*>, achievements: AchievementsState): String =
     when (val unlock = family.unlock) {
         StyleUnlock.Free -> "${family.name} is always available."
@@ -1557,7 +1560,7 @@ private fun unlockRequirement(family: StyleFamily<*>, achievements: Achievements
             "Earn `${unlock.count}` $plural to unlock ${family.name}. You've earned `${achievements.countedUnlocks}` so far."
         }
         // Never a secret one: its style isn't shown until it's earned (StyleUnlock.hiddenWhileLocked).
-        is StyleUnlock.SpecificAchievement -> "Earn `${unlock.achievement.title}` to unlock ${family.name}."
+        is StyleUnlock.SpecificAchievement -> "Earn `${stringResource(unlock.achievement.title)}` to unlock ${family.name}."
     }
 
 /**
