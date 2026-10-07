@@ -48,7 +48,7 @@ class RulesTextTest {
         showRules()
 
         listOf(
-            "How to Play", "Upper Section", "Lower Section", "5x & Joker", "Tie Breaks", "Tricolour", "Quickfire", "Stud", "Third Wind", "Hit List", "Modifiers",
+            "How to Play", "Upper Section", "Lower Section", "5x & Joker", "Tie Breaks", "Tricolour", "Quickfire", "7 Dice Stud", "Third Wind", "Hit List", "Modifiers",
         ).forEach { compose.onNodeWithText(it).assertExists() }
     }
 

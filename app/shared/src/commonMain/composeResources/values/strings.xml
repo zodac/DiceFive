@@ -197,9 +197,9 @@
     <string name="achievement_quickfire_score_title">Six Of The Best</string>
     <string name="achievement_quickfire_score_description">Score 150 or more in a game of 'Quickfire' mode</string>
     <string name="achievement_stud_win_title">Hold 'Em</string>
-    <string name="achievement_stud_win_description">Win a game of 'Stud' mode</string>
+    <string name="achievement_stud_win_description">Win a game of '7 Dice Stud' mode</string>
     <string name="achievement_stud_lucky_seven_title">Lucky Seven</string>
-    <string name="achievement_stud_lucky_seven_description">Have all seven dice show the same number in 'Stud' mode</string>
+    <string name="achievement_stud_lucky_seven_description">Have all seven dice show the same number in '7 Dice Stud' mode</string>
     <string name="achievement_third_wind_win_title">Gone With The Wind</string>
     <string name="achievement_third_wind_win_description">Win a game of 'Third Wind' mode</string>
     <string name="achievement_third_wind_no_zeroes_title">Third Time's The Charm</string>
@@ -320,7 +320,7 @@
     <string name="mode_tricolour_description">Dice also roll red, yellow or blue, with four colour boxes to fill</string>
     <string name="mode_quickfire">Quickfire</string>
     <string name="mode_quickfire_description">5x and six random boxes are disabled every game</string>
-    <string name="mode_stud">Stud</string>
+    <string name="mode_stud">7 Dice Stud</string>
     <string name="mode_stud_description">Roll seven dice, but only the five you hold score</string>
     <string name="mode_third_wind">Third Wind</string>
     <string name="mode_third_wind_description">Every category is scored three times</string>
@@ -1087,9 +1087,9 @@
     <string name="rules_quickfire_4">The *Upper Section* bonus shrinks with the categories. It's still **35pts**, but each disabled category lowers the **63pts** you need by three of its number. For example, with `Threes` disabled you need **54pts**, which is **9pts** less. If every *Upper Section* category is disabled, there's no bonus.</string>
     <string name="rules_quickfire_5">The *Extended Scores* modifier's categories are never disabled.</string>
     <string name="rules_quickfire_6">Everything else plays exactly the same as the *Standard* rules, with three rolls a turn. Scores from this mode don't go on the *Leaderboard*, since every game has a different scorecard, but they still count towards your *Statistics*.</string>
-    <string name="rules_stud_title">Mode: Stud</string>
+    <string name="rules_stud_title">Mode: 7 Dice Stud</string>
     <!-- A tab: keep it short. -->
-    <string name="rules_stud_tab">Stud</string>
+    <string name="rules_stud_tab">7 Dice Stud</string>
     <string name="rules_stud_1">A custom mode extending the *Standard* game mode. Every roll is **seven** dice instead of five, but only **five** of them can score.</string>
     <string name="rules_stud_2">There are still only **five** hold slots. Tap a die on the mat to hold it - it goes to the free slot nearest it - and tap a hold slot to put its die back. Only the dice you hold score, so you can only score once all **five** slots are full. Until then, your scorecard shows what the dice you've held so far would score.</string>
     <string name="rules_stud_3">Here's an example turn:</string>
