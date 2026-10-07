@@ -201,7 +201,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
         docker-ce-cli="5:29.8.2-1~debian.13~trixie" \
         containerd.io="2.3.6-1~debian.13~trixie" \
         docker-buildx-plugin="0.37.1-1~debian.13~trixie" \
-        docker-compose-plugin="5.5.1-1~debian.13~trixie"
+        docker-compose-plugin="5.6.0-1~debian.13~trixie"
 # END DEBIAN PACKAGES
 
 # ── JDK 25 / Maven / Node (copied from the toolchain stages above) ───────────
@@ -420,7 +420,7 @@ RUN runuser -u dev -- env HOME=/home/dev bash -c \
 # BINARY itself stays out of the image (persisted in the ms-playwright volume via
 # setup.sh) to avoid baking ~150MB of Chromium into every layer.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    npx --yes playwright@1.63.0 install-deps chromium
+    npx --yes playwright@1.64.0 install-deps chromium
 
 # ── Claude Code CLI into a dev-owned npm prefix ──────────────────────────────
 # Installing `-g` into npm's default /usr prefix makes the package and the
