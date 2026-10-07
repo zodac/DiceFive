@@ -1161,7 +1161,6 @@
     <string name="rules_hit_list_3">Every number the target names is among your dice, in any order. Scores the target's points</string>
     <string name="rules_hit_list_4">Every number the target names is on the die in its own place. Scores double</string>
     <string name="rules_hit_list_5">At least **two** of the numbers the target names are among your dice, but not all of them. Scores half the target's points, times the share of its numbers you rolled, rounded to the nearest **5pts**</string>
-    <string name="rules_hit_list_6">With only **one** of a target's numbers rolled, it scores **0pts**. A partial hit still uses up its target, so the full points are gone for the rest of the game. The `Alibi` only takes a full hit.</string>
     <string name="rules_hit_list_7">Harder targets are worth more, and each target's tile shows its points. Naming **three** numbers is worth **10pts** or **15pts**, **four** numbers **20pts** to **30pts**, and all **five** **40pts** to **75pts**. An open place makes a target easier to hit, so it's worth less.</string>
     <string name="rules_hit_list_8">As you roll, each target's tile marks the numbers your dice already show with a bar beneath them, gold once a die is in its own place, and the tile lights up once it's hit.</string>
     <string name="rules_hit_list_9">Score a hit here instead of in its target. It's worth the points of the best open target your dice hit, never doubled, and that target stays open for another try at an exact hit</string>
