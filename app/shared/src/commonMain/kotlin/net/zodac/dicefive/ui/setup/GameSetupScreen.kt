@@ -115,6 +115,9 @@ import net.zodac.dicefive.ui.game.PlayerSetupSlot
  */
 private val TYPE_CONTROL_WIDTH = 76.dp
 
+/** What a chip adds round its label: its own padding on each side, and a little to spare. */
+private val TYPE_CHIP_PADDING = 32.dp
+
 /** Above this system font scale a player row stacks its controls (see [PlayerRow]). At 1.0 - and up to a
  * hair over it - the row is the one it has always been. */
 private const val STACKED_PLAYER_ROW_FONT_SCALE = 1.05f
@@ -355,7 +358,13 @@ private fun PlayerRow(
         }
     }
     // Grows with the font so "User" and "CPU" fit; player 1's empty space grows with it, so every row still lines up.
-    val typeControlWidth = TYPE_CONTROL_WIDTH * fontScale.coerceAtLeast(1f)
+    // ...and with the words: "Usuario" is wider than "User", and a label that doesn't fit its chip would break mid-word, so
+    // the chip is as wide as the longer of its two labels needs when that's more than the usual width.
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val labelStyle = MaterialTheme.typography.labelLarge.copy(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold)
+    val labelWidth = with(density) { maxOf(measurer.measure(userLabel, labelStyle).size.width, measurer.measure(cpuLabel, labelStyle).size.width).toDp() }
+    val typeControlWidth = maxOf(TYPE_CONTROL_WIDTH * fontScale.coerceAtLeast(1f), labelWidth + TYPE_CHIP_PADDING)
     val typeControl: @Composable () -> Unit = {
         if (isTypeLocked) {
             Spacer(modifier = Modifier.width(typeControlWidth))
@@ -369,7 +378,7 @@ private fun PlayerRow(
                     // "CPU" and "User" sitting at different horizontal positions. A label that fills
                     // the whole slot and centers its own text isn't subject to that.
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(if (slot.type == PlayerType.AI) cpuLabel else userLabel, fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold)
+                        Text(if (slot.type == PlayerType.AI) cpuLabel else userLabel, fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                     }
                 },
                 modifier = Modifier.width(typeControlWidth),
