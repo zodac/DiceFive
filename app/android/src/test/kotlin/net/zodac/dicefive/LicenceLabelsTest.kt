@@ -64,9 +64,9 @@ class LicenceLabelsTest {
         assertUsageLines(labelsFor(report))
     }
 
-    // Like the ordinals, the list follows the strings' language: no French yet, so no "et".
+    // Like the ordinals, the list follows the strings' language: no German yet, so no "und".
     @Test
-    @Config(qualifiers = "fr")
+    @Config(qualifiers = "de")
     fun `on a phone in a language the app isn't in the usage line stays English`() {
         assertUsageLines(labelsFor(report))
     }
