@@ -126,7 +126,7 @@ class VolcanoDiceCupStyle(override val id: String, private val palette: VolcanoP
                 }
             }
         }
-        val rumbleWeight by animateFloatAsState(if (rolling) 1f else 0f, tween(RUMBLE_FADE_MILLIS), label = "volcanoRumbleFade")
+        val rumbleWeight by animateFloatAsState(if (rolling) 1f else 0f, tween(RUMBLE_FADE_MILLIS), label = "volcanoRumbleFade") // i18n: not translated - an animation label, not shown
         // The rumble's clock only exists while it counts, so a still volcano asks for no frames.
         val rumble: State<Float>? = if (rolling || rumbleWeight > 0f) rememberRumbleLoop() else null
 
@@ -516,9 +516,9 @@ class VolcanoDiceCupStyle(override val id: String, private val palette: VolcanoP
 private const val BOMB_GRAVITY = 95f
 
 @Composable
-private fun rememberRumbleLoop(): State<Float> = rememberInfiniteTransition(label = "volcanoRumble").animateFloat(
+private fun rememberRumbleLoop(): State<Float> = rememberInfiniteTransition(label = "volcanoRumble").animateFloat( // i18n: not translated - an animation label, not shown
     initialValue = 0f,
     targetValue = 1f,
     animationSpec = infiniteRepeatable(tween(RUMBLE_LOOP_MILLIS, easing = LinearEasing), RepeatMode.Restart),
-    label = "volcanoRumbleLoop",
+    label = "volcanoRumbleLoop", // i18n: not translated - an animation label, not shown
 )

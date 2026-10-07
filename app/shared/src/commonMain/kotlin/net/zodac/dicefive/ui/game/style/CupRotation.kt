@@ -145,7 +145,7 @@ fun CupCanvas(
     val sloshing by animateFloatAsState(
         targetValue = rotation,
         animationSpec = spring(dampingRatio = 0.3f, stiffness = Spring.StiffnessLow),
-        label = "cupLiquid",
+        label = "cupLiquid", // i18n: not translated - an animation label, not shown
     )
     // No slosh under reduced motion: whatever's in the cup moves with it, on the same frame - even a snap would
     // trail the cup by one.
@@ -194,7 +194,7 @@ fun rememberCupRotation(rolling: Boolean, tilted: Boolean, restingTiltDegrees: F
         } else {
             tween(durationMillis = if (restTiltTarget == 0f) SNAP_TO_STANDING_MILLIS else POUR_TILT_MILLIS)
         },
-        label = "cupTilt",
+        label = "cupTilt", // i18n: not translated - an animation label, not shown
     )
     // Faded in/out over WOBBLE_FADE_MILLIS rather than switched the instant `rolling` flips:
     // cutting the wobble's contribution off abruptly could drop the rendered rotation anywhere in a
@@ -204,7 +204,7 @@ fun rememberCupRotation(rolling: Boolean, tilted: Boolean, restingTiltDegrees: F
     val wobbleWeight by animateFloatAsState(
         targetValue = if (rolling) 1f else 0f,
         animationSpec = tween(durationMillis = WOBBLE_FADE_MILLIS),
-        label = "cupWobbleFade",
+        label = "cupWobbleFade", // i18n: not translated - an animation label, not shown
     )
     // The wobble's clock only exists while it counts - shaking, or fading out after one. A still
     // cup then asks for no frames at all: an infinite transition left running at weight 0 kept
@@ -217,14 +217,14 @@ fun rememberCupRotation(rolling: Boolean, tilted: Boolean, restingTiltDegrees: F
 /** The shake's back-and-forth, in degrees - see [rememberCupRotation] for when it runs. */
 @Composable
 private fun rememberShakeWobble(): Float {
-    val shakeWobble by rememberInfiniteTransition(label = "cupShake").animateFloat(
+    val shakeWobble by rememberInfiniteTransition(label = "cupShake").animateFloat( // i18n: not translated - an animation label, not shown
         initialValue = -SHAKE_AMPLITUDE_DEGREES,
         targetValue = SHAKE_AMPLITUDE_DEGREES,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 90, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
         ),
-        label = "cupWobble",
+        label = "cupWobble", // i18n: not translated - an animation label, not shown
     )
     return shakeWobble
 }

@@ -60,12 +60,12 @@ import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.game.TieBreak
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_page_of
 import net.zodac.dicefive.resources.common_tied_rank
 import net.zodac.dicefive.resources.scores_empty
 import net.zodac.dicefive.resources.scores_header_player
 import net.zodac.dicefive.resources.scores_header_score
 import net.zodac.dicefive.resources.scores_next
-import net.zodac.dicefive.resources.scores_page
 import net.zodac.dicefive.resources.scores_previous
 import net.zodac.dicefive.resources.scores_title
 import net.zodac.dicefive.ui.common.LazyListScrollbar
@@ -520,7 +520,7 @@ private fun PaginationControls(
             Text(stringResource(Res.string.scores_previous))
         }
         Text(
-            text = stringResource(Res.string.scores_page, pageIndex + 1, totalPages),
+            text = stringResource(Res.string.common_page_of, pageIndex + 1, totalPages),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

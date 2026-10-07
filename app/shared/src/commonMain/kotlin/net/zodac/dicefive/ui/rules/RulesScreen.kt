@@ -88,8 +88,18 @@ import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.HitTarget
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_page_of
+import net.zodac.dicefive.resources.rules_5x_and_joker_1
+import net.zodac.dicefive.resources.rules_5x_and_joker_2
+import net.zodac.dicefive.resources.rules_5x_and_joker_3
+import net.zodac.dicefive.resources.rules_5x_and_joker_4
+import net.zodac.dicefive.resources.rules_5x_and_joker_5
+import net.zodac.dicefive.resources.rules_5x_and_joker_6
+import net.zodac.dicefive.resources.rules_5x_and_joker_tab
+import net.zodac.dicefive.resources.rules_5x_and_joker_title
 import net.zodac.dicefive.resources.rules_example_any_place_spoken
 import net.zodac.dicefive.resources.rules_example_coloured_die_spoken
+import net.zodac.dicefive.resources.rules_example_equals
 import net.zodac.dicefive.resources.rules_example_held_spoken
 import net.zodac.dicefive.resources.rules_example_ignored_spoken
 import net.zodac.dicefive.resources.rules_example_locked_spoken
@@ -101,6 +111,141 @@ import net.zodac.dicefive.resources.rules_example_target_spoken
 import net.zodac.dicefive.resources.rules_example_tile_alibi_spoken
 import net.zodac.dicefive.resources.rules_example_tile_target_spoken
 import net.zodac.dicefive.resources.rules_example_worth_spoken
+import net.zodac.dicefive.resources.rules_hit_list_1
+import net.zodac.dicefive.resources.rules_hit_list_10
+import net.zodac.dicefive.resources.rules_hit_list_11
+import net.zodac.dicefive.resources.rules_hit_list_12
+import net.zodac.dicefive.resources.rules_hit_list_13
+import net.zodac.dicefive.resources.rules_hit_list_14
+import net.zodac.dicefive.resources.rules_hit_list_15
+import net.zodac.dicefive.resources.rules_hit_list_16
+import net.zodac.dicefive.resources.rules_hit_list_17
+import net.zodac.dicefive.resources.rules_hit_list_2
+import net.zodac.dicefive.resources.rules_hit_list_3
+import net.zodac.dicefive.resources.rules_hit_list_4
+import net.zodac.dicefive.resources.rules_hit_list_5
+import net.zodac.dicefive.resources.rules_hit_list_6
+import net.zodac.dicefive.resources.rules_hit_list_7
+import net.zodac.dicefive.resources.rules_hit_list_8
+import net.zodac.dicefive.resources.rules_hit_list_9
+import net.zodac.dicefive.resources.rules_hit_list_tab
+import net.zodac.dicefive.resources.rules_hit_list_title
+import net.zodac.dicefive.resources.rules_how_to_play_1
+import net.zodac.dicefive.resources.rules_how_to_play_2
+import net.zodac.dicefive.resources.rules_how_to_play_3
+import net.zodac.dicefive.resources.rules_how_to_play_4
+import net.zodac.dicefive.resources.rules_how_to_play_tab
+import net.zodac.dicefive.resources.rules_how_to_play_title
+import net.zodac.dicefive.resources.rules_lower_section_1
+import net.zodac.dicefive.resources.rules_lower_section_2
+import net.zodac.dicefive.resources.rules_lower_section_3
+import net.zodac.dicefive.resources.rules_lower_section_4
+import net.zodac.dicefive.resources.rules_lower_section_5
+import net.zodac.dicefive.resources.rules_lower_section_6
+import net.zodac.dicefive.resources.rules_lower_section_7
+import net.zodac.dicefive.resources.rules_lower_section_8
+import net.zodac.dicefive.resources.rules_lower_section_tab
+import net.zodac.dicefive.resources.rules_lower_section_title
+import net.zodac.dicefive.resources.rules_modifiers_1
+import net.zodac.dicefive.resources.rules_modifiers_10
+import net.zodac.dicefive.resources.rules_modifiers_11
+import net.zodac.dicefive.resources.rules_modifiers_12
+import net.zodac.dicefive.resources.rules_modifiers_13
+import net.zodac.dicefive.resources.rules_modifiers_14
+import net.zodac.dicefive.resources.rules_modifiers_15
+import net.zodac.dicefive.resources.rules_modifiers_16
+import net.zodac.dicefive.resources.rules_modifiers_17
+import net.zodac.dicefive.resources.rules_modifiers_2
+import net.zodac.dicefive.resources.rules_modifiers_3
+import net.zodac.dicefive.resources.rules_modifiers_4
+import net.zodac.dicefive.resources.rules_modifiers_5
+import net.zodac.dicefive.resources.rules_modifiers_6
+import net.zodac.dicefive.resources.rules_modifiers_7
+import net.zodac.dicefive.resources.rules_modifiers_8
+import net.zodac.dicefive.resources.rules_modifiers_9
+import net.zodac.dicefive.resources.rules_modifiers_tab
+import net.zodac.dicefive.resources.rules_modifiers_title
+import net.zodac.dicefive.resources.rules_name_exact_hit
+import net.zodac.dicefive.resources.rules_name_hit
+import net.zodac.dicefive.resources.rules_name_partial_hit
+import net.zodac.dicefive.resources.rules_page_count
+import net.zodac.dicefive.resources.rules_plus_spoken
+import net.zodac.dicefive.resources.rules_points_short
+import net.zodac.dicefive.resources.rules_points_spoken
+import net.zodac.dicefive.resources.rules_points_sum
+import net.zodac.dicefive.resources.rules_quickfire_1
+import net.zodac.dicefive.resources.rules_quickfire_2
+import net.zodac.dicefive.resources.rules_quickfire_3
+import net.zodac.dicefive.resources.rules_quickfire_4
+import net.zodac.dicefive.resources.rules_quickfire_5
+import net.zodac.dicefive.resources.rules_quickfire_6
+import net.zodac.dicefive.resources.rules_quickfire_tab
+import net.zodac.dicefive.resources.rules_quickfire_title
+import net.zodac.dicefive.resources.rules_step_number
+import net.zodac.dicefive.resources.rules_stud_1
+import net.zodac.dicefive.resources.rules_stud_2
+import net.zodac.dicefive.resources.rules_stud_3
+import net.zodac.dicefive.resources.rules_stud_4
+import net.zodac.dicefive.resources.rules_stud_5
+import net.zodac.dicefive.resources.rules_stud_6
+import net.zodac.dicefive.resources.rules_stud_7
+import net.zodac.dicefive.resources.rules_stud_8
+import net.zodac.dicefive.resources.rules_stud_9
+import net.zodac.dicefive.resources.rules_stud_tab
+import net.zodac.dicefive.resources.rules_stud_title
+import net.zodac.dicefive.resources.rules_third_wind_1
+import net.zodac.dicefive.resources.rules_third_wind_10
+import net.zodac.dicefive.resources.rules_third_wind_11
+import net.zodac.dicefive.resources.rules_third_wind_12
+import net.zodac.dicefive.resources.rules_third_wind_2
+import net.zodac.dicefive.resources.rules_third_wind_3
+import net.zodac.dicefive.resources.rules_third_wind_4
+import net.zodac.dicefive.resources.rules_third_wind_5
+import net.zodac.dicefive.resources.rules_third_wind_6
+import net.zodac.dicefive.resources.rules_third_wind_7
+import net.zodac.dicefive.resources.rules_third_wind_8
+import net.zodac.dicefive.resources.rules_third_wind_9
+import net.zodac.dicefive.resources.rules_third_wind_tab
+import net.zodac.dicefive.resources.rules_third_wind_title
+import net.zodac.dicefive.resources.rules_tie_breaks_1
+import net.zodac.dicefive.resources.rules_tie_breaks_2
+import net.zodac.dicefive.resources.rules_tie_breaks_3
+import net.zodac.dicefive.resources.rules_tie_breaks_4
+import net.zodac.dicefive.resources.rules_tie_breaks_5
+import net.zodac.dicefive.resources.rules_tie_breaks_6
+import net.zodac.dicefive.resources.rules_tie_breaks_7
+import net.zodac.dicefive.resources.rules_tie_breaks_8
+import net.zodac.dicefive.resources.rules_tie_breaks_tab
+import net.zodac.dicefive.resources.rules_tie_breaks_title
+import net.zodac.dicefive.resources.rules_timer_example_cd
+import net.zodac.dicefive.resources.rules_title
+import net.zodac.dicefive.resources.rules_tricolour_1
+import net.zodac.dicefive.resources.rules_tricolour_2
+import net.zodac.dicefive.resources.rules_tricolour_3
+import net.zodac.dicefive.resources.rules_tricolour_4
+import net.zodac.dicefive.resources.rules_tricolour_5
+import net.zodac.dicefive.resources.rules_tricolour_6
+import net.zodac.dicefive.resources.rules_tricolour_7
+import net.zodac.dicefive.resources.rules_tricolour_8
+import net.zodac.dicefive.resources.rules_tricolour_tab
+import net.zodac.dicefive.resources.rules_tricolour_title
+import net.zodac.dicefive.resources.rules_upper_section_1
+import net.zodac.dicefive.resources.rules_upper_section_2
+import net.zodac.dicefive.resources.rules_upper_section_3
+import net.zodac.dicefive.resources.rules_upper_section_tab
+import net.zodac.dicefive.resources.rules_upper_section_title
+import net.zodac.dicefive.resources.score_blues
+import net.zodac.dicefive.resources.score_chance
+import net.zodac.dicefive.resources.score_coloured_house
+import net.zodac.dicefive.resources.score_evens
+import net.zodac.dicefive.resources.score_fives
+import net.zodac.dicefive.resources.score_full_house
+import net.zodac.dicefive.resources.score_large_straight
+import net.zodac.dicefive.resources.score_odds
+import net.zodac.dicefive.resources.score_reds
+import net.zodac.dicefive.resources.score_small_straight
+import net.zodac.dicefive.resources.score_two_pair
+import net.zodac.dicefive.resources.score_yellows
 import net.zodac.dicefive.ui.common.FooterPill
 import net.zodac.dicefive.ui.common.LOGO_DICE
 import net.zodac.dicefive.ui.common.LocalReduceMotion
@@ -122,6 +267,7 @@ import net.zodac.dicefive.ui.game.style.ClassicGoldDiceCupStyle
 import net.zodac.dicefive.ui.game.style.IvoryDiceStyle
 import net.zodac.dicefive.ui.game.style.palette
 import net.zodac.dicefive.ui.game.targetProgress
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -134,7 +280,7 @@ import org.jetbrains.compose.resources.stringResource
  * monospace, like a [RulesCategory]'s heading) for a scoring category's name, *italic* for the name
  * of a section, mode or setting, and **bold** for a number of points or a count. Nothing else is
  * styled, and no dice are written out as text - a [RulesDice] row shows them instead. */
-private data class RulesPage(val title: String, val tabLabel: String, val blocks: List<RulesBlock>)
+private data class RulesPage(val title: StringResource, val tabLabel: StringResource, val blocks: List<RulesBlock>)
 
 private sealed interface RulesBlock
 
@@ -147,15 +293,34 @@ private data object RulesIllustration : RulesBlock
 private data object RulesTurnTimer : RulesBlock
 
 /** A paragraph of body text. */
-private data class RulesText(val text: String) : RulesBlock
+private data class RulesText(val text: StringResource) : RulesBlock
 
 /** One step of an ordered list - "1.", "2." - with its text hanging beside the number, and an
  * optional [example] under it. */
-private data class RulesStep(val number: Int, val text: String, val example: RulesDice? = null) : RulesBlock
+private data class RulesStep(val number: Int, val text: StringResource, val example: RulesDice? = null) : RulesBlock
 
 /** A scoring category: its [name] as a small heading, what it takes in [description], and an
  * [example] roll scoring it. */
-private data class RulesCategory(val name: String, val description: String, val example: RulesDice) : RulesBlock
+private data class RulesCategory(val name: RulesName, val description: StringResource, val example: RulesDice) : RulesBlock
+
+/** A [RulesCategory]'s heading: the name of a box (translated), or one of the game's marks ("3x", "5x", "Alibi") as it is. */
+private sealed interface RulesName {
+    data class Mark(val text: String) : RulesName
+
+    data class Named(val resource: StringResource) : RulesName
+}
+
+private fun mark(text: String): RulesName = RulesName.Mark(text)
+
+private fun named(resource: StringResource): RulesName = RulesName.Named(resource)
+
+/**
+ * What an example scores: one amount, or two added together ("20pts + 100pts" - a repeat 5x in its own box and
+ * the bonus). Shown, and read aloud, in the player's language (see [pointsText]).
+ */
+private class RulesScore(val amounts: List<Int>)
+
+private fun points(vararg amounts: Int) = RulesScore(amounts.toList())
 
 /** One die in a [RulesDice] example: its [value], whether it [counts] towards the category being
  * shown (the rest are drawn faded), the [colour] it rolled in Tricolour, if any, and whether it is [locked]
@@ -174,7 +339,7 @@ private data class ExampleDie(val value: Int, val counts: Boolean = true, val co
  */
 private data class RulesDice(
     val dice: List<ExampleDie>,
-    val score: String?,
+    val score: RulesScore?,
     val fadedNotHeld: Boolean = false,
     val isTarget: Boolean = false,
     val tile: RulesTile? = null,
@@ -194,10 +359,10 @@ private sealed interface RulesTile {
 /** This row with [tile] drawn at its end. */
 private fun RulesDice.showing(tile: RulesTile): RulesDice = copy(tile = tile)
 
-private fun text(text: String) = RulesText(text)
+private fun text(text: StringResource) = RulesText(text)
 
 /** Five example dice where the die at [lockedIndex] is locked by Unlucky Dice and the first [counting] of the others make the category. */
-private fun lockedDice(vararg values: Int, lockedIndex: Int, counting: Int, score: String): RulesDice {
+private fun lockedDice(vararg values: Int, lockedIndex: Int, counting: Int, score: RulesScore): RulesDice {
     var seen = 0
     return RulesDice(
         values.mapIndexed { index, value ->
@@ -208,7 +373,7 @@ private fun lockedDice(vararg values: Int, lockedIndex: Int, counting: Int, scor
 }
 
 /** Five example dice, the first [counting] of which make the category. */
-private fun dice(vararg values: Int, counting: Int = values.size, score: String): RulesDice =
+private fun dice(vararg values: Int, counting: Int = values.size, score: RulesScore): RulesDice =
     RulesDice(values.mapIndexed { index, value -> ExampleDie(value, counts = index < counting) }, score)
 
 /** A roll of example dice, the first [held] of which are held - drawn and read out as such, with no score. */
@@ -216,7 +381,7 @@ private fun roll(vararg values: Int, held: Int): RulesDice =
     RulesDice(values.mapIndexed { index, value -> ExampleDie(value, counts = index < held) }, score = null, fadedNotHeld = true)
 
 /** Five example dice, the ones at [counting] making the category - for a category whose dice aren't simply the first few. */
-private fun diceCounting(vararg values: Int, counting: Set<Int>, score: String): RulesDice =
+private fun diceCounting(vararg values: Int, counting: Set<Int>, score: RulesScore): RulesDice =
     RulesDice(values.mapIndexed { index, value -> ExampleDie(value, counts = index in counting) }, score)
 
 /** A roll of example dice, the ones at [held] held - for a roll whose held dice aren't simply the first few. */
@@ -230,7 +395,7 @@ private const val ANY_PLACE = 0
 private fun target(vararg places: Int, points: Int): RulesDice =
     RulesDice(
         places.map { ExampleDie(it) },
-        score = "${points}pts",
+        score = points(points),
         isTarget = true,
         tile = RulesTile.Target(HitTarget(places.map { it.takeIf { place -> place != ANY_PLACE } }, points)),
     )
@@ -239,7 +404,7 @@ private fun target(vararg places: Int, points: Int): RulesDice =
 private val EXAMPLE_TARGET = HitTarget(listOf(4, 1, 3, 2, null), points = 20)
 
 /** Five coloured example dice for Tricolour, the first [counting] of which make the category. */
-private fun colouredDice(vararg dice: Pair<Int, DieColour>, counting: Int = dice.size, score: String): RulesDice =
+private fun colouredDice(vararg dice: Pair<Int, DieColour>, counting: Int = dice.size, score: RulesScore): RulesDice =
     RulesDice(dice.mapIndexed { index, (value, colour) -> ExampleDie(value, counts = index < counting, colour = colour) }, score)
 
 /**
@@ -255,219 +420,195 @@ private fun colouredDice(vararg dice: Pair<Int, DieColour>, counting: Int = dice
  */
 private val RULES_PAGES = listOf(
     RulesPage(
-        title = "How to Play DiceFive",
-        tabLabel = "How to Play",
+        title = Res.string.rules_how_to_play_title,
+        tabLabel = Res.string.rules_how_to_play_tab,
         blocks = listOf(
-            text("Score as many points as possible by rolling five dice, with three rolls per round."),
-            text("You may keep any dice you want after a roll, then roll the remaining dice."),
-            text("Once you're happy with the roll (or you've rolled three times), score it in any open category on your scorecard."),
-            text("The game ends once every category is filled."),
+            text(Res.string.rules_how_to_play_1),
+            text(Res.string.rules_how_to_play_2),
+            text(Res.string.rules_how_to_play_3),
+            text(Res.string.rules_how_to_play_4),
             RulesIllustration,
         ),
     ),
     RulesPage(
-        title = "Scoring: Upper Section",
-        tabLabel = "Upper Section",
+        title = Res.string.rules_upper_section_title,
+        tabLabel = Res.string.rules_upper_section_tab,
         blocks = listOf(
-            text("Each *Upper Section* category, from `Ones` to `Sixes`, scores the total of the dice showing that number. For example:"),
-            RulesCategory("Fives", "Total of the dice showing 5", dice(5, 5, 5, 2, 1, counting = 3, score = "15pts")),
-            text("Score **63pts** or more across the whole section and you earn a bonus **35pts**! That's an average of three of each number."),
+            text(Res.string.rules_upper_section_1),
+            RulesCategory(named(Res.string.score_fives), Res.string.rules_upper_section_2, dice(5, 5, 5, 2, 1, counting = 3, score = points(15))),
+            text(Res.string.rules_upper_section_3),
         ),
     ),
     RulesPage(
-        title = "Scoring: Lower Section",
-        tabLabel = "Lower Section",
+        title = Res.string.rules_lower_section_title,
+        tabLabel = Res.string.rules_lower_section_tab,
         blocks = listOf(
-            text("The *Lower Section* awards points for specific dice combinations:"),
-            RulesCategory("3x", "Total of all five dice, if at least three dice are the same", dice(5, 5, 5, 2, 6, counting = 3, score = "23pts")),
-            RulesCategory("4x", "Total of all five dice, if at least four dice are the same", dice(4, 4, 4, 4, 1, counting = 4, score = "17pts")),
-            RulesCategory("Full House", "Three of one number and two of another", dice(3, 3, 3, 6, 6, score = "25pts")),
-            RulesCategory("Small Straight", "Four numbers in a row", dice(2, 3, 4, 5, 2, counting = 4, score = "30pts")),
-            RulesCategory("Large Straight", "Five numbers in a row", dice(1, 2, 3, 4, 5, score = "40pts")),
-            RulesCategory("5x", "All five dice are the same", dice(6, 6, 6, 6, 6, score = "50pts")),
-            RulesCategory("Chance", "The sum of all five dice", dice(2, 3, 5, 5, 6, score = "21pts")),
+            text(Res.string.rules_lower_section_1),
+            RulesCategory(mark("3x"), Res.string.rules_lower_section_2, dice(5, 5, 5, 2, 6, counting = 3, score = points(23))),
+            RulesCategory(mark("4x"), Res.string.rules_lower_section_3, dice(4, 4, 4, 4, 1, counting = 4, score = points(17))),
+            RulesCategory(named(Res.string.score_full_house), Res.string.rules_lower_section_4, dice(3, 3, 3, 6, 6, score = points(25))),
+            RulesCategory(named(Res.string.score_small_straight), Res.string.rules_lower_section_5, dice(2, 3, 4, 5, 2, counting = 4, score = points(30))),
+            RulesCategory(named(Res.string.score_large_straight), Res.string.rules_lower_section_6, dice(1, 2, 3, 4, 5, score = points(40))),
+            RulesCategory(mark("5x"), Res.string.rules_lower_section_7, dice(6, 6, 6, 6, 6, score = points(50))),
+            RulesCategory(named(Res.string.score_chance), Res.string.rules_lower_section_8, dice(2, 3, 5, 5, 6, score = points(21))),
         ),
     ),
     RulesPage(
-        title = "5x and the Joker Rule",
-        tabLabel = "5x & Joker",
+        title = Res.string.rules_5x_and_joker_title,
+        tabLabel = Res.string.rules_5x_and_joker_tab,
         blocks = listOf(
-            text("If you roll five matching dice, you can score a `5x` worth **50pts**."),
-            text("Roll another five matching dice after already scoring a `5x`? It earns a **100pts** bonus, on top of whatever category you then score those dice in."),
-            text("When you score a repeat `5x`, the Joker rule decides where it can go:"),
-            RulesStep(
-                1,
-                "The matching *Upper Section* category, if it's still open. Five 4s must go in `Fours`, scored for **20pts**, in addition to the bonus.",
-                dice(4, 4, 4, 4, 4, score = "20pts + 100pts"),
+            text(Res.string.rules_5x_and_joker_1),
+            text(Res.string.rules_5x_and_joker_2),
+            text(Res.string.rules_5x_and_joker_3),
+            RulesStep(1, Res.string.rules_5x_and_joker_4,
+                dice(4, 4, 4, 4, 4, score = points(20, 100)),
             ),
-            RulesStep(2, "Otherwise, any unscored category outside the *Upper Section*, in addition to the bonus. `Full House`, `Small Straight` and `Large Straight` score their full fixed amount."),
-            RulesStep(3, "If every category outside the *Upper Section* is already filled, you must score it in an unscored *Upper Section* category for **0pts**, but you still get the **100pts** bonus."),
+            RulesStep(2, Res.string.rules_5x_and_joker_5),
+            RulesStep(3, Res.string.rules_5x_and_joker_6),
         ),
     ),
     RulesPage(
-        title = "Tie Breaks",
-        tabLabel = "Tie Breaks",
+        title = Res.string.rules_tie_breaks_title,
+        tabLabel = Res.string.rules_tie_breaks_tab,
         blocks = listOf(
-            text("If multiple players end the game with the same score, the following checks are made in order. The first difference decides who wins the tie:"),
-            RulesStep(1, "Fewest `5x`"),
-            RulesStep(2, "Most categories scored **0pts**"),
-            RulesStep(3, "Lower *Upper Section* total"),
-            RulesStep(4, "Lower `Chance`"),
-            RulesStep(5, "Lower `3x`"),
-            RulesStep(6, "Lower `4x`"),
-            text("If all of these are equal, then it is a true tie."),
+            text(Res.string.rules_tie_breaks_1),
+            RulesStep(1, Res.string.rules_tie_breaks_2),
+            RulesStep(2, Res.string.rules_tie_breaks_3),
+            RulesStep(3, Res.string.rules_tie_breaks_4),
+            RulesStep(4, Res.string.rules_tie_breaks_5),
+            RulesStep(5, Res.string.rules_tie_breaks_6),
+            RulesStep(6, Res.string.rules_tie_breaks_7),
+            text(Res.string.rules_tie_breaks_8),
         ),
     ),
     RulesPage(
-        title = "Mode: Tricolour",
-        tabLabel = "Tricolour",
+        title = Res.string.rules_tricolour_title,
+        tabLabel = Res.string.rules_tricolour_tab,
         blocks = listOf(
-            text("A custom mode extending the *Standard* game mode. Every die also rolls a colour (red, yellow or blue) alongside its number."),
-            text("There are four extra scoring categories:"),
-            RulesCategory(
-                "Reds",
-                "All five dice are red",
-                colouredDice(2 to DieColour.RED, 5 to DieColour.RED, 1 to DieColour.RED, 6 to DieColour.RED, 3 to DieColour.RED, score = "40pts"),
+            text(Res.string.rules_tricolour_1),
+            text(Res.string.rules_tricolour_2),
+            RulesCategory(named(Res.string.score_reds), Res.string.rules_tricolour_3,
+                colouredDice(2 to DieColour.RED, 5 to DieColour.RED, 1 to DieColour.RED, 6 to DieColour.RED, 3 to DieColour.RED, score = points(40)),
             ),
-            RulesCategory(
-                "Yellows",
-                "All five dice are yellow",
-                colouredDice(4 to DieColour.YELLOW, 4 to DieColour.YELLOW, 1 to DieColour.YELLOW, 5 to DieColour.YELLOW, 2 to DieColour.YELLOW, score = "40pts"),
+            RulesCategory(named(Res.string.score_yellows), Res.string.rules_tricolour_4,
+                colouredDice(4 to DieColour.YELLOW, 4 to DieColour.YELLOW, 1 to DieColour.YELLOW, 5 to DieColour.YELLOW, 2 to DieColour.YELLOW, score = points(40)),
             ),
-            RulesCategory(
-                "Blues",
-                "All five dice are blue",
-                colouredDice(6 to DieColour.BLUE, 3 to DieColour.BLUE, 3 to DieColour.BLUE, 2 to DieColour.BLUE, 5 to DieColour.BLUE, score = "40pts"),
+            RulesCategory(named(Res.string.score_blues), Res.string.rules_tricolour_5,
+                colouredDice(6 to DieColour.BLUE, 3 to DieColour.BLUE, 3 to DieColour.BLUE, 2 to DieColour.BLUE, 5 to DieColour.BLUE, score = points(40)),
             ),
-            RulesCategory(
-                "Coloured House",
-                "Three of one colour and two of another",
-                colouredDice(1 to DieColour.RED, 4 to DieColour.RED, 6 to DieColour.RED, 2 to DieColour.BLUE, 5 to DieColour.BLUE, score = "25pts"),
+            RulesCategory(named(Res.string.score_coloured_house), Res.string.rules_tricolour_6,
+                colouredDice(1 to DieColour.RED, 4 to DieColour.RED, 6 to DieColour.RED, 2 to DieColour.BLUE, 5 to DieColour.BLUE, score = points(25)),
             ),
-            text("Under the Joker rule, a repeat `5x` also scores `Coloured House` at its full **25pts**. Everything else plays exactly the same as the *Standard* rules, just with more opportunities to score."),
-            text("See if you can find the Easter Egg in this mode!"),
+            text(Res.string.rules_tricolour_7),
+            text(Res.string.rules_tricolour_8),
         ),
     ),
     RulesPage(
-        title = "Mode: Quickfire",
-        tabLabel = "Quickfire",
+        title = Res.string.rules_quickfire_title,
+        tabLabel = Res.string.rules_quickfire_tab,
         blocks = listOf(
-            text("A custom mode extending the *Standard* game mode. Every game starts with the `5x` category and **six** others, picked at random, disabled. That leaves just **six** categories to score, so a game lasts only **six** turns."),
-            text("A disabled category is drawn on your scorecard as a dashed outline with a slash through it, and the word Off where its score would be. It can't be scored in, not even to take a zero. Every player in a game has the same ones disabled, and a new set is picked for each game."),
-            text("With `5x` disabled, there is no Joker rule and no bonus for repeat 5x. You can still roll five matching dice, but they have to be scored in another category."),
-            text("The *Upper Section* bonus shrinks with the categories. It's still **35pts**, but each disabled category lowers the **63pts** you need by three of its number. For example, with `Threes` disabled you need **54pts**, which is **9pts** less. If every *Upper Section* category is disabled, there's no bonus."),
-            text("The *Extended Scores* modifier's categories are never disabled."),
-            text("Everything else plays exactly the same as the *Standard* rules, with three rolls a turn. Scores from this mode don't go on the *Leaderboard*, since every game has a different scorecard, but they still count towards your *Statistics*."),
+            text(Res.string.rules_quickfire_1),
+            text(Res.string.rules_quickfire_2),
+            text(Res.string.rules_quickfire_3),
+            text(Res.string.rules_quickfire_4),
+            text(Res.string.rules_quickfire_5),
+            text(Res.string.rules_quickfire_6),
         ),
     ),
     RulesPage(
-        title = "Mode: Stud",
-        tabLabel = "Stud",
+        title = Res.string.rules_stud_title,
+        tabLabel = Res.string.rules_stud_tab,
         blocks = listOf(
-            text("A custom mode extending the *Standard* game mode. Every roll is **seven** dice instead of five, but only **five** of them can score."),
-            text("There are still only **five** hold slots. Tap a die on the mat to hold it - it goes to the free slot nearest it - and tap a hold slot to put its die back. Only the dice you hold score, so you can only score once all **five** slots are full. Until then, your scorecard shows what the dice you've held so far would score."),
-            text("Here's an example turn:"),
-            RulesStep(1, "The first roll lands three 6s. Hold them, and roll the other **four** dice again.", roll(6, 6, 6, 2, 3, 5, 1, held = 3)),
-            RulesStep(2, "Another 6! Hold it too, and roll the last **three** dice.", roll(6, 6, 6, 6, 4, 2, 4, held = 4)),
-            RulesStep(3, "No more 6s, but a 5 is the best of the rest. Hold it to fill the fifth slot.", roll(6, 6, 6, 6, 5, 1, 3, held = 5)),
-            RulesStep(
-                4,
-                "Score the five held dice. They're worth **29pts** in `4x`, or **24pts** in `Sixes`.",
-                dice(6, 6, 6, 6, 5, score = "29pts"),
+            text(Res.string.rules_stud_1),
+            text(Res.string.rules_stud_2),
+            text(Res.string.rules_stud_3),
+            RulesStep(1, Res.string.rules_stud_4, roll(6, 6, 6, 2, 3, 5, 1, held = 3)),
+            RulesStep(2, Res.string.rules_stud_5, roll(6, 6, 6, 6, 4, 2, 4, held = 4)),
+            RulesStep(3, Res.string.rules_stud_6, roll(6, 6, 6, 6, 5, 1, 3, held = 5)),
+            RulesStep(4, Res.string.rules_stud_7,
+                dice(6, 6, 6, 6, 5, score = points(29)),
             ),
-            text("If the *Turn Timer* runs out, any empty hold slots are filled from the dice on the mat, left to right, and that hand is scored for you."),
-            text("Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules. You just get more dice to choose your hand from!"),
+            text(Res.string.rules_stud_8),
+            text(Res.string.rules_stud_9),
         ),
     ),
     RulesPage(
-        title = "Mode: Third Wind",
-        tabLabel = "Third Wind",
+        title = Res.string.rules_third_wind_title,
+        tabLabel = Res.string.rules_third_wind_tab,
         blocks = listOf(
-            text("A custom mode extending the *Standard* game mode. Every category is scored **three** times instead of once, so a game lasts **39** turns."),
-            text("Each category has **three** slots, stacked beside it on your scorecard. Scoring a category fills its next empty slot, and the category is worth all of its slots added up. It stays open until all **three** are filled."),
-            text("There's still just one *Upper Section* bonus, but it's tripled too: score **189pts** or more across the section to earn **105pts**."),
-            text("Each of the `5x` slots takes a `5x` for **50pts**. The **100pts** bonus and the Joker rule only begin once all **three** are filled, with at least one of them scoring **50pts**."),
-            text("Here's an example turn, with `Fives` already holding **15pts** and **10pts**:"),
-            RulesStep(1, "The first roll lands three 5s. Hold them, and roll the other **two** dice again.", roll(5, 5, 5, 2, 1, held = 3)),
-            RulesStep(2, "Another 5! Hold it too, and roll the last die.", roll(5, 5, 5, 5, 3, held = 4)),
-            RulesStep(3, "The last roll is a 6. That's worth **26pts** in `4x`, or **20pts** in `Fives`."),
-            RulesStep(
-                4,
-                "Score it in `Fives`. It fills the last of its **three** slots, so `Fives` is closed for the rest of the game, worth **45pts** in total.",
-                dice(5, 5, 5, 5, 6, counting = 4, score = "20pts"),
+            text(Res.string.rules_third_wind_1),
+            text(Res.string.rules_third_wind_2),
+            text(Res.string.rules_third_wind_3),
+            text(Res.string.rules_third_wind_4),
+            text(Res.string.rules_third_wind_5),
+            RulesStep(1, Res.string.rules_third_wind_6, roll(5, 5, 5, 2, 1, held = 3)),
+            RulesStep(2, Res.string.rules_third_wind_7, roll(5, 5, 5, 5, 3, held = 4)),
+            RulesStep(3, Res.string.rules_third_wind_8),
+            RulesStep(4, Res.string.rules_third_wind_9,
+                dice(5, 5, 5, 5, 6, counting = 4, score = points(20)),
             ),
-            text("In a tie break, every slot that scored **0pts** counts as a category scored **0pts**."),
-            text("Scores from this mode don't go on the *Leaderboard*, but they still count towards your *Statistics*."),
-            text("Everything else plays exactly the same as the *Standard* rules, just three times over!"),
+            text(Res.string.rules_third_wind_10),
+            text(Res.string.rules_third_wind_11),
+            text(Res.string.rules_third_wind_12),
         ),
     ),
     RulesPage(
-        title = "Mode: Hit List",
-        tabLabel = "Hit List",
+        title = Res.string.rules_hit_list_title,
+        tabLabel = Res.string.rules_hit_list_tab,
         blocks = listOf(
-            text("A custom mode with the *Standard* dice and **three** rolls a turn, but none of its categories. Instead, every game deals a list of **12** targets, new each game and the same for every player, plus the `Alibi`. That makes **13** turns."),
-            text("A target names a number for the die in each place, left to right. Up to **two** places are left open, and any die fills those. This target is worth **20pts**:"),
+            text(Res.string.rules_hit_list_1),
+            text(Res.string.rules_hit_list_2),
             target(4, 1, 3, 2, ANY_PLACE, points = 20),
-            RulesCategory(
-                "Hit",
-                "Every number the target names is among your dice, in any order. Scores the target's points",
-                dice(2, 4, 1, 3, 5, counting = 4, score = "20pts").showing(RulesTile.Target(EXAMPLE_TARGET)),
+            RulesCategory(named(Res.string.rules_name_hit), Res.string.rules_hit_list_3,
+                dice(2, 4, 1, 3, 5, counting = 4, score = points(20)).showing(RulesTile.Target(EXAMPLE_TARGET)),
             ),
-            RulesCategory(
-                "Exact Hit",
-                "Every number the target names is on the die in its own place. Scores double",
-                dice(4, 1, 3, 2, 6, counting = 4, score = "40pts").showing(RulesTile.Target(EXAMPLE_TARGET)),
+            RulesCategory(named(Res.string.rules_name_exact_hit), Res.string.rules_hit_list_4,
+                dice(4, 1, 3, 2, 6, counting = 4, score = points(40)).showing(RulesTile.Target(EXAMPLE_TARGET)),
             ),
-            RulesCategory(
-                "Partial Hit",
-                "At least **two** of the numbers the target names are among your dice, but not all of them. Scores half the target's points, times the share of its numbers you rolled, rounded to the nearest **5pts**",
-                diceCounting(4, 1, 6, 2, 5, counting = setOf(0, 1, 3), score = "10pts").showing(RulesTile.Target(EXAMPLE_TARGET)),
+            RulesCategory(named(Res.string.rules_name_partial_hit), Res.string.rules_hit_list_5,
+                diceCounting(4, 1, 6, 2, 5, counting = setOf(0, 1, 3), score = points(10)).showing(RulesTile.Target(EXAMPLE_TARGET)),
             ),
-            text("With only **one** of a target's numbers rolled, it scores **0pts**. A partial hit still uses up its target, so the full points are gone for the rest of the game. The `Alibi` only takes a full hit."),
-            text("Harder targets are worth more, and each target's tile shows its points. Naming **three** numbers is worth **10pts** or **15pts**, **four** numbers **20pts** to **30pts**, and all **five** **40pts** to **75pts**. An open place makes a target easier to hit, so it's worth less."),
-            text("As you roll, each target's tile marks the numbers your dice already show with a bar beneath them, gold once a die is in its own place, and the tile lights up once it's hit."),
-            RulesCategory(
-                "Alibi",
-                "Score a hit here instead of in its target. It's worth the points of the best open target your dice hit, never doubled, and that target stays open for another try at an exact hit",
-                dice(2, 4, 1, 3, 5, counting = 4, score = "20pts").showing(RulesTile.Alibi),
+            text(Res.string.rules_hit_list_6),
+            text(Res.string.rules_hit_list_7),
+            text(Res.string.rules_hit_list_8),
+            RulesCategory(mark("Alibi"), Res.string.rules_hit_list_9,
+                dice(2, 4, 1, 3, 5, counting = 4, score = points(20)).showing(RulesTile.Alibi),
             ),
-            text("Held dice stay where they are, so a die in the wrong place stays there until you roll it again. If nothing scores, cross off a target or the `Alibi` for **0pts**."),
-            text("Here's an example turn, chasing the target above:"),
-            RulesStep(1, "The first roll has the 4 and the 1 in their places, and a 2 in the open place. Hold all **three**: the 2 counts towards a hit wherever it is.", rollHolding(4, 1, 5, 6, 2, held = setOf(0, 1, 4)).showing(RulesTile.Target(EXAMPLE_TARGET))),
-            RulesStep(2, "A 3 lands in its place. That's a hit for **20pts**, but the 2 is in the open place, not the fourth. Hold the 3 too.", rollHolding(4, 1, 3, 6, 2, held = setOf(0, 1, 2, 4)).showing(RulesTile.Target(EXAMPLE_TARGET))),
-            RulesStep(3, "Roll the fourth die on its own. A 2 there is an exact hit, and if it misses, the hit is safe: the last die is still a 2."),
-            RulesStep(
-                4,
-                "It's a 2! Score the exact hit for **40pts**. Had it missed, you could take the hit for **20pts**, or score it in the `Alibi` and keep this target for another try.",
-                dice(4, 1, 3, 2, 2, counting = 4, score = "40pts").showing(RulesTile.Target(EXAMPLE_TARGET)),
+            text(Res.string.rules_hit_list_10),
+            text(Res.string.rules_hit_list_11),
+            RulesStep(1, Res.string.rules_hit_list_12, rollHolding(4, 1, 5, 6, 2, held = setOf(0, 1, 4)).showing(RulesTile.Target(EXAMPLE_TARGET))),
+            RulesStep(2, Res.string.rules_hit_list_13, rollHolding(4, 1, 3, 6, 2, held = setOf(0, 1, 2, 4)).showing(RulesTile.Target(EXAMPLE_TARGET))),
+            RulesStep(3, Res.string.rules_hit_list_14),
+            RulesStep(4, Res.string.rules_hit_list_15,
+                dice(4, 1, 3, 2, 2, counting = 4, score = points(40)).showing(RulesTile.Target(EXAMPLE_TARGET)),
             ),
-            text("The *Extended Scores* modifier can't be used in this mode. With *Unlucky Dice*, a locked die can't count towards a target, and a roll with one locked can't be an exact hit."),
-            text("Totals here don't compare with other modes, so the achievements for a high or low score, a scorecard with no zeroes, or for winning from behind after scoring three zeroes, can't be earned in it. Scores from this mode don't go on the *Leaderboard*, since every game has a different list, but they still count towards your *Statistics*."),
+            text(Res.string.rules_hit_list_16),
+            text(Res.string.rules_hit_list_17),
         ),
     ),
     RulesPage(
-        title = "Modifiers",
-        tabLabel = "Modifiers",
+        title = Res.string.rules_modifiers_title,
+        tabLabel = Res.string.rules_modifiers_tab,
         blocks = listOf(
-            text("*Modifiers* are optional extras you can add to any game mode. Choose them on the new game screen: each can be switched on or off, and some also have a value to set."),
-            text("*Modifiers* are just for fun. Scores from a game with any modifier switched on don't go on the *Leaderboard*, but they still count towards your *Statistics*."),
-            text("*Turn Timer*: a limit on how long each player has to finish their whole turn, not each roll. Choose **30**, **60** or **120** seconds. A badge shows the time left and turns red as it runs out."),
+            text(Res.string.rules_modifiers_1),
+            text(Res.string.rules_modifiers_2),
+            text(Res.string.rules_modifiers_3),
             RulesTurnTimer,
-            text("If a player's time runs out, their roll is scored for them in whichever open category it's worth the least in (the first one on the scorecard, if several tie)."),
-            text("*Number of Rolls*: how many times a player may roll each turn, from **1** to **9**. Without it, a turn has the game mode's own number of rolls, which is **3** in every game mode."),
-            text("*Stored Rolls*: any rolls a player doesn't use before scoring are kept for their next turn, on top of that turn's usual rolls, and so on. The dice cup shows the total, so it can pass **9**. Each player keeps their own."),
-            text("*Stored Rolls* can also have a most rolls you can store: whatever is left over beyond it is lost when the turn is scored. Leave it empty for no limit."),
-            text("Extra rolls make big scores much easier, so with either of these on, the achievements for a high score, a section total, a clean scorecard or the upper bonus can't be earned, and neither can the sunflower."),
-            text("*Extended Scores*: adds three more scoring categories to every player's scorecard, after the others. It works in every game mode, so the game lasts three turns longer."),
-            RulesCategory("Two Pair", "Total of the four dice making two pairs of different numbers. A fifth die is never counted, even if it matches a pair", dice(4, 4, 2, 2, 4, counting = 4, score = "12pts")),
-            RulesCategory("Evens", "Total of the dice showing 2, 4 or 6", dice(6, 4, 2, 3, 1, counting = 3, score = "12pts")),
-            RulesCategory("Odds", "Total of the dice showing 1, 3 or 5", dice(5, 3, 3, 6, 2, counting = 3, score = "11pts")),
-            text("The extra categories have their own section, so they don't count towards the upper bonus or the lower section's total. With *Extended Scores* on, the achievements for a high score or for winning from behind after scoring three zeroes can't be earned."),
-            text("*Unlucky Dice*: each time the dice are rolled, every die that was rolled has a chance of landing locked in a red cross of chains. A locked die can't be held and doesn't score, so the others are scored without it: a category that needs all five dice, like *5x* or the *Large Straight*, can't be made. Dice you are holding are never locked, and a locked die is rolled again, with the rest, on the next roll."),
-            lockedDice(5, 5, 5, 2, 5, lockedIndex = 4, counting = 3, score = "15pts"),
-            text("Here the last **5** is locked, so it can't be held or scored. Only the other three **5**s score in *Fives*; with the locked one it would have been **20pts**. The **2** doesn't count, as usual."),
-            text("Choose the chance each rolled die has of being locked, from **10%** to **50%** in steps of **10%**, and the most dice that can be locked on one roll, from **1** to **5**. If more dice come up locked than that, a few are picked at random to be."),
-            text("Locked dice make a bad turn easier, so with *Unlucky Dice* on, the achievement for winning from behind after scoring three zeroes can't be earned."),
+            text(Res.string.rules_modifiers_4),
+            text(Res.string.rules_modifiers_5),
+            text(Res.string.rules_modifiers_6),
+            text(Res.string.rules_modifiers_7),
+            text(Res.string.rules_modifiers_8),
+            text(Res.string.rules_modifiers_9),
+            RulesCategory(named(Res.string.score_two_pair), Res.string.rules_modifiers_10, dice(4, 4, 2, 2, 4, counting = 4, score = points(12))),
+            RulesCategory(named(Res.string.score_evens), Res.string.rules_modifiers_11, dice(6, 4, 2, 3, 1, counting = 3, score = points(12))),
+            RulesCategory(named(Res.string.score_odds), Res.string.rules_modifiers_12, dice(5, 3, 3, 6, 2, counting = 3, score = points(11))),
+            text(Res.string.rules_modifiers_13),
+            text(Res.string.rules_modifiers_14),
+            lockedDice(5, 5, 5, 2, 5, lockedIndex = 4, counting = 3, score = points(15)),
+            text(Res.string.rules_modifiers_15),
+            text(Res.string.rules_modifiers_16),
+            text(Res.string.rules_modifiers_17),
         ),
     ),
 )
@@ -508,7 +649,7 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val coroutineScope = rememberCoroutineScope()
     val tabScrollState = rememberScrollState()
 
-    ScreenScaffold(title = "Rules", onBack = onBack, modifier = modifier) {
+    ScreenScaffold(title = stringResource(Res.string.rules_title), onBack = onBack, modifier = modifier) {
         // A real Box, so the chevrons' align lands on their actual parent (see UI.md's gotchas).
         Box(modifier = Modifier.fillMaxWidth()) {
             PrimaryScrollableTabRow(
@@ -543,7 +684,7 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     Tab(
                         selected = index == pagerState.currentPage,
                         onClick = { coroutineScope.launch { pagerState.animateScrollToPage(index) } },
-                        text = { Text(text = rulesPage.tabLabel, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        text = { Text(text = stringResource(rulesPage.tabLabel), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         modifier = Modifier.semantics {
                             collectionItemInfo = CollectionItemInfo(rowIndex = 0, rowSpan = 1, columnIndex = index, columnSpan = 1)
                         },
@@ -570,7 +711,7 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 val rulesPage = RULES_PAGES[page]
                 Column(modifier = Modifier.fillMaxSize().verticalScroll(pageScrollStates[page]).padding(bottom = pageBottomPadding)) {
                     Text(
-                        text = rulesPage.title,
+                        text = stringResource(rulesPage.title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontFamily = SoraFontFamily,
                         fontWeight = FontWeight.Bold,
@@ -605,14 +746,16 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
  * in the same gold monospace as a [RulesCategory]'s heading. TalkBack hears it with "pts" spoken
  * as "points" ([spokenPoints]). */
 @Composable
-private fun RulesBodyText(text: String, modifier: Modifier = Modifier) {
+private fun RulesBodyText(resource: StringResource, modifier: Modifier = Modifier) {
+    val text = stringResource(resource)
     val categoryStyle = SpanStyle(fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary)
     val styled = remember(text, categoryStyle) { parseInlineMarkup(text.keepCategoryNamesWhole(), codeStyle = categoryStyle) }
+    val spoken = spokenPoints(styled.text)
     Text(
         text = styled,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.semantics { contentDescription = spokenPoints(styled.text) },
+        modifier = modifier.semantics { contentDescription = spoken },
     )
 }
 
@@ -621,9 +764,25 @@ private fun RulesBodyText(text: String, modifier: Modifier = Modifier) {
 private fun String.keepCategoryNamesWhole(): String =
     replace(Regex("`[^`]*`")) { match -> match.value.replace(' ', '\u00A0') }
 
-/** "15pts" as "15 points" (and "+" as "plus"), so TalkBack doesn't read the abbreviation out as letters. */
-private fun spokenPoints(text: String): String =
-    text.replace(Regex("""(\d+)pts\b"""), "$1 points").replace(" + ", " plus ")
+/**
+ * "15pts" as "15 points" (and "+" as "plus"), so TalkBack doesn't read the abbreviation out as letters. What counts as
+ * an amount of points is [rules_points_short]'s own shape - so a language that writes it "15 pt" is found as that.
+ */
+@Composable
+private fun spokenPoints(text: String): String {
+    val shape = stringResource(Res.string.rules_points_short)
+    val amount = Regex(shape.split("%1\$d").joinToString("(\\d+)") { Regex.escape(it) })
+    val plus = stringResource(Res.string.rules_plus_spoken)
+    val spoken = remember(text, shape, plus) { text.replace(amount) { "\u0000${it.groupValues[1]}\u0000" }.replace(" + ", " $plus ") }
+    return spoken.split('\u0000').mapIndexed { index, part -> if (index % 2 == 1) pluralStringResource(Res.plurals.rules_points_spoken, part.toInt(), part.toInt()) else part }.joinToString("")
+}
+
+/** What [score] is drawn as: "20pts", or "20pts + 100pts". */
+@Composable
+private fun RulesScore.pointsText(): String {
+    val parts = amounts.map { stringResource(Res.string.rules_points_short, it) }
+    return parts.reduce { first, second -> stringResource(Res.string.rules_points_sum, first, second) }
+}
 
 /** Space under every block, so paragraphs, steps and categories are spaced alike. */
 private val BLOCK_GAP = 10.dp
@@ -643,20 +802,23 @@ private fun RulesBlockView(block: RulesBlock) {
         RulesIllustration -> RulesIllustrationView(modifier = Modifier.padding(top = 24.dp, bottom = BLOCK_GAP))
         // One TalkBack stop describing the example, in place of the badge's own live region - which
         // would announce "time running out" as if a turn on this page really were.
-        RulesTurnTimer -> TurnTimerBadge(
-            secondsRemaining = TURN_TIMER_EXAMPLE_SECONDS,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = BLOCK_GAP)
-                .clearAndSetSemantics {
-                    contentDescription = "Example: the turn timer, turning red with $TURN_TIMER_EXAMPLE_SECONDS seconds left"
-                },
-        )
+        RulesTurnTimer -> {
+            val timerExample = pluralStringResource(Res.plurals.rules_timer_example_cd, TURN_TIMER_EXAMPLE_SECONDS, TURN_TIMER_EXAMPLE_SECONDS)
+            TurnTimerBadge(
+                secondsRemaining = TURN_TIMER_EXAMPLE_SECONDS,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = BLOCK_GAP)
+                    .clearAndSetSemantics {
+                        contentDescription = timerExample
+                    },
+            )
+        }
         is RulesDice -> RulesDiceRow(block, modifier = Modifier.padding(bottom = BLOCK_GAP))
         is RulesStep -> Column(modifier = Modifier.padding(bottom = BLOCK_GAP).semantics(mergeDescendants = true) {}) {
             Row {
                 Text(
-                    text = "${block.number}.",
+                    text = stringResource(Res.string.rules_step_number, block.number),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.width(STEP_INDENT),
@@ -668,7 +830,10 @@ private fun RulesBlockView(block: RulesBlock) {
         // One TalkBack stop for the name, what it takes and the example, not three.
         is RulesCategory -> Column(modifier = Modifier.padding(bottom = CATEGORY_GAP).semantics(mergeDescendants = true) {}) {
             Text(
-                text = block.name,
+                text = when (val name = block.name) {
+                    is RulesName.Mark -> name.text
+                    is RulesName.Named -> stringResource(name.resource)
+                },
                 style = MaterialTheme.typography.titleSmall,
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
@@ -719,7 +884,7 @@ private fun RulesDiceRow(example: RulesDice, modifier: Modifier = Modifier) {
         }
         example.score?.let { score ->
             Text(
-                text = "= $score",
+                text = stringResource(Res.string.rules_example_equals, score.pointsText()),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
@@ -783,7 +948,7 @@ private fun RulesDice.spokenDescription(): String {
         return joinSentences(
             listOfNotNull(
                 stringResource(Res.string.rules_example_target_spoken, places),
-                score?.let { stringResource(Res.string.rules_example_worth_spoken, spokenPoints(it)) },
+                score?.let { stringResource(Res.string.rules_example_worth_spoken, spokenPoints(it.pointsText())) },
             ),
         )
     }
@@ -812,7 +977,7 @@ private fun RulesDice.spokenDescription(): String {
             stringResource(Res.string.rules_example_spoken, all),
             locked.takeIf { it.isNotEmpty() }?.let { pluralStringResource(Res.plurals.rules_example_locked_spoken, it.size, spokenList(it)) },
             ignored.takeIf { it.isNotEmpty() }?.let { pluralStringResource(Res.plurals.rules_example_ignored_spoken, it.size, spokenList(it)) },
-            score?.let { stringResource(Res.string.rules_example_scores_spoken, spokenPoints(it)) },
+            score?.let { stringResource(Res.string.rules_example_scores_spoken, spokenPoints(it.pointsText())) },
             tileSentence,
         ),
     )
@@ -954,10 +1119,11 @@ private val PAGE_FOOTER_GAP = 8.dp
  */
 @Composable
 private fun PageCountFooter(page: Int, pageCount: Int, modifier: Modifier = Modifier) {
+    val pageSpoken = stringResource(Res.string.common_page_of, page + 1, pageCount)
     FooterPill(
-        text = "${page + 1} of $pageCount",
+        text = stringResource(Res.string.rules_page_count, page + 1, pageCount),
         modifier = modifier.semantics {
-            contentDescription = "Page ${page + 1} of $pageCount"
+            contentDescription = pageSpoken
             liveRegion = LiveRegionMode.Polite
         },
     )

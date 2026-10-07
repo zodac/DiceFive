@@ -137,7 +137,7 @@ class PicnicBasketDiceCupStyle(override val id: String, private val palette: Bas
                 }
             }
         }
-        val shakeWeight by animateFloatAsState(if (rolling) 1f else 0f, tween(BASKET_SHAKE_FADE_MILLIS), label = "basketShakeFade")
+        val shakeWeight by animateFloatAsState(if (rolling) 1f else 0f, tween(BASKET_SHAKE_FADE_MILLIS), label = "basketShakeFade") // i18n: not translated - an animation label, not shown
         // The shake's clock only exists while it counts, so a still basket asks for no frames.
         val shake: State<Float>? = if (rolling || shakeWeight > 0f) rememberBasketShakeLoop() else null
 
@@ -719,11 +719,11 @@ private fun basketPivot(size: Size): Offset =
 private fun basketLift(t: Float): Float = (1f - cos(8f * t)) / 2f
 
 @Composable
-private fun rememberBasketShakeLoop(): State<Float> = rememberInfiniteTransition(label = "basketShake").animateFloat(
+private fun rememberBasketShakeLoop(): State<Float> = rememberInfiniteTransition(label = "basketShake").animateFloat( // i18n: not translated - an animation label, not shown
     initialValue = 0f,
     targetValue = 1f,
     animationSpec = infiniteRepeatable(tween(BASKET_SHAKE_LOOP_MILLIS, easing = LinearEasing), RepeatMode.Restart),
-    label = "basketShakeLoop",
+    label = "basketShakeLoop", // i18n: not translated - an animation label, not shown
 )
 
 private val BasketYawSin = sin(BASKET_YAW_DEGREES * PI.toFloat() / 180f)

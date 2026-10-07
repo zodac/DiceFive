@@ -163,7 +163,7 @@ class TreasureChestDiceCupStyle(override val id: String, private val palette: Ch
         val atTable = LocalCupActivity.current != null
         if (rolling || tilted || (reduceMotion && atTable)) hoardWanted = true
         val hoard by rememberHoardArt(id, palette, if (hoardWanted) canvasSize else IntSize.Zero)
-        val shakeWeight by animateFloatAsState(if (rolling) 1f else 0f, tween(SHAKE_FADE_MILLIS), label = "chestShakeFade")
+        val shakeWeight by animateFloatAsState(if (rolling) 1f else 0f, tween(SHAKE_FADE_MILLIS), label = "chestShakeFade") // i18n: not translated - an animation label, not shown
         // The shake's clock only exists while it counts, so a still chest asks for no frames.
         val shake: State<Float>? = if (rolling || shakeWeight > 0f) rememberShakeLoop() else null
 
@@ -196,11 +196,11 @@ private fun chestPivot(size: Size): Offset =
 private fun shakeLift(t: Float): Float = (1f - cos(8f * t)) / 2f
 
 @Composable
-private fun rememberShakeLoop(): State<Float> = rememberInfiniteTransition(label = "chestShake").animateFloat(
+private fun rememberShakeLoop(): State<Float> = rememberInfiniteTransition(label = "chestShake").animateFloat( // i18n: not translated - an animation label, not shown
     initialValue = 0f,
     targetValue = 1f,
     animationSpec = infiniteRepeatable(tween(SHAKE_LOOP_MILLIS, easing = LinearEasing), RepeatMode.Restart),
-    label = "chestShakeLoop",
+    label = "chestShakeLoop", // i18n: not translated - an animation label, not shown
 )
 
 private val YawSin = sin(CHEST_YAW_DEGREES * PI.toFloat() / 180f)

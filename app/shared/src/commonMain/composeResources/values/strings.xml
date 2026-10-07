@@ -924,7 +924,8 @@
     <string name="scores_header_score">Score</string>
     <string name="scores_previous">Previous</string>
     <string name="scores_next">Next</string>
-    <string name="scores_page">Page %1$d of %2$d</string>
+    <!-- Spoken (and drawn) page counts: "Page 2 of 5". -->
+    <string name="common_page_of">Page %1$d of %2$d</string>
 
     <!-- Statistics (ui/statistics/*) -->
     <string name="stats_title">Statistics</string>
@@ -985,5 +986,167 @@
     <string name="achievements_banner_unlocked_style_spoken">Achievement unlocked: %1$s. %2$s. Unlocks a style</string>
     <!-- A progress banner read aloud: the title, then how far along. -->
     <string name="achievements_banner_progress_spoken">%1$s: %2$s of %3$s</string>
+
+    <!-- Rules pages (ui/rules/RulesScreen.kt): one page per idea, in order. Body text may use markup: `backticks` for the name of a scoring category (gold, monospace), *italics* for the name of a section, mode or setting, **bold** for a number of points or a count. "Npts" is the short form of points (see rules_points_short). -->
+    <string name="rules_how_to_play_title">How to Play DiceFive</string>
+    <!-- A tab: keep it short. -->
+    <string name="rules_how_to_play_tab">How to Play</string>
+    <string name="rules_how_to_play_1">Score as many points as possible by rolling five dice, with three rolls per round.</string>
+    <string name="rules_how_to_play_2">You may keep any dice you want after a roll, then roll the remaining dice.</string>
+    <string name="rules_how_to_play_3">Once you're happy with the roll (or you've rolled three times), score it in any open category on your scorecard.</string>
+    <string name="rules_how_to_play_4">The game ends once every category is filled.</string>
+    <string name="rules_upper_section_title">Scoring: Upper Section</string>
+    <!-- A tab: keep it short. -->
+    <string name="rules_upper_section_tab">Upper Section</string>
+    <string name="rules_upper_section_1">Each *Upper Section* category, from `Ones` to `Sixes`, scores the total of the dice showing that number. For example:</string>
+    <string name="rules_upper_section_2">Total of the dice showing 5</string>
+    <string name="rules_upper_section_3">Score **63pts** or more across the whole section and you earn a bonus **35pts**! That's an average of three of each number.</string>
+    <string name="rules_lower_section_title">Scoring: Lower Section</string>
+    <!-- A tab: keep it short. -->
+    <string name="rules_lower_section_tab">Lower Section</string>
+    <string name="rules_lower_section_1">The *Lower Section* awards points for specific dice combinations:</string>
+    <string name="rules_lower_section_2">Total of all five dice, if at least three dice are the same</string>
+    <string name="rules_lower_section_3">Total of all five dice, if at least four dice are the same</string>
+    <string name="rules_lower_section_4">Three of one number and two of another</string>
+    <string name="rules_lower_section_5">Four numbers in a row</string>
+    <string name="rules_lower_section_6">Five numbers in a row</string>
+    <string name="rules_lower_section_7">All five dice are the same</string>
+    <string name="rules_lower_section_8">The sum of all five dice</string>
+    <string name="rules_5x_and_joker_title">5x and the Joker Rule</string>
+    <!-- A tab: keep it short. -->
+    <string name="rules_5x_and_joker_tab">5x &amp; Joker</string>
+    <string name="rules_5x_and_joker_1">If you roll five matching dice, you can score a `5x` worth **50pts**.</string>
+    <string name="rules_5x_and_joker_2">Roll another five matching dice after already scoring a `5x`? It earns a **100pts** bonus, on top of whatever category you then score those dice in.</string>
+    <string name="rules_5x_and_joker_3">When you score a repeat `5x`, the Joker rule decides where it can go:</string>
+    <string name="rules_5x_and_joker_4">The matching *Upper Section* category, if it's still open. Five 4s must go in `Fours`, scored for **20pts**, in addition to the bonus.</string>
+    <string name="rules_5x_and_joker_5">Otherwise, any unscored category outside the *Upper Section*, in addition to the bonus. `Full House`, `Small Straight` and `Large Straight` score their full fixed amount.</string>
+    <string name="rules_5x_and_joker_6">If every category outside the *Upper Section* is already filled, you must score it in an unscored *Upper Section* category for **0pts**, but you still get the **100pts** bonus.</string>
+    <string name="rules_tie_breaks_title">Tie Breaks</string>
+    <!-- A tab: keep it short. -->
+    <string name="rules_tie_breaks_tab">Tie Breaks</string>
+    <string name="rules_tie_breaks_1">If multiple players end the game with the same score, the following checks are made in order. The first difference decides who wins the tie:</string>
+    <string name="rules_tie_breaks_2">Fewest `5x`</string>
+    <string name="rules_tie_breaks_3">Most categories scored **0pts**</string>
+    <string name="rules_tie_breaks_4">Lower *Upper Section* total</string>
+    <string name="rules_tie_breaks_5">Lower `Chance`</string>
+    <string name="rules_tie_breaks_6">Lower `3x`</string>
+    <string name="rules_tie_breaks_7">Lower `4x`</string>
+    <string name="rules_tie_breaks_8">If all of these are equal, then it is a true tie.</string>
+    <string name="rules_tricolour_title">Mode: Tricolour</string>
+    <!-- A tab: keep it short. -->
+    <string name="rules_tricolour_tab">Tricolour</string>
+    <string name="rules_tricolour_1">A custom mode extending the *Standard* game mode. Every die also rolls a colour (red, yellow or blue) alongside its number.</string>
+    <string name="rules_tricolour_2">There are four extra scoring categories:</string>
+    <string name="rules_tricolour_3">All five dice are red</string>
+    <string name="rules_tricolour_4">All five dice are yellow</string>
+    <string name="rules_tricolour_5">All five dice are blue</string>
+    <string name="rules_tricolour_6">Three of one colour and two of another</string>
+    <string name="rules_tricolour_7">Under the Joker rule, a repeat `5x` also scores `Coloured House` at its full **25pts**. Everything else plays exactly the same as the *Standard* rules, just with more opportunities to score.</string>
+    <string name="rules_tricolour_8">See if you can find the Easter Egg in this mode!</string>
+    <string name="rules_quickfire_title">Mode: Quickfire</string>
+    <!-- A tab: keep it short. -->
+    <string name="rules_quickfire_tab">Quickfire</string>
+    <string name="rules_quickfire_1">A custom mode extending the *Standard* game mode. Every game starts with the `5x` category and **six** others, picked at random, disabled. That leaves just **six** categories to score, so a game lasts only **six** turns.</string>
+    <string name="rules_quickfire_2">A disabled category is drawn on your scorecard as a dashed outline with a slash through it, and the word Off where its score would be. It can't be scored in, not even to take a zero. Every player in a game has the same ones disabled, and a new set is picked for each game.</string>
+    <string name="rules_quickfire_3">With `5x` disabled, there is no Joker rule and no bonus for repeat 5x. You can still roll five matching dice, but they have to be scored in another category.</string>
+    <string name="rules_quickfire_4">The *Upper Section* bonus shrinks with the categories. It's still **35pts**, but each disabled category lowers the **63pts** you need by three of its number. For example, with `Threes` disabled you need **54pts**, which is **9pts** less. If every *Upper Section* category is disabled, there's no bonus.</string>
+    <string name="rules_quickfire_5">The *Extended Scores* modifier's categories are never disabled.</string>
+    <string name="rules_quickfire_6">Everything else plays exactly the same as the *Standard* rules, with three rolls a turn. Scores from this mode don't go on the *Leaderboard*, since every game has a different scorecard, but they still count towards your *Statistics*.</string>
+    <string name="rules_stud_title">Mode: Stud</string>
+    <!-- A tab: keep it short. -->
+    <string name="rules_stud_tab">Stud</string>
+    <string name="rules_stud_1">A custom mode extending the *Standard* game mode. Every roll is **seven** dice instead of five, but only **five** of them can score.</string>
+    <string name="rules_stud_2">There are still only **five** hold slots. Tap a die on the mat to hold it - it goes to the free slot nearest it - and tap a hold slot to put its die back. Only the dice you hold score, so you can only score once all **five** slots are full. Until then, your scorecard shows what the dice you've held so far would score.</string>
+    <string name="rules_stud_3">Here's an example turn:</string>
+    <string name="rules_stud_4">The first roll lands three 6s. Hold them, and roll the other **four** dice again.</string>
+    <string name="rules_stud_5">Another 6! Hold it too, and roll the last **three** dice.</string>
+    <string name="rules_stud_6">No more 6s, but a 5 is the best of the rest. Hold it to fill the fifth slot.</string>
+    <string name="rules_stud_7">Score the five held dice. They're worth **29pts** in `4x`, or **24pts** in `Sixes`.</string>
+    <string name="rules_stud_8">If the *Turn Timer* runs out, any empty hold slots are filled from the dice on the mat, left to right, and that hand is scored for you.</string>
+    <string name="rules_stud_9">Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules. You just get more dice to choose your hand from!</string>
+    <string name="rules_third_wind_title">Mode: Third Wind</string>
+    <!-- A tab: keep it short. -->
+    <string name="rules_third_wind_tab">Third Wind</string>
+    <string name="rules_third_wind_1">A custom mode extending the *Standard* game mode. Every category is scored **three** times instead of once, so a game lasts **39** turns.</string>
+    <string name="rules_third_wind_2">Each category has **three** slots, stacked beside it on your scorecard. Scoring a category fills its next empty slot, and the category is worth all of its slots added up. It stays open until all **three** are filled.</string>
+    <string name="rules_third_wind_3">There's still just one *Upper Section* bonus, but it's tripled too: score **189pts** or more across the section to earn **105pts**.</string>
+    <string name="rules_third_wind_4">Each of the `5x` slots takes a `5x` for **50pts**. The **100pts** bonus and the Joker rule only begin once all **three** are filled, with at least one of them scoring **50pts**.</string>
+    <string name="rules_third_wind_5">Here's an example turn, with `Fives` already holding **15pts** and **10pts**:</string>
+    <string name="rules_third_wind_6">The first roll lands three 5s. Hold them, and roll the other **two** dice again.</string>
+    <string name="rules_third_wind_7">Another 5! Hold it too, and roll the last die.</string>
+    <string name="rules_third_wind_8">The last roll is a 6. That's worth **26pts** in `4x`, or **20pts** in `Fives`.</string>
+    <string name="rules_third_wind_9">Score it in `Fives`. It fills the last of its **three** slots, so `Fives` is closed for the rest of the game, worth **45pts** in total.</string>
+    <string name="rules_third_wind_10">In a tie break, every slot that scored **0pts** counts as a category scored **0pts**.</string>
+    <string name="rules_third_wind_11">Scores from this mode don't go on the *Leaderboard*, but they still count towards your *Statistics*.</string>
+    <string name="rules_third_wind_12">Everything else plays exactly the same as the *Standard* rules, just three times over!</string>
+    <string name="rules_hit_list_title">Mode: Hit List</string>
+    <!-- A tab: keep it short. -->
+    <string name="rules_hit_list_tab">Hit List</string>
+    <string name="rules_hit_list_1">A custom mode with the *Standard* dice and **three** rolls a turn, but none of its categories. Instead, every game deals a list of **12** targets, new each game and the same for every player, plus the `Alibi`. That makes **13** turns.</string>
+    <string name="rules_hit_list_2">A target names a number for the die in each place, left to right. Up to **two** places are left open, and any die fills those. This target is worth **20pts**:</string>
+    <string name="rules_hit_list_3">Every number the target names is among your dice, in any order. Scores the target's points</string>
+    <string name="rules_hit_list_4">Every number the target names is on the die in its own place. Scores double</string>
+    <string name="rules_hit_list_5">At least **two** of the numbers the target names are among your dice, but not all of them. Scores half the target's points, times the share of its numbers you rolled, rounded to the nearest **5pts**</string>
+    <string name="rules_hit_list_6">With only **one** of a target's numbers rolled, it scores **0pts**. A partial hit still uses up its target, so the full points are gone for the rest of the game. The `Alibi` only takes a full hit.</string>
+    <string name="rules_hit_list_7">Harder targets are worth more, and each target's tile shows its points. Naming **three** numbers is worth **10pts** or **15pts**, **four** numbers **20pts** to **30pts**, and all **five** **40pts** to **75pts**. An open place makes a target easier to hit, so it's worth less.</string>
+    <string name="rules_hit_list_8">As you roll, each target's tile marks the numbers your dice already show with a bar beneath them, gold once a die is in its own place, and the tile lights up once it's hit.</string>
+    <string name="rules_hit_list_9">Score a hit here instead of in its target. It's worth the points of the best open target your dice hit, never doubled, and that target stays open for another try at an exact hit</string>
+    <string name="rules_hit_list_10">Held dice stay where they are, so a die in the wrong place stays there until you roll it again. If nothing scores, cross off a target or the `Alibi` for **0pts**.</string>
+    <string name="rules_hit_list_11">Here's an example turn, chasing the target above:</string>
+    <string name="rules_hit_list_12">The first roll has the 4 and the 1 in their places, and a 2 in the open place. Hold all **three**: the 2 counts towards a hit wherever it is.</string>
+    <string name="rules_hit_list_13">A 3 lands in its place. That's a hit for **20pts**, but the 2 is in the open place, not the fourth. Hold the 3 too.</string>
+    <string name="rules_hit_list_14">Roll the fourth die on its own. A 2 there is an exact hit, and if it misses, the hit is safe: the last die is still a 2.</string>
+    <string name="rules_hit_list_15">It's a 2! Score the exact hit for **40pts**. Had it missed, you could take the hit for **20pts**, or score it in the `Alibi` and keep this target for another try.</string>
+    <string name="rules_hit_list_16">The *Extended Scores* modifier can't be used in this mode. With *Unlucky Dice*, a locked die can't count towards a target, and a roll with one locked can't be an exact hit.</string>
+    <string name="rules_hit_list_17">Totals here don't compare with other modes, so the achievements for a high or low score, a scorecard with no zeroes, or for winning from behind after scoring three zeroes, can't be earned in it. Scores from this mode don't go on the *Leaderboard*, since every game has a different list, but they still count towards your *Statistics*.</string>
+    <string name="rules_modifiers_title">Modifiers</string>
+    <!-- A tab: keep it short. -->
+    <string name="rules_modifiers_tab">Modifiers</string>
+    <string name="rules_modifiers_1">*Modifiers* are optional extras you can add to any game mode. Choose them on the new game screen: each can be switched on or off, and some also have a value to set.</string>
+    <string name="rules_modifiers_2">*Modifiers* are just for fun. Scores from a game with any modifier switched on don't go on the *Leaderboard*, but they still count towards your *Statistics*.</string>
+    <string name="rules_modifiers_3">*Turn Timer*: a limit on how long each player has to finish their whole turn, not each roll. Choose **30**, **60** or **120** seconds. A badge shows the time left and turns red as it runs out.</string>
+    <string name="rules_modifiers_4">If a player's time runs out, their roll is scored for them in whichever open category it's worth the least in (the first one on the scorecard, if several tie).</string>
+    <string name="rules_modifiers_5">*Number of Rolls*: how many times a player may roll each turn, from **1** to **9**. Without it, a turn has the game mode's own number of rolls, which is **3** in every game mode.</string>
+    <string name="rules_modifiers_6">*Stored Rolls*: any rolls a player doesn't use before scoring are kept for their next turn, on top of that turn's usual rolls, and so on. The dice cup shows the total, so it can pass **9**. Each player keeps their own.</string>
+    <string name="rules_modifiers_7">*Stored Rolls* can also have a most rolls you can store: whatever is left over beyond it is lost when the turn is scored. Leave it empty for no limit.</string>
+    <string name="rules_modifiers_8">Extra rolls make big scores much easier, so with either of these on, the achievements for a high score, a section total, a clean scorecard or the upper bonus can't be earned, and neither can the sunflower.</string>
+    <string name="rules_modifiers_9">*Extended Scores*: adds three more scoring categories to every player's scorecard, after the others. It works in every game mode, so the game lasts three turns longer.</string>
+    <string name="rules_modifiers_10">Total of the four dice making two pairs of different numbers. A fifth die is never counted, even if it matches a pair</string>
+    <string name="rules_modifiers_11">Total of the dice showing 2, 4 or 6</string>
+    <string name="rules_modifiers_12">Total of the dice showing 1, 3 or 5</string>
+    <string name="rules_modifiers_13">The extra categories have their own section, so they don't count towards the upper bonus or the lower section's total. With *Extended Scores* on, the achievements for a high score or for winning from behind after scoring three zeroes can't be earned.</string>
+    <string name="rules_modifiers_14">*Unlucky Dice*: each time the dice are rolled, every die that was rolled has a chance of landing locked in a red cross of chains. A locked die can't be held and doesn't score, so the others are scored without it: a category that needs all five dice, like *5x* or the *Large Straight*, can't be made. Dice you are holding are never locked, and a locked die is rolled again, with the rest, on the next roll.</string>
+    <string name="rules_modifiers_15">Here the last **5** is locked, so it can't be held or scored. Only the other three **5**s score in *Fives*; with the locked one it would have been **20pts**. The **2** doesn't count, as usual.</string>
+    <string name="rules_modifiers_16">Choose the chance each rolled die has of being locked, from **10%** to **50%** in steps of **10%**, and the most dice that can be locked on one roll, from **1** to **5**. If more dice come up locked than that, a few are picked at random to be.</string>
+    <string name="rules_modifiers_17">Locked dice make a bad turn easier, so with *Unlucky Dice* on, the achievement for winning from behind after scoring three zeroes can't be earned.</string>
+
+    <!-- Rules screen: everything else (ui/rules/RulesScreen.kt) -->
+    <string name="rules_title">Rules</string>
+    <!-- The pill at the foot: which page is showing. Spoken as common_page_of. -->
+    <string name="rules_page_count">%1$d of %2$d</string>
+    <!-- The number of a step in a list. -->
+    <string name="rules_step_number">%1$d.</string>
+    <!-- What an example roll scores, after its dice: "= 25pts". -->
+    <string name="rules_example_equals">= %1$s</string>
+    <!-- An amount of points as it is drawn ("25pts"), and as it is written in the pages' text. A spoken page says it in full (rules_points_spoken): this is how those are found. -->
+    <string name="rules_points_short">%1$dpts</string>
+    <!-- Two amounts added together: "20pts + 100pts". -->
+    <string name="rules_points_sum">%1$s + %2$s</string>
+    <!-- Said for the "+" between two amounts. -->
+    <string name="rules_plus_spoken">plus</string>
+    <!-- An amount of points in a page read aloud. -->
+    <plurals name="rules_points_spoken">
+        <item quantity="one">%1$d point</item>
+        <item quantity="other">%1$d points</item>
+    </plurals>
+    <!-- The example turn timer on the Modifiers page. -->
+    <plurals name="rules_timer_example_cd">
+        <item quantity="one">Example: the turn timer, turning red with %1$d second left</item>
+        <item quantity="other">Example: the turn timer, turning red with %1$d seconds left</item>
+    </plurals>
+    <!-- Headings of the Hit List page's three kinds of hit. -->
+    <string name="rules_name_exact_hit">Exact Hit</string>
+    <string name="rules_name_hit">Hit</string>
+    <string name="rules_name_partial_hit">Partial Hit</string>
 
 </resources>

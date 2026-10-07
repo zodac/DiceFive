@@ -94,11 +94,11 @@ private const val GIFT_LID_RATTLE = 1.6f
 
 /** The lid's rattle while the box is shaken: 0 (sitting on the box) to 1 (bounced up), and back, quickly. */
 @Composable
-private fun rememberLidRattle(): State<Float> = rememberInfiniteTransition(label = "giftLidRattle").animateFloat(
+private fun rememberLidRattle(): State<Float> = rememberInfiniteTransition(label = "giftLidRattle").animateFloat( // i18n: not translated - an animation label, not shown
     initialValue = 0f,
     targetValue = 1f,
     animationSpec = infiniteRepeatable(tween(70, easing = LinearEasing), RepeatMode.Reverse),
-    label = "giftLidRattleLift",
+    label = "giftLidRattleLift", // i18n: not translated - an animation label, not shown
 )
 
 private data class GlitterCupSurface(val id: String, val colour: Color)
@@ -168,7 +168,7 @@ class GiftBoxDiceCupStyle(override val id: String, private val paper: CupPalette
         val lidFall by animateFloatAsState(
             targetValue = if (open) 1f else 0f,
             animationSpec = if (open && !reduceMotion) tween(GIFT_LID_FALL_MILLIS, easing = LinearEasing) else snap(),
-            label = "giftLidFall",
+            label = "giftLidFall", // i18n: not translated - an animation label, not shown
         )
         val rattle = if (rolling && !reduceMotion) rememberLidRattle() else null
         CupCanvas(rolling, tilted, modifier, shape) {

@@ -3,43 +3,28 @@ package net.zodac.dicefive.i18n
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /**
- * No new player-visible string literal in `ui/`: they belong in `strings.xml`. Each file may hold at
- * most as many as the baseline says, and the baseline has to shrink as they move (Step 4 of
- * `.claude/I18N.md`), so a count that is too high *or* too low fails. A literal that must stay (a
- * mark like "3x") ends its line with `// i18n: not translated - <why>`.
- *
- * To regenerate the baseline: `./gradlew :app:shared:testAndroidHostTest --tests '*NoNewLiteralsTest*' -PregenerateI18nBaseline`.
+ * No player-visible string literal in `ui/`: they belong in `strings.xml`. A literal that has to stay (a mark like
+ * "3x", an animation label) ends its line with `// i18n: not translated - <why>`. The scan is a few regexes over
+ * the common arguments of text - `text =`, `Text("`, `contentDescription =` and so on - not a parser, so a new
+ * kind of call that takes text is worth adding to [argument] when it turns up. See `.claude/I18N.md`.
  */
 class NoNewLiteralsTest {
 
     private val uiRoot = File("src/commonMain/kotlin/net/zodac/dicefive/ui")
-    private val baselineFile = File("src/androidHostTest/i18n-literal-baseline.txt")
 
     @Test
-    fun `ui holds no more string literals than the baseline and no fewer`() {
-        val found = scan(uiRoot)
-        if (System.getProperty("dicefive.regenerateI18nBaseline") == "true") {
-            baselineFile.writeText(found.entries.sortedBy { it.key }.joinToString("") { "${it.key}\t${it.value.size}\n" })
-            println("Wrote ${found.values.sumOf { it.size }} literals in ${found.size} files to ${baselineFile.absolutePath}")
-            return
+    fun `ui holds no string literal that is shown or spoken`() {
+        val problems = scan(uiRoot).map { (file, lines) ->
+            "$file: " + lines.joinToString { "${it.line}: ${it.text}" }
         }
-        assertTrue(baselineFile.isFile, "No baseline at ${baselineFile.absolutePath} - regenerate it, see the class doc")
-        val baseline = baselineFile.readLines().filter { it.isNotBlank() }.associate { it.substringBefore('\t') to it.substringAfter('\t').toInt() }
 
-        val problems = (found.keys + baseline.keys).sorted().mapNotNull { file ->
-            val lines = found[file].orEmpty()
-            val allowed = baseline[file] ?: 0
-            when {
-                lines.size > allowed -> "$file has ${lines.size} string literals, baseline $allowed - move the new ones into strings.xml " +
-                    "(or end the line with '// i18n: not translated - <why>'): " + lines.joinToString { "${it.line}: ${it.text}" }
-                lines.size < allowed -> "$file has ${lines.size} string literals, baseline $allowed - lower the baseline to ${lines.size}"
-                else -> null
-            }
-        }
-        assertEquals(emptyList(), problems)
+        assertEquals(
+            emptyList(),
+            problems,
+            "Move these into strings.xml, or end the line with '// i18n: not translated - <why>' if it must stay",
+        )
     }
 
     @Test
