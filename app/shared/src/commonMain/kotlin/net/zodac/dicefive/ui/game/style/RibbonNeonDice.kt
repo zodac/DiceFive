@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -12,6 +13,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
+import kotlin.math.pow
 import kotlin.math.sin
 import net.zodac.dicefive.ui.theme.GoldAccent
 
@@ -133,6 +135,16 @@ class NeonDiceStyle(
     }
 }
 
+// The tube's width, and how far its halo reaches from the tube's centre line, as fractions of the die's side.
+private const val NEON_TUBE_WIDTH = 0.065f
+private const val NEON_HALO_REACH = 0.18f
+private const val NEON_GLOW_EDGE_WIDTH = 0.11f
+
+// The halo's layers, its opacity next to the tube, and how quickly it fades from there to nothing at its reach.
+private const val NEON_HALO_LAYERS = 40
+private const val NEON_HALO_PEAK = 0.95f
+private const val NEON_HALO_FALLOFF = 1.15f
+
 /** [value] as a neon tube of [colour], its halo at [glow] (0-1) of full strength. */
 internal fun DrawScope.drawNeonDigit(value: Int, colour: Color, glow: Float) {
     val side = size.minDimension
@@ -143,15 +155,24 @@ internal fun DrawScope.drawNeonDigit(value: Int, colour: Color, glow: Float) {
         side * 0.75f,
         centre,
     )
-    for (stroke in strokeDigitPaths(value, Offset(side * 0.1f, side * 0.09f), side * 0.8f)) {
-        fun tube(c: Color, w: Float) = drawPath(stroke.path, c, style = Stroke(width = w, cap = StrokeCap.Round, join = StrokeJoin.Round))
-        tube(colour.copy(alpha = 0.16f * glow), side * 0.36f)
-        tube(colour.copy(alpha = 0.26f * glow), side * 0.28f)
-        tube(colour.copy(alpha = 0.45f * glow), side * 0.17f)
-        tube(colour.copy(alpha = 0.7f * glow), side * 0.1f)
-        tube(lerp(colour, Color.White, 0.2f), side * 0.065f)
-        tube(lerp(colour, Color.White, 0.75f).copy(alpha = 0.6f + 0.4f * glow), side * 0.026f)
-        // The electrodes: a dark cap on each end of the tube.
-        for (end in listOf(stroke.start, stroke.end)) drawCircle(lerp(colour, Color.Black, 0.55f), side * 0.022f, end)
+    val strokes = strokeDigitPaths(value, Offset(side * 0.1f, side * 0.09f), side * 0.8f)
+    // Every stroke in one path, so where two strokes meet (the 4's crossbar) their glow isn't doubled.
+    val digit = Path().apply { for (stroke in strokes) addPath(stroke.path) }
+    fun tube(c: Color, w: Float) = drawPath(digit, c, style = Stroke(width = w, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    // The halo: many faint layers, widest first, each adding just enough that the glow fades smoothly
+    // from the tube to nothing - a few strong layers showed each one's edge as a line round the number.
+    var covered = 0f
+    for (layer in NEON_HALO_LAYERS downTo 1) {
+        val reach = layer.toFloat() / NEON_HALO_LAYERS
+        val target = NEON_HALO_PEAK * glow * (1f - reach).pow(NEON_HALO_FALLOFF)
+        val alpha = (1f - (1f - target) / (1f - covered)).coerceIn(0f, 1f)
+        tube(colour.copy(alpha = alpha), NEON_TUBE_WIDTH * side + 2f * reach * (NEON_HALO_REACH - NEON_TUBE_WIDTH / 2f) * side)
+        covered = target
     }
+    // One crisp edge where the glow is brightest, hugging the tube, so the number still has an outline.
+    tube(colour.copy(alpha = 0.5f * glow), side * NEON_GLOW_EDGE_WIDTH)
+    tube(lerp(colour, Color.White, 0.2f), side * NEON_TUBE_WIDTH)
+    tube(lerp(colour, Color.White, 0.75f).copy(alpha = 0.6f + 0.4f * glow), side * 0.026f)
+    // The electrodes: a dark cap on each end of the tube.
+    for (stroke in strokes) for (end in listOf(stroke.start, stroke.end)) drawCircle(lerp(colour, Color.Black, 0.55f), side * 0.022f, end)
 }
