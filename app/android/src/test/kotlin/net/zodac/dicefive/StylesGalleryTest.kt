@@ -204,7 +204,7 @@ class StylesGalleryTest {
         compose.waitForIdle()
         // Far along the row from the Classic dice it opened on, so the row has to move to show it.
         val mahjong = tiles and hasContentDescription("Mahjong", substring = true)
-        saved.value = saved.value!!.copy(diceStyleId = DiceStyles.families.first { it.name == "Mahjong" }.colours.first().style.id)
+        saved.value = saved.value!!.copy(diceStyleId = DiceStyles.familyNamed("Mahjong").colours.first().style.id)
         compose.waitForIdle()
         compose.onNodeWithContentDescription("Dice gallery").performClick()
         compose.waitForIdle()

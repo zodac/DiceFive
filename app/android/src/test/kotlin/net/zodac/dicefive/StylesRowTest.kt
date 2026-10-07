@@ -63,7 +63,7 @@ class StylesRowTest {
         assertEquals(built, after.size)
         val selected = after.filter { it.config.getOrNull(SemanticsProperties.Selected) == true }
             .map { it.config[SemanticsProperties.ContentDescription].single() }
-        assertTrue(selected.toString(), selected.any { it.startsWith(unlockedDice[1].name) })
+        assertTrue(selected.toString(), selected.any { it.startsWith(englishText(unlockedDice[1].name)) })
     }
 
     @Test
@@ -81,8 +81,8 @@ class StylesRowTest {
         val built = compose.onAllNodes(tiles).fetchSemanticsNodes().size
 
         for (cup in cups) {
-            val tile = compose.onAllNodes(tiles and SemanticsMatcher("starts with ${cup.name}") { node ->
-                node.config.getOrNull(SemanticsProperties.ContentDescription)?.singleOrNull()?.startsWith(cup.name) == true
+            val tile = compose.onAllNodes(tiles and SemanticsMatcher("starts with ${englishText(cup.name)}") { node ->
+                node.config.getOrNull(SemanticsProperties.ContentDescription)?.singleOrNull()?.startsWith(englishText(cup.name)) == true
             }).onFirst()
             tile.performSemanticsAction(SemanticsActions.OnClick)
             // Partway through the shake (420ms), into the tip, then past its standing back up (1.5s later).

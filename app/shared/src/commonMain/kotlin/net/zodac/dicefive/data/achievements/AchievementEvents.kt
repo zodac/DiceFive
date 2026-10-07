@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import net.zodac.dicefive.model.Achievement
+import org.jetbrains.compose.resources.StringResource
 
 /** Something worth putting on screen for a moment - see `ui/achievements/AchievementBannerHost`. */
 sealed interface AchievementEvent {
@@ -29,7 +30,7 @@ sealed interface AchievementEvent {
 }
 
 /** A style a [AchievementEvent.StylesUnlocked] names: its [name] and what one of its category is called - "'Frosted' dice". */
-data class UnlockedStyle(val name: String, val categoryNoun: String)
+data class UnlockedStyle(val name: StringResource, val categoryNoun: StringResource)
 
 /**
  * Where unlock banners are announced, and where the banner host listens.

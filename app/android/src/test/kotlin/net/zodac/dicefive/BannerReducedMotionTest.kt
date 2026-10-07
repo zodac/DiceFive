@@ -14,7 +14,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
-import net.zodac.dicefive.data.achievements.UnlockedStyle
+import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.device.AndroidAppContainer
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
 import net.zodac.dicefive.ui.common.LocalReduceMotion
@@ -68,8 +68,8 @@ class BannerReducedMotionTest {
         compose.waitForIdle()
         compose.mainClock.autoAdvance = false
 
-        val names = listOf("Frosted", "Velvet", "Oak")
-        names.forEach { AchievementEvents.emit(AchievementEvent.StylesUnlocked(listOf(UnlockedStyle(it, "dice")), 30)) }
+        val names = listOf("Frosted", "Metal", "Retro")
+        names.forEach { AchievementEvents.emit(AchievementEvent.StylesUnlocked(listOf(DiceStyles.unlockedStyle(it)), 30)) }
         compose.mainClock.advanceTimeBy(FRAMES_TO_SHOW)
         // Idle with the clock still paused: lets the banners' dialog window come up, without any time passing.
         compose.waitForIdle()

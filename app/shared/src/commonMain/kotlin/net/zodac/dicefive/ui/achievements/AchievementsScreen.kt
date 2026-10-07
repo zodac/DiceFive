@@ -6,17 +6,17 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -32,8 +32,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -67,16 +67,20 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementScrollRequests
 import net.zodac.dicefive.model.Achievement
-import net.zodac.dicefive.ui.common.AppTooltip
-import net.zodac.dicefive.ui.common.rememberAppTooltipState
-import net.zodac.dicefive.ui.common.delayWhileResumed
-import net.zodac.dicefive.ui.game.style.styleRewards
-import net.zodac.dicefive.ui.game.style.unlocksStyle
 import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.achievements_reward_locked
+import net.zodac.dicefive.resources.achievements_reward_show_action
+import net.zodac.dicefive.resources.achievements_reward_unlocked
+import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.ScreenScaffold
+import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.formatTimestamp
 import net.zodac.dicefive.ui.common.grouped
+import net.zodac.dicefive.ui.common.rememberAppTooltipState
+import net.zodac.dicefive.ui.game.style.styleRewards
+import net.zodac.dicefive.ui.game.style.unlocksStyle
 import net.zodac.dicefive.ui.theme.GoldAccent
 import org.jetbrains.compose.resources.stringResource
 
@@ -543,15 +547,16 @@ private fun StyleRewardTooltip(
     }
     val tooltipState = rememberAppTooltipState()
     val scope = rememberCoroutineScope()
-    val message = achievement.styleRewards.joinToString("\n") { reward ->
-        if (unlocked) "You've unlocked ${reward.description}!" else "Earn this to unlock ${reward.description}"
-    }
+    val message = achievement.styleRewards.map { reward ->
+        stringResource(if (unlocked) Res.string.achievements_reward_unlocked else Res.string.achievements_reward_locked, reward.description())
+    }.joinToString("\n")
+    val showWhichLabel = stringResource(Res.string.achievements_reward_show_action)
     AppTooltip(message = message, state = tooltipState, enabled = enabled) {
         content(
             if (enabled) {
                 // A tap, as well as the long press TooltipBox already listens for; a screen reader gets it as
                 // this row's one action.
-                Modifier.clickable(onClickLabel = "Show which style this unlocks", role = Role.Button) {
+                Modifier.clickable(onClickLabel = showWhichLabel, role = Role.Button) {
                     scope.launch { tooltipState.show() }
                 }
             } else {

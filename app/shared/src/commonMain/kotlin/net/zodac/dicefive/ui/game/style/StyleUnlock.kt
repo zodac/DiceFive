@@ -1,8 +1,15 @@
 package net.zodac.dicefive.ui.game.style
 
+import androidx.compose.runtime.Composable
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementVisibility
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.styles_reward_hidden_colours
+import net.zodac.dicefive.resources.styles_reward_style
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * What a [StyleFamily] takes to be usable. The lock is on the style as a whole: once it's met, every
@@ -46,13 +53,18 @@ sealed interface StyleUnlock {
 }
 
 /** A style that earning one particular achievement unlocks, and what it's called: "the 'Irish' dice style". */
-data class StyleReward(val styleName: String, val categoryNoun: String, val hiddenColours: Int = 0) {
-    val description: String
-        get() = when (hiddenColours) {
-            0 -> "the '$styleName' $categoryNoun style"
-            1 -> "the hidden '$styleName' $categoryNoun colour"
-            else -> "the hidden '$styleName' $categoryNoun colours"
+data class StyleReward(val styleName: StringResource, val categoryNoun: StringResource, val hiddenColours: Int = 0) {
+    /** What it's called in a sentence, in the player's language. */
+    @Composable
+    fun description(): String {
+        val name = stringResource(styleName)
+        val noun = stringResource(categoryNoun)
+        return if (hiddenColours == 0) {
+            stringResource(Res.string.styles_reward_style, name, noun)
+        } else {
+            pluralStringResource(Res.plurals.styles_reward_hidden_colours, hiddenColours, name, noun)
         }
+    }
 }
 
 /** Every style that earning this achievement unlocks, in the Styles screen's category order. */

@@ -1,5 +1,5 @@
 achievements/AchievementBannerHost.kt	1
-achievements/AchievementsScreen.kt	10
+achievements/AchievementsScreen.kt	9
 game/style/CupRotation.kt	5
 game/style/PicnicBasketCup.kt	3
 game/style/RoundCups.kt	2
@@ -9,4 +9,3 @@ game/style/VolcanoCup.kt	3
 rules/RulesScreen.kt	15
 scores/ScoresScreen.kt	8
 statistics/StatisticsScreen.kt	16
-styles/StylesScreen.kt	17

@@ -1,5 +1,8 @@
 package net.zodac.dicefive.ui.achievements
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -13,13 +16,18 @@ import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.AchievementUpdate
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementVisibility
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.style_family_frosted
+import net.zodac.dicefive.resources.style_family_greek
+import net.zodac.dicefive.resources.style_family_martini
+import net.zodac.dicefive.resources.style_family_maths
+import net.zodac.dicefive.resources.style_family_wreath
+import net.zodac.dicefive.resources.style_noun_dice
+import net.zodac.dicefive.resources.style_noun_frame
 import net.zodac.dicefive.ui.game.style.StyleCatalogs
 import net.zodac.dicefive.ui.game.style.StyleReward
 import net.zodac.dicefive.ui.game.style.StyleUnlock
 import net.zodac.dicefive.ui.game.style.stylesUnlockedByCount
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class StylesUnlockedBannerTest {
@@ -49,10 +57,10 @@ class StylesUnlockedBannerTest {
 
     @Test
     fun `reaching a style's count unlocks exactly that style - one short or one past does not`() {
-        assertEquals(listOf(StyleReward("Frosted", "dice")), stylesUnlockedByCount(22, 23))
+        assertEquals(listOf(StyleReward(Res.string.style_family_frosted, Res.string.style_noun_dice)), stylesUnlockedByCount(22, 23))
         // Each neighbour unlocks a style of its own (a frame), but never Frosted.
-        assertEquals(listOf(StyleReward("Wreath", "frame")), stylesUnlockedByCount(21, 22))
-        assertEquals(listOf(StyleReward("Greek", "frame")), stylesUnlockedByCount(23, 24))
+        assertEquals(listOf(StyleReward(Res.string.style_family_wreath, Res.string.style_noun_frame)), stylesUnlockedByCount(21, 22))
+        assertEquals(listOf(StyleReward(Res.string.style_family_greek, Res.string.style_noun_frame)), stylesUnlockedByCount(23, 24))
     }
 
     @Test
@@ -71,7 +79,7 @@ class StylesUnlockedBannerTest {
         val all = stylesUnlockedByCount(0, countedAchievements.size)
         assertEquals(countLocks.map { it.second }.toSet(), all.toSet())
         assertTrue(all.map { it.categoryNoun }.toSet().size > 1, "$all")
-        assertTrue(all.none { it.styleName == "Maths" || it.styleName == "Martini" }, "$all")
+        assertTrue(all.none { it.styleName == Res.string.style_family_maths || it.styleName == Res.string.style_family_martini }, "$all")
     }
 
     @Test
