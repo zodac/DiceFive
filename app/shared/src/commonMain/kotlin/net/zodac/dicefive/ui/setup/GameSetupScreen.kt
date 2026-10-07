@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -35,6 +36,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
@@ -46,6 +48,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.sp
 import net.zodac.dicefive.ui.common.FontFit
 import net.zodac.dicefive.ui.common.MIN_READABLE_FONT_SIZE
+import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.fitFontSize
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
@@ -244,6 +247,7 @@ private fun PlayerCountSelector(count: Int, onCountChange: (Int) -> Unit) {
         onSelect = onCountChange,
         label = Int::toString,
         modifier = Modifier.fillMaxWidth(),
+        brandFont = true,
     )
 }
 
@@ -253,8 +257,8 @@ private fun PlayerCountSelector(count: Int, onCountChange: (Int) -> Unit) {
  * for a CPU, the difficulty picker itself) already identifies the row.
  *
  * [isTypeLocked] is true only for player 1, who is always Human (this device's own player) - their
- * row shows a fixed "You" label in place of the [FilterChip] the other seats get, at the same
- * width so every row's name field still lines up at the same right edge.
+ * row has no [FilterChip], just an empty space the chip's width, so every row's name field still
+ * ends at the same right edge. (It used to say "You"; the row needs no label to be player 1's.)
  */
 @Composable
 private fun PlayerRow(
@@ -297,17 +301,11 @@ private fun PlayerRow(
             }
         }
     }
-    // Grows with the font so "User" and "CPU" fit; the same for "You", so every row's control still lines up.
+    // Grows with the font so "User" and "CPU" fit; player 1's empty space grows with it, so every row still lines up.
     val typeControlWidth = TYPE_CONTROL_WIDTH * fontScale.coerceAtLeast(1f)
     val typeControl: @Composable () -> Unit = {
         if (isTypeLocked) {
-            Box(modifier = Modifier.width(typeControlWidth), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "You",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Spacer(modifier = Modifier.width(typeControlWidth))
         } else {
             FilterChip(
                 selected = slot.type == PlayerType.AI,
@@ -318,7 +316,7 @@ private fun PlayerRow(
                     // "CPU" and "User" sitting at different horizontal positions. A label that fills
                     // the whole slot and centers its own text isn't subject to that.
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(if (slot.type == PlayerType.AI) "CPU" else "User")
+                        Text(if (slot.type == PlayerType.AI) "CPU" else "User", fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold)
                     }
                 },
                 modifier = Modifier.width(typeControlWidth),
@@ -332,7 +330,10 @@ private fun PlayerRow(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             nameOrDifficulty(Modifier.fillMaxWidth())
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) { typeControl() }
+            // Player 1 has no switch, and on a line of its own its empty space would only leave a gap.
+            if (!isTypeLocked) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) { typeControl() }
+            }
         }
     } else {
         Row(
@@ -503,7 +504,7 @@ private fun SetupModifierPicker(
         activeNote = "Scores won't go on the Leaderboard",
         modifiers = listOf(
             ModifierSetting(
-                title = "Turn timer",
+                title = "Turn Timer",
                 description = "A time limit for each whole turn",
                 enabled = setup.turnTimer != TurnTimer.NONE,
                 onEnabledChange = { on -> onSelect(if (on) setup.turnTimerLength else TurnTimer.NONE) },

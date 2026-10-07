@@ -60,7 +60,9 @@ import org.jetbrains.compose.resources.Font
  * [ScreenScaffold]'s page titles and every dialog title, and on the game's own marks: the scorecard
  * tiles' labels and Hit List targets, the corner badges (see `SegmentBadge`), the rolls left by the
  * cup, the scores on the player tabs and Game Over, the Leaderboard's mode-card titles, an
- * unlock banner's title and the labels (not the numbers) in the board's totals tooltip. This is a deliberate, narrow departure from stock M3 type ([UI.md]'s "no
+ * unlock banner's title, the labels (not the numbers) in the board's totals tooltip, and the
+ * game mode and modifier names and values - on their picker pages and in the New Game fields that
+ * open them - and the New Game screen's player count and You / User / CPU labels. This is a deliberate, narrow departure from stock M3 type ([UI.md]'s "no
  * typography overrides" rule is about the type *scale*, not a call site): these are brand marks,
  * not body text, so they earn their own face the same way the game board earns its own palette.
  *

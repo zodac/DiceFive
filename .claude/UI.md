@@ -77,7 +77,11 @@ at the call site.
 **The brand face, Sora (`SoraFontFamily` in `AppLogo.kt`), is a call-site choice for brand
 marks, not body text.** It's on the wordmark, page and dialog titles, Rules page headings, the
 Leaderboard's mode-card titles, an unlock banner's title, the labels in the board's totals
-tooltip, and the game's own marks: scorecard tile labels ("3x", "2+2", "Alibi"), Hit List targets,
+tooltip, the New Game screen's player count (`SegmentedChoiceRow(brandFont = true)`) and
+User/CPU chips, the game mode and modifier names and every modifier value - their picker rows,
+the timer lengths, the steppers ("4 rolls", "20%") and the typed stored-rolls cap - plus the New
+Game fields' headlines ("Standard", "3 enabled"). The descriptions beneath those names stay in the
+system font: bold-only Sora made them heavy and wrapped three of them. Then the game's own marks: scorecard tile labels ("3x", "2+2", "Alibi"), Hit List targets,
 corner badges, the rolls left by the cup, and the scores on the player tabs and Game Over.
 Everything else - body, buttons, labels, text fields, small grey section headings, tooltips'
 text - stays on the system font. **Columns of numbers stay on the system font too** (the
@@ -86,7 +90,8 @@ Leaderboard's scores, Statistics, the totals tooltip's values, with thousands co
 digit. The maintainer turned Sora down there for exactly that; it has tabular digits (`tnum`) if
 it's ever wanted. Two limits: the file holds only weight
 700 (ask for `FontWeight.Bold`), and only ASCII plus Latin-1, so **never put a player's name or
-other typed text in Sora** - a name in another script or with an emoji would mix two faces. A new
+other free typed text in Sora** - a name in another script or with an emoji would mix two faces.
+(The stored-rolls cap is the one typed field in Sora: it only ever takes the digits 0-9.) A new
 fixed string in Sora must stay inside U+0020-007E / U+00A0-00FF, or the font must be re-cut (the
 recipe is on `SoraFontFamily`).
 
