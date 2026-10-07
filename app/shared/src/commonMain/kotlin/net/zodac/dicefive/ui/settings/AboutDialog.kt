@@ -39,9 +39,23 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.about_author_body
+import net.zodac.dicefive.resources.about_author_heading
+import net.zodac.dicefive.resources.about_author_link
+import net.zodac.dicefive.resources.about_close_cd
+import net.zodac.dicefive.resources.about_inspiration_body
+import net.zodac.dicefive.resources.about_inspiration_heading
+import net.zodac.dicefive.resources.about_inspiration_link
+import net.zodac.dicefive.resources.about_privacy_body
+import net.zodac.dicefive.resources.about_privacy_heading
+import net.zodac.dicefive.resources.about_privacy_link
+import net.zodac.dicefive.resources.about_title
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.parseInlineMarkup
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 
 private const val GITHUB_REPO_URL = "https://github.com/zodac/DiceFive"
 private const val DICE_ME_ONLINE_URL = "https://play.google.com/store/apps/details?id=com.giu.diceme"
@@ -50,30 +64,29 @@ private const val DICE_ME_ONLINE_URL = "https://play.google.com/store/apps/detai
 private const val PRIVACY_POLICY_URL = "https://zodac.github.io/DiceFive/privacy-policy"
 
 /** A button under a section's body that opens [url] in the browser. */
-private data class AboutLink(val label: String, val url: String)
+private data class AboutLink(val label: StringResource, val url: String)
 
 /** One About section: a heading, its body text and an optional link. Kept as data rather than
  * inlined composables so the list itself documents what the page says, in order, without reading
  * the layout code. Names in [body] go between backticks, which draws them a shade brighter than the
  * rest of the sentence. */
-private data class AboutSection(val heading: String, val body: String, val link: AboutLink? = null)
+private data class AboutSection(val heading: StringResource, val body: StringResource, val link: AboutLink? = null)
 
 private val ABOUT_SECTIONS = listOf(
     AboutSection(
-        heading = "Author",
-        body = "DiceFive is created by `zodac`.",
-        link = AboutLink("Source code on GitHub", GITHUB_REPO_URL),
+        heading = Res.string.about_author_heading,
+        body = Res.string.about_author_body,
+        link = AboutLink(Res.string.about_author_link, GITHUB_REPO_URL),
     ),
     AboutSection(
-        heading = "Inspiration",
-        body = "DiceFive was inspired by `Dice Me Online`, created by `Arturo Gutierrez`.",
-        link = AboutLink("Dice Me Online on Google Play", DICE_ME_ONLINE_URL),
+        heading = Res.string.about_inspiration_heading,
+        body = Res.string.about_inspiration_body,
+        link = AboutLink(Res.string.about_inspiration_link, DICE_ME_ONLINE_URL),
     ),
     AboutSection(
-        heading = "Privacy",
-        body = "DiceFive holds no user data. Your games, scores and settings stay on this device, " +
-            "and there are no ads, analytics or tracking.",
-        link = AboutLink("Full privacy policy", PRIVACY_POLICY_URL),
+        heading = Res.string.about_privacy_heading,
+        body = Res.string.about_privacy_body,
+        link = AboutLink(Res.string.about_privacy_link, PRIVACY_POLICY_URL),
     ),
 )
 
@@ -108,13 +121,13 @@ fun AboutDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
             Column(modifier = Modifier.fillMaxSize().padding(top = 4.dp, bottom = 20.dp, start = 20.dp, end = 20.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     IconButton(onClick = onDismissRequest) {
-                        Icon(imageVector = Icons.Filled.Close, contentDescription = "Close about")
+                        Icon(imageVector = Icons.Filled.Close, contentDescription = stringResource(Res.string.about_close_cd))
                     }
                 }
 
                 Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
                     Text(
-                        text = "About",
+                        text = stringResource(Res.string.about_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontFamily = SoraFontFamily,
                         fontWeight = FontWeight.Bold,
@@ -151,13 +164,13 @@ private fun AboutSectionCard(section: AboutSection, nameStyle: SpanStyle, onOpen
         // bottom padding shrinks to match, keeping the gap under the last line the same as above it.
         Column(modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = if (section.link == null) 16.dp else 6.dp)) {
             Text(
-                text = section.heading,
+                text = stringResource(section.heading),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.semantics { heading() },
             )
             Text(
-                text = parseInlineMarkup(section.body, nameStyle),
+                text = parseInlineMarkup(stringResource(section.body), nameStyle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp),
@@ -178,7 +191,7 @@ private fun AboutSectionCard(section: AboutSection, nameStyle: SpanStyle, onOpen
                         modifier = Modifier.size(ButtonDefaults.IconSize),
                     )
                     Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-                    Text(link.label)
+                    Text(stringResource(link.label))
                 }
             }
         }

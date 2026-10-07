@@ -47,6 +47,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_back_cd
+import org.jetbrains.compose.resources.stringResource
 
 /** How long a page's content takes to fade in once it's opened - see [ScreenScaffold]. */
 const val PAGE_CONTENT_FADE_IN_MILLIS = 100
@@ -182,7 +185,7 @@ fun PageTopBar(title: String, onBack: (() -> Unit)?, modifier: Modifier = Modifi
         navigationIcon = {
             if (onBack != null) {
                 IconButton(onClick = onBack) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back_cd))
                 }
             }
         },

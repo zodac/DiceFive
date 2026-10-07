@@ -42,9 +42,14 @@ import net.zodac.dicefive.data.JsonString
 import net.zodac.dicefive.data.parseJson
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.PlatformServices
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.licences_close_cd
+import net.zodac.dicefive.resources.licences_intro
+import net.zodac.dicefive.resources.licences_title
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.VerticalScrollbar
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * What a licensed item is, so a licence's heading can say "Used by 4 sounds" rather than calling a
@@ -196,11 +201,11 @@ fun LicensesDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) 
                 ) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         IconButton(onClick = onDismissRequest) {
-                            Icon(imageVector = Icons.Filled.Close, contentDescription = "Close licences")
+                            Icon(imageVector = Icons.Filled.Close, contentDescription = stringResource(Res.string.licences_close_cd))
                         }
                     }
                     Text(
-                        text = "Licences",
+                        text = stringResource(Res.string.licences_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontFamily = SoraFontFamily,
                         fontWeight = FontWeight.Bold,
@@ -208,8 +213,7 @@ fun LicensesDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) 
                         modifier = Modifier.semantics { heading() },
                     )
                     Text(
-                        text = "DiceFive is built with the open-source software, fonts and sounds below, each used " +
-                            "under the licence it's listed with.",
+                        text = stringResource(Res.string.licences_intro),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),

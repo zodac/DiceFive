@@ -28,6 +28,12 @@ import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.licences_hide_text
+import net.zodac.dicefive.resources.licences_notices_subtitle
+import net.zodac.dicefive.resources.licences_notices_title
+import net.zodac.dicefive.resources.licences_show_text
+import org.jetbrains.compose.resources.stringResource
 
 /** A [SelectionClearer] with nothing to clear - each [ComposeLicenceDocument] section keeps its own selection. */
 internal object NoSelectionClearer : SelectionClearer {
@@ -68,7 +74,7 @@ internal fun ComposeLicenceDocument(report: LicenseReport, scroll: LicenceScroll
             LicenceCard(title = group.name, subtitle = group.usage) {
                 val isExpanded = group.name in expanded
                 TextButton(onClick = { expanded = if (isExpanded) expanded - group.name else expanded + group.name }) {
-                    Text(text = if (isExpanded) "Hide licence text" else "Show licence text")
+                    Text(text = stringResource(if (isExpanded) Res.string.licences_hide_text else Res.string.licences_show_text))
                 }
                 if (isExpanded) {
                     Text(text = linked(group.text, links), style = typography.bodySmall, color = colors.onSurfaceVariant)
@@ -82,7 +88,7 @@ internal fun ComposeLicenceDocument(report: LicenseReport, scroll: LicenceScroll
             }
         }
         if (report.notices.isNotEmpty()) {
-            LicenceCard(title = "Notices", subtitle = "Attribution notices shipped with the libraries above") {
+            LicenceCard(title = stringResource(Res.string.licences_notices_title), subtitle = stringResource(Res.string.licences_notices_subtitle)) {
                 for (notice in report.notices) {
                     Column(modifier = Modifier.padding(top = 8.dp)) {
                         Text(text = notice.library, style = typography.bodyMedium)

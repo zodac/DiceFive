@@ -75,7 +75,7 @@ class NoNewLiteralsTest {
     private val templateParts = Regex("""\$\{[^}]*}|\$\w+""")
 
     private val argument = Regex(
-        """(?:\bText\(\s*|\b(?:text|contentDescription|stateDescription|onClickLabel|label|title|message|headline|supporting|confirmLabel|dismissLabel)\s*=\s*)"((?:[^"\\]|\\.)*)"""",
+        """(?:\bText\(\s*|\b(?:text|contentDescription|stateDescription|onClickLabel|label|title|message|headline|supporting|confirmLabel|dismissLabel|closeLabel|heading|body|subtitle|hint)\s*=\s*)"((?:[^"\\]|\\.)*)"""",
     )
 
     private fun scanSource(source: String): List<Literal> {

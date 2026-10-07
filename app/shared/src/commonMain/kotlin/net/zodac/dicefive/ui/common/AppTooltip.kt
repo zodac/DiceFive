@@ -26,6 +26,9 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_tooltip_show_details_action
+import org.jetbrains.compose.resources.stringResource
 
 /** What [AppTooltip] shows on request - see [rememberAppTooltipState]; wraps Material's experimental state. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -135,6 +138,7 @@ fun tooltipMarkup(text: String): AnnotatedString {
 @Composable
 fun OnDemandTooltip(message: () -> String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     var armed by remember { mutableStateOf(false) }
+    val showDetailsLabel = stringResource(Res.string.common_tooltip_show_details_action)
     // Spoken whether or not it's armed. Read lazily: the block runs when semantics are collected.
     val spoken = Modifier.semantics(mergeDescendants = true) { stateDescription = message().replace("\n", ", ") }
     if (armed) {
@@ -145,7 +149,7 @@ fun OnDemandTooltip(message: () -> String, modifier: Modifier = Modifier, conten
         Box(
             modifier = modifier
                 .then(spoken)
-                .semantics { onLongClick(label = "Show details") { armed = true; true } }
+                .semantics { onLongClick(label = showDetailsLabel) { armed = true; true } }
                 .pointerInput(Unit) { detectTapGestures(onLongPress = { armed = true }) },
         ) { content() }
     }

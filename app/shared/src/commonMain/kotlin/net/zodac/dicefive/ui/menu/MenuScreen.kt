@@ -24,12 +24,23 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.menu_achievements
+import net.zodac.dicefive.resources.menu_continue
+import net.zodac.dicefive.resources.menu_leaderboard
+import net.zodac.dicefive.resources.menu_new_game
+import net.zodac.dicefive.resources.menu_play
+import net.zodac.dicefive.resources.menu_rules
+import net.zodac.dicefive.resources.menu_settings
+import net.zodac.dicefive.resources.menu_statistics
+import net.zodac.dicefive.resources.menu_styles
 import net.zodac.dicefive.ui.common.AppLogo
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.PageColumn
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Taller than a default M3 button (40dp), which reads as a form control rather than a menu
@@ -91,7 +102,7 @@ fun MenuScreen(
             val stackAlpha by animateFloatAsState(
                 targetValue = if (ready) 1f else 0f,
                 animationSpec = tween(durationMillis = 200),
-                label = "menuButtonsAlpha",
+                label = "menuButtonsAlpha", // i18n: not translated - an animation label, not shown
             )
             Column(
                 modifier = Modifier.fillMaxWidth()
@@ -102,12 +113,12 @@ fun MenuScreen(
                 // One filled button for the primary action and tonal buttons for the rest: M3's
                 // emphasis hierarchy, which also stops five identical slabs competing for the eye.
                 PlayButton(hasInProgressGame = hasInProgressGame == true, onContinue = onContinue, onNewGame = onNewGame)
-                MenuDestinationButton(label = "Achievements", onClick = onAchievements)
-                MenuDestinationButton(label = "Styles", onClick = onStyles)
-                MenuDestinationButton(label = "Leaderboard", onClick = onScores)
-                MenuDestinationButton(label = "Statistics", onClick = onStatistics)
-                MenuDestinationButton(label = "Rules", onClick = onRules)
-                MenuDestinationButton(label = "Settings", onClick = onSettings)
+                MenuDestinationButton(label = stringResource(Res.string.menu_achievements), onClick = onAchievements)
+                MenuDestinationButton(label = stringResource(Res.string.menu_styles), onClick = onStyles)
+                MenuDestinationButton(label = stringResource(Res.string.menu_leaderboard), onClick = onScores)
+                MenuDestinationButton(label = stringResource(Res.string.menu_statistics), onClick = onStatistics)
+                MenuDestinationButton(label = stringResource(Res.string.menu_rules), onClick = onRules)
+                MenuDestinationButton(label = stringResource(Res.string.menu_settings), onClick = onSettings)
             }
 
             Spacer(modifier = Modifier.weight(0.38f))
@@ -130,7 +141,7 @@ fun PlayButton(hasInProgressGame: Boolean, onContinue: () -> Unit, onNewGame: ()
             onClick = onNewGame,
             modifier = Modifier.fillMaxWidth().heightIn(min = MENU_BUTTON_HEIGHT),
         ) {
-            Text(text = "Play", style = MaterialTheme.typography.titleMedium)
+            Text(text = stringResource(Res.string.menu_play), style = MaterialTheme.typography.titleMedium)
         }
         return
     }
@@ -145,14 +156,14 @@ fun PlayButton(hasInProgressGame: Boolean, onContinue: () -> Unit, onNewGame: ()
             modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = MENU_BUTTON_HEIGHT),
             shape = NEW_GAME_HALF_SHAPE,
         ) {
-            Text(text = "New Game", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            Text(text = stringResource(Res.string.menu_new_game), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
         }
         Button(
             onClick = onContinue,
             modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = MENU_BUTTON_HEIGHT),
             shape = CONTINUE_HALF_SHAPE,
         ) {
-            Text(text = "Continue", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            Text(text = stringResource(Res.string.menu_continue), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
         }
     }
 }
