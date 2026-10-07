@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import net.zodac.dicefive.ui.common.StringsLanguage
 
 private val Colors = darkColorScheme(
     primary = Primary,
@@ -57,8 +58,11 @@ private val Colors = darkColorScheme(
  * - **No typography or shape overrides.** The M3 type scale and shape defaults come with the
  *   theme; overriding them with hand-written styles is how an app quietly loses the system's
  *   sizing, tracking and optical corrections. Per-use deviations belong at the call site.
+ *
+ * It also sets the layout direction and plural rules to the strings' language ([StringsLanguage]), so that every
+ * root - the app, previews and tests - lays out the way the text reads.
  */
 @Composable
 fun DiceFiveTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = Colors, content = content)
+    StringsLanguage { MaterialTheme(colorScheme = Colors, content = content) }
 }

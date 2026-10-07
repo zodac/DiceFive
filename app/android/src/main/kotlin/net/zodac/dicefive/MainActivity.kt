@@ -1,5 +1,6 @@
 package net.zodac.dicefive
 
+import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -15,8 +16,16 @@ import net.zodac.dicefive.device.AndroidAppContainer
 import net.zodac.dicefive.device.AndroidPlatformServices
 import net.zodac.dicefive.device.CappedFrameClock
 import net.zodac.dicefive.ui.DiceFiveApp
+import net.zodac.dicefive.ui.common.stringsLanguageConfiguration
 
 class MainActivity : ComponentActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(newBase)
+        // On a phone whose language the app has no translation for, the whole Activity runs in the language the strings
+        // fell back to (English): Android's own text and the layout direction too, not just the app's words.
+        stringsLanguageConfiguration()?.let(::applyOverrideConfiguration)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Draws behind the system bars, which is the platform default from Android 15 (targetSdk

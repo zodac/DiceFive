@@ -84,7 +84,7 @@ import net.zodac.dicefive.resources.achievements_unlocked_count
 import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.delayWhileResumed
-import net.zodac.dicefive.ui.common.formatTimestamp
+import net.zodac.dicefive.ui.common.timestamp
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
 import net.zodac.dicefive.ui.common.stringResource
@@ -520,7 +520,7 @@ private fun AchievementRow(
 
                     when {
                         item.unlockedAt != null -> Text(
-                            text = stringResource(Res.string.achievements_unlocked_at, formatTimestamp(item.unlockedAt)),
+                            text = stringResource(Res.string.achievements_unlocked_at, timestamp(item.unlockedAt)),
                             style = MaterialTheme.typography.labelSmall,
                             color = ink(MaterialTheme.colorScheme.onSurfaceVariant),
                             modifier = Modifier.padding(top = 2.dp),

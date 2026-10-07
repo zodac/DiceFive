@@ -194,6 +194,12 @@ prefixed with the platform's name (`AndroidSoundPlayer`, `IosSoundPlayer`).
   `PUBLISHING.md`. Check whether `ComposeLicenceDocument`'s links inside `SelectionContainer`
   behave on iOS (they didn't on Android - `DESIGN.md` Phase 17); if not, a `UITextView` via
   `UIKitView`.
+- **Language: no partial translations** (`I18N.md`, "Layout direction and plural forms"). Declare
+  `CFBundleLocalizations` (en, es...) with `CFBundleDevelopmentRegion` en, so iOS's own text follows the app's
+  languages. Then fix plurals: Compose on iOS reads `NSLocale.preferredLanguages` (the device's list), so an iPhone in a
+  language with no translation picks the English plural forms by that language's rules ("21 roll" in Russian). The iOS
+  `alignPlatformLanguage` is a no-op waiting for this; check what Compose resources' iOS environment reads, and run
+  `StringsLanguageTest`'s cases by hand (Russian phone: "21 solo games played").
 - **No system back on iOS**: `GameScreen` (leave game) and `ScorecardReviewScreen` rely on
   `BackHandler`. Give both a visible way out (iOS's edge-swipe back may also need wiring).
 - **Insets**: re-verify `UI.md`'s inset rules against safe areas, the Dynamic Island and the home

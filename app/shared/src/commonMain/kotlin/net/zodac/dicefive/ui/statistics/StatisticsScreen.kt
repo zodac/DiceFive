@@ -78,7 +78,7 @@ import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ScreenScaffold
-import net.zodac.dicefive.ui.common.formatTimestamp
+import net.zodac.dicefive.ui.common.timestamp
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.joinSentences
 import net.zodac.dicefive.ui.common.localised
@@ -156,7 +156,7 @@ fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
     var expanded by rememberSaveable(player.playerName) { mutableStateOf(false) }
     val deleteLabel = stringResource(Res.string.stats_delete_action, player.playerName)
     val maxScore = player.maxScore.grouped()
-    val firstPlayed = formatTimestamp(player.firstPlayedEpochMillis)
+    val firstPlayed = timestamp(player.firstPlayedEpochMillis)
     val sentences = mutableListOf(stringResource(Res.string.stats_spoken_best, player.playerName, maxScore))
     if (expanded) {
         sentences += stringResource(Res.string.stats_spoken_first_played, firstPlayed)
@@ -239,7 +239,7 @@ fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = formatTimestamp(player.firstPlayedEpochMillis),
+                        text = timestamp(player.firstPlayedEpochMillis),
                         style = MaterialTheme.typography.labelMedium,
                         textAlign = TextAlign.End,
                     )

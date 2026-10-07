@@ -60,6 +60,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_bonus_amount
 import net.zodac.dicefive.resources.game_box_disabled_spoken
 import net.zodac.dicefive.resources.game_box_first_five_spoken
 import net.zodac.dicefive.resources.game_box_last_turn_spoken
@@ -386,7 +387,7 @@ internal fun CategoryCell(
                 Text(
                     // The total bonus on the 5x tile, not one line per extra 5x - ten of
                     // them is still just one "+900" line, not ten "+100"s.
-                    text = "+${pendingBonusAmount.localised()}",
+                    text = stringResource(Res.string.common_bonus_amount, pendingBonusAmount),
                     color = GoldAccent,
                     fontWeight = FontWeight.Bold,
                     // Small: a row has little vertical room to spare for a second line.
@@ -574,7 +575,7 @@ private fun StackedScores(
             }
             if (bonusAmount > 0) {
                 Text(
-                    text = "+${bonusAmount.localised()}",
+                    text = stringResource(Res.string.common_bonus_amount, bonusAmount),
                     color = GoldAccent,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.labelSmall,

@@ -72,8 +72,6 @@ import net.zodac.dicefive.resources.common_modifiers_enabled
 import net.zodac.dicefive.resources.common_modifiers_none
 import net.zodac.dicefive.resources.common_picker_choose_action
 import net.zodac.dicefive.resources.common_picker_state_spoken
-import net.zodac.dicefive.resources.common_stepper_decrease_cd
-import net.zodac.dicefive.resources.common_stepper_increase_cd
 import net.zodac.dicefive.resources.common_stepper_value_spoken
 
 /*
@@ -274,13 +272,17 @@ class ModifierSetting(
 /**
  * A [ModifierSetting]'s stepped value: [value] within [range], moved [step] at a time, shown as [valueText] says
  * ("3 rolls", "50%") and spoken the same way after [label]. [valueText] is a whole phrase, number included, so
- * a language can inflect the unit by the number.
+ * a language can inflect the unit by the number. [decreaseLabel] and [increaseLabel] name the buttons for TalkBack
+ * ("Decrease rolls per turn"): whole phrases too, since lower-casing [label] in code is wrong for some languages
+ * (German capitalises its nouns).
  */
 class ModifierStepper(
     val value: Int,
     val range: IntRange,
     val onValueChange: (Int) -> Unit,
     val label: String,
+    val decreaseLabel: String,
+    val increaseLabel: String,
     val valueText: @Composable (Int) -> String,
     val step: Int = 1,
 )
@@ -397,7 +399,7 @@ private fun ModifierStepperRow(stepper: ModifierStepper, enabled: Boolean, modif
     val spokenValue = stringResource(Res.string.common_stepper_value_spoken, stepper.label, valueText)
     Row(modifier = modifier, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { stepper.onValueChange(stepper.value - stepper.step) }, enabled = enabled && stepper.value - stepper.step >= stepper.range.first) {
-            Icon(Icons.Filled.Remove, contentDescription = stringResource(Res.string.common_stepper_decrease_cd, stepper.label.lowercase()))
+            Icon(Icons.Filled.Remove, contentDescription = stepper.decreaseLabel)
         }
         Text(
             text = valueText,
@@ -413,7 +415,7 @@ private fun ModifierStepperRow(stepper: ModifierStepper, enabled: Boolean, modif
             },
         )
         IconButton(onClick = { stepper.onValueChange(stepper.value + stepper.step) }, enabled = enabled && stepper.value + stepper.step <= stepper.range.last) {
-            Icon(Icons.Filled.Add, contentDescription = stringResource(Res.string.common_stepper_increase_cd, stepper.label.lowercase()))
+            Icon(Icons.Filled.Add, contentDescription = stepper.increaseLabel)
         }
     }
 }

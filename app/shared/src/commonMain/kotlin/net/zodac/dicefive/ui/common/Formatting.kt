@@ -1,10 +1,12 @@
 package net.zodac.dicefive.ui.common
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_clauses_join
 import net.zodac.dicefive.resources.common_locale
 import net.zodac.dicefive.resources.common_sentences_join
+import net.zodac.dicefive.resources.common_timestamp_pattern
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -13,11 +15,26 @@ import org.jetbrains.compose.resources.stringResource
  * tell two rows in that burst apart. The Leaderboard, Statistics and Achievements screens all show a
  * timestamp in this one format.
  *
- * Each platform formats it with its own date APIs (month names in the device's language), rather
- * than the shared code pulling in a date-time library for one pattern - kotlinx-datetime alone was
- * ~180 classes in the release APK.
+ * The pattern is the translation's (`common_timestamp_pattern`), the month names and numerals the strings' language
+ * (`common_locale`) - so an Arabic phone, which gets English text, no longer gets an Arabic month inside it. Where the
+ * device speaks the strings' language, its own regional form is kept ("Sep" on an American phone, "Sept" on a British one).
+ *
+ * Each platform formats it with its own date APIs, rather than the shared code pulling in a date-time library for one
+ * pattern - kotlinx-datetime alone was ~180 classes in the release APK.
  */
-internal expect fun formatTimestamp(epochMillis: Long): String
+@Composable
+internal fun timestamp(epochMillis: Long): String = timestampFormatter()(epochMillis)
+
+/** [timestamp] as a function, for text built outside composition (a tooltip built only when it's opened). */
+@Composable
+internal fun timestampFormatter(): (Long) -> String {
+    val pattern = stringResource(Res.string.common_timestamp_pattern)
+    val languageTag = stringResource(Res.string.common_locale)
+    return remember(pattern, languageTag) { { epochMillis -> formatTimestamp(epochMillis, pattern, languageTag) } }
+}
+
+/** [epochMillis] in [pattern] (a CLDR date pattern), in the language [languageTag] (BCP 47) names. Use [timestamp] in the UI. */
+internal expect fun formatTimestamp(epochMillis: Long, pattern: String, languageTag: String): String
 
 /**
  * [number] as an ordinal in the strings' own language - "1st", "2nd", "11th", "21st" in English. Each
@@ -57,6 +74,9 @@ internal fun Int.localised(): String = formatInteger(this, stringResource(Res.st
 
 /** [number] with no grouping, in the numerals the language [languageTag] (BCP 47, may carry a "-u-nu-" extension) writes. Use [localised] in the UI. */
 internal expect fun formatInteger(number: Int, languageTag: String): String
+
+/** Whether the language [languageTag] (BCP 47) is written right to left (Arabic, Hebrew, Persian...). See [StringsLanguage]. */
+internal expect fun isRightToLeft(languageTag: String): Boolean
 
 /**
  * [items] as a spoken list in the strings' own language - "6, 6 and 6" in English. The platform's list

@@ -244,6 +244,11 @@ internal fun TextViewLicenceDocument(report: LicenseReport, scroll: LicenceScrol
         modifier = modifier.clipToBounds(),
         factory = { context ->
             DocumentScrollView(context).apply {
+                // The licences are in English whatever the app's language, so the list is left to right even in a right-to-
+                // left app (or on a right-to-left phone, whose direction views would otherwise take). Each paragraph still
+                // reads in its own direction, by its first letter, so a translated label ("Used by...") reads its own way.
+                layoutDirection = View.LAYOUT_DIRECTION_LTR
+                textDirection = View.TEXT_DIRECTION_FIRST_STRONG_LTR
                 // The dialog draws the app's own scrollbar beside the list (from LicenceScroll), so the
                 // platform's stays off.
                 isVerticalScrollBarEnabled = false

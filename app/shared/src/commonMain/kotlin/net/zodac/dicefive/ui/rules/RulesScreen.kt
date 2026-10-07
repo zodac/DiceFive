@@ -98,12 +98,13 @@ import net.zodac.dicefive.resources.rules_5x_and_joker_6
 import net.zodac.dicefive.resources.rules_5x_and_joker_tab
 import net.zodac.dicefive.resources.rules_5x_and_joker_title
 import net.zodac.dicefive.resources.rules_example_any_place_spoken
-import net.zodac.dicefive.resources.rules_example_coloured_die_spoken
+import net.zodac.dicefive.resources.rules_example_blue_die_spoken
 import net.zodac.dicefive.resources.rules_example_equals
 import net.zodac.dicefive.resources.rules_example_held_spoken
 import net.zodac.dicefive.resources.rules_example_ignored_spoken
 import net.zodac.dicefive.resources.rules_example_locked_spoken
 import net.zodac.dicefive.resources.rules_example_nothing_held_spoken
+import net.zodac.dicefive.resources.rules_example_red_die_spoken
 import net.zodac.dicefive.resources.rules_example_roll_spoken
 import net.zodac.dicefive.resources.rules_example_scores_spoken
 import net.zodac.dicefive.resources.rules_example_spoken
@@ -111,6 +112,7 @@ import net.zodac.dicefive.resources.rules_example_target_spoken
 import net.zodac.dicefive.resources.rules_example_tile_alibi_spoken
 import net.zodac.dicefive.resources.rules_example_tile_target_spoken
 import net.zodac.dicefive.resources.rules_example_worth_spoken
+import net.zodac.dicefive.resources.rules_example_yellow_die_spoken
 import net.zodac.dicefive.resources.rules_hit_list_1
 import net.zodac.dicefive.resources.rules_hit_list_10
 import net.zodac.dicefive.resources.rules_hit_list_11
@@ -772,11 +774,15 @@ private fun String.keepCategoryNamesWhole(): String =
 @Composable
 private fun spokenPoints(text: String): String {
     val shape = stringResource(Res.string.rules_points_short)
-    val amount = Regex(shape.split("%1\$d").joinToString("(\\d+)") { Regex.escape(it) })
+    // Any script's digits: the amounts are drawn in the strings' numerals ("٢٥"), and \d is only 0-9.
+    val amount = Regex(shape.split("%1\$d").joinToString("(\\p{Nd}+)") { Regex.escape(it) })
     val plus = stringResource(Res.string.rules_plus_spoken)
     val spoken = remember(text, shape, plus) { text.replace(amount) { "\u0000${it.groupValues[1]}\u0000" }.replace(" + ", " $plus ") }
-    return spoken.split('\u0000').mapIndexed { index, part -> if (index % 2 == 1) pluralStringResource(Res.plurals.rules_points_spoken, part.toInt(), part.toInt()) else part }.joinToString("")
+    return spoken.split('\u0000').mapIndexed { index, part -> if (index % 2 == 1) part.digitsValue().let { pluralStringResource(Res.plurals.rules_points_spoken, it, it) } else part }.joinToString("")
 }
+
+/** The number these digits, of any script, write ("25" or "٢٥" is 25). */
+private fun String.digitsValue(): Int = fold(0) { value, digit -> value * 10 + digit.digitToInt() }
 
 /** What [score] is drawn as: "20pts", or "20pts + 100pts". */
 @Composable
@@ -943,7 +949,15 @@ private const val ANY_PLACE_CORNER_FRACTION = 0.2f
 private fun RulesDice.spokenDescription(): String {
     val anyPlace = stringResource(Res.string.rules_example_any_place_spoken)
     @Composable
-    fun ExampleDie.spoken() = colour?.let { stringResource(Res.string.rules_example_coloured_die_spoken, it.name.lowercase(), value) } ?: value.localised()
+    fun ExampleDie.spoken() = colour?.let {
+        // A whole phrase per colour, not the colour's name lower-cased: not every language lower-cases it mid-sentence.
+        val phrase = when (it) {
+            DieColour.RED -> Res.string.rules_example_red_die_spoken
+            DieColour.YELLOW -> Res.string.rules_example_yellow_die_spoken
+            DieColour.BLUE -> Res.string.rules_example_blue_die_spoken
+        }
+        stringResource(phrase, value)
+    } ?: value.localised()
     if (isTarget) {
         val places = joinClauses(dice.map { if (it.anyPlace) anyPlace else it.spoken() })
         return joinSentences(
