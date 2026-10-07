@@ -1,16 +1,6 @@
 achievements/AchievementBannerHost.kt	1
 achievements/AchievementsScreen.kt	10
-game/CategoryTile.kt	3
-game/CpuPlayerIcon.kt	1
-game/DiceCupPanel.kt	2
-game/DiceTray.kt	6
 game/GameOverScreen.kt	8
-game/GameScreen.kt	5
-game/PlayerHeaderBar.kt	1
-game/ScoreGrid.kt	2
-game/ScorecardReviewScreen.kt	1
-game/TotalsButton.kt	2
-game/UndoButton.kt	1
 game/style/CupRotation.kt	5
 game/style/PicnicBasketCup.kt	3
 game/style/RoundCups.kt	2

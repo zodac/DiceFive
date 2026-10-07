@@ -35,15 +35,30 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.game_totals_alibi_spoken
+import net.zodac.dicefive.resources.game_totals_bonus
+import net.zodac.dicefive.resources.game_totals_bonus_earned_spoken
+import net.zodac.dicefive.resources.game_totals_cd
+import net.zodac.dicefive.resources.game_totals_lower
+import net.zodac.dicefive.resources.game_totals_lower_spoken
+import net.zodac.dicefive.resources.game_totals_no_bonus_spoken
+import net.zodac.dicefive.resources.game_totals_show_action
+import net.zodac.dicefive.resources.game_totals_targets
+import net.zodac.dicefive.resources.game_totals_targets_spoken
+import net.zodac.dicefive.resources.game_totals_upper
+import net.zodac.dicefive.resources.game_totals_upper_spoken
 import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.grouped
+import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 import net.zodac.dicefive.ui.theme.TileTealBorder
 import net.zodac.dicefive.ui.theme.TileTealBottom
 import net.zodac.dicefive.ui.theme.TileTealTop
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The scorecard's section totals - Upper, the upper bonus and Lower - behind an icon-only Σ button,
@@ -59,9 +74,9 @@ import net.zodac.dicefive.ui.theme.TileTealTop
 fun TotalsButton(upperTotal: Int, upperBonus: Int, lowerTotal: Int, modifier: Modifier = Modifier, minSize: Dp = 48.dp) {
     TotalsButton(
         lines = listOf(
-            TotalLine("Upper", upperTotal),
-            TotalLine("Bonus", upperBonus, gold = upperBonus > 0),
-            TotalLine("Lower", lowerTotal),
+            TotalLine(stringResource(Res.string.game_totals_upper), upperTotal),
+            TotalLine(stringResource(Res.string.game_totals_bonus), upperBonus, gold = upperBonus > 0),
+            TotalLine(stringResource(Res.string.game_totals_lower), lowerTotal),
         ),
         highlighted = upperBonus > 0,
         spokenState = totalsSpokenState(upperTotal, upperBonus, lowerTotal),
@@ -77,7 +92,7 @@ fun TotalsButton(upperTotal: Int, upperBonus: Int, lowerTotal: Int, modifier: Mo
 @Composable
 fun HitListTotalsButton(targetsTotal: Int, alibiTotal: Int, modifier: Modifier = Modifier, minSize: Dp = 48.dp) {
     TotalsButton(
-        lines = listOf(TotalLine("Targets", targetsTotal), TotalLine("Alibi", alibiTotal)),
+        lines = listOf(TotalLine(stringResource(Res.string.game_totals_targets), targetsTotal), TotalLine("Alibi", alibiTotal)), // i18n: not translated - the game's mark for the box
         highlighted = false,
         spokenState = hitListTotalsSpokenState(targetsTotal, alibiTotal),
         modifier = modifier,
@@ -121,6 +136,8 @@ private class TotalLine(val label: String, val value: Int, val gold: Boolean = f
 private fun TotalsButton(lines: List<TotalLine>, highlighted: Boolean, spokenState: String, modifier: Modifier, minSize: Dp) {
     val tooltipState = rememberAppTooltipState()
     val scope = rememberCoroutineScope()
+    val totalsName = stringResource(Res.string.game_totals_cd)
+    val showTotalsLabel = stringResource(Res.string.game_totals_show_action)
     val color = if (highlighted) GoldAccent else TileIconColor
     val shape = RoundedCornerShape(10.dp)
     // The tooltip's own anchor merges this button into one TalkBack node of its own, which keeps the
@@ -130,10 +147,10 @@ private fun TotalsButton(lines: List<TotalLine>, highlighted: Boolean, spokenSta
             modifier = Modifier
                 // Before clickable, so its own click semantics don't leak through - see UI.md.
                 .clearAndSetSemantics {
-                    contentDescription = "Totals"
+                    contentDescription = totalsName
                     stateDescription = spokenState
                     role = Role.Button
-                    onClick(label = "Show totals") {
+                    onClick(label = showTotalsLabel) {
                         scope.launch { tooltipState.show() }
                         true
                     }
@@ -154,8 +171,16 @@ private fun TotalsButton(lines: List<TotalLine>, highlighted: Boolean, spokenSta
 }
 
 /** What a screen reader hears for [TotalsButton]: every total, the bonus said to be earned once it is. */
-internal fun totalsSpokenState(upperTotal: Int, upperBonus: Int, lowerTotal: Int): String =
-    "Upper $upperTotal, " + (if (upperBonus > 0) "bonus $upperBonus earned" else "no bonus yet") + ", lower $lowerTotal"
+@Composable
+internal fun totalsSpokenState(upperTotal: Int, upperBonus: Int, lowerTotal: Int): String = joinClauses(
+    listOf(
+        stringResource(Res.string.game_totals_upper_spoken, upperTotal),
+        if (upperBonus > 0) stringResource(Res.string.game_totals_bonus_earned_spoken, upperBonus) else stringResource(Res.string.game_totals_no_bonus_spoken),
+        stringResource(Res.string.game_totals_lower_spoken, lowerTotal),
+    ),
+)
 
 /** What a screen reader hears for [HitListTotalsButton]. */
-internal fun hitListTotalsSpokenState(targetsTotal: Int, alibiTotal: Int): String = "Targets $targetsTotal, alibi $alibiTotal"
+@Composable
+internal fun hitListTotalsSpokenState(targetsTotal: Int, alibiTotal: Int): String =
+    joinClauses(listOf(stringResource(Res.string.game_totals_targets_spoken, targetsTotal), stringResource(Res.string.game_totals_alibi_spoken, alibiTotal)))

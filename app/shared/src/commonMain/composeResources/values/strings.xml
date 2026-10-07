@@ -493,4 +493,110 @@
     <string name="menu_new_game">New Game</string>
     <string name="menu_continue">Continue</string>
 
+    <!-- Score box and die names, spoken by TalkBack (ui/game/BoardSemantics.kt). 3x, 4x, 5x and Alibi are the game's marks and stay in code. -->
+    <string name="score_ones">Ones</string>
+    <string name="score_twos">Twos</string>
+    <string name="score_threes">Threes</string>
+    <string name="score_fours">Fours</string>
+    <string name="score_fives">Fives</string>
+    <string name="score_sixes">Sixes</string>
+    <string name="score_full_house">Full House</string>
+    <string name="score_small_straight">Small Straight</string>
+    <string name="score_large_straight">Large Straight</string>
+    <string name="score_chance">Chance</string>
+    <string name="score_coloured_house">Coloured House</string>
+    <string name="score_two_pair">Two Pair</string>
+    <string name="score_evens">Evens</string>
+    <string name="score_odds">Odds</string>
+    <!-- Tricolour's boxes: every die of that colour counts. The Irish versions are used while the game is re-skinned for Luck of the Irish. -->
+    <string name="score_reds">Reds</string>
+    <string name="score_yellows">Yellows</string>
+    <string name="score_blues">Blues</string>
+    <string name="score_reds_irish">Greens</string>
+    <string name="score_yellows_irish">Whites</string>
+    <string name="score_blues_irish">Oranges</string>
+    <!-- A Hit List target box, numbered from 1. -->
+    <string name="score_target">Target %1$d</string>
+    <!-- A Tricolour die's colour, as TalkBack names it. -->
+    <string name="die_colour_red">Red</string>
+    <string name="die_colour_yellow">Yellow</string>
+    <string name="die_colour_blue">Blue</string>
+    <string name="die_colour_red_irish">Green</string>
+    <string name="die_colour_yellow_irish">White</string>
+    <string name="die_colour_blue_irish">Orange</string>
+
+    <!-- Game screen (ui/game/*, except the results page) -->
+    <!-- TalkBack's name for the chip icon beside a computer player's name. -->
+    <string name="common_cpu_cd">CPU</string>
+    <!-- Short for Evens, drawn on its box. Keep it to about two letters. -->
+    <string name="game_badge_evens">Ev</string>
+    <!-- Short for Odds, drawn on its box. Keep it to about two letters. -->
+    <string name="game_badge_odds">Od</string>
+    <string name="game_undo_cd">Undo</string>
+    <!-- Title of the page that shows each player's final scorecard. -->
+    <string name="game_review_title">Scorecards</string>
+    <!-- Drawn beside the dice cup: how many rolls are left ("x3"). -->
+    <string name="game_cup_rolls_left">x%1$d</string>
+    <!-- The turn timer: seconds left ("Time left: 12s"). The "s" is the unit. -->
+    <string name="game_timer_left">Time left: %1$ds</string>
+    <!-- Spoken once when the turn timer starts flashing. -->
+    <plurals name="game_timer_running_out_cd">
+        <item quantity="one">Time running out, %1$d second or less left</item>
+        <item quantity="other">Time running out, %1$d seconds or less left</item>
+    </plurals>
+    <!-- TalkBack's name for tapping a player's tab. -->
+    <string name="game_tab_view_action">View scorecard</string>
+    <!-- Said on the tab of the player whose turn it is, before their place ("Current turn, 2nd place"). -->
+    <string name="game_tab_current_turn_spoken">Current turn</string>
+    <!-- Lines of the totals tooltip: the upper section, its bonus, the lower section, and Hit List's targets. -->
+    <string name="game_totals_upper">Upper</string>
+    <string name="game_totals_bonus">Bonus</string>
+    <string name="game_totals_lower">Lower</string>
+    <string name="game_totals_targets">Targets</string>
+    <!-- TalkBack's name for the totals button. -->
+    <string name="game_totals_cd">Totals</string>
+    <string name="game_totals_show_action">Show totals</string>
+    <!-- The totals read aloud, joined with common_clauses_join: "Upper 70, bonus 35 earned, lower 140". -->
+    <string name="game_totals_upper_spoken">Upper %1$d</string>
+    <string name="game_totals_bonus_earned_spoken">bonus %1$d earned</string>
+    <string name="game_totals_no_bonus_spoken">no bonus yet</string>
+    <string name="game_totals_lower_spoken">lower %1$d</string>
+    <!-- Hit List's totals read aloud: "Targets 60, alibi 20". -->
+    <string name="game_totals_targets_spoken">Targets %1$d</string>
+    <string name="game_totals_alibi_spoken">alibi %1$d</string>
+    <!-- A score box switched off for the whole game. -->
+    <string name="game_box_disabled_spoken">Disabled for this game, can't be scored</string>
+    <!-- Said of the box that took another player's last turn, after "Scored 25". -->
+    <string name="game_box_last_turn_spoken">last turn's score</string>
+    <string name="game_box_open_spoken">Open</string>
+    <!-- A Hit List box: its name ("Target 1"), then what it calls. -->
+    <string name="game_box_target_name_spoken">%1$s, %2$s</string>
+    <!-- While the first 5x of the game flashes. %1$s is what the box would otherwise say. -->
+    <string name="game_box_first_five_spoken">First 5x of the game, %1$s</string>
+    <!-- TalkBack's name for tapping a box to score it. -->
+    <string name="game_box_score_action">Score</string>
+    <!-- Drawn in a box switched off for the whole game. -->
+    <string name="game_box_off">Off</string>
+    <!-- A Hit List target place that takes any number. -->
+    <string name="game_target_any_place_spoken">any</string>
+    <!-- What a Hit List target calls, read aloud: its places ("4, 1, 3, 2, any"), then its points and exact-hit points. -->
+    <string name="game_target_name_spoken">%1$s. %2$d points, %3$d exact</string>
+    <!-- Each die's state: held, not held, or chained by Unlucky Dice. -->
+    <string name="game_die_held_spoken">Held</string>
+    <string name="game_die_not_held_spoken">Not held</string>
+    <string name="game_die_locked_spoken">Locked in chains, can't be held or scored</string>
+    <!-- TalkBack's names for tapping a die: to hold it, or to let it go. -->
+    <string name="game_die_hold_action">Hold</string>
+    <string name="game_die_release_action">Release</string>
+    <!-- A die's name: its position, then its face. -->
+    <string name="game_die_spoken">Die %1$d, %2$d</string>
+    <!-- A Tricolour die's name: position, colour, face. -->
+    <string name="game_die_coloured_spoken">Die %1$d, %2$s %3$d</string>
+    <!-- Seven-dice modes: the hold slots that dice are held in. -->
+    <string name="game_slot_spoken">Hold slot %1$d of %2$d</string>
+    <!-- %3$s is the die held in it. -->
+    <string name="game_slot_held_spoken">Hold slot %1$d of %2$d, %3$s</string>
+    <string name="game_slot_empty_spoken">Empty</string>
+    <string name="game_die_not_held_slots_full_spoken">Not held, hold slots full</string>
+
 </resources>

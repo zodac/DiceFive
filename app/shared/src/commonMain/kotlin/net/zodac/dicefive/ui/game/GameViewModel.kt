@@ -79,7 +79,7 @@ import net.zodac.dicefive.ui.game.style.TableBackgrounds
 data class PlayerSetupSlot(
     val slot: Int,
     val type: PlayerType = PlayerType.HUMAN,
-    val name: String = "Player $slot",
+    val name: String = "Player $slot", // i18n: not translated - a saved default name, see I18N.md (Step 4, screen 4)
     val difficulty: Difficulty = Difficulty.MEDIUM,
     /** Distinct per seat by default; [GameViewModel.setPlayerColour] keeps all four slots distinct. */
     val colour: PlayerColour = PlayerColour.defaultFor(slot - 1),
@@ -582,7 +582,7 @@ class GameViewModel(
         ).iterator()
         val playerConfigs = activeSlots.map { slot ->
             val name = when (slot.type) {
-                PlayerType.HUMAN -> slot.name.trim().ifBlank { "Player ${slot.slot}" }
+                PlayerType.HUMAN -> slot.name.trim().ifBlank { "Player ${slot.slot}" } // i18n: not translated - a saved default name, see I18N.md (Step 4, screen 4)
                 PlayerType.AI -> aiNames.next()
             }
             PlayerConfig(slot = slot.slot, type = slot.type, name = name, difficulty = slot.difficulty, colour = slot.colour)
@@ -878,7 +878,7 @@ class GameViewModel(
                 if (state.currentPlayerIndex == 0) unlockAchievements(setOf(Achievement.TIME_WASTING))
                 if (isDebugBuild) {
                     _superuserModeActive.value = true
-                    _toastMessages.trySend("Superuser mode activated!")
+                    _toastMessages.trySend("Superuser mode activated!") // i18n: not translated - a debug-build developer toast
                 }
             }
         } else {
@@ -1557,7 +1557,7 @@ class GameViewModel(
         viewModelScope.launch {
             for (slot in slots) {
                 if (slot.type == PlayerType.HUMAN) {
-                    repository.setPlayerName(slot.slot, slot.name.trim().ifBlank { "Player ${slot.slot}" })
+                    repository.setPlayerName(slot.slot, slot.name.trim().ifBlank { "Player ${slot.slot}" }) // i18n: not translated - a saved default name, see I18N.md (Step 4, screen 4)
                 }
             }
         }

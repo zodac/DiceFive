@@ -17,10 +17,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.game_undo_cd
 import net.zodac.dicefive.ui.theme.TileIconColor
 import net.zodac.dicefive.ui.theme.TileTealBorder
 import net.zodac.dicefive.ui.theme.TileTealBottom
 import net.zodac.dicefive.ui.theme.TileTealTop
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * A dark, rounded, icon-only button with the standard Material "undo" glyph ([BoardButtonIcon]), named
@@ -45,6 +48,6 @@ fun UndoButton(enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modif
         contentAlignment = Alignment.Center,
     ) {
         // The glyph's description names the button: it merges into the clickable Box as one node.
-        BoardButtonIcon(imageVector = Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", tint = iconColor)
+        BoardButtonIcon(imageVector = Icons.AutoMirrored.Filled.Undo, contentDescription = stringResource(Res.string.game_undo_cd), tint = iconColor)
     }
 }

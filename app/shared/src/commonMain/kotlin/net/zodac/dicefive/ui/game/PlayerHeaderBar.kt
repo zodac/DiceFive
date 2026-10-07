@@ -44,7 +44,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
-import org.jetbrains.compose.resources.stringResource
 import net.zodac.dicefive.game.Standing
 import net.zodac.dicefive.game.standings
 import net.zodac.dicefive.model.PlayerState
@@ -53,12 +52,16 @@ import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.game_standing_spoken
 import net.zodac.dicefive.resources.game_standing_tied
 import net.zodac.dicefive.resources.game_standing_tied_spoken
+import net.zodac.dicefive.resources.game_tab_current_turn_spoken
+import net.zodac.dicefive.resources.game_tab_view_action
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.common.ordinal
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.color
+import org.jetbrains.compose.resources.stringResource
 
 /** How long a score takes to count up: most turns' points rise in [SCORE_RISE_MIN_MILLIS], a bigger
  * jump gets [SCORE_RISE_MILLIS_PER_POINT] each, and past [SCORE_RISE_MAX_MILLIS] it just counts faster. */
@@ -143,6 +146,9 @@ private fun PlayerTab(
     val frame = LocalGameVisualTheme.current.frame
     // Resolved here, in composition: the semantics block below can't read resources itself.
     val spokenStanding = standing?.spoken()
+    val currentTurn = stringResource(Res.string.game_tab_current_turn_spoken)
+    val spokenState = joinClauses(listOfNotNull(currentTurn.takeIf { active }, spokenStanding))
+    val viewScorecardLabel = stringResource(Res.string.game_tab_view_action)
     Column(
         modifier = modifier
             .padding(horizontal = 3.dp)
@@ -154,13 +160,12 @@ private fun PlayerTab(
             .then(if (active) Modifier.drawBehind { with(frame) { drawFrame(color) } } else Modifier)
             .clip(shape)
             .then(if (viewed) Modifier.dashedBorder(1.5.dp, color.copy(alpha = 0.85f), 10.dp) else Modifier)
-            .clickable(enabled = enabled, role = Role.Tab, onClickLabel = "View scorecard", onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Tab, onClickLabel = viewScorecardLabel, onClick = onClick)
             // Selected is the scorecard on view; the border's other meaning - whose turn it is - is said
             // instead, with the player's place (the visible "=2nd" is cleared below: read as "equals").
             .semantics {
                 selected = viewed
-                val state = listOfNotNull("Current turn".takeIf { active }, spokenStanding).joinToString(", ")
-                if (state.isNotEmpty()) stateDescription = state
+                if (spokenState.isNotEmpty()) stateDescription = spokenState
             }
             .padding(vertical = 6.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
