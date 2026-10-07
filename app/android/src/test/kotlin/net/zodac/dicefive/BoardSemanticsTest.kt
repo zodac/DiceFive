@@ -245,12 +245,12 @@ class BoardSemanticsTest {
         assertFourPlacesSaidInEnglish()
     }
 
-    // The ordinals follow the strings' language, not the device's: the app has no French yet, so a
-    // French phone gets English text - and English places with it, not "1er" among English words.
+    // The ordinals follow the strings' language, not the device's: the app has no German yet, so a
+    // German phone gets English text - and English places with it, not "1." among English words.
     @Test
-    @Config(qualifiers = "fr")
+    @Config(qualifiers = "de")
     fun `on a phone in a language the app isn't in the places stay English like the text around them`() {
-        assertEquals("fr", Locale.getDefault().language)
+        assertEquals("de", Locale.getDefault().language)
         assertFourPlacesSaidInEnglish()
     }
 
@@ -376,9 +376,9 @@ class BoardSemanticsTest {
         compose.onNodeWithText("1,088").assertExists()
     }
 
-    // Grouping follows the strings' language like the ordinals do: no French yet, so English text keeps its commas.
+    // Grouping follows the strings' language like the ordinals do: no German yet, so English text keeps its commas.
     @Test
-    @Config(qualifiers = "fr")
+    @Config(qualifiers = "de")
     fun `on a phone in a language the app isn't in a total's thousands are grouped like the text around them`() {
         compose.setContent {
             DiceFiveTheme { TotalsButton(upperTotal = 70, upperBonus = 35, lowerTotal = 1088) }

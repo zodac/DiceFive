@@ -59,6 +59,12 @@
     "copyright": "Copyright 2026 zodac.net",
     "license": "LicenseRef-DiceFive-AllRightsReserved"
   },
+  "app/android/src/main/res/resources.properties": {
+    "description": "Android resource config declaring British English (en-GB) as the language of the untranslated resources, for the per-app language setting",
+    "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01Fznrb6vve3wanYg6gqhABJ (the i18n work)",
+    "copyright": "Copyright 2026 zodac.net",
+    "license": "LicenseRef-DiceFive-AllRightsReserved"
+  },
   "app/shared/src/commonMain/composeResources/drawable/ic_cowboy_hat.xml": {
     "description": "Comeback Kid achievement icon",
     "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01LdEuMcqQiztgmfaK6BjQ6y (commit e8aba36)",
@@ -74,6 +80,12 @@
   "app/shared/src/commonMain/composeResources/drawable/ic_time_machine_car.xml": {
     "description": "Achievement icon (original silhouette, not traced from any image)",
     "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01LdEuMcqQiztgmfaK6BjQ6y (commit 1f5dd9f)",
+    "copyright": "Copyright 2026 zodac.net",
+    "license": "LicenseRef-DiceFive-AllRightsReserved"
+  },
+  "app/shared/src/commonMain/composeResources/files/standard_perfect_play.bin": {
+    "description": "Standard mode's perfect-play table: the expected rest-of-game score of every start-of-turn state under perfect solo play, which a Hard CPU plays Standard by. Generated from the game's own rules by StandardPerfectPlayTable.solve() (regenerate with -PregeneratePerfectPlayTable - see StandardPerfectPlayTableTest)",
+    "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01Fi47YDwGxD3FKKryEtXkMe",
     "copyright": "Copyright 2026 zodac.net",
     "license": "LicenseRef-DiceFive-AllRightsReserved"
   },
@@ -100,11 +112,5 @@
     "libraries": [
       "sora"
     ]
-  },
-  "app/shared/src/commonMain/composeResources/files/standard_perfect_play.bin": {
-    "description": "Standard mode's perfect-play table: the expected rest-of-game score of every start-of-turn state under perfect solo play, which a Hard CPU plays Standard by. Generated from the game's own rules by StandardPerfectPlayTable.solve() (regenerate with -PregeneratePerfectPlayTable - see StandardPerfectPlayTableTest)",
-    "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01Fi47YDwGxD3FKKryEtXkMe",
-    "copyright": "Copyright 2026 zodac.net",
-    "license": "LicenseRef-DiceFive-AllRightsReserved"
   }
 }

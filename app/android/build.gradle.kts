@@ -61,6 +61,13 @@ android {
         archivesName = "DiceFive"
     }
 
+    // Which languages the app offers, for Android's per-app language setting (Android 13+): worked out from the languages
+    // that have a res/values-xx folder. The app's text lives in :app:shared's composeResources, so each translation also
+    // has a values-xx/strings.xml here with app_name, only to be listed. See .claude/I18N.md.
+    androidResources {
+        generateLocaleConfig = true
+    }
+
     defaultConfig {
         applicationId = "net.zodac.dicefive"
         minSdk = 26
