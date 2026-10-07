@@ -8,6 +8,5 @@ game/style/TreasureChestCup.kt	3
 game/style/VolcanoCup.kt	3
 rules/RulesScreen.kt	15
 scores/ScoresScreen.kt	8
-settings/SettingsScreen.kt	13
 statistics/StatisticsScreen.kt	16
 styles/StylesScreen.kt	17

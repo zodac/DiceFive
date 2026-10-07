@@ -87,4 +87,43 @@ class SettingsRowsTest {
         achievements.performClick()
         compose.onNodeWithText("Reset Achievements?").assertIsDisplayed()
     }
+
+    private fun showSettings() {
+        val viewModel = SettingsViewModel(settingsRepository = SettingsRepository(InMemoryPreferences()))
+        compose.setContent {
+            CompositionLocalProvider(LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext())) {
+                DiceFiveTheme { SettingsScreen(viewModel = viewModel, onBack = {}) }
+            }
+        }
+    }
+
+    @Test
+    fun `the page names every switch - and its version and two links`() {
+        showSettings()
+
+        listOf("Settings", "Sound effects", "Vibration", "Remove animations", "Confirm leaving game", "About", "Licences").forEach {
+            compose.onNodeWithText(it).assertExists()
+        }
+        compose.onNode(hasText("Version ", substring = true)).assertExists()
+    }
+
+    @Test
+    fun `each reset's confirmation says what it will do - and can be cancelled`() {
+        showSettings()
+
+        compose.onNodeWithText("Reset leaderboard").performClick()
+        compose.onNodeWithText("Reset Leaderboard?").assertIsDisplayed()
+        compose.onNodeWithText(
+            "Every recorded score will be deleted, clearing the Leaderboard screen - and Statistics with it, since it's calculated from the same scores. " +
+                "This can't be undone. Achievements and settings are not affected, though any achievement progress measured against the leaderboard will start over.",
+        ).assertIsDisplayed()
+        compose.onNodeWithText("Reset").assertIsDisplayed()
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Reset Leaderboard?").assertDoesNotExist()
+
+        compose.onNodeWithText("Reset achievements").performClick()
+        compose.onNodeWithText(
+            "Every achievement will be locked again and all progress towards them lost. This can't be undone. Your scores and settings are not affected.",
+        ).assertIsDisplayed()
+    }
 }
