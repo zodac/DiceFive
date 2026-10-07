@@ -280,11 +280,11 @@ private fun CupDrawScope.drawSteamLines(
 @Composable
 internal fun rememberAmbientCycle(millis: Int): State<Float>? {
     if (!LocalCupAnimated.current || LocalReduceMotion.current) return null
-    return rememberInfiniteTransition(label = "cupAmbient").animateFloat(
+    return rememberInfiniteTransition(label = "cupAmbient").animateFloat( // i18n: not translated - an animation label, not shown
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(millis, easing = LinearEasing)),
-        label = "cupAmbientCycle",
+        label = "cupAmbientCycle", // i18n: not translated - an animation label, not shown
     )
 }
 

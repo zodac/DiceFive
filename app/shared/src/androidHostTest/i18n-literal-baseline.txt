@@ -1,7 +1,0 @@
-game/style/CupRotation.kt	5
-game/style/PicnicBasketCup.kt	3
-game/style/RoundCups.kt	2
-game/style/ThemedCups.kt	3
-game/style/TreasureChestCup.kt	3
-game/style/VolcanoCup.kt	3
-rules/RulesScreen.kt	15
