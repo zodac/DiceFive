@@ -599,4 +599,23 @@
     <string name="game_slot_empty_spoken">Empty</string>
     <string name="game_die_not_held_slots_full_spoken">Not held, hold slots full</string>
 
+    <!-- Game over page (ui/game/GameOverScreen.kt) -->
+    <string name="gameover_title">Game Over</string>
+    <string name="gameover_review">Review Scorecards</string>
+    <string name="gameover_main_menu">Main Menu</string>
+    <string name="gameover_play_again">Play Again</string>
+    <!-- The winner's card: the trophy icon's name for TalkBack, and the label under their name. -->
+    <string name="gameover_winner">Winner</string>
+    <!-- A runner-up's place when it's shared with another player ("=2"). The "=" is read as "equals" if spoken, so only drawn. -->
+    <string name="gameover_tied_rank">=%1$d</string>
+
+    <!-- Tie-break reasons (game/TieBreak.kt): why a player ranks above another on the same score. Whole sentences. -->
+    <string name="tiebreak_five_of_a_kind_count">Won on fewer 5x</string>
+    <string name="tiebreak_zeroed_categories">Won on more zeroed categories</string>
+    <string name="tiebreak_tricolour_scored_count">Won on fewer tricolour scores</string>
+    <string name="tiebreak_upper_section_total">Won on a lower upper section</string>
+    <string name="tiebreak_chance">Won on a lower Chance score</string>
+    <string name="tiebreak_three_of_a_kind">Won on a lower 3x</string>
+    <string name="tiebreak_four_of_a_kind">Won on a lower 4x</string>
+
 </resources>
