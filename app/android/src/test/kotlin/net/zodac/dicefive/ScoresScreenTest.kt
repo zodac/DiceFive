@@ -83,7 +83,7 @@ class ScoresScreenTest {
         compose.onNodeWithText("Game Mode").assertExists()
         compose.onNodeWithText("Player1").assertExists()
         // The mode names only exist as cards in the other view.
-        compose.onAllNodesWithText("Stud").assertCountEquals(0)
+        compose.onAllNodesWithText("7 Dice Stud").assertCountEquals(0)
     }
 
     @Test

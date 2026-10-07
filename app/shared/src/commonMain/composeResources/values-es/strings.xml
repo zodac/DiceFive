@@ -143,9 +143,9 @@
     <string name="achievement_quickfire_score_title">Seis de los buenos</string>
     <string name="achievement_quickfire_score_description">Suma 150 o más en una partida del modo 'Ráfaga'</string>
     <string name="achievement_stud_win_title">Quédate con esos</string>
-    <string name="achievement_stud_win_description">Gana una partida del modo 'Siete dados'</string>
+    <string name="achievement_stud_win_description">Gana una partida del modo 'Stud de 7 dados'</string>
     <string name="achievement_stud_lucky_seven_title">Siete de la suerte</string>
-    <string name="achievement_stud_lucky_seven_description">Consigue que los siete dados muestren el mismo número en el modo 'Siete dados'</string>
+    <string name="achievement_stud_lucky_seven_description">Consigue que los siete dados muestren el mismo número en el modo 'Stud de 7 dados'</string>
     <string name="achievement_third_wind_win_title">Lo que el viento se llevó</string>
     <string name="achievement_third_wind_win_description">Gana una partida del modo 'Tercer aliento'</string>
     <string name="achievement_third_wind_no_zeroes_title">A la tercera va la vencida</string>
@@ -264,7 +264,7 @@
     <string name="mode_tricolour_description">Los dados también sacan rojo, amarillo o azul, con cuatro casillas de color que rellenar</string>
     <string name="mode_quickfire">Ráfaga</string>
     <string name="mode_quickfire_description">El 5x y otras seis casillas al azar se desactivan en cada partida</string>
-    <string name="mode_stud">Siete dados</string>
+    <string name="mode_stud">Stud de 7 dados</string>
     <string name="mode_stud_description">Tira siete dados, pero solo puntúan los cinco que conserves</string>
     <string name="mode_third_wind">Tercer aliento</string>
     <string name="mode_third_wind_description">Cada categoría se anota tres veces</string>
@@ -859,8 +859,8 @@
     <string name="rules_quickfire_4">La bonificación de la *sección superior* se reduce con las categorías. Sigue siendo de **35 pts**, pero cada categoría desactivada baja en tres veces su número los **63 pts** necesarios. Por ejemplo, con `Treses` desactivado necesitas **54 pts**, es decir, **9 pts** menos. Si todas las categorías de la *sección superior* están desactivadas, no hay bonificación.</string>
     <string name="rules_quickfire_5">Las categorías del modificador *Puntuaciones ampliadas* nunca se desactivan.</string>
     <string name="rules_quickfire_6">Todo lo demás se juega exactamente igual que en las reglas *Estándar*, con tres tiradas por turno. Las puntuaciones de este modo no van a la *clasificación*, porque cada partida tiene una tarjeta distinta, pero sí cuentan para tus *estadísticas*.</string>
-    <string name="rules_stud_title">Modo: Siete dados</string>
-    <string name="rules_stud_tab">Siete dados</string>
+    <string name="rules_stud_title">Modo: Stud de 7 dados</string>
+    <string name="rules_stud_tab">Stud de 7 dados</string>
     <string name="rules_stud_1">Un modo personalizado que amplía el modo de juego *Estándar*. Cada tirada es de **siete** dados en lugar de cinco, pero solo pueden puntuar **cinco** de ellos.</string>
     <string name="rules_stud_2">Sigue habiendo solo **cinco** ranuras. Toca un dado del tapete para conservarlo: va a la ranura libre más cercana. Toca una ranura para devolver su dado. Solo puntúan los dados que conservas, así que solo puedes anotar cuando las **cinco** ranuras están llenas. Hasta entonces, tu tarjeta muestra lo que puntuarían los dados que has conservado hasta ahora.</string>
     <string name="rules_stud_3">Este es un turno de ejemplo:</string>
