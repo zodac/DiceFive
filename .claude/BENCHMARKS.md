@@ -513,6 +513,38 @@ page with a `ShrinkThenWrapText` label gets it. The rest is the page's base cost
 switches, text), as on any page. A debug build on a phone is several times slower than this again; a release build,
 with the Baseline Profile (whose Settings visit now taps a level too), is the one to judge.
 
+### The Rules page (tab taps, page builds, missed taps)
+
+Reported on a device as lag moving between pages, by tab or by swipe, and tabs that needed tapping more than once.
+Set-up: `RulesScreen` at 411x891dp xxhdpi with the frame loop above; tabs tapped by their `OnClick` semantics action
+(or by real touches, `performTouchInput { click() }`, for the missed taps), 40 frames each, warm (third pass).
+
+- **A tab animated the pager through every page between** (`animateScrollToPage`), building each: Overview to Hit List
+  built Stud, Third Wind and Hit List, 19ms + 52ms of composition in two frames. Tabs now snap (`scrollToPage`), as
+  the maintainer asked; a swipe still slides. Every tap is one build frame, total composition per tap down 25-45%.
+- **The page built all at once** - Hit List, the longest, ~13-18ms warm in its first frame, though only its first
+  screenful shows. `rememberShownBlocks` builds the title and 4 blocks in that frame, then 2 more a frame (Hit List
+  whole within ~7 frames, each 4-13ms). The maintainer's idea; a `LazyColumn` would do the same but only estimate the
+  page's height, and the page's draggable margin scrollbar needs it exact.
+- **Every page change rebuilt both tab rows**: `RulesScreen` read `pagerState.currentPage` itself, and each tab's
+  modifiers were new objects, so no tab could skip. The current page is now read only where it's shown (each page
+  tab's `selected`, through `derivedStateOf`; the indicator's layout; `PageScrollbar`; `PageCountFooter`;
+  `KeepTabInView`), and tab modifiers are remembered: the tab rows went from roughly a third of a simple page's tap
+  frame to ~7% of it.
+- **Formatting**: `formatList` built a new `ListFormatter`, and `isRightToLeft` (asked by every string with an argument,
+  through `fill`) parsed the language tag, on every call; both are now kept per language, as the number formats already
+  were (Android and iOS). `spokenPoints` built its pattern per paragraph; it's remembered.
+- **Missed taps were not frame cost**: a scrolling container takes a tap made while it's scrolling as "stop", not as a
+  tap on what's under it. Material's scrollable tab rows re-centre the selected tab with a scroll animation on every
+  selection, so a second tap within ~300ms of the first was lost (pinned by real-touch tests, 50ms apart); the group
+  row was scrollable by 1px of rounding, so it did the same. Fixed by giving both rows a `selectedTabIndex` that never
+  changes and keeping the selected tab in view ourselves (`KeepTabInView`, which moves the row at once, only when the
+  tab is under an edge), and by sizing the group tabs in whole pixels to exactly the row.
+
+What's left of a tap frame is the page's own build (about half, in `HorizontalPager`) and Compose creating and measuring
+nodes - ~6-8ms warm on desktop for the heaviest page. The user's debug build is several times slower again; a release
+build (R8, Baseline Profile) is the one to judge.
+
 ## Still on the table
 
 - **The toss itself** costs ~1.5x a normal frame for its 900ms: each tossed die's position and

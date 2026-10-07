@@ -56,10 +56,16 @@ internal actual fun formatGrouped(number: Int, languageTag: String): String {
     return formatter.stringFromNumber(NSNumber(int = number)) ?: number.toString()
 }
 
-internal actual fun formatList(items: List<String>, languageTag: String): String =
-    NSListFormatter().apply {
-        locale = NSLocale.localeWithLocaleIdentifier(NSLocale.canonicalLocaleIdentifierFromString(languageTag))
-    }.stringFromItems(items) ?: items.joinToString()
+// Kept until the language changes, like the ordinal formatter: every spoken list on a page asked for a new one.
+private var listFormatter: Pair<String, NSListFormatter>? = null
+
+internal actual fun formatList(items: List<String>, languageTag: String): String {
+    val formatter = listFormatter?.takeIf { it.first == languageTag }?.second
+        ?: NSListFormatter().apply {
+            locale = NSLocale.localeWithLocaleIdentifier(NSLocale.canonicalLocaleIdentifierFromString(languageTag))
+        }.also { listFormatter = languageTag to it }
+    return formatter.stringFromItems(items) ?: items.joinToString()
+}
 
 private var integerFormatter: Pair<String, NSNumberFormatter>? = null
 
@@ -73,5 +79,10 @@ internal actual fun formatInteger(number: Int, languageTag: String): String {
     return formatter.stringFromNumber(NSNumber(int = number)) ?: number.toString()
 }
 
+// Kept until the language changes: every string with an argument asks (see fill), many times a page.
+private var rightToLeft: Pair<String, Boolean>? = null
+
 internal actual fun isRightToLeft(languageTag: String): Boolean =
-    NSLocale.characterDirectionForLanguage(languageTag.substringBefore('-')) == NSLocaleLanguageDirectionRightToLeft
+    rightToLeft?.takeIf { it.first == languageTag }?.second
+        ?: (NSLocale.characterDirectionForLanguage(languageTag.substringBefore('-')) == NSLocaleLanguageDirectionRightToLeft)
+            .also { rightToLeft = languageTag to it }

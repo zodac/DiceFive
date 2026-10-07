@@ -4,21 +4,32 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyChild
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.rules.RulesScreen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
-/** The Rules tab row's sliding indicator sits under the selected tab in either layout direction. */
+/**
+ * The Rules page row's sliding indicator sits under the selected tab in either layout direction, and a swipe to a page
+ * whose tab is off the row's end brings that tab into view.
+ */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [35], qualifiers = "w360dp-h800dp")
 class RulesTabIndicatorTest {
@@ -32,12 +43,14 @@ class RulesTabIndicatorTest {
         compose.setContent {
             CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { DiceFiveTheme { RulesScreen(onBack = {}) } }
         }
+        // The page row's tabs, after the top row's three groups.
+        val groups = 3
         for (index in 0..2) {
-            compose.onAllNodes(isTab)[index].performClick()
+            compose.onAllNodes(isTab)[groups + index].performClick()
             compose.waitForIdle()
             compose.mainClock.advanceTimeBy(2_000)
             compose.waitForIdle()
-            val tab = compose.onAllNodes(isTab)[index].fetchSemanticsNode().boundsInRoot
+            val tab = compose.onAllNodes(isTab)[groups + index].fetchSemanticsNode().boundsInRoot
             val indicator = compose.onNodeWithTag("rulesTabIndicator").fetchSemanticsNode().boundsInRoot
             assertEquals("indicator $indicator vs tab $index $tab", tab.center.x, indicator.center.x, 2f)
         }
@@ -49,4 +62,33 @@ class RulesTabIndicatorTest {
     @Test
     @Config(qualifiers = "ar-w360dp-h800dp")
     fun `the indicator is under the selected tab right to left`() = checkIndicatorUnderEachTab()
+
+    private fun checkSwipedToTabComesIntoView(rtl: Boolean) {
+        compose.setContent {
+            CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { DiceFiveTheme { RulesScreen(onBack = {}) } }
+        }
+        // The page row's last tab in the first group, off its end at 360dp, then swiped to page by page.
+        val pages = compose.onAllNodes(isTab).fetchSemanticsNodes().size - 3
+        val lastTab = compose.onAllNodes(isTab)[3 + pages - 1]
+        val row = compose.onNode(hasAnyChild(isTab and hasText(compose.onAllNodes(isTab)[3].fetchSemanticsNode().config[SemanticsProperties.Text].joinToString())))
+        repeat(pages - 1) {
+            // The page showing - its neighbours may be composed too, off screen.
+            val pages = compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange) and hasAnyChild(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)))
+            val showing = pages.fetchSemanticsNodes().indexOfFirst { it.boundsInRoot.left >= 0f && it.boundsInRoot.right <= compose.onRoot().fetchSemanticsNode().size.width }
+            pages[showing].performTouchInput { if (rtl) swipeRight() else swipeLeft() }
+            compose.mainClock.advanceTimeBy(2_000)
+            compose.waitForIdle()
+        }
+        lastTab.assertIsSelected()
+        val tab = lastTab.fetchSemanticsNode().boundsInRoot
+        val bounds = row.fetchSemanticsNode().boundsInRoot
+        assertTrue("tab $tab not wholly inside the row $bounds", tab.left >= bounds.left && tab.right <= bounds.right)
+    }
+
+    @Test
+    fun `a swipe to a page whose tab is off screen brings it into view left to right`() = checkSwipedToTabComesIntoView(rtl = false)
+
+    @Test
+    @Config(qualifiers = "ar-w360dp-h800dp")
+    fun `a swipe to a page whose tab is off screen brings it into view right to left`() = checkSwipedToTabComesIntoView(rtl = true)
 }

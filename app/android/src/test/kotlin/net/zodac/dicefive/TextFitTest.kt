@@ -100,6 +100,24 @@ open class TextFitTest {
         }.distinct()
     }
 
+    /** The tab labels on screen cut short - a tab's label is all it says, so it has to fit whole. */
+    private fun cutOffTabLabels(): List<String> {
+        val isTab = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
+        val labels = compose.onAllNodes(isTab, useUnmergedTree = true).fetchSemanticsNodes().flatMap { tab ->
+            generateSequence(tab.children) { level -> level.flatMap { it.children }.takeIf { it.isNotEmpty() } }.flatten()
+        }.filter { SemanticsActions.GetTextLayoutResult in it.config }
+        return labels.flatMap { node ->
+            val layouts = mutableListOf<TextLayoutResult>()
+            node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+            // Wider than the space it was drawn in (clipped), or ellipsised. The layout's own overflow flags aren't
+            // used: a tab measures its label more than once, and they came back set for labels that fit.
+            layouts.filter { layout ->
+                layout.multiParagraph.intrinsics.maxIntrinsicWidth > node.size.width + 1 ||
+                    (0 until layout.lineCount).any { line -> layout.isLineEllipsized(line) }
+            }.map { it.layoutInput.text.text }
+        }.distinct()
+    }
+
     private fun assertNoBrokenWords(screen: String) {
         val broken = brokenWords()
         assertTrue("$screen has words split across lines: $broken", broken.isEmpty())
@@ -186,15 +204,22 @@ open class TextFitTest {
     fun `every page of the rules`() {
         content { RulesScreen(onBack = {}) }
         val isTab = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
-        val count = compose.onAllNodes(isTab).fetchSemanticsNodes().size
-        val broken = mutableMapOf<Int, List<String>>()
-        for (index in 0 until count) {
-            compose.onAllNodes(isTab)[index].performClick()
+        // The top row's tabs (the groups) come first, then the row of the showing group's pages.
+        val groups = 3
+        val broken = mutableMapOf<String, List<String>>()
+        for (group in 0 until groups) {
+            compose.onAllNodes(isTab)[group].performClick()
             compose.mainClock.advanceTimeBy(1_000)
             compose.waitForIdle()
-            brokenWords().takeIf { it.isNotEmpty() }?.let { broken[index] = it }
+            val pages = compose.onAllNodes(isTab).fetchSemanticsNodes().size - groups
+            for (page in 0 until pages) {
+                compose.onAllNodes(isTab)[groups + page].performClick()
+                compose.mainClock.advanceTimeBy(1_000)
+                compose.waitForIdle()
+                (brokenWords() + cutOffTabLabels()).takeIf { it.isNotEmpty() }?.let { broken["$group/$page"] = it }
+            }
         }
-        assertTrue("Rules pages with words split across lines: $broken", broken.isEmpty())
+        assertTrue("Rules pages with words split across lines, or tabs cut off: $broken", broken.isEmpty())
     }
 
     @Test

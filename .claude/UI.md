@@ -136,7 +136,7 @@ which needs compileSdk 37). Revisit when 1.5.0 is stable.
 | `ScreenScaffold.kt` | the frame for every non-menu page: backdrop + M3 top app bar with a back arrow . The bar itself stays transparent over the backdrop; its title is bold and tinted `primary` (see "Colour" above) rather than left at the M3 default. Its content (not the app bar) fades in over `PAGE_CONTENT_FADE_IN_MILLIS` (100ms) when a page opens, so whatever lands a frame or two late - a loaded list, a Styles row centring on its pick - eases in with the rest rather than popping in. Also holds `PageColumn`, and takes an optional `footer` (a `FooterPill`, for scrollable pages) floated at the bottom centre with the content padded by its measured height - Settings' version. Its app bar is also `PageTopBar` on its own (back arrow optional), which the results screen uses so its title sits where every page's does. A scrollable page can narrow its side margin with `horizontalPadding` (24dp by default); the scorecard review uses the game screen's 16dp so the board's pieces come out the size they were in play. |
 | `DiceFiveDialog.kt` | the app's one dialog shape, so the menu and the board ask questions the same way. Its title is set like a page title - Sora, bold, `primary` gold, at `headlineSmall` - as are the pickers' (`PickerDialog`) and the About and Licences dialogs'; a new dialog's title should match. |
 | `AppLogo.kt` | placeholder app mark, built from the game's own dice via `IvoryDiceStyle`. |
-| `FooterPill.kt` | the small gold pill pinned over the bottom of a page: the Rules page's "1 of 7" and Settings' version. Spoken forms and live regions go on its `modifier`. |
+| `FooterPill.kt` | the small gold pill pinned over the bottom of a page: the Rules page's "2 of 6" and Settings' version. Spoken forms and live regions go on its `modifier`. |
 | `Scrollbar.kt` | `LazyListScrollbar`, a `BoxScope` extension drawing a minimal scroll indicator over a `LazyColumn` - stock Compose has none for Android. Shared by the Leaderboard and Statistics screens. Also `VerticalScrollbar`, a draggable bar for a plain `verticalScroll` column (the Styles page, placed in its side margin), and `HorizontalScrollbar`, a bar placed under a horizontally scrolling row: one overload for a plain `Row` (`ScrollState`, exact) and one for a `LazyRow` (`LazyListState`, estimated from near-uniform items) - the Styles screen's colour pop-up and tile rows. |
 | `SegmentedChoiceRow.kt` | the app's one segmented-button row, generic over the option type. Every use drops the stock M3 checkmark-on-select icon (`icon = {}`) - reserving space for it crowded a label out at some of the widths this app uses it at (AI difficulty, three options in a third-width column). Used by player count, AI difficulty and turn timer. Takes `enabled` for a choice the rest of the form overrides - the turn timer while a mode with its own timer (Quickfire) is picked. It takes an optional per-option glyph: the turn timer's "None" is a crossed-out timer icon with a "No timer" content description, not a word. |
 
@@ -202,8 +202,8 @@ bottom once the form is too tall to fit and has to scroll.
   live and the modal closes with Done; a mode that overrides a modifier locks it with a note. **All
   styling lives in the file's two shells, `PickerField` and `PickerDialog`** (and `PickerRowText`),
   so re-theming is one place - add new pickers as contents of those, not new chrome. To add a
-  modifier: a `ModifierSetting` in the setup screen's list, plus a page section on the Rules
-  "Modifiers" page. TalkBack: the field is a `DropdownList` named by title with its value as state;
+  modifier: a `ModifierSetting` in the setup screen's list, plus a page of its own at the end of the Rules
+  page's Modifiers group (`RULES_GROUPS`), titled with the modifier's name. TalkBack: the field is a `DropdownList` named by title with its value as state;
   rows are radio/switch with collection positions. Tested in `ChoicePickerTest`; not heard on a device.
 - **An option the rest of the form overrides is disabled, not hidden** - the Turn Timer row was, while
   the first Quickfire was picked (`ModifierSetting.lockedNote` is the hook; no mode uses it now). Hiding it would move everything below; disabling
@@ -498,8 +498,8 @@ in view.
    `contentDescription` that names the action, without the word "button" (the role says that);
    decorative ones get `null`.
 3. **Does anything visual carry meaning that isn't spoken?** Colour, an edge fade, an icon, a
-   position, an animation, a badge. Each needs a spoken twin: the tab row's fade is paired with its
-   "Tab, 1 of 7", a die's held state with "held". If a sighted player could learn it from the
+   position, an animation, a badge. Each needs a spoken twin: the Rules page row's fade is paired with its
+   "Tab, 1 of 6", a die's held state with "held". If a sighted player could learn it from the
    screen, a TalkBack user must be able to learn it from the semantics.
 4. **One of a set, not all in view?** Give the container `CollectionInfo` and each item
    `CollectionItemInfo`, so TalkBack gives the position and count.
@@ -596,14 +596,16 @@ Everything a screen reader needs is added as semantics, never by changing what's
 - **A field with no visible label gets an accessibility-only one**, and its error as `error(...)`
   - see the New Game name fields.
 - **Banners are polite live regions** announcing a fixed summary, not their animated text.
-- **A pager announces where it lands**: the Rules page's "1 of 7" footer is spoken as "Page 1 of 7"
-  and is a polite live region, since a swipe between `HorizontalPager` pages says nothing by itself.
+- **A pager announces where it lands**: the Rules page's "2 of 6" footer is spoken as "Modes, page 2 of 6"
+  (its count is within the group showing, so it names the group) and is a polite live region, since a swipe between
+  `HorizontalPager` pages - or past a group's last page into the next group - says nothing by itself.
 - **Anything floated over scrolling content needs matching padding at the content's end**, or its
   last line can never scroll clear (the Rules footer pads each page by its measured height). Know the
   limit: bring-into-view - TalkBack focus, `performScrollTo` - only scrolls a node into the scroll
   area, which still runs under the float.
-- **A scrolling tab row says how many tabs it has** (the Rules page): stock M3 `Tab`s carry only
-  `Role.Tab`, so the row sets `CollectionInfo` and each tab `CollectionItemInfo`, for "Tab, 1 of 7".
+- **A scrolling tab row says how many tabs it has** (the Rules page's two rows): stock M3 `Tab`s carry only
+  `Role.Tab`, so each row sets `CollectionInfo` and each tab `CollectionItemInfo`, for "Tab, 1 of 3" in the group
+  row and "Tab, 1 of 6" in the page row - each counted within its own row.
   It's the spoken twin of the row's edge chevrons - sighted or not, nobody should take the tabs in
   view for all of them. The chevrons themselves are cleared from semantics: they'd only be stops
   that repeat what the tabs already say.
@@ -1076,6 +1078,12 @@ Anything new that marks a player in their colour should read it too, never a sea
 
 ## Gotchas hit while building this
 
+- **A scrolling container eats a tap made while it scrolls.** Compose takes it as "stop scrolling" and never passes it
+  to the child under the finger. So anything that scrolls itself after a tap - Material's scrollable tab rows re-centre
+  the selected tab on every selection - loses the next tap for as long as it moves, which on a phone reads as controls
+  that only work some of the time. The Rules tab rows never re-centre (`KeepTabInView` moves them at once, only when the
+  tab is hidden), and a row that fits mustn't be scrollable even by a pixel of rounding. Test it with real touches a
+  few frames apart (`performTouchInput { click() }` with `mainClock.autoAdvance = false`); semantics clicks skip it.
 - **An edge fade isn't a "there's more" hint on its own.** It only shows when content happens to be
   under it, which depends on label widths, screen width and scroll position - the Rules tab row's
   fade sat over the empty gap between two tabs and hinted at nothing. Pair it with something that's
