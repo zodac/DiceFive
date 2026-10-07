@@ -5,12 +5,14 @@ import android.content.ClipboardManager
 import android.content.Intent
 import android.os.Looper
 import android.os.SystemClock
+import android.text.Layout
 import android.text.Selection
 import android.text.Spannable
 import android.text.Spanned
 import android.text.style.URLSpan
 import android.view.ContextMenu
 import android.view.MotionEvent
+import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.widget.ScrollView
@@ -20,12 +22,18 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog as isComposeDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.style.ResolvedTextDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
@@ -34,6 +42,8 @@ import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.Duration
 import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.PlatformServices
+import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.settings.ComponentKind
 import net.zodac.dicefive.ui.settings.LicenceScroll
 import net.zodac.dicefive.ui.settings.LicenseGroup
@@ -74,10 +84,13 @@ class LicensesDialogTest {
     /** The Apache-2.0 card - the first, and the one most of these tests work in. */
     private lateinit var document: TextView
 
-    private fun showDialog() {
+    /** The dialog, in an app laid out in [direction] - right to left as a right-to-left translation would be. */
+    private fun showDialog(direction: LayoutDirection = LayoutDirection.Ltr) {
         compose.setContent {
             CompositionLocalProvider(LocalPlatformServices provides AndroidPlatformServices(application)) {
-                DiceFiveTheme { LicensesDialog(onDismissRequest = {}) }
+                DiceFiveTheme {
+                    CompositionLocalProvider(LocalLayoutDirection provides direction) { LicensesDialog(onDismissRequest = {}) }
+                }
             }
         }
         compose.waitUntil(timeoutMillis = 10_000) { findDocument() != null }
@@ -181,6 +194,42 @@ class LicensesDialogTest {
         // The platform always asks for a context menu on a long press; an empty one isn't shown, and
         // the press falls through to the TextView's own selection.
         assertEquals(0, menu?.size() ?: 0)
+    }
+
+    // The licences are English whatever the app's language: on a right-to-left phone, in a right-to-left app, they stay
+    // left to right - not mirrored to the right, nor set as right-to-left paragraphs.
+    @Test
+    @Config(qualifiers = "ar")
+    fun `in a right-to-left app the licences stay left to right`() {
+        showDialog(LayoutDirection.Rtl)
+
+        assertEquals(View.LAYOUT_DIRECTION_LTR, document.layoutDirection)
+        val layout = document.layout
+        assertEquals(Layout.DIR_LEFT_TO_RIGHT, layout.getParagraphDirection(0))
+        assertEquals(0f, layout.getLineLeft(0), 0.5f)
+    }
+
+    @Test
+    @Config(qualifiers = "ar")
+    fun `in a right-to-left app the Compose licence list stays left to right too`() {
+        // The list iOS and previews draw, given Android's real reports.
+        val platform = object : PlatformServices by SilentPlatformServices {
+            override suspend fun loadLicenceReports() = AndroidPlatformServices(application).loadLicenceReports()
+        }
+        compose.setContent {
+            CompositionLocalProvider(LocalPlatformServices provides platform) {
+                DiceFiveTheme {
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) { LicensesDialog(onDismissRequest = {}) }
+                }
+            }
+        }
+        val title = hasText("Apache License 2.0")
+        compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(title, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+
+        val layouts = mutableListOf<TextLayoutResult>()
+        compose.onAllNodes(title, useUnmergedTree = true)[0].fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+        assertEquals(ResolvedTextDirection.Ltr, layouts.single().getParagraphDirection(0))
+        assertEquals(0f, layouts.single().getLineLeft(0), 0.5f)
     }
 
     @Test

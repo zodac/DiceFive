@@ -75,7 +75,7 @@ import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.delayWhileResumed
-import net.zodac.dicefive.ui.common.formatTimestamp
+import net.zodac.dicefive.ui.common.timestampFormatter
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.theme.Bronze
@@ -417,10 +417,11 @@ private fun ScoreRow(
     val accent = if (highlightPodium) podiumAccent(rank) else null
     val columns = scoreColumns()
     val modeName = if (showMode) entry.gameMode?.let { stringResource(it.displayName) } ?: entry.gameModeId else null
+    val formatTimestamp = timestampFormatter()
 
     // The mode only where rows of every mode share a table - on its own card it's the card's title.
     // Built on a long press only: see OnDemandTooltip.
-    OnDemandTooltip(message = { scoreRowDetail(entry, modeName) }) {
+    OnDemandTooltip(message = { scoreRowDetail(formatTimestamp(entry.timestampEpochMillis), modeName) }) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -489,11 +490,9 @@ private fun ScoreRow(
     }
 }
 
-/** When [entry] was played, and - with [showMode] - in which mode, on a line of its own. */
-private fun scoreRowDetail(entry: ScoreEntry, modeName: String?): String {
-    val timestamp = formatTimestamp(entry.timestampEpochMillis)
-    return if (modeName != null) "$timestamp\n$modeName" else timestamp
-}
+/** When the entry was played ([timestamp]), and - with [modeName] - in which mode, on a line of its own. */
+private fun scoreRowDetail(timestamp: String, modeName: String?): String =
+    if (modeName != null) "$timestamp\n$modeName" else timestamp
 
 @Composable
 private fun PaginationControls(

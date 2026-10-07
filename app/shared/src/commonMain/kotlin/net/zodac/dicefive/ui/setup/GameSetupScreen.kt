@@ -70,7 +70,9 @@ import net.zodac.dicefive.resources.setup_modifiers_description
 import net.zodac.dicefive.resources.setup_names_unique
 import net.zodac.dicefive.resources.setup_player_name_cd
 import net.zodac.dicefive.resources.setup_players
+import net.zodac.dicefive.resources.setup_rolls_decrease_cd
 import net.zodac.dicefive.resources.setup_rolls_description
+import net.zodac.dicefive.resources.setup_rolls_increase_cd
 import net.zodac.dicefive.resources.setup_rolls_per_turn_value
 import net.zodac.dicefive.resources.setup_rolls_stepper
 import net.zodac.dicefive.resources.setup_rolls_title
@@ -87,8 +89,12 @@ import net.zodac.dicefive.resources.setup_title
 import net.zodac.dicefive.resources.setup_type_user
 import net.zodac.dicefive.resources.setup_unlucky_description
 import net.zodac.dicefive.resources.setup_unlucky_max
+import net.zodac.dicefive.resources.setup_unlucky_max_decrease_cd
 import net.zodac.dicefive.resources.setup_unlucky_max_dice_value
+import net.zodac.dicefive.resources.setup_unlucky_max_increase_cd
 import net.zodac.dicefive.resources.setup_unlucky_odds
+import net.zodac.dicefive.resources.setup_unlucky_odds_decrease_cd
+import net.zodac.dicefive.resources.setup_unlucky_odds_increase_cd
 import net.zodac.dicefive.resources.setup_unlucky_odds_value
 import net.zodac.dicefive.resources.setup_unlucky_title
 import net.zodac.dicefive.ui.common.ChoicePicker
@@ -591,6 +597,8 @@ private fun SetupModifierPicker(
                         range = RollModifiers.MIN_ROLLS..RollModifiers.MAX_ROLLS,
                         onValueChange = onRollsPerTurn,
                         label = stringResource(Res.string.setup_rolls_stepper),
+                        decreaseLabel = stringResource(Res.string.setup_rolls_decrease_cd),
+                        increaseLabel = stringResource(Res.string.setup_rolls_increase_cd),
                         valueText = { pluralStringResource(Res.plurals.setup_rolls_per_turn_value, it, it) },
                     ),
                 ),
@@ -627,6 +635,8 @@ private fun SetupModifierPicker(
                         range = UnluckyDice.MIN_ODDS_PERCENT..UnluckyDice.MAX_ODDS_PERCENT,
                         onValueChange = onUnluckyOdds,
                         label = stringResource(Res.string.setup_unlucky_odds),
+                        decreaseLabel = stringResource(Res.string.setup_unlucky_odds_decrease_cd),
+                        increaseLabel = stringResource(Res.string.setup_unlucky_odds_increase_cd),
                         valueText = { stringResource(Res.string.setup_unlucky_odds_value, it) },
                         step = UnluckyDice.ODDS_STEP_PERCENT,
                     ),
@@ -635,6 +645,8 @@ private fun SetupModifierPicker(
                         range = UnluckyDice.MIN_MAX_DICE..UnluckyDice.MAX_MAX_DICE,
                         onValueChange = onUnluckyMaxDice,
                         label = stringResource(Res.string.setup_unlucky_max),
+                        decreaseLabel = stringResource(Res.string.setup_unlucky_max_decrease_cd),
+                        increaseLabel = stringResource(Res.string.setup_unlucky_max_increase_cd),
                         valueText = { pluralStringResource(Res.plurals.setup_unlucky_max_dice_value, it, it) },
                     ),
                 ),

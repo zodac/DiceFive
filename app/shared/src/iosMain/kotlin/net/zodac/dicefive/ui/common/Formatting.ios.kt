@@ -4,19 +4,33 @@ import platform.Foundation.NSDate
 import platform.Foundation.NSDateFormatter
 import platform.Foundation.NSListFormatter
 import platform.Foundation.NSLocale
+import platform.Foundation.NSLocaleLanguageDirectionRightToLeft
+import platform.Foundation.characterDirectionForLanguage
 import platform.Foundation.NSNumber
 import platform.Foundation.NSNumberFormatter
 import platform.Foundation.NSNumberFormatterDecimalStyle
 import platform.Foundation.NSNumberFormatterOrdinalStyle
 import platform.Foundation.canonicalLocaleIdentifierFromString
+import platform.Foundation.currentLocale
+import platform.Foundation.languageCode
+import platform.Foundation.localeIdentifier
 import platform.Foundation.dateWithTimeIntervalSince1970
 import platform.Foundation.localeWithLocaleIdentifier
 
-// NSDateFormatter defaults to the device's locale and time zone, as java.time's does on Android.
-private val TIMESTAMP_FORMATTER = NSDateFormatter().apply { dateFormat = "MMM dd, yyyy HH:mm" }
+// Kept until the pattern, the language or the device's locale changes. NSDateFormatter uses the device's time zone.
+private var timestampFormatter: Pair<Triple<String, String, String>, NSDateFormatter>? = null
 
-internal actual fun formatTimestamp(epochMillis: Long): String =
-    TIMESTAMP_FORMATTER.stringFromDate(NSDate.dateWithTimeIntervalSince1970(epochMillis / 1000.0))
+internal actual fun formatTimestamp(epochMillis: Long, pattern: String, languageTag: String): String {
+    val device = NSLocale.currentLocale
+    val key = Triple(pattern, languageTag, device.localeIdentifier)
+    val formatter = timestampFormatter?.takeIf { it.first == key }?.second ?: NSDateFormatter().apply {
+        val strings = NSLocale.localeWithLocaleIdentifier(NSLocale.canonicalLocaleIdentifierFromString(languageTag))
+        // The device's own form of the strings' language where it has one (en-US's "Sep"), else the strings' ("Sept").
+        locale = if (device.languageCode == strings.languageCode) device else strings
+        dateFormat = pattern
+    }.also { timestampFormatter = key to it }
+    return formatter.stringFromDate(NSDate.dateWithTimeIntervalSince1970(epochMillis / 1000.0))
+}
 
 // "1st" in English, "1er" in French. Kept until the language changes.
 private var ordinalFormatter: Pair<String, NSNumberFormatter>? = null
@@ -58,3 +72,6 @@ internal actual fun formatInteger(number: Int, languageTag: String): String {
         }.also { integerFormatter = languageTag to it }
     return formatter.stringFromNumber(NSNumber(int = number)) ?: number.toString()
 }
+
+internal actual fun isRightToLeft(languageTag: String): Boolean =
+    NSLocale.characterDirectionForLanguage(languageTag.substringBefore('-')) == NSLocaleLanguageDirectionRightToLeft

@@ -10,10 +10,12 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,12 +23,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.licences_hide_text
@@ -68,32 +73,40 @@ internal fun ComposeLicenceDocument(report: LicenseReport, scroll: LicenceScroll
     val typography = MaterialTheme.typography
     val links = TextLinkStyles(SpanStyle(color = colors.primary, textDecoration = TextDecoration.Underline))
 
-    // A plain scrolling column, not a LazyColumn: there are only a handful of cards, and a ScrollState
-    // knows its exact length, which the scrollbar needs.
-    Column(modifier = modifier.verticalScroll(scrollState), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        for (group in report.groups) {
-            LicenceCard(title = group.name, subtitle = labels.usageOf(group)) {
-                val isExpanded = group.name in expanded
-                TextButton(onClick = { expanded = if (isExpanded) expanded - group.name else expanded + group.name }) {
-                    Text(text = if (isExpanded) labels.hideText else labels.showText)
-                }
-                if (isExpanded) {
-                    Text(text = linked(group.text, links), style = typography.bodySmall, color = colors.onSurfaceVariant)
-                }
-                for (component in group.components) {
-                    Text(text = componentLine(component, links), style = typography.bodyMedium)
-                    component.copyright?.let {
-                        Text(text = linked(it, links), style = typography.bodySmall, color = colors.onSurfaceVariant)
+    // The licences are in English whatever the app's language, so the list is left to right even in a right-to-left
+    // app. Each paragraph still reads in its own direction, by its first letter, so a translated label ("Used by...")
+    // reads its own way - as Android's TextViews do.
+    CompositionLocalProvider(
+        LocalLayoutDirection provides LayoutDirection.Ltr,
+        LocalTextStyle provides LocalTextStyle.current.copy(textDirection = TextDirection.Content),
+    ) {
+        // A plain scrolling column, not a LazyColumn: there are only a handful of cards, and a ScrollState
+        // knows its exact length, which the scrollbar needs.
+        Column(modifier = modifier.verticalScroll(scrollState), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            for (group in report.groups) {
+                LicenceCard(title = group.name, subtitle = labels.usageOf(group)) {
+                    val isExpanded = group.name in expanded
+                    TextButton(onClick = { expanded = if (isExpanded) expanded - group.name else expanded + group.name }) {
+                        Text(text = if (isExpanded) labels.hideText else labels.showText)
+                    }
+                    if (isExpanded) {
+                        Text(text = linked(group.text, links), style = typography.bodySmall, color = colors.onSurfaceVariant)
+                    }
+                    for (component in group.components) {
+                        Text(text = componentLine(component, links), style = typography.bodyMedium)
+                        component.copyright?.let {
+                            Text(text = linked(it, links), style = typography.bodySmall, color = colors.onSurfaceVariant)
+                        }
                     }
                 }
             }
-        }
-        if (report.notices.isNotEmpty()) {
-            LicenceCard(title = labels.noticesTitle, subtitle = labels.noticesSubtitle) {
-                for (notice in report.notices) {
-                    Column(modifier = Modifier.padding(top = 8.dp)) {
-                        Text(text = notice.library, style = typography.bodyMedium)
-                        Text(text = linked(notice.text, links), style = typography.bodySmall, color = colors.onSurfaceVariant)
+            if (report.notices.isNotEmpty()) {
+                LicenceCard(title = labels.noticesTitle, subtitle = labels.noticesSubtitle) {
+                    for (notice in report.notices) {
+                        Column(modifier = Modifier.padding(top = 8.dp)) {
+                            Text(text = notice.library, style = typography.bodyMedium)
+                            Text(text = linked(notice.text, links), style = typography.bodySmall, color = colors.onSurfaceVariant)
+                        }
                     }
                 }
             }

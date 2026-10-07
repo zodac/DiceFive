@@ -34,6 +34,7 @@ import net.zodac.dicefive.model.PlaceMatch
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_bonus_amount
 import net.zodac.dicefive.resources.game_badge_evens
 import net.zodac.dicefive.resources.game_badge_odds
 import net.zodac.dicefive.resources.ic_stairs
@@ -260,7 +261,7 @@ private fun FiveOfAKindIcon(color: Color, fontSize: TextUnit, bonusCount: Int, b
         BadgeLabel("5x", color, fontSize, modifier = Modifier.align(Alignment.Center)) // i18n: not translated - the game's mark for the box
         if (bonusAmount > 0) {
             Text(
-                text = "+${bonusAmount.localised()}",
+                text = stringResource(Res.string.common_bonus_amount, bonusAmount),
                 color = GoldAccent,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.labelMedium,

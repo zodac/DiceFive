@@ -40,8 +40,11 @@
 - `.claude/I18N.md` — the plan for moving every visible and spoken string into Compose resources
   (i18n) so a language can be added later (l10n): the decisions (plurals in `<plurals>` using
   Compose resources' bundled CLDR rules; ordinals, number grouping and lists through each
-  platform's formatter), string conventions, the guards, and the step-by-step status. Read this
-  before adding or moving any player-visible string.
+  platform's formatter), string conventions, the guards, and the step-by-step status. It also sets
+  the rule of **no partial translations**: the app is wholly in a language it has a `values-xx` for
+  (text, plurals, numbers, dates, layout direction, Android's own text), or wholly in English, left
+  to right - and the licences stay English and left to right whatever the language. Read this
+  before adding or moving any player-visible string, or adding a formatter or platform text API.
 
 # Working agreements
 

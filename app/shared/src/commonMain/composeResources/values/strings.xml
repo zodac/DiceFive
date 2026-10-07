@@ -3,16 +3,26 @@
     Every player-visible and spoken string in the shared UI, in British English (the base locale).
     Conventions - key names, positional arguments, plurals, what stays out of here - are in
     .claude/I18N.md. A translation goes in values-xx/strings.xml beside this file.
+
+    Signs and units beside a number ("=2", "+100", "50%", "x3", "12s", "1.") are part of the translation: put each
+    on the side, and with the spacing, the language reads it. In a right-to-left language the app is laid out right
+    to left, and a sign that is first in the string is drawn on the right.
 -->
 <resources>
 
     <!--
-        The language of this file, as a BCP 47 tag. Not shown: it's what numbers inside the text are
-        formatted in (ordinals, so far), so they always match the words around them - a French phone
-        on an untranslated app gets English text and "1st", not English text and "1er". Every
-        translation sets its own ("fr", "de"...). See .claude/I18N.md.
+        The language of this file, as a BCP 47 tag. Not shown: it's what numbers, dates, plural forms and the
+        layout direction follow, so they always match the words around them - a French phone on an untranslated
+        app gets English text and "1st", not English text and "1er", and an Arabic phone gets English laid out
+        left to right. Every translation sets its own ("fr", "de", "ar-u-nu-arab"...). See .claude/I18N.md.
     -->
     <string name="common_locale">en-GB</string>
+    <!--
+        How a date and time is written ("Sep 28, 2026 14:05"), as a CLDR date pattern: MMM is the short month name,
+        dd the day, yyyy the year, HH:mm the 24-hour time. Reorder it the way the language writes dates; the month
+        names and digits follow common_locale.
+    -->
+    <string name="common_timestamp_pattern">MMM dd, yyyy HH:mm</string>
 
     <!--
         How two spoken clauses join, for a sentence whose pieces come and go ("Scored 12, would score
@@ -21,6 +31,8 @@
     <string name="common_clauses_join">%1$s, %2$s</string>
     <!-- How two spoken sentences join into running text. Keep both arguments. -->
     <string name="common_sentences_join">%1$s %2$s</string>
+    <!-- A bonus added to a box's score, drawn under it ("+100"). The sign's side, and a space after it, are the language's to choose. -->
+    <string name="common_bonus_amount">+%1$d</string>
 
     <!-- Leave game confirmation (ui/game/LeaveGameConfirmation.kt) -->
     <string name="game_leave_title">Leave game?</string>
@@ -74,7 +86,7 @@
     <string name="game_slots_last_score_spoken">last turn's score %1$d</string>
 
     <!-- A player's place, on their tab (ui/game/PlayerHeaderBar.kt). %1$s is an ordinal, "2nd". -->
-    <!-- Shown under the score when the place is shared with another player. -->
+    <!-- Shown under the score when the place is shared with another player: the "=" marks the tie, on the side the language reads first. -->
     <string name="game_standing_tied">=%1$s</string>
     <!-- Spoken in place of the shown place ("=" would be read as "equals"). -->
     <string name="game_standing_spoken">%1$s place</string>
@@ -342,6 +354,7 @@
         <item quantity="one">%1$d roll</item>
         <item quantity="other">%1$d rolls</item>
     </plurals>
+    <!-- A percentage ("50%"): the sign, its side and spacing are the language's ("50 %", "%50"). -->
     <string name="setup_unlucky_odds_value">%1$d%</string>
     <plurals name="setup_unlucky_max_dice_value">
         <item quantity="one">%1$d die</item>
@@ -405,8 +418,10 @@
     -->
     <!-- A Hit List example's place that accepts any number. -->
     <string name="rules_example_any_place_spoken">any</string>
-    <!-- A Tricolour example die: %1$s is its colour ("red"), %2$d its number. -->
-    <string name="rules_example_coloured_die_spoken">%1$s %2$d</string>
+    <!-- A Tricolour example die, by its colour, inside a spoken list ("red 1, red 4, blue 2"): %1$d is its number. -->
+    <string name="rules_example_red_die_spoken">red %1$d</string>
+    <string name="rules_example_yellow_die_spoken">yellow %1$d</string>
+    <string name="rules_example_blue_die_spoken">blue %1$d</string>
     <!-- %1$s is the dice, joined into a list. -->
     <string name="rules_example_target_spoken">Example target: %1$s.</string>
     <!-- %1$s is a score: "20 points". -->
@@ -452,9 +467,6 @@
     </plurals>
     <!-- A modifier stepper's value as TalkBack says it: its label ("Rolls per turn"), then the value ("3 rolls"). -->
     <string name="common_stepper_value_spoken">%1$s, %2$s</string>
-    <!-- %1$s is the stepper's label in lower case ("rolls per turn"). -->
-    <string name="common_stepper_decrease_cd">Decrease %1$s</string>
-    <string name="common_stepper_increase_cd">Increase %1$s</string>
 
     <!-- About dialog (ui/settings/AboutDialog.kt). Text in `backticks` is highlighted as a name. -->
     <string name="about_title">About</string>
@@ -673,8 +685,11 @@
     <string name="setup_timer_seconds">%1$ds</string>
     <string name="setup_rolls_title">Number of Rolls</string>
     <string name="setup_rolls_description">How many rolls each turn gets</string>
-    <!-- Names the stepper for TalkBack; "Decrease rolls per turn" lower-cases it. -->
+    <!-- Names the stepper for TalkBack, before its value. -->
     <string name="setup_rolls_stepper">Rolls per turn</string>
+    <!-- TalkBack's names for the stepper's - and + buttons. -->
+    <string name="setup_rolls_decrease_cd">Decrease rolls per turn</string>
+    <string name="setup_rolls_increase_cd">Increase rolls per turn</string>
     <string name="setup_stored_title">Stored Rolls</string>
     <string name="setup_stored_description">Rolls you don't use carry over to your next turn</string>
     <string name="setup_stored_field">Most rolls you can store</string>
@@ -687,7 +702,11 @@
     <string name="setup_unlucky_title">Unlucky Dice</string>
     <string name="setup_unlucky_description">Rolled dice can be locked in chains: they can't be held or scored</string>
     <string name="setup_unlucky_odds">Odds a rolled die is locked</string>
+    <string name="setup_unlucky_odds_decrease_cd">Decrease odds a rolled die is locked</string>
+    <string name="setup_unlucky_odds_increase_cd">Increase odds a rolled die is locked</string>
     <string name="setup_unlucky_max">Most dice locked per roll</string>
+    <string name="setup_unlucky_max_decrease_cd">Decrease most dice locked per roll</string>
+    <string name="setup_unlucky_max_increase_cd">Increase most dice locked per roll</string>
     <!-- TalkBack's name for the colour circle: the seat, then its colour. -->
     <string name="setup_colour_cd">Player %1$d colour, %2$s</string>
     <string name="setup_colour_choose_action">Choose colour</string>
@@ -1165,7 +1184,7 @@
     <string name="rules_example_equals">= %1$s</string>
     <!-- An amount of points as it is drawn ("25pts"), and as it is written in the pages' text. A spoken page says it in full (rules_points_spoken): this is how those are found. -->
     <string name="rules_points_short">%1$dpts</string>
-    <!-- Two amounts added together: "20pts + 100pts". -->
+    <!-- Two amounts added together: "20pts + 100pts". Keep the " + " (with its spaces): the spoken page reads it as rules_plus_spoken. -->
     <string name="rules_points_sum">%1$s + %2$s</string>
     <!-- Said for the "+" between two amounts. -->
     <string name="rules_plus_spoken">plus</string>
