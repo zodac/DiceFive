@@ -78,6 +78,7 @@ import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.game.LocalLeaveGameConfirmation
 import net.zodac.dicefive.ui.game.style.unlocksStyle
+import org.jetbrains.compose.resources.stringResource
 import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ConfigureOverlayDialogWindow
@@ -566,10 +567,12 @@ private fun Modifier.announced(announcement: String): Modifier = clearAndSetSema
  */
 @Composable
 private fun UnlockedBanner(achievement: Achievement) {
+    val title = stringResource(achievement.title)
+    val description = stringResource(achievement.description)
     Surface(
         modifier = Modifier.fillMaxWidth().announced(
             buildString {
-                append("Achievement unlocked: ${achievement.title}. ${achievement.description}")
+                append("Achievement unlocked: $title. $description")
                 if (achievement.unlocksStyle) append(". Unlocks a style")
             },
         ),
@@ -600,8 +603,8 @@ private fun UnlockedBanner(achievement: Achievement) {
                 if (achievement.unlocksStyle) StyleRewardStar(tint = defaultIconTint)
             }
             Column(modifier = Modifier.weight(1f)) {
-                BannerTitle(achievement.title)
-                BannerDescription(achievement.description)
+                BannerTitle(title)
+                BannerDescription(description)
             }
         }
     }
@@ -662,6 +665,7 @@ private suspend fun Animatable<Float, AnimationVector1D>.moveTo(target: Float, m
  */
 @Composable
 private fun ProgressBanner(achievement: Achievement, previous: Int, current: Int, interactive: Boolean) {
+    val title = stringResource(achievement.title)
     val animatedProgress = remember { Animatable(previous.toFloat()) }
     // Under reduced motion it doesn't climb: the new count is simply there once this banner is at the front.
     val reduceMotion = LocalReduceMotion.current
@@ -677,7 +681,7 @@ private fun ProgressBanner(achievement: Achievement, previous: Int, current: Int
 
     Surface(
         // The final count, not the climbing one - announcing every step of the climb would be noise.
-        modifier = Modifier.fillMaxWidth().announced("${achievement.title}: ${current.grouped()} of ${achievement.target.grouped()}"),
+        modifier = Modifier.fillMaxWidth().announced("$title: ${current.grouped()} of ${achievement.target.grouped()}"),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -696,7 +700,7 @@ private fun ProgressBanner(achievement: Achievement, previous: Int, current: Int
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    BannerTitle(achievement.title, modifier = Modifier.weight(1f, fill = false))
+                    BannerTitle(title, modifier = Modifier.weight(1f, fill = false))
                     Text(
                         text = "${displayedValue.grouped()} of ${achievement.target.grouped()}",
                         style = MaterialTheme.typography.labelSmall,

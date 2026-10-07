@@ -57,7 +57,7 @@
   fine.
 
   The only permitted exceptions are `.claude/*.md` reference documentation, which needs the word
-  to explain what the game is, and the single guard assertion in `AchievementEngineTest` that
+  to explain what the game is, and the single guard pattern in `StringChecks` (`app/shared/src/androidHostTest/…/i18n/`) that
   checks no achievement title, description or category label contains it. `README.md` is public
   and is **not** an exception.
 

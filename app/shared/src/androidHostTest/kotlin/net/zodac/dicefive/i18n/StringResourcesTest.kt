@@ -42,7 +42,7 @@ class StringResourcesTest {
                 "b" to "Roll a Three of a kind",
                 "c" to "four-of-a-kind",
                 "d" to "FIVE OF A KIND",
-                "e" to "yahtzee!",
+                "e" to "${StringChecks.TRADEMARK}!",
             ),
         )
 

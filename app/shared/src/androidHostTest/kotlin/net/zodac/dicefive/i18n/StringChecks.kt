@@ -31,9 +31,11 @@ internal object StringChecks {
         return names.filter { "$it[other]" !in base }.sorted().map { "plural '$it' has no 'other' item" }
     }
 
+    /** The trademark, lower case. The only place it is written out (CLAUDE.md's exception); tests refer to this. */
+    const val TRADEMARK = "yahtzee"
+
     private val banned = listOf(
-        // The one permitted copy of the trademark outside .claude/*.md besides AchievementEngineTest's guard; lower case, as there.
-        Regex("yahtzee", RegexOption.IGNORE_CASE),
+        Regex(TRADEMARK, RegexOption.IGNORE_CASE),
         Regex("(three|four|five)[ -]of[ -]a[ -]kind", RegexOption.IGNORE_CASE),
     )
 

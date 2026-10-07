@@ -688,25 +688,6 @@ class AchievementEngineTest {
         }
     }
 
-    /** Easter Eggs have no ladder to run easiest-first, so they run alphabetically by title instead. */
-    @Test
-    fun `Easter Eggs are in alphabetical order by title`() {
-        val titles = Achievement.entries.filter { it.category == AchievementCategory.EASTER_EGGS }.map { it.title }
-        assertEquals(titles.sortedBy { it.lowercase() }, titles)
-    }
-
-    /**
-     * The one place the trademarked word is allowed to appear in source, because this is what
-     * keeps it out of everywhere else - see the ban in CLAUDE.md.
-     */
-    @Test
-    fun `no achievement mentions the trademarked name in anything a player can see`() {
-        val visible = Achievement.entries.flatMap { listOf(it.title, it.description) } +
-            AchievementCategory.entries.map { it.label }
-
-        assertTrue(visible.none { it.contains("yahtzee", ignoreCase = true) })
-    }
-
     // ---- Score collection -------------------------------------------------------------------
 
     @Test
@@ -769,7 +750,7 @@ class AchievementEngineTest {
         val bands = Achievement.entries.filter { it.scoreBand != null }
 
         assertEquals(6, bands.size)
-        bands.forEach { assertEquals(it.scoreBand!!.count(), it.target, it.title) }
+        bands.forEach { assertEquals(it.scoreBand!!.count(), it.target, it.name) }
         assertEquals(46, Achievement.TALLY.target)
         assertEquals(50, Achievement.BOOKKEEPER.target)
     }

@@ -1,5 +1,225 @@
 package net.zodac.dicefive.model
 
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.achievement_all_zeroes_description
+import net.zodac.dicefive.resources.achievement_all_zeroes_title
+import net.zodac.dicefive.resources.achievement_almost_famous_description
+import net.zodac.dicefive.resources.achievement_almost_famous_title
+import net.zodac.dicefive.resources.achievement_archivist_description
+import net.zodac.dicefive.resources.achievement_archivist_title
+import net.zodac.dicefive.resources.achievement_auditor_description
+import net.zodac.dicefive.resources.achievement_auditor_title
+import net.zodac.dicefive.resources.achievement_beat_three_ai_description
+import net.zodac.dicefive.resources.achievement_beat_three_ai_title
+import net.zodac.dicefive.resources.achievement_big_fan_description
+import net.zodac.dicefive.resources.achievement_big_fan_title
+import net.zodac.dicefive.resources.achievement_bookkeeper_description
+import net.zodac.dicefive.resources.achievement_bookkeeper_title
+import net.zodac.dicefive.resources.achievement_both_straights_description
+import net.zodac.dicefive.resources.achievement_both_straights_title
+import net.zodac.dicefive.resources.achievement_chance_30_description
+import net.zodac.dicefive.resources.achievement_chance_30_title
+import net.zodac.dicefive.resources.achievement_comeback_description
+import net.zodac.dicefive.resources.achievement_comeback_title
+import net.zodac.dicefive.resources.achievement_commitment_issues_description
+import net.zodac.dicefive.resources.achievement_commitment_issues_title
+import net.zodac.dicefive.resources.achievement_completionist_description
+import net.zodac.dicefive.resources.achievement_completionist_title
+import net.zodac.dicefive.resources.achievement_continued_game_description
+import net.zodac.dicefive.resources.achievement_continued_game_title
+import net.zodac.dicefive.resources.achievement_cunning_strategy_description
+import net.zodac.dicefive.resources.achievement_cunning_strategy_title
+import net.zodac.dicefive.resources.achievement_decisions_decisions_description
+import net.zodac.dicefive.resources.achievement_decisions_decisions_title
+import net.zodac.dicefive.resources.achievement_deja_vu_description
+import net.zodac.dicefive.resources.achievement_deja_vu_title
+import net.zodac.dicefive.resources.achievement_dice_10000_description
+import net.zodac.dicefive.resources.achievement_dice_10000_title
+import net.zodac.dicefive.resources.achievement_dice_hate_me_description
+import net.zodac.dicefive.resources.achievement_dice_hate_me_title
+import net.zodac.dicefive.resources.achievement_empty_house_description
+import net.zodac.dicefive.resources.achievement_empty_house_title
+import net.zodac.dicefive.resources.achievement_encore_5x_description
+import net.zodac.dicefive.resources.achievement_encore_5x_title
+import net.zodac.dicefive.resources.achievement_exact_change_description
+import net.zodac.dicefive.resources.achievement_exact_change_title
+import net.zodac.dicefive.resources.achievement_extreme_low_rolls_description
+import net.zodac.dicefive.resources.achievement_extreme_low_rolls_title
+import net.zodac.dicefive.resources.achievement_first_5x_description
+import net.zodac.dicefive.resources.achievement_first_5x_title
+import net.zodac.dicefive.resources.achievement_first_roll_5x_description
+import net.zodac.dicefive.resources.achievement_first_roll_5x_title
+import net.zodac.dicefive.resources.achievement_first_roll_full_house_description
+import net.zodac.dicefive.resources.achievement_first_roll_full_house_title
+import net.zodac.dicefive.resources.achievement_first_roll_large_straight_description
+import net.zodac.dicefive.resources.achievement_first_roll_large_straight_title
+import net.zodac.dicefive.resources.achievement_first_win_description
+import net.zodac.dicefive.resources.achievement_first_win_title
+import net.zodac.dicefive.resources.achievement_fresh_coat_of_paint_description
+import net.zodac.dicefive.resources.achievement_fresh_coat_of_paint_title
+import net.zodac.dicefive.resources.achievement_full_table_description
+import net.zodac.dicefive.resources.achievement_full_table_title
+import net.zodac.dicefive.resources.achievement_fuller_house_description
+import net.zodac.dicefive.resources.achievement_fuller_house_title
+import net.zodac.dicefive.resources.achievement_games_100_description
+import net.zodac.dicefive.resources.achievement_games_100_title
+import net.zodac.dicefive.resources.achievement_games_10_description
+import net.zodac.dicefive.resources.achievement_games_10_title
+import net.zodac.dicefive.resources.achievement_games_50_description
+import net.zodac.dicefive.resources.achievement_games_50_title
+import net.zodac.dicefive.resources.achievement_greenfingers_description
+import net.zodac.dicefive.resources.achievement_greenfingers_title
+import net.zodac.dicefive.resources.achievement_hat_trick_5x_description
+import net.zodac.dicefive.resources.achievement_hat_trick_5x_title
+import net.zodac.dicefive.resources.achievement_historian_description
+import net.zodac.dicefive.resources.achievement_historian_title
+import net.zodac.dicefive.resources.achievement_hit_list_right_on_target_description
+import net.zodac.dicefive.resources.achievement_hit_list_right_on_target_title
+import net.zodac.dicefive.resources.achievement_hit_list_win_description
+import net.zodac.dicefive.resources.achievement_hit_list_win_title
+import net.zodac.dicefive.resources.achievement_i_can_count_description
+import net.zodac.dicefive.resources.achievement_i_can_count_title
+import net.zodac.dicefive.resources.achievement_i_did_it_my_way_description
+import net.zodac.dicefive.resources.achievement_i_did_it_my_way_title
+import net.zodac.dicefive.resources.achievement_i_robot_description
+import net.zodac.dicefive.resources.achievement_i_robot_title
+import net.zodac.dicefive.resources.achievement_impatient_description
+import net.zodac.dicefive.resources.achievement_impatient_title
+import net.zodac.dicefive.resources.achievement_jaws_of_victory_description
+import net.zodac.dicefive.resources.achievement_jaws_of_victory_title
+import net.zodac.dicefive.resources.achievement_loaded_dice_description
+import net.zodac.dicefive.resources.achievement_loaded_dice_title
+import net.zodac.dicefive.resources.achievement_low_rolls_description
+import net.zodac.dicefive.resources.achievement_low_rolls_title
+import net.zodac.dicefive.resources.achievement_lower_150_description
+import net.zodac.dicefive.resources.achievement_lower_150_title
+import net.zodac.dicefive.resources.achievement_luck_of_the_draw_description
+import net.zodac.dicefive.resources.achievement_luck_of_the_draw_title
+import net.zodac.dicefive.resources.achievement_luck_of_the_irish_description
+import net.zodac.dicefive.resources.achievement_luck_of_the_irish_title
+import net.zodac.dicefive.resources.achievement_magicians_secret_description
+import net.zodac.dicefive.resources.achievement_magicians_secret_title
+import net.zodac.dicefive.resources.achievement_natural_5x_description
+import net.zodac.dicefive.resources.achievement_natural_5x_title
+import net.zodac.dicefive.resources.achievement_natural_intelligence_description
+import net.zodac.dicefive.resources.achievement_natural_intelligence_title
+import net.zodac.dicefive.resources.achievement_naturally_gifted_description
+import net.zodac.dicefive.resources.achievement_naturally_gifted_title
+import net.zodac.dicefive.resources.achievement_nice_description
+import net.zodac.dicefive.resources.achievement_nice_title
+import net.zodac.dicefive.resources.achievement_no_more_rolls_description
+import net.zodac.dicefive.resources.achievement_no_more_rolls_title
+import net.zodac.dicefive.resources.achievement_no_zeroes_description
+import net.zodac.dicefive.resources.achievement_no_zeroes_title
+import net.zodac.dicefive.resources.achievement_non_standard_mode_description
+import net.zodac.dicefive.resources.achievement_non_standard_mode_title
+import net.zodac.dicefive.resources.achievement_not_those_dice_description
+import net.zodac.dicefive.resources.achievement_not_those_dice_title
+import net.zodac.dicefive.resources.achievement_out_of_time_description
+import net.zodac.dicefive.resources.achievement_out_of_time_title
+import net.zodac.dicefive.resources.achievement_personal_best_description
+import net.zodac.dicefive.resources.achievement_personal_best_title
+import net.zodac.dicefive.resources.achievement_pipped_to_the_post_description
+import net.zodac.dicefive.resources.achievement_pipped_to_the_post_title
+import net.zodac.dicefive.resources.achievement_pointless_roll_description
+import net.zodac.dicefive.resources.achievement_pointless_roll_title
+import net.zodac.dicefive.resources.achievement_probability_never_heard_of_her_description
+import net.zodac.dicefive.resources.achievement_probability_never_heard_of_her_title
+import net.zodac.dicefive.resources.achievement_product_placement_description
+import net.zodac.dicefive.resources.achievement_product_placement_title
+import net.zodac.dicefive.resources.achievement_professional_roller_description
+import net.zodac.dicefive.resources.achievement_professional_roller_title
+import net.zodac.dicefive.resources.achievement_quickfire_score_description
+import net.zodac.dicefive.resources.achievement_quickfire_score_title
+import net.zodac.dicefive.resources.achievement_quickfire_win_description
+import net.zodac.dicefive.resources.achievement_quickfire_win_title
+import net.zodac.dicefive.resources.achievement_registrar_description
+import net.zodac.dicefive.resources.achievement_registrar_title
+import net.zodac.dicefive.resources.achievement_replay_after_loss_description
+import net.zodac.dicefive.resources.achievement_replay_after_loss_title
+import net.zodac.dicefive.resources.achievement_score_200_description
+import net.zodac.dicefive.resources.achievement_score_200_title
+import net.zodac.dicefive.resources.achievement_score_300_description
+import net.zodac.dicefive.resources.achievement_score_300_title
+import net.zodac.dicefive.resources.achievement_score_400_description
+import net.zodac.dicefive.resources.achievement_score_400_title
+import net.zodac.dicefive.resources.achievement_score_500_description
+import net.zodac.dicefive.resources.achievement_score_500_title
+import net.zodac.dicefive.resources.achievement_score_under_100_description
+import net.zodac.dicefive.resources.achievement_score_under_100_title
+import net.zodac.dicefive.resources.achievement_scratched_5x_description
+import net.zodac.dicefive.resources.achievement_scratched_5x_title
+import net.zodac.dicefive.resources.achievement_shaken_not_tapped_description
+import net.zodac.dicefive.resources.achievement_shaken_not_tapped_title
+import net.zodac.dicefive.resources.achievement_sixes_30_description
+import net.zodac.dicefive.resources.achievement_sixes_30_title
+import net.zodac.dicefive.resources.achievement_solo_game_description
+import net.zodac.dicefive.resources.achievement_solo_game_title
+import net.zodac.dicefive.resources.achievement_streak_10_description
+import net.zodac.dicefive.resources.achievement_streak_10_title
+import net.zodac.dicefive.resources.achievement_streak_3_description
+import net.zodac.dicefive.resources.achievement_streak_3_title
+import net.zodac.dicefive.resources.achievement_stud_lucky_seven_description
+import net.zodac.dicefive.resources.achievement_stud_lucky_seven_title
+import net.zodac.dicefive.resources.achievement_stud_win_description
+import net.zodac.dicefive.resources.achievement_stud_win_title
+import net.zodac.dicefive.resources.achievement_tally_description
+import net.zodac.dicefive.resources.achievement_tally_title
+import net.zodac.dicefive.resources.achievement_the_journey_begins_description
+import net.zodac.dicefive.resources.achievement_the_journey_begins_title
+import net.zodac.dicefive.resources.achievement_the_solution_description
+import net.zodac.dicefive.resources.achievement_the_solution_title
+import net.zodac.dicefive.resources.achievement_third_wind_no_zeroes_description
+import net.zodac.dicefive.resources.achievement_third_wind_no_zeroes_title
+import net.zodac.dicefive.resources.achievement_third_wind_win_description
+import net.zodac.dicefive.resources.achievement_third_wind_win_title
+import net.zodac.dicefive.resources.achievement_tie_break_description
+import net.zodac.dicefive.resources.achievement_tie_break_title
+import net.zodac.dicefive.resources.achievement_time_to_let_it_go_description
+import net.zodac.dicefive.resources.achievement_time_to_let_it_go_title
+import net.zodac.dicefive.resources.achievement_time_wasting_description
+import net.zodac.dicefive.resources.achievement_time_wasting_title
+import net.zodac.dicefive.resources.achievement_ton_description
+import net.zodac.dicefive.resources.achievement_ton_title
+import net.zodac.dicefive.resources.achievement_total_5x_10_description
+import net.zodac.dicefive.resources.achievement_total_5x_10_title
+import net.zodac.dicefive.resources.achievement_tricolour_all_colours_description
+import net.zodac.dicefive.resources.achievement_tricolour_all_colours_title
+import net.zodac.dicefive.resources.achievement_tricolour_win_description
+import net.zodac.dicefive.resources.achievement_tricolour_win_title
+import net.zodac.dicefive.resources.achievement_twice_in_a_lifetime_description
+import net.zodac.dicefive.resources.achievement_twice_in_a_lifetime_title
+import net.zodac.dicefive.resources.achievement_undo_different_category_description
+import net.zodac.dicefive.resources.achievement_undo_different_category_title
+import net.zodac.dicefive.resources.achievement_upper_84_description
+import net.zodac.dicefive.resources.achievement_upper_84_title
+import net.zodac.dicefive.resources.achievement_upper_bonus_description
+import net.zodac.dicefive.resources.achievement_upper_bonus_title
+import net.zodac.dicefive.resources.achievement_wasted_5x_description
+import net.zodac.dicefive.resources.achievement_wasted_5x_title
+import net.zodac.dicefive.resources.achievement_who_made_this_description
+import net.zodac.dicefive.resources.achievement_who_made_this_title
+import net.zodac.dicefive.resources.achievement_why_did_you_do_that_description
+import net.zodac.dicefive.resources.achievement_why_did_you_do_that_title
+import net.zodac.dicefive.resources.achievement_win_by_100_description
+import net.zodac.dicefive.resources.achievement_win_by_100_title
+import net.zodac.dicefive.resources.achievement_win_by_5_description
+import net.zodac.dicefive.resources.achievement_win_by_5_title
+import net.zodac.dicefive.resources.achievement_wins_25_description
+import net.zodac.dicefive.resources.achievement_wins_25_title
+import net.zodac.dicefive.resources.achievement_zero_to_hero_description
+import net.zodac.dicefive.resources.achievement_zero_to_hero_title
+import net.zodac.dicefive.resources.category_collection
+import net.zodac.dicefive.resources.category_dice
+import net.zodac.dicefive.resources.category_easter_eggs
+import net.zodac.dicefive.resources.category_game_modes
+import net.zodac.dicefive.resources.category_milestones
+import net.zodac.dicefive.resources.category_miscellaneous
+import net.zodac.dicefive.resources.category_misfortune
+import net.zodac.dicefive.resources.category_scoring
+import net.zodac.dicefive.resources.category_winning
+import org.jetbrains.compose.resources.StringResource
+
 /**
  * A device-wide running total that one or more [Achievement]s are measured against. Shared rather
  * than per-achievement so "finish 10 / 50 / 100 games" is one stored number, not three.
@@ -34,16 +254,16 @@ const val MAX_ACHIEVEMENT_TITLE_LENGTH = 38
  * until something in it has actually been earned - no separate "is this section empty" check
  * needed in the screen itself.
  */
-enum class AchievementCategory(val label: String) {
-    MILESTONES("Milestones"),
-    DICE("Dice feats"),
-    SCORING("Scoring"),
-    WINNING("Winning"),
-    GAME_MODES("Game Modes"),
-    MISFORTUNE("Misfortune"),
-    MISCELLANEOUS("Miscellaneous"),
-    COLLECTION("Collection"),
-    EASTER_EGGS("Easter Eggs"),
+enum class AchievementCategory(val label: StringResource) {
+    MILESTONES(Res.string.category_milestones),
+    DICE(Res.string.category_dice),
+    SCORING(Res.string.category_scoring),
+    WINNING(Res.string.category_winning),
+    GAME_MODES(Res.string.category_game_modes),
+    MISFORTUNE(Res.string.category_misfortune),
+    MISCELLANEOUS(Res.string.category_miscellaneous),
+    COLLECTION(Res.string.category_collection),
+    EASTER_EGGS(Res.string.category_easter_eggs),
 }
 
 /** How a locked achievement shows progress, and how eagerly progress is worth announcing. */
@@ -109,8 +329,8 @@ enum class AchievementVisibility {
  */
 enum class Achievement(
     val id: String,
-    val title: String,
-    val description: String,
+    val title: StringResource,
+    val description: StringResource,
     val category: AchievementCategory,
     val counter: AchievementCounter? = null,
     val target: Int = 1,
@@ -142,55 +362,81 @@ enum class Achievement(
 
     // ---- Milestones: simply playing the game -------------------------------------------------
     THE_JOURNEY_BEGINS(
-        "journey_begins", "The Journey Begins", "Start your first game",
+        "journey_begins",
+        Res.string.achievement_the_journey_begins_title,
+        Res.string.achievement_the_journey_begins_description,
         AchievementCategory.MILESTONES,
     ),
     SOLO_GAME(
-        "solo_game", "Practice Makes Perfect", "Finish a solo game",
+        "solo_game",
+        Res.string.achievement_solo_game_title,
+        Res.string.achievement_solo_game_description,
         AchievementCategory.MILESTONES,
     ),
     FULL_TABLE(
-        "full_table", "Full Table", "Play a four-player game",
+        "full_table",
+        Res.string.achievement_full_table_title,
+        Res.string.achievement_full_table_description,
         AchievementCategory.MILESTONES,
     ),
     CONTINUED_GAME(
-        "continued_game", "Let's Finish This", "Leave a game then resume it",
+        "continued_game",
+        Res.string.achievement_continued_game_title,
+        Res.string.achievement_continued_game_description,
         AchievementCategory.MILESTONES,
     ),
     REPLAY_AFTER_LOSS(
-        "replay_after_loss", "One More Time", "Start a new game immediately after losing one",
+        "replay_after_loss",
+        Res.string.achievement_replay_after_loss_title,
+        Res.string.achievement_replay_after_loss_description,
         AchievementCategory.MILESTONES,
     ),
     GAMES_10(
-        "games_10", "Getting Comfortable", "Finish 10 games",
+        "games_10",
+        Res.string.achievement_games_10_title,
+        Res.string.achievement_games_10_description,
         AchievementCategory.MILESTONES, AchievementCounter.GAMES_PLAYED, target = 10,
     ),
     GAMES_50(
-        "games_50", "Regular", "Finish 50 games",
+        "games_50",
+        Res.string.achievement_games_50_title,
+        Res.string.achievement_games_50_description,
         AchievementCategory.MILESTONES, AchievementCounter.GAMES_PLAYED, target = 50,
     ),
     GAMES_100(
-        "games_100", "Centurion", "Finish 100 games",
+        "games_100",
+        Res.string.achievement_games_100_title,
+        Res.string.achievement_games_100_description,
         AchievementCategory.MILESTONES, AchievementCounter.GAMES_PLAYED, target = 100,
     ),
     WINS_25(
-        "wins_25", "Hall Of Famer", "Win 25 games",
+        "wins_25",
+        Res.string.achievement_wins_25_title,
+        Res.string.achievement_wins_25_description,
         AchievementCategory.MILESTONES, AchievementCounter.GAMES_WON, target = 25,
     ),
     DICE_10000(
-        "dice_10000", "Well Rolled", "Roll 10,000 dice",
+        "dice_10000",
+        Res.string.achievement_dice_10000_title,
+        Res.string.achievement_dice_10000_description,
         AchievementCategory.MILESTONES, AchievementCounter.DICE_ROLLED, target = 10_000, progressStepSize = 1_000,
     ),
     STREAK_3(
-        "streak_3", "On A Roll", "Win 3 games in a row",
+        "streak_3",
+        Res.string.achievement_streak_3_title,
+        Res.string.achievement_streak_3_description,
         AchievementCategory.MILESTONES, AchievementCounter.WIN_STREAK, target = 3,
     ),
     STREAK_10(
-        "streak_10", "Untouchable", "Win 10 games in a row",
+        "streak_10",
+        Res.string.achievement_streak_10_title,
+        Res.string.achievement_streak_10_description,
         AchievementCategory.MILESTONES, AchievementCounter.WIN_STREAK, target = 10,
     ),
     PROFESSIONAL_ROLLER(
-        "career_points_100k", "Professional Roller", "Score 100,000 points across all your games",
+        "career_points_100k",
+        Res.string.achievement_professional_roller_title,
+        Res.string.achievement_professional_roller_description,
         AchievementCategory.MILESTONES, target = 100_000, isCareerPoints = true, progressStepSize = 1_000,
     ),
 
@@ -198,229 +444,322 @@ enum class Achievement(
     // Ordered by how hard each one is to actually pull off. The two 30s both need five 6s - one
     // of them deliberately wasted on the wrong box - which is why they sit so late.
     UPPER_BONUS(
-        "upper_bonus", "Bonus Round", "Earn the 35-point upper section bonus",
+        "upper_bonus",
+        Res.string.achievement_upper_bonus_title,
+        Res.string.achievement_upper_bonus_description,
         AchievementCategory.DICE,
     ),
     FIRST_5X(
-        "5x_first", "5x!", "Score your first 5x",
+        "5x_first",
+        Res.string.achievement_first_5x_title,
+        Res.string.achievement_first_5x_description,
         AchievementCategory.DICE,
     ),
     NO_ZEROES(
-        "no_zeroes", "Spotless", "Finish a game without a zero on your scorecard",
+        "no_zeroes",
+        Res.string.achievement_no_zeroes_title,
+        Res.string.achievement_no_zeroes_description,
         AchievementCategory.DICE,
     ),
     BOTH_STRAIGHTS(
-        "straights_both", "Straight Talker", "Score both straights in the same game",
+        "straights_both",
+        Res.string.achievement_both_straights_title,
+        Res.string.achievement_both_straights_description,
         AchievementCategory.DICE,
     ),
     UPPER_84(
-        "upper_84", "Upper Class", "Score 84 or more in the upper section",
+        "upper_84",
+        Res.string.achievement_upper_84_title,
+        Res.string.achievement_upper_84_description,
         AchievementCategory.DICE,
     ),
 
     LOWER_150(
-        "lower_150", "Lower Class", "Score 150 or more in the lower section (excluding 5x scores)",
+        "lower_150",
+        Res.string.achievement_lower_150_title,
+        Res.string.achievement_lower_150_description,
         AchievementCategory.DICE,
     ),
 
     ENCORE_5X(
-        "5x_encore", "Encore", "Score a second 5x in a single game",
+        "5x_encore",
+        Res.string.achievement_encore_5x_title,
+        Res.string.achievement_encore_5x_description,
         AchievementCategory.DICE,
     ),
     TOTAL_5X_10(
-        "5x_total_10", "Dice Whisperer", "Score 5x ten times in total",
+        "5x_total_10",
+        Res.string.achievement_total_5x_10_title,
+        Res.string.achievement_total_5x_10_description,
         AchievementCategory.DICE, AchievementCounter.SCORED_5X, target = 10,
     ),
     HAT_TRICK_5X(
-        "5x_hat_trick", "Hat Trick", "Score three or more 5x in a single game",
+        "5x_hat_trick",
+        Res.string.achievement_hat_trick_5x_title,
+        Res.string.achievement_hat_trick_5x_description,
         AchievementCategory.DICE,
     ),
 
     // ---- Dice feats continued: interaction quirks, not just what the dice show ----------------
     TWICE_IN_A_LIFETIME(
-        "5x_twice_in_a_row", "Twice In A Lifetime", "Score a 5x on two of your turns in a row",
+        "5x_twice_in_a_row",
+        Res.string.achievement_twice_in_a_lifetime_title,
+        Res.string.achievement_twice_in_a_lifetime_description,
         AchievementCategory.DICE,
     ),
     NATURAL_5X(
-        "5x_natural", "Natural 5x", "Roll a 5x on the 2nd or 3rd roll without holding any dice",
+        "5x_natural",
+        Res.string.achievement_natural_5x_title,
+        Res.string.achievement_natural_5x_description,
         AchievementCategory.DICE,
     ),
     I_CAN_COUNT(
-        "i_can_count", "I Can Count!", "Roll 1, 2, 3, 4, 5 in that order on the first roll of a turn",
+        "i_can_count",
+        Res.string.achievement_i_can_count_title,
+        Res.string.achievement_i_can_count_description,
         AchievementCategory.DICE,
     ),
     CUNNING_STRATEGY(
-        "cunning_strategy", "A Cunning Strategy", "Hold all five dice, then unhold every one of them",
+        "cunning_strategy",
+        Res.string.achievement_cunning_strategy_title,
+        Res.string.achievement_cunning_strategy_description,
         AchievementCategory.DICE,
     ),
     EXACT_CHANGE(
-        "upper_exact_ladder", "Exact Change",
-        "Score exactly 1 in Ones, 2 in Twos, and so on up to 6 in Sixes, all in the same game",
+        "upper_exact_ladder",
+        Res.string.achievement_exact_change_title,
+        Res.string.achievement_exact_change_description,
         AchievementCategory.DICE,
     ),
 
     // ---- Scoring: one ladder, so the rungs must stay adjacent and in order --------------------
     PERSONAL_BEST(
-        "personal_best", "New Personal Best", "Beat your best score on the leaderboard",
+        "personal_best",
+        Res.string.achievement_personal_best_title,
+        Res.string.achievement_personal_best_description,
         AchievementCategory.SCORING,
     ),
     TON(
-        "score_exactly_100", "Ton!", "Finish a game on exactly 100",
+        "score_exactly_100",
+        Res.string.achievement_ton_title,
+        Res.string.achievement_ton_description,
         AchievementCategory.SCORING,
     ),
     SCORE_200(
-        "score_200", "Solid Round", "Score 200 or more in a game",
+        "score_200",
+        Res.string.achievement_score_200_title,
+        Res.string.achievement_score_200_description,
         AchievementCategory.SCORING,
     ),
     SCORE_300(
-        "score_300", "Sharpshooter", "Score 300 or more in a game",
+        "score_300",
+        Res.string.achievement_score_300_title,
+        Res.string.achievement_score_300_description,
         AchievementCategory.SCORING,
     ),
     SCORE_400(
-        "score_400", "High Roller", "Score 400 or more in a game",
+        "score_400",
+        Res.string.achievement_score_400_title,
+        Res.string.achievement_score_400_description,
         AchievementCategory.SCORING,
     ),
     SCORE_500(
-        "score_500", "Dice Deity", "Score 500 or more in a game",
+        "score_500",
+        Res.string.achievement_score_500_title,
+        Res.string.achievement_score_500_description,
         AchievementCategory.SCORING,
     ),
 
     // ---- Winning: beating whoever else was at the table ---------------------------------------
     FIRST_WIN(
-        "win_first", "First Victory", "Win a game against at least one opponent",
+        "win_first",
+        Res.string.achievement_first_win_title,
+        Res.string.achievement_first_win_description,
         AchievementCategory.WINNING,
     ),
     WIN_BY_100(
-        "win_by_100", "Landslide", "Win by 100 points or more",
+        "win_by_100",
+        Res.string.achievement_win_by_100_title,
+        Res.string.achievement_win_by_100_description,
         AchievementCategory.WINNING,
     ),
     WIN_BY_5(
-        "win_by_5", "Photo Finish", "Win by a single point",
+        "win_by_5",
+        Res.string.achievement_win_by_5_title,
+        Res.string.achievement_win_by_5_description,
         AchievementCategory.WINNING,
     ),
     TIE_BREAK(
-        "tie_break", "Tie Break", "Win a game on a tie-break, after matching another player's score exactly",
+        "tie_break",
+        Res.string.achievement_tie_break_title,
+        Res.string.achievement_tie_break_description,
         AchievementCategory.WINNING,
     ),
     COMEBACK(
-        "comeback", "Comeback Kid", "Win after trailing at the start of the final round",
+        "comeback",
+        Res.string.achievement_comeback_title,
+        Res.string.achievement_comeback_description,
         AchievementCategory.WINNING,
     ),
     BEAT_THREE_AI(
-        "beat_three_ai", "Last Human Standing", "Win a four-player game against three CPU players",
+        "beat_three_ai",
+        Res.string.achievement_beat_three_ai_title,
+        Res.string.achievement_beat_three_ai_description,
         AchievementCategory.WINNING,
     ),
 
     NATURAL_INTELLIGENCE(
-        "natural_intelligence", "Natural Intelligence", "Win a four-player game against three Hard CPU players",
+        "natural_intelligence",
+        Res.string.achievement_natural_intelligence_title,
+        Res.string.achievement_natural_intelligence_description,
         AchievementCategory.WINNING,
     ),
     NATURALLY_GIFTED(
-        "naturally_gifted", "Naturally Gifted", "Win a game never rolling more than once in any turn",
+        "naturally_gifted",
+        Res.string.achievement_naturally_gifted_title,
+        Res.string.achievement_naturally_gifted_description,
         AchievementCategory.WINNING,
     ),
 
     // ---- Game modes: playing beyond the Standard rules ------------------------------------------
     NON_STANDARD_MODE(
-        "game_mode_non_standard", "Where We're Going, We Don't Need Rules", "Start a non-Standard game mode",
+        "game_mode_non_standard",
+        Res.string.achievement_non_standard_mode_title,
+        Res.string.achievement_non_standard_mode_description,
         AchievementCategory.GAME_MODES,
     ),
     TRICOLOUR_WIN(
-        "tricolour_win", "Tricolourful", "Win a game of 'Tricolour' mode",
+        "tricolour_win",
+        Res.string.achievement_tricolour_win_title,
+        Res.string.achievement_tricolour_win_description,
         AchievementCategory.GAME_MODES,
     ),
     // Judged mid-game, the moment the fourth of the four boxes goes in with a non-zero score - not
     // held back for the results screen.
     TRICOLOUR_ALL_COLOURS(
-        "tricolour_all_colours", "Tricolour Me Impressed",
-        "Score all 'Tricolour' mode scores (red, yellow, blue, coloured house) in one game",
+        "tricolour_all_colours",
+        Res.string.achievement_tricolour_all_colours_title,
+        Res.string.achievement_tricolour_all_colours_description,
         AchievementCategory.GAME_MODES,
     ),
     QUICKFIRE_WIN(
-        "quickfire_win", "Quick On The Draw", "Win a game of 'Quickfire' mode",
+        "quickfire_win",
+        Res.string.achievement_quickfire_win_title,
+        Res.string.achievement_quickfire_win_description,
         AchievementCategory.GAME_MODES,
     ),
     // Judged on the finished game's total. Not with extra rolls or Extended Scores' three boxes, which
     // make a total that high far easier.
     QUICKFIRE_SCORE(
-        "quickfire_score_150", "Six Of The Best", "Score 150 or more in a game of 'Quickfire' mode",
+        "quickfire_score_150",
+        Res.string.achievement_quickfire_score_title,
+        Res.string.achievement_quickfire_score_description,
         AchievementCategory.GAME_MODES,
     ),
     STUD_WIN(
-        "stud_win", "Hold 'Em", "Win a game of 'Stud' mode",
+        "stud_win",
+        Res.string.achievement_stud_win_title,
+        Res.string.achievement_stud_win_description,
         AchievementCategory.GAME_MODES,
     ),
     // Judged as the dice land, like the other roll feats - held dice count, so it's five held and the
     // last two rolled to match them, or any other way to get there.
     STUD_LUCKY_SEVEN(
-        "stud_lucky_seven", "Lucky Seven", "Have all seven dice show the same number in 'Stud' mode",
+        "stud_lucky_seven",
+        Res.string.achievement_stud_lucky_seven_title,
+        Res.string.achievement_stud_lucky_seven_description,
         AchievementCategory.GAME_MODES,
     ),
     THIRD_WIND_WIN(
-        "third_wind_win", "Gone With The Wind", "Win a game of 'Third Wind' mode",
+        "third_wind_win",
+        Res.string.achievement_third_wind_win_title,
+        Res.string.achievement_third_wind_win_description,
         AchievementCategory.GAME_MODES,
     ),
     // Third Wind's own Spotless, which can't be earned there - every one of the 39 slots, no zeroes.
     THIRD_WIND_NO_ZEROES(
-        "third_wind_no_zeroes", "Third Time's The Charm",
-        "Fill all three slots of every category without a zero in 'Third Wind' mode",
+        "third_wind_no_zeroes",
+        Res.string.achievement_third_wind_no_zeroes_title,
+        Res.string.achievement_third_wind_no_zeroes_description,
         AchievementCategory.GAME_MODES,
     ),
     HIT_LIST_WIN(
-        "hit_list_win", "Contract Fulfilled", "Win a game of 'Hit List' mode",
+        "hit_list_win",
+        Res.string.achievement_hit_list_win_title,
+        Res.string.achievement_hit_list_win_description,
         AchievementCategory.GAME_MODES,
     ),
     // Judged mid-game, the moment the exact hit goes in its target - only a target with no any places counts.
     HIT_LIST_RIGHT_ON_TARGET(
-        "hit_list_right_on_target", "Right On Target",
-        "Score an exact hit on a target with all five numbers named in 'Hit List' mode",
+        "hit_list_right_on_target",
+        Res.string.achievement_hit_list_right_on_target_title,
+        Res.string.achievement_hit_list_right_on_target_description,
         AchievementCategory.GAME_MODES,
     ),
 
     // ---- Misfortune: going badly, on purpose or otherwise --------------------------------------
     SCRATCHED_5X(
-        "5x_scratched", "Scratched", "Take a zero in the 5x box",
+        "5x_scratched",
+        Res.string.achievement_scratched_5x_title,
+        Res.string.achievement_scratched_5x_description,
         AchievementCategory.MISFORTUNE,
     ),
     DICE_HATE_ME(
-        "dice_hate_me", "The Dice Hate Me", "Have a scoring option after the 2nd roll, then leave yourself with none after the 3rd",
+        "dice_hate_me",
+        Res.string.achievement_dice_hate_me_title,
+        Res.string.achievement_dice_hate_me_description,
         AchievementCategory.MISFORTUNE,
     ),
     ALMOST_FAMOUS(
-        "almost_famous", "Almost Famous", "Hold a first-roll 4x all the way to the last roll, but never land the 5x",
+        "almost_famous",
+        Res.string.achievement_almost_famous_title,
+        Res.string.achievement_almost_famous_description,
         AchievementCategory.MISFORTUNE,
     ),
     I_ROBOT(
-        "i_robot", "I, Robot", "Lose a game to a CPU player",
+        "i_robot",
+        Res.string.achievement_i_robot_title,
+        Res.string.achievement_i_robot_description,
         AchievementCategory.MISFORTUNE,
     ),
     PIPPED_TO_THE_POST(
-        "pipped_to_the_post", "Pipped To The Post", "Lose a game by a single point",
+        "pipped_to_the_post",
+        Res.string.achievement_pipped_to_the_post_title,
+        Res.string.achievement_pipped_to_the_post_description,
         AchievementCategory.MISFORTUNE,
     ),
     JAWS_OF_VICTORY(
-        "jaws_of_victory", "Defeat From The Jaws Of Victory", "Lead going into the final round, then lose",
+        "jaws_of_victory",
+        Res.string.achievement_jaws_of_victory_title,
+        Res.string.achievement_jaws_of_victory_description,
         AchievementCategory.MISFORTUNE,
     ),
     SCORE_UNDER_100(
-        "score_under_100", "Cold Dice", "Finish a game with under 100 points",
+        "score_under_100",
+        Res.string.achievement_score_under_100_title,
+        Res.string.achievement_score_under_100_description,
         AchievementCategory.MISFORTUNE,
     ),
     LOW_ROLLS(
-        "low_rolls", "Low Rolls", "Finish a game with under 20 points",
+        "low_rolls",
+        Res.string.achievement_low_rolls_title,
+        Res.string.achievement_low_rolls_description,
         AchievementCategory.MISFORTUNE,
     ),
     // Judged at the commit: the last box on the card is an upper one, a single die in it would have earned the bonus, and all
     // the rolls went on a zero. Not with Unlucky Dice, which rigs the dice against you.
     PROBABILITY_NEVER_HEARD_OF_HER(
-        "probability_never_heard_of_her", "Probability? Never Heard of Her",
-        "Enter your final turn needing a single die to score your bonus, but fail",
+        "probability_never_heard_of_her",
+        Res.string.achievement_probability_never_heard_of_her_title,
+        Res.string.achievement_probability_never_heard_of_her_description,
         AchievementCategory.MISFORTUNE,
     ),
     // The turn timer forcing a category on you, not a bad roll - a different flavor of misfortune
     // than everything above it, so it sits last in the category rather than being slotted by rank.
     OUT_OF_TIME(
-        "out_of_time", "Out Of Time", "Fail to score within the time limit",
+        "out_of_time",
+        Res.string.achievement_out_of_time_title,
+        Res.string.achievement_out_of_time_description,
         AchievementCategory.MISFORTUNE,
     ),
 
@@ -429,48 +768,66 @@ enum class Achievement(
     // themed by subject the way the others are; entries below keep their original relative order
     // from whichever theme they moved out of, grouped by that origin for a paper trail.
     I_DID_IT_MY_WAY(
-        "i_did_it_my_way", "I Did It My Way", "Customise a game before starting",
+        "i_did_it_my_way",
+        Res.string.achievement_i_did_it_my_way_title,
+        Res.string.achievement_i_did_it_my_way_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     COMMITMENT_ISSUES(
-        "commitment_issues", "Commitment Issues",
-        "Hold dice of one number, then change your mind and hold and score with another number",
+        "commitment_issues",
+        Res.string.achievement_commitment_issues_title,
+        Res.string.achievement_commitment_issues_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     DECISIONS_DECISIONS(
-        "decisions_decisions", "Decisions, Decisions", "Hold and unhold the same die three times before rolling again",
+        "decisions_decisions",
+        Res.string.achievement_decisions_decisions_title,
+        Res.string.achievement_decisions_decisions_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     TIME_TO_LET_IT_GO(
-        "time_to_let_it_go", "Time To Let It Go", "Hold the same die after the 1st and 2nd roll, then score without using it",
+        "time_to_let_it_go",
+        Res.string.achievement_time_to_let_it_go_title,
+        Res.string.achievement_time_to_let_it_go_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     TIME_WASTING(
-        "time_wasting", "Time Wasting", "Hold then unhold each die in sequence",
+        "time_wasting",
+        Res.string.achievement_time_wasting_title,
+        Res.string.achievement_time_wasting_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     UNDO_DIFFERENT_CATEGORY(
-        "undo_different_category", "I Didn't Mean That", "Undo a score and score a different category",
+        "undo_different_category",
+        Res.string.achievement_undo_different_category_title,
+        Res.string.achievement_undo_different_category_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     NO_MORE_ROLLS(
-        "no_more_rolls", "No More Rolls", "Tap the dice cup three times after your last roll of a turn",
+        "no_more_rolls",
+        Res.string.achievement_no_more_rolls_title,
+        Res.string.achievement_no_more_rolls_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     IMPATIENT(
-        "impatient", "Impatient", "Finish a game never rolling more than once in any turn",
+        "impatient",
+        Res.string.achievement_impatient_title,
+        Res.string.achievement_impatient_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     // Any game with the Turn Timer modifier on. Needs an opponent, like every win.
     LUCK_OF_THE_DRAW(
-        "luck_of_the_draw", "Luck Of The Draw",
-        "Win a game scoring 3 or fewer categories yourself - the turn timer did the rest",
+        "luck_of_the_draw",
+        Res.string.achievement_luck_of_the_draw_title,
+        Res.string.achievement_luck_of_the_draw_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
 
     // Moved from Themes.
     FRESH_COAT_OF_PAINT(
-        "fresh_coat_of_paint", "Fresh Coat Of Paint", "Play a game with any item using a non-default style",
+        "fresh_coat_of_paint",
+        Res.string.achievement_fresh_coat_of_paint_title,
+        Res.string.achievement_fresh_coat_of_paint_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
 
@@ -478,67 +835,93 @@ enum class Achievement(
     // The worst full house there is - three 1s and two 2s specifically, never the joker rule's
     // five-of-a-kind bent into the box instead. Sits right above its opposite number, Fuller House.
     EMPTY_HOUSE(
-        "empty_house", "Empty House", "Score the worst Full House (three 1s and two 2s)",
+        "empty_house",
+        Res.string.achievement_empty_house_title,
+        Res.string.achievement_empty_house_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     // The best full house there is - three 6s and two 5s specifically, never the joker rule's
     // five-of-a-kind bent into the box instead. Sits right above House Call, the more general
     // "any full house, first roll" feat.
     FULLER_HOUSE(
-        "fuller_house", "Fuller House", "Score the best Full House (three 6s and two 5s)",
+        "fuller_house",
+        Res.string.achievement_fuller_house_title,
+        Res.string.achievement_fuller_house_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     // The three "straight out of the cup" feats, in ascending order of how unlikely they are on a
     // single throw of five dice: a full house is 300 of the 7776 outcomes, a large straight 240,
     // and five of a kind just 6.
     FIRST_ROLL_FULL_HOUSE(
-        "first_roll_full_house", "House Call", "Roll a full house on the first roll of a turn",
+        "first_roll_full_house",
+        Res.string.achievement_first_roll_full_house_title,
+        Res.string.achievement_first_roll_full_house_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     FIRST_ROLL_LARGE_STRAIGHT(
-        "first_roll_large_straight", "Straight Away", "Roll a large straight on the first roll of a turn",
+        "first_roll_large_straight",
+        Res.string.achievement_first_roll_large_straight_title,
+        Res.string.achievement_first_roll_large_straight_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     FIRST_ROLL_5X(
-        "5x_first_roll", "Five on the Fly", "Roll a 5x on the first roll of a turn",
+        "5x_first_roll",
+        Res.string.achievement_first_roll_5x_title,
+        Res.string.achievement_first_roll_5x_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     SIXES_30(
-        "sixes_30", "Six Appeal", "Score the maximum 30 in Sixes",
+        "sixes_30",
+        Res.string.achievement_sixes_30_title,
+        Res.string.achievement_sixes_30_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     CHANCE_30(
-        "chance_30", "Taking A Chance", "Score the maximum 30 in Chance",
+        "chance_30",
+        Res.string.achievement_chance_30_title,
+        Res.string.achievement_chance_30_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     DEJA_VU(
-        "deja_vu", "Déjà Vu", "Roll the exact same result twice in a row, without holding any dice in between",
+        "deja_vu",
+        Res.string.achievement_deja_vu_title,
+        Res.string.achievement_deja_vu_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     // Sits right after Déjà Vu, its complement: this is the *some dice held* case of the same
     // "the dice landed the same twice" idea, where Déjà Vu is specifically the *nothing held* one.
     LOADED_DICE(
-        "loaded_dice", "Are These Loaded Dice?", "After holding some dice, have the rest come up exactly the same on both re-rolls",
+        "loaded_dice",
+        Res.string.achievement_loaded_dice_title,
+        Res.string.achievement_loaded_dice_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     PRODUCT_PLACEMENT(
-        "product_placement", "Product Placement", "Roll/hold 2, 4, 5, 3, 6 - the exact dice on the main menu, in that order",
+        "product_placement",
+        Res.string.achievement_product_placement_title,
+        Res.string.achievement_product_placement_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     POINTLESS_ROLL(
-        "pointless_roll", "What Was The Point Of That?", "Hold all five dice, then roll anyway",
+        "pointless_roll",
+        Res.string.achievement_pointless_roll_title,
+        Res.string.achievement_pointless_roll_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
 
     // Moved from Scoring.
     NICE(
-        "score_exactly_69", "Nice", "Finish a game on exactly 69",
+        "score_exactly_69",
+        Res.string.achievement_nice_title,
+        Res.string.achievement_nice_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
 
     // Moved from Winning.
     ZERO_TO_HERO(
-        "zero_to_hero", "Zero To Hero", "Win a game after scoring zero at least three times",
+        "zero_to_hero",
+        Res.string.achievement_zero_to_hero_title,
+        Res.string.achievement_zero_to_hero_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
 
@@ -547,24 +930,33 @@ enum class Achievement(
     // (from dice that never matched at all), this needs the dice to have genuinely been a 5x at
     // the moment a zero was committed anyway.
     WASTED_5X(
-        "5x_wasted", "Wasted Fortune", "Roll a 5x but score a zero with it anyway",
+        "5x_wasted",
+        Res.string.achievement_wasted_5x_title,
+        Res.string.achievement_wasted_5x_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     WHY_DID_YOU_DO_THAT(
-        "why_did_you_do_that", "Size Isn't Everything", "Score the small straight when the large straight was also available",
+        "why_did_you_do_that",
+        Res.string.achievement_why_did_you_do_that_title,
+        Res.string.achievement_why_did_you_do_that_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     ALL_ZEROES(
-        "zeroes_except_chance", "How Do You Play This Game?",
-        "Score zero in every category except Chance",
+        "zeroes_except_chance",
+        Res.string.achievement_all_zeroes_title,
+        Res.string.achievement_all_zeroes_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     EXTREME_LOW_ROLLS(
-        "low_rolls_extreme", "Rock Bottom", "Finish a game on exactly 5 - the lowest score the rules allow",
+        "low_rolls_extreme",
+        Res.string.achievement_extreme_low_rolls_title,
+        Res.string.achievement_extreme_low_rolls_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     WHO_MADE_THIS(
-        "who_made_this", "Who Made This?", "Open the About page",
+        "who_made_this",
+        Res.string.achievement_who_made_this_title,
+        Res.string.achievement_who_made_this_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
 
@@ -577,31 +969,45 @@ enum class Achievement(
     // bar always agrees with what the Leaderboard screen shows. Only human scores are ever recorded
     // there, which is also the rule here.
     TALLY(
-        "scores_5_50", "Tally", "Record every score from 5 to 50 on the leaderboard",
+        "scores_5_50",
+        Res.string.achievement_tally_title,
+        Res.string.achievement_tally_description,
         AchievementCategory.COLLECTION, target = 46, scoreBand = 5..50,
     ),
     BOOKKEEPER(
-        "scores_51_100", "Bookkeeper", "Record every score from 51 to 100 on the leaderboard",
+        "scores_51_100",
+        Res.string.achievement_bookkeeper_title,
+        Res.string.achievement_bookkeeper_description,
         AchievementCategory.COLLECTION, target = 50, scoreBand = 51..100,
     ),
     REGISTRAR(
-        "scores_101_150", "Registrar", "Record every score from 101 to 150 on the leaderboard",
+        "scores_101_150",
+        Res.string.achievement_registrar_title,
+        Res.string.achievement_registrar_description,
         AchievementCategory.COLLECTION, target = 50, scoreBand = 101..150,
     ),
     AUDITOR(
-        "scores_151_200", "Auditor", "Record every score from 151 to 200 on the leaderboard",
+        "scores_151_200",
+        Res.string.achievement_auditor_title,
+        Res.string.achievement_auditor_description,
         AchievementCategory.COLLECTION, target = 50, scoreBand = 151..200,
     ),
     ARCHIVIST(
-        "scores_201_250", "Archivist", "Record every score from 201 to 250 on the leaderboard",
+        "scores_201_250",
+        Res.string.achievement_archivist_title,
+        Res.string.achievement_archivist_description,
         AchievementCategory.COLLECTION, target = 50, scoreBand = 201..250,
     ),
     HISTORIAN(
-        "scores_251_300", "Historian", "Record every score from 251 to 300 on the leaderboard",
+        "scores_251_300",
+        Res.string.achievement_historian_title,
+        Res.string.achievement_historian_description,
         AchievementCategory.COLLECTION, target = 50, scoreBand = 251..300,
     ),
     COMPLETIONIST(
-        "completionist", "Completionist", "Unlock every other achievement",
+        "completionist",
+        Res.string.achievement_completionist_title,
+        Res.string.achievement_completionist_description,
         AchievementCategory.COLLECTION, countsTowardCompletion = false,
     ),
 
@@ -619,48 +1025,62 @@ enum class Achievement(
     // (case-sensitive, never P1, who's always the human player at this device), isn't something
     // every player could reasonably be expected to stumble into on the way to 100%.
     BIG_FAN(
-        "big_fan", "Big Fan", "Play a 1v1 game against the creator",
+        "big_fan",
+        Res.string.achievement_big_fan_title,
+        Res.string.achievement_big_fan_description,
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the
     // Flowerpot grows a plant, let alone that using every roll of every turn brings it into bloom.
     // Never in a mode without 3 rolls a turn, where it can't bloom at all.
     GREENFINGERS(
-        "greenfingers", "Greenfingers", "Grow a Sunflower",
+        "greenfingers",
+        Res.string.achievement_greenfingers_title,
+        Res.string.achievement_greenfingers_description,
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     // Excluded from COMPLETIONIST the same way Big Fan is - naming yourself after a country to
     // re-skin a game mode's dice isn't something every player could reasonably be expected to
     // stumble into on the way to 100%.
     LUCK_OF_THE_IRISH(
-        "luck_of_the_irish", "Luck of the Irish", "Play a game of Tricolour as Ireland/Éire",
+        "luck_of_the_irish",
+        Res.string.achievement_luck_of_the_irish_title,
+        Res.string.achievement_luck_of_the_irish_description,
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the menu's logo
     // dice can be tapped, let alone that they roll. Its id is unchanged from when it sat in
     // Miscellaneous as a hidden achievement, so an earlier unlock still counts.
     NOT_THOSE_DICE(
-        "not_those_dice", "Not Those Dice!", "Tap the dice on the main menu",
+        "not_those_dice",
+        Res.string.achievement_not_those_dice_title,
+        Res.string.achievement_not_those_dice_description,
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     // Excluded from COMPLETIONIST the same way Big Fan/Luck of the Irish are - shaking the phone to
     // roll isn't something every player could reasonably be expected to stumble into on the way to
     // 100%, since nothing in the UI hints it's possible.
     SHAKEN_NOT_TAPPED(
-        "shaken_not_tapped", "Shaken, Not Tapped", "Shake your phone to roll the dice",
+        "shaken_not_tapped",
+        Res.string.achievement_shaken_not_tapped_title,
+        Res.string.achievement_shaken_not_tapped_description,
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     // Excluded from COMPLETIONIST like the rest of this category - it needs the Top Hat cup picked
     // and the table left alone mid-turn, which nothing in the UI hints at.
     MAGICIANS_SECRET(
-        "magicians_secret", "The Magician's Secret", "Find where Luna is hiding",
+        "magicians_secret",
+        Res.string.achievement_magicians_secret_title,
+        Res.string.achievement_magicians_secret_description,
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     // Excluded from COMPLETIONIST like the rest of this category - nothing hints that a player
     // name means anything, let alone this one. Standard mode only (not a re-skinned or shortened
     // card) and solo only, so it can't be had by beating anybody, and with no modifiers on.
     THE_SOLUTION(
-        "the_solution", "The Solution", "Play a solo standard game, no modifiers, as Phil Woodward and score exactly 255 points",
+        "the_solution",
+        Res.string.achievement_the_solution_title,
+        Res.string.achievement_the_solution_description,
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     ;
