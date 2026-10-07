@@ -33,6 +33,11 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.model.PlayerColour
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.setup_colour_cd
+import net.zodac.dicefive.resources.setup_colour_choose_action
+import net.zodac.dicefive.resources.setup_colour_select_action
+import net.zodac.dicefive.resources.setup_colour_swaps_cd
 import net.zodac.dicefive.ui.theme.color
 import org.jetbrains.compose.resources.stringResource
 
@@ -64,21 +69,24 @@ fun PlayerColourPicker(
 ) {
     var choosing by remember { mutableStateOf(false) }
     val colourName = stringResource(colour.label)
+    val pickerDescription = stringResource(Res.string.setup_colour_cd, slot, colourName)
+    val chooseLabel = stringResource(Res.string.setup_colour_choose_action)
+    val selectLabel = stringResource(Res.string.setup_colour_select_action)
     // DropdownMenu positions itself against its parent, so the swatch and the pop-up share this Box.
     Box(modifier = modifier.size(SWATCH_TARGET), contentAlignment = Alignment.Center) {
         Box(
             modifier = Modifier
                 .size(SWATCH_TARGET)
                 .clearAndSetSemantics {
-                    contentDescription = "Player $slot colour, $colourName"
+                    contentDescription = pickerDescription
                     role = Role.Button
-                    onClick(label = "Choose colour") {
+                    onClick(label = chooseLabel) {
                         choosing = true
                         true
                     }
                 }
                 .clip(CircleShape)
-                .clickable(onClickLabel = "Choose colour", role = Role.Button) { choosing = true },
+                .clickable(onClickLabel = chooseLabel, role = Role.Button) { choosing = true },
             contentAlignment = Alignment.Center,
         ) {
             Swatch(colour = colour)
@@ -94,15 +102,16 @@ fun PlayerColourPicker(
                             val swapsWith = holders[option]?.takeIf { it != slot }
                             val selected = option == colour
                             val optionName = stringResource(option.label)
+                            val optionDescription = if (swapsWith != null) stringResource(Res.string.setup_colour_swaps_cd, optionName, swapsWith) else optionName
                             Box(
                                 modifier = Modifier
                                     .size(SWATCH_TARGET)
                                     // No visible name - a screen reader still needs to say which is which.
                                     .clearAndSetSemantics {
-                                        contentDescription = if (swapsWith != null) "$optionName, swaps with player $swapsWith" else optionName
+                                        contentDescription = optionDescription
                                         role = Role.RadioButton
                                         this.selected = selected
-                                        onClick(label = "Select") {
+                                        onClick(label = selectLabel) {
                                             onColourChange(option)
                                             choosing = false
                                             true

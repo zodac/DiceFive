@@ -79,7 +79,8 @@ import net.zodac.dicefive.ui.game.style.TableBackgrounds
 data class PlayerSetupSlot(
     val slot: Int,
     val type: PlayerType = PlayerType.HUMAN,
-    val name: String = "Player $slot", // i18n: not translated - a saved default name, see I18N.md (Step 4, screen 4)
+    /** What the player typed. Blank means the default name ("Player 2" and its translations): the field shows it as a hint, and [GameViewModel.startGame] fills it in. */
+    val name: String = "",
     val difficulty: Difficulty = Difficulty.MEDIUM,
     /** Distinct per seat by default; [GameViewModel.setPlayerColour] keeps all four slots distinct. */
     val colour: PlayerColour = PlayerColour.defaultFor(slot - 1),
@@ -441,7 +442,10 @@ class GameViewModel(
                 val slots = restored.playerSlots.map { slot ->
                     // Capped on the way in, so a name saved before the length cap existed - or saved
                     // at a longer-lived player count - is trimmed rather than reappearing over-long.
-                    var updated = slot.copy(name = (repository.playerNameFor(slot.slot).first() ?: slot.name).take(cap))
+                    // A name saved before defaults were left blank may be the English default itself: that's not something
+                    // the player typed, so it's put back to blank to be shown in the current language.
+                    val savedName = repository.playerNameFor(slot.slot).first()?.takeUnless { it == "Player ${slot.slot}" } // i18n: not translated - the English default older versions saved
+                    var updated = slot.copy(name = (savedName ?: slot.name).take(cap))
                     // Slot 1 is always Human, so its type and difficulty are never saved/restored.
                     if (slot.slot >= 2) {
                         repository.playerTypeFor(slot.slot).first()?.let { updated = updated.copy(type = it) }
@@ -568,8 +572,12 @@ class GameViewModel(
         _setup.update { it.copy(unluckyDice = it.unluckyDice.copy(maxDice = maxDice.coerceIn(UnluckyDice.MIN_MAX_DICE, UnluckyDice.MAX_MAX_DICE))) }
     }
 
-    /** Builds the initial [GameState] from the current setup form, generating AI names now. */
-    fun startGame() {
+    /**
+     * Builds the initial [GameState] from the current setup form, generating AI names now. A Human seat
+     * with no name typed gets [defaultName] for its slot ("Player 2", in the player's language - the
+     * screen passes it; the English here is for tests, which have no screen).
+     */
+    fun startGame(defaultName: (slot: Int) -> String = { "Player $it" }) { // i18n: not translated - for tests, the screen always passes the translated one
         // Read before anything below overwrites it: "One More Time" is about the game THIS call is
         // replacing, not the one it's about to create.
         val previousGame = _game.value
@@ -582,7 +590,7 @@ class GameViewModel(
         ).iterator()
         val playerConfigs = activeSlots.map { slot ->
             val name = when (slot.type) {
-                PlayerType.HUMAN -> slot.name.trim().ifBlank { "Player ${slot.slot}" } // i18n: not translated - a saved default name, see I18N.md (Step 4, screen 4)
+                PlayerType.HUMAN -> slot.name.trim().ifBlank { defaultName(slot.slot) }
                 PlayerType.AI -> aiNames.next()
             }
             PlayerConfig(slot = slot.slot, type = slot.type, name = name, difficulty = slot.difficulty, colour = slot.colour)
@@ -1557,7 +1565,7 @@ class GameViewModel(
         viewModelScope.launch {
             for (slot in slots) {
                 if (slot.type == PlayerType.HUMAN) {
-                    repository.setPlayerName(slot.slot, slot.name.trim().ifBlank { "Player ${slot.slot}" }) // i18n: not translated - a saved default name, see I18N.md (Step 4, screen 4)
+                    repository.setPlayerName(slot.slot, slot.name.trim())
                 }
             }
         }

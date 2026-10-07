@@ -618,4 +618,54 @@
     <string name="tiebreak_three_of_a_kind">Won on a lower 3x</string>
     <string name="tiebreak_four_of_a_kind">Won on a lower 4x</string>
 
+    <!-- New Game setup (ui/setup/*) -->
+    <!-- The name a human player gets when they type none, and what the empty name field shows as a hint. %1$d is the seat, 1 to 4. Not used for names the player has typed. -->
+    <string name="common_default_player_name">Player %1$d</string>
+    <string name="setup_title">New Game</string>
+    <string name="setup_start">Start Game</string>
+    <string name="setup_players">Players</string>
+    <string name="setup_game_mode">Game Mode</string>
+    <string name="setup_modifiers">Modifiers</string>
+    <!-- Under the form, and said by TalkBack on each name field that clashes. -->
+    <string name="setup_names_unique">Names must be unique</string>
+    <!-- TalkBack's name for a player's name field. %1$d is the seat. -->
+    <string name="setup_player_name_cd">Player %1$d name</string>
+    <!-- The chip that switches a seat between a person ("User") and the computer ("CPU", common_cpu_cd). -->
+    <string name="setup_type_user">User</string>
+    <!-- A computer player's difficulty. If the three don't fit side by side their first letters are shown instead. -->
+    <string name="setup_difficulty_easy">Easy</string>
+    <string name="setup_difficulty_medium">Medium</string>
+    <string name="setup_difficulty_hard">Hard</string>
+    <string name="setup_modifiers_description">Optional extra rules for any game mode</string>
+    <!-- Replaces the description while a modifier is on. -->
+    <string name="setup_modifiers_active_note">Scores won't go on the Leaderboard</string>
+    <string name="setup_timer_title">Turn Timer</string>
+    <string name="setup_timer_description">A time limit for each whole turn</string>
+    <string name="setup_timer_none">No timer</string>
+    <!-- A turn timer length: "30s". The "s" is seconds. -->
+    <string name="setup_timer_seconds">%1$ds</string>
+    <string name="setup_rolls_title">Number of Rolls</string>
+    <string name="setup_rolls_description">How many rolls each turn gets</string>
+    <!-- Names the stepper for TalkBack; "Decrease rolls per turn" lower-cases it. -->
+    <string name="setup_rolls_stepper">Rolls per turn</string>
+    <string name="setup_stored_title">Stored Rolls</string>
+    <string name="setup_stored_description">Rolls you don't use carry over to your next turn</string>
+    <string name="setup_stored_field">Most rolls you can store</string>
+    <!-- Shown in the empty "most rolls you can store" field. -->
+    <string name="setup_stored_hint">No max</string>
+    <string name="setup_extended_title">Extended Scores</string>
+    <string name="setup_extended_description">Adds Two Pair, Evens and Odds to the scorecard</string>
+    <!-- Shown instead of the description when the chosen game mode can't use Extended Scores. %1$s is the mode's name. -->
+    <string name="setup_extended_locked">Not used in %1$s mode</string>
+    <string name="setup_unlucky_title">Unlucky Dice</string>
+    <string name="setup_unlucky_description">Rolled dice can be locked in chains: they can't be held or scored</string>
+    <string name="setup_unlucky_odds">Odds a rolled die is locked</string>
+    <string name="setup_unlucky_max">Most dice locked per roll</string>
+    <!-- TalkBack's name for the colour circle: the seat, then its colour. -->
+    <string name="setup_colour_cd">Player %1$d colour, %2$s</string>
+    <string name="setup_colour_choose_action">Choose colour</string>
+    <string name="setup_colour_select_action">Select</string>
+    <!-- A colour in the pop-up that another seat already has: picking it swaps the two. -->
+    <string name="setup_colour_swaps_cd">%1$s, swaps with player %2$d</string>
+
 </resources>

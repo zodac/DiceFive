@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -283,5 +284,38 @@ class GameSetupRestoreTest {
 
             assertEquals(UnluckyDice(20, 2), checkNotNull(viewModel.game.value).unluckyDice, mode.id)
         }
+    }
+
+    @Test
+    fun `a name left blank is the default for its seat in the player's language - a typed one is kept`() = runTest(testDispatcher) {
+        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        viewModel.setPlayerCount(3)
+        viewModel.setPlayerName(2, "Wolfgang")
+
+        assertEquals(listOf("", "Wolfgang", ""), viewModel.setup.value.playerSlots.take(3).map { it.name })
+
+        viewModel.startGame { slot -> "Joueur $slot" }
+
+        assertEquals(listOf("Joueur 1", "Wolfgang"), checkNotNull(viewModel.game.value).players.take(2).map { it.name })
+    }
+
+    @Test
+    fun `names are saved as typed - blank stays blank - and the English default older versions saved reads as blank`() = runTest(testDispatcher) {
+        val repository = SettingsRepository(FakePreferencesStore())
+        repository.setPlayerName(1, "Player 1")
+        repository.setPlayerName(2, "Wolfgang")
+        repository.setPlayerName(3, "Player 4")
+        val first = GameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
+        advanceUntilIdle()
+
+        // Slot 1's old default is not something the player typed; slot 3's "Player 4" isn't its own default, so it stays.
+        assertEquals(listOf("", "Wolfgang", "Player 4"), first.setup.value.playerSlots.take(3).map { it.name })
+
+        first.setPlayerCount(2)
+        first.startGame()
+        advanceUntilIdle()
+
+        assertEquals("", repository.playerNameFor(1).first())
+        assertEquals("Wolfgang", repository.playerNameFor(2).first())
     }
 }

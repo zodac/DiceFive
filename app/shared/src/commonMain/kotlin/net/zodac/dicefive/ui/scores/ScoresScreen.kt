@@ -573,7 +573,7 @@ fun ScoresWarmUp(width: Dp, modifier: Modifier = Modifier) {
 private fun warmUpState(): ScoresUiState {
     fun entry(id: Long, score: Int, mode: GameMode) = ScoreEntry(
         id = id,
-        playerName = "Player $id",
+        playerName = "Player $id", // i18n: not translated - made-up warm-up data, never shown
         score = score,
         timestampEpochMillis = 0L,
         won = null,

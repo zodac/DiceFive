@@ -42,6 +42,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,9 +55,42 @@ import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_cpu_cd
+import net.zodac.dicefive.resources.common_default_player_name
+import net.zodac.dicefive.resources.setup_difficulty_easy
+import net.zodac.dicefive.resources.setup_difficulty_hard
+import net.zodac.dicefive.resources.setup_difficulty_medium
+import net.zodac.dicefive.resources.setup_extended_description
+import net.zodac.dicefive.resources.setup_extended_locked
+import net.zodac.dicefive.resources.setup_extended_title
+import net.zodac.dicefive.resources.setup_game_mode
+import net.zodac.dicefive.resources.setup_modifiers
+import net.zodac.dicefive.resources.setup_modifiers_active_note
+import net.zodac.dicefive.resources.setup_modifiers_description
+import net.zodac.dicefive.resources.setup_names_unique
+import net.zodac.dicefive.resources.setup_player_name_cd
+import net.zodac.dicefive.resources.setup_players
+import net.zodac.dicefive.resources.setup_rolls_description
 import net.zodac.dicefive.resources.setup_rolls_per_turn_value
+import net.zodac.dicefive.resources.setup_rolls_stepper
+import net.zodac.dicefive.resources.setup_rolls_title
+import net.zodac.dicefive.resources.setup_start
+import net.zodac.dicefive.resources.setup_stored_description
+import net.zodac.dicefive.resources.setup_stored_field
+import net.zodac.dicefive.resources.setup_stored_hint
+import net.zodac.dicefive.resources.setup_stored_title
+import net.zodac.dicefive.resources.setup_timer_description
+import net.zodac.dicefive.resources.setup_timer_none
+import net.zodac.dicefive.resources.setup_timer_seconds
+import net.zodac.dicefive.resources.setup_timer_title
+import net.zodac.dicefive.resources.setup_title
+import net.zodac.dicefive.resources.setup_type_user
+import net.zodac.dicefive.resources.setup_unlucky_description
+import net.zodac.dicefive.resources.setup_unlucky_max
 import net.zodac.dicefive.resources.setup_unlucky_max_dice_value
+import net.zodac.dicefive.resources.setup_unlucky_odds
 import net.zodac.dicefive.resources.setup_unlucky_odds_value
+import net.zodac.dicefive.resources.setup_unlucky_title
 import net.zodac.dicefive.ui.common.ChoicePicker
 import net.zodac.dicefive.ui.common.FontFit
 import net.zodac.dicefive.ui.common.MIN_READABLE_FONT_SIZE
@@ -85,8 +119,6 @@ private val TYPE_CONTROL_WIDTH = 76.dp
 private const val STACKED_PLAYER_ROW_FONT_SCALE = 1.05f
 
 /** Shown under the form, and said by a screen reader on each clashing name field. */
-private const val NAMES_MUST_BE_UNIQUE = "Names must be unique"
-
 @Composable
 fun GameSetupScreen(
     viewModel: GameViewModel,
@@ -97,10 +129,14 @@ fun GameSetupScreen(
     val setup by viewModel.setup.collectAsStateWithLifecycle()
     val setupRestored by viewModel.setupRestored.collectAsStateWithLifecycle()
     val activeSlots = setup.playerSlots.take(setup.playerCount)
-    val duplicateNameSlots = duplicateHumanNameSlots(activeSlots)
     val focusManager = LocalFocusManager.current
 
-    ScreenScaffold(title = "New Game", onBack = onBack, modifier = modifier) {
+    val defaultNames = (1..GameSetupState.MAX_PLAYERS).map { stringResource(Res.string.common_default_player_name, it) }
+    val defaultName: (Int) -> String = { defaultNames[it - 1] }
+    val duplicateNameSlots = duplicateHumanNameSlots(activeSlots, defaultName)
+    val namesMustBeUnique = stringResource(Res.string.setup_names_unique)
+
+    ScreenScaffold(title = stringResource(Res.string.setup_title), onBack = onBack, modifier = modifier) {
         // Nothing but the title bar until the saved choices are back: drawing the form any sooner
         // shows the defaults (Standard mode, 2 players) for a few frames before they switch to
         // the last game's - and a Start Game tapped in that window would play the defaults.
@@ -115,12 +151,12 @@ fun GameSetupScreen(
             modifier = Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            SetupForm(setup = setup, activeSlots = activeSlots, duplicateNameSlots = duplicateNameSlots, viewModel = viewModel)
+            SetupForm(setup = setup, activeSlots = activeSlots, duplicateNameSlots = duplicateNameSlots, namesMustBeUnique = namesMustBeUnique, defaultName = defaultName, viewModel = viewModel)
         }
 
         if (duplicateNameSlots.isNotEmpty()) {
             Text(
-                text = NAMES_MUST_BE_UNIQUE,
+                text = namesMustBeUnique,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -131,13 +167,13 @@ fun GameSetupScreen(
                 // A name field still focused would keep blinking its cursor on the fading-out page, and the
                 // keyboard up, for the frames the next screen takes to arrive.
                 focusManager.clearFocus()
-                viewModel.startGame()
+                viewModel.startGame(defaultName)
                 onStartGame()
             },
             enabled = duplicateNameSlots.isEmpty(),
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
         ) {
-            Text(text = "Start Game", style = MaterialTheme.typography.titleMedium)
+            Text(text = stringResource(Res.string.setup_start), style = MaterialTheme.typography.titleMedium)
         }
     }
 }
@@ -145,13 +181,13 @@ fun GameSetupScreen(
 /**
  * Every Human seat whose name (leading/trailing whitespace ignored, case ignored) collides with
  * another Human seat's - an AI's name is generated, never typed, so it can't collide with anything
- * a player entered. A blank name isn't a collision with another blank one: both fall back to their
- * own distinct "Player N" default at [GameViewModel.startGame].
+ * a player entered. A blank name counts as its slot's [defaultName] ("Player 2"), which is what it
+ * becomes at [GameViewModel.startGame] - so two blank ones never collide (their defaults differ), but a
+ * blank one does against another seat that typed the same words.
  */
-private fun duplicateHumanNameSlots(slots: List<PlayerSetupSlot>): Set<Int> =
+private fun duplicateHumanNameSlots(slots: List<PlayerSetupSlot>, defaultName: (Int) -> String): Set<Int> =
     slots.filter { it.type == PlayerType.HUMAN }
-        .groupBy { it.name.trim().lowercase() }
-        .filterKeys { it.isNotEmpty() }
+        .groupBy { it.name.trim().ifBlank { defaultName(it.slot) }.lowercase() }
         .values
         .filter { it.size > 1 }
         .flatten()
@@ -162,9 +198,11 @@ private fun SetupForm(
     setup: GameSetupState,
     activeSlots: List<PlayerSetupSlot>,
     duplicateNameSlots: Set<Int>,
+    namesMustBeUnique: String,
+    defaultName: (Int) -> String,
     viewModel: GameViewModel,
 ) {
-    SetupCard(title = "Players") {
+    SetupCard(title = stringResource(Res.string.setup_players)) {
         PlayerCountSelector(count = setup.playerCount, onCountChange = viewModel::setPlayerCount)
     }
 
@@ -182,6 +220,8 @@ private fun SetupForm(
                 slot = slot,
                 isTypeLocked = slot.slot == 1,
                 isNameDuplicate = slot.slot in duplicateNameSlots,
+                namesMustBeUnique = namesMustBeUnique,
+                defaultName = defaultName(slot.slot),
                 colourHolders = colourHolders,
                 onColourChange = { colour -> viewModel.setPlayerColour(slot.slot, colour) },
                 onTypeChange = { type -> viewModel.setPlayerType(slot.slot, type) },
@@ -191,11 +231,11 @@ private fun SetupForm(
         }
     }
 
-    SetupCard(title = "Game Mode") {
+    SetupCard(title = stringResource(Res.string.setup_game_mode)) {
         GameModeSelector(selected = setup.gameMode, onSelect = viewModel::setGameMode)
     }
 
-    SetupCard(title = "Modifiers") {
+    SetupCard(title = stringResource(Res.string.setup_modifiers)) {
         SetupModifierPicker(
             setup = setup,
             onTurnTimer = viewModel::setTurnTimer,
@@ -271,6 +311,8 @@ private fun PlayerRow(
     slot: PlayerSetupSlot,
     isTypeLocked: Boolean,
     isNameDuplicate: Boolean,
+    namesMustBeUnique: String,
+    defaultName: String,
     colourHolders: Map<PlayerColour, Int>,
     onColourChange: (PlayerColour) -> Unit,
     onTypeChange: (PlayerType) -> Unit,
@@ -281,6 +323,9 @@ private fun PlayerRow(
     // the difficulty's three labels no longer fit beside the switch, so it drops beneath - the controls
     // keep the width their labels need instead of being squeezed or cut off.
     val fontScale = LocalDensity.current.fontScale
+    val nameFieldDescription = stringResource(Res.string.setup_player_name_cd, slot.slot)
+    val userLabel = stringResource(Res.string.setup_type_user)
+    val cpuLabel = stringResource(Res.string.common_cpu_cd)
     val stacked = fontScale > STACKED_PLAYER_ROW_FONT_SCALE
     val nameOrDifficulty: @Composable (Modifier) -> Unit = { controlModifier ->
         // The colour circle leads the name (or difficulty), whichever the row shows, so both seat types line up.
@@ -291,11 +336,12 @@ private fun PlayerRow(
                     value = slot.name,
                     onValueChange = onNameChange,
                     isError = isNameDuplicate,
+                    placeholder = defaultName,
                     // The field has no visible label (its value names the row), so a screen reader is
                     // given one - and told why it's red, which the outline alone only shows.
                     modifier = Modifier.weight(1f).semantics {
-                        contentDescription = "Player ${slot.slot} name"
-                        if (isNameDuplicate) error(NAMES_MUST_BE_UNIQUE)
+                        contentDescription = nameFieldDescription
+                        if (isNameDuplicate) error(namesMustBeUnique)
                     },
                 )
 
@@ -322,7 +368,7 @@ private fun PlayerRow(
                     // "CPU" and "User" sitting at different horizontal positions. A label that fills
                     // the whole slot and centers its own text isn't subject to that.
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(if (slot.type == PlayerType.AI) "CPU" else "User", fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold)
+                        Text(if (slot.type == PlayerType.AI) cpuLabel else userLabel, fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold)
                     }
                 },
                 modifier = Modifier.width(typeControlWidth),
@@ -367,6 +413,7 @@ private fun CompactNameField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     isError: Boolean = false,
+    placeholder: String = "",
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val colors = OutlinedTextFieldDefaults.colors()
@@ -382,7 +429,8 @@ private fun CompactNameField(
                 if (trimmed != value) onValueChange(trimmed)
             }
         },
-        textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+        // Content: a name typed in a right-to-left script runs and aligns that way, whatever the app's own language.
+        textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface, textDirection = TextDirection.Content),
         singleLine = true,
         // Names read as Capitalized Words, not lowercase - and this keeps the keyboard's own
         // shift state in sync with that after the field is cleared back to empty, which a plain
@@ -399,6 +447,7 @@ private fun CompactNameField(
             singleLine = true,
             isError = isError,
             visualTransformation = VisualTransformation.None,
+            placeholder = { Text(placeholder, style = MaterialTheme.typography.bodyMedium) },
             interactionSource = interactionSource,
             colors = colors,
             contentPadding = OutlinedTextFieldDefaults.contentPadding(top = 6.dp, bottom = 6.dp),
@@ -419,9 +468,10 @@ private fun CompactNameField(
 fun DifficultySelector(selected: Difficulty, onSelect: (Difficulty) -> Unit, modifier: Modifier = Modifier) {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
+    val labels = Difficulty.entries.associateWith { it.label() }
     BoxWithConstraints(modifier = modifier) {
         val textStyle = MaterialTheme.typography.labelLarge
-        val fit = remember(constraints.maxWidth, textStyle, density) {
+        val fit = remember(constraints.maxWidth, textStyle, density, labels) {
             // A segment's width less its side padding and the 1dp outline each side; the row is infinite
             // only in a measuring pass, where the largest size will do.
             val room = with(density) { (constraints.maxWidth / Difficulty.entries.size) - (DIFFICULTY_LABEL_PADDING * 2 + 2.dp).roundToPx() }
@@ -430,7 +480,7 @@ fun DifficultySelector(selected: Difficulty, onSelect: (Difficulty) -> Unit, mod
             } else {
                 fitFontSize(DIFFICULTY_LABEL_MAX_SIZE, MIN_READABLE_FONT_SIZE, 0.5.sp) { size ->
                     Difficulty.entries.all {
-                        measurer.measure(text = it.label, style = textStyle.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= room
+                        measurer.measure(text = labels.getValue(it), style = textStyle.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= room
                     }
                 }
             }
@@ -439,8 +489,8 @@ fun DifficultySelector(selected: Difficulty, onSelect: (Difficulty) -> Unit, mod
             options = Difficulty.entries,
             selected = selected,
             onSelect = onSelect,
-            label = { if (fit.wraps) it.label.take(1) else it.label },
-            spokenLabel = { it.label },
+            label = { if (fit.wraps) labels.getValue(it).take(1) else labels.getValue(it) },
+            spokenLabel = { labels.getValue(it) },
             modifier = Modifier.fillMaxWidth(),
             labelStyle = textStyle.copy(fontSize = fit.size),
             // Tighter than M3's 12dp a side: with the colour circle beside it each segment is narrow.
@@ -452,12 +502,14 @@ fun DifficultySelector(selected: Difficulty, onSelect: (Difficulty) -> Unit, mod
 private val DIFFICULTY_LABEL_PADDING = 4.dp
 private val DIFFICULTY_LABEL_MAX_SIZE = 14.sp
 
-private val Difficulty.label: String
-    get() = when (this) {
-        Difficulty.EASY -> "Easy"
-        Difficulty.MEDIUM -> "Medium"
-        Difficulty.HARD -> "Hard"
-    }
+@Composable
+private fun Difficulty.label(): String = stringResource(
+    when (this) {
+        Difficulty.EASY -> Res.string.setup_difficulty_easy
+        Difficulty.MEDIUM -> Res.string.setup_difficulty_medium
+        Difficulty.HARD -> Res.string.setup_difficulty_hard
+    },
+)
 
 /**
  * The mode picker: one field showing the current mode and its one-line description, opening a
@@ -467,7 +519,7 @@ private val Difficulty.label: String
 @Composable
 private fun GameModeSelector(selected: GameMode, onSelect: (GameMode) -> Unit) {
     ChoicePicker(
-        title = "Game Mode",
+        title = stringResource(Res.string.setup_game_mode),
         options = GameMode.entries,
         selected = selected,
         onSelect = onSelect,
@@ -505,22 +557,22 @@ private fun SetupModifierPicker(
     val lengths = TurnTimer.entries.filter { it != TurnTimer.NONE }
     val rolls = setup.rollModifiers
     ModifierPicker(
-        title = "Modifiers",
-        description = "Optional extra rules for any game mode",
-        activeNote = "Scores won't go on the Leaderboard",
+        title = stringResource(Res.string.setup_modifiers),
+        description = stringResource(Res.string.setup_modifiers_description),
+        activeNote = stringResource(Res.string.setup_modifiers_active_note),
         modifiers = listOf(
             ModifierSetting(
-                title = "Turn Timer",
-                description = "A time limit for each whole turn",
+                title = stringResource(Res.string.setup_timer_title),
+                description = stringResource(Res.string.setup_timer_description),
                 enabled = setup.turnTimer != TurnTimer.NONE,
                 onEnabledChange = { on -> onSelect(if (on) setup.turnTimerLength else TurnTimer.NONE) },
-                valueLabels = lengths.map { it.label },
+                valueLabels = lengths.map { it.label() },
                 selectedValue = lengths.indexOf(setup.turnTimerLength),
                 onValueSelect = { onSelect(lengths[it]) },
             ),
             ModifierSetting(
-                title = "Number of Rolls",
-                description = "How many rolls each turn gets",
+                title = stringResource(Res.string.setup_rolls_title),
+                description = stringResource(Res.string.setup_rolls_description),
                 enabled = rolls.rollsPerTurn != null,
                 onEnabledChange = { on -> onRollsPerTurn(if (on) setup.rollsPerTurnLength else null) },
                 steppers = listOf(
@@ -528,35 +580,35 @@ private fun SetupModifierPicker(
                         value = setup.rollsPerTurnLength,
                         range = RollModifiers.MIN_ROLLS..RollModifiers.MAX_ROLLS,
                         onValueChange = onRollsPerTurn,
-                        label = "Rolls per turn",
+                        label = stringResource(Res.string.setup_rolls_stepper),
                         valueText = { pluralStringResource(Res.plurals.setup_rolls_per_turn_value, it, it) },
                     ),
                 ),
             ),
             ModifierSetting(
-                title = "Stored Rolls",
-                description = "Rolls you don't use carry over to your next turn",
+                title = stringResource(Res.string.setup_stored_title),
+                description = stringResource(Res.string.setup_stored_description),
                 enabled = rolls.storedRolls,
                 onEnabledChange = onStoredRolls,
                 numberField = ModifierNumberField(
-                    label = "Most rolls you can store",
-                    hint = "No max",
+                    label = stringResource(Res.string.setup_stored_field),
+                    hint = stringResource(Res.string.setup_stored_hint),
                     initial = rolls.storedRollsMax?.toString().orEmpty(),
                     maxDigits = RollModifiers.MAX_CAP_DIGITS,
                     onValueChange = onStoredRollsMax,
                 ),
             ),
             ModifierSetting(
-                title = "Extended Scores",
-                description = "Adds Two Pair, Evens and Odds to the scorecard",
+                title = stringResource(Res.string.setup_extended_title),
+                description = stringResource(Res.string.setup_extended_description),
                 // Locked off in a mode whose card it doesn't fit - the player's own pick is kept for the next mode.
                 enabled = setup.extendedScores && setup.gameMode.allowsExtendedScores,
                 onEnabledChange = onExtendedScores,
-                lockedNote = if (setup.gameMode.allowsExtendedScores) null else "Not used in ${stringResource(setup.gameMode.displayName)} mode",
+                lockedNote = if (setup.gameMode.allowsExtendedScores) null else stringResource(Res.string.setup_extended_locked, stringResource(setup.gameMode.displayName)),
             ),
             ModifierSetting(
-                title = "Unlucky Dice",
-                description = "Rolled dice can be locked in chains: they can't be held or scored",
+                title = stringResource(Res.string.setup_unlucky_title),
+                description = stringResource(Res.string.setup_unlucky_description),
                 enabled = setup.unluckyDiceEnabled,
                 onEnabledChange = onUnluckyDiceEnabled,
                 steppers = listOf(
@@ -564,7 +616,7 @@ private fun SetupModifierPicker(
                         value = setup.unluckyDice.oddsPercent,
                         range = UnluckyDice.MIN_ODDS_PERCENT..UnluckyDice.MAX_ODDS_PERCENT,
                         onValueChange = onUnluckyOdds,
-                        label = "Odds a rolled die is locked",
+                        label = stringResource(Res.string.setup_unlucky_odds),
                         valueText = { stringResource(Res.string.setup_unlucky_odds_value, it) },
                         step = UnluckyDice.ODDS_STEP_PERCENT,
                     ),
@@ -572,7 +624,7 @@ private fun SetupModifierPicker(
                         value = setup.unluckyDice.maxDice,
                         range = UnluckyDice.MIN_MAX_DICE..UnluckyDice.MAX_MAX_DICE,
                         onValueChange = onUnluckyMaxDice,
-                        label = "Most dice locked per roll",
+                        label = stringResource(Res.string.setup_unlucky_max),
                         valueText = { pluralStringResource(Res.plurals.setup_unlucky_max_dice_value, it, it) },
                     ),
                 ),
@@ -581,10 +633,5 @@ private fun SetupModifierPicker(
     )
 }
 
-private val TurnTimer.label: String
-    get() = when (this) {
-        TurnTimer.NONE -> "No timer"
-        TurnTimer.SECONDS_30 -> "30s"
-        TurnTimer.SECONDS_60 -> "60s"
-        TurnTimer.SECONDS_120 -> "120s"
-    }
+@Composable
+private fun TurnTimer.label(): String = seconds?.let { stringResource(Res.string.setup_timer_seconds, it) } ?: stringResource(Res.string.setup_timer_none)
