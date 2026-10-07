@@ -77,7 +77,7 @@ class ChoicePickerTest {
     }
 
     @Test
-    fun modifierPickerSummarisesAndTogglesAndShowsValuesWhileOn() {
+    fun modifierPickerSummarisesAndTogglesAndShowsValuesOnlyWhileOn() {
         var on by mutableStateOf(false)
         var value by mutableStateOf(1)
         compose.setContent {
@@ -93,9 +93,11 @@ class ChoicePickerTest {
         }
         compose.onNodeWithText("None").assertExists()
         compose.onNodeWithText("None").performClick()
-        compose.onNodeWithText("30s").assertIsNotEnabled()
+        // The values are hidden while the modifier is off, and open out once it's on.
+        compose.onNodeWithText("30s").assertDoesNotExist()
         compose.onNodeWithText("Timer").performClick()
         assertEquals(true, on)
+        compose.onNodeWithText("30s").assertExists()
         compose.onNodeWithText("30s").performClick()
         compose.onNodeWithText("Done").performClick()
         assertEquals(0, value)
