@@ -15,10 +15,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -34,11 +34,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,13 +59,22 @@ import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.game.TieBreak
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_tied_rank
+import net.zodac.dicefive.resources.scores_empty
+import net.zodac.dicefive.resources.scores_header_player
+import net.zodac.dicefive.resources.scores_header_score
+import net.zodac.dicefive.resources.scores_next
+import net.zodac.dicefive.resources.scores_page
+import net.zodac.dicefive.resources.scores_previous
+import net.zodac.dicefive.resources.scores_title
 import net.zodac.dicefive.ui.common.LazyListScrollbar
 import net.zodac.dicefive.ui.common.OnDemandTooltip
-import net.zodac.dicefive.ui.common.SoraFontFamily
-import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
+import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.VerticalScrollbar
+import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.formatTimestamp
 import net.zodac.dicefive.ui.theme.Bronze
 import net.zodac.dicefive.ui.theme.Silver
@@ -124,7 +133,7 @@ fun ScoresScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    ScreenScaffold(title = "Leaderboard", onBack = onBack, modifier = modifier, driftingDice = driftingDice) {
+    ScreenScaffold(title = stringResource(Res.string.scores_title), onBack = onBack, modifier = modifier, driftingDice = driftingDice) {
         // Nothing but the title bar until the scores are read, so "No scores yet" never flashes up
         // before a leaderboard that has some.
         if (!state.isLoaded) return@ScreenScaffold
@@ -134,7 +143,7 @@ fun ScoresScreen(
             options = LeaderboardView.entries,
             selected = state.view,
             onSelect = viewModel::selectView,
-            label = { it.label },
+            label = { stringResource(it.label) },
             modifier = Modifier.fillMaxWidth(),
         )
         when (state.view) {
@@ -148,7 +157,7 @@ fun ScoresScreen(
 private fun NoScoresCard() {
     Card(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "No scores yet - play a game!",
+            text = stringResource(Res.string.scores_empty),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -334,9 +343,9 @@ private fun HeaderRow() {
             .padding(horizontal = 8.dp + 12.dp, vertical = 2.dp),
     ) {
         HeaderCell(text = "#", weight = columns.rank)
-        HeaderCell(text = "Player", weight = columns.player)
-        HeaderCell(text = "5x", weight = columns.fiveOfAKind, align = TextAlign.Center)
-        HeaderCell(text = "Score", weight = columns.score, align = TextAlign.End)
+        HeaderCell(text = stringResource(Res.string.scores_header_player), weight = columns.player)
+        HeaderCell(text = "5x", weight = columns.fiveOfAKind, align = TextAlign.Center) // i18n: not translated - the game's mark
+        HeaderCell(text = stringResource(Res.string.scores_header_score), weight = columns.score, align = TextAlign.End)
     }
 }
 
@@ -437,7 +446,7 @@ private fun ScoreRow(
             // the whole distinction, a second (font) one on top of it was redundant.
             Text(
                 // "=" only for a true tie (every tie-break criterion also matches) - see rankEntries.
-                text = if (isTrueTie) "=$rank" else rank.toString(),
+                text = if (isTrueTie) stringResource(Res.string.common_tied_rank, rank) else rank.toString(),
                 modifier = Modifier.weight(columns.rank),
                 style = MaterialTheme.typography.bodySmall,
                 color = accent ?: MaterialTheme.colorScheme.onSurfaceVariant,
@@ -508,15 +517,15 @@ private fun PaginationControls(
                 contentDescription = null,
                 modifier = Modifier.padding(end = 4.dp),
             )
-            Text("Previous")
+            Text(stringResource(Res.string.scores_previous))
         }
         Text(
-            text = "Page ${pageIndex + 1} of $totalPages",
+            text = stringResource(Res.string.scores_page, pageIndex + 1, totalPages),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         TextButton(onClick = onNext, enabled = hasNext) {
-            Text("Next")
+            Text(stringResource(Res.string.scores_next))
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,

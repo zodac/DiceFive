@@ -291,7 +291,7 @@ private fun PlayerCountSelector(count: Int, onCountChange: (Int) -> Unit) {
         options = (GameSetupState.MIN_PLAYERS..GameSetupState.MAX_PLAYERS).toList(),
         selected = count,
         onSelect = onCountChange,
-        label = Int::toString,
+        label = { it.toString() },
         modifier = Modifier.fillMaxWidth(),
         brandFont = true,
     )

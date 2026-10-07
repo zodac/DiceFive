@@ -46,18 +46,19 @@ fun <T> SegmentedChoiceRow(
     options: List<T>,
     selected: T,
     onSelect: (T) -> Unit,
-    label: (T) -> String,
+    label: @Composable (T) -> String,
     modifier: Modifier = Modifier,
     labelStyle: TextStyle = LocalTextStyle.current,
     glyph: (T) -> ImageVector? = { null },
     enabled: Boolean = true,
     contentPadding: PaddingValues = SegmentedButtonDefaults.ContentPadding,
-    spokenLabel: (T) -> String = label,
+    spokenLabel: @Composable (T) -> String = label,
     brandFont: Boolean = false,
 ) {
     SingleChoiceSegmentedButtonRow(modifier = modifier) {
         options.forEachIndexed { index, option ->
             val optionGlyph = glyph(option)
+            val spoken = spokenLabel(option)
             SegmentedButton(
                 selected = option == selected,
                 onClick = { onSelect(option) },
@@ -84,7 +85,7 @@ fun <T> SegmentedChoiceRow(
                             softWrap = false,
                             overflow = TextOverflow.Visible,
                             // What a screen reader says, when the drawn label is a shortened one.
-                            modifier = Modifier.semantics { contentDescription = spokenLabel(option) },
+                            modifier = Modifier.semantics { contentDescription = spoken },
                         )
                     }
                 },

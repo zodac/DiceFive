@@ -606,8 +606,8 @@
     <string name="gameover_play_again">Play Again</string>
     <!-- The winner's card: the trophy icon's name for TalkBack, and the label under their name. -->
     <string name="gameover_winner">Winner</string>
-    <!-- A runner-up's place when it's shared with another player ("=2"). The "=" is read as "equals" if spoken, so only drawn. -->
-    <string name="gameover_tied_rank">=%1$d</string>
+    <!-- A place shared with another player ("=2"), on the results and Leaderboard pages. The "=" is read as "equals" if spoken, so it is only drawn. -->
+    <string name="common_tied_rank">=%1$d</string>
 
     <!-- Tie-break reasons (game/TieBreak.kt): why a player ranks above another on the same score. Whole sentences. -->
     <string name="tiebreak_five_of_a_kind_count">Won on fewer 5x</string>
@@ -912,5 +912,51 @@
     <!-- The check badge on the style in use. -->
     <string name="styles_selected_cd">Selected</string>
     <string name="common_ok">OK</string>
+
+    <!-- Leaderboard (ui/scores/*) -->
+    <string name="scores_title">Leaderboard</string>
+    <!-- The two ways to read the board, switched at the top: every mode in one table, or one card per mode. -->
+    <string name="scores_view_combined">Combined</string>
+    <string name="scores_view_game_mode">Game Mode</string>
+    <string name="scores_empty">No scores yet - play a game!</string>
+    <!-- Column headings of the table ("#", "5x" and the score). -->
+    <string name="scores_header_player">Player</string>
+    <string name="scores_header_score">Score</string>
+    <string name="scores_previous">Previous</string>
+    <string name="scores_next">Next</string>
+    <string name="scores_page">Page %1$d of %2$d</string>
+
+    <!-- Statistics (ui/statistics/*) -->
+    <string name="stats_title">Statistics</string>
+    <string name="stats_empty">No stats yet - play a game!</string>
+    <string name="stats_delete_title">Delete stats?</string>
+    <!-- %1$s is the player's name. -->
+    <string name="stats_delete_message">Would you like to delete %1$s's stats? Their leaderboard scores will not be affected.</string>
+    <string name="stats_delete_confirm">Delete</string>
+    <!-- TalkBack's name for a long press on a player's card. -->
+    <string name="stats_delete_action">Delete %1$s's stats</string>
+    <!-- TalkBack's name for tapping a player's card to open or close it. -->
+    <string name="stats_show_action">Show details</string>
+    <string name="stats_hide_action">Hide details</string>
+    <string name="stats_expanded_spoken">Expanded</string>
+    <string name="stats_collapsed_spoken">Collapsed</string>
+    <!-- A player's card read aloud: sentences joined with common_sentences_join. Collapsed it is just this one. -->
+    <string name="stats_spoken_best">%1$s. Best score %2$s.</string>
+    <!-- %1$s is a date and time. -->
+    <string name="stats_spoken_first_played">First played %1$s.</string>
+    <string name="stats_spoken_record">Played %1$d, won %2$d, lost %3$d.</string>
+    <string name="stats_spoken_streaks">Win streak %1$d, best win streak %2$d.</string>
+    <string name="stats_spoken_scores">Total score %1$s. Average score %2$s.</string>
+    <string name="stats_spoken_fives_solo">%1$d 5x scored. %2$d solo games played.</string>
+    <string name="stats_first_played">First played</string>
+    <!-- Labels under each number on an opened card. -->
+    <string name="stats_played">Played</string>
+    <string name="stats_won">Won</string>
+    <string name="stats_lost">Lost</string>
+    <string name="stats_streak">Streak</string>
+    <string name="stats_best">Best</string>
+    <string name="stats_total_score">Total score</string>
+    <string name="stats_average">Average</string>
+    <string name="stats_solo">Solo</string>
 
 </resources>
