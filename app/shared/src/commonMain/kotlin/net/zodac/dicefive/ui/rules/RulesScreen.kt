@@ -154,7 +154,6 @@ import net.zodac.dicefive.resources.rules_hit_list_2
 import net.zodac.dicefive.resources.rules_hit_list_3
 import net.zodac.dicefive.resources.rules_hit_list_4
 import net.zodac.dicefive.resources.rules_hit_list_5
-import net.zodac.dicefive.resources.rules_hit_list_6
 import net.zodac.dicefive.resources.rules_hit_list_7
 import net.zodac.dicefive.resources.rules_hit_list_8
 import net.zodac.dicefive.resources.rules_hit_list_9
@@ -626,6 +625,7 @@ private val RULES_GROUPS = listOf(
                     text(Res.string.rules_hit_list_1),
                     text(Res.string.rules_hit_list_2),
                     target(4, 1, 3, 2, ANY_PLACE, points = 20),
+                    text(Res.string.rules_hit_list_7),
                     RulesCategory(named(Res.string.rules_name_hit), Res.string.rules_hit_list_3,
                         dice(2, 4, 1, 3, 5, counting = 4, score = points(20)).showing(RulesTile.Target(EXAMPLE_TARGET)),
                     ),
@@ -635,8 +635,6 @@ private val RULES_GROUPS = listOf(
                     RulesCategory(named(Res.string.rules_name_partial_hit), Res.string.rules_hit_list_5,
                         diceCounting(4, 1, 6, 2, 5, counting = setOf(0, 1, 3), score = points(10)).showing(RulesTile.Target(EXAMPLE_TARGET)),
                     ),
-                    text(Res.string.rules_hit_list_6),
-                    text(Res.string.rules_hit_list_7),
                     text(Res.string.rules_hit_list_8),
                     RulesCategory(mark("Alibi"), Res.string.rules_hit_list_9,
                         dice(2, 4, 1, 3, 5, counting = 4, score = points(20)).showing(RulesTile.Alibi),
