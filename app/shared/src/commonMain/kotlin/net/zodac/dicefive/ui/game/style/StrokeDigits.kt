@@ -146,7 +146,7 @@ private var latestArtSeconds = 0f
 /**
  * The time in seconds, ticking every frame for as long as it's composed - for art that moves on its
  * own (a neon tube's pulse, glitter's sparkles). Read it inside a draw block, not during composition,
- * so a tick only redraws. Stands still at 0 under reduced motion (see [TwinkleClock]), and holds still
+ * so a tick only redraws. Stands still at 0 below the High animation level (see [TwinkleClock]), and holds still
  * at the time it was made while [LocalArtFrozen] is true.
  */
 @Composable

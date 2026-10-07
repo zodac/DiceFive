@@ -136,11 +136,14 @@ private fun MacrobenchmarkScope.leaveGame() {
     await(By.text("Settings"), "the menu after leaving a game")
 }
 
-/** Settings, flipping one switch (and flipping it back) and opening the Licences and About dialogs. */
+/** Settings, flipping one switch (and flipping it back), picking an animation level (and back) and opening the Licences and About dialogs. */
 internal fun MacrobenchmarkScope.visitSettings() {
     tapText("Settings")
     tapText("Sound effects")
     tapText("Sound effects")
+    // Back to High: the journeys after this one are profiling the full animations.
+    tapText("Low")
+    tapText("High")
 
     // Each dialog is waited for by its Close button and left by it: the Settings page behind is
     // itself scrollable and has the same "Licences" text, so neither a scrollable nor a label says

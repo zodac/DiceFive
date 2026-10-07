@@ -720,7 +720,16 @@
     <string name="settings_version">Version %1$s</string>
     <string name="settings_sound">Sound effects</string>
     <string name="settings_vibration">Vibration</string>
-    <string name="settings_remove_animations">Remove animations</string>
+    <!-- The "Animations" setting: its label and each level's name. -->
+    <string name="settings_animations">Animations</string>
+    <string name="settings_animations_high">High</string>
+    <string name="settings_animations_medium">Medium</string>
+    <string name="settings_animations_low">Low</string>
+    <!-- Each level's initial, for a screen too narrow for the words (Off is drawn as a symbol). Initials must differ. -->
+    <string name="settings_animations_high_short">H</string>
+    <string name="settings_animations_medium_short">M</string>
+    <string name="settings_animations_low_short">L</string>
+    <string name="settings_animations_off">Off</string>
     <string name="settings_confirm_leaving">Confirm leaving game</string>
     <string name="settings_reset_achievements">Reset achievements</string>
     <string name="settings_reset_achievements_description">Lock every achievement again</string>

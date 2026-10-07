@@ -17,6 +17,7 @@ import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.nowEpochMillis
@@ -28,11 +29,11 @@ import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.ScoreFrames
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 
-/** The Settings screen's switches, as saved. */
+/** The Settings screen's switches and its animation level, as saved. */
 data class SettingsToggles(
     val soundEnabled: Boolean = true,
     val vibrationEnabled: Boolean = true,
-    val removeAnimations: Boolean = false,
+    val animationLevel: AnimationLevel = AnimationLevel.default,
     val confirmBeforeLeavingGame: Boolean = true,
 )
 
@@ -44,8 +45,8 @@ class SettingsViewModel(
 ) : ViewModel() {
 
     /**
-     * Null until every switch's saved value has loaded - all four together, so the screen never
-     * draws a switch in its default position for a frame before flipping it to the player's own.
+     * Null until every setting's saved value has loaded - all four together, so the screen never
+     * draws a setting in its default position for a frame before flipping it to the player's own.
      * With no repository, straight to the defaults.
      */
     val toggles: StateFlow<SettingsToggles?> = if (settingsRepository == null) {
@@ -54,7 +55,7 @@ class SettingsViewModel(
         combine(
             settingsRepository.soundEnabled,
             settingsRepository.vibrationEnabled,
-            settingsRepository.removeAnimations,
+            settingsRepository.animationLevel,
             settingsRepository.confirmBeforeLeavingGame,
             ::SettingsToggles,
         ).stateIn(viewModelScope, SharingStarted.Eagerly, null)
@@ -75,9 +76,9 @@ class SettingsViewModel(
         viewModelScope.launch { repository.setVibrationEnabled(enabled) }
     }
 
-    fun setRemoveAnimations(enabled: Boolean) {
+    fun setAnimationLevel(level: AnimationLevel) {
         val repository = settingsRepository ?: return
-        viewModelScope.launch { repository.setRemoveAnimations(enabled) }
+        viewModelScope.launch { repository.setAnimationLevel(level) }
     }
 
     /** Backs the one achievement this screen itself can earn - opening the About dialog

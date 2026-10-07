@@ -1,21 +1,32 @@
 package net.zodac.dicefive.ui.common
 
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * A single-choice segmented button row for a small, mutually exclusive option set that fits one
@@ -91,5 +102,61 @@ fun <T> SegmentedChoiceRow(
                 },
             )
         }
+    }
+}
+
+/**
+ * A [SegmentedChoiceRow] across its whole width whose text labels are sized together so they always match:
+ * [maxFontSize] when the widest fits its segment, stepping down to [MIN_READABLE_FONT_SIZE] when it doesn't, and
+ * only if even that is too wide - a narrow screen, a long translation - every option becomes its compact form at
+ * that size: [compactGlyph]'s icon where it gives one (the animation level's "Off"), otherwise [compactLabel] - the
+ * label's initial ("E / M / H") unless a translation needs its own, where two initials would be the same letter. A
+ * screen reader still hears the full label. [labelPadding] is each segment's side padding.
+ */
+@Composable
+fun <T> FittedSegmentedChoiceRow(
+    options: List<T>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    label: @Composable (T) -> String,
+    modifier: Modifier = Modifier,
+    maxFontSize: TextUnit = 14.sp,
+    labelPadding: Dp = 4.dp,
+    compactGlyph: (T) -> ImageVector? = { null },
+    compactLabel: @Composable (T) -> String = { label(it).take(1) },
+) {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val labels = options.associateWith { label(it) }
+    val compactLabels = options.associateWith { compactLabel(it) }
+    BoxWithConstraints(modifier = modifier) {
+        val textStyle = MaterialTheme.typography.labelLarge
+        val fit = remember(constraints.maxWidth, textStyle, density, labels) {
+            // A segment's width less its side padding and the 1dp outline each side; the row is infinite
+            // only in a measuring pass, where the largest size will do.
+            val room = with(density) { (constraints.maxWidth / options.size) - (labelPadding * 2 + 2.dp).roundToPx() }
+            if (constraints.maxWidth == Constraints.Infinity) {
+                FontFit(maxFontSize, wraps = false)
+            } else {
+                FontFitCache.getOrPut(FontFitKey(options.map(labels::getValue), textStyle.copy(fontSize = maxFontSize), MIN_READABLE_FONT_SIZE, 0.5.sp, room, density.density, density.fontScale)) {
+                    fitFontSize(maxFontSize, MIN_READABLE_FONT_SIZE, 0.5.sp) { size ->
+                        options.all {
+                            measurer.measure(text = labels.getValue(it), style = textStyle.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= room
+                        }
+                    }
+                }
+            }
+        }
+        SegmentedChoiceRow(
+            options = options,
+            selected = selected,
+            onSelect = onSelect,
+            label = { if (fit.wraps && compactGlyph(it) == null) compactLabels.getValue(it) else labels.getValue(it) },
+            spokenLabel = { labels.getValue(it) },
+            modifier = Modifier.fillMaxWidth(),
+            labelStyle = textStyle.copy(fontSize = fit.size),
+            glyph = { if (fit.wraps) compactGlyph(it) else null },
+            contentPadding = PaddingValues(horizontal = labelPadding),
+        )
     }
 }

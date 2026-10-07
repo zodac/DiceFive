@@ -12,9 +12,12 @@ import androidx.compose.runtime.MonotonicFrameClock
 import androidx.compose.ui.platform.AndroidUiDispatcher
 import androidx.compose.ui.platform.compositionContext
 import androidx.compose.ui.platform.createLifecycleAwareWindowRecomposer
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import net.zodac.dicefive.device.AndroidAppContainer
 import net.zodac.dicefive.device.AndroidPlatformServices
 import net.zodac.dicefive.device.CappedFrameClock
+import net.zodac.dicefive.device.preferRefreshRateFor
 import net.zodac.dicefive.ui.DiceFiveApp
 import net.zodac.dicefive.ui.common.stringsLanguageConfiguration
 
@@ -41,12 +44,16 @@ class MainActivity : ComponentActivity() {
         val container = AndroidAppContainer.get(this)
         val platform = AndroidPlatformServices(this)
         // The window's recomposer, built as Compose would build it itself, but on a frame clock that can be capped
-        // at 30fps for the player's "Remove animations" - see CappedFrameClock. setContent's ComposeView finds it
-        // on the decor view, its parent, and composes with it instead of making its own.
+        // for the player's "Animations" level - see CappedFrameClock. setContent's ComposeView finds it on the
+        // decor view, its parent, and composes with it instead of making its own.
         if (useCappedFrameClock) {
             val ui = AndroidUiDispatcher.CurrentThread
             val frameClock = CappedFrameClock(checkNotNull(ui[MonotonicFrameClock]) { "The UI dispatcher has no frame clock" })
             window.decorView.compositionContext = window.decorView.createLifecycleAwareWindowRecomposer(ui + frameClock, lifecycle)
+        }
+        // And a capped level asks the screen for 60Hz where it can drop to it, rather than only skipping its refreshes.
+        lifecycleScope.launch {
+            CappedFrameClock.maxFramesPerSecondChanges.collect { window.preferRefreshRateFor(it) }
         }
         setContent {
             DiceFiveApp(container = container, platform = platform)

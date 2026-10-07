@@ -57,9 +57,9 @@ class AndroidPlatformServices(context: Context) : PlatformServices {
         awaitClose { resolver.unregisterContentObserver(observer) }
     }.distinctUntilChanged()
 
-    /** Caps the frame clock `MainActivity` gives its window's recomposer - see [CappedFrameClock]. */
-    override fun capFrameRate(capped: Boolean) {
-        CappedFrameClock.capped = capped
+    /** Caps the frame clock `MainActivity` gives its window's recomposer, which also asks the screen for 60Hz - see [CappedFrameClock]. */
+    override fun capFrameRate(maxFramesPerSecond: Int?) {
+        CappedFrameClock.maxFramesPerSecond = maxFramesPerSecond
     }
 
     override fun showTransientMessage(message: String) {

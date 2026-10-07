@@ -852,9 +852,9 @@ dependencies — most unit tests live here.
   start until this one's dice are at rest, and the cup reads as disabled to TalkBack meanwhile
   (`CupPanelState.rollInHand`; `GameScreenCupGateTest`). Quickfire's auto-roll is keyed on it as
   well, so a turn that starts mid-settle rolls once the dice land. The CPU already waited the same
-  `diceTossMillis` after each roll in its own loop. Under reduced motion - the Settings switch
-  "Remove animations" (`SettingsRepository.removeAnimations`, off by default; it replaced the
-  older "Simple dice roll") or the system's own - none of this plays: the dice stay where they lie
+  `diceTossMillis` after each roll in its own loop. Under reduced motion - the Settings
+  "Animations" level at Off (`SettingsRepository.animationLevel`, High by default; it replaced the
+  "Remove animations" switch, which replaced "Simple dice roll") or the system's own - none of this plays: the dice stay where they lie
   through the shake and snap to their result as it lands, scoring opens straight away, and a CPU
   doesn't wait for a toss (`GameViewModel.diceAnimated`) - see UI.md's "Reduced motion".
   Shadows: dice on the mat don't draw their own drop shadow (`LocalDieCastsShadow` off - every style
@@ -2485,3 +2485,26 @@ and its `GameMode` fields (`turnTimerSeconds`, `timeoutPick`, `autoRollAtTurnSta
       app). Guarded: the score ladder, Cold Dice, Low Rolls, Zero To Hero and Spotless - see `GAME_MODES.md`.
 - [ ] **Not seen on a device**: the target tiles at a real phone's density, TalkBack on them and the Alibi, the locked
       Extended Scores row, and how a game plays.
+
+### Phase 32 — Animation levels
+
+The Settings switch "Remove animations" became an **Animations** level - High, Medium, Low, Off - for slower phones
+and longer battery life, without changing what the game does. UI.md's "Reduced motion" has the table and the rules.
+
+- [x] **`AnimationLevel`** (`data/settings`): `ambientMotion`, `gameplayMotion`, `scorePulse`, `maxFramesPerSecond`.
+      Saved by name (`animation_level`); the old switch on reads as Off, off as High, and is dropped on the first save
+      (`AnimationLevelSettingTest`).
+- [x] **Medium and Low still the decoration that loops while nothing happens** (`ambientMotion`): drifting and
+      floating dice, twinkles and art clocks, the cups' ambient cycle, googly pupils - each in its existing
+      reduced-motion pose. Gameplay motion (shake, pour, toss, banners, fireworks, page fades) plays at every level
+      but Off. Low also makes the score tile's glow steady (`scorePulse`); the turn timer still flashes.
+- [x] **Frames**: High uncapped; Medium 60 (45-60 where the screen can't drop to 60Hz - agreed with the maintainer);
+      Low and Off 30. A capped level asks the window for the lowest refresh rate from 60Hz up.
+      `CappedFrameClockTest`, `RefreshRateTest`, `AnimationLevelMotionTest`.
+- [x] **Settings row** (`SegmentedSetting`), like the AI difficulty picker as the maintainer asked: four segments
+      under the label, in a card of its own between the switches and the resets, with no description line. `DifficultySelector`'s shrink-then-initials
+      fitting is now `FittedSegmentedChoiceRow`, shared, with per-language initials and a glyph for Off. Rendered in
+      English (411/320dp), Spanish (411/360dp) and Arabic (411/320dp); Spanish "Off" is "No" so the words fit
+      (`SettingsRowsTest`).
+- [ ] **Not seen on a device**: the refresh-rate request on a 90/120Hz phone, TalkBack on the row and its list, and
+      the Spanish and Arabic level names and lines (written here, not by a translator).

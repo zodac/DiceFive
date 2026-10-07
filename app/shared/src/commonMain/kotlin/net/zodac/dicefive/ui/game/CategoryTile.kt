@@ -45,6 +45,7 @@ import net.zodac.dicefive.model.HitTarget
 import net.zodac.dicefive.model.PlaceMatch
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.scorePulse
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.palette
 import net.zodac.dicefive.ui.theme.GoldAccent
@@ -228,9 +229,9 @@ private const val DISABLED_CORNER_RADIUS_FRACTION = 0.2f
  */
 @Composable
 private fun BoxScope.GlowBorder(shape: Shape) {
-    // Under reduced motion, just a plain gold border at full strength - no pulse, and no layer for one:
-    // still the gold that marks a good pick.
-    if (LocalReduceMotion.current) {
+    // At the Low and Off animation levels (and under reduced motion), just a plain gold border at full strength -
+    // no pulse, and no layer for one: still the gold that marks a good pick.
+    if (!scorePulse) {
         Box(modifier = Modifier.matchParentSize().border(width = 2.dp, color = GoldAccent, shape = shape))
         return
     }

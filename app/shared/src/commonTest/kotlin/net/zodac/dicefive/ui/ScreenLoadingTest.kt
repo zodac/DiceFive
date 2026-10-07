@@ -28,6 +28,7 @@ import net.zodac.dicefive.data.scores.PlayerGame
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
@@ -102,7 +103,7 @@ class ScreenLoadingTest {
     fun `settings switches arrive together with their saved values and never as defaults`() = runTest(testDispatcher) {
         val repository = SettingsRepository(LoadingPreferencesStore())
         repository.setSoundEnabled(false)
-        repository.setRemoveAnimations(true)
+        repository.setAnimationLevel(AnimationLevel.LOW)
 
         val viewModel = SettingsViewModel(settingsRepository = repository)
         assertNull(viewModel.toggles.value)
@@ -115,7 +116,7 @@ class ScreenLoadingTest {
         // advanceUntilIdle stops once only background work is left - the collector above included.
         runCurrent()
 
-        val expected = SettingsToggles(soundEnabled = false, vibrationEnabled = true, removeAnimations = true, confirmBeforeLeavingGame = true)
+        val expected = SettingsToggles(soundEnabled = false, vibrationEnabled = true, animationLevel = AnimationLevel.LOW, confirmBeforeLeavingGame = true)
         assertEquals(listOf(expected), shown)
     }
 

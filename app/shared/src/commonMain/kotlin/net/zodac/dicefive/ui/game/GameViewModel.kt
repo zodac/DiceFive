@@ -191,7 +191,7 @@ class GameViewModel(
 
     /**
      * Whether the screen animates the dice - tossing them onto the mat, dropping a released one back onto it.
-     * False under reduced motion (the player's "Remove animations" or the system's), where they just snap to
+     * False under reduced motion (the player's "Animations" at Off, or the system's), where they just snap to
      * where they end up, so a CPU has nothing to wait for. Set by the screen.
      */
     @Volatile
