@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.common
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -12,9 +13,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
 /**
@@ -116,7 +119,12 @@ fun DiceFiveDialog(
             Button(onClick = onConfirm) { Text(confirmLabel) }
         },
         dismissButton = if (dismissLabel != null && onDismiss != null) {
-            { FilledTonalButton(onClick = onDismiss) { Text(dismissLabel) } }
+            {
+                // M3's AlertDialog spaces its two buttons 8dp apart left to right, but right to left they touch
+                // (DialogButtonGapTest), so the gap is added there - the left to right layout stays as it was.
+                val gap = if (LocalLayoutDirection.current == LayoutDirection.Rtl) DIALOG_BUTTON_GAP else 0.dp
+                FilledTonalButton(onClick = onDismiss, modifier = Modifier.padding(end = gap)) { Text(dismissLabel) }
+            }
         } else {
             null
         },
@@ -127,3 +135,6 @@ fun DiceFiveDialog(
         tonalElevation = 6.dp,
     )
 }
+
+/** The space M3 leaves between a dialog's two buttons. */
+private val DIALOG_BUTTON_GAP = 8.dp
