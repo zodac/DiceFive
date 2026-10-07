@@ -10,7 +10,9 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -20,6 +22,8 @@ import net.zodac.dicefive.ui.theme.GoldAccent
 // A strawberry's size, as a fraction of the pip area, and how far apart they sit (see drawPipPositions).
 private const val STRAWBERRY_RADIUS_FRACTION = 0.14f
 private const val STRAWBERRY_SPREAD = 1.07f
+// Where the berries are laid out: StyledDie's usual pip area.
+private val CAKE_PIP_AREA_INSET = 6.dp
 
 // The piped border: how many rosettes run along each side, and how far in from the edge they sit, as
 // fractions of the face.
@@ -66,15 +70,27 @@ class CakeDiceStyle(
             pipColor = berry.base,
             pipShape = PipShape.CUSTOM,
             heldRingColor = heldRing,
-            customPips = { drawCachedSurface(CakeBerries(value, berry, leaf, seed, dollop, pattern)) { drawBerries(value, pattern) } },
         ) {
-            drawCachedSurface(CakeTop(frosting, shade, pattern)) { paintFrosting(frosting, shade, pattern) }
+            // The frosting and the berries on it, painted together once: one image to draw (and to turn, through a toss), not two.
+            drawCachedSurface(CakeFace(value, frosting, shade, berry, leaf, seed, dollop, pattern)) {
+                paintFrosting(frosting, shade, pattern)
+                // Laid out in StyledDie's usual pip area, as its own pips would be.
+                val pad = CAKE_PIP_AREA_INSET.toPx()
+                inset(pad, pad) { drawBerries(value, pattern) }
+            }
         }
     }
 
-    private data class CakeBerries(val value: Int, val berry: Shades, val leaf: Shades, val seed: Color, val dollop: Color?, val pattern: Int)
-
-    private data class CakeTop(val frosting: Color, val shade: Color, val pattern: Int)
+    private data class CakeFace(
+        val value: Int,
+        val frosting: Color,
+        val shade: Color,
+        val berry: Shades,
+        val leaf: Shades,
+        val seed: Color,
+        val dollop: Color?,
+        val pattern: Int,
+    )
 
     private fun DrawScope.drawBerries(value: Int, pattern: Int) {
         // Six berries are packed closer, so a touch smaller.

@@ -2,8 +2,10 @@ package net.zodac.dicefive.ui.game.style
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 
@@ -133,13 +135,27 @@ internal class StrokeDigitPath(
 )
 
 /**
+ * Whether the art below should hold still: [rememberArtSeconds] stops updating, so nothing that reads it is
+ * redrawn. For dice faces tumbling through a toss, where nobody can see them move - see [TossedCube].
+ */
+internal val LocalArtFrozen = compositionLocalOf { false }
+
+// The last tick of any art clock, for a clock that starts later (a die's face made mid-roll) to start from.
+private var latestArtSeconds = 0f
+
+/**
  * The time in seconds, ticking every frame for as long as it's composed - for art that moves on its
  * own (a neon tube's pulse, glitter's sparkles). Read it inside a draw block, not during composition,
- * so a tick only redraws. Stands still at 0 under reduced motion (see [TwinkleClock]).
+ * so a tick only redraws. Stands still at 0 under reduced motion (see [TwinkleClock]), and holds still
+ * at the time it was made while [LocalArtFrozen] is true.
  */
 @Composable
 internal fun rememberArtSeconds(): State<Float> {
-    val seconds = remember { mutableFloatStateOf(0f) }
-    TwinkleClock { seconds.floatValue = it }
+    val frozen = rememberUpdatedState(LocalArtFrozen.current)
+    val seconds = remember { mutableFloatStateOf(latestArtSeconds) }
+    TwinkleClock {
+        latestArtSeconds = it
+        if (!frozen.value) seconds.floatValue = it
+    }
     return seconds
 }

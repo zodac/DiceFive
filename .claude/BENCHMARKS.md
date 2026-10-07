@@ -445,7 +445,7 @@ frame) measured 10-12ms; Neon (nine strokes of halo per digit rebuilt every fram
 Quality given up: Neon's core dims a little at the bottom of the pulse (the whole tube fades, not just the halo); a pale
 Wave's glow is one hue across the face. Not measured on a device.
 
-### The tumble (reviewed, not changed)
+### The tumble (first step done: faces drawn once, into layers)
 
 Seven tumbling dice cost 12-20ms p95 for any style and 6.9 for a die that draws nothing, so the cost is the tumble
 (`TossedCube`, `RollingDie.kt`), not the styles. Composition and layout are ~0.8ms of a ~13ms frame (measured separately):
@@ -464,9 +464,34 @@ it is all draw. Every frame, for each die's two faces in view:
   every frame with `offset(x, y)` (a layout change, not a layout-lambda), and `GroundShadow` re-creates its `Outline` and draws it four times per die.
 
 The p95 is not much above the p50 in the row harness (1-2ms), so these are not spikes but a steady heavy frame; the larger
-spikes seen in full-tray runs (the blank die's max of 57ms) were the harness's own capture. Ideas, untried: rasterise each
-face once per (style, value, size) to an image and draw only that under the matrix, so the cost stops depending on the style;
-keep the layer at the die's size and cut the face to its silhouette; read `roll` in a draw/layer lambda; move the tray's offsets to lambdas.
+spikes seen in full-tray runs (the blank die's max of 57ms) were the harness's own capture.
+
+**Done:** `TossedCube` now records each face once into its own `GraphicsLayer` at the die's size (`FaceLayers`, offscreen,
+released with the die) and each frame only shades (a `ColorFilter` matrix on the layer, the same darkening) and draws that
+layer under the perspective matrix, clipped to the silhouette. No 2x layers, no `SrcAtop` rect, no face redrawn into a bigger
+buffer. The renders match the old ones frame for frame. Seven tumbling dice, p95 (ms), before -> after:
+blank 7-9 -> 5; Classic ivory 14-16 -> 12; Glitch black 14-16 -> 11-12; Neon 16-17 -> 13; RGB Rainbow 17 -> 15;
+Marble 19-22 -> 16; Obsidian lava 20 -> 15-16; Cake chocolate 18-21 -> 16.
+
+**Then:** (1) the Cake's frosting and berries are one cached image per face, not two - same pixels (rendered before and
+after, held ring and tumble included), one image less to turn per face. (2) **Animation is held still through the tumble**:
+`TossedCube` provides `LocalArtFrozen` to a face, true unless it is the face the die lands on and the roll is in its last
+quarter-turn; `rememberArtSeconds` then stops updating (so a face's art isn't re-recorded every frame), a clock made mid-roll
+starts from the last tick (`latestArtSeconds`) instead of 0, and Glitch draws its clean face while frozen (never stuck
+mid-burst). The cost: when the landing face thaws its clock jumps by the toss's elapsed time (an RGB hue, a Neon pulse phase).
+Against Classic ivory in the same run (this host swung ivory from 11.7 to 16.8 between runs, so only same-run differences
+mean anything), median of three, tumbling p95: Glitch black -1.7, Neon +0.3, RGB White Wave +1.8, Cake chocolate +2.3, RGB
+Rainbow +4.3 - they were each 3-5 above before.
+
+**Still over 10ms**, and where it is: with the layers not drawn at all, every style tumbles in 5-6ms - that is the floor now
+(composition, shadow-less layout, the body `Canvas`, the clip). The other 6-10ms is drawing the 14 layers under the matrix.
+Under Robolectric's CPU Skia that replays each layer's recorded art through the perspective every frame; on a device the layer
+is an offscreen texture and it is a textured quad, so this part is probably overstated here (not measured on a device).
+The clip is not the cost (the same with the clip removed). **Next, untried:** snapshot each face to an `ImageBitmap`
+(`GraphicsLayer.toImageBitmap`, suspend, with a fallback to the layer until it's ready) so the toss draws a bitmap, not
+the style's art - at the price of a style's animation (neon's pulse, RGB's cycle, glitch) holding still through the 0.9s toss
+unless the snapshot is refreshed; and the tray's own per-frame work (`toss.value` read in composition, `offset(x, y)`, the
+four-pass `GroundShadow`), which the row harness leaves out.
 
 ## Still on the table
 

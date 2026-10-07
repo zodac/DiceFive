@@ -96,10 +96,13 @@ class GlitchDiceStyle(
     override fun Die(value: Int, held: Boolean, modifier: Modifier) {
         val dieIndex = LocalDieIndex.current
         val seconds = rememberArtSeconds()
+        // Frozen (tumbling), it's held at its clean face - never stuck mid-burst.
+        val frozen = LocalArtFrozen.current
         Canvas(modifier = modifier.dieShadow(RoundedCornerShape(GLITCH_CORNER_PERCENT))) {
-            val strength = glitchStrength(dieIndex, seconds.value)
-            val slot = floor(seconds.value / GLITCH_SLOT_SECONDS).toInt()
-            val edge = if (strength == 0f) edgeGlitch(dieIndex, seconds.value) else null
+            val now = if (frozen) 0f else seconds.value
+            val strength = glitchStrength(dieIndex, now)
+            val slot = floor(now / GLITCH_SLOT_SECONDS).toInt()
+            val edge = if (strength == 0f) edgeGlitch(dieIndex, now) else null
             if (strength == 0f) {
                 drawGlitchFace(value, fringe = 0.7.dp.toPx())
                 if (edge != null) drawEdgeGlitch(value, Random(dieIndex * 389 + edge))

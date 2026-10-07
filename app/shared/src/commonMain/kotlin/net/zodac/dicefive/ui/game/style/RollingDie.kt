@@ -6,21 +6,29 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.RememberObserver
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.layer.CompositingStrategy
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalGraphicsContext
+import androidx.compose.ui.unit.IntSize
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -154,6 +162,10 @@ private const val CUBE_EYE_DISTANCE = 4f
  * the die's own [cornerPercent] corners, so the rounded edge between the two faces is solid die rather than
  * a notch the mat shows through. [ring] is the faces round the axis it's rolling about - see
  * [faceRing] - so rolling forward and back again brings the same faces round, like a real die.
+ *
+ * Each face is drawn by its style once, into a layer of its own at the die's size ([FaceLayers]), and
+ * only that layer is turned and drawn on each frame of the toss - so what a tumble costs doesn't depend
+ * on how much the style paints, and no face is drawn into a buffer larger than itself.
  */
 @Composable
 fun TossedCube(
@@ -168,6 +180,8 @@ fun TossedCube(
     fun faceAt(turn: Int) = ring[(turn - finalTurns).mod(ring.size)]
     val base = floor(roll).toInt()
     val tipped = (roll - base) * 90f
+    val graphics = LocalGraphicsContext.current
+    val layers = remember(graphics) { FaceLayers(graphics) }
     BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
         val side = constraints.maxWidth.toFloat()
         val dieWidth = maxWidth
@@ -185,45 +199,73 @@ fun TossedCube(
             convexHull(projections.flatMap { projection -> corners.map { projection.map(it) } }),
             side * cornerPercent / 100f,
         )
-        if (faces.size > 1) {
-            Canvas(modifier = Modifier.size(dieWidth, dieHeight)) {
+        // Each face in view draws itself into its layer - and nothing else; it's the Canvas below that shows it.
+        for ((value, _, _) in faces) {
+            key(value) {
+                Box(
+                    modifier = Modifier
+                        .requiredSize(dieWidth, dieHeight)
+                        .drawWithContent {
+                            val layer = layers.of(value)
+                            layer.record(size = IntSize(size.width.roundToInt(), size.height.roundToInt())) { this@drawWithContent.drawContent() }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    // Held still through the tumble - nobody sees a spinning face move, and it saves redrawing it - except
+                    // the face it's landing on, once it turns up for the last time.
+                    CompositionLocalProvider(LocalArtFrozen provides !(value == ring[0] && roll >= finalTurns - 1f)) {
+                        face(value, Modifier.size(dieWidth, dieHeight))
+                    }
+                }
+            }
+        }
+        Canvas(modifier = Modifier.size(dieWidth, dieHeight)) {
+            if (faces.size > 1) {
                 // A shade darker than the faces: the edge rounds away from the light.
                 drawPath(silhouette, lerp(body, Color.Black, 0.18f))
             }
-        }
-        for ((index, faceInView) in faces.withIndex()) {
-            val (value, _, facing) = faceInView
-            val projection = projections[index]
-            // Drawn in a layer twice the die's size, so a face swung up past the die's own square
-            // isn't clipped, and off-screen so the shading only darkens the face itself.
-            Box(
-                modifier = Modifier
-                    .requiredSize(dieWidth * 2, dieHeight * 2)
-                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                    .drawWithContent {
-                        val inset = side / 2f
-                        clipPath(Path().apply { addPath(silhouette, Offset(inset, inset)) }) {
-                            withTransform({
-                                translate(inset, inset)
-                                transform(projection)
-                                translate(-inset, -inset)
-                            }) {
-                                this@drawWithContent.drawContent()
-                                drawRect(
-                                    Color.Black.copy(alpha = (1f - facing) * 0.45f),
-                                    topLeft = Offset(inset, inset),
-                                    size = Size(side, side),
-                                    blendMode = BlendMode.SrcAtop,
-                                )
-                            }
-                        }
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                face(value, Modifier.size(dieWidth, dieHeight))
+            clipPath(silhouette) {
+                for ((index, faceInView) in faces.withIndex()) {
+                    val (value, _, facing) = faceInView
+                    val layer = layers.of(value)
+                    // Darkened as it turns away from the light: the face's colours, scaled, its opacity as it was.
+                    val shade = 1f - (1f - facing) * 0.45f
+                    layer.colorFilter = ColorFilter.colorMatrix(
+                        ColorMatrix(
+                            floatArrayOf(
+                                shade, 0f, 0f, 0f, 0f,
+                                0f, shade, 0f, 0f, 0f,
+                                0f, 0f, shade, 0f, 0f,
+                                0f, 0f, 0f, 1f, 0f,
+                            ),
+                        ),
+                    )
+                    withTransform({ transform(projections[index]) }) { drawLayer(layer) }
+                }
             }
         }
     }
+}
+
+/**
+ * The layers [TossedCube] draws each face into, by the face's value - made when first wanted, as
+ * offscreen layers (painted once, composited from then on) and let go when the die is.
+ */
+private class FaceLayers(private val context: GraphicsContext) : RememberObserver {
+    private val layers = HashMap<Int, GraphicsLayer>()
+
+    fun of(value: Int): GraphicsLayer = layers.getOrPut(value) {
+        context.createGraphicsLayer().apply { compositingStrategy = CompositingStrategy.Offscreen }
+    }
+
+    override fun onRemembered() = Unit
+
+    override fun onForgotten() {
+        layers.values.forEach { context.releaseGraphicsLayer(it) }
+        layers.clear()
+    }
+
+    override fun onAbandoned() = onForgotten()
 }
 
 /**
