@@ -39,8 +39,8 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -63,27 +63,36 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.time.TimeSource
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.achievements.AchievementEvent
-import net.zodac.dicefive.data.achievements.UnlockedStyle
 import net.zodac.dicefive.data.achievements.AchievementEvents
+import net.zodac.dicefive.data.achievements.UnlockedStyle
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.achievements_banner_pause_action
+import net.zodac.dicefive.resources.achievements_banner_paused_spoken
+import net.zodac.dicefive.resources.achievements_banner_progress_spoken
+import net.zodac.dicefive.resources.achievements_banner_resume_action
+import net.zodac.dicefive.resources.achievements_banner_resumed_spoken
+import net.zodac.dicefive.resources.achievements_banner_unlocked_spoken
+import net.zodac.dicefive.resources.achievements_banner_unlocked_style_spoken
+import net.zodac.dicefive.resources.achievements_progress
+import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
+import net.zodac.dicefive.ui.common.ConfigureOverlayDialogWindow
+import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.ShrinkThenWrapText
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
+import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.game.LocalLeaveGameConfirmation
 import net.zodac.dicefive.ui.game.style.unlocksStyle
 import org.jetbrains.compose.resources.stringResource
-import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
-import net.zodac.dicefive.ui.common.LocalReduceMotion
-import net.zodac.dicefive.ui.common.ConfigureOverlayDialogWindow
-import net.zodac.dicefive.ui.common.ShrinkThenWrapText
-import net.zodac.dicefive.ui.common.grouped
 
 /**
  * How long a banner sits at full opacity before it starts to go - with the fades either side, 5s on
@@ -348,6 +357,10 @@ private fun BannerSlot(
     // A tap pauses the countdown until the next tap; see the class doc. holdRemainingMillis is what's
     // left of the hold, so a resume carries on from where the pause landed instead of starting over.
     var held by remember { mutableStateOf(false) }
+    val pauseLabel = stringResource(Res.string.achievements_banner_pause_action)
+    val resumeLabel = stringResource(Res.string.achievements_banner_resume_action)
+    val pausedText = stringResource(Res.string.achievements_banner_paused_spoken)
+    val resumedText = stringResource(Res.string.achievements_banner_resumed_spoken)
     var holdRemainingMillis by remember { mutableLongStateOf(HOLD_MILLIS) }
     val indicatorAlpha = remember { Animatable(0f) }
     var indicatorShowsPause by remember { mutableStateOf(true) }
@@ -409,7 +422,7 @@ private fun BannerSlot(
                 if (interactive) {
                     // The tap has to be reachable without the raw gesture below: TalkBack gets it as an action.
                     Modifier.semantics(mergeDescendants = true) {
-                        onClick(label = if (held) "Resume countdown" else "Pause countdown") {
+                        onClick(label = if (held) resumeLabel else pauseLabel) {
                             held = !held
                             indicatorShowsPause = held
                             indicatorTick++
@@ -505,7 +518,7 @@ private fun BannerSlot(
             Icon(
                 imageVector = if (indicatorShowsPause) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                 // Only announced while it's on screen; the tap itself is the semantics action above.
-                contentDescription = if (indicatorAlpha.value > 0f) (if (indicatorShowsPause) "Paused" else "Resumed") else null,
+                contentDescription = if (indicatorAlpha.value > 0f) (if (indicatorShowsPause) pausedText else resumedText) else null,
                 modifier = Modifier.padding(4.dp).size(20.dp),
             )
         }
@@ -571,10 +584,11 @@ private fun UnlockedBanner(achievement: Achievement) {
     val description = stringResource(achievement.description)
     Surface(
         modifier = Modifier.fillMaxWidth().announced(
-            buildString {
-                append("Achievement unlocked: $title. $description")
-                if (achievement.unlocksStyle) append(". Unlocks a style")
-            },
+            stringResource(
+                if (achievement.unlocksStyle) Res.string.achievements_banner_unlocked_style_spoken else Res.string.achievements_banner_unlocked_spoken,
+                title,
+                description,
+            ),
         ),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.primaryContainer,
@@ -681,7 +695,7 @@ private fun ProgressBanner(achievement: Achievement, previous: Int, current: Int
 
     Surface(
         // The final count, not the climbing one - announcing every step of the climb would be noise.
-        modifier = Modifier.fillMaxWidth().announced("$title: ${current.grouped()} of ${achievement.target.grouped()}"),
+        modifier = Modifier.fillMaxWidth().announced(stringResource(Res.string.achievements_banner_progress_spoken, title, current.grouped(), achievement.target.grouped())),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -702,7 +716,7 @@ private fun ProgressBanner(achievement: Achievement, previous: Int, current: Int
                 ) {
                     BannerTitle(title, modifier = Modifier.weight(1f, fill = false))
                     Text(
-                        text = "${displayedValue.grouped()} of ${achievement.target.grouped()}",
+                        text = stringResource(Res.string.achievements_progress, displayedValue.grouped(), achievement.target.grouped()),
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }
