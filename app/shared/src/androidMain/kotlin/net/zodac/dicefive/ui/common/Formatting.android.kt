@@ -46,8 +46,15 @@ internal actual fun formatGrouped(number: Int, languageTag: String): String {
     return format.format(number)
 }
 
-internal actual fun formatList(items: List<String>, languageTag: String): String =
-    ListFormatter.getInstance(Locale.forLanguageTag(languageTag)).format(items)
+// Kept until the language changes, like the ordinal format: every spoken list on a page (the Rules examples' dice) asked
+// for a new one.
+private var listFormat: Pair<String, ListFormatter>? = null
+
+internal actual fun formatList(items: List<String>, languageTag: String): String {
+    val format = listFormat?.takeIf { it.first == languageTag }?.second
+        ?: ListFormatter.getInstance(Locale.forLanguageTag(languageTag)).also { listFormat = languageTag to it }
+    return format.format(items)
+}
 
 private var integerFormat: Pair<String, NumberFormat>? = null
 
@@ -57,5 +64,10 @@ internal actual fun formatInteger(number: Int, languageTag: String): String {
     return format.format(number)
 }
 
+// Kept until the language changes: every string with an argument asks (see fill), many times a page.
+private var rightToLeft: Pair<String, Boolean>? = null
+
 internal actual fun isRightToLeft(languageTag: String): Boolean =
-    TextUtils.getLayoutDirectionFromLocale(Locale.forLanguageTag(languageTag)) == View.LAYOUT_DIRECTION_RTL
+    rightToLeft?.takeIf { it.first == languageTag }?.second
+        ?: (TextUtils.getLayoutDirectionFromLocale(Locale.forLanguageTag(languageTag)) == View.LAYOUT_DIRECTION_RTL)
+            .also { rightToLeft = languageTag to it }

@@ -105,16 +105,18 @@ changed something there.
 
 ### Rules page (`ui/rules/RulesScreen.kt`)
 
-Add a `RulesPage` titled `"Mode: <Name>"`, with the bare mode name as its `tabLabel`, to the end of
-`RULES_PAGES`. Describe it relative to
+Add a `RulesPage` titled with the mode's name, and the same (or a shorter form) as its `tabLabel`, to the end of
+the Modes group in `RULES_GROUPS` (after its overview and the other modes, before the Modifiers group). If the mode's
+scores go on the Leaderboard (`countsOnLeaderboard`), add it to the list of those in the overview (`rules_modes_3`).
+Describe it relative to
 Standard ("A custom mode extending the *Standard* game mode...") and say what stays the same. Build
 it from the page's block types, not hand-typed markup: `text(...)` for a paragraph, `RulesStep` for
 an ordered list, and `RulesCategory` (name, what it takes, an example `dice(...)` row) for each new
 scoring category - its points go in the example row's score, not the text. Style text to the one
 convention in `RulesPage`'s doc comment: `` `backticks` `` (gold monospace) for a scoring category's
 name, `*italic*` for a section, mode or setting name, `**bold**` only for points or a count, no dashes as bullets or asides, no dice written out as
-text. The pager
-and tab row size themselves from the list. Update the page each time the mode's rules change -
+text. The pager,
+both tab rows and the footer's count size themselves from the groups. Update the page each time the mode's rules change -
 Quickfire's changed three times after it was written.
 
 ### New categories

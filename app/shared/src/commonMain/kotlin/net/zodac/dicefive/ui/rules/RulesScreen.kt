@@ -5,6 +5,8 @@ import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -29,11 +32,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
+import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabPosition
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -41,6 +46,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -61,8 +68,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CollectionInfo
 import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -76,21 +87,22 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlin.math.roundToInt
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.HitTarget
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.resources.Res
-import net.zodac.dicefive.resources.common_page_of
 import net.zodac.dicefive.resources.rules_5x_and_joker_1
 import net.zodac.dicefive.resources.rules_5x_and_joker_2
 import net.zodac.dicefive.resources.rules_5x_and_joker_3
@@ -115,6 +127,16 @@ import net.zodac.dicefive.resources.rules_example_tile_alibi_spoken
 import net.zodac.dicefive.resources.rules_example_tile_target_spoken
 import net.zodac.dicefive.resources.rules_example_worth_spoken
 import net.zodac.dicefive.resources.rules_example_yellow_die_spoken
+import net.zodac.dicefive.resources.rules_extended_scores_1
+import net.zodac.dicefive.resources.rules_extended_scores_2
+import net.zodac.dicefive.resources.rules_extended_scores_3
+import net.zodac.dicefive.resources.rules_extended_scores_4
+import net.zodac.dicefive.resources.rules_extended_scores_5
+import net.zodac.dicefive.resources.rules_extended_scores_tab
+import net.zodac.dicefive.resources.rules_extended_scores_title
+import net.zodac.dicefive.resources.rules_group_gameplay
+import net.zodac.dicefive.resources.rules_group_modes
+import net.zodac.dicefive.resources.rules_group_modifiers
 import net.zodac.dicefive.resources.rules_hit_list_1
 import net.zodac.dicefive.resources.rules_hit_list_10
 import net.zodac.dicefive.resources.rules_hit_list_11
@@ -150,29 +172,25 @@ import net.zodac.dicefive.resources.rules_lower_section_7
 import net.zodac.dicefive.resources.rules_lower_section_8
 import net.zodac.dicefive.resources.rules_lower_section_tab
 import net.zodac.dicefive.resources.rules_lower_section_title
+import net.zodac.dicefive.resources.rules_modes_1
+import net.zodac.dicefive.resources.rules_modes_2
+import net.zodac.dicefive.resources.rules_modes_3
+import net.zodac.dicefive.resources.rules_modes_4
+import net.zodac.dicefive.resources.rules_modes_tab
+import net.zodac.dicefive.resources.rules_modes_title
 import net.zodac.dicefive.resources.rules_modifiers_1
-import net.zodac.dicefive.resources.rules_modifiers_10
-import net.zodac.dicefive.resources.rules_modifiers_11
-import net.zodac.dicefive.resources.rules_modifiers_12
-import net.zodac.dicefive.resources.rules_modifiers_13
-import net.zodac.dicefive.resources.rules_modifiers_14
-import net.zodac.dicefive.resources.rules_modifiers_15
-import net.zodac.dicefive.resources.rules_modifiers_16
-import net.zodac.dicefive.resources.rules_modifiers_17
 import net.zodac.dicefive.resources.rules_modifiers_2
-import net.zodac.dicefive.resources.rules_modifiers_3
-import net.zodac.dicefive.resources.rules_modifiers_4
-import net.zodac.dicefive.resources.rules_modifiers_5
-import net.zodac.dicefive.resources.rules_modifiers_6
-import net.zodac.dicefive.resources.rules_modifiers_7
-import net.zodac.dicefive.resources.rules_modifiers_8
-import net.zodac.dicefive.resources.rules_modifiers_9
 import net.zodac.dicefive.resources.rules_modifiers_tab
 import net.zodac.dicefive.resources.rules_modifiers_title
 import net.zodac.dicefive.resources.rules_name_exact_hit
 import net.zodac.dicefive.resources.rules_name_hit
 import net.zodac.dicefive.resources.rules_name_partial_hit
+import net.zodac.dicefive.resources.rules_number_of_rolls_1
+import net.zodac.dicefive.resources.rules_number_of_rolls_2
+import net.zodac.dicefive.resources.rules_number_of_rolls_tab
+import net.zodac.dicefive.resources.rules_number_of_rolls_title
 import net.zodac.dicefive.resources.rules_page_count
+import net.zodac.dicefive.resources.rules_page_in_group_spoken
 import net.zodac.dicefive.resources.rules_plus_spoken
 import net.zodac.dicefive.resources.rules_points_short
 import net.zodac.dicefive.resources.rules_points_spoken
@@ -186,6 +204,11 @@ import net.zodac.dicefive.resources.rules_quickfire_6
 import net.zodac.dicefive.resources.rules_quickfire_tab
 import net.zodac.dicefive.resources.rules_quickfire_title
 import net.zodac.dicefive.resources.rules_step_number
+import net.zodac.dicefive.resources.rules_stored_rolls_1
+import net.zodac.dicefive.resources.rules_stored_rolls_2
+import net.zodac.dicefive.resources.rules_stored_rolls_3
+import net.zodac.dicefive.resources.rules_stored_rolls_tab
+import net.zodac.dicefive.resources.rules_stored_rolls_title
 import net.zodac.dicefive.resources.rules_stud_1
 import net.zodac.dicefive.resources.rules_stud_2
 import net.zodac.dicefive.resources.rules_stud_3
@@ -233,6 +256,16 @@ import net.zodac.dicefive.resources.rules_tricolour_7
 import net.zodac.dicefive.resources.rules_tricolour_8
 import net.zodac.dicefive.resources.rules_tricolour_tab
 import net.zodac.dicefive.resources.rules_tricolour_title
+import net.zodac.dicefive.resources.rules_turn_timer_1
+import net.zodac.dicefive.resources.rules_turn_timer_2
+import net.zodac.dicefive.resources.rules_turn_timer_tab
+import net.zodac.dicefive.resources.rules_turn_timer_title
+import net.zodac.dicefive.resources.rules_unlucky_dice_1
+import net.zodac.dicefive.resources.rules_unlucky_dice_2
+import net.zodac.dicefive.resources.rules_unlucky_dice_3
+import net.zodac.dicefive.resources.rules_unlucky_dice_4
+import net.zodac.dicefive.resources.rules_unlucky_dice_tab
+import net.zodac.dicefive.resources.rules_unlucky_dice_title
 import net.zodac.dicefive.resources.rules_upper_section_1
 import net.zodac.dicefive.resources.rules_upper_section_2
 import net.zodac.dicefive.resources.rules_upper_section_3
@@ -286,6 +319,9 @@ import org.jetbrains.compose.resources.StringResource
  * of a section, mode or setting, and **bold** for a number of points or a count. Nothing else is
  * styled, and no dice are written out as text - a [RulesDice] row shows them instead. */
 private data class RulesPage(val title: StringResource, val tabLabel: StringResource, val blocks: List<RulesBlock>)
+
+/** A group of [RulesPage]s - a tab of the top row, named [label], whose [pages] are the tabs of the row under it. */
+private class RulesGroup(val label: StringResource, val pages: List<RulesPage>)
 
 private sealed interface RulesBlock
 
@@ -414,209 +450,278 @@ private fun colouredDice(vararg dice: Pair<Int, DieColour>, counting: Int = dice
 
 /**
  * The rules explained in the player's own words, not the rulebook's - one page per idea, swiped
- * (or picked from the tab row) rather than scrolled past as one long page, so each (upper section,
- * lower section, the joker rule, the house rule tie-break, and one page per non-Standard game mode)
- * gets its own moment rather than blurring into the next.
+ * (or picked from the tab rows) rather than scrolled past as one long page, so each (upper section,
+ * lower section, the joker rule, the house rule tie-break, one page per non-Standard game mode and
+ * one per modifier) gets its own moment rather than blurring into the next.
+ *
+ * Grouped as the top tab row shows them: the rules themselves, then the game modes, then the
+ * modifiers - each of the last two opening on an overview of what they are. A new mode or modifier
+ * is a page in its group (and a mode that counts on the Leaderboard is named in `rules_modes_3`).
  *
  * Kept in step with the actual rules engine: `ScoreCategory`'s fixed values (25/30/40/50/100),
  * `ScoreCalculator`'s joker rule priority, `game/TieBreak.kt`'s criterion order (see its own
  * doc comment), and each `GameMode`'s rolls, dice and timer - a rule change there should be
  * echoed here.
  */
-private val RULES_PAGES = listOf(
-    RulesPage(
-        title = Res.string.rules_how_to_play_title,
-        tabLabel = Res.string.rules_how_to_play_tab,
-        blocks = listOf(
-            text(Res.string.rules_how_to_play_1),
-            text(Res.string.rules_how_to_play_2),
-            text(Res.string.rules_how_to_play_3),
-            text(Res.string.rules_how_to_play_4),
-            RulesIllustration,
+private val RULES_GROUPS = listOf(
+    RulesGroup(
+        label = Res.string.rules_group_gameplay,
+        pages = listOf(
+            RulesPage(
+                title = Res.string.rules_how_to_play_title,
+                tabLabel = Res.string.rules_how_to_play_tab,
+                blocks = listOf(
+                    text(Res.string.rules_how_to_play_1),
+                    text(Res.string.rules_how_to_play_2),
+                    text(Res.string.rules_how_to_play_3),
+                    text(Res.string.rules_how_to_play_4),
+                    RulesIllustration,
+                ),
+            ),
+            RulesPage(
+                title = Res.string.rules_upper_section_title,
+                tabLabel = Res.string.rules_upper_section_tab,
+                blocks = listOf(
+                    text(Res.string.rules_upper_section_1),
+                    RulesCategory(named(Res.string.score_fives), Res.string.rules_upper_section_2, dice(5, 5, 5, 2, 1, counting = 3, score = points(15))),
+                    text(Res.string.rules_upper_section_3),
+                ),
+            ),
+            RulesPage(
+                title = Res.string.rules_lower_section_title,
+                tabLabel = Res.string.rules_lower_section_tab,
+                blocks = listOf(
+                    text(Res.string.rules_lower_section_1),
+                    RulesCategory(mark("3x"), Res.string.rules_lower_section_2, dice(5, 5, 5, 2, 6, counting = 3, score = points(23))),
+                    RulesCategory(mark("4x"), Res.string.rules_lower_section_3, dice(4, 4, 4, 4, 1, counting = 4, score = points(17))),
+                    RulesCategory(named(Res.string.score_full_house), Res.string.rules_lower_section_4, dice(3, 3, 3, 6, 6, score = points(25))),
+                    RulesCategory(named(Res.string.score_small_straight), Res.string.rules_lower_section_5, dice(2, 3, 4, 5, 2, counting = 4, score = points(30))),
+                    RulesCategory(named(Res.string.score_large_straight), Res.string.rules_lower_section_6, dice(1, 2, 3, 4, 5, score = points(40))),
+                    RulesCategory(mark("5x"), Res.string.rules_lower_section_7, dice(6, 6, 6, 6, 6, score = points(50))),
+                    RulesCategory(named(Res.string.score_chance), Res.string.rules_lower_section_8, dice(2, 3, 5, 5, 6, score = points(21))),
+                ),
+            ),
+            RulesPage(
+                title = Res.string.rules_5x_and_joker_title,
+                tabLabel = Res.string.rules_5x_and_joker_tab,
+                blocks = listOf(
+                    text(Res.string.rules_5x_and_joker_1),
+                    text(Res.string.rules_5x_and_joker_2),
+                    text(Res.string.rules_5x_and_joker_3),
+                    RulesStep(1, Res.string.rules_5x_and_joker_4,
+                        dice(4, 4, 4, 4, 4, score = points(20, 100)),
+                    ),
+                    RulesStep(2, Res.string.rules_5x_and_joker_5),
+                    RulesStep(3, Res.string.rules_5x_and_joker_6),
+                ),
+            ),
+            RulesPage(
+                title = Res.string.rules_tie_breaks_title,
+                tabLabel = Res.string.rules_tie_breaks_tab,
+                blocks = listOf(
+                    text(Res.string.rules_tie_breaks_1),
+                    RulesStep(1, Res.string.rules_tie_breaks_2),
+                    RulesStep(2, Res.string.rules_tie_breaks_3),
+                    RulesStep(3, Res.string.rules_tie_breaks_4),
+                    RulesStep(4, Res.string.rules_tie_breaks_5),
+                    RulesStep(5, Res.string.rules_tie_breaks_6),
+                    RulesStep(6, Res.string.rules_tie_breaks_7),
+                    text(Res.string.rules_tie_breaks_8),
+                ),
+            ),
         ),
     ),
-    RulesPage(
-        title = Res.string.rules_upper_section_title,
-        tabLabel = Res.string.rules_upper_section_tab,
-        blocks = listOf(
-            text(Res.string.rules_upper_section_1),
-            RulesCategory(named(Res.string.score_fives), Res.string.rules_upper_section_2, dice(5, 5, 5, 2, 1, counting = 3, score = points(15))),
-            text(Res.string.rules_upper_section_3),
+    RulesGroup(
+        label = Res.string.rules_group_modes,
+        pages = listOf(
+            RulesPage(
+                title = Res.string.rules_modes_title,
+                tabLabel = Res.string.rules_modes_tab,
+                blocks = listOf(
+                    text(Res.string.rules_modes_1),
+                    text(Res.string.rules_modes_2),
+                    text(Res.string.rules_modes_3),
+                    text(Res.string.rules_modes_4),
+                ),
+            ),
+            RulesPage(
+                title = Res.string.rules_tricolour_title,
+                tabLabel = Res.string.rules_tricolour_tab,
+                blocks = listOf(
+                    text(Res.string.rules_tricolour_1),
+                    text(Res.string.rules_tricolour_2),
+                    RulesCategory(named(Res.string.score_reds), Res.string.rules_tricolour_3,
+                        colouredDice(2 to DieColour.RED, 5 to DieColour.RED, 1 to DieColour.RED, 6 to DieColour.RED, 3 to DieColour.RED, score = points(40)),
+                    ),
+                    RulesCategory(named(Res.string.score_yellows), Res.string.rules_tricolour_4,
+                        colouredDice(4 to DieColour.YELLOW, 4 to DieColour.YELLOW, 1 to DieColour.YELLOW, 5 to DieColour.YELLOW, 2 to DieColour.YELLOW, score = points(40)),
+                    ),
+                    RulesCategory(named(Res.string.score_blues), Res.string.rules_tricolour_5,
+                        colouredDice(6 to DieColour.BLUE, 3 to DieColour.BLUE, 3 to DieColour.BLUE, 2 to DieColour.BLUE, 5 to DieColour.BLUE, score = points(40)),
+                    ),
+                    RulesCategory(named(Res.string.score_coloured_house), Res.string.rules_tricolour_6,
+                        colouredDice(1 to DieColour.RED, 4 to DieColour.RED, 6 to DieColour.RED, 2 to DieColour.BLUE, 5 to DieColour.BLUE, score = points(25)),
+                    ),
+                    text(Res.string.rules_tricolour_7),
+                    text(Res.string.rules_tricolour_8),
+                ),
+            ),
+            RulesPage(
+                title = Res.string.rules_quickfire_title,
+                tabLabel = Res.string.rules_quickfire_tab,
+                blocks = listOf(
+                    text(Res.string.rules_quickfire_1),
+                    text(Res.string.rules_quickfire_2),
+                    text(Res.string.rules_quickfire_3),
+                    text(Res.string.rules_quickfire_4),
+                    text(Res.string.rules_quickfire_5),
+                    text(Res.string.rules_quickfire_6),
+                ),
+            ),
+            RulesPage(
+                title = Res.string.rules_stud_title,
+                tabLabel = Res.string.rules_stud_tab,
+                blocks = listOf(
+                    text(Res.string.rules_stud_1),
+                    text(Res.string.rules_stud_2),
+                    text(Res.string.rules_stud_3),
+                    RulesStep(1, Res.string.rules_stud_4, roll(6, 6, 6, 2, 3, 5, 1, held = 3)),
+                    RulesStep(2, Res.string.rules_stud_5, roll(6, 6, 6, 6, 4, 2, 4, held = 4)),
+                    RulesStep(3, Res.string.rules_stud_6, roll(6, 6, 6, 6, 5, 1, 3, held = 5)),
+                    RulesStep(4, Res.string.rules_stud_7,
+                        dice(6, 6, 6, 6, 5, score = points(29)),
+                    ),
+                    text(Res.string.rules_stud_8),
+                    text(Res.string.rules_stud_9),
+                ),
+            ),
+            RulesPage(
+                title = Res.string.rules_third_wind_title,
+                tabLabel = Res.string.rules_third_wind_tab,
+                blocks = listOf(
+                    text(Res.string.rules_third_wind_1),
+                    text(Res.string.rules_third_wind_2),
+                    text(Res.string.rules_third_wind_3),
+                    text(Res.string.rules_third_wind_4),
+                    text(Res.string.rules_third_wind_5),
+                    RulesStep(1, Res.string.rules_third_wind_6, roll(5, 5, 5, 2, 1, held = 3)),
+                    RulesStep(2, Res.string.rules_third_wind_7, roll(5, 5, 5, 5, 3, held = 4)),
+                    RulesStep(3, Res.string.rules_third_wind_8),
+                    RulesStep(4, Res.string.rules_third_wind_9,
+                        dice(5, 5, 5, 5, 6, counting = 4, score = points(20)),
+                    ),
+                    text(Res.string.rules_third_wind_10),
+                    text(Res.string.rules_third_wind_11),
+                    text(Res.string.rules_third_wind_12),
+                ),
+            ),
+            RulesPage(
+                title = Res.string.rules_hit_list_title,
+                tabLabel = Res.string.rules_hit_list_tab,
+                blocks = listOf(
+                    text(Res.string.rules_hit_list_1),
+                    text(Res.string.rules_hit_list_2),
+                    target(4, 1, 3, 2, ANY_PLACE, points = 20),
+                    RulesCategory(named(Res.string.rules_name_hit), Res.string.rules_hit_list_3,
+                        dice(2, 4, 1, 3, 5, counting = 4, score = points(20)).showing(RulesTile.Target(EXAMPLE_TARGET)),
+                    ),
+                    RulesCategory(named(Res.string.rules_name_exact_hit), Res.string.rules_hit_list_4,
+                        dice(4, 1, 3, 2, 6, counting = 4, score = points(40)).showing(RulesTile.Target(EXAMPLE_TARGET)),
+                    ),
+                    RulesCategory(named(Res.string.rules_name_partial_hit), Res.string.rules_hit_list_5,
+                        diceCounting(4, 1, 6, 2, 5, counting = setOf(0, 1, 3), score = points(10)).showing(RulesTile.Target(EXAMPLE_TARGET)),
+                    ),
+                    text(Res.string.rules_hit_list_6),
+                    text(Res.string.rules_hit_list_7),
+                    text(Res.string.rules_hit_list_8),
+                    RulesCategory(mark("Alibi"), Res.string.rules_hit_list_9,
+                        dice(2, 4, 1, 3, 5, counting = 4, score = points(20)).showing(RulesTile.Alibi),
+                    ),
+                    text(Res.string.rules_hit_list_10),
+                    text(Res.string.rules_hit_list_11),
+                    RulesStep(1, Res.string.rules_hit_list_12, rollHolding(4, 1, 5, 6, 2, held = setOf(0, 1, 4)).showing(RulesTile.Target(EXAMPLE_TARGET))),
+                    RulesStep(2, Res.string.rules_hit_list_13, rollHolding(4, 1, 3, 6, 2, held = setOf(0, 1, 2, 4)).showing(RulesTile.Target(EXAMPLE_TARGET))),
+                    RulesStep(3, Res.string.rules_hit_list_14),
+                    RulesStep(4, Res.string.rules_hit_list_15,
+                        dice(4, 1, 3, 2, 2, counting = 4, score = points(40)).showing(RulesTile.Target(EXAMPLE_TARGET)),
+                    ),
+                    text(Res.string.rules_hit_list_16),
+                    text(Res.string.rules_hit_list_17),
+                ),
+            ),
         ),
     ),
-    RulesPage(
-        title = Res.string.rules_lower_section_title,
-        tabLabel = Res.string.rules_lower_section_tab,
-        blocks = listOf(
-            text(Res.string.rules_lower_section_1),
-            RulesCategory(mark("3x"), Res.string.rules_lower_section_2, dice(5, 5, 5, 2, 6, counting = 3, score = points(23))),
-            RulesCategory(mark("4x"), Res.string.rules_lower_section_3, dice(4, 4, 4, 4, 1, counting = 4, score = points(17))),
-            RulesCategory(named(Res.string.score_full_house), Res.string.rules_lower_section_4, dice(3, 3, 3, 6, 6, score = points(25))),
-            RulesCategory(named(Res.string.score_small_straight), Res.string.rules_lower_section_5, dice(2, 3, 4, 5, 2, counting = 4, score = points(30))),
-            RulesCategory(named(Res.string.score_large_straight), Res.string.rules_lower_section_6, dice(1, 2, 3, 4, 5, score = points(40))),
-            RulesCategory(mark("5x"), Res.string.rules_lower_section_7, dice(6, 6, 6, 6, 6, score = points(50))),
-            RulesCategory(named(Res.string.score_chance), Res.string.rules_lower_section_8, dice(2, 3, 5, 5, 6, score = points(21))),
-        ),
-    ),
-    RulesPage(
-        title = Res.string.rules_5x_and_joker_title,
-        tabLabel = Res.string.rules_5x_and_joker_tab,
-        blocks = listOf(
-            text(Res.string.rules_5x_and_joker_1),
-            text(Res.string.rules_5x_and_joker_2),
-            text(Res.string.rules_5x_and_joker_3),
-            RulesStep(1, Res.string.rules_5x_and_joker_4,
-                dice(4, 4, 4, 4, 4, score = points(20, 100)),
+    RulesGroup(
+        label = Res.string.rules_group_modifiers,
+        pages = listOf(
+            RulesPage(
+                title = Res.string.rules_modifiers_title,
+                tabLabel = Res.string.rules_modifiers_tab,
+                blocks = listOf(
+                    text(Res.string.rules_modifiers_1),
+                    text(Res.string.rules_modifiers_2),
+                ),
             ),
-            RulesStep(2, Res.string.rules_5x_and_joker_5),
-            RulesStep(3, Res.string.rules_5x_and_joker_6),
-        ),
-    ),
-    RulesPage(
-        title = Res.string.rules_tie_breaks_title,
-        tabLabel = Res.string.rules_tie_breaks_tab,
-        blocks = listOf(
-            text(Res.string.rules_tie_breaks_1),
-            RulesStep(1, Res.string.rules_tie_breaks_2),
-            RulesStep(2, Res.string.rules_tie_breaks_3),
-            RulesStep(3, Res.string.rules_tie_breaks_4),
-            RulesStep(4, Res.string.rules_tie_breaks_5),
-            RulesStep(5, Res.string.rules_tie_breaks_6),
-            RulesStep(6, Res.string.rules_tie_breaks_7),
-            text(Res.string.rules_tie_breaks_8),
-        ),
-    ),
-    RulesPage(
-        title = Res.string.rules_tricolour_title,
-        tabLabel = Res.string.rules_tricolour_tab,
-        blocks = listOf(
-            text(Res.string.rules_tricolour_1),
-            text(Res.string.rules_tricolour_2),
-            RulesCategory(named(Res.string.score_reds), Res.string.rules_tricolour_3,
-                colouredDice(2 to DieColour.RED, 5 to DieColour.RED, 1 to DieColour.RED, 6 to DieColour.RED, 3 to DieColour.RED, score = points(40)),
+            RulesPage(
+                title = Res.string.rules_turn_timer_title,
+                tabLabel = Res.string.rules_turn_timer_tab,
+                blocks = listOf(
+                    text(Res.string.rules_turn_timer_1),
+                    RulesTurnTimer,
+                    text(Res.string.rules_turn_timer_2),
+                ),
             ),
-            RulesCategory(named(Res.string.score_yellows), Res.string.rules_tricolour_4,
-                colouredDice(4 to DieColour.YELLOW, 4 to DieColour.YELLOW, 1 to DieColour.YELLOW, 5 to DieColour.YELLOW, 2 to DieColour.YELLOW, score = points(40)),
+            RulesPage(
+                title = Res.string.rules_number_of_rolls_title,
+                tabLabel = Res.string.rules_number_of_rolls_tab,
+                blocks = listOf(
+                    text(Res.string.rules_number_of_rolls_1),
+                    text(Res.string.rules_number_of_rolls_2),
+                ),
             ),
-            RulesCategory(named(Res.string.score_blues), Res.string.rules_tricolour_5,
-                colouredDice(6 to DieColour.BLUE, 3 to DieColour.BLUE, 3 to DieColour.BLUE, 2 to DieColour.BLUE, 5 to DieColour.BLUE, score = points(40)),
+            RulesPage(
+                title = Res.string.rules_stored_rolls_title,
+                tabLabel = Res.string.rules_stored_rolls_tab,
+                blocks = listOf(
+                    text(Res.string.rules_stored_rolls_1),
+                    text(Res.string.rules_stored_rolls_2),
+                    text(Res.string.rules_stored_rolls_3),
+                ),
             ),
-            RulesCategory(named(Res.string.score_coloured_house), Res.string.rules_tricolour_6,
-                colouredDice(1 to DieColour.RED, 4 to DieColour.RED, 6 to DieColour.RED, 2 to DieColour.BLUE, 5 to DieColour.BLUE, score = points(25)),
+            RulesPage(
+                title = Res.string.rules_extended_scores_title,
+                tabLabel = Res.string.rules_extended_scores_tab,
+                blocks = listOf(
+                    text(Res.string.rules_extended_scores_1),
+                    RulesCategory(named(Res.string.score_two_pair), Res.string.rules_extended_scores_2, dice(4, 4, 2, 2, 4, counting = 4, score = points(12))),
+                    RulesCategory(named(Res.string.score_evens), Res.string.rules_extended_scores_3, dice(6, 4, 2, 3, 1, counting = 3, score = points(12))),
+                    RulesCategory(named(Res.string.score_odds), Res.string.rules_extended_scores_4, dice(5, 3, 3, 6, 2, counting = 3, score = points(11))),
+                    text(Res.string.rules_extended_scores_5),
+                ),
             ),
-            text(Res.string.rules_tricolour_7),
-            text(Res.string.rules_tricolour_8),
-        ),
-    ),
-    RulesPage(
-        title = Res.string.rules_quickfire_title,
-        tabLabel = Res.string.rules_quickfire_tab,
-        blocks = listOf(
-            text(Res.string.rules_quickfire_1),
-            text(Res.string.rules_quickfire_2),
-            text(Res.string.rules_quickfire_3),
-            text(Res.string.rules_quickfire_4),
-            text(Res.string.rules_quickfire_5),
-            text(Res.string.rules_quickfire_6),
-        ),
-    ),
-    RulesPage(
-        title = Res.string.rules_stud_title,
-        tabLabel = Res.string.rules_stud_tab,
-        blocks = listOf(
-            text(Res.string.rules_stud_1),
-            text(Res.string.rules_stud_2),
-            text(Res.string.rules_stud_3),
-            RulesStep(1, Res.string.rules_stud_4, roll(6, 6, 6, 2, 3, 5, 1, held = 3)),
-            RulesStep(2, Res.string.rules_stud_5, roll(6, 6, 6, 6, 4, 2, 4, held = 4)),
-            RulesStep(3, Res.string.rules_stud_6, roll(6, 6, 6, 6, 5, 1, 3, held = 5)),
-            RulesStep(4, Res.string.rules_stud_7,
-                dice(6, 6, 6, 6, 5, score = points(29)),
+            RulesPage(
+                title = Res.string.rules_unlucky_dice_title,
+                tabLabel = Res.string.rules_unlucky_dice_tab,
+                blocks = listOf(
+                    text(Res.string.rules_unlucky_dice_1),
+                    lockedDice(5, 5, 5, 2, 5, lockedIndex = 4, counting = 3, score = points(15)),
+                    text(Res.string.rules_unlucky_dice_2),
+                    text(Res.string.rules_unlucky_dice_3),
+                    text(Res.string.rules_unlucky_dice_4),
+                ),
             ),
-            text(Res.string.rules_stud_8),
-            text(Res.string.rules_stud_9),
-        ),
-    ),
-    RulesPage(
-        title = Res.string.rules_third_wind_title,
-        tabLabel = Res.string.rules_third_wind_tab,
-        blocks = listOf(
-            text(Res.string.rules_third_wind_1),
-            text(Res.string.rules_third_wind_2),
-            text(Res.string.rules_third_wind_3),
-            text(Res.string.rules_third_wind_4),
-            text(Res.string.rules_third_wind_5),
-            RulesStep(1, Res.string.rules_third_wind_6, roll(5, 5, 5, 2, 1, held = 3)),
-            RulesStep(2, Res.string.rules_third_wind_7, roll(5, 5, 5, 5, 3, held = 4)),
-            RulesStep(3, Res.string.rules_third_wind_8),
-            RulesStep(4, Res.string.rules_third_wind_9,
-                dice(5, 5, 5, 5, 6, counting = 4, score = points(20)),
-            ),
-            text(Res.string.rules_third_wind_10),
-            text(Res.string.rules_third_wind_11),
-            text(Res.string.rules_third_wind_12),
-        ),
-    ),
-    RulesPage(
-        title = Res.string.rules_hit_list_title,
-        tabLabel = Res.string.rules_hit_list_tab,
-        blocks = listOf(
-            text(Res.string.rules_hit_list_1),
-            text(Res.string.rules_hit_list_2),
-            target(4, 1, 3, 2, ANY_PLACE, points = 20),
-            RulesCategory(named(Res.string.rules_name_hit), Res.string.rules_hit_list_3,
-                dice(2, 4, 1, 3, 5, counting = 4, score = points(20)).showing(RulesTile.Target(EXAMPLE_TARGET)),
-            ),
-            RulesCategory(named(Res.string.rules_name_exact_hit), Res.string.rules_hit_list_4,
-                dice(4, 1, 3, 2, 6, counting = 4, score = points(40)).showing(RulesTile.Target(EXAMPLE_TARGET)),
-            ),
-            RulesCategory(named(Res.string.rules_name_partial_hit), Res.string.rules_hit_list_5,
-                diceCounting(4, 1, 6, 2, 5, counting = setOf(0, 1, 3), score = points(10)).showing(RulesTile.Target(EXAMPLE_TARGET)),
-            ),
-            text(Res.string.rules_hit_list_6),
-            text(Res.string.rules_hit_list_7),
-            text(Res.string.rules_hit_list_8),
-            RulesCategory(mark("Alibi"), Res.string.rules_hit_list_9,
-                dice(2, 4, 1, 3, 5, counting = 4, score = points(20)).showing(RulesTile.Alibi),
-            ),
-            text(Res.string.rules_hit_list_10),
-            text(Res.string.rules_hit_list_11),
-            RulesStep(1, Res.string.rules_hit_list_12, rollHolding(4, 1, 5, 6, 2, held = setOf(0, 1, 4)).showing(RulesTile.Target(EXAMPLE_TARGET))),
-            RulesStep(2, Res.string.rules_hit_list_13, rollHolding(4, 1, 3, 6, 2, held = setOf(0, 1, 2, 4)).showing(RulesTile.Target(EXAMPLE_TARGET))),
-            RulesStep(3, Res.string.rules_hit_list_14),
-            RulesStep(4, Res.string.rules_hit_list_15,
-                dice(4, 1, 3, 2, 2, counting = 4, score = points(40)).showing(RulesTile.Target(EXAMPLE_TARGET)),
-            ),
-            text(Res.string.rules_hit_list_16),
-            text(Res.string.rules_hit_list_17),
-        ),
-    ),
-    RulesPage(
-        title = Res.string.rules_modifiers_title,
-        tabLabel = Res.string.rules_modifiers_tab,
-        blocks = listOf(
-            text(Res.string.rules_modifiers_1),
-            text(Res.string.rules_modifiers_2),
-            text(Res.string.rules_modifiers_3),
-            RulesTurnTimer,
-            text(Res.string.rules_modifiers_4),
-            text(Res.string.rules_modifiers_5),
-            text(Res.string.rules_modifiers_6),
-            text(Res.string.rules_modifiers_7),
-            text(Res.string.rules_modifiers_8),
-            text(Res.string.rules_modifiers_9),
-            RulesCategory(named(Res.string.score_two_pair), Res.string.rules_modifiers_10, dice(4, 4, 2, 2, 4, counting = 4, score = points(12))),
-            RulesCategory(named(Res.string.score_evens), Res.string.rules_modifiers_11, dice(6, 4, 2, 3, 1, counting = 3, score = points(12))),
-            RulesCategory(named(Res.string.score_odds), Res.string.rules_modifiers_12, dice(5, 3, 3, 6, 2, counting = 3, score = points(11))),
-            text(Res.string.rules_modifiers_13),
-            text(Res.string.rules_modifiers_14),
-            lockedDice(5, 5, 5, 2, 5, lockedIndex = 4, counting = 3, score = points(15)),
-            text(Res.string.rules_modifiers_15),
-            text(Res.string.rules_modifiers_16),
-            text(Res.string.rules_modifiers_17),
         ),
     ),
 )
+
+/** Every page, group after group - the order the pager swipes through them in. */
+private val RULES_PAGES = RULES_GROUPS.flatMap { it.pages }
+
+/** Where each of [RULES_GROUPS] starts in [RULES_PAGES], then one past the last page. */
+private val GROUP_STARTS = RULES_GROUPS.runningFold(0) { start, group -> start + group.pages.size }
+
+/** Which of [RULES_GROUPS] the page at [page] is in. */
+private fun groupOf(page: Int): Int = GROUP_STARTS.indexOfLast { it <= page }.coerceAtMost(RULES_GROUPS.lastIndex)
 
 /** How far in from each end of the tab row its tabs are hidden outright while there are more to
  * scroll to: the chevron's glyph (24dp, centred in its 48dp button, so ending 36dp in) plus a small
@@ -635,70 +740,41 @@ private val TAB_EDGE_EASE = 48.dp
 private const val TAB_CHEVRON_SCROLL_FRACTION = 0.6f
 
 /**
- * The Rules page: a tab per [RulesPage] over a [HorizontalPager] of them. The tabs scroll, since the
- * list grows by a page with every game mode - a row of dots stopped saying where you were, or
- * letting you get to the last page, once there were more than a handful.
+ * The Rules page: two rows of tabs over a [HorizontalPager] of every [RulesPage]. The top row picks
+ * one of [RULES_GROUPS] - the rules themselves, the game modes or the modifiers - and the row under
+ * it has a tab per page of that group, so any group is a tap away from any page (Material's primary
+ * and secondary tabs). The pager runs through every page, group after group: a swipe past a group's
+ * last page carries on into the next group, and the top row follows. A tab snaps straight to its page
+ * rather than animating there: an animated jump slides through, and so builds, every page between
+ * (up to a whole group's), which a phone feels as lag - and keeps the rows scrolling the while, so a
+ * second tap meanwhile only stops the scroll instead of reaching its tab. The page row scrolls, as a
+ * group can have more pages than fit - a row of dots stopped saying where you were, or letting you
+ * get to the last page, once there were more than a handful.
  *
  * A scrolling tab row gives no sign on its own that there's more of it: on a phone the first three
  * tabs can end right at the edge, so the row looks like all there is. A fade alone didn't fix that -
  * it only shows when a label happens to be under it, and with the selected tab centred the next one
  * can start just past the edge, leaving the fade over empty space. So each end with tabs beyond it
  * gets a [TabScrollChevron], which is there whatever the labels' widths, over a [fadeOffscreenEdges]
- * fade that keeps a cut-off label from running into it. The row and its tabs carry collection
- * semantics so TalkBack says "Tab, 1 of 7", the spoken form of the same hint.
+ * fade that keeps a cut-off label from running into it. Both rows and their tabs carry collection
+ * semantics so TalkBack says "Tab, 1 of 3" and "Tab, 1 of 6", the spoken form of the same hint.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val pagerState = rememberPagerState(pageCount = { RULES_PAGES.size })
     val coroutineScope = rememberCoroutineScope()
-    val tabScrollState = rememberScrollState()
+    // Only the group is read here, not the page: a page change then rebuilds only what shows the page (the two tabs
+    // whose selection changes, the page row's indicator, the scrollbar and the footer), not the whole screen.
+    val currentGroup by remember { derivedStateOf { groupOf(pagerState.currentPage) } }
 
     ScreenScaffold(title = stringResource(Res.string.rules_title), onBack = onBack, modifier = modifier) {
-        // A real Box, so the chevrons' align lands on their actual parent (see UI.md's gotchas).
-        Box(modifier = Modifier.fillMaxWidth()) {
-            PrimaryScrollableTabRow(
-                selectedTabIndex = pagerState.currentPage,
-                scrollState = tabScrollState,
-                // Transparent over the backdrop, like the app bar above it, and flush with the page text.
-                containerColor = Color.Transparent,
-                edgePadding = 0.dp,
-                // Slides with the pages as they're swiped, rather than jumping once the next page is
-                // the current one - see pagerIndicatorLayout.
-                indicator = {
-                    TabRowDefaults.PrimaryIndicator(
-                        modifier = Modifier.tabIndicatorLayout { measurable, constraints, tabPositions ->
-                            pagerIndicatorLayout(measurable, constraints, tabPositions, pagerState.currentPage + pagerState.currentPageOffsetFraction)
-                        }.testTag(TAB_INDICATOR_TAG),
-                        width = Dp.Unspecified,
-                        height = TAB_INDICATOR_HEIGHT,
-                    )
-                },
-                // Raised off the row's bottom edge so it runs through the middle of the indicator, which
-                // sits on that edge - left at the bottom, the indicator rests on top of the line instead.
-                // (The indicator can't be lowered onto the line: the row clips anything below its bottom.)
-                divider = {
-                    HorizontalDivider(modifier = Modifier.padding(bottom = (TAB_INDICATOR_HEIGHT - DividerDefaults.Thickness) / 2))
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fadeOffscreenEdges(tabScrollState, clearWidth = TAB_EDGE_CLEAR, fadeWidth = TAB_EDGE_FADE, easeDistance = TAB_EDGE_EASE)
-                    .semantics { collectionInfo = CollectionInfo(rowCount = 1, columnCount = RULES_PAGES.size) },
-            ) {
-                RULES_PAGES.forEachIndexed { index, rulesPage ->
-                    Tab(
-                        selected = index == pagerState.currentPage,
-                        onClick = { coroutineScope.launch { pagerState.animateScrollToPage(index) } },
-                        text = { Text(text = stringResource(rulesPage.tabLabel), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        modifier = Modifier.semantics {
-                            collectionItemInfo = CollectionItemInfo(rowIndex = 0, rowSpan = 1, columnIndex = index, columnSpan = 1)
-                        },
-                    )
-                }
-            }
-            TabScrollChevron(scrollState = tabScrollState, forward = false, modifier = Modifier.align(Alignment.CenterStart))
-            TabScrollChevron(scrollState = tabScrollState, forward = true, modifier = Modifier.align(Alignment.CenterEnd))
-        }
+        GroupTabRow(
+            currentGroup = currentGroup,
+            // To the group's first page - its overview, for the modes and the modifiers. A tap on the group already
+            // showing leaves the page where it is.
+            onSelect = { group -> if (group != currentGroup) coroutineScope.launch { pagerState.scrollToPage(GROUP_STARTS[group]) } },
+        )
+        PageTabRow(pagerState = pagerState, group = currentGroup, onSelect = { page -> coroutineScope.launch { pagerState.scrollToPage(page) } })
 
         // The footer floats over the pages rather than taking a row of its own: pinned to the bottom,
         // with the page text scrolling behind it, and each page padded by the footer's measured height
@@ -714,6 +790,7 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             // of its neighbour's text at its edge.
             HorizontalPager(state = pagerState, pageSpacing = PAGE_SPACING, modifier = Modifier.fillMaxSize()) { page ->
                 val rulesPage = RULES_PAGES[page]
+                val shownBlocks = rememberShownBlocks(rulesPage.blocks.size)
                 Column(modifier = Modifier.fillMaxSize().verticalScroll(pageScrollStates[page]).padding(bottom = pageBottomPadding)) {
                     Text(
                         text = stringResource(rulesPage.title),
@@ -724,27 +801,144 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         modifier = Modifier.semantics { heading() },
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    for (block in rulesPage.blocks) {
+                    for (block in rulesPage.blocks.take(shownBlocks)) {
                         RulesBlockView(block)
                     }
                 }
             }
 
-            // In the screen's right-hand margin, beside the text rather than over it (as on Styles),
-            // and only while the page showing is too long to fit.
-            VerticalScrollbar(
-                scrollState = pageScrollStates[pagerState.currentPage],
-                width = SCREEN_MARGIN,
-                modifier = Modifier.align(Alignment.TopEnd).offset(x = SCREEN_MARGIN),
-            )
+            PageScrollbar(pagerState, pageScrollStates)
 
             PageCountFooter(
-                page = pagerState.currentPage,
-                pageCount = RULES_PAGES.size,
+                pagerState = pagerState,
                 modifier = Modifier.align(Alignment.BottomCenter).onSizeChanged { footerHeightPx = it.height },
             )
         }
     }
+}
+
+/** The top row: a tab per one of [RULES_GROUPS], [currentGroup] selected; [onSelect] is handed a tapped tab's group. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GroupTabRow(currentGroup: Int, onSelect: (Int) -> Unit) {
+    val groupLabels = RULES_GROUPS.map { stringResource(it.label) }
+    val scrollState = rememberScrollState()
+    val placements = remember { TabPlacements() }
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    // A real Box, so the chevrons' align lands on their actual parent (see UI.md's gotchas).
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val tabWidths = groupTabWidths(groupLabels, constraints.maxWidth)
+        KeepTabInView(scrollState, placements) { currentGroup }
+        PrimaryScrollableTabRow(
+            // Never changes, so the row never re-centres itself - see KeepTabInView. The indicator and each tab's
+            // selected state follow currentGroup themselves.
+            selectedTabIndex = 0,
+            scrollState = scrollState,
+            // Transparent over the backdrop, like the app bar above it, and flush with the page text.
+            containerColor = Color.Transparent,
+            edgePadding = 0.dp,
+            indicator = {
+                TabRowDefaults.PrimaryIndicator(
+                    modifier = Modifier.tabIndicatorOffset(currentGroup, matchContentSize = true),
+                    width = Dp.Unspecified,
+                    height = TAB_INDICATOR_HEIGHT,
+                )
+            },
+            divider = { TabRowDivider() },
+            // Each tab is sized by groupTabWidths instead.
+            minTabWidth = 0.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .fadeOffscreenEdges(scrollState, clearWidth = TAB_EDGE_CLEAR, fadeWidth = TAB_EDGE_FADE, easeDistance = TAB_EDGE_EASE)
+                .semantics { collectionInfo = CollectionInfo(rowCount = 1, columnCount = RULES_GROUPS.size) },
+        ) {
+            groupLabels.forEachIndexed { index, label ->
+                val width = tabWidths[index]
+                Tab(
+                    selected = index == currentGroup,
+                    onClick = { onSelect(index) },
+                    text = { Text(text = label, maxLines = 1, softWrap = false) },
+                    modifier = remember(width, placements, index, rtl) { Modifier.width(width).rowTab(placements, index, rtl) },
+                )
+            }
+        }
+        TabScrollChevron(scrollState = scrollState, forward = false, modifier = Modifier.align(Alignment.CenterStart))
+        TabScrollChevron(scrollState = scrollState, forward = true, modifier = Modifier.align(Alignment.CenterEnd))
+    }
+}
+
+/**
+ * The row under [GroupTabRow]: a tab per page of [group], the current one selected; [onSelect] is handed a tapped tab's
+ * page (its index in [RULES_PAGES]). Reads the current page only where it's needed - each tab's selection (through
+ * [derivedStateOf], so a page change recomposes only the two tabs it changes), the indicator's layout, and
+ * [KeepTabInView] - so the row itself isn't rebuilt on every page change.
+ */
+@Composable
+private fun PageTabRow(pagerState: PagerState, group: Int, onSelect: (Int) -> Unit) {
+    val groupStart = GROUP_STARTS[group]
+    val groupPages = RULES_GROUPS[group].pages
+    // A group's page row starts scrolled to its start, not wherever the last group's was left.
+    val scrollState = remember(group) { ScrollState(initial = 0) }
+    val placements = remember(group) { TabPlacements() }
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    // A real Box, so the chevrons' align lands on their actual parent (see UI.md's gotchas).
+    Box(modifier = Modifier.fillMaxWidth()) {
+        KeepTabInView(scrollState, placements) { pagerState.currentPage - groupStart }
+        SecondaryScrollableTabRow(
+            // Never changes, so the row never re-centres itself - see KeepTabInView. The indicator follows the pager,
+            // and each tab's selected state the current page.
+            selectedTabIndex = 0,
+            scrollState = scrollState,
+            // Transparent over the backdrop, like the app bar above it, and flush with the page text.
+            containerColor = Color.Transparent,
+            edgePadding = 0.dp,
+            // Slides with the pages as they're swiped, rather than jumping once the next page is
+            // the current one - see pagerIndicatorLayout.
+            indicator = {
+                TabRowDefaults.SecondaryIndicator(
+                    modifier = Modifier.tabIndicatorLayout { measurable, constraints, tabPositions ->
+                        val pagePosition = pagerState.currentPage + pagerState.currentPageOffsetFraction - groupStart
+                        pagerIndicatorLayout(measurable, constraints, tabPositions, pagePosition)
+                    }.testTag(TAB_INDICATOR_TAG),
+                    height = SECONDARY_INDICATOR_HEIGHT,
+                )
+            },
+            divider = { HorizontalDivider() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .fadeOffscreenEdges(scrollState, clearWidth = TAB_EDGE_CLEAR, fadeWidth = TAB_EDGE_FADE, easeDistance = TAB_EDGE_EASE)
+                .semantics { collectionInfo = CollectionInfo(rowCount = 1, columnCount = groupPages.size) },
+        ) {
+            groupPages.forEachIndexed { index, rulesPage ->
+                val page = groupStart + index
+                val selected by remember(page) { derivedStateOf { pagerState.currentPage == page } }
+                Tab(
+                    selected = selected,
+                    onClick = { onSelect(page) },
+                    text = { Text(text = stringResource(rulesPage.tabLabel), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    modifier = remember(placements, index, rtl) { Modifier.rowTab(placements, index, rtl) },
+                )
+            }
+        }
+        TabScrollChevron(scrollState = scrollState, forward = false, modifier = Modifier.align(Alignment.CenterStart))
+        TabScrollChevron(scrollState = scrollState, forward = true, modifier = Modifier.align(Alignment.CenterEnd))
+    }
+}
+
+/** A tab's place in its row: recorded for [KeepTabInView], and announced as its position in the row ("Tab, 2 of 6"). */
+private fun Modifier.rowTab(placements: TabPlacements, index: Int, rtl: Boolean): Modifier = this
+    .recordPlacement(placements, index, rtl)
+    .semantics { collectionItemInfo = CollectionItemInfo(rowIndex = 0, rowSpan = 1, columnIndex = index, columnSpan = 1) }
+
+/** The scrollbar for whichever page is showing: in the screen's right-hand margin, beside the text rather than over it
+ * (as on Styles), and only while that page is too long to fit. */
+@Composable
+private fun BoxScope.PageScrollbar(pagerState: PagerState, pageScrollStates: List<ScrollState>) {
+    VerticalScrollbar(
+        scrollState = pageScrollStates[pagerState.currentPage],
+        width = SCREEN_MARGIN,
+        modifier = Modifier.align(Alignment.TopEnd).offset(x = SCREEN_MARGIN),
+    )
 }
 
 /** Body text of every block, styled by its [parseInlineMarkup] markers - a scoring category's name
@@ -777,7 +971,7 @@ private fun String.keepCategoryNamesWhole(): String =
 private fun spokenPoints(text: String): String {
     val shape = stringResource(Res.string.rules_points_short)
     // Any script's digits: the amounts are drawn in the strings' numerals ("٢٥"), and \d is only 0-9.
-    val amount = Regex(shape.split("%1\$d").joinToString("(\\p{Nd}+)") { Regex.escape(it) })
+    val amount = remember(shape) { Regex(shape.split("%1\$d").joinToString("(\\p{Nd}+)") { Regex.escape(it) }) }
     val plus = stringResource(Res.string.rules_plus_spoken)
     val spoken = remember(text, shape, plus) { text.replace(amount) { "\u0000${it.groupValues[1]}\u0000" }.replace(" + ", " $plus ") }
     return spoken.split('\u0000').mapIndexed { index, part -> if (index % 2 == 1) part.digitsValue().let { pluralStringResource(Res.plurals.rules_points_spoken, it, it) } else part }.joinToString("")
@@ -1003,6 +1197,30 @@ private fun RulesDice.spokenDescription(): String {
 /** The seconds the Modifiers page's example timer is stopped at - inside the game's last few, so it flashes. */
 private const val TURN_TIMER_EXAMPLE_SECONDS = 4
 
+/** How many of a page's blocks are built in the frame it opens on - about a screenful. */
+private const val FIRST_BLOCKS = 4
+
+/** How many more of a page's blocks are built in each frame after that, until it's whole. */
+private const val BLOCKS_PER_FRAME = 2
+
+/**
+ * How many of a page's [count] blocks to build so far: [FIRST_BLOCKS] at once, then [BLOCKS_PER_FRAME] more each
+ * frame. Building a long page (Hit List's dozen example rows and tiles) all in the frame it opens on held that frame up
+ * long enough to feel on a phone, when only its first screenful can be seen; the rest is below the fold, and is built
+ * over the next few frames instead (a tenth of a second for the longest page), before anyone can scroll to it.
+ */
+@Composable
+private fun rememberShownBlocks(count: Int): Int {
+    var shown by remember { mutableIntStateOf(minOf(count, FIRST_BLOCKS)) }
+    LaunchedEffect(count) {
+        while (shown < count) {
+            withFrameNanos { }
+            shown = minOf(count, shown + BLOCKS_PER_FRAME)
+        }
+    }
+    return shown
+}
+
 /** ScreenScaffold's side margin, which the pages' scrollbar sits in. */
 private val SCREEN_MARGIN = 20.dp
 
@@ -1120,27 +1338,126 @@ private fun MeasureScope.pagerIndicatorLayout(
     }
 }
 
-/** Test tag of the tab row's indicator, so a test can check it sits under the selected tab. */
+/** Test tag of the page row's indicator, so a test can check it sits under the selected tab. */
 internal const val TAB_INDICATOR_TAG = "rulesTabIndicator"
 
-/** The tab row's indicator, as thick as the stock one - named so the divider can centre itself on it. */
+/** How far a [Tab]'s label is padded in from each side of it - Material's own padding, which the group row has to count in when it sizes its tabs. */
+private val TAB_LABEL_PADDING = 16.dp
+
+/**
+ * How wide each group tab is, across [rowWidthPx]: all alike, as Material's fixed tabs are, while every label fits a
+ * third - otherwise each as wide as its label needs, plus an equal share of what's left, so a long label ("Modificadores")
+ * is never cut off and the row still spans the width. Only when the labels don't fit the row at all (a large font) does
+ * it scroll, with the same chevrons as the page row.
+ *
+ * Worked in whole pixels, adding up to exactly the row: widths even a pixel over make it scrollable, and a
+ * tap on a scrollable row while it scrolls is taken as "stop", not passed to the tab - see [KeepTabInView].
+ */
+@Composable
+private fun groupTabWidths(labels: List<String>, rowWidthPx: Int): List<Dp> {
+    val measurer = rememberTextMeasurer()
+    val style = MaterialTheme.typography.titleSmall
+    val density = LocalDensity.current
+    return remember(labels, style, rowWidthPx, density) {
+        val padding = with(density) { (TAB_LABEL_PADDING * 2).roundToPx() }
+        // A pixel over, so a label measured at exactly its width isn't cut off by rounding.
+        val natural = labels.map { label -> measurer.measure(label, style, maxLines = 1, softWrap = false).size.width + 1 + padding }
+        val equal = rowWidthPx / labels.size
+        val base = if (natural.all { it <= equal }) List(labels.size) { 0 } else natural
+        val left = (rowWidthPx - base.sum()).coerceAtLeast(0)
+        // What's left shared out, and the pixels that don't divide evenly given one each to the first tabs, so the
+        // row spans its width exactly.
+        val widths = base.mapIndexed { index, width -> width + left / labels.size + if (index < left % labels.size) 1 else 0 }
+        with(density) { widths.map { it.toDp() } }
+    }
+}
+
+/** Where each tab of a scrolling row was last placed along it, by its index: its start and end in pixels, from the
+ * row's start. Written as the tabs are placed, read by [KeepTabInView]; not state, as nothing redraws from it. */
+private class TabPlacements {
+    val starts = mutableMapOf<Int, Int>()
+    val ends = mutableMapOf<Int, Int>()
+}
+
+/** Records where this tab is placed in its row into [placements], counted from the row's start - its right edge when
+ * [rtl], as the row's scroll is counted. */
+private fun Modifier.recordPlacement(placements: TabPlacements, index: Int, rtl: Boolean): Modifier = onPlaced { coordinates ->
+    val parentWidth = coordinates.parentLayoutCoordinates?.size?.width ?: return@onPlaced
+    val left = coordinates.positionInParent().x.roundToInt()
+    val right = left + coordinates.size.width
+    placements.starts[index] = if (rtl) parentWidth - right else left
+    placements.ends[index] = if (rtl) parentWidth - left else right
+}
+
+/**
+ * Scrolls a tab row just enough to bring its [selected] tab clear of the edge fades, and only if it isn't already -
+ * after a swipe to a page whose tab is off screen, say. Material's scrollable rows instead re-centre the selected tab,
+ * with a scroll animation, every time it changes; and while a scrollable is scrolling, Compose takes a tap on it as
+ * "stop scrolling" and never passes it to the tab. So a second tap soon after the first (within ~300ms in tests, longer
+ * on a slow phone) was lost, which on a device felt like tabs that only worked some of the time. Both rows are given a
+ * `selectedTabIndex` that never changes, so they never re-centre, and this keeps the selected tab in view instead: a
+ * tap on a tab that's already in view doesn't scroll anything, and one partly under an edge fade moves the row at once
+ * (as the page itself snaps), so there's never a scroll under the next tap.
+ */
+@Composable
+private fun KeepTabInView(scrollState: ScrollState, placements: TabPlacements, selected: () -> Int) {
+    val edge = with(LocalDensity.current) { (TAB_EDGE_CLEAR + TAB_EDGE_FADE).roundToPx() }
+    LaunchedEffect(scrollState, placements) {
+        snapshotFlow(selected).collectLatest { index ->
+            // Placed by the next frame, if the row (or this tab) is new.
+            withFrameNanos { }
+            val start = placements.starts[index] ?: return@collectLatest
+            val end = placements.ends[index] ?: return@collectLatest
+            val viewport = scrollState.viewportSize
+            // Each end's fade (and chevron) only covers the row while there's more beyond it.
+            val visibleStart = scrollState.value + if (scrollState.value > 0) edge else 0
+            val visibleEnd = scrollState.value + viewport - if (scrollState.value < scrollState.maxValue) edge else 0
+            val target = when {
+                start < visibleStart -> start - edge
+                end > visibleEnd -> end - viewport + edge
+                else -> return@collectLatest
+            }
+            // At once, not animated: a scroll in progress would swallow the next tap, as below.
+            scrollState.scrollTo(target.coerceIn(0, scrollState.maxValue))
+        }
+    }
+}
+
+/** The group row's indicator, as thick as the stock one - named so the divider can centre itself on it. */
 private val TAB_INDICATOR_HEIGHT = 3.dp
+
+/** The page row's indicator: thinner and flat, as a secondary row's is, so it reads as under the group row's. */
+private val SECONDARY_INDICATOR_HEIGHT = 2.dp
+
+/**
+ * The group row's divider, raised off the row's bottom edge so it runs through the middle of the
+ * indicator, which sits on that edge - left at the bottom, the indicator rests on top of the line
+ * instead. (The indicator can't be lowered onto the line: the row clips anything below its bottom.)
+ */
+@Composable
+private fun TabRowDivider() {
+    HorizontalDivider(modifier = Modifier.padding(bottom = (TAB_INDICATOR_HEIGHT - DividerDefaults.Thickness) / 2))
+}
 
 /** Space between the end of a page's text and the top of the footer, once scrolled to the bottom. */
 private val PAGE_FOOTER_GAP = 8.dp
 
 /**
- * "1 of 7" pinned to the bottom of the pages - where you are and how many there are, in one glance,
- * alongside the tab row's chevrons (which say only that there's more). A small gold pill drawn over the
- * pages, not a row of its own, so it costs the pages no height: longer text scrolls behind it, the
- * pill's own background keeping it readable on top. Drawn by the shared [FooterPill].
+ * "2 of 6" pinned to the bottom of the pages - where you are in the group showing and how many pages
+ * it has, in one glance, alongside the page row's chevrons (which say only that there's more). A small
+ * gold pill drawn over the pages, not a row of its own, so it costs the pages no height: longer text
+ * scrolls behind it, the pill's own background keeping it readable on top. Drawn by the shared [FooterPill].
  *
- * TalkBack hears "Page 1 of 7", and as a polite live region it's announced again whenever the page
- * changes - a swipe through the pager otherwise lands on a new page without a word.
+ * TalkBack hears "Modes, page 2 of 6", and as a polite live region it's announced again whenever the
+ * page changes - a swipe through the pager otherwise lands on a new page without a word, and one past
+ * a group's last page lands in another group without saying so.
  */
 @Composable
-private fun PageCountFooter(page: Int, pageCount: Int, modifier: Modifier = Modifier) {
-    val pageSpoken = stringResource(Res.string.common_page_of, page + 1, pageCount)
+private fun PageCountFooter(pagerState: PagerState, modifier: Modifier = Modifier) {
+    val group = groupOf(pagerState.currentPage)
+    val page = pagerState.currentPage - GROUP_STARTS[group]
+    val pageCount = RULES_GROUPS[group].pages.size
+    val pageSpoken = stringResource(Res.string.rules_page_in_group_spoken, stringResource(RULES_GROUPS[group].label), page + 1, pageCount)
     FooterPill(
         text = stringResource(Res.string.rules_page_count, page + 1, pageCount),
         modifier = modifier.semantics {

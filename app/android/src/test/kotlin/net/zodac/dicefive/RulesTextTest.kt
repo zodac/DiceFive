@@ -18,7 +18,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
-/** The Rules screen's words: its title, every page's tab, what a page and its examples say and draw, and its page count. */
+/** The Rules screen's words: its title, its groups and every page's tab, what a page and its examples say and draw, and its page count. */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [35])
 class RulesTextTest {
@@ -44,12 +44,32 @@ class RulesTextTest {
     }
 
     @Test
-    fun `every page has a tab`() {
+    fun `every page has a tab in its group`() {
         showRules()
 
-        listOf(
-            "How to Play", "Upper Section", "Lower Section", "5x & Joker", "Tie Breaks", "Tricolour", "Quickfire", "7 Dice Stud", "Third Wind", "Hit List", "Modifiers",
-        ).forEach { compose.onNodeWithText(it).assertExists() }
+        listOf("Gameplay", "Modes", "Modifiers").forEach { compose.onNodeWithText(it).assertExists() }
+        mapOf(
+            "Gameplay" to listOf("How to Play", "Upper Section", "Lower Section", "5x & Joker", "Tie Breaks"),
+            "Modes" to listOf("Overview", "Tricolour", "Quickfire", "7 Dice Stud", "Third Wind", "Hit List"),
+            "Modifiers" to listOf("Overview", "Turn Timer", "Number of Rolls", "Stored Rolls", "Extended Scores", "Unlucky Dice"),
+        ).forEach { (group, pages) ->
+            compose.onNodeWithText(group).performClick()
+            compose.waitForIdle()
+            pages.forEach { compose.onNodeWithText(it).assertExists() }
+        }
+    }
+
+    @Test
+    fun `the modes and the modifiers each open on an overview`() {
+        showRules()
+
+        compose.onNodeWithText("Modes").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Game Modes").assertExists()
+
+        compose.onNodeWithText("Modifiers").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Modifiers are just for fun", substring = true).assertExists()
     }
 
     @Test
@@ -74,10 +94,15 @@ class RulesTextTest {
     }
 
     @Test
-    fun `the footer counts the pages`() {
+    fun `the footer counts the pages of the group showing`() {
         showRules()
 
-        compose.onNodeWithText("1 of 11").assertExists()
-        compose.onNode(hasContentDescription("Page 1 of 11")).assertExists()
+        compose.onNodeWithText("1 of 5").assertExists()
+        compose.onNode(hasContentDescription("Gameplay, page 1 of 5")).assertExists()
+
+        compose.onNodeWithText("Modifiers").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("1 of 6").assertExists()
+        compose.onNode(hasContentDescription("Modifiers, page 1 of 6")).assertExists()
     }
 }

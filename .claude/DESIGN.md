@@ -2508,3 +2508,38 @@ and longer battery life, without changing what the game does. UI.md's "Reduced m
       (`SettingsRowsTest`).
 - [ ] **Not seen on a device**: the refresh-rate request on a 90/120Hz phone, TalkBack on the row and its list, and
       the Spanish and Arabic level names and lines (written here, not by a translator).
+
+### Phase 33 — Rules in groups
+
+The Rules page's single row of eleven tabs became two rows, as Material's primary and secondary tabs: **Gameplay**,
+**Modes** and **Modifiers** on top, and the pages of the group showing under them, so another group is one tap from
+any page.
+
+- [x] **Groups** (`RULES_GROUPS` in `RulesScreen.kt`): Gameplay (How to Play, Upper Section, Lower Section, 5x & Joker,
+      Tie Breaks); Modes, opening on a new **Overview** (what a mode is, that Standard is the Gameplay pages' rules, which
+      modes go on the Leaderboard), then a page per mode; Modifiers, opening on an **Overview** (the old page's first two
+      paragraphs: what they are, and that their scores stay off the Leaderboard), then a page per modifier - Turn Timer,
+      Number of Rolls, Stored Rolls, Extended Scores, Unlucky Dice - however short. The shared "extra rolls" achievement
+      line was split onto Number of Rolls and Stored Rolls, each naming its own modifier. English, Spanish and Arabic.
+      Page titles lost their "Mode:" and "Modifier:" prefixes, which the group tab now says.
+- [x] **One pager across every page**: a swipe past a group's last page carries on into the next group, and the top
+      row follows. A group tab opens that group's first page; tapping the group already showing does nothing. A tab
+      snaps to its page rather than sliding through (and building) every page between, as the maintainer asked.
+- [x] **Lag and missed taps**, reported on a device (`BENCHMARKS.md`, "The Rules page"): a page builds its first
+      screenful at once and the rest over the next few frames (`rememberShownBlocks`); a page change no longer
+      rebuilds both tab rows; list formatting and text direction are kept per language. Taps were being lost to the
+      tab rows' own re-centring scroll - both rows now never re-centre, and `KeepTabInView` moves a row at once only
+      when the selected tab is hidden. Pinned by real-touch tests 50ms apart (`RulesScreenAccessibilityTest`), each
+      checked to fail without its fix, and by a swipe-to-a-hidden-tab test in both directions (`RulesTabIndicatorTest`).
+- [x] **The group row** is a `PrimaryScrollableTabRow` whose tabs are all one width while every label fits a third,
+      otherwise each its label's width plus an equal share of the rest, in whole pixels adding up to exactly the row (Spanish "Modificadores" was cut to
+      "Modificad..." in equal thirds at 360dp, and 12sp is the smallest the app shrinks to). It only scrolls if the
+      labels outgrow the row (a large font), with the page row's chevrons and fade. The page row became a
+      `SecondaryScrollableTabRow` with a 2dp flat indicator, still sliding with the finger on a swipe, so it reads as
+      under the group row.
+- [x] **Footer** counts within the group ("2 of 6") and is spoken with it ("Modes, page 2 of 6",
+      `rules_page_in_group_spoken`), so a swipe into another group is announced as one. Both rows carry collection
+      semantics ("Tab, 1 of 3", "Tab, 1 of 6"). `RulesScreenAccessibilityTest`, `RulesTextTest`, `RulesTabIndicatorTest`;
+      `TextFitTest` now also fails on a cut-off tab label (checked to fail with equal thirds).
+- [ ] **Not seen on a device**: the two rows and TalkBack on them; the new Spanish and Arabic text (written here, not
+      by a translator).
