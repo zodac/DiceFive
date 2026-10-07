@@ -887,13 +887,13 @@
     <string name="rules_stud_title">Stud de 7 dados</string>
     <string name="rules_stud_tab">Stud de 7 dados</string>
     <string name="rules_stud_1">Un modo personalizado que amplía el modo de juego *Estándar*. Cada tirada es de **siete** dados en lugar de cinco, pero solo pueden puntuar **cinco** de ellos.</string>
-    <string name="rules_stud_2">Sigue habiendo solo **cinco** ranuras. Toca un dado del tapete para conservarlo: va a la ranura libre más cercana. Toca una ranura para devolver su dado. Solo puntúan los dados que conservas, así que solo puedes anotar cuando las **cinco** ranuras están llenas. Hasta entonces, tu tarjeta muestra lo que puntuarían los dados que has conservado hasta ahora.</string>
+    <string name="rules_stud_2">Sigue habiendo solo **cinco** ranuras, así que como mucho puedes conservar **cinco** dados. Toca un dado del tapete para conservarlo: va a la ranura libre más cercana. Toca una ranura para devolver su dado. Conservar decide qué dados se vuelven a lanzar. Solo puntúan los **cinco** dados de tu mano, pero no hace falta conservarlos todos: toca una casilla y los dados que has conservado se completan con los demás que más puntúen en ella. Tu tarjeta muestra lo que valdría cada casilla así, y mientras mantienes pulsada una casilla, los dados que tomaría se marcan en el tapete (los de trazo discontinuo habrían valido igual).</string>
     <string name="rules_stud_3">Este es un turno de ejemplo:</string>
     <string name="rules_stud_4">La primera tirada saca tres 6. Consérvalos y vuelve a tirar los otros **cuatro** dados.</string>
     <string name="rules_stud_5">¡Otro 6! Consérvalo también y tira los últimos **tres** dados.</string>
-    <string name="rules_stud_6">No hay más 6, pero un 5 es lo mejor del resto. Consérvalo para llenar la quinta ranura.</string>
+    <string name="rules_stud_6">No hay más 6, pero un 5 es lo mejor del resto. Consérvalo para llenar la quinta ranura, o déjalo en el tapete: la casilla que toques lo tomará por ti.</string>
     <string name="rules_stud_7">Anota los cinco dados conservados. Valen **29 pts** en `4x`, o **24 pts** en `Seises`.</string>
-    <string name="rules_stud_8">Si se acaba el *temporizador de turno*, las ranuras vacías se llenan con los dados del tapete, de izquierda a derecha, y esa mano se anota por ti.</string>
+    <string name="rules_stud_8">Si se acaba el *temporizador de turno*, se elige la primera casilla que aún se puede anotar, tu mano se completa con los dados que más puntúan en ella y se anota por ti.</string>
     <string name="rules_stud_9">La puntuación, las bonificaciones y la regla del comodín son exactamente las mismas que en las reglas *Estándar*. ¡Solo tienes más dados entre los que elegir tu mano!</string>
     <string name="rules_third_wind_title">Tercer aliento</string>
     <string name="rules_third_wind_tab">Tercer aliento</string>

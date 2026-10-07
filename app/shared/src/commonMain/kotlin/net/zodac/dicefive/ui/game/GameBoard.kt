@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import net.zodac.dicefive.game.DiceScoring
+import net.zodac.dicefive.game.HandCompletion
 import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
@@ -143,16 +144,20 @@ fun GameBoard(
     // ([diceSettling]) - so nothing is highlighted or tappable until the dice the scores are for
     // are sitting still, and a tap can never score against dice about to change.
     //
-    // Where only held dice score (GameMode.scoresHeldDiceOnly), the board reads the held hand: it
-    // previews what those dice would score as soon as one is held, but a box can only be tapped once
-    // every hold slot is filled.
+    // Where only held dice score (GameMode.scoresHeldDiceOnly), a CPU's board reads the dice it has held. A human's
+    // reads them completed: every box previews the best hand the held dice can make in it, and any of them can be
+    // tapped - the rest of the hand is chosen for the player (see HandCompletion).
     val rollInHand = rolling || diceSettling
     val hand = state.scoringDice
-    val canScore = rolled && player?.type == PlayerType.HUMAN && !rollInHand && state.hasFullHand
-    val available = player?.let { ScoreCalculator.availableCategories(it, hand) }.orEmpty().toSet()
+    val projected = remember(state, rollInHand) {
+        if (rolled && !rollInHand && !state.hasFullHand && player?.type == PlayerType.HUMAN) HandCompletion.projectedHands(state) else emptyMap()
+    }
+    val completable = projected.isNotEmpty()
+    val canScore = rolled && player?.type == PlayerType.HUMAN && !rollInHand && (state.hasFullHand || completable)
+    val available = if (completable) projected.keys else player?.let { ScoreCalculator.availableCategories(it, hand) }.orEmpty().toSet()
 
     // The 5x tile flashes gold the first time each player's dice settle on a 5x they can score as one.
-    val showPreview = rolled && !rollInHand && hand.isNotEmpty()
+    val showPreview = rolled && !rollInHand && (hand.isNotEmpty() || completable)
     val fiveOfAKindShowing = showPreview && ScoreCategory.FIVE_OF_A_KIND in available && DiceScoring.isFiveOfAKind(hand)
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var flashFiveOfAKind by remember { mutableStateOf(false) }
@@ -164,7 +169,7 @@ fun GameBoard(
         }
     }
 
-    CompositionLocalProvider(LocalFiveOfAKindFlash provides flashFiveOfAKind) {
+    CompositionLocalProvider(LocalFiveOfAKindFlash provides flashFiveOfAKind, LocalProjectedHands provides projected) {
         ScoreBoardRow(
             categories = state.categories,
             player = player,

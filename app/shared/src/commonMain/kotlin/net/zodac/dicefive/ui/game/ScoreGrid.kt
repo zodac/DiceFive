@@ -19,10 +19,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -51,6 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import net.zodac.dicefive.game.ProjectedHand
 import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
@@ -211,6 +214,19 @@ internal fun CellRow(
     }
 }
 
+/**
+ * The hand each box would be scored with, where a box can be tapped before the hand is whole
+ * ([net.zodac.dicefive.game.HandCompletion.projectedHands]) - provided by [GameBoard] for [CategoryCell] to find. Empty
+ * everywhere else, where every box is previewed with the same dice.
+ */
+internal val LocalProjectedHands = staticCompositionLocalOf<Map<ScoreCategory, ProjectedHand>> { emptyMap() }
+
+/**
+ * The hand of the box a finger is on, for the dice tray to mark which dice it would take: written by [CategoryCell], read by the
+ * tray (see `SlottedDice`). Provided by the game screen; null where there is no tray beside the board.
+ */
+internal val LocalHandPreview = staticCompositionLocalOf<MutableState<ProjectedHand?>?> { null }
+
 /** The gap between the board's columns. */
 internal val COLUMN_GAP = 20.dp
 
@@ -230,6 +246,10 @@ internal fun CategoryCell(
     squareSize: Dp? = null,
     compact: Boolean = false,
 ) {
+    // Where a box can be scored before the hand is whole, the hand it would be scored with: the best completion of the held dice.
+    val projectedHand = LocalProjectedHands.current[category]
+    val handPreview = LocalHandPreview.current
+    val dice = projectedHand?.dice ?: dice
     val scores = player?.scoresIn(category).orEmpty()
     // Switched off for this game: never open, never scored, drawn apart from every other state.
     val switchedOff = player?.isDisabled(category) == true
@@ -341,6 +361,11 @@ internal fun CategoryCell(
             target = target,
             matches = matches,
             onClick = if (isLegalChoice) { { onScoreCategory(category) } } else null,
+            onPressChange = if (isLegalChoice && projectedHand != null && handPreview != null) {
+                { pressed -> handPreview.value = projectedHand.takeIf { pressed } }
+            } else {
+                null
+            },
         )
     }
     val scoreContent = @Composable { scoreModifier: Modifier ->

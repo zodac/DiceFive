@@ -62,6 +62,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.game.ProjectedHand
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerType
@@ -497,39 +498,43 @@ private fun InProgressGame(
         }
     }
 
-    if (sideBySide) {
-        // The board on the left, and on the right the cup with the tray under it - the cup is on the
-        // right-hand side as it is in the board on a phone, and the dice pour out just below it.
-        Row(horizontalArrangement = Arrangement.spacedBy(SECTION_GAP), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.weight(1f)) { board() }
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(SECTION_GAP)) {
-                // At the pane's right-hand edge, where it's easiest to reach, and drawn larger than in the
-                // board - over the mat it would otherwise look small beside the dice and tiles.
-                val density = LocalDensity.current
-                CompositionLocalProvider(LocalDensity provides Density(density.density * cupScale, density.fontScale)) {
-                    // Its space is kept while another player's scorecard is up (no cup then), so the tray stays put.
-                    val cupModifier = Modifier.align(Alignment.End).size(width = SIDE_CUP_WIDTH, height = SIDE_CUP_HEIGHT)
-                    if (viewedPlayer == null) {
-                        GameCup(
-                            state = state,
-                            rolling = isRolling,
-                            pouring = pouring,
-                            diceSettling = diceSettling,
-                            canUndo = canUndo,
-                            onCupTap = onCupTap,
-                            onUndo = onUndo,
-                            modifier = cupModifier,
-                        )
-                    } else {
-                        Spacer(modifier = cupModifier)
+    // Which dice the box under a finger would take, from the board to the tray (see LocalHandPreview).
+    val handPreview = remember { mutableStateOf<ProjectedHand?>(null) }
+    CompositionLocalProvider(LocalHandPreview provides handPreview) {
+        if (sideBySide) {
+            // The board on the left, and on the right the cup with the tray under it - the cup is on the
+            // right-hand side as it is in the board on a phone, and the dice pour out just below it.
+            Row(horizontalArrangement = Arrangement.spacedBy(SECTION_GAP), verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.weight(1f)) { board() }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(SECTION_GAP)) {
+                    // At the pane's right-hand edge, where it's easiest to reach, and drawn larger than in the
+                    // board - over the mat it would otherwise look small beside the dice and tiles.
+                    val density = LocalDensity.current
+                    CompositionLocalProvider(LocalDensity provides Density(density.density * cupScale, density.fontScale)) {
+                        // Its space is kept while another player's scorecard is up (no cup then), so the tray stays put.
+                        val cupModifier = Modifier.align(Alignment.End).size(width = SIDE_CUP_WIDTH, height = SIDE_CUP_HEIGHT)
+                        if (viewedPlayer == null) {
+                            GameCup(
+                                state = state,
+                                rolling = isRolling,
+                                pouring = pouring,
+                                diceSettling = diceSettling,
+                                canUndo = canUndo,
+                                onCupTap = onCupTap,
+                                onUndo = onUndo,
+                                modifier = cupModifier,
+                            )
+                        } else {
+                            Spacer(modifier = cupModifier)
+                        }
                     }
+                    tray()
                 }
-                tray()
             }
+        } else {
+            board()
+            tray()
         }
-    } else {
-        board()
-        tray()
     }
 }
 

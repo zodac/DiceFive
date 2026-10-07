@@ -718,7 +718,7 @@ The numbers here are Standard's - dice count, rolls per turn and the rest come f
 - Start of turn: 5 dice, 3 rolls remaining, all unheld.
 - Roll: rolls all non-held dice, decrements `rollsRemaining`.
 - Hold: toggles a die's `isHeld` — only after ≥1 roll this turn. In a mode that rolls more dice
-  than it scores (Stud), a held die goes to the free hold slot nearest its column and keeps it until let go
+  than it scores (Stud; a box can still be scored with fewer held - `HandCompletion`), a held die goes to the free hold slot nearest its column and keeps it until let go
   (`Die.heldSlot`; die 1 prefers the first slot, die 7 the last), only
   `scoringDiceCount` can be held at once, and only the held dice score (`GameState.scoringDice`) -
   once every slot is full (`hasFullHand`). Still allowed once the last
@@ -739,8 +739,7 @@ The numbers here are Standard's - dice count, rolls per turn and the rest come f
   its rolls (up to the mode's `rollsPerTurn`, stopping early once it holds every die) and then a
   score, with brief coroutine delays so it's visibly animated, not instant.
 - Turn timer: when one is set (the Turn Timer modifier),
-  running out rolls if needed, fills any empty hold slots from the left in Stud
-  (`GameEngine.fillHand`), and scores `ScoreCalculator.timeoutCategory` - the first open box (a box switched off is never open).
+  running out rolls if needed, completes the hand in Stud (`HandCompletion`), and scores `ScoreCalculator.timeoutCategory` - the first open box (a box switched off is never open).
 - Game ends when every player's scorecard is full (every slot of every box, in Third Wind); `GameViewModel` persists
   each **human** player's final total to `ScoreRepository` (one row per
   human player; AI scores are not saved; a mode with `countsOnLeaderboard` false - Third Wind - is
@@ -2257,6 +2256,10 @@ and its `GameMode` fields (`turnTimerSeconds`, `timeoutPick`, `autoRollAtTurnSta
       `HandScoringTest`, `GameStateJsonTest`, `AchievementEngineTest`, `GameViewModelTest`,
       `GameAchievementsWiringTest` (each guard proven by removing it), `SlottedDiceTrayTest`
       (Robolectric: the gestures and the semantics).
+- [x] **Follow-up: completing the hand** (see `GAME_MODES.md`, Stud): a box can be scored with fewer than
+      five dice held - `HandCompletion` completes the hand with the best dice for the tapped box, the board
+      previews that, pressing a box outlines the dice it takes (dashed: equally good alternatives), and the
+      Turn Timer scores the first box that can be scored, completed. Rules page text updated (en/es/ar).
 - [ ] **Not yet seen on a device**: rendered under Robolectric only at 360dp and 411dp; the seven-die
       toss animation, the Egg and googly-eyed styles at the smaller size, and what TalkBack actually
       says for the slots, not seen or heard.

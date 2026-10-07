@@ -34,10 +34,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -56,6 +62,7 @@ import kotlin.math.sin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.game.ProjectedHand
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.GameMode
@@ -75,6 +82,8 @@ import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ambientMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.theme.GoldAccent
+import net.zodac.dicefive.ui.theme.GoldAccentDim
 import net.zodac.dicefive.ui.game.style.DiceMat
 import net.zodac.dicefive.ui.game.style.DiceStyle
 import net.zodac.dicefive.ui.game.style.DieMotion
@@ -432,6 +441,8 @@ private fun SlottedDice(
     val motions = dice.indices.map { rememberDieMotion(it, diceStyles) }
     fun dieInSlot(dice: List<Die>, slot: Int): Int? = dice.indexOfFirst { it.isHeld && it.heldSlot == slot }.takeIf { it >= 0 }
     val slotsFull = dice.count { it.isHeld } >= slotCount
+    // While a finger is on a box that would complete the hand, which of the dice on the mat it would take.
+    val handPreview = LocalHandPreview.current?.value
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(TRAY_PADDING)) {
         // A slot is no bigger than a mat column, so a die is the same size held as it is on the mat; the
@@ -536,7 +547,7 @@ private fun SlottedDice(
                             diceStyles = diceStyles,
                             columnGap = SLOTTED_MAT_COLUMN_GAP,
                             fitToColumn = true,
-                            modifier = Modifier.weight(1f).then(dieSemantics),
+                            modifier = Modifier.weight(1f).then(dieSemantics).handPreviewMark(handPreview, index, die),
                         )
                     }
                 }
@@ -544,6 +555,37 @@ private fun SlottedDice(
         }
     }
 }
+
+/**
+ * Marks a die's column on the mat while a finger is on a box ([LocalHandPreview]) that would finish the hand: the dice it would
+ * take get a solid gold outline, the ones that would have done as well - the same score, other faces - a dashed one, and the rest
+ * fade back. A held die is in its slot and is left alone, as is every die when no box is pressed. Still, so it needs no
+ * reduced-motion variant.
+ */
+private fun Modifier.handPreviewMark(preview: ProjectedHand?, index: Int, die: Die): Modifier = when {
+    preview == null || die.isHeld -> this
+    index in preview.used -> drawBehind { drawColumnOutline(dashed = false) }
+    index in preview.alternatives -> drawBehind { drawColumnOutline(dashed = true) }
+    else -> graphicsLayer { alpha = HAND_PREVIEW_FADED_ALPHA }
+}
+
+private fun DrawScope.drawColumnOutline(dashed: Boolean) {
+    val stroke = Stroke(
+        width = 2.dp.toPx(),
+        pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 4.dp.toPx())) else null,
+    )
+    val inset = stroke.width / 2
+    drawRoundRect(
+        color = if (dashed) GoldAccentDim else GoldAccent,
+        topLeft = Offset(inset, inset),
+        size = Size(size.width - stroke.width, size.height - stroke.width),
+        cornerRadius = CornerRadius(8.dp.toPx()),
+        style = stroke,
+    )
+}
+
+/** How far the dice a pressed box would not take fade back. */
+private const val HAND_PREVIEW_FADED_ALPHA = 0.45f
 
 /** Which of [columnCount] equal-width columns a touch at local x-position [x] (within a row of
  * [totalWidthPx] pixels) falls in. Approximate - it divides the row's full width evenly rather
