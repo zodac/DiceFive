@@ -32,7 +32,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 /** In-memory preferences, so a real [SettingsRepository] can back the screen. */
-private class InMemoryPreferences : DataStore<Preferences> {
+internal class InMemoryPreferences : DataStore<Preferences> {
 
     private val _data = MutableStateFlow(emptyPreferences())
     override val data: Flow<Preferences> = _data
