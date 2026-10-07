@@ -67,6 +67,7 @@ import net.zodac.dicefive.ui.common.SegmentedChoiceRow
 import net.zodac.dicefive.ui.game.GameSetupState
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.game.PlayerSetupSlot
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Fixed width for the per-row User/CPU control, so the name fields above and below it all end at
@@ -465,8 +466,8 @@ private fun GameModeSelector(selected: GameMode, onSelect: (GameMode) -> Unit) {
         options = GameMode.entries,
         selected = selected,
         onSelect = onSelect,
-        label = { it.displayName },
-        description = { it.description },
+        label = { stringResource(it.displayName) },
+        description = { stringResource(it.description) },
     )
 }
 
@@ -547,7 +548,7 @@ private fun SetupModifierPicker(
                 // Locked off in a mode whose card it doesn't fit - the player's own pick is kept for the next mode.
                 enabled = setup.extendedScores && setup.gameMode.allowsExtendedScores,
                 onEnabledChange = onExtendedScores,
-                lockedNote = if (setup.gameMode.allowsExtendedScores) null else "Not used in ${setup.gameMode.displayName} mode",
+                lockedNote = if (setup.gameMode.allowsExtendedScores) null else "Not used in ${stringResource(setup.gameMode.displayName)} mode",
             ),
             ModifierSetting(
                 title = "Unlucky Dice",

@@ -102,7 +102,7 @@ object GameStateJson {
      */
     private fun decodeDisabledCategories(obj: JsonObject, gameMode: GameMode): Set<ScoreCategory> {
         if (gameMode.randomDisabledCategories == 0) return gameMode.disabledCategories
-        if ("disabledCategories" !in obj) throw JsonParseException("A ${gameMode.displayName} game saved without its disabled boxes")
+        if ("disabledCategories" !in obj) throw JsonParseException("A ${gameMode.id} game saved without its disabled boxes")
         val names = obj.getStringList("disabledCategories")
         return names.map { name -> checkNotNull(ScoreCategory.entries.firstOrNull { it.name == name }) { "Unknown category: $name" } }.toSet()
     }

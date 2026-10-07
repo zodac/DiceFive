@@ -69,6 +69,7 @@ import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.formatTimestamp
 import net.zodac.dicefive.ui.theme.Bronze
 import net.zodac.dicefive.ui.theme.Silver
+import org.jetbrains.compose.resources.stringResource
 
 /** [GameMode.HIGHEST_POSSIBLE_SCORE] (a perfect game in whichever mode allows the most) is the longest a score can ever be. */
 private val SCORE_DISPLAY_WIDTH = GameMode.HIGHEST_POSSIBLE_SCORE.toString().length
@@ -265,7 +266,7 @@ private fun ModeCard(mode: GameMode, board: ModeBoard, onPrevious: () -> Unit, o
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(8.dp)) {
             Text(
-                text = mode.displayName,
+                text = stringResource(mode.displayName),
                 style = MaterialTheme.typography.titleMedium,
                 fontFamily = SoraFontFamily,
                 fontWeight = FontWeight.Bold,
@@ -405,10 +406,11 @@ private fun ScoreRow(
     val onPodium = highlightPodium && rank <= PODIUM_RANKS
     val accent = if (highlightPodium) podiumAccent(rank) else null
     val columns = scoreColumns()
+    val modeName = if (showMode) entry.gameMode?.let { stringResource(it.displayName) } ?: entry.gameModeId else null
 
     // The mode only where rows of every mode share a table - on its own card it's the card's title.
     // Built on a long press only: see OnDemandTooltip.
-    OnDemandTooltip(message = { scoreRowDetail(entry, showMode) }) {
+    OnDemandTooltip(message = { scoreRowDetail(entry, modeName) }) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -478,9 +480,9 @@ private fun ScoreRow(
 }
 
 /** When [entry] was played, and - with [showMode] - in which mode, on a line of its own. */
-private fun scoreRowDetail(entry: ScoreEntry, showMode: Boolean): String {
+private fun scoreRowDetail(entry: ScoreEntry, modeName: String?): String {
     val timestamp = formatTimestamp(entry.timestampEpochMillis)
-    return if (showMode) "$timestamp\n${entry.gameMode?.displayName ?: entry.gameModeId}" else timestamp
+    return if (modeName != null) "$timestamp\n$modeName" else timestamp
 }
 
 @Composable
