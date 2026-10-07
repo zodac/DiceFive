@@ -37,6 +37,11 @@
   Android's platform code is in `app/android`), gotchas (e.g. no commas or parentheses in `commonTest` names), and what's left.
   Phases 1-4 are done - the game, UI and persistence are shared and compile for iOS; the iOS app
   itself (Phase 5) needs macOS.
+- `.claude/I18N.md` — the plan for moving every visible and spoken string into Compose resources
+  (i18n) so a language can be added later (l10n): the decisions (plurals in `<plurals>` using
+  Compose resources' bundled CLDR rules; ordinals, number grouping and lists through each
+  platform's formatter), string conventions, the guards, and the step-by-step status. Read this
+  before adding or moving any player-visible string.
 
 # Working agreements
 
