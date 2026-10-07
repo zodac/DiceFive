@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 
 /**
@@ -34,6 +35,9 @@ import androidx.compose.ui.text.style.TextOverflow
  * picked - for a choice the rest of the form has overridden (the turn timer under a game mode that
  * sets its own).
  *
+ * [brandFont] sets the text labels in [SoraFontFamily] (bold, its only weight) - the New Game screen's player count
+ * and the modifiers' values, which read as the game's own marks; a plain form choice leaves it off.
+ *
  * [contentPadding] is the segment's own side padding (M3's 12dp by default): the New Game difficulty row
  * tightens it so "Medium" still fits, and sits centred, once the colour circle has taken a share of the row.
  */
@@ -49,6 +53,7 @@ fun <T> SegmentedChoiceRow(
     enabled: Boolean = true,
     contentPadding: PaddingValues = SegmentedButtonDefaults.ContentPadding,
     spokenLabel: (T) -> String = label,
+    brandFont: Boolean = false,
 ) {
     SingleChoiceSegmentedButtonRow(modifier = modifier) {
         options.forEachIndexed { index, option ->
@@ -73,6 +78,8 @@ fun <T> SegmentedChoiceRow(
                         Text(
                             text = label(option),
                             style = labelStyle,
+                            fontFamily = if (brandFont) SoraFontFamily else null,
+                            fontWeight = if (brandFont) FontWeight.Bold else null,
                             maxLines = 1,
                             softWrap = false,
                             overflow = TextOverflow.Visible,

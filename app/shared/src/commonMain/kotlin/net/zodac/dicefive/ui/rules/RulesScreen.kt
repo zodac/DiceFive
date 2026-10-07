@@ -356,7 +356,7 @@ private val RULES_PAGES = listOf(
                 "Score the five held dice. They're worth **29pts** in `4x`, or **24pts** in `Sixes`.",
                 dice(6, 6, 6, 6, 5, score = "29pts"),
             ),
-            text("If the *Turn timer* runs out, any empty hold slots are filled from the dice on the mat, left to right, and that hand is scored for you."),
+            text("If the *Turn Timer* runs out, any empty hold slots are filled from the dice on the mat, left to right, and that hand is scored for you."),
             text("Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules. You just get more dice to choose your hand from!"),
         ),
     ),
@@ -432,7 +432,7 @@ private val RULES_PAGES = listOf(
         blocks = listOf(
             text("*Modifiers* are optional extras you can add to any game mode. Choose them on the new game screen: each can be switched on or off, and some also have a value to set."),
             text("*Modifiers* are just for fun. Scores from a game with any modifier switched on don't go on the *Leaderboard*, but they still count towards your *Statistics*."),
-            text("*Turn timer*: a limit on how long each player has to finish their whole turn, not each roll. Choose **30**, **60** or **120** seconds. A badge shows the time left and turns red as it runs out."),
+            text("*Turn Timer*: a limit on how long each player has to finish their whole turn, not each roll. Choose **30**, **60** or **120** seconds. A badge shows the time left and turns red as it runs out."),
             RulesTurnTimer,
             text("If a player's time runs out, their roll is scored for them in whichever open category it's worth the least in (the first one on the scorecard, if several tie)."),
             text("*Number of Rolls*: how many times a player may roll each turn, from **1** to **9**. Without it, a turn has the game mode's own number of rolls, which is **3** in every game mode."),

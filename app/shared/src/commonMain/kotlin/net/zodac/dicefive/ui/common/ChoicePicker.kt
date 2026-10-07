@@ -25,6 +25,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
@@ -49,6 +50,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -95,7 +97,14 @@ private fun PickerField(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = headline, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                // The pick in the brand face, as the picker's own rows have it.
+                Text(
+                    text = headline,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontFamily = SoraFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
                 Text(text = supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
             }
             Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
@@ -144,7 +153,8 @@ private fun PickerDialog(
 @Composable
 private fun PickerRowText(label: String, description: String, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
-        Text(text = label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+        // The name in the brand face, like a heading; the description stays in the system font, quieter beneath it.
+        Text(text = label, style = MaterialTheme.typography.bodyLarge, fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         Text(text = description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -335,6 +345,7 @@ private fun ModifierRow(setting: ModifierSetting, modifier: Modifier = Modifier)
                 label = { setting.valueLabels[it] },
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 enabled = unlocked && setting.enabled,
+                brandFont = true,
             )
         }
     }
@@ -350,6 +361,8 @@ private fun ModifierStepperRow(stepper: ModifierStepper, enabled: Boolean, modif
         Text(
             text = "${stepper.value}${stepper.unitSeparator}$unit",
             style = MaterialTheme.typography.titleMedium,
+            fontFamily = SoraFontFamily,
+            fontWeight = FontWeight.Bold,
             color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA),
             textAlign = TextAlign.Center,
             // Polite live region: the new count is spoken after a tap on either button.
@@ -376,6 +389,8 @@ private fun ModifierNumberFieldRow(field: ModifierNumberField, enabled: Boolean,
         },
         label = { Text(field.label) },
         placeholder = { Text(field.hint) },
+        // The typed number in the brand face, like the other modifiers' values; its label and hint stay plain.
+        textStyle = LocalTextStyle.current.copy(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold),
         enabled = enabled,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
