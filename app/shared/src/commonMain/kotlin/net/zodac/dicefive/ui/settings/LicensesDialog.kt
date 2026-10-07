@@ -78,6 +78,10 @@ data class LicenseGroup(val name: String, val text: String, val components: List
     /**
      * "Used by 84 libraries", "Used by 1 library and 1 font", "Used by 2 libraries, 1 font and
      * 1 sound" - one licence can cover any mix of kinds; each is counted, most common first.
+     *
+     * i18n: not translated, by decision (.claude/I18N.md, Step 3). The Android licence list is built from
+     * Android views, which can't reach the string resources, and this one rarely-seen line isn't worth
+     * a new platform interface. A language that wants it needs that decision revisited.
      */
     val usage: String
         get() {

@@ -9,97 +9,93 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.outlined.GridView as GridViewOutlined
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.outlined.GridView as GridViewOutlined
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.platform.LocalDensity
-import kotlinx.coroutines.flow.collectLatest
-import net.zodac.dicefive.ui.common.LocalReduceMotion
-import net.zodac.dicefive.ui.theme.GoldAccent
-import org.jetbrains.compose.resources.stringResource
-import net.zodac.dicefive.ui.game.style.DieMotion
-import net.zodac.dicefive.ui.game.style.LocalDieMotion
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.runtime.mutableStateOf
-import kotlin.math.min
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.LocalFontFamilyResolver
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.drawscope.Stroke
-import net.zodac.dicefive.ui.game.style.StyleCatalogs
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.text
-import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.TextMeasurer
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.graphics.takeOrElse
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFontFamilyResolver
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.semantics.CollectionInfo
 import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.collectionInfo
 import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -109,70 +105,82 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.text
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.flow.first
+import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.ceil
-import kotlin.math.PI
+import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
-import androidx.compose.ui.semantics.collectionInfo
-import androidx.compose.ui.semantics.CollectionInfo
-import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.runtime.key
-import androidx.compose.runtime.movableContentOf
-import androidx.compose.ui.layout.Layout
-import androidx.compose.runtime.saveable.rememberSaveable
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.Stable
-import androidx.lifecycle.Lifecycle
-import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.achievements.StyleScrollRequest
 import net.zodac.dicefive.data.achievements.StyleScrollRequests
 import net.zodac.dicefive.data.settings.SavedStyles
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.styles_requirement_count
+import net.zodac.dicefive.resources.styles_requirement_free
+import net.zodac.dicefive.resources.styles_requirement_specific
+import net.zodac.dicefive.resources.styles_unlock_count
+import net.zodac.dicefive.resources.styles_unlock_free
+import net.zodac.dicefive.resources.styles_unlock_specific
 import net.zodac.dicefive.ui.common.AppTooltip
-import net.zodac.dicefive.ui.common.rememberAppTooltipState
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.HorizontalScrollbar
-import net.zodac.dicefive.ui.common.VerticalScrollbar
+import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.PAGE_CONTENT_FADE_IN_MILLIS
+import net.zodac.dicefive.ui.common.ScreenScaffold
+import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.parseInlineMarkup
+import net.zodac.dicefive.ui.common.rememberAppTooltipState
 import net.zodac.dicefive.ui.common.tooltipMarkup
-import net.zodac.dicefive.ui.common.ScreenScaffold
+import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 import net.zodac.dicefive.ui.game.style.DiceCupStyle
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMat
 import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyle
 import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.game.style.DieMotion
+import net.zodac.dicefive.ui.game.style.LocalDieMotion
+import net.zodac.dicefive.ui.game.style.ScoreFrame
+import net.zodac.dicefive.ui.game.style.ScoreFramePreviewColour
+import net.zodac.dicefive.ui.game.style.ScoreFrames
 import net.zodac.dicefive.ui.game.style.StyleCatalog
+import net.zodac.dicefive.ui.game.style.StyleCatalogs
 import net.zodac.dicefive.ui.game.style.StyleColour
 import net.zodac.dicefive.ui.game.style.StyleFamily
 import net.zodac.dicefive.ui.game.style.StyleUnlock
 import net.zodac.dicefive.ui.game.style.TableArt
 import net.zodac.dicefive.ui.game.style.TableBackground
-import net.zodac.dicefive.ui.game.style.ScoreFrame
-import net.zodac.dicefive.ui.game.style.ScoreFramePreviewColour
-import net.zodac.dicefive.ui.game.style.ScoreFrames
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
+import net.zodac.dicefive.ui.theme.GoldAccent
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 
 // Kept small enough that the categories (Dice, Dice Cup, Mat, Background, Frame) fit on one screen
 // without needing to scroll - see StylesScreen's doc comment.
@@ -1540,10 +1548,9 @@ private fun <T : TableArt> LockedStyleFamilyTile(
 @Composable
 private fun shortRequirement(family: StyleFamily<*>): String =
     when (val unlock = family.unlock) {
-        StyleUnlock.Free -> "Always available"
-        is StyleUnlock.AchievementCount ->
-            "`${unlock.count}` ${if (unlock.count == 1) "achievement" else "achievements"} needed"
-        is StyleUnlock.SpecificAchievement -> "`${stringResource(unlock.achievement.title)}` achievement needed"
+        StyleUnlock.Free -> stringResource(Res.string.styles_requirement_free)
+        is StyleUnlock.AchievementCount -> pluralStringResource(Res.plurals.styles_requirement_count, unlock.count, unlock.count)
+        is StyleUnlock.SpecificAchievement -> stringResource(Res.string.styles_requirement_specific, stringResource(unlock.achievement.title))
     }
 
 /**
@@ -1554,13 +1561,11 @@ private fun shortRequirement(family: StyleFamily<*>): String =
 @Composable
 private fun unlockRequirement(family: StyleFamily<*>, achievements: AchievementsState): String =
     when (val unlock = family.unlock) {
-        StyleUnlock.Free -> "${family.name} is always available."
-        is StyleUnlock.AchievementCount -> {
-            val plural = if (unlock.count == 1) "achievement" else "achievements"
-            "Earn `${unlock.count}` $plural to unlock ${family.name}. You've earned `${achievements.countedUnlocks}` so far."
-        }
+        StyleUnlock.Free -> stringResource(Res.string.styles_unlock_free, family.name)
+        is StyleUnlock.AchievementCount ->
+            pluralStringResource(Res.plurals.styles_unlock_count, unlock.count, unlock.count, family.name, achievements.countedUnlocks)
         // Never a secret one: its style isn't shown until it's earned (StyleUnlock.hiddenWhileLocked).
-        is StyleUnlock.SpecificAchievement -> "Earn `${stringResource(unlock.achievement.title)}` to unlock ${family.name}."
+        is StyleUnlock.SpecificAchievement -> stringResource(Res.string.styles_unlock_specific, stringResource(unlock.achievement.title), family.name)
     }
 
 /**

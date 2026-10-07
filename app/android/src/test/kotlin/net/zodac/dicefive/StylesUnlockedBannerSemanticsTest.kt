@@ -11,6 +11,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.app.LocalAppContainer
@@ -62,5 +63,47 @@ class StylesUnlockedBannerSemanticsTest {
         compose.onNode(hasContentDescription(announcement))
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
             .assert(SemanticsMatcher("pauses on a tap") { it.config[SemanticsActions.OnClick].label == "Pause countdown" })
+    }
+
+    @Test
+    fun `a banner for one style says Style Unlocked, names it, and TalkBack hears it`() {
+        showBannerHostAndEmit(listOf(UnlockedStyle("Frosted", "dice")), 23)
+
+        compose.onNodeWithText("Style Unlocked", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Earned 23 achievements: the 'Frosted' dice style", useUnmergedTree = true).assertExists()
+        compose.onNode(hasContentDescription("Style unlocked: Frosted dice. Earned 23 achievements")).assertExists()
+    }
+
+    @Test
+    fun `a banner for two styles names both`() {
+        showBannerHostAndEmit(listOf(UnlockedStyle("Frosted", "dice"), UnlockedStyle("Velvet", "mat")), 25)
+
+        compose.onNodeWithText("Styles Unlocked", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Earned 25 achievements: 'Frosted' dice and 'Velvet' mat", useUnmergedTree = true).assertExists()
+        compose.onNode(hasContentDescription("Styles unlocked: Frosted dice, Velvet mat. Earned 25 achievements")).assertExists()
+    }
+
+    @Test
+    fun `a banner for three styles names two and counts the rest`() {
+        showBannerHostAndEmit(listOf(UnlockedStyle("Frosted", "dice"), UnlockedStyle("Velvet", "mat"), UnlockedStyle("Oak", "background")), 30)
+
+        compose.onNodeWithText("Earned 30 achievements: 'Frosted' dice, 'Velvet' mat and 1 more", useUnmergedTree = true).assertExists()
+    }
+
+    private fun showBannerHostAndEmit(styles: List<UnlockedStyle>, achievementCount: Int) {
+        compose.setContent {
+            CompositionLocalProvider(LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext())) {
+                DiceFiveTheme {
+                    AchievementBannerHost(
+                        isOnGameScreen = { false },
+                        onAchievementSelected = {},
+                        onStylesSelected = {},
+                    ) { Box(Modifier.fillMaxSize()) }
+                }
+            }
+        }
+        compose.waitForIdle()
+        AchievementEvents.emit(AchievementEvent.StylesUnlocked(styles, achievementCount))
+        compose.waitForIdle()
     }
 }

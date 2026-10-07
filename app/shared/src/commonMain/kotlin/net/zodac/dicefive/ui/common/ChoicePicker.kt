@@ -261,18 +261,17 @@ class ModifierSetting(
 )
 
 /**
- * A [ModifierSetting]'s stepped value: [value] within [range], moved [step] at a time, shown as "[value] [unit]" and
- * spoken the same way after [label]. A [unit] that attaches to its number (a "%") sets [unitSeparator] to "".
+ * A [ModifierSetting]'s stepped value: [value] within [range], moved [step] at a time, shown as [valueText] says
+ * ("3 rolls", "50%") and spoken the same way after [label]. [valueText] is a whole phrase, number included, so
+ * a language can inflect the unit by the number.
  */
 class ModifierStepper(
     val value: Int,
     val range: IntRange,
     val onValueChange: (Int) -> Unit,
     val label: String,
-    val unit: String,
-    val unitSingular: String = unit,
+    val valueText: @Composable (Int) -> String,
     val step: Int = 1,
-    val unitSeparator: String = " ",
 )
 
 /**
@@ -379,13 +378,13 @@ private fun ModifierRow(setting: ModifierSetting, modifier: Modifier = Modifier)
 
 @Composable
 private fun ModifierStepperRow(stepper: ModifierStepper, enabled: Boolean, modifier: Modifier = Modifier) {
-    val unit = if (stepper.value == 1) stepper.unitSingular else stepper.unit
+    val valueText = stepper.valueText(stepper.value)
     Row(modifier = modifier, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { stepper.onValueChange(stepper.value - stepper.step) }, enabled = enabled && stepper.value - stepper.step >= stepper.range.first) {
             Icon(Icons.Filled.Remove, contentDescription = "Decrease ${stepper.label.lowercase()}")
         }
         Text(
-            text = "${stepper.value}${stepper.unitSeparator}$unit",
+            text = valueText,
             style = MaterialTheme.typography.titleMedium,
             fontFamily = SoraFontFamily,
             fontWeight = FontWeight.Bold,
@@ -393,7 +392,7 @@ private fun ModifierStepperRow(stepper: ModifierStepper, enabled: Boolean, modif
             textAlign = TextAlign.Center,
             // Polite live region: the new count is spoken after a tap on either button.
             modifier = Modifier.widthIn(min = 96.dp).semantics {
-                contentDescription = "${stepper.label}, ${stepper.value}${stepper.unitSeparator}$unit"
+                contentDescription = "${stepper.label}, $valueText"
                 liveRegion = LiveRegionMode.Polite
             },
         )

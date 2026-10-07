@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.setup
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -39,34 +40,38 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import net.zodac.dicefive.ui.common.FontFit
-import net.zodac.dicefive.ui.common.MIN_READABLE_FONT_SIZE
-import net.zodac.dicefive.ui.common.SoraFontFamily
-import net.zodac.dicefive.ui.common.fitFontSize
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerColour
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
-import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.model.TurnTimer
+import net.zodac.dicefive.model.UnluckyDice
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.setup_rolls_per_turn_value
+import net.zodac.dicefive.resources.setup_unlucky_max_dice_value
+import net.zodac.dicefive.resources.setup_unlucky_odds_value
 import net.zodac.dicefive.ui.common.ChoicePicker
+import net.zodac.dicefive.ui.common.FontFit
+import net.zodac.dicefive.ui.common.MIN_READABLE_FONT_SIZE
 import net.zodac.dicefive.ui.common.ModifierNumberField
 import net.zodac.dicefive.ui.common.ModifierPicker
 import net.zodac.dicefive.ui.common.ModifierSetting
 import net.zodac.dicefive.ui.common.ModifierStepper
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.SegmentedChoiceRow
+import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.fitFontSize
 import net.zodac.dicefive.ui.game.GameSetupState
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.game.PlayerSetupSlot
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -524,8 +529,7 @@ private fun SetupModifierPicker(
                         range = RollModifiers.MIN_ROLLS..RollModifiers.MAX_ROLLS,
                         onValueChange = onRollsPerTurn,
                         label = "Rolls per turn",
-                        unit = "rolls",
-                        unitSingular = "roll",
+                        valueText = { pluralStringResource(Res.plurals.setup_rolls_per_turn_value, it, it) },
                     ),
                 ),
             ),
@@ -561,17 +565,15 @@ private fun SetupModifierPicker(
                         range = UnluckyDice.MIN_ODDS_PERCENT..UnluckyDice.MAX_ODDS_PERCENT,
                         onValueChange = onUnluckyOdds,
                         label = "Odds a rolled die is locked",
-                        unit = "%",
+                        valueText = { stringResource(Res.string.setup_unlucky_odds_value, it) },
                         step = UnluckyDice.ODDS_STEP_PERCENT,
-                        unitSeparator = "",
                     ),
                     ModifierStepper(
                         value = setup.unluckyDice.maxDice,
                         range = UnluckyDice.MIN_MAX_DICE..UnluckyDice.MAX_MAX_DICE,
                         onValueChange = onUnluckyMaxDice,
                         label = "Most dice locked per roll",
-                        unit = "dice",
-                        unitSingular = "die",
+                        valueText = { pluralStringResource(Res.plurals.setup_unlucky_max_dice_value, it, it) },
                     ),
                 ),
             ),

@@ -108,24 +108,4 @@ class StylesUnlockedBannerTest {
 
         assertEquals(listOf<AchievementEvent>(AchievementEvent.Unlocked(Achievement.THE_SOLUTION)), events)
     }
-
-    @Test
-    fun `the banner names one style or two or two and how many more - and TalkBack hears every one`() {
-        val frosted = UnlockedStyle("Frosted", "dice")
-        val velvet = UnlockedStyle("Velvet", "mat")
-        val oak = UnlockedStyle("Oak", "background")
-
-        val one = AchievementEvent.StylesUnlocked(listOf(frosted), 23)
-        assertEquals("Style Unlocked", stylesUnlockedTitle(one))
-        assertEquals("Earned 23 achievements: the 'Frosted' dice style", stylesUnlockedDescription(one))
-        assertEquals("Style unlocked: Frosted dice. Earned 23 achievements", stylesUnlockedAnnouncement(one))
-
-        val two = AchievementEvent.StylesUnlocked(listOf(frosted, velvet), 25)
-        assertEquals("Styles Unlocked", stylesUnlockedTitle(two))
-        assertEquals("Earned 25 achievements: 'Frosted' dice and 'Velvet' mat", stylesUnlockedDescription(two))
-
-        val three = AchievementEvent.StylesUnlocked(listOf(frosted, velvet, oak), 30)
-        assertEquals("Earned 30 achievements: 'Frosted' dice, 'Velvet' mat and 1 more", stylesUnlockedDescription(three))
-        assertEquals("Styles unlocked: Frosted dice, Velvet mat, Oak background. Earned 30 achievements", stylesUnlockedAnnouncement(three))
-    }
 }

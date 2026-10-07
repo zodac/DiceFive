@@ -1,9 +1,10 @@
 package net.zodac.dicefive.ui.common
 
 import androidx.compose.runtime.Composable
-import kotlin.math.absoluteValue
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_clauses_join
 import net.zodac.dicefive.resources.common_locale
+import net.zodac.dicefive.resources.common_sentences_join
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -34,9 +35,39 @@ internal fun ordinal(number: Int): String = formatOrdinal(number, stringResource
 /** [number] as an ordinal in the language [languageTag] (BCP 47, "en-GB") names. Use [ordinal] in the UI. */
 internal expect fun formatOrdinal(number: Int, languageTag: String): String
 
-/** Thousand separators, so "34,521 of 100,000" doesn't have to be counted digit by digit. */
-internal fun Int.grouped(): String {
-    val digits = toLong().absoluteValue.toString()
-    val grouped = digits.reversed().chunked(3).joinToString(",").reversed()
-    return if (this < 0) "-$grouped" else grouped
-}
+/**
+ * [this] with its thousands grouped in the strings' own language - "34,521" in English - so "34,521 of
+ * 100,000" doesn't have to be counted digit by digit. Like [ordinal], it follows `common_locale`, not
+ * the device's language.
+ */
+@Composable
+internal fun Int.grouped(): String = formatGrouped(this, stringResource(Res.string.common_locale))
+
+/** [number] with its thousands grouped the way the language [languageTag] (BCP 47) writes them. Use [grouped] in the UI. */
+internal expect fun formatGrouped(number: Int, languageTag: String): String
+
+/**
+ * [items] as a spoken list in the strings' own language - "6, 6 and 6" in English. The platform's list
+ * formatter does the joining, because the last separator and its spacing differ by language.
+ */
+@Composable
+internal fun spokenList(items: List<String>): String = formatList(items, stringResource(Res.string.common_locale))
+
+/** [items] joined as a list in the language [languageTag] (BCP 47) names. Use [spokenList] in the UI. */
+internal expect fun formatList(items: List<String>, languageTag: String): String
+
+/**
+ * [parts] joined into one run of clauses - "Scored 12, would score 15, 1 more open" in English - for a
+ * sentence whose pieces come and go. Each piece is its own translatable string; the template that
+ * joins two of them (`common_clauses_join`) is one more, so a language can change the separator.
+ */
+@Composable
+internal fun joinClauses(parts: List<String>): String = joinWith(parts, stringResource(Res.string.common_clauses_join))
+
+/** [parts] joined into running text, one sentence after another ("`common_sentences_join`"). */
+@Composable
+internal fun joinSentences(parts: List<String>): String = joinWith(parts, stringResource(Res.string.common_sentences_join))
+
+/** Folds [parts] together with a two-argument [template] ("%1$s, %2$s"). */
+private fun joinWith(parts: List<String>, template: String): String =
+    parts.reduceOrNull { first, second -> template.replace("%1\$s", first).replace("%2\$s", second) }.orEmpty()

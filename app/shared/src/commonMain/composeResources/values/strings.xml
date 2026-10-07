@@ -14,6 +14,14 @@
     -->
     <string name="common_locale">en-GB</string>
 
+    <!--
+        How two spoken clauses join, for a sentence whose pieces come and go ("Scored 12, would score
+        15"); several are joined one pair at a time. Keep both arguments.
+    -->
+    <string name="common_clauses_join">%1$s, %2$s</string>
+    <!-- How two spoken sentences join into running text. Keep both arguments. -->
+    <string name="common_sentences_join">%1$s %2$s</string>
+
     <!-- Leave game confirmation (ui/game/LeaveGameConfirmation.kt) -->
     <string name="game_leave_title">Leave game?</string>
     <string name="game_leave_message">Your progress is saved - you can continue this game later.</string>
@@ -28,6 +36,36 @@
     </plurals>
     <!-- TalkBack's name for tapping the cup: "Double-tap to roll". -->
     <string name="game_cup_roll_action">Roll</string>
+
+    <!-- What TalkBack says for the turn timer while it counts down (ui/game/GameScreen.kt, TurnTimerBadge). -->
+    <plurals name="game_timer_left_cd">
+        <item quantity="one">Time left: %1$d second</item>
+        <item quantity="other">Time left: %1$d seconds</item>
+    </plurals>
+
+    <!--
+        What TalkBack says for a Hit List target tile, after its name (ui/game/ScoreGrid.kt, targetProgress): how close the
+        dice are. %1$d numbers rolled / in place, out of %2$d the target calls.
+    -->
+    <string name="game_target_exact_hit_spoken">exact hit</string>
+    <!-- %1$d is how many of the %2$d numbers are in their places. -->
+    <string name="game_target_hit_spoken">hit, %1$d of %2$d in place</string>
+    <!-- %1$d of the %2$d numbers are rolled, %3$d of them in their places. -->
+    <string name="game_target_partial_hit_spoken">partial hit, %1$d of %2$d rolled, %3$d in place</string>
+    <string name="game_target_progress_spoken">%1$d of %2$d rolled, %3$d in place</string>
+
+    <!--
+        What TalkBack says for a box with several slots (Third Wind; ui/game/ScoreGrid.kt, stackedSpokenState). The
+        clauses that apply are joined with common_clauses_join, in this order, and the first letter is capitalised.
+    -->
+    <!-- %1$s is the scores so far, joined into a list: "Scored 12, 9". -->
+    <string name="game_slots_scored_spoken">Scored %1$s</string>
+    <string name="game_slots_would_score_spoken">would score %1$d</string>
+    <!-- Slots still open after the one the dice would fill. -->
+    <string name="game_slots_more_open_spoken">%1$d more open</string>
+    <string name="game_slots_open_spoken">%1$d open</string>
+    <string name="game_slots_bonus_spoken">plus %1$d bonus</string>
+    <string name="game_slots_last_score_spoken">last turn's score %1$d</string>
 
     <!-- A player's place, on their tab (ui/game/PlayerHeaderBar.kt). %1$s is an ordinal, "2nd". -->
     <!-- Shown under the score when the place is shared with another player. -->
@@ -283,5 +321,92 @@
     <string name="player_colour_red">Red</string>
     <string name="player_colour_blue">Blue</string>
     <string name="player_colour_lime">Lime</string>
+
+    <!-- Game setup's modifier steppers: the value as shown, and spoken after the stepper's label (ui/setup/GameSetupScreen.kt). -->
+    <plurals name="setup_rolls_per_turn_value">
+        <item quantity="one">%1$d roll</item>
+        <item quantity="other">%1$d rolls</item>
+    </plurals>
+    <string name="setup_unlucky_odds_value">%1$d%</string>
+    <plurals name="setup_unlucky_max_dice_value">
+        <item quantity="one">%1$d die</item>
+        <item quantity="other">%1$d dice</item>
+    </plurals>
+
+    <!-- Styles banner (ui/achievements/AchievementAnnouncements.kt). One line each; the banner has two lines for the description. -->
+    <!-- Both forms are used with the number of styles unlocked, which the text doesn't show. -->
+    <plurals name="achievements_styles_unlocked_title">
+        <item quantity="one">Style Unlocked</item>
+        <item quantity="other">Styles Unlocked</item>
+    </plurals>
+    <!-- One unlocked style as the banner names it: %1$s is its name ("Frosted"), %2$s what it is ("dice", "mat"). -->
+    <string name="achievements_styles_unlocked_named">'%1$s' %2$s</string>
+    <!-- %1$d is how many achievements are earned, %2$s the style as named above. -->
+    <string name="achievements_styles_unlocked_one">Earned %1$d achievements: the %2$s style</string>
+    <!-- %2$s is the two styles, joined into a list. -->
+    <string name="achievements_styles_unlocked_two">Earned %1$d achievements: %2$s</string>
+    <!-- Chosen by how many more styles there are than the two named. %2$s is the two named, %3$d the rest. -->
+    <plurals name="achievements_styles_unlocked_more">
+        <item quantity="one">Earned %1$d achievements: %2$s and %3$d more</item>
+        <item quantity="other">Earned %1$d achievements: %2$s and %3$d more</item>
+    </plurals>
+    <!-- One unlocked style as TalkBack says it, without the quote marks the banner draws round it. -->
+    <string name="achievements_styles_unlocked_spoken_style">%1$s %2$s</string>
+    <!-- Chosen by how many styles were unlocked. %1$s is all of them, joined into a list, %2$d the achievements earned. -->
+    <plurals name="achievements_styles_unlocked_announcement">
+        <item quantity="one">Style unlocked: %1$s. Earned %2$d achievements</item>
+        <item quantity="other">Styles unlocked: %1$s. Earned %2$d achievements</item>
+    </plurals>
+
+    <!-- What a locked style needs (ui/styles/StylesScreen.kt): the short tooltip, then the longer pop-up. Text in `backticks` is highlighted. -->
+    <string name="styles_requirement_free">Always available</string>
+    <plurals name="styles_requirement_count">
+        <item quantity="one">`%1$d` achievement needed</item>
+        <item quantity="other">`%1$d` achievements needed</item>
+    </plurals>
+    <!-- %1$s is an achievement's title. -->
+    <string name="styles_requirement_specific">`%1$s` achievement needed</string>
+    <!-- %1$s is the style's name. -->
+    <string name="styles_unlock_free">%1$s is always available.</string>
+    <!-- Chosen by the number of achievements needed (%1$d). %2$s is the style's name, %3$d how many are earned so far. -->
+    <plurals name="styles_unlock_count">
+        <item quantity="one">Earn `%1$d` achievement to unlock %2$s. You've earned `%3$d` so far.</item>
+        <item quantity="other">Earn `%1$d` achievements to unlock %2$s. You've earned `%3$d` so far.</item>
+    </plurals>
+    <!-- %1$s is an achievement's title, %2$s the style's name. -->
+    <string name="styles_unlock_specific">Earn `%1$s` to unlock %2$s.</string>
+
+    <!--
+        The Rules page's example rows, read aloud as one run of sentences (ui/rules/RulesScreen.kt, spokenDescription).
+        The sentences that apply are joined with common_sentences_join, in this order.
+    -->
+    <!-- A Hit List example's place that accepts any number. -->
+    <string name="rules_example_any_place_spoken">any</string>
+    <!-- A Tricolour example die: %1$s is its colour ("red"), %2$d its number. -->
+    <string name="rules_example_coloured_die_spoken">%1$s %2$d</string>
+    <!-- %1$s is the dice, joined into a list. -->
+    <string name="rules_example_target_spoken">Example target: %1$s.</string>
+    <!-- %1$s is a score: "20 points". -->
+    <string name="rules_example_worth_spoken">Worth %1$s.</string>
+    <!-- %1$s is how close the dice are: "hit, 2 of 3 in place". -->
+    <string name="rules_example_tile_target_spoken">Its tile shows %1$s.</string>
+    <string name="rules_example_tile_alibi_spoken">The Alibi lights up.</string>
+    <string name="rules_example_roll_spoken">Example roll: %1$s.</string>
+    <string name="rules_example_nothing_held_spoken">Nothing held.</string>
+    <!-- %1$s is the held dice, joined into a list: "6, 6 and 6". -->
+    <string name="rules_example_held_spoken">Held: %1$s.</string>
+    <string name="rules_example_spoken">Example: %1$s.</string>
+    <!-- Chosen by how many dice are locked; %1$s is those dice, joined into a list. The text doesn't show the count. -->
+    <plurals name="rules_example_locked_spoken">
+        <item quantity="one">The %1$s is locked in chains.</item>
+        <item quantity="other">The %1$s are locked in chains.</item>
+    </plurals>
+    <!-- Chosen by how many dice don't count; %1$s is those dice, joined into a list. -->
+    <plurals name="rules_example_ignored_spoken">
+        <item quantity="one">The %1$s doesn't count.</item>
+        <item quantity="other">The %1$s don't count.</item>
+    </plurals>
+    <!-- %1$s is a score: "23 points". -->
+    <string name="rules_example_scores_spoken">Scores %1$s.</string>
 
 </resources>

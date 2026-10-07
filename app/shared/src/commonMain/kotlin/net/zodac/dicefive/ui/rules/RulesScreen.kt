@@ -1,36 +1,20 @@
 package net.zodac.dicefive.ui.rules
 
 import androidx.compose.foundation.ScrollState
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.gestures.animateScrollBy
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.draw.rotate
-import net.zodac.dicefive.ui.common.VerticalScrollbar
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import net.zodac.dicefive.ui.common.LOGO_DICE
-import net.zodac.dicefive.ui.common.LocalReduceMotion
-import net.zodac.dicefive.ui.common.delayWhileResumed
-import net.zodac.dicefive.ui.common.logoRollPose
-import net.zodac.dicefive.ui.common.playLogoRoll
-import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
-import net.zodac.dicefive.ui.game.style.ClassicGoldDiceCupStyle
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -48,41 +32,44 @@ import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabPosition
 import androidx.compose.material3.TabRowDefaults
-import androidx.compose.ui.layout.Measurable
-import androidx.compose.ui.layout.MeasureResult
-import androidx.compose.ui.layout.MeasureScope
-import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.lerp
-import net.zodac.dicefive.ui.game.LockedChains
-import net.zodac.dicefive.ui.game.TurnTimerBadge
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CollectionInfo
 import androidx.compose.ui.semantics.CollectionItemInfo
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.collectionInfo
 import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -90,21 +77,53 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.launch
-import net.zodac.dicefive.ui.common.ScreenScaffold
-import net.zodac.dicefive.ui.common.FooterPill
-import net.zodac.dicefive.ui.common.SoraFontFamily
-import net.zodac.dicefive.ui.common.parseInlineMarkup
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.HitTarget
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.rules_example_any_place_spoken
+import net.zodac.dicefive.resources.rules_example_coloured_die_spoken
+import net.zodac.dicefive.resources.rules_example_held_spoken
+import net.zodac.dicefive.resources.rules_example_ignored_spoken
+import net.zodac.dicefive.resources.rules_example_locked_spoken
+import net.zodac.dicefive.resources.rules_example_nothing_held_spoken
+import net.zodac.dicefive.resources.rules_example_roll_spoken
+import net.zodac.dicefive.resources.rules_example_scores_spoken
+import net.zodac.dicefive.resources.rules_example_spoken
+import net.zodac.dicefive.resources.rules_example_target_spoken
+import net.zodac.dicefive.resources.rules_example_tile_alibi_spoken
+import net.zodac.dicefive.resources.rules_example_tile_target_spoken
+import net.zodac.dicefive.resources.rules_example_worth_spoken
+import net.zodac.dicefive.ui.common.FooterPill
+import net.zodac.dicefive.ui.common.LOGO_DICE
+import net.zodac.dicefive.ui.common.LocalReduceMotion
+import net.zodac.dicefive.ui.common.ScreenScaffold
+import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.VerticalScrollbar
+import net.zodac.dicefive.ui.common.delayWhileResumed
+import net.zodac.dicefive.ui.common.joinClauses
+import net.zodac.dicefive.ui.common.joinSentences
+import net.zodac.dicefive.ui.common.logoRollPose
+import net.zodac.dicefive.ui.common.parseInlineMarkup
+import net.zodac.dicefive.ui.common.playLogoRoll
+import net.zodac.dicefive.ui.common.spokenList
+import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 import net.zodac.dicefive.ui.game.CategoryTile
-import net.zodac.dicefive.ui.game.targetProgress
+import net.zodac.dicefive.ui.game.LockedChains
+import net.zodac.dicefive.ui.game.TurnTimerBadge
+import net.zodac.dicefive.ui.game.style.ClassicGoldDiceCupStyle
 import net.zodac.dicefive.ui.game.style.IvoryDiceStyle
 import net.zodac.dicefive.ui.game.style.palette
+import net.zodac.dicefive.ui.game.targetProgress
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 
 /** One page of [RulesScreen]. [title] heads the page itself; [tabLabel] is the shorter name its tab
  * carries, so the tab row shows more than one or two tabs at a time. [blocks] render in order, each
@@ -675,7 +694,7 @@ private const val EXAMPLE_DIE_FADED_ALPHA = 0.35f
  */
 @Composable
 private fun RulesDiceRow(example: RulesDice, modifier: Modifier = Modifier) {
-    val spoken = remember(example) { example.spokenDescription() }
+    val spoken = example.spokenDescription()
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.clearAndSetSemantics { contentDescription = spoken },
@@ -754,37 +773,49 @@ private const val ANY_PLACE_CORNER_FRACTION = 0.2f
  * on its way to a hand says which dice are held instead: "Example roll: 6, 6, 6, 2, 3. Held: 6, 6
  * and 6." A Hit List target says its places: "Example target: 4, 1, 3, 2, any. Worth 20 points."
  */
+@Composable
 private fun RulesDice.spokenDescription(): String {
-    fun ExampleDie.spoken() = colour?.let { "${it.name.lowercase()} $value" } ?: value.toString()
-    fun List<String>.spokenList() = if (size == 1) single() else "${dropLast(1).joinToString(", ")} and ${last()}"
+    val anyPlace = stringResource(Res.string.rules_example_any_place_spoken)
+    @Composable
+    fun ExampleDie.spoken() = colour?.let { stringResource(Res.string.rules_example_coloured_die_spoken, it.name.lowercase(), value) } ?: value.toString()
     if (isTarget) {
-        val places = dice.joinToString(", ") { if (it.anyPlace) "any" else it.spoken() }
-        return "Example target: $places.${score?.let { " Worth ${spokenPoints(it)}." }.orEmpty()}"
+        val places = joinClauses(dice.map { if (it.anyPlace) anyPlace else it.spoken() })
+        return joinSentences(
+            listOfNotNull(
+                stringResource(Res.string.rules_example_target_spoken, places),
+                score?.let { stringResource(Res.string.rules_example_worth_spoken, spokenPoints(it)) },
+            ),
+        )
     }
     val tileSentence = when (val shown = tile) {
         is RulesTile.Target -> {
             val hand = dice.map { Die(value = it.value) }
-            " Its tile shows ${targetProgress(shown.target, shown.target.matches(hand), shown.target.score(hand))}."
+            stringResource(Res.string.rules_example_tile_target_spoken, targetProgress(shown.target, shown.target.matches(hand), shown.target.score(hand)))
         }
-        RulesTile.Alibi -> " The Alibi lights up."
-        null -> ""
+        RulesTile.Alibi -> stringResource(Res.string.rules_example_tile_alibi_spoken)
+        null -> null
     }
-    val all = dice.joinToString(", ") { it.spoken() }
+    val all = joinClauses(dice.map { it.spoken() })
     if (fadedNotHeld) {
         val held = dice.filter { it.counts }.map { it.spoken() }
-        val heldSentence = if (held.isEmpty()) " Nothing held." else " Held: ${held.spokenList()}."
-        return "Example roll: $all.$heldSentence$tileSentence"
+        val heldSentence = if (held.isEmpty()) {
+            stringResource(Res.string.rules_example_nothing_held_spoken)
+        } else {
+            stringResource(Res.string.rules_example_held_spoken, spokenList(held))
+        }
+        return joinSentences(listOfNotNull(stringResource(Res.string.rules_example_roll_spoken, all), heldSentence, tileSentence))
     }
-    val lockedSentence = dice.filter { it.locked }.map { it.spoken() }.takeIf { it.isNotEmpty() }
-        ?.let { locked -> " The ${locked.spokenList()} ${if (locked.size == 1) "is" else "are"} locked in chains." }.orEmpty()
+    val locked = dice.filter { it.locked }.map { it.spoken() }
     val ignored = dice.filterNot { it.counts || it.locked }.map { it.spoken() }
-    val ignoredSentence = lockedSentence + when (ignored.size) {
-        0 -> ""
-        1 -> " The ${ignored.single()} doesn't count."
-        else -> " The ${ignored.spokenList()} don't count."
-    }
-    val scoreSentence = score?.let { " Scores ${spokenPoints(it)}." }.orEmpty()
-    return "Example: $all.$ignoredSentence$scoreSentence$tileSentence"
+    return joinSentences(
+        listOfNotNull(
+            stringResource(Res.string.rules_example_spoken, all),
+            locked.takeIf { it.isNotEmpty() }?.let { pluralStringResource(Res.plurals.rules_example_locked_spoken, it.size, spokenList(it)) },
+            ignored.takeIf { it.isNotEmpty() }?.let { pluralStringResource(Res.plurals.rules_example_ignored_spoken, it.size, spokenList(it)) },
+            score?.let { stringResource(Res.string.rules_example_scores_spoken, spokenPoints(it)) },
+            tileSentence,
+        ),
+    )
 }
 
 /** The seconds the Modifiers page's example timer is stopped at - inside the game's last few, so it flashes. */
