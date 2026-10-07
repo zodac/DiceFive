@@ -68,7 +68,7 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [35], qualifiers = "es-w360dp-h800dp")
 // Real (native) text measurement: the default mode measures a character as a pixel, which can break nothing.
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-class TextFitTest {
+open class TextFitTest {
 
     @get:Rule
     val compose = createComposeRule()
@@ -114,6 +114,9 @@ class TextFitTest {
         assertNoBrokenWords("New game")
     }
 
+    /** What the modifiers row says with five switched on, in the language under test. */
+    protected open val fiveModifiersEnabled = "5 activados"
+
     @Test
     fun `the modifiers with every one switched on`() {
         val viewModel = GameViewModel()
@@ -123,7 +126,7 @@ class TextFitTest {
         viewModel.setUnluckyDiceEnabled(true)
         viewModel.setExtendedScores(true)
         content { GameSetupScreen(viewModel = viewModel, onStartGame = {}, onBack = {}) }
-        compose.onNodeWithText("5 activados").performClick()
+        compose.onNodeWithText(fiveModifiersEnabled).performClick()
         compose.waitForIdle()
         assertNoBrokenWords("Modifiers")
     }

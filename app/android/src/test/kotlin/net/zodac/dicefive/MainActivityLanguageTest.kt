@@ -35,12 +35,19 @@ class MainActivityLanguageTest {
     private val systemCopy get() = compose.activity.getString(android.R.string.copy)
 
     @Test
-    @Config(qualifiers = "ar")
-    fun `on an Arabic phone the whole Activity is in English and left to right`() {
+    @Config(qualifiers = "fa")
+    fun `on a Persian phone the whole Activity is in English and left to right`() {
         assertEquals(Locale.forLanguageTag("en-GB"), configuration.locales[0])
         assertEquals(View.LAYOUT_DIRECTION_LTR, configuration.layoutDirection)
         assertEquals("Copy", systemCopy)
         assertEquals("en", Locale.getDefault().language)
+    }
+
+    @Test
+    @Config(qualifiers = "ar")
+    fun `on an Arabic phone the Activity stays Arabic and right to left`() {
+        assertEquals("ar", configuration.locales[0].language)
+        assertEquals(View.LAYOUT_DIRECTION_RTL, configuration.layoutDirection)
     }
 
     @Test
