@@ -115,7 +115,7 @@ class ChoicePickerTest {
                     modifiers = listOf(
                         ModifierSetting(
                             "Rolls", "How many", true, {},
-                            steppers = listOf(ModifierStepper(rolls, 1..2, { rolls = it }, "Rolls per turn", "rolls", "roll")),
+                            steppers = listOf(ModifierStepper(rolls, 1..2, { rolls = it }, "Rolls per turn", { if (it == 1) "1 roll" else "$it rolls" })),
                         ),
                     ),
                 )

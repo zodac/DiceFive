@@ -330,6 +330,24 @@ class BoardSemanticsTest {
     }
 
     @Test
+    fun `the 5x box of a Third Wind card adds its bonus - and the last turn's score comes last`() {
+        val player = PlayerState(name = "Robo", type = PlayerType.AI, gameMode = GameMode.THIRD_WIND).let {
+            it.copy(
+                scorecard = it.scorecard + (ScoreCategory.FIVE_OF_A_KIND to listOf(50, 0, 50)),
+                fiveOfAKindBonusCount = 2,
+                lastScoredCategory = ScoreCategory.FIVE_OF_A_KIND,
+            )
+        }
+        compose.setContent {
+            DiceFiveTheme {
+                ReadOnlyScoreboard(player = player, modifier = Modifier.width(400.dp))
+            }
+        }
+
+        compose.onNode(hasStateDescription("Scored 50, 0, 50, plus 200 bonus, last turn's score 50")).assertExists()
+    }
+
+    @Test
     fun `the Totals button says every total - and a tap shows them`() {
         compose.setContent {
             DiceFiveTheme { TotalsButton(upperTotal = 70, upperBonus = 35, lowerTotal = 140) }
@@ -348,6 +366,20 @@ class BoardSemanticsTest {
 
     @Test
     fun `the Totals tooltip groups a total's thousands`() {
+        compose.setContent {
+            DiceFiveTheme { TotalsButton(upperTotal = 70, upperBonus = 35, lowerTotal = 1088) }
+        }
+
+        compose.onNodeWithContentDescription("Totals").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("1,088").assertExists()
+    }
+
+    // Grouping follows the strings' language like the ordinals do: no French yet, so English text keeps its commas.
+    @Test
+    @Config(qualifiers = "fr")
+    fun `on a phone in a language the app isn't in a total's thousands are grouped like the text around them`() {
         compose.setContent {
             DiceFiveTheme { TotalsButton(upperTotal = 70, upperBonus = 35, lowerTotal = 1088) }
         }

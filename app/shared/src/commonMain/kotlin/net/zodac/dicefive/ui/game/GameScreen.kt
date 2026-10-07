@@ -70,6 +70,8 @@ import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.isLuckOfTheIrish
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.game_timer_left_cd
 import net.zodac.dicefive.ui.common.BackHandler
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LocalReduceMotion
@@ -78,6 +80,7 @@ import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.LocalOnRabbitSeen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
+import org.jetbrains.compose.resources.pluralStringResource
 
 /** How long the cup shakes before the roll result is revealed - purely a presentation delay. Shared
  * by every roll: a tap here, and an AI's in [GameViewModel]. */
@@ -592,6 +595,7 @@ private val NO_OP_TOGGLE_HOLD: (Int) -> Unit = {}
 @Composable
 fun TurnTimerBadge(secondsRemaining: Int, modifier: Modifier = Modifier) {
     val flashing = secondsRemaining in 1..TURN_TIMER_FLASH_SECONDS
+    val timeLeftDescription = pluralStringResource(Res.plurals.game_timer_left_cd, secondsRemaining, secondsRemaining)
     val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
     // The flash's clock only runs in those last seconds - left running all turn, it recomposed the
     // badge every frame for the whole of every timed game.
@@ -612,7 +616,7 @@ fun TurnTimerBadge(secondsRemaining: Int, modifier: Modifier = Modifier) {
                 contentDescription = "Time running out, $TURN_TIMER_FLASH_SECONDS seconds or less left"
                 liveRegion = LiveRegionMode.Polite
             } else {
-                contentDescription = "Time left: $secondsRemaining ${if (secondsRemaining == 1) "second" else "seconds"}"
+                contentDescription = timeLeftDescription
             }
         },
         textAlign = TextAlign.Center,

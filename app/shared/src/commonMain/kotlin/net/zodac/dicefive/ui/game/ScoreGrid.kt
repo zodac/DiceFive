@@ -39,10 +39,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.stateDescription
@@ -59,9 +59,22 @@ import net.zodac.dicefive.model.PlaceMatch
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.game_slots_bonus_spoken
+import net.zodac.dicefive.resources.game_slots_last_score_spoken
+import net.zodac.dicefive.resources.game_slots_more_open_spoken
+import net.zodac.dicefive.resources.game_slots_open_spoken
+import net.zodac.dicefive.resources.game_slots_scored_spoken
+import net.zodac.dicefive.resources.game_slots_would_score_spoken
+import net.zodac.dicefive.resources.game_target_exact_hit_spoken
+import net.zodac.dicefive.resources.game_target_hit_spoken
+import net.zodac.dicefive.resources.game_target_partial_hit_spoken
+import net.zodac.dicefive.resources.game_target_progress_spoken
+import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
+import org.jetbrains.compose.resources.stringResource
 
 /** Standard's grid: six rows, upper section beside lower. More than this and the tiles go compact. */
 internal const val REGULAR_GRID_ROWS = 6
@@ -437,14 +450,15 @@ internal fun HitTarget.spokenName(): String =
  * places - or, once it's hit, which kind of hit it is (a [previewScore] of its exact points is an exact hit). A
  * partial hit's points are said as such.
  */
+@Composable
 internal fun targetProgress(target: HitTarget, matches: List<PlaceMatch>, previewScore: Int): String {
     val rolled = matches.count { it == PlaceMatch.ROLLED || it == PlaceMatch.IN_PLACE }
     val inPlace = matches.count { it == PlaceMatch.IN_PLACE }
     return when {
-        previewScore == target.exactPoints -> "exact hit"
-        rolled == target.called.size -> "hit, $inPlace of ${target.called.size} in place"
-        previewScore > 0 -> "partial hit, $rolled of ${target.called.size} rolled, $inPlace in place"
-        else -> "$rolled of ${target.called.size} rolled, $inPlace in place"
+        previewScore == target.exactPoints -> stringResource(Res.string.game_target_exact_hit_spoken)
+        rolled == target.called.size -> stringResource(Res.string.game_target_hit_spoken, inPlace, target.called.size)
+        previewScore > 0 -> stringResource(Res.string.game_target_partial_hit_spoken, rolled, target.called.size, inPlace)
+        else -> stringResource(Res.string.game_target_progress_spoken, rolled, target.called.size, inPlace)
     }
 }
 
@@ -453,20 +467,21 @@ internal fun targetProgress(target: HitTarget, matches: List<PlaceMatch>, previe
  * dice would score in the next, and how many are left open - "Scored 12, 9, would score 15", "Scored
  * 12, 2 open" - then any 5x bonus and whether its last score was the player's last turn.
  */
+@Composable
 internal fun stackedSpokenState(scores: List<Int>, slotCount: Int, previewScore: Int?, bonusAmount: Int, lastScored: Boolean): String {
     val stillOpen = slotCount - scores.size - if (previewScore != null) 1 else 0
     val parts = listOfNotNull(
-        scores.takeIf { it.isNotEmpty() }?.joinToString(", ", prefix = "Scored "),
-        previewScore?.let { "would score $it" },
+        scores.takeIf { it.isNotEmpty() }?.let { stringResource(Res.string.game_slots_scored_spoken, joinClauses(it.map(Int::toString))) },
+        previewScore?.let { stringResource(Res.string.game_slots_would_score_spoken, it) },
         when {
             stillOpen <= 0 -> null
-            previewScore != null -> "$stillOpen more open"
-            else -> "$stillOpen open"
+            previewScore != null -> stringResource(Res.string.game_slots_more_open_spoken, stillOpen)
+            else -> stringResource(Res.string.game_slots_open_spoken, stillOpen)
         },
-        bonusAmount.takeIf { it > 0 }?.let { "plus $it bonus" },
-        scores.lastOrNull()?.takeIf { lastScored }?.let { "last turn's score $it" },
+        bonusAmount.takeIf { it > 0 }?.let { stringResource(Res.string.game_slots_bonus_spoken, it) },
+        scores.lastOrNull()?.takeIf { lastScored }?.let { stringResource(Res.string.game_slots_last_score_spoken, it) },
     )
-    return parts.joinToString(", ").replaceFirstChar { it.uppercase() }
+    return joinClauses(parts).replaceFirstChar { it.uppercase() }
 }
 
 /**
