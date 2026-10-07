@@ -10,7 +10,10 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,7 +21,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -106,9 +113,19 @@ fun CategoryTile(
     target: HitTarget? = null,
     matches: List<PlaceMatch>? = null,
     onClick: (() -> Unit)? = null,
+    /** Told when a finger goes down on, and comes off, a tile that can be tapped - for showing what a tap would take. */
+    onPressChange: ((Boolean) -> Unit)? = null,
 ) {
     val irishTricolour = LocalIrishTricolour.current
     val shape = RoundedCornerShape(if (squareSize != null) 16.dp else 10.dp)
+    val interactionSource = remember { MutableInteractionSource() }
+    if (onPressChange != null) {
+        val pressed by interactionSource.collectIsPressedAsState()
+        val currentOnPressChange by rememberUpdatedState(onPressChange)
+        LaunchedEffect(pressed) { currentOnPressChange(pressed) }
+        // A tile that goes (scored, or the turn moves on) with a finger on it never sees the lift.
+        DisposableEffect(Unit) { onDispose { currentOnPressChange(false) } }
+    }
     val tileSize = squareSize ?: if (compact) COMPACT_TILE_SIZE else REGULAR_TILE_SIZE
     // Three distinct looks, never overlapping in practice (a scored category is never a legal,
     // highlightable choice): gold glow for "score this now", flat grey for "already used", teal
@@ -158,7 +175,7 @@ fun CategoryTile(
                     else -> Modifier.border(width = 1.dp, color = borderColor, shape = shape)
                 },
             )
-            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier),
+            .then(if (onClick != null) Modifier.clickable(interactionSource = interactionSource, indication = LocalIndication.current, role = Role.Button, onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
         CategoryIcon(

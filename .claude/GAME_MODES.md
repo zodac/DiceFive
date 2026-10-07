@@ -11,7 +11,7 @@ Modes so far:
 | `STANDARD`  | `standard`  | Nothing - the official rules. The default.                                                                          |
 | `TRICOLOUR` | `tricolour` | Dice also roll red/yellow/blue; four colour boxes join the card                                                     |
 | `QUICKFIRE` | `quickfire` | 5x and six random other boxes are switched off every game: six turns, a scaled upper bonus, off the Leaderboard |
-| `STUD`      | `stud`      | Shown to players as "7 Dice Stud" (the enum and id stay `STUD` / `stud`). Seven dice rolled, five hold slots; only the five held dice score, and only once all five are held                   |
+| `STUD`      | `stud`      | Shown to players as "7 Dice Stud" (the enum and id stay `STUD` / `stud`). Seven dice rolled, five hold slots; only the five held dice score, but a box can be tapped with fewer held - the hand is completed for it (`HandCompletion`)                   |
 | `THIRD_WIND` | `third_wind` | Every box scored three times (39 turns); one upper bonus, 189 earns 105; joker once the 5x box's 3 slots are used; off the Leaderboard |
 | `HIT_LIST`  | `hit_list`  | No Standard boxes: 12 targets drawn each game (numbers by place, up to 2 any) plus the Alibi; exact order doubles; partial hits (2+ numbers rolled) score half the share rolled; no Extended Scores; off the Leaderboard |
 
@@ -178,8 +178,8 @@ list. They aren't here, so:
 - **A part-held hand is scored and previewed**, so scoring must cope with fewer dice than a full
   hand. `DiceScoring.isFiveOfAKind` needed a dice-count check: three held 6s were "all the same" and
   previewed a 5x, and could have triggered the joker rule.
-- **Scoring needs a full hand** (`hasFullHand`): `commitScore` throws without one, the board
-  disables the boxes, and a timeout first fills the hand (`GameEngine.fillHand`).
+- **Scoring needs a full hand** (`hasFullHand`): `GameEngine.commitScore` throws without one, but the
+  view model never gives it a part-held one: `HandCompletion` completes it first (see below).
 - **Holding is capped** (`canHold`). Anything that changes holds in bulk must release before it
   holds: the AI's `applyHolds` swapped dice in the wrong order and hit the cap.
 - **The AI**: `AiTurnPlayer` used "every die held" to mean "stop rolling", and five held no longer
@@ -461,6 +461,22 @@ reachable only with the Number of Rolls modifier set to 1. Its notes on turn flo
 that automates a roll.
 
 ### Stud (seven dice rolled, five held to score)
+
+**Completing the hand.** After the last roll "which five?" is bookkeeping - the box tapped says what
+the player means - so a box can be tapped with fewer than five held. `HandCompletion` tries every
+completion of the held dice (at most C(7,k), 21 for one held) and takes the one worth most in *that*
+box (score plus any 5x bonus; first - leftmost dice - on a tie). The board previews every box with its
+best completion (`LocalProjectedHands`, human turns only; a CPU's board still reads what it holds), the
+view model holds the completing dice (they glide into slots for `HAND_COMPLETION_MS`, then it scores),
+undo goes back to the dice as the player held them, and a turn timeout scores the first box any
+completion can score, completed. Holds still matter mid-turn: they decide what is rerolled. While a
+completion is gliding `toggleHold` and a second `commitScore` are ignored, and the delayed commit
+drops itself if the game moved on (`_game.value !== completed`).
+**Ambiguity**: pressing a box marks, on the mat, the dice it would take (solid gold lane) and the
+unheld ones that would have scored just the same with other faces (dashed lane); the rest fade. It is
+`ProjectedHand.used/alternatives`, written by `CategoryCell` into `LocalHandPreview` and drawn by
+`SlottedDice`. Same-faced swaps aren't alternatives. Holding one of the dashed dice first makes it the
+hand. Sighted-only, no spoken twin - the score is identical either way.
 
 In Stud a roll isn't a hand - nothing is held straight out of the cup, and the hand is whichever
 five dice the player holds. So achievements that judge a hand at the moment of scoring read

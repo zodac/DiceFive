@@ -41,6 +41,7 @@ import net.zodac.dicefive.game.DiceScoring
 import net.zodac.dicefive.game.GameAchievementContext
 import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.game.GameStartContext
+import net.zodac.dicefive.game.HandCompletion
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.game.ScoreCalculator
 import net.zodac.dicefive.game.StandardPerfectPlayTable
@@ -719,6 +720,7 @@ class GameViewModel(
     // Not undoable, same reasoning as rollDice: holding/unholding just selects what a future roll
     // will touch, it doesn't itself score anything.
     fun toggleHold(dieIndex: Int) {
+        if (handCompletion?.isActive == true) return
         // A die locked by Unlucky Dice can't be held, and a tap on it is no hold-or-release to track.
         if (_game.value?.dice?.getOrNull(dieIndex)?.isUnlucky == true) return
         trackSuperuserSequence(dieIndex)
@@ -754,11 +756,35 @@ class GameViewModel(
     // this if that turns out to matter more in practice than being able to undo a bad category
     // pick.
     fun commitScore(category: ScoreCategory) {
-        // The board only offers a box once the hand is whole (every hold slot filled, where only held
-        // dice score) - a tap that gets here otherwise has nothing to score.
-        if (_game.value?.hasFullHand == false) return
+        val state = _game.value ?: return
+        if (handCompletion?.isActive == true) return
+        if (state.hasFullHand) {
+            finishCommit(category, undoTo = state)
+            return
+        }
+        // Where only held dice score, a box can be tapped before the hand is whole: the held dice are completed
+        // with whichever others score best in it (see HandCompletion), shown sliding into their slots before the score lands.
+        if (state.currentPlayer?.type != PlayerType.HUMAN) return
+        val completed = HandCompletion.bestCompletion(state, category) ?: return
+        applyGameState(completed, checkForAiTurn = false)
+        if (!diceAnimated) {
+            finishCommit(category, undoTo = state)
+            return
+        }
+        handCompletion = viewModelScope.launch {
+            pausableDelay(HAND_COMPLETION_MS)
+            // Anything that moved the game on meanwhile (a roll, a timeout, leaving) has already settled this turn.
+            if (_game.value !== completed) return@launch
+            finishCommit(category, undoTo = state)
+        }
+    }
+
+    /** The tap that is completing a hand for [commitScore], until the score lands: nothing else may touch the dice meanwhile. */
+    private var handCompletion: Job? = null
+
+    private fun finishCommit(category: ScoreCategory, undoTo: GameState) {
         // Only player 1 - "You" - earns achievements; another human seat can still commit a score
-        // normally, it just doesn't feed any Achievement tracking. Read before onHumanAction below,
+        // normally, it just doesn't feed any Achievement tracking. Read before the commit below,
         // which ends this player's turn and advances currentPlayerIndex to the next seat.
         val isPlayerOneTurn = _game.value?.currentPlayerIndex == 0
 
@@ -768,7 +794,11 @@ class GameViewModel(
         }
         val categoryJustUndone = pendingUndoneCategory
 
-        onHumanAction(undoable = true) { GameEngine.commitScore(it, category) }
+        // Undo returns to the turn as it was before any hand was completed for the player.
+        val committing = _game.value ?: return
+        if (committing.currentPlayer?.type != PlayerType.HUMAN) return
+        setUndoSnapshot(undoTo)
+        applyGameState(GameEngine.commitScore(committing, category))
 
         if (isPlayerOneTurn && categoryJustUndone != null && category != categoryJustUndone) {
             unlockAchievements(setOf(Achievement.UNDO_DIFFERENT_CATEGORY))
@@ -996,10 +1026,10 @@ class GameViewModel(
         if (state.phase != TurnPhase.ROLLED) {
             state = GameEngine.rollDice(state, random)
         }
-        // Where only held dice score, the empty hold slots are filled for the player first.
-        state = GameEngine.fillHand(state)
-        val player = state.currentPlayer ?: return
-        val category = ScoreCalculator.timeoutCategory(player, state.scoringDice)
+        handCompletion?.cancel()
+        // Where only held dice score, the first box that can be scored is chosen, and the hand completed for it.
+        val category = HandCompletion.timeoutCategory(state) ?: return
+        state = HandCompletion.bestCompletion(state, category) ?: return
         setUndoSnapshot(null)
         applyGameState(GameEngine.commitScore(state, category))
         if (isPlayerOneTurn) {
@@ -1799,6 +1829,9 @@ class GameViewModel(
     }
 
     companion object {
+        /** How long the dice a tapped box completes a hand with slide into their hold slots before it is scored. */
+        private const val HAND_COMPLETION_MS = 450L
+
         /** The AI's pause, dice settled, before it scores. Its rolls shake for CUP_SHAKE_MILLIS, same as a tap's. */
         private const val AI_STEP_DELAY_MS = 250L
 

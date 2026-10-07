@@ -1130,13 +1130,13 @@
     <!-- A tab: keep it short. -->
     <string name="rules_stud_tab">7 Dice Stud</string>
     <string name="rules_stud_1">A custom mode extending the *Standard* game mode. Every roll is **seven** dice instead of five, but only **five** of them can score.</string>
-    <string name="rules_stud_2">There are still only **five** hold slots. Tap a die on the mat to hold it - it goes to the free slot nearest it - and tap a hold slot to put its die back. Only the dice you hold score, so you can only score once all **five** slots are full. Until then, your scorecard shows what the dice you've held so far would score.</string>
+    <string name="rules_stud_2">There are still only **five** hold slots, so at most **five** dice can be held. Tap a die on the mat to hold it - it goes to the free slot nearest it - and tap a hold slot to put its die back. Holding decides which dice are rolled again. Only the **five** dice in your hand score, but you don't have to hold them all: tap a box and the dice you've held are completed with whichever others score the most in it. Your scorecard shows what each box would score that way, and while you press a box, the dice it would take are outlined on the mat (the dashed ones would have done just as well).</string>
     <string name="rules_stud_3">Here's an example turn:</string>
     <string name="rules_stud_4">The first roll lands three 6s. Hold them, and roll the other **four** dice again.</string>
     <string name="rules_stud_5">Another 6! Hold it too, and roll the last **three** dice.</string>
-    <string name="rules_stud_6">No more 6s, but a 5 is the best of the rest. Hold it to fill the fifth slot.</string>
+    <string name="rules_stud_6">No more 6s, but a 5 is the best of the rest. Hold it to fill the fifth slot - or leave it on the mat, and the box you tap will take it for you.</string>
     <string name="rules_stud_7">Score the five held dice. They're worth **29pts** in `4x`, or **24pts** in `Sixes`.</string>
-    <string name="rules_stud_8">If the *Turn Timer* runs out, any empty hold slots are filled from the dice on the mat, left to right, and that hand is scored for you.</string>
+    <string name="rules_stud_8">If the *Turn Timer* runs out, the first box that can still be scored is chosen, your hand is completed with the dice that score the most in it, and it is scored for you.</string>
     <string name="rules_stud_9">Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules. You just get more dice to choose your hand from!</string>
     <string name="rules_third_wind_title">Third Wind</string>
     <!-- A tab: keep it short. -->

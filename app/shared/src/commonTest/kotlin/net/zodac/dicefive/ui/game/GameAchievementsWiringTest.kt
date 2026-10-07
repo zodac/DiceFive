@@ -1434,9 +1434,9 @@ class GameAchievementsWiringTest {
     }
 
     @Test
-    fun `a Stud turn that times out fills the empty slots from the left - and scores only that hand`() = runTest {
-        // 6, 1, 6, 2, 6, 3, 1: the player holds the first 1 (die 2), then lets the timer run out. The
-        // slots fill with dice 1, 3, 4 and 5 - so the last 1, left on the mat, isn't counted in Ones.
+    fun `a Stud turn that times out completes the held dice for the first box - and scores only that hand`() = runTest {
+        // 6, 1, 6, 2, 6, 3, 1: the player holds the first 1 (die 2), then lets the timer run out. The turn goes in Ones,
+        // the hand completed with the last 1 and then the leftmost dice (the first, third and fourth) - so the third 6 and the 3 are left on the mat.
         val viewModel = GameViewModel(aiDispatcher = testDispatcher, random = ScriptedDice(listOf(6, 1, 6, 2, 6, 3, 1)))
         viewModel.setPlayerCount(1)
         viewModel.setGameMode(GameMode.STUD)
@@ -1449,8 +1449,8 @@ class GameAchievementsWiringTest {
         testDispatcher.scheduler.runCurrent()
 
         val player = viewModel.game.value!!.players.single()
-        assertEquals(1, player.scoresIn(ScoreCategory.ONES).singleOrNull())
-        assertEquals(listOf(true, true, true, true, true, false, false), player.lastRoll!!.map { it.isHeld })
+        assertEquals(2, player.scoresIn(ScoreCategory.ONES).singleOrNull())
+        assertEquals(listOf(true, true, true, true, false, false, true), player.lastRoll!!.map { it.isHeld })
     }
 
     @Test
