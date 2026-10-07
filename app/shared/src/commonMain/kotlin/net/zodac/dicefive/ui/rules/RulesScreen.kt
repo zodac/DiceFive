@@ -80,6 +80,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -1166,18 +1167,21 @@ private fun Modifier.fadeOffscreenEdges(scrollState: ScrollState, clearWidth: Dp
         // Where along the mask the clear zone gives way to the fade, as a fraction of it.
         val clearFraction = (clearWidth.toPx() / width).coerceIn(0f, 1f)
         val ease = easeDistance.toPx()
-        val startStrength = scrollState.edgeStrength(forward = false, over = ease)
-        val endStrength = scrollState.edgeStrength(forward = true, over = ease)
-        if (startStrength > 0f) {
-            val edge = Color.Black.copy(alpha = 1f - startStrength)
+        // The scroll state counts from the row's start, which is its right edge in a right-to-left layout; the masks are
+        // drawn in screen coordinates, so the strengths swap sides there.
+        val rtl = layoutDirection == LayoutDirection.Rtl
+        val leftStrength = scrollState.edgeStrength(forward = rtl, over = ease)
+        val rightStrength = scrollState.edgeStrength(forward = !rtl, over = ease)
+        if (leftStrength > 0f) {
+            val edge = Color.Black.copy(alpha = 1f - leftStrength)
             drawRect(
                 brush = Brush.horizontalGradient(0f to edge, clearFraction to edge, 1f to Color.Black, startX = 0f, endX = width),
                 size = Size(width, size.height),
                 blendMode = BlendMode.DstIn,
             )
         }
-        if (endStrength > 0f) {
-            val edge = Color.Black.copy(alpha = 1f - endStrength)
+        if (rightStrength > 0f) {
+            val edge = Color.Black.copy(alpha = 1f - rightStrength)
             drawRect(
                 brush = Brush.horizontalGradient(
                     0f to Color.Black,
