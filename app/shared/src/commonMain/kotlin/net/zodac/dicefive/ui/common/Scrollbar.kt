@@ -96,7 +96,10 @@ private class ScrollbarMemory {
  * might not be perfectly representative of the whole list) for there being nothing left to
  * converge once the user actually starts scrolling. The thumb's *position* is unaffected - it's
  * still computed from the exact remembered size of every item actually scrolled past, live, for
- * the whole list.
+ * the whole list. The one exception: an item already measured that changes height in place (a
+ * modifier card opening out its values, on the Modifiers page) drops the frozen estimate, which is
+ * taken again from the new sizes - otherwise the thumb would keep the length it had before the card
+ * opened, or the one from a frame part-way through the opening.
  *
  * All of that memory resets whenever [totalItemsCount][androidx.compose.foundation.lazy.LazyListLayoutInfo.totalItemsCount]
  * changes, not just when [listState] does - the same `LazyListState` instance persists across
@@ -149,14 +152,22 @@ fun BoxScope.LazyListScrollbar(listState: LazyListState, modifier: Modifier = Mo
             memory.frozenContentSize = null
         }
 
-        for (item in visibleItems) memory.knownItemSizes[item.index] = item.size
+        for (item in visibleItems) {
+            // An item already measured that has changed height in place (a modifier card opening out its
+            // values) makes the frozen size estimate stale, so it is taken again from the new sizes.
+            val previous = memory.knownItemSizes.put(item.index, item.size)
+            if (previous != null && previous != item.size) memory.frozenContentSize = null
+        }
 
         val knownTotalSize = memory.knownItemSizes.values.sum()
         // Unseen items (below the fold, never yet scrolled to) are estimated at the average of
         // what's actually been measured so far.
         val averageItemSize = knownTotalSize.toFloat() / memory.knownItemSizes.size
         val unseenItems = totalItems - memory.knownItemSizes.size
-        val liveContentSize = knownTotalSize + averageItemSize * unseenItems
+        // The list's gaps between items (its spacedBy) are content too - left out, a widely spaced list's
+        // thumb comes out longer than what's actually on screen.
+        val itemSpacing = layoutInfo.mainAxisItemSpacing.toFloat()
+        val liveContentSize = knownTotalSize + averageItemSize * unseenItems + itemSpacing * (totalItems - 1)
         val viewportSize = layoutInfo.viewportSize.height.toFloat()
 
         val estimatedContentSize = memory.frozenContentSize ?: liveContentSize.also { memory.frozenContentSize = it }
@@ -170,7 +181,7 @@ fun BoxScope.LazyListScrollbar(listState: LazyListState, modifier: Modifier = Mo
         // negative once its top has scrolled above the viewport.
         var scrolledPastSize = 0f
         for (index in 0 until firstVisible.index) {
-            scrolledPastSize += memory.knownItemSizes[index]?.toFloat() ?: averageItemSize
+            scrolledPastSize += (memory.knownItemSizes[index]?.toFloat() ?: averageItemSize) + itemSpacing
         }
         scrolledPastSize -= firstVisible.offset
 

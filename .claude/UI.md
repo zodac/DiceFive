@@ -197,8 +197,8 @@ bottom once the form is too tall to fit and has to scroll.
   need a description each. Closed, a picker is one outlined field (headline, supporting line,
   dropdown arrow), so the form doesn't grow with the option count. Tapped, it opens a full-screen page
   (a `Dialog` window around `ScreenScaffold`, so the setup screen and its state stay put; the top bar's back arrow and a bottom button both close it) whose list fills the room and scrolls with `LazyListScrollbar`. `ChoicePicker` picks one (game mode: radio
-  rows, chosen = closed at once, Cancel). `ModifierPicker` is for modifiers - each a switch row,
-  plus a `SegmentedChoiceRow` of values, a `ModifierStepper` (Number of Rolls: nine segments don't fit) or a `ModifierNumberField` (Stored Rolls' cap; digits only) (always laid out, greyed while off, so the page never reflows under a finger), described by a `ModifierSetting`; changes apply
+  rows, chosen = closed at once, Cancel). `ModifierPicker` is for modifiers - each in a card of its own (no heading; the switch row names it) holding a switch row,
+  plus a `SegmentedChoiceRow` of values, a `ModifierStepper` (Number of Rolls: nine segments don't fit) or a `ModifierNumberField` (Stored Rolls' cap; digits only) (shown only while the modifier is on, opening beneath its switch over 220ms - expand and fade, none under reduced motion; the switch itself never moves, only the cards below it), described by a `ModifierSetting`; changes apply
   live and the modal closes with Done; a mode that overrides a modifier locks it with a note. **All
   styling lives in the file's two shells, `PickerField` and `PickerDialog`** (and `PickerRowText`),
   so re-theming is one place - add new pickers as contents of those, not new chrome. To add a

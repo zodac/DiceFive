@@ -1,5 +1,13 @@
 package net.zodac.dicefive.ui.common
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +30,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,6 +62,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 
@@ -117,7 +127,7 @@ private fun PickerField(
  * screen and its state stay where they are and Back returns to them), titled like any other page,
  * with the list filling the room and one closing button under it. The list scrolls (with the app's
  * scrollbar) once it outgrows the screen. [items] fills the list; [collectionSize] is how many rows
- * it will hold, for a screen reader's "2 of 10".
+ * it will hold, for a screen reader's "2 of 10". [itemSpacing] is the gap between rows - wider where each is a card.
  */
 @Composable
 private fun PickerDialog(
@@ -126,6 +136,7 @@ private fun PickerDialog(
     closeLabel: String,
     onDismissRequest: () -> Unit,
     listState: LazyListState,
+    itemSpacing: Dp = 4.dp,
     items: LazyListScope.() -> Unit,
 ) {
     Dialog(
@@ -136,7 +147,7 @@ private fun PickerDialog(
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 LazyColumn(
                     state = listState,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(itemSpacing),
                     // Clear of the scrollbar, which is drawn over the list's right edge.
                     contentPadding = PaddingValues(end = PICKER_SCROLLBAR_CLEARANCE),
                     modifier = Modifier.semantics { collectionInfo = CollectionInfo(rowCount = collectionSize, columnCount = 1) },
@@ -280,8 +291,9 @@ class ModifierNumberField(
  * The same dropdown-and-modal as [ChoicePicker], for a set of [modifiers] that are each switched on
  * or off independently - and, for those with a value, set. Closed, the field counts what is on
  * ("None" when nothing is) over [description], or [activeNote] in its place while any is on; open, each
- * modifier is a switch row with its value beneath, greyed while it is off so the modal never changes
- * height. Changes apply as they are made, so the modal just closes ("Done").
+ * modifier is a card of its own (no heading - its switch row names it) holding a switch row with its
+ * value beneath, which opens out only while it is on. Changes apply as they are made, so the modal
+ * just closes ("Done").
  */
 @Composable
 fun ModifierPicker(
@@ -308,6 +320,8 @@ fun ModifierPicker(
             closeLabel = "Done",
             onDismissRequest = { open = false },
             listState = rememberLazyListState(),
+            // The New Game form's gap between its cards.
+            itemSpacing = 10.dp,
         ) {
             itemsIndexed(modifiers) { index, setting ->
                 ModifierRow(setting, Modifier.semantics { collectionItemInfo = CollectionItemInfo(index, 1, 0, 1) })
@@ -319,34 +333,46 @@ fun ModifierPicker(
 @Composable
 private fun ModifierRow(setting: ModifierSetting, modifier: Modifier = Modifier) {
     val unlocked = setting.lockedNote == null
-    Column(modifier = modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .toggleable(value = setting.enabled, enabled = unlocked, role = Role.Switch, onValueChange = setting.onEnabledChange),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            PickerRowText(setting.title, setting.lockedNote ?: setting.description, Modifier.weight(1f).padding(end = 12.dp))
-            Switch(checked = setting.enabled, onCheckedChange = null, enabled = unlocked)
-        }
-        // Always laid out, greyed while the modifier is off: showing it only when on made the modal grow
-        // under a finger that had just tapped the switch, so whatever was beneath it moved.
-        setting.steppers.forEach { stepper ->
-            ModifierStepperRow(stepper, enabled = unlocked && setting.enabled, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-        }
-        setting.numberField?.let { field ->
-            ModifierNumberFieldRow(field, enabled = unlocked && setting.enabled, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-        }
-        if (setting.valueLabels.isNotEmpty()) {
-            SegmentedChoiceRow(
-                options = setting.valueLabels.indices.toList(),
-                selected = setting.selectedValue,
-                onSelect = setting.onValueSelect,
-                label = { setting.valueLabels[it] },
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                enabled = unlocked && setting.enabled,
-                brandFont = true,
-            )
+    val reduceMotion = LocalReduceMotion.current
+    // A card per modifier, padded like the New Game screen's cards.
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .toggleable(value = setting.enabled, enabled = unlocked, role = Role.Switch, onValueChange = setting.onEnabledChange),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PickerRowText(setting.title, setting.lockedNote ?: setting.description, Modifier.weight(1f).padding(end = 12.dp))
+                Switch(checked = setting.enabled, onCheckedChange = null, enabled = unlocked)
+            }
+            // Shown only while the modifier is on, opening beneath its switch rather than popping in. The switch
+            // above never moves; only the cards below it slide down.
+            AnimatedVisibility(
+                visible = setting.enabled,
+                enter = if (reduceMotion) EnterTransition.None else expandVertically(tween(MODIFIER_VALUES_MILLIS)) + fadeIn(tween(MODIFIER_VALUES_MILLIS)),
+                exit = if (reduceMotion) ExitTransition.None else shrinkVertically(tween(MODIFIER_VALUES_MILLIS)) + fadeOut(tween(MODIFIER_VALUES_MILLIS)),
+            ) {
+                Column {
+                    setting.steppers.forEach { stepper ->
+                        ModifierStepperRow(stepper, enabled = unlocked, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                    }
+                    setting.numberField?.let { field ->
+                        ModifierNumberFieldRow(field, enabled = unlocked, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                    }
+                    if (setting.valueLabels.isNotEmpty()) {
+                        SegmentedChoiceRow(
+                            options = setting.valueLabels.indices.toList(),
+                            selected = setting.selectedValue,
+                            onSelect = setting.onValueSelect,
+                            label = { setting.valueLabels[it] },
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            enabled = unlocked,
+                            brandFont = true,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -397,6 +423,9 @@ private fun ModifierNumberFieldRow(field: ModifierNumberField, enabled: Boolean,
         modifier = modifier,
     )
 }
+
+/** How long a modifier's values take to open beneath its switch, or close again. */
+private const val MODIFIER_VALUES_MILLIS = 220
 
 /** Material's own alpha for disabled content. */
 private const val DISABLED_ALPHA = 0.38f
