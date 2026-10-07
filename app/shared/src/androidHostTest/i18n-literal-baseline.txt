@@ -1,5 +1,3 @@
-achievements/AchievementBannerHost.kt	1
-achievements/AchievementsScreen.kt	9
 game/style/CupRotation.kt	5
 game/style/PicnicBasketCup.kt	3
 game/style/RoundCups.kt	2

@@ -115,7 +115,7 @@ class AchievementsViewModel(
         if (unlockedCountTapCount >= SUPERUSER_TAP_TARGET) {
             unlockedCountTapCount = 0
             _superuserModeActive.value = true
-            _toastMessages.trySend("Superuser mode activated!")
+            _toastMessages.trySend("Superuser mode activated!") // i18n: not translated - a debug-build developer toast
         }
     }
 

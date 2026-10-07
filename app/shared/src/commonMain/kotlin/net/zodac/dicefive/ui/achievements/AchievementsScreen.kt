@@ -70,9 +70,17 @@ import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.achievements_all_unlocked
+import net.zodac.dicefive.resources.achievements_hidden_description
+import net.zodac.dicefive.resources.achievements_next_category_cd
+import net.zodac.dicefive.resources.achievements_previous_category_cd
+import net.zodac.dicefive.resources.achievements_progress
 import net.zodac.dicefive.resources.achievements_reward_locked
 import net.zodac.dicefive.resources.achievements_reward_show_action
 import net.zodac.dicefive.resources.achievements_reward_unlocked
+import net.zodac.dicefive.resources.achievements_title
+import net.zodac.dicefive.resources.achievements_unlocked_at
+import net.zodac.dicefive.resources.achievements_unlocked_count
 import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.delayWhileResumed
@@ -266,7 +274,7 @@ fun AchievementsScreen(
         }
     }
 
-    ScreenScaffold(title = "Achievements", onBack = onBack, modifier = modifier) {
+    ScreenScaffold(title = stringResource(Res.string.achievements_title), onBack = onBack, modifier = modifier) {
         // Nothing but the title bar until the unlocks and scores are read: drawn any sooner, the
         // page says "0 of 0 unlocked" and "Everything's unlocked" before the real list arrives.
         if (!state.isLoaded) return@ScreenScaffold
@@ -289,7 +297,7 @@ fun AchievementsScreen(
             },
         ) {
             Text(
-                text = "${state.unlockedCount} of ${state.totalCount} unlocked",
+                text = stringResource(Res.string.achievements_unlocked_count, state.unlockedCount, state.totalCount),
                 style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -304,7 +312,7 @@ fun AchievementsScreen(
             if (state.groups.isEmpty()) {
                 item(key = "empty") {
                     Text(
-                        text = "Everything's unlocked. Nothing left to chase!",
+                        text = stringResource(Res.string.achievements_all_unlocked),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -371,10 +379,10 @@ private fun GroupHeader(text: String, onPrevious: (() -> Unit)?, onNext: (() -> 
                 },
             )
             IconButton(onClick = { onPrevious?.invoke() }, enabled = onPrevious != null) {
-                Icon(imageVector = Icons.Filled.KeyboardArrowUp, contentDescription = "Previous category")
+                Icon(imageVector = Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(Res.string.achievements_previous_category_cd))
             }
             IconButton(onClick = { onNext?.invoke() }, enabled = onNext != null) {
-                Icon(imageVector = Icons.Filled.KeyboardArrowDown, contentDescription = "Next category")
+                Icon(imageVector = Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(Res.string.achievements_next_category_cd))
             }
         }
     }
@@ -412,7 +420,7 @@ private fun AchievementRow(
     val flash by animateFloatAsState(
         targetValue = if (highlighted) 1f else 0f,
         animationSpec = tween(ROW_FLASH_TRANSITION_MILLIS),
-        label = "achievementRowFlashInk",
+        label = "achievementRowFlashInk", // i18n: not translated - an animation label, not shown
     )
     fun ink(normal: Color): Color = lerp(normal, flashInk, flash)
 
@@ -467,7 +475,7 @@ private fun AchievementRow(
                         MaterialTheme.colorScheme.surfaceContainer
                     },
                     animationSpec = tween(ROW_FLASH_TRANSITION_MILLIS),
-                    label = "achievementRowFlash",
+                    label = "achievementRowFlash", // i18n: not translated - an animation label, not shown
                 ).value,
             ),
         ) {
@@ -502,7 +510,7 @@ private fun AchievementRow(
                     )
                     Text(
                         text = if (item.achievement.visibility == AchievementVisibility.HIDDEN && !unlocked) {
-                            "???"
+                            stringResource(Res.string.achievements_hidden_description)
                         } else {
                             stringResource(item.achievement.description)
                         },
@@ -512,7 +520,7 @@ private fun AchievementRow(
 
                     when {
                         item.unlockedAt != null -> Text(
-                            text = "Unlocked ${formatTimestamp(item.unlockedAt)}",
+                            text = stringResource(Res.string.achievements_unlocked_at, formatTimestamp(item.unlockedAt)),
                             style = MaterialTheme.typography.labelSmall,
                             color = ink(MaterialTheme.colorScheme.onSurfaceVariant),
                             modifier = Modifier.padding(top = 2.dp),
@@ -577,7 +585,7 @@ private fun ProgressRow(item: AchievementItem, ink: (Color) -> Color) {
             trackColor = ink(ProgressIndicatorDefaults.linearTrackColor),
         )
         Text(
-            text = "${item.progress.grouped()} of ${item.achievement.target.grouped()}",
+            text = stringResource(Res.string.achievements_progress, item.progress.grouped(), item.achievement.target.grouped()),
             style = MaterialTheme.typography.labelSmall,
             color = ink(MaterialTheme.colorScheme.onSurfaceVariant),
             modifier = Modifier.padding(top = 4.dp),

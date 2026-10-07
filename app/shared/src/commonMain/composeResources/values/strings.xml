@@ -959,4 +959,31 @@
     <string name="stats_average">Average</string>
     <string name="stats_solo">Solo</string>
 
+    <!-- Achievements (ui/achievements/*) -->
+    <string name="achievements_title">Achievements</string>
+    <!-- The card at the top: achievements unlocked, of all there are. -->
+    <string name="achievements_unlocked_count">%1$d of %2$d unlocked</string>
+    <string name="achievements_all_unlocked">Everything's unlocked. Nothing left to chase!</string>
+    <!-- The arrows on a category's header, which jump to the neighbouring one. -->
+    <string name="achievements_previous_category_cd">Previous category</string>
+    <string name="achievements_next_category_cd">Next category</string>
+    <!-- Stands in for the description of a hidden achievement until it is earned. -->
+    <string name="achievements_hidden_description">???</string>
+    <!-- %1$s is a date and time. -->
+    <string name="achievements_unlocked_at">Unlocked %1$s</string>
+    <!-- Progress towards an achievement: "250 of 1,000". Numbers come grouped. -->
+    <string name="achievements_progress">%1$s of %2$s</string>
+    <!-- TalkBack's names for tapping an achievement banner, which holds it on screen or lets it go. -->
+    <string name="achievements_banner_pause_action">Pause countdown</string>
+    <string name="achievements_banner_resume_action">Resume countdown</string>
+    <!-- Said when the tap holds a banner or lets it go again. -->
+    <string name="achievements_banner_paused_spoken">Paused</string>
+    <string name="achievements_banner_resumed_spoken">Resumed</string>
+    <!-- An unlock banner read aloud: its title, then its description. -->
+    <string name="achievements_banner_unlocked_spoken">Achievement unlocked: %1$s. %2$s</string>
+    <!-- The same, for an achievement that also unlocks a style. -->
+    <string name="achievements_banner_unlocked_style_spoken">Achievement unlocked: %1$s. %2$s. Unlocks a style</string>
+    <!-- A progress banner read aloud: the title, then how far along. -->
+    <string name="achievements_banner_progress_spoken">%1$s: %2$s of %3$s</string>
+
 </resources>
