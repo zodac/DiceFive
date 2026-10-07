@@ -647,7 +647,7 @@
     <string name="style_family_circuit">دارة إلكترونية</string>
     <string name="style_family_classic">كلاسيكي</string>
     <string name="style_family_containers">حاويات</string>
-    <string name="style_family_d20">D20</string>
+    <string name="style_family_d20">ن٢٠</string>
     <string name="style_family_desert">صحراء</string>
     <string name="style_family_egg">بيضة</string>
     <string name="style_family_faceted">مُوجَّه الأوجه</string>
@@ -667,7 +667,7 @@
     <string name="style_family_greek">إغريقي</string>
     <string name="style_family_hex_tiles">بلاط سداسي</string>
     <string name="style_family_honeycomb">خلية نحل</string>
-    <string name="style_family_lcd">LCD</string>
+    <string name="style_family_lcd">ش.ب.س</string>
     <string name="style_family_leather">جلد</string>
     <string name="style_family_mahjong">ماجونغ</string>
     <string name="style_family_martini">مارتيني</string>
