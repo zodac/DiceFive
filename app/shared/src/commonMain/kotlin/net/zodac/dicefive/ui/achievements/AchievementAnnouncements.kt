@@ -53,7 +53,7 @@ fun stylesUnlockedTitle(event: AchievementEvent.StylesUnlocked): String {
 @Composable
 fun stylesUnlockedDescription(event: AchievementEvent.StylesUnlocked): String {
     val styles = event.styles
-    val named = styles.take(STYLES_NAMED_ON_BANNER).map { stringResource(Res.string.achievements_styles_unlocked_named, it.name, it.categoryNoun) }
+    val named = styles.take(STYLES_NAMED_ON_BANNER).map { stringResource(Res.string.achievements_styles_unlocked_named, stringResource(it.name), stringResource(it.categoryNoun)) }
     return when {
         styles.size == 1 -> stringResource(Res.string.achievements_styles_unlocked_one, event.achievementCount, named.single())
         styles.size <= STYLES_NAMED_ON_BANNER -> stringResource(Res.string.achievements_styles_unlocked_two, event.achievementCount, spokenList(named))
@@ -71,6 +71,6 @@ fun stylesUnlockedDescription(event: AchievementEvent.StylesUnlocked): String {
  */
 @Composable
 fun stylesUnlockedAnnouncement(event: AchievementEvent.StylesUnlocked): String {
-    val styles = joinClauses(event.styles.map { stringResource(Res.string.achievements_styles_unlocked_spoken_style, it.name, it.categoryNoun) })
+    val styles = joinClauses(event.styles.map { stringResource(Res.string.achievements_styles_unlocked_spoken_style, stringResource(it.name), stringResource(it.categoryNoun)) })
     return pluralStringResource(Res.plurals.achievements_styles_unlocked_announcement, event.styles.size, styles, event.achievementCount)
 }

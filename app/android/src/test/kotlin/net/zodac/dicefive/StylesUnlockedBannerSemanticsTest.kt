@@ -20,6 +20,9 @@ import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.UnlockedStyle
 import net.zodac.dicefive.device.AndroidAppContainer
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
+import net.zodac.dicefive.ui.game.style.DiceMats
+import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.game.style.TableBackgrounds
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Rule
 import org.junit.Test
@@ -53,13 +56,13 @@ class StylesUnlockedBannerSemanticsTest {
         compose.waitForIdle()
         AchievementEvents.emit(
             AchievementEvent.StylesUnlocked(
-                listOf(UnlockedStyle("Frosted", "dice"), UnlockedStyle("Velvet", "mat"), UnlockedStyle("Oak", "background")),
+                listOf(DiceStyles.unlockedStyle("Frosted"), DiceMats.unlockedStyle("Leather"), TableBackgrounds.unlockedStyle("Planks")),
                 30,
             ),
         )
         compose.waitForIdle()
 
-        val announcement = "Styles unlocked: Frosted dice, Velvet mat, Oak background. Earned 30 achievements"
+        val announcement = "Styles unlocked: Frosted dice, Leather mat, Planks background. Earned 30 achievements"
         compose.onNode(hasContentDescription(announcement))
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
             .assert(SemanticsMatcher("pauses on a tap") { it.config[SemanticsActions.OnClick].label == "Pause countdown" })
@@ -67,7 +70,7 @@ class StylesUnlockedBannerSemanticsTest {
 
     @Test
     fun `a banner for one style says Style Unlocked, names it, and TalkBack hears it`() {
-        showBannerHostAndEmit(listOf(UnlockedStyle("Frosted", "dice")), 23)
+        showBannerHostAndEmit(listOf(DiceStyles.unlockedStyle("Frosted")), 23)
 
         compose.onNodeWithText("Style Unlocked", useUnmergedTree = true).assertExists()
         compose.onNodeWithText("Earned 23 achievements: the 'Frosted' dice style", useUnmergedTree = true).assertExists()
@@ -76,18 +79,18 @@ class StylesUnlockedBannerSemanticsTest {
 
     @Test
     fun `a banner for two styles names both`() {
-        showBannerHostAndEmit(listOf(UnlockedStyle("Frosted", "dice"), UnlockedStyle("Velvet", "mat")), 25)
+        showBannerHostAndEmit(listOf(DiceStyles.unlockedStyle("Frosted"), DiceMats.unlockedStyle("Leather")), 25)
 
         compose.onNodeWithText("Styles Unlocked", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("Earned 25 achievements: 'Frosted' dice and 'Velvet' mat", useUnmergedTree = true).assertExists()
-        compose.onNode(hasContentDescription("Styles unlocked: Frosted dice, Velvet mat. Earned 25 achievements")).assertExists()
+        compose.onNodeWithText("Earned 25 achievements: 'Frosted' dice and 'Leather' mat", useUnmergedTree = true).assertExists()
+        compose.onNode(hasContentDescription("Styles unlocked: Frosted dice, Leather mat. Earned 25 achievements")).assertExists()
     }
 
     @Test
     fun `a banner for three styles names two and counts the rest`() {
-        showBannerHostAndEmit(listOf(UnlockedStyle("Frosted", "dice"), UnlockedStyle("Velvet", "mat"), UnlockedStyle("Oak", "background")), 30)
+        showBannerHostAndEmit(listOf(DiceStyles.unlockedStyle("Frosted"), DiceMats.unlockedStyle("Leather"), TableBackgrounds.unlockedStyle("Planks")), 30)
 
-        compose.onNodeWithText("Earned 30 achievements: 'Frosted' dice, 'Velvet' mat and 1 more", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Earned 30 achievements: 'Frosted' dice, 'Leather' mat and 1 more", useUnmergedTree = true).assertExists()
     }
 
     private fun showBannerHostAndEmit(styles: List<UnlockedStyle>, achievementCount: Int) {

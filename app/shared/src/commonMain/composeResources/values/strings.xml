@@ -687,4 +687,230 @@
     <string name="settings_reset_leaderboard_title">Reset Leaderboard?</string>
     <string name="settings_reset_leaderboard_message">Every recorded score will be deleted, clearing the Leaderboard screen - and Statistics with it, since it's calculated from the same scores. This can't be undone. Achievements and settings are not affected, though any achievement progress measured against the leaderboard will start over.</string>
 
+    <!-- Style names (ui/game/style/StyleCatalog.kt): what each style, and each colour of it, is called on the Styles screen. Short: they sit under a small tile. -->
+    <string name="style_family_art_deco">Art Deco</string>
+    <string name="style_family_beaker">Beaker</string>
+    <string name="style_family_bestagon">Bestagon</string>
+    <string name="style_family_brick">Brick</string>
+    <string name="style_family_cake">Cake</string>
+    <string name="style_family_casino">Casino</string>
+    <string name="style_family_cauldron">Cauldron</string>
+    <string name="style_family_celtic">Celtic</string>
+    <string name="style_family_chicken">Chicken</string>
+    <string name="style_family_circuit">Circuit</string>
+    <string name="style_family_classic">Classic</string>
+    <string name="style_family_containers">Containers</string>
+    <string name="style_family_d20">D20</string>
+    <string name="style_family_desert">Desert</string>
+    <string name="style_family_egg">Egg</string>
+    <string name="style_family_faceted">Faceted</string>
+    <string name="style_family_floating_dice">Floating Dice</string>
+    <string name="style_family_floral">Floral</string>
+    <string name="style_family_flowerpot">Flowerpot</string>
+    <string name="style_family_frosted">Frosted</string>
+    <string name="style_family_garden">Garden</string>
+    <string name="style_family_gems">Gems</string>
+    <string name="style_family_gift_box">Gift Box</string>
+    <string name="style_family_gift_wrap">Gift Wrap</string>
+    <string name="style_family_gingham">Gingham</string>
+    <string name="style_family_glass">Glass</string>
+    <string name="style_family_glitch">Glitch</string>
+    <string name="style_family_glitter">Glitter</string>
+    <string name="style_family_googly">Googly</string>
+    <string name="style_family_greek">Greek</string>
+    <string name="style_family_hex_tiles">Hex Tiles</string>
+    <string name="style_family_honeycomb">Honeycomb</string>
+    <string name="style_family_lcd">LCD</string>
+    <string name="style_family_leather">Leather</string>
+    <string name="style_family_mahjong">Mahjong</string>
+    <string name="style_family_martini">Martini</string>
+    <string name="style_family_maths">Maths</string>
+    <string name="style_family_meadow">Meadow</string>
+    <string name="style_family_metal">Metal</string>
+    <string name="style_family_misprint">Misprint</string>
+    <string name="style_family_multicolour">Multicolour</string>
+    <string name="style_family_neon">Neon</string>
+    <string name="style_family_non_english">Non-English</string>
+    <string name="style_family_numeral">Numeral</string>
+    <string name="style_family_obsidian">Obsidian</string>
+    <string name="style_family_picnic">Picnic</string>
+    <string name="style_family_pinstripe">Pinstripe</string>
+    <string name="style_family_pixel">Pixel</string>
+    <string name="style_family_planks">Planks</string>
+    <string name="style_family_poker">Poker</string>
+    <string name="style_family_pyramid">Pyramid</string>
+    <string name="style_family_retro">Retro</string>
+    <string name="style_family_ribbon">Ribbon</string>
+    <string name="style_family_sand">Sand</string>
+    <string name="style_family_spotlight">Spotlight</string>
+    <string name="style_family_starry">Starry</string>
+    <string name="style_family_stone">Stone</string>
+    <string name="style_family_sunburst">Sunburst</string>
+    <string name="style_family_takeaway">Takeaway</string>
+    <string name="style_family_tally">Tally</string>
+    <string name="style_family_tankard">Tankard</string>
+    <string name="style_family_text">Text</string>
+    <string name="style_family_top_hat">Top Hat</string>
+    <string name="style_family_treasure">Treasure</string>
+    <string name="style_family_tribal">Tribal</string>
+    <string name="style_family_urn">Urn</string>
+    <string name="style_family_volcano">Volcano</string>
+    <string name="style_family_wood">Wood</string>
+    <string name="style_family_wreath">Wreath</string>
+    <string name="style_colour_amber">Amber</string>
+    <string name="style_colour_arabic">Arabic</string>
+    <string name="style_colour_arabic_green">Arabic Green</string>
+    <string name="style_colour_barrel">Barrel</string>
+    <string name="style_colour_basalt">Basalt</string>
+    <string name="style_colour_black">Black</string>
+    <string name="style_colour_black_marble">Black Marble</string>
+    <string name="style_colour_blue">Blue</string>
+    <string name="style_colour_blueprint">Blueprint</string>
+    <string name="style_colour_bronze">Bronze</string>
+    <string name="style_colour_brown">Brown</string>
+    <string name="style_colour_bud">Bud</string>
+    <string name="style_colour_charcoal">Charcoal</string>
+    <string name="style_colour_chinese">Chinese</string>
+    <string name="style_colour_chocolate">Chocolate</string>
+    <string name="style_colour_classic">Classic</string>
+    <string name="style_colour_clear">Clear</string>
+    <string name="style_colour_copper">Copper</string>
+    <string name="style_colour_crimson">Crimson</string>
+    <string name="style_colour_daisy">Daisy</string>
+    <string name="style_colour_digits">Digits</string>
+    <string name="style_colour_double">Double</string>
+    <string name="style_colour_dunes">Dunes</string>
+    <string name="style_colour_emerald">Emerald</string>
+    <string name="style_colour_fan">Fan</string>
+    <string name="style_colour_flame">Flame</string>
+    <string name="style_colour_forestry">Forestry</string>
+    <string name="style_colour_gold">Gold</string>
+    <string name="style_colour_granite">Granite</string>
+    <string name="style_colour_green">Green</string>
+    <string name="style_colour_green_mono">Green Mono</string>
+    <string name="style_colour_grey">Grey</string>
+    <string name="style_colour_honey">Honey</string>
+    <string name="style_colour_ice">Ice</string>
+    <string name="style_colour_indigo">Indigo</string>
+    <string name="style_colour_irish">Irish</string>
+    <string name="style_colour_ivory">Ivory</string>
+    <string name="style_colour_ivory_serif">Ivory Serif</string>
+    <string name="style_colour_japanese">Japanese</string>
+    <string name="style_colour_japanese_black">Japanese Black</string>
+    <string name="style_colour_key">Key</string>
+    <string name="style_colour_knot">Knot</string>
+    <string name="style_colour_kraft">Kraft</string>
+    <string name="style_colour_lapis">Lapis</string>
+    <string name="style_colour_latin_american">Latin American</string>
+    <string name="style_colour_laurel">Laurel</string>
+    <string name="style_colour_lava">Lava</string>
+    <string name="style_colour_limestone">Limestone</string>
+    <string name="style_colour_manzu">Manzu</string>
+    <string name="style_colour_menu">Menu</string>
+    <string name="style_colour_midnight">Midnight</string>
+    <string name="style_colour_mixed">Mixed</string>
+    <string name="style_colour_navy">Navy</string>
+    <string name="style_colour_neon">Neon</string>
+    <string name="style_colour_night">Night</string>
+    <string name="style_colour_oak">Oak</string>
+    <string name="style_colour_oil_drum">Oil Drum</string>
+    <string name="style_colour_olive">Olive</string>
+    <string name="style_colour_opening">Opening</string>
+    <string name="style_colour_oxblood">Oxblood</string>
+    <string name="style_colour_pencil">Pencil</string>
+    <string name="style_colour_pewter">Pewter</string>
+    <string name="style_colour_pink">Pink</string>
+    <string name="style_colour_pink_and_blue">Pink &amp; Blue</string>
+    <string name="style_colour_pinzu">Pinzu</string>
+    <string name="style_colour_purple">Purple</string>
+    <string name="style_colour_purple_script">Purple Script</string>
+    <string name="style_colour_rabbit">Rabbit</string>
+    <string name="style_colour_rainbow">Rainbow</string>
+    <string name="style_colour_red">Red</string>
+    <string name="style_colour_red_block">Red Block</string>
+    <string name="style_colour_retro">Retro</string>
+    <string name="style_colour_ring">Ring</string>
+    <string name="style_colour_roman">Roman</string>
+    <string name="style_colour_roman_blue">Roman Blue</string>
+    <string name="style_colour_rose">Rose</string>
+    <string name="style_colour_rose_gold">Rose Gold</string>
+    <string name="style_colour_sandstone">Sandstone</string>
+    <string name="style_colour_screen">Screen</string>
+    <string name="style_colour_seedling">Seedling</string>
+    <string name="style_colour_shipping">Shipping</string>
+    <string name="style_colour_silver">Silver</string>
+    <string name="style_colour_single">Single</string>
+    <string name="style_colour_slate">Slate</string>
+    <string name="style_colour_soil">Soil</string>
+    <string name="style_colour_sozu">Sozu</string>
+    <string name="style_colour_stepped">Stepped</string>
+    <string name="style_colour_strawberry">Strawberry</string>
+    <string name="style_colour_sunflower">Sunflower</string>
+    <string name="style_colour_swirl">Swirl</string>
+    <string name="style_colour_tan">Tan</string>
+    <string name="style_colour_teal_plain">Teal Plain</string>
+    <string name="style_colour_terracotta">Terracotta</string>
+    <string name="style_colour_tricolour">Tricolour</string>
+    <string name="style_colour_vanilla">Vanilla</string>
+    <string name="style_colour_vine">Vine</string>
+    <string name="style_colour_walnut">Walnut</string>
+    <string name="style_colour_waves">Waves</string>
+    <string name="style_colour_western">Western</string>
+    <string name="style_colour_white">White</string>
+    <string name="style_colour_white_marble">White Marble</string>
+    <string name="style_colour_wicker">Wicker</string>
+    <string name="style_colour_yellow">Yellow</string>
+
+    <!-- What one style of a category is called in a sentence ("the 'Frosted' dice style"), and what a family's variants are called (ui/game/style/StyleCatalog.kt). -->
+    <string name="style_noun_dice">dice</string>
+    <string name="style_noun_dice_cup">dice cup</string>
+    <string name="style_noun_background">background</string>
+    <string name="style_noun_mat">mat</string>
+    <string name="style_noun_frame">frame</string>
+    <!-- "Choose Frosted colour": most families vary by colour... -->
+    <string name="style_variant_colour">colour</string>
+    <!-- ...but the frames differ in shape. -->
+    <string name="style_variant_design">design</string>
+
+    <!-- Style rewards (ui/game/style/StyleUnlock.kt, ui/achievements) -->
+    <!-- What an achievement unlocks, in a sentence: "the 'Irish' dice style". %1$s is the style, %2$s its category (dice, mat...). -->
+    <string name="styles_reward_style">the '%1$s' %2$s style</string>
+    <!-- Chosen by how many hidden colours the achievement unlocks (the count isn't shown). -->
+    <plurals name="styles_reward_hidden_colours">
+        <item quantity="one">the hidden '%1$s' %2$s colour</item>
+        <item quantity="other">the hidden '%1$s' %2$s colours</item>
+    </plurals>
+    <!-- The tooltip on an unlocked achievement's star. %1$s is what it unlocked, from styles_reward_*. -->
+    <string name="achievements_reward_unlocked">You've unlocked %1$s!</string>
+    <string name="achievements_reward_locked">Earn this to unlock %1$s</string>
+    <!-- TalkBack's name for tapping the star on an achievement. -->
+    <string name="achievements_reward_show_action">Show which style this unlocks</string>
+
+    <!-- Styles screen (ui/styles/StylesScreen.kt) -->
+    <string name="styles_title">Styles</string>
+    <!-- The five categories of table art: the titles of the cards, and what a gallery switch is called. -->
+    <string name="styles_category_dice">Dice</string>
+    <string name="styles_category_dice_cup">Dice Cup</string>
+    <string name="styles_category_mat">Mat</string>
+    <string name="styles_category_background">Background</string>
+    <string name="styles_category_frame">Frame</string>
+    <!-- The name on the sample player tab each frame is shown on. -->
+    <string name="styles_frame_preview_name">You</string>
+    <!-- A switch at the end of a category's title: on, every tile of the category shows at once. %1$s is the category. -->
+    <string name="styles_gallery_cd">%1$s gallery</string>
+    <string name="styles_gallery_row_action">Show %1$s as a row</string>
+    <string name="styles_gallery_all_action">Show all %1$s</string>
+    <!-- TalkBack's name for tapping a style, or one of its colours. -->
+    <string name="styles_select_action">Select</string>
+    <!-- TalkBack's name for a long press on a style with several colours: "Choose Frosted colour". %2$s is style_variant_colour or style_variant_design. -->
+    <string name="styles_choose_variant_action">Choose %1$s %2$s</string>
+    <!-- A style and its colour: "Frosted, Ice". -->
+    <string name="styles_family_colour_cd">%1$s, %2$s</string>
+    <string name="styles_locked_spoken">Locked</string>
+    <!-- %1$s is the style's name. -->
+    <string name="styles_show_unlock_action">Show how to unlock %1$s</string>
+    <!-- The check badge on the style in use. -->
+    <string name="styles_selected_cd">Selected</string>
+    <string name="common_ok">OK</string>
+
 </resources>

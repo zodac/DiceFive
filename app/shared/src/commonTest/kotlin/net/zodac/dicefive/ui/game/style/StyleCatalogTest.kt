@@ -48,7 +48,7 @@ class StyleCatalogTest {
     @Test
     fun everyDefaultStyleIsCalledClassic() {
         for (catalog in listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds, ScoreFrames)) {
-            assertEquals("Classic", catalog.familyOf(catalog.default.id).name)
+            assertEquals(familyKey("Classic"), catalog.familyOf(catalog.default.id).name.key)
         }
     }
 
@@ -56,20 +56,20 @@ class StyleCatalogTest {
     fun defaultIsTheFirstColourOfTheFirstStyle() {
         assertEquals(IvoryDiceStyle, DiceStyles.default)
         assertEquals("casino_gold", DiceCupStyles.default.id)
-        assertEquals(listOf("Classic", "Faceted"), DiceCupStyles.families.take(2).map { it.name })
+        assertEquals(listOf(familyKey("Classic"), familyKey("Faceted")), DiceCupStyles.families.take(2).map { it.name.key })
         assertEquals(TrayBlueMat, DiceMats.default)
         assertEquals(MidnightFeltBackground, TableBackgrounds.default)
     }
 
     @Test
     fun coloursOfOneShapeShareAStyle() {
-        assertEquals("Faceted", DiceCupStyles.familyOf("fire").name)
-        assertEquals("Containers", DiceCupStyles.familyOf("barrel").name)
-        assertEquals("Classic", DiceMats.familyOf("fire").name)
-        assertEquals("Wood", DiceMats.familyOf("barrel").name)
+        assertEquals(familyKey("Faceted"), DiceCupStyles.familyOf("fire").name.key)
+        assertEquals(familyKey("Containers"), DiceCupStyles.familyOf("barrel").name.key)
+        assertEquals(familyKey("Classic"), DiceMats.familyOf("fire").name.key)
+        assertEquals(familyKey("Wood"), DiceMats.familyOf("barrel").name.key)
         for (id in listOf("ivory", "classic_red", "classic_yellow", "classic_blue", "barrel")) {
-            assertEquals("Classic", DiceStyles.familyOf(id).name)
-            assertEquals("Classic", TableBackgrounds.familyOf(if (id == "ivory") "midnight_felt" else id).name)
+            assertEquals(familyKey("Classic"), DiceStyles.familyOf(id).name.key)
+            assertEquals(familyKey("Classic"), TableBackgrounds.familyOf(if (id == "ivory") "midnight_felt" else id).name.key)
         }
     }
 
@@ -77,7 +77,7 @@ class StyleCatalogTest {
     fun unknownIdFallsBackToTheDefaultAndItsStyle() {
         assertEquals("casino_gold", DiceCupStyles.byId("leather").id)
         assertEquals("casino_gold", DiceCupStyles.byId("casino_burgundy").id)
-        assertEquals("Classic", DiceCupStyles.familyOf("leather").name)
+        assertEquals(familyKey("Classic"), DiceCupStyles.familyOf("leather").name.key)
         // The Classic dice's old red skin is gone, so a saved pick of it lands on the default.
         assertEquals(DiceStyles.default, DiceStyles.byId("fire"))
     }
@@ -86,7 +86,7 @@ class StyleCatalogTest {
     fun onlyTheClassicStylesAreFree() {
         for (catalog in listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds, ScoreFrames)) {
             for (family in catalog.families) {
-                assertEquals(family.name == "Classic", family.unlock == StyleUnlock.Free, "${family.name}'s unlock is ${family.unlock}")
+                assertEquals(family.name.key == familyKey("Classic"), family.unlock == StyleUnlock.Free, "${family.name}'s unlock is ${family.unlock}")
             }
         }
     }
@@ -126,17 +126,17 @@ class StyleCatalogTest {
     @Test
     fun theIrishDiceAreASecretColourOfMulticolourUnlockedByLuckOfTheIrish() {
         val multicolour = DiceStyles.familyOf(IrishFlagDiceStyle.id)
-        assertEquals("Multicolour", multicolour.name)
-        assertEquals(listOf("Tricolour", "Rainbow", "Irish"), multicolour.colours.map { it.name })
+        assertEquals(familyKey("Multicolour"), multicolour.name.key)
+        assertEquals(listOf(colourKey("Tricolour"), colourKey("Rainbow"), colourKey("Irish")), multicolour.colours.map { it.name.key })
         assertTrue(multicolour.unlock is StyleUnlock.AchievementCount)
-        assertEquals(listOf("the hidden 'Multicolour' dice colour"), Achievement.LUCK_OF_THE_IRISH.styleRewards.map { it.description })
+        assertEquals(listOf(familyKey("Multicolour") to 1), Achievement.LUCK_OF_THE_IRISH.styleRewards.map { it.styleName.key to it.hiddenColours })
 
         val count = multicolour.unlock.count
         val ordinary = Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }.take(count)
         val without = AchievementsState(ordinary.associateWith { 0L })
         assertEquals(TricolourStripedDiceStyle, DiceStyles.unlockedById(TricolourStripedDiceStyle.id, without))
         assertEquals(DiceStyles.default, DiceStyles.unlockedById(IrishFlagDiceStyle.id, without))
-        assertEquals(listOf("Tricolour", "Rainbow"), multicolour.availableColours(without).map { it.name })
+        assertEquals(listOf(colourKey("Tricolour"), colourKey("Rainbow")), multicolour.availableColours(without).map { it.name.key })
 
         // Luck of the Irish alone doesn't unlock the family.
         val onlyIrish = AchievementsState(mapOf(Achievement.LUCK_OF_THE_IRISH to 0L))
@@ -149,31 +149,31 @@ class StyleCatalogTest {
     @Test
     fun theBlueGooglyDiceAreASecretColourUnlockedByBigFan() {
         val googly = DiceStyles.familyOf("googly_blue")
-        assertEquals("Googly", googly.name)
-        assertEquals(listOf("Ivory", "Black", "Blue"), googly.colours.map { it.name })
+        assertEquals(familyKey("Googly"), googly.name.key)
+        assertEquals(listOf(colourKey("Ivory"), colourKey("Black"), colourKey("Blue")), googly.colours.map { it.name.key })
         assertTrue(Achievement.BIG_FAN.unlocksStyle)
-        assertEquals(listOf("the hidden 'Googly' dice colour"), Achievement.BIG_FAN.styleRewards.map { it.description })
+        assertEquals(listOf(familyKey("Googly") to 1), Achievement.BIG_FAN.styleRewards.map { it.styleName.key to it.hiddenColours })
 
         val count = (googly.unlock as StyleUnlock.AchievementCount).count
         val ordinary = Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }.take(count)
         val without = AchievementsState(ordinary.associateWith { 0L })
         assertEquals("googly_black", DiceStyles.unlockedById("googly_black", without).id)
         assertEquals(DiceStyles.default, DiceStyles.unlockedById("googly_blue", without))
-        assertEquals(listOf("Ivory", "Black"), googly.availableColours(without).map { it.name })
+        assertEquals(listOf(colourKey("Ivory"), colourKey("Black")), googly.availableColours(without).map { it.name.key })
         assertEquals("googly_blue", DiceStyles.unlockedById("googly_blue", AchievementsState(without.unlockedAt + (Achievement.BIG_FAN to 0L))).id)
     }
 
     @Test
     fun theFlowerpotsPlantStagesAreSecretColoursUnlockedByGreenfingers() {
         val flowerpot = DiceCupStyles.familyOf("flowerpot_terracotta")
-        assertEquals("Flowerpot", flowerpot.name)
+        assertEquals(familyKey("Flowerpot"), flowerpot.name.key)
         assertEquals(
             listOf("flowerpot_terracotta", "flowerpot_seedling", "flowerpot_bud", "flowerpot_opening", "sunflower_terracotta"),
             flowerpot.colours.map { it.style.id },
         )
         // The family itself is an ordinary count lock, not hidden: only the plant stages are secret.
         assertFalse(flowerpot.unlock.hiddenWhileLocked)
-        assertEquals(listOf("the hidden 'Flowerpot' dice cup colours"), Achievement.GREENFINGERS.styleRewards.map { it.description })
+        assertEquals(listOf(familyKey("Flowerpot") to 4), Achievement.GREENFINGERS.styleRewards.map { it.styleName.key to it.hiddenColours })
         // The removed Slate pot and Sunflower family no longer resolve.
         assertEquals(DiceCupStyles.default, DiceCupStyles.byId("flowerpot_slate"))
         assertEquals(DiceCupStyles.default, DiceCupStyles.byId("sunflower_slate"))
@@ -184,7 +184,7 @@ class StyleCatalogTest {
         val without = AchievementsState(ordinary.associateWith { 0L })
         assertEquals("flowerpot_terracotta", DiceCupStyles.unlockedById("flowerpot_terracotta", without).id)
         assertEquals(DiceCupStyles.default, DiceCupStyles.unlockedById("sunflower_terracotta", without))
-        assertEquals(listOf("Terracotta"), flowerpot.availableColours(without).map { it.name })
+        assertEquals(listOf(colourKey("Terracotta")), flowerpot.availableColours(without).map { it.name.key })
 
         // Greenfingers alone doesn't unlock the pot's family, but with it every stage is offered.
         val earned = AchievementsState(without.unlockedAt + (Achievement.GREENFINGERS to 0L))
@@ -199,24 +199,24 @@ class StyleCatalogTest {
     @Test
     fun theRabbitTopHatIsASecretColourUnlockedByTheMagiciansSecret() {
         val topHat = DiceCupStyles.familyOf("top_hat_rabbit")
-        assertEquals("Top Hat", topHat.name)
-        assertEquals(listOf("Black", "Grey", "Rabbit"), topHat.colours.map { it.name })
-        assertEquals(listOf("the hidden 'Top Hat' dice cup colour"), Achievement.MAGICIANS_SECRET.styleRewards.map { it.description })
+        assertEquals(familyKey("Top Hat"), topHat.name.key)
+        assertEquals(listOf(colourKey("Black"), colourKey("Grey"), colourKey("Rabbit")), topHat.colours.map { it.name.key })
+        assertEquals(listOf(familyKey("Top Hat") to 1), Achievement.MAGICIANS_SECRET.styleRewards.map { it.styleName.key to it.hiddenColours })
 
         val ordinary = Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }.take((topHat.unlock as StyleUnlock.AchievementCount).count)
         val without = AchievementsState(ordinary.associateWith { 0L })
         assertEquals("top_hat_grey", DiceCupStyles.unlockedById("top_hat_grey", without).id)
         assertEquals(DiceCupStyles.default, DiceCupStyles.unlockedById("top_hat_rabbit", without))
-        assertEquals(listOf("Black", "Grey"), topHat.availableColours(without).map { it.name })
+        assertEquals(listOf(colourKey("Black"), colourKey("Grey")), topHat.availableColours(without).map { it.name.key })
         assertEquals("top_hat_rabbit", DiceCupStyles.unlockedById("top_hat_rabbit", AchievementsState(without.unlockedAt + (Achievement.MAGICIANS_SECRET to 0L))).id)
     }
 
     @Test
     fun theMartiniCupIsASecretStyleUnlockedByShakenNotTapped() {
         val martini = DiceCupStyles.familyOf("martini")
-        assertEquals("Martini", martini.name)
+        assertEquals(familyKey("Martini"), martini.name.key)
         assertTrue(martini.unlock.hiddenWhileLocked)
-        assertEquals(listOf("the 'Martini' dice cup style"), Achievement.SHAKEN_NOT_TAPPED.styleRewards.map { it.description })
+        assertEquals(listOf(familyKey("Martini") to 0), Achievement.SHAKEN_NOT_TAPPED.styleRewards.map { it.styleName.key to it.hiddenColours })
 
         val everythingElse = Achievement.entries.filter { it != Achievement.SHAKEN_NOT_TAPPED }
         assertEquals(DiceCupStyles.default, DiceCupStyles.unlockedById("martini", AchievementsState(everythingElse.associateWith { 0L })))
@@ -226,10 +226,10 @@ class StyleCatalogTest {
     @Test
     fun theMathsDiceAreASecretStyleUnlockedByTheSolution() {
         val maths = DiceStyles.familyOf("maths_white")
-        assertEquals("Maths", maths.name)
-        assertEquals(listOf("White", "Black", "Green"), maths.colours.map { it.name })
+        assertEquals(familyKey("Maths"), maths.name.key)
+        assertEquals(listOf(colourKey("White"), colourKey("Black"), colourKey("Green")), maths.colours.map { it.name.key })
         assertTrue(maths.unlock.hiddenWhileLocked)
-        assertEquals(listOf("the 'Maths' dice style"), Achievement.THE_SOLUTION.styleRewards.map { it.description })
+        assertEquals(listOf(familyKey("Maths") to 0), Achievement.THE_SOLUTION.styleRewards.map { it.styleName.key to it.hiddenColours })
 
         val everythingElse = AchievementsState(Achievement.entries.filter { it != Achievement.THE_SOLUTION }.associateWith { 0L })
         val solved = AchievementsState(mapOf(Achievement.THE_SOLUTION to 0L))
@@ -242,9 +242,9 @@ class StyleCatalogTest {
     @Test
     fun theFloatingDiceBackgroundIsASecretStyleUnlockedByNotThoseDice() {
         val floating = TableBackgrounds.familyOf("floating_dice")
-        assertEquals("Floating Dice", floating.name)
+        assertEquals(familyKey("Floating Dice"), floating.name.key)
         assertTrue(floating.unlock.hiddenWhileLocked)
-        assertEquals(listOf("the 'Floating Dice' background style"), Achievement.NOT_THOSE_DICE.styleRewards.map { it.description })
+        assertEquals(listOf(familyKey("Floating Dice") to 0), Achievement.NOT_THOSE_DICE.styleRewards.map { it.styleName.key to it.hiddenColours })
 
         val everythingElse = Achievement.entries.filter { it != Achievement.NOT_THOSE_DICE }
         assertEquals(TableBackgrounds.default, TableBackgrounds.unlockedById("floating_dice", AchievementsState(everythingElse.associateWith { 0L })))
@@ -271,7 +271,7 @@ class StyleCatalogTest {
             for (family in catalog.families) {
                 val unlock = family.unlock
                 val secret = unlock is StyleUnlock.SpecificAchievement && unlock.achievement.visibility == AchievementVisibility.SECRET
-                assertEquals(secret, unlock.hiddenWhileLocked, family.name)
+                assertEquals(secret, unlock.hiddenWhileLocked, family.name.key)
             }
         }
         assertFalse(Achievement.entries.first { it.visibility != AchievementVisibility.SECRET }.unlocksStyle)
@@ -299,7 +299,7 @@ class StyleCatalogTest {
     fun theClassicFrameIsTheDefaultAndEveryOtherFrameIsLocked() {
         // SettingsRepository's and SavedStyles' literal default must be this id.
         assertEquals("classic", ScoreFrames.default.id)
-        assertEquals("Classic", ScoreFrames.familyOf("classic").name)
+        assertEquals(familyKey("Classic"), ScoreFrames.familyOf("classic").name.key)
         val none = AchievementsState()
         for (frame in ScoreFrames.all) {
             assertEquals(frame.id == "classic", ScoreFrames.isUnlocked(frame.id, none), frame.id)
@@ -308,10 +308,18 @@ class StyleCatalogTest {
 
     @Test
     fun aFramesVariantsAreDesignsAllShownInTheSameColour() {
-        assertEquals("design", ScoreFrames.variantNoun)
-        assertEquals("colour", DiceStyles.variantNoun)
+        assertEquals("style_variant_design", ScoreFrames.variantNoun.key)
+        assertEquals("style_variant_colour", DiceStyles.variantNoun.key)
         // Every frame is drawn in the player's colour, so every variant's dot is the one colour.
         assertEquals(1, ScoreFrames.families.flatMap { family -> family.colours.map { it.swatch } }.toSet().size)
         assertTrue(ScoreFrames.families.drop(1).all { it.colours.size in 1..3 })
     }
 }
+
+/** The key a family's name has in strings.xml: `style_family_` and the English name, lower case and underscored. */
+private fun familyKey(name: String) = "style_family_" + keySlug(name)
+
+/** The key a colour's name has in strings.xml. */
+private fun colourKey(name: String) = "style_colour_" + keySlug(name)
+
+private fun keySlug(name: String) = name.lowercase().replace("&", "and").replace(Regex("[^a-z0-9]+"), "_").trim('_')

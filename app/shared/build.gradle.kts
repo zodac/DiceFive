@@ -87,7 +87,8 @@ kotlin {
             api(libs.jetbrains.compose.ui)
             api(libs.jetbrains.compose.material3)
             implementation(libs.jetbrains.compose.ui.tooling.preview)
-            implementation(libs.jetbrains.compose.components.resources)
+            // api: the style catalogues and achievement banners put StringResources in their public types.
+            api(libs.jetbrains.compose.components.resources)
             // Just for Icons.AutoMirrored.Filled.Undo and friends - material3 alone only ships the
             // small default icon set.
             implementation(libs.jetbrains.compose.material.icons.extended)

@@ -140,9 +140,27 @@ import net.zodac.dicefive.data.achievements.StyleScrollRequest
 import net.zodac.dicefive.data.achievements.StyleScrollRequests
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_ok
+import net.zodac.dicefive.resources.style_variant_colour
+import net.zodac.dicefive.resources.styles_category_background
+import net.zodac.dicefive.resources.styles_category_dice
+import net.zodac.dicefive.resources.styles_category_dice_cup
+import net.zodac.dicefive.resources.styles_category_frame
+import net.zodac.dicefive.resources.styles_category_mat
+import net.zodac.dicefive.resources.styles_choose_variant_action
+import net.zodac.dicefive.resources.styles_family_colour_cd
+import net.zodac.dicefive.resources.styles_frame_preview_name
+import net.zodac.dicefive.resources.styles_gallery_all_action
+import net.zodac.dicefive.resources.styles_gallery_cd
+import net.zodac.dicefive.resources.styles_gallery_row_action
+import net.zodac.dicefive.resources.styles_locked_spoken
 import net.zodac.dicefive.resources.styles_requirement_count
 import net.zodac.dicefive.resources.styles_requirement_free
 import net.zodac.dicefive.resources.styles_requirement_specific
+import net.zodac.dicefive.resources.styles_select_action
+import net.zodac.dicefive.resources.styles_selected_cd
+import net.zodac.dicefive.resources.styles_show_unlock_action
+import net.zodac.dicefive.resources.styles_title
 import net.zodac.dicefive.resources.styles_unlock_count
 import net.zodac.dicefive.resources.styles_unlock_free
 import net.zodac.dicefive.resources.styles_unlock_specific
@@ -179,6 +197,7 @@ import net.zodac.dicefive.ui.game.style.TableBackground
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import net.zodac.dicefive.ui.theme.GoldAccent
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -286,7 +305,7 @@ private fun StylesScaffold(
     onPageMeasured: ((PageMeasure) -> Unit)? = null,
 ) {
     ScreenScaffold(
-        title = "Styles",
+        title = stringResource(Res.string.styles_title),
         onBack = onBack,
         modifier = modifier,
         scrollable = false,
@@ -512,7 +531,7 @@ private fun StyleCategorySection(
     fun CategoryCard(title: String, content: @Composable ColumnScope.() -> Unit) =
         StyleCategoryCard(title = title, gallery = gallery, onGalleryChange = { gallery = it }, content = content)
     when (category) {
-        StyleCategory.DICE -> CategoryCard(title = "Dice") {
+        StyleCategory.DICE -> CategoryCard(title = stringResource(Res.string.styles_category_dice)) {
             val roll = rememberDicePickRoll()
             StyleFamilyTiles(
                 catalog = DiceStyles,
@@ -533,7 +552,7 @@ private fun StyleCategorySection(
             }
         }
 
-        StyleCategory.DICE_CUP -> CategoryCard(title = "Dice Cup") {
+        StyleCategory.DICE_CUP -> CategoryCard(title = stringResource(Res.string.styles_category_dice_cup)) {
             val shake = rememberCupPickShake()
             StyleFamilyTiles(
                 catalog = DiceCupStyles,
@@ -568,7 +587,7 @@ private fun StyleCategorySection(
             }
         }
 
-        StyleCategory.MAT -> CategoryCard(title = "Mat") {
+        StyleCategory.MAT -> CategoryCard(title = stringResource(Res.string.styles_category_mat)) {
             StyleFamilyTiles(
                 catalog = DiceMats,
                 selectedId = picks.diceMatId,
@@ -586,7 +605,7 @@ private fun StyleCategorySection(
             }
         }
 
-        StyleCategory.BACKGROUND -> CategoryCard(title = "Background") {
+        StyleCategory.BACKGROUND -> CategoryCard(title = stringResource(Res.string.styles_category_background)) {
             StyleFamilyTiles(
                 catalog = TableBackgrounds,
                 selectedId = picks.tableBackgroundId,
@@ -605,7 +624,7 @@ private fun StyleCategorySection(
             }
         }
 
-        StyleCategory.FRAME -> CategoryCard(title = "Frame") {
+        StyleCategory.FRAME -> CategoryCard(title = stringResource(Res.string.styles_category_frame)) {
             StyleFamilyTiles(
                 catalog = ScoreFrames,
                 selectedId = picks.scoreFrameId,
@@ -793,7 +812,7 @@ private fun FramePreview(frame: ScoreFrame, modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = "You", color = colour, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+        Text(text = stringResource(Res.string.styles_frame_preview_name), color = colour, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, maxLines = 1)
         Text(text = "24", color = colour, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, maxLines = 1)
     }
 }
@@ -947,6 +966,8 @@ private fun StyleCategoryCard(title: String, gallery: Boolean, onGalleryChange: 
  */
 @Composable
 private fun GalleryToggle(title: String, gallery: Boolean, onGalleryChange: (Boolean) -> Unit) {
+    val galleryName = stringResource(Res.string.styles_gallery_cd, title)
+    val galleryAction = stringResource(if (gallery) Res.string.styles_gallery_row_action else Res.string.styles_gallery_all_action, title)
     // Its room in the title's line: no taller than the icon, so the header is no taller for it.
     Box(modifier = Modifier.padding(end = 2.dp).size(width = GALLERY_TOGGLE_SIZE, height = GALLERY_ICON_SIZE)) {
         // The control itself, a square centred on the icon - so the press highlight is too - and
@@ -956,10 +977,10 @@ private fun GalleryToggle(title: String, gallery: Boolean, onGalleryChange: (Boo
                 .requiredSize(GALLERY_TOGGLE_SIZE)
                 // The icon is the whole of it, named here rather than on the icon so it's one stop.
                 .clearAndSetSemantics {
-                    contentDescription = "$title gallery"
+                    contentDescription = galleryName
                     role = Role.Switch
                     toggleableState = ToggleableState(gallery)
-                    onClick(label = if (gallery) "Show $title as a row" else "Show all $title") {
+                    onClick(label = galleryAction) {
                         onGalleryChange(!gallery)
                         true
                     }
@@ -1023,7 +1044,7 @@ private fun <T : TableArt> StyleFamilyTiles(
 ) {
     // The styles of this category a banner asked to be shown: scrolled to, and flashed for a moment.
     var flashing by remember { mutableStateOf(false) }
-    val focusNames = remember(focus, catalog) { focus?.styles.orEmpty().filter { it.categoryNoun == catalog.noun }.map { it.name }.toSet() }
+    val focusNames = remember(focus, catalog) { focus?.styles.orEmpty().filter { it.categoryNoun.key == catalog.noun.key }.map { it.name.key }.toSet() }
     val shownSelectedId = catalog.unlockedById(selectedId, achievements).id
     val (unlocked, shownLocked) = catalog.shownFamilies(achievements)
 
@@ -1032,7 +1053,7 @@ private fun <T : TableArt> StyleFamilyTiles(
         if (index < unlocked.size) {
             StyleFamilyTile(
                 unlocked[index], achievements, shownSelectedId, onSelect, previewSize, backgroundBrush, preview, index,
-                flashing = flashing && unlocked[index].name in focusNames, flashOverArt = flashOverArt, variantNoun = catalog.variantNoun,
+                flashing = flashing && unlocked[index].name.key in focusNames, flashOverArt = flashOverArt, variantNoun = catalog.variantNoun,
             )
         } else {
             LockedStyleFamilyTile(shownLocked[index - unlocked.size], achievements, previewSize, backgroundBrush, preview, index)
@@ -1053,7 +1074,7 @@ private fun <T : TableArt> StyleFamilyTiles(
     // again, flashing the whole row each time a new style was picked.
     // Or, arriving from a styles banner, with the style it unlocked there instead.
     val pickedIndex = remember(families.size) {
-        unlocked.indexOfFirst { it.name in focusNames }.takeIf { it >= 0 }
+        unlocked.indexOfFirst { it.name.key in focusNames }.takeIf { it >= 0 }
             ?: unlocked.indexOfFirst { it.colourOf(shownSelectedId) != null }.coerceAtLeast(0)
     }
     val scrollState = rememberScrollState()
@@ -1131,7 +1152,7 @@ private fun <T : TableArt> StyleFamilyTiles(
             val rowAlpha by animateFloatAsState(
                 targetValue = if (revealed) 1f else 0f,
                 animationSpec = if (reduceMotion) snap() else tween(durationMillis = PAGE_CONTENT_FADE_IN_MILLIS),
-                label = "styleRowAlpha",
+                label = "styleRowAlpha", // i18n: not translated - an animation label, not shown
             )
             // Where a tile's centre is in the row: every tile takes the same slot, built or not, so it's
             // known before any of them is laid out.
@@ -1158,7 +1179,7 @@ private fun <T : TableArt> StyleFamilyTiles(
             // Then, as an achievement row does, the flash starts once it's there and holds for a moment.
             LaunchedEffect(focus) {
                 flashing = false
-                val index = unlocked.indexOfFirst { it.name in focusNames }
+                val index = unlocked.indexOfFirst { it.name.key in focusNames }
                 if (index < 0 || focus == null) return@LaunchedEffect
                 snapshotFlow { revealed }.first { it }
                 val target = centrePx(index) - scrollState.viewportSize / 2
@@ -1347,12 +1368,16 @@ private fun <T : TableArt> StyleFamilyTile(
     position: Int,
     flashing: Boolean = false,
     flashOverArt: Boolean = false,
-    variantNoun: String = "colour",
+    variantNoun: StringResource = Res.string.style_variant_colour,
 ) {
     val colours = family.availableColours(achievements)
+    val familyName = stringResource(family.name)
+    val selectLabel = stringResource(Res.string.styles_select_action)
+    val chooseVariantLabel = stringResource(Res.string.styles_choose_variant_action, familyName, stringResource(variantNoun))
     val picked = colours.firstOrNull { it.style.id == selectedId }
     val shown = picked ?: colours.first()
     val hasColours = colours.size > 1
+    val shownDescription = if (hasColours) stringResource(Res.string.styles_family_colour_cd, familyName, stringResource(shown.name)) else familyName
     var choosingColour by remember { mutableStateOf(false) }
 
     val bringIntoView = remember { BringIntoViewRequester() }
@@ -1384,16 +1409,16 @@ private fun <T : TableArt> StyleFamilyTile(
                     // the check badge nor the colour dots is a stop of its own. Ahead of the click handling,
                     // not behind it: semantics cleared only apply to what sits further in.
                     .clearAndSetSemantics {
-                        contentDescription = if (hasColours) "${family.name}, ${shown.name}" else family.name
+                        contentDescription = shownDescription
                         role = Role.RadioButton
                         selected = picked != null
                         collectionItemInfo = CollectionItemInfo(rowIndex = 0, rowSpan = 1, columnIndex = position, columnSpan = 1)
-                        onClick(label = "Select") {
+                        onClick(label = selectLabel) {
                             select(shown.style.id)
                             true
                         }
                         if (hasColours) {
-                            onLongClick(label = "Choose ${family.name} $variantNoun") {
+                            onLongClick(label = chooseVariantLabel) {
                                 choosingColour = true
                                 true
                             }
@@ -1402,7 +1427,7 @@ private fun <T : TableArt> StyleFamilyTile(
                     .combinedClickable(
                         onClick = { select(shown.style.id) },
                         onLongClick = if (hasColours) ({ choosingColour = true }) else null,
-                        onLongClickLabel = if (hasColours) "Choose ${family.name} $variantNoun" else null,
+                        onLongClickLabel = if (hasColours) chooseVariantLabel else null,
                     ),
             ) {
                 if (hasColours) {
@@ -1426,6 +1451,7 @@ private fun <T : TableArt> StyleFamilyTile(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     for (colour in colours) {
+                        val colourDescription = stringResource(Res.string.styles_family_colour_cd, familyName, stringResource(colour.name))
                         StylePreview(
                             style = colour.style,
                             size = previewSize,
@@ -1435,10 +1461,10 @@ private fun <T : TableArt> StyleFamilyTile(
                             modifier = Modifier
                                 // No visible name - but a screen reader still needs to say which is which.
                                 .clearAndSetSemantics {
-                                    contentDescription = "${family.name}, ${colour.name}"
+                                    contentDescription = colourDescription
                                     role = Role.RadioButton
                                     selected = colour.style.id == selectedId
-                                    onClick(label = "Select") {
+                                    onClick(label = selectLabel) {
                                         select(colour.style.id)
                                         choosingColour = false
                                         true
@@ -1457,7 +1483,7 @@ private fun <T : TableArt> StyleFamilyTile(
                 )
             }
         }
-        TileLabel(family.name)
+        TileLabel(stringResource(family.name))
     }
 }
 
@@ -1478,6 +1504,9 @@ private fun <T : TableArt> LockedStyleFamilyTile(
     var showingRequirement by remember { mutableStateOf(false) }
     val tooltipState = rememberAppTooltipState()
     val scope = rememberCoroutineScope()
+    val familyName = stringResource(family.name)
+    val lockedText = stringResource(Res.string.styles_locked_spoken)
+    val showUnlockLabel = stringResource(Res.string.styles_show_unlock_action, familyName)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -1494,11 +1523,11 @@ private fun <T : TableArt> LockedStyleFamilyTile(
                     // A tap shows the short requirement and a long press the dialog. A tooltip isn't announced, so
                     // a screen reader's one action is the dialog, which says the same and more.
                     .clearAndSetSemantics {
-                        contentDescription = family.name
-                        stateDescription = "Locked"
+                        contentDescription = familyName
+                        stateDescription = lockedText
                         role = Role.Button
                         collectionItemInfo = CollectionItemInfo(rowIndex = 0, rowSpan = 1, columnIndex = position, columnSpan = 1)
-                        onClick(label = "Show how to unlock ${family.name}") {
+                        onClick(label = showUnlockLabel) {
                             showingRequirement = true
                             true
                         }
@@ -1506,7 +1535,7 @@ private fun <T : TableArt> LockedStyleFamilyTile(
                     .combinedClickable(
                         onClick = { scope.launch { tooltipState.show() } },
                         onLongClick = { showingRequirement = true },
-                        onLongClickLabel = "Show how to unlock ${family.name}",
+                        onLongClickLabel = showUnlockLabel,
                     ),
             ) {
                 // Translucent, so the style still shows through - the lock says "not yet", not "hidden".
@@ -1525,7 +1554,7 @@ private fun <T : TableArt> LockedStyleFamilyTile(
                 }
             }
         }
-        TileLabel(family.name)
+        TileLabel(stringResource(family.name))
     }
 
     if (showingRequirement) {
@@ -1537,7 +1566,7 @@ private fun <T : TableArt> LockedStyleFamilyTile(
                 unlockRequirement(family, achievements),
                 codeStyle = SpanStyle(fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary),
             ),
-            confirmLabel = "OK",
+            confirmLabel = stringResource(Res.string.common_ok),
             onConfirm = { showingRequirement = false },
             onDismissRequest = { showingRequirement = false },
         )
@@ -1590,7 +1619,7 @@ private fun <T : TableArt> StylePreview(
     val flash by animateFloatAsState(
         targetValue = if (flashing) 1f else 0f,
         animationSpec = if (LocalReduceMotion.current) snap() else tween(STYLE_FLASH_TRANSITION_MILLIS),
-        label = "styleTileFlash",
+        label = "styleTileFlash", // i18n: not translated - an animation label, not shown
     )
     Box(
         modifier = Modifier
@@ -1635,7 +1664,7 @@ private fun SelectedBadge(modifier: Modifier = Modifier) {
     ) {
         Icon(
             imageVector = Icons.Filled.CheckCircle,
-            contentDescription = "Selected",
+            contentDescription = stringResource(Res.string.styles_selected_cd),
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(18.dp),
         )
