@@ -6,13 +6,15 @@ import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.UnlockedStyle
 import net.zodac.dicefive.game.AchievementUpdate
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.achievements_styles_unlocked_announce_join
 import net.zodac.dicefive.resources.achievements_styles_unlocked_announcement
+import net.zodac.dicefive.resources.achievements_styles_unlocked_earned
 import net.zodac.dicefive.resources.achievements_styles_unlocked_more
 import net.zodac.dicefive.resources.achievements_styles_unlocked_named
 import net.zodac.dicefive.resources.achievements_styles_unlocked_one
 import net.zodac.dicefive.resources.achievements_styles_unlocked_spoken_style
 import net.zodac.dicefive.resources.achievements_styles_unlocked_title
-import net.zodac.dicefive.resources.achievements_styles_unlocked_two
+import net.zodac.dicefive.resources.achievements_styles_unlocked_with
 import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.spokenList
@@ -54,14 +56,16 @@ fun stylesUnlockedTitle(event: AchievementEvent.StylesUnlocked): String {
 fun stylesUnlockedDescription(event: AchievementEvent.StylesUnlocked): String {
     val styles = event.styles
     val named = styles.take(STYLES_NAMED_ON_BANNER).map { stringResource(Res.string.achievements_styles_unlocked_named, stringResource(it.name), stringResource(it.categoryNoun)) }
-    return when {
-        styles.size == 1 -> stringResource(Res.string.achievements_styles_unlocked_one, event.achievementCount, named.single())
-        styles.size <= STYLES_NAMED_ON_BANNER -> stringResource(Res.string.achievements_styles_unlocked_two, event.achievementCount, spokenList(named))
+    val earned = pluralStringResource(Res.plurals.achievements_styles_unlocked_earned, event.achievementCount, event.achievementCount)
+    val which = when {
+        styles.size == 1 -> stringResource(Res.string.achievements_styles_unlocked_one, named.single())
+        styles.size <= STYLES_NAMED_ON_BANNER -> spokenList(named)
         else -> {
             val more = styles.size - STYLES_NAMED_ON_BANNER
-            pluralStringResource(Res.plurals.achievements_styles_unlocked_more, more, event.achievementCount, joinClauses(named), more)
+            pluralStringResource(Res.plurals.achievements_styles_unlocked_more, more, joinClauses(named), more)
         }
     }
+    return stringResource(Res.string.achievements_styles_unlocked_with, earned, which)
 }
 
 /**
@@ -72,5 +76,7 @@ fun stylesUnlockedDescription(event: AchievementEvent.StylesUnlocked): String {
 @Composable
 fun stylesUnlockedAnnouncement(event: AchievementEvent.StylesUnlocked): String {
     val styles = joinClauses(event.styles.map { stringResource(Res.string.achievements_styles_unlocked_spoken_style, stringResource(it.name), stringResource(it.categoryNoun)) })
-    return pluralStringResource(Res.plurals.achievements_styles_unlocked_announcement, event.styles.size, styles, event.achievementCount)
+    val unlocked = pluralStringResource(Res.plurals.achievements_styles_unlocked_announcement, event.styles.size, styles)
+    val earned = pluralStringResource(Res.plurals.achievements_styles_unlocked_earned, event.achievementCount, event.achievementCount)
+    return stringResource(Res.string.achievements_styles_unlocked_announce_join, unlocked, earned)
 }

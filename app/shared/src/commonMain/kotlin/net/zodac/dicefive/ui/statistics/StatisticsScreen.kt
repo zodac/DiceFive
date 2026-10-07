@@ -163,7 +163,7 @@ fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
         sentences += stringResource(Res.string.stats_spoken_record, player.gamesPlayed, player.gamesWon, player.gamesLost)
         sentences += stringResource(Res.string.stats_spoken_streaks, player.currentWinStreak, player.bestWinStreak)
         sentences += stringResource(Res.string.stats_spoken_scores, player.totalScore.grouped(), player.averageScore.grouped())
-        sentences += stringResource(Res.string.stats_spoken_fives, player.fiveOfAKindCount)
+        sentences += pluralStringResource(Res.plurals.stats_spoken_fives, player.fiveOfAKindCount, player.fiveOfAKindCount)
         sentences += pluralStringResource(Res.plurals.stats_spoken_solo, player.soloGames, player.soloGames)
     }
     val spoken = joinSentences(sentences)

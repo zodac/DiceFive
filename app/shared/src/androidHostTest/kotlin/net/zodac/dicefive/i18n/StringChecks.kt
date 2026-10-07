@@ -34,6 +34,12 @@ internal object StringChecks {
     /** The trademark, lower case. The only place it is written out (CLAUDE.md's exception); tests refer to this. */
     const val TRADEMARK = "yahtzee"
 
+    /** Every base (English) plural must spell out `one` as well as `other`, so a translator sees both forms to begin from. */
+    fun pluralsWithoutOne(base: Map<String, String>): List<String> {
+        val names = base.keys.filter { '[' in it }.map(::pluralName).toSet()
+        return names.filter { "$it[one]" !in base }.sorted().map { "plural '$it' has no 'one' item" }
+    }
+
     private val banned = listOf(
         Regex(TRADEMARK, RegexOption.IGNORE_CASE),
         Regex("(three|four|five)[ -]of[ -]a[ -]kind", RegexOption.IGNORE_CASE),
