@@ -1,6 +1,20 @@
 package net.zodac.dicefive.model
 
 import kotlin.random.Random
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.mode_hit_list
+import net.zodac.dicefive.resources.mode_hit_list_description
+import net.zodac.dicefive.resources.mode_quickfire
+import net.zodac.dicefive.resources.mode_quickfire_description
+import net.zodac.dicefive.resources.mode_standard
+import net.zodac.dicefive.resources.mode_standard_description
+import net.zodac.dicefive.resources.mode_stud
+import net.zodac.dicefive.resources.mode_stud_description
+import net.zodac.dicefive.resources.mode_third_wind
+import net.zodac.dicefive.resources.mode_third_wind_description
+import net.zodac.dicefive.resources.mode_tricolour
+import net.zodac.dicefive.resources.mode_tricolour_description
+import org.jetbrains.compose.resources.StringResource
 
 private val STANDARD_CATEGORIES = listOf(
     ScoreCategory.ONES,
@@ -65,9 +79,9 @@ private val HIT_LIST_CATEGORIES = ScoreCategory.TARGETS.take(HIT_LIST_SHAPES.siz
  */
 enum class GameMode(
     val id: String,
-    val displayName: String,
+    val displayName: StringResource,
     /** One line for the setup screen, saying what's different about this mode. */
-    val description: String,
+    val description: StringResource,
     /** How many dice are rolled. */
     val diceCount: Int,
     /**
@@ -149,8 +163,8 @@ enum class GameMode(
      */
     STANDARD(
         id = "standard",
-        displayName = "Standard",
-        description = "The official rules",
+        displayName = Res.string.mode_standard,
+        description = Res.string.mode_standard_description,
         diceCount = 5,
         scoringDiceCount = 5,
         rollsPerTurn = 3,
@@ -178,8 +192,8 @@ enum class GameMode(
      */
     TRICOLOUR(
         id = "tricolour",
-        displayName = "Tricolour",
-        description = "Dice also roll red, yellow or blue, with four colour boxes to fill",
+        displayName = Res.string.mode_tricolour,
+        description = Res.string.mode_tricolour_description,
         diceCount = 5,
         scoringDiceCount = 5,
         rollsPerTurn = 3,
@@ -209,8 +223,8 @@ enum class GameMode(
      */
     QUICKFIRE(
         id = "quickfire",
-        displayName = "Quickfire",
-        description = "5x and six random boxes are disabled every game",
+        displayName = Res.string.mode_quickfire,
+        description = Res.string.mode_quickfire_description,
         diceCount = 5,
         scoringDiceCount = 5,
         rollsPerTurn = 3,
@@ -240,8 +254,8 @@ enum class GameMode(
      */
     STUD(
         id = "stud",
-        displayName = "Stud",
-        description = "Roll seven dice, but only the five you hold score",
+        displayName = Res.string.mode_stud,
+        description = Res.string.mode_stud_description,
         diceCount = 7,
         scoringDiceCount = 5,
         rollsPerTurn = 3,
@@ -270,8 +284,8 @@ enum class GameMode(
      */
     THIRD_WIND(
         id = "third_wind",
-        displayName = "Third Wind",
-        description = "Every category is scored three times",
+        displayName = Res.string.mode_third_wind,
+        description = Res.string.mode_third_wind_description,
         diceCount = 5,
         scoringDiceCount = 5,
         rollsPerTurn = 3,
@@ -304,8 +318,8 @@ enum class GameMode(
      */
     HIT_LIST(
         id = "hit_list",
-        displayName = "Hit List",
-        description = "Roll a list of number targets - double points with every die in place",
+        displayName = Res.string.mode_hit_list,
+        description = Res.string.mode_hit_list_description,
         diceCount = 5,
         scoringDiceCount = 5,
         rollsPerTurn = 3,

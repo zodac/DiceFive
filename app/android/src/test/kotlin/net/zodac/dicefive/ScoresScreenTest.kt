@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.longClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import java.io.File
 import net.zodac.dicefive.data.scores.PlayerGame
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreDao
@@ -94,6 +95,10 @@ class ScoresScreenTest {
         assertTrue(detail.orEmpty(), detail!!.endsWith(", Tricolour"))
     }
 
+    /** The mode's name as `strings.xml` has it: `Res` is internal to :app:shared, so the file is read from disk. */
+    private fun modeName(mode: GameMode): String = Regex("""<string name="mode_${mode.id}">([^<]*)</string>""")
+        .find(File("../shared/src/commonMain/composeResources/values/strings.xml").readText())!!.groupValues[1]
+
     @Test
     fun gameModeShowsACardOnlyForModesWithScores() {
         // Quickfire never counts on the combined table, yet gets its card; Stud has no score, so no card.
@@ -104,11 +109,11 @@ class ScoresScreenTest {
 
         compose.onNodeWithText("Standard").assertExists()
         compose.onNodeWithText("Tricolour").assertExists()
-        compose.onNodeWithText(GameMode.QUICKFIRE.displayName).assertExists()
-        compose.onAllNodesWithText(GameMode.STUD.displayName).assertCountEquals(0)
+        compose.onNodeWithText(modeName(GameMode.QUICKFIRE)).assertExists()
+        compose.onAllNodesWithText(modeName(GameMode.STUD)).assertCountEquals(0)
         // On its own card a row's detail is the date alone - the mode is the card's title.
         val detail = compose.onNodeWithText("Player2").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)
-        assertTrue(detail.orEmpty(), GameMode.entries.none { detail!!.contains(it.displayName) })
+        assertTrue(detail.orEmpty(), GameMode.entries.none { detail!!.contains(modeName(it)) })
     }
 
     @Test

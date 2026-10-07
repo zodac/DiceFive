@@ -188,8 +188,8 @@ fun <T> ChoicePicker(
     options: List<T>,
     selected: T,
     onSelect: (T) -> Unit,
-    label: (T) -> String,
-    description: (T) -> String,
+    label: @Composable (T) -> String,
+    description: @Composable (T) -> String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {

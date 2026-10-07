@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.model.PlayerColour
 import net.zodac.dicefive.ui.theme.color
+import org.jetbrains.compose.resources.stringResource
 
 /** The coloured dot on a player's row and in the pop-up: [SWATCH_SIZE] drawn inside a 48dp touch target. */
 private val SWATCH_SIZE = 28.dp
@@ -62,13 +63,14 @@ fun PlayerColourPicker(
     modifier: Modifier = Modifier,
 ) {
     var choosing by remember { mutableStateOf(false) }
+    val colourName = stringResource(colour.label)
     // DropdownMenu positions itself against its parent, so the swatch and the pop-up share this Box.
     Box(modifier = modifier.size(SWATCH_TARGET), contentAlignment = Alignment.Center) {
         Box(
             modifier = Modifier
                 .size(SWATCH_TARGET)
                 .clearAndSetSemantics {
-                    contentDescription = "Player $slot colour, ${colour.label}"
+                    contentDescription = "Player $slot colour, $colourName"
                     role = Role.Button
                     onClick(label = "Choose colour") {
                         choosing = true
@@ -91,12 +93,13 @@ fun PlayerColourPicker(
                         for (option in rowColours) {
                             val swapsWith = holders[option]?.takeIf { it != slot }
                             val selected = option == colour
+                            val optionName = stringResource(option.label)
                             Box(
                                 modifier = Modifier
                                     .size(SWATCH_TARGET)
                                     // No visible name - a screen reader still needs to say which is which.
                                     .clearAndSetSemantics {
-                                        contentDescription = if (swapsWith != null) "${option.label}, swaps with player $swapsWith" else option.label
+                                        contentDescription = if (swapsWith != null) "$optionName, swaps with player $swapsWith" else optionName
                                         role = Role.RadioButton
                                         this.selected = selected
                                         onClick(label = "Select") {

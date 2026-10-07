@@ -260,4 +260,28 @@
     <string name="achievement_the_solution_title">The Solution</string>
     <string name="achievement_the_solution_description">Play a solo standard game, no modifiers, as Phil Woodward and score exactly 255 points</string>
 
+    <!-- Game mode names and one-line descriptions, shown in the mode picker (model/GameMode.kt). -->
+    <string name="mode_standard">Standard</string>
+    <string name="mode_standard_description">The official rules</string>
+    <string name="mode_tricolour">Tricolour</string>
+    <string name="mode_tricolour_description">Dice also roll red, yellow or blue, with four colour boxes to fill</string>
+    <string name="mode_quickfire">Quickfire</string>
+    <string name="mode_quickfire_description">5x and six random boxes are disabled every game</string>
+    <string name="mode_stud">Stud</string>
+    <string name="mode_stud_description">Roll seven dice, but only the five you hold score</string>
+    <string name="mode_third_wind">Third Wind</string>
+    <string name="mode_third_wind_description">Every category is scored three times</string>
+    <string name="mode_hit_list">Hit List</string>
+    <string name="mode_hit_list_description">Roll a list of number targets - double points with every die in place</string>
+
+    <!-- Player colour names, spoken by TalkBack in the colour picker (model/PlayerColour.kt). -->
+    <string name="player_colour_cyan">Cyan</string>
+    <string name="player_colour_green">Green</string>
+    <string name="player_colour_purple">Purple</string>
+    <string name="player_colour_amber">Amber</string>
+    <string name="player_colour_pink">Pink</string>
+    <string name="player_colour_red">Red</string>
+    <string name="player_colour_blue">Blue</string>
+    <string name="player_colour_lime">Lime</string>
+
 </resources>
