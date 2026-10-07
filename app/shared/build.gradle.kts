@@ -126,8 +126,11 @@ compose.resources {
 // `-PregeneratePerfectPlayTable` makes StandardPerfectPlayTableTest rewrite the bundled perfect-play
 // table from Standard's rules instead of checking the bundled copy still matches them - for when
 // those rules change. See StandardPerfectPlayTable and .claude/DESIGN.md's Phase 23.
+// `-PregenerateI18nBaseline` does the same for NoNewLiteralsTest's count of string literals left in
+// ui/ (src/androidHostTest/i18n-literal-baseline.txt). See .claude/I18N.md.
 tasks.withType<Test>().configureEach {
     systemProperty("dicefive.regeneratePerfectPlayTable", providers.gradleProperty("regeneratePerfectPlayTable").isPresent)
+    systemProperty("dicefive.regenerateI18nBaseline", providers.gradleProperty("regenerateI18nBaseline").isPresent)
 }
 
 room {
