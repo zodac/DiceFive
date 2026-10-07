@@ -1,5 +1,8 @@
 package net.zodac.dicefive.ui.rules
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -95,6 +98,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -881,9 +885,33 @@ private fun PageTabRow(pagerState: PagerState, group: Int, onSelect: (Int) -> Un
     val scrollState = remember(group) { ScrollState(initial = 0) }
     val placements = remember(group) { TabPlacements() }
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val reduceMotion = LocalReduceMotion.current
+    // A tap snaps the pager straight to its page (animating the pages would cost a frame of two whole pages), but the
+    // indicator slides there through the tabs in between, as a swipe would carry it: this holds where it is while
+    // it does, and the pager's own position is shown the rest of the time.
+    val tapSlide = remember(group) { Animatable(0f) }
+    var tapSliding by remember(group) { mutableStateOf(false) }
+    var tapRequest by remember(group) { mutableStateOf<TapSlide?>(null) }
+    // Where the indicator is, in tabs from the group's first: read in layout and by KeepTabInView, never in composition.
+    val indicatorPosition = { if (tapSliding) tapSlide.value else pagerState.currentPage + pagerState.currentPageOffsetFraction - groupStart }
+    LaunchedEffect(tapRequest) {
+        val request = tapRequest ?: return@LaunchedEffect
+        try {
+            tapSlide.snapTo(request.from)
+            tapSliding = true
+            if (!reduceMotion) {
+                val millis = (TAP_SLIDE_BASE_MILLIS + TAP_SLIDE_PER_TAB_MILLIS * abs(request.to - request.from)).coerceAtMost(TAP_SLIDE_MAX_MILLIS)
+                tapSlide.animateTo(request.to, tween(millis.toInt(), easing = FastOutSlowInEasing))
+            }
+        } finally {
+            // Back to following the pager - which is already on the page, so nothing moves.
+            tapSliding = false
+        }
+    }
     // A real Box, so the chevrons' align lands on their actual parent (see UI.md's gotchas).
     Box(modifier = Modifier.fillMaxWidth()) {
-        KeepTabInView(scrollState, placements) { pagerState.currentPage - groupStart }
+        // Follows the indicator, so the row scrolls along with it as it does through a swipe, rather than ahead of it.
+        KeepTabInView(scrollState, placements) { indicatorPosition().roundToInt() }
         SecondaryScrollableTabRow(
             // Never changes, so the row never re-centres itself - see KeepTabInView. The indicator follows the pager,
             // and each tab's selected state the current page.
@@ -897,8 +925,7 @@ private fun PageTabRow(pagerState: PagerState, group: Int, onSelect: (Int) -> Un
             indicator = {
                 TabRowDefaults.SecondaryIndicator(
                     modifier = Modifier.tabIndicatorLayout { measurable, constraints, tabPositions ->
-                        val pagePosition = pagerState.currentPage + pagerState.currentPageOffsetFraction - groupStart
-                        pagerIndicatorLayout(measurable, constraints, tabPositions, pagePosition)
+                        pagerIndicatorLayout(measurable, constraints, tabPositions, indicatorPosition())
                     }.testTag(TAB_INDICATOR_TAG),
                     height = SECONDARY_INDICATOR_HEIGHT,
                 )
@@ -914,7 +941,10 @@ private fun PageTabRow(pagerState: PagerState, group: Int, onSelect: (Int) -> Un
                 val selected by remember(page) { derivedStateOf { pagerState.currentPage == page } }
                 Tab(
                     selected = selected,
-                    onClick = { onSelect(page) },
+                    onClick = {
+                        tapRequest = TapSlide(from = indicatorPosition(), to = (page - groupStart).toFloat())
+                        onSelect(page)
+                    },
                     text = { Text(text = stringResource(rulesPage.tabLabel), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     modifier = remember(placements, index, rtl) { Modifier.rowTab(placements, index, rtl) },
                 )
@@ -924,6 +954,15 @@ private fun PageTabRow(pagerState: PagerState, group: Int, onSelect: (Int) -> Un
         TabScrollChevron(scrollState = scrollState, forward = true, modifier = Modifier.align(Alignment.CenterEnd))
     }
 }
+
+/** A tap on a page tab: the indicator slides [from] where it was [to] the tab, both in tabs from the group's first. Not a
+ * data class, so a second tap on the same tab is still a new request. */
+private class TapSlide(val from: Float, val to: Float)
+
+/** How long the indicator takes to slide to a tapped tab: this much, plus [TAP_SLIDE_PER_TAB_MILLIS] for each tab it passes, up to [TAP_SLIDE_MAX_MILLIS]. */
+private const val TAP_SLIDE_BASE_MILLIS = 160f
+private const val TAP_SLIDE_PER_TAB_MILLIS = 50f
+private const val TAP_SLIDE_MAX_MILLIS = 400f
 
 /** A tab's place in its row: recorded for [KeepTabInView], and announced as its position in the row ("Tab, 2 of 6"). */
 private fun Modifier.rowTab(placements: TabPlacements, index: Int, rtl: Boolean): Modifier = this

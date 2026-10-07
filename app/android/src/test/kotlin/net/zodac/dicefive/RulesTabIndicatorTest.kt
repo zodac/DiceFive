@@ -154,4 +154,29 @@ class RulesTabIndicatorTest {
     @Test
     @Config(qualifiers = "ar-w600dp-h800dp")
     fun `the indicator is under a tab of a different width than the first right to left`() = checkIndicatorUnderUnevenTabs(3f)
+
+    /** A tap snaps the pages but slides the indicator through the tabs in between, ending under the tapped one. */
+    @Test
+    fun `a tap slides the indicator to the tab rather than jumping`() {
+        compose.setContent {
+            CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { DiceFiveTheme { RulesScreen(onBack = {}) } }
+        }
+        val groups = 3
+        val start = compose.onNodeWithTag("rulesTabIndicator").fetchSemanticsNode().boundsInRoot.center.x
+        compose.mainClock.autoAdvance = false
+        compose.onAllNodes(isTab)[groups + 2].performClick()
+        // The page is already there - only the indicator is still on its way.
+        compose.mainClock.advanceTimeByFrame()
+        compose.mainClock.advanceTimeByFrame()
+        compose.onAllNodes(isTab)[groups + 2].assertIsSelected()
+        compose.mainClock.advanceTimeBy(60)
+        val partway = compose.onNodeWithTag("rulesTabIndicator").fetchSemanticsNode().boundsInRoot.center.x
+        compose.mainClock.autoAdvance = true
+        compose.mainClock.advanceTimeBy(2_000)
+        compose.waitForIdle()
+        val end = compose.onNodeWithTag("rulesTabIndicator").fetchSemanticsNode().boundsInRoot.center.x
+        val tab = compose.onAllNodes(isTab)[groups + 2].fetchSemanticsNode().boundsInRoot.center.x
+        assertEquals("ends under the tapped tab", tab, end, 2f)
+        assertTrue("part way ($partway) between where it was ($start) and where it ends ($end)", partway > start + 2f && partway < end - 2f)
+    }
 }
