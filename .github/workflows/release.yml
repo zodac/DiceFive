@@ -201,10 +201,9 @@ jobs:
             ${{ steps.emulator.outputs.sdk }}/system-images/android-${{ steps.emulator.outputs.api }}
           key: emulator-${{ runner.os }}-api${{ steps.emulator.outputs.api }}
 
-      # The app and journey APKs are built before the emulator boots, not by the generate step: a booted
-      # emulator sharing the runner's 4 cores with five minutes of compiling lost its framework
-      # (system_server) before the install, and the run produced no profile. The generate step then finds
-      # these up to date and goes straight to the device.
+      # The app and journey APKs are built before the emulator boots, not by the generate step, so the two
+      # don't compete for the runner's cores. The generate step then finds these up to date and goes
+      # straight to the device.
       - name: Build the journey's APKs
         run: |
           ./gradlew :app:android:assembleNonMinifiedRelease :app:baselineprofile:assembleNonMinifiedRelease \

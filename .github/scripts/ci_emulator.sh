@@ -17,6 +17,8 @@
 #               - The app's UI renderer is switched to Vulkan after boot (debug.hwui.renderer=skiavk): the
 #                 emulator's software GLES path segfaults while drawing DiceFive. The property resets on
 #                 every boot, so `start` sets it every time.
+#               - /data is set to 6 GB at boot and checked once it's up: the runner's tools left it at 800 MB,
+#                 which a first boot fills, crash-looping system_server (see data_mb below).
 #
 # Usage:        .github/scripts/ci_emulator.sh start|stop   (from the repository root)
 #               .github/scripts/ci_emulator.sh screenshot <file.png>   (what is on its screen - for a failed run)
@@ -35,6 +37,14 @@ sdk="${ANDROID_HOME:?ANDROID_HOME is not set}"
 avd_name="ci-api${api}"
 image="system-images;android-${api};google_apis;x86_64"
 log="${RUNNER_TEMP:-/tmp}/emulator-${avd_name}.log"
+# The size of the device's /data, set at boot with -partition-size (not in the device's config.ini, which
+# the emulator rewrites in its own format). Left alone, avdmanager picks it, and the runner's picks 800 MB (the sandbox's: 10 GB),
+# which a first boot of this image fills in about 30 seconds: every write then fails ("No space left on
+# device", SQLITE_FULL) and system_server crash-loops, which showed up as a missing package service, an
+# install refused with "not allowed to perform GET_USAGE_STATS", or a framework that never settled. A
+# first boot plus a lap of the journey uses about 2 GB. The disk image is sparse, so the runner only
+# stores what is used.
+data_mb=6144
 # Set explicitly so avdmanager writes the device where the emulator reads it: each tool otherwise works the
 # folder out from its own list of variables, and on a runner the two can disagree (the emulator then
 # reports "Unknown AVD name").
@@ -117,7 +127,7 @@ start() {
     echo "Booting ${avd_name} (log: ${log})..."
     nohup "${sdk}/emulator/emulator" -avd "${avd_name}" \
         -no-window -no-audio -no-boot-anim -no-snapshot \
-        -gpu swiftshader_indirect -memory 4096 -cores "$(nproc)" \
+        -gpu swiftshader_indirect -memory 4096 -cores "$(nproc)" -partition-size "${data_mb}" \
         >"${log}" 2>&1 </dev/null &
     local pid=$!
 
@@ -143,6 +153,7 @@ start() {
     adb wait-for-device
     until is_up; do sleep 1; done
     adb shell setprop debug.hwui.renderer skiavk
+    check_data_size
     if ! ready; then
         echo "The emulator booted, but its framework never settled:" >&2
         tail -n 50 "${log}" >&2
@@ -150,6 +161,19 @@ start() {
         exit 1
     fi
     echo "Ready: Android $(adb shell getprop ro.build.version.release | tr -d '\r'), renderer $(adb shell getprop debug.hwui.renderer | tr -d '\r')."
+}
+
+# Fails the boot if /data came up smaller than asked for, rather than leaving it to fill up and take the
+# framework down with it (see data_mb).
+check_data_size() {
+    local size_mb
+    size_mb=$(adb shell df -k /data 2>/dev/null | awk 'NR == 2 { print int($2 / 1024) }' | tr -d '\r' || true)
+    echo "/data: ${size_mb:-unknown} MB."
+    if [[ -z "${size_mb}" ]] || (( size_mb < data_mb * 9 / 10 )); then
+        echo "The device's /data is ${size_mb:-of unknown size} MB, not the ${data_mb} MB asked for" >&2
+        save_logcat
+        exit 1
+    fi
 }
 
 # Waits up to five minutes for the framework (see framework_up), which can trail sys.boot_completed by
