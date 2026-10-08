@@ -340,7 +340,10 @@ confirmation is up, restarting at a full hold when it closes.
 The stack lives in its own non-modal `Dialog` window, not in the app's content, so a banner that
 fires while another dialog is open still draws above it. The window is full width but wraps the
 stack's height; it must never be full-screen (`fillMaxSize`), or it swallows every touch meant for the
-screen beneath - the not-touch-modal flag only passes touches outside the window's bounds.
+screen beneath - the not-touch-modal flag only passes touches outside the window's bounds. Nor may it
+dim: `FLAG_DIM_BEHIND` is cleared, not set to a dim of 0. With the flag on, the system lays an invisible
+full-screen dim layer under the banner, and from Android 12 it drops taps on the window beneath as an
+untrusted occlusion - the About dialog's close button did nothing while "Who Made This?" was showing.
 
 Two achievement variants, deliberately unequal: an **unlock** banner is `primaryContainer` with the
 achievement's own icon (`Achievement.icon`, the same one its unlocked row shows - a generic trophy
