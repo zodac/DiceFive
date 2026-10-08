@@ -131,8 +131,14 @@ fun GameScreen(
     // stops being over (Play Again starts a fresh one), so a stale review doesn't reappear the
     // next time this game finishes.
     var reviewingScorecards by remember { mutableStateOf(false) }
+    // Whether this game's celebration (fanfare and fireworks) has already played, so coming back
+    // from the scorecard review doesn't replay it. Reset along with the review.
+    var celebrated by remember { mutableStateOf(false) }
     LaunchedEffect(currentState.isGameOver) {
-        if (!currentState.isGameOver) reviewingScorecards = false
+        if (!currentState.isGameOver) {
+            reviewingScorecards = false
+            celebrated = false
+        }
     }
 
     // The game's clocks (turn timer, CPU turns) run only while this screen is in front and resumed. Driven from
@@ -212,6 +218,8 @@ fun GameScreen(
                     onReviewScorecards = { reviewingScorecards = true },
                     modifier = modifier,
                     soundEnabled = soundEnabled,
+                    celebrate = !celebrated,
+                    onCelebrated = { celebrated = true },
                 )
             }
             return@CompositionLocalProvider
