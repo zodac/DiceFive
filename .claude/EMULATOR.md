@@ -79,12 +79,15 @@ image is sparse, so the runner stores only what is used (about 2 GB for a first 
 **The next thing it hit: no Vulkan.** With `/data` fixed, every app's `RenderThread` aborted on launch
 (`Abort message: 'Assertion failed: !gpuCount'` in `VulkanManager::initialize`) - SystemUI, the launcher
 and DiceFive - because the app renderer is forced to Vulkan (below) and the guest had no Vulkan device
-(`adb shell cmd gpu vkjson` lists `"devices" : []`). The emulator's `Vulkan` feature defaults to off and
-is switched on at boot by a host check (`-verbose` logs "Deciding if GLDirectMem/Vulkan should be
-enabled ... Enabling Vulkan"); here it is, on the runner it wasn't (its log has no `initIcdPaths` /
-"Selecting Vulkan device" lines, and offers the guest Vulkan 1.2, not 1.4). So `start` boots with
-`-feature Vulkan` (and `-verbose`, so the emulator's log in the report says what it decided), and checks
-the guest has a Vulkan device before going on. `-feature -Vulkan` reproduces the runner's failure here.
+(`adb shell cmd gpu vkjson` lists `"devices" : []`). The emulator's `Vulkan` feature defaults to off, and
+at boot it turns Vulkan and GLDirectMem (the host memory Vulkan allocates from) on only from API 29. It
+reads the API level from the AVD's `target=` line, and the runner's `avdmanager` wrote one it read as
+**API 3** (`-verbose`: "Deciding if GLDirectMem/Vulkan should be enabled ... API level: 3", "not enabling
+Vulkan because API level is < 29"). Forcing `-feature Vulkan` is not enough - without GLDirectMem, apps
+then crash in `AllocateVulkanMemory`. So `start` writes `target=android-<api>` into the AVD's `.ini` and
+`config.ini` itself (printing what `avdmanager` wrote), boots with `-verbose` and prints the emulator's
+decision line, and checks the guest has a Vulkan device before going on. With no `target`, the emulator
+assumes API 1000; a `target=android-3` reproduces the runner's failure here.
 
 `start` then checks `/data`'s size and that the device has a Vulkan GPU, failing the boot if either is wrong, waits for the `package` and
 `activity` services and for an install session to open (`pm install-create`), all holding for 30 seconds
@@ -128,8 +131,8 @@ Its Vulkan path does not crash, and the app draws correctly through it. So after
 sets `debug.hwui.renderer=skiavk`. That property resets on each boot (set it again if you boot the
 emulator some other way), and a boot-time `-prop debug.hwui.renderer=skiavk` flag does **not** take
 effect - it has to be set over adb once the device is up. It also needs the emulator to offer the guest
-Vulkan, which the emulator decides for itself at boot (on a GitHub runner it didn't): `ci_emulator.sh`
-forces that with `-feature Vulkan` - see above. Tried and still crashing: `-gpu guest`, 
+Vulkan, which the emulator decides for itself at boot from the AVD's API level (on a GitHub runner it read
+the wrong one - see above). Tried and still crashing: `-gpu guest`, 
 `swiftshader_indirect` with `-feature -Vulkan`, `debug.hwui.renderer=skiagl`, sensors and audio
 disabled in the AVD.
 
