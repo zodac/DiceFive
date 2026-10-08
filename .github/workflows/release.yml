@@ -22,6 +22,11 @@ name: Release
 # recorded as a tagged release. Signing/building only happens once VERSION
 # reaches 1.0.0, unless the force_apk dispatch input below overrides that.
 #
+# The checks run side by side, each on a runner of its own - the app's Robolectric tests, the shared
+# module's tests with its iOS compile, lint, and (once there's one to ship) the signed APK - and the
+# release itself is made only once every one of them has passed. Each check sets itself up through
+# .github/actions/build-setup.
+#
 # Only a push that touches what ships triggers a release: app sources and resources, the Gradle
 # build and the VERSION file. Docs, CI, tooling, test code and Markdown files don't build a new
 # release. The workflow_dispatch trigger below still releases on demand.
@@ -61,71 +66,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  # What's being released, read once for the jobs that need it.
+  version:
     runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.version.outputs.name }}
+      stable: ${{ steps.version.outputs.stable }}
     steps:
-      # Full history and tags: the release description lists every commit since the previous
-      # release's tag, which a shallow clone wouldn't have.
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      # The Java version is owned by the Gradle toolchain (gradle/gradle-daemon-jvm.properties), which
-      # Gradle would download itself; installing the same JDK here just saves it that download. Read
-      # at run time rather than pinned here, so a JDK move never has to edit this file (which the
-      # monthly dependency update, pushing with GITHUB_TOKEN, may not do).
-      - name: Read the Java version from the Gradle toolchain
-        id: java
-        run: echo "version=$(grep -oP '^toolchainVersion=\K[0-9]+' gradle/gradle-daemon-jvm.properties)" >> "$GITHUB_OUTPUT"
-
-      - name: Set up JDK
-        uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: ${{ steps.java.outputs.version }}
-
-      # ubuntu-latest runners ship a full Android SDK pre-installed (cmdline-tools,
-      # licenses already accepted) - just install the specific packages this project
-      # builds against, which android_sdk_packages.sh reads from app/android/build.gradle.kts (not
-      # pinned here, for the same reason as the JDK above). (android-actions/setup-android@v3
-      # was tried here but fails on current runners: it also tries to install the
-      # long-removed legacy "tools" package.)
-      - name: Install required Android SDK packages
-        run: |
-          ANDROID_CLI="$ANDROID_HOME/cmdline-tools/latest/bin/android"
-          read -ra packages <<< "$(.github/scripts/android_sdk_packages.sh)"
-          if [ -x "$ANDROID_CLI" ]; then
-            "$ANDROID_CLI" sdk install --sdk="$ANDROID_HOME" "${packages[@]}"
-          else
-            # The runner's cmdline-tools predate the android CLI, so sdkmanager is the only installer.
-            SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-            yes | "$SDKMANAGER" --licenses > /dev/null
-            "$SDKMANAGER" "${packages[@]}"
-          fi
-
-      # The normalizeOggAudio task shells out to ffmpeg to peak-normalise the
-      # .ogg clips in app/android/src/main/rawAudioSource/, and ubuntu-latest runners
-      # don't ship it.
-      - name: Install ffmpeg
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-
-      # The unit-test run also compiles app/shared for iOS (the check that its common code stays
-      # platform-neutral), which needs the Kotlin/Native toolchain - a few hundred MB that Gradle
-      # otherwise downloads into ~/.konan on every run. setup-gradle doesn't cache it. Keyed on the
-      # version catalog, where the Kotlin version lives; a partial match still restores the last
-      # toolchain, so only a Kotlin bump downloads a new one.
-      - name: Cache Kotlin/Native toolchain
-        uses: actions/cache@v6
-        with:
-          path: ~/.konan
-          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
-          restore-keys: konan-${{ runner.os }}-
 
       - name: Read version
         id: version
@@ -136,22 +85,74 @@ jobs:
           echo "name=$version" >> "$GITHUB_OUTPUT"
           echo "stable=$stable" >> "$GITHUB_OUTPUT"
 
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest --console=plain
+  # app:android's unit tests - Robolectric, so the slowest of the checks.
+  android-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
 
-      # Deprecation gates. Any compile already fails on a deprecated API (the Kotlin DEPRECATION flag in
-      # app/android/build.gradle.kts) or a build-script warning (org.gradle.kotlin.dsl.allWarningsAsErrors in
-      # gradle.properties); this step extends that to the instrumented-test code, which nothing else
-      # here compiles, and runs lint, where Deprecated / ObsoleteSdkInt findings are errors.
+      - name: Set up the build
+        uses: ./.github/actions/build-setup
+        with:
+          ffmpeg: "true"
+
+      - name: Run app unit tests
+        run: ./gradlew :app:android:testDebugUnitTest --console=plain
+
+  # app:shared's tests on the JVM, and its compile for both iOS targets (the check that its common code
+  # stays platform-neutral) - see the testDebugUnitTest task in app/shared/build.gradle.kts.
+  shared-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the build
+        uses: ./.github/actions/build-setup
+        with:
+          kotlin-native: "true"
+
+      - name: Run shared tests and the iOS compile
+        run: ./gradlew :app:shared:testDebugUnitTest --console=plain
+
+  # Deprecation gates. Any compile already fails on a deprecated API (the Kotlin DEPRECATION flag in
+  # app/android/build.gradle.kts) or a build-script warning (org.gradle.kotlin.dsl.allWarningsAsErrors in
+  # gradle.properties); this extends that to the instrumented-test code, which nothing else here
+  # compiles, and runs lint, where Deprecated / ObsoleteSdkInt findings are errors.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the build
+        uses: ./.github/actions/build-setup
+        with:
+          ffmpeg: "true"
+
       - name: Check instrumented tests compile and lint passes
         run: ./gradlew compileDebugAndroidTestKotlin lintDebug --console=plain
 
+  # The signed release APK, built alongside the checks - only from 1.0.0 on, unless force_apk asks for
+  # one sooner. Handed to the release job as an artifact; nothing is published unless every check passes.
+  apk:
+    needs: version
+    if: needs.version.outputs.stable == 'true' || inputs.force_apk == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the build
+        uses: ./.github/actions/build-setup
+        with:
+          ffmpeg: "true"
+
       - name: Decode release keystore
-        if: steps.version.outputs.stable == 'true' || inputs.force_apk == true
         run: echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore.jks"
 
       - name: Build release APK
-        if: steps.version.outputs.stable == 'true' || inputs.force_apk == true
         env:
           ANDROID_RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore.jks
           ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
@@ -159,15 +160,45 @@ jobs:
           ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: ./gradlew assembleRelease --console=plain
 
+      # app/android/build.gradle.kts names outputs DiceFive-<version>-<buildType>.apk (signed here, so no
+      # -unsigned suffix).
       - name: Rename APK for release
-        if: steps.version.outputs.stable == 'true' || inputs.force_apk == true
+        run: cp "app/android/build/outputs/apk/release/DiceFive-${{ needs.version.outputs.name }}-release.apk" "DiceFive-${{ needs.version.outputs.name }}.apk"
+
+      - name: Hand the APK to the release job
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-apk
+          path: DiceFive-${{ needs.version.outputs.name }}.apk
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    needs: [version, android-tests, shared-tests, lint, apk]
+    # Every check must have passed; the APK job may have been skipped (a pre-1.0 release has none), but
+    # not have failed.
+    if: >-
+      !cancelled() &&
+      needs.version.result == 'success' &&
+      needs.android-tests.result == 'success' &&
+      needs.shared-tests.result == 'success' &&
+      needs.lint.result == 'success' &&
+      (needs.apk.result == 'success' || needs.apk.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      # Full history and tags: the release description lists every commit since the previous
+      # release's tag, which a shallow clone wouldn't have.
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Fetch the APK
         id: apk
-        run: |
-          path="DiceFive-${{ steps.version.outputs.name }}.apk"
-          # app/android/build.gradle.kts names outputs DiceFive-<version>-<buildType>.apk (signed here, so no
-          # -unsigned suffix).
-          cp "app/android/build/outputs/apk/release/DiceFive-${{ steps.version.outputs.name }}-release.apk" "$path"
-          echo "path=$path" >> "$GITHUB_OUTPUT"
+        if: needs.apk.result == 'success'
+        uses: actions/download-artifact@v8
+        with:
+          name: release-apk
 
       # RELEASE_NOTES.md as written (skipped if empty), then the grouped commit list. A copy of the
       # notes is kept aside so the bump step below can tell whether RELEASE_NOTES.md on main is
@@ -182,7 +213,7 @@ jobs:
               cat RELEASE_NOTES.md
               echo
             fi
-            ./scripts/release-changelog.sh "${{ steps.version.outputs.name }}"
+            ./scripts/release-changelog.sh "${{ needs.version.outputs.name }}"
           } > "$body"
           cat "$body"
           echo "path=$body" >> "$GITHUB_OUTPUT"
@@ -190,10 +221,10 @@ jobs:
       - name: Create/update GitHub release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: v${{ steps.version.outputs.name }}
-          name: DiceFive v${{ steps.version.outputs.name }}
-          prerelease: ${{ steps.version.outputs.stable != 'true' }}
-          files: ${{ steps.apk.outputs.path }}
+          tag_name: v${{ needs.version.outputs.name }}
+          name: DiceFive v${{ needs.version.outputs.name }}
+          prerelease: ${{ needs.version.outputs.stable != 'true' }}
+          files: ${{ needs.apk.result == 'success' && format('DiceFive-{0}.apk', needs.version.outputs.name) || '' }}
           body_path: ${{ steps.notes.outputs.path }}
 
       # Only reached once everything above has succeeded, so a failed build
