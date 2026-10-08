@@ -219,7 +219,7 @@
     <string name="achievement_hit_list_win_title">Contract Fulfilled</string>
     <string name="achievement_hit_list_win_description">Win a game of 'Hit List' mode</string>
     <string name="achievement_hit_list_right_on_target_title">Right On Target</string>
-    <string name="achievement_hit_list_right_on_target_description">Score an exact hit on a target with all five numbers named in 'Hit List' mode</string>
+    <string name="achievement_hit_list_right_on_target_description">In 'Hit List' mode, score a 5-number target for double points, with all dice in the matching position</string>
     <string name="achievement_scratched_5x_title">Scratched</string>
     <string name="achievement_scratched_5x_description">Take a zero in the 5x box</string>
     <string name="achievement_dice_hate_me_title">The Dice Hate Me</string>
