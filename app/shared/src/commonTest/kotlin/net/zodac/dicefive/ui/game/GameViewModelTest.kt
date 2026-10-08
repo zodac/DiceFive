@@ -292,7 +292,7 @@ class GameViewModelTest {
     }
 
     @Test
-    fun `a Stud box scores with fewer than five held - the dice slide into their slots first`() = runTest(testDispatcher) {
+    fun `a Stud box scores with fewer than five held - in the same tap`() {
         val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)
         viewModel.setGameMode(GameMode.STUD)
@@ -301,29 +301,11 @@ class GameViewModelTest {
         for (index in 0 until 3) viewModel.toggleHold(index)
 
         viewModel.commitScore(ScoreCategory.CHANCE)
-        // The rest of the hand is held; the score lands once the dice have moved.
-        assertEquals(5, viewModel.game.value!!.dice.count { it.isHeld })
-        assertNull(viewModel.game.value!!.players.single().scoresIn(ScoreCategory.CHANCE).singleOrNull())
-
-        advanceUntilIdle()
         assertNotNull(viewModel.game.value!!.players.single().scoresIn(ScoreCategory.CHANCE).singleOrNull())
     }
 
     @Test
-    fun `a Stud box scores at once when the dice are not animated`() {
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
-        viewModel.diceAnimated = false
-        viewModel.setPlayerCount(1)
-        viewModel.setGameMode(GameMode.STUD)
-        viewModel.startGame()
-        viewModel.rollDice()
-
-        viewModel.commitScore(ScoreCategory.CHANCE)
-        assertNotNull(viewModel.game.value!!.players.single().scoresIn(ScoreCategory.CHANCE).singleOrNull())
-    }
-
-    @Test
-    fun `undo after a completed Stud hand returns to the dice as the player held them`() = runTest(testDispatcher) {
+    fun `undo after a completed Stud hand returns to the dice as the player held them`() {
         val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(1)
         viewModel.setGameMode(GameMode.STUD)
@@ -332,29 +314,9 @@ class GameViewModelTest {
         viewModel.toggleHold(1)
 
         viewModel.commitScore(ScoreCategory.CHANCE)
-        advanceUntilIdle()
         viewModel.undo()
 
         assertEquals(listOf(false, true, false, false, false, false, false), viewModel.game.value!!.dice.map { it.isHeld })
-    }
-
-    @Test
-    fun `a second tap while a Stud hand is being completed scores nothing twice`() = runTest(testDispatcher) {
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
-        viewModel.setPlayerCount(2)
-        viewModel.setGameMode(GameMode.STUD)
-        viewModel.startGame()
-        viewModel.rollDice()
-
-        viewModel.commitScore(ScoreCategory.CHANCE)
-        viewModel.commitScore(ScoreCategory.ONES)
-        viewModel.toggleHold(0)
-        advanceUntilIdle()
-
-        val state = viewModel.game.value!!
-        assertEquals(1, state.players[0].turnsTaken)
-        assertEquals(0, state.players[1].turnsTaken)
-        assertEquals(1, state.currentPlayerIndex)
     }
 
     @Test
