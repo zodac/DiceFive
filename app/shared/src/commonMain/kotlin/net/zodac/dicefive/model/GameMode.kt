@@ -208,68 +208,6 @@ enum class GameMode(
     ),
 
     /**
-     * Beyond the official rules: Standard's dice, three rolls and scorecard, but every game starts with
-     * seven of the thirteen boxes switched off - the 5x box always, and six more of the other twelve at
-     * random. A disabled box can't be scored in, so a game is only the six turns left. Every other rule
-     * applies, and the upper bonus is scaled to the upper boxes that remain: three of each number still
-     * earns it (`3*(1+2+...)` over the enabled upper numbers, 63 with all six). With no upper box left there
-     * is no bonus. Its scores don't go on the Leaderboard, since each game's card is different.
-     *
-     * Max score: the best six boxes there can be, with no 5x and so no joker or chips - Large Straight 40,
-     * and five of the 30s (Sixes, 3x, 4x, Small Straight, Chance) = 190, `+35` the upper bonus, which five
-     * 6s earn on their own (30 against a threshold of 18). `190+35 = 225`.
-     *
-     * Max rolls: six boxes, 3 rolls each. `6*3 = 18`.
-     */
-    QUICKFIRE(
-        id = "quickfire",
-        displayName = Res.string.mode_quickfire,
-        description = Res.string.mode_quickfire_description,
-        diceCount = 5,
-        scoringDiceCount = 5,
-        rollsPerTurn = 3,
-        dieValues = 1..6,
-        dieColours = emptyList(),
-        categories = STANDARD_CATEGORIES,
-        upperBonusThreshold = 63,
-        upperBonusAmount = 35,
-        fiveOfAKindBonusAmount = 100,
-        maxPossibleScore = 225,
-        maxRollsPerGame = 18,
-        countsOnLeaderboard = false,
-        disabledCategories = setOf(ScoreCategory.FIVE_OF_A_KIND),
-        randomDisabledCategories = 6,
-    ),
-
-    /**
-     * Beyond the official rules: Standard's scorecard and three rolls, but seven dice are rolled
-     * instead of five - and only the five held dice score. There are five hold slots, so at most
-     * five dice can be held, and a turn can only be scored once all five are; the board previews what
-     * the held dice would score as soon as one is.
-     *
-     * Max score: only five dice ever score, against Standard's card and bonuses, so the same perfect
-     * game. `1575`.
-     *
-     * Max rolls: Standard's 13 boxes, 3 rolls each. `13*3 = 39`.
-     */
-    STUD(
-        id = "stud",
-        displayName = Res.string.mode_stud,
-        description = Res.string.mode_stud_description,
-        diceCount = 7,
-        scoringDiceCount = 5,
-        rollsPerTurn = 3,
-        dieValues = 1..6,
-        dieColours = emptyList(),
-        categories = STANDARD_CATEGORIES,
-        upperBonusThreshold = 63,
-        upperBonusAmount = 35,
-        fiveOfAKindBonusAmount = 100,
-        maxPossibleScore = 1575,
-        maxRollsPerGame = 39,
-    ),
-
-    /**
      * Beyond the official rules: Standard's dice, rolls and scorecard, but every category is scored
      * three times - three slots a box, each its own turn. The upper bonus is still a single bonus,
      * with both its threshold and its amount tripled (189 earns 105). The 5x box's three slots take
@@ -299,6 +237,34 @@ enum class GameMode(
         maxRollsPerGame = 117,
         scoresPerCategory = 3,
         countsOnLeaderboard = false,
+    ),
+
+    /**
+     * Beyond the official rules: Standard's scorecard and three rolls, but seven dice are rolled
+     * instead of five - and only the five held dice score. There are five hold slots, so at most
+     * five dice can be held, and a turn can only be scored once all five are; the board previews what
+     * the held dice would score as soon as one is.
+     *
+     * Max score: only five dice ever score, against Standard's card and bonuses, so the same perfect
+     * game. `1575`.
+     *
+     * Max rolls: Standard's 13 boxes, 3 rolls each. `13*3 = 39`.
+     */
+    STUD(
+        id = "stud",
+        displayName = Res.string.mode_stud,
+        description = Res.string.mode_stud_description,
+        diceCount = 7,
+        scoringDiceCount = 5,
+        rollsPerTurn = 3,
+        dieValues = 1..6,
+        dieColours = emptyList(),
+        categories = STANDARD_CATEGORIES,
+        upperBonusThreshold = 63,
+        upperBonusAmount = 35,
+        fiveOfAKindBonusAmount = 100,
+        maxPossibleScore = 1575,
+        maxRollsPerGame = 39,
     ),
 
     /**
@@ -335,6 +301,40 @@ enum class GameMode(
         hitListShapes = HIT_LIST_SHAPES,
         allowsExtendedScores = false,
     ),
+    /**
+     * Beyond the official rules: Standard's dice, three rolls and scorecard, but every game starts with
+     * seven of the thirteen boxes switched off - the 5x box always, and six more of the other twelve at
+     * random. A disabled box can't be scored in, so a game is only the six turns left. Every other rule
+     * applies, and the upper bonus is scaled to the upper boxes that remain: three of each number still
+     * earns it (`3*(1+2+...)` over the enabled upper numbers, 63 with all six). With no upper box left there
+     * is no bonus. Its scores don't go on the Leaderboard, since each game's card is different.
+     *
+     * Max score: the best six boxes there can be, with no 5x and so no joker or chips - Large Straight 40,
+     * and five of the 30s (Sixes, 3x, 4x, Small Straight, Chance) = 190, `+35` the upper bonus, which five
+     * 6s earn on their own (30 against a threshold of 18). `190+35 = 225`.
+     *
+     * Max rolls: six boxes, 3 rolls each. `6*3 = 18`.
+     */
+    QUICKFIRE(
+        id = "quickfire",
+        displayName = Res.string.mode_quickfire,
+        description = Res.string.mode_quickfire_description,
+        diceCount = 5,
+        scoringDiceCount = 5,
+        rollsPerTurn = 3,
+        dieValues = 1..6,
+        dieColours = emptyList(),
+        categories = STANDARD_CATEGORIES,
+        upperBonusThreshold = 63,
+        upperBonusAmount = 35,
+        fiveOfAKindBonusAmount = 100,
+        maxPossibleScore = 225,
+        maxRollsPerGame = 18,
+        countsOnLeaderboard = false,
+        disabledCategories = setOf(ScoreCategory.FIVE_OF_A_KIND),
+        randomDisabledCategories = 6,
+    ),
+
     ;
 
     /**

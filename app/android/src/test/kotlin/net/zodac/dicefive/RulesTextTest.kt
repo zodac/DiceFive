@@ -60,7 +60,7 @@ class RulesTextTest {
         listOf("Gameplay", "Modes", "Modifiers").forEach { compose.onNodeWithText(it).assertExists() }
         mapOf(
             "Gameplay" to listOf("How to Play", "Upper Section", "Lower Section", "5x & Joker", "Tie Breaks"),
-            "Modes" to listOf("Overview", "Tricolour", "Quickfire", "7 Dice Stud", "Third Wind", "Hit List"),
+            "Modes" to listOf("Overview", "Tricolour", "Third Wind", "7 Dice Stud", "Hit List", "Quickfire"),
             "Modifiers" to listOf("Overview", "Turn Timer", "Number of Rolls", "Stored Rolls", "Extended Scores", "Unlucky Dice"),
         ).forEach { (group, pages) ->
             compose.onNodeWithText(group).performClick()
