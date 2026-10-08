@@ -178,7 +178,11 @@ jobs:
       - name: Generate the Baseline Profile
         run: |
           for attempt in 1 2; do
-            .github/scripts/ci_emulator.sh start
+            if ! .github/scripts/ci_emulator.sh start; then
+              .github/scripts/ci_emulator.sh stop
+              echo "::warning::The emulator failed to boot (attempt $attempt)"
+              continue
+            fi
             "$ANDROID_HOME/platform-tools/adb" uninstall net.zodac.dicefive >/dev/null 2>&1 || true
             if ./gradlew :app:android:generateBaselineProfile \
                 -Pandroid.testInstrumentationRunnerArguments.journeyLaps=10 --console=plain; then
