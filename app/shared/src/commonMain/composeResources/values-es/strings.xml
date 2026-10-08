@@ -888,8 +888,8 @@
     <string name="rules_stud_title">Stud de 7 dados</string>
     <string name="rules_stud_tab">Stud de 7 dados</string>
     <string name="rules_stud_1">Un modo personalizado que amplía el modo de juego *Estándar*. Cada tirada es de **siete** dados en lugar de cinco.</string>
-    <string name="rules_stud_2">Como en *Estándar*, solo puedes puntuar con **cinco** ranuras.</string>
-    <string name="rules_stud_3">Tu tarjeta muestra lo que puntuaría tu selección de 7 dados, resaltando la mejor combinación. En `4x`, estos dados toman los cuatro 6 y el 5:</string>
+    <string name="rules_stud_2">Como en *Estándar*, solo puedes puntuar con **cinco** dados conservados.</string>
+    <string name="rules_stud_3">Tu tarjeta muestra lo que puntuaría tu selección de siete dados, resaltando la mejor combinación. En `4x`, estos dados toman los cuatro 6 y el 5:</string>
     <string name="rules_stud_4">Si varios dados dan la misma puntuación máxima, se eligen los que están más a la izquierda. Aquí, la `Escalera grande` vale **40 pts** con del 1 al 5 o del 2 al 6:</string>
     <string name="rules_stud_5">Para cambiarlo, conserva antes los dados que quieras. Si conservas el 6, será del 2 al 6:</string>
     <string name="rules_stud_6">Si se acaba el *temporizador de turno*, se elige la primera casilla que aún se puede anotar.</string>
@@ -917,7 +917,7 @@
     <string name="rules_hit_list_5">Al menos **dos** de los números que indica el objetivo están entre tus dados, pero no todos. Puntúa la mitad de los puntos del objetivo, multiplicada por la proporción de sus números que has sacado, redondeada a los **5 pts** más cercanos</string>
     <string name="rules_hit_list_7">Los objetivos más difíciles valen más, y la casilla de cada objetivo muestra sus puntos. Indicar **tres** números vale **10 pts** o **15 pts**, **cuatro** números de **20 pts** a **30 pts**, y los **cinco** de **40 pts** a **75 pts**. Una posición libre hace el objetivo más fácil de acertar, así que vale menos.</string>
     <string name="rules_hit_list_8">Mientras tiras, la casilla de cada objetivo muestra con barras lo que has acertado, y se resalta en dorado cuando un dado está en la posición correcta.</string>
-    <string name="rules_hit_list_9">Anota aquí un acierto válido en lugar de en su categoría. Vale los puntos de tu mejor acierto, pero nunca se dobla</string>
+    <string name="rules_hit_list_9">Anota aquí un acierto válido en lugar de en una categoría coincidente. Vale los puntos de tu mejor acierto, pero nunca se dobla</string>
     <string name="rules_hit_list_10">Los dados conservados se quedan donde están, así que un dado en la posición equivocada se queda ahí hasta que lo vuelvas a tirar. Si nada puntúa, tacha un objetivo o el `Alibi` por **0 pts**.</string>
     <string name="rules_hit_list_11">Este es un turno de ejemplo, buscando el objetivo de arriba:</string>
     <string name="rules_hit_list_12">La primera tirada tiene el 4 y el 1 en su sitio, y un 2 en la posición libre. Conserva los **tres**: el 2 cuenta para un acierto esté donde esté.</string>
