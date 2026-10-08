@@ -30,6 +30,10 @@ class MainActivitySmokeTest {
         }
     }
 
+    // Real time, not the test clock: generous, since the waits below return as soon as their text is there. Back on the
+    // menu, its warm-ups compose every style's art, which on a cold JVM on a CI runner took longer than 5 seconds.
+    private val waitMillis = 30_000L
+
     @Test
     fun `a game can be started from the menu and system back asks before leaving it`() {
         compose.onNodeWithText("DiceFive").assertExists()
@@ -38,7 +42,7 @@ class MainActivitySmokeTest {
         val play = if (compose.onAllNodesWithText("Play").fetchSemanticsNodes().isNotEmpty()) "Play" else "New Game"
         compose.onNodeWithText(play).performClick()
         // The form (and its button) only appears once the last game's choices are read back from disk.
-        compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithText("Start Game").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(timeoutMillis = waitMillis) { compose.onAllNodesWithText("Start Game").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Start Game").performClick()
         compose.waitForIdle()
 
@@ -47,6 +51,6 @@ class MainActivitySmokeTest {
 
         compose.onNodeWithText("Leave").performClick()
         // Left, not finished: the game is saved, so the menu offers to continue it.
-        compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithText("Continue").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(timeoutMillis = waitMillis) { compose.onAllNodesWithText("Continue").fetchSemanticsNodes().isNotEmpty() }
     }
 }

@@ -767,6 +767,9 @@ private class HoardArt(val pile: Pile, val image: ImageBitmap)
 
 // Painted hoards, kept for the session by chest and size - only ever read and written on the main thread.
 private val HoardArts = LinkedHashMap<Pair<String, IntSize>, HoardArt>()
+
+/** For tests only: whether the chest [id]'s hoard has been painted (at any size), so a test can wait for the background painting. */
+fun isHoardPaintedForTest(id: String): Boolean = HoardArts.keys.any { it.first == id }
 private const val HOARD_ARTS_KEPT = 4
 
 /**

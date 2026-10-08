@@ -22,6 +22,7 @@ import net.zodac.dicefive.ui.game.style.DiceCupStyle
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.LocalCupActivity
 import net.zodac.dicefive.ui.game.style.TreasureChestDiceCupStyle
+import net.zodac.dicefive.ui.game.style.isHoardPaintedForTest
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -110,9 +111,15 @@ class CupReducedMotionTest {
             }
             val standing = settledShot()
             // A player has real time at the table before a roll lands, in which the Treasure Chest paints its hoard
-            // on a background thread (see its Cup). The test clock's time isn't real, so give it some.
+            // on a background thread (see its Cup). The test clock's time isn't real, so wait for the painting itself:
+            // a fixed sleep was too short on a loaded machine, and the hoard then appeared part-way through the roll.
             if (cup is TreasureChestDiceCupStyle) {
-                Thread.sleep(PAINTING_MILLIS)
+                val deadline = System.currentTimeMillis() + PAINTING_TIMEOUT_MILLIS
+                while (!isHoardPaintedForTest(cup.id)) {
+                    assertTrue("${cup.id}'s hoard was never painted", System.currentTimeMillis() < deadline)
+                    Thread.sleep(PAINTING_POLL_MILLIS)
+                    compose.mainClock.advanceTimeByFrame()
+                }
                 settledShot()
             }
             val landed = assertSnaps("tipping or opening") { set { tilted = true } }
@@ -142,8 +149,9 @@ class CupReducedMotionTest {
 
         const val FRAME_MILLIS = 16L
 
-        /** Real time for a cup's background painting before its first roll lands. */
-        const val PAINTING_MILLIS = 300L
+        /** Real time a cup's background painting may take before its first roll lands, and how often it's checked. */
+        const val PAINTING_TIMEOUT_MILLIS = 30_000L
+        const val PAINTING_POLL_MILLIS = 20L
 
         /** About half a second of frames: longer than any of the cups' swings, and short of the Top Hat's first rabbit peek. */
         const val FRAMES_WATCHED = 30
