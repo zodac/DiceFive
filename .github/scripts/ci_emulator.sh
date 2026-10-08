@@ -48,17 +48,24 @@ is_up() { [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" 
 # failed on a runner with "android from uid 1000 not allowed to perform GET_USAGE_STATS" while both services
 # were listed). They vanish or misbehave while system_server restarts (seen on a runner once the device had
 # booted), and an install then fails without failing Gradle.
+# What failed is left in ${not_up_because} for ready() to report.
 framework_up() {
-    local service session
+    local service session out
     for service in package activity; do
-        adb shell service check "${service}" 2>/dev/null | grep -q ': found' || return 1
+        if ! adb shell service check "${service}" 2>/dev/null | grep -q ': found'; then
+            not_up_because="the ${service} service is missing"
+            return 1
+        fi
     done
-    session=$(adb shell pm install-create 2>/dev/null | tr -d '\r' | grep -oP '^Success: created install session \[\K[0-9]+') \
-        || return 1
+    out=$(adb shell pm install-create 2>&1 | tr -d '\r')
+    if ! session=$(grep -oP '^Success: created install session \[\K[0-9]+' <<<"${out}"); then
+        not_up_because="no install session: $(grep -m1 -E 'Exception|Error|Failure' <<<"${out}" || head -n1 <<<"${out}")"
+        return 1
+    fi
     adb shell pm install-abandon "${session}" >/dev/null 2>&1 || true
 }
 
-system_server_pid() { adb shell pidof system_server 2>/dev/null | tr -d '\r'; }
+system_server_pid() { adb shell pidof system_server 2>/dev/null | tr -d '\r' || true; }
 
 ensure_kvm() {
     [[ -e /dev/kvm ]] || { echo "No /dev/kvm on this runner" >&2; exit 1; }
@@ -127,6 +134,7 @@ start() {
         if (( waited > 600 )); then
             echo "The emulator did not finish booting in 10 minutes:" >&2
             tail -n 50 "${log}" >&2
+            save_logcat
             exit 1
         fi
     done
@@ -136,29 +144,47 @@ start() {
     until is_up; do sleep 1; done
     adb shell setprop debug.hwui.renderer skiavk
     if ! ready; then
-        echo "The emulator booted, but its framework never came up:" >&2
+        echo "The emulator booted, but its framework never settled:" >&2
         tail -n 50 "${log}" >&2
+        save_logcat
         exit 1
     fi
     echo "Ready: Android $(adb shell getprop ro.build.version.release | tr -d '\r'), renderer $(adb shell getprop debug.hwui.renderer | tr -d '\r')."
 }
 
-# Waits up to three minutes for the framework (see framework_up), which can trail sys.boot_completed, to be
-# up and to stay up - the same system_server, still answering - for 30 seconds in a row.
+# Waits up to five minutes for the framework (see framework_up), which can trail sys.boot_completed by
+# minutes on a slow runner, to be up and to stay up - the same system_server, still answering - for 30
+# seconds in a row. Each new reason it isn't, and any system_server restart (with the crash log that
+# explains it), is printed as it is seen, so the step's log says why even when the wait then succeeds.
 ready() {
-    local waited=0 stable=0 pid last_pid=""
+    local waited=0 stable=0 pid last_pid="" said=""
+    not_up_because=""
     while (( stable < 30 )); do
-        (( waited >= 180 )) && return 1
+        (( waited >= 300 )) && return 1
         pid=$(system_server_pid)
-        if [[ -n "${pid}" && "${pid}" == "${last_pid}" ]] && framework_up; then
-            stable=$((stable + 5))
-        else
+        if [[ -n "${last_pid}" && "${pid}" != "${last_pid}" ]]; then
+            echo "[${waited}s] system_server restarted (pid ${last_pid} -> ${pid:-none}); its crash log:"
+            adb logcat -d -b crash 2>/dev/null | tail -n 40 || true
+        fi
+        if [[ -z "${pid}" ]]; then
+            not_up_because="system_server is not running"
+        elif framework_up; then
+            [[ "${pid}" == "${last_pid}" ]] && stable=$((stable + 5))
+            not_up_because=""
+        fi
+        if [[ -n "${not_up_because}" ]]; then
             stable=0
+            if [[ "${not_up_because}" != "${said}" ]]; then
+                echo "[${waited}s] Not ready: ${not_up_because}"
+                said="${not_up_because}"
+            fi
         fi
         last_pid="${pid}"
         sleep 5
         waited=$((waited + 5))
     done
+    (( waited > 30 )) && echo "Framework settled after ${waited}s."
+    return 0
 }
 
 stop() {
@@ -177,6 +203,11 @@ screenshot() {
 # Every log buffer (crash and events included: a system_server restart shows there), for a failed run.
 logcat() {
     adb logcat -d -b all -v time >"${1:?usage: $0 logcat <file.txt>}"
+}
+
+# The same, from a failed start, where release.yml's report artifact picks it up (logcat-*.txt).
+save_logcat() {
+    logcat "${RUNNER_TEMP:-/tmp}/logcat-boot-$(date +%H%M%S).txt" 2>/dev/null || true
 }
 
 case "${1:-}" in
