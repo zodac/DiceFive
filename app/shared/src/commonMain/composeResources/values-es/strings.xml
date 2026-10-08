@@ -134,6 +134,8 @@
     <string name="achievement_natural_intelligence_description">Gana una partida de cuatro jugadores contra tres jugadores CPU difíciles</string>
     <string name="achievement_naturally_gifted_title">Talento natural</string>
     <string name="achievement_naturally_gifted_description">Gana una partida sin tirar más de una vez en ningún turno</string>
+    <string name="achievement_everything_everywhere_title">Todo a la vez en todas partes</string>
+    <string name="achievement_everything_everywhere_description">Gana una partida en un modo distinto del estándar con todos los modificadores activados</string>
     <string name="achievement_non_standard_mode_title">Donde vamos no hacen falta reglas</string>
     <string name="achievement_non_standard_mode_description">Empieza una partida en un modo distinto del estándar</string>
     <string name="achievement_tricolour_win_title">Tricolor y victorioso</string>

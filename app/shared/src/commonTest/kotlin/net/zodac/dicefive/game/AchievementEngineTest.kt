@@ -690,6 +690,33 @@ class AchievementEngineTest {
         assertFalse(greenfingersAfter(20, GameMode.STANDARD, midGamePlayer(emptyMap()).copy(name = "Player 2", rollCount = 39)))
     }
 
+    @Test
+    fun `winning a non-Standard game with every modifier on unlocks Everything Everywhere All At Once`() {
+        fun table(
+            mode: GameMode = GameMode.TRICOLOUR,
+            humanTotal: Int = 300,
+            timer: TurnTimer = TurnTimer.SECONDS_30,
+            rolls: RollModifiers = RollModifiers(rollsPerTurn = 2, storedRolls = true),
+            extended: Boolean = true,
+            unlucky: UnluckyDice? = UnluckyDice(),
+            withBot: Boolean = true,
+        ): GameState {
+            val players = listOfNotNull(player(total = humanTotal, gameMode = mode), if (withBot) bot(total = 200, gameMode = mode) else null)
+            return finishedGame(*players.toTypedArray()).copy(turnTimer = timer, rollModifiers = rolls, extendedScores = extended, unluckyDice = unlucky)
+        }
+
+        fun earned(state: GameState) = Achievement.EVERYTHING_EVERYWHERE in unlocked(state)
+        assertTrue(earned(table()))
+        assertFalse(earned(table(mode = GameMode.STANDARD)), "Standard")
+        assertFalse(earned(table(humanTotal = 100)), "a loss")
+        assertFalse(earned(table(withBot = false)), "solo")
+        assertFalse(earned(table(timer = TurnTimer.NONE)), "no timer")
+        assertFalse(earned(table(rolls = RollModifiers(storedRolls = true))), "no Number of Rolls")
+        assertFalse(earned(table(rolls = RollModifiers(rollsPerTurn = 2))), "no Stored Rolls")
+        assertFalse(earned(table(extended = false)), "no Extended Scores")
+        assertFalse(earned(table(unlucky = null)), "no Unlucky Dice")
+    }
+
     // ---- Game modes ------------------------------------------------------------------------------
 
     @Test

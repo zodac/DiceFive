@@ -41,6 +41,8 @@ import net.zodac.dicefive.resources.achievement_empty_house_description
 import net.zodac.dicefive.resources.achievement_empty_house_title
 import net.zodac.dicefive.resources.achievement_encore_5x_description
 import net.zodac.dicefive.resources.achievement_encore_5x_title
+import net.zodac.dicefive.resources.achievement_everything_everywhere_description
+import net.zodac.dicefive.resources.achievement_everything_everywhere_title
 import net.zodac.dicefive.resources.achievement_exact_change_description
 import net.zodac.dicefive.resources.achievement_exact_change_title
 import net.zodac.dicefive.resources.achievement_extreme_low_rolls_description
@@ -620,6 +622,14 @@ enum class Achievement(
         "naturally_gifted",
         Res.string.achievement_naturally_gifted_title,
         Res.string.achievement_naturally_gifted_description,
+        AchievementCategory.WINNING,
+    ),
+    // Judged on the finished game: every modifier on at once - the turn timer, Number of Rolls, Stored Rolls, Extended Scores and
+    // Unlucky Dice - in a mode other than Standard. Hit List has no Extended Scores, so it can't be earned there.
+    EVERYTHING_EVERYWHERE(
+        "everything_everywhere",
+        Res.string.achievement_everything_everywhere_title,
+        Res.string.achievement_everything_everywhere_description,
         AchievementCategory.WINNING,
     ),
 

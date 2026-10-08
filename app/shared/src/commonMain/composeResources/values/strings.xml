@@ -198,6 +198,8 @@
     <string name="achievement_natural_intelligence_description">Win a four-player game against three Hard CPU players</string>
     <string name="achievement_naturally_gifted_title">Naturally Gifted</string>
     <string name="achievement_naturally_gifted_description">Win a game never rolling more than once in any turn</string>
+    <string name="achievement_everything_everywhere_title">Everything Everywhere All At Once</string>
+    <string name="achievement_everything_everywhere_description">Win a non-Standard game with all modifiers enabled</string>
     <string name="achievement_non_standard_mode_title">Where We're Going, We Don't Need Rules</string>
     <string name="achievement_non_standard_mode_description">Start a non-Standard game mode</string>
     <string name="achievement_tricolour_win_title">Tricolourful</string>
