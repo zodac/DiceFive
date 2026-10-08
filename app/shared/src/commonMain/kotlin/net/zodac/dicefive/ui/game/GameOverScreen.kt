@@ -84,6 +84,8 @@ fun GameOverScreen(
     onReviewScorecards: () -> Unit,
     modifier: Modifier = Modifier,
     soundEnabled: Boolean = true,
+    celebrate: Boolean = true,
+    onCelebrated: () -> Unit = {},
 ) {
     val ranked = TieBreak.rank(state.players)
     // A tie on raw score is now almost always broken by the house rule (see game/TieBreak.kt) -
@@ -95,16 +97,21 @@ fun GameOverScreen(
     // player "winning" is a given and gets no fanfare.
     val humanWon = state.players.size > 1 && winners.any { it.player.type == PlayerType.HUMAN }
 
+    // Latched at first composition: [onCelebrated] flips the caller's flag straight away, which
+    // must not cut this showing's own fireworks short.
+    val celebrateNow = remember { celebrate }
     val soundEffects = rememberSoundEffects()
     soundEffects.enabled = soundEnabled
     // Fires once when this screen is first composed for a finished game, not on every recomposition.
+    // [celebrate] is false when returning from the scorecard review, which has already played it.
     LaunchedEffect(Unit) {
-        if (humanWon) soundEffects.playCelebration()
+        if (celebrateNow && humanWon) soundEffects.playCelebration()
+        onCelebrated()
     }
 
     BrandBackdrop(modifier = modifier, driftingDice = true) {
         // The fanfare (its own sound setting) still plays; the sparks are what reduced motion drops.
-        if (humanWon && !LocalReduceMotion.current) {
+        if (celebrateNow && humanWon && !LocalReduceMotion.current) {
             GoldFireworks(durationMillis = CELEBRATION_MILLIS, modifier = Modifier.fillMaxSize())
         }
 
