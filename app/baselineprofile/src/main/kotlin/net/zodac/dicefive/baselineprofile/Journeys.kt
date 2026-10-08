@@ -81,6 +81,27 @@ internal fun MacrobenchmarkScope.scrollDown(times: Int) {
     }
 }
 
+/** Swipes down the middle of the screen [times] times - back up a long page. */
+internal fun MacrobenchmarkScope.scrollUp(times: Int) {
+    val x = device.displayWidth / 2
+    repeat(times) {
+        device.swipe(x, device.displayHeight / 4, x, device.displayHeight * 3 / 4, 20)
+        device.waitForIdle()
+    }
+}
+
+/**
+ * Taps the topmost match for [text]. For a label that appears twice on a screen, such as a Rules tab
+ * and the page heading or footer pill of the same name: the tab rows are above everything else.
+ */
+internal fun MacrobenchmarkScope.tapTopText(text: String) {
+    await(By.text(text), text)
+    val top = device.findObjects(By.text(text)).minByOrNull { it.visibleBounds.top }
+        ?: error("Baseline Profile journey: '$text' never appeared")
+    top.click()
+    device.waitForIdle()
+}
+
 /** Swipes along the screen at [heightFraction] of its height, right to left, [times] times. */
 internal fun MacrobenchmarkScope.scrollRow(heightFraction: Float, times: Int) {
     val y = (device.displayHeight * heightFraction).toInt()
@@ -232,10 +253,44 @@ private fun MacrobenchmarkScope.longClickBanner(banner: BySelector) {
     error("Baseline Profile journey: the 'Not Those Dice!' banner could not be long-pressed")
 }
 
-/** A long page of text: the Rules. */
+/**
+ * From the menu, with a game saved (see [playATurn]): New Game in a mode other than Standard, a roll, then
+ * out again. Afterwards the mode is put back to Standard, so the next lap's [playATurn] - and anything else
+ * that starts a game - gets the mode it expects (the setup remembers the last pick).
+ */
+internal fun MacrobenchmarkScope.playAModeGame() {
+    tapText("New Game")
+    chooseMode("Tricolour")
+    tapText("Start Game")
+    tapDesc("Dice cup", startsWith = true)
+    Thread.sleep(ROLL_SETTLE_MS)
+    leaveGame()
+
+    tapText("New Game")
+    chooseMode("Standard")
+    // Back only once the picker's dialog has gone: a back press sent while it closes leaves the app (see closeDialog).
+    await(By.text("Start Game"), "the setup after choosing a mode")
+    Thread.sleep(PICKER_CLOSE_MS)
+    back()
+    await(By.text("Settings"), "the menu after leaving the setup")
+}
+
+/**
+ * Opens the setup's mode picker and picks [mode], which must not be the current one: the field shows
+ * the current mode's name too, so that name could be found twice.
+ */
+private fun MacrobenchmarkScope.chooseMode(mode: String) {
+    tapDesc("Game Mode")
+    tapText(mode)
+}
+
+/** A long page of text: the Rules, then the Modes group and one of its pages. */
 internal fun MacrobenchmarkScope.visitRules() {
     tapText("Rules")
     scrollDown(4)
+    tapTopText("Modes")
+    tapTopText("Tricolour")
+    scrollDown(2)
     back()
 }
 
@@ -259,6 +314,11 @@ internal fun MacrobenchmarkScope.visitAchievements() {
  */
 internal fun MacrobenchmarkScope.visitStyles() {
     openStyles()
+    // Dice gallery on (every tile at once), down the page and back, then off for the rows below.
+    tapDesc("Dice gallery")
+    scrollDown(2)
+    scrollUp(2)
+    tapDesc("Dice gallery")
     for (fraction in listOf(0.25f, 0.45f, 0.65f, 0.85f)) scrollRow(fraction, 2)
     scrollDown(1)
     for (fraction in listOf(0.25f, 0.45f, 0.65f, 0.85f)) scrollRow(fraction, 2)
@@ -285,6 +345,7 @@ private fun MacrobenchmarkScope.openStyles() {
 
 private const val ROLL_SETTLE_MS = 2_000L
 private const val LEAVE_DIALOG_MS = 1_500L
+private const val PICKER_CLOSE_MS = 1_000L
 private const val CLOSE_ATTEMPTS = 4
 private const val CLOSE_WAIT_MS = 1_500L
 
