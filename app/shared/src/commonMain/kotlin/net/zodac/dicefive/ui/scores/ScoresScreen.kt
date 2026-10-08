@@ -538,6 +538,15 @@ private fun PaginationControls(
 /** Set once [ScoresWarmUp] has drawn both views, for the life of the process. */
 private var scoresWarmedUp = false
 
+/**
+ * For tests only: forgets that [ScoresWarmUp] has run, so a test can watch it run. The flag lives for the
+ * whole process, and the unit tests share one: any earlier test that left the menu up long enough has
+ * already used it up.
+ */
+fun resetScoresWarmUpForTest() {
+    scoresWarmedUp = false
+}
+
 // After the menu's own entrance, and clear of the Styles warm-up, which starts at 600ms and runs for a few hundred.
 private const val SCORES_WARM_UP_DELAY_MILLIS = 2000L
 

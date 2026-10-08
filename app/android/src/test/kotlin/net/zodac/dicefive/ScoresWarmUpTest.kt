@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.ui.scores.ScoresWarmUp
+import net.zodac.dicefive.ui.scores.resetScoresWarmUpForTest
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -22,6 +23,8 @@ class ScoresWarmUpTest {
 
     @Test
     fun drawsBothViewsThenGoesAway() {
+        // An earlier test in this process may already have run it (the menu shows it), and it runs once.
+        resetScoresWarmUpForTest()
         compose.setContent { DiceFiveTheme { Box { ScoresWarmUp(width = 360.dp) } } }
         compose.mainClock.autoAdvance = false
         fun onScreen() = compose.onAllNodesWithText("Leaderboard").fetchSemanticsNodes().isNotEmpty()
