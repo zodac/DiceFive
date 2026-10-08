@@ -27,7 +27,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /** Rows held in memory, ordered by score, for a Leaderboard to read. */
 internal class RowsDao(private val rows: List<ScoreEntry>) : ScoreDao {
@@ -61,52 +60,48 @@ internal fun rowOf(id: Long, score: Int, mode: GameMode) = ScoreEntry(
  * row (the mode and date a long press shows). How the cards look is for a render; this pins the structure.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class ScoresScreenTest {
 
     @get:Rule
     val compose = createComposeRule()
 
+    private val showcase = Showcase(compose)
+
     private fun show(rows: List<ScoreEntry>) {
         val viewModel = ScoresViewModel(ScoreRepository(RowsDao(rows)))
-        compose.setContent { DiceFiveTheme { ScoresScreen(viewModel = viewModel, onBack = {}) } }
-        compose.waitForIdle()
+        showcase.show { DiceFiveTheme { ScoresScreen(viewModel = viewModel, onBack = {}) } }
     }
 
     private val someRows = listOf(rowOf(1, 300, GameMode.STANDARD), rowOf(2, 250, GameMode.TRICOLOUR), rowOf(3, 200, GameMode.STANDARD))
-
-    @Test
-    fun opensOnTheCombinedTableWithTheSwitchAtTheTop() {
-        show(someRows)
-
-        compose.onNodeWithText("Combined").assertIsSelected()
-        compose.onNodeWithText("Game Mode").assertExists()
-        compose.onNodeWithText("Player1").assertExists()
-        // The mode names only exist as cards in the other view.
-        compose.onAllNodesWithText("7 Dice Stud").assertCountEquals(0)
-    }
-
-    @Test
-    fun aCombinedRowSpeaksItsModeAndDate() {
-        show(someRows)
-
-        val spoken = compose.onNodeWithText("Player2").fetchSemanticsNode().config
-        val detail = spoken.getOrNull(SemanticsProperties.StateDescription)
-        assertTrue(detail.orEmpty(), detail!!.endsWith(", Tricolour"))
-    }
 
     /** The mode's name as `strings.xml` has it: `Res` is internal to :app:shared, so the file is read from disk. */
     private fun modeName(mode: GameMode): String = Regex("""<string name="mode_${mode.id}">([^<]*)</string>""")
         .find(File("../shared/src/commonMain/composeResources/values/strings.xml").readText())!!.groupValues[1]
 
     @Test
-    fun gameModeShowsACardOnlyForModesWithScores() {
+    fun opensOnTheCombinedTableWithTheSwitchAtTheTopAndARowSpeaksItsModeAndDateWhichALongPressShows() {
+        show(someRows)
+        compose.onNodeWithText("Combined").assertIsSelected()
+        compose.onNodeWithText("Game Mode").assertExists()
+        compose.onNodeWithText("Player1").assertExists()
+        // The mode names only exist as cards in the other view.
+        compose.onAllNodesWithText("7 Dice Stud").assertCountEquals(0)
+
+        val detail = compose.onNodeWithText("Player2").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)
+        assertTrue(detail.orEmpty(), detail!!.endsWith(", Tricolour"))
+
+        // A long press on a row arms its tooltip: the first row of the combined table, its date and mode.
+        compose.onNodeWithText("Player1").performTouchInput { longClick() }
+        compose.waitForIdle()
+        compose.onAllNodesWithText("Standard", substring = true).assertCountEquals(1)
+    }
+
+    @Test
+    fun gameModeShowsACardOnlyForModesWithScoresEachRowDatedAndItsPageControlsAtTheEndOfItsOwnScroll() {
         // Quickfire never counts on the combined table, yet gets its card; Stud has no score, so no card.
         show(someRows + rowOf(4, 90, GameMode.QUICKFIRE).copy(onLeaderboard = false))
-
         compose.onNodeWithText("Game Mode").performClick()
         compose.waitForIdle()
-
         compose.onNodeWithText("Standard").assertExists()
         compose.onNodeWithText("Tricolour").assertExists()
         compose.onNodeWithText(modeName(GameMode.QUICKFIRE)).assertExists()
@@ -114,31 +109,14 @@ class ScoresScreenTest {
         // On its own card a row's detail is the date alone - the mode is the card's title.
         val detail = compose.onNodeWithText("Player2").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)
         assertTrue(detail.orEmpty(), GameMode.entries.none { detail!!.contains(modeName(it)) })
-    }
 
-    @Test
-    fun aLongPressOnARowArmsItsTooltip() {
-        show(someRows)
-
-        compose.onNodeWithText("Player1").performTouchInput { longClick() }
-        compose.waitForIdle()
-
-        // The first row of the combined table: its date and mode, in the tooltip.
-        compose.onAllNodesWithText("Standard", substring = true).assertCountEquals(1)
-    }
-
-    @Test
-    fun aCardsPageControlsAreAtTheEndOfItsOwnScroll() {
         show((1..SCORES_PAGE_SIZE + 5).map { rowOf(it.toLong(), it, GameMode.STANDARD) })
-
         compose.onNodeWithText("Game Mode").performClick()
         compose.waitForIdle()
-
         // Standard's card is the only one with a list, and its controls aren't in view until it scrolls to its end.
         compose.onAllNodesWithText("Page 1 of 2").assertCountEquals(0)
         compose.onAllNodes(hasScrollToIndexAction())[0].performScrollToIndex(SCORES_PAGE_SIZE)
         compose.onNodeWithText("Page 1 of 2").assertExists()
-
         compose.onNodeWithText("Next").performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Page 2 of 2").assertExists()

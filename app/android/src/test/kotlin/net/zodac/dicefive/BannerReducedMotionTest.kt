@@ -23,16 +23,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
-import org.robolectric.annotation.GraphicsMode
 
 /**
  * Under reduced motion the achievement banners don't move: a burst is all there at once rather than dealt out one by
  * one, a banner doesn't fade in, and it's gone the moment its time is up rather than fading out.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class BannerReducedMotionTest {
 
     @get:Rule

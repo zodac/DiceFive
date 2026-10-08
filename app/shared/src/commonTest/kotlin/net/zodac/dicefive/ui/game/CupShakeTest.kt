@@ -11,31 +11,11 @@ import kotlin.test.assertTrue
 class CupShakeTest {
 
     @Test
-    fun `without reduced motion the window is always the full length`() {
-        for (sound in listOf(true, false)) {
-            for (vibration in listOf(true, false)) {
-                assertEquals(CUP_SHAKE_MILLIS, cupShakeMillis(reduceMotion = false, soundEnabled = sound, vibrationEnabled = vibration))
-            }
+    fun `the shake window is shortened only under reduced motion with neither sound nor vibration - and never to nothing`() {
+        for (reduceMotion in listOf(false, true)) for (sound in listOf(true, false)) for (vibration in listOf(true, false)) {
+            val expected = if (reduceMotion && !sound && !vibration) REDUCED_MOTION_CUP_SHAKE_MILLIS else CUP_SHAKE_MILLIS
+            assertEquals(expected, cupShakeMillis(reduceMotion = reduceMotion, soundEnabled = sound, vibrationEnabled = vibration), "reduce motion $reduceMotion, sound $sound, vibration $vibration")
         }
-    }
-
-    @Test
-    fun `reduced motion keeps the full window while sound is on`() {
-        assertEquals(CUP_SHAKE_MILLIS, cupShakeMillis(reduceMotion = true, soundEnabled = true, vibrationEnabled = false))
-    }
-
-    @Test
-    fun `reduced motion keeps the full window while vibration is on`() {
-        assertEquals(CUP_SHAKE_MILLIS, cupShakeMillis(reduceMotion = true, soundEnabled = false, vibrationEnabled = true))
-    }
-
-    @Test
-    fun `reduced motion with no sound or vibration shortens the window`() {
-        assertEquals(REDUCED_MOTION_CUP_SHAKE_MILLIS, cupShakeMillis(reduceMotion = true, soundEnabled = false, vibrationEnabled = false))
-    }
-
-    @Test
-    fun `the shortened window is shorter than the full one but not zero`() {
         assertTrue(REDUCED_MOTION_CUP_SHAKE_MILLIS in 1 until CUP_SHAKE_MILLIS)
     }
 }

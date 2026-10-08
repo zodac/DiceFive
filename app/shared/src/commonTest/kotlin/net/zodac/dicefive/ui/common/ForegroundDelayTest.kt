@@ -8,6 +8,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -23,64 +24,49 @@ class ForegroundDelayTest {
         }
     }
 
-    @Test
-    fun `it finishes after its time while the app is in front`() = runTest {
-        val owner = Owner().apply { moveTo(Lifecycle.State.RESUMED) }
+    /** A [Lifecycle.delayWhileResumed] of a second started on [owner]: whether it has finished yet. */
+    private fun TestScope.delayed(owner: Owner): () -> Boolean {
         var done = false
         launch {
             owner.lifecycle.delayWhileResumed(1_000)
             done = true
         }
+        return { done }
+    }
 
-        advanceTimeBy(999)
+    /** Lets [millis] of test time pass. */
+    private fun TestScope.wait(millis: Long) {
+        advanceTimeBy(millis)
         runCurrent()
-        assertFalse(done)
-        advanceTimeBy(1)
-        runCurrent()
-        assertTrue(done)
     }
 
     @Test
-    fun `it does not run down while the app is in the background`() = runTest {
-        val owner = Owner().apply { moveTo(Lifecycle.State.CREATED) }
-        var done = false
-        launch {
-            owner.lifecycle.delayWhileResumed(1_000)
-            done = true
-        }
+    fun `it finishes after its time in front - doesn't run down in the background - and starts again on return part-way`() = runTest {
+        val front = Owner().apply { moveTo(Lifecycle.State.RESUMED) }
+        val frontDone = delayed(front)
+        wait(999)
+        assertFalse(frontDone())
+        wait(1)
+        assertTrue(frontDone())
 
-        advanceTimeBy(60_000)
-        runCurrent()
-        assertFalse(done)
+        val background = Owner().apply { moveTo(Lifecycle.State.CREATED) }
+        val backgroundDone = delayed(background)
+        wait(60_000)
+        assertFalse(backgroundDone())
+        background.moveTo(Lifecycle.State.RESUMED)
+        wait(1_000)
+        assertTrue(backgroundDone())
 
-        owner.moveTo(Lifecycle.State.RESUMED)
-        advanceTimeBy(1_000)
-        runCurrent()
-        assertTrue(done)
-    }
-
-    @Test
-    fun `going to the background part-way starts it again on return`() = runTest {
-        val owner = Owner().apply { moveTo(Lifecycle.State.RESUMED) }
-        var done = false
-        launch {
-            owner.lifecycle.delayWhileResumed(1_000)
-            done = true
-        }
-
-        advanceTimeBy(600)
-        runCurrent()
-        owner.moveTo(Lifecycle.State.STARTED)
-        advanceTimeBy(30_000)
-        runCurrent()
-        assertFalse(done)
-
-        owner.moveTo(Lifecycle.State.RESUMED)
-        advanceTimeBy(999)
-        runCurrent()
-        assertFalse(done)
-        advanceTimeBy(1)
-        runCurrent()
-        assertTrue(done)
+        val partWay = Owner().apply { moveTo(Lifecycle.State.RESUMED) }
+        val partWayDone = delayed(partWay)
+        wait(600)
+        partWay.moveTo(Lifecycle.State.STARTED)
+        wait(30_000)
+        assertFalse(partWayDone())
+        partWay.moveTo(Lifecycle.State.RESUMED)
+        wait(999)
+        assertFalse(partWayDone())
+        wait(1)
+        assertTrue(partWayDone())
     }
 }

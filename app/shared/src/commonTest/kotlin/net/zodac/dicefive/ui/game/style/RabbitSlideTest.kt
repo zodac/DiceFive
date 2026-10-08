@@ -17,45 +17,41 @@ class RabbitSlideTest {
     }
 
     @Test
-    fun aRabbitStartsInTheMiddleAndStaysThereInAStillUprightHat() {
-        val slide = RabbitSlide()
-        assertTrue(run(slide, 120) { 0f }.all { it == 0f })
-        assertTrue(slide.isAtRest)
-    }
+    fun aRabbitStaysMidHatWhenStillIsShakenEndToEndRollsToTheLowSideAndNeverLeavesTheOpening() {
+        val still = RabbitSlide()
+        assertTrue(run(still, 120) { 0f }.all { it == 0f })
+        assertTrue(still.isAtRest)
 
-    @Test
-    fun aShakenHatSlidesItFromEndToEndButNeverOutOfTheOpening() {
-        val slide = RabbitSlide()
         // The shake: +-7 degrees, a full swing every 180ms.
-        val positions = run(slide, 300) { i -> 7f * sin(i * frame / 1e9f * 2f * kotlin.math.PI.toFloat() / 0.18f) }
-        assertTrue(positions.all { abs(it) <= RABBIT_SLIDE_RANGE }, "left the opening: ${positions.maxOf { abs(it) }}")
-        assertTrue(positions.max() > 0f && positions.min() < 0f, "never crossed the hat: ${positions.min()}..${positions.max()}")
-    }
+        val shaken = run(RabbitSlide(), 300) { i -> 7f * sin(i * frame / 1e9f * 2f * kotlin.math.PI.toFloat() / 0.18f) }
+        assertTrue(shaken.all { abs(it) <= RABBIT_SLIDE_RANGE }, "left the opening: ${shaken.maxOf { abs(it) }}")
+        assertTrue(shaken.max() > 0f && shaken.min() < 0f, "never crossed the hat: ${shaken.min()}..${shaken.max()}")
 
-    @Test
-    fun aHatTippedOntoOneSideRollsItToThatSideAndHoldsItThere() {
         // Resting tilt is anticlockwise (negative): the left side is the low one.
-        val slide = RabbitSlide()
-        run(slide, 300) { -32f }
-        assertEquals(-RABBIT_SLIDE_RANGE, slide.x)
+        val anticlockwise = RabbitSlide()
+        run(anticlockwise, 300) { -32f }
+        assertEquals(-RABBIT_SLIDE_RANGE, anticlockwise.x)
         val clockwise = RabbitSlide()
         run(clockwise, 300) { 32f }
         assertEquals(RABBIT_SLIDE_RANGE, clockwise.x)
+
+        // A long stalled frame never throws it out either.
+        val stalled = RabbitSlide()
+        stalled.step(frame, 0f)
+        stalled.step(frame + 5_000_000_000L, 40f)
+        assertTrue(abs(stalled.x) <= RABBIT_SLIDE_RANGE)
     }
 
     @Test
-    fun aRabbitLyingInATippedHatComesToRest() {
+    fun aRabbitLyingInATippedHatComesToRestEvenAfterAShake() {
         // At 60fps a bounce off the low end never slowed below the rest speed, so the hat's frame clock never stopped.
-        val slide = RabbitSlide()
-        run(slide, 300) { -32f }
-        assertTrue(slide.isAtRest, "still moving at ${slide.velocity}")
-    }
+        val tipped = RabbitSlide()
+        run(tipped, 300) { -32f }
+        assertTrue(tipped.isAtRest, "still moving at ${tipped.velocity}")
 
-    @Test
-    fun aRabbitShakenThenTippedComesToRest() {
-        val slide = RabbitSlide()
         // Shaken (+-7 degrees, a swing every 180ms) for 420ms, then tipped over to -32 degrees across 320ms and left there.
-        run(slide, 600) { i ->
+        val shakenThenTipped = RabbitSlide()
+        run(shakenThenTipped, 600) { i ->
             val ms = i * 16f
             when {
                 ms < 420f -> 7f * sin(ms / 1000f * 2f * kotlin.math.PI.toFloat() / 0.18f)
@@ -63,14 +59,6 @@ class RabbitSlideTest {
                 else -> -32f
             }
         }
-        assertTrue(slide.isAtRest, "still moving at ${slide.velocity}, at ${slide.x}")
-    }
-
-    @Test
-    fun aLongStalledFrameNeverThrowsItOutEither() {
-        val slide = RabbitSlide()
-        slide.step(frame, 0f)
-        slide.step(frame + 5_000_000_000L, 40f)
-        assertTrue(abs(slide.x) <= RABBIT_SLIDE_RANGE)
+        assertTrue(shakenThenTipped.isAtRest, "still moving at ${shakenThenTipped.velocity}, at ${shakenThenTipped.x}")
     }
 }

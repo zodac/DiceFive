@@ -52,26 +52,14 @@ class ResetStylesTest {
     fun tearDown() = Dispatchers.resetMain()
 
     @Test
-    fun `resetting achievements puts a locked dice pick back to the default`() = runTest {
-        val settings = SettingsRepository(ResetFakePreferences())
-        settings.setDiceStyleId("frosted_ice")
-        val viewModel = SettingsViewModel(settingsRepository = settings, achievementsRepository = ResetFakeStore())
-
-        viewModel.resetAchievements()
-        advanceUntilIdle()
-
-        assertEquals(DiceStyles.default.id, settings.diceStyleId.first())
-    }
-
-    @Test
-    fun `resetting achievements keeps a pick that needs no achievement`() = runTest {
-        val settings = SettingsRepository(ResetFakePreferences())
-        settings.setDiceStyleId("barrel")
-        val viewModel = SettingsViewModel(settingsRepository = settings, achievementsRepository = ResetFakeStore())
-
-        viewModel.resetAchievements()
-        advanceUntilIdle()
-
-        assertEquals("barrel", settings.diceStyleId.first())
+    fun `resetting achievements puts a locked dice pick back to the default - and keeps one that needs no achievement`() = runTest {
+        for ((picked, afterReset) in listOf("frosted_ice" to DiceStyles.default.id, "barrel" to "barrel")) {
+            val settings = SettingsRepository(ResetFakePreferences())
+            settings.setDiceStyleId(picked)
+            val viewModel = SettingsViewModel(settingsRepository = settings, achievementsRepository = ResetFakeStore())
+            viewModel.resetAchievements()
+            advanceUntilIdle()
+            assertEquals(afterReset, settings.diceStyleId.first(), picked)
+        }
     }
 }

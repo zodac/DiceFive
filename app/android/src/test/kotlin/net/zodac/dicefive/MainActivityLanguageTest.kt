@@ -16,7 +16,6 @@ import org.robolectric.annotation.Config
  * stringsLanguageConfiguration and .claude/I18N.md.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class MainActivityLanguageTest {
 
     @get:Rule

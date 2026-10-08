@@ -24,47 +24,38 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /** The Styles screen's words: its title and categories, and how a style - locked, or in several colours - is named and what a tap is called. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class StylesTextTest {
 
     @get:Rule
     val compose = createComposeRule()
+
+    private val showcase = Showcase(compose)
 
     private fun show(achievements: AchievementsState) {
         val saved = MutableStateFlow<SavedStyles?>(
             SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements),
         )
         val viewModel = StylesViewModel(savedStyles = saved)
-        compose.setContent { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
+        showcase.show { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
         compose.mainClock.advanceTimeBy(10_000)
         compose.waitForIdle()
     }
 
     @Test
-    fun `the page is titled Styles - and each category has a card and a gallery switch`() {
+    fun `the page is titled Styles with a card and gallery switch a category - a locked style and one in several colours named and their taps`() {
         show(AchievementsState())
-
         compose.onNodeWithText("Styles").assertExists()
         listOf("Dice", "Dice Cup", "Mat", "Background", "Frame").forEach { compose.onNodeWithContentDescription("$it gallery").assertExists() }
-    }
-
-    @Test
-    fun `a locked style says Locked - and its tap is called Show how to unlock`() {
-        show(AchievementsState())
-
+        // A locked style says Locked - and its tap is called Show how to unlock.
         val frosted = compose.onAllNodesWithContentDescription("Frosted").onFirst().fetchSemanticsNode().config
         assertEquals("Locked", frosted[SemanticsProperties.StateDescription])
         assertEquals("Show how to unlock Frosted", frosted[SemanticsActions.OnClick].label)
-    }
 
-    @Test
-    fun `a style in several colours names the colour showing - and a long press is called Choose colour`() {
+        // A style in several colours names the colour showing - and a long press is called Choose colour.
         show(AchievementsState(unlockedAt = Achievement.entries.associateWith { 0L }))
-
         val metal = compose.onNode(hasContentDescription("Metal, Gold")).fetchSemanticsNode().config
         assertEquals("Select", metal[SemanticsActions.OnClick].label)
         assertEquals("Choose Metal colour", metal[SemanticsActions.OnLongClick].label)

@@ -57,7 +57,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
-import org.robolectric.annotation.GraphicsMode
 
 /**
  * Every screen, drawn in Spanish on a 360dp phone, has no word broken across two lines ("Usuar" / "io") - the sign of a
@@ -65,22 +64,19 @@ import org.robolectric.annotation.GraphicsMode
  * never by splitting a word. Reads each text's layout from the semantics tree; ellipsis is by design for names and isn't flagged.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35], qualifiers = "es-w360dp-h800dp")
-// Real (native) text measurement: the default mode measures a character as a pixel, which can break nothing.
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(qualifiers = "es-w360dp-h800dp")
 open class TextFitTest {
 
     @get:Rule
     val compose = createComposeRule()
 
-    private fun content(block: @androidx.compose.runtime.Composable () -> Unit) {
-        compose.setContent {
-            CompositionLocalProvider(
-                LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
-                LocalPlatformServices provides SilentPlatformServices,
-            ) { DiceFiveTheme { block() } }
-        }
-        compose.waitForIdle()
+    private val showcase = Showcase(compose)
+
+    private fun content(block: @androidx.compose.runtime.Composable () -> Unit) = showcase.show {
+        CompositionLocalProvider(
+            LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
+            LocalPlatformServices provides SilentPlatformServices,
+        ) { DiceFiveTheme { block() } }
     }
 
     /** The texts on screen that a line break split inside a word. */
@@ -118,86 +114,83 @@ open class TextFitTest {
         }.distinct()
     }
 
-    private fun assertNoBrokenWords(screen: String) {
-        val broken = brokenWords()
-        assertTrue("$screen has words split across lines: $broken", broken.isEmpty())
-    }
-
-    @Test
-    fun `the new game form`() {
-        val viewModel = GameViewModel()
-        viewModel.setPlayerCount(4)
-        viewModel.setPlayerType(2, PlayerType.AI)
-        content { GameSetupScreen(viewModel = viewModel, onStartGame = {}, onBack = {}) }
-        assertNoBrokenWords("New game")
-    }
-
     /** What the modifiers row says with five switched on, in the language under test. */
     protected open val fiveModifiersEnabled = "5 activados"
 
     @Test
-    fun `the modifiers with every one switched on`() {
-        val viewModel = GameViewModel()
-        viewModel.setTurnTimer(net.zodac.dicefive.model.TurnTimer.SECONDS_30)
-        viewModel.setRollsPerTurn(3)
-        viewModel.setStoredRolls(true)
-        viewModel.setUnluckyDiceEnabled(true)
-        viewModel.setExtendedScores(true)
-        content { GameSetupScreen(viewModel = viewModel, onStartGame = {}, onBack = {}) }
+    fun `no screen splits a word across lines`() {
+        // Every screen's words split across lines, by screen - all of them checked before anything fails.
+        val broken = mutableMapOf<String, List<String>>()
+        fun check(screen: String) = brokenWords().takeIf { it.isNotEmpty() }?.let { broken[screen] = it }
+
+        val setup = GameViewModel()
+        setup.setPlayerCount(4)
+        setup.setPlayerType(2, PlayerType.AI)
+        content { GameSetupScreen(viewModel = setup, onStartGame = {}, onBack = {}) }
+        check("New game")
+
+        // The modifiers, with every one switched on.
+        val modifiers = GameViewModel()
+        modifiers.setTurnTimer(net.zodac.dicefive.model.TurnTimer.SECONDS_30)
+        modifiers.setRollsPerTurn(3)
+        modifiers.setStoredRolls(true)
+        modifiers.setUnluckyDiceEnabled(true)
+        modifiers.setExtendedScores(true)
+        content { GameSetupScreen(viewModel = modifiers, onStartGame = {}, onBack = {}) }
         compose.onNodeWithText(fiveModifiersEnabled).performClick()
         compose.waitForIdle()
-        assertNoBrokenWords("Modifiers")
-    }
+        check("Modifiers")
 
-    @Test
-    fun `the main menu`() {
         content { MenuScreen(hasInProgressGame = true, onContinue = {}, onNewGame = {}, onScores = {}, onStatistics = {}, onAchievements = {}, onStyles = {}, onRules = {}, onSettings = {}) }
-        assertNoBrokenWords("Menu")
-    }
+        check("Menu")
 
-    @Test
-    fun `settings`() {
-        val viewModel = SettingsViewModel(settingsRepository = net.zodac.dicefive.data.settings.SettingsRepository(InMemoryPreferences()))
-        content { SettingsScreen(viewModel = viewModel, onBack = {}) }
-        assertNoBrokenWords("Settings")
-    }
+        val settings = SettingsViewModel(settingsRepository = net.zodac.dicefive.data.settings.SettingsRepository(InMemoryPreferences()))
+        content { SettingsScreen(viewModel = settings, onBack = {}) }
+        check("Settings")
 
-    @Test
-    fun `the about dialog`() {
         content { AboutDialog(onDismissRequest = {}) }
-        assertNoBrokenWords("About")
-    }
+        check("About")
 
-    @Test
-    fun `the leaderboard`() {
-        val viewModel = ScoresViewModel(ScoreRepository(RowsDao(listOf(rowOf(1, 300, GameMode.STANDARD), rowOf(2, 250, GameMode.QUICKFIRE)))))
-        content { ScoresScreen(viewModel = viewModel, onBack = {}) }
-        assertNoBrokenWords("Leaderboard")
-    }
+        val scores = ScoresViewModel(ScoreRepository(RowsDao(listOf(rowOf(1, 300, GameMode.STANDARD), rowOf(2, 250, GameMode.QUICKFIRE)))))
+        content { ScoresScreen(viewModel = scores, onBack = {}) }
+        check("Leaderboard")
 
-    @Test
-    fun `statistics`() {
-        val viewModel = StatisticsViewModel()
-        content { StatisticsScreen(viewModel = viewModel, onBack = {}) }
-        assertNoBrokenWords("Statistics")
-    }
+        val statistics = StatisticsViewModel()
+        content { StatisticsScreen(viewModel = statistics, onBack = {}) }
+        check("Statistics")
 
-    @Test
-    fun `achievements`() {
-        val viewModel = AchievementsViewModel()
-        content { AchievementsScreen(viewModel = viewModel, onBack = {}) }
-        assertNoBrokenWords("Achievements")
-    }
+        val achievements = AchievementsViewModel()
+        content { AchievementsScreen(viewModel = achievements, onBack = {}) }
+        check("Achievements")
 
-    @Test
-    fun `styles`() {
         val saved = MutableStateFlow<SavedStyles?>(
             SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, AchievementsState()),
         )
-        val viewModel = StylesViewModel(savedStyles = saved)
-        content { StylesScreen(viewModel = viewModel, onBack = {}) }
+        val styles = StylesViewModel(savedStyles = saved)
+        content { StylesScreen(viewModel = styles, onBack = {}) }
         compose.mainClock.advanceTimeBy(5_000)
-        assertNoBrokenWords("Styles")
+        check("Styles")
+
+        val game = GameViewModel()
+        game.setPlayerCount(2)
+        game.setPlayerType(2, PlayerType.AI)
+        game.startGame()
+        content { GameScreen(viewModel = game) }
+        check("Game")
+
+        val finished = GameEngine.newGame(
+            listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Ana"), PlayerConfig(slot = 2, type = PlayerType.HUMAN, name = "Luis")),
+            GameMode.STANDARD,
+        )
+        content { GameOverScreen(state = finished, onBackToMenu = {}, onPlayAgain = {}, onReviewScorecards = {}, soundEnabled = false) }
+        check("Results")
+
+        content { AchievementBannerHost(isOnGameScreen = { false }, onAchievementSelected = {}, onStylesSelected = {}) { Box(Modifier.fillMaxSize()) } }
+        AchievementEvents.emit(AchievementEvent.Unlocked(Achievement.NON_STANDARD_MODE))
+        compose.waitForIdle()
+        check("Banner")
+
+        assertTrue("Screens with words split across lines: $broken", broken.isEmpty())
     }
 
     @Test
@@ -220,33 +213,5 @@ open class TextFitTest {
             }
         }
         assertTrue("Rules pages with words split across lines, or tabs cut off: $broken", broken.isEmpty())
-    }
-
-    @Test
-    fun `a game in progress`() {
-        val viewModel = GameViewModel()
-        viewModel.setPlayerCount(2)
-        viewModel.setPlayerType(2, PlayerType.AI)
-        viewModel.startGame()
-        content { GameScreen(viewModel = viewModel) }
-        assertNoBrokenWords("Game")
-    }
-
-    @Test
-    fun `the results page`() {
-        val state = GameEngine.newGame(
-            listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Ana"), PlayerConfig(slot = 2, type = PlayerType.HUMAN, name = "Luis")),
-            GameMode.STANDARD,
-        )
-        content { GameOverScreen(state = state, onBackToMenu = {}, onPlayAgain = {}, onReviewScorecards = {}, soundEnabled = false) }
-        assertNoBrokenWords("Results")
-    }
-
-    @Test
-    fun `an unlock banner`() {
-        content { AchievementBannerHost(isOnGameScreen = { false }, onAchievementSelected = {}, onStylesSelected = {}) { Box(Modifier.fillMaxSize()) } }
-        AchievementEvents.emit(AchievementEvent.Unlocked(Achievement.NON_STANDARD_MODE))
-        compose.waitForIdle()
-        assertNoBrokenWords("Banner")
     }
 }

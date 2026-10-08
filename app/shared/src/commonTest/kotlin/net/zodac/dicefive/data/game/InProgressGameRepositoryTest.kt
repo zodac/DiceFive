@@ -42,31 +42,24 @@ private fun gameWithDie(value: Int) = GameState(
 class InProgressGameRepositoryTest {
 
     @Test
-    fun `saves that arrive faster than they can be written collapse into the latest`() = runTest {
+    fun `saves faster than they can be written collapse into the latest - and the last of a save and a clear wins`() = runTest {
         val store = CountingPreferencesStore()
         val repository = InProgressGameRepository(store, backgroundScope)
-
         repository.save(gameWithDie(1))
         repository.save(gameWithDie(2))
         repository.save(gameWithDie(3))
         runCurrent()
-
         assertEquals(1, store.writes)
         assertEquals(gameWithDie(3), repository.load())
-    }
 
-    @Test
-    fun `a clear after a save wins - and a save after a clear wins`() = runTest {
-        val store = CountingPreferencesStore()
-        val repository = InProgressGameRepository(store, backgroundScope)
-
+        // A clear after a save wins...
         repository.save(gameWithDie(4))
         runCurrent()
         repository.clear()
         runCurrent()
         assertNull(repository.load())
         assertFalse(repository.hasInProgressGame.first())
-
+        // ...and a save after a clear.
         repository.clear()
         repository.save(gameWithDie(5))
         runCurrent()

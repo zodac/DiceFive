@@ -18,7 +18,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /**
  * DiceTray's press handling - how a player holds a die - on the real gesture code, under
@@ -27,7 +26,6 @@ import org.robolectric.annotation.Config
  * held die's face instead of toggling it.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class DiceTrayGestureTest {
 
     @get:Rule
@@ -36,8 +34,12 @@ class DiceTrayGestureTest {
     private val toggled = mutableListOf<Int>()
     private val cycled = mutableListOf<Int>()
 
+    private val showcase = Showcase(compose)
+
     private fun showTray(dice: List<Die> = List(5) { Die(value = it + 1) }, superuserModeActive: Boolean = false) {
-        compose.setContent {
+        toggled.clear()
+        cycled.clear()
+        showcase.show {
             DiceFiveTheme {
                 DiceTray(
                     dice = dice,
@@ -58,66 +60,47 @@ class DiceTrayGestureTest {
     private fun columnCentre(index: Int, trayWidth: Float): Float = trayWidth * (index + 0.5f) / 5
 
     @Test
-    fun `a tap toggles the die under it`() {
+    fun `a tap toggles the die under it - each of several - a wandering press its own column or where it ends - and superuser's long press cycles`() {
         showTray()
-
         compose.onNodeWithTag(TRAY).performTouchInput { click(position = center.copy(x = columnCentre(3, width.toFloat()))) }
-
         assertEquals(listOf(3), toggled)
-    }
 
-    @Test
-    fun `a press that wanders but stays within one column still toggles that die`() {
+        // Consecutive taps are each handled.
         showTray()
-
         compose.onNodeWithTag(TRAY).performTouchInput {
-            val x = columnCentre(1, width.toFloat())
-            down(center.copy(x = x))
+            click(position = center.copy(x = columnCentre(0, width.toFloat())))
+            click(position = center.copy(x = columnCentre(2, width.toFloat())))
+        }
+        assertEquals(listOf(0, 2), toggled)
+
+        // A press that wanders but stays within one column still toggles that die.
+        showTray()
+        compose.onNodeWithTag(TRAY).performTouchInput {
+            down(center.copy(x = columnCentre(1, width.toFloat())))
             moveBy(delta = Offset(10f, 15f))
             up()
         }
-
         assertEquals(listOf(1), toggled)
-    }
 
-    @Test
-    fun `a press released over a different column acts on that one`() {
+        // A press released over a different column acts on that one.
         showTray()
-
         compose.onNodeWithTag(TRAY).performTouchInput {
             down(center.copy(x = columnCentre(0, width.toFloat())))
             moveTo(center.copy(x = columnCentre(4, width.toFloat())))
             up()
         }
-
         assertEquals(listOf(4), toggled)
-    }
 
-    @Test
-    fun `in superuser mode a long press on a held die cycles its face instead of toggling it`() {
+        // In superuser mode a long press on a held die cycles its face instead of toggling it.
         showTray(dice = List(5) { Die(value = it + 1, isHeld = it == 2) }, superuserModeActive = true)
-
         compose.mainClock.autoAdvance = false
         compose.onNodeWithTag(TRAY).performTouchInput { down(center.copy(x = columnCentre(2, width.toFloat()))) }
         compose.mainClock.advanceTimeBy(2_500)
         compose.onNodeWithTag(TRAY).performTouchInput { up() }
         compose.mainClock.autoAdvance = true
         compose.waitForIdle()
-
         assertEquals(listOf(2, 2), cycled)
         assertEquals(emptyList<Int>(), toggled)
-    }
-
-    @Test
-    fun `consecutive taps are each handled`() {
-        showTray()
-
-        compose.onNodeWithTag(TRAY).performTouchInput {
-            click(position = center.copy(x = columnCentre(0, width.toFloat())))
-            click(position = center.copy(x = columnCentre(2, width.toFloat())))
-        }
-
-        assertEquals(listOf(0, 2), toggled)
     }
 
     private companion object {

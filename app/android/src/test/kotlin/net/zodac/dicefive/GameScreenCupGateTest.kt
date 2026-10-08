@@ -20,7 +20,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
 
 /**
@@ -28,12 +27,14 @@ import org.robolectric.shadows.ShadowLooper
  * wait scoring has. Needs the real screen: the settling window is tracked there, not in the view model.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class GameScreenCupGateTest {
 
     @get:Rule
     val compose = createComposeRule()
 
+    private val showcase = Showcase(compose)
+
+    /** A fresh solo game on screen. */
     private fun showSoloGame(): GameViewModel {
         // Off, or every waitForIdle (each assertion makes one) runs the clock on through every pending
         // delay - the whole shake and toss - in one go, and there's no "still settling" left to tap into.
@@ -42,7 +43,7 @@ class GameScreenCupGateTest {
         viewModel.setPlayerCount(1)
         viewModel.setGameMode(GameMode.STANDARD)
         viewModel.startGame()
-        compose.setContent {
+        showcase.show {
             CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
                 DiceFiveTheme { GameScreen(viewModel = viewModel) }
             }
@@ -78,15 +79,18 @@ class GameScreenCupGateTest {
     }
 
     @Test
-    fun aTapWhileTheDiceAreStillSettlingDoesNotRoll() {
+    fun theCupTakesNoTapWhileTheDiceSettleAndSaysHowManyRollsAreLeftInTheRightForm() {
+        // The count is a plural from the string resources: "rolls" for 3 and 2, "roll" for 1.
         val viewModel = showSoloGame()
-
+        compose.onNodeWithContentDescription("Dice cup, 3 rolls left").assertExists()
+        assertEquals("Roll", cup().fetchSemanticsNode().config[SemanticsActions.OnClick].label)
         tapCup()
         waitFor("the first roll to land") { viewModel.game.value!!.phase == TurnPhase.ROLLED }
         assertEquals(2, viewModel.rollsRemaining())
+        compose.onNodeWithContentDescription("Dice cup, 2 rolls left").assertExists()
 
-        // Straight after landing the dice are still tumbling: the cup says it's disabled, and a tap does
-        // nothing - even given longer than a shake (420ms) to land, while still inside the toss (900ms).
+        // Straight after landing the dice are still tumbling: the cup says it's disabled, and a tap does nothing - even
+        // given longer than a shake (420ms) to land, while still inside the toss (900ms).
         cup().assertIsNotEnabled()
         tapCup()
         advance(600)
@@ -96,37 +100,19 @@ class GameScreenCupGateTest {
         waitFor("the dice to settle") { runCatching { cup().assertIsEnabled() }.isSuccess }
         tapCup()
         waitFor("the second roll to land") { viewModel.rollsRemaining() == 1 }
+        compose.onNodeWithContentDescription("Dice cup, 1 roll left").assertExists()
     }
 
     @Test
     fun aSecondTapDuringTheShakeDoesNotRollTwice() {
-        val viewModel = showSoloGame()
-
+        val shaking = showSoloGame()
         tapCup()
         advance(STEP_MILLIS)
         cup().assertIsNotEnabled()
         tapCup()
-
-        waitFor("the roll to land") { viewModel.game.value!!.phase == TurnPhase.ROLLED }
+        waitFor("the roll to land") { shaking.game.value!!.phase == TurnPhase.ROLLED }
         advance(1_500)
-        assertEquals(2, viewModel.rollsRemaining())
-    }
-
-    // The count is a plural from the string resources: "rolls" for 3 and 2, "roll" for 1.
-    @Test
-    fun theCupSaysHowManyRollsAreLeftInTheRightForm() {
-        val viewModel = showSoloGame()
-        compose.onNodeWithContentDescription("Dice cup, 3 rolls left").assertExists()
-        assertEquals("Roll", cup().fetchSemanticsNode().config[SemanticsActions.OnClick].label)
-
-        tapCup()
-        waitFor("the first roll to land") { viewModel.rollsRemaining() == 2 }
-        compose.onNodeWithContentDescription("Dice cup, 2 rolls left").assertExists()
-
-        waitFor("the dice to settle") { runCatching { cup().assertIsEnabled() }.isSuccess }
-        tapCup()
-        waitFor("the second roll to land") { viewModel.rollsRemaining() == 1 }
-        compose.onNodeWithContentDescription("Dice cup, 1 roll left").assertExists()
+        assertEquals(2, shaking.rollsRemaining())
     }
 
     private companion object {

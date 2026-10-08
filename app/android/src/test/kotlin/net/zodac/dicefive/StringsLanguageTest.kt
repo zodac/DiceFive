@@ -26,7 +26,6 @@ import org.robolectric.annotation.Config
  * English - not in the phone's language's direction, plural rules and month names (StringsLanguage, .claude/I18N.md).
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class StringsLanguageTest {
 
     @get:Rule
@@ -46,16 +45,17 @@ class StringsLanguageTest {
         soloGames = 21,
     )
 
+    private val showcase = Showcase(compose)
+
     private fun layoutDirection(): LayoutDirection {
         var direction: LayoutDirection? = null
-        compose.setContent { DiceFiveTheme { direction = LocalLayoutDirection.current } }
-        compose.waitForIdle()
+        showcase.show { DiceFiveTheme { direction = LocalLayoutDirection.current } }
         return direction!!
     }
 
     /** What the stats card says, opened. */
     private fun openedCard(player: PlayerStatistics): String {
-        compose.setContent { DiceFiveTheme { PlayerStatsCard(player = player, onLongPress = {}) } }
+        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player, onLongPress = {}) } }
         compose.onNodeWithContentDescription(player.playerName, substring = true).performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
         return compose.onNodeWithContentDescription(player.playerName, substring = true).fetchSemanticsNode()
@@ -63,26 +63,24 @@ class StringsLanguageTest {
     }
 
     @Test
-    @Config(qualifiers = "fa")
-    fun `a Persian phone lays the English app out left to right`() {
+    @Config(qualifiers = "fa-w360dp-h800dp")
+    fun `a Persian phone lays the English app out left to right - its back arrow on the left - and dates it with an English month`() {
         assertEquals(LayoutDirection.Ltr, layoutDirection())
+
+        val viewModel = GameViewModel()
+        showcase.show { DiceFiveTheme { GameSetupScreen(viewModel = viewModel, onStartGame = {}, onBack = {}) } }
+        val back = compose.onNodeWithContentDescription("Back").fetchSemanticsNode().boundsInRoot
+        val width = compose.onRoot().fetchSemanticsNode().boundsInRoot.width
+        assertTrue("Back arrow at $back on a screen $width wide", back.right < width / 2)
+
+        val spoken = openedCard(player)
+        assertTrue(spoken, Regex("""First played [A-Z][a-z]{2,3} \d\d, \d{4} \d\d:\d\d\.""").containsMatchIn(spoken))
     }
 
     @Test
     @Config(qualifiers = "iw")
     fun `a Hebrew phone lays the English app out left to right`() {
         assertEquals(LayoutDirection.Ltr, layoutDirection())
-    }
-
-    @Test
-    @Config(qualifiers = "fa-w360dp-h800dp")
-    fun `on a Persian phone the back arrow is on the left`() {
-        val viewModel = GameViewModel()
-        compose.setContent { DiceFiveTheme { GameSetupScreen(viewModel = viewModel, onStartGame = {}, onBack = {}) } }
-        compose.waitForIdle()
-        val back = compose.onNodeWithContentDescription("Back").fetchSemanticsNode().boundsInRoot
-        val width = compose.onRoot().fetchSemanticsNode().boundsInRoot.width
-        assertTrue("Back arrow at $back on a screen $width wide", back.right < width / 2)
     }
 
     // Russian's "one" covers 21, 31...: picked by Russian's rules, the English would read "21 solo game played".
@@ -95,23 +93,11 @@ class StringsLanguageTest {
     }
 
     @Test
-    @Config(qualifiers = "fa")
-    fun `on a Persian phone the English date has an English month`() {
-        val spoken = openedCard(player)
-        assertTrue(spoken, Regex("""First played [A-Z][a-z]{2,3} \d\d, \d{4} \d\d:\d\d\.""").containsMatchIn(spoken))
-    }
+    fun `a name in a right-to-left script is set apart inside an English sentence - one in its own direction left as it is`() {
+        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player.copy(playerName = "علي"), onLongPress = {}) } }
+        assertEquals("Delete \u2068علي\u2069's stats", compose.onNodeWithContentDescription("علي", substring = true).fetchSemanticsNode().config[SemanticsActions.OnLongClick].label)
 
-    @Test
-    fun `a name in a right-to-left script is set apart inside an English sentence`() {
-        compose.setContent { DiceFiveTheme { PlayerStatsCard(player = player.copy(playerName = "علي"), onLongPress = {}) } }
-        val config = compose.onNodeWithContentDescription("علي", substring = true).fetchSemanticsNode().config
-        assertEquals("Delete \u2068علي\u2069's stats", config[SemanticsActions.OnLongClick].label)
-    }
-
-    @Test
-    fun `a name in the sentence's own direction is left as it is`() {
-        compose.setContent { DiceFiveTheme { PlayerStatsCard(player = player, onLongPress = {}) } }
-        val config = compose.onNodeWithContentDescription("Ann", substring = true).fetchSemanticsNode().config
-        assertEquals("Delete Ann's stats", config[SemanticsActions.OnLongClick].label)
+        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player, onLongPress = {}) } }
+        assertEquals("Delete Ann's stats", compose.onNodeWithContentDescription("Ann", substring = true).fetchSemanticsNode().config[SemanticsActions.OnLongClick].label)
     }
 }

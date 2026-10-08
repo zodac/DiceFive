@@ -18,12 +18,15 @@ plugins {
 // - DataStore's bundled protobuf reads memory through sun.misc.Unsafe (JEP 498) - drop that flag
 //   once it stops;
 // - Robolectric's native graphics runtime is loaded with System.load (JEP 472).
+// Robolectric's SDK 36+ runtimes also set a FileDescriptor's raw fd through jdk.internal.access, which
+// java.base doesn't export - without the --add-exports, every test fails before it starts.
 // Compact object headers (JEP 519) are on for the test JVMs too: smaller heap, same behaviour.
 subprojects {
     tasks.withType<Test>().configureEach {
         jvmArgs(
             "--sun-misc-unsafe-memory-access=allow",
             "--enable-native-access=ALL-UNNAMED",
+            "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED",
             "-XX:+UseCompactObjectHeaders",
         )
     }

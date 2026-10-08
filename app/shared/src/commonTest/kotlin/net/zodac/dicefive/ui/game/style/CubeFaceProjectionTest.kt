@@ -16,15 +16,14 @@ class CubeFaceProjectionTest {
     }
 
     @Test
-    fun aFaceLyingFlatIsDrawnExactlyWhereItIs() {
+    fun aCubeFaceIsDrawnFlatWhereItIsAndTippingAwayShrinksWhileTheNextLoomsSharingTheirEdge() {
+        // A face lying flat is drawn exactly where it is.
         val flat = cubeFaceProjection(side, 0f)
         for (corner in listOf(Offset(0f, 0f), Offset(side, 0f), Offset(0f, side), Offset(side, side), Offset(40f, 90f))) {
             assertNear(corner, flat.map(corner), "flat face at $corner")
         }
-    }
 
-    @Test
-    fun theFaceTippingOffAndTheOneTippingOnShareTheirEdge() {
+        // The face tipping off and the one tipping on share their edge.
         // The top face's near (bottom) edge is the incoming face's far (top) edge, at every point of a turn.
         for (step in 1..17) {
             val tipped = step * 5f
@@ -34,10 +33,8 @@ class CubeFaceProjectionTest {
                 assertNear(leaving.map(Offset(x, side)), arriving.map(Offset(x, 0f)), "edge at x=$x, tipped $tipped")
             }
         }
-    }
 
-    @Test
-    fun aFaceTippingAwayShrinksAndOneComingUpLooms() {
+        // A face tipping away shrinks and one coming up looms.
         val leaving = cubeFaceProjection(side, radians(30f))
         val farEdge = leaving.map(Offset(side, 0f)).x - leaving.map(Offset(0f, 0f)).x
         val nearEdge = leaving.map(Offset(side, side)).x - leaving.map(Offset(0f, side)).x

@@ -27,18 +27,30 @@ import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.ScoreCategory
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TestRule
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
-import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
+/**
+ * Renders the Play Store listing's screenshots and icon into the root assets/ folder - a generator, not a check, so it
+ * only runs when asked: `./gradlew :app:android:testDebugUnitTest --tests '*StoreAssetGeneratorTest*'
+ * -PgenerateStoreAssets` (see .claude/ASSETS.md). Skipped in every other run.
+ */
 @RunWith(AndroidJUnit4::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class StoreAssetGeneratorTest {
 
-    @get:Rule
+    /** Ahead of [compose], so a skipped run doesn't launch the app first. */
+    @get:Rule(order = 0)
+    val onlyWhenAsked = TestRule { base, _ ->
+        assumeTrue("Run with -PgenerateStoreAssets to regenerate the store assets", System.getProperty("dicefive.generateStoreAssets") == "true")
+        base
+    }
+
+    @get:Rule(order = 1)
     val compose = createAndroidComposeRule<MainActivity>()
 
     companion object {
@@ -205,7 +217,7 @@ class StoreAssetGeneratorTest {
     }
 
     @Test
-    @Config(sdk = [35], qualifiers = "w411dp-h891dp-xxhdpi")
+    @Config(qualifiers = "w411dp-h891dp-xxhdpi")
     fun `generate phone assets`() {
         seedCleanState(preUnlockAll = true)
         generateAppIcon()
@@ -214,7 +226,7 @@ class StoreAssetGeneratorTest {
     }
 
     @Test
-    @Config(sdk = [35], qualifiers = "w600dp-h960dp-mdpi")
+    @Config(qualifiers = "w600dp-h960dp-mdpi")
     fun `generate 7-inch tablet assets`() {
         seedCleanState(preUnlockAll = true)
         compose.waitForIdle()

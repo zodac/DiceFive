@@ -16,23 +16,21 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /**
  * Text that used to be shrunk below 12sp to fit one line now wraps instead, and text that fits is left
- * alone. Robolectric's text engine gives every character one pixel whatever its size and never wraps,
- * so this can pin which size and line limit are chosen - not how it looks; the shrinking steps and the
- * real widths are for a device.
+ * alone. This pins which size and line limit are chosen - not how it looks, which is for a device.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class ShrinkThenWrapTextTest {
 
     @get:Rule
     val compose = createComposeRule()
 
+    private val showcase = Showcase(compose)
+
     private fun show(text: String, width: Int, wrappedMaxLines: Int = 2) {
-        compose.setContent {
+        showcase.show {
             DiceFiveTheme {
                 ShrinkThenWrapText(
                     text = text,
@@ -42,7 +40,6 @@ class ShrinkThenWrapTextTest {
                 )
             }
         }
-        compose.waitForIdle()
     }
 
     private fun layoutInput(text: String): TextLayoutResult {
@@ -52,29 +49,20 @@ class ShrinkThenWrapTextTest {
     }
 
     @Test
-    fun `a text that fits stays on one line at its own size`() {
+    fun `a text that fits stays on one line at its own size - one too wide even at the smallest wraps at the floor on as many lines as allowed`() {
         show("Sound effects", width = 200)
+        val fits = layoutInput("Sound effects").layoutInput
+        assertEquals(16f, fits.style.fontSize.value, 0.01f)
+        assertEquals(1, fits.maxLines)
 
-        val input = layoutInput("Sound effects").layoutInput
-        assertEquals(16f, input.style.fontSize.value, 0.01f)
-        assertEquals(1, input.maxLines)
-    }
-
-    @Test
-    fun `a text too wide even at the smallest size wraps at the floor rather than shrinking further`() {
+        // Rather than shrinking further.
         val text = "Where We're Going, We Don't Need Rules"
         show(text, width = 30)
+        val wrapped = layoutInput(text).layoutInput
+        assertEquals(12f, wrapped.style.fontSize.value, 0.01f)
+        assertEquals(2, wrapped.maxLines)
 
-        val input = layoutInput(text).layoutInput
-        assertEquals(12f, input.style.fontSize.value, 0.01f)
-        assertEquals(2, input.maxLines)
-    }
-
-    @Test
-    fun `a wrapped text gets as many lines as it is allowed`() {
-        val text = "Where We're Going, We Don't Need Rules"
         show(text, width = 30, wrappedMaxLines = 3)
-
         assertEquals(3, layoutInput(text).layoutInput.maxLines)
     }
 }

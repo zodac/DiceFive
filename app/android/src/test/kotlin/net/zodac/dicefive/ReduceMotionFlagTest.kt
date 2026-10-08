@@ -6,15 +6,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import net.zodac.dicefive.device.AndroidPlatformServices
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /** "Remove animations" (animation scale 0) is what turns reduced motion on. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class ReduceMotionFlagTest {
 
     private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
@@ -24,20 +21,10 @@ class ReduceMotionFlagTest {
     }
 
     @Test
-    fun `an animation scale of zero is reduced motion`() = runBlocking {
-        setAnimationScale(0f)
-        assertTrue(AndroidPlatformServices(context).reduceMotion().first())
-    }
-
-    @Test
-    fun `the normal animation scale is not`() = runBlocking {
-        setAnimationScale(1f)
-        assertFalse(AndroidPlatformServices(context).reduceMotion().first())
-    }
-
-    @Test
-    fun `a slowed or sped up scale is not`() = runBlocking {
-        setAnimationScale(0.5f)
-        assertFalse(AndroidPlatformServices(context).reduceMotion().first())
+    fun `only an animation scale of zero is reduced motion - not the normal one - nor one slowed or sped up`() = runBlocking {
+        for ((scale, reduced) in listOf(0f to true, 1f to false, 0.5f to false, 2f to false)) {
+            setAnimationScale(scale)
+            assertEquals("scale $scale", reduced, AndroidPlatformServices(context).reduceMotion().first())
+        }
     }
 }

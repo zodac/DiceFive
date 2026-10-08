@@ -12,7 +12,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /**
  * What each "Animations" level lets move: decoration on its own only at High, the score pulse at High and Medium -
@@ -20,7 +19,6 @@ import org.robolectric.annotation.Config
  * the level.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class AnimationLevelMotionTest {
 
     @get:Rule
@@ -28,35 +26,26 @@ class AnimationLevelMotionTest {
 
     private data class Motion(val ambient: Boolean, val pulse: Boolean)
 
+    private val showcase = Showcase(compose)
+
     private fun motionAt(level: AnimationLevel, reduceMotion: Boolean = !level.gameplayMotion): Motion {
         var seen: Motion? = null
-        compose.setContent {
+        showcase.show {
             CompositionLocalProvider(LocalAnimationLevel provides level, LocalReduceMotion provides reduceMotion) {
                 seen = Motion(ambientMotion, scorePulse)
             }
         }
-        compose.waitForIdle()
         return checkNotNull(seen)
     }
 
     @Test
-    fun `high moves everything`() = assertEquals(Motion(ambient = true, pulse = true), motionAt(AnimationLevel.HIGH))
-
-    @Test
-    fun `medium stills decoration but keeps the score pulse`() = assertEquals(Motion(ambient = false, pulse = true), motionAt(AnimationLevel.MEDIUM))
-
-    @Test
-    fun `low stills decoration and the score pulse`() = assertEquals(Motion(ambient = false, pulse = false), motionAt(AnimationLevel.LOW))
-
-    @Test
-    fun `off stills everything`() = assertEquals(Motion(ambient = false, pulse = false), motionAt(AnimationLevel.OFF))
-
-    @Test
-    fun `reduced motion further down stills a high level too`() =
-        assertEquals(Motion(ambient = false, pulse = false), motionAt(AnimationLevel.HIGH, reduceMotion = true))
-
-    @Test
-    fun `only off stops the gameplay's own motion`() {
+    fun `high moves everything - medium keeps only the score pulse - low and off still both - as does reduced motion further down`() {
+        assertEquals(Motion(ambient = true, pulse = true), motionAt(AnimationLevel.HIGH))
+        assertEquals(Motion(ambient = false, pulse = true), motionAt(AnimationLevel.MEDIUM))
+        assertEquals(Motion(ambient = false, pulse = false), motionAt(AnimationLevel.LOW))
+        assertEquals(Motion(ambient = false, pulse = false), motionAt(AnimationLevel.OFF))
+        assertEquals("reduced motion further down stills a high level too", Motion(ambient = false, pulse = false), motionAt(AnimationLevel.HIGH, reduceMotion = true))
+        // Only off stops the gameplay's own motion.
         assertEquals(listOf(AnimationLevel.OFF), AnimationLevel.entries.filterNot { it.gameplayMotion })
     }
 }

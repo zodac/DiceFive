@@ -12,11 +12,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /** The Leaderboard's hidden warm-up draws both views from its made-up board without a repository, then goes away. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class ScoresWarmUpTest {
 
     @get:Rule

@@ -24,7 +24,7 @@ Each suite includes:
 
 ## How They Were Generated
 
-We utilize Robolectric's native graphics mode (`@GraphicsMode(GraphicsMode.Mode.NATIVE)`) combined with Compose UI testing rules (`createAndroidComposeRule<MainActivity>()`).
+We utilize Robolectric's native graphics mode (every unit test's, set in `app/android/src/test/resources/robolectric.properties`) combined with Compose UI testing rules (`createAndroidComposeRule<MainActivity>()`).
 
 The test class [StoreAssetGeneratorTest.kt](../app/android/src/test/kotlin/net/zodac/dicefive/StoreAssetGeneratorTest.kt):
 1. **Player Naming:** Names players `Player 1` and `Player 2` in database and game states.
@@ -42,6 +42,8 @@ To regenerate all store listing assets at any time:
 
 1. Run the asset generator test task via Gradle:
    ```bash
-   ./gradlew :app:android:testDebugUnitTest --tests net.zodac.dicefive.StoreAssetGeneratorTest
+   ./gradlew :app:android:testDebugUnitTest --tests net.zodac.dicefive.StoreAssetGeneratorTest -PgenerateStoreAssets
    ```
+   Without `-PgenerateStoreAssets` the generator is skipped: it checks nothing, so ordinary test runs (and CI) don't
+   pay for it.
 2. Inspect the output files in the root `assets/` folder.

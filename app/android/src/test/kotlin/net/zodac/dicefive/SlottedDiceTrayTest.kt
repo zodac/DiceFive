@@ -25,7 +25,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /**
  * DiceTray in a mode that rolls more dice than it holds (Stud's seven dice, five hold slots), on the
@@ -35,7 +34,6 @@ import org.robolectric.annotation.Config
  * one action each offers.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class SlottedDiceTrayTest {
 
     @get:Rule
@@ -46,8 +44,12 @@ class SlottedDiceTrayTest {
 
     private fun hasStateDescription(state: String) = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, state)
 
+    private val showcase = Showcase(compose)
+
     private fun showTray(dice: List<Die>, superuserModeActive: Boolean = false) {
-        compose.setContent {
+        toggled.clear()
+        cycled.clear()
+        showcase.show {
             DiceFiveTheme {
                 DiceTray(
                     dice = dice,
@@ -80,77 +82,52 @@ class SlottedDiceTrayTest {
         Offset(PADDING.dp.toPx() + inner() * (index + 0.5f) / 7, (PADDING + SLOT + SLOT_TO_MAT + MAT / 2).dp.toPx())
 
     @Test
-    fun `a tap in an unheld die's mat column holds it`() {
+    fun `a tap in an unheld die's mat column holds it - one on a slot lets its die go - and nothing else does a thing`() {
         showTray(dice())
-
         compose.onNodeWithTag(TRAY).performTouchInput { click(matColumn(6)) }
-
         assertEquals(listOf(6), toggled)
-    }
 
-    @Test
-    fun `a tap in a held die's mat column does nothing - it's in a slot`() {
+        // A held die's mat column does nothing - it's in a slot.
         showTray(dice(6 to 0))
-
         compose.onNodeWithTag(TRAY).performTouchInput { click(matColumn(6)) }
-
         assertEquals(emptyList<Int>(), toggled)
-    }
 
-    @Test
-    fun `with every slot full a tap on the mat holds nothing`() {
+        // With every slot full a tap on the mat holds nothing.
         showTray(dice(0 to 0, 1 to 1, 2 to 2, 3 to 3, 4 to 4))
-
         compose.onNodeWithTag(TRAY).performTouchInput { click(matColumn(5)) }
-
         assertEquals(emptyList<Int>(), toggled)
-    }
 
-    @Test
-    fun `a tap on a hold slot lets its die go - and an empty slot does nothing`() {
+        // A tap on a hold slot lets its die go - and an empty slot does nothing.
         showTray(dice(5 to 2))
-
         compose.onNodeWithTag(TRAY).performTouchInput {
             click(slot(2))
             click(slot(0))
         }
-
         assertEquals(listOf(5), toggled)
-    }
 
-    @Test
-    fun `in superuser mode a long press on a slot cycles its die's face`() {
+        // In superuser mode a long press on a slot cycles its die's face.
         showTray(dice(4 to 1), superuserModeActive = true)
-
         compose.mainClock.autoAdvance = false
         compose.onNodeWithTag(TRAY).performTouchInput { down(slot(1)) }
         compose.mainClock.advanceTimeBy(2_500)
         compose.onNodeWithTag(TRAY).performTouchInput { up() }
         compose.mainClock.autoAdvance = true
         compose.waitForIdle()
-
         assertEquals(listOf(4, 4), cycled)
         assertEquals(emptyList<Int>(), toggled)
     }
 
     @Test
-    fun `each slot says what's in it and lets it go - and each die on the mat offers to hold it`() {
+    fun `each slot says what's in it and lets it go - each die on the mat offers to hold it - unless the slots are full`() {
         showTray(dice(2 to 0))
-
         compose.onNodeWithContentDescription("Hold slot 2 of 5").assert(hasStateDescription("Empty"))
         compose.onNodeWithContentDescription("Die 1, 1").assert(hasStateDescription("Not held")).performSemanticsAction(SemanticsActions.OnClick)
-        compose.onNodeWithContentDescription("Hold slot 1 of 5, Die 3, 3").assert(hasStateDescription("Held"))
-            .performSemanticsAction(SemanticsActions.OnClick)
-
+        compose.onNodeWithContentDescription("Hold slot 1 of 5, Die 3, 3").assert(hasStateDescription("Held")).performSemanticsAction(SemanticsActions.OnClick)
         assertEquals(listOf(0, 2), toggled)
         // The held die is in its slot, not on the mat, so it isn't a node of its own there too.
         compose.onNodeWithContentDescription("Die 3, 3").assertDoesNotExist()
-    }
 
-    @Test
-    fun `with every slot full a die on the mat says so and offers no hold`() {
         showTray(dice(0 to 0, 1 to 1, 2 to 2, 3 to 3, 4 to 4))
-
         compose.onNodeWithContentDescription("Die 6, 6")
             .assert(hasStateDescription("Not held, hold slots full"))
             .assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))

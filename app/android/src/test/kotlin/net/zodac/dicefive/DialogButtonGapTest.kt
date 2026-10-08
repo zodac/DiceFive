@@ -18,14 +18,16 @@ import org.robolectric.annotation.Config
 
 /** The two buttons of a confirm/cancel dialog never touch, whichever way the app is laid out. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35], qualifiers = "w360dp-h800dp")
+@Config(qualifiers = "w360dp-h800dp")
 class DialogButtonGapTest {
 
     @get:Rule
     val compose = createComposeRule()
 
+    private val showcase = Showcase(compose)
+
     private fun gap(direction: LayoutDirection): Float {
-        compose.setContent {
+        showcase.show {
             DiceFiveTheme {
                 CompositionLocalProvider(LocalLayoutDirection provides direction) {
                     DiceFiveDialog(
@@ -41,14 +43,10 @@ class DialogButtonGapTest {
     }
 
     @Test
-    fun `buttons are apart left to right`() {
-        val gap = gap(LayoutDirection.Ltr)
-        assertTrue("gap $gap", gap >= 8f)
-    }
-
-    @Test
-    fun `buttons are apart right to left`() {
-        val gap = gap(LayoutDirection.Rtl)
-        assertTrue("gap $gap", gap >= 8f)
+    fun `the buttons are apart left to right and right to left`() {
+        for (direction in LayoutDirection.entries) {
+            val gap = gap(direction)
+            assertTrue("$direction gap $gap", gap >= 8f)
+        }
     }
 }

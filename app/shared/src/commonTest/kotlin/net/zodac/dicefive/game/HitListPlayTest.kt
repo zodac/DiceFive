@@ -38,7 +38,7 @@ class HitListPlayTest {
     }
 
     @Test
-    fun `every difficulty plays whole legal games - one box a turn - with and without Unlucky Dice`() {
+    fun `every difficulty plays whole legal games one box a turn with and without Unlucky Dice - Hard above Medium above Easy`() {
         for (unlucky in listOf(null, UnluckyDice(oddsPercent = 50, maxDice = 5))) for (difficulty in Difficulty.entries) {
             val random = Random(difficulty.ordinal + 3)
             var state = newGame(difficulty, seed = difficulty.ordinal, unluckyDice = unlucky)
@@ -59,17 +59,13 @@ class HitListPlayTest {
             assertEquals(13, turns, "$difficulty $unlucky")
             assertTrue(state.players.single().isScorecardComplete, "$difficulty $unlucky")
         }
-    }
 
-    @Test
-    fun `Hard outscores Medium - which outscores Easy - on average`() {
         fun average(difficulty: Difficulty): Double = (0 until AVERAGED_GAMES).map { seed ->
             val random = Random(seed)
             var state = newGame(difficulty, seed = seed + 1000)
             while (!state.isGameOver) state = AiTurnPlayer.playTurn(state, random)
             state.players.single().totalScore
         }.average()
-
         val easy = average(Difficulty.EASY)
         val medium = average(Difficulty.MEDIUM)
         val hard = average(Difficulty.HARD)
@@ -78,7 +74,7 @@ class HitListPlayTest {
     }
 
     @Test
-    fun `Medium and Hard take an exact hit in its own target`() {
+    fun `Medium and Hard stop rolling on an exact hit - and take it in its own target`() {
         for (difficulty in listOf(Difficulty.MEDIUM, Difficulty.HARD)) {
             val game = newGame(difficulty, seed = 5)
             for ((category, target) in game.hitList) {
@@ -86,20 +82,14 @@ class HitListPlayTest {
                 // Exact on another target too is possible - then either is fine, as long as it's an exact hit's points.
                 val state = game.copy(dice = dice, phase = TurnPhase.ROLLED, rollsRemaining = 0)
                 val chosen = AiTurnPlayer.chooseCategory(state)
-                val player = state.players.single()
                 assertTrue(chosen != ScoreCategory.ALIBI, "$difficulty put an exact hit in the Alibi")
-                assertTrue(ScoreCalculator.scoreFor(player, chosen, dice) >= target.exactPoints || chosen == category, "$difficulty $category")
+                assertTrue(ScoreCalculator.scoreFor(state.players.single(), chosen, dice) >= target.exactPoints || chosen == category, "$difficulty $category")
             }
-        }
-    }
 
-    @Test
-    fun `Medium and Hard stop rolling on an exact hit`() {
-        for (difficulty in listOf(Difficulty.MEDIUM, Difficulty.HARD)) {
-            val game = newGame(difficulty, seed = 6)
-            val target = game.hitList.values.maxBy { it.points }
-            val state = game.copy(dice = target.places.map { Die(value = it ?: 6) }, phase = TurnPhase.ROLLED, rollsRemaining = 2)
-            assertEquals(state.dice.indices.toSet(), AiTurnPlayer.chooseHolds(state), "$difficulty")
+            val stopping = newGame(difficulty, seed = 6)
+            val richest = stopping.hitList.values.maxBy { it.points }
+            val rolled = stopping.copy(dice = richest.places.map { Die(value = it ?: 6) }, phase = TurnPhase.ROLLED, rollsRemaining = 2)
+            assertEquals(rolled.dice.indices.toSet(), AiTurnPlayer.chooseHolds(rolled), "$difficulty")
         }
     }
 

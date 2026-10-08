@@ -37,7 +37,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
-import org.robolectric.annotation.GraphicsMode
 
 /**
  * Every frame keeps clear of the active tab's name, score, place and turn dot, on the narrowest phone the
@@ -48,8 +47,7 @@ import org.robolectric.annotation.GraphicsMode
  * fails here before anyone sees it on a phone.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35], qualifiers = "w360dp-h800dp-xxhdpi")
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(qualifiers = "w360dp-h800dp-xxhdpi")
 class ScoreFrameClearanceTest {
     @get:Rule val compose = createComposeRule()
 

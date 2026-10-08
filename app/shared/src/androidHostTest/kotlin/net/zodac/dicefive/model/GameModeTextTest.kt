@@ -13,15 +13,14 @@ class GameModeTextTest {
     private val locales = StringResourceFiles.all()
 
     @Test
-    fun `every mode has a name and a description in the base locale`() {
+    fun `every mode has a name and a description in the base locale - its name in the brand font's character set`() {
+        // Every mode has a name and a description in the base locale.
         val base = locales.getValue("values")
         val missing = GameMode.entries.flatMap { listOf("mode_${it.id}", "mode_${it.id}_description") }.filterNot { it in base }
 
         assertEquals(emptyList(), missing)
-    }
 
-    @Test
-    fun `every mode name is in the brand font's character set`() {
+        // Every mode name is in the brand font's character set.
         // The Leaderboard's mode cards set the name in Sora, which only holds ASCII and Latin-1.
         val outside = locales.filterKeys { it !in StringChecks.localesOutsideSora }.flatMap { (locale, strings) ->
             GameMode.entries.mapNotNull { mode -> strings["mode_${mode.id}"]?.takeIf { name -> !name.all { it.isInSoraFont() } }?.let { "$locale $it" } }

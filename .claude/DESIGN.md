@@ -910,7 +910,8 @@ iOS); anything that needs Android or a rendered screen is in `app/android/src/te
   unit tests can render a real screen and drive it with touches -
   `createComposeRule` (the `junit4.v2` one; the old one is deprecated, which
   fails the build) plus Espresso for any platform `View`s, with
-  `@Config(sdk = [35])` and `@GraphicsMode(NATIVE)` (see `LicensesDialogTest`).
+  native graphics on SDK 36 for every test, set once in `app/android/src/test/resources/robolectric.properties`
+  (see `LicensesDialogTest`).
   Good for reproducing crashes and checking touch handling; it does not
   simulate everything a device does (e.g. the platform's long-press text
   selection), so a real-device check still matters for those.
@@ -2186,8 +2187,9 @@ and its `GameMode` fields (`turnTimerSeconds`, `timeoutPick`, `autoRollAtTurnSta
       takes it as an optional argument. Standard Hard: 239.1 by estimate -> 252.4 by the table over
       400 seeded games. Quickfire (no rerolls) keeps the estimate for its category choice; no other mode
       has a table.
-- [x] **Drift guard**: `StandardPerfectPlayTableTest` (JVM-only, `androidHostTest`) solves the table
-      afresh (~20s) and fails if the bundled file differs; `-PregeneratePerfectPlayTable` makes the same
+- [x] **Drift guard**: `StandardPerfectPlayTableTest` (JVM-only, `androidHostTest`) re-works every 37th state of
+      the bundled table from its own values of the states after it (`mismatchedStates`, ~0.5s - a full solve is
+      ~15s) and fails if any comes out different (a 1-point rule change moves half the sample); `-PregeneratePerfectPlayTable` makes the same
       test rewrite it. It also pins perfect play's expectation (254-255) and a seeded 200-game average
       of at least 248 with the table. `AndroidAppContainerTest` reads it through the real container under
       Robolectric, from the APK's assets as on a device. The file is in `asset-sources.json` as the app's own work.
@@ -2546,3 +2548,37 @@ any page.
       `TextFitTest` now also fails on a cut-off tab label (checked to fail with equal thirds).
 - [ ] **Not seen on a device**: the two rows and TalkBack on them; the new Spanish and Arabic text (written here, not
       by a translator).
+
+### Phase 34 — Faster tests and a parallel release pipeline
+- [x] **Why**: the maintainer found the suite far too many tests and too slow. Measured first (per-class times in the
+      JUnit XML): of ~47s for the two test tasks, one test - re-solving Standard's perfect-play table - was 15s,
+      Robolectric's sandbox was being built twice (8 classes in native graphics, the rest in legacy), the cup
+      reduced-motion test spent most of its 9s reading pixels one native call at a time, and the store-asset generator
+      (no assertions) ran in every build. The ~730 pure-logic tests together took under 2s.
+- [x] **Perfect-play guard**: `StandardPerfectPlayTable.mismatchedStates` re-works every 37th state from the bundled
+      table's own values of the states after it, as `solve` did; the test checks that sample (~0.5s) instead of a full
+      solve. Checked: the regenerated table is byte-identical, and a 1-point Large Straight change fails 7,250 of the
+      ~14,500 sampled states.
+- [x] **Robolectric**: one sandbox - SDK 36 and native graphics for every test in `src/test/resources/robolectric.properties`,
+      instead of per-class `@Config(sdk = [35])` / `@GraphicsMode`. 37 was tried: it needs
+      `--add-exports=java.base/jdk.internal.access` (now in the root build file; 36 needs it too) and then its captured
+      frames lag a change under Robolectric 4.17, so 36 for now. Native text measurement exposed tests that leaned on
+      the legacy one-pixel text: three screens given a phone-sized qualifier, the Styles fit test's "a little too tall"
+      height moved from 1000dp to 820dp, and the Rules tab tests now tap a cut-off tab on its label, not under the
+      edge chevron (`RulesTabTaps.kt`) - the chevron's 48dp target covering the label's visible middle is by design.
+      Parallel test forks were measured and left off: each fork re-pays Robolectric's warm-up, so 1 to 4 forks saved
+      2s of 31 on 16 cores, and 6 or more were slower.
+- [x] **Fewer tests**: 984 -> 271 (shared 729 -> 186, Android 255 -> 85), every assertion kept. A test is now one
+      behaviour or one screen, its cases in sequence with comments; a JUnit `assertEquals` message or the loop
+      variable says which case failed. Robolectric tests that need several compositions use `Showcase`
+      (`src/test/.../Showcase.kt`): one `setContent`, each `show` composing its content afresh under a new key. Kept
+      apart only where a case needs its own `@Config` (locale, screen size) or a fresh activity's main looper.
+- [x] **Store assets**: `StoreAssetGeneratorTest` only runs with `-PgenerateStoreAssets` (see `ASSETS.md`).
+- [x] **Measured**: the two test tasks' forced re-run, 46s -> 25s locally (shared 19.7s -> 4.3s of test time, Android
+      40.5s -> 20.2s).
+- [x] **Release pipeline**: `release.yml`'s one job (setup, then ~4 min of unit tests, then ~2 min of lint, in turn) is
+      now parallel jobs - `android-tests`, `shared-tests` (with the iOS compile, the only one restoring Kotlin/Native),
+      `lint`, and `apk` (from 1.0.0 or `force_apk`) - each set up by the composite `.github/actions/build-setup`, with
+      a `release` job that runs only once every check has passed (the APK job may be skipped, not failed) and
+      publishes, attaching the APK passed to it as an artifact. ffmpeg is installed only where app:android's resources
+      are merged, and tries the runner's package lists before refreshing them. `update-dependencies.yml` is unchanged.

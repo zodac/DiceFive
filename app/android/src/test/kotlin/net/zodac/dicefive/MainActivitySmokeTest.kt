@@ -9,8 +9,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
-import org.robolectric.annotation.GraphicsMode
 
 /**
  * The real app, launched through [MainActivity] under Robolectric - the sandbox has no device or
@@ -20,8 +18,6 @@ import org.robolectric.annotation.GraphicsMode
  * shared BackHandler through the Activity.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class MainActivitySmokeTest {
 
     @get:Rule

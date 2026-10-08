@@ -80,84 +80,60 @@ class MenuViewModelTest {
     }
 
     @Test
-    fun `tapping the logo dice unlocks Not Those Dice`() = runTest {
+    fun `tapping the logo dice unlocks Not Those Dice - and with no repository is a no-op rather than a crash`() = runTest {
         val store = FakeAchievementStore()
         val viewModel = MenuViewModel(store)
-
         viewModel.onDiceTapped()
         advanceUntilIdle()
-
         assertTrue(Achievement.NOT_THOSE_DICE in store.unlocked, "NOT_THOSE_DICE should pop, got ${store.unlocked}")
+
+        MenuViewModel(achievementsRepository = null).onDiceTapped()
     }
 
     @Test
-    fun `tapping with no repository is a no-op - not a crash`() {
-        val viewModel = MenuViewModel(achievementsRepository = null)
+    fun `the logo follows the player's unlocked dice and cup picks - never flashing the defaults while they load`() = runTest {
+        // The defaults when there is no repository.
+        assertEquals(LogoStyles(DiceStyles.default, DiceCupStyles.default), MenuViewModel(settingsRepository = null).logoStyles.value)
 
-        viewModel.onDiceTapped()
-    }
-
-    @Test
-    fun `the logo is drawn in the defaults when there is no repository`() {
-        val viewModel = MenuViewModel(settingsRepository = null)
-
-        assertEquals(LogoStyles(DiceStyles.default, DiceCupStyles.default), viewModel.logoStyles.value)
-    }
-
-    @Test
-    fun `the logo has no styles until the saved picks load - never a flash of the defaults`() = runTest {
-        val settings = SettingsRepository(FakePreferencesStore())
-        settings.setDiceStyleId("barrel")
-        val viewModel = MenuViewModel(settingsRepository = settings)
-
-        assertNull(viewModel.logoStyles.value)
+        // No styles until the saved picks load - never a flash of the defaults.
+        val saved = SettingsRepository(FakePreferencesStore())
+        saved.setDiceStyleId("barrel")
+        val loading = MenuViewModel(settingsRepository = saved)
+        assertNull(loading.logoStyles.value)
         advanceUntilIdle()
-        assertEquals("barrel", viewModel.logoStyles.value?.dice?.id)
-    }
+        assertEquals("barrel", loading.logoStyles.value?.dice?.id)
 
-    @Test
-    fun `the logo is there from the start when the app's copy of the picks has already loaded`() = runTest {
+        // There from the start when the app's copy of the picks has already loaded - and following it.
         val loaded = MutableStateFlow<SavedStyles?>(SavedStyles("barrel", "casino_black", "midnight_felt", "tray_blue", AchievementsState()))
-        val viewModel = MenuViewModel(settingsRepository = SettingsRepository(FakePreferencesStore()), savedStyles = loaded)
-
-        assertEquals("barrel", viewModel.logoStyles.value?.dice?.id)
-        assertEquals("casino_black", viewModel.logoStyles.value?.cup?.id)
-
+        val preloaded = MenuViewModel(settingsRepository = SettingsRepository(FakePreferencesStore()), savedStyles = loaded)
+        assertEquals("barrel", preloaded.logoStyles.value?.dice?.id)
+        assertEquals("casino_black", preloaded.logoStyles.value?.cup?.id)
         loaded.value = loaded.value?.copy(diceStyleId = "ivory")
         advanceUntilIdle()
-        assertEquals("ivory", viewModel.logoStyles.value?.dice?.id)
-    }
+        assertEquals("ivory", preloaded.logoStyles.value?.dice?.id)
 
-    @Test
-    fun `the logo follows the player's dice and cup picks`() = runTest {
+        // It follows the player's dice and cup picks.
         val settings = SettingsRepository(FakePreferencesStore())
-        val viewModel = MenuViewModel(settingsRepository = settings)
+        val following = MenuViewModel(settingsRepository = settings)
         advanceUntilIdle()
-        assertEquals(LogoStyles(DiceStyles.default, DiceCupStyles.default), viewModel.logoStyles.value)
-
+        assertEquals(LogoStyles(DiceStyles.default, DiceCupStyles.default), following.logoStyles.value)
         settings.setDiceStyleId("barrel")
         settings.setDiceCupStyleId("casino_black")
         advanceUntilIdle()
+        assertEquals("barrel", following.logoStyles.value?.dice?.id)
+        assertEquals("casino_black", following.logoStyles.value?.cup?.id)
 
-        assertEquals("barrel", viewModel.logoStyles.value?.dice?.id)
-        assertEquals("casino_black", viewModel.logoStyles.value?.cup?.id)
-    }
-
-    @Test
-    fun `a pick whose style is locked is drawn as the default until it unlocks`() = runTest {
-        val settings = SettingsRepository(FakePreferencesStore())
+        // A pick whose style is locked is drawn as the default until it unlocks.
+        val lockedSettings = SettingsRepository(FakePreferencesStore())
         val store = FakeAchievementStore()
-        settings.setDiceStyleId("googly_ivory")
-        settings.setDiceCupStyleId("top_hat_black")
-        val viewModel = MenuViewModel(store, settings)
+        lockedSettings.setDiceStyleId("googly_ivory")
+        lockedSettings.setDiceCupStyleId("top_hat_black")
+        val locked = MenuViewModel(store, lockedSettings)
         advanceUntilIdle()
-        assertEquals(LogoStyles(DiceStyles.default, DiceCupStyles.default), viewModel.logoStyles.value)
-
-        val everything = Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }
-        store.record(everything.associateWith { 0L }, emptyMap())
+        assertEquals(LogoStyles(DiceStyles.default, DiceCupStyles.default), locked.logoStyles.value)
+        store.record(Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }.associateWith { 0L }, emptyMap())
         advanceUntilIdle()
-
-        assertEquals("googly_ivory", viewModel.logoStyles.value?.dice?.id)
-        assertEquals("top_hat_black", viewModel.logoStyles.value?.cup?.id)
+        assertEquals("googly_ivory", locked.logoStyles.value?.dice?.id)
+        assertEquals("top_hat_black", locked.logoStyles.value?.cup?.id)
     }
 }

@@ -25,81 +25,6 @@ class DieMotionTest {
         step(0L)
     }
 
-    @Test
-    fun aDieSpeedingUpToTheRightThrowsItsPupilsLeft() {
-        val motion = startedAt(Offset.Zero)
-        drive(motion, frames = 30) { frame ->
-            val seconds = frame * 0.016f
-            Offset(10f * seconds * seconds, 0f)
-        }
-        assertTrue(motion.pupils.all { it.x < -0.5f && it.getDistance() > 0.99f }, "${motion.pupils}")
-    }
-
-    @Test
-    fun pupilsNeverLeaveTheirSockets() {
-        val motion = startedAt(Offset.Zero)
-        drive(motion, frames = 60) { frame -> Offset(if (frame % 10 < 5) frame * 0.2f else 0f, frame * 0.1f) }
-        assertTrue(motion.pupils.all { it.getDistance() <= 1.0001f }, "${motion.pupils}")
-    }
-
-    @Test
-    fun pupilsAreThrownInTheDiesOwnFrame() {
-        // Turned a quarter clockwise, the die's own "down" points left across the mat - so speeding
-        // up to the right throws its pupils down its own face.
-        val motion = startedAt(Offset.Zero, yawDegrees = 90f)
-        drive(motion, frames = 30, yawDegrees = 90f) { frame ->
-            val seconds = frame * 0.016f
-            Offset(10f * seconds * seconds, 0f)
-        }
-        assertTrue(motion.pupils.all { it.y > 0.5f && it.getDistance() > 0.99f }, "${motion.pupils}")
-    }
-
-    @Test
-    fun pupilsSlideDownAFaceTippingOver() {
-        // Tipping away over its top edge raises its near edge, so its pupils slide to the top.
-        val motion = startedAt(Offset.Zero)
-        for (frame in 1..30) {
-            motion.moveTo(Offset.Zero, 0f, tipDegrees = 40f)
-            motion.step(frame * frameNanos)
-        }
-        assertTrue(motion.pupils.all { it.y < -0.5f && it.getDistance() > 0.99f }, "${motion.pupils}")
-    }
-
-    @Test
-    fun aDieBeingPutSomewhereElseDoesNotThrowItsPupils() {
-        val motion = startedAt(Offset.Zero)
-        val before = motion.pupils
-        drive(motion, frames = 3) { Offset(5f, 3f) }
-        assertEquals(before, motion.pupils)
-    }
-
-    @Test
-    fun itStopsOnceTheDieAndItsPupilsSettle() {
-        val motion = startedAt(Offset.Zero)
-        drive(motion, frames = 10) { frame -> Offset(frame * 0.1f, 0f) }
-        var frame = 10
-        var moving = true
-        while (moving && frame < 400) {
-            frame++
-            moving = motion.step(frame * frameNanos)
-        }
-        assertFalse(moving)
-        val settled = motion.pupils
-        motion.step((frame + 1) * frameNanos)
-        assertEquals(settled, motion.pupils)
-    }
-
-    @Test
-    fun movingWakesItAndStandingStillDoesNot() {
-        val motion = DieMotion(seed = 1, travel = 0.05f)
-        motion.moveTo(Offset(1f, 1f), 0f)
-        assertFalse(motion.awake)
-        motion.moveTo(Offset(1f, 1f), 0f)
-        assertFalse(motion.awake)
-        motion.moveTo(Offset(1.1f, 1f), 0f)
-        assertTrue(motion.awake)
-    }
-
     /** Steps [motion] on from [from] until it stops or [limit] frames pass; returns the frame it stopped on, or null. */
     private fun runUntilStill(motion: DieMotion, from: Int = 1, limit: Int = 2_000): Int? {
         for (frame in from until from + limit) {
@@ -109,46 +34,84 @@ class DieMotionTest {
     }
 
     @Test
-    fun aPhoneHeldUprightSettlesThePupilsAtTheBottomOfTheirSockets() {
-        val motion = startedAt(Offset.Zero)
-        motion.feel(Offset(0f, 1f))
+    fun theDiesMovementThrowsItsPupilsInItsOwnFrameWithinTheirSocketsUntilBothSettle() {
+        // A die speeding up to the right throws its pupils left.
+        val speeding = startedAt(Offset.Zero)
+        drive(speeding, frames = 30) { frame -> Offset(10f * (frame * 0.016f) * (frame * 0.016f), 0f) }
+        assertTrue(speeding.pupils.all { it.x < -0.5f && it.getDistance() > 0.99f }, "${speeding.pupils}")
 
-        assertTrue(motion.awake)
-        val stoppedAt = runUntilStill(motion)
-        assertTrue(stoppedAt != null, "the pupils should come to rest under a steady pull, not jitter forever")
-        assertTrue(motion.pupils.all { it.y > 0.95f }, "${motion.pupils}")
+        // Pupils never leave their sockets.
+        val jerky = startedAt(Offset.Zero)
+        drive(jerky, frames = 60) { frame -> Offset(if (frame % 10 < 5) frame * 0.2f else 0f, frame * 0.1f) }
+        assertTrue(jerky.pupils.all { it.getDistance() <= 1.0001f }, "${jerky.pupils}")
+
+        // They're thrown in the die's own frame: turned a quarter clockwise, its own "down" points left across the mat - so
+        // speeding up to the right throws its pupils down its own face.
+        val turned = startedAt(Offset.Zero, yawDegrees = 90f)
+        drive(turned, frames = 30, yawDegrees = 90f) { frame -> Offset(10f * (frame * 0.016f) * (frame * 0.016f), 0f) }
+        assertTrue(turned.pupils.all { it.y > 0.5f && it.getDistance() > 0.99f }, "${turned.pupils}")
+
+        // Tipping away over its top edge raises its near edge, so its pupils slide to the top.
+        val tipping = startedAt(Offset.Zero)
+        for (frame in 1..30) {
+            tipping.moveTo(Offset.Zero, 0f, tipDegrees = 40f)
+            tipping.step(frame * frameNanos)
+        }
+        assertTrue(tipping.pupils.all { it.y < -0.5f && it.getDistance() > 0.99f }, "${tipping.pupils}")
+
+        // A die being put somewhere else doesn't throw them.
+        val placed = startedAt(Offset.Zero)
+        val before = placed.pupils
+        drive(placed, frames = 3) { Offset(5f, 3f) }
+        assertEquals(before, placed.pupils)
+
+        // It stops once the die and its pupils settle.
+        val settling = startedAt(Offset.Zero)
+        drive(settling, frames = 10) { frame -> Offset(frame * 0.1f, 0f) }
+        val stoppedAt = runUntilStill(settling, from = 11, limit = 390)
+        assertTrue(stoppedAt != null)
+        val settled = settling.pupils
+        settling.step((stoppedAt + 1) * frameNanos)
+        assertEquals(settled, settling.pupils)
+
+        // Moving wakes it, and standing still doesn't.
+        val sleeping = DieMotion(seed = 1, travel = 0.05f)
+        sleeping.moveTo(Offset(1f, 1f), 0f)
+        assertFalse(sleeping.awake)
+        sleeping.moveTo(Offset(1f, 1f), 0f)
+        assertFalse(sleeping.awake)
+        sleeping.moveTo(Offset(1.1f, 1f), 0f)
+        assertTrue(sleeping.awake)
     }
 
     @Test
-    fun tippingThePhoneRightRollsThePupilsRight() {
-        val motion = startedAt(Offset.Zero)
-        motion.feel(Offset(1f, 0f))
-        runUntilStill(motion)
+    fun theDevicesPullRollsThePupilsToRestInTheDiesOwnFrameAndOnlyARealChangeWakesThem() {
+        // A phone held upright settles the pupils at the bottom of their sockets - coming to rest under a steady pull, not
+        // jittering forever.
+        val upright = startedAt(Offset.Zero)
+        upright.feel(Offset(0f, 1f))
+        assertTrue(upright.awake)
+        assertTrue(runUntilStill(upright) != null, "the pupils should come to rest under a steady pull, not jitter forever")
+        assertTrue(upright.pupils.all { it.y > 0.95f }, "${upright.pupils}")
 
-        assertTrue(motion.pupils.all { it.x > 0.95f }, "${motion.pupils}")
-    }
+        // Tipping the phone right rolls them right.
+        val tippedRight = startedAt(Offset.Zero)
+        tippedRight.feel(Offset(1f, 0f))
+        runUntilStill(tippedRight)
+        assertTrue(tippedRight.pupils.all { it.x > 0.95f }, "${tippedRight.pupils}")
 
-    @Test
-    fun theDevicePullIsTurnedIntoATiltedDiesOwnFrame() {
-        // Turned a quarter clockwise, the die's own "down" points left on screen - so a pull straight
-        // down the screen sends its pupils towards its own right-hand side (+x in its frame).
-        val motion = startedAt(Offset.Zero, yawDegrees = 90f)
-        motion.feel(Offset(0f, 1f))
-        runUntilStill(motion)
+        // Turned a quarter clockwise, the die's own "down" points left on screen - so a pull straight down the screen sends
+        // its pupils towards its own right-hand side (+x in its frame).
+        val turned = startedAt(Offset.Zero, yawDegrees = 90f)
+        turned.feel(Offset(0f, 1f))
+        runUntilStill(turned)
+        assertTrue(turned.pupils.all { it.x > 0.95f }, "${turned.pupils}")
 
-        assertTrue(motion.pupils.all { it.x > 0.95f }, "${motion.pupils}")
-    }
-
-    @Test
-    fun onlyAPullThatChangesEnoughWakesSettledPupils() {
-        val motion = startedAt(Offset.Zero)
-        motion.feel(Offset(0f, 1f))
-        assertTrue(runUntilStill(motion) != null)
-        motion.settle() // As follow() does once the pupils stop, putting it back to sleep.
-
-        motion.feel(Offset(0.01f, 1f))
-        assertFalse(motion.awake, "sensor noise on a still phone shouldn't keep the pupils going")
-        motion.feel(Offset(0.3f, 1f))
-        assertTrue(motion.awake)
+        // Only a pull that changes enough wakes settled pupils.
+        upright.settle() // As follow() does once the pupils stop, putting it back to sleep.
+        upright.feel(Offset(0.01f, 1f))
+        assertFalse(upright.awake, "sensor noise on a still phone shouldn't keep the pupils going")
+        upright.feel(Offset(0.3f, 1f))
+        assertTrue(upright.awake)
     }
 }

@@ -36,7 +36,6 @@ import org.robolectric.annotation.Config
  * smaller where it only just doesn't fit, full size where it fits, or where it would need to shrink too far.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class StylesPageFitTest {
 
     @get:Rule
@@ -79,7 +78,7 @@ class StylesPageFitTest {
     }
 
     @Test
-    @Config(qualifiers = "w393dp-h1000dp")
+    @Config(qualifiers = "w393dp-h820dp")
     fun `a page a little too tall for its screen opens shrunk just enough to fit`() {
         val (dieTile, lowest) = openAfterWarmUp()
         assertTrue("dice tile $dieTile", dieTile < 72f && dieTile >= 72f * 0.75f)

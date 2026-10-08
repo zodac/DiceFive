@@ -28,18 +28,15 @@ import net.zodac.dicefive.ui.game.ReadOnlyScoreboard
 import net.zodac.dicefive.ui.game.ScoreGrid
 import net.zodac.dicefive.ui.game.ScorecardReviewScreen
 import net.zodac.dicefive.ui.game.TotalsButton
-import net.zodac.dicefive.ui.game.TurnTimerBadge
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /** The words on the game screen that the other game tests don't reach: box and die names, action names, and what's drawn as text. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class GameTextTest {
 
     @get:Rule
@@ -48,46 +45,26 @@ class GameTextTest {
     private fun actionLabel(description: String) =
         compose.onNodeWithContentDescription(description).fetchSemanticsNode().config[SemanticsActions.OnClick].label
 
-    private fun showGrid(mode: GameMode, player: PlayerState, irish: Boolean = false, showPreview: Boolean = false, dice: List<Die> = listOf(Die(5), Die(5), Die(2), Die(3), Die(1))) {
-        compose.setContent {
-            DiceFiveTheme {
-                CompositionLocalProvider(LocalIrishTricolour provides irish) {
-                    ScoreGrid(
-                        categories = mode.categories,
-                        player = player,
-                        dice = dice,
-                        canScore = true,
-                        showPreview = showPreview,
-                        available = ScoreCategoryAll,
-                        onScoreCategory = {},
-                        modifier = Modifier.width(300.dp).height(380.dp),
-                    )
-                }
-            }
+    private val showcase = Showcase(compose)
+
+    private fun showGrid(mode: GameMode, player: PlayerState) = showcase.show {
+        DiceFiveTheme {
+            ScoreGrid(
+                categories = mode.categories,
+                player = player,
+                dice = listOf(Die(5), Die(5), Die(2), Die(3), Die(1)),
+                canScore = true,
+                showPreview = false,
+                available = ScoreCategory.entries.toSet(),
+                onScoreCategory = {},
+                modifier = Modifier.width(300.dp).height(380.dp),
+            )
         }
-    }
-
-    private val ScoreCategoryAll = ScoreCategory.entries.toSet()
-
-    @Test
-    fun `an empty box says it is open - and its tap is called Score`() {
-        showGrid(GameMode.STANDARD, PlayerState(name = "Tester", type = PlayerType.HUMAN))
-
-        compose.onNodeWithContentDescription("Fives").fetchSemanticsNode().config[SemanticsProperties.StateDescription].let { assertEquals("Open", it) }
-        assertEquals("Score", actionLabel("Fives"))
-    }
-
-    @Test
-    fun `a box switched off says Off`() {
-        val player = PlayerState(name = "Tester", type = PlayerType.HUMAN, gameMode = GameMode.QUICKFIRE)
-        showGrid(GameMode.QUICKFIRE, player.copy(disabledCategories = setOf(ScoreCategory.FIVES)))
-
-        compose.onNodeWithText("Off", useUnmergedTree = true).assertExists()
     }
 
     private fun showTricolourBoard(irish: Boolean) {
         val player = PlayerState(name = "Tester", type = PlayerType.HUMAN, gameMode = GameMode.TRICOLOUR)
-        compose.setContent {
+        showcase.show {
             DiceFiveTheme {
                 CompositionLocalProvider(LocalIrishTricolour provides irish) { ReadOnlyScoreboard(player = player, modifier = Modifier.width(400.dp)) }
             }
@@ -95,22 +72,37 @@ class GameTextTest {
     }
 
     @Test
-    fun `Tricolour's colour boxes are named by their colour`() {
+    fun `the scorecard's words - an open box and its Score tap, Off, the colour boxes, the totals and the review page's title`() {
+        // An empty box says it is open - and its tap is called Score.
+        showGrid(GameMode.STANDARD, PlayerState(name = "Tester", type = PlayerType.HUMAN))
+        assertEquals("Open", compose.onNodeWithContentDescription("Fives").fetchSemanticsNode().config[SemanticsProperties.StateDescription])
+        assertEquals("Score", actionLabel("Fives"))
+
+        // A box switched off says Off.
+        showGrid(GameMode.QUICKFIRE, PlayerState(name = "Tester", type = PlayerType.HUMAN, gameMode = GameMode.QUICKFIRE, disabledCategories = setOf(ScoreCategory.FIVES)))
+        compose.onNodeWithText("Off", useUnmergedTree = true).assertExists()
+
+        // Tricolour's colour boxes are named by their colour - and by Luck of the Irish in the flag's.
         showTricolourBoard(irish = false)
-
         listOf("Reds", "Yellows", "Blues", "Coloured House").forEach { compose.onNodeWithContentDescription(it).assertExists() }
-    }
-
-    @Test
-    fun `Luck of the Irish names them in the flag's colours`() {
         showTricolourBoard(irish = true)
-
         listOf("Greens", "Whites", "Oranges", "Coloured House").forEach { compose.onNodeWithContentDescription(it).assertExists() }
+
+        // The totals button's tap is called Show totals; the Hit List one says its targets and alibi.
+        showcase.show { DiceFiveTheme { TotalsButton(upperTotal = 70, upperBonus = 0, lowerTotal = 140) } }
+        assertEquals("Show totals", actionLabel("Totals"))
+        showcase.show { DiceFiveTheme { HitListTotalsButton(targetsTotal = 60, alibiTotal = 20) } }
+        assertEquals("Targets 60, alibi 20", compose.onNodeWithContentDescription("Totals").fetchSemanticsNode().config[SemanticsProperties.StateDescription])
+
+        // The scorecard review page is titled Scorecards.
+        val state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Tester")), GameMode.STANDARD)
+        showcase.show { DiceFiveTheme { ScorecardReviewScreen(state = state, onBack = {}) } }
+        compose.onNodeWithText("Scorecards").assertExists()
     }
 
     @Test
-    fun `a coloured die is named by its colour - and the tray's actions are called Hold and Release`() {
-        compose.setContent {
+    fun `the table's words - a coloured die and Hold and Release, a player's tab and View scorecard, and the CPU icon`() {
+        showcase.show {
             DiceFiveTheme {
                 DiceTray(
                     dice = listOf(Die(2, colour = DieColour.RED), Die(5, isHeld = true, colour = DieColour.BLUE), Die(3), Die(6), Die(1)),
@@ -123,48 +115,18 @@ class GameTextTest {
                 )
             }
         }
-
         assertEquals("Hold", actionLabel("Die 1, Red 2"))
         assertEquals("Release", actionLabel("Die 2, Blue 5"))
         compose.onNodeWithContentDescription("Die 3, 3").assertExists()
-    }
 
-    @Test
-    fun `a player's tab is called View scorecard - and says whose turn it is`() {
         val players = listOf("P1", "P2").map { PlayerState(name = it, type = PlayerType.HUMAN) }
-        compose.setContent {
+        showcase.show {
             DiceFiveTheme { PlayerHeaderBar(players = players, currentPlayerIndex = 0, viewedPlayerIndex = null, enabled = true, onPlayerTap = {}, modifier = Modifier.width(400.dp)) }
         }
-
         val tab = compose.onNode(hasContentDescription("P1").or(androidx.compose.ui.test.hasText("P1"))).fetchSemanticsNode().config
         assertEquals("View scorecard", tab[SemanticsActions.OnClick].label)
-    }
 
-    @Test
-    fun `the totals button's tap is called Show totals - for both card shapes`() {
-        compose.setContent { DiceFiveTheme { TotalsButton(upperTotal = 70, upperBonus = 0, lowerTotal = 140) } }
-        assertEquals("Show totals", actionLabel("Totals"))
-    }
-
-    @Test
-    fun `the Hit List totals button says its targets and alibi`() {
-        compose.setContent { DiceFiveTheme { HitListTotalsButton(targetsTotal = 60, alibiTotal = 20) } }
-
-        assertEquals("Targets 60, alibi 20", compose.onNodeWithContentDescription("Totals").fetchSemanticsNode().config[SemanticsProperties.StateDescription])
-    }
-
-    @Test
-    fun `a computer player's icon is called CPU`() {
-        compose.setContent { DiceFiveTheme { CpuPlayerIcon(size = 24.dp) } }
-
+        showcase.show { DiceFiveTheme { CpuPlayerIcon(size = 24.dp) } }
         compose.onNodeWithContentDescription("CPU").assertExists()
-    }
-
-    @Test
-    fun `the scorecard review page is titled Scorecards`() {
-        val state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Tester")), GameMode.STANDARD)
-        compose.setContent { DiceFiveTheme { ScorecardReviewScreen(state = state, onBack = {}) } }
-
-        compose.onNodeWithText("Scorecards").assertExists()
     }
 }

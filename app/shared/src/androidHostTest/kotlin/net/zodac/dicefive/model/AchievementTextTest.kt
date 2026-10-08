@@ -24,55 +24,35 @@ class AchievementTextTest {
         strings.filterKeys { it.startsWith("achievement_") && it.endsWith("_title") }.map { (key, title) -> Triple(locale, key, title) }
     }
 
-    @Test
-    fun `every achievement and category has its text in the base locale`() {
-        val base = locales.getValue("values")
-        val missing = Achievement.entries.flatMap { listOf("achievement_${it.name.lowercase()}_title", "achievement_${it.name.lowercase()}_description") } +
-            AchievementCategory.entries.map { "category_${it.name.lowercase()}" }
-
-        assertEquals(emptyList(), missing.filterNot { it in base })
-        assertEquals(Achievement.entries.size, titles.count { it.first == "values" })
-    }
-
     /** The longest a title may be in [locale]: its own `achievement_title_max_length`, else the base language's. */
     private fun capFor(locale: String): Int =
         (locales[locale]?.get("achievement_title_max_length") ?: locales.getValue("values").getValue("achievement_title_max_length")).toInt()
 
     @Test
-    fun `the base language's cap is the one the app is built around`() {
-        assertEquals(MAX_ACHIEVEMENT_TITLE_LENGTH, capFor("values"))
+    fun `every achievement and category has its text in the base locale - Easter Eggs in alphabetical order by title`() {
+        val base = locales.getValue("values")
+        val missing = Achievement.entries.flatMap { listOf("achievement_${it.name.lowercase()}_title", "achievement_${it.name.lowercase()}_description") } +
+            AchievementCategory.entries.map { "category_${it.name.lowercase()}" }
+        assertEquals(emptyList(), missing.filterNot { it in base })
+        assertEquals(Achievement.entries.size, titles.count { it.first == "values" })
+
+        // Easter Eggs have no ladder to run easiest-first, so they run alphabetically by title instead.
+        val easterEggs = Achievement.entries.filter { it.category == AchievementCategory.EASTER_EGGS }.map { base.getValue("achievement_${it.name.lowercase()}_title") }
+        assertEquals(easterEggs.sortedBy { it.lowercase() }, easterEggs)
     }
 
     @Test
-    fun `every title fits the banner's one line in its own language`() {
+    fun `every title fits the banner's one line in its own language - trimmed and in the brand font - the longest setting the cap`() {
+        // The base language's cap is the one the app is built around, and the longest title is the one that sets it.
+        assertEquals(MAX_ACHIEVEMENT_TITLE_LENGTH, capFor("values"))
+        assertEquals(MAX_ACHIEVEMENT_TITLE_LENGTH, titles.filter { it.first == "values" }.maxOf { it.third.length })
+
         val tooLong = titles.filter { it.third.length > capFor(it.first) }
         assertTrue(tooLong.isEmpty(), "Titles over their language's cap: ${tooLong.map { "${it.first} ${it.third} (${it.third.length} > ${capFor(it.first)})" }}")
-    }
-
-    @Test
-    fun `no title starts or ends with a space`() {
         val untrimmed = titles.filter { it.third != it.third.trim() }
         assertTrue(untrimmed.isEmpty(), "Untrimmed titles: ${untrimmed.map { it.third }}")
-    }
-
-    @Test
-    fun `the longest title is the one that sets the cap`() {
-        assertEquals(MAX_ACHIEVEMENT_TITLE_LENGTH, titles.filter { it.first == "values" }.maxOf { it.third.length })
-    }
-
-    @Test
-    fun `every title is in the brand font's character set`() {
         // The banner sets its title in Sora, which only holds ASCII and Latin-1 - anything else would draw in a second face.
         val outside = titles.filter { it.first !in StringChecks.localesOutsideSora }.filterNot { it.third.all { c -> c.isInSoraFont() } }
         assertTrue(outside.isEmpty(), "Titles Sora can't draw: ${outside.map { "${it.first} ${it.third}" }}")
-    }
-
-    /** Easter Eggs have no ladder to run easiest-first, so they run alphabetically by title instead. */
-    @Test
-    fun `Easter Eggs are in alphabetical order by title`() {
-        val base = locales.getValue("values")
-        val titles = Achievement.entries.filter { it.category == AchievementCategory.EASTER_EGGS }.map { base.getValue("achievement_${it.name.lowercase()}_title") }
-
-        assertEquals(titles.sortedBy { it.lowercase() }, titles)
     }
 }

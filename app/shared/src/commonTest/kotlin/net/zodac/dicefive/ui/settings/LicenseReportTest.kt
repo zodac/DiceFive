@@ -33,32 +33,25 @@ class LicenseReportTest {
     private val report = parseLicenseReport(librariesJson, "{}")
 
     @Test
-    fun `groups items by license - most-used license first - items alphabetical`() {
+    fun `items are grouped by license - most-used first - alphabetical within - each kind counted - with copyright and website`() {
         assertEquals(listOf("Apache License 2.0", "BSD 3-Clause", "CC0"), report.groups.map { it.name })
         assertEquals(listOf("alpha", "Zeta"), report.groups[0].components.map { it.name })
         assertEquals("Apache text", report.groups[0].text)
-    }
-
-    @Test
-    fun `a license nothing shipped uses is left out`() {
+        // A license nothing shipped uses is left out.
         assertFalse(report.groups.any { it.name == "MIT License" })
-    }
 
-    @Test
-    fun `only a description that is a copyright notice is shown as one`() {
+        // Only a description that is a copyright notice is shown as one.
         assertNull(report.groups[0].components.first { it.name == "alpha" }.copyright)
         assertEquals("Copyright 2008 Example Inc.", report.groups[1].components.first { it.name == "Proto" }.copyright)
-    }
+        // The website is carried through for linking.
+        assertEquals("https://zeta.example", report.groups[0].components.first { it.name == "Zeta" }.website)
+        assertNull(report.groups[0].components.first { it.name == "alpha" }.website)
 
-    @Test
-    fun `a licence counts each kind of item - not everything as a library`() {
+        // A licence counts each kind of item - not everything as a library.
         assertEquals(listOf(ComponentKind.LIBRARY to 2), report.groups[0].kindCounts)
         assertEquals(listOf(ComponentKind.LIBRARY to 1, ComponentKind.FONT to 1), report.groups[1].kindCounts)
         assertEquals(listOf(ComponentKind.SOUND to 2), report.groups[2].kindCounts)
-    }
-
-    @Test
-    fun `one license shared by a library - a font - a sound and an image counts each kind`() {
+        // One license shared by a library, a font, a sound and an image counts each kind.
         val mixed = parseLicenseReport(
             """
             {
@@ -73,47 +66,23 @@ class LicenseReportTest {
             }
             """.trimIndent(),
             "{}",
-        )
-
-        val group = mixed.groups.single()
-        assertEquals(5, group.components.size)
-        assertEquals(
-            listOf(ComponentKind.LIBRARY to 2, ComponentKind.FONT to 1, ComponentKind.SOUND to 1, ComponentKind.IMAGE to 1),
-            group.kindCounts,
-        )
-    }
-
-    @Test
-    fun `an untagged or unknown tag is a library`() {
+        ).groups.single()
+        assertEquals(5, mixed.components.size)
+        assertEquals(listOf(ComponentKind.LIBRARY to 2, ComponentKind.FONT to 1, ComponentKind.SOUND to 1, ComponentKind.IMAGE to 1), mixed.kindCounts)
+        // An untagged or unknown tag is a library.
         assertEquals(ComponentKind.LIBRARY, ComponentKind.fromTag(null))
         assertEquals(ComponentKind.LIBRARY, ComponentKind.fromTag("something-new"))
         assertEquals(ComponentKind.SOUND, ComponentKind.fromTag("sound"))
     }
 
     @Test
-    fun `website is carried through for linking`() {
-        assertEquals("https://zeta.example", report.groups[0].components.first { it.name == "Zeta" }.website)
-        assertNull(report.groups[0].components.first { it.name == "alpha" }.website)
-    }
-
-    @Test
-    fun `notices are read in library order`() {
+    fun `notices are read in library order - and urls become links without the punctuation that follows them`() {
         val withNotices = parseLicenseReport(librariesJson, """{"z:lib": "Z notice", "a:lib": "A notice"}""")
+        assertEquals(listOf(ThirdPartyNotice("a:lib", "A notice"), ThirdPartyNotice("z:lib", "Z notice")), withNotices.notices)
 
-        assertEquals(
-            listOf(ThirdPartyNotice("a:lib", "A notice"), ThirdPartyNotice("z:lib", "Z notice")),
-            withNotices.notices,
-        )
-    }
-
-    @Test
-    fun `urls become links - without the punctuation that follows them`() {
         val text = "See https://freesound.org/s/140147/. Also (https://example.com/a) and http://x.org, done."
-
         val linked = linkifyUrls(text)
-
         assertEquals(text, linked.text)
-        val urls = linked.getStringAnnotations(URL_TAG, 0, linked.length).map { it.item }
-        assertEquals(listOf("https://freesound.org/s/140147/", "https://example.com/a", "http://x.org"), urls)
+        assertEquals(listOf("https://freesound.org/s/140147/", "https://example.com/a", "http://x.org"), linked.getStringAnnotations(URL_TAG, 0, linked.length).map { it.item })
     }
 }

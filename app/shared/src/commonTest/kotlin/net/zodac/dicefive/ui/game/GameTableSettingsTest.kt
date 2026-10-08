@@ -72,36 +72,27 @@ class GameTableSettingsTest {
     }
 
     @Test
-    fun `the table has no settings until they load - never a flash of the defaults`() = runTest {
+    fun `the table has no settings until they load - never a flash of the defaults - and draws a locked pick as the default until it unlocks`() = runTest {
+        // With no repository the table is the defaults straight away.
+        assertEquals(TableSettings(), GameViewModel().tableSettings.value)
+
         val settings = SettingsRepository(TablePreferencesStore())
         settings.setDiceStyleId("barrel")
         settings.setSoundEnabled(false)
         val viewModel = GameViewModel(settingsRepository = settings, achievementsRepository = TableAchievementStore())
-
         assertNull(viewModel.tableSettings.value)
         advanceUntilIdle()
         assertEquals("barrel", viewModel.tableSettings.value?.visualTheme?.diceStyle?.id)
         assertEquals(false, viewModel.tableSettings.value?.soundEnabled)
-    }
 
-    @Test
-    fun `a locked pick is drawn as the default until its style unlocks`() = runTest {
-        val settings = SettingsRepository(TablePreferencesStore())
+        val lockedSettings = SettingsRepository(TablePreferencesStore())
         val achievements = TableAchievementStore()
-        settings.setDiceStyleId("googly_ivory")
-        val viewModel = GameViewModel(settingsRepository = settings, achievementsRepository = achievements)
+        lockedSettings.setDiceStyleId("googly_ivory")
+        val locked = GameViewModel(settingsRepository = lockedSettings, achievementsRepository = achievements)
         advanceUntilIdle()
-        assertEquals(DiceStyles.default, viewModel.tableSettings.value?.visualTheme?.diceStyle)
-
-        val everything = Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }
-        achievements.record(everything.associateWith { 0L }, emptyMap())
+        assertEquals(DiceStyles.default, locked.tableSettings.value?.visualTheme?.diceStyle)
+        achievements.record(Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }.associateWith { 0L }, emptyMap())
         advanceUntilIdle()
-
-        assertEquals("googly_ivory", viewModel.tableSettings.value?.visualTheme?.diceStyle?.id)
-    }
-
-    @Test
-    fun `with no repository the table is the defaults straight away`() {
-        assertEquals(TableSettings(), GameViewModel().tableSettings.value)
+        assertEquals("googly_ivory", locked.tableSettings.value?.visualTheme?.diceStyle?.id)
     }
 }
