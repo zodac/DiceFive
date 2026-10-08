@@ -1,0 +1,77 @@
+name: Build setup
+description: >-
+  Everything a Gradle job here needs before it runs: the JDK, the Android SDK packages, Gradle with its
+  caches - and, when asked, ffmpeg (for app:android's audio) and the Kotlin/Native toolchain (for
+  app:shared's iOS compile). Shared by release.yml's parallel jobs; runs after actions/checkout.
+
+inputs:
+  ffmpeg:
+    description: "Install ffmpeg - normalizeOggAudio needs it for anything that merges app:android's resources"
+    default: "false"
+  kotlin-native:
+    description: "Restore and save the Kotlin/Native toolchain - only app:shared's iOS tasks use it"
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    # The Java version is owned by the Gradle toolchain (gradle/gradle-daemon-jvm.properties), which
+    # Gradle would download itself; installing the same JDK here just saves it that download. Read
+    # at run time rather than pinned here, so a JDK move never has to edit this file.
+    - name: Read the Java version from the Gradle toolchain
+      id: java
+      shell: bash
+      run: echo "version=$(grep -oP '^toolchainVersion=\K[0-9]+' gradle/gradle-daemon-jvm.properties)" >> "$GITHUB_OUTPUT"
+
+    - name: Set up JDK
+      uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: ${{ steps.java.outputs.version }}
+
+    # ubuntu-latest runners ship a full Android SDK pre-installed (cmdline-tools, licenses already
+    # accepted) - just install the specific packages this project builds against, which
+    # android_sdk_packages.sh reads from app/android/build.gradle.kts (not pinned here, for the same
+    # reason as the JDK above). (android-actions/setup-android@v3 was tried here but fails on current
+    # runners: it also tries to install the long-removed legacy "tools" package.)
+    - name: Install required Android SDK packages
+      shell: bash
+      run: |
+        ANDROID_CLI="$ANDROID_HOME/cmdline-tools/latest/bin/android"
+        read -ra packages <<< "$(.github/scripts/android_sdk_packages.sh)"
+        if [ -x "$ANDROID_CLI" ]; then
+          "$ANDROID_CLI" sdk install --sdk="$ANDROID_HOME" "${packages[@]}"
+        else
+          # The runner's cmdline-tools predate the android CLI, so sdkmanager is the only installer.
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null
+          "$SDKMANAGER" "${packages[@]}"
+        fi
+
+    # The normalizeOggAudio task shells out to ffmpeg to peak-normalise the .ogg clips in
+    # app/android/src/main/rawAudioSource/, and ubuntu-latest runners don't ship it. The runner's own
+    # package lists are tried first - refreshing them is most of this step's time - and only refreshed
+    # if they can't find it.
+    - name: Install ffmpeg
+      if: inputs.ffmpeg == 'true'
+      shell: bash
+      run: |
+        sudo apt-get install -y --no-install-recommends ffmpeg || {
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+        }
+
+    - name: Set up Gradle
+      uses: gradle/actions/setup-gradle@v6
+
+    # The iOS compile (the check that app:shared's common code stays platform-neutral) needs the
+    # Kotlin/Native toolchain - a few hundred MB that Gradle otherwise downloads into ~/.konan on every
+    # run. setup-gradle doesn't cache it. Keyed on the version catalog, where the Kotlin version lives;
+    # a partial match still restores the last toolchain, so only a Kotlin bump downloads a new one.
+    - name: Cache Kotlin/Native toolchain
+      if: inputs.kotlin-native == 'true'
+      uses: actions/cache@v6
+      with:
+        path: ~/.konan
+        key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+        restore-keys: konan-${{ runner.os }}-
