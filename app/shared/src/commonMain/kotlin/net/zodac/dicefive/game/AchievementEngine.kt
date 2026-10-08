@@ -12,6 +12,7 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ProgressStyle
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.hasGrownSunflower
 import net.zodac.dicefive.model.isPhilWoodward
 
@@ -508,6 +509,12 @@ object AchievementEngine {
         val playerOneNeverRolledTwice = !context.playerOneTookExtraRoll && state.rollsPerTurn > 1
         award(Achievement.IMPATIENT, playerOneNeverRolledTwice)
         award(Achievement.NATURALLY_GIFTED, multiplayer && playerOneNeverRolledTwice && humanWon)
+        // Every modifier at once, in a mode of its own: the timer, both roll modifiers, Extended Scores and Unlucky Dice.
+        award(
+            Achievement.EVERYTHING_EVERYWHERE,
+            multiplayer && humanWon && state.gameMode != GameMode.STANDARD && state.turnTimer != TurnTimer.NONE &&
+                state.rollModifiers.rollsPerTurn != null && state.rollModifiers.storedRolls && state.extendedScores && state.unluckyDice != null,
+        )
 
         // Exactly 69/100 - thresholds the running total can overshoot, so they can only be judged
         // now, unlike the 200-or-more/300-or-more rungs further up the ladder.

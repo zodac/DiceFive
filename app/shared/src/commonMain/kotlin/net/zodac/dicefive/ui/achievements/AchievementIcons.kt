@@ -222,6 +222,8 @@ val Achievement.icon: ImageVector
         Achievement.BEAT_THREE_AI -> Icons.Filled.EmojiPeople
         Achievement.NATURAL_INTELLIGENCE -> Icons.Filled.SmartToy
         Achievement.NATURALLY_GIFTED -> Icons.Filled.Spa
+        // Drawn for this app: a googly eye, its pupil off to one side.
+        Achievement.EVERYTHING_EVERYWHERE -> GOOGLY_EYE_ICON
 
         // ---- Game modes ---------------------------------------------------------------------------
         // A wedge-shaped sports car trailing fire - a nod to the film the title quotes, drawn from

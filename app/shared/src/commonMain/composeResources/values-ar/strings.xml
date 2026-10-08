@@ -151,6 +151,8 @@
     <string name="achievement_natural_intelligence_description">افز في لعبة من أربعة لاعبين ضد ثلاثة لاعبين صعبين من الحاسوب</string>
     <string name="achievement_naturally_gifted_title">موهبة فطرية</string>
     <string name="achievement_naturally_gifted_description">افز في لعبة دون أن ترمي أكثر من مرة واحدة في أي دور</string>
+    <string name="achievement_everything_everywhere_title">كل شيء في كل مكان في آن واحد</string>
+    <string name="achievement_everything_everywhere_description">افز في لعبة بنمط غير القياسي مع تفعيل جميع المعدّلات</string>
     <string name="achievement_non_standard_mode_title">حيث نذهب لا نحتاج إلى قواعد</string>
     <string name="achievement_non_standard_mode_description">ابدأ لعبة بنمط غير القياسي</string>
     <string name="achievement_tricolour_win_title">ملوّن بالثلاثة</string>

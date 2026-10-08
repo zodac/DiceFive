@@ -107,3 +107,14 @@ internal val STRUCK_THROUGH_63_ICON: ImageVector by lazy {
         line("M5.2,5.2L18.8,18.8", 1.8f)
     }
 }
+
+/**
+ * A googly eye: a ring round a loose pupil that has slid down to the lower left. For Everything Everywhere All At Once, the
+ * win with every modifier piled on. The pupil is solid, so it reads at 22dp; the ring is a line, so the white shows.
+ */
+internal val GOOGLY_EYE_ICON: ImageVector by lazy {
+    icon("GooglyEye") {
+        line(circle(12f, 12f, 9.5f), 1.8f)
+        fill(circle(9.2f, 14.2f, 4.2f))
+    }
+}
