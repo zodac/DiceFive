@@ -48,7 +48,8 @@ kotlin {
 
 baselineProfile {
     // Generate on whatever device adb sees (a physical phone, or a userdebug emulator) - no managed
-    // devices, since neither CI nor the sandbox has one. Run by hand: see .claude/DESIGN.md Phase 19.
+    // devices: the release workflow and the sandbox each boot an emulator of their own
+    // (.github/scripts/ci_emulator.sh, sandbox/emulator.sh). See .claude/DESIGN.md Phase 19.
     useConnectedDevices = true
 }
 

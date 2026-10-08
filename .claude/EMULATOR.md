@@ -18,7 +18,9 @@ it outlives the shell that started it; **stop it when finished**, since it holds
 ## When to use it
 
 - **Running or debugging the Baseline Profile journey** (`app/baselineprofile`) - the main use. It turns
-  a "tell the maintainer, wait for their phone" loop into minutes. See `DESIGN.md` Phase 19.
+  a "tell the maintainer, wait for their phone" loop into minutes. See `DESIGN.md` Phase 19. The release
+  workflow runs the same journey on an emulator of its own (below), so a journey that fails here will fail
+  the release too.
 - **Looking at the real app**: install a build, launch it, `screenshot`, Read the PNG. Useful to check a
   layout or what a UiAutomator selector will see. (Rendering is software-drawn: fine for layout and
   behaviour, not for judging smoothness or art quality - for art, follow `STYLE_ART.md`.)
@@ -40,15 +42,27 @@ sandbox/emulator.sh stop
   only showed up on laps 4 and 5.
 - The `adb uninstall` matters: a debug build installed earlier has a higher version code than the
   benchmark build, so the benchmark install is refused ("version downgrade") and the run is a no-op.
-- The generated profile lands in `app/android/src/release/generated/baselineProfiles/` (untracked until
-  committed). It is an output, not a source file: **do not commit one generated here by accident**
-  unless that is the point of the task.
+- The generated profile lands in `app/android/src/release/generated/baselineProfiles/`, which is
+  gitignored: the release workflow generates its own for every APK (below), so one made here is only for
+  benchmarking or checking the journey locally.
 - A failing step names itself (`Baseline Profile journey: 'X' never appeared`); the report is
   `app/baselineprofile/build/reports/androidTests/connected/nonMinifiedRelease/index.html`. Reproduce it
   here, `screenshot` to see the screen it was stuck on, fix `Journeys.kt`, rerun.
 - The four benchmark tests show as skipped during `generateBaselineProfile`. That is expected: the
   plugin sets `androidx.benchmark.enabledRules=BaselineProfile`, and `MacrobenchmarkRule` then assumes
   itself out. Not a failure.
+
+## The same journey in the release workflow
+
+`release.yml`'s `baseline-profile` job runs this journey (10 laps) on a GitHub-hosted runner for every
+release APK, and the `apk` job builds with the profile it makes. `.github/scripts/ci_emulator.sh` is
+`emulator.sh`'s CI twin: same Android version (it reads `ENV EMULATOR_API` from `sandbox/Dockerfile` at run
+time), same Google APIs image, same `-gpu swiftshader_indirect` boot and the same Vulkan renderer setting
+after it. It differs only where the runner does: `/dev/kvm` is opened with a udev rule, packages go in
+without `sudo` (the runner's SDK is its own), and the emulator and image are cached by the workflow
+(keyed on the API level). A failing run is retried once on a rebooted emulator, then fails the release;
+the `baseline-profile-report` artifact holds the test report, a screenshot per failed attempt and the
+emulator's log. To debug one, reproduce it here as above - the two emulators are the same.
 
 ## What `start` does, and why
 
