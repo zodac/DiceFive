@@ -62,7 +62,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     }
 
     val turnTimer: Flow<TurnTimer> = dataStore.data.map { prefs ->
-        prefs[TURN_TIMER_KEY]?.let { raw -> runCatching { TurnTimer.valueOf(raw) }.getOrNull() } ?: TurnTimer.NONE
+        prefs[TURN_TIMER_KEY]?.let { raw -> TurnTimer.parse(raw) } ?: TurnTimer.NONE
     }
 
     suspend fun setTurnTimer(turnTimer: TurnTimer) {
@@ -76,7 +76,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
      */
     val turnTimerLength: Flow<TurnTimer> = dataStore.data.map { prefs ->
         val stored = prefs[TURN_TIMER_LENGTH_KEY] ?: prefs[TURN_TIMER_KEY]
-        stored?.let { raw -> runCatching { TurnTimer.valueOf(raw) }.getOrNull() }?.takeIf { it != TurnTimer.NONE } ?: TurnTimer.SECONDS_60
+        stored?.let { raw -> TurnTimer.parse(raw) }?.takeIf { it != TurnTimer.NONE } ?: TurnTimer.SECONDS_60
     }
 
     suspend fun setTurnTimerLength(length: TurnTimer) {

@@ -7,13 +7,16 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.ui.common.ChoicePicker
+import net.zodac.dicefive.ui.common.ModifierCustomValue
 import net.zodac.dicefive.ui.common.ModifierPicker
 import net.zodac.dicefive.ui.common.ModifierSetting
 import net.zodac.dicefive.ui.common.ModifierStepper
@@ -153,5 +156,40 @@ class ChoicePickerTest {
         compose.onNodeWithText("Extras").assertDoesNotExist()
         compose.onNodeWithText("1 enabled").assertExists()
         compose.onNodeWithText("Off the board", substring = true).assertExists()
+    }
+
+    @Test
+    fun aTypedValueUnderTheLeastKeepsTheModifierPickerOpenUntilItIsMended() {
+        var value by mutableStateOf(1)
+        var custom by mutableStateOf<Int?>(null)
+        compose.setContent {
+            DiceFiveTheme {
+                ModifierPicker(
+                    title = "Mods",
+                    description = "Extras",
+                    modifiers = listOf(
+                        ModifierSetting(
+                            "Timer", "A limit", true, {}, listOf("30s", "60s"), value, { value = it },
+                            customValue = ModifierCustomValue(
+                                active = custom != null, text = "", label = "Custom time", unit = "s", maxDigits = 3,
+                                onValueChange = { custom = it }, min = 5, belowMinMessage = "At least 5",
+                            ),
+                        ),
+                    ),
+                )
+            }
+        }
+        compose.onNodeWithText("1 enabled").performClick()
+        compose.onNodeWithContentDescription("Custom time").performTextInput("1")
+        // Under the least: Done is off, and is not passed on as the value.
+        compose.onNodeWithText("Done").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Back").assertDoesNotExist()
+        assertEquals(null, custom)
+        compose.onNodeWithContentDescription("Custom time").performTextInput("5")
+        compose.onNodeWithText("Done").assertIsEnabled()
+        compose.onNodeWithContentDescription("Back").assertExists()
+        assertEquals(15, custom)
+        compose.onNodeWithText("Done").performClick()
+        compose.onNodeWithText("Done").assertDoesNotExist()
     }
 }

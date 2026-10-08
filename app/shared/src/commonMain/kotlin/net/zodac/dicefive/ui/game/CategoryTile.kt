@@ -100,6 +100,8 @@ fun CategoryTile(
     wide: Boolean = false,
     // A square of this side instead of the usual size: 5x, over two rows, when nothing sits under it.
     squareSize: Dp? = null,
+    // With [squareSize], a different height: the tile is [squareSize] wide and this tall.
+    squareHeight: Dp? = null,
     compact: Boolean = false,
     scored: Boolean = false,
     /** Switched off for this game (see [net.zodac.dicefive.model.PlayerState.disabledCategories]): drawn as an empty, dashed outline with a slash through it. */
@@ -157,7 +159,7 @@ fun CategoryTile(
 
     Box(
         modifier = modifier
-            .then(if (wide) Modifier.height(tileSize) else Modifier.size(tileSize))
+            .then(if (wide) Modifier.height(tileSize) else if (squareSize != null && squareHeight != null) Modifier.size(squareSize, squareHeight) else Modifier.size(tileSize))
             .clip(shape)
             .background(Brush.linearGradient(flashedColors))
             .then(

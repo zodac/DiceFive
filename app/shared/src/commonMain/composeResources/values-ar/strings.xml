@@ -191,8 +191,6 @@
     <string name="achievement_low_rolls_description">أنهِ لعبة بأقل من ٢٠ نقطة</string>
     <string name="achievement_probability_never_heard_of_her_title">الاحتمالات؟ لم أسمع بها</string>
     <string name="achievement_probability_never_heard_of_her_description">ادخل دورك الأخير وأنت تحتاج حجر نرد واحدًا لتحصل على مكافأتك، ثم أخفق</string>
-    <string name="achievement_out_of_time_title">نفد الوقت</string>
-    <string name="achievement_out_of_time_description">لا تسجّل نتيجة ضمن الحد الزمني</string>
     <string name="achievement_i_did_it_my_way_title">فعلتها على طريقتي</string>
     <string name="achievement_i_did_it_my_way_description">خصّص لعبة قبل أن تبدأها</string>
     <string name="achievement_commitment_issues_title">صعوبة الالتزام</string>
@@ -596,6 +594,9 @@
     <string name="setup_timer_description">حد زمني لكل دور كامل</string>
     <string name="setup_timer_none">بلا مؤقّت</string>
     <string name="setup_timer_seconds">%1$d ث</string>
+    <string name="setup_timer_custom_field">مدة الدور المخصّصة بالثواني</string>
+    <string name="setup_timer_custom_min">%1$s ثوانٍ على الأقل</string>
+    <string name="setup_timer_unit">ث</string>
     <string name="setup_rolls_title">عدد الرميات</string>
     <string name="setup_rolls_description">كم رمية يحصل عليها كل دور</string>
     <string name="setup_rolls_stepper">الرميات في الدور</string>
@@ -1030,7 +1031,7 @@
     <string name="rules_modifiers_2">*المعدّلات* للمتعة فقط. لا تُسجَّل نتائج اللعبة التي شُغّل فيها أي معدّل في *لوحة المتصدرين*، لكنها تُحتسب في *الإحصائيات*.</string>
     <string name="rules_turn_timer_title">مؤقّت الدور</string>
     <string name="rules_turn_timer_tab">مؤقّت الدور</string>
-    <string name="rules_turn_timer_1">يضع *مؤقّت الدور* حدًا لما يملكه كل لاعب من وقت لإنهاء دوره (لا كل رمية). اختر **٣٠** أو **٦٠** أو **١٢٠** ثانية. تعرض شارة الوقت المتبقي وتتحول إلى الأحمر كلما نفد.</string>
+    <string name="rules_turn_timer_1">يضع *مؤقّت الدور* حدًا لما يملكه كل لاعب من وقت لإنهاء دوره (لا كل رمية). اختر **٣٠** أو **٦٠** أو **١٢٠** ثانية. ويمكنك اختياريًا تحديد قيمتك الخاصة بين **٥** ث و**٩٩٩** ث. سيبدأ الوقت المتبقي بالوميض باللون الأحمر عندما تتبقى ٥ ثوانٍ.</string>
     <string name="rules_turn_timer_2">إذا نفد وقت لاعب، تُسجَّل رميته نيابةً عنه في الفئة المفتوحة التي تساوي فيها أقل قيمة (أول فئة في بطاقة النتائج إن تساوت عدة فئات).</string>
     <string name="rules_number_of_rolls_title">عدد الرميات</string>
     <string name="rules_number_of_rolls_tab">عدد الرميات</string>

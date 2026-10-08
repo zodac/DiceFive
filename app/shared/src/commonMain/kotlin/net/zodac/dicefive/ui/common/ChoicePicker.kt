@@ -9,12 +9,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +26,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -32,22 +35,32 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.CollectionInfo
 import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -55,15 +68,18 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.collectionInfo
 import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_cancel
@@ -146,13 +162,15 @@ private fun PickerDialog(
     onDismissRequest: () -> Unit,
     listState: LazyListState,
     itemSpacing: Dp = 4.dp,
+    closeEnabled: Boolean = true,
     items: LazyListScope.() -> Unit,
 ) {
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = fullScreenDialogProperties(),
     ) {
-        ScreenScaffold(title = title, onBack = onDismissRequest) {
+        // No back arrow while the picker can't close (see ModifierPicker).
+        ScreenScaffold(title = title, onBack = onDismissRequest.takeIf { closeEnabled }) {
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 LazyColumn(
                     state = listState,
@@ -164,7 +182,7 @@ private fun PickerDialog(
                 )
                 LazyListScrollbar(listState)
             }
-            Button(onClick = onDismissRequest, modifier = Modifier.fillMaxWidth()) { Text(closeLabel) }
+            Button(onClick = onDismissRequest, enabled = closeEnabled, modifier = Modifier.fillMaxWidth()) { Text(closeLabel) }
         }
     }
 }
@@ -267,6 +285,27 @@ class ModifierSetting(
     val steppers: List<ModifierStepper> = emptyList(),
     /** A value typed in, for one that has no short list of choices. */
     val numberField: ModifierNumberField? = null,
+    /** A value typed in beside [valueLabels] on their row, for a length the choices don't hold. */
+    val customValue: ModifierCustomValue? = null,
+)
+
+/**
+ * A number typed in on the same row as a [ModifierSetting]'s [valueLabels]. [active] is whether the typed number is the value in use (no
+ * label is then selected); [text] is what the field starts with, empty while it isn't. Typing something makes it the value, so
+ * [onValueChange] is handed the number, or null once the field is empty or zero - the caller then returns to a label. Choosing a
+ * label clears the field. A number typed under [min] is left in the field, outlined in red, and not passed on: what was in use stays in use, and the picker will not close until it is changed. Only digits are taken, up to [maxDigits]; [unit] follows them, and [label] is what a screen reader calls the field.
+ */
+class ModifierCustomValue(
+    val active: Boolean,
+    val text: String,
+    val label: String,
+    val unit: String,
+    val maxDigits: Int,
+    val onValueChange: (Int?) -> Unit,
+    /** The least a value can be: a smaller number typed is marked in the field and not passed on. */
+    val min: Int = 1,
+    /** What a screen reader is told while the number typed is under [min]. */
+    val belowMinMessage: String = "",
 )
 
 /**
@@ -330,26 +369,33 @@ fun ModifierPicker(
         modifier = modifier,
     )
     if (open) {
+        // The modifiers whose typed value is not one it can take: the picker stays open (Done, the back arrow, the back
+        // gesture) until each is mended or its modifier is switched off.
+        val invalid = remember { mutableStateMapOf<Int, Boolean>() }
+        val blocked = modifiers.withIndex().any { (index, setting) -> setting.enabled && invalid[index] == true }
         PickerDialog(
             title = title,
             collectionSize = modifiers.size,
             closeLabel = stringResource(Res.string.common_done),
-            onDismissRequest = { open = false },
+            onDismissRequest = { if (!blocked) open = false },
             listState = rememberLazyListState(),
             // The New Game form's gap between its cards.
             itemSpacing = 10.dp,
+            closeEnabled = !blocked,
         ) {
             itemsIndexed(modifiers) { index, setting ->
-                ModifierRow(setting, Modifier.semantics { collectionItemInfo = CollectionItemInfo(index, 1, 0, 1) })
+                ModifierRow(setting, onInvalidChange = { invalid[index] = it }, modifier = Modifier.semantics { collectionItemInfo = CollectionItemInfo(index, 1, 0, 1) })
             }
         }
     }
 }
 
 @Composable
-private fun ModifierRow(setting: ModifierSetting, modifier: Modifier = Modifier) {
+private fun ModifierRow(setting: ModifierSetting, onInvalidChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     val unlocked = setting.lockedNote == null
     val reduceMotion = LocalReduceMotion.current
+    // Counts taps on a label, which empty the typed field beside them.
+    var labelTaps by remember { mutableIntStateOf(0) }
     // A card per modifier, padded like the New Game screen's cards.
     Card(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -377,15 +423,27 @@ private fun ModifierRow(setting: ModifierSetting, modifier: Modifier = Modifier)
                         ModifierNumberFieldRow(field, enabled = unlocked, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                     }
                     if (setting.valueLabels.isNotEmpty()) {
-                        SegmentedChoiceRow(
-                            options = setting.valueLabels.indices.toList(),
-                            selected = setting.selectedValue,
-                            onSelect = setting.onValueSelect,
-                            label = { setting.valueLabels[it] },
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            enabled = unlocked,
-                            brandFont = true,
-                        )
+                        val custom = setting.customValue
+                        val choices = @Composable { choiceModifier: Modifier ->
+                            SegmentedChoiceRow(
+                                options = setting.valueLabels.indices.toList(),
+                                // None selected while the typed number is the value.
+                                selected = if (custom?.active == true) -1 else setting.selectedValue,
+                                onSelect = { labelTaps++; setting.onValueSelect(it) },
+                                label = { setting.valueLabels[it] },
+                                modifier = choiceModifier,
+                                enabled = unlocked,
+                                brandFont = true,
+                            )
+                        }
+                        if (custom == null) {
+                            choices(Modifier.fillMaxWidth().padding(top = 8.dp))
+                        } else {
+                            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                choices(Modifier.weight(CUSTOM_CHOICES_WEIGHT))
+                                ModifierCustomValueField(custom, labelTaps = labelTaps, onInvalidChange = onInvalidChange, enabled = unlocked, modifier = Modifier.weight(CUSTOM_FIELD_WEIGHT))
+                            }
+                        }
                     }
                 }
             }
@@ -441,6 +499,70 @@ private fun ModifierNumberFieldRow(field: ModifierNumberField, enabled: Boolean,
         modifier = modifier,
     )
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModifierCustomValueField(custom: ModifierCustomValue, labelTaps: Int, onInvalidChange: (Boolean) -> Unit, enabled: Boolean, modifier: Modifier = Modifier) {
+    var text by rememberSaveable { mutableStateOf(custom.text) }
+    // Choosing a label (or the caller going back to one) empties the field; it is the value in use or it is blank.
+    LaunchedEffect(custom.active, labelTaps) { if (!custom.active && text.isNotEmpty()) text = "" }
+    // The value is set like the preset buttons' labels beside it; only the hint is smaller.
+    val valueStyle = MaterialTheme.typography.labelLarge.copy(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold, color = LocalContentColor.current)
+    val interactionSource = remember { MutableInteractionSource() }
+    // Under the least a value can be: in use as the least, shown as typed, and marked.
+    val belowMin = text.map { it.digitToInt() }.joinToString("").toIntOrNull()?.let { it < custom.min } == true
+    // Told up so the picker can stay open while it is, and not once this field has gone (its modifier switched off).
+    val currentOnInvalidChange by rememberUpdatedState(onInvalidChange)
+    LaunchedEffect(belowMin) { currentOnInvalidChange(belowMin) }
+    DisposableEffect(Unit) { onDispose { currentOnInvalidChange(false) } }
+    // Built on the basic field so it can be as tall as the preset buttons beside it (an outlined field is 56dp at least).
+    BasicTextField(
+        value = text,
+        onValueChange = { typed ->
+            // Any script's digits are taken, and read as the number they are.
+            val digits = typed.filter { it.isDigit() }.take(custom.maxDigits)
+            val number = digits.map { it.digitToInt() }.joinToString("").toIntOrNull()?.takeIf { it > 0 }
+            // Nothing usable typed (blank, or only zeros): the field is blank and the caller is back on a label.
+            text = if (number == null) "" else digits
+            // Under the least, it stays as typed and marked, and what was in use stays in use: nothing is taken from it.
+            if (number == null || number >= custom.min) custom.onValueChange(number)
+        },
+        enabled = enabled,
+        singleLine = true,
+        textStyle = valueStyle,
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        interactionSource = interactionSource,
+        modifier = modifier
+            .height(CUSTOM_FIELD_HEIGHT)
+            .semantics {
+                contentDescription = custom.label
+                if (belowMin) error(custom.belowMinMessage)
+            },
+        decorationBox = { innerTextField ->
+            OutlinedTextFieldDefaults.DecorationBox(
+                value = text,
+                innerTextField = innerTextField,
+                enabled = enabled,
+                singleLine = true,
+                isError = belowMin,
+                visualTransformation = VisualTransformation.None,
+                interactionSource = interactionSource,
+                
+                suffix = { if (text.isNotEmpty()) Text(custom.unit, style = valueStyle) },
+                contentPadding = PaddingValues(horizontal = 12.dp),
+                container = { OutlinedTextFieldDefaults.Container(enabled = enabled, isError = belowMin, interactionSource = interactionSource) },
+            )
+        },
+    )
+}
+
+/** As tall as the preset buttons beside it. */
+private val CUSTOM_FIELD_HEIGHT = 40.dp
+
+/** The shares of the turn timer's row taken by its preset buttons and by the field beside them. */
+private const val CUSTOM_CHOICES_WEIGHT = 3f
+private const val CUSTOM_FIELD_WEIGHT = 1.6f
 
 /** How long a modifier's values take to open beneath its switch, or close again. */
 private const val MODIFIER_VALUES_MILLIS = 220

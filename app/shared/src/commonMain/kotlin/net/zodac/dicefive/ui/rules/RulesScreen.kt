@@ -99,6 +99,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -830,7 +831,7 @@ private fun GroupTabRow(currentGroup: Int, onSelect: (Int) -> Unit) {
     // A real Box, so the chevrons' align lands on their actual parent (see UI.md's gotchas).
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val tabWidths = groupTabWidths(groupLabels, constraints.maxWidth)
-        KeepTabInView(scrollState, placements) { currentGroup }
+        KeepTabInView(scrollState, placements) { currentGroup.toFloat() }
         PrimaryScrollableTabRow(
             // Never changes, so the row never re-centres itself - see KeepTabInView. The indicator and each tab's
             // selected state follow currentGroup themselves.
@@ -884,32 +885,38 @@ private fun PageTabRow(pagerState: PagerState, group: Int, onSelect: (Int) -> Un
     val placements = remember(group) { TabPlacements() }
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val reduceMotion = LocalReduceMotion.current
+    val coroutineScope = rememberCoroutineScope()
     // A tap snaps the pager straight to its page (animating the pages would cost a frame of two whole pages), but the
     // indicator slides there through the tabs in between, as a swipe would carry it: this holds where it is while
     // it does, and the pager's own position is shown the rest of the time.
     val tapSlide = remember(group) { Animatable(0f) }
     var tapSliding by remember(group) { mutableStateOf(false) }
-    var tapRequest by remember(group) { mutableStateOf<TapSlide?>(null) }
     // Where the indicator is, in tabs from the group's first: read in layout and by KeepTabInView, never in composition.
     val indicatorPosition = { if (tapSliding) tapSlide.value else pagerState.currentPage + pagerState.currentPageOffsetFraction - groupStart }
-    LaunchedEffect(tapRequest) {
-        val request = tapRequest ?: return@LaunchedEffect
-        try {
-            tapSlide.snapTo(request.from)
-            tapSliding = true
-            if (!reduceMotion) {
-                val millis = (TAP_SLIDE_BASE_MILLIS + TAP_SLIDE_PER_TAB_MILLIS * abs(request.to - request.from)).coerceAtMost(TAP_SLIDE_MAX_MILLIS)
-                tapSlide.animateTo(request.to, tween(millis.toInt(), easing = FastOutSlowInEasing))
+    // Runs in the tap itself, with the indicator pinned where it was *before* the pager moves: starting it from an effect
+    // instead let the pager's jump reach the indicator first, which showed it at the new tab for a frame before sliding.
+    val slideTo: (Int) -> Unit = { page ->
+        val from = indicatorPosition()
+        coroutineScope.launch {
+            try {
+                tapSlide.snapTo(from)
+                tapSliding = true
+                onSelect(page)
+                if (!reduceMotion) {
+                    val to = (page - groupStart).toFloat()
+                    val millis = (TAP_SLIDE_BASE_MILLIS + TAP_SLIDE_PER_TAB_MILLIS * abs(to - from)).coerceAtMost(TAP_SLIDE_MAX_MILLIS)
+                    tapSlide.animateTo(to, tween(millis.toInt(), easing = FastOutSlowInEasing))
+                }
+            } finally {
+                // Back to following the pager - which is already on the page, so nothing moves.
+                tapSliding = false
             }
-        } finally {
-            // Back to following the pager - which is already on the page, so nothing moves.
-            tapSliding = false
         }
     }
     // A real Box, so the chevrons' align lands on their actual parent (see UI.md's gotchas).
     Box(modifier = Modifier.fillMaxWidth()) {
         // Follows the indicator, so the row scrolls along with it as it does through a swipe, rather than ahead of it.
-        KeepTabInView(scrollState, placements) { indicatorPosition().roundToInt() }
+        KeepTabInView(scrollState, placements) { indicatorPosition() }
         SecondaryScrollableTabRow(
             // Never changes, so the row never re-centres itself - see KeepTabInView. The indicator follows the pager,
             // and each tab's selected state the current page.
@@ -939,10 +946,7 @@ private fun PageTabRow(pagerState: PagerState, group: Int, onSelect: (Int) -> Un
                 val selected by remember(page) { derivedStateOf { pagerState.currentPage == page } }
                 Tab(
                     selected = selected,
-                    onClick = {
-                        tapRequest = TapSlide(from = indicatorPosition(), to = (page - groupStart).toFloat())
-                        onSelect(page)
-                    },
+                    onClick = { slideTo(page) },
                     text = { Text(text = stringResource(rulesPage.tabLabel), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     modifier = remember(placements, index, rtl) { Modifier.rowTab(placements, index, rtl) },
                 )
@@ -952,10 +956,6 @@ private fun PageTabRow(pagerState: PagerState, group: Int, onSelect: (Int) -> Un
         TabScrollChevron(scrollState = scrollState, forward = true, modifier = Modifier.align(Alignment.CenterEnd))
     }
 }
-
-/** A tap on a page tab: the indicator slides [from] where it was [to] the tab, both in tabs from the group's first. Not a
- * data class, so a second tap on the same tab is still a new request. */
-private class TapSlide(val from: Float, val to: Float)
 
 /** How long the indicator takes to slide to a tapped tab: this much, plus [TAP_SLIDE_PER_TAB_MILLIS] for each tab it passes, up to [TAP_SLIDE_MAX_MILLIS]. */
 private const val TAP_SLIDE_BASE_MILLIS = 160f
@@ -1443,14 +1443,21 @@ private fun Modifier.recordPlacement(placements: TabPlacements, index: Int, rtl:
  * (as the page itself snaps), so there's never a scroll under the next tap.
  */
 @Composable
-private fun KeepTabInView(scrollState: ScrollState, placements: TabPlacements, selected: () -> Int) {
+private fun KeepTabInView(scrollState: ScrollState, placements: TabPlacements, selected: () -> Float) {
     val edge = with(LocalDensity.current) { (TAB_EDGE_CLEAR + TAB_EDGE_FADE).roundToPx() }
     LaunchedEffect(scrollState, placements) {
-        snapshotFlow(selected).collectLatest { index ->
-            // Placed by the next frame, if the row (or this tab) is new.
-            withFrameNanos { }
-            val start = placements.starts[index] ?: return@collectLatest
-            val end = placements.ends[index] ?: return@collectLatest
+        snapshotFlow(selected).collectLatest { position ->
+            // Between two tabs while the indicator is on its way: the tab it is passing, as far along as it is, so a row that
+            // has to scroll goes smoothly with the indicator instead of jumping a tab's width as each tab is passed.
+            val first = floor(position).toInt()
+            val fraction = position - first
+            var bounds = placements.boundsAt(first, fraction)
+            if (bounds == null) {
+                // Placed by the next frame, if the row (or this tab) is new.
+                withFrameNanos { }
+                bounds = placements.boundsAt(first, fraction) ?: return@collectLatest
+            }
+            val (start, end) = bounds
             val viewport = scrollState.viewportSize
             // Each end's fade (and chevron) only covers the row while there's more beyond it.
             val visibleStart = scrollState.value + if (scrollState.value > 0) edge else 0
@@ -1464,6 +1471,16 @@ private fun KeepTabInView(scrollState: ScrollState, placements: TabPlacements, s
             scrollState.scrollTo(target.coerceIn(0, scrollState.maxValue))
         }
     }
+}
+
+/** The start and end of the place [fraction] of the way from tab [index] to the next, or null if either isn't placed yet. */
+private fun TabPlacements.boundsAt(index: Int, fraction: Float): Pair<Int, Int>? {
+    val start = starts[index] ?: return null
+    val end = ends[index] ?: return null
+    if (fraction <= 0f) return start to end
+    val nextStart = starts[index + 1] ?: return start to end
+    val nextEnd = ends[index + 1] ?: return start to end
+    return (start + (nextStart - start) * fraction).roundToInt() to (end + (nextEnd - end) * fraction).roundToInt()
 }
 
 /** The group row's indicator, as thick as the stock one - named so the divider can centre itself on it. */

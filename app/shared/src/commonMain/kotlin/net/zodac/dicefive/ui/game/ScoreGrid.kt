@@ -118,7 +118,27 @@ internal class BoardLayout(
 ) {
     val rowCount: Int
         get() = leftRows.size
+
+    /**
+     * How many rows the featured box takes: one, wide, or two, as a large tile. Two when nothing is under it, or when the board
+     * has [MIN_CUP_ROWS] rows left for the cup once the boxes under it have moved down two rows.
+     */
+    val featuredRows: Int
+        get() = if (sideRows.isEmpty() || rowCount - 1 - (LARGE_FEATURED_ROWS + sideRows.size) >= MIN_CUP_ROWS) LARGE_FEATURED_ROWS else 1
+
+    /** The row the dice cup starts in: under the boxes beneath the featured box, and never above the fourth row. */
+    val cupFirstRow: Int
+        get() = maxOf(CUP_FIRST_ROW, featuredRows + sideRows.size)
 }
+
+/** The rows a large featured tile takes. */
+private const val LARGE_FEATURED_ROWS = 2
+
+/** The fewest rows that are tall enough for the dice cup: its square is [CUP_SIZE] and a row is never shorter than a compact tile. */
+private const val MIN_CUP_ROWS = 3
+
+/** The first of the board rows the dice cup sits in, on a board where the featured box is one row and the boxes under it two. */
+private const val CUP_FIRST_ROW = 3
 
 /** The Extended Scores boxes under the 5x tile, by row. */
 private val EXTENDED_SIDE_ROWS = listOf(listOf(ScoreCategory.EVENS, ScoreCategory.ODDS), listOf(ScoreCategory.TWO_PAIR))
@@ -142,11 +162,19 @@ internal fun boardLayout(categories: List<ScoreCategory>): BoardLayout {
  * enough to fit one per row inside [padding] top and bottom. The dice cup is no shorter for it: the right
  * pane has free rows for it to take (see [DiceCupPanel]).
  */
-internal fun scoreBoardHeight(categories: List<ScoreCategory>, padding: Dp): Dp {
-    val rows = boardLayout(categories).rowCount
+internal fun scoreBoardHeight(categories: List<ScoreCategory>, padding: Dp): Dp = boardHeightForRows(boardLayout(categories).rowCount, padding)
+
+private fun boardHeightForRows(rows: Int, padding: Dp): Dp {
     if (rows <= REGULAR_GRID_ROWS) return REGULAR_BOARD_HEIGHT
     return maxOf(REGULAR_BOARD_HEIGHT, (COMPACT_TILE_SIZE + GRID_ROW_SPACING) * rows - GRID_ROW_SPACING + padding * 2)
 }
+
+/**
+ * The widest the large 5x tile gets: as wide as Standard's is tall, from the top of its first row of tiles to the bottom of
+ * its second. Its height is always that of the card's own two rows (see [DiceCupPanel]); a narrow pane makes it narrower.
+ */
+internal val FEATURED_MAX_WIDTH: Dp =
+    (REGULAR_BOARD_HEIGHT - BOARD_PADDING * 2 - GRID_ROW_SPACING * (REGULAR_GRID_ROWS - 1)) / REGULAR_GRID_ROWS + REGULAR_TILE_SIZE + GRID_ROW_SPACING
 
 /** The grid's tile size for [rowCount] rows - regular for Standard's six, compact beyond that. */
 internal fun gridTileSize(rowCount: Int): Dp = if (rowCount > REGULAR_GRID_ROWS) COMPACT_TILE_SIZE else REGULAR_TILE_SIZE
@@ -244,6 +272,8 @@ internal fun CategoryCell(
     wide: Boolean = false,
     // A square tile of this side, with its score beside it, for 5x over two rows.
     squareSize: Dp? = null,
+    // With [squareSize], a different height: the tile is [squareSize] wide and this tall.
+    squareHeight: Dp? = null,
     compact: Boolean = false,
 ) {
     // Where a box can be scored before the hand is whole, the hand it would be scored with: the best completion of the held dice.
@@ -351,6 +381,7 @@ internal fun CategoryCell(
             flashing = flashing,
             wide = wide,
             squareSize = squareSize,
+            squareHeight = squareHeight,
             compact = compact,
             scored = boxFull,
             disabled = switchedOff,
@@ -388,7 +419,7 @@ internal fun CategoryCell(
                 bonusAmount = if (!wide && (fiveOfAKindBonusCount > 0 || fiveOfAKindTileBonusPreview)) pendingBonusAmount else 0,
                 // No taller than the tile beside it - see StackedScores.
                 maxHeight = when {
-                    squareSize != null -> squareSize
+                    squareSize != null -> squareHeight ?: squareSize
                     compact -> COMPACT_TILE_SIZE
                     else -> REGULAR_TILE_SIZE
                 },

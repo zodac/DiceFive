@@ -1019,7 +1019,6 @@ class GameViewModel(
         applyGameState(GameEngine.commitScore(state, category))
         if (isPlayerOneTurn) {
             playerOneTimeouts++
-            unlockAchievements(setOf(Achievement.OUT_OF_TIME))
         }
     }
 

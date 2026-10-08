@@ -42,7 +42,7 @@ import net.zodac.dicefive.ui.theme.color
 
 /** Inset of the score-grid + cup section's content. Its height is fixed per game mode (see
  * [scoreBoardHeight]), so its two columns line up row-for-row. */
-private val BOARD_PADDING = 14.dp
+internal val BOARD_PADDING = 14.dp
 
 /** How tall the score board is for a card of [categories], padding and all - see [scoreBoardHeight]. */
 internal fun gameBoardHeight(categories: List<ScoreCategory>): Dp = scoreBoardHeight(categories, BOARD_PADDING)
