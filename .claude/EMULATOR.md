@@ -48,6 +48,14 @@ sandbox/emulator.sh stop
 - A failing step names itself (`Baseline Profile journey: 'X' never appeared`); the report is
   `app/baselineprofile/build/reports/androidTests/connected/nonMinifiedRelease/index.html`. Reproduce it
   here, `screenshot` to see the screen it was stuck on, fix `Journeys.kt`, rerun.
+- **Write journey steps for a slow device.** On a hosted runner each UiAutomator lookup took 2-4 s
+  (here, well under one), so: wait for things rather than checking once (`hasText` only after an
+  `await`); open menu screens with `openFromMenu`, which retries until the menu's "DiceFive" wordmark is
+  gone (a screen's title is no proof - the menu has a button of the same name - and a back press on the
+  menu leaves the app); and don't race anything that times out on its own (the 4 s achievement banner
+  is hunted with UiAutomator's idle wait cut short, and pressed by position). To shake a change out,
+  pin the emulator and two busy loops to two cores - `taskset -c 0-1` on both, with `ci_emulator.sh`
+  as below - and run two laps: slower than the runner, so what passes there passes in CI.
 - The four benchmark tests show as skipped during `generateBaselineProfile`. That is expected: the
   plugin sets `androidx.benchmark.enabledRules=BaselineProfile`, and `MacrobenchmarkRule` then assumes
   itself out. Not a failure.
