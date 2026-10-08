@@ -6,6 +6,7 @@
 <resources>
 
     <string name="common_locale">es-ES</string>
+    <string name="app_name">DiceFive</string>
     <string name="common_timestamp_pattern">MMM dd, yyyy HH:mm</string>
     <string name="common_clauses_join">%1$s, %2$s</string>
     <string name="common_sentences_join">%1$s %2$s</string>
@@ -358,17 +359,17 @@
     <string name="about_title">Acerca de</string>
     <string name="about_close_cd">Cerrar Acerca de</string>
     <string name="about_author_heading">Autor</string>
-    <string name="about_author_body">DiceFive está creado por `zodac`.</string>
+    <string name="about_author_body">%1$s está creado por `zodac`.</string>
     <string name="about_author_link">Código fuente en GitHub</string>
     <string name="about_inspiration_heading">Inspiración</string>
-    <string name="about_inspiration_body">DiceFive se inspiró en `Dice Me Online`, creado por `Arturo Gutierrez`.</string>
+    <string name="about_inspiration_body">%1$s se inspiró en `Dice Me Online`, creado por `Arturo Gutierrez`.</string>
     <string name="about_inspiration_link">Dice Me Online en Google Play</string>
     <string name="about_privacy_heading">Privacidad</string>
-    <string name="about_privacy_body">DiceFive no guarda datos de usuario. Tus partidas, puntuaciones y ajustes se quedan en este dispositivo, y no hay anuncios, analíticas ni seguimiento.</string>
+    <string name="about_privacy_body">%1$s no guarda datos de usuario. Tus partidas, puntuaciones y ajustes se quedan en este dispositivo, y no hay anuncios, analíticas ni seguimiento.</string>
     <string name="about_privacy_link">Política de privacidad completa</string>
     <string name="licences_title">Licencias</string>
     <string name="licences_close_cd">Cerrar licencias</string>
-    <string name="licences_intro">DiceFive está hecho con el software de código abierto, las fuentes y los sonidos que aparecen a continuación, cada uno usado bajo la licencia con la que figura.</string>
+    <string name="licences_intro">%1$s está hecho con el software de código abierto, las fuentes y los sonidos que aparecen a continuación, cada uno usado bajo la licencia con la que figura.</string>
     <string name="licences_show_text">Mostrar el texto de la licencia</string>
     <string name="licences_hide_text">Ocultar el texto de la licencia</string>
     <string name="licences_notices_title">Avisos</string>
@@ -824,7 +825,7 @@
     <string name="achievements_banner_unlocked_spoken">Logro desbloqueado: %1$s. %2$s</string>
     <string name="achievements_banner_unlocked_style_spoken">Logro desbloqueado: %1$s. %2$s. Desbloquea un estilo</string>
     <string name="achievements_banner_progress_spoken">%1$s: %2$s de %3$s</string>
-    <string name="rules_how_to_play_title">Cómo se juega a DiceFive</string>
+    <string name="rules_how_to_play_title">Cómo se juega a %1$s</string>
     <string name="rules_how_to_play_tab">Cómo jugar</string>
     <string name="rules_how_to_play_1">Consigue tantos puntos como puedas tirando cinco dados, con tres tiradas por ronda.</string>
     <string name="rules_how_to_play_2">Después de cada tirada puedes conservar los dados que quieras y volver a tirar el resto.</string>
@@ -865,7 +866,7 @@
     <string name="rules_tie_breaks_8">Si todo esto es igual, es un empate real.</string>
     <string name="rules_modes_title">Modos de juego</string>
     <string name="rules_modes_tab">Resumen</string>
-    <string name="rules_modes_1">Un *modo de juego* cambia las reglas de toda la partida. Elige uno en la pantalla de nueva partida para jugar a DiceFive de una forma nueva.</string>
+    <string name="rules_modes_1">Un *modo de juego* cambia las reglas de toda la partida. Elige uno en la pantalla de nueva partida para jugar a %1$s de una forma nueva.</string>
     <string name="rules_modes_2">*Estándar* es el modo por defecto, y se juega con las reglas de las páginas de *Juego*. Los demás modos parten de esas reglas y cambian algunas: más dados, categorías distintas, etc.</string>
     <string name="rules_modes_3">Las puntuaciones de *Estándar*, *Tricolor* y *Stud de 7 dados* van a la *clasificación*. Las de los demás modos no, porque no se pueden comparar con una partida normal, pero todos los modos cuentan para tus *estadísticas*.</string>
     <string name="rules_modes_4">Cualquier modo se puede jugar también con *modificadores*, que tienen sus propias páginas.</string>

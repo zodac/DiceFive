@@ -23,6 +23,15 @@ class StringResourcesTest {
     }
 
     @Test
+    fun `the app's name is written out only in app_name - every other string takes it as an argument`() {
+        val name = locales.getValue("values").getValue("app_name")
+        for ((locale, strings) in locales) {
+            assertEquals(name, strings["app_name"], "$locale changes the app's name")
+            assertEquals(emptyList(), strings.filter { (key, text) -> key != "app_name" && name in text }.keys.toList(), "$locale writes the app's name out - pass app_name as an argument")
+        }
+    }
+
+    @Test
     fun `each check finds what it should - banned words, extra keys, lost arguments and a plural without an other`() {
         val found = StringChecks.bannedWords(
             mapOf(

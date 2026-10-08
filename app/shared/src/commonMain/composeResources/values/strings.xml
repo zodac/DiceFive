@@ -17,6 +17,10 @@
         left to right. Every translation sets its own ("fr", "de", "ar-u-nu-arab"...). See .claude/I18N.md.
     -->
     <string name="common_locale">en-GB</string>
+
+    <!-- The app's name, passed as %1$s to the strings that mention it (about_*_body, licences_intro, rules_how_to_play_title, rules_modes_1) and drawn on the main menu. A brand name: every language keeps it. The launcher label is app/android's own app_name. -->
+    <string name="app_name">DiceFive</string>
+
     <!--
         How a date and time is written ("Sep 28, 2026 14:05"), as a CLDR date pattern: MMM is the short month name,
         dd the day, yyyy the year, HH:mm the 24-hour time. Reorder it the way the language writes dates; the month
@@ -472,19 +476,19 @@
     <string name="about_title">About</string>
     <string name="about_close_cd">Close about</string>
     <string name="about_author_heading">Author</string>
-    <string name="about_author_body">DiceFive is created by `zodac`.</string>
+    <string name="about_author_body">%1$s is created by `zodac`.</string>
     <string name="about_author_link">Source code on GitHub</string>
     <string name="about_inspiration_heading">Inspiration</string>
-    <string name="about_inspiration_body">DiceFive was inspired by `Dice Me Online`, created by `Arturo Gutierrez`.</string>
+    <string name="about_inspiration_body">%1$s was inspired by `Dice Me Online`, created by `Arturo Gutierrez`.</string>
     <string name="about_inspiration_link">Dice Me Online on Google Play</string>
     <string name="about_privacy_heading">Privacy</string>
-    <string name="about_privacy_body">DiceFive holds no user data. Your games, scores and settings stay on this device, and there are no ads, analytics or tracking.</string>
+    <string name="about_privacy_body">%1$s holds no user data. Your games, scores and settings stay on this device, and there are no ads, analytics or tracking.</string>
     <string name="about_privacy_link">Full privacy policy</string>
 
     <!-- Licences dialog (ui/settings/LicensesDialog.kt, ComposeLicenceDocument.kt, and Android's TextViewLicenceDocument via LicenceLabels). -->
     <string name="licences_title">Licences</string>
     <string name="licences_close_cd">Close licences</string>
-    <string name="licences_intro">DiceFive is built with the open-source software, fonts and sounds below, each used under the licence it's listed with.</string>
+    <string name="licences_intro">%1$s is built with the open-source software, fonts and sounds below, each used under the licence it's listed with.</string>
     <string name="licences_show_text">Show licence text</string>
     <string name="licences_hide_text">Hide licence text</string>
     <string name="licences_notices_title">Notices</string>
@@ -1059,7 +1063,7 @@
     <string name="achievements_banner_progress_spoken">%1$s: %2$s of %3$s</string>
 
     <!-- Rules pages (ui/rules/RulesScreen.kt): one page per idea, in order, in three groups (rules_group_*): the rules, the game modes, then the modifiers. Body text may use markup: `backticks` for the name of a scoring category (gold, monospace), *italics* for the name of a section, mode or setting, **bold** for a number of points or a count. "Npts" is the short form of points (see rules_points_short). -->
-    <string name="rules_how_to_play_title">How to Play DiceFive</string>
+    <string name="rules_how_to_play_title">How to Play %1$s</string>
     <!-- A tab: keep it short. -->
     <string name="rules_how_to_play_tab">How to Play</string>
     <string name="rules_how_to_play_1">Score as many points as possible by rolling five dice, with three rolls per round.</string>
@@ -1106,7 +1110,7 @@
     <string name="rules_modes_title">Game Modes</string>
     <!-- A tab: keep it short. -->
     <string name="rules_modes_tab">Overview</string>
-    <string name="rules_modes_1">A *Game Mode* changes the rules for a whole game. Choose one on the new game screen for a new way to play DiceFive.</string>
+    <string name="rules_modes_1">A *Game Mode* changes the rules for a whole game. Choose one on the new game screen for a new way to play %1$s.</string>
     <string name="rules_modes_2">*Standard* is the default, and plays by the rules on the *Gameplay* pages. Every other mode starts from those rules and changes some of them: more dice, different categories, etc.</string>
     <string name="rules_modes_3">Scores from *Standard*, *Tricolour* and *7 Dice Stud* go on the *Leaderboard*. The other modes' scores don't, since they can't be compared with a normal game, but every mode counts towards your *Statistics*.</string>
     <string name="rules_modes_4">Any mode can also be played with *Modifiers*, which have pages of their own.</string>
