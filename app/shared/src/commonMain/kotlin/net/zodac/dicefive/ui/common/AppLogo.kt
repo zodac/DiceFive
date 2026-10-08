@@ -45,6 +45,7 @@ import kotlinx.coroutines.launch
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.sora
 import net.zodac.dicefive.ui.game.style.CupShape
 import net.zodac.dicefive.ui.game.style.DiceCupStyle
@@ -55,6 +56,7 @@ import net.zodac.dicefive.ui.game.style.DieMotion
 import net.zodac.dicefive.ui.game.style.LocalDieIndex
 import net.zodac.dicefive.ui.game.style.LocalDieMotion
 import org.jetbrains.compose.resources.Font
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The brand typeface: Sora (`composeResources/font/sora.ttf`), used on the logo wordmark here, on
@@ -331,7 +333,7 @@ fun AppLogo(
         }
 
         Text(
-            text = "DiceFive", // i18n: not translated - the app's name
+            text = stringResource(Res.string.app_name),
             modifier = Modifier.padding(top = 16.dp),
             style = MaterialTheme.typography.displayMedium,
             fontFamily = SoraFontFamily,

@@ -41,6 +41,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.about_author_body
+import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.about_author_heading
 import net.zodac.dicefive.resources.about_author_link
 import net.zodac.dicefive.resources.about_close_cd
@@ -170,7 +171,7 @@ private fun AboutSectionCard(section: AboutSection, nameStyle: SpanStyle, onOpen
                 modifier = Modifier.semantics { heading() },
             )
             Text(
-                text = parseInlineMarkup(stringResource(section.body), nameStyle),
+                text = parseInlineMarkup(stringResource(section.body, stringResource(Res.string.app_name)), nameStyle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp),

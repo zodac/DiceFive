@@ -51,6 +51,7 @@ import net.zodac.dicefive.resources.licences_count_image
 import net.zodac.dicefive.resources.licences_count_library
 import net.zodac.dicefive.resources.licences_count_sound
 import net.zodac.dicefive.resources.licences_hide_text
+import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.licences_intro
 import net.zodac.dicefive.resources.licences_link
 import net.zodac.dicefive.resources.licences_link_copied
@@ -272,7 +273,7 @@ fun LicensesDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) 
                         modifier = Modifier.semantics { heading() },
                     )
                     Text(
-                        text = stringResource(Res.string.licences_intro),
+                        text = stringResource(Res.string.licences_intro, stringResource(Res.string.app_name)),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),

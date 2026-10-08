@@ -7,6 +7,7 @@
 <resources>
 
     <string name="common_locale">ar-u-nu-arab</string>
+    <string name="app_name">DiceFive</string>
     <string name="common_timestamp_pattern">dd MMM yyyy HH:mm</string>
     <string name="common_clauses_join">%1$s، %2$s</string>
     <string name="common_sentences_join">%1$s %2$s</string>
@@ -419,17 +420,17 @@
     <string name="about_title">حول التطبيق</string>
     <string name="about_close_cd">إغلاق صفحة حول التطبيق</string>
     <string name="about_author_heading">المطوّر</string>
-    <string name="about_author_body">DiceFive من تطوير `zodac`.</string>
+    <string name="about_author_body">%1$s من تطوير `zodac`.</string>
     <string name="about_author_link">الشيفرة المصدرية على GitHub</string>
     <string name="about_inspiration_heading">مصدر الإلهام</string>
-    <string name="about_inspiration_body">استلهمت DiceFive من لعبة `Dice Me Online` التي صنعها `Arturo Gutierrez`.</string>
+    <string name="about_inspiration_body">استلهمت %1$s من لعبة `Dice Me Online` التي صنعها `Arturo Gutierrez`.</string>
     <string name="about_inspiration_link">Dice Me Online على Google Play</string>
     <string name="about_privacy_heading">الخصوصية</string>
-    <string name="about_privacy_body">لا تحتفظ DiceFive بأي بيانات للمستخدم. تبقى ألعابك ونتائجك وإعداداتك على هذا الجهاز، ولا توجد إعلانات ولا تحليلات ولا تتبّع.</string>
+    <string name="about_privacy_body">لا تحتفظ %1$s بأي بيانات للمستخدم. تبقى ألعابك ونتائجك وإعداداتك على هذا الجهاز، ولا توجد إعلانات ولا تحليلات ولا تتبّع.</string>
     <string name="about_privacy_link">سياسة الخصوصية الكاملة</string>
     <string name="licences_title">التراخيص</string>
     <string name="licences_close_cd">إغلاق التراخيص</string>
-    <string name="licences_intro">بُني DiceFive باستخدام البرمجيات والخطوط والأصوات مفتوحة المصدر أدناه، وكلٌّ منها مستخدم بموجب الترخيص المذكور معه.</string>
+    <string name="licences_intro">بُني %1$s باستخدام البرمجيات والخطوط والأصوات مفتوحة المصدر أدناه، وكلٌّ منها مستخدم بموجب الترخيص المذكور معه.</string>
     <string name="licences_show_text">عرض نص الترخيص</string>
     <string name="licences_hide_text">إخفاء نص الترخيص</string>
     <string name="licences_notices_title">الإشعارات</string>
@@ -921,7 +922,7 @@
     <string name="achievements_banner_unlocked_spoken">تم فتح إنجاز: %1$s. %2$s</string>
     <string name="achievements_banner_unlocked_style_spoken">تم فتح إنجاز: %1$s. %2$s. يفتح نمطًا</string>
     <string name="achievements_banner_progress_spoken">%1$s: %2$s من %3$s</string>
-    <string name="rules_how_to_play_title">كيف تلعب DiceFive</string>
+    <string name="rules_how_to_play_title">كيف تلعب %1$s</string>
     <string name="rules_how_to_play_tab">كيفية اللعب</string>
     <string name="rules_how_to_play_1">اجمع أكبر عدد ممكن من النقاط برمي خمسة أحجار نرد، بثلاث رميات في كل جولة.</string>
     <string name="rules_how_to_play_2">يمكنك الاحتفاظ بأي نرد تريده بعد الرمية، ثم ترمي الباقي.</string>
@@ -962,7 +963,7 @@
     <string name="rules_tie_breaks_8">إذا تساوت كل هذه، فهو تعادل حقيقي.</string>
     <string name="rules_modes_title">أنماط اللعب</string>
     <string name="rules_modes_tab">نظرة عامة</string>
-    <string name="rules_modes_1">*نمط اللعب* يغيّر قواعد اللعبة كلها. اختر نمطًا في شاشة اللعبة الجديدة لتجربة طريقة جديدة للعب DiceFive.</string>
+    <string name="rules_modes_1">*نمط اللعب* يغيّر قواعد اللعبة كلها. اختر نمطًا في شاشة اللعبة الجديدة لتجربة طريقة جديدة للعب %1$s.</string>
     <string name="rules_modes_2">*القياسي* هو النمط الافتراضي، ويُلعب بالقواعد الواردة في صفحات *اللعب*. وكل نمط آخر يبدأ من تلك القواعد ويغيّر بعضها: أحجار نرد أكثر، أو فئات مختلفة، وغير ذلك.</string>
     <string name="rules_modes_3">تُسجَّل نتائج *القياسي* و*ثلاثي الألوان* و*ستاد ٧ أحجار* في *لوحة المتصدرين*. أما نتائج الأنماط الأخرى فلا، لأنها لا تُقارن بلعبة عادية، لكن كل الأنماط تُحتسب في *الإحصائيات*.</string>
     <string name="rules_modes_4">ويمكن لعب أي نمط مع *المعدّلات* أيضًا، ولها صفحاتها الخاصة.</string>

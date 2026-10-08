@@ -108,6 +108,7 @@ import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.HitTarget
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.rules_5x_and_joker_1
 import net.zodac.dicefive.resources.rules_5x_and_joker_2
 import net.zodac.dicefive.resources.rules_5x_and_joker_3
@@ -793,7 +794,7 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 val shownBlocks = rememberShownBlocks(rulesPage.blocks.size)
                 Column(modifier = Modifier.fillMaxSize().verticalScroll(pageScrollStates[page]).padding(bottom = pageBottomPadding)) {
                     Text(
-                        text = stringResource(rulesPage.title),
+                        text = stringResource(rulesPage.title, stringResource(Res.string.app_name)),
                         style = MaterialTheme.typography.headlineSmall,
                         fontFamily = SoraFontFamily,
                         fontWeight = FontWeight.Bold,
@@ -980,7 +981,7 @@ private fun BoxScope.PageScrollbar(pagerState: PagerState, pageScrollStates: Lis
  * as "points" ([spokenPoints]). */
 @Composable
 private fun RulesBodyText(resource: StringResource, modifier: Modifier = Modifier) {
-    val text = stringResource(resource)
+    val text = stringResource(resource, stringResource(Res.string.app_name))
     val categoryStyle = SpanStyle(fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary)
     val styled = remember(text, categoryStyle) { parseInlineMarkup(text.keepCategoryNamesWhole(), codeStyle = categoryStyle) }
     val spoken = spokenPoints(styled.text)
