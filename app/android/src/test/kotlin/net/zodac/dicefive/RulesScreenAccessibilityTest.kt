@@ -224,12 +224,12 @@ class RulesScreenAccessibilityTest {
         compose.onNodeWithText("Modes").performTouchInput { click() }
         compose.mainClock.advanceTimeBy(50)
         // Off the row's end, so tapped through TalkBack's action; with the clock held, nothing may wait for idle.
-        compose.onNodeWithText("Hit List").performSemanticsAction(SemanticsActions.OnClick)
-        // A frame or two: no slide through Quickfire, 7 Dice Stud and Third Wind to get there.
+        compose.onNodeWithText("Quickfire").performSemanticsAction(SemanticsActions.OnClick)
+        // A frame or two: no slide through Third Wind, 7 Dice Stud and Hit List to get there.
         compose.mainClock.advanceTimeByFrame()
         compose.mainClock.advanceTimeByFrame()
-        compose.onNode(isHeading and hasText("Hit List")).assertIsDisplayed()
-        listOf("Quickfire", "7 Dice Stud", "Third Wind").forEach { compose.onAllNodes(isHeading and hasText(it)).assertCountEquals(0) }
+        compose.onNode(isHeading and hasText("Quickfire")).assertIsDisplayed()
+        listOf("Third Wind", "7 Dice Stud", "Hit List").forEach { compose.onAllNodes(isHeading and hasText(it)).assertCountEquals(0) }
     }
 
     /** On a phone-width screen: at the default 320dp, Lower Section shows only a sliver, under the row's end chevron. */
