@@ -139,9 +139,10 @@ jobs:
   # emulator, from this commit. Only when there's an APK to put it in. The profile is not committed (it is
   # gitignored); it goes to the apk job as an artifact. A failing journey - usually a relabelled button
   # it looks for - fails the job at once, and with it the release, rather than shipping a thinner
-  # profile. Only an emulator that fails to boot is retried (once), since that says nothing about the
-  # journey. The emulator and the journey are explained in .claude/EMULATOR.md; the journey in
-  # .claude/DESIGN.md Phase 19.
+  # profile. Only an emulator that fails to boot, or whose framework fails the APK install (Gradle then
+  # passes with no profile), is retried (once), since neither says anything about the journey. The
+  # emulator and the journey are explained in .claude/EMULATOR.md; the journey in .claude/DESIGN.md
+  # Phase 19.
   #
   # Timeouts: a lap of the journey is ~2 minutes on a 4-core sandbox emulator, and a hosted runner is at
   # least three times slower - a 60-minute step timed out with laps still to run. The step stops at 150
@@ -210,7 +211,8 @@ jobs:
             --console=plain
 
       # 10 laps: the journey's timing races only showed up from lap 4, so a short run doesn't prove it.
-      # Only the boot is retried; a failed journey ends the step there and then (see the job's comment).
+      # Only the boot and the install are retried; a failed journey ends the step there and then (see the
+      # job's comment).
       # The benchmark library logs "Compile iteration (N)" as each lap starts; those lines are echoed here
       # (Gradle prints nothing until the tests end).
       - name: Generate the Baseline Profile
@@ -236,20 +238,25 @@ jobs:
             trap 'kill $! 2>/dev/null || true' EXIT
             if ./gradlew :app:android:generateBaselineProfile \
                 -Pandroid.testInstrumentationRunnerArguments.journeyLaps=10 --console=plain; then
-              # The plugin only warns when the tests yield no profile, so Gradle can pass without one.
+              # The plugin only warns when the tests yield no profile, so Gradle can pass without one. That
+              # means the APKs never installed (the emulator's framework fell over), not that the journey
+              # failed, so it is retried like a failed boot.
               if [ -s app/android/src/release/generated/baselineProfiles/baseline-prof.txt ]; then
                 exit 0
               fi
-              echo "::error::Gradle passed but wrote no Baseline Profile - see the baseline-profile-report artifact"
-              exit 1
+              .github/scripts/ci_emulator.sh logcat "$RUNNER_TEMP/logcat-attempt$attempt.txt" || true
+              .github/scripts/ci_emulator.sh stop
+              echo "::warning::Gradle passed but wrote no Baseline Profile - the install failed (attempt $attempt)"
+              continue
             fi
             if checks_failed; then exit 1; fi
             .github/scripts/ci_emulator.sh screenshot "$RUNNER_TEMP/journey-failure.png" || true
+            .github/scripts/ci_emulator.sh logcat "$RUNNER_TEMP/logcat-attempt$attempt.txt" || true
             .github/scripts/ci_emulator.sh stop
             echo "::error::Baseline Profile generation failed - see the baseline-profile-report artifact"
             exit 1
           done
-          echo "::error::The emulator failed to boot twice"
+          echo "::error::The emulator failed to boot, or to install the APKs, twice - see the baseline-profile-report artifact"
           exit 1
 
       # Whether or not the journey passed: ci_emulator.sh installed them if the restore missed.
@@ -274,6 +281,7 @@ jobs:
             app/baselineprofile/build/outputs/androidTest-results/
             ${{ runner.temp }}/journey-failure.png
             ${{ runner.temp }}/emulator-*.log
+            ${{ runner.temp }}/logcat-*.txt
           retention-days: 7
 
       - name: Hand the profile to the apk job

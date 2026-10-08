@@ -1939,7 +1939,7 @@ install-over-existing succeeds:
       **The profile is generated fresh for every release APK** (2026-10-08): `release.yml`'s
       `baseline-profile` job boots an emulator on the runner (`.github/scripts/ci_emulator.sh`), runs a
       10-lap journey and hands the profile to the `apk` job. A failing journey fails the release at once (only a
-      failed emulator boot is retried, once; the step times out at 150 minutes, the job at 170 - 60 was too short for 10 laps on a hosted runner); its report, screenshot and emulator log are uploaded as the
+      failed emulator boot or APK install is retried, once; the step times out at 150 minutes, the job at 170 - 60 was too short for 10 laps on a hosted runner); its report, screenshot, emulator log and logcat are uploaded as the
       `baseline-profile-report` artifact. The generated profile is therefore **not committed**
       (`app/android/src/release/generated/` is gitignored), so a local release build carries only the
       hand-written one unless a profile has been generated locally. The benchmarks still need a phone:

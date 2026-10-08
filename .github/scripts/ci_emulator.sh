@@ -20,6 +20,7 @@
 #
 # Usage:        .github/scripts/ci_emulator.sh start|stop   (from the repository root)
 #               .github/scripts/ci_emulator.sh screenshot <file.png>   (what is on its screen - for a failed run)
+#               .github/scripts/ci_emulator.sh logcat <file.txt>       (its whole log - for a failed run)
 #
 # Requirements: ANDROID_HOME (the runner's pre-installed SDK), passwordless sudo, bash, grep
 # ------------------------------------------------------------------------------
@@ -43,14 +44,21 @@ export PATH="${sdk}/platform-tools:${PATH}"
 is_up() { [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; }
 
 # Whether Android's framework is running, not just booted: the package and activity services the test
-# runner installs and starts the app through. They vanish while system_server restarts (seen on a runner
-# once the device had booted), and an install then fails without failing Gradle.
+# runner installs and starts the app through, and an install session can be opened (the step that has
+# failed on a runner with "android from uid 1000 not allowed to perform GET_USAGE_STATS" while both services
+# were listed). They vanish or misbehave while system_server restarts (seen on a runner once the device had
+# booted), and an install then fails without failing Gradle.
 framework_up() {
-    local service
+    local service session
     for service in package activity; do
         adb shell service check "${service}" 2>/dev/null | grep -q ': found' || return 1
     done
+    session=$(adb shell pm install-create 2>/dev/null | tr -d '\r' | grep -oP '^Success: created install session \[\K[0-9]+') \
+        || return 1
+    adb shell pm install-abandon "${session}" >/dev/null 2>&1 || true
 }
+
+system_server_pid() { adb shell pidof system_server 2>/dev/null | tr -d '\r'; }
 
 ensure_kvm() {
     [[ -e /dev/kvm ]] || { echo "No /dev/kvm on this runner" >&2; exit 1; }
@@ -135,13 +143,21 @@ start() {
     echo "Ready: Android $(adb shell getprop ro.build.version.release | tr -d '\r'), renderer $(adb shell getprop debug.hwui.renderer | tr -d '\r')."
 }
 
-# Waits up to a minute for the framework (see framework_up), which can trail sys.boot_completed.
+# Waits up to three minutes for the framework (see framework_up), which can trail sys.boot_completed, to be
+# up and to stay up - the same system_server, still answering - for 30 seconds in a row.
 ready() {
-    local waited=0
-    until framework_up; do
-        (( waited >= 60 )) && return 1
-        sleep 2
-        waited=$((waited + 2))
+    local waited=0 stable=0 pid last_pid=""
+    while (( stable < 30 )); do
+        (( waited >= 180 )) && return 1
+        pid=$(system_server_pid)
+        if [[ -n "${pid}" && "${pid}" == "${last_pid}" ]] && framework_up; then
+            stable=$((stable + 5))
+        else
+            stable=0
+        fi
+        last_pid="${pid}"
+        sleep 5
+        waited=$((waited + 5))
     done
 }
 
@@ -158,9 +174,15 @@ screenshot() {
     adb exec-out screencap -p >"${1:?usage: $0 screenshot <file.png>}"
 }
 
+# Every log buffer (crash and events included: a system_server restart shows there), for a failed run.
+logcat() {
+    adb logcat -d -b all -v time >"${1:?usage: $0 logcat <file.txt>}"
+}
+
 case "${1:-}" in
     start) start ;;
     stop)  stop ;;
     screenshot) screenshot "${2:-}" ;;
-    *) echo "usage: $0 start|stop|screenshot <file.png>" >&2; exit 2 ;;
+    logcat) logcat "${2:-}" ;;
+    *) echo "usage: $0 start|stop|screenshot <file.png>|logcat <file.txt>" >&2; exit 2 ;;
 esac
