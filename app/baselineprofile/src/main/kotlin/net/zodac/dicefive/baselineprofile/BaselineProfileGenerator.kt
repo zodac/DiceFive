@@ -9,7 +9,7 @@ import org.junit.runner.RunWith
 /**
  * Records what a typical session touches, so the generated profile compiles those paths ahead of
  * time: cold start, an achievement banner and its jump to the Achievements screen, a game (new,
- * played a turn, then resumed), and every screen reachable from the menu. Run on a device: `./gradlew :app:android:generateBaselineProfile`.
+ * played a turn, a game in another mode, then resumed), and every screen reachable from the menu. Run on a device: `./gradlew :app:android:generateBaselineProfile`.
  *
  * Deliberately left out: opening a link (it leaves the app, so no app code runs) and selecting text
  * (Compose's and the platform's code, which their libraries' own profiles already cover).
@@ -42,6 +42,7 @@ class BaselineProfileGenerator {
         // A game is left saved behind, so the menu then offers Continue - and the next lap of the
         // run, which starts from that state, takes the New Game route instead of Play.
         playATurn()
+        playAModeGame()
         resumeGame()
 
         visitStyles()
