@@ -467,11 +467,9 @@ the player means - so a box can be tapped with fewer than five held. `HandComple
 completion of the held dice (at most C(7,k), 21 for one held) and takes the one worth most in *that*
 box (score plus any 5x bonus; first - leftmost dice - on a tie). The board previews every box with its
 best completion (`LocalProjectedHands`, human turns only; a CPU's board still reads what it holds), the
-view model holds the completing dice (they glide into slots for `HAND_COMPLETION_MS`, then it scores),
-undo goes back to the dice as the player held them, and a turn timeout scores the first box any
-completion can score, completed. Holds still matter mid-turn: they decide what is rerolled. While a
-completion is gliding `toggleHold` and a second `commitScore` are ignored, and the delayed commit
-drops itself if the game moved on (`_game.value !== completed`).
+view model holds the completing dice and scores in the same tap (a glide-then-score step was tried and
+removed: it read as a lag), undo goes back to the dice as the player held them, and a turn timeout scores
+the first box any completion can score, completed. Holds still matter mid-turn: they decide what is rerolled.
 **Ambiguity**: pressing a box marks, on the mat, the dice it would take (solid gold lane) and the
 unheld ones that would have scored just the same with other faces (dashed lane); the rest fade. It is
 `ProjectedHand.used/alternatives`, written by `CategoryCell` into `LocalHandPreview` and drawn by
