@@ -12,7 +12,10 @@ internal actual fun ConfigureOverlayDialogWindow() {
     val view = LocalView.current
     SideEffect {
         val window = (view.parent as? DialogWindowProvider)?.window ?: return@SideEffect
-        window.setDimAmount(0f)
+        // No dim at all, rather than a dim of 0: with the flag set the system still lays a full-screen (invisible) dim layer
+        // under the banner, and from Android 12 a touch on a window beneath it - the dialog the banner is shown over, say
+        // the About dialog's close button - is dropped as an untrusted occlusion while the banner is up.
+        window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
         // Compose makes a `usePlatformDefaultWidth = false` dialog window match-parent in both directions, and a full-screen
         // window takes every touch (NOT_TOUCH_MODAL only passes touches *outside* its bounds). Wrap the height so only the
         // strip the content occupies intercepts anything.
