@@ -60,22 +60,37 @@ release APK, and the `apk` job builds with the profile it makes. `.github/script
 time), same Google APIs image, same `-gpu swiftshader_indirect` boot and the same Vulkan renderer setting
 after it. It differs only where the runner does: `/dev/kvm` is opened with a udev rule, packages go in
 without `sudo` (the runner's SDK is its own), and the emulator and image are cached by the workflow
-(keyed on the API level, and saved even when the journey fails). The app and journey APKs are built
-*before* the emulator boots: a booted emulator sharing the runner's cores with a long compile lost its
-framework (`system_server` - `cmd: Can't find service: package`) before the install, and since the
-plugin only warns when no profile comes back, Gradle still passed. So `start` also waits for the
-`package` and `activity` services and for an install session to open (`pm install-create`, the step a
-later run failed at with `android from uid 1000 not allowed to perform GET_USAGE_STATS` while both
-services were listed), all holding for 30 seconds on the same `system_server` (up to five minutes, since a slow runner's
-framework can take minutes to settle; each reason it isn't ready, and any `system_server` restart with
-its crash log, is printed in the step's log, and a failed boot saves a `logcat-boot-*.txt`). If Gradle still passes
-with no `baseline-prof.txt` written, the install failed, and the attempt is retried like a failed boot. It runs alongside the release's checks, and `.github/scripts/watch_checks.sh` stops it (Gradle and
+(keyed on the API level, and saved even when the journey fails). And `/data` is set to 6 GB at boot
+(`-partition-size`).
+
+**That last one is what kept failing the release.** On the runner, the AVD came up with an **800 MB
+`/data`** (the sandbox's `avdmanager` and emulator give it 6-10 GB, and raise a smaller size in
+`config.ini` to that; the runner's leave it). A first boot of the Google APIs image fills 800 MB in about
+30 seconds - Play services and the launcher setting themselves up - and from then on every write fails
+(`ENOSPC`, `SQLiteFullException: database or disk is full`) and `system_server` crash-loops. Everything
+else seen was a symptom of that, which is why each looked like a flaky framework: `cmd: Can't find
+service: package`, an install refused with `android from uid 1000 not allowed to perform GET_USAGE_STATS`
+(AppOps can't verify a package while the system is dying, and reports it as a denied op), `DeadSystemException`,
+and Gradle passing with no profile (the plugin only warns when the tests yield none). It was a race
+between that setup and the install, so one early run got through and later ones didn't. `-partition-size`
+overrides whatever `config.ini` says (tried here: `config.ini` at 800M plus the flag gives 6 GB); the disk
+image is sparse, so the runner stores only what is used (about 2 GB for a first boot and a lap).
+
+`start` then checks `/data`'s size and fails the boot if it is short, waits for the `package` and
+`activity` services and for an install session to open (`pm install-create`), all holding for 30 seconds
+on the same `system_server` (up to five minutes), and prints each reason it isn't ready and any
+`system_server` restart with its crash log; a failed boot saves a `logcat-boot-*.txt`. If Gradle still
+passes with no `baseline-prof.txt` written, the install failed, and the attempt is retried like a failed
+boot. The APKs are also built *before* the emulator boots, so the two don't compete for the runner's
+cores. It runs alongside the release's checks, and `.github/scripts/watch_checks.sh` stops it (Gradle and
 the emulator) as soon as one of them fails. A failing journey fails the job, and the release, straight away - only an
 emulator that fails to boot or to install the APKs is retried, twice. The generate step stops after 150 minutes and the job after 170
 (a lap is ~2 minutes on a 4-core sandbox emulator and at least three times that on a hosted runner; each
 lap's start is echoed in the step's log), so a hang can't hold the release for long; the `baseline-profile-report` artifact holds the test report, a
 screenshot of where the journey stopped, the emulator's log and its logcat (every buffer, so a
-`system_server` restart shows in `crash`/`events`). To debug one, reproduce it here as above - the two emulators are the same.
+`system_server` restart shows in `crash`/`events`). To debug one, reproduce it here as above - the two emulators are the same, except that the sandbox's
+AVD has been booted before: for a first boot like CI's, run `.github/scripts/ci_emulator.sh start` with
+`ANDROID_HOME=/opt/android-sdk` and an empty `ANDROID_AVD_HOME` and `RUNNER_TEMP`.
 
 ## What `start` does, and why
 
