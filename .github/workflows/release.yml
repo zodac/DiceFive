@@ -140,13 +140,13 @@ jobs:
   # gitignored); it goes to the apk job as an artifact. A failing journey - usually a relabelled button
   # it looks for - fails the job at once, and with it the release, rather than shipping a thinner
   # profile. Only an emulator that fails to boot, or whose framework fails the APK install (Gradle then
-  # passes with no profile), is retried (once), since neither says anything about the journey. The
+  # passes with no profile), is retried (twice), since neither says anything about the journey. The
   # emulator and the journey are explained in .claude/EMULATOR.md; the journey in .claude/DESIGN.md
   # Phase 19.
   #
   # Timeouts: a lap of the journey is ~2 minutes on a 4-core sandbox emulator, and a hosted runner is at
   # least three times slower - a 60-minute step timed out with laps still to run. The step stops at 150
-  # (a boot of up to 10, the benchmark build, 10 laps, room for one retried boot) and fails like a failed
+  # (a boot of up to 15, the benchmark build, 10 laps, room for two retried boots) and fails like a failed
   # journey, so its report is still uploaded; the job's own 170 is the backstop for a hang anywhere else
   # (setup, the cache, an upload). Each lap's start is printed in the step's log, so a slow run shows how
   # far it got.
@@ -227,7 +227,7 @@ jobs:
             fi
             return 1
           }
-          for attempt in 1 2; do
+          for attempt in 1 2 3; do
             if checks_failed; then exit 1; fi
             if ! .github/scripts/ci_emulator.sh start; then
               .github/scripts/ci_emulator.sh stop
@@ -256,7 +256,7 @@ jobs:
             echo "::error::Baseline Profile generation failed - see the baseline-profile-report artifact"
             exit 1
           done
-          echo "::error::The emulator failed to boot, or to install the APKs, twice - see the baseline-profile-report artifact"
+          echo "::error::The emulator failed to boot, or to install the APKs, three times - see the baseline-profile-report artifact"
           exit 1
 
       # Whether or not the journey passed: ci_emulator.sh installed them if the restore missed.

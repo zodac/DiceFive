@@ -66,10 +66,12 @@ framework (`system_server` - `cmd: Can't find service: package`) before the inst
 plugin only warns when no profile comes back, Gradle still passed. So `start` also waits for the
 `package` and `activity` services and for an install session to open (`pm install-create`, the step a
 later run failed at with `android from uid 1000 not allowed to perform GET_USAGE_STATS` while both
-services were listed), all holding for 30 seconds on the same `system_server`. If Gradle still passes
+services were listed), all holding for 30 seconds on the same `system_server` (up to five minutes, since a slow runner's
+framework can take minutes to settle; each reason it isn't ready, and any `system_server` restart with
+its crash log, is printed in the step's log, and a failed boot saves a `logcat-boot-*.txt`). If Gradle still passes
 with no `baseline-prof.txt` written, the install failed, and the attempt is retried like a failed boot. It runs alongside the release's checks, and `.github/scripts/watch_checks.sh` stops it (Gradle and
 the emulator) as soon as one of them fails. A failing journey fails the job, and the release, straight away - only an
-emulator that fails to boot or to install the APKs is retried, once. The generate step stops after 150 minutes and the job after 170
+emulator that fails to boot or to install the APKs is retried, twice. The generate step stops after 150 minutes and the job after 170
 (a lap is ~2 minutes on a 4-core sandbox emulator and at least three times that on a hosted runner; each
 lap's start is echoed in the step's log), so a hang can't hold the release for long; the `baseline-profile-report` artifact holds the test report, a
 screenshot of where the journey stopped, the emulator's log and its logcat (every buffer, so a
