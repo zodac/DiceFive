@@ -2,16 +2,20 @@ package net.zodac.dicefive.baselineprofile
 
 import android.content.res.Resources
 import android.graphics.Rect
+import java.util.regex.Pattern
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
+import androidx.test.uiautomator.Configurator
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.StaleObjectException
 import androidx.test.uiautomator.Until
 
 internal const val PACKAGE = "net.zodac.dicefive"
-private const val TIMEOUT_MS = 5_000L
+// Generous: on a hosted runner's emulator a single lookup of the screen can take two to four seconds, so
+// a short timeout allows only one or two looks. It only costs time when something is really wrong.
+private const val TIMEOUT_MS = 15_000L
 
 /**
  * An integer passed to the run as an instrumentation argument - from Gradle,
@@ -59,6 +63,31 @@ private fun MacrobenchmarkScope.tap(what: String, find: () -> UiObject2) {
 
 /** True if [text] is on screen right now, without waiting. */
 internal fun MacrobenchmarkScope.hasText(text: String): Boolean = device.hasObject(By.text(text))
+
+/** The menu's "DiceFive" wordmark (AppLogo): only the menu shows it, so its going says the menu has. */
+private val MENU = By.text("DiceFive")
+
+/**
+ * Taps the menu's [label] button until the menu has gone. A tap can be dropped - one that lands while
+ * a dialog's dim layer is still fading out over the menu ("Untrusted touch due to occlusion" in logcat),
+ * or that a slow emulator doesn't take - and the steps after it would then run on the menu: their back
+ * press leaves the app. Nor can the screen be told by its title, as the menu has a button of that name.
+ */
+internal fun MacrobenchmarkScope.openFromMenu(label: String) {
+    await(By.text(label), label)
+    repeat(CLOSE_ATTEMPTS) {
+        try {
+            device.findObject(By.text(label))?.click()
+        } catch (_: StaleObjectException) {
+            // Re-composed between the lookup and the tap - look again.
+        }
+        if (device.wait(Until.gone(MENU), TIMEOUT_MS)) {
+            device.waitForIdle()
+            return
+        }
+    }
+    error("Baseline Profile journey: '$label' never opened from the menu")
+}
 
 /**
  * Taps a dialog's button, found by [selector], until the dialog is gone. A back press sent while it
@@ -125,7 +154,9 @@ internal fun MacrobenchmarkScope.scrollRow(heightFraction: Float, times: Int) {
 
 /** From the menu: Play (or New Game, when a game is saved) -> Start Game, then back to the menu. */
 internal fun MacrobenchmarkScope.playATurn() {
-    if (hasText("New Game")) tapText("New Game") else tapText("Play")
+    // Waited for, not just looked for: the menu may still be drawing, and "Play" is only offered without a saved game.
+    await(By.text(Pattern.compile("Play|New Game")), "the menu's Play or New Game")
+    openFromMenu(if (hasText("New Game")) "New Game" else "Play")
     tapText("Start Game")
 
     // Roll, hold a die, roll again, then score: the loop a player spends nearly all their time in.
@@ -160,10 +191,15 @@ internal fun MacrobenchmarkScope.resumeGame() {
     error("Baseline Profile journey: 'the board after Continue' never appeared")
 }
 
-/** Back out of a game: the back press asks first (unless the setting is off), and "Leave" confirms. */
+/**
+ * Back out of a game: the back press asks first (unless the setting is off), and "Leave" confirms. It
+ * waits for whichever comes - the dialog or the menu - rather than giving the dialog a fixed time: one
+ * that took longer to appear than that was taken for no dialog, and the menu behind it never came.
+ */
 private fun MacrobenchmarkScope.leaveGame() {
     back()
-    if (device.wait(Until.hasObject(By.text("Leave game?")), LEAVE_DIALOG_MS)) {
+    await(By.text(Pattern.compile("Leave game\\?|Settings")), "the leave dialog or the menu after leaving a game")
+    if (hasText("Leave game?")) {
         closeDialog(By.text("Leave"), "the leave dialog's Leave button")
     }
     await(By.text("Settings"), "the menu after leaving a game")
@@ -171,7 +207,7 @@ private fun MacrobenchmarkScope.leaveGame() {
 
 /** Settings, flipping one switch (and flipping it back), picking an animation level (and back) and opening the Licences and About dialogs. */
 internal fun MacrobenchmarkScope.visitSettings() {
-    tapText("Settings")
+    openFromMenu("Settings")
     tapText("Sound effects")
     tapText("Sound effects")
     // Back to High: the journeys after this one are profiling the full animations.
@@ -200,7 +236,7 @@ internal fun MacrobenchmarkScope.visitSettings() {
  * data survives from one lap to the next.
  */
 internal fun MacrobenchmarkScope.resetAchievements() {
-    tapText("Settings")
+    openFromMenu("Settings")
     tapText("Reset achievements")
     await(By.text("Reset"), "the reset dialog's Reset button")
     closeDialog(By.text("Reset"), "the reset dialog's Reset button")
@@ -219,30 +255,60 @@ internal fun MacrobenchmarkScope.resetAchievements() {
  * and the run fails the moment a tap leaves the menu, rather than carrying on tapping elsewhere.
  */
 internal fun MacrobenchmarkScope.visitAchievementBanner() {
+    for (attempt in 1..BANNER_ATTEMPTS) {
+        // A banner that was raised but missed can't be raised again until the achievement is locked.
+        if (attempt > 1) resetAchievements()
+        val bannerBounds = withShortIdleWait { raiseBanner() } ?: continue
+        longPressAt(bannerBounds)
+
+        // Lands on the Achievements screen - told by the menu going, as the menu has an Achievements
+        // button too; if it stays, the press missed, and the banner is tried again. Then the row's gold
+        // flash is given time to play out before leaving.
+        if (!device.wait(Until.gone(MENU), TIMEOUT_MS)) continue
+        await(By.text("Achievements"), "the Achievements screen after the banner's long-press")
+        Thread.sleep(GLOW_MS)
+        back()
+        return
+    }
+    error("Baseline Profile journey: tapping the logo's dice never raised a 'Not Those Dice!' banner it could press")
+}
+
+/**
+ * Taps the logo's dice (see [visitAchievementBanner]) until the banner appears, and returns where it is,
+ * or null if no tap raised it - or it was gone again before it could be found.
+ */
+private fun MacrobenchmarkScope.raiseBanner(): Rect? {
     val density = Resources.getSystem().displayMetrics.density
-    val wordmark = By.text("DiceFive")
-    val wordmarkTop = await(wordmark, "the menu's DiceFive wordmark").visibleBounds.top
+    val wordmarkTop = await(MENU, "the menu's DiceFive wordmark").visibleBounds.top
     val x = device.displayWidth / 2
     val banner = By.descStartsWith("Achievement unlocked: Not Those Dice!")
 
-    var bannerBounds: Rect? = null
     for (heightDp in DICE_PROBE_HEIGHTS_DP) {
         device.click(x, wordmarkTop - (heightDp * density).toInt())
-        bannerBounds = device.wait(Until.findObject(banner), BANNER_APPEAR_MS)?.let { boundsOf(it, banner) }
-        if (bannerBounds != null) break
-        check(device.hasObject(wordmark)) {
+        val node = device.wait(Until.findObject(banner), BANNER_APPEAR_MS)
+        if (node != null) return boundsOf(node, banner)
+        check(device.hasObject(MENU)) {
             "Baseline Profile journey: a tap ${heightDp}dp above the wordmark left the menu"
         }
     }
-    checkNotNull(bannerBounds) {
-        "Baseline Profile journey: tapping the logo's dice never raised the 'Not Those Dice!' banner"
-    }
-    longPressAt(bannerBounds)
+    return null
+}
 
-    // Lands on the Achievements screen; give the row's gold flash time to play out before leaving.
-    await(By.text("Achievements"), "the Achievements screen after the banner's long-press")
-    Thread.sleep(GLOW_MS)
-    back()
+/**
+ * Runs [block] with UiAutomator's wait for the screen to go idle cut to [SHORT_IDLE_WAIT_MS]. Every node
+ * lookup waits for that first, and the menu and the banner animate, so on a hosted runner's emulator each
+ * lookup sat out two to four seconds of it - most of the four seconds the banner stays up, so the banner
+ * was found only as it went. The rest of the journey keeps the usual wait.
+ */
+private inline fun <T> withShortIdleWait(block: () -> T): T {
+    val configurator = Configurator.getInstance()
+    val saved = configurator.waitForIdleTimeout
+    configurator.waitForIdleTimeout = SHORT_IDLE_WAIT_MS
+    try {
+        return block()
+    } finally {
+        configurator.waitForIdleTimeout = saved
+    }
 }
 
 /**
@@ -273,17 +339,20 @@ private fun MacrobenchmarkScope.longPressAt(bounds: Rect) {
  * that starts a game - gets the mode it expects (the setup remembers the last pick).
  */
 internal fun MacrobenchmarkScope.playAModeGame() {
-    tapText("New Game")
+    openFromMenu("New Game")
     chooseMode("Tricolour")
     tapText("Start Game")
     tapDesc("Dice cup", startsWith = true)
     Thread.sleep(ROLL_SETTLE_MS)
     leaveGame()
 
-    tapText("New Game")
+    openFromMenu("New Game")
     chooseMode("Standard")
-    // Back only once the picker's dialog has gone: a back press sent while it closes leaves the app (see closeDialog).
+    // Back only once the picker's dialog has gone: a back press sent while it closes leaves the app (see
+    // closeDialog). Its list is the only place the other mode's name shows, so that going says it has
+    // closed; the pause after covers the rest of its fade.
     await(By.text("Start Game"), "the setup after choosing a mode")
+    device.wait(Until.gone(By.text("Tricolour")), TIMEOUT_MS)
     Thread.sleep(PICKER_CLOSE_MS)
     back()
     await(By.text("Settings"), "the menu after leaving the setup")
@@ -300,7 +369,7 @@ private fun MacrobenchmarkScope.chooseMode(mode: String) {
 
 /** A long page of text: the Rules, then the Modes group and one of its pages. */
 internal fun MacrobenchmarkScope.visitRules() {
-    tapText("Rules")
+    openFromMenu("Rules")
     scrollDown(4)
     tapTopText("Modes")
     tapTopText("Tricolour")
@@ -310,14 +379,14 @@ internal fun MacrobenchmarkScope.visitRules() {
 
 /** Leaderboard and Statistics, which only need opening. */
 internal fun MacrobenchmarkScope.visitScoreScreens() {
-    tapText("Leaderboard")
+    openFromMenu("Leaderboard")
     back()
-    tapText("Statistics")
+    openFromMenu("Statistics")
     back()
 }
 
 internal fun MacrobenchmarkScope.visitAchievements() {
-    tapText("Achievements")
+    openFromMenu("Achievements")
     scrollDown(2)
     back()
 }
@@ -327,7 +396,7 @@ internal fun MacrobenchmarkScope.visitAchievements() {
  * every row is swiped along and the page scrolled down, which composes each tile once.
  */
 internal fun MacrobenchmarkScope.visitStyles() {
-    openStyles()
+    openFromMenu("Styles")
     // Dice gallery on (every tile at once), down the page and back, then off for the rows below.
     tapDesc("Dice gallery")
     scrollDown(2)
@@ -339,33 +408,16 @@ internal fun MacrobenchmarkScope.visitStyles() {
     back()
 }
 
-/**
- * Taps Styles until its page opens. It comes straight after [leaveGame], so a tap can land while the
- * leave dialog's dim layer is still fading and be dropped (as Continue's can - see [resumeGame]); the
- * swipes and back press after it would then run on the menu, the back press leaving the app.
- */
-private fun MacrobenchmarkScope.openStyles() {
-    val page = By.desc("Dice gallery")
-    await(By.text("Styles"), "Styles")
-    repeat(CLOSE_ATTEMPTS) {
-        device.findObject(By.text("Styles"))?.click()
-        if (device.wait(Until.hasObject(page), TIMEOUT_MS)) {
-            device.waitForIdle()
-            return
-        }
-    }
-    error("Baseline Profile journey: 'the Styles page' never appeared")
-}
-
 private const val ROLL_SETTLE_MS = 2_000L
-private const val LEAVE_DIALOG_MS = 1_500L
 private const val PICKER_CLOSE_MS = 1_000L
 private const val CLOSE_ATTEMPTS = 4
 private const val TAP_ATTEMPTS = 4
-private const val CLOSE_WAIT_MS = 1_500L
+private const val CLOSE_WAIT_MS = 3_000L
 
 /** Heights above the wordmark's top to tap, best guess first: 16dp gap plus half a 34dp die, then either side. */
 private val DICE_PROBE_HEIGHTS_DP = listOf(33, 25, 41, 17, 49)
-private const val BANNER_APPEAR_MS = 800L
+private const val BANNER_APPEAR_MS = 2_000L
 private const val GLOW_MS = 2_000L
 private const val LONG_PRESS_STEPS = 200
+private const val BANNER_ATTEMPTS = 3
+private const val SHORT_IDLE_WAIT_MS = 100L
