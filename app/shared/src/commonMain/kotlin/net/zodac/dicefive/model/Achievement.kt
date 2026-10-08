@@ -83,8 +83,6 @@ import net.zodac.dicefive.resources.achievement_hit_list_win_description
 import net.zodac.dicefive.resources.achievement_hit_list_win_title
 import net.zodac.dicefive.resources.achievement_i_can_count_description
 import net.zodac.dicefive.resources.achievement_i_can_count_title
-import net.zodac.dicefive.resources.achievement_i_did_it_my_way_description
-import net.zodac.dicefive.resources.achievement_i_did_it_my_way_title
 import net.zodac.dicefive.resources.achievement_i_robot_description
 import net.zodac.dicefive.resources.achievement_i_robot_title
 import net.zodac.dicefive.resources.achievement_impatient_description
@@ -773,12 +771,6 @@ enum class Achievement(
     // This category is exclusive in both directions - see AchievementEngineTest - so it isn't
     // themed by subject the way the others are; entries below keep their original relative order
     // from whichever theme they moved out of, grouped by that origin for a paper trail.
-    I_DID_IT_MY_WAY(
-        "i_did_it_my_way",
-        Res.string.achievement_i_did_it_my_way_title,
-        Res.string.achievement_i_did_it_my_way_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
-    ),
     COMMITMENT_ISSUES(
         "commitment_issues",
         Res.string.achievement_commitment_issues_title,

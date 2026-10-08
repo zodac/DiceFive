@@ -176,8 +176,6 @@
     <string name="achievement_low_rolls_description">Termina una partida con menos de 20 puntos</string>
     <string name="achievement_probability_never_heard_of_her_title">¿Probabilidad? Ni la conozco</string>
     <string name="achievement_probability_never_heard_of_her_description">Entra en tu último turno necesitando un solo dado para conseguir la bonificación, pero falla</string>
-    <string name="achievement_i_did_it_my_way_title">A mi manera</string>
-    <string name="achievement_i_did_it_my_way_description">Personaliza una partida antes de empezar</string>
     <string name="achievement_commitment_issues_title">Miedo al compromiso</string>
     <string name="achievement_commitment_issues_description">Conserva dados de un número, cambia de opinión y conserva y anota con otro número</string>
     <string name="achievement_decisions_decisions_title">Decisiones, decisiones</string>

@@ -618,7 +618,6 @@ class AchievementEngineTest {
         assertEquals(listOf(Achievement.FRESH_COAT_OF_PAINT), atStart(GameStartContext(playedNonDefaultStyle = true)).newlyUnlocked)
         assertEquals(listOf(Achievement.BIG_FAN), atStart(GameStartContext(hasHumanPlayerNamedZodac = true)).newlyUnlocked)
         assertEquals(listOf(Achievement.LUCK_OF_THE_IRISH), atStart(GameStartContext(hasIrishPlayerOneInTricolour = true)).newlyUnlocked)
-        assertEquals(listOf(Achievement.I_DID_IT_MY_WAY), atStart(GameStartContext(customizedGameSettings = true)).newlyUnlocked)
         // Starting any non-Standard mode unlocks Rules - and Standard does not.
         assertTrue(atStart(GameStartContext(gameMode = GameMode.STANDARD)).isEmpty)
         assertEquals(listOf(Achievement.NON_STANDARD_MODE), atStart(GameStartContext(gameMode = GameMode.TRICOLOUR)).newlyUnlocked)

@@ -34,7 +34,7 @@ Nothing else should need to learn the mode exists. **Don't write `if (mode == QU
 view-model or UI code** - add a field that says what the rule *is* (`rollsPerTurn`,
 `disabledCategories`) and read that. The only checks for a named mode are
 achievements that name one ("Win a game of 'Quickfire' mode", and the non-Standard/non-default
-checks for Rules? and I Did It My Way), Tricolour's easter egg (`IrishEasterEgg`), and `TieBreak`'s
+checks for Rules?), Tricolour's easter egg (`IrishEasterEgg`), and `TieBreak`'s
 Tricolour-only colour-box criterion. If you find a hard-coded `3` rolls or `5` dice, move it onto
 the mode.
 
@@ -390,7 +390,7 @@ its `description`. Only a mode that changes *another* setup option needs work he
 - Icon in `ui/achievements/AchievementIcons.kt` (exhaustive `when`). **Grep that the glyph isn't
   already used** - Quickfire's first two picks (Speed, then ElectricBolt) clashed with Solid Round
   and Dice Deity. Check the icon exists in `material-icons-extended`.
-- `NON_STANDARD_MODE` and `I_DID_IT_MY_WAY` already fire for any non-Standard mode.
+- `NON_STANDARD_MODE` already fires for any non-Standard mode.
 - A Miscellaneous achievement must be `HIDDEN`, and a hidden one must be Miscellaneous -
   `AchievementEngineTest` enforces both ways.
 - Update the "Game Modes achievements are ordered" list in `AchievementEngineTest`, and the

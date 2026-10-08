@@ -74,11 +74,6 @@ data class GameStartContext(
     val hasHumanPlayerNamedZodac: Boolean = false,
     /** [net.zodac.dicefive.model.isLuckOfTheIrish] - [Achievement.LUCK_OF_THE_IRISH]'s trigger. */
     val hasIrishPlayerOneInTricolour: Boolean = false,
-    /** Whether this game was started with any setup option changed from the app's own default -
-     * the turn timer (`turnTimer != TurnTimer.NONE`) or the game mode (anything but
-     * [GameMode.default]); extend this as later setup options gain their own default worth
-     * deviating from - [Achievement.I_DID_IT_MY_WAY]'s trigger. */
-    val customizedGameSettings: Boolean = false,
     /** The rules this game is played under - [Achievement.NON_STANDARD_MODE]'s trigger. */
     val gameMode: GameMode = GameMode.default,
 )
@@ -268,7 +263,6 @@ object AchievementEngine {
             if (context.playedNonDefaultStyle) add(Achievement.FRESH_COAT_OF_PAINT)
             if (context.hasHumanPlayerNamedZodac) add(Achievement.BIG_FAN)
             if (context.hasIrishPlayerOneInTricolour) add(Achievement.LUCK_OF_THE_IRISH)
-            if (context.customizedGameSettings) add(Achievement.I_DID_IT_MY_WAY)
             if (context.gameMode != GameMode.STANDARD) add(Achievement.NON_STANDARD_MODE)
         }
         return update(earned, before.counters, before, now)

@@ -259,7 +259,6 @@ val Achievement.icon: ImageVector
         Achievement.PROBABILITY_NEVER_HEARD_OF_HER -> STRUCK_THROUGH_63_ICON
 
         // ---- Miscellaneous (hidden) ---------------------------------------------------------------
-        Achievement.I_DID_IT_MY_WAY -> Icons.Filled.Palette
         Achievement.COMMITMENT_ISSUES -> Icons.Filled.SwapHoriz
         Achievement.DECISIONS_DECISIONS -> Icons.AutoMirrored.Filled.Help
         Achievement.TIME_TO_LET_IT_GO -> Icons.Filled.HourglassEmpty
