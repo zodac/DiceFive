@@ -60,7 +60,8 @@ release APK, and the `apk` job builds with the profile it makes. `.github/script
 time), same Google APIs image, same `-gpu swiftshader_indirect` boot and the same Vulkan renderer setting
 after it. It differs only where the runner does: `/dev/kvm` is opened with a udev rule, packages go in
 without `sudo` (the runner's SDK is its own), and the emulator and image are cached by the workflow
-(keyed on the API level). A failing run is retried once on a rebooted emulator, then fails the release;
+(keyed on the API level). It runs alongside the release's checks, and `.github/scripts/watch_checks.sh` stops it (Gradle and
+the emulator) as soon as one of them fails. A failing run is retried once on a rebooted emulator, then fails the release;
 the `baseline-profile-report` artifact holds the test report, a screenshot per failed attempt and the
 emulator's log. To debug one, reproduce it here as above - the two emulators are the same.
 
