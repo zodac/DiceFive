@@ -60,7 +60,11 @@ release APK, and the `apk` job builds with the profile it makes. `.github/script
 time), same Google APIs image, same `-gpu swiftshader_indirect` boot and the same Vulkan renderer setting
 after it. It differs only where the runner does: `/dev/kvm` is opened with a udev rule, packages go in
 without `sudo` (the runner's SDK is its own), and the emulator and image are cached by the workflow
-(keyed on the API level, and saved even when the journey fails). It runs alongside the release's checks, and `.github/scripts/watch_checks.sh` stops it (Gradle and
+(keyed on the API level, and saved even when the journey fails). The app and journey APKs are built
+*before* the emulator boots: a booted emulator sharing the runner's cores with a long compile lost its
+framework (`system_server` - `cmd: Can't find service: package`) before the install, and since the
+plugin only warns when no profile comes back, Gradle still passed. So `start` also waits for the
+`package` and `activity` services, and the generate step fails if no `baseline-prof.txt` was written. It runs alongside the release's checks, and `.github/scripts/watch_checks.sh` stops it (Gradle and
 the emulator) as soon as one of them fails. A failing journey fails the job, and the release, straight away - only an
 emulator that fails to boot is retried, once. The generate step stops after 150 minutes and the job after 170
 (a lap is ~2 minutes on a 4-core sandbox emulator and at least three times that on a hosted runner; each

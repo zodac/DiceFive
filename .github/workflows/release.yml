@@ -200,6 +200,15 @@ jobs:
             ${{ steps.emulator.outputs.sdk }}/system-images/android-${{ steps.emulator.outputs.api }}
           key: emulator-${{ runner.os }}-api${{ steps.emulator.outputs.api }}
 
+      # The app and journey APKs are built before the emulator boots, not by the generate step: a booted
+      # emulator sharing the runner's 4 cores with five minutes of compiling lost its framework
+      # (system_server) before the install, and the run produced no profile. The generate step then finds
+      # these up to date and goes straight to the device.
+      - name: Build the journey's APKs
+        run: |
+          ./gradlew :app:android:assembleNonMinifiedRelease :app:baselineprofile:assembleNonMinifiedRelease \
+            --console=plain
+
       # 10 laps: the journey's timing races only showed up from lap 4, so a short run doesn't prove it.
       # Only the boot is retried; a failed journey ends the step there and then (see the job's comment).
       # The benchmark library logs "Compile iteration (N)" as each lap starts; those lines are echoed here
@@ -207,6 +216,8 @@ jobs:
       - name: Generate the Baseline Profile
         timeout-minutes: 150
         run: |
+          # adb for the logcat below: ci_emulator.sh puts platform-tools on its own PATH, not this step's.
+          export PATH="$ANDROID_HOME/platform-tools:$PATH"
           checks_failed() {
             if [ -f "$RUNNER_TEMP/checks-failed" ]; then
               echo "::error::$(cat "$RUNNER_TEMP/checks-failed") failed - the Baseline Profile was stopped"
@@ -225,7 +236,12 @@ jobs:
             trap 'kill $! 2>/dev/null || true' EXIT
             if ./gradlew :app:android:generateBaselineProfile \
                 -Pandroid.testInstrumentationRunnerArguments.journeyLaps=10 --console=plain; then
-              exit 0
+              # The plugin only warns when the tests yield no profile, so Gradle can pass without one.
+              if [ -s app/android/src/release/generated/baselineProfiles/baseline-prof.txt ]; then
+                exit 0
+              fi
+              echo "::error::Gradle passed but wrote no Baseline Profile - see the baseline-profile-report artifact"
+              exit 1
             fi
             if checks_failed; then exit 1; fi
             .github/scripts/ci_emulator.sh screenshot "$RUNNER_TEMP/journey-failure.png" || true
@@ -255,6 +271,7 @@ jobs:
           path: |
             ${{ runner.temp }}/watch-checks.log
             app/baselineprofile/build/reports/androidTests/
+            app/baselineprofile/build/outputs/androidTest-results/
             ${{ runner.temp }}/journey-failure.png
             ${{ runner.temp }}/emulator-*.log
           retention-days: 7
