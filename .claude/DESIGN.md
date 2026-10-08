@@ -2595,5 +2595,8 @@ any page.
       publishes, attaching the APK passed to it as an artifact. ffmpeg is installed only where app:android's resources
       are merged, and tries the runner's package lists before refreshing them. `update-dependencies.yml` is unchanged.
 - [x] **Baseline Profile per release** (2026-10-08): a `baseline-profile` job, gated like `apk`, generates the profile
-      on an emulator and `apk` builds with it; `release` also requires it to have passed or been skipped (a failed
-      profile job only *skips* `apk`, which alone would let a release out without its APK). See Phase 19.
+      on an emulator alongside the checks, and stops itself as soon as one of them fails (`watch_checks.sh` polls
+      the run's jobs; GitHub can only cancel a whole run, which would cut the other checks short too). `apk` builds
+      with the profile, and only once it and every check have passed. `release` also requires the profile job to
+      have passed or been skipped (a failed one only *skips* `apk`, which alone would let a release out without
+      its APK). See Phase 19.

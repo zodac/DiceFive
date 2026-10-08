@@ -23,9 +23,10 @@ name: Release
 # reaches 1.0.0, unless the force_apk dispatch input below overrides that.
 #
 # The checks run side by side, each on a runner of its own - the app's Robolectric tests, the shared
-# module's tests with its iOS compile, lint, and (once there's one to ship) the Baseline Profile and the
-# signed APK built with it - and the release itself is made only once every one of them has passed.
-# Each check sets itself up through .github/actions/build-setup.
+# module's tests with its iOS compile, lint, and (once there's an APK to ship) the Baseline Profile,
+# which stops itself if a check fails. The signed APK is built with that profile once it and every check
+# have passed, and the release itself is made only once all of that has. Each job sets itself up
+# through .github/actions/build-setup.
 #
 # Only a push that touches what ships triggers a release: app sources and resources, the Gradle
 # build and the VERSION file. Docs, CI, tooling, test code and Markdown files don't build a new
@@ -140,14 +141,30 @@ jobs:
   # it looks for - fails the release rather than shipping a thinner profile, after one retry on a
   # freshly booted emulator in case the emulator itself was what failed. The emulator and the journey
   # are explained in .claude/EMULATOR.md; the journey in .claude/DESIGN.md Phase 19.
+  #
+  # It runs alongside the checks but is no use once one of them fails (nothing will be released), so it
+  # watches them and stops itself when one does - see watch_checks.sh.
   baseline-profile:
     needs: version
     if: needs.version.outputs.stable == 'true' || inputs.force_apk == true
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    permissions:
+      contents: read
+      actions: read # watch_checks.sh reads this run's jobs
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      # In the background for the rest of the job: it writes the marker file, and stops Gradle and the
+      # emulator, as soon as a check fails. The generate step below reads the marker so it neither starts
+      # nor retries once that has happened.
+      - name: Watch the checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          nohup .github/scripts/watch_checks.sh "$RUNNER_TEMP/checks-failed" android-tests shared-tests lint \
+            > "$RUNNER_TEMP/watch-checks.log" 2>&1 &
 
       - name: Set up the build
         uses: ./.github/actions/build-setup
@@ -177,7 +194,15 @@ jobs:
       # its state into the next one.
       - name: Generate the Baseline Profile
         run: |
+          checks_failed() {
+            if [ -f "$RUNNER_TEMP/checks-failed" ]; then
+              echo "::error::$(cat "$RUNNER_TEMP/checks-failed") failed - the Baseline Profile was stopped"
+              return 0
+            fi
+            return 1
+          }
           for attempt in 1 2; do
+            if checks_failed; then exit 1; fi
             if ! .github/scripts/ci_emulator.sh start; then
               .github/scripts/ci_emulator.sh stop
               echo "::warning::The emulator failed to boot (attempt $attempt)"
@@ -188,6 +213,7 @@ jobs:
                 -Pandroid.testInstrumentationRunnerArguments.journeyLaps=10 --console=plain; then
               exit 0
             fi
+            if checks_failed; then exit 1; fi
             .github/scripts/ci_emulator.sh screenshot "$RUNNER_TEMP/journey-failure-$attempt.png" || true
             .github/scripts/ci_emulator.sh stop
             echo "::warning::Baseline Profile generation failed (attempt $attempt)"
@@ -200,6 +226,7 @@ jobs:
         with:
           name: baseline-profile-report
           path: |
+            ${{ runner.temp }}/watch-checks.log
             app/baselineprofile/build/reports/androidTests/
             ${{ runner.temp }}/journey-failure-*.png
             ${{ runner.temp }}/emulator-*.log
@@ -214,10 +241,10 @@ jobs:
           retention-days: 1
 
   # The signed release APK, built with the Baseline Profile generated above - only from 1.0.0 on, unless
-  # force_apk asks for one sooner. Handed to the release job as an artifact; nothing is published unless
-  # every check passes.
+  # force_apk asks for one sooner, and only once the profile and every check have passed (there's no use
+  # for an APK that won't be released). Handed to the release job as an artifact.
   apk:
-    needs: [version, baseline-profile]
+    needs: [version, android-tests, shared-tests, lint, baseline-profile]
     if: needs.version.outputs.stable == 'true' || inputs.force_apk == true
     runs-on: ubuntu-latest
     steps:
