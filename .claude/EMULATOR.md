@@ -64,12 +64,16 @@ without `sudo` (the runner's SDK is its own), and the emulator and image are cac
 *before* the emulator boots: a booted emulator sharing the runner's cores with a long compile lost its
 framework (`system_server` - `cmd: Can't find service: package`) before the install, and since the
 plugin only warns when no profile comes back, Gradle still passed. So `start` also waits for the
-`package` and `activity` services, and the generate step fails if no `baseline-prof.txt` was written. It runs alongside the release's checks, and `.github/scripts/watch_checks.sh` stops it (Gradle and
+`package` and `activity` services and for an install session to open (`pm install-create`, the step a
+later run failed at with `android from uid 1000 not allowed to perform GET_USAGE_STATS` while both
+services were listed), all holding for 30 seconds on the same `system_server`. If Gradle still passes
+with no `baseline-prof.txt` written, the install failed, and the attempt is retried like a failed boot. It runs alongside the release's checks, and `.github/scripts/watch_checks.sh` stops it (Gradle and
 the emulator) as soon as one of them fails. A failing journey fails the job, and the release, straight away - only an
-emulator that fails to boot is retried, once. The generate step stops after 150 minutes and the job after 170
+emulator that fails to boot or to install the APKs is retried, once. The generate step stops after 150 minutes and the job after 170
 (a lap is ~2 minutes on a 4-core sandbox emulator and at least three times that on a hosted runner; each
 lap's start is echoed in the step's log), so a hang can't hold the release for long; the `baseline-profile-report` artifact holds the test report, a
-screenshot of where the journey stopped and the emulator's log. To debug one, reproduce it here as above - the two emulators are the same.
+screenshot of where the journey stopped, the emulator's log and its logcat (every buffer, so a
+`system_server` restart shows in `crash`/`events`). To debug one, reproduce it here as above - the two emulators are the same.
 
 ## What `start` does, and why
 
