@@ -87,6 +87,8 @@ import net.zodac.dicefive.ui.theme.GoldAccentDim
 import net.zodac.dicefive.ui.game.style.DiceMat
 import net.zodac.dicefive.ui.game.style.DiceStyle
 import net.zodac.dicefive.ui.game.style.DieMotion
+import net.zodac.dicefive.ui.game.style.EggDiceStyle
+import net.zodac.dicefive.ui.game.style.GoldenEggDiceStyle
 import net.zodac.dicefive.ui.game.style.LocalDieCastsShadow
 import net.zodac.dicefive.ui.game.style.LocalDieIndex
 import net.zodac.dicefive.ui.game.style.LocalDieMotion
@@ -976,6 +978,13 @@ private fun DieFace(die: Die, held: Boolean, diceStyles: TrayDiceStyles, modifie
 private class TrayDiceStyles(val plain: DiceStyle, colours: List<DieColour>, irish: Boolean) {
     private val coloured: Map<DieColour, DiceStyle> = colours.associateWith { plain.recoloured(it.palette(irish)) }
 
+    /** The golden egg in each colour: the colour's egg, keeping the gold's speckles and sparkle. */
+    private val goldenColoured: Map<DieColour, DiceStyle> = colours.associateWith { GoldenEggDiceStyle.recoloured(it.palette(irish)) }
+
     /** The style [die] is drawn in: recoloured in its colour when it has one. */
-    fun forDie(die: Die): DiceStyle = die.colour?.let { coloured.getValue(it) } ?: plain
+    fun forDie(die: Die): DiceStyle = when {
+        // The rare golden egg: only ever rolled with the Egg dice, so any other style ignores the flag.
+        die.isGolden && plain is EggDiceStyle -> die.colour?.let { goldenColoured.getValue(it) } ?: GoldenEggDiceStyle
+        else -> die.colour?.let { coloured.getValue(it) } ?: plain
+    }
 }

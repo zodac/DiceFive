@@ -66,8 +66,12 @@ object GameEngine {
      * With the Unlucky Dice modifier on ([GameState.unluckyDice]), each die just rolled is then locked with its
      * odds, [UnluckyDice.maxDice] of them at most (chosen at random when more come up). A die that was
      * unlucky and is rolled again starts clear. Without the modifier nothing more is drawn from [random].
+     *
+     * With [goldenOneIn] set, each die rolled also has that one-in chance of coming up golden
+     * ([Die.isGolden]) - drawn after its value and colour, and only then, so without it [random] is
+     * used exactly as it always was.
      */
-    fun rollDice(state: GameState, random: Random = Random.Default): GameState {
+    fun rollDice(state: GameState, random: Random = Random.Default, goldenOneIn: Int? = null): GameState {
         check(state.rollsRemaining > 0) { "No rolls remaining this turn" }
         val values = state.gameMode.dieValues
         val colours = state.gameMode.dieColours
@@ -77,7 +81,7 @@ object GameEngine {
             } else {
                 val value = random.nextInt(values.first, values.last + 1)
                 val colour = if (colours.isEmpty()) null else colours[random.nextInt(colours.size)]
-                die.copy(value = value, colour = colour, isUnlucky = false)
+                die.copy(value = value, colour = colour, isUnlucky = false, isGolden = goldenOneIn != null && random.nextInt(goldenOneIn) == 0)
             }
         }.let { dice -> state.unluckyDice?.let { curse(dice, state.dice, it, random) } ?: dice }
         val players = state.players.mapIndexed { index, player ->

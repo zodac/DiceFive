@@ -66,9 +66,11 @@ import net.zodac.dicefive.model.isLuckOfTheIrish
 import net.zodac.dicefive.model.sanitizePlayerName
 import net.zodac.dicefive.model.takeNameWidth
 import net.zodac.dicefive.ui.achievements.announce
+import net.zodac.dicefive.ui.game.style.ChickenDiceCupStyle
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.game.style.EggDiceStyle
 import net.zodac.dicefive.ui.game.style.GameVisualTheme
 import net.zodac.dicefive.ui.game.style.ScoreFrames
 import net.zodac.dicefive.ui.game.style.StyleCatalog
@@ -846,10 +848,22 @@ class GameViewModel(
      * which carries its own copy of it.
      */
     private fun performRoll(state: GameState, checkForAiTurn: Boolean = true): GameState {
-        val rolled = GameEngine.rollDice(state, random)
+        // The golden egg: a human's roll only, with the Egg dice and the Chicken cup both in use.
+        val goldenOneIn = GOLDEN_EGG_ONE_IN.takeIf { state.currentPlayer?.type == PlayerType.HUMAN && showsGoldenEggs() }
+        val rolled = GameEngine.rollDice(state, random, goldenOneIn)
         setUndoSnapshot(null)
         applyGameState(rolled, checkForAiTurn)
+        // Only player 1 - "You" - earns it, once a golden die has landed (held back with the rest of the roll's unlocks).
+        if (state.currentPlayerIndex == 0 && rolled.dice.indices.any { rolled.dice[it].isGolden && !state.dice[it].isGolden }) {
+            unlockAchievements(setOf(Achievement.EGGCELLENT_DISCOVERY))
+        }
         return rolled
+    }
+
+    /** Whether the table is set up for [Achievement.EGGCELLENT_DISCOVERY]: the Egg dice and the Chicken cup picked. */
+    private fun showsGoldenEggs(): Boolean {
+        val theme = tableSettings.value?.visualTheme ?: return false
+        return theme.diceStyle is EggDiceStyle && theme.diceCupStyle is ChickenDiceCupStyle
     }
 
     private fun onHumanAction(undoable: Boolean = true, transform: (GameState) -> GameState) {
@@ -1814,6 +1828,9 @@ class GameViewModel(
     }
 
     companion object {
+        /** The odds, one in this many per die rolled, of a golden egg - see [Achievement.EGGCELLENT_DISCOVERY]. */
+        private const val GOLDEN_EGG_ONE_IN = 1000
+
         /** The AI's pause, dice settled, before it scores. Its rolls shake for CUP_SHAKE_MILLIS, same as a tap's. */
         private const val AI_STEP_DELAY_MS = 250L
 

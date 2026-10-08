@@ -37,6 +37,8 @@ import net.zodac.dicefive.resources.achievement_dice_10000_description
 import net.zodac.dicefive.resources.achievement_dice_10000_title
 import net.zodac.dicefive.resources.achievement_dice_hate_me_description
 import net.zodac.dicefive.resources.achievement_dice_hate_me_title
+import net.zodac.dicefive.resources.achievement_eggcellent_discovery_description
+import net.zodac.dicefive.resources.achievement_eggcellent_discovery_title
 import net.zodac.dicefive.resources.achievement_empty_house_description
 import net.zodac.dicefive.resources.achievement_empty_house_title
 import net.zodac.dicefive.resources.achievement_encore_5x_description
@@ -1032,6 +1034,14 @@ enum class Achievement(
         "big_fan",
         Res.string.achievement_big_fan_title,
         Res.string.achievement_big_fan_description,
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+    ),
+    // Excluded from COMPLETIONIST like the rest of this category - it needs the Egg dice and the
+    // Chicken cup both picked, and then a one-in-a-thousand die.
+    EGGCELLENT_DISCOVERY(
+        "eggcellent_discovery",
+        Res.string.achievement_eggcellent_discovery_title,
+        Res.string.achievement_eggcellent_discovery_description,
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
     ),
     // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the

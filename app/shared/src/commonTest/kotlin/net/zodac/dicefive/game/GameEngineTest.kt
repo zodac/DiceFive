@@ -393,6 +393,25 @@ class GameEngineTest {
 
     // ---- Unlucky Dice -----------------------------------------------------------------------------
 
+    @Test
+    fun `golden dice roll at the odds given - a held one keeps its gold - and without odds nothing is drawn`() {
+        // Without odds the dice come out exactly as they always have, none golden.
+        val plain = GameEngine.rollDice(GameEngine.newGame(onePlayer), Random(7))
+        assertTrue(plain.dice.none { it.isGolden })
+        assertEquals(Random(7).let { random -> List(5) { random.nextInt(1, 7) } }, plain.dice.map { it.value })
+
+        val random = Random(3)
+        var golden = 0
+        repeat(4_000) { golden += GameEngine.rollDice(GameEngine.newGame(onePlayer), random, goldenOneIn = 100).dice.count { it.isGolden } }
+        assertEquals(0.01, golden / (4_000 * 5.0), 0.004)
+
+        // A held die isn't rolled again, so it stays as it was; a rerolled one is drawn afresh.
+        val start = GameEngine.newGame(onePlayer).let { it.copy(dice = it.dice.mapIndexed { i, die -> if (i == 0) die.copy(isHeld = true, isGolden = true) else die.copy(isGolden = true) }) }
+        val rerolled = GameEngine.rollDice(start, Random(1))
+        assertTrue(rerolled.dice[0].isGolden)
+        assertTrue(rerolled.dice.drop(1).none { it.isGolden })
+    }
+
     private fun unluckyGame(odds: Int = 50, maxDice: Int = 5, mode: GameMode = GameMode.STANDARD) =
         GameEngine.newGame(onePlayer, mode, unluckyDice = UnluckyDice(odds, maxDice))
 

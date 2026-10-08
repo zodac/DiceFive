@@ -256,6 +256,8 @@
     <string name="achievement_not_those_dice_description">Toca los dados del menú principal</string>
     <string name="achievement_shaken_not_tapped_title">Agitado, no tocado</string>
     <string name="achievement_shaken_not_tapped_description">Agita el teléfono para tirar los dados</string>
+    <string name="achievement_eggcellent_discovery_title">Un descubrimiento de oro</string>
+    <string name="achievement_eggcellent_discovery_description">¡Encontraste el huevo de oro!</string>
     <string name="achievement_magicians_secret_title">El secreto del mago</string>
     <string name="achievement_magicians_secret_description">Descubre dónde se esconde Luna</string>
     <string name="achievement_the_solution_title">La solución</string>

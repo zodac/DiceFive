@@ -398,6 +398,11 @@ which the tile's colour row and dots leave out until it's earned: the Irish dice
 of the Irish), the blue/gold Googly dice (Big Fan), the Flowerpot's plant-stage pots (Greenfingers -
 a pot held at each of seedling, bud, opening, sunflower) and the Top Hat with its rabbit always out,
 sliding about the opening as the hat is shaken (The Magician's Secret).
+The Egg dice's golden egg (Eggcellent Discovery) is another: with the Egg dice and the Chicken cup both
+picked, each die a human rolls has a 1-in-1000 chance of landing golden (`Die.isGolden`, set in
+`GameEngine.rollDice(goldenOneIn = ...)` from `GameViewModel.performRoll`; saved with the game, drawn by
+`TrayDiceStyles.forDie` as `GoldenEggDiceStyle`, which is also the Egg style's secret Gold colour). Only
+player 1 earns the achievement, once the dice have landed.
 Any achievement
 that unlocks a specific style (`Achievement.unlocksStyle`) shows a plain tooltip (not a dialog) when
 its row is tapped or long-pressed, naming the style - "You've unlocked the 'Multicolour' dice

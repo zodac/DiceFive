@@ -188,6 +188,10 @@ class GameStateJsonTest {
         )
         assertTrue(unlucky.dice[3].isUnlucky)
 
+        // A golden egg.
+        val golden = roundTripped(GameState(dice = List(5) { Die(value = it + 1, isGolden = it == 1) }, players = listOf(human)))
+        assertEquals(listOf(false, true, false, false, false), golden.dice.map { it.isGolden })
+
         // Quickfire: the boxes switched off, on the game and every card.
         val twoSeats = listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Player 1"), PlayerConfig(slot = 2, type = PlayerType.AI, name = "Bot"))
         val started = GameEngine.newGame(twoSeats, GameMode.QUICKFIRE, random = Random(4))
@@ -244,7 +248,7 @@ class GameStateJsonTest {
 
         // A plain game writes no Extended Scores, Unlucky Dice, switched-off boxes or Hit List - and loads with none.
         val written = GameStateJson.encode(plain)
-        for (field in listOf("extendedScores", "unluckyOdds", "isUnlucky", "disabledCategories", "hitList")) assertFalse(field in written, "$field written")
+        for (field in listOf("extendedScores", "unluckyOdds", "isUnlucky", "isGolden", "disabledCategories", "hitList")) assertFalse(field in written, "$field written")
         val loaded = GameStateJson.decode(written)
         assertFalse(loaded.extendedScores)
         assertEquals(13, loaded.players.single().scorecard.size)

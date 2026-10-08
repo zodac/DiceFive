@@ -4,7 +4,10 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.random.Random
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
@@ -23,7 +26,9 @@ import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
 import net.zodac.dicefive.model.AchievementVisibility
+import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.game.style.ChickenDiceCupStyle
 
 /** In-memory preferences, so a real [SettingsRepository] can back the table's settings. */
 private class TablePreferencesStore : DataStore<Preferences> {
@@ -94,5 +99,40 @@ class GameTableSettingsTest {
         achievements.record(Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }.associateWith { 0L }, emptyMap())
         advanceUntilIdle()
         assertEquals("googly_ivory", locked.tableSettings.value?.visualTheme?.diceStyle?.id)
+    }
+
+    /** Every one-in-a-thousand draw comes up, and every other draw is the lowest it can be. */
+    private object GoldenEveryTime : Random() {
+        override fun nextBits(bitCount: Int): Int = 0
+        override fun nextInt(until: Int): Int = if (until == 1000) 0 else 1
+    }
+
+    private suspend fun kotlinx.coroutines.test.TestScope.firstRoll(diceId: String, cupId: String): Pair<GameViewModel, TableAchievementStore> {
+        val settings = SettingsRepository(TablePreferencesStore())
+        settings.setDiceStyleId(diceId)
+        settings.setDiceCupStyleId(cupId)
+        val achievements = TableAchievementStore()
+        achievements.record(Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }.associateWith { 0L }, emptyMap())
+        val viewModel = GameViewModel(settingsRepository = settings, achievementsRepository = achievements, random = GoldenEveryTime)
+        viewModel.setPlayerCount(1)
+        viewModel.startGame()
+        advanceUntilIdle()
+        viewModel.rollDice()
+        advanceUntilIdle()
+        return viewModel to achievements
+    }
+
+    @Test
+    fun `a golden egg rolls only with the Egg dice and the Chicken cup both picked - and earns Eggcellent Discovery`() = runTest {
+        val (both, achievements) = firstRoll("egg_white", "chicken_brown")
+        assertTrue(both.tableSettings.value?.visualTheme?.diceCupStyle is ChickenDiceCupStyle)
+        assertTrue(both.game.value!!.dice.all { it.isGolden })
+        assertTrue(achievements.current().isUnlocked(Achievement.EGGCELLENT_DISCOVERY))
+
+        for ((dice, cup) in listOf("egg_white" to DiceCupStyles.default.id, DiceStyles.default.id to "chicken_white")) {
+            val (viewModel, store) = firstRoll(dice, cup)
+            assertTrue(viewModel.game.value!!.dice.none { it.isGolden }, "$dice with $cup rolled a golden die")
+            assertFalse(store.current().isUnlocked(Achievement.EGGCELLENT_DISCOVERY))
+        }
     }
 }
