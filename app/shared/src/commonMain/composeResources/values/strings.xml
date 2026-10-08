@@ -341,7 +341,7 @@
     <string name="mode_third_wind">Third Wind</string>
     <string name="mode_third_wind_description">Every category is scored three times</string>
     <string name="mode_hit_list">Hit List</string>
-    <string name="mode_hit_list_description">Roll a list of number targets</string>
+    <string name="mode_hit_list_description">Score by matching a list of dice sequences</string>
 
     <!-- Player colour names, spoken by TalkBack in the colour picker (model/PlayerColour.kt). -->
     <string name="player_colour_cyan">Cyan</string>
