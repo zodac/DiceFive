@@ -142,7 +142,8 @@ A category's scoring rule is mode-independent; a mode only chooses which categor
   is worked out from Standard's rules: anything that changes how Standard scores - its boxes, a box's
   scoring, its bonuses or rolls - means regenerating it (`./gradlew :app:shared:testAndroidHostTest
   --tests '*StandardPerfectPlayTableTest*' -PregeneratePerfectPlayTable`, about 20s), or
-  `StandardPerfectPlayTableTest` fails. Other modes have no table; Hard estimates in them.
+  `StandardPerfectPlayTableTest` fails (it re-works a sample of the table's states from the table itself - see
+  `StandardPerfectPlayTable.mismatchedStates`). Other modes have no table; Hard estimates in them.
 - Tie-breaks (`game/TieBreak.kt`): a mode-only stat (Tricolour's colour-box count) goes in the live
   game's criteria but is left out of the leaderboard's, because the leaderboard mixes every mode and
   other modes have no value for it.
@@ -624,7 +625,7 @@ Useful tools, and what tripped this work up:
   counter (a `var` on an `object`, bumped at the top of the composables in question) printed per frame,
   shows *which* frames recompose what - Third Wind's showed only the tap and landing frames do, which
   the timings alone couldn't.
-- **A tray screenshot for review**: a throwaway Robolectric test with `@GraphicsMode(NATIVE)` and
+- **A tray screenshot for review**: a throwaway Robolectric test (native graphics, as every one is) with
   `@Config(qualifiers = "w411dp-h891dp-xxhdpi")`. It sets up `GameScreen` as in the screen harness,
   rolls with a scripted `Random`, holds, steps the clocks, then `onRoot().captureToImage()` to a PNG
   in the scratchpad. Delete it afterwards.

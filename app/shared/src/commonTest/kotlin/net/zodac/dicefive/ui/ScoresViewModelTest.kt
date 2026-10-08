@@ -65,16 +65,14 @@ class ScoresViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     @Test
-    fun `the game mode cards are read only once that view is chosen`() = runTest(testDispatcher) {
+    fun `the game mode cards are read once that view is chosen - each paging on its own - with a card for a mode off the combined board`() = runTest(testDispatcher) {
         val dao = ListScoreDao(listOf(entry(1, 200, GameMode.STANDARD)))
         val viewModel = ScoresViewModel(ScoreRepository(dao))
         advanceUntilIdle()
         assertEquals(LeaderboardView.COMBINED, viewModel.uiState.value.view)
         assertEquals(0, dao.modeReads)
-
         viewModel.selectView(LeaderboardView.GAME_MODE)
         advanceUntilIdle()
-
         assertEquals(LeaderboardView.GAME_MODE, viewModel.uiState.value.view)
         assertEquals(LEADERBOARD_MODES.toSet(), viewModel.uiState.value.modeBoards.keys)
         // Switching back and forth doesn't read them again.
@@ -82,45 +80,36 @@ class ScoresViewModelTest {
         viewModel.selectView(LeaderboardView.GAME_MODE)
         advanceUntilIdle()
         assertEquals(LEADERBOARD_MODES.size, dao.modeReads)
-    }
 
-    @Test
-    fun `every card pages on its own`() = runTest(testDispatcher) {
+        // Every card pages on its own.
         val tricolour = (1..SCORES_PAGE_SIZE + 5).map { entry(it.toLong(), it, GameMode.TRICOLOUR) }
-        val viewModel = ScoresViewModel(ScoreRepository(ListScoreDao(tricolour + entry(1000, 50, GameMode.STANDARD))))
-        viewModel.selectView(LeaderboardView.GAME_MODE)
+        val paging = ScoresViewModel(ScoreRepository(ListScoreDao(tricolour + entry(1000, 50, GameMode.STANDARD))))
+        paging.selectView(LeaderboardView.GAME_MODE)
         advanceUntilIdle()
-
-        val before = viewModel.uiState.value.modeBoards.getValue(GameMode.TRICOLOUR)
+        val before = paging.uiState.value.modeBoards.getValue(GameMode.TRICOLOUR)
         assertEquals(2, before.totalPages)
         assertEquals(SCORES_PAGE_SIZE, before.entries.size)
         assertFalse(before.hasPreviousPage)
-
-        viewModel.nextModePage(GameMode.TRICOLOUR)
+        paging.nextModePage(GameMode.TRICOLOUR)
         advanceUntilIdle()
-
-        val after = viewModel.uiState.value.modeBoards.getValue(GameMode.TRICOLOUR)
+        val after = paging.uiState.value.modeBoards.getValue(GameMode.TRICOLOUR)
         assertEquals(1, after.pageIndex)
         assertEquals(5, after.entries.size)
         assertTrue(after.hasPreviousPage)
         // Standard's card didn't move, nor did the combined table.
-        assertEquals(0, viewModel.uiState.value.modeBoards.getValue(GameMode.STANDARD).pageIndex)
-        assertEquals(0, viewModel.uiState.value.pageIndex)
-
-        viewModel.previousModePage(GameMode.TRICOLOUR)
+        assertEquals(0, paging.uiState.value.modeBoards.getValue(GameMode.STANDARD).pageIndex)
+        assertEquals(0, paging.uiState.value.pageIndex)
+        paging.previousModePage(GameMode.TRICOLOUR)
         advanceUntilIdle()
-        assertEquals(0, viewModel.uiState.value.modeBoards.getValue(GameMode.TRICOLOUR).pageIndex)
-    }
+        assertEquals(0, paging.uiState.value.modeBoards.getValue(GameMode.TRICOLOUR).pageIndex)
 
-    @Test
-    fun `a mode that stays off the combined board still has a card`() = runTest(testDispatcher) {
+        // A mode that stays off the combined board still has a card.
         val quickfire = entry(1, 90, GameMode.QUICKFIRE).copy(onLeaderboard = false)
         val modifiers = entry(2, 300, GameMode.STANDARD).copy(onLeaderboard = false)
-        val viewModel = ScoresViewModel(ScoreRepository(ListScoreDao(listOf(quickfire, modifiers, entry(3, 200, GameMode.STANDARD)))))
-        viewModel.selectView(LeaderboardView.GAME_MODE)
+        val offBoard = ScoresViewModel(ScoreRepository(ListScoreDao(listOf(quickfire, modifiers, entry(3, 200, GameMode.STANDARD)))))
+        offBoard.selectView(LeaderboardView.GAME_MODE)
         advanceUntilIdle()
-
-        val state = viewModel.uiState.value
+        val state = offBoard.uiState.value
         // Not on the combined table, nor counted in it...
         assertEquals(listOf(3L), state.entries.map { it.id })
         assertEquals(1, state.totalCount)

@@ -51,14 +51,14 @@ internal class InMemoryPreferences : DataStore<Preferences> {
  * level is a segmented row of its four levels.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
+@Config(qualifiers = "w360dp-h800dp")
 class SettingsRowsTest {
 
     @get:Rule
     val compose = createComposeRule()
 
     @Test
-    fun `tapping a setting's label flips it - label and switch are one toggle`() {
+    fun `every setting is named - an on-off one a single toggle - Animations four levels - each reset a button row confirming what it will do`() {
         val viewModel = SettingsViewModel(settingsRepository = SettingsRepository(InMemoryPreferences()))
         compose.setContent {
             // Only for the version line at the foot of the page.
@@ -66,71 +66,32 @@ class SettingsRowsTest {
                 DiceFiveTheme { SettingsScreen(viewModel = viewModel, onBack = {}) }
             }
         }
+        // The page names every switch - and its version and two links.
+        listOf("Settings", "Sound effects", "Vibration", "Animations", "Confirm leaving game", "About", "Licences").forEach { compose.onNodeWithText(it).assertExists() }
+        compose.onNode(hasText("Version ", substring = true)).assertExists()
 
+        // Tapping a setting's label flips it - label and switch are one toggle.
         val vibration = compose.onNode(hasText("Vibration") and isToggleable())
         vibration.assertIsOn()
         vibration.performClick()
         vibration.assertIsOff()
-    }
 
-    @Test
-    fun `animations is a row of four levels, the current one selected`() {
-        showSettings()
-        compose.onNodeWithText("Animations").assertExists()
+        // Animations is a row of four levels, the current one selected.
         val level = { name: String -> compose.onNode(hasText(name) and isSelectable()) }
-
         level("High").assertIsSelected()
         listOf("Medium", "Low", "Off").forEach { level(it).assertIsNotSelected() }
-
         level("Low").performClick()
         level("Low").assertIsSelected()
         level("High").assertIsNotSelected()
-    }
 
-    @Test
-    fun `each reset is one button row that opens its confirmation`() {
-        val viewModel = SettingsViewModel(settingsRepository = SettingsRepository(InMemoryPreferences()))
-        compose.setContent {
-            CompositionLocalProvider(LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext())) {
-                DiceFiveTheme { SettingsScreen(viewModel = viewModel, onBack = {}) }
-            }
-        }
+        // Each reset is one button row - one node carrying the name and what it does, a single TalkBack stop - below the
+        // fold on the test's small screen.
         val isButton = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
-
-        // One node per row carrying the name and what it does - a single TalkBack stop.
         val achievements = compose.onNode(hasText("Reset achievements") and hasText("Lock every achievement again") and hasClickAction() and isButton)
-        // Below the fold on the test's small screen.
         achievements.performScrollTo().assertIsDisplayed()
-        compose.onNode(hasText("Reset leaderboard") and hasText("Delete all recorded scores") and hasClickAction() and isButton)
-            .performScrollTo().assertIsDisplayed()
+        compose.onNode(hasText("Reset leaderboard") and hasText("Delete all recorded scores") and hasClickAction() and isButton).performScrollTo().assertIsDisplayed()
 
-        achievements.performClick()
-        compose.onNodeWithText("Reset Achievements?").assertIsDisplayed()
-    }
-
-    private fun showSettings() {
-        val viewModel = SettingsViewModel(settingsRepository = SettingsRepository(InMemoryPreferences()))
-        compose.setContent {
-            CompositionLocalProvider(LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext())) {
-                DiceFiveTheme { SettingsScreen(viewModel = viewModel, onBack = {}) }
-            }
-        }
-    }
-
-    @Test
-    fun `the page names every switch - and its version and two links`() {
-        showSettings()
-
-        listOf("Settings", "Sound effects", "Vibration", "Animations", "Confirm leaving game", "About", "Licences").forEach {
-            compose.onNodeWithText(it).assertExists()
-        }
-        compose.onNode(hasText("Version ", substring = true)).assertExists()
-    }
-
-    @Test
-    fun `each reset's confirmation says what it will do - and can be cancelled`() {
-        showSettings()
-
+        // Its confirmation says what it will do - and can be cancelled.
         compose.onNodeWithText("Reset leaderboard").performScrollTo().performClick()
         compose.onNodeWithText("Reset Leaderboard?").assertIsDisplayed()
         compose.onNodeWithText(
@@ -141,9 +102,8 @@ class SettingsRowsTest {
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithText("Reset Leaderboard?").assertDoesNotExist()
 
-        compose.onNodeWithText("Reset achievements").performClick()
-        compose.onNodeWithText(
-            "Every achievement will be locked again and all progress towards them lost. This can't be undone. Your scores and settings are not affected.",
-        ).assertIsDisplayed()
+        achievements.performClick()
+        compose.onNodeWithText("Reset Achievements?").assertIsDisplayed()
+        compose.onNodeWithText("Every achievement will be locked again and all progress towards them lost. This can't be undone. Your scores and settings are not affected.").assertIsDisplayed()
     }
 }

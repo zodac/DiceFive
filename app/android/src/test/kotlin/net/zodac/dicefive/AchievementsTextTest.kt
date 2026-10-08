@@ -32,19 +32,20 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /** The Achievements page's and its banners' words: the count, categories, a hidden row, and what each banner says and is called. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class AchievementsTextTest {
 
     @get:Rule
     val compose = createComposeRule()
 
-    private fun showScreen() {
+    private val showcase = Showcase(compose)
+
+    @Test
+    fun `the page is titled - counts what is unlocked - hides a description as three question marks - and each banner says what it is`() {
         val viewModel = AchievementsViewModel()
-        compose.setContent {
+        showcase.show {
             CompositionLocalProvider(
                 LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
                 LocalPlatformServices provides SilentPlatformServices,
@@ -52,54 +53,32 @@ class AchievementsTextTest {
                 DiceFiveTheme { AchievementsScreen(viewModel = viewModel, onBack = {}) }
             }
         }
-        compose.waitForIdle()
-    }
+        compose.onNodeWithText("Achievements").assertExists()
+        compose.onNodeWithText("0 of ", substring = true).assertExists()
+        compose.onNodeWithText(" unlocked", substring = true).assertExists()
+        compose.onNodeWithContentDescription("Milestones").assertExists()
+        // A hidden achievement's description is three question marks until it is earned - all in Miscellaneous, further
+        // down the list: scroll to the first.
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("???"))
+        compose.onAllNodesWithText("???").onFirst().assertExists()
 
-    private fun showBanners() {
-        compose.setContent {
+        // Each banner on a host of its own: a host shows its banners one after another.
+        fun showBannerHost() = showcase.show {
             CompositionLocalProvider(LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext())) {
                 DiceFiveTheme {
                     AchievementBannerHost(isOnGameScreen = { false }, onAchievementSelected = {}, onStylesSelected = {}) { Box(Modifier.fillMaxSize()) }
                 }
             }
         }
-        compose.waitForIdle()
-    }
-
-    @Test
-    fun `the page is titled and counts what is unlocked`() {
-        showScreen()
-
-        compose.onNodeWithText("Achievements").assertExists()
-        compose.onNodeWithText("0 of ", substring = true).assertExists()
-        compose.onNodeWithText(" unlocked", substring = true).assertExists()
-        compose.onNodeWithContentDescription("Milestones").assertExists()
-    }
-
-    @Test
-    fun `a hidden achievement's description is three question marks until it is earned`() {
-        showScreen()
-
-        // Hidden ones are all in Miscellaneous, further down the list: scroll to the first.
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("???"))
-        compose.onAllNodesWithText("???").onFirst().assertExists()
-    }
-
-    @Test
-    fun `an unlock banner is read as the achievement unlocked and its description`() {
-        showBanners()
+        showBannerHost()
+        // An unlock banner is read as the achievement unlocked and its description.
         AchievementEvents.emit(AchievementEvent.Unlocked(Achievement.THE_JOURNEY_BEGINS))
         compose.waitForIdle()
-
         compose.onNode(hasContentDescription("Achievement unlocked: The Journey Begins. Start your first game")).assertExists()
-    }
-
-    @Test
-    fun `a progress banner is read as its title and how far along`() {
-        showBanners()
+        // A progress banner is read as its title and how far along.
+        showBannerHost()
         AchievementEvents.emit(AchievementEvent.Progressed(Achievement.GAMES_10, 4, 5))
         compose.waitForIdle()
-
         compose.onNode(hasContentDescription("Getting Comfortable: 5 of 10")).assertExists()
         val config = compose.onAllNodesWithContentDescription("Getting Comfortable: 5 of 10").onFirst().fetchSemanticsNode().config
         assertEquals(true, SemanticsActions.OnClick in config)

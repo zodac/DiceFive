@@ -9,7 +9,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 import org.w3c.dom.Element
 
 /**
@@ -22,7 +21,6 @@ import org.w3c.dom.Element
  * count in the game gets near one.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class PluralFormsTest {
 
     private val resources = File("../shared/src/commonMain/composeResources")
@@ -51,7 +49,8 @@ class PluralFormsTest {
     }
 
     @Test
-    fun `every plural has every form its language uses`() {
+    fun `every plural has every form its language uses - the forms worked out per language`() {
+        // Every plural has every form its language uses.
         val files = stringFiles()
         assertTrue("Expected English and at least one translation, found ${files.keys}", files.size >= 2)
         val missing = files.flatMap { (tag, root) ->
@@ -62,10 +61,8 @@ class PluralFormsTest {
             }
         }
         assertTrue("Plurals missing a form their language needs:\n${missing.joinToString("\n")}", missing.isEmpty())
-    }
 
-    @Test
-    fun `the forms are worked out per language`() {
+        // The forms are worked out per language.
         // A check that can't pass for the wrong reason: these languages need different forms.
         assertEquals(setOf("one", "other"), formsFor("en-GB"))
         assertEquals(setOf("few", "many", "one", "other"), formsFor("ru"))

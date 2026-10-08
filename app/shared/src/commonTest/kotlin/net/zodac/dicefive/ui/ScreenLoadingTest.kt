@@ -100,11 +100,12 @@ class ScreenLoadingTest {
     }
 
     @Test
-    fun `settings switches arrive together with their saved values and never as defaults`() = runTest(testDispatcher) {
+    fun `settings switches arrive together with their saved values and never as defaults - or straight away with none saved`() = runTest(testDispatcher) {
+        assertEquals(SettingsToggles(), SettingsViewModel().toggles.value)
+
         val repository = SettingsRepository(LoadingPreferencesStore())
         repository.setSoundEnabled(false)
         repository.setAnimationLevel(AnimationLevel.LOW)
-
         val viewModel = SettingsViewModel(settingsRepository = repository)
         assertNull(viewModel.toggles.value)
 
@@ -121,48 +122,28 @@ class ScreenLoadingTest {
     }
 
     @Test
-    fun `settings switches show straight away with no saved settings to load`() {
-        assertEquals(SettingsToggles(), SettingsViewModel().toggles.value)
-    }
-
-    @Test
-    fun `an empty leaderboard only counts as empty once it has been read`() = runTest(testDispatcher) {
-        val dao = GatedEmptyScoreDao()
-        val viewModel = ScoresViewModel(ScoreRepository(dao))
+    fun `the Leaderboard - Statistics and Achievements only count as empty once their scores have been read`() = runTest(testDispatcher) {
+        val scoresDao = GatedEmptyScoreDao()
+        val scores = ScoresViewModel(ScoreRepository(scoresDao))
+        val statisticsDao = GatedEmptyScoreDao()
+        val statistics = StatisticsViewModel(ScoreRepository(statisticsDao))
+        // Achievements wait for the leaderboard as well as the unlocks before showing.
+        val achievementsDao = GatedEmptyScoreDao()
+        val achievements = AchievementsViewModel(achievementsRepository = LoadingAchievementStore(), scoreRepository = ScoreRepository(achievementsDao))
+        backgroundScope.launch(testDispatcher) { achievements.uiState.collect {} }
         advanceUntilIdle()
-        assertFalse(viewModel.uiState.value.isLoaded)
-
-        dao.gate.complete(Unit)
-        advanceUntilIdle()
-        assertTrue(viewModel.uiState.value.isLoaded)
-        assertTrue(viewModel.uiState.value.entries.isEmpty())
-    }
-
-    @Test
-    fun `empty statistics only count as empty once they have been read`() = runTest(testDispatcher) {
-        val dao = GatedEmptyScoreDao()
-        val viewModel = StatisticsViewModel(ScoreRepository(dao))
-        advanceUntilIdle()
-        assertFalse(viewModel.uiState.value.isLoaded)
-
-        dao.gate.complete(Unit)
-        advanceUntilIdle()
-        assertTrue(viewModel.uiState.value.isLoaded)
-        assertTrue(viewModel.uiState.value.players.isEmpty())
-    }
-
-    @Test
-    fun `achievements wait for the leaderboard as well as the unlocks before showing`() = runTest(testDispatcher) {
-        val dao = GatedEmptyScoreDao()
-        val viewModel = AchievementsViewModel(achievementsRepository = LoadingAchievementStore(), scoreRepository = ScoreRepository(dao))
-        backgroundScope.launch(testDispatcher) { viewModel.uiState.collect {} }
-        advanceUntilIdle()
+        assertFalse(scores.uiState.value.isLoaded)
+        assertFalse(statistics.uiState.value.isLoaded)
         // The unlocks are in, but the score-collection achievements' progress isn't known yet.
-        assertFalse(viewModel.uiState.value.isLoaded)
+        assertFalse(achievements.uiState.value.isLoaded)
 
-        dao.gate.complete(Unit)
+        for (dao in listOf(scoresDao, statisticsDao, achievementsDao)) dao.gate.complete(Unit)
         advanceUntilIdle()
-        val state = viewModel.uiState.value
+        assertTrue(scores.uiState.value.isLoaded)
+        assertTrue(scores.uiState.value.entries.isEmpty())
+        assertTrue(statistics.uiState.value.isLoaded)
+        assertTrue(statistics.uiState.value.players.isEmpty())
+        val state = achievements.uiState.value
         assertTrue(state.isLoaded)
         assertTrue(state.groups.isNotEmpty())
         assertTrue(state.totalCount > 0)

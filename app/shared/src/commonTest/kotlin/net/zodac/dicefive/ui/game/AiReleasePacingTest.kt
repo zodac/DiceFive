@@ -121,11 +121,10 @@ class AiReleasePacingTest {
     }
 
     @Test
-    fun `the CPU releases and holds dice one at a time with a longer beat between the two`() = runTest(testDispatcher) {
-        val changes = cpuHoldChanges(diceAnimated = true)
-
-        val firstHold = changes.first().first
-        val release = changes.single { !it.third }.first
+    fun `the CPU releases and holds dice one at a time with a longer beat between - or all at once when the dice aren't animated`() = runTest(testDispatcher) {
+        val animated = cpuHoldChanges(diceAnimated = true)
+        val firstHold = animated.first().first
+        val release = animated.single { !it.third }.first
         assertEquals(
             listOf(
                 // First roll, 6-6-1-3-2: the pair of 6s, one die after the other.
@@ -133,23 +132,19 @@ class AiReleasePacingTest {
                 // Second, 6-6-3-4-5: let one 6 go, a longer beat, then 3, 4 and 5 one by one.
                 Triple(release, 1, false), Triple(release + 125, 2, true), Triple(release + 175, 3, true), Triple(release + 225, 4, true),
             ),
-            changes,
+            animated,
         )
-    }
 
-    @Test
-    fun `with the dice not animated the CPU's hold changes all land at once`() = runTest(testDispatcher) {
-        val changes = cpuHoldChanges(diceAnimated = false)
-
-        val firstHold = changes.first().first
-        val release = changes.single { !it.third }.first
+        val still = cpuHoldChanges(diceAnimated = false)
+        val stillFirstHold = still.first().first
+        val stillRelease = still.single { !it.third }.first
         assertEquals(
             listOf(
-                // The same choices as above, but each roll's every release and hold published together.
-                Triple(firstHold, 0, true), Triple(firstHold, 1, true),
-                Triple(release, 1, false), Triple(release, 2, true), Triple(release, 3, true), Triple(release, 4, true),
+                // The same choices, but each roll's every release and hold published together.
+                Triple(stillFirstHold, 0, true), Triple(stillFirstHold, 1, true),
+                Triple(stillRelease, 1, false), Triple(stillRelease, 2, true), Triple(stillRelease, 3, true), Triple(stillRelease, 4, true),
             ),
-            changes,
+            still,
         )
     }
 

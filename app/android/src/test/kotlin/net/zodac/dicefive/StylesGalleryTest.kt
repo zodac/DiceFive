@@ -41,7 +41,7 @@ import org.robolectric.annotation.Config
 
 /** A Styles category's gallery toggle, and the gallery it opens. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35], qualifiers = "w411dp-h891dp")
+@Config(qualifiers = "w411dp-h891dp")
 class StylesGalleryTest {
 
     @get:Rule
@@ -75,8 +75,9 @@ class StylesGalleryTest {
     }
 
     @Test
-    fun `every category has a gallery switch, off to start with`() {
+    fun `each category has a gallery switch level with its title - showing every tile on screen - closing centred on the pick - and the margin drags the page`() {
         open()
+        // Every category has a gallery switch, off to start with.
         for (title in listOf("Dice", "Dice Cup", "Mat", "Background", "Frame")) {
             val toggle = compose.onNodeWithContentDescription("$title gallery")
             toggle.assertIsOff()
@@ -86,11 +87,8 @@ class StylesGalleryTest {
             val heading = compose.onNode(isHeading() and hasText(title)).fetchSemanticsNode().boundsInRoot
             assertEquals("$title: ${node.boundsInRoot} vs $heading", heading.center.y, node.boundsInRoot.center.y, 1.5f)
         }
-    }
 
-    @Test
-    fun `the gallery shows every tile on screen, and the row gets them back`() {
-        open()
+        // The gallery shows every tile on screen, and the row gets them back.
         val width = compose.onRoot().fetchSemanticsNode().boundsInRoot.width
         val before = diceTiles()
         // Where a tile really is, not clipped to what shows of it.
@@ -98,7 +96,6 @@ class StylesGalleryTest {
         fun SemanticsNode.right() = positionInRoot.x + size.width
         assertTrue("the row should run off screen", before.any { it.right() > width })
         val allTiles = compose.onAllNodes(tiles).fetchSemanticsNodes().size
-
         compose.onNodeWithContentDescription("Dice gallery").performClick()
         compose.waitForIdle()
         compose.onNodeWithContentDescription("Dice gallery").assertIsOn()
@@ -108,13 +105,37 @@ class StylesGalleryTest {
         // More than one row of them, and nothing else lost.
         assertTrue(inGallery.map { it.positionInRoot.y }.distinct().size > 1)
         assertEquals(allTiles, compose.onAllNodes(tiles).fetchSemanticsNodes().size)
-
         compose.onNodeWithContentDescription("Dice gallery").performClick()
         compose.waitForIdle()
-        val toggle = compose.onNodeWithContentDescription("Dice gallery").fetchSemanticsNode()
-        assertEquals(ToggleableState.Off, toggle.config[SemanticsProperties.ToggleableState])
+        assertEquals(ToggleableState.Off, compose.onNodeWithContentDescription("Dice gallery").fetchSemanticsNode().config[SemanticsProperties.ToggleableState])
         assertEquals(before.size, diceTiles().size)
         assertEquals(allTiles, compose.onAllNodes(tiles).fetchSemanticsNodes().size)
+
+        // Closing a gallery shows its row centred on what was picked in it - far along the row from the Classic dice it
+        // opened on, so the row has to move to show it.
+        compose.onNodeWithContentDescription("Dice gallery").performClick()
+        compose.waitForIdle()
+        saved.value = saved.value!!.copy(diceStyleId = DiceStyles.familyNamed("Mahjong").colours.first().style.id)
+        compose.waitForIdle()
+        compose.onNodeWithContentDescription("Dice gallery").performClick()
+        compose.waitForIdle()
+        val tile = compose.onNode(tiles and hasContentDescription("Mahjong", substring = true)).fetchSemanticsNode()
+        assertEquals(width / 2f, tile.positionInRoot.x + tile.size.width / 2f, 2f)
+
+        // Dragging the page's right-hand margin scrolls it: down the page's 20dp margin, beside the cards - a scrollbar's
+        // drag, so the page moves further than the finger.
+        compose.onNodeWithContentDescription("Dice gallery").performClick()
+        compose.waitForIdle()
+        val heading = isHeading() and hasText("Mat")
+        val headingAt = compose.onNode(heading).fetchSemanticsNode().positionInRoot.y
+        val drag = with(compose.density) { 100.dp.toPx() }
+        compose.onRoot().performTouchInput {
+            val x = right - with(compose.density) { 10.dp.toPx() }
+            swipe(start = Offset(x, centerY), end = Offset(x, centerY + drag), durationMillis = 300)
+        }
+        compose.waitForIdle()
+        val moved = headingAt - compose.onNode(heading).fetchSemanticsNode().positionInRoot.y
+        assertTrue("moved $moved for a drag of $drag", moved > drag)
     }
 
     @Test
@@ -149,24 +170,6 @@ class StylesGalleryTest {
     }
 
     @Test
-    fun `dragging the page's right-hand margin scrolls it`() {
-        open()
-        compose.onNodeWithContentDescription("Dice gallery").performClick()
-        compose.waitForIdle()
-        val heading = isHeading() and hasText("Mat")
-        val before = compose.onNode(heading).fetchSemanticsNode().positionInRoot.y
-        // Down the page's 20dp margin, beside the cards: a scrollbar's drag, so the page moves further than the finger.
-        val drag = with(compose.density) { 100.dp.toPx() }
-        compose.onRoot().performTouchInput {
-            val x = right - with(compose.density) { 10.dp.toPx() }
-            swipe(start = Offset(x, centerY), end = Offset(x, centerY + drag), durationMillis = 300)
-        }
-        compose.waitForIdle()
-        val moved = before - compose.onNode(heading).fetchSemanticsNode().positionInRoot.y
-        assertTrue("moved $moved for a drag of $drag", moved > drag)
-    }
-
-    @Test
     // Two pixels to a dp, so a pixel's rounding is the only slack: the row used to be a dp or more off.
     @Config(qualifiers = "w376dp-h830dp-xhdpi")
     fun `every category spaces its tiles the same in its row and its gallery`() {
@@ -195,23 +198,5 @@ class StylesGalleryTest {
             compose.onNodeWithContentDescription("${titles[index]} gallery").performClick()
             settle()
         }
-    }
-
-    @Test
-    fun `closing a gallery shows its row centred on what was picked in it`() {
-        open()
-        compose.onNodeWithContentDescription("Dice gallery").performClick()
-        compose.waitForIdle()
-        // Far along the row from the Classic dice it opened on, so the row has to move to show it.
-        val mahjong = tiles and hasContentDescription("Mahjong", substring = true)
-        saved.value = saved.value!!.copy(diceStyleId = DiceStyles.familyNamed("Mahjong").colours.first().style.id)
-        compose.waitForIdle()
-        compose.onNodeWithContentDescription("Dice gallery").performClick()
-        compose.waitForIdle()
-
-        val tile = compose.onNode(mahjong).fetchSemanticsNode()
-        val centre = tile.positionInRoot.x + tile.size.width / 2f
-        val rootCentre = compose.onRoot().fetchSemanticsNode().boundsInRoot.width / 2f
-        assertEquals(rootCentre, centre, 2f)
     }
 }

@@ -18,14 +18,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /**
  * Settings > "About": every title is a heading TalkBack can jump between, and each link is a button
  * that opens its page - the GitHub repo, the app that inspired DiceFive, and the privacy policy.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class AboutDialogTest {
 
     @get:Rule
@@ -47,17 +45,13 @@ class AboutDialogTest {
     }
 
     @Test
-    fun `the title and every section title are headings`() {
+    fun `every title is a heading - each link opens its page - and the privacy section says no user data is held`() {
         showDialog()
         val isHeading = SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)
         for (title in listOf("About", "Author", "Inspiration", "Privacy")) {
             compose.onNodeWithText(title).performScrollTo().assert(isHeading)
         }
-    }
 
-    @Test
-    fun `each link opens its page`() {
-        showDialog()
         val links = listOf(
             "Source code on GitHub" to "https://github.com/zodac/DiceFive",
             "Dice Me Online on Google Play" to "https://play.google.com/store/apps/details?id=com.giu.diceme",
@@ -67,11 +61,7 @@ class AboutDialogTest {
             compose.onNodeWithText(label).performScrollTo().assert(hasClickAction()).performClick()
             assertEquals(url, opened.last())
         }
-    }
 
-    @Test
-    fun `the privacy section says no user data is held`() {
-        showDialog()
         compose.onNodeWithText("DiceFive holds no user data", substring = true).performScrollTo()
     }
 }

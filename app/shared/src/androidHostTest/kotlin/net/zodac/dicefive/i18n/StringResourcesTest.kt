@@ -10,37 +10,20 @@ class StringResourcesTest {
     private val locales = StringResourceFiles.all()
 
     @Test
-    fun `the base strings exist`() {
+    fun `every locale's strings pass - no banned word, translations matching the base, and every base plural with a one and an other`() {
         assertTrue("values" in locales, "No values/strings.xml found - is the working directory the module?")
-    }
-
-    @Test
-    fun `no locale uses a banned word`() {
         // The wording the rules ban from anything a player sees: the trademark, and "three/four/five of a kind" (use 3x, 4x, 5x).
         for ((locale, strings) in locales) {
             assertEquals(emptyList(), StringChecks.bannedWords(strings), "$locale uses a banned word - see CLAUDE.md")
         }
-    }
-
-    @Test
-    fun `every translation matches the base strings`() {
         val base = locales.getValue("values")
-        val problems = locales.filterKeys { it != "values" }.flatMap { (locale, strings) -> StringChecks.translationProblems(locale, base, strings) }
-        assertEquals(emptyList(), problems)
+        assertEquals(emptyList(), locales.filterKeys { it != "values" }.flatMap { (locale, strings) -> StringChecks.translationProblems(locale, base, strings) })
+        assertEquals(emptyList(), StringChecks.pluralsWithoutOther(base))
+        assertEquals(emptyList(), StringChecks.pluralsWithoutOne(base))
     }
 
     @Test
-    fun `every base plural has an other item`() {
-        assertEquals(emptyList(), StringChecks.pluralsWithoutOther(locales.getValue("values")))
-    }
-
-    @Test
-    fun `every base plural has a one item as well as an other`() {
-        assertEquals(emptyList(), StringChecks.pluralsWithoutOne(locales.getValue("values")))
-    }
-
-    @Test
-    fun `the banned-word check finds what it should`() {
+    fun `each check finds what it should - banned words, extra keys, lost arguments and a plural without an other`() {
         val found = StringChecks.bannedWords(
             mapOf(
                 "a" to "Fine, 3x and 5x",
@@ -50,32 +33,15 @@ class StringResourcesTest {
                 "e" to "${StringChecks.TRADEMARK}!",
             ),
         )
-
         assertEquals(listOf("b", "c", "d", "e"), found)
-    }
 
-    @Test
-    fun `the translation check finds extra keys and lost arguments`() {
         val base = mapOf("greet" to "Hi %1\$s", "rolls[one]" to "%1\$d roll", "rolls[other]" to "%1\$d rolls")
-        val translation = mapOf(
-            "greet" to "Salut",
-            "rolls[one]" to "%1\$d lancer",
-            "rolls[few]" to "%1\$d lancers",
-            "stray" to "x",
-        )
-
-        val problems = StringChecks.translationProblems("values-fr", base, translation)
-
+        val translation = mapOf("greet" to "Salut", "rolls[one]" to "%1\$d lancer", "rolls[few]" to "%1\$d lancers", "stray" to "x")
         assertEquals(
             listOf("values-fr: 'greet' is missing [%1\$s] from the base string", "values-fr: 'stray' isn't in the base strings"),
-            problems,
+            StringChecks.translationProblems("values-fr", base, translation),
         )
-    }
 
-    @Test
-    fun `the plural check finds a missing other`() {
-        val problems = StringChecks.pluralsWithoutOther(mapOf("a[one]" to "x", "a[other]" to "y", "b[one]" to "z", "c" to "w"))
-
-        assertEquals(listOf("plural 'b' has no 'other' item"), problems)
+        assertEquals(listOf("plural 'b' has no 'other' item"), StringChecks.pluralsWithoutOther(mapOf("a[one]" to "x", "a[other]" to "y", "b[one]" to "z", "c" to "w")))
     }
 }

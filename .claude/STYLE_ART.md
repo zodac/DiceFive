@@ -25,14 +25,14 @@ style *is* (catalogs, families, locks) is in `UI.md` ("Style locks") and `DESIGN
 
 ## Rendering without a device
 
-Robolectric renders for real in `@GraphicsMode(NATIVE)`. A throwaway test in
+Robolectric renders for real: every unit test runs with native graphics on SDK 36, set once in
+`app/android/src/test/resources/robolectric.properties` (a class names neither). A throwaway test in
 `app/android/src/test/kotlin/net/zodac/dicefive/` (delete it before committing), run with
 `./gradlew :app:android:testDebugUnitTest --tests '*Scratch*'`:
 
 ```kotlin
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35], qualifiers = "w411dp-h891dp-xxhdpi")   // phone width - see below
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(qualifiers = "w411dp-h891dp-xxhdpi")   // phone width - see below
 class ArtScratch {
     @get:Rule val compose = createComposeRule()             // the junit4.v2 one; the old one is deprecated (-Werror)
     @Test fun render() {

@@ -9,8 +9,8 @@ import net.zodac.dicefive.model.PlayerState
  * that can happen - what Hard looks up as a finished hand's future, in place of its estimate, so in
  * Standard it plays the best a solo player can (about 254.5 a game on average, against ~239 by
  * estimate). Generated once, by [solve], and bundled as [RESOURCE_PATH]; regenerated only when
- * Standard's rules change - `StandardPerfectPlayTableTest` solves it afresh and fails if the bundled
- * copy no longer matches.
+ * Standard's rules change - `StandardPerfectPlayTableTest` re-works a sample of its states from its own
+ * values ([mismatchedStates]) and fails if the bundled copy no longer matches.
  *
  * A turn's start is all that matters to the rest of the game: which boxes are filled, the upper
  * section's total (capped at the bonus threshold - past it, more makes no difference), and whether
@@ -128,34 +128,64 @@ class StandardPerfectPlayTable private constructor(private val values: ShortArra
          * after it, so the table can be checked against itself exactly.
          */
         internal fun solve(): StandardPerfectPlayTable {
+            val solver = Solver()
+            val values = ShortArray(StateIndex.size)
+            solver.forEachState(fromTheEnd = true) { mask, upper, fiveScored ->
+                values[StateIndex.of(mask, upper, fiveScored)] = encodeValue(solver.turnValue(values, mask, upper, fiveScored))
+            }
+            return StandardPerfectPlayTable(values)
+        }
+
+        /**
+         * Re-works every [stride]th state of [table] from the table's own stored values of the states
+         * after it, as [solve] did, and lists each one that comes out different - what a rule change the
+         * table wasn't regenerated for does to it. A sample, not the whole table, so it's cheap enough for
+         * every test run: any rule change worth the name moves thousands of states.
+         */
+        internal fun mismatchedStates(table: StandardPerfectPlayTable, stride: Int): List<String> {
+            val solver = Solver()
+            val mismatched = mutableListOf<String>()
+            solver.forEachState(fromTheEnd = false) { mask, upper, fiveScored ->
+                val index = StateIndex.of(mask, upper, fiveScored)
+                if (index % stride != 0) return@forEachState
+                val expected = encodeValue(solver.turnValue(table.values, mask, upper, fiveScored))
+                if (expected != table.values[index]) mismatched += "boxes $mask, upper $upper, 5x scored $fiveScored: ${decodeValue(table.values[index])} != ${decodeValue(expected)}"
+            }
+            return mismatched
+        }
+
+        /** Standard's scoring, and the perfectly played value of one turn from the stored values after it. */
+        private class Solver {
             val mode = GameMode.STANDARD
             val space = DiceSpace(mode.dieValues.map { Die(value = it) }, mode.diceCount)
             val scoring = HandScoring(mode, space)
-            val values = ShortArray(StateIndex.size)
-            val fullMask = (1 shl StateIndex.categoryCount) - 1
-            val endValues = DoubleArray(space.handCount)
-            for (mask in (0 until fullMask).sortedByDescending { it.countOneBits() }) {
-                val reachable = StateIndex.reachableUpperTotals[mask]
-                for (upper in 0..StateIndex.threshold) {
-                    if ((reachable shr upper) and 1L == 0L) continue
-                    for (five in 0 until StateIndex.fiveOfAKindStates(mask)) {
-                        val fiveScored = five == 1
-                        for (hand in 0 until space.handCount) {
-                            var best = Double.NEGATIVE_INFINITY
-                            scoring.forEachLegal(hand, mask, fiveScored) { category, score, chip ->
-                                val value = afterScoring(scoring, mask, upper, fiveScored, category, score) { nextMask, nextUpper, nextFive, bonus ->
-                                    score + chip + bonus + decodeValue(values[StateIndex.of(nextMask, nextUpper, nextFive)])
-                                }
-                                if (value > best) best = value
-                            }
-                            endValues[hand] = best
-                        }
-                        val turnValue = space.keepValues(endValues, mode.rollsPerTurn)[space.emptyKeep]
-                        values[StateIndex.of(mask, upper, fiveScored)] = encodeValue(turnValue)
+            private val endValues = DoubleArray(space.handCount)
+
+            /** Every start-of-turn state short of a full scorecard - [fromTheEnd] in the order [solve] needs. */
+            inline fun forEachState(fromTheEnd: Boolean, use: (mask: Int, upper: Int, fiveScored: Boolean) -> Unit) {
+                val masks = (0 until (1 shl StateIndex.categoryCount) - 1)
+                for (mask in if (fromTheEnd) masks.sortedByDescending { it.countOneBits() } else masks.toList()) {
+                    val reachable = StateIndex.reachableUpperTotals[mask]
+                    for (upper in 0..StateIndex.threshold) {
+                        if ((reachable shr upper) and 1L == 0L) continue
+                        for (five in 0 until StateIndex.fiveOfAKindStates(mask)) use(mask, upper, five == 1)
                     }
                 }
             }
-            return StandardPerfectPlayTable(values)
+
+            fun turnValue(values: ShortArray, mask: Int, upper: Int, fiveScored: Boolean): Double {
+                for (hand in 0 until space.handCount) {
+                    var best = Double.NEGATIVE_INFINITY
+                    scoring.forEachLegal(hand, mask, fiveScored) { category, score, chip ->
+                        val value = afterScoring(scoring, mask, upper, fiveScored, category, score) { nextMask, nextUpper, nextFive, bonus ->
+                            score + chip + bonus + decodeValue(values[StateIndex.of(nextMask, nextUpper, nextFive)])
+                        }
+                        if (value > best) best = value
+                    }
+                    endValues[hand] = best
+                }
+                return space.keepValues(endValues, mode.rollsPerTurn)[space.emptyKeep]
+            }
         }
 
         /**

@@ -7,25 +7,20 @@ import kotlin.test.assertEquals
 class BidiIsolationTest {
 
     @Test
-    fun `a right-to-left name in a left-to-right sentence is isolated`() {
+    fun `text is isolated only where it runs against its sentence and has letters to`() {
+        // A right-to-left name in a left-to-right sentence is isolated.
         assertEquals("⁨علي⁩", "علي".isolatedIfOpposite(rightToLeft = false))
         assertEquals("⁨שרה 2⁩", "שרה 2".isolatedIfOpposite(rightToLeft = false))
-    }
 
-    @Test
-    fun `the game's marks in a right-to-left sentence are isolated`() {
+        // The game's marks in a right-to-left sentence are isolated.
         assertEquals("⁨5x⁩", "5x".isolatedIfOpposite(rightToLeft = true))
         assertEquals("⁨Player 1⁩", "Player 1".isolatedIfOpposite(rightToLeft = true))
-    }
 
-    @Test
-    fun `text in the sentence's own direction is unchanged`() {
+        // Text in the sentence's own direction is unchanged.
         assertEquals("Ann", "Ann".isolatedIfOpposite(rightToLeft = false))
         assertEquals("علي", "علي".isolatedIfOpposite(rightToLeft = true))
-    }
 
-    @Test
-    fun `text with no letters is unchanged`() {
+        // Text with no letters is unchanged.
         assertEquals("1,001", "1,001".isolatedIfOpposite(rightToLeft = false))
         assertEquals("١٢", "١٢".isolatedIfOpposite(rightToLeft = true))
     }

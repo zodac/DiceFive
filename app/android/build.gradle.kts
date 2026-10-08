@@ -218,6 +218,13 @@ androidComponents {
     }
 }
 
+// `-PgenerateStoreAssets` makes StoreAssetGeneratorTest render the Play Store screenshots and icon into
+// the root assets/ folder (see .claude/ASSETS.md). It checks nothing, so it's skipped otherwise rather
+// than costing every test run - CI's included - several seconds of whole-app screens.
+tasks.withType<Test>().configureEach {
+    systemProperty("dicefive.generateStoreAssets", providers.gradleProperty("generateStoreAssets").isPresent)
+}
+
 // ── Audio loudness normalisation ──────────────────────────────────────────────
 // The .ogg sound effects (dice cup, hold/unhold clicks, the win fanfare) come from different
 // sources and were never mixed against each other, so they land at wildly different loudnesses -

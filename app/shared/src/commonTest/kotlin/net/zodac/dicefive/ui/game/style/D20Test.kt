@@ -8,21 +8,18 @@ import kotlin.test.assertTrue
 class D20Test {
 
     @Test
-    fun everyNumberFromOneToTwentyIsOnExactlyOneFace() {
+    fun theD20NumbersOneToTwentyOnceEachWithOppositesSummingTo21AndEveryRollOfOneToSixFacingTheViewer() {
+        // Every number from one to twenty is on exactly one face.
         assertEquals(20, D20.faces.size)
         assertEquals((1..20).toList(), D20.faces.map { it.number }.sorted())
-    }
 
-    @Test
-    fun oppositeFacesAddUpToTwentyOne() {
+        // Opposite faces add up to twenty one.
         for (face in D20.faces) {
             val opposite = D20.faces.single { (it.centre + face.centre).let { sum -> sum dot sum } < 0.01f }
             assertEquals(21, face.number + opposite.number, "${face.number} is opposite ${opposite.number}")
         }
-    }
 
-    @Test
-    fun everyRollOfOneToSixFacesTheViewer() {
+        // Every roll of one to six faces the viewer.
         for (value in 1..6) {
             val view = D20_VIEWS.getValue(value)
             val front = D20.faces.maxBy { view.cameraSpace(it.normal).z }

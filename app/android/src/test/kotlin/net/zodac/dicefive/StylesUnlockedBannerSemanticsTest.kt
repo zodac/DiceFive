@@ -27,85 +27,51 @@ import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /**
  * The "style unlocked" banner comes and goes by itself, so TalkBack has to be told it's there: one
  * polite live region naming every style it unlocked, with the tap that pauses it as an action.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class StylesUnlockedBannerSemanticsTest {
 
     @get:Rule
     val compose = createComposeRule()
 
-    @Test
-    fun `a styles banner is one polite live region naming every style, with a pause action`() {
-        compose.setContent {
-            CompositionLocalProvider(LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext())) {
-                DiceFiveTheme {
-                    AchievementBannerHost(
-                        isOnGameScreen = { false },
-                        onAchievementSelected = {},
-                        onStylesSelected = {},
-                    ) { Box(Modifier.fillMaxSize()) }
-                }
-            }
-        }
-        compose.waitForIdle()
-        AchievementEvents.emit(
-            AchievementEvent.StylesUnlocked(
-                listOf(DiceStyles.unlockedStyle("Frosted"), DiceMats.unlockedStyle("Leather"), TableBackgrounds.unlockedStyle("Planks")),
-                30,
-            ),
-        )
-        compose.waitForIdle()
+    private val showcase = Showcase(compose)
 
-        val announcement = "Styles unlocked: Frosted dice, Leather mat, Planks background. Earned 30 achievements"
-        compose.onNode(hasContentDescription(announcement))
+    @Test
+    fun `a styles banner is one polite live region with a pause action - naming one style - two - or two and how many more`() {
+        // Three styles: one polite live region naming every style, with the tap that pauses it as an action.
+        showBannerHostAndEmit(listOf(DiceStyles.unlockedStyle("Frosted"), DiceMats.unlockedStyle("Leather"), TableBackgrounds.unlockedStyle("Planks")), 30)
+        compose.onNode(hasContentDescription("Styles unlocked: Frosted dice, Leather mat, Planks background. Earned 30 achievements"))
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
             .assert(SemanticsMatcher("pauses on a tap") { it.config[SemanticsActions.OnClick].label == "Pause countdown" })
-    }
+        // It names two and counts the rest.
+        compose.onNodeWithText("Earned 30 achievements: 'Frosted' dice, 'Leather' mat and 1 more", useUnmergedTree = true).assertExists()
 
-    @Test
-    fun `a banner for one style says Style Unlocked, names it, and TalkBack hears it`() {
+        // One style: Style Unlocked, naming it - and TalkBack hears it.
         showBannerHostAndEmit(listOf(DiceStyles.unlockedStyle("Frosted")), 23)
-
         compose.onNodeWithText("Style Unlocked", useUnmergedTree = true).assertExists()
         compose.onNodeWithText("Earned 23 achievements: the 'Frosted' dice style", useUnmergedTree = true).assertExists()
         compose.onNode(hasContentDescription("Style unlocked: Frosted dice. Earned 23 achievements")).assertExists()
-    }
 
-    @Test
-    fun `a banner for two styles names both`() {
+        // Two styles: both named.
         showBannerHostAndEmit(listOf(DiceStyles.unlockedStyle("Frosted"), DiceMats.unlockedStyle("Leather")), 25)
-
         compose.onNodeWithText("Styles Unlocked", useUnmergedTree = true).assertExists()
         compose.onNodeWithText("Earned 25 achievements: 'Frosted' dice and 'Leather' mat", useUnmergedTree = true).assertExists()
         compose.onNode(hasContentDescription("Styles unlocked: Frosted dice, Leather mat. Earned 25 achievements")).assertExists()
     }
 
-    @Test
-    fun `a banner for three styles names two and counts the rest`() {
-        showBannerHostAndEmit(listOf(DiceStyles.unlockedStyle("Frosted"), DiceMats.unlockedStyle("Leather"), TableBackgrounds.unlockedStyle("Planks")), 30)
-
-        compose.onNodeWithText("Earned 30 achievements: 'Frosted' dice, 'Leather' mat and 1 more", useUnmergedTree = true).assertExists()
-    }
-
+    /** A fresh banner host - one showing nothing yet - then the banner for [styles]. */
     private fun showBannerHostAndEmit(styles: List<UnlockedStyle>, achievementCount: Int) {
-        compose.setContent {
+        showcase.show {
             CompositionLocalProvider(LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext())) {
                 DiceFiveTheme {
-                    AchievementBannerHost(
-                        isOnGameScreen = { false },
-                        onAchievementSelected = {},
-                        onStylesSelected = {},
-                    ) { Box(Modifier.fillMaxSize()) }
+                    AchievementBannerHost(isOnGameScreen = { false }, onAchievementSelected = {}, onStylesSelected = {}) { Box(Modifier.fillMaxSize()) }
                 }
             }
         }
-        compose.waitForIdle()
         AchievementEvents.emit(AchievementEvent.StylesUnlocked(styles, achievementCount))
         compose.waitForIdle()
     }

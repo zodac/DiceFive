@@ -58,10 +58,10 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import net.zodac.dicefive.Showcase
 import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import org.robolectric.annotation.GraphicsMode
 
 /**
  * The Licences dialog's touch handling, on the real platform TextViews it renders the report with - one
@@ -71,9 +71,6 @@ import org.robolectric.annotation.GraphicsMode
  * device-only; everything the app itself adds is covered here.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
-// Real (native) drawing, so vector icons can rasterise - the default legacy mode has no bitmaps.
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class LicensesDialogTest {
 
     @get:Rule
@@ -84,9 +81,11 @@ class LicensesDialogTest {
     /** The Apache-2.0 card - the first, and the one most of these tests work in. */
     private lateinit var document: TextView
 
+    private val showcase = Showcase(compose)
+
     /** The dialog, in an app laid out in [direction] - right to left as a right-to-left translation would be. */
     private fun showDialog(direction: LayoutDirection = LayoutDirection.Ltr) {
-        compose.setContent {
+        showcase.show {
             CompositionLocalProvider(LocalPlatformServices provides AndroidPlatformServices(application)) {
                 DiceFiveTheme {
                     CompositionLocalProvider(LocalLayoutDirection provides direction) { LicensesDialog(onDismissRequest = {}) }
@@ -103,15 +102,6 @@ class LicensesDialogTest {
             onView(withText(containsString("Apache License 2.0"))).inRoot(isDialog()).check { view, _ -> found = view as? TextView }
         }
         return found
-    }
-
-    @Test
-    fun `the dialog has a title, an introduction and a named close button`() {
-        showDialog()
-
-        compose.onNodeWithContentDescription("Close licences", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("Licences").assertExists()
-        compose.onNodeWithText("DiceFive is built with the open-source software, fonts and sounds below, each used under the licence it's listed with.").assertExists()
     }
 
     /** Every card, top to bottom - the TextViews in the column the scroll view holds. */
@@ -151,157 +141,6 @@ class LicensesDialogTest {
         }
     }
 
-    @Test
-    fun `tapping a link opens it`() {
-        showDialog()
-
-        press(PROTOBUF)
-
-        val opened = shadowOf(application).nextStartedActivity
-        assertEquals(Intent.ACTION_VIEW, opened?.action)
-        assertTrue(opened?.data.toString().startsWith("https://"))
-    }
-
-    @Test
-    fun `long-pressing a link offers Copy link and Copy text, instead of selecting or opening it`() {
-        showDialog()
-        val card = cardWith(PROTOBUF)
-        var menu: ContextMenu? = null
-        compose.runOnUiThread { card.setOnCreateContextMenuListener { built, _, _ -> menu = built } }
-
-        press(PROTOBUF, holdMillis = ViewConfiguration.getLongPressTimeout() + 200L)
-
-        assertFalse(card.hasSelection())
-        assertNull(shadowOf(application).nextStartedActivity)
-        val shown = checkNotNull(menu) { "No context menu was shown" }
-        assertEquals(listOf("Copy link", "Copy text"), (0 until shown.size()).map { shown.getItem(it).title.toString() })
-
-        compose.runOnUiThread { shown.performIdentifierAction(LinkTextView.COPY_LINK, 0) }
-        assertEquals(linkUrl(PROTOBUF), clipboardText())
-
-        compose.runOnUiThread { shown.performIdentifierAction(LinkTextView.COPY_TEXT, 0) }
-        assertEquals(PROTOBUF, clipboardText())
-    }
-
-    @Test
-    fun `long-pressing plain text doesn't show the link menu`() {
-        showDialog()
-        var menu: ContextMenu? = null
-        compose.runOnUiThread { document.setOnCreateContextMenuListener { built, _, _ -> menu = built } }
-
-        press("Used by", holdMillis = ViewConfiguration.getLongPressTimeout() + 200L, card = document)
-
-        // The platform always asks for a context menu on a long press; an empty one isn't shown, and
-        // the press falls through to the TextView's own selection.
-        assertEquals(0, menu?.size() ?: 0)
-    }
-
-    // The licences are English whatever the app's language: on a right-to-left phone, in a right-to-left app, they stay
-    // left to right - not mirrored to the right, nor set as right-to-left paragraphs.
-    @Test
-    @Config(qualifiers = "ar")
-    fun `in a right-to-left app the licences stay left to right`() {
-        showDialog(LayoutDirection.Rtl)
-
-        assertEquals(View.LAYOUT_DIRECTION_LTR, document.layoutDirection)
-        val layout = document.layout
-        assertEquals(Layout.DIR_LEFT_TO_RIGHT, layout.getParagraphDirection(0))
-        assertEquals(0f, layout.getLineLeft(0), 0.5f)
-    }
-
-    @Test
-    @Config(qualifiers = "ar")
-    fun `in a right-to-left app the Compose licence list stays left to right too`() {
-        // The list iOS and previews draw, given Android's real reports.
-        val platform = object : PlatformServices by SilentPlatformServices {
-            override suspend fun loadLicenceReports() = AndroidPlatformServices(application).loadLicenceReports()
-        }
-        compose.setContent {
-            CompositionLocalProvider(LocalPlatformServices provides platform) {
-                DiceFiveTheme {
-                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) { LicensesDialog(onDismissRequest = {}) }
-                }
-            }
-        }
-        val title = hasText("Apache License 2.0")
-        compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(title, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
-
-        val layouts = mutableListOf<TextLayoutResult>()
-        compose.onAllNodes(title, useUnmergedTree = true)[0].fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
-        assertEquals(ResolvedTextDirection.Ltr, layouts.single().getParagraphDirection(0))
-        assertEquals(0f, layouts.single().getLineLeft(0), 0.5f)
-    }
-
-    @Test
-    fun `a licence's text is shown and hidden by tapping its toggle`() {
-        showDialog()
-        assertFalse(document.text.contains(APACHE_TEXT))
-
-        press("Show licence text", card = document)
-        assertTrue(document.text.contains(APACHE_TEXT))
-
-        // A second tap inside the double-tap window is the TextView's own double-tap (select a word).
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(ViewConfiguration.getDoubleTapTimeout() + 100L))
-        press("Hide licence text", card = document)
-        assertFalse(document.text.contains(APACHE_TEXT))
-    }
-
-    @Test
-    fun `one selection can span a card's rows`() {
-        showDialog()
-
-        select(from = "Apache License 2.0", to = COMPOSE_UI)
-
-        val selected = document.text.subSequence(document.selectionStart, document.selectionEnd).toString()
-        assertTrue(selected.startsWith("Apache License 2.0"))
-        assertTrue(selected.contains("Compose Material3 Components"))
-        assertTrue(selected.endsWith(COMPOSE_UI))
-    }
-
-    @Test
-    fun `each licence is its own card, so a selection can't run on into the next`() {
-        showDialog()
-
-        val cards = cards()
-        assertTrue("Expected a card per licence, got ${cards.size}", cards.size > 1)
-        // Each card opens with its own heading - no licence is split across two.
-        val headings = cards.map { it.text.lines().first() }
-        assertEquals(headings.distinct(), headings)
-        assertFalse(document.text.contains(PROTOBUF))
-
-        compose.runOnUiThread {
-            document.requestFocus()
-            Selection.selectAll(document.text as Spannable)
-        }
-        val selected = document.text.subSequence(document.selectionStart, document.selectionEnd).toString()
-        assertTrue(selected.startsWith("Apache License 2.0"))
-        assertFalse(selected.contains(PROTOBUF))
-    }
-
-    @Test
-    fun `tapping elsewhere clears a selection`() {
-        showDialog()
-        select(from = "Apache License 2.0", to = COMPOSE_UI)
-        assertTrue(document.hasSelection())
-
-        compose.onNodeWithText("Licences").performClick()
-        compose.waitForIdle()
-
-        assertFalse(document.hasSelection())
-    }
-
-    @Test
-    fun `tapping a link while text is selected only clears the selection`() {
-        showDialog()
-        val card = cardWith(PROTOBUF)
-        select(from = PROTOBUF, to = PROTOBUF, card = card)
-
-        press(PROTOBUF)
-
-        assertFalse(card.hasSelection())
-        assertNull(shadowOf(application).nextStartedActivity)
-    }
-
     /** The URL linked from [linkText] in the document - read from the text, not hard-coded, as it
      * carries the library's version. */
     private fun linkUrl(linkText: String): String {
@@ -313,29 +152,48 @@ class LicensesDialogTest {
     private fun clipboardText(): String? =
         application.getSystemService(ClipboardManager::class.java).primaryClip?.getItemAt(0)?.text?.toString()
 
+    /** Lets the double-tap window pass, so the next press isn't taken as the second of a double tap. */
+    private fun pause() = shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(ViewConfiguration.getDoubleTapTimeout() + 100L))
+
     @Test
-    fun `scrolling the list never draws over the title above it`() {
+    fun `the dialog is titled and introduced with a named close button - a card a licence - its list scrolling under the title with the dialog's own scrollbar`() {
         showDialog()
+        compose.onNodeWithContentDescription("Close licences", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Licences").assertExists()
+        compose.onNodeWithText("DiceFive is built with the open-source software, fonts and sounds below, each used under the licence it's listed with.").assertExists()
+
+        // Each licence is its own card, so a selection can't run on into the next: each card opens with its own heading,
+        // and no licence is split across two.
+        val cards = cards()
+        assertTrue("Expected a card per licence, got ${cards.size}", cards.size > 1)
+        val headings = cards.map { it.text.lines().first() }
+        assertEquals(headings.distinct(), headings)
+        assertFalse(document.text.contains(PROTOBUF))
+        compose.runOnUiThread {
+            document.requestFocus()
+            Selection.selectAll(document.text as Spannable)
+        }
+        val selected = document.text.subSequence(document.selectionStart, document.selectionEnd).toString()
+        assertTrue(selected.startsWith("Apache License 2.0"))
+        assertFalse(selected.contains(PROTOBUF))
+
+        // Scrolling the list never draws over the title above it: everything above the list - the close button, title and
+        // description - is untouched.
         val scroll = document.parent.parent as ScrollView
         val listTop = IntArray(2).also(scroll::getLocationInWindow)[1]
         val before = compose.onNode(isComposeDialog()).captureToImage().asAndroidBitmap()
-
         compose.runOnUiThread { scroll.scrollTo(0, 1500) }
         compose.waitForIdle()
         val after = compose.onNode(isComposeDialog()).captureToImage().asAndroidBitmap()
-
-        // Everything above the list - the close button, title and description - is untouched.
         for (y in 0 until listTop) {
             for (x in 0 until before.width) {
                 assertEquals("Pixel ($x, $y) changed", before.getPixel(x, y), after.getPixel(x, y))
             }
         }
-    }
 
-    @Test
-    fun `the list's own scrollbar is off, and the dialog's follows and drives the list`() {
-        val scroll = LicenceScroll()
-        compose.setContent {
+        // The list's own scrollbar is off, and the dialog's follows and drives the list.
+        val licenceScroll = LicenceScroll()
+        showcase.show {
             CompositionLocalProvider(LocalPlatformServices provides AndroidPlatformServices(application)) {
                 DiceFiveTheme {
                     // Long enough to scroll in 400dp.
@@ -343,24 +201,113 @@ class LicensesDialogTest {
                         val components = (1..80).map { LicensedComponent("Library $it", "1.0", ComponentKind.LIBRARY, website = null, copyright = null) }
                         LicenseReport(listOf(LicenseGroup("Apache License 2.0", "Licence text", components)), notices = emptyList())
                     }
-                    TextViewLicenceDocument(report = report, scroll = scroll, modifier = Modifier.height(400.dp))
+                    TextViewLicenceDocument(report = report, scroll = licenceScroll, modifier = Modifier.height(400.dp))
                 }
             }
         }
-        compose.waitUntil(timeoutMillis = 10_000) { scroll.maxPosition > 0 }
+        compose.waitUntil(timeoutMillis = 10_000) { licenceScroll.maxPosition > 0 }
         val scrollView = findScrollView()
         assertFalse(scrollView.isVerticalScrollBarEnabled)
-        assertEquals(0, scroll.position)
-
+        assertEquals(0, licenceScroll.position)
         compose.runOnUiThread { scrollView.scrollTo(0, 300) }
         compose.waitForIdle()
-        assertEquals(300, scroll.position)
-
+        assertEquals(300, licenceScroll.position)
         // A drag on the dialog's bar arrives as fractions of a pixel, and none of them may be lost.
-        compose.runOnUiThread { repeat(4) { scroll.scrollBy(0.5f) } }
+        compose.runOnUiThread { repeat(4) { licenceScroll.scrollBy(0.5f) } }
         compose.waitForIdle()
         assertEquals(302, scrollView.scrollY)
-        assertEquals(302, scroll.position)
+        assertEquals(302, licenceScroll.position)
+    }
+
+    @Test
+    fun `a card's text is toggled - a link tapped open or long-pressed for its menu - and a selection spans rows until a tap clears it`() {
+        showDialog()
+
+        // A licence's text is shown and hidden by tapping its toggle - a second tap inside the double-tap window would be
+        // the TextView's own double-tap (select a word).
+        assertFalse(document.text.contains(APACHE_TEXT))
+        press("Show licence text", card = document)
+        assertTrue(document.text.contains(APACHE_TEXT))
+        pause()
+        press("Hide licence text", card = document)
+        assertFalse(document.text.contains(APACHE_TEXT))
+
+        // Tapping a link opens it.
+        press(PROTOBUF)
+        val opened = shadowOf(application).nextStartedActivity
+        assertEquals(Intent.ACTION_VIEW, opened?.action)
+        assertTrue(opened?.data.toString().startsWith("https://"))
+
+        // Long-pressing a link offers Copy link and Copy text, instead of selecting or opening it.
+        pause()
+        val card = cardWith(PROTOBUF)
+        var menu: ContextMenu? = null
+        compose.runOnUiThread { card.setOnCreateContextMenuListener { built, _, _ -> menu = built } }
+        press(PROTOBUF, holdMillis = ViewConfiguration.getLongPressTimeout() + 200L)
+        assertFalse(card.hasSelection())
+        assertNull(shadowOf(application).nextStartedActivity)
+        val shown = checkNotNull(menu) { "No context menu was shown" }
+        assertEquals(listOf("Copy link", "Copy text"), (0 until shown.size()).map { shown.getItem(it).title.toString() })
+        compose.runOnUiThread { shown.performIdentifierAction(LinkTextView.COPY_LINK, 0) }
+        assertEquals(linkUrl(PROTOBUF), clipboardText())
+        compose.runOnUiThread { shown.performIdentifierAction(LinkTextView.COPY_TEXT, 0) }
+        assertEquals(PROTOBUF, clipboardText())
+
+        // Long-pressing plain text doesn't show the link menu: the platform always asks for a context menu on a long press,
+        // but an empty one isn't shown, and the press falls through to the TextView's own selection.
+        var plainMenu: ContextMenu? = null
+        compose.runOnUiThread { document.setOnCreateContextMenuListener { built, _, _ -> plainMenu = built } }
+        press("Used by", holdMillis = ViewConfiguration.getLongPressTimeout() + 200L, card = document)
+        assertEquals(0, plainMenu?.size() ?: 0)
+
+        // A selection leaves a card waiting on it, so the rest start from a fresh dialog. One selection can span a card's
+        // rows - and tapping elsewhere clears it.
+        showDialog()
+        select(from = "Apache License 2.0", to = COMPOSE_UI)
+        val selected = document.text.subSequence(document.selectionStart, document.selectionEnd).toString()
+        assertTrue(selected.startsWith("Apache License 2.0"))
+        assertTrue(selected.contains("Compose Material3 Components"))
+        assertTrue(selected.endsWith(COMPOSE_UI))
+        compose.onNodeWithText("Licences").performClick()
+        compose.waitForIdle()
+        assertFalse(document.hasSelection())
+
+        // Tapping a link while text is selected only clears the selection.
+        val selectedCard = cardWith(PROTOBUF)
+        select(from = PROTOBUF, to = PROTOBUF, card = selectedCard)
+        press(PROTOBUF)
+        assertFalse(selectedCard.hasSelection())
+        assertNull(shadowOf(application).nextStartedActivity)
+    }
+
+    // The licences are English whatever the app's language: on a right-to-left phone, in a right-to-left app, they stay
+    // left to right - not mirrored to the right, nor set as right-to-left paragraphs.
+    @Test
+    @Config(qualifiers = "ar")
+    fun `in a right-to-left app the licences stay left to right - the TextView card and the Compose list alike`() {
+        showDialog(LayoutDirection.Rtl)
+        assertEquals(View.LAYOUT_DIRECTION_LTR, document.layoutDirection)
+        val layout = document.layout
+        assertEquals(Layout.DIR_LEFT_TO_RIGHT, layout.getParagraphDirection(0))
+        assertEquals(0f, layout.getLineLeft(0), 0.5f)
+
+        // The list iOS and previews draw, given Android's real reports.
+        val platform = object : PlatformServices by SilentPlatformServices {
+            override suspend fun loadLicenceReports() = AndroidPlatformServices(application).loadLicenceReports()
+        }
+        showcase.show {
+            CompositionLocalProvider(LocalPlatformServices provides platform) {
+                DiceFiveTheme {
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) { LicensesDialog(onDismissRequest = {}) }
+                }
+            }
+        }
+        val title = hasText("Apache License 2.0")
+        compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(title, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+        val layouts = mutableListOf<TextLayoutResult>()
+        compose.onAllNodes(title, useUnmergedTree = true)[0].fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+        assertEquals(ResolvedTextDirection.Ltr, layouts.single().getParagraphDirection(0))
+        assertEquals(0f, layouts.single().getLineLeft(0), 0.5f)
     }
 
     private fun findScrollView(): ScrollView {

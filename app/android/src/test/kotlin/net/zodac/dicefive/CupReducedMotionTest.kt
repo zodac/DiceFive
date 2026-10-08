@@ -1,6 +1,5 @@
 package net.zodac.dicefive
 
-import android.graphics.Bitmap
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
@@ -27,8 +26,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
-import org.robolectric.annotation.GraphicsMode
 
 /**
  * Under reduced motion a cup never shakes - it's never told it's rolling (see DiceCupPanel) - but it still has to
@@ -38,8 +35,6 @@ import org.robolectric.annotation.GraphicsMode
  * to stay shut for good, waiting for a shake it would never see.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class CupReducedMotionTest {
 
     @get:Rule
@@ -49,10 +44,13 @@ class CupReducedMotionTest {
     private var tilted by mutableStateOf(false)
     private var redraw by mutableIntStateOf(0)
 
+    /** A capture of the cup, its pixels read out once: comparing them in place is a native call per pixel. */
+    private class Shot(val width: Int, val height: Int, val pixels: IntArray)
+
     /** How many sampled pixels differ: a cup that tips or opens changes far more than a few. */
-    private fun differingPixels(a: Bitmap, b: Bitmap): Int {
+    private fun differingPixels(a: Shot, b: Shot): Int {
         var count = 0
-        for (x in 0 until a.width step 2) for (y in 0 until a.height step 2) if (a.getPixel(x, y) != b.getPixel(x, y)) count++
+        for (x in 0 until a.width step 2) for (y in 0 until a.height step 2) if (a.pixels[y * a.width + x] != b.pixels[y * b.width + x]) count++
         return count
     }
 
@@ -62,19 +60,22 @@ class CupReducedMotionTest {
      */
     private fun set(change: () -> Unit) = Snapshot.withMutableSnapshot(change)
 
-    private fun settledShot(): Bitmap = shotAfter(3_000)
+    private fun settledShot(): Shot = shotAfter(3_000)
 
     // Only ever the time asked for: the test clock left to advance on its own runs any animation to its end first.
-    private fun shotAfter(millis: Long): Bitmap {
+    private fun shotAfter(millis: Long): Shot {
         compose.mainClock.advanceTimeBy(millis)
-        return compose.onNodeWithTag("cup").captureToImage().asAndroidBitmap()
+        val bitmap = compose.onNodeWithTag("cup").captureToImage().asAndroidBitmap()
+        val pixels = IntArray(bitmap.width * bitmap.height)
+        bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+        return Shot(bitmap.width, bitmap.height, pixels)
     }
 
     /**
      * Makes [change] and asserts the cup snaps: every frame for a while after shows it either as it was before or as it
      * ends up, never anything in between. Returns how it ends up.
      */
-    private fun assertSnaps(what: String, change: () -> Unit): Bitmap {
+    private fun assertSnaps(what: String, change: () -> Unit): Shot {
         val before = shotAfter(0)
         change()
         val frames = List(FRAMES_WATCHED) { shotAfter(FRAME_MILLIS) }

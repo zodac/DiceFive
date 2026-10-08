@@ -19,11 +19,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /** The colour circle on the setup screen: what TalkBack says for it and for each choice in its pop-up. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class PlayerColourPickerTest {
 
     @get:Rule
@@ -45,32 +43,19 @@ class PlayerColourPickerTest {
     }
 
     @Test
-    fun theCircleIsAButtonNamingThePlayerAndTheirColour() {
+    fun theCircleIsAButtonNamingThePlayersColourWhosePopUpOffersRadioButtonsSayingASwapAndPickingOneClosesIt() {
         show()
+        compose.onNodeWithContentDescription("Player 2 colour, Green").assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
 
-        compose.onNodeWithContentDescription("Player 2 colour, Green")
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
-    }
-
-    @Test
-    fun theChoicesAreRadioButtonsWithTheCurrentOneSelectedAndASwapSaid() {
-        show()
+        // The choices are radio buttons, the current one selected, and a swap said.
         compose.onNodeWithContentDescription("Player 2 colour, Green").performClick()
-
-        compose.onNodeWithContentDescription("Green")
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
-            .assertIsSelected()
+        compose.onNodeWithContentDescription("Green").assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton)).assertIsSelected()
         compose.onNodeWithContentDescription("Cyan, swaps with player 1").assertExists()
         compose.onNodeWithContentDescription("Pink").assertExists()
-    }
 
-    @Test
-    fun pickingAColourReportsItAndClosesThePopUp() {
-        show()
-        compose.onNodeWithContentDescription("Player 2 colour, Green").performClick()
+        // Picking a colour reports it and closes the pop-up.
         compose.onNodeWithContentDescription("Pink").performClick()
         compose.waitForIdle()
-
         assertEquals(PlayerColour.PINK, colour)
         compose.onNodeWithContentDescription("Pink").assertDoesNotExist()
         compose.onNodeWithContentDescription("Player 2 colour, Pink").assertExists()

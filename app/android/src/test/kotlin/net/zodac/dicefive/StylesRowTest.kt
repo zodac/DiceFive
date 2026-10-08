@@ -25,11 +25,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /** How a Styles row behaves once it's open. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class StylesRowTest {
 
     @get:Rule
@@ -37,8 +35,19 @@ class StylesRowTest {
 
     private val tiles = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton)
 
+    private val showcase = Showcase(compose)
+
+    /** The Styles page over [saved], every row built. */
+    private fun open(saved: MutableStateFlow<SavedStyles?>) {
+        val viewModel = StylesViewModel(savedStyles = saved)
+        showcase.show { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
+        // Long enough for every row to build every tile.
+        compose.mainClock.advanceTimeBy(10_000)
+        compose.waitForIdle()
+    }
+
     @Test
-    fun `picking a style keeps the row's other tiles built`() {
+    fun `picking a style keeps the row's other tiles built - and picking each cup shakes and tips it through without breaking the row`() {
         // Everything earned, so the row has more than one style to pick between.
         val achievements = AchievementsState(unlockedAt = Achievement.entries.associateWith { 0L })
         val unlockedDice = DiceStyles.families.filter { it.unlock.isMet(achievements) }
@@ -46,41 +55,22 @@ class StylesRowTest {
         val saved = MutableStateFlow<SavedStyles?>(
             SavedStyles(unlockedDice[0].colours.first().style.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements),
         )
-        val viewModel = StylesViewModel(savedStyles = saved)
-        compose.setContent { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
-        // Long enough for every row to build every tile.
-        compose.mainClock.advanceTimeBy(10_000)
-        compose.waitForIdle()
+        open(saved)
         val built = compose.onAllNodes(tiles).fetchSemanticsNodes().size
-
         // Frame by frame from here, so a row that dropped its tiles and built them again would be caught partway.
         compose.mainClock.autoAdvance = false
-        val newPick = unlockedDice[1].colours.first().style.id
-        saved.value = saved.value!!.copy(diceStyleId = newPick)
+        saved.value = saved.value!!.copy(diceStyleId = unlockedDice[1].colours.first().style.id)
         compose.mainClock.advanceTimeByFrame()
-
         val after = compose.onAllNodes(tiles).fetchSemanticsNodes()
         assertEquals(built, after.size)
-        val selected = after.filter { it.config.getOrNull(SemanticsProperties.Selected) == true }
-            .map { it.config[SemanticsProperties.ContentDescription].single() }
+        val selected = after.filter { it.config.getOrNull(SemanticsProperties.Selected) == true }.map { it.config[SemanticsProperties.ContentDescription].single() }
         assertTrue(selected.toString(), selected.any { it.startsWith(englishText(unlockedDice[1].name)) })
-    }
+        compose.mainClock.autoAdvance = true
 
-    @Test
-    fun `picking each cup shakes and tips it through to the end without breaking the row`() {
         // Every cup, the chest included: its shake starts painting its hoard, which Robolectric can't - see TreasureChestCup.
-        val achievements = AchievementsState(unlockedAt = Achievement.entries.associateWith { 0L })
-        val cups = DiceCupStyles.families.filter { it.unlock.isMet(achievements) }
-        val saved = MutableStateFlow<SavedStyles?>(
-            SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements),
-        )
-        val viewModel = StylesViewModel(savedStyles = saved)
-        compose.setContent { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
-        compose.mainClock.advanceTimeBy(10_000)
-        compose.waitForIdle()
-        val built = compose.onAllNodes(tiles).fetchSemanticsNodes().size
-
-        for (cup in cups) {
+        open(MutableStateFlow(SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements)))
+        val allBuilt = compose.onAllNodes(tiles).fetchSemanticsNodes().size
+        for (cup in DiceCupStyles.families.filter { it.unlock.isMet(achievements) }) {
             val tile = compose.onAllNodes(tiles and SemanticsMatcher("starts with ${englishText(cup.name)}") { node ->
                 node.config.getOrNull(SemanticsProperties.ContentDescription)?.singleOrNull()?.startsWith(englishText(cup.name)) == true
             }).onFirst()
@@ -91,6 +81,6 @@ class StylesRowTest {
             compose.mainClock.advanceTimeBy(2_000)
             compose.waitForIdle()
         }
-        assertEquals(built, compose.onAllNodes(tiles).fetchSemanticsNodes().size)
+        assertEquals(allBuilt, compose.onAllNodes(tiles).fetchSemanticsNodes().size)
     }
 }

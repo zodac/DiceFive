@@ -25,17 +25,14 @@ class DriftFrameRateTest {
     }
 
     @Test
-    fun `a 60Hz display redraws the drift about 30 times a second`() {
+    fun `the drift redraws about 30 times a second on a 30 - 60 or 120Hz display`() {
+        // A 60Hz display redraws the drift about 30 times a second.
         assertTrue(redrawsInOneSecond(16_666_667L) in 29..31)
-    }
 
-    @Test
-    fun `a 120Hz display redraws it no more often than that`() {
+        // A 120Hz display redraws it no more often than that.
         assertTrue(redrawsInOneSecond(8_333_333L) in 29..34)
-    }
 
-    @Test
-    fun `a 30Hz display is not slowed further`() {
+        // A 30Hz display is not slowed further.
         assertTrue(redrawsInOneSecond(33_333_333L) in 29..31)
     }
 }

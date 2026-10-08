@@ -21,7 +21,8 @@ class TossPathTest {
     private fun TossPath.faceAfter(turns: Int) = ring[(turns - finalTurns).mod(ring.size)]
 
     @Test
-    fun everyRingIsFourFacesRoundOneAxis() {
+    fun everyTossTurnsRoundOneAxisRingOfFourFromTheFacePickedUpToTheResultWithTheStylesTopFaceOnTop() {
+        // Every ring is four faces round one axis.
         for (seed in 0 until 40) {
             for (result in 1..6) {
                 val ring = path(seed, result, startFace = null).ring
@@ -31,10 +32,8 @@ class TossPathTest {
                 assertEquals(4, ring.toSet().size)
             }
         }
-    }
 
-    @Test
-    fun itLandsOnTheResultAndStartsOnTheFacePickedUp() {
+        // It lands on the result and starts on the face picked up.
         for (seed in 0 until 20) {
             for (result in 1..6) {
                 for (start in 1..6) {
@@ -45,10 +44,8 @@ class TossPathTest {
                 }
             }
         }
-    }
 
-    @Test
-    fun itLandsWithTheStylesTopFaceOnTopWhateverItStartedOn() {
+        // It lands with the styles top face on top whatever it started on.
         for (seed in 0 until 20) {
             for (result in 1..6) {
                 val top = (1..6).first { it != result && it != 7 - result }

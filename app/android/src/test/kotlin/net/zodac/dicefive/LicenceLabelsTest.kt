@@ -19,7 +19,6 @@ import org.robolectric.annotation.Config
 
 /** The words of a licence list, which Android's list of views gets through [LicenceLabels]: the "Used by" line and the copy menu's text. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class LicenceLabelsTest {
 
     @get:Rule
@@ -60,8 +59,11 @@ class LicenceLabelsTest {
     }
 
     @Test
-    fun `a licence says what it is used by - each kind counted in the singular or plural it needs`() {
-        assertUsageLines(labelsFor(report))
+    fun `a licence says what it is used by - each kind in the singular or plural it needs - and the copy menu has its words`() {
+        val labels = labelsFor(report)
+        assertUsageLines(labels)
+        assertEquals(listOf("Copy link", "Copy text", "Link", "Text", "Link copied", "Text copied"), listOf(labels.copyLink, labels.copyText, labels.linkClip, labels.textClip, labels.linkCopied, labels.textCopied))
+        assertEquals(listOf("Show licence text", "Hide licence text", "Notices"), listOf(labels.showText, labels.hideText, labels.noticesTitle))
     }
 
     // Like the ordinals, the list follows the strings' language: no German yet, so no "und".
@@ -69,13 +71,5 @@ class LicenceLabelsTest {
     @Config(qualifiers = "de")
     fun `on a phone in a language the app isn't in the usage line stays English`() {
         assertUsageLines(labelsFor(report))
-    }
-
-    @Test
-    fun `the copy menu and its confirmations have their words`() {
-        val labels = labelsFor(report)
-
-        assertEquals(listOf("Copy link", "Copy text", "Link", "Text", "Link copied", "Text copied"), listOf(labels.copyLink, labels.copyText, labels.linkClip, labels.textClip, labels.linkCopied, labels.textCopied))
-        assertEquals(listOf("Show licence text", "Hide licence text", "Notices"), listOf(labels.showText, labels.hideText, labels.noticesTitle))
     }
 }

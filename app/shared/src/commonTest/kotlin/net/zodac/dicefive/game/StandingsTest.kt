@@ -23,43 +23,25 @@ class StandingsTest {
     }
 
     @Test
-    fun `a solo game has no places to show`() {
-        assertNull(standings(listOf(player(ScoreCategory.CHANCE to 20))))
-    }
+    fun `places go by total with equal totals sharing a place - none solo or before a turn is scored - and a finished game's by the tie-break`() {
+        assertNull(standings(listOf(player(ScoreCategory.CHANCE to 20))), "a solo game has no places to show")
+        assertNull(standings(listOf(player(), player(), player())), "no places before anyone has scored a turn")
 
-    @Test
-    fun `no places show before anyone has scored a turn`() {
-        assertNull(standings(listOf(player(), player(), player())))
-    }
-
-    @Test
-    fun `level totals once turns are scored share first place`() {
+        // Level totals once turns are scored share first place - and a zero is a scored turn too.
         val tied = Standing(1, tied = true)
         assertEquals(listOf(tied, tied), standings(listOf(player(ScoreCategory.CHANCE to 20), player(ScoreCategory.SIXES to 20))))
-        // A zero is a scored turn too.
         assertEquals(listOf(tied, tied), standings(listOf(player(ScoreCategory.ONES to 0), player())))
-    }
 
-    @Test
-    fun `places go by total score and equal totals share their place`() {
         val players = listOf(
             player(ScoreCategory.CHANCE to 22),
             player(ScoreCategory.FULL_HOUSE to 25, ScoreCategory.ONES to 3),
             player(ScoreCategory.CHANCE to 22),
             player(ScoreCategory.ONES to 2),
         )
+        assertEquals(listOf(Standing(2, tied = true), Standing(1, tied = false), Standing(2, tied = true), Standing(4, tied = false)), standings(players))
 
-        assertEquals(
-            listOf(Standing(2, tied = true), Standing(1, tied = false), Standing(2, tied = true), Standing(4, tied = false)),
-            standings(players),
-        )
-    }
-
-    @Test
-    fun `a finished game's places follow the tie-break house rule as the results screen does`() {
-        // Equal totals; the second scored a box the first zeroed - the house rule ranks more zeroes higher.
-        val players = listOf(finished(30, zeroes = false), finished(30, zeroes = true))
-
-        assertEquals(listOf(Standing(2, tied = false), Standing(1, tied = false)), standings(players))
+        // A finished game's places follow the tie-break house rule as the results screen does: equal totals, the second
+        // scored a box the first zeroed - and the house rule ranks more zeroes higher.
+        assertEquals(listOf(Standing(2, tied = false), Standing(1, tied = false)), standings(listOf(finished(30, zeroes = false), finished(30, zeroes = true))))
     }
 }

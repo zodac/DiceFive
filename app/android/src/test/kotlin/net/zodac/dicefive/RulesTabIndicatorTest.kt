@@ -21,7 +21,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
@@ -43,7 +42,7 @@ import org.robolectric.annotation.Config
  * whose tab is off the row's end brings that tab into view.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35], qualifiers = "w360dp-h800dp")
+@Config(qualifiers = "w360dp-h800dp")
 class RulesTabIndicatorTest {
 
     @get:Rule
@@ -51,14 +50,18 @@ class RulesTabIndicatorTest {
 
     private val isTab = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
 
+    private val showcase = Showcase(compose)
+
+    private fun showRules() = showcase.show {
+        CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { DiceFiveTheme { RulesScreen(onBack = {}) } }
+    }
+
     private fun checkIndicatorUnderEachTab() {
-        compose.setContent {
-            CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { DiceFiveTheme { RulesScreen(onBack = {}) } }
-        }
+        showRules()
         // The page row's tabs, after the top row's three groups.
         val groups = 3
         for (index in 0..2) {
-            compose.onAllNodes(isTab)[groups + index].performClick()
+            compose.tapTab(compose.onAllNodes(isTab)[groups + index])
             compose.waitForIdle()
             compose.mainClock.advanceTimeBy(2_000)
             compose.waitForIdle()
@@ -68,26 +71,17 @@ class RulesTabIndicatorTest {
         }
     }
 
-    @Test
-    fun `the indicator is under the selected tab left to right`() = checkIndicatorUnderEachTab()
-
-    @Test
-    @Config(qualifiers = "ar-w360dp-h800dp")
-    fun `the indicator is under the selected tab right to left`() = checkIndicatorUnderEachTab()
-
     private fun checkSwipedToTabComesIntoView(rtl: Boolean) {
-        compose.setContent {
-            CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { DiceFiveTheme { RulesScreen(onBack = {}) } }
-        }
+        showRules()
         // The page row's last tab in the first group, off its end at 360dp, then swiped to page by page.
         val pages = compose.onAllNodes(isTab).fetchSemanticsNodes().size - 3
         val lastTab = compose.onAllNodes(isTab)[3 + pages - 1]
         val row = compose.onNode(hasAnyChild(isTab and hasText(compose.onAllNodes(isTab)[3].fetchSemanticsNode().config[SemanticsProperties.Text].joinToString())))
         repeat(pages - 1) {
             // The page showing - its neighbours may be composed too, off screen.
-            val pages = compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange) and hasAnyChild(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)))
-            val showing = pages.fetchSemanticsNodes().indexOfFirst { it.boundsInRoot.left >= 0f && it.boundsInRoot.right <= compose.onRoot().fetchSemanticsNode().size.width }
-            pages[showing].performTouchInput { if (rtl) swipeRight() else swipeLeft() }
+            val shownPages = compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange) and hasAnyChild(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)))
+            val showing = shownPages.fetchSemanticsNodes().indexOfFirst { it.boundsInRoot.left >= 0f && it.boundsInRoot.right <= compose.onRoot().fetchSemanticsNode().size.width }
+            shownPages[showing].performTouchInput { if (rtl) swipeRight() else swipeLeft() }
             compose.mainClock.advanceTimeBy(2_000)
             compose.waitForIdle()
         }
@@ -97,12 +91,41 @@ class RulesTabIndicatorTest {
         assertTrue("tab $tab not wholly inside the row $bounds", tab.left >= bounds.left && tab.right <= bounds.right)
     }
 
+    /** A tap snaps the pages but slides the indicator through the tabs in between, ending under the tapped one. */
+    private fun checkTapSlidesTheIndicator() {
+        showRules()
+        val groups = 3
+        val start = compose.onNodeWithTag("rulesTabIndicator").fetchSemanticsNode().boundsInRoot.center.x
+        compose.mainClock.autoAdvance = false
+        compose.tapTab(compose.onAllNodes(isTab)[groups + 2])
+        // The page is already there - only the indicator is still on its way.
+        compose.mainClock.advanceTimeByFrame()
+        compose.mainClock.advanceTimeByFrame()
+        compose.onAllNodes(isTab)[groups + 2].assertIsSelected()
+        compose.mainClock.advanceTimeBy(60)
+        val partway = compose.onNodeWithTag("rulesTabIndicator").fetchSemanticsNode().boundsInRoot.center.x
+        compose.mainClock.autoAdvance = true
+        compose.mainClock.advanceTimeBy(2_000)
+        compose.waitForIdle()
+        val end = compose.onNodeWithTag("rulesTabIndicator").fetchSemanticsNode().boundsInRoot.center.x
+        val tab = compose.onAllNodes(isTab)[groups + 2].fetchSemanticsNode().boundsInRoot.center.x
+        assertEquals("ends under the tapped tab", tab, end, 2f)
+        assertTrue("part way ($partway) between where it was ($start) and where it ends ($end)", partway > start + 2f && partway < end - 2f)
+    }
+
     @Test
-    fun `a swipe to a page whose tab is off screen brings it into view left to right`() = checkSwipedToTabComesIntoView(rtl = false)
+    fun `the indicator is under the selected tab - a tap slides it there - and a swipe brings an off-screen tab into view left to right`() {
+        checkIndicatorUnderEachTab()
+        checkSwipedToTabComesIntoView(rtl = false)
+        checkTapSlidesTheIndicator()
+    }
 
     @Test
     @Config(qualifiers = "ar-w360dp-h800dp")
-    fun `a swipe to a page whose tab is off screen brings it into view right to left`() = checkSwipedToTabComesIntoView(rtl = true)
+    fun `the indicator is under the selected tab - and a swipe brings an off-screen tab into view right to left`() {
+        checkIndicatorUnderEachTab()
+        checkSwipedToTabComesIntoView(rtl = true)
+    }
 
     /**
      * The indicator is under its tab when the tabs differ in width, as they do on a device (the labels' own widths;
@@ -113,7 +136,7 @@ class RulesTabIndicatorTest {
     @OptIn(ExperimentalMaterial3Api::class)
     private fun checkIndicatorUnderUnevenTabs(position: Float) {
         val widths = listOf(90.dp, 200.dp, 130.dp, 160.dp)
-        compose.setContent {
+        showcase.show {
             val pagePosition = remember { mutableFloatStateOf(position) }
             SecondaryScrollableTabRow(
                 selectedTabIndex = 0,
@@ -131,7 +154,6 @@ class RulesTabIndicatorTest {
                 }
             }
         }
-        compose.waitForIdle()
         val tabs = compose.onAllNodes(isTab).fetchSemanticsNodes().map { it.boundsInRoot }
         val indicator = compose.onNodeWithTag("rulesTabIndicator").fetchSemanticsNode().boundsInRoot
         val whole = position.toInt()
@@ -141,42 +163,13 @@ class RulesTabIndicatorTest {
 
     @Test
     @Config(qualifiers = "w600dp-h800dp")
-    fun `the indicator is under the third of tabs of different widths`() = checkIndicatorUnderUnevenTabs(2f)
-
-    @Test
-    @Config(qualifiers = "w600dp-h800dp")
-    fun `the indicator is under a tab of a different width than the first`() = checkIndicatorUnderUnevenTabs(1f)
-
-    @Test
-    @Config(qualifiers = "w600dp-h800dp")
-    fun `the indicator is between tabs of different widths part way through a swipe`() = checkIndicatorUnderUnevenTabs(2.5f)
+    fun `the indicator is under a tab of a different width than the first - and between two part way through a swipe`() {
+        checkIndicatorUnderUnevenTabs(1f)
+        checkIndicatorUnderUnevenTabs(2f)
+        checkIndicatorUnderUnevenTabs(2.5f)
+    }
 
     @Test
     @Config(qualifiers = "ar-w600dp-h800dp")
     fun `the indicator is under a tab of a different width than the first right to left`() = checkIndicatorUnderUnevenTabs(3f)
-
-    /** A tap snaps the pages but slides the indicator through the tabs in between, ending under the tapped one. */
-    @Test
-    fun `a tap slides the indicator to the tab rather than jumping`() {
-        compose.setContent {
-            CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { DiceFiveTheme { RulesScreen(onBack = {}) } }
-        }
-        val groups = 3
-        val start = compose.onNodeWithTag("rulesTabIndicator").fetchSemanticsNode().boundsInRoot.center.x
-        compose.mainClock.autoAdvance = false
-        compose.onAllNodes(isTab)[groups + 2].performClick()
-        // The page is already there - only the indicator is still on its way.
-        compose.mainClock.advanceTimeByFrame()
-        compose.mainClock.advanceTimeByFrame()
-        compose.onAllNodes(isTab)[groups + 2].assertIsSelected()
-        compose.mainClock.advanceTimeBy(60)
-        val partway = compose.onNodeWithTag("rulesTabIndicator").fetchSemanticsNode().boundsInRoot.center.x
-        compose.mainClock.autoAdvance = true
-        compose.mainClock.advanceTimeBy(2_000)
-        compose.waitForIdle()
-        val end = compose.onNodeWithTag("rulesTabIndicator").fetchSemanticsNode().boundsInRoot.center.x
-        val tab = compose.onAllNodes(isTab)[groups + 2].fetchSemanticsNode().boundsInRoot.center.x
-        assertEquals("ends under the tapped tab", tab, end, 2f)
-        assertTrue("part way ($partway) between where it was ($start) and where it ends ($end)", partway > start + 2f && partway < end - 2f)
-    }
 }

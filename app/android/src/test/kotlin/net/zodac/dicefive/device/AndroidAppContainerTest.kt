@@ -10,7 +10,6 @@ import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /**
  * The real Android storage - Room's multiplatform build on the framework's SQLite, and the
@@ -19,7 +18,6 @@ import org.robolectric.annotation.Config
  * left: that the platform wiring actually opens, writes and reads back, and that the DAO's SQL runs.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class AndroidAppContainerTest {
 
     private val container = AndroidAppContainer.get(ApplicationProvider.getApplicationContext())
@@ -30,42 +28,34 @@ class AndroidAppContainerTest {
     }
 
     @Test
-    fun `the Standard perfect-play table loads from the app's resources`() = runTest {
-        // Read through Compose resources from the APK's assets, as on a device - null would mean Hard
-        // quietly falling back to estimating in Standard.
+    fun `the real storage opens - the perfect-play table loads - scores and settings are written and read back - and the DAO's SQL runs`() = runTest {
+        // Read through Compose resources from the APK's assets, as on a device - null would mean Hard quietly falling back
+        // to estimating in Standard.
         assertNotNull(container.standardPerfectPlayTable())
-    }
 
-    @Test
-    fun `a recorded score is read back from the database`() = runTest {
-        container.scoreRepository.recordScore("Tester", stats(score = 250), won = true, isPrimaryPlayer = true)
-
-        assertEquals(1, container.scoreRepository.totalCount())
-        assertEquals(250, container.scoreRepository.page(0).single().score)
-        assertEquals(250, container.scoreRepository.primaryPlayerTotalPoints())
-        assertEquals(1, container.scoreRepository.playerStatistics().single().gamesWon)
-    }
-
-    @Test
-    fun `equal scores are ordered by the tie-break - fewer 5x ranks higher`() = runTest {
-        container.scoreRepository.recordScore("More", stats(score = 200, fiveOfAKindCount = 2), won = null, isPrimaryPlayer = false)
-        container.scoreRepository.recordScore("Fewer", stats(score = 200, fiveOfAKindCount = 0), won = null, isPrimaryPlayer = false)
-
-        assertEquals(listOf("Fewer", "More"), container.scoreRepository.page(0).map { it.playerName })
-    }
-
-    @Test
-    fun `statistics come from one query - grouped by player in name order - skipping a dismissed player`() = runTest {
         val scores = container.scoreRepository
+        // A recorded score is read back from the database.
+        scores.recordScore("Tester", stats(score = 250), won = true, isPrimaryPlayer = true)
+        assertEquals(1, scores.totalCount())
+        assertEquals(250, scores.page(0).single().score)
+        assertEquals(250, scores.primaryPlayerTotalPoints())
+        assertEquals(1, scores.playerStatistics().single().gamesWon)
+
+        // Equal scores are ordered by the tie-break - fewer 5x ranks higher.
+        scores.resetLeaderboard()
+        scores.recordScore("More", stats(score = 200, fiveOfAKindCount = 2), won = null, isPrimaryPlayer = false)
+        scores.recordScore("Fewer", stats(score = 200, fiveOfAKindCount = 0), won = null, isPrimaryPlayer = false)
+        assertEquals(listOf("Fewer", "More"), scores.page(0).map { it.playerName })
+
+        // Statistics come from one query - grouped by player in name order - skipping a dismissed player.
+        scores.resetLeaderboard()
         scores.recordScore("bob", stats(score = 120), won = false, isPrimaryPlayer = false)
         scores.recordScore("Alice", stats(score = 150), won = true, isPrimaryPlayer = true)
         scores.recordScore("Bob", stats(score = 90), won = true, isPrimaryPlayer = false)
         scores.recordScore("Alice", stats(score = 210), won = true, isPrimaryPlayer = true)
         scores.recordScore("Carol", stats(score = 80), won = null, isPrimaryPlayer = false)
         scores.dismissPlayerStatistics("Carol")
-
         val statistics = scores.playerStatistics()
-
         // Case-insensitive name order, and "Bob" and "bob" are one player, as on the New Game screen.
         assertEquals(listOf("alice", "bob"), statistics.map { it.playerName.lowercase() })
         val alice = statistics.first()
@@ -75,12 +65,9 @@ class AndroidAppContainerTest {
         assertEquals(210, alice.maxScore)
         assertEquals(2, statistics.last().gamesPlayed)
         assertEquals(1, statistics.last().gamesLost)
-    }
 
-    @Test
-    fun `settings are written to and read back from their preferences file`() = runTest {
+        // Settings are written to and read back from their preferences file.
         container.settingsRepository.setPlayerName(slot = 1, name = "Tester")
-
         assertEquals("Tester", container.settingsRepository.playerNameFor(1).first())
     }
 

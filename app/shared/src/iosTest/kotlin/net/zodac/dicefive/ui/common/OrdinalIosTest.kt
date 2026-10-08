@@ -12,15 +12,14 @@ import kotlin.test.assertEquals
 class OrdinalIosTest {
 
     @Test
-    fun englishOrdinalsMatchTheOldHandWrittenSuffixes() {
+    fun englishOrdinalsMatchTheOldHandWrittenSuffixesAndOtherLanguagesTheirOwn() {
+        // English ordinals match the old hand written suffixes.
         assertEquals(
             listOf("1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "22nd"),
             listOf(1, 2, 3, 4, 11, 12, 13, 21, 22).map { formatOrdinal(it, "en-GB") },
         )
-    }
 
-    @Test
-    fun theLanguageIsTheOneAskedFor() {
+        // The language is the one asked for.
         assertEquals("1er", formatOrdinal(1, "fr"))
     }
 }

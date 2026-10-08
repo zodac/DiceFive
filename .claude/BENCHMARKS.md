@@ -13,7 +13,8 @@ the cup's shake and tip is where a player notices first.
 
 ## How to measure
 
-None of this needs a device: Robolectric renders for real with `@GraphicsMode(NATIVE)`, and
+None of this needs a device: Robolectric renders for real with native graphics (every unit test's - see
+`app/android/src/test/resources/robolectric.properties`), and
 `captureToImage()` forces a frame to be drawn. The benchmarks were throwaway tests in
 `app/android/src/test/kotlin/net/zodac/dicefive/`, run with
 `./gradlew :app:android:testDebugUnitTest --tests '*SomethingScratch*'`, printing to the JUnit XML's
@@ -24,8 +25,6 @@ they take minutes and prove nothing on their own. Recreate from the pieces below
 
 ```kotlin
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class SomethingScratch {
     @get:Rule val compose = createComposeRule()
 

@@ -17,15 +17,15 @@ import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /** The results page's words: its title and buttons, the winner's card, and why a tie went the way it did. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class GameOverTextTest {
 
     @get:Rule
     val compose = createComposeRule()
+
+    private val showcase = Showcase(compose)
 
     private fun show(scores: List<Map<ScoreCategory, Int>>) {
         val configs = scores.indices.map { PlayerConfig(slot = it + 1, type = PlayerType.HUMAN, name = "Player${it + 1}") }
@@ -35,7 +35,7 @@ class GameOverTextTest {
                 player.copy(scorecard = player.scorecard + scores[index].mapValues { listOf(it.value) })
             },
         )
-        compose.setContent {
+        showcase.show {
             CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
                 DiceFiveTheme { GameOverScreen(state = state, onBackToMenu = {}, onPlayAgain = {}, onReviewScorecards = {}, soundEnabled = false) }
             }
@@ -43,25 +43,15 @@ class GameOverTextTest {
     }
 
     @Test
-    fun `the page is titled Game Over - with its three buttons`() {
+    fun `the page is titled Game Over with its three buttons - the winner's card says Winner - and a tie on score says what decided it`() {
         show(listOf(mapOf(ScoreCategory.CHANCE to 25), mapOf(ScoreCategory.CHANCE to 10)))
-
         listOf("Game Over", "Review Scorecards", "Main Menu", "Play Again").forEach { compose.onNodeWithText(it).assertExists() }
-    }
-
-    @Test
-    fun `the winner's card says Winner - on the trophy as well`() {
-        show(listOf(mapOf(ScoreCategory.CHANCE to 25), mapOf(ScoreCategory.CHANCE to 10)))
-
+        // On the trophy as well.
         compose.onNodeWithText("Winner").assertExists()
         compose.onNodeWithContentDescription("Winner", useUnmergedTree = true).assertExists()
-    }
 
-    @Test
-    fun `a tie on score says what decided it`() {
         // Same total, but the first player zeroed a box the second left empty: more zeroed categories wins the tie.
         show(listOf(mapOf(ScoreCategory.CHANCE to 20, ScoreCategory.ONES to 0), mapOf(ScoreCategory.CHANCE to 20)))
-
         compose.onNodeWithText("Won on more zeroed categories").assertExists()
     }
 }

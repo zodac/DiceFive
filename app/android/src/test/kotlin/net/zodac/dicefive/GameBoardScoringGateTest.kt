@@ -17,14 +17,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /**
  * Score boxes only take a tap once a roll has fully played out - not while the cup is shaking, and
  * not while the dice it produced are still tumbling to a stop on the mat.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class GameBoardScoringGateTest {
 
     @get:Rule
@@ -62,18 +60,11 @@ class GameBoardScoringGateTest {
     }
 
     @Test
-    fun scoresCanBeTappedOnlyOnceTheDiceHaveSettled() {
+    fun scoresCanBeTappedOnlyOnceTheDiceHaveSettledAndSettlingDiceOfferNoMoreThanAShakingCup() {
         showBoard()
         val settled = tappableCount(rolling = false, diceSettling = false)
         val settling = tappableCount(rolling = false, diceSettling = true)
         assertTrue("settled dice should offer score boxes to tap ($settled) that settling ones don't ($settling)", settled > settling)
-    }
-
-    @Test
-    fun settlingDiceOfferNoMoreThanAShakingCup() {
-        showBoard()
-        val settling = tappableCount(rolling = false, diceSettling = true)
-        val shaking = tappableCount(rolling = true, diceSettling = false)
-        assertEquals(shaking, settling)
+        assertEquals(tappableCount(rolling = true, diceSettling = false), settling)
     }
 }

@@ -45,28 +45,15 @@ class CappedFrameClockTest {
     private fun frames(refreshHz: Int, step: Int, count: Int) = List(count) { firstFrameNanos + it * step * (1_000_000_000L / refreshHz) }
 
     @Test
-    fun `uncapped, every frame is handed on`() {
-        framesSeen(maxFramesPerSecond = null, refreshHz = 120).forEach { assertEquals(frames(120, step = 1, count = 8), it) }
-    }
-
-    @Test
-    fun `capped at 30, every other 60Hz frame is handed on - and to every animation waiting on it`() {
-        framesSeen(maxFramesPerSecond = 30).forEach { assertEquals(frames(60, step = 2, count = 4), it) }
-    }
-
-    @Test
-    fun `capped at 30, every fourth 120Hz frame is handed on`() {
-        framesSeen(maxFramesPerSecond = 30, refreshHz = 120).forEach { assertEquals(frames(120, step = 4, count = 2), it) }
-    }
-
-    @Test
-    fun `capped at 60, a 60Hz screen loses no frames and a 120Hz one every other`() {
-        framesSeen(maxFramesPerSecond = 60).forEach { assertEquals(frames(60, step = 1, count = 8), it) }
-        framesSeen(maxFramesPerSecond = 60, refreshHz = 120).forEach { assertEquals(frames(120, step = 2, count = 4), it) }
-    }
-
-    @Test
-    fun `capped at 60, a 90Hz screen that can't drop to 60 gives 45 frames a second - every other`() {
-        framesSeen(maxFramesPerSecond = 60, refreshHz = 90).forEach { assertEquals(frames(90, step = 2, count = 4), it) }
+    fun `every frame is handed on uncapped - and under a cap only every nth - to every animation waiting on it`() {
+        framesSeen(maxFramesPerSecond = null, refreshHz = 120).forEach { assertEquals("uncapped at 120Hz", frames(120, step = 1, count = 8), it) }
+        // Capped at 30: every other 60Hz frame, every fourth 120Hz one.
+        framesSeen(maxFramesPerSecond = 30).forEach { assertEquals("30 at 60Hz", frames(60, step = 2, count = 4), it) }
+        framesSeen(maxFramesPerSecond = 30, refreshHz = 120).forEach { assertEquals("30 at 120Hz", frames(120, step = 4, count = 2), it) }
+        // Capped at 60: a 60Hz screen loses no frames and a 120Hz one every other.
+        framesSeen(maxFramesPerSecond = 60).forEach { assertEquals("60 at 60Hz", frames(60, step = 1, count = 8), it) }
+        framesSeen(maxFramesPerSecond = 60, refreshHz = 120).forEach { assertEquals("60 at 120Hz", frames(120, step = 2, count = 4), it) }
+        // A 90Hz screen that can't drop to 60 gives 45 frames a second - every other.
+        framesSeen(maxFramesPerSecond = 60, refreshHz = 90).forEach { assertEquals("60 at 90Hz", frames(90, step = 2, count = 4), it) }
     }
 }

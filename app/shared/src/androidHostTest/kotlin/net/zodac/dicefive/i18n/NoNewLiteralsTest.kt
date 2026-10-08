@@ -15,20 +15,7 @@ class NoNewLiteralsTest {
     private val uiRoot = File("src/commonMain/kotlin/net/zodac/dicefive/ui")
 
     @Test
-    fun `ui holds no string literal that is shown or spoken`() {
-        val problems = scan(uiRoot).map { (file, lines) ->
-            "$file: " + lines.joinToString { "${it.line}: ${it.text}" }
-        }
-
-        assertEquals(
-            emptyList(),
-            problems,
-            "Move these into strings.xml, or end the line with '// i18n: not translated - <why>' if it must stay",
-        )
-    }
-
-    @Test
-    fun `the scan finds visible text and skips the rest`() {
+    fun `ui holds no string literal that is shown or spoken - the scan finding visible text and skipping the rest`() {
         val source = """
             Text("Hello")
             Text(
@@ -44,10 +31,10 @@ class NoNewLiteralsTest {
             DiceFiveDialog(title = stringResource(Res.string.a), message = "Sure?")
             Text("")
         """.trimIndent()
+        assertEquals(listOf(1, 3, 5, 8, 9, 11, 12), scanSource(source).map { it.line })
 
-        val lines = scanSource(source).map { it.line }
-
-        assertEquals(listOf(1, 3, 5, 8, 9, 11, 12), lines)
+        val problems = scan(uiRoot).map { (file, lines) -> "$file: " + lines.joinToString { "${it.line}: ${it.text}" } }
+        assertEquals(emptyList(), problems, "Move these into strings.xml, or end the line with '// i18n: not translated - <why>' if it must stay")
     }
 
     private data class Literal(val line: Int, val text: String)

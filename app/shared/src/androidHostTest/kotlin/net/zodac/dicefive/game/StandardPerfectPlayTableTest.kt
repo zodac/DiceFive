@@ -3,7 +3,6 @@ package net.zodac.dicefive.game
 import java.io.File
 import kotlin.random.Random
 import kotlin.test.Test
-import kotlin.test.assertContentEquals
 import kotlin.test.assertTrue
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
@@ -11,10 +10,11 @@ import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerType
 
 /**
- * The bundled Standard perfect-play table is exactly what Standard's rules give today: solved afresh
- * (about a quarter of a minute) and compared byte for byte, so a rule change that the table wasn't
- * regenerated for fails here rather than quietly leaving Hard playing by the old rules. JVM-only: it
- * reads and writes the file in the source tree.
+ * The bundled Standard perfect-play table is what Standard's rules give today: an evenly spread sample
+ * of its states is re-worked from the table's own values of the states after them (as the solve did)
+ * and must come out the same, so a rule change that the table wasn't regenerated for fails here rather
+ * than quietly leaving Hard playing by the old rules. A full solve takes about a quarter of a minute;
+ * the sample, a fraction of a second. JVM-only: it reads and writes the file in the source tree.
  *
  * To regenerate after a rule change: `./gradlew :app:shared:testAndroidHostTest
  * --tests '*StandardPerfectPlayTableTest*' -PregeneratePerfectPlayTable`, then commit the file.
@@ -25,14 +25,15 @@ class StandardPerfectPlayTableTest {
 
     @Test
     fun `the bundled table matches Standard's rules`() {
-        val solved = StandardPerfectPlayTable.solve().encode()
         if (System.getProperty("dicefive.regeneratePerfectPlayTable") == "true") {
+            val solved = StandardPerfectPlayTable.solve().encode()
             bundled.writeBytes(solved)
             println("Wrote ${solved.size} bytes to ${bundled.absolutePath}")
             return
         }
         assertTrue(bundled.isFile, "No bundled table at ${bundled.absolutePath} - regenerate it, see the class doc")
-        assertContentEquals(solved, bundled.readBytes(), "The bundled table is out of date with Standard's rules - regenerate it, see the class doc")
+        val mismatched = StandardPerfectPlayTable.mismatchedStates(StandardPerfectPlayTable.decode(bundled.readBytes()), SAMPLE_STRIDE)
+        assertTrue(mismatched.isEmpty(), "The bundled table is out of date with Standard's rules - regenerate it, see the class doc. ${mismatched.size} sampled states differ, e.g. ${mismatched.take(3)}")
     }
 
     @Test
@@ -60,5 +61,8 @@ class StandardPerfectPlayTableTest {
 
     private companion object {
         const val SEEDED_GAMES = 200
+
+        /** Every 37th state - about 14,500 of the 536,448, spread over every set of filled boxes. */
+        const val SAMPLE_STRIDE = 37
     }
 }

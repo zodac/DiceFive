@@ -16,42 +16,35 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /**
  * The AI difficulty row: words while they fit, initials on a row too narrow for them, the word spoken either
- * way. Robolectric's text engine gives every character one pixel whatever its size, so this pins which is
- * chosen (a 40dp row is the "too narrow" case) - the stepping between 14sp and 12sp is for a device.
+ * way. This pins which is chosen (a 40dp row is the "too narrow" case) - the stepping between 14sp and 12sp is for a
+ * device.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [35])
 class DifficultySelectorTest {
 
     @get:Rule
     val compose = createComposeRule()
 
-    private fun show(width: Int) {
-        compose.setContent {
-            DiceFiveTheme { DifficultySelector(selected = Difficulty.MEDIUM, onSelect = {}, modifier = Modifier.width(width.dp)) }
-        }
+    private val showcase = Showcase(compose)
+
+    private fun show(width: Int) = showcase.show {
+        DiceFiveTheme { DifficultySelector(selected = Difficulty.MEDIUM, onSelect = {}, modifier = Modifier.width(width.dp)) }
     }
 
     @Test
-    fun aRowWithRoomShowsTheWords() {
+    fun aRowWithRoomShowsTheWordsAndOneTooNarrowForMediumAt12spShowsInitialsStillSpeakingTheWords() {
         show(width = 300)
-
         compose.onNodeWithText("Easy").assertExists()
         compose.onNodeWithText("Medium").assertExists()
         compose.onNodeWithText("Hard").assertExists()
         val results = mutableListOf<TextLayoutResult>()
         compose.onNodeWithText("Medium").fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action!!(results)
         assertEquals(14f, results.first().layoutInput.style.fontSize.value, 0.01f)
-    }
 
-    @Test
-    fun aRowTooNarrowForMediumAt12spShowsInitialsAndStillSpeaksTheWords() {
         show(width = 40)
-
         compose.onNodeWithText("E").assertExists()
         compose.onNodeWithText("M").assertExists()
         compose.onNodeWithText("H").assertExists()
