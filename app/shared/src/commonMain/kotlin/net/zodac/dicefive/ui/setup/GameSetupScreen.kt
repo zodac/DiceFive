@@ -557,24 +557,12 @@ private fun SetupModifierPicker(
         activeNote = stringResource(Res.string.setup_modifiers_active_note),
         modifiers = listOf(
             ModifierSetting(
-                title = stringResource(Res.string.setup_timer_title),
-                description = stringResource(Res.string.setup_timer_description),
-                enabled = setup.turnTimer != TurnTimer.NONE,
-                onEnabledChange = { on -> onSelect(if (on) setup.turnTimerLength else TurnTimer.NONE) },
-                valueLabels = lengths.map { it.label() },
-                selectedValue = lengths.indexOf(setup.turnTimerLength),
-                onValueSelect = { onSelect(lengths[it]) },
-                customValue = ModifierCustomValue(
-                    active = !setup.turnTimerLength.isPreset,
-                    text = setup.turnTimerLength.takeIf { !it.isPreset }?.seconds?.localised().orEmpty(),
-                    label = stringResource(Res.string.setup_timer_custom_field),
-                    unit = stringResource(Res.string.setup_timer_unit),
-                    maxDigits = TurnTimer.MAX_DIGITS,
-                    // Nothing typed goes back to the middle preset. A number under the least never gets here: the field holds it, marked.
-                    onValueChange = { seconds -> onSelect(seconds?.let(::TurnTimer) ?: TurnTimer.SECONDS_60) },
-                    min = TurnTimer.MIN_SECONDS,
-                    belowMinMessage = stringResource(Res.string.setup_timer_custom_min, TurnTimer.MIN_SECONDS.localised()),
-                ),
+                title = stringResource(Res.string.setup_extended_title),
+                description = stringResource(Res.string.setup_extended_description),
+                // Locked off in a mode whose card it doesn't fit - the player's own pick is kept for the next mode.
+                enabled = setup.extendedScores && setup.gameMode.allowsExtendedScores,
+                onEnabledChange = onExtendedScores,
+                lockedNote = if (setup.gameMode.allowsExtendedScores) null else stringResource(Res.string.setup_extended_locked, stringResource(setup.gameMode.displayName)),
             ),
             ModifierSetting(
                 title = stringResource(Res.string.setup_rolls_title),
@@ -607,12 +595,24 @@ private fun SetupModifierPicker(
                 ),
             ),
             ModifierSetting(
-                title = stringResource(Res.string.setup_extended_title),
-                description = stringResource(Res.string.setup_extended_description),
-                // Locked off in a mode whose card it doesn't fit - the player's own pick is kept for the next mode.
-                enabled = setup.extendedScores && setup.gameMode.allowsExtendedScores,
-                onEnabledChange = onExtendedScores,
-                lockedNote = if (setup.gameMode.allowsExtendedScores) null else stringResource(Res.string.setup_extended_locked, stringResource(setup.gameMode.displayName)),
+                title = stringResource(Res.string.setup_timer_title),
+                description = stringResource(Res.string.setup_timer_description),
+                enabled = setup.turnTimer != TurnTimer.NONE,
+                onEnabledChange = { on -> onSelect(if (on) setup.turnTimerLength else TurnTimer.NONE) },
+                valueLabels = lengths.map { it.label() },
+                selectedValue = lengths.indexOf(setup.turnTimerLength),
+                onValueSelect = { onSelect(lengths[it]) },
+                customValue = ModifierCustomValue(
+                    active = !setup.turnTimerLength.isPreset,
+                    text = setup.turnTimerLength.takeIf { !it.isPreset }?.seconds?.localised().orEmpty(),
+                    label = stringResource(Res.string.setup_timer_custom_field),
+                    unit = stringResource(Res.string.setup_timer_unit),
+                    maxDigits = TurnTimer.MAX_DIGITS,
+                    // Nothing typed goes back to the middle preset. A number under the least never gets here: the field holds it, marked.
+                    onValueChange = { seconds -> onSelect(seconds?.let(::TurnTimer) ?: TurnTimer.SECONDS_60) },
+                    min = TurnTimer.MIN_SECONDS,
+                    belowMinMessage = stringResource(Res.string.setup_timer_custom_min, TurnTimer.MIN_SECONDS.localised()),
+                ),
             ),
             ModifierSetting(
                 title = stringResource(Res.string.setup_unlucky_title),

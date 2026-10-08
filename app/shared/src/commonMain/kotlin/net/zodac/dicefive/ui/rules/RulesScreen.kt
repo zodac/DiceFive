@@ -663,12 +663,14 @@ private val RULES_GROUPS = listOf(
                 ),
             ),
             RulesPage(
-                title = Res.string.rules_turn_timer_title,
-                tabLabel = Res.string.rules_turn_timer_tab,
+                title = Res.string.rules_extended_scores_title,
+                tabLabel = Res.string.rules_extended_scores_tab,
                 blocks = listOf(
-                    text(Res.string.rules_turn_timer_1),
-                    RulesTurnTimer,
-                    text(Res.string.rules_turn_timer_2),
+                    text(Res.string.rules_extended_scores_1),
+                    RulesCategory(named(Res.string.score_two_pair), Res.string.rules_extended_scores_2, dice(4, 4, 2, 2, 4, counting = 4, score = points(12))),
+                    RulesCategory(named(Res.string.score_evens), Res.string.rules_extended_scores_3, dice(6, 4, 2, 3, 1, counting = 3, score = points(12))),
+                    RulesCategory(named(Res.string.score_odds), Res.string.rules_extended_scores_4, dice(5, 3, 3, 6, 2, counting = 3, score = points(11))),
+                    text(Res.string.rules_extended_scores_5),
                 ),
             ),
             RulesPage(
@@ -689,14 +691,12 @@ private val RULES_GROUPS = listOf(
                 ),
             ),
             RulesPage(
-                title = Res.string.rules_extended_scores_title,
-                tabLabel = Res.string.rules_extended_scores_tab,
+                title = Res.string.rules_turn_timer_title,
+                tabLabel = Res.string.rules_turn_timer_tab,
                 blocks = listOf(
-                    text(Res.string.rules_extended_scores_1),
-                    RulesCategory(named(Res.string.score_two_pair), Res.string.rules_extended_scores_2, dice(4, 4, 2, 2, 4, counting = 4, score = points(12))),
-                    RulesCategory(named(Res.string.score_evens), Res.string.rules_extended_scores_3, dice(6, 4, 2, 3, 1, counting = 3, score = points(12))),
-                    RulesCategory(named(Res.string.score_odds), Res.string.rules_extended_scores_4, dice(5, 3, 3, 6, 2, counting = 3, score = points(11))),
-                    text(Res.string.rules_extended_scores_5),
+                    text(Res.string.rules_turn_timer_1),
+                    RulesTurnTimer,
+                    text(Res.string.rules_turn_timer_2),
                 ),
             ),
             RulesPage(
