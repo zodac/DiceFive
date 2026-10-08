@@ -23,9 +23,9 @@ name: Release
 # reaches 1.0.0, unless the force_apk dispatch input below overrides that.
 #
 # The checks run side by side, each on a runner of its own - the app's Robolectric tests, the shared
-# module's tests with its iOS compile, lint, and (once there's one to ship) the signed APK - and the
-# release itself is made only once every one of them has passed. Each check sets itself up through
-# .github/actions/build-setup.
+# module's tests with its iOS compile, lint, and (once there's one to ship) the Baseline Profile and the
+# signed APK built with it - and the release itself is made only once every one of them has passed.
+# Each check sets itself up through .github/actions/build-setup.
 #
 # Only a push that touches what ships triggers a release: app sources and resources, the Gradle
 # build and the VERSION file. Docs, CI, tooling, test code and Markdown files don't build a new
@@ -134,10 +134,86 @@ jobs:
       - name: Check instrumented tests compile and lint passes
         run: ./gradlew compileDebugAndroidTestKotlin lintDebug --console=plain
 
-  # The signed release APK, built alongside the checks - only from 1.0.0 on, unless force_apk asks for
-  # one sooner. Handed to the release job as an artifact; nothing is published unless every check passes.
-  apk:
+  # A fresh Baseline Profile for every APK: the profile journey (app/baselineprofile) run on an
+  # emulator, from this commit. Only when there's an APK to put it in. The profile is not committed (it is
+  # gitignored); it goes to the apk job as an artifact. A failing journey - usually a relabelled button
+  # it looks for - fails the release rather than shipping a thinner profile, after one retry on a
+  # freshly booted emulator in case the emulator itself was what failed. The emulator and the journey
+  # are explained in .claude/EMULATOR.md; the journey in .claude/DESIGN.md Phase 19.
+  baseline-profile:
     needs: version
+    if: needs.version.outputs.stable == 'true' || inputs.force_apk == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the build
+        uses: ./.github/actions/build-setup
+        with:
+          ffmpeg: "true"
+
+      # The emulator's Android version is sandbox/Dockerfile's EMULATOR_API (see ci_emulator.sh). The SDK's
+      # path is read here too: the runner's own environment isn't in the `env` context the cache reads.
+      - name: Read the emulator's Android version
+        id: emulator
+        run: |
+          echo "api=$(grep -oP '^ENV EMULATOR_API=\K[0-9.]+' sandbox/Dockerfile)" >> "$GITHUB_OUTPUT"
+          echo "sdk=$ANDROID_HOME" >> "$GITHUB_OUTPUT"
+
+      # About 1.5 GB to download otherwise. Keyed on the Android version: the emulator and its image
+      # can't be pinned to a revision, so a cached pair is kept until EMULATOR_API moves.
+      - name: Cache the emulator and its system image
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ steps.emulator.outputs.sdk }}/emulator
+            ${{ steps.emulator.outputs.sdk }}/system-images/android-${{ steps.emulator.outputs.api }}
+          key: emulator-${{ runner.os }}-api${{ steps.emulator.outputs.api }}
+
+      # 10 laps: the journey's timing races only showed up from lap 4, so a short run doesn't prove it.
+      # The uninstall matters on the retry: an app left installed by the failed attempt would carry
+      # its state into the next one.
+      - name: Generate the Baseline Profile
+        run: |
+          for attempt in 1 2; do
+            .github/scripts/ci_emulator.sh start
+            "$ANDROID_HOME/platform-tools/adb" uninstall net.zodac.dicefive >/dev/null 2>&1 || true
+            if ./gradlew :app:android:generateBaselineProfile \
+                -Pandroid.testInstrumentationRunnerArguments.journeyLaps=10 --console=plain; then
+              exit 0
+            fi
+            .github/scripts/ci_emulator.sh screenshot "$RUNNER_TEMP/journey-failure-$attempt.png" || true
+            .github/scripts/ci_emulator.sh stop
+            echo "::warning::Baseline Profile generation failed (attempt $attempt)"
+          done
+          exit 1
+
+      - name: Upload the journey's report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: baseline-profile-report
+          path: |
+            app/baselineprofile/build/reports/androidTests/
+            ${{ runner.temp }}/journey-failure-*.png
+            ${{ runner.temp }}/emulator-*.log
+          retention-days: 7
+
+      - name: Hand the profile to the apk job
+        uses: actions/upload-artifact@v7
+        with:
+          name: baseline-profile
+          path: app/android/src/release/generated/baselineProfiles/
+          if-no-files-found: error
+          retention-days: 1
+
+  # The signed release APK, built with the Baseline Profile generated above - only from 1.0.0 on, unless
+  # force_apk asks for one sooner. Handed to the release job as an artifact; nothing is published unless
+  # every check passes.
+  apk:
+    needs: [version, baseline-profile]
     if: needs.version.outputs.stable == 'true' || inputs.force_apk == true
     runs-on: ubuntu-latest
     steps:
@@ -148,6 +224,13 @@ jobs:
         uses: ./.github/actions/build-setup
         with:
           ffmpeg: "true"
+
+      # Where AGP merges it into the release build (alongside the hand-written src/main/baseline-prof.txt).
+      - name: Fetch the Baseline Profile
+        uses: actions/download-artifact@v8
+        with:
+          name: baseline-profile
+          path: app/android/src/release/generated/baselineProfiles/
 
       - name: Decode release keystore
         run: echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore.jks"
@@ -174,15 +257,17 @@ jobs:
           retention-days: 1
 
   release:
-    needs: [version, android-tests, shared-tests, lint, apk]
-    # Every check must have passed; the APK job may have been skipped (a pre-1.0 release has none), but
-    # not have failed.
+    needs: [version, android-tests, shared-tests, lint, baseline-profile, apk]
+    # Every check must have passed; the profile and APK jobs may have been skipped (a pre-1.0 release has
+    # none), but not have failed. The profile is checked as well as the APK: a failed profile job makes
+    # the apk job skip, not fail, which on its own would let a release out without its APK.
     if: >-
       !cancelled() &&
       needs.version.result == 'success' &&
       needs.android-tests.result == 'success' &&
       needs.shared-tests.result == 'success' &&
       needs.lint.result == 'success' &&
+      (needs.baseline-profile.result == 'success' || needs.baseline-profile.result == 'skipped') &&
       (needs.apk.result == 'success' || needs.apk.result == 'skipped')
     runs-on: ubuntu-latest
     steps:

@@ -1935,11 +1935,18 @@ install-over-existing succeeds:
       holds the Macrobenchmark journey (`BaselineProfileGenerator`, steps in `Journeys.kt`: a game
       played and then resumed, Styles, Achievements, Leaderboard, Statistics, Rules, Settings with its
       Licences and About dialogs), `StartupBenchmark` and `StylesBenchmark` (frame times opening
-      Styles and swiping its rows), each compared with no compilation against the profile. Needs a
-      phone on adb, so it is run by hand:
+      Styles and swiping its rows), each compared with no compilation against the profile.
+      **The profile is generated fresh for every release APK** (2026-10-08): `release.yml`'s
+      `baseline-profile` job boots an emulator on the runner (`.github/scripts/ci_emulator.sh`), runs a
+      10-lap journey and hands the profile to the `apk` job. A failing journey fails the release, after one
+      retry on a rebooted emulator; its report, screenshots and emulator log are uploaded as the
+      `baseline-profile-report` artifact. The generated profile is therefore **not committed**
+      (`app/android/src/release/generated/` is gitignored), so a local release build carries only the
+      hand-written one unless a profile has been generated locally. The benchmarks still need a phone:
       1. `./gradlew :app:android:generateBaselineProfile` - writes
          `app/android/src/release/generated/baselineProfiles/baseline-prof.txt`, which is *merged* with
-         the hand-written `src/main/baseline-prof.txt`, not replacing it.
+         the hand-written `src/main/baseline-prof.txt`, not replacing it. (Only needed locally to
+         benchmark it, or to debug the journey; the release makes its own.)
       2. `./gradlew :app:baselineprofile:connectedBenchmarkReleaseAndroidTest` for the before/after.
       3. Compare with and without the hand-written wildcard file (it marks all app code hot, so with it
          present the generated profile adds little but startup ordering); if the generated one is as
@@ -1954,14 +1961,19 @@ install-over-existing succeeds:
       profile went from 13.7k to 17.8k rules with it, and its startup profile now orders the dex. Full
       runs found three races a one-lap run hadn't: a back press or tap sent while a dialog is still
       closing goes to the dying dialog (leaving the app) or is dropped under its fading dim layer, so
-      dialogs are left through `closeDialog` and Continue is retried.
+      dialogs are left through `closeDialog` and Continue is retried. Styles is retried the same way
+      (`openStyles`): it is tapped straight after leaving a game, while the leave dialog's dim layer can
+      still swallow the tap. And the achievement banner's window had kept `FLAG_DIM_BEHIND` with a dim of
+      0, whose invisible full-screen dim layer made the system drop taps on the dialog beneath while a
+      banner was up ("Who Made This?" over the About dialog's close button - a real bug for players, not
+      just the journey); it now clears the flag (`OverlayDialogWindow.android.kt`).
       The startup profile is `StartupProfileGenerator`'s alone (cold start to the menu); the journey
       had been marked as startup too, which made `startup-prof.txt` the whole profile and left R8
       nothing to put first. It still holds the style art: `StylesWarmUp` starts on the menu's first
       idle frames, before the profile is captured - which is what a launch really runs. 22k of 31.6k
       rules; the primary dex went from 2.94MB (everything) to 2.17MB (startup code first).
-      Regenerate after large UI changes. Selectors are the visible labels and screen-reader
-      descriptions, so a relabelled button fails the run (`await` in `Journeys.kt`) rather than
+      Selectors are the visible labels and screen-reader
+      descriptions, so a relabelled button fails the run - and with it the release - (`await` in `Journeys.kt`) rather than
       quietly thinning the profile.
 - [x] **Install size**: the release build installed at 6.4MB (15.9MB once its profile is compiled),
       most of it a second, extracted copy of the dex - with `minSdk` 26 the dex is compressed in the
@@ -2582,3 +2594,6 @@ any page.
       a `release` job that runs only once every check has passed (the APK job may be skipped, not failed) and
       publishes, attaching the APK passed to it as an artifact. ffmpeg is installed only where app:android's resources
       are merged, and tries the runner's package lists before refreshing them. `update-dependencies.yml` is unchanged.
+- [x] **Baseline Profile per release** (2026-10-08): a `baseline-profile` job, gated like `apk`, generates the profile
+      on an emulator and `apk` builds with it; `release` also requires it to have passed or been skipped (a failed
+      profile job only *skips* `apk`, which alone would let a release out without its APK). See Phase 19.
