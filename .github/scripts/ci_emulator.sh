@@ -17,8 +17,9 @@
 #               - The app's UI renderer is switched to Vulkan after boot (debug.hwui.renderer=skiavk): the
 #                 emulator's software GLES path segfaults while drawing DiceFive. The property resets on
 #                 every boot, so `start` sets it every time.
-#               - Vulkan is forced on at boot (-feature Vulkan) and checked once it's up: the emulator left it
-#                 off on the runner, and every app's renderer then aborts (see check_vulkan below).
+#               - The device's API level is written into its config (target=android-<api>) and Vulkan is checked
+#                 once it's up: the runner's avdmanager wrote a target the emulator read as API 3, so it left
+#                 Vulkan off and every app's renderer aborted (see set_target and check_vulkan below).
 #               - /data is set to 6 GB at boot and checked once it's up: the runner's tools left it at 800 MB,
 #                 which a first boot fills, crash-looping system_server (see data_mb below).
 #
@@ -125,12 +126,13 @@ start() {
             exit 1
         fi
     fi
+    set_target
 
     echo "Booting ${avd_name} (log: ${log})..."
     nohup "${sdk}/emulator/emulator" -avd "${avd_name}" \
         -no-window -no-audio -no-boot-anim -no-snapshot \
         -gpu swiftshader_indirect -memory 4096 -cores "$(nproc)" -partition-size "${data_mb}" \
-        -feature Vulkan -verbose \
+        -verbose \
         >"${log}" 2>&1 </dev/null &
     local pid=$!
 
@@ -157,6 +159,7 @@ start() {
     until is_up; do sleep 1; done
     adb shell setprop debug.hwui.renderer skiavk
     check_data_size
+    grep -m1 -oE "Deciding if GLDirectMem/Vulkan.*API level: [0-9]+" "${log}" | sed 's/^/Emulator: /' || true
     check_vulkan
     if ! ready; then
         echo "The emulator booted, but its framework never settled:" >&2
@@ -180,11 +183,25 @@ check_data_size() {
     fi
 }
 
+# Writes the device's Android version into its .ini and config.ini as `target=android-<api>`, whatever
+# avdmanager wrote. The emulator reads its API level from that line, and only enables Vulkan (and the
+# GLDirectMem host memory it needs) from API 29: the runner's avdmanager wrote a target the emulator read
+# as API 3 ("not enabling Vulkan because API level is < 29" in its -verbose log), so no app could draw (see
+# check_vulkan). What avdmanager wrote is printed, for the record.
+set_target() {
+    local file
+    for file in "${ANDROID_AVD_HOME}/${avd_name}.ini" "${ANDROID_AVD_HOME}/${avd_name}.avd/config.ini"; do
+        echo "avdmanager's target in $(basename "${file}"): $(grep -m1 '^target' "${file}" || echo none)"
+        sed -i '/^target[[:space:]]*=/d' "${file}"
+        echo "target=android-${api}" >>"${file}"
+    done
+}
+
 # Fails the boot if the device has no Vulkan GPU: every app's UI is drawn through Vulkan (skiavk, set
 # above), and without one each app's RenderThread aborts on launch ("Assertion failed: !gpuCount") - SystemUI,
-# the launcher and DiceFive alike. The emulator decides at boot whether to offer Vulkan; on the runner it
-# decided not to (with the sandbox's identical emulator and image, it does), so `start` forces it on with
-# `-feature Vulkan`. Its -verbose log, in the report artifact, records what it decided and why.
+# the launcher and DiceFive alike. The emulator decides at boot whether to offer Vulkan, from the API level
+# (see set_target); its -verbose log, in the report artifact, records what it decided and why. Forcing it
+# on with `-feature Vulkan` is not enough: without GLDirectMem, apps then crash allocating Vulkan memory.
 check_vulkan() {
     if ! adb shell cmd gpu vkjson 2>/dev/null | grep -q '"deviceName"'; then
         echo "The device has no Vulkan GPU, which every app's UI is drawn through here; the emulator said:" >&2

@@ -1940,8 +1940,8 @@ install-over-existing succeeds:
       `baseline-profile` job boots an emulator on the runner (`.github/scripts/ci_emulator.sh`), runs a
       10-lap journey and hands the profile to the `apk` job. A failing journey fails the release at once (only a
       failed emulator boot or APK install is retried, twice; the device's `/data` is pinned at 6 GB, as the runner's
-      800 MB default filled on first boot and crash-looped the framework, and Vulkan is forced on, as the runner's
-      emulator left it off and every app's renderer aborted - `.claude/EMULATOR.md`; the step times out at 150 minutes, the job at 170 - 60 was too short for 10 laps on a hosted runner); its report, screenshot, emulator log and logcat are uploaded as the
+      800 MB default filled on first boot and crash-looped the framework, and the AVD's `target` is written by the script, as the runner's
+      `avdmanager` wrote one the emulator read as API 3, so it left Vulkan off and every app's renderer aborted - `.claude/EMULATOR.md`; the step times out at 150 minutes, the job at 170 - 60 was too short for 10 laps on a hosted runner); its report, screenshot, emulator log and logcat are uploaded as the
       `baseline-profile-report` artifact. The generated profile is therefore **not committed**
       (`app/android/src/release/generated/` is gitignored), so a local release build carries only the
       hand-written one unless a profile has been generated locally. The benchmarks still need a phone:
