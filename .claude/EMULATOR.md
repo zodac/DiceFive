@@ -76,7 +76,17 @@ between that setup and the install, so one early run got through and later ones 
 overrides whatever `config.ini` says (tried here: `config.ini` at 800M plus the flag gives 6 GB); the disk
 image is sparse, so the runner stores only what is used (about 2 GB for a first boot and a lap).
 
-`start` then checks `/data`'s size and fails the boot if it is short, waits for the `package` and
+**The next thing it hit: no Vulkan.** With `/data` fixed, every app's `RenderThread` aborted on launch
+(`Abort message: 'Assertion failed: !gpuCount'` in `VulkanManager::initialize`) - SystemUI, the launcher
+and DiceFive - because the app renderer is forced to Vulkan (below) and the guest had no Vulkan device
+(`adb shell cmd gpu vkjson` lists `"devices" : []`). The emulator's `Vulkan` feature defaults to off and
+is switched on at boot by a host check (`-verbose` logs "Deciding if GLDirectMem/Vulkan should be
+enabled ... Enabling Vulkan"); here it is, on the runner it wasn't (its log has no `initIcdPaths` /
+"Selecting Vulkan device" lines, and offers the guest Vulkan 1.2, not 1.4). So `start` boots with
+`-feature Vulkan` (and `-verbose`, so the emulator's log in the report says what it decided), and checks
+the guest has a Vulkan device before going on. `-feature -Vulkan` reproduces the runner's failure here.
+
+`start` then checks `/data`'s size and that the device has a Vulkan GPU, failing the boot if either is wrong, waits for the `package` and
 `activity` services and for an install session to open (`pm install-create`), all holding for 30 seconds
 on the same `system_server` (up to five minutes), and prints each reason it isn't ready and any
 `system_server` restart with its crash log; a failed boot saves a `logcat-boot-*.txt`. If Gradle still
@@ -117,7 +127,9 @@ apps (Settings) draw without trouble; the debug build installs fine; only *launc
 Its Vulkan path does not crash, and the app draws correctly through it. So after every boot the script
 sets `debug.hwui.renderer=skiavk`. That property resets on each boot (set it again if you boot the
 emulator some other way), and a boot-time `-prop debug.hwui.renderer=skiavk` flag does **not** take
-effect - it has to be set over adb once the device is up. Tried and still crashing: `-gpu guest`, 
+effect - it has to be set over adb once the device is up. It also needs the emulator to offer the guest
+Vulkan, which the emulator decides for itself at boot (on a GitHub runner it didn't): `ci_emulator.sh`
+forces that with `-feature Vulkan` - see above. Tried and still crashing: `-gpu guest`, 
 `swiftshader_indirect` with `-feature -Vulkan`, `debug.hwui.renderer=skiagl`, sensors and audio
 disabled in the AVD.
 
