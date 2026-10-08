@@ -258,12 +258,29 @@ internal fun MacrobenchmarkScope.visitAchievements() {
  * every row is swiped along and the page scrolled down, which composes each tile once.
  */
 internal fun MacrobenchmarkScope.visitStyles() {
-    tapText("Styles")
-    device.waitForIdle()
+    openStyles()
     for (fraction in listOf(0.25f, 0.45f, 0.65f, 0.85f)) scrollRow(fraction, 2)
     scrollDown(1)
     for (fraction in listOf(0.25f, 0.45f, 0.65f, 0.85f)) scrollRow(fraction, 2)
     back()
+}
+
+/**
+ * Taps Styles until its page opens. It comes straight after [leaveGame], so a tap can land while the
+ * leave dialog's dim layer is still fading and be dropped (as Continue's can - see [resumeGame]); the
+ * swipes and back press after it would then run on the menu, the back press leaving the app.
+ */
+private fun MacrobenchmarkScope.openStyles() {
+    val page = By.desc("Dice gallery")
+    await(By.text("Styles"), "Styles")
+    repeat(CLOSE_ATTEMPTS) {
+        device.findObject(By.text("Styles"))?.click()
+        if (device.wait(Until.hasObject(page), TIMEOUT_MS)) {
+            device.waitForIdle()
+            return
+        }
+    }
+    error("Baseline Profile journey: 'the Styles page' never appeared")
 }
 
 private const val ROLL_SETTLE_MS = 2_000L
