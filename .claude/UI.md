@@ -797,6 +797,19 @@ Consequences:
   each pool against its own cap so a name added later that doesn't fit fails the build instead of
   showing up ellipsised in a real game.
 
+**Names are sanitised before they are capped** (`model/PlayerName.kt`, `sanitizePlayerName`), on every
+path in: typing, restore from preferences, and `startGame`. Nothing is censored; only what breaks
+layout or hides in it goes: control characters (any whitespace becomes one space), zero-width and
+bidi override/isolate characters, soft hyphens, BOMs, replacement/private-use/non-characters, unpaired
+surrogates and the blank Hangul fillers. ZWJ/ZWNJ and LRM/RLM stay (emoji, Persian, Indic). At most 4
+combining marks stay on a character (8 tag characters for flag emoji), none on nothing, and at most 64
+code points in all, so "glitch" text can't grow tall or wide or bloat storage. The result is NFC
+(`normalizeNfc`, an expect/actual: `java.text.Normalizer` / Foundation). Names are compared with
+`playerNameKey` (sanitised, trimmed, lower-cased) for the duplicate check and Statistics grouping.
+Not trimmed on the way in - a trailing space must survive mid-typing. `PlayerNameTest` covers it.
+Leaderboard SQL still compares with `COLLATE NOCASE`, so a name saved decomposed by an old version
+won't match its composed twin there.
+
 `PlayerHeaderBar` also steps names down to `labelMedium` at 3+ players, which is what makes
 the cap actually deliver a full name on one line on a narrow phone.
 

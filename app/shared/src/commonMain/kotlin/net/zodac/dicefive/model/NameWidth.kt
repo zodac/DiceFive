@@ -37,7 +37,7 @@ private inline fun String.forEachCodePoint(action: (Int) -> Unit) {
     }
 }
 
-private fun String.codePointAt(index: Int): Int {
+internal fun String.codePointAt(index: Int): Int {
     val high = this[index]
     if (high.isHighSurrogate() && index + 1 < length && this[index + 1].isLowSurrogate()) {
         return 0x10000 + ((high.code - 0xD800) shl 10) + (this[index + 1].code - 0xDC00)

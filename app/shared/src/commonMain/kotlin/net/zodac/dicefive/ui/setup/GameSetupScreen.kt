@@ -51,6 +51,7 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.UnluckyDice
+import net.zodac.dicefive.model.playerNameKey
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_cpu_cd
 import net.zodac.dicefive.resources.common_default_player_name
@@ -197,7 +198,7 @@ fun GameSetupScreen(
  */
 private fun duplicateHumanNameSlots(slots: List<PlayerSetupSlot>, defaultName: (Int) -> String): Set<Int> =
     slots.filter { it.type == PlayerType.HUMAN }
-        .groupBy { it.name.trim().ifBlank { defaultName(it.slot) }.lowercase() }
+        .groupBy { playerNameKey(it.name).ifBlank { playerNameKey(defaultName(it.slot)) } }
         .values
         .filter { it.size > 1 }
         .flatten()

@@ -63,6 +63,7 @@ import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.model.hasGrownSunflower
 import net.zodac.dicefive.model.isLuckOfTheIrish
+import net.zodac.dicefive.model.sanitizePlayerName
 import net.zodac.dicefive.model.takeNameWidth
 import net.zodac.dicefive.ui.achievements.announce
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
@@ -447,7 +448,7 @@ class GameViewModel(
                     // A name saved before defaults were left blank may be the English default itself: that's not something
                     // the player typed, so it's put back to blank to be shown in the current language.
                     val savedName = repository.playerNameFor(slot.slot).first()?.takeUnless { it == "Player ${slot.slot}" } // i18n: not translated - the English default older versions saved
-                    var updated = slot.copy(name = (savedName ?: slot.name).takeNameWidth(cap))
+                    var updated = slot.copy(name = sanitizePlayerName(savedName ?: slot.name).takeNameWidth(cap))
                     // Slot 1 is always Human, so its type and difficulty are never saved/restored.
                     if (slot.slot >= 2) {
                         repository.playerTypeFor(slot.slot).first()?.let { updated = updated.copy(type = it) }
@@ -500,7 +501,7 @@ class GameViewModel(
      */
     fun setPlayerName(slot: Int, name: String) {
         val cap = GameSetupState.maxPlayerNameLength(_setup.value.playerCount)
-        updateSlot(slot) { it.copy(name = name.takeNameWidth(cap)) }
+        updateSlot(slot) { it.copy(name = sanitizePlayerName(name).takeNameWidth(cap)) }
     }
 
     /**
@@ -592,7 +593,7 @@ class GameViewModel(
         ).iterator()
         val playerConfigs = activeSlots.map { slot ->
             val name = when (slot.type) {
-                PlayerType.HUMAN -> slot.name.trim().ifBlank { defaultName(slot.slot) }
+                PlayerType.HUMAN -> sanitizePlayerName(slot.name).trim().ifBlank { defaultName(slot.slot) }
                 PlayerType.AI -> aiNames.next()
             }
             PlayerConfig(slot = slot.slot, type = slot.type, name = name, difficulty = slot.difficulty, colour = slot.colour)
