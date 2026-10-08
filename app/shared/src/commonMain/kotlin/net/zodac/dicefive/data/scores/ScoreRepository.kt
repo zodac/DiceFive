@@ -4,6 +4,7 @@ import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.game.TieBreakStats
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.playerNameKey
 
 /** How many leaderboard rows make up one page. Was 100; halved so a page is a shorter scroll. */
 const val SCORES_PAGE_SIZE = 50
@@ -113,7 +114,7 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
      * folded here: `groupBy` keeps that order, both across players and within each one's games.
      */
     suspend fun playerStatistics(): List<PlayerStatistics> =
-        scoreDao.playerGames().groupBy { it.playerName.lowercase() }.values.map { variants ->
+        scoreDao.playerGames().groupBy { playerNameKey(it.playerName) }.values.map { variants ->
             // Names differing only by case are one player; show the spelling they used most recently.
             val games = variants.sortedByDescending { it.timestampEpochMillis }
             val playerName = games.first().playerName
