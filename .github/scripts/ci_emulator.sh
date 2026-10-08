@@ -34,6 +34,10 @@ sdk="${ANDROID_HOME:?ANDROID_HOME is not set}"
 avd_name="ci-api${api}"
 image="system-images;android-${api};google_apis;x86_64"
 log="${RUNNER_TEMP:-/tmp}/emulator-${avd_name}.log"
+# Set explicitly so avdmanager writes the device where the emulator reads it: each tool otherwise works the
+# folder out from its own list of variables, and on a runner the two can disagree (the emulator then
+# reports "Unknown AVD name").
+export ANDROID_AVD_HOME="${ANDROID_AVD_HOME:-${HOME}/.android/avd}"
 export PATH="${sdk}/platform-tools:${PATH}"
 
 is_up() { [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; }
@@ -71,8 +75,18 @@ ensure_packages() {
 start() {
     ensure_kvm
     ensure_packages
-    if [[ ! -d "${ANDROID_AVD_HOME:-${HOME}/.android/avd}/${avd_name}.avd" ]]; then
-        echo no | "${sdk}/cmdline-tools/latest/bin/avdmanager" create avd -n "${avd_name}" -k "${image}" -d pixel_6 --force >/dev/null
+    if [[ ! -f "${ANDROID_AVD_HOME}/${avd_name}.ini" ]]; then
+        mkdir -p "${ANDROID_AVD_HOME}"
+        # avdmanager can exit 0 without making the device, so the .ini is what's checked, and its output
+        # is only shown when that check fails.
+        local created
+        created=$(echo no | "${sdk}/cmdline-tools/latest/bin/avdmanager" create avd \
+            -n "${avd_name}" -k "${image}" -d pixel_6 --force 2>&1) || true
+        if [[ ! -f "${ANDROID_AVD_HOME}/${avd_name}.ini" ]]; then
+            echo "avdmanager did not create ${avd_name} in ${ANDROID_AVD_HOME}:" >&2
+            echo "${created}" >&2
+            exit 1
+        fi
     fi
 
     echo "Booting ${avd_name} (log: ${log})..."
@@ -80,9 +94,16 @@ start() {
         -no-window -no-audio -no-boot-anim -no-snapshot \
         -gpu swiftshader_indirect -memory 4096 -cores "$(nproc)" \
         >"${log}" 2>&1 </dev/null &
+    local pid=$!
 
     local waited=0
     until is_up; do
+        # An emulator that has already quit will never boot: say so now rather than after the full wait.
+        if ! kill -0 "${pid}" 2>/dev/null; then
+            echo "The emulator quit before it finished booting:" >&2
+            tail -n 50 "${log}" >&2
+            exit 1
+        fi
         sleep 3
         waited=$((waited + 3))
         if (( waited > 600 )); then

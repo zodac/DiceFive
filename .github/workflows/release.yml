@@ -138,9 +138,15 @@ jobs:
   # A fresh Baseline Profile for every APK: the profile journey (app/baselineprofile) run on an
   # emulator, from this commit. Only when there's an APK to put it in. The profile is not committed (it is
   # gitignored); it goes to the apk job as an artifact. A failing journey - usually a relabelled button
-  # it looks for - fails the release rather than shipping a thinner profile, after one retry on a
-  # freshly booted emulator in case the emulator itself was what failed. The emulator and the journey
-  # are explained in .claude/EMULATOR.md; the journey in .claude/DESIGN.md Phase 19.
+  # it looks for - fails the job at once, and with it the release, rather than shipping a thinner
+  # profile. Only an emulator that fails to boot is retried (once), since that says nothing about the
+  # journey. The emulator and the journey are explained in .claude/EMULATOR.md; the journey in
+  # .claude/DESIGN.md Phase 19.
+  #
+  # Timeouts: a slow but successful run is ~45 minutes of the generate step (a boot of up to 10, the
+  # benchmark build, 10 laps of the journey). The step stops at 60, which leaves room for one retried
+  # boot, and fails like a failed journey, so its report is still uploaded; the job's own 75 is the
+  # backstop for a hang anywhere else (setup, the cache, an upload).
   #
   # It runs alongside the checks but is no use once one of them fails (nothing will be released), so it
   # watches them and stops itself when one does - see watch_checks.sh.
@@ -148,7 +154,7 @@ jobs:
     needs: version
     if: needs.version.outputs.stable == 'true' || inputs.force_apk == true
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 75
     permissions:
       contents: read
       actions: read # watch_checks.sh reads this run's jobs
@@ -190,9 +196,9 @@ jobs:
           key: emulator-${{ runner.os }}-api${{ steps.emulator.outputs.api }}
 
       # 10 laps: the journey's timing races only showed up from lap 4, so a short run doesn't prove it.
-      # The uninstall matters on the retry: an app left installed by the failed attempt would carry
-      # its state into the next one.
+      # Only the boot is retried; a failed journey ends the step there and then (see the job's comment).
       - name: Generate the Baseline Profile
+        timeout-minutes: 60
         run: |
           checks_failed() {
             if [ -f "$RUNNER_TEMP/checks-failed" ]; then
@@ -208,16 +214,17 @@ jobs:
               echo "::warning::The emulator failed to boot (attempt $attempt)"
               continue
             fi
-            "$ANDROID_HOME/platform-tools/adb" uninstall net.zodac.dicefive >/dev/null 2>&1 || true
             if ./gradlew :app:android:generateBaselineProfile \
                 -Pandroid.testInstrumentationRunnerArguments.journeyLaps=10 --console=plain; then
               exit 0
             fi
             if checks_failed; then exit 1; fi
-            .github/scripts/ci_emulator.sh screenshot "$RUNNER_TEMP/journey-failure-$attempt.png" || true
+            .github/scripts/ci_emulator.sh screenshot "$RUNNER_TEMP/journey-failure.png" || true
             .github/scripts/ci_emulator.sh stop
-            echo "::warning::Baseline Profile generation failed (attempt $attempt)"
+            echo "::error::Baseline Profile generation failed - see the baseline-profile-report artifact"
+            exit 1
           done
+          echo "::error::The emulator failed to boot twice"
           exit 1
 
       - name: Upload the journey's report
@@ -228,7 +235,7 @@ jobs:
           path: |
             ${{ runner.temp }}/watch-checks.log
             app/baselineprofile/build/reports/androidTests/
-            ${{ runner.temp }}/journey-failure-*.png
+            ${{ runner.temp }}/journey-failure.png
             ${{ runner.temp }}/emulator-*.log
           retention-days: 7
 
