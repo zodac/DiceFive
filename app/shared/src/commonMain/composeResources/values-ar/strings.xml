@@ -193,8 +193,6 @@
     <string name="achievement_low_rolls_description">أنهِ لعبة بأقل من ٢٠ نقطة</string>
     <string name="achievement_probability_never_heard_of_her_title">الاحتمالات؟ لم أسمع بها</string>
     <string name="achievement_probability_never_heard_of_her_description">ادخل دورك الأخير وأنت تحتاج حجر نرد واحدًا لتحصل على مكافأتك، ثم أخفق</string>
-    <string name="achievement_i_did_it_my_way_title">فعلتها على طريقتي</string>
-    <string name="achievement_i_did_it_my_way_description">خصّص لعبة قبل أن تبدأها</string>
     <string name="achievement_commitment_issues_title">صعوبة الالتزام</string>
     <string name="achievement_commitment_issues_description">ثبّت نردًا من رقم واحد، ثم غيّر رأيك وثبّت رقمًا آخر وسجّل به</string>
     <string name="achievement_decisions_decisions_title">قرارات وقرارات</string>

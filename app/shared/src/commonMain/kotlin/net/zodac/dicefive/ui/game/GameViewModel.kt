@@ -613,10 +613,7 @@ class GameViewModel(
         prepareHardCpus()
         // "Full Table" is settled the moment four seats are taken - no need to make them play it out.
         checkInProgressAchievements()
-        checkGameStartAchievements(
-            customizedGameSettings = turnTimer != TurnTimer.NONE || rollModifiers.isActive || extendedScores ||
-                setupState.unluckyDiceEnabled || setupState.gameMode != GameMode.default,
-        )
+        checkGameStartAchievements()
 
         if (previousGame != null && previousGame.isGameOver && !humanWonGame(previousGame)) {
             unlockAchievements(setOf(Achievement.REPLAY_AFTER_LOSS))
@@ -1093,12 +1090,8 @@ class GameViewModel(
      * [SettingsRepository]'s DataStore, not [_game]) and persisting/announcing the result. A future
      * game-start achievement is a new field on [GameStartContext] and a line in that engine
      * function, not a new method here.
-     *
-     * [customizedGameSettings] is passed in rather than read from [_setup] here: it's only true for
-     * an actual [startGame] with a non-default setup, never for [resumeGame] resuming a previously
-     * saved game, whose setup form may since have moved on to something else entirely.
      */
-    private fun checkGameStartAchievements(customizedGameSettings: Boolean = false) {
+    private fun checkGameStartAchievements() {
         val repository = achievementsRepository ?: return
         val settings = settingsRepository ?: return
         viewModelScope.launch {
@@ -1122,7 +1115,6 @@ class GameViewModel(
                 playedNonDefaultStyle = playedNonDefaultStyle,
                 hasHumanPlayerNamedZodac = hasZodacAsPlayerTwo,
                 hasIrishPlayerOneInTricolour = isLuckOfTheIrish,
-                customizedGameSettings = customizedGameSettings,
                 gameMode = gameMode,
             )
             withAchievementLock {
