@@ -42,6 +42,16 @@ export PATH="${sdk}/platform-tools:${PATH}"
 
 is_up() { [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; }
 
+# Whether Android's framework is running, not just booted: the package and activity services the test
+# runner installs and starts the app through. They vanish while system_server restarts (seen on a runner
+# once the device had booted), and an install then fails without failing Gradle.
+framework_up() {
+    local service
+    for service in package activity; do
+        adb shell service check "${service}" 2>/dev/null | grep -q ': found' || return 1
+    done
+}
+
 ensure_kvm() {
     [[ -e /dev/kvm ]] || { echo "No /dev/kvm on this runner" >&2; exit 1; }
     if [[ ! -r /dev/kvm || ! -w /dev/kvm ]]; then
@@ -117,7 +127,22 @@ start() {
     adb wait-for-device
     until is_up; do sleep 1; done
     adb shell setprop debug.hwui.renderer skiavk
+    if ! ready; then
+        echo "The emulator booted, but its framework never came up:" >&2
+        tail -n 50 "${log}" >&2
+        exit 1
+    fi
     echo "Ready: Android $(adb shell getprop ro.build.version.release | tr -d '\r'), renderer $(adb shell getprop debug.hwui.renderer | tr -d '\r')."
+}
+
+# Waits up to a minute for the framework (see framework_up), which can trail sys.boot_completed.
+ready() {
+    local waited=0
+    until framework_up; do
+        (( waited >= 60 )) && return 1
+        sleep 2
+        waited=$((waited + 2))
+    done
 }
 
 stop() {
