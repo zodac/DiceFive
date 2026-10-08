@@ -26,7 +26,7 @@ Each suite includes:
 
 We utilize Robolectric's native graphics mode (`@GraphicsMode(GraphicsMode.Mode.NATIVE)`) combined with Compose UI testing rules (`createAndroidComposeRule<MainActivity>()`).
 
-The test class [StoreAssetGeneratorTest.kt](file:///home/arouge/git/DiceFive/app/android/src/test/kotlin/net/zodac/dicefive/StoreAssetGeneratorTest.kt):
+The test class [StoreAssetGeneratorTest.kt](../app/android/src/test/kotlin/net/zodac/dicefive/StoreAssetGeneratorTest.kt):
 1. **Player Naming:** Names players `Player 1` and `Player 2` in database and game states.
 2. **Strict Capture Ordering:** Captures Main Menu, Game Board, Styles, Rules, and Leaderboard first while achievement state is pristine and no event is emitted, guaranteeing 100% clean, popup-free screenshots.
 3. **Banner Demonstration:** Emits an `AchievementEvent.Unlocked` event *only* during the final capture of the Achievements screen to illustrate active notification banners (anchored to the bottom via bottom-center alignment).
