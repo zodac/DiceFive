@@ -199,7 +199,13 @@ fun DiceCupPanel(
             val tile = gridTileSize(rows)
             val inset = (rowHeight - tile) / 2
             val height = rowHeight + tile + GRID_ROW_SPACING
-            val width = minOf(FEATURED_MAX_WIDTH, maxWidth - LARGE_FIVE_SCORE_ROOM)
+            // With a pair of boxes under it (Extended Scores' Evens | Odds), its right edge is the second box's: the
+            // pair's left cell, the gap, then a tile. Otherwise as wide as Standard's, leaving room for the score.
+            val width = if (layout.sideRows.any { it.size > 1 }) {
+                minOf(maxWidth, (maxWidth + COLUMN_GAP) / 2 + tile)
+            } else {
+                minOf(FEATURED_MAX_WIDTH, maxWidth - LARGE_FIVE_SCORE_ROOM)
+            }
             CategoryCell(
                 category = layout.featured,
                 player = player,
