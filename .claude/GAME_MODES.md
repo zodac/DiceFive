@@ -6,14 +6,14 @@ for the whole game.
 
 Modes so far:
 
-| Mode        | `id`        | What's different from Standard                                                                                      |
-|-------------|-------------|---------------------------------------------------------------------------------------------------------------------|
-| `STANDARD`  | `standard`  | Nothing - the official rules. The default.                                                                          |
-| `TRICOLOUR` | `tricolour` | Dice also roll red/yellow/blue; four colour boxes join the card                                                     |
-| `QUICKFIRE` | `quickfire` | 5x and six random other boxes are switched off every game: six turns, a scaled upper bonus, off the Leaderboard |
-| `STUD`      | `stud`      | Shown to players as "7 Dice Stud" (the enum and id stay `STUD` / `stud`). Seven dice rolled, five hold slots; only the five held dice score, but a box can be tapped with fewer held - the hand is completed for it (`HandCompletion`)                   |
-| `THIRD_WIND` | `third_wind` | Every box scored three times (39 turns); one upper bonus, 189 earns 105; joker once the 5x box's 3 slots are used; off the Leaderboard |
-| `HIT_LIST`  | `hit_list`  | No Standard boxes: 12 targets drawn each game (numbers by place, up to 2 any) plus the Alibi; exact order doubles; partial hits (2+ numbers rolled) score half the share rolled; no Extended Scores; off the Leaderboard |
+| Mode         | `id`         | What's different from Standard                                                                                                                                                                                                         |
+|--------------|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `STANDARD`   | `standard`   | Nothing - the official rules. The default.                                                                                                                                                                                             |
+| `TRICOLOUR`  | `tricolour`  | Dice also roll red/yellow/blue; four colour boxes join the card                                                                                                                                                                        |
+| `QUICKFIRE`  | `quickfire`  | 5x and six random other boxes are switched off every game: six turns, a scaled upper bonus, off the Leaderboard                                                                                                                        |
+| `STUD`       | `stud`       | Shown to players as "7 Dice Stud" (the enum and id stay `STUD` / `stud`). Seven dice rolled, five hold slots; only the five held dice score, but a box can be tapped with fewer held - the hand is completed for it (`HandCompletion`) |
+| `THIRD_WIND` | `third_wind` | Every box scored three times (39 turns); one upper bonus, 189 earns 105; joker once the 5x box's 3 slots are used; off the Leaderboard                                                                                                 |
+| `HIT_LIST`   | `hit_list`   | No Standard boxes: 12 targets drawn each game (numbers by place, up to 2 any) plus the Alibi; exact order doubles; partial hits (2+ numbers rolled) score half the share rolled; no Extended Scores; off the Leaderboard               |
 
 History: `DESIGN.md` Phase 14 (Tricolour, and how modes were first modelled), Phase 20
 (the first Quickfire, replaced), Phase 25 (Stud), Phase 26 (Third Wind), Phase 30 (the new Quickfire) and Phase 31

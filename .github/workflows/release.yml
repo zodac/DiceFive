@@ -143,10 +143,12 @@ jobs:
   # journey. The emulator and the journey are explained in .claude/EMULATOR.md; the journey in
   # .claude/DESIGN.md Phase 19.
   #
-  # Timeouts: a slow but successful run is ~45 minutes of the generate step (a boot of up to 10, the
-  # benchmark build, 10 laps of the journey). The step stops at 60, which leaves room for one retried
-  # boot, and fails like a failed journey, so its report is still uploaded; the job's own 75 is the
-  # backstop for a hang anywhere else (setup, the cache, an upload).
+  # Timeouts: a lap of the journey is ~2 minutes on a 4-core sandbox emulator, and a hosted runner is at
+  # least three times slower - a 60-minute step timed out with laps still to run. The step stops at 150
+  # (a boot of up to 10, the benchmark build, 10 laps, room for one retried boot) and fails like a failed
+  # journey, so its report is still uploaded; the job's own 170 is the backstop for a hang anywhere else
+  # (setup, the cache, an upload). Each lap's start is printed in the step's log, so a slow run shows how
+  # far it got.
   #
   # It runs alongside the checks but is no use once one of them fails (nothing will be released), so it
   # watches them and stops itself when one does - see watch_checks.sh.
@@ -154,7 +156,7 @@ jobs:
     needs: version
     if: needs.version.outputs.stable == 'true' || inputs.force_apk == true
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 170
     permissions:
       contents: read
       actions: read # watch_checks.sh reads this run's jobs
@@ -186,9 +188,12 @@ jobs:
           echo "sdk=$ANDROID_HOME" >> "$GITHUB_OUTPUT"
 
       # About 1.5 GB to download otherwise. Keyed on the Android version: the emulator and its image
-      # can't be pinned to a revision, so a cached pair is kept until EMULATOR_API moves.
-      - name: Cache the emulator and its system image
-        uses: actions/cache@v6
+      # can't be pinned to a revision, so a cached pair is kept until EMULATOR_API moves. Restored and saved
+      # as separate steps: actions/cache only saves when the whole job passes, so a failed journey would
+      # leave the next run downloading them again.
+      - name: Restore the emulator and its system image
+        id: emulator-cache
+        uses: actions/cache/restore@v6
         with:
           path: |
             ${{ steps.emulator.outputs.sdk }}/emulator
@@ -197,8 +202,10 @@ jobs:
 
       # 10 laps: the journey's timing races only showed up from lap 4, so a short run doesn't prove it.
       # Only the boot is retried; a failed journey ends the step there and then (see the job's comment).
+      # The benchmark library logs "Compile iteration (N)" as each lap starts; those lines are echoed here
+      # (Gradle prints nothing until the tests end).
       - name: Generate the Baseline Profile
-        timeout-minutes: 60
+        timeout-minutes: 150
         run: |
           checks_failed() {
             if [ -f "$RUNNER_TEMP/checks-failed" ]; then
@@ -214,6 +221,8 @@ jobs:
               echo "::warning::The emulator failed to boot (attempt $attempt)"
               continue
             fi
+            adb logcat -v time -s Benchmark:D -e "Compile iteration" &
+            trap 'kill $! 2>/dev/null || true' EXIT
             if ./gradlew :app:android:generateBaselineProfile \
                 -Pandroid.testInstrumentationRunnerArguments.journeyLaps=10 --console=plain; then
               exit 0
@@ -226,6 +235,17 @@ jobs:
           done
           echo "::error::The emulator failed to boot twice"
           exit 1
+
+      # Whether or not the journey passed: ci_emulator.sh installed them if the restore missed.
+      - name: Save the emulator and its system image
+        if: always() && steps.emulator-cache.outputs.cache-hit != 'true'
+        continue-on-error: true # nothing to save if the step stopped before installing them
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ steps.emulator.outputs.sdk }}/emulator
+            ${{ steps.emulator.outputs.sdk }}/system-images/android-${{ steps.emulator.outputs.api }}
+          key: ${{ steps.emulator-cache.outputs.cache-primary-key }}
 
       - name: Upload the journey's report
         if: failure()
