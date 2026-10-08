@@ -61,9 +61,10 @@ time), same Google APIs image, same `-gpu swiftshader_indirect` boot and the sam
 after it. It differs only where the runner does: `/dev/kvm` is opened with a udev rule, packages go in
 without `sudo` (the runner's SDK is its own), and the emulator and image are cached by the workflow
 (keyed on the API level). It runs alongside the release's checks, and `.github/scripts/watch_checks.sh` stops it (Gradle and
-the emulator) as soon as one of them fails. A failing run is retried once on a rebooted emulator, then fails the release;
-the `baseline-profile-report` artifact holds the test report, a screenshot per failed attempt and the
-emulator's log. To debug one, reproduce it here as above - the two emulators are the same.
+the emulator) as soon as one of them fails. A failing journey fails the job, and the release, straight away - only an
+emulator that fails to boot is retried, once. The generate step stops after 60 minutes and the job after 75,
+so a hang can't hold the release for long; the `baseline-profile-report` artifact holds the test report, a
+screenshot of where the journey stopped and the emulator's log. To debug one, reproduce it here as above - the two emulators are the same.
 
 ## What `start` does, and why
 
