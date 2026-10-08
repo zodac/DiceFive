@@ -32,15 +32,28 @@ internal fun MacrobenchmarkScope.await(selector: BySelector, what: String): UiOb
     device.wait(Until.findObject(selector), TIMEOUT_MS)
         ?: error("Baseline Profile journey: '$what' never appeared")
 
-internal fun MacrobenchmarkScope.tapText(text: String) {
-    await(By.text(text), text).click()
-    device.waitForIdle()
-}
+internal fun MacrobenchmarkScope.tapText(text: String) = tap(text) { await(By.text(text), text) }
 
 internal fun MacrobenchmarkScope.tapDesc(description: String, startsWith: Boolean = false) {
     val selector = if (startsWith) By.descStartsWith(description) else By.desc(description)
-    await(selector, description).click()
-    device.waitForIdle()
+    tap(description) { await(selector, description) }
+}
+
+/**
+ * Taps what [find] returns, looking it up again if it goes stale first: a node found while its screen
+ * or dialog is still opening (the mode picker's list, say) can be re-composed before the tap reaches it.
+ */
+private fun MacrobenchmarkScope.tap(what: String, find: () -> UiObject2) {
+    repeat(TAP_ATTEMPTS) {
+        try {
+            find().click()
+            device.waitForIdle()
+            return
+        } catch (_: StaleObjectException) {
+            // Re-composed between the lookup and the tap - look again.
+        }
+    }
+    error("Baseline Profile journey: '$what' kept going stale before it could be tapped")
 }
 
 /** True if [text] is on screen right now, without waiting. */
@@ -94,12 +107,10 @@ internal fun MacrobenchmarkScope.scrollUp(times: Int) {
  * Taps the topmost match for [text]. For a label that appears twice on a screen, such as a Rules tab
  * and the page heading or footer pill of the same name: the tab rows are above everything else.
  */
-internal fun MacrobenchmarkScope.tapTopText(text: String) {
+internal fun MacrobenchmarkScope.tapTopText(text: String) = tap(text) {
     await(By.text(text), text)
-    val top = device.findObjects(By.text(text)).minByOrNull { it.visibleBounds.top }
+    device.findObjects(By.text(text)).minByOrNull { it.visibleBounds.top }
         ?: error("Baseline Profile journey: '$text' never appeared")
-    top.click()
-    device.waitForIdle()
 }
 
 /** Swipes along the screen at [heightFraction] of its height, right to left, [times] times. */
@@ -347,6 +358,7 @@ private const val ROLL_SETTLE_MS = 2_000L
 private const val LEAVE_DIALOG_MS = 1_500L
 private const val PICKER_CLOSE_MS = 1_000L
 private const val CLOSE_ATTEMPTS = 4
+private const val TAP_ATTEMPTS = 4
 private const val CLOSE_WAIT_MS = 1_500L
 
 /** Heights above the wordmark's top to tap, best guess first: 16dp gap plus half a 34dp die, then either side. */
