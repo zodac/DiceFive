@@ -1,6 +1,7 @@
 package net.zodac.dicefive.baselineprofile
 
 import android.content.res.Resources
+import android.graphics.Rect
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
@@ -224,17 +225,19 @@ internal fun MacrobenchmarkScope.visitAchievementBanner() {
     val x = device.displayWidth / 2
     val banner = By.descStartsWith("Achievement unlocked: Not Those Dice!")
 
-    var raised = false
+    var bannerBounds: Rect? = null
     for (heightDp in DICE_PROBE_HEIGHTS_DP) {
         device.click(x, wordmarkTop - (heightDp * density).toInt())
-        raised = device.wait(Until.hasObject(banner), BANNER_APPEAR_MS)
-        if (raised) break
+        bannerBounds = device.wait(Until.findObject(banner), BANNER_APPEAR_MS)?.let { boundsOf(it, banner) }
+        if (bannerBounds != null) break
         check(device.hasObject(wordmark)) {
             "Baseline Profile journey: a tap ${heightDp}dp above the wordmark left the menu"
         }
     }
-    check(raised) { "Baseline Profile journey: tapping the logo's dice never raised the 'Not Those Dice!' banner" }
-    longClickBanner(banner)
+    checkNotNull(bannerBounds) {
+        "Baseline Profile journey: tapping the logo's dice never raised the 'Not Those Dice!' banner"
+    }
+    longPressAt(bannerBounds)
 
     // Lands on the Achievements screen; give the row's gold flash time to play out before leaving.
     await(By.text("Achievements"), "the Achievements screen after the banner's long-press")
@@ -243,25 +246,25 @@ internal fun MacrobenchmarkScope.visitAchievementBanner() {
 }
 
 /**
- * Long-presses the banner. It is still fading and sliding in when it is first seen, so the node
- * found a moment ago can be gone by the time it is pressed (a StaleObjectException): look it up
- * again for each attempt, rather than holding on to the first one.
+ * Where [node] is on screen, looking [selector] up once more if [node] has gone stale in the meantime
+ * (the banner re-composes as it fades in), or null if that finds nothing either.
  */
-private fun MacrobenchmarkScope.longClickBanner(banner: BySelector) {
-    Thread.sleep(BANNER_SETTLE_MS)
-    repeat(LONG_CLICK_ATTEMPTS) {
-        val node = device.findObject(banner)
-        if (node != null) {
-            try {
-                node.longClick()
-                return
-            } catch (_: StaleObjectException) {
-                // Moved or re-composed between the lookup and the press - look again.
-            }
-        }
-        Thread.sleep(BANNER_SETTLE_MS)
+private fun MacrobenchmarkScope.boundsOf(node: UiObject2, selector: BySelector): Rect? =
+    try {
+        node.visibleBounds
+    } catch (_: StaleObjectException) {
+        device.findObject(selector)?.visibleBounds
     }
-    error("Baseline Profile journey: the 'Not Those Dice!' banner could not be long-pressed")
+
+/**
+ * Long-presses the middle of [bounds]: a finger held still there for [LONG_PRESS_STEPS] steps of
+ * UiAutomator's 5ms, well past the long-press timeout. Pressed by position, not through the banner's
+ * node: the banner only stays up for four seconds, and on a hosted runner's emulator each node lookup
+ * took two to four of them, so looking it up again to press it found it already gone. A held finger
+ * also stops its countdown.
+ */
+private fun MacrobenchmarkScope.longPressAt(bounds: Rect) {
+    device.swipe(bounds.centerX(), bounds.centerY(), bounds.centerX(), bounds.centerY(), LONG_PRESS_STEPS)
 }
 
 /**
@@ -365,5 +368,4 @@ private const val CLOSE_WAIT_MS = 1_500L
 private val DICE_PROBE_HEIGHTS_DP = listOf(33, 25, 41, 17, 49)
 private const val BANNER_APPEAR_MS = 800L
 private const val GLOW_MS = 2_000L
-private const val BANNER_SETTLE_MS = 400L
-private const val LONG_CLICK_ATTEMPTS = 5
+private const val LONG_PRESS_STEPS = 200
