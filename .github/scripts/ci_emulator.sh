@@ -61,7 +61,9 @@ ensure_packages() {
         "${android_cli}" sdk install --sdk="${sdk}" "emulator" "${image}" </dev/null >/dev/null
     else
         local sdkmanager="${sdk}/cmdline-tools/latest/bin/sdkmanager"
-        yes | "${sdkmanager}" --licenses >/dev/null || true
+        # yes always exits non-zero here (sdkmanager stops reading: a broken pipe), which pipefail would take
+        # as a failure; only sdkmanager's own status counts.
+        { yes 2>/dev/null || true; } | "${sdkmanager}" --licenses >/dev/null
         "${sdkmanager}" "emulator" "${image}" >/dev/null
     fi
 }
