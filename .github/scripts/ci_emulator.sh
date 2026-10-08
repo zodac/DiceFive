@@ -17,6 +17,8 @@
 #               - The app's UI renderer is switched to Vulkan after boot (debug.hwui.renderer=skiavk): the
 #                 emulator's software GLES path segfaults while drawing DiceFive. The property resets on
 #                 every boot, so `start` sets it every time.
+#               - Vulkan is forced on at boot (-feature Vulkan) and checked once it's up: the emulator left it
+#                 off on the runner, and every app's renderer then aborts (see check_vulkan below).
 #               - /data is set to 6 GB at boot and checked once it's up: the runner's tools left it at 800 MB,
 #                 which a first boot fills, crash-looping system_server (see data_mb below).
 #
@@ -128,6 +130,7 @@ start() {
     nohup "${sdk}/emulator/emulator" -avd "${avd_name}" \
         -no-window -no-audio -no-boot-anim -no-snapshot \
         -gpu swiftshader_indirect -memory 4096 -cores "$(nproc)" -partition-size "${data_mb}" \
+        -feature Vulkan -verbose \
         >"${log}" 2>&1 </dev/null &
     local pid=$!
 
@@ -154,6 +157,7 @@ start() {
     until is_up; do sleep 1; done
     adb shell setprop debug.hwui.renderer skiavk
     check_data_size
+    check_vulkan
     if ! ready; then
         echo "The emulator booted, but its framework never settled:" >&2
         tail -n 50 "${log}" >&2
@@ -174,6 +178,22 @@ check_data_size() {
         save_logcat
         exit 1
     fi
+}
+
+# Fails the boot if the device has no Vulkan GPU: every app's UI is drawn through Vulkan (skiavk, set
+# above), and without one each app's RenderThread aborts on launch ("Assertion failed: !gpuCount") - SystemUI,
+# the launcher and DiceFive alike. The emulator decides at boot whether to offer Vulkan; on the runner it
+# decided not to (with the sandbox's identical emulator and image, it does), so `start` forces it on with
+# `-feature Vulkan`. Its -verbose log, in the report artifact, records what it decided and why.
+check_vulkan() {
+    if ! adb shell cmd gpu vkjson 2>/dev/null | grep -q '"deviceName"'; then
+        echo "The device has no Vulkan GPU, which every app's UI is drawn through here; the emulator said:" >&2
+        grep -iE "Vulkan" "${log}" | grep -viE "androidboot|initHostFeatureAndParseDefault|gfxstreamFeature" \
+            | head -n 20 >&2 || true
+        save_logcat
+        exit 1
+    fi
+    echo "Vulkan: $(adb shell cmd gpu vkjson 2>/dev/null | grep -m1 '"deviceName"' | tr -d '\r\t' | sed 's/.*: *//')"
 }
 
 # Waits up to five minutes for the framework (see framework_up), which can trail sys.boot_completed by
