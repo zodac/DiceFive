@@ -252,6 +252,9 @@ val Bronze = Color(0xFFE0965A)
 // shouldn't couple an unrelated achievement's colour to a game mode's palette.
 val AchievementHeartRed = Color(0xFFE53935)
 
+/** The Completionist trophy: always gold, whatever the row or banner holding it. */
+val AchievementTrophyGold = Color(0xFFFFC107)
+
 // Shaken, Not Tapped's martini icon (Achievement.iconTintOrUnspecified) - same "fixed meaning,
 // not a theme-able choice" reasoning as the heart/podium accents above: a martini has a glass, a
 // drink and an olive, and those are three specific colours, not one ambient tint.

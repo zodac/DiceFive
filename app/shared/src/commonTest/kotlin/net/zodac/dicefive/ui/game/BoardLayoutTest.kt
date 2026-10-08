@@ -52,6 +52,36 @@ class BoardLayoutTest {
     }
 
     @Test
+    fun `5x takes two rows with the boxes and cup a row lower when the board has the room`() {
+        val tall = layout(GameMode.TRICOLOUR, extended = true)
+
+        assertEquals(2, tall.featuredRows)
+        assertEquals(4, tall.cupFirstRow)
+        assertEquals(3, tall.rowCount - 1 - tall.cupFirstRow)
+    }
+
+    @Test
+    fun `5x stays one wide row over its boxes on a six-row board`() {
+        assertEquals(1, layout(GameMode.STANDARD, extended = true).featuredRows)
+        assertEquals(1, layout(GameMode.TRICOLOUR, extended = false).featuredRows)
+    }
+
+    @Test
+    fun `Standard's large 5x and the Alibi take two rows - nothing is under them`() {
+        assertEquals(2, layout(GameMode.STANDARD, extended = false).featuredRows)
+        assertEquals(2, layout(GameMode.HIT_LIST, extended = false).featuredRows)
+    }
+
+    @Test
+    fun `no card leaves the cup fewer than two rows`() {
+        for (mode in GameMode.entries) for (extended in listOf(false, true)) {
+            val layout = boardLayout(mode.categoriesWith(extended))
+
+            assertTrue(layout.rowCount - 1 - layout.cupFirstRow >= 2, "$mode extended=$extended")
+        }
+    }
+
+    @Test
     fun `every box of every card is on the board exactly once - its featured box apart`() {
         for (mode in GameMode.entries) for (extended in listOf(false, true)) {
             val categories = mode.categoriesWith(extended)

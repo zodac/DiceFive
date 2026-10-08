@@ -68,7 +68,7 @@ object GameStateJson {
         val hitList = decodeHitList(obj, gameMode)
         return GameState(
             gameMode = gameMode,
-            turnTimer = TurnTimer.valueOf(obj.getString("turnTimer")),
+            turnTimer = TurnTimer.parse(obj.getString("turnTimer")) ?: throw IllegalArgumentException("Unknown turn timer"),
             rollModifiers = rollModifiers,
             extendedScores = extendedScores,
             unluckyDice = decodeUnluckyDice(obj),

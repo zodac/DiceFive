@@ -207,6 +207,12 @@ fun BoxScope.LazyListScrollbar(listState: LazyListState, modifier: Modifier = Mo
 }
 
 /**
+ * [ScrollState.maxValue], or 0 until the scrolling content has been measured: a fresh state reports [Int.MAX_VALUE] (and
+ * so "can scroll") for its first frame, which drew a bar flashing up on content that fits.
+ */
+private fun ScrollState.measuredMaxValue(): Int = if (maxValue == Int.MAX_VALUE) 0 else maxValue
+
+/**
  * A minimal drawn scrollbar for a plain (non-lazy) horizontally-scrolling `Row` - the same gap
  * [LazyListScrollbar] fills for a `LazyColumn`, for a row like the Styles screen's preview tiles,
  * which scrolls a handful of `Modifier.horizontalScroll` children rather than a lazily-composed list.
@@ -225,7 +231,7 @@ fun BoxScope.LazyListScrollbar(listState: LazyListState, modifier: Modifier = Mo
  */
 @Composable
 fun HorizontalScrollbar(scrollState: ScrollState, modifier: Modifier = Modifier) {
-    val showScrollbar by remember(scrollState) { derivedStateOf { scrollState.canScrollForward || scrollState.canScrollBackward } }
+    val showScrollbar by remember(scrollState) { derivedStateOf { scrollState.measuredMaxValue() > 0 && (scrollState.canScrollForward || scrollState.canScrollBackward) } }
     if (!showScrollbar) return
 
     val thumbColor = MaterialTheme.colorScheme.primary
@@ -332,7 +338,7 @@ fun HorizontalScrollbar(listState: LazyListState, modifier: Modifier = Modifier)
 @Composable
 fun VerticalScrollbar(scrollState: ScrollState, width: Dp, modifier: Modifier = Modifier) = VerticalScrollbar(
     position = { scrollState.value },
-    maxPosition = { scrollState.maxValue },
+    maxPosition = { scrollState.measuredMaxValue() },
     scrollBy = { scrollState.dispatchRawDelta(it) },
     width = width,
     modifier = modifier,

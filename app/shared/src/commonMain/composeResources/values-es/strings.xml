@@ -174,8 +174,6 @@
     <string name="achievement_low_rolls_description">Termina una partida con menos de 20 puntos</string>
     <string name="achievement_probability_never_heard_of_her_title">¿Probabilidad? Ni la conozco</string>
     <string name="achievement_probability_never_heard_of_her_description">Entra en tu último turno necesitando un solo dado para conseguir la bonificación, pero falla</string>
-    <string name="achievement_out_of_time_title">Fuera de tiempo</string>
-    <string name="achievement_out_of_time_description">No anotes dentro del límite de tiempo</string>
     <string name="achievement_i_did_it_my_way_title">A mi manera</string>
     <string name="achievement_i_did_it_my_way_description">Personaliza una partida antes de empezar</string>
     <string name="achievement_commitment_issues_title">Miedo al compromiso</string>
@@ -511,6 +509,9 @@
     <string name="setup_timer_description">Un límite de tiempo para cada turno completo</string>
     <string name="setup_timer_none">Sin temporizador</string>
     <string name="setup_timer_seconds">%1$d s</string>
+    <string name="setup_timer_custom_field">Tiempo de turno personalizado en segundos</string>
+    <string name="setup_timer_custom_min">Al menos %1$s segundos</string>
+    <string name="setup_timer_unit">s</string>
     <string name="setup_rolls_title">Número de tiradas</string>
     <string name="setup_rolls_description">Cuántas tiradas tiene cada turno</string>
     <string name="setup_rolls_stepper">Tiradas por turno</string>
@@ -933,7 +934,7 @@
     <string name="rules_modifiers_2">Los *modificadores* son solo por diversión. Las puntuaciones de una partida con cualquier modificador activado no van a la *clasificación*, pero sí cuentan para tus *estadísticas*.</string>
     <string name="rules_turn_timer_title">Temporizador de turno</string>
     <string name="rules_turn_timer_tab">Temporizador</string>
-    <string name="rules_turn_timer_1">El *temporizador de turno* pone un límite al tiempo que tiene cada jugador para terminar su turno (no cada tirada). Elige **30**, **60** o **120** segundos. Una insignia muestra el tiempo restante y se pone roja cuando se acaba.</string>
+    <string name="rules_turn_timer_1">El *temporizador de turno* pone un límite al tiempo que tiene cada jugador para terminar su turno (no cada tirada). Elige **30**, **60** o **120** segundos. Opcionalmente, puedes elegir tu propio valor entre **5** s y **999** s. El tiempo restante empezará a parpadear en rojo cuando queden 5 segundos.</string>
     <string name="rules_turn_timer_2">Si se acaba el tiempo de un jugador, su tirada se anota por él en la categoría libre donde menos valga (la primera de la tarjeta, si varias empatan).</string>
     <string name="rules_number_of_rolls_title">Número de tiradas</string>
     <string name="rules_number_of_rolls_tab">Número de tiradas</string>

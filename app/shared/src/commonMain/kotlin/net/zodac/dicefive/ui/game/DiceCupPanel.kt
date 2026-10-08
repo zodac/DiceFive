@@ -118,10 +118,7 @@ data class CupPanelState(
 internal val CUP_SIZE = 104.dp
 
 /** The room kept beside the large 5x tile for its score and bonus. */
-private val LARGE_FIVE_SCORE_ROOM = 44.dp
-
-/** The first of the board rows the dice cup sits in. */
-private const val CUP_FIRST_ROW = 3
+private val LARGE_FIVE_SCORE_ROOM = 36.dp
 
 /**
  * The right-hand half of the board, beside the category grid, in the same rows as it: the wide 5x tile
@@ -130,7 +127,8 @@ private const val CUP_FIRST_ROW = 3
  * from the fourth, and the Totals button (Upper/Bonus/Lower, see [TotalsButton]) with undo in the last row - the
  * cup and undo only when [cup] is non-null, i.e. an actual turn is in progress rather than a read-only look
  * at someone else's scorecard. The cup is the same place with or without the boxes above it, so switching
- * Extended Scores on or off moves nothing.
+ * Extended Scores on or off moves nothing - except on a card with rows to spare ([BoardLayout.featuredRows]), where 5x is the large tile
+ * and the rest follow it down two rows.
  */
 @Composable
 fun DiceCupPanel(
@@ -149,15 +147,17 @@ fun DiceCupPanel(
     val layout = boardLayout(categories)
     val rows = layout.rowCount
     val compact = gridTileSize(rows) == COMPACT_TILE_SIZE
-    // Nothing under 5x: it takes that room, as a large square.
-    val largeFive = layout.sideRows.isEmpty()
+    // Nothing under 5x, or room to spare for the boxes to move down: it takes two rows, as a large tile.
+    val largeFive = layout.featuredRows > 1
+    val sideStart = layout.featuredRows
     // Same height as the grid beside it (both fill the board's padded Row), with the same rows and gaps,
     // so each row here is level with the grid's.
     BoxWithConstraints(modifier = modifier.fillMaxHeight()) {
         val rowHeight = (maxHeight - GRID_ROW_SPACING * (rows - 1)) / rows
         // The cup is centred in the rows between the boxes under 5x and the buttons: two on Standard's six rows,
         // more with more - where its own size no longer needs them all, but it stays put between the two.
-        val cupRows = rows - 1 - CUP_FIRST_ROW
+        val cupFirstRow = layout.cupFirstRow
+        val cupRows = rows - 1 - cupFirstRow
         val cupHeight = rowHeight * cupRows + GRID_ROW_SPACING * (cupRows - 1)
         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(GRID_ROW_SPACING)) {
             for (row in 0 until rows) {
@@ -175,8 +175,8 @@ fun DiceCupPanel(
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                     )
 
-                    row - 1 in layout.sideRows.indices -> CellRow(
-                        categories = layout.sideRows[row - 1],
+                    row - sideStart in layout.sideRows.indices -> CellRow(
+                        categories = layout.sideRows[row - sideStart],
                         player = player,
                         canScore = canScore,
                         showPreview = showPreview,
@@ -187,39 +187,19 @@ fun DiceCupPanel(
                         modifier = Modifier.weight(1f),
                     )
 
-                    row == rows - 1 -> Row(
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        // Both buttons at the right, Totals just left of Undo - Undo where it always was.
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    ) {
-                        // Clearance from the score grid's rightmost column - which can render a 2-digit score
-                        // past its own column's edge - comes from GameBoard's inter-panel gap and weight split,
-                        // not from padding here specifically, so every row of this panel gets the same
-                        // protection instead of just this one.
-                        // As big as a tile in the same row.
-                        val buttonSize = gridTileSize(rows)
-                        if (layout.featured == ScoreCategory.ALIBI) {
-                            val alibiTotal = player?.scoresIn(ScoreCategory.ALIBI)?.sum() ?: 0
-                            HitListTotalsButton(targetsTotal = (player?.hitListSectionTotal ?: 0) - alibiTotal, alibiTotal = alibiTotal, minSize = buttonSize)
-                        } else {
-                            val upperTotal = player?.upperSectionTotal ?: 0
-                            val upperBonus = player?.upperSectionBonus ?: 0
-                            val lowerTotal = (player?.lowerSectionTotal ?: 0) + (player?.fiveOfAKindBonusTotal ?: 0)
-                            TotalsButton(upperTotal = upperTotal, upperBonus = upperBonus, lowerTotal = lowerTotal, minSize = buttonSize)
-                        }
-                        if (cup != null && cup.showUndo) {
-                            UndoButton(enabled = cup.canUndo, onClick = cup.onUndo, minSize = buttonSize)
-                        }
-                    }
+                    row == rows - 1 -> PanelButtons(layout, player, cup, rows, Modifier.weight(1f).fillMaxWidth())
 
                     else -> Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
         if (largeFive) {
-            // Laid over the first two rows, which it spans: a square as tall as both, leaving the score room beside it.
-            val height = rowHeight * 2 + GRID_ROW_SPACING
+            // Laid over the first two rows, which it spans: from the top of the first row's tiles (which are centred in
+            // the row) to the bottom of the second's, as wide as Standard's but for the score room beside it.
+            val tile = gridTileSize(rows)
+            val inset = (rowHeight - tile) / 2
+            val height = rowHeight + tile + GRID_ROW_SPACING
+            val width = minOf(FEATURED_MAX_WIDTH, maxWidth - LARGE_FIVE_SCORE_ROOM)
             CategoryCell(
                 category = layout.featured,
                 player = player,
@@ -228,8 +208,9 @@ fun DiceCupPanel(
                 available = available,
                 dice = dice,
                 onScoreCategory = onScoreCategory,
-                squareSize = minOf(height, maxWidth - LARGE_FIVE_SCORE_ROOM),
-                modifier = Modifier.fillMaxWidth().height(height),
+                squareSize = width,
+                squareHeight = height,
+                modifier = Modifier.offset(y = inset).fillMaxWidth().height(height),
             )
         }
         // Laid over the rows it sits in rather than in them, since it spans both: the rows' own height,
@@ -239,10 +220,40 @@ fun DiceCupPanel(
             cup = cup.takeIf { showCup },
             dice = dice,
             modifier = Modifier
-                .offset(y = (rowHeight + GRID_ROW_SPACING) * CUP_FIRST_ROW)
+                .offset(y = (rowHeight + GRID_ROW_SPACING) * cupFirstRow)
                 .fillMaxWidth()
                 .height(cupHeight),
         )
+    }
+}
+
+/** The Totals button with Undo beside it (when [cup] has it), at the right: the last thing in the panel. */
+@Composable
+private fun PanelButtons(layout: BoardLayout, player: PlayerState?, cup: CupPanelState?, rows: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        // Both buttons at the right, Totals just left of Undo - Undo where it always was.
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+    ) {
+        // Clearance from the score grid's rightmost column - which can render a 2-digit score
+        // past its own column's edge - comes from GameBoard's inter-panel gap and weight split,
+        // not from padding here specifically, so every row of this panel gets the same
+        // protection instead of just this one.
+        // As big as a tile in the same row.
+        val buttonSize = gridTileSize(rows)
+        if (layout.featured == ScoreCategory.ALIBI) {
+            val alibiTotal = player?.scoresIn(ScoreCategory.ALIBI)?.sum() ?: 0
+            HitListTotalsButton(targetsTotal = (player?.hitListSectionTotal ?: 0) - alibiTotal, alibiTotal = alibiTotal, minSize = buttonSize)
+        } else {
+            val upperTotal = player?.upperSectionTotal ?: 0
+            val upperBonus = player?.upperSectionBonus ?: 0
+            val lowerTotal = (player?.lowerSectionTotal ?: 0) + (player?.fiveOfAKindBonusTotal ?: 0)
+            TotalsButton(upperTotal = upperTotal, upperBonus = upperBonus, lowerTotal = lowerTotal, minSize = buttonSize)
+        }
+        if (cup != null && cup.showUndo) {
+            UndoButton(enabled = cup.canUndo, onClick = cup.onUndo, minSize = buttonSize)
+        }
     }
 }
 

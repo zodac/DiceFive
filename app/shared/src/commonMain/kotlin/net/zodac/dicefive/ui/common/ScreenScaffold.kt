@@ -79,6 +79,8 @@ val CONTENT_MAX_WIDTH = 460.dp
  * `CenterAlignedTopAppBar` gives you for free. The bar itself stays transparent over the backdrop,
  * same as the rest of the app's chrome.
  *
+ * [onBack] is null for a page that can't be left for now (a picker holding a value it can't keep): no back arrow is shown.
+ *
  * [driftingDice] is only ever false for a copy built out of sight ahead of time (the Styles page's
  * warm-up): the drift is the app's one shared one, which a second copy would move along too.
  *
@@ -89,7 +91,7 @@ val CONTENT_MAX_WIDTH = 460.dp
 @Composable
 fun ScreenScaffold(
     title: String,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
     scrollable: Boolean = false,
     footer: (@Composable () -> Unit)? = null,

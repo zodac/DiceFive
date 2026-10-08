@@ -78,10 +78,13 @@ import net.zodac.dicefive.resources.setup_stored_description
 import net.zodac.dicefive.resources.setup_stored_field
 import net.zodac.dicefive.resources.setup_stored_hint
 import net.zodac.dicefive.resources.setup_stored_title
+import net.zodac.dicefive.resources.setup_timer_custom_field
+import net.zodac.dicefive.resources.setup_timer_custom_min
 import net.zodac.dicefive.resources.setup_timer_description
 import net.zodac.dicefive.resources.setup_timer_none
 import net.zodac.dicefive.resources.setup_timer_seconds
 import net.zodac.dicefive.resources.setup_timer_title
+import net.zodac.dicefive.resources.setup_timer_unit
 import net.zodac.dicefive.resources.setup_title
 import net.zodac.dicefive.resources.setup_type_user
 import net.zodac.dicefive.resources.setup_unlucky_description
@@ -97,6 +100,7 @@ import net.zodac.dicefive.resources.setup_unlucky_title
 import net.zodac.dicefive.ui.common.ChoicePicker
 import net.zodac.dicefive.ui.common.FittedSegmentedChoiceRow
 import net.zodac.dicefive.ui.common.MIN_READABLE_FONT_SIZE
+import net.zodac.dicefive.ui.common.ModifierCustomValue
 import net.zodac.dicefive.ui.common.ModifierNumberField
 import net.zodac.dicefive.ui.common.ModifierPicker
 import net.zodac.dicefive.ui.common.ModifierSetting
@@ -545,7 +549,7 @@ private fun SetupModifierPicker(
     onUnluckyMaxDice: (Int) -> Unit,
 ) {
     val onSelect = onTurnTimer
-    val lengths = TurnTimer.entries.filter { it != TurnTimer.NONE }
+    val lengths = TurnTimer.PRESETS
     val rolls = setup.rollModifiers
     ModifierPicker(
         title = stringResource(Res.string.setup_modifiers),
@@ -560,6 +564,17 @@ private fun SetupModifierPicker(
                 valueLabels = lengths.map { it.label() },
                 selectedValue = lengths.indexOf(setup.turnTimerLength),
                 onValueSelect = { onSelect(lengths[it]) },
+                customValue = ModifierCustomValue(
+                    active = !setup.turnTimerLength.isPreset,
+                    text = setup.turnTimerLength.takeIf { !it.isPreset }?.seconds?.localised().orEmpty(),
+                    label = stringResource(Res.string.setup_timer_custom_field),
+                    unit = stringResource(Res.string.setup_timer_unit),
+                    maxDigits = TurnTimer.MAX_DIGITS,
+                    // Nothing typed goes back to the middle preset. A number under the least never gets here: the field holds it, marked.
+                    onValueChange = { seconds -> onSelect(seconds?.let(::TurnTimer) ?: TurnTimer.SECONDS_60) },
+                    min = TurnTimer.MIN_SECONDS,
+                    belowMinMessage = stringResource(Res.string.setup_timer_custom_min, TurnTimer.MIN_SECONDS.localised()),
+                ),
             ),
             ModifierSetting(
                 title = stringResource(Res.string.setup_rolls_title),

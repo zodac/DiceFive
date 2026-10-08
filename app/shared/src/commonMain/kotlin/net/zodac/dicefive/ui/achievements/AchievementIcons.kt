@@ -85,10 +85,8 @@ import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.TimerOff
 import androidx.compose.material.icons.filled.Traffic
 import androidx.compose.material.icons.filled.Upgrade
-import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.filled.WorkspacePremium
@@ -116,6 +114,7 @@ import net.zodac.dicefive.resources.ic_time_machine_car
 import net.zodac.dicefive.ui.game.style.CUP_VIEW_SQUASH
 import net.zodac.dicefive.ui.game.style.pipLayout
 import net.zodac.dicefive.ui.theme.AchievementHeartRed
+import net.zodac.dicefive.ui.theme.AchievementTrophyGold
 import net.zodac.dicefive.ui.theme.DicePipColor
 import net.zodac.dicefive.ui.theme.FlowerpotLeaf
 import net.zodac.dicefive.ui.theme.FlowerpotLeafDark
@@ -254,7 +253,6 @@ val Achievement.icon: ImageVector
         Achievement.JAWS_OF_VICTORY -> Icons.Filled.PriorityHigh
         Achievement.SCORE_UNDER_100 -> Icons.Filled.AcUnit
         Achievement.LOW_ROLLS -> Icons.AutoMirrored.Filled.TrendingDown
-        Achievement.OUT_OF_TIME -> Icons.Filled.TimerOff
         // Drawn for this app: the bonus's 63, struck through.
         Achievement.PROBABILITY_NEVER_HEARD_OF_HER -> STRUCK_THROUGH_63_ICON
 
@@ -298,7 +296,7 @@ val Achievement.icon: ImageVector
         Achievement.AUDITOR -> dieFaceIcon(4)
         Achievement.ARCHIVIST -> dieFaceIcon(5)
         Achievement.HISTORIAN -> dieFaceIcon(6)
-        Achievement.COMPLETIONIST -> Icons.Filled.Verified
+        Achievement.COMPLETIONIST -> Icons.Filled.EmojiEvents
 
         // ---- Easter Eggs ------------------------------------------------------------------------
         // Every icon in this category is a fixed colour rather than the ambient tint - see
@@ -350,6 +348,7 @@ private val STAR_BADGE_OFFSET = 6.dp
  */
 fun Achievement.iconTintOrUnspecified(tint: Color): Color = when (this) {
     Achievement.BIG_FAN -> AchievementHeartRed
+    Achievement.COMPLETIONIST -> AchievementTrophyGold
     Achievement.LUCK_OF_THE_IRISH -> Color.Unspecified
     Achievement.SHAKEN_NOT_TAPPED -> Color.Unspecified
     Achievement.MAGICIANS_SECRET -> Color.Unspecified

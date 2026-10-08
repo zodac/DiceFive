@@ -238,8 +238,6 @@
     <string name="achievement_low_rolls_description">Finish a game with under 20 points</string>
     <string name="achievement_probability_never_heard_of_her_title">Probability? Never Heard of Her</string>
     <string name="achievement_probability_never_heard_of_her_description">Enter your final turn needing a single die to score your bonus, but fail</string>
-    <string name="achievement_out_of_time_title">Out Of Time</string>
-    <string name="achievement_out_of_time_description">Fail to score within the time limit</string>
     <string name="achievement_i_did_it_my_way_title">I Did It My Way</string>
     <string name="achievement_i_did_it_my_way_description">Customise a game before starting</string>
     <string name="achievement_commitment_issues_title">Commitment Issues</string>
@@ -683,6 +681,10 @@
     <string name="setup_timer_none">No timer</string>
     <!-- A turn timer length: "30s", "60s", "120s". Seconds, abbreviated as the language does ("30 s", "30 с", "30秒"). -->
     <string name="setup_timer_seconds">%1$ds</string>
+    <string name="setup_timer_custom_field">Custom turn time in seconds</string>
+    <string name="setup_timer_custom_min">At least %1$s seconds</string>
+    <!-- The unit after a typed turn time, abbreviated like the presets ("45s"). -->
+    <string name="setup_timer_unit">s</string>
     <string name="setup_rolls_title">Number of Rolls</string>
     <string name="setup_rolls_description">How many rolls each turn gets</string>
     <!-- Names the stepper for TalkBack, before its value. -->
@@ -1180,7 +1182,7 @@
     <string name="rules_turn_timer_title">Turn Timer</string>
     <!-- A tab: keep it short. -->
     <string name="rules_turn_timer_tab">Turn Timer</string>
-    <string name="rules_turn_timer_1">*Turn Timer* sets a limit on how long each player has to finish their turn (not each roll). Choose **30**, **60** or **120** seconds. A badge shows the time left and turns red as it runs out.</string>
+    <string name="rules_turn_timer_1">*Turn Timer* sets a limit on how long each player has to finish their turn (not each roll). Choose **30**, **60** or **120** seconds. Optionally, you may select your own value between **5**s and **999**s. The remaining time will begin to flash red when there are 5 seconds remaining.</string>
     <string name="rules_turn_timer_2">If a player's time runs out, their roll is scored for them in whichever open category is worth the least (the first one on the scorecard, if several tie).</string>
     <string name="rules_number_of_rolls_title">Number of Rolls</string>
     <!-- A tab: keep it short. -->

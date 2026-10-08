@@ -115,8 +115,6 @@ import net.zodac.dicefive.resources.achievement_non_standard_mode_description
 import net.zodac.dicefive.resources.achievement_non_standard_mode_title
 import net.zodac.dicefive.resources.achievement_not_those_dice_description
 import net.zodac.dicefive.resources.achievement_not_those_dice_title
-import net.zodac.dicefive.resources.achievement_out_of_time_description
-import net.zodac.dicefive.resources.achievement_out_of_time_title
 import net.zodac.dicefive.resources.achievement_personal_best_description
 import net.zodac.dicefive.resources.achievement_personal_best_title
 import net.zodac.dicefive.resources.achievement_pipped_to_the_post_description
@@ -756,14 +754,6 @@ enum class Achievement(
         "probability_never_heard_of_her",
         Res.string.achievement_probability_never_heard_of_her_title,
         Res.string.achievement_probability_never_heard_of_her_description,
-        AchievementCategory.MISFORTUNE,
-    ),
-    // The turn timer forcing a category on you, not a bad roll - a different flavor of misfortune
-    // than everything above it, so it sits last in the category rather than being slotted by rank.
-    OUT_OF_TIME(
-        "out_of_time",
-        Res.string.achievement_out_of_time_title,
-        Res.string.achievement_out_of_time_description,
         AchievementCategory.MISFORTUNE,
     ),
 
