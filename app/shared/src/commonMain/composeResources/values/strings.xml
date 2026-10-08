@@ -1131,15 +1131,13 @@
     <string name="rules_stud_title">7 Dice Stud</string>
     <!-- A tab: keep it short. -->
     <string name="rules_stud_tab">7 Dice Stud</string>
-    <string name="rules_stud_1">A custom mode extending the *Standard* game mode. Every roll is **seven** dice instead of five, but only **five** of them can score.</string>
-    <string name="rules_stud_2">There are still only **five** hold slots, so at most **five** dice can be held. Tap a die on the mat to hold it - it goes to the free slot nearest it - and tap a hold slot to put its die back. Holding decides which dice are rolled again. Only the **five** dice in your hand score, but you don't have to hold them all: tap a box and the dice you've held are completed with whichever others score the most in it. Your scorecard shows what each box would score that way, and while you press a box, the dice it would take are outlined on the mat (the dashed ones would have done just as well).</string>
-    <string name="rules_stud_3">Here's an example turn:</string>
-    <string name="rules_stud_4">The first roll lands three 6s. Hold them, and roll the other **four** dice again.</string>
-    <string name="rules_stud_5">Another 6! Hold it too, and roll the last **three** dice.</string>
-    <string name="rules_stud_6">No more 6s, but a 5 is the best of the rest. Hold it to fill the fifth slot - or leave it on the mat, and the box you tap will take it for you.</string>
-    <string name="rules_stud_7">Score the five held dice. They're worth **29pts** in `4x`, or **24pts** in `Sixes`.</string>
-    <string name="rules_stud_8">If the *Turn Timer* runs out, the first box that can still be scored is chosen, your hand is completed with the dice that score the most in it, and it is scored for you.</string>
-    <string name="rules_stud_9">Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules. You just get more dice to choose your hand from!</string>
+    <string name="rules_stud_1">A custom mode extending the *Standard* game mode. Every roll is **seven** dice instead of five.</string>
+    <string name="rules_stud_2">Like in *Standard*, you may only score with **five** hold slots.</string>
+    <string name="rules_stud_3">Your scorecard shows what your selection of 7 dice would score, highlighting the best combination. In `4x`, these dice take the four 6s and the 5:</string>
+    <string name="rules_stud_4">If multiple dice give the same highest score, the left-most ones are chosen. Here, `Large Straight` is worth **40pts** with the 1 to 5 or the 2 to 6:</string>
+    <string name="rules_stud_5">To override this, hold the dice you want first. Holding the 6 makes it the 2 to 6:</string>
+    <string name="rules_stud_6">If the *Turn Timer* runs out, the first box that can still be scored is chosen.</string>
+    <string name="rules_stud_7">Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules. You just get more dice to choose your hand from!</string>
     <string name="rules_third_wind_title">Third Wind</string>
     <!-- A tab: keep it short. -->
     <string name="rules_third_wind_tab">Third Wind</string>
@@ -1164,8 +1162,8 @@
     <string name="rules_hit_list_4">Every number the target names is on the die in its own place. Scores double</string>
     <string name="rules_hit_list_5">At least **two** of the numbers the target names are among your dice, but not all of them. Scores half the target's points, times the share of its numbers you rolled, rounded to the nearest **5pts**</string>
     <string name="rules_hit_list_7">Harder targets are worth more, and each target's tile shows its points. Naming **three** numbers is worth **10pts** or **15pts**, **four** numbers **20pts** to **30pts**, and all **five** **40pts** to **75pts**. An open place makes a target easier to hit, so it's worth less.</string>
-    <string name="rules_hit_list_8">As you roll, each target's tile marks the numbers your dice already show with a bar beneath them, gold once a die is in its own place, and the tile lights up once it's hit.</string>
-    <string name="rules_hit_list_9">Score a hit here instead of in its target. It's worth the points of the best open target your dice hit, never doubled, and that target stays open for another try at an exact hit</string>
+    <string name="rules_hit_list_8">As you roll, each target's tile has bars to show what you've successfully matched, and highlights in gold once a die is in the correct position.</string>
+    <string name="rules_hit_list_9">Score a valid hit here instead of its category. It's worth the points of your best hit, but never doubled</string>
     <string name="rules_hit_list_10">Held dice stay where they are, so a die in the wrong place stays there until you roll it again. If nothing scores, cross off a target or the `Alibi` for **0pts**.</string>
     <string name="rules_hit_list_11">Here's an example turn, chasing the target above:</string>
     <string name="rules_hit_list_12">The first roll has the 4 and the 1 in their places, and a 2 in the open place. Hold all **three**: the 2 counts towards a hit wherever it is.</string>

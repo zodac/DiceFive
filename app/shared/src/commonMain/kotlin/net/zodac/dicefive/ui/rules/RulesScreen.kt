@@ -220,8 +220,6 @@ import net.zodac.dicefive.resources.rules_stud_4
 import net.zodac.dicefive.resources.rules_stud_5
 import net.zodac.dicefive.resources.rules_stud_6
 import net.zodac.dicefive.resources.rules_stud_7
-import net.zodac.dicefive.resources.rules_stud_8
-import net.zodac.dicefive.resources.rules_stud_9
 import net.zodac.dicefive.resources.rules_stud_tab
 import net.zodac.dicefive.resources.rules_stud_title
 import net.zodac.dicefive.resources.rules_third_wind_1
@@ -589,14 +587,13 @@ private val RULES_GROUPS = listOf(
                     text(Res.string.rules_stud_1),
                     text(Res.string.rules_stud_2),
                     text(Res.string.rules_stud_3),
-                    RulesStep(1, Res.string.rules_stud_4, roll(6, 6, 6, 2, 3, 5, 1, held = 3)),
-                    RulesStep(2, Res.string.rules_stud_5, roll(6, 6, 6, 6, 4, 2, 4, held = 4)),
-                    RulesStep(3, Res.string.rules_stud_6, roll(6, 6, 6, 6, 5, 1, 3, held = 5)),
-                    RulesStep(4, Res.string.rules_stud_7,
-                        dice(6, 6, 6, 6, 5, score = points(29)),
-                    ),
-                    text(Res.string.rules_stud_8),
-                    text(Res.string.rules_stud_9),
+                    diceCounting(6, 6, 6, 6, 5, 2, 1, counting = setOf(0, 1, 2, 3, 4), score = points(29)),
+                    text(Res.string.rules_stud_4),
+                    diceCounting(1, 2, 3, 4, 5, 6, 2, counting = setOf(0, 1, 2, 3, 4), score = points(40)),
+                    text(Res.string.rules_stud_5),
+                    diceCounting(1, 2, 3, 4, 5, 6, 2, counting = setOf(1, 2, 3, 4, 5), score = points(40)),
+                    text(Res.string.rules_stud_6),
+                    text(Res.string.rules_stud_7),
                 ),
             ),
             RulesPage(
