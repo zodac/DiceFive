@@ -135,6 +135,15 @@ class StyleCatalogTest {
         assertEquals(listOf(colourKey("Ivory"), colourKey("Black")), googly.availableColours(withoutFan).map { it.name.key })
         assertEquals("googly_blue", DiceStyles.unlockedById("googly_blue", AchievementsState(withoutFan.unlockedAt + (Achievement.BIG_FAN to 0L))).id)
 
+        // The golden Egg, unlocked by Eggcellent Discovery: a colour of the ordinary Egg family, left off until earned.
+        val egg = DiceStyles.familyOf("egg_gold")
+        assertEquals(listOf(colourKey("White"), colourKey("Brown"), colourKey("Gold")), egg.colours.map { it.name.key })
+        assertEquals(listOf(familyKey("Egg") to 1), Achievement.EGGCELLENT_DISCOVERY.styleRewards.map { it.styleName.key to it.hiddenColours })
+        val withoutGold = ordinaryFor(egg.unlock)
+        assertEquals(DiceStyles.default, DiceStyles.unlockedById("egg_gold", withoutGold))
+        assertEquals(listOf(colourKey("White"), colourKey("Brown")), egg.availableColours(withoutGold).map { it.name.key })
+        assertEquals("egg_gold", DiceStyles.unlockedById("egg_gold", AchievementsState(withoutGold.unlockedAt + (Achievement.EGGCELLENT_DISCOVERY to 0L))).id)
+
         // The Rabbit Top Hat, unlocked by The Magician's Secret.
         val topHat = DiceCupStyles.familyOf("top_hat_rabbit")
         assertEquals(familyKey("Top Hat"), topHat.name.key)

@@ -395,6 +395,7 @@ class AchievementEngineTest {
         // stays at least title-visible from the start: secrecy is the exception, not the rule.
         val secret = listOf(
             Achievement.BIG_FAN,
+            Achievement.EGGCELLENT_DISCOVERY,
             Achievement.GREENFINGERS,
             Achievement.LUCK_OF_THE_IRISH,
             Achievement.NOT_THOSE_DICE,

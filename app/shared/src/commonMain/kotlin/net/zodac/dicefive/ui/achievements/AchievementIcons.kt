@@ -317,6 +317,8 @@ val Achievement.icon: ImageVector
         Achievement.NOT_THOSE_DICE -> rememberDiceFanIcon()
         // The sunflower the Flowerpot grew, in the pot's own colours.
         Achievement.GREENFINGERS -> rememberSunflowerIcon()
+        // A fried egg - the golden egg's yolk in its white - as found in the pan.
+        Achievement.EGGCELLENT_DISCOVERY -> rememberFriedEggIcon()
         // A sheaf of white pages, the top one written on - the paper the solution was published in.
         Achievement.THE_SOLUTION -> rememberManuscriptIcon()
     }
@@ -356,6 +358,7 @@ fun Achievement.iconTintOrUnspecified(tint: Color): Color = when (this) {
     Achievement.MAGICIANS_SECRET -> Color.Unspecified
     Achievement.NOT_THOSE_DICE -> Color.Unspecified
     Achievement.GREENFINGERS -> Color.Unspecified
+    Achievement.EGGCELLENT_DISCOVERY -> Color.Unspecified
     Achievement.THE_SOLUTION -> Color.Unspecified
     else -> tint
 }
@@ -720,3 +723,32 @@ private fun PathBuilder.circle(x: Float, y: Float, radius: Float) {
     curveTo(x + k, y - radius, x + radius, y - k, x + radius, y)
     close()
 }
+
+/**
+ * A fried egg for [Achievement.EGGCELLENT_DISCOVERY]: a lopsided white with a thin grey edge so it
+ * reads on a pale row, and a golden yolk with a glint. Fixed colours, like the other Easter Eggs
+ * icons - see [iconTintOrUnspecified].
+ */
+@Composable
+private fun rememberFriedEggIcon(): ImageVector = remember {
+    ImageVector.Builder(name = "FriedEgg", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f).apply {
+        path(fill = SolidColor(FriedEggWhite), stroke = SolidColor(FriedEggEdge), strokeLineWidth = 0.8f) {
+            moveTo(7.5f, 4.2f)
+            curveTo(10.2f, 2.2f, 14.4f, 3.2f, 16.6f, 4.6f)
+            curveTo(19.4f, 6.2f, 22.2f, 8.4f, 21.6f, 12.6f)
+            curveTo(21.0f, 16.8f, 18.6f, 17.4f, 17.2f, 19.0f)
+            curveTo(15.4f, 21.2f, 11.6f, 21.8f, 8.6f, 20.2f)
+            curveTo(6.0f, 18.8f, 5.8f, 17.2f, 4.0f, 15.2f)
+            curveTo(2.2f, 13.2f, 1.8f, 10.0f, 3.4f, 7.6f)
+            curveTo(4.4f, 6.0f, 6.2f, 5.2f, 7.5f, 4.2f)
+            close()
+        }
+        path(fill = SolidColor(FriedEggYolk)) { ellipse(12.4f, 11.8f, 4.6f, 4.6f) }
+        path(fill = SolidColor(FriedEggGlint)) { ellipse(10.8f, 10.0f, 1.3f, 1.0f) }
+    }.build()
+}
+
+private val FriedEggWhite = Color(0xFFFFFFFF)
+private val FriedEggEdge = Color(0xFFC9C3B6)
+private val FriedEggYolk = Color(0xFFFFB800)
+private val FriedEggGlint = Color(0xFFFFE9A0)

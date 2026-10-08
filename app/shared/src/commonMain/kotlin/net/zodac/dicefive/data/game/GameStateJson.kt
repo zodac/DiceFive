@@ -140,6 +140,7 @@ object GameStateJson {
         die.colour?.let { put("colour", it.name) }
         die.heldSlot?.let { put("heldSlot", it) }
         if (die.isUnlucky) put("isUnlucky", true)
+        if (die.isGolden) put("isGolden", true)
     }
 
     private fun decodeDie(obj: JsonObject) = Die(
@@ -148,6 +149,7 @@ object GameStateJson {
         colour = obj.optString("colour").takeIf { it.isNotEmpty() }?.let { DieColour.valueOf(it) },
         heldSlot = (obj["heldSlot"] as? JsonNumber)?.toInt(),
         isUnlucky = "isUnlucky" in obj && obj.getBoolean("isUnlucky"),
+        isGolden = "isGolden" in obj && obj.getBoolean("isGolden"),
     )
 
     /** The Unlucky Dice modifier, or null when the save has none - as every game saved before it existed. */

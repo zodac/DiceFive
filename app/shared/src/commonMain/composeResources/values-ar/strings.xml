@@ -273,6 +273,8 @@
     <string name="achievement_not_those_dice_description">اضغط على النرد في القائمة الرئيسية</string>
     <string name="achievement_shaken_not_tapped_title">هزًّا لا ضغطًا</string>
     <string name="achievement_shaken_not_tapped_description">هزّ هاتفك لترمي النرد</string>
+    <string name="achievement_eggcellent_discovery_title">اكتشاف ذهبي</string>
+    <string name="achievement_eggcellent_discovery_description">وجدت البيضة الذهبية!</string>
     <string name="achievement_magicians_secret_title">سر الساحر</string>
     <string name="achievement_magicians_secret_description">اعثر على مخبأ لونا</string>
     <string name="achievement_the_solution_title">الحل</string>
