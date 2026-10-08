@@ -185,8 +185,8 @@ check_data_size() {
 
 # Writes the device's Android version into its .ini and config.ini as `target=android-<api>`, whatever
 # avdmanager wrote. The emulator reads its API level from that line, and only enables Vulkan (and the
-# GLDirectMem host memory it needs) from API 29: the runner's avdmanager wrote a target the emulator read
-# as API 3 ("not enabling Vulkan because API level is < 29" in its -verbose log), so no app could draw (see
+# GLDirectMem host memory it needs) from API 29: the runner's avdmanager, too old for "37.0"-style API levels,
+# wrote `target=android-0` (and no target in config.ini), which the emulator read as API 3 ("not enabling Vulkan because API level is < 29" in its -verbose log), so no app could draw (see
 # check_vulkan). What avdmanager wrote is printed, for the record.
 set_target() {
     local file

@@ -81,8 +81,8 @@ image is sparse, so the runner stores only what is used (about 2 GB for a first 
 and DiceFive - because the app renderer is forced to Vulkan (below) and the guest had no Vulkan device
 (`adb shell cmd gpu vkjson` lists `"devices" : []`). The emulator's `Vulkan` feature defaults to off, and
 at boot it turns Vulkan and GLDirectMem (the host memory Vulkan allocates from) on only from API 29. It
-reads the API level from the AVD's `target=` line, and the runner's `avdmanager` wrote one it read as
-**API 3** (`-verbose`: "Deciding if GLDirectMem/Vulkan should be enabled ... API level: 3", "not enabling
+reads the API level from the AVD's `target=` line, and the runner's `avdmanager` - too old for
+`37.0`-style API levels - wrote `target=android-0` (and none in `config.ini`), which it read as **API 3** (`-verbose`: "Deciding if GLDirectMem/Vulkan should be enabled ... API level: 3", "not enabling
 Vulkan because API level is < 29"). Forcing `-feature Vulkan` is not enough - without GLDirectMem, apps
 then crash in `AllocateVulkanMemory`. So `start` writes `target=android-<api>` into the AVD's `.ini` and
 `config.ini` itself (printing what `avdmanager` wrote), boots with `-verbose` and prints the emulator's
