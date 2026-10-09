@@ -509,10 +509,10 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     Res.string.style_colour_black,
                     GooglyDiceStyle("googly_black", Color(0xFF3A3A3E), Color(0xFF141416), Color.White),
                 ),
-                // Secret: only offered once Big Fan is earned.
-                GooglyDiceStyle("googly_blue", Color(0xFF3A6BB0), Color(0xFF14315C), GoldAccent, socket = GoldAccent).let {
-                    StyleColour(Res.string.style_colour_blue, it.swatch, it, secretAchievement = Achievement.BIG_FAN)
-                },
+                colour(
+                    Res.string.style_colour_blue,
+                    GooglyDiceStyle("googly_blue", Color(0xFF3A6BB0), Color(0xFF14315C), GoldAccent, socket = GoldAccent),
+                ),
             ),
             unlock = AchievementCount(31),
         ),
@@ -678,7 +678,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(Res.string.style_colour_black, GlitchDiceStyle("glitch_black", Color(0xFF101018), Color(0xFFF4F6FF), Color(0xFF2A2A3A))),
                 colour(Res.string.style_colour_white, GlitchDiceStyle("glitch_white", Color(0xFFF2F2F4), Color(0xFF15151C), Color(0xFFD0D0D8))),
             ),
-            unlock = AchievementCount(35),
+            unlock = StyleUnlock.SpecificAchievement(Achievement.BIG_FAN),
         ),
         StyleFamily(
             Res.string.style_family_ribbon,
