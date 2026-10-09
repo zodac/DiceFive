@@ -3,7 +3,6 @@ package net.zodac.dicefive.ui.game.style
 import androidx.compose.runtime.Composable
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
-import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.styles_reward_hidden_colours
 import net.zodac.dicefive.resources.styles_reward_style
@@ -48,7 +47,7 @@ sealed interface StyleUnlock {
     data class SpecificAchievement(val achievement: Achievement) : StyleUnlock {
         override fun isMet(achievements: AchievementsState): Boolean = achievements.isUnlocked(achievement)
 
-        override val hiddenWhileLocked: Boolean get() = achievement.category == AchievementCategory.EASTER_EGGS
+        override val hiddenWhileLocked: Boolean get() = false
     }
 }
 

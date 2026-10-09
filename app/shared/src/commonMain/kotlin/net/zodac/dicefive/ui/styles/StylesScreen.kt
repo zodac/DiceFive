@@ -1371,15 +1371,16 @@ private fun <T : TableArt> StyleFamilyTile(
     flashOverArt: Boolean = false,
     variantNoun: StringResource = Res.string.style_variant_colour,
 ) {
-    val colours = family.availableColours(achievements)
+    val colours = family.colours
     val familyName = stringResource(family.name)
     val selectLabel = stringResource(Res.string.styles_select_action)
     val chooseVariantLabel = stringResource(Res.string.styles_choose_variant_action, familyName, stringResource(variantNoun))
     val picked = colours.firstOrNull { it.style.id == selectedId }
-    val shown = picked ?: colours.first()
+    val shown = picked ?: colours.firstOrNull { it.isAvailable(achievements) } ?: colours.first()
     val hasColours = colours.size > 1
     val shownDescription = if (hasColours) stringResource(Res.string.styles_family_colour_cd, familyName, stringResource(shown.name)) else familyName
     var choosingColour by remember { mutableStateOf(false) }
+    var lockedVariantRequirement by remember { mutableStateOf<String?>(null) }
 
     val bringIntoView = remember { BringIntoViewRequester() }
     val scope = rememberCoroutineScope()
@@ -1452,7 +1453,10 @@ private fun <T : TableArt> StyleFamilyTile(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     for (colour in colours) {
+                        val available = colour.isAvailable(achievements)
                         val colourDescription = stringResource(Res.string.styles_family_colour_cd, familyName, stringResource(colour.name))
+                        val achievementTitle = colour.secretAchievement?.title?.let { stringResource(it) } ?: ""
+                        val lockedRequirement = stringResource(Res.string.styles_unlock_specific, achievementTitle, familyName)
                         StylePreview(
                             style = colour.style,
                             size = previewSize,
@@ -1466,16 +1470,43 @@ private fun <T : TableArt> StyleFamilyTile(
                                     role = Role.RadioButton
                                     selected = colour.style.id == selectedId
                                     onClick(label = selectLabel) {
-                                        select(colour.style.id)
-                                        choosingColour = false
+                                        if (available) {
+                                            select(colour.style.id)
+                                            choosingColour = false
+                                        }
                                         true
                                     }
                                 }
-                                .selectable(selected = colour.style.id == selectedId, role = Role.RadioButton) {
-                                    select(colour.style.id)
-                                    choosingColour = false
-                                },
-                        )
+                                .combinedClickable(
+                                    onClick = {
+                                        if (available) {
+                                            select(colour.style.id)
+                                            choosingColour = false
+                                        } else {
+                                            lockedVariantRequirement = lockedRequirement
+                                        }
+                                    },
+                                    onLongClick = if (!available) {
+                                        { lockedVariantRequirement = lockedRequirement }
+                                    } else null,
+                                ),
+                        ) {
+                            if (!available) {
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = LOCKED_SCRIM_ALPHA)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Lock,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = LOCKED_PADLOCK_ALPHA),
+                                        modifier = Modifier.size(previewSize.width / 3),
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
                 HorizontalScrollbar(
@@ -1485,6 +1516,20 @@ private fun <T : TableArt> StyleFamilyTile(
             }
         }
         TileLabel(stringResource(family.name))
+    }
+
+    if (lockedVariantRequirement != null) {
+        DiceFiveDialog(
+            icon = Icons.Filled.Lock,
+            title = null,
+            message = parseInlineMarkup(
+                lockedVariantRequirement!!,
+                codeStyle = SpanStyle(fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary),
+            ),
+            confirmLabel = stringResource(Res.string.common_ok),
+            onConfirm = { lockedVariantRequirement = null },
+            onDismissRequest = { lockedVariantRequirement = null },
+        )
     }
 }
 
