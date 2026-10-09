@@ -115,17 +115,6 @@ class StyleCatalogTest {
         assertEquals(IrishFlagDiceStyle, DiceStyles.unlockedById(IrishFlagDiceStyle.id, both))
         assertEquals(3, multicolour.availableColours(both).size)
 
-        // The blue Googly dice, unlocked by Big Fan.
-        val googly = DiceStyles.familyOf("googly_blue")
-        assertEquals(familyKey("Googly"), googly.name.key)
-        assertEquals(listOf(colourKey("Ivory"), colourKey("Black"), colourKey("Blue")), googly.colours.map { it.name.key })
-        assertTrue(Achievement.BIG_FAN.unlocksStyle)
-        assertEquals(listOf(familyKey("Googly") to 1), Achievement.BIG_FAN.styleRewards.map { it.styleName.key to it.hiddenColours })
-        val withoutFan = ordinaryFor(googly.unlock)
-        assertEquals("googly_black", DiceStyles.unlockedById("googly_black", withoutFan).id)
-        assertEquals(DiceStyles.default, DiceStyles.unlockedById("googly_blue", withoutFan))
-        assertEquals(listOf(colourKey("Ivory"), colourKey("Black")), googly.availableColours(withoutFan).map { it.name.key })
-        assertEquals("googly_blue", DiceStyles.unlockedById("googly_blue", AchievementsState(withoutFan.unlockedAt + (Achievement.BIG_FAN to 0L))).id)
 
         // The golden Egg, unlocked by Eggcellent Discovery: a colour of the ordinary Egg family, left off until earned.
         val egg = DiceStyles.familyOf("egg_gold")
@@ -208,6 +197,20 @@ class StyleCatalogTest {
         assertEquals(listOf(familyKey("Floating Dice") to 0), Achievement.NOT_THOSE_DICE.styleRewards.map { it.styleName.key to it.hiddenColours })
         assertEquals(TableBackgrounds.default, TableBackgrounds.unlockedById("floating_dice", AchievementsState(Achievement.entries.filter { it != Achievement.NOT_THOSE_DICE }.associateWith { 0L })))
         assertEquals(FloatingDiceBackground, TableBackgrounds.unlockedById("floating_dice", AchievementsState(mapOf(Achievement.NOT_THOSE_DICE to 0L))))
+
+        // The Glitch dice, by Big Fan.
+        val glitch = DiceStyles.familyOf("glitch_black")
+        assertEquals(familyKey("Glitch"), glitch.name.key)
+        assertEquals(listOf(colourKey("Black"), colourKey("White")), glitch.colours.map { it.name.key })
+        assertFalse(glitch.unlock.hiddenWhileLocked)
+        assertTrue(Achievement.BIG_FAN.unlocksStyle)
+        assertEquals(listOf(familyKey("Glitch") to 0), Achievement.BIG_FAN.styleRewards.map { it.styleName.key to it.hiddenColours })
+        val everythingButBigFan = AchievementsState(Achievement.entries.filter { it != Achievement.BIG_FAN }.associateWith { 0L })
+        val bigFanEarned = AchievementsState(mapOf(Achievement.BIG_FAN to 0L))
+        for (id in listOf("glitch_black", "glitch_white")) {
+            assertEquals(DiceStyles.default, DiceStyles.unlockedById(id, everythingButBigFan), id)
+            assertEquals(id, DiceStyles.unlockedById(id, bigFanEarned).id)
+        }
     }
 
     @Test
