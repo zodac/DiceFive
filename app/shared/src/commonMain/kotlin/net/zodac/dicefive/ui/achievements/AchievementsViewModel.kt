@@ -225,7 +225,7 @@ class AchievementsViewModel(
                 .groupBy { it.achievement.category }
                 .map { (category, categoryItems) -> AchievementGroup(category, categoryItems) },
             unlockedCount = items.count { it.unlockedAt != null },
-            totalCount = items.size,
+            totalCount = items.count { it.achievement.category != AchievementCategory.EASTER_EGGS },
             isLoaded = true,
         )
     }
