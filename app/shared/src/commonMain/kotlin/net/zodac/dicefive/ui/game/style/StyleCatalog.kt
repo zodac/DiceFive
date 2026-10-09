@@ -320,12 +320,17 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             ),
         ),
         StyleFamily(
-            Res.string.style_family_frosted,
+            Res.string.style_family_retro,
             listOf(
-                colour(Res.string.style_colour_ice, FrostedDiceStyle("frosted_ice", Color(0xFFE3F4FF), Color(0xFFA9D3EE), Color(0xFF1D4E6E))),
-                colour(Res.string.style_colour_white, FrostedDiceStyle("frosted_white", Color(0xFFFAFBFC), Color(0xFFD5DADF), Color(0xFF3A4550))),
+                colour(Res.string.style_colour_green, RetroDiceStyle("retro_green", Color(0xFF9BBC0F), Color(0xFF306230), Color(0xFF0F380F))),
+                colour(
+                    Res.string.style_colour_amber,
+                    RetroDiceStyle("retro_amber", Color(0xFFFFB000), Color(0xFF9A5B00), Color(0xFF3A2400), heldRing = Color.White),
+                ),
+                colour(Res.string.style_colour_blue, RetroDiceStyle("retro_blue", Color(0xFF9CC8F5), Color(0xFF2E5C99), Color(0xFF0D2547))),
+                colour(Res.string.style_colour_red, RetroDiceStyle("retro_red", Color(0xFFF29C94), Color(0xFF9E2A24), Color(0xFF3D0B08))),
             ),
-            unlock = AchievementCount(23),
+            unlock = AchievementCount(5),
         ),
         StyleFamily(
             Res.string.style_family_metal,
@@ -361,17 +366,12 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             unlock = AchievementCount(19),
         ),
         StyleFamily(
-            Res.string.style_family_retro,
+            Res.string.style_family_frosted,
             listOf(
-                colour(Res.string.style_colour_green, RetroDiceStyle("retro_green", Color(0xFF9BBC0F), Color(0xFF306230), Color(0xFF0F380F))),
-                colour(
-                    Res.string.style_colour_amber,
-                    RetroDiceStyle("retro_amber", Color(0xFFFFB000), Color(0xFF9A5B00), Color(0xFF3A2400), heldRing = Color.White),
-                ),
-                colour(Res.string.style_colour_blue, RetroDiceStyle("retro_blue", Color(0xFF9CC8F5), Color(0xFF2E5C99), Color(0xFF0D2547))),
-                colour(Res.string.style_colour_red, RetroDiceStyle("retro_red", Color(0xFFF29C94), Color(0xFF9E2A24), Color(0xFF3D0B08))),
+                colour(Res.string.style_colour_ice, FrostedDiceStyle("frosted_ice", Color(0xFFE3F4FF), Color(0xFFA9D3EE), Color(0xFF1D4E6E))),
+                colour(Res.string.style_colour_white, FrostedDiceStyle("frosted_white", Color(0xFFFAFBFC), Color(0xFFD5DADF), Color(0xFF3A4550))),
             ),
-            unlock = AchievementCount(2),
+            unlock = AchievementCount(23),
         ),
         StyleFamily(
             Res.string.style_family_numeral,
@@ -981,7 +981,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 background(Res.string.style_colour_oak, ::PlanksBackground, "planks_oak", 0xFF7A5534, 0xFF5A3C22),
                 background(Res.string.style_colour_walnut, ::PlanksBackground, "planks_walnut", 0xFF4A3322, 0xFF2C1D12),
             ),
-            unlock = AchievementCount(5),
+            unlock = AchievementCount(79),
         ),
         StyleFamily(
             Res.string.style_family_gingham,

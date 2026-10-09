@@ -6,7 +6,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
-import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.FLOWERPOT_FULL_BLOOM
 
@@ -79,11 +78,10 @@ class StyleCatalogTest {
         assertEquals(counts.size, counts.toSet().size, "Two styles share an achievement count: $counts")
         for (count in counts) assertTrue(count in 1..earnable, "$count isn't in 1..$earnable")
 
-        // Only an Easter Egg achievement's style is hidden while locked.
+        // No style is hidden while locked - all locked styles are shown with a padlock.
         for (catalog in StyleCatalogs) for (family in catalog.families) {
             val unlock = family.unlock
-            val secret = unlock is StyleUnlock.SpecificAchievement && unlock.achievement.category == AchievementCategory.EASTER_EGGS
-            assertEquals(secret, unlock.hiddenWhileLocked, family.name.key)
+            assertFalse(unlock.hiddenWhileLocked, family.name.key)
         }
 
         // A locked pick is drawn as the default until its style unlocks; every colour of a Classic style is there from the start.
@@ -181,11 +179,11 @@ class StyleCatalogTest {
     }
 
     @Test
-    fun `a secret style is hidden until its secret achievement - and nothing else - unlocks it`() {
+    fun `a secret style is shown locked until its secret achievement unlocks it`() {
         // The Martini cup, by Shaken Not Tapped.
         val martini = DiceCupStyles.familyOf("martini")
         assertEquals(familyKey("Martini"), martini.name.key)
-        assertTrue(martini.unlock.hiddenWhileLocked)
+        assertFalse(martini.unlock.hiddenWhileLocked)
         assertEquals(listOf(familyKey("Martini") to 0), Achievement.SHAKEN_NOT_TAPPED.styleRewards.map { it.styleName.key to it.hiddenColours })
         assertEquals(DiceCupStyles.default, DiceCupStyles.unlockedById("martini", AchievementsState(Achievement.entries.filter { it != Achievement.SHAKEN_NOT_TAPPED }.associateWith { 0L })))
         assertEquals("martini", DiceCupStyles.unlockedById("martini", AchievementsState(mapOf(Achievement.SHAKEN_NOT_TAPPED to 0L))).id)
@@ -194,7 +192,7 @@ class StyleCatalogTest {
         val maths = DiceStyles.familyOf("maths_white")
         assertEquals(familyKey("Maths"), maths.name.key)
         assertEquals(listOf(colourKey("White"), colourKey("Black"), colourKey("Green")), maths.colours.map { it.name.key })
-        assertTrue(maths.unlock.hiddenWhileLocked)
+        assertFalse(maths.unlock.hiddenWhileLocked)
         assertEquals(listOf(familyKey("Maths") to 0), Achievement.THE_SOLUTION.styleRewards.map { it.styleName.key to it.hiddenColours })
         val everythingButTheSolution = AchievementsState(Achievement.entries.filter { it != Achievement.THE_SOLUTION }.associateWith { 0L })
         val solved = AchievementsState(mapOf(Achievement.THE_SOLUTION to 0L))
@@ -206,7 +204,7 @@ class StyleCatalogTest {
         // The Floating Dice background, by Not Those Dice.
         val floating = TableBackgrounds.familyOf("floating_dice")
         assertEquals(familyKey("Floating Dice"), floating.name.key)
-        assertTrue(floating.unlock.hiddenWhileLocked)
+        assertFalse(floating.unlock.hiddenWhileLocked)
         assertEquals(listOf(familyKey("Floating Dice") to 0), Achievement.NOT_THOSE_DICE.styleRewards.map { it.styleName.key to it.hiddenColours })
         assertEquals(TableBackgrounds.default, TableBackgrounds.unlockedById("floating_dice", AchievementsState(Achievement.entries.filter { it != Achievement.NOT_THOSE_DICE }.associateWith { 0L })))
         assertEquals(FloatingDiceBackground, TableBackgrounds.unlockedById("floating_dice", AchievementsState(mapOf(Achievement.NOT_THOSE_DICE to 0L))))
