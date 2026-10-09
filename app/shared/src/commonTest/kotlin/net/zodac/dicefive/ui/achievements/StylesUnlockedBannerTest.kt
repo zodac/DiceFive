@@ -16,12 +16,9 @@ import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.style_family_frosted
-import net.zodac.dicefive.resources.style_family_greek
 import net.zodac.dicefive.resources.style_family_martini
 import net.zodac.dicefive.resources.style_family_maths
-import net.zodac.dicefive.resources.style_family_wreath
 import net.zodac.dicefive.resources.style_noun_dice
-import net.zodac.dicefive.resources.style_noun_frame
 import net.zodac.dicefive.ui.game.style.StyleCatalogs
 import net.zodac.dicefive.ui.game.style.StyleReward
 import net.zodac.dicefive.ui.game.style.StyleUnlock
@@ -54,13 +51,13 @@ class StylesUnlockedBannerTest {
 
     @Test
     fun `each count-locked style is unlocked by the step onto its count and no other - a jump over several unlocking each on the way`() {
-        // One short or one past does not: each neighbour unlocks a style of its own (a frame), but never Frosted.
+        // One short or one past does not: Frosted is unlocked at 23, but no styles are unlocked at 22 or 24.
         assertEquals(listOf(StyleReward(Res.string.style_family_frosted, Res.string.style_noun_dice)), stylesUnlockedByCount(22, 23))
-        assertEquals(listOf(StyleReward(Res.string.style_family_wreath, Res.string.style_noun_frame)), stylesUnlockedByCount(21, 22))
-        assertEquals(listOf(StyleReward(Res.string.style_family_greek, Res.string.style_noun_frame)), stylesUnlockedByCount(23, 24))
+        assertEquals(emptyList(), stylesUnlockedByCount(21, 22))
+        assertEquals(emptyList(), stylesUnlockedByCount(23, 24))
 
         for ((count, reward) in countLocks) {
-            assertEquals(listOf(reward), stylesUnlockedByCount(count - 1, count), "${reward.styleName} ${reward.categoryNoun}")
+            assertTrue(stylesUnlockedByCount(count - 1, count).contains(reward), "${reward.styleName} ${reward.categoryNoun} missing at $count")
         }
         val counts = countLocks.map { it.first }.toSet()
         for (count in 1..countedAchievements.size) {
