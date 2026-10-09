@@ -382,7 +382,7 @@ class AchievementEngineTest {
     // ---- The list itself ----------------------------------------------------------------------------
 
     @Test
-    fun `the achievements list - unique ids - one unbroken run per category and secrecy kept to the Easter Eggs`() {
+    fun `the achievements list - unique ids - one unbroken run per category and Easter Eggs hidden until earned`() {
         // The ids are the storage and Play Games keys.
         val ids = Achievement.entries.map { it.id }
         assertEquals(ids.size, ids.toSet().size)
@@ -391,9 +391,8 @@ class AchievementEngineTest {
         // theme would silently split that theme across the list.
         assertEquals(AchievementCategory.entries.toList(), Achievement.entries.map { it.category }.distinct())
 
-        // The Easter Eggs are the only secret achievements - and none gates Completionist. Every other achievement
-        // stays at least title-visible from the start: secrecy is the exception, not the rule.
-        val secret = listOf(
+        // The Easter Eggs are hidden achievements (description "???") and none gates Completionist.
+        val easterEggs = listOf(
             Achievement.BIG_FAN,
             Achievement.EGGCELLENT_DISCOVERY,
             Achievement.GREENFINGERS,
@@ -403,20 +402,20 @@ class AchievementEngineTest {
             Achievement.MAGICIANS_SECRET,
             Achievement.THE_SOLUTION,
         )
-        assertEquals(secret, Achievement.entries.filter { it.visibility == AchievementVisibility.SECRET })
-        secret.forEach { assertFalse(it in Achievement.COMPLETION_REQUIREMENTS, "$it gates Completionist") }
+        assertEquals(easterEggs, Achievement.entries.filter { it.category == AchievementCategory.EASTER_EGGS })
+        easterEggs.forEach {
+            assertEquals(AchievementVisibility.HIDDEN, it.visibility)
+            assertFalse(it in Achievement.COMPLETION_REQUIREMENTS, "$it gates Completionist")
+        }
         // I Robot counts toward Completionist - Completionist does not count toward itself.
         assertTrue(Achievement.NATURAL_INTELLIGENCE in Achievement.COMPLETION_REQUIREMENTS)
         assertFalse(Achievement.COMPLETIONIST in Achievement.COMPLETION_REQUIREMENTS)
 
-        // Miscellaneous is exclusive with hidden visibility, and Easter Eggs with secret, in both directions - see the
-        // class doc on [Achievement]. Guards against a new hidden or secret achievement being filed under its subject's
-        // usual category (which for a secret one would defeat [AchievementCategory.EASTER_EGGS]'s whole point: its
-        // header only ever appearing once something in it is unlocked), or a normal achievement being left in either.
+        // Miscellaneous and Easter Eggs are the only categories with hidden visibility (title visible, description "???").
         Achievement.entries.forEach { achievement ->
             val where = "${achievement.name}: category=${achievement.category}, visibility=${achievement.visibility}"
-            assertEquals(achievement.category == AchievementCategory.MISCELLANEOUS, achievement.visibility == AchievementVisibility.HIDDEN, where)
-            assertEquals(achievement.category == AchievementCategory.EASTER_EGGS, achievement.visibility == AchievementVisibility.SECRET, where)
+            val isHiddenCategory = achievement.category == AchievementCategory.MISCELLANEOUS || achievement.category == AchievementCategory.EASTER_EGGS
+            assertEquals(isHiddenCategory, achievement.visibility == AchievementVisibility.HIDDEN, where)
         }
     }
 

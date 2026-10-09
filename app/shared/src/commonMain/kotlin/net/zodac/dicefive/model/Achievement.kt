@@ -251,12 +251,9 @@ const val MAX_ACHIEVEMENT_TITLE_LENGTH = 38
  * way is what lets one ladder's rungs sit together - "Sharpshooter" then "High Roller" then "Dice
  * Deity" - instead of being scattered across an alphabetical list.
  *
- * [EASTER_EGGS] is last on purpose, and every achievement in it has [AchievementVisibility.SECRET]:
- * [AchievementsViewModel][net.zodac.dicefive.ui.achievements.AchievementsViewModel] already
- * filters a locked secret achievement out of the list entirely, so as long as this category holds
- * nothing else, that filtering is *also* what keeps its own section header from ever appearing
- * until something in it has actually been earned - no separate "is this section empty" check
- * needed in the screen itself.
+ * [EASTER_EGGS] is last on purpose, and every achievement in it has [AchievementVisibility.HIDDEN]:
+ * showing its title with description as "???" until unlocked, and counting towards total and
+ * unlocked achievements.
  */
 enum class AchievementCategory(val label: StringResource) {
     MILESTONES(Res.string.category_milestones),
@@ -321,15 +318,13 @@ enum class AchievementVisibility {
  * fails the build if a category ends up split across the list. Ids are keyed by [id], not
  * position, so reordering is safe for already-stored unlocks.
  *
- * [AchievementCategory.MISCELLANEOUS] is exclusive with [AchievementVisibility.HIDDEN]: every
- * achievement with that visibility lives in that category, and everything in that category has
- * that visibility - `AchievementEngineTest` enforces both directions. A new hidden achievement
- * goes straight into Miscellaneous rather than its subject's usual category.
+ * [AchievementCategory.MISCELLANEOUS] and [AchievementCategory.EASTER_EGGS] both contain
+ * [AchievementVisibility.HIDDEN] achievements: title visible from the start, description hidden
+ * as "???" until earned. `AchievementEngineTest` enforces that all hidden achievements belong
+ * to either Miscellaneous or Easter Eggs.
  *
- * [AchievementCategory.EASTER_EGGS] is the same pairing with [AchievementVisibility.SECRET], and
- * goes at the very end of this enum (after [COMPLETIONIST]) rather than filed under its subject's
- * usual category - see [AchievementCategory.EASTER_EGGS]'s own doc for why that placement is
- * load-bearing, not just tidiness. `AchievementEngineTest` enforces this exclusivity too.
+ * [AchievementCategory.EASTER_EGGS] goes at the very end of this enum (after [COMPLETIONIST])
+ * rather than filed under its subject's usual category.
  */
 enum class Achievement(
     val id: String,
@@ -1026,7 +1021,7 @@ enum class Achievement(
         "big_fan",
         Res.string.achievement_big_fan_title,
         Res.string.achievement_big_fan_description,
-        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
     ),
     // Excluded from COMPLETIONIST like the rest of this category - it needs the Egg dice and the
     // Chicken cup both picked, and then a one-in-a-thousand die.
@@ -1034,7 +1029,7 @@ enum class Achievement(
         "eggcellent_discovery",
         Res.string.achievement_eggcellent_discovery_title,
         Res.string.achievement_eggcellent_discovery_description,
-        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
     ),
     // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the
     // Flowerpot grows a plant, let alone that using every roll of every turn brings it into bloom.
@@ -1043,7 +1038,7 @@ enum class Achievement(
         "greenfingers",
         Res.string.achievement_greenfingers_title,
         Res.string.achievement_greenfingers_description,
-        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
     ),
     // Excluded from COMPLETIONIST the same way Big Fan is - naming yourself after a country to
     // re-skin a game mode's dice isn't something every player could reasonably be expected to
@@ -1052,7 +1047,7 @@ enum class Achievement(
         "luck_of_the_irish",
         Res.string.achievement_luck_of_the_irish_title,
         Res.string.achievement_luck_of_the_irish_description,
-        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
     ),
     // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the menu's logo
     // dice can be tapped, let alone that they roll. Its id is unchanged from when it sat in
@@ -1061,7 +1056,7 @@ enum class Achievement(
         "not_those_dice",
         Res.string.achievement_not_those_dice_title,
         Res.string.achievement_not_those_dice_description,
-        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
     ),
     // Excluded from COMPLETIONIST the same way Big Fan/Luck of the Irish are - shaking the phone to
     // roll isn't something every player could reasonably be expected to stumble into on the way to
@@ -1070,7 +1065,7 @@ enum class Achievement(
         "shaken_not_tapped",
         Res.string.achievement_shaken_not_tapped_title,
         Res.string.achievement_shaken_not_tapped_description,
-        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
     ),
     // Excluded from COMPLETIONIST like the rest of this category - it needs the Top Hat cup picked
     // and the table left alone mid-turn, which nothing in the UI hints at.
@@ -1078,7 +1073,7 @@ enum class Achievement(
         "magicians_secret",
         Res.string.achievement_magicians_secret_title,
         Res.string.achievement_magicians_secret_description,
-        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
     ),
     // Excluded from COMPLETIONIST like the rest of this category - nothing hints that a player
     // name means anything, let alone this one. Standard mode only (not a re-skinned or shortened
@@ -1087,7 +1082,7 @@ enum class Achievement(
         "the_solution",
         Res.string.achievement_the_solution_title,
         Res.string.achievement_the_solution_description,
-        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.SECRET,
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
     ),
     ;
 
