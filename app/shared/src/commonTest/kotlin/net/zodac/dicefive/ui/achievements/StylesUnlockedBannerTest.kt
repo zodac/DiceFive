@@ -14,7 +14,6 @@ import net.zodac.dicefive.data.achievements.UnlockedStyle
 import net.zodac.dicefive.data.achievements.countsTowardStyleLocks
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.model.Achievement
-import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.style_family_frosted
 import net.zodac.dicefive.resources.style_family_greek
@@ -32,7 +31,6 @@ import net.zodac.dicefive.ui.game.style.stylesUnlockedByCount
 class StylesUnlockedBannerTest {
 
     private val countedAchievements = Achievement.entries.filter { it.countsTowardStyleLocks }
-    private val secretAchievement = Achievement.entries.first { it.visibility == AchievementVisibility.SECRET }
 
     /** Every count-locked style, with the count that unlocks it. */
     private val countLocks: List<Pair<Int, StyleReward>> = StyleCatalogs.flatMap { catalog ->
@@ -78,8 +76,8 @@ class StylesUnlockedBannerTest {
 
     @Test
     fun `an update crossing counts announces one styles banner after its unlocks - and none when no count is reached`() {
-        // An update knows the counted achievements before and after it - a secret one doesn't count.
-        val update = AchievementEngine.unlockNow(setOf(countedAchievements[22], secretAchievement), stateWith(22), 0L)
+        // An update knows the counted achievements before and after it.
+        val update = AchievementEngine.unlockNow(setOf(countedAchievements[22]), stateWith(22), 0L)
         assertEquals(22, update.countedUnlocksBefore)
         assertEquals(23, update.countedUnlocksAfter)
 

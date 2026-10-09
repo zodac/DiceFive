@@ -25,7 +25,6 @@ import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
-import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.ChickenDiceCupStyle
@@ -96,7 +95,7 @@ class GameTableSettingsTest {
         val locked = GameViewModel(settingsRepository = lockedSettings, achievementsRepository = achievements)
         advanceUntilIdle()
         assertEquals(DiceStyles.default, locked.tableSettings.value?.visualTheme?.diceStyle)
-        achievements.record(Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }.associateWith { 0L }, emptyMap())
+        achievements.record(Achievement.entries.associateWith { 0L }, emptyMap())
         advanceUntilIdle()
         assertEquals("googly_ivory", locked.tableSettings.value?.visualTheme?.diceStyle?.id)
     }
@@ -112,7 +111,7 @@ class GameTableSettingsTest {
         settings.setDiceStyleId(diceId)
         settings.setDiceCupStyleId(cupId)
         val achievements = TableAchievementStore()
-        achievements.record(Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }.associateWith { 0L }, emptyMap())
+        achievements.record(Achievement.entries.filter { it != Achievement.EGGCELLENT_DISCOVERY }.associateWith { 0L }, emptyMap())
         val viewModel = GameViewModel(settingsRepository = settings, achievementsRepository = achievements, random = GoldenEveryTime)
         viewModel.setPlayerCount(1)
         viewModel.startGame()

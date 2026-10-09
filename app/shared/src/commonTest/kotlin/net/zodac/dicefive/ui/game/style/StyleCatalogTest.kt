@@ -6,7 +6,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
-import net.zodac.dicefive.model.AchievementVisibility
+import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.FLOWERPOT_FULL_BLOOM
 
@@ -19,9 +19,9 @@ class StyleCatalogTest {
 
     private val catalogs = listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds, ScoreFrames)
 
-    /** Enough ordinary (not secret) achievements to meet [unlock]'s count, and nothing else. */
+    /** Enough achievements to meet [unlock]'s count, and nothing else. */
     private fun ordinaryFor(unlock: StyleUnlock) = AchievementsState(
-        Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }.take((unlock as StyleUnlock.AchievementCount).count).associateWith { 0L },
+        Achievement.entries.take((unlock as StyleUnlock.AchievementCount).count).associateWith { 0L },
     )
 
     @Test
@@ -74,28 +74,22 @@ class StyleCatalogTest {
             assertEquals(family.name.key == familyKey("Classic"), family.unlock == StyleUnlock.Free, "${family.name}'s unlock is ${family.unlock}")
         }
 
-        val earnable = Achievement.entries.count { it.visibility != AchievementVisibility.SECRET }
+        val earnable = Achievement.entries.size
         val counts = catalogs.flatMap { it.families }.mapNotNull { (it.unlock as? StyleUnlock.AchievementCount)?.count }
         assertEquals(counts.size, counts.toSet().size, "Two styles share an achievement count: $counts")
         for (count in counts) assertTrue(count in 1..earnable, "$count isn't in 1..$earnable")
 
-        // Secret achievements don't count towards a lock.
-        val secrets = AchievementsState(unlockedAt = Achievement.entries.filter { it.visibility == AchievementVisibility.SECRET }.associateWith { 0L })
-        assertEquals(0, secrets.countedUnlocks)
-        assertFalse(StyleUnlock.AchievementCount(1).isMet(secrets))
-
-        // Only a secret achievement's style is hidden while locked.
+        // Only an Easter Egg achievement's style is hidden while locked.
         for (catalog in StyleCatalogs) for (family in catalog.families) {
             val unlock = family.unlock
-            val secret = unlock is StyleUnlock.SpecificAchievement && unlock.achievement.visibility == AchievementVisibility.SECRET
+            val secret = unlock is StyleUnlock.SpecificAchievement && unlock.achievement.category == AchievementCategory.EASTER_EGGS
             assertEquals(secret, unlock.hiddenWhileLocked, family.name.key)
         }
-        assertFalse(Achievement.entries.first { it.visibility != AchievementVisibility.SECRET }.unlocksStyle)
 
         // A locked pick is drawn as the default until its style unlocks; every colour of a Classic style is there from the start.
         val retro = DiceStyles.familyOf("retro_amber")
         val needed = (retro.unlock as StyleUnlock.AchievementCount).count
-        val earnableAchievements = Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }
+        val earnableAchievements = Achievement.entries
         assertEquals(DiceStyles.default, DiceStyles.unlockedById("retro_amber", AchievementsState(unlockedAt = earnableAchievements.take(needed - 1).associateWith { 0L })))
         assertEquals("retro_amber", DiceStyles.unlockedById("retro_amber", AchievementsState(unlockedAt = earnableAchievements.take(needed).associateWith { 0L })).id)
         assertEquals("barrel", DiceStyles.unlockedById("barrel", AchievementsState()).id)

@@ -24,7 +24,6 @@ import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
-import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceStyles
 
@@ -131,7 +130,7 @@ class MenuViewModelTest {
         val locked = MenuViewModel(store, lockedSettings)
         advanceUntilIdle()
         assertEquals(LogoStyles(DiceStyles.default, DiceCupStyles.default), locked.logoStyles.value)
-        store.record(Achievement.entries.filter { it.visibility != AchievementVisibility.SECRET }.associateWith { 0L }, emptyMap())
+        store.record(Achievement.entries.associateWith { 0L }, emptyMap())
         advanceUntilIdle()
         assertEquals("googly_ivory", locked.logoStyles.value?.dice?.id)
         assertEquals("top_hat_black", locked.logoStyles.value?.cup?.id)

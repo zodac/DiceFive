@@ -3,7 +3,7 @@ package net.zodac.dicefive.ui.game.style
 import androidx.compose.runtime.Composable
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
-import net.zodac.dicefive.model.AchievementVisibility
+import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.styles_reward_hidden_colours
 import net.zodac.dicefive.resources.styles_reward_style
@@ -25,8 +25,8 @@ sealed interface StyleUnlock {
 
     /**
      * Whether a style behind this lock is left off the Styles screen entirely until it's met, rather
-     * than shown with a padlock - true for a [SpecificAchievement] that's itself
-     * [AchievementVisibility.SECRET], since a secret achievement is never hinted at before it's earned.
+     * than shown with a padlock - true for a [SpecificAchievement] that's an Easter Egg achievement,
+     * so secret styles aren't hinted at before being earned.
      */
     val hiddenWhileLocked: Boolean get() = false
 
@@ -35,7 +35,7 @@ sealed interface StyleUnlock {
         override fun isMet(achievements: AchievementsState): Boolean = true
     }
 
-    /** Earning at least [count] achievements, of any kind but [AchievementVisibility.SECRET]. */
+    /** Earning at least [count] achievements. */
     data class AchievementCount(val count: Int) : StyleUnlock {
         init {
             require(count > 0) { "An achievement count of $count isn't a lock" }
@@ -48,7 +48,7 @@ sealed interface StyleUnlock {
     data class SpecificAchievement(val achievement: Achievement) : StyleUnlock {
         override fun isMet(achievements: AchievementsState): Boolean = achievements.isUnlocked(achievement)
 
-        override val hiddenWhileLocked: Boolean get() = achievement.visibility == AchievementVisibility.SECRET
+        override val hiddenWhileLocked: Boolean get() = achievement.category == AchievementCategory.EASTER_EGGS
     }
 }
 
