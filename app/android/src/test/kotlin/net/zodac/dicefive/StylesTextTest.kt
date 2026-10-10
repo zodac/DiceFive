@@ -20,6 +20,8 @@ import net.zodac.dicefive.ui.game.style.TableBackgrounds
 import net.zodac.dicefive.ui.styles.StylesScreen
 import net.zodac.dicefive.ui.styles.StylesViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.performTouchInput
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -59,5 +61,14 @@ class StylesTextTest {
         val metal = compose.onNode(hasContentDescription("Metal, Gold")).fetchSemanticsNode().config
         assertEquals("Select", metal[SemanticsActions.OnClick].label)
         assertEquals("Choose Metal colour", metal[SemanticsActions.OnLongClick].label)
+    }
+
+    @Test
+    fun `a locked style tile shows the unlock requirement dialog with resolved style name`() {
+        show(AchievementsState())
+        val frosted = compose.onAllNodesWithContentDescription("Frosted").onFirst()
+        frosted.performTouchInput { longClick() }
+        compose.waitForIdle()
+        compose.onNodeWithText("Earn 23 achievements to unlock Frosted. You've earned 0 so far.").assertExists()
     }
 }

@@ -1636,11 +1636,11 @@ private fun shortRequirement(family: StyleFamily<*>): String =
 @Composable
 private fun unlockRequirement(family: StyleFamily<*>, achievements: AchievementsState): String =
     when (val unlock = family.unlock) {
-        StyleUnlock.Free -> stringResource(Res.string.styles_unlock_free, family.name)
+        StyleUnlock.Free -> stringResource(Res.string.styles_unlock_free, stringResource(family.name))
         is StyleUnlock.AchievementCount ->
-            pluralStringResource(Res.plurals.styles_unlock_count, unlock.count, unlock.count, family.name, achievements.countedUnlocks)
+            pluralStringResource(Res.plurals.styles_unlock_count, unlock.count, unlock.count, stringResource(family.name), achievements.countedUnlocks)
         // Never a secret one: its style isn't shown until it's earned (StyleUnlock.hiddenWhileLocked).
-        is StyleUnlock.SpecificAchievement -> stringResource(Res.string.styles_unlock_specific, stringResource(unlock.achievement.title), family.name)
+        is StyleUnlock.SpecificAchievement -> stringResource(Res.string.styles_unlock_specific, stringResource(unlock.achievement.title), stringResource(family.name))
     }
 
 /**
