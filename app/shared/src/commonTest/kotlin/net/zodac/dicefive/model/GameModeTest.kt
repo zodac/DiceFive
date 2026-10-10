@@ -55,18 +55,24 @@ class GameModeTest {
             assertEquals(mode.maxPossibleScore, perfectGame(mode).totalScore, "$mode")
         }
 
-        // Quickfire's is the best of every set of boxes it can switch off: every way to leave six of the twelve on.
-        val others = GameMode.QUICKFIRE.categories - GameMode.QUICKFIRE.disabledCategories
+        // Quickfire's is the best of every set of boxes it can switch off: 3 upper enabled out of 6, and 3 lower enabled out of 6 (plus 5x disabled).
+        val upperCategories = PlayerState.UPPER_CATEGORIES
+        val lowerCategories = ScoreCategory.entries.filter { it.section == ScoreSection.LOWER && it != ScoreCategory.FIVE_OF_A_KIND }
         var best = 0
-        for (mask in 0 until (1 shl others.size)) {
-            if (mask.countOneBits() != GameMode.QUICKFIRE.turnsPerGame) continue
-            val enabled = others.filterIndexed { index, _ -> (mask shr index) and 1 == 1 }
-            var state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Perfect")), GameMode.QUICKFIRE)
-            val switchedOff = GameMode.QUICKFIRE.categories.toSet() - enabled.toSet()
-            state = state.copy(disabledCategories = switchedOff, players = state.players.map { it.copy(disabledCategories = switchedOff) })
-            for (category in enabled) state = GameEngine.commitScore(state.copy(dice = bestHand(category), phase = TurnPhase.ROLLED), category)
-            assertTrue(state.isGameOver)
-            best = maxOf(best, state.players.single().totalScore)
+        for (upperMask in 0 until (1 shl upperCategories.size)) {
+            if (upperMask.countOneBits() != 3) continue
+            val enabledUpper = upperCategories.filterIndexed { index, _ -> (upperMask shr index) and 1 == 1 }
+            for (lowerMask in 0 until (1 shl lowerCategories.size)) {
+                if (lowerMask.countOneBits() != 3) continue
+                val enabledLower = lowerCategories.filterIndexed { index, _ -> (lowerMask shr index) and 1 == 1 }
+                val enabled = enabledUpper + enabledLower
+                var state = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Perfect")), GameMode.QUICKFIRE)
+                val switchedOff = GameMode.QUICKFIRE.categories.toSet() - enabled.toSet()
+                state = state.copy(disabledCategories = switchedOff, players = state.players.map { it.copy(disabledCategories = switchedOff) })
+                for (category in enabled) state = GameEngine.commitScore(state.copy(dice = bestHand(category), phase = TurnPhase.ROLLED), category)
+                assertTrue(state.isGameOver)
+                best = maxOf(best, state.players.single().totalScore)
+            }
         }
         assertEquals(GameMode.QUICKFIRE.maxPossibleScore, best)
 
@@ -167,6 +173,8 @@ class GameModeTest {
         for (seed in 1..40) {
             val game = GameEngine.newGame(players, GameMode.QUICKFIRE, random = Random(seed))
             assertEquals(7, game.disabledCategories.size)
+            assertEquals(3, game.disabledCategories.count { it.section == ScoreSection.UPPER })
+            assertEquals(4, game.disabledCategories.count { it.section == ScoreSection.LOWER })
             assertTrue(ScoreCategory.FIVE_OF_A_KIND in game.disabledCategories)
             assertTrue(game.players.all { it.disabledCategories == game.disabledCategories })
             assertTrue(game.players.all { it.turnsPerGame == 6 && it.turnsLeft == 6 })
