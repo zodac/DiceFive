@@ -8,7 +8,7 @@
 #     ## Changes since 1.2.3
 #
 #     ### Gameplay
-#     - [1f5dd9f2](https://github.com/zodac/DiceFive/commit/1f5dd9f2) Add the Tricolour game mode
+#     - [[1f5dd9f2]](https://github.com/zodac/DiceFive/commit/1f5dd9f2) Add the Tricolour game mode
 #
 # Used by the release workflow to build a GitHub release's description, after RELEASE_NOTES.md.
 # Run it locally to preview what the next release will list.
@@ -64,7 +64,7 @@ git -C "$root_dir" log --no-merges --reverse --abbrev=8 --format="%h${sep}%an${s
         key = tolower(category)
         if (!(key in label)) label[key] = (category == "" ? "Other" : category)
         rank = (category == "" ? "1" : "0")
-        printf "%s%s\t%s\t- [%s](%s/commit/%s) %s\n", rank, key, label[key], hash, repo_url, hash, description
+        printf "%s%s\t%s\t- [[%s]](%s/commit/%s) %s\n", rank, key, label[key], hash, repo_url, hash, description
       }' \
   | LC_ALL=C sort -s -t $'\t' -k1,1 \
   | awk -F '\t' '
