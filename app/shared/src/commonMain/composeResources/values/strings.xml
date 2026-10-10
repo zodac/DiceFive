@@ -415,6 +415,8 @@
     </plurals>
     <!-- %1$s is an achievement's title, %2$s the style's name. -->
     <string name="styles_unlock_specific">Earn `%1$s` to unlock %2$s.</string>
+    <!-- %1$s is the style's name, %2$s its variant or colour name. -->
+    <string name="styles_name_with_variant">%1$s (%2$s)</string>
 
     <!--
         The Rules page's example rows, read aloud as one run of sentences (ui/rules/RulesScreen.kt, spokenDescription).

@@ -372,6 +372,7 @@
         <item quantity="other">احصل على `%1$d` إنجاز لتفتح %2$s. لقد حصلت حتى الآن على `%3$d`.</item>
     </plurals>
     <string name="styles_unlock_specific">احصل على `%1$s` لتفتح %2$s.</string>
+    <string name="styles_name_with_variant">%1$s (%2$s)</string>
     <string name="rules_example_any_place_spoken">أي مكان</string>
     <string name="rules_example_red_die_spoken">أحمر %1$d</string>
     <string name="rules_example_yellow_die_spoken">أصفر %1$d</string>
