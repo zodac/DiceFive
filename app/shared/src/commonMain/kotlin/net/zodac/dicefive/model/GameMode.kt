@@ -139,10 +139,18 @@ enum class GameMode(
      */
     val disabledCategories: Set<ScoreCategory> = emptySet(),
     /**
+     * How many more upper boxes of [categories] are switched off, drawn at random when a game starts.
+     */
+    val randomUpperDisabledCategories: Int = 0,
+    /**
+     * How many more lower boxes of [categories] (not [disabledCategories]) are switched off, drawn at random when a game starts.
+     */
+    val randomLowerDisabledCategories: Int = 0,
+    /**
      * How many more boxes of [categories] (not [disabledCategories]) are switched off, drawn at random when a
      * game starts - see [drawDisabledCategories]. The same ones for every player of that game.
      */
-    val randomDisabledCategories: Int = 0,
+    val randomDisabledCategories: Int = randomUpperDisabledCategories + randomLowerDisabledCategories,
     /**
      * The shapes of the targets a game of this mode draws, one per [ScoreCategory.TARGETS] box on [categories], in
      * order - see [drawHitList]. Empty in every mode without targets.
@@ -332,7 +340,8 @@ enum class GameMode(
         maxRollsPerGame = 18,
         countsOnLeaderboard = false,
         disabledCategories = setOf(ScoreCategory.FIVE_OF_A_KIND),
-        randomDisabledCategories = 6,
+        randomUpperDisabledCategories = 3,
+        randomLowerDisabledCategories = 3,
     ),
 
     ;
@@ -360,7 +369,14 @@ enum class GameMode(
      */
     fun drawDisabledCategories(random: Random): Set<ScoreCategory> {
         if (randomDisabledCategories == 0) return disabledCategories
-        return disabledCategories + (categories - disabledCategories).shuffled(random).take(randomDisabledCategories)
+        if (randomUpperDisabledCategories == 0 && randomLowerDisabledCategories == 0) {
+            return disabledCategories + (categories - disabledCategories).shuffled(random).take(randomDisabledCategories)
+        }
+        val upperCandidates = categories.filter { it.section == ScoreSection.UPPER && it !in disabledCategories }
+        val lowerCandidates = categories.filter { it.section == ScoreSection.LOWER && it !in disabledCategories }
+        val chosenUpper = upperCandidates.shuffled(random).take(randomUpperDisabledCategories)
+        val chosenLower = lowerCandidates.shuffled(random).take(randomLowerDisabledCategories)
+        return disabledCategories + chosenUpper + chosenLower
     }
 
     /** Whether this mode's card is a list of targets (see [hitListShapes]). */

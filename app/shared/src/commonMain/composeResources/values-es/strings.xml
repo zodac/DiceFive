@@ -884,10 +884,10 @@
     <string name="rules_quickfire_title">Ráfaga</string>
     <string name="rules_quickfire_tab">Ráfaga</string>
     <string name="rules_quickfire_1">Una versión limitada de *Estándar*. Cada partida empieza con la categoría `5x` y **seis** más, elegidas al azar, desactivadas. Así quedan solo **seis** categorías por anotar, por lo que una partida dura apenas **seis** turnos.</string>
-    <string name="rules_quickfire_2">Una categoría desactivada aparece tachada con una barra. Todos los jugadores de una partida tienen desactivadas las mismas, y en cada partida se elige un grupo nuevo.</string>
+    <string name="rules_quickfire_2">Las categorías desactivadas aparecen tachadas. Se activarán tres categorías de la sección superior y tres de la sección inferior.</string>
     <string name="rules_quickfire_3">Con `5x` desactivado no hay regla del comodín ni bonificación por 5x repetidos.</string>
-    <string name="rules_quickfire_4">La bonificación de la *sección superior* se ajusta según las categorías desactivadas. Sigue otorgando **35 pts**, pero se reduce el objetivo. Con `Treses` desactivado necesitas **54 pts**, es decir, **9 pts** menos. Si todas las categorías de la *sección superior* están desactivadas, no hay bonificación.</string>
-    <string name="rules_quickfire_5">Las categorías del modificador *Puntuaciones ampliadas* nunca se desactivan.</string>
+    <string name="rules_quickfire_4">La bonificación de la *Sección superior* varía en función de las categorías desactivadas. Sigue otorgando **35 puntos**, pero el objetivo se reduce. Si se desactivan los «tres», se necesitan **54 puntos**, es decir, **9 puntos** menos.</string>
+    <string name="rules_quickfire_5">Las categorías del modificador *Puntuaciones ampliadas* nunca se desactivan si el modificador está activado.</string>
     <string name="rules_quickfire_6">Las puntuaciones de este modo no van a la *clasificación*, porque cada partida tiene una tarjeta distinta, pero sí cuentan para tus *estadísticas*.</string>
     <string name="rules_stud_title">Stud de 7 dados</string>
     <string name="rules_stud_tab">Stud de 7 dados</string>

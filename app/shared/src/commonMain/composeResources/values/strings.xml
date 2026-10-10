@@ -1131,10 +1131,10 @@
     <!-- A tab: keep it short. -->
     <string name="rules_quickfire_tab">Quickfire</string>
     <string name="rules_quickfire_1">A limited version of *Standard*. Every game starts with the `5x` category and **six** others, picked at random, disabled. That leaves just **six** categories to score, so a game lasts only **six** turns.</string>
-    <string name="rules_quickfire_2">A disabled category has a slash through it. Every player in a game has the same ones disabled, and a new set is picked for each game.</string>
+    <string name="rules_quickfire_2">A disabled category has a slash through it. There will be three categories enabled from the upper section, and three from the lower section.</string>
     <string name="rules_quickfire_3">With `5x` disabled, there is no Joker rule and no bonus for repeat 5x.</string>
-    <string name="rules_quickfire_4">The *Upper Section* bonus scales based on the disabled categories. It still earns **35pts**, but the target is reduced. With `Threes` disabled you need **54pts**, which is **9pts** less. If every *Upper Section* category is disabled, there's no bonus.</string>
-    <string name="rules_quickfire_5">The *Extended Scores* modifier's categories are never disabled.</string>
+    <string name="rules_quickfire_4">The *Upper Section* bonus scales based on the disabled categories. It still earns **35pts**, but the target is reduced. With `Threes` disabled you need **54pts**, which is **9pts** less.</string>
+    <string name="rules_quickfire_5">The *Extended Scores* modifier categories are never disabled, if the modifier is enabled.</string>
     <string name="rules_quickfire_6">Scores from this mode don't go on the *Leaderboard*, since every game has a different scorecard, but they still count towards your *Statistics*.</string>
     <string name="rules_stud_title">7 Dice Stud</string>
     <!-- A tab: keep it short. -->
