@@ -649,18 +649,17 @@ enum class Achievement(
         Res.string.achievement_tricolour_all_colours_description,
         AchievementCategory.GAME_MODES,
     ),
-    QUICKFIRE_WIN(
-        "quickfire_win",
-        Res.string.achievement_quickfire_win_title,
-        Res.string.achievement_quickfire_win_description,
+    THIRD_WIND_WIN(
+        "third_wind_win",
+        Res.string.achievement_third_wind_win_title,
+        Res.string.achievement_third_wind_win_description,
         AchievementCategory.GAME_MODES,
     ),
-    // Judged on the finished game's total. Not with extra rolls or Extended Scores' three boxes, which
-    // make a total that high far easier.
-    QUICKFIRE_SCORE(
-        "quickfire_score_150",
-        Res.string.achievement_quickfire_score_title,
-        Res.string.achievement_quickfire_score_description,
+    // Third Wind's own Spotless, which can't be earned there - every one of the 39 slots, no zeroes.
+    THIRD_WIND_NO_ZEROES(
+        "third_wind_no_zeroes",
+        Res.string.achievement_third_wind_no_zeroes_title,
+        Res.string.achievement_third_wind_no_zeroes_description,
         AchievementCategory.GAME_MODES,
     ),
     STUD_WIN(
@@ -677,19 +676,6 @@ enum class Achievement(
         Res.string.achievement_stud_lucky_seven_description,
         AchievementCategory.GAME_MODES,
     ),
-    THIRD_WIND_WIN(
-        "third_wind_win",
-        Res.string.achievement_third_wind_win_title,
-        Res.string.achievement_third_wind_win_description,
-        AchievementCategory.GAME_MODES,
-    ),
-    // Third Wind's own Spotless, which can't be earned there - every one of the 39 slots, no zeroes.
-    THIRD_WIND_NO_ZEROES(
-        "third_wind_no_zeroes",
-        Res.string.achievement_third_wind_no_zeroes_title,
-        Res.string.achievement_third_wind_no_zeroes_description,
-        AchievementCategory.GAME_MODES,
-    ),
     HIT_LIST_WIN(
         "hit_list_win",
         Res.string.achievement_hit_list_win_title,
@@ -701,6 +687,20 @@ enum class Achievement(
         "hit_list_right_on_target",
         Res.string.achievement_hit_list_right_on_target_title,
         Res.string.achievement_hit_list_right_on_target_description,
+        AchievementCategory.GAME_MODES,
+    ),
+    QUICKFIRE_WIN(
+        "quickfire_win",
+        Res.string.achievement_quickfire_win_title,
+        Res.string.achievement_quickfire_win_description,
+        AchievementCategory.GAME_MODES,
+    ),
+    // Judged on the finished game's total. Not with extra rolls or Extended Scores' three boxes, which
+    // make a total that high far easier.
+    QUICKFIRE_SCORE(
+        "quickfire_score_150",
+        Res.string.achievement_quickfire_score_title,
+        Res.string.achievement_quickfire_score_description,
         AchievementCategory.GAME_MODES,
     ),
 
