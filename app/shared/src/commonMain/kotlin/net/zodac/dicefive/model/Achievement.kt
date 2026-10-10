@@ -412,7 +412,7 @@ enum class Achievement(
         "wins_25",
         Res.string.achievement_wins_25_title,
         Res.string.achievement_wins_25_description,
-        AchievementCategory.MILESTONES, AchievementCounter.GAMES_WON, target = 25,
+        AchievementCategory.MILESTONES, AchievementCounter.GAMES_WON, target = 25, progressStepSize = 5,
     ),
     DICE_10000(
         "dice_10000",

@@ -536,6 +536,15 @@ class AchievementEngineTest {
         assertFalse(pointsProgressed(before = 199, total = 50))
         assertTrue(pointsProgressed(before = 999, total = 1))
 
+        // Hall Of Famer announces progress every 5 wins - not every quarter of its 25 target:
+        // 4 -> 5 crosses a multiple of 5, 3 -> 4 does not.
+        fun winsProgressed(before: Int) = evaluate(
+            finishedGame(player(total = 200), bot(total = 100)),
+            before = AchievementsState(counters = mapOf(AchievementCounter.GAMES_WON to before)),
+        ).progressed.any { it.achievement == Achievement.WINS_25 }
+        assertFalse(winsProgressed(before = 3))
+        assertTrue(winsProgressed(before = 4))
+
         // An achievement being unlocked right now does not also report progress.
         val unlocking = evaluate(finishedGame(player()), before = AchievementsState(counters = mapOf(AchievementCounter.GAMES_PLAYED to 9)))
         assertTrue(Achievement.GAMES_10 in unlocking.newlyUnlocked)
