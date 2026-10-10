@@ -323,6 +323,7 @@
         <item quantity="other">Consigue `%1$d` logros para desbloquear %2$s. Llevas `%3$d` hasta ahora.</item>
     </plurals>
     <string name="styles_unlock_specific">Consigue `%1$s` para desbloquear %2$s.</string>
+    <string name="styles_name_with_variant">%1$s (%2$s)</string>
     <string name="rules_example_any_place_spoken">cualquiera</string>
     <string name="rules_example_red_die_spoken">rojo %1$d</string>
     <string name="rules_example_yellow_die_spoken">amarillo %1$d</string>

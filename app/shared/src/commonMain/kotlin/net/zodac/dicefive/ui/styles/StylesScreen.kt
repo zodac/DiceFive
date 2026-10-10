@@ -162,6 +162,7 @@ import net.zodac.dicefive.resources.styles_selected_cd
 import net.zodac.dicefive.resources.styles_show_unlock_action
 import net.zodac.dicefive.resources.styles_title
 import net.zodac.dicefive.resources.styles_unlock_count
+import net.zodac.dicefive.resources.styles_name_with_variant
 import net.zodac.dicefive.resources.styles_unlock_free
 import net.zodac.dicefive.resources.styles_unlock_specific
 import net.zodac.dicefive.ui.common.AppTooltip
@@ -1456,7 +1457,9 @@ private fun <T : TableArt> StyleFamilyTile(
                         val available = colour.isAvailable(achievements)
                         val colourDescription = stringResource(Res.string.styles_family_colour_cd, familyName, stringResource(colour.name))
                         val achievementTitle = colour.secretAchievement?.title?.let { stringResource(it) } ?: ""
-                        val lockedRequirement = stringResource(Res.string.styles_unlock_specific, achievementTitle, familyName)
+                        val variantStyleName = stringResource(Res.string.styles_name_with_variant, familyName, stringResource(colour.name))
+                        val lockedRequirement = stringResource(Res.string.styles_unlock_specific, achievementTitle, variantStyleName)
+                        val showUnlockLabel = stringResource(Res.string.styles_show_unlock_action, variantStyleName)
                         StylePreview(
                             style = colour.style,
                             size = previewSize,
@@ -1469,10 +1472,12 @@ private fun <T : TableArt> StyleFamilyTile(
                                     contentDescription = colourDescription
                                     role = Role.RadioButton
                                     selected = colour.style.id == selectedId
-                                    onClick(label = selectLabel) {
+                                    onClick(label = if (available) selectLabel else showUnlockLabel) {
                                         if (available) {
                                             select(colour.style.id)
                                             choosingColour = false
+                                        } else {
+                                            lockedVariantRequirement = lockedRequirement
                                         }
                                         true
                                     }
