@@ -1,6 +1,6 @@
 # DiceFive: online game services (Google Play Games Services v2) - proposal and plan
 
-**Status (2026-10-12): Phase 1 built** (the seam, `GameMode.onlineLeaderboardKey`, the `online`
+**Status (2026-10-12): Phase 1 done** (the seam, `GameMode.onlineLeaderboardKey`, the `online`
 DataStore, the Settings card hidden while the service is unavailable, `ScoreEntry.playedUnmodified`). No Play
 Games dependency, no sign-in, no console configuration: Phase 0 is the maintainer's and not yet done. This file replaces the scattered notes on the subject (`PUBLISHING.md`'s
 "Google Play Games Services" section and `DESIGN.md` Phase 13's "Google Play Games" entry). Where
@@ -513,7 +513,7 @@ and the closed track, can wait until release):
 
 Achievements and leaderboards can be created later, from the exported files (Phases 3 and 4).
 
-**Phase 1 - The seam, with nothing behind it.** `online/GameServices`, `NoGameServices`,
+**Phase 1 - The seam, with nothing behind it. DONE (2026-10-12).** `online/GameServices`, `NoGameServices`,
 `LocalGameServices`, `GameMode.onlineLeaderboardKey` (with a test that every mode has one) and the
 `online` DataStore file. The Settings card exists but is hidden while the service is `Unavailable`,
 so the app looks the same as before. Tests: card visibility, the switch, TalkBack text. No new
