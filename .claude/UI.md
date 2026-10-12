@@ -979,6 +979,13 @@ with only a couple of scores, so entry count had nothing to do with it. It needs
 off a `ScoresViewModel(initialState = ...)` with no repository. `ScoresWarmUpTest`. The first open within 2s
 of launch isn't warmed.
 
+## Segmented rows
+
+`SegmentedChoiceRow` pads the first and last segments' labels a further `SEGMENT_CAP_INSET` (4dp) on the outer
+side: those segments end in a half circle, so a label centred in the box looked pushed out towards the end.
+`FittedSegmentedChoiceRow` gives those two labels that much less room when choosing a font size. Used by the New Game
+player count and difficulty, and Settings.
+
 ## Scrollbars on long lists
 
 Plain scrolling pages (Styles, and each Rules page) use `VerticalScrollbar`, in the page's right-hand

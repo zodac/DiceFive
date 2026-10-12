@@ -2,6 +2,8 @@ package net.zodac.dicefive.ui.common
 
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -16,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -24,6 +27,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,6 +70,7 @@ fun <T> SegmentedChoiceRow(
     spokenLabel: @Composable (T) -> String = label,
     brandFont: Boolean = false,
 ) {
+    val direction = LocalLayoutDirection.current
     SingleChoiceSegmentedButtonRow(modifier = modifier) {
         options.forEachIndexed { index, option ->
             val optionGlyph = glyph(option)
@@ -76,7 +81,11 @@ fun <T> SegmentedChoiceRow(
                 enabled = enabled,
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                 icon = {},
-                contentPadding = contentPadding,
+                contentPadding = contentPadding.withCapInset(
+                    startCap = index == 0 && options.size > 1,
+                    endCap = index == options.lastIndex && options.size > 1,
+                    direction = direction,
+                ),
                 label = {
                     if (optionGlyph != null) {
                         Icon(
@@ -104,6 +113,20 @@ fun <T> SegmentedChoiceRow(
         }
     }
 }
+
+/**
+ * How much further in the first and last segments' labels sit than the middle ones'. Those two segments end in a
+ * half circle, so the flat area the eye reads as the segment is narrower on the outside than the box the label is
+ * centred in - "Easy" and "Hard" looked pushed out towards the ends. The label moves half of this.
+ */
+internal val SEGMENT_CAP_INSET = 4.dp
+
+private fun PaddingValues.withCapInset(startCap: Boolean, endCap: Boolean, direction: LayoutDirection) = PaddingValues(
+    start = calculateStartPadding(direction) + if (startCap) SEGMENT_CAP_INSET else 0.dp,
+    top = calculateTopPadding(),
+    end = calculateEndPadding(direction) + if (endCap) SEGMENT_CAP_INSET else 0.dp,
+    bottom = calculateBottomPadding(),
+)
 
 /**
  * A [SegmentedChoiceRow] across its whole width whose text labels are sized together so they always match:
@@ -135,13 +158,16 @@ fun <T> FittedSegmentedChoiceRow(
             // A segment's width less its side padding and the 1dp outline each side; the row is infinite
             // only in a measuring pass, where the largest size will do.
             val room = with(density) { (constraints.maxWidth / options.size) - (labelPadding * 2 + 2.dp).roundToPx() }
+            val capInset = with(density) { SEGMENT_CAP_INSET.roundToPx() }
             if (constraints.maxWidth == Constraints.Infinity) {
                 FontFit(maxFontSize, wraps = false)
             } else {
                 FontFitCache.getOrPut(FontFitKey(options.map(labels::getValue), textStyle.copy(fontSize = maxFontSize), MIN_READABLE_FONT_SIZE, 0.5.sp, room, density.density, density.fontScale)) {
                     fitFontSize(maxFontSize, MIN_READABLE_FONT_SIZE, 0.5.sp) { size ->
-                        options.all {
-                            measurer.measure(text = labels.getValue(it), style = textStyle.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= room
+                        options.withIndex().all { (index, option) ->
+                            // The first and last segments' labels sit further in (see SEGMENT_CAP_INSET), so have less room.
+                            val roomHere = if (index == 0 || index == options.lastIndex) room - capInset else room
+                            measurer.measure(text = labels.getValue(option), style = textStyle.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= roomHere
                         }
                     }
                 }
