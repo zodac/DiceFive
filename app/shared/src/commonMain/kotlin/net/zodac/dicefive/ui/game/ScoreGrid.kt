@@ -114,7 +114,8 @@ internal val REGULAR_BOARD_HEIGHT = 380.dp
 internal class BoardLayout(
     val leftRows: List<List<ScoreCategory>>,
     val sideRows: List<List<ScoreCategory>>,
-    val featured: ScoreCategory = ScoreCategory.FIVE_OF_A_KIND,
+    /** The box with a tile of its own - null on a card with none (D20's), whose right pane starts with its boxes. */
+    val featured: ScoreCategory? = ScoreCategory.FIVE_OF_A_KIND,
 ) {
     val rowCount: Int
         get() = leftRows.size
@@ -124,7 +125,7 @@ internal class BoardLayout(
      * has [MIN_CUP_ROWS] rows left for the cup once the boxes under it have moved down two rows.
      */
     val featuredRows: Int
-        get() = if (sideRows.isEmpty() || rowCount - 1 - (LARGE_FEATURED_ROWS + sideRows.size) >= MIN_CUP_ROWS) LARGE_FEATURED_ROWS else 1
+        get() = if (featured == null) 0 else if (sideRows.isEmpty() || rowCount - 1 - (LARGE_FEATURED_ROWS + sideRows.size) >= MIN_CUP_ROWS) LARGE_FEATURED_ROWS else 1
 
     /** The row the dice cup starts in: under the boxes beneath the featured box, and never above the fourth row. */
     val cupFirstRow: Int
@@ -145,6 +146,8 @@ private val EXTENDED_SIDE_ROWS = listOf(listOf(ScoreCategory.EVENS, ScoreCategor
 
 /** How a card of [categories] is laid out - see [BoardLayout]. The featured box is left out of both: it has its own tile. */
 internal fun boardLayout(categories: List<ScoreCategory>): BoardLayout {
+    val d20Boxes = categories.filter { it.section == ScoreSection.FIRST_HALF || it.section == ScoreSection.SECOND_HALF }
+    if (d20Boxes.isNotEmpty()) return d20Layout(d20Boxes)
     val featured = categories.firstOrNull { it.featured } ?: ScoreCategory.FIVE_OF_A_KIND
     val gridCategories = categories.filter { it != featured }
     val extended = EXTENDED_SIDE_ROWS.map { row -> row.filter { it in gridCategories } }.filter { it.isNotEmpty() }
@@ -154,6 +157,21 @@ internal fun boardLayout(categories: List<ScoreCategory>): BoardLayout {
     val sideBySide = upper.zip(others) { left, right -> listOf(left, right) }
     val leftOver = upper.drop(others.size) + others.drop(upper.size)
     return BoardLayout(sideBySide + leftOver.chunked(2), sideRows, featured)
+}
+
+/** How many rows of the grid (the left pane) D20's boxes take - the rest go in the right pane's top rows, over the cup. */
+private const val D20_GRID_ROWS = 7
+
+/**
+ * D20's twenty-two boxes in two columns by half: the first half's (1 to 10, then its wildcard) in column 1 then, from the
+ * eighth, column 3; the second half's likewise in columns 2 and 4. [D20_GRID_ROWS] rows of the grid, then the other four
+ * in the right pane's top rows with the cup in the two rows under them.
+ */
+private fun d20Layout(numbers: List<ScoreCategory>): BoardLayout {
+    val first = numbers.filter { it.section == ScoreSection.FIRST_HALF }
+    val second = numbers.filter { it.section == ScoreSection.SECOND_HALF }
+    val pairs = first.zip(second) { a, b -> listOf(a, b) }
+    return BoardLayout(pairs.take(D20_GRID_ROWS), pairs.drop(D20_GRID_ROWS), featured = null)
 }
 
 /**
@@ -196,8 +214,9 @@ fun ScoreGrid(
     onScoreCategory: (ScoreCategory) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val rows = boardLayout(categories).leftRows
-    val compact = gridTileSize(rows.size) == COMPACT_TILE_SIZE
+    val layout = boardLayout(categories)
+    val rows = layout.leftRows
+    val compact = gridTileSize(layout.rowCount) == COMPACT_TILE_SIZE
     Column(modifier = modifier.fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(GRID_ROW_SPACING)) {
         for (row in rows) {
             CellRow(row, player, canScore, showPreview, available, dice, onScoreCategory, compact, Modifier.weight(1f))

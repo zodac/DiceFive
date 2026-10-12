@@ -2,6 +2,8 @@ package net.zodac.dicefive.model
 
 import kotlin.random.Random
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.mode_d20
+import net.zodac.dicefive.resources.mode_d20_description
 import net.zodac.dicefive.resources.mode_hit_list
 import net.zodac.dicefive.resources.mode_hit_list_description
 import net.zodac.dicefive.resources.mode_quickfire
@@ -60,6 +62,9 @@ private val HIT_LIST_SHAPES = listOf(
     TargetShape("aabcd", points = 55),
     TargetShape("aabbc", points = 75),
 )
+
+/** D20's card: the numbers 1 to 20, each a box, and a wildcard for each half. */
+private val D20_CATEGORIES = ScoreCategory.D20_CARD
 
 private val HIT_LIST_CATEGORIES = ScoreCategory.TARGETS.take(HIT_LIST_SHAPES.size) + ScoreCategory.ALIBI
 
@@ -158,6 +163,8 @@ enum class GameMode(
     val hitListShapes: List<TargetShape> = emptyList(),
     /** Whether the Extended Scores modifier can be switched on for this mode - its boxes need a card they mean something on. */
     val allowsExtendedScores: Boolean = true,
+    /** The bonuses this mode's sections earn besides Standard's upper one, each added to the total once its section reaches its threshold. */
+    val sectionBonuses: List<SectionBonus> = emptyList(),
 ) {
 
     /**
@@ -280,6 +287,43 @@ enum class GameMode(
     ),
 
     /**
+     * Beyond the official rules: the dice are twenty-sided, and the card is the numbers 1 to 20 - twenty boxes, each
+     * adding up the dice showing its number like an upper box - and two wildcards, one for each half, each adding up every
+     * die showing a number of its half (1 to 10, or 11 to 20), whichever numbers they are. No lower section and no 5x (so no joker either).
+     * Five dice and five rolls a turn, unless the Number of Rolls modifier says otherwise. The first half (1 to 10) earns
+     * 75 at 138 or more, and the second half (11 to 20) 75 at 388 or more, each half's total counting its wildcard - both
+     * thresholds about two and a half dice of each number, as Standard's 63 is three - and a game can earn both. Extended Scores isn't allowed, and its
+     * scores don't go on the Leaderboard, since a total over twenty boxes is nothing like Standard's.
+     *
+     * Max score: five dice of every number, `5*(1+2+...+20) = 1050`, `+5*10 = 50` and `+5*20 = 100` the wildcards, `+75+75` the
+     * two half bonuses. `1050+150+150 = 1350`.
+     *
+     * Max rolls: twenty-two boxes, 5 rolls each. `22*5 = 110`.
+     */
+    D20(
+        id = "d20",
+        displayName = Res.string.mode_d20,
+        description = Res.string.mode_d20_description,
+        diceCount = 5,
+        scoringDiceCount = 5,
+        rollsPerTurn = 5,
+        dieValues = 1..20,
+        dieColours = emptyList(),
+        categories = D20_CATEGORIES,
+        upperBonusThreshold = 0,
+        upperBonusAmount = 0,
+        fiveOfAKindBonusAmount = 0,
+        maxPossibleScore = 1350,
+        maxRollsPerGame = 110,
+        countsOnLeaderboard = false,
+        allowsExtendedScores = false,
+        sectionBonuses = listOf(
+            SectionBonus(ScoreSection.FIRST_HALF, threshold = 138, amount = 75),
+            SectionBonus(ScoreSection.SECOND_HALF, threshold = 388, amount = 75),
+        ),
+    ),
+
+    /**
      * Beyond the official rules: Standard's dice and three rolls, but none of its boxes. The card is twelve targets,
      * drawn fresh each game (the same for every player) from [HIT_LIST_SHAPES], and an Alibi. A target names a
      * number for each die's place, left to right, with up to two places any die fills. Every named number among the
@@ -382,6 +426,14 @@ enum class GameMode(
         val chosenLower = lowerCandidates.shuffled(random).take(randomLowerDisabledCategories)
         return disabledCategories + chosenUpper + chosenLower
     }
+
+    /**
+     * Whether this card is Standard's - the numbers 1 to 6 among its boxes. Not Hit List's targets or D20's twenty
+     * numbers, whose totals, zeroes and boxes mean something else; what the achievements measured on a Standard-like
+     * card (a score, a zero, a bonus) check.
+     */
+    val hasStandardCard: Boolean
+        get() = ScoreCategory.ONES in categories
 
     /** Whether this mode's card is a list of targets (see [hitListShapes]). */
     val hasHitList: Boolean

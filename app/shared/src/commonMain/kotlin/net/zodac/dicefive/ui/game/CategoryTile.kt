@@ -51,6 +51,7 @@ import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.HitTarget
 import net.zodac.dicefive.model.PlaceMatch
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.scorePulse
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
@@ -59,12 +60,18 @@ import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileHighlightBottom
 import net.zodac.dicefive.ui.theme.TileHighlightTop
 import net.zodac.dicefive.ui.theme.TileIconColor
+import net.zodac.dicefive.ui.theme.TileIndigoBorder
+import net.zodac.dicefive.ui.theme.TileIndigoBottom
+import net.zodac.dicefive.ui.theme.TileIndigoTop
 import net.zodac.dicefive.ui.theme.TileScoredBorder
 import net.zodac.dicefive.ui.theme.TileScoredBottom
 import net.zodac.dicefive.ui.theme.TileScoredTop
 import net.zodac.dicefive.ui.theme.TileTealBottom
 import net.zodac.dicefive.ui.theme.TileTealBorder
 import net.zodac.dicefive.ui.theme.TileTealTop
+import net.zodac.dicefive.ui.theme.TileSkyBorder
+import net.zodac.dicefive.ui.theme.TileSkyBottom
+import net.zodac.dicefive.ui.theme.TileSkyTop
 
 /** Fixed intrinsic sizes - deliberately NOT derived from ambient row height/aspectRatio, which
  * blew up unpredictably (the 5x tile filling the screen, the grid starving its score text).
@@ -128,6 +135,9 @@ fun CategoryTile(
         // A tile that goes (scored, or the turn moves on) with a finger on it never sees the lift.
         DisposableEffect(Unit) { onDispose { currentOnPressChange(false) } }
     }
+    // D20's halves are indigo (11-20) and sky blue (1-10) where every other open tile is teal.
+    val firstHalf = category.section == ScoreSection.FIRST_HALF
+    val secondHalf = category.section == ScoreSection.SECOND_HALF
     val tileSize = squareSize ?: if (compact) COMPACT_TILE_SIZE else REGULAR_TILE_SIZE
     // Three distinct looks, never overlapping in practice (a scored category is never a legal,
     // highlightable choice): gold glow for "score this now", flat grey for "already used", teal
@@ -137,10 +147,12 @@ fun CategoryTile(
         disabled -> listOf(Color.Transparent, Color.Transparent)
         highlighted -> listOf(TileHighlightTop, TileHighlightBottom)
         scored -> listOf(TileScoredTop, TileScoredBottom)
+        secondHalf -> listOf(TileIndigoTop, TileIndigoBottom)
+        firstHalf -> listOf(TileSkyTop, TileSkyBottom)
         else -> listOf(TileTealTop, TileTealBottom)
     }
     // A highlighted tile's pulsing gold border is drawn by GlowBorder instead, over the content.
-    val borderColor = if (scored) TileScoredBorder else TileTealBorder
+    val borderColor = if (scored) TileScoredBorder else if (secondHalf) TileIndigoBorder else if (firstHalf) TileSkyBorder else TileTealBorder
     val iconColor = when {
         disabled -> TileIconColor.copy(alpha = DISABLED_ICON_ALPHA)
         highlighted -> GoldAccent

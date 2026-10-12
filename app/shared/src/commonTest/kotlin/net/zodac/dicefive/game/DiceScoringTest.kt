@@ -96,4 +96,23 @@ class DiceScoringTest {
         assertEquals(6, score(ScoreCategory.EVENS, 6))
         assertEquals(0, score(ScoreCategory.TWO_PAIR, 6, 6, 5))
     }
+
+    @Test
+    fun `a D20 number adds up its dice and a wildcard every die of its half`() {
+        val dice = listOf(17, 3, 17, 9, 17).map { Die(value = it) }
+        assertEquals(51, DiceScoring.score(ScoreCategory.D20_17, dice))
+        assertEquals(0, DiceScoring.score(ScoreCategory.D20_16, dice))
+        assertEquals(12, DiceScoring.score(ScoreCategory.D20_WILD_LOW, dice))
+        assertEquals(51, DiceScoring.score(ScoreCategory.D20_WILD_HIGH, dice))
+        // Different numbers all count: 9 + 9 + 8 in the first half, 12 + 13 in the second.
+        val mixed = listOf(9, 9, 8, 12, 13).map { Die(value = it) }
+        assertEquals(26, DiceScoring.score(ScoreCategory.D20_WILD_LOW, mixed))
+        assertEquals(25, DiceScoring.score(ScoreCategory.D20_WILD_HIGH, mixed))
+        // Nothing of its half is nothing.
+        assertEquals(0, DiceScoring.score(ScoreCategory.D20_WILD_LOW, listOf(11, 12, 13, 14, 15).map { Die(value = it) }))
+        assertEquals(0, DiceScoring.score(ScoreCategory.D20_WILD_HIGH, listOf(1, 2, 3, 4, 5).map { Die(value = it) }))
+        // Five dice of the top number of each half are the most it scores.
+        assertEquals(50, DiceScoring.score(ScoreCategory.D20_WILD_LOW, List(5) { Die(value = 10) }))
+        assertEquals(100, DiceScoring.score(ScoreCategory.D20_WILD_HIGH, List(5) { Die(value = 20) }))
+    }
 }

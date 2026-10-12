@@ -162,7 +162,7 @@ fun DiceCupPanel(
         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(GRID_ROW_SPACING)) {
             for (row in 0 until rows) {
                 when {
-                    row == 0 && !largeFive -> CategoryCell(
+                    row == 0 && layout.featured != null && !largeFive -> CategoryCell(
                         category = layout.featured,
                         player = player,
                         canScore = canScore,
@@ -193,7 +193,7 @@ fun DiceCupPanel(
                 }
             }
         }
-        if (largeFive) {
+        if (largeFive && layout.featured != null) {
             // Laid over the first two rows, which it spans: from the top of the first row's tiles (which are centred in
             // the row) to the bottom of the second's, as wide as Standard's but for the score room beside it.
             val tile = gridTileSize(rows)
@@ -248,7 +248,17 @@ private fun PanelButtons(layout: BoardLayout, player: PlayerState?, cup: CupPane
         // protection instead of just this one.
         // As big as a tile in the same row.
         val buttonSize = gridTileSize(rows)
-        if (layout.featured == ScoreCategory.ALIBI) {
+        if (layout.featured == null) {
+            val bonuses = (player?.gameMode ?: GameMode.D20).sectionBonuses
+            D20TotalsButton(
+                firstHalf = player?.firstHalfTotal ?: 0,
+                secondHalf = player?.secondHalfTotal ?: 0,
+                firstTarget = bonuses.first { it.section == ScoreSection.FIRST_HALF }.threshold,
+                secondTarget = bonuses.first { it.section == ScoreSection.SECOND_HALF }.threshold,
+                bonus = player?.sectionBonusTotal ?: 0,
+                minSize = buttonSize,
+            )
+        } else if (layout.featured == ScoreCategory.ALIBI) {
             val alibiTotal = player?.scoresIn(ScoreCategory.ALIBI)?.sum() ?: 0
             HitListTotalsButton(targetsTotal = (player?.hitListSectionTotal ?: 0) - alibiTotal, alibiTotal = alibiTotal, minSize = buttonSize)
         } else {

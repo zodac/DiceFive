@@ -172,6 +172,10 @@
     <string name="achievement_third_wind_win_description">افز في لعبة بنمط «النفس الثالث»</string>
     <string name="achievement_third_wind_no_zeroes_title">الثالثة ثابتة</string>
     <string name="achievement_third_wind_no_zeroes_description">املأ الخانات الثلاث لكل فئة دون أي صفر في نمط «النفس الثالث»</string>
+    <string name="achievement_d20_win_title">العشرون الطبيعية</string>
+    <string name="achievement_d20_win_description">افز في لعبة بنمط «D20»</string>
+    <string name="achievement_d20_both_bonuses_title">نجاح حاسم</string>
+    <string name="achievement_d20_both_bonuses_description">في نمط «D20»، اكسب مكافأة النصفين في لعبة واحدة</string>
     <string name="achievement_hit_list_win_title">المهمة أُنجزت</string>
     <string name="achievement_hit_list_win_description">افز في لعبة بنمط «قائمة الأهداف»</string>
     <string name="achievement_hit_list_right_on_target_title">في قلب الهدف</string>
@@ -284,6 +288,8 @@
     <string name="mode_stud_description">ارمِ سبعة أحجار نرد، لكن الخمسة التي تثبّتها فقط تُحتسب</string>
     <string name="mode_third_wind">النفس الثالث</string>
     <string name="mode_third_wind_description">تُسجَّل كل فئة ثلاث مرات</string>
+    <string name="mode_d20">D20</string>
+    <string name="mode_d20_description">سجّل الأرقام من ١ إلى ٢٠ بأحجار نرد ذات عشرين وجهًا</string>
     <string name="mode_hit_list">قائمة الأهداف</string>
     <string name="mode_hit_list_description">ارمِ قائمة من الأهداف الرقمية، وتتضاعف النقاط عندما يكون كل حجر في مكانه</string>
     <string name="player_colour_cyan">سماوي</string>
@@ -358,6 +364,7 @@
         <item quantity="other">يلزم `%1$d` إنجاز</item>
     </plurals>
     <string name="styles_requirement_specific">يلزم إنجاز `%1$s`</string>
+    <string name="styles_requirement_any">يلزم إنجاز `%1$s` أو `%2$s`</string>
     <string name="styles_unlock_free">%1$s متاح دائمًا.</string>
     <plurals name="styles_unlock_count">
         <item quantity="zero">احصل على `%1$d` إنجازًا لتفتح %2$s. لقد حصلت حتى الآن على `%3$d`.</item>
@@ -368,6 +375,7 @@
         <item quantity="other">احصل على `%1$d` إنجاز لتفتح %2$s. لقد حصلت حتى الآن على `%3$d`.</item>
     </plurals>
     <string name="styles_unlock_specific">احصل على `%1$s` لتفتح %2$s.</string>
+    <string name="styles_unlock_any">احصل على `%1$s` أو `%2$s` لتفتح %3$s.</string>
     <string name="styles_name_with_variant">%1$s (%2$s)</string>
     <string name="rules_example_any_place_spoken">أي مكان</string>
     <string name="rules_example_red_die_spoken">أحمر %1$d</string>
@@ -501,6 +509,8 @@
     <string name="score_yellows_irish">البيضاء</string>
     <string name="score_blues_irish">البرتقالية</string>
     <string name="score_target">الهدف %1$d</string>
+    <string name="score_number">الرقم %1$d</string>
+    <string name="score_wildcard">جوكر من %1$d إلى %2$d</string>
     <string name="die_colour_red">أحمر</string>
     <string name="die_colour_yellow">أصفر</string>
     <string name="die_colour_blue">أزرق</string>
@@ -510,6 +520,7 @@
     <string name="common_cpu_cd">الحاسوب</string>
     <string name="game_badge_evens">زج</string>
     <string name="game_badge_odds">فر</string>
+    <string name="game_badge_range">%1$d-%2$d</string>
     <string name="game_undo_cd">تراجع</string>
     <string name="game_review_title">بطاقات النتائج</string>
     <string name="game_cup_rolls_left">×%1$d</string>
@@ -528,6 +539,9 @@
     <string name="game_totals_bonus">المكافأة</string>
     <string name="game_totals_lower">السفلي</string>
     <string name="game_totals_targets">الأهداف</string>
+    <string name="game_totals_first_half">النصف الأول</string>
+    <string name="game_totals_second_half">النصف الثاني</string>
+    <string name="game_totals_progress">%1$d / %2$d</string>
     <string name="game_totals_cd">المجاميع</string>
     <string name="game_totals_show_action">عرض المجاميع</string>
     <string name="game_totals_upper_spoken">العلوي %1$d</string>
@@ -535,6 +549,8 @@
     <string name="game_totals_no_bonus_spoken">لا مكافأة بعد</string>
     <string name="game_totals_lower_spoken">السفلي %1$d</string>
     <string name="game_totals_targets_spoken">الأهداف %1$d</string>
+    <string name="game_totals_first_half_spoken">النصف الأول %1$d من %2$d</string>
+    <string name="game_totals_second_half_spoken">النصف الثاني %1$d من %2$d</string>
     <string name="game_totals_alibi_spoken">Alibi %1$d</string>
     <string name="game_box_disabled_spoken">معطّلة في هذه اللعبة، لا يمكن التسجيل فيها</string>
     <string name="game_box_last_turn_spoken">نتيجة الدور الأخير</string>
@@ -1006,6 +1022,16 @@
     <string name="rules_third_wind_10">في كسر التعادل، تُحتسب كل خانة سجّلت **٠ نقطة** فئةً سجّلت **٠ نقطة**.</string>
     <string name="rules_third_wind_11">لا تُسجَّل نتائج هذا النمط في *لوحة المتصدرين*، لكنها تُحتسب في *الإحصائيات*.</string>
     <string name="rules_third_wind_12">وكل ما عدا ذلك يُلعب تمامًا كما في قواعد *القياسي*، لكن ثلاث مرات!</string>
+    <string name="rules_d20_title">D20</string>
+    <string name="rules_d20_tab">D20</string>
+    <string name="rules_d20_1">نمط مخصّص بـ**٥** أحجار نرد و**٥** رميات، لكن لكل حجر **٢٠** وجهًا. بطاقة النتائج هي الأرقام من `١` إلى `٢٠`، دون *القسم السفلي* ودون `5x`.</string>
+    <string name="rules_d20_2">تجمع كل فئة الأحجار التي تُظهر رقمها، مثل *القسم العلوي*. هذه الرمية تساوي **٥١ نقطة** في `١٧`:</string>
+    <string name="rules_d20_7">لكل نصف أيضًا جوكر، `١-١٠` و`١١-٢٠`. يجمع كل حجر يُظهر رقمًا من نصفه، أيًّا كانت الأرقام. هذه الرمية تساوي **٤٣ نقطة** في جوكر `١١-٢٠`:</string>
+    <string name="rules_d20_8">تُحتسب نقاط الجوكر ضمن نصفه، وبالتالي ضمن مكافأة ذلك النصف.</string>
+    <string name="rules_d20_3">تنقسم الأرقام إلى نصفين، من `١` إلى `١٠` ومن `١١` إلى `٢٠`. اجمع **١٣٨ نقطة** في *النصف الأول* لتحصل على مكافأة **٧٥ نقطة**، و**٣٨٨ نقطة** في *النصف الثاني* لمكافأة أخرى بـ**٧٥ نقطة**. يمكن كسب المكافأتين في اللعبة نفسها. وهذا يعادل نحو حجرين ونصف لكل رقم.</string>
+    <string name="rules_d20_4">بلا فئة `5x` لا توجد قاعدة الجوكر ولا مكافأة لتكرار 5x. يعرض زر *المجاميع* كل نصف والمكافآت.</string>
+    <string name="rules_d20_5">لا يمكن استخدام معدّل *النتائج الموسّعة* في هذا النمط. يغيّر معدّل *عدد الرميات* الرميات الخمس، ولا يمكن كسب إنجاز المكافأتين معه.</string>
+    <string name="rules_d20_6">المجاميع هنا لا تُقارن بالأنماط الأخرى، فلا يمكن كسب إنجازات النتيجة العالية أو المنخفضة، أو بطاقة النتائج بلا أصفار، أو الفوز من الخلف بعد تسجيل ثلاثة أصفار. لا تُسجَّل نتائج هذا النمط في *لوحة المتصدرين*، لكنها تُحتسب في *الإحصائيات*.</string>
     <string name="rules_hit_list_title">قائمة الأهداف</string>
     <string name="rules_hit_list_tab">قائمة الأهداف</string>
     <string name="rules_hit_list_1">نمط مخصّص بـ**٥** أحجار نرد و**٣** رميات، لكن دون أي من فئات *القياسي*. بدلًا من ذلك، تُوزَّع في كل لعبة قائمة من **١٢** هدفًا، إضافةً إلى `Alibi`.</string>
@@ -1034,7 +1060,7 @@
     <string name="rules_turn_timer_2">إذا نفد وقت لاعب، تُسجَّل رميته نيابةً عنه في الفئة المفتوحة التي تساوي فيها أقل قيمة (أول فئة في بطاقة النتائج إن تساوت عدة فئات).</string>
     <string name="rules_number_of_rolls_title">عدد الرميات</string>
     <string name="rules_number_of_rolls_tab">عدد الرميات</string>
-    <string name="rules_number_of_rolls_1">يحدّد *عدد الرميات* كم مرة يحق للاعب أن يرمي في كل دور، من **١** إلى **٩**. وهذا يستبدل القيمة الافتراضية وهي **٣** في الدور.</string>
+    <string name="rules_number_of_rolls_1">يحدّد *عدد الرميات* كم مرة يحق للاعب أن يرمي في كل دور، من **١** إلى **٩**. وهذا يستبدل العدد المعتاد للنمط، وهو **٣** في معظمها.</string>
     <string name="rules_number_of_rolls_2">تغيير عدد الرميات يغيّر سهولة النتائج الكبيرة، فمع تشغيل *عدد الرميات* لا يمكن كسب بعض الإنجازات (مثل إنجاز النتيجة العالية أو مجموع القسم وغيرهما).</string>
     <string name="rules_stored_rolls_title">الرميات المخزّنة</string>
     <string name="rules_stored_rolls_tab">الرميات المخزّنة</string>

@@ -19,6 +19,7 @@ import net.zodac.dicefive.resources.score_fives
 import net.zodac.dicefive.resources.score_fours
 import net.zodac.dicefive.resources.score_full_house
 import net.zodac.dicefive.resources.score_large_straight
+import net.zodac.dicefive.resources.score_number
 import net.zodac.dicefive.resources.score_odds
 import net.zodac.dicefive.resources.score_ones
 import net.zodac.dicefive.resources.score_reds
@@ -29,6 +30,7 @@ import net.zodac.dicefive.resources.score_target
 import net.zodac.dicefive.resources.score_threes
 import net.zodac.dicefive.resources.score_two_pair
 import net.zodac.dicefive.resources.score_twos
+import net.zodac.dicefive.resources.score_wildcard
 import net.zodac.dicefive.resources.score_yellows
 import net.zodac.dicefive.resources.score_yellows_irish
 import net.zodac.dicefive.ui.common.stringResource
@@ -64,6 +66,13 @@ internal fun ScoreCategory.spokenName(irish: Boolean): String = when (this) {
     ScoreCategory.TARGET_9, ScoreCategory.TARGET_10, ScoreCategory.TARGET_11, ScoreCategory.TARGET_12,
     -> stringResource(Res.string.score_target, ScoreCategory.TARGETS.indexOf(this) + 1)
     ScoreCategory.ALIBI -> "Alibi" // i18n: not translated - the game's mark for the box
+    ScoreCategory.D20_1, ScoreCategory.D20_2, ScoreCategory.D20_3, ScoreCategory.D20_4, ScoreCategory.D20_5,
+    ScoreCategory.D20_6, ScoreCategory.D20_7, ScoreCategory.D20_8, ScoreCategory.D20_9, ScoreCategory.D20_10,
+    ScoreCategory.D20_11, ScoreCategory.D20_12, ScoreCategory.D20_13, ScoreCategory.D20_14, ScoreCategory.D20_15,
+    ScoreCategory.D20_16, ScoreCategory.D20_17, ScoreCategory.D20_18, ScoreCategory.D20_19, ScoreCategory.D20_20,
+    -> stringResource(Res.string.score_number, requireNotNull(number))
+    ScoreCategory.D20_WILD_LOW, ScoreCategory.D20_WILD_HIGH ->
+        stringResource(Res.string.score_wildcard, requireNotNull(wildcardNumbers).first, requireNotNull(wildcardNumbers).last)
 }
 
 /** A die colour's name - the Irish flag's colours in its place while [irish] (see DieColour.palette). */

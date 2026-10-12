@@ -37,6 +37,7 @@ import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_bonus_amount
 import net.zodac.dicefive.resources.game_badge_evens
 import net.zodac.dicefive.resources.game_badge_odds
+import net.zodac.dicefive.resources.game_badge_range
 import net.zodac.dicefive.resources.ic_stairs
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.localised
@@ -84,6 +85,13 @@ fun CategoryIcon(
                 PipFace(value = pipValue, color = color, modifier = Modifier.fillMaxSize().padding(6.dp))
             }
 
+            // D20's numbers: the number itself, in digits that follow the language, as a badge like 3x.
+            in ScoreCategory.D20_NUMBERS -> BadgeLabel(requireNotNull(category.number).localised(), color, labelFontSize)
+            // A wildcard: the range it takes its pick from, small enough for five characters to fit the tile.
+            ScoreCategory.D20_WILD_LOW, ScoreCategory.D20_WILD_HIGH -> {
+                val range = requireNotNull(category.wildcardNumbers)
+                BadgeLabel(stringResource(Res.string.game_badge_range, range.first, range.last), color, labelFontSize * WILDCARD_LABEL_SCALE)
+            }
             ScoreCategory.THREE_OF_A_KIND -> BadgeLabel("3x", color, labelFontSize) // i18n: not translated - the game's mark for the box
             ScoreCategory.FOUR_OF_A_KIND -> BadgeLabel("4x", color, labelFontSize) // i18n: not translated - the game's mark for the box
             ScoreCategory.FIVE_OF_A_KIND -> FiveOfAKindIcon(color, labelFontSize, fiveOfAKindBonusCount, fiveOfAKindBonusAmount)
@@ -133,6 +141,9 @@ fun CategoryIcon(
 private val LARGE_TILE_BADGE_BASIS = 76.dp
 private const val BADGE_EDGE_INSET_FRACTION = 2f / 48f
 private const val BADGE_SIZE_FRACTION = 14f / 48f
+
+/** How much smaller a D20 wildcard's range ("11-20") is than a number, so it fits the same tile. */
+private const val WILDCARD_LABEL_SCALE = 0.62f
 
 /** How much smaller the Alibi's five letters are than 5x's two, so they fit the same tile. */
 private const val ALIBI_LABEL_SCALE = 0.6f

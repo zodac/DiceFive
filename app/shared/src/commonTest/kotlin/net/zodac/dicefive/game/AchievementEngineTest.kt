@@ -466,6 +466,8 @@ class AchievementEngineTest {
                 Achievement.THIRD_WIND_NO_ZEROES,
                 Achievement.STUD_WIN,
                 Achievement.STUD_LUCKY_SEVEN,
+                Achievement.D20_WIN,
+                Achievement.D20_BOTH_BONUSES,
                 Achievement.HIT_LIST_WIN,
                 Achievement.HIT_LIST_RIGHT_ON_TARGET,
                 Achievement.QUICKFIRE_WIN,
@@ -1127,6 +1129,69 @@ class AchievementEngineTest {
 
         assertFalse(Achievement.NO_ZEROES in unlocked(finishedGame(hitListPlayer(scores = GameMode.HIT_LIST.categories.associateWith { 5 }))))
         assertTrue(Achievement.NO_ZEROES in unlocked(finishedGame(player(overrides = GameMode.STANDARD.categories.associateWith { 5 }, total = 100))))
+    }
+
+    // ---- D20 --------------------------------------------------------------------------------------------
+
+    /** A finished D20 card: [firstHalf] and [secondHalf] in the first box of each half, every other box a zero. */
+    private fun d20Player(
+        name: String = "Player 1",
+        type: PlayerType = PlayerType.HUMAN,
+        firstHalf: Int = 100,
+        secondHalf: Int = 300,
+        scores: Map<ScoreCategory, Int> = emptyMap(),
+    ): PlayerState {
+        val filled = GameMode.D20.categories.associateWith { 0 } + (ScoreCategory.D20_1 to firstHalf) + (ScoreCategory.D20_11 to secondHalf) + scores
+        return PlayerState(name = name, type = type, gameMode = GameMode.D20, scorecard = oneScoreEach(filled))
+    }
+
+    @Test
+    fun `Critical Success unlocks mid-game once both D20 halves have earned their bonus - not one half - not with extra rolls - not on another card`() {
+        fun earned(player: PlayerState) = Achievement.D20_BOTH_BONUSES in unlockedMidGame(player)
+        val bothScored = mapOf(ScoreCategory.D20_1 to 138, ScoreCategory.D20_11 to 388)
+
+        assertTrue(earned(midGamePlayer(bothScored, gameMode = GameMode.D20)))
+        // Scored across several boxes, not just one.
+        assertTrue(earned(midGamePlayer(mapOf(ScoreCategory.D20_4 to 100, ScoreCategory.D20_10 to 38, ScoreCategory.D20_12 to 200, ScoreCategory.D20_20 to 188), gameMode = GameMode.D20)))
+        assertFalse(earned(midGamePlayer(mapOf(ScoreCategory.D20_1 to 138, ScoreCategory.D20_11 to 387), gameMode = GameMode.D20)))
+        assertFalse(earned(midGamePlayer(mapOf(ScoreCategory.D20_1 to 137, ScoreCategory.D20_11 to 388), gameMode = GameMode.D20)))
+        assertFalse(earned(midGamePlayer(mapOf(ScoreCategory.D20_1 to 138), gameMode = GameMode.D20)))
+        // A wildcard counts towards its half: 100 + 38 and 350 + 38 are enough, a point less in either is not.
+        val withWildcards = mapOf(ScoreCategory.D20_1 to 100, ScoreCategory.D20_WILD_LOW to 38, ScoreCategory.D20_11 to 350, ScoreCategory.D20_WILD_HIGH to 38)
+        assertTrue(earned(midGamePlayer(withWildcards, gameMode = GameMode.D20)))
+        assertFalse(earned(midGamePlayer(withWildcards + (ScoreCategory.D20_WILD_LOW to 37), gameMode = GameMode.D20)))
+        assertFalse(earned(midGamePlayer(withWildcards + (ScoreCategory.D20_WILD_HIGH to 37), gameMode = GameMode.D20)))
+        assertFalse(earned(midGamePlayer(bothScored, gameMode = GameMode.D20).copy(rollsModified = true)))
+        assertFalse(earned(midGamePlayer(emptyMap(), gameMode = GameMode.STANDARD)))
+        // Only a human earns it.
+        assertFalse(earned(midGamePlayer(bothScored, type = PlayerType.AI, gameMode = GameMode.D20)))
+    }
+
+    @Test
+    fun `Nat 20 needs a win in D20 against an opponent`() {
+        fun d20Win(state: GameState) = Achievement.D20_WIN in unlocked(state)
+        val bot = d20Player(name = "Bot", type = PlayerType.AI, firstHalf = 50, secondHalf = 100)
+        assertTrue(d20Win(finishedGame(d20Player(firstHalf = 100, secondHalf = 300), bot)))
+        assertFalse(d20Win(finishedGame(d20Player(firstHalf = 10, secondHalf = 20), bot)))
+        assertFalse(d20Win(finishedGame(d20Player())))
+        assertFalse(d20Win(finishedGame(player(total = 200), bot(total = 150))))
+    }
+
+    @Test
+    fun `a D20 card earns no ladder rung - low score - Zero To Hero or Spotless - its totals are a different measure`() {
+        // Both halves in: 138 + 388 + 150 = 676, far past every rung of Standard's.
+        val high = unlocked(finishedGame(d20Player(firstHalf = 138, secondHalf = 388)))
+        assertFalse(Achievement.SCORE_200 in high)
+        assertFalse(Achievement.SCORE_500 in high)
+
+        val low = unlocked(finishedGame(d20Player(firstHalf = 10, secondHalf = 20)))
+        assertFalse(Achievement.SCORE_UNDER_100 in low)
+        assertFalse(Achievement.LOW_ROLLS in low)
+
+        val bot = d20Player(name = "Bot", type = PlayerType.AI, firstHalf = 50, secondHalf = 100)
+        assertFalse(Achievement.ZERO_TO_HERO in unlocked(finishedGame(d20Player(firstHalf = 100, secondHalf = 300), bot)))
+
+        assertFalse(Achievement.NO_ZEROES in unlocked(finishedGame(d20Player(scores = GameMode.D20.categories.associateWith { 5 }))))
     }
 
     private companion object HitListCard {

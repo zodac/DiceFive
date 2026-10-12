@@ -407,7 +407,7 @@ decisions behind it. Read that before changing anything visual.
   back as today's default (`"casino_gold"`), since that's what's drawn for them, so neither counts as
   a non-default pick for `STYLE_CUP`.
 - **Game modes** (`model/GameMode.kt`, was `GameType`): `STANDARD` (the official rules, formerly
-  `CLASSIC`), `TRICOLOUR` (see Phase 14), `QUICKFIRE` (see Phase 20, redone in Phase 30), `STUD` (see Phase 25), `THIRD_WIND` (see Phase 26) and `HIT_LIST` (see Phase 31). **Every rule that can
+  `CLASSIC`), `TRICOLOUR` (see Phase 14), `QUICKFIRE` (see Phase 20, redone in Phase 30), `STUD` (see Phase 25), `THIRD_WIND` (see Phase 26) `D20` (see Phase 35) and `HIT_LIST` (see Phase 31). **Every rule that can
   differ between modes is a field on the mode**, even where the modes agree today: dice count, how
   many of them score (`scoringDiceCount` - fewer, and only the held dice score), rolls
   per turn, die faces, die colours, the scorecard's categories, how many times each is scored
@@ -749,7 +749,7 @@ The numbers here are Standard's - dice count, rolls per turn and the rest come f
 `DiceScoring`/`GameEngine` are pure functions with no Android
 dependencies — most unit tests live here.
 
-- **Maximum possible score, per mode: 1575 Standard and Stud, 225 Quickfire (the best six boxes it can draw - see Phase 30), 2120 Tricolour, 4725 Third Wind, 785 Hit List (every target exact, plus the Alibi's best - see Phase 31)** (`GameMode.maxPossibleScore`,
+- **Maximum possible score, per mode: 1575 Standard and Stud, 225 Quickfire (the best six boxes it can draw - see Phase 30), 2120 Tricolour, 4725 Third Wind, 1350 D20 (five of every number, the two wildcards and both half bonuses, see Phase 35), 785 Hit List (every target exact, plus the Alibi's best - see Phase 31)** (`GameMode.maxPossibleScore`,
   with each derivation as a doc comment on its entry, locked by `GameModeTest` playing the perfect
   game through the real `GameEngine`) — every upper box maxed plus the 63+ bonus, every other box
   maxed, and every turn after the 5x box also landing a 5x for its +100 bonus chip (12 of them in
@@ -2611,3 +2611,12 @@ any page.
 - `LUCK_OF_THE_DRAW` is now "Look Ma, No Hands!"; its hourglass icon and Time Wasting's shuffle icon were swapped.
 - 102 achievements now, so the D20 dice unlock moved from `AchievementCount(104)` to `102` (it was "every achievement").
 - Earlier mentions of the old names in this file are history and were left as written.
+
+
+### Phase 35 — Game mode: D20
+
+- [x] `GameMode.D20`: `dieValues = 1..20`, 5 dice, 5 rolls, card `D20_1`..`D20_20` and a wildcard per half (`ScoreSection.FIRST_HALF`/`SECOND_HALF`; a wildcard adds up every die showing a number of its half, counting towards its half and its bonus), no 5x or lower section, `sectionBonuses` of 75pts at 138 (1-10) and 388 (11-20), max score 1350, max rolls 110, off the Leaderboard, no Extended Scores. Listed before Hit List.
+- [x] Dice always drawn as a D20 style (`d20Like`: the player's D20 pick, else white; their saved pick untouched); board layout `d20Layout` (7 compact rows, 14 + 8 boxes by half, sky blue and indigo halves, cup in two rows); Totals popup shows each half out of its target and the Bonus, the glyph half lit per bonus earned (`D20TotalsButton`).
+- [x] AI: Medium holds the best open number (`numberHoldIndices`), Hard's bonus stake generalised per section and the baseline for a number worked out in closed form.
+- [x] Achievements (two more): Nat 20 (`D20_WIN`, unlocks the white and black D20 dice) and Critical Success (`D20_BOTH_BONUSES`, unlocks the blue D20); `GameMode.hasStandardCard` guards the totals/zero ones.
+- [x] Rules page, strings in English, Spanish and Arabic.

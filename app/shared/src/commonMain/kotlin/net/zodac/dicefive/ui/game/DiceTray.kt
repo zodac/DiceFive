@@ -96,7 +96,9 @@ import net.zodac.dicefive.ui.game.style.LocalDieTumbleMillis
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.PickUpPath
+import net.zodac.dicefive.ui.game.style.PIP_FACES
 import net.zodac.dicefive.ui.game.style.TossPath
+import net.zodac.dicefive.ui.game.style.d20Like
 import net.zodac.dicefive.ui.game.style.TossPose
 import net.zodac.dicefive.ui.game.style.palette
 
@@ -201,8 +203,8 @@ fun DiceTray(
         val irish = LocalIrishTricolour.current
         // Built once for the game: none of the style, the mode's colours or Luck of the Irish
         // changes mid-game, so every roll reuses the same recoloured styles.
-        val diceStyles = remember(visualTheme.diceStyle, gameMode.dieColours, irish) {
-            TrayDiceStyles(visualTheme.diceStyle, gameMode.dieColours, irish)
+        val diceStyles = remember(visualTheme.diceStyle, gameMode.dieColours, irish, gameMode.dieValues) {
+            TrayDiceStyles(visualTheme.diceStyle, gameMode.dieColours, irish, faceCount = gameMode.dieValues.last)
         }
 
         if (gameMode.scoresHeldDiceOnly) {
@@ -895,6 +897,7 @@ private fun ScatterArea(
                             restY = restY,
                             dieSize = size,
                             sideRoom = sideRoom,
+                            faceCount = diceStyles.faceCount,
                         )
                     }
                     // Both moves through the one Moving call, so the moment the roll lands the die
@@ -975,7 +978,10 @@ private fun DieFace(die: Die, held: Boolean, diceStyles: TrayDiceStyles, modifie
  * of the Irish's while [irish] - all built up front, so a die of any colour is drawn in the same
  * style object every time it lands that colour.
  */
-private class TrayDiceStyles(val plain: DiceStyle, colours: List<DieColour>, irish: Boolean) {
+private class TrayDiceStyles(base: DiceStyle, colours: List<DieColour>, irish: Boolean, val faceCount: Int) {
+    /** [base], or - for dice with more faces than its art has (D20's) - the white D20 (or the D20 style the player picked). */
+    val plain: DiceStyle = if (faceCount > PIP_FACES) d20Like(base) else base
+
     private val coloured: Map<DieColour, DiceStyle> = colours.associateWith { plain.recoloured(it.palette(irish)) }
 
     /** The golden egg in each colour: the colour's egg, keeping the gold's speckles and sparkle. */

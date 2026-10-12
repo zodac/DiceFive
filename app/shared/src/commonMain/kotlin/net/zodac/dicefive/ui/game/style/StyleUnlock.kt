@@ -43,6 +43,15 @@ sealed interface StyleUnlock {
         override fun isMet(achievements: AchievementsState): Boolean = achievements.countedUnlocks >= count
     }
 
+    /** Earning any one of [achievements] - for a style whose colours each have an achievement of their own (see [StyleColour.secretAchievement]). */
+    data class AnyAchievement(val achievements: List<Achievement>) : StyleUnlock {
+        init {
+            require(achievements.size > 1) { "Any of ${achievements.size} achievements isn't a choice" }
+        }
+
+        override fun isMet(achievements: AchievementsState): Boolean = this.achievements.any { achievements.isUnlocked(it) }
+    }
+
     /** Earning one particular [achievement]. */
     data class SpecificAchievement(val achievement: Achievement) : StyleUnlock {
         override fun isMet(achievements: AchievementsState): Boolean = achievements.isUnlocked(achievement)

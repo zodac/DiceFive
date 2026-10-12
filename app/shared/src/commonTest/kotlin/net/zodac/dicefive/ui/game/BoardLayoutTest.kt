@@ -2,6 +2,7 @@ package net.zodac.dicefive.ui.game
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.ScoreCategory
@@ -52,6 +53,26 @@ class BoardLayoutTest {
         assertEquals(emptyList(), hitList.sideRows)
         assertEquals(6, hitList.rowCount)
         assertEquals(2, hitList.featuredRows)
+
+        // D20 has no featured box: its twenty-two boxes fill seven rows by half - 1st half down column 1 then 3, 2nd half down
+        // column 2 then 4, each half's wildcard last - the last four rows of each in the right pane, over a cup of two rows.
+        val d20 = layout(GameMode.D20, extended = false)
+        assertNull(d20.featured)
+        assertEquals(7, d20.rowCount)
+        assertEquals(0, d20.featuredRows)
+        assertEquals(listOf(ScoreCategory.D20_1, ScoreCategory.D20_11), d20.leftRows.first())
+        assertEquals(listOf(ScoreCategory.D20_7, ScoreCategory.D20_17), d20.leftRows.last())
+        assertEquals(
+            listOf(
+                listOf(ScoreCategory.D20_8, ScoreCategory.D20_18),
+                listOf(ScoreCategory.D20_9, ScoreCategory.D20_19),
+                listOf(ScoreCategory.D20_10, ScoreCategory.D20_20),
+                listOf(ScoreCategory.D20_WILD_LOW, ScoreCategory.D20_WILD_HIGH),
+            ),
+            d20.sideRows,
+        )
+        assertEquals(4, d20.cupFirstRow)
+        assertEquals(2, d20.rowCount - 1 - d20.cupFirstRow)
     }
 
     @Test

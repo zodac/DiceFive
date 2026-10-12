@@ -222,6 +222,10 @@
     <string name="achievement_third_wind_win_description">Win a game of 'Third Wind' mode</string>
     <string name="achievement_third_wind_no_zeroes_title">Third Time's The Charm</string>
     <string name="achievement_third_wind_no_zeroes_description">Fill all three slots of every category without a zero in 'Third Wind' mode</string>
+    <string name="achievement_d20_win_title">Nat 20</string>
+    <string name="achievement_d20_win_description">Win a game of 'D20' mode</string>
+    <string name="achievement_d20_both_bonuses_title">Critical Success</string>
+    <string name="achievement_d20_both_bonuses_description">In 'D20' mode, earn the bonus for both halves in one game</string>
     <string name="achievement_hit_list_win_title">Contract Fulfilled</string>
     <string name="achievement_hit_list_win_description">Win a game of 'Hit List' mode</string>
     <string name="achievement_hit_list_right_on_target_title">Right On Target</string>
@@ -336,6 +340,8 @@
     <string name="mode_stud_description">Roll seven dice, but only five can score</string>
     <string name="mode_third_wind">Third Wind</string>
     <string name="mode_third_wind_description">Every category is scored three times</string>
+    <string name="mode_d20">D20</string>
+    <string name="mode_d20_description">Score the numbers 1 to 20 with twenty-sided dice</string>
     <string name="mode_hit_list">Hit List</string>
     <string name="mode_hit_list_description">Score by matching a list of dice sequences</string>
 
@@ -402,6 +408,7 @@
     </plurals>
     <!-- %1$s is an achievement's title. -->
     <string name="styles_requirement_specific">`%1$s` achievement needed</string>
+    <string name="styles_requirement_any">`%1$s` or `%2$s` achievement needed</string>
     <!-- %1$s is the style's name. -->
     <string name="styles_unlock_free">%1$s is always available.</string>
     <!-- Chosen by the number of achievements needed (%1$d). %2$s is the style's name, %3$d how many are earned so far. -->
@@ -411,6 +418,7 @@
     </plurals>
     <!-- %1$s is an achievement's title, %2$s the style's name. -->
     <string name="styles_unlock_specific">Earn `%1$s` to unlock %2$s.</string>
+    <string name="styles_unlock_any">Earn `%1$s` or `%2$s` to unlock %3$s.</string>
     <!-- %1$s is the style's name, %2$s its variant or colour name. -->
     <string name="styles_name_with_variant">%1$s (%2$s)</string>
 
@@ -554,6 +562,8 @@
     <string name="score_blues_irish">Oranges</string>
     <!-- A Hit List target box, numbered from 1. -->
     <string name="score_target">Target %1$d</string>
+    <string name="score_number">Number %1$d</string>
+    <string name="score_wildcard">Wildcard %1$d to %2$d</string>
     <!-- A Tricolour die's colour, as TalkBack names it. -->
     <string name="die_colour_red">Red</string>
     <string name="die_colour_yellow">Yellow</string>
@@ -569,6 +579,8 @@
     <string name="game_badge_evens">Ev</string>
     <!-- Short for Odds, drawn on its box. Keep it to about two letters. -->
     <string name="game_badge_odds">Od</string>
+    <!-- A D20 wildcard's tile: the range of numbers it takes its pick from, "1-10". Keep it short. -->
+    <string name="game_badge_range">%1$d-%2$d</string>
     <string name="game_undo_cd">Undo</string>
     <!-- Title of the page that shows each player's final scorecard. -->
     <string name="game_review_title">Scorecards</string>
@@ -590,6 +602,10 @@
     <string name="game_totals_bonus">Bonus</string>
     <string name="game_totals_lower">Lower</string>
     <string name="game_totals_targets">Targets</string>
+    <string name="game_totals_first_half">1st half</string>
+    <string name="game_totals_second_half">2nd half</string>
+    <!-- A half's points out of the target that earns its bonus, in the totals popup: "95 / 138". -->
+    <string name="game_totals_progress">%1$d / %2$d</string>
     <!-- TalkBack's name for the totals button. -->
     <string name="game_totals_cd">Totals</string>
     <string name="game_totals_show_action">Show totals</string>
@@ -600,6 +616,8 @@
     <string name="game_totals_lower_spoken">lower %1$d</string>
     <!-- Hit List's totals read aloud: "Targets 60, alibi 20". -->
     <string name="game_totals_targets_spoken">Targets %1$d</string>
+    <string name="game_totals_first_half_spoken">1st half %1$d of %2$d</string>
+    <string name="game_totals_second_half_spoken">2nd half %1$d of %2$d</string>
     <string name="game_totals_alibi_spoken">alibi %1$d</string>
     <!-- A score box switched off for the whole game. -->
     <string name="game_box_disabled_spoken">Disabled for this game, can't be scored</string>
@@ -1158,6 +1176,17 @@
     <string name="rules_third_wind_10">In a tie break, every slot that scored **0pts** counts as a category scored **0pts**.</string>
     <string name="rules_third_wind_11">Scores from this mode don't go on the *Leaderboard*, but they still count towards your *Statistics*.</string>
     <string name="rules_third_wind_12">Everything else plays exactly the same as the *Standard* rules, just three times over!</string>
+    <string name="rules_d20_title">D20</string>
+    <!-- A tab: keep it short. -->
+    <string name="rules_d20_tab">D20</string>
+    <string name="rules_d20_1">A custom mode with **5** dice and **5** rolls, but the dice have **20** sides. The scorecard is the numbers `1` to `20`, with no *Lower Section* and no `5x`.</string>
+    <string name="rules_d20_2">Each category adds up the dice showing its number, like the *Upper Section*. This roll is worth **51pts** in `17`:</string>
+    <string name="rules_d20_7">Each half also has a wildcard, `1-10` and `11-20`. It adds up every die showing a number from its half, whichever numbers they are. This roll is worth **43pts** in the `11-20` wildcard:</string>
+    <string name="rules_d20_8">A wildcard's points count towards its half, and so towards that half's bonus.</string>
+    <string name="rules_d20_3">The numbers are split into two halves, `1` to `10` and `11` to `20`. Add up **138pts** in the *1st half* for a bonus of **75pts**, and **388pts** in the *2nd half* for another **75pts**. Both can be earned in the same game. Those are about two and a half dice of each number.</string>
+    <string name="rules_d20_4">With no `5x` category there is no Joker rule and no bonus for a repeat 5x. The *Totals* button shows each half and the bonuses.</string>
+    <string name="rules_d20_5">The *Extended Scores* modifier can't be used in this mode. The *Number of Rolls* modifier changes the **5** rolls, and the achievement for earning both bonuses can't be earned with it.</string>
+    <string name="rules_d20_6">Totals here don't compare with other modes, so the achievements for a high or low score, a scorecard with no zeroes, or for winning from behind after scoring three zeroes, can't be earned in it. Scores from this mode don't go on the *Leaderboard*, but they still count towards your *Statistics*.</string>
     <string name="rules_hit_list_title">Hit List</string>
     <!-- A tab: keep it short. -->
     <string name="rules_hit_list_tab">Hit List</string>
@@ -1190,7 +1219,7 @@
     <string name="rules_number_of_rolls_title">Number of Rolls</string>
     <!-- A tab: keep it short. -->
     <string name="rules_number_of_rolls_tab">Number of Rolls</string>
-    <string name="rules_number_of_rolls_1">*Number of Rolls* sets how many times a player may roll each turn, from **1** to **9**. This overrides the default of **3** per turn.</string>
+    <string name="rules_number_of_rolls_1">*Number of Rolls* sets how many times a player may roll each turn, from **1** to **9**. This overrides the mode's usual number, which is **3** in most.</string>
     <string name="rules_number_of_rolls_2">Changing the rolls changes how easy big scores are, so with *Number of Rolls* on, certain achievements (like for a high score, a section total, etc.) can't be earned.</string>
     <string name="rules_stored_rolls_title">Stored Rolls</string>
     <!-- A tab: keep it short. -->

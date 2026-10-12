@@ -109,6 +109,20 @@ internal val STRUCK_THROUGH_63_ICON: ImageVector by lazy {
 }
 
 /**
+ * A hexagon, the outline of a twenty-sided die seen face on, with a 20 inside it. For Nat 20, the win in D20 mode.
+ * Everything is a line, so the white shows through the numerals.
+ */
+internal val D20_NAT_20_ICON: ImageVector by lazy {
+    icon("D20Nat20") {
+        line(polygon(12f to 1.6f, 21f to 6.8f, 21f to 17.2f, 12f to 22.4f, 3f to 17.2f, 3f to 6.8f), 1.6f)
+        // A 2: a hooked top, a diagonal and a flat base. The pair spans 5.9 to 17.4 with its round ends, centred on the hexagon's 12.
+        line("M6.6,9.7C6.6,8.5 7.5,7.9 8.6,7.9C9.8,7.9 10.6,8.5 10.6,9.6C10.6,10.6 10,11.2 9.1,12.2L6.6,15.9H10.9", 1.4f)
+        // A 0: a tall oval.
+        line("M15.3,7.9A2.1,3.9 0 1,0 15.3,15.9A2.1,3.9 0 1,0 15.3,7.9Z", 1.4f)
+    }
+}
+
+/**
  * A googly eye: a ring round a loose pupil that has slid down to the lower left. For Everything Everywhere All At Once, the
  * win with every modifier piled on. The pupil is solid, so it reads at 22dp; the ring is a line, so the white shows.
  */

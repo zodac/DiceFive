@@ -46,6 +46,12 @@ object DiceScoring {
         ScoreCategory.TWO_PAIR -> scoreTwoPair(dice)
         ScoreCategory.EVENS -> dice.sumOf { if (it.value % 2 == 0) it.value else 0 }
         ScoreCategory.ODDS -> dice.sumOf { if (it.value % 2 != 0) it.value else 0 }
+        ScoreCategory.D20_1, ScoreCategory.D20_2, ScoreCategory.D20_3, ScoreCategory.D20_4, ScoreCategory.D20_5,
+        ScoreCategory.D20_6, ScoreCategory.D20_7, ScoreCategory.D20_8, ScoreCategory.D20_9, ScoreCategory.D20_10,
+        ScoreCategory.D20_11, ScoreCategory.D20_12, ScoreCategory.D20_13, ScoreCategory.D20_14, ScoreCategory.D20_15,
+        ScoreCategory.D20_16, ScoreCategory.D20_17, ScoreCategory.D20_18, ScoreCategory.D20_19, ScoreCategory.D20_20,
+        -> scoreUpper(dice, requireNotNull(category.number))
+        ScoreCategory.D20_WILD_LOW, ScoreCategory.D20_WILD_HIGH -> scoreWildcard(dice, requireNotNull(category.wildcardNumbers))
         // Each game draws its own targets, so there's no rule here to score them by.
         ScoreCategory.TARGET_1, ScoreCategory.TARGET_2, ScoreCategory.TARGET_3, ScoreCategory.TARGET_4,
         ScoreCategory.TARGET_5, ScoreCategory.TARGET_6, ScoreCategory.TARGET_7, ScoreCategory.TARGET_8,
@@ -68,6 +74,10 @@ object DiceScoring {
 
     private fun scoreUpper(dice: List<Die>, target: Int): Int =
         dice.count { it.value == target } * target
+
+    /** Every die of [dice] showing a number in [numbers], added up - whichever numbers they are. */
+    private fun scoreWildcard(dice: List<Die>, numbers: IntRange): Int =
+        dice.sumOf { if (it.value in numbers) it.value else 0 }
 
     private fun valueCounts(dice: List<Die>): Map<Int, Int> = dice.groupingBy { it.value }.eachCount()
 

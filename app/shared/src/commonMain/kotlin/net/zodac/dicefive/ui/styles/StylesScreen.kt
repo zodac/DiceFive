@@ -154,6 +154,7 @@ import net.zodac.dicefive.resources.styles_gallery_all_action
 import net.zodac.dicefive.resources.styles_gallery_cd
 import net.zodac.dicefive.resources.styles_gallery_row_action
 import net.zodac.dicefive.resources.styles_locked_spoken
+import net.zodac.dicefive.resources.styles_requirement_any
 import net.zodac.dicefive.resources.styles_requirement_count
 import net.zodac.dicefive.resources.styles_requirement_free
 import net.zodac.dicefive.resources.styles_requirement_specific
@@ -161,6 +162,7 @@ import net.zodac.dicefive.resources.styles_select_action
 import net.zodac.dicefive.resources.styles_selected_cd
 import net.zodac.dicefive.resources.styles_show_unlock_action
 import net.zodac.dicefive.resources.styles_title
+import net.zodac.dicefive.resources.styles_unlock_any
 import net.zodac.dicefive.resources.styles_unlock_count
 import net.zodac.dicefive.resources.styles_name_with_variant
 import net.zodac.dicefive.resources.styles_unlock_free
@@ -1631,6 +1633,7 @@ private fun shortRequirement(family: StyleFamily<*>): String =
         StyleUnlock.Free -> stringResource(Res.string.styles_requirement_free)
         is StyleUnlock.AchievementCount -> pluralStringResource(Res.plurals.styles_requirement_count, unlock.count, unlock.count)
         is StyleUnlock.SpecificAchievement -> stringResource(Res.string.styles_requirement_specific, stringResource(unlock.achievement.title))
+        is StyleUnlock.AnyAchievement -> stringResource(Res.string.styles_requirement_any, stringResource(unlock.achievements[0].title), stringResource(unlock.achievements[1].title))
     }
 
 /**
@@ -1646,6 +1649,8 @@ private fun unlockRequirement(family: StyleFamily<*>, achievements: Achievements
             pluralStringResource(Res.plurals.styles_unlock_count, unlock.count, unlock.count, stringResource(family.name), achievements.countedUnlocks)
         // Never a secret one: its style isn't shown until it's earned (StyleUnlock.hiddenWhileLocked).
         is StyleUnlock.SpecificAchievement -> stringResource(Res.string.styles_unlock_specific, stringResource(unlock.achievement.title), stringResource(family.name))
+        is StyleUnlock.AnyAchievement ->
+            stringResource(Res.string.styles_unlock_any, stringResource(unlock.achievements[0].title), stringResource(unlock.achievements[1].title), stringResource(family.name))
     }
 
 /**

@@ -364,6 +364,15 @@ object AchievementEngine {
             },
         )
 
+        // Only a D20 card has half bonuses, and with extra rolls they come far more easily.
+        award(
+            Achievement.D20_BOTH_BONUSES,
+            anyHuman { player ->
+                val bonuses = player.gameMode.sectionBonuses
+                !player.rollsModified && bonuses.isNotEmpty() && bonuses.all { player.hasSectionBonus(it) }
+            },
+        )
+
         // Known the moment the table is set.
         award(Achievement.FULL_TABLE, players.size == FULL_TABLE_SIZE)
 
@@ -409,7 +418,7 @@ object AchievementEngine {
             !state.gameMode.scoresHeldDiceOnly
         val noZeroes = anyHuman { player -> player.allScores.none { it == 0 } }
         // Nor on a card of targets (Hit List), where a partial hit leaves a zero only now and then.
-        award(Achievement.NO_ZEROES, singleScoreCard && !state.gameMode.hasHitList && noZeroes)
+        award(Achievement.NO_ZEROES, singleScoreCard && state.gameMode.hasStandardCard && noZeroes)
         award(Achievement.THIRD_WIND_NO_ZEROES, state.gameMode == GameMode.THIRD_WIND && noZeroes)
         // The best is off the Leaderboard, so a game that isn't on it has nothing to compare with.
         award(
@@ -422,7 +431,7 @@ object AchievementEngine {
         // card scored three times over, whose totals clear every rung as a matter of course.
         // Nor with the Extended Scores modifier's three extra boxes, which add around 50 points to a card.
         // Nor on a card of targets (Hit List), whose totals are a different measure altogether.
-        val standardCard = singleScoreCard && !state.extendedScores && !state.gameMode.hasHitList
+        val standardCard = singleScoreCard && !state.extendedScores && state.gameMode.hasStandardCard
         award(Achievement.SCORE_200, standardCard && bestHumanScore >= 200)
         award(Achievement.SCORE_300, standardCard && bestHumanScore >= 300)
         award(Achievement.SCORE_400, standardCard && bestHumanScore >= 400)
@@ -446,7 +455,7 @@ object AchievementEngine {
             // Three zeroes over 39 turns (Third Wind), with Two Pair on the card, with dice locked by
             // Unlucky Dice, or on a card of targets (Hit List) that misses about half of them, is the usual run of
             // things, not a comeback.
-            state.gameMode.scoresPerCategory == 1 && !state.extendedScores && state.unluckyDice == null && !state.gameMode.hasHitList &&
+            state.gameMode.scoresPerCategory == 1 && !state.extendedScores && state.unluckyDice == null && state.gameMode.hasStandardCard &&
                 !state.gameMode.scoresHeldDiceOnly && multiplayer && humanWon &&
                 humans.any { it.totalScore == state.topScore && it.allScores.count { v -> v == 0 } >= ZEROES_FOR_HERO },
         )
@@ -459,6 +468,7 @@ object AchievementEngine {
         )
         award(Achievement.STUD_WIN, multiplayer && humanWon && state.gameMode == GameMode.STUD)
         award(Achievement.THIRD_WIND_WIN, multiplayer && humanWon && state.gameMode == GameMode.THIRD_WIND)
+        award(Achievement.D20_WIN, multiplayer && humanWon && state.gameMode == GameMode.D20)
         award(Achievement.HIT_LIST_WIN, multiplayer && humanWon && state.gameMode == GameMode.HIT_LIST)
         // Any mode - the game's length comes from player 1's own mode, so it's "all but 3" of 13 turns
         // in Standard, of 6 in Quickfire, of 17 in Tricolour, and of 39 in Third Wind.
@@ -663,7 +673,7 @@ object AchievementEngine {
 
     /** Whether this card's total means what Standard's does: every box on it ([hasFullCard]), and boxes, not targets. */
     private val PlayerState.hasStandardTotals: Boolean
-        get() = hasFullCard && !gameMode.hasHitList
+        get() = hasFullCard && gameMode.hasStandardCard
 
     /** ONES holds exactly 1, TWOS exactly 2, ... SIXES exactly 6 (in any one of its slots) -
      * [PlayerState.UPPER_CATEGORIES] is already declared in that order, so its index doubles as the

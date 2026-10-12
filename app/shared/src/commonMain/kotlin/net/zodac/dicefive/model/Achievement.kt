@@ -29,6 +29,10 @@ import net.zodac.dicefive.resources.achievement_continued_game_description
 import net.zodac.dicefive.resources.achievement_continued_game_title
 import net.zodac.dicefive.resources.achievement_cunning_strategy_description
 import net.zodac.dicefive.resources.achievement_cunning_strategy_title
+import net.zodac.dicefive.resources.achievement_d20_both_bonuses_description
+import net.zodac.dicefive.resources.achievement_d20_both_bonuses_title
+import net.zodac.dicefive.resources.achievement_d20_win_description
+import net.zodac.dicefive.resources.achievement_d20_win_title
 import net.zodac.dicefive.resources.achievement_decisions_decisions_description
 import net.zodac.dicefive.resources.achievement_decisions_decisions_title
 import net.zodac.dicefive.resources.achievement_dice_10000_description
@@ -670,6 +674,19 @@ enum class Achievement(
         "stud_lucky_seven",
         Res.string.achievement_stud_lucky_seven_title,
         Res.string.achievement_stud_lucky_seven_description,
+        AchievementCategory.GAME_MODES,
+    ),
+    D20_WIN(
+        "d20_win",
+        Res.string.achievement_d20_win_title,
+        Res.string.achievement_d20_win_description,
+        AchievementCategory.GAME_MODES,
+    ),
+    // Judged mid-game, the moment the second of the two half bonuses is earned - not with extra rolls, which make both easier.
+    D20_BOTH_BONUSES(
+        "d20_both_bonuses",
+        Res.string.achievement_d20_both_bonuses_title,
+        Res.string.achievement_d20_both_bonuses_description,
         AchievementCategory.GAME_MODES,
     ),
     HIT_LIST_WIN(

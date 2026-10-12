@@ -1,5 +1,6 @@
 package net.zodac.dicefive.game
 
+import kotlin.math.pow
 import kotlin.random.Random
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.Difficulty
@@ -86,10 +87,16 @@ object AiTurnPlayer {
      */
     private fun categoryBaseline(card: Card): DoubleArray {
         val mode = card.mode
-        val numberSpace = RollSpace(mode.dieValues.map { Die(value = it) }, mode)
+        val numberSpace by lazy { RollSpace(mode.dieValues.map { Die(value = it) }, mode) }
         val colourSpace = if (mode.dieColours.isEmpty()) null else RollSpace(mode.dieColours.map { Die(value = mode.dieValues.first, colour = it) }, mode)
         return DoubleArray(card.categories.size) { index ->
             val category = card.categories[index]
+            // A number of D20's: the dice showing it, held through every roll - each die has that chance of landing it
+            // in one of them. Worked out rather than searched, since a search over twenty faces would take as long as a game.
+            if (category.number != null && (category.section == ScoreSection.FIRST_HALF || category.section == ScoreSection.SECOND_HALF)) {
+                val faces = mode.dieValues.count().toDouble()
+                return@DoubleArray requireNotNull(category.number) * mode.diceCount * (1 - ((faces - 1) / faces).pow(mode.rollsPerTurn))
+            }
             val space = if (category.section == ScoreSection.COLOUR) requireNotNull(colourSpace) else numberSpace
             val scores = DoubleArray(space.hands.handCount) { hand -> DiceScoring.score(category, space.hands.diceOf(hand)).toDouble() }
             space.rolls.keepValues(space.rollValues(scores), mode.rollsPerTurn)[space.rolls.emptyKeep]
@@ -291,9 +298,12 @@ object AiTurnPlayer {
     // ---- Medium: rule-of-thumb holds, fixed-priority category tie-break -------------------------
 
     private fun chooseHoldsMedium(player: PlayerState, dice: List<Die>): Set<Int> {
+        // Nothing but numbers: holding what's worth keeping costs no roll, so there is no hand to stop and bank early.
+        if (player.categories.all { it.countedNumbers != null }) return numberHoldIndices(player, dice)
         if (shouldStopEarlyMedium(player, dice)) return dice.indices.toSet()
 
         val values = dice.map { it.value }
+
         val straightHold = bestStraightHoldIndices(dice)
         if (straightHold.size >= SMALL_STRAIGHT_LENGTH) return straightHold
 
@@ -307,6 +317,21 @@ object AiTurnPlayer {
             ?.key
         val group = values.withIndex().filter { it.value == largestGroupValue }
         return if (group.size >= 2) group.map { it.index }.toSet() else emptySet()
+    }
+
+    /**
+     * Medium's holds on a card of nothing but numbers (D20's): the dice showing the open number worth the most as they
+     * stand - its value times how many of it - provided that's more than a fresh die is likely to be worth anyway, and
+     * otherwise nothing, to roll them all again. The other rules of thumb (straights, colours, the largest group) are for
+     * boxes this card hasn't got.
+     */
+    private fun numberHoldIndices(player: PlayerState, dice: List<Die>): Set<Int> {
+        val open = ScoreCalculator.availableCategories(player, dice).flatMap { category -> category.countedNumbers?.toList().orEmpty() }.toSet()
+        val best = dice.withIndex().filter { it.value.value in open }.groupBy { it.value.value }
+            .maxByOrNull { (value, group) -> value * group.size }
+            ?: return emptySet()
+        val faceMax = player.gameMode.dieValues.last
+        return if (best.key * best.value.size > faceMax / 2) best.value.map { it.index }.toSet() else emptySet()
     }
 
     /**
@@ -332,20 +357,14 @@ object AiTurnPlayer {
             return true
         }
 
+        // The top third of the faces: 4, 5 and 6 on a six-sided die.
+        val faceMax = player.gameMode.dieValues.last
+        val strongValue = (faceMax * 2 + 2) / 3
         val strongUpperValue = counts.entries
-            .firstOrNull { (value, count) -> value >= STRONG_UPPER_VALUE && count >= STRONG_UPPER_GROUP_SIZE }
+            .firstOrNull { (value, count) -> value >= strongValue && count >= STRONG_UPPER_GROUP_SIZE }
             ?.key
-        return strongUpperValue != null && UPPER_CATEGORY_FOR_VALUE.getValue(strongUpperValue) in available
+        return strongUpperValue != null && available.any { it.countedNumbers?.contains(strongUpperValue) == true }
     }
-
-    private val UPPER_CATEGORY_FOR_VALUE = mapOf(
-        1 to ScoreCategory.ONES,
-        2 to ScoreCategory.TWOS,
-        3 to ScoreCategory.THREES,
-        4 to ScoreCategory.FOURS,
-        5 to ScoreCategory.FIVES,
-        6 to ScoreCategory.SIXES,
-    )
 
     /**
      * The dice of the largest single-colour group, when it's [COLOUR_CHASE_GROUP_SIZE] or more strong
@@ -413,7 +432,7 @@ object AiTurnPlayer {
         ScoreCategory.EVENS,
         ScoreCategory.ODDS,
         ScoreCategory.CHANCE,
-    ).withIndex().associate { (index, category) -> category to index }
+    ).plus(ScoreCategory.D20_NUMBERS.reversed()).plus(listOf(ScoreCategory.D20_WILD_LOW, ScoreCategory.D20_WILD_HIGH)).withIndex().associate { (index, category) -> category to index }
 
     // ---- Hard: whole-turn expected-value holds, opportunity-cost category choice ---------------
 
@@ -490,24 +509,37 @@ object AiTurnPlayer {
         private val baseline = CATEGORY_BASELINES.getValue(card).value
 
         /**
-         * The upper bonus's stake in each point scored in the upper section, for the estimate: it's
-         * earned at an average of three of each number (in every slot of each box), so each point above that par (or below it)
-         * moves the player that share of the bonus nearer to (or further from) it -
-         * [GameMode.upperBonusAmount] over [GameMode.upperBonusThreshold]. Nothing once the bonus is
-         * won, or out of reach even with five of every open number.
+         * For each box in a section with a bonus, the bonus's stake in each point scored there, for the estimate:
+         * it's earned at an average of so many of each number (in every slot of each box) - three for the upper bonus, about
+         * two and a half for each of D20's halves - so each point above that par (or below it) moves the player that
+         * share of the bonus nearer to (or further from) it - the bonus's amount over its threshold. Nothing once the
+         * bonus is won, or out of reach even with five of every open number. Zero for a box in no such section.
          */
-        private val upperBonusPerPoint: Double = run {
-            val total = player.upperSectionTotal
-            val threshold = player.upperBonusThreshold
-            val bestStillPossible = total + PlayerState.UPPER_CATEGORIES.withIndex()
-                .filter { (_, category) -> category in mode.categories }
-                .sumOf { (index, category) ->
-                    if (player.isOpen(category)) (index + 1) * mode.scoringDiceCount * (mode.scoresPerCategory - player.scoresIn(category).size) else 0
+        private val bonusPerPoint = DoubleArray(scoring.categories.size)
+
+        /** For each box in a section with a bonus, the score at par: its number times that section's average count. */
+        private val bonusPar = DoubleArray(scoring.categories.size)
+
+        init {
+            val boxes = scoring.categories
+            fun stake(section: ScoreSection, threshold: Int, amount: Int, par: Double) {
+                val indices = boxes.indices.filter { boxes[it].section == section }
+                val total = player.sectionTotal(section)
+                val bestStillPossible = total + indices.sumOf { index ->
+                    val box = boxes[index]
+                    if (player.isOpen(box)) requireNotNull(box.countedNumbers).last * mode.scoringDiceCount * (mode.scoresPerCategory - player.scoresIn(box).size) else 0
                 }
-            if (!player.hasUpperBonus || total >= threshold || bestStillPossible < threshold) {
-                0.0
-            } else {
-                mode.upperBonusAmount.toDouble() / threshold
+                if (total >= threshold || bestStillPossible < threshold) return
+                for (index in indices) {
+                    bonusPerPoint[index] = amount.toDouble() / threshold
+                    // A wildcard is on top of the numbers the threshold is an average of, so every point of it is above par.
+                    bonusPar[index] = boxes[index].number?.let { it * par } ?: 0.0
+                }
+            }
+            if (player.hasUpperBonus) stake(ScoreSection.UPPER, player.upperBonusThreshold, mode.upperBonusAmount, UPPER_PAR_COUNT.toDouble())
+            for (bonus in mode.sectionBonuses) {
+                val numbers = boxes.filter { it.section == bonus.section }.sumOf { it.number ?: 0 }
+                stake(bonus.section, bonus.threshold, bonus.amount, bonus.threshold.toDouble() / numbers)
             }
         }
 
@@ -517,9 +549,8 @@ object AiTurnPlayer {
                     score + chip + bonus + table.valueOf(mask, upper, five)
                 }
             }
-            val upperValue = scoring.upperValue[category]
-            val upperShare = if (upperValue == 0) 0.0 else (score - upperValue * UPPER_PAR_COUNT) * upperBonusPerPoint
-            return score + chip - baseline[category] + upperShare
+            val share = (score - bonusPar[category]) * bonusPerPoint[category]
+            return score + chip - baseline[category] + share
         }
 
         /** What each finished hand is worth: its best legal box. */
@@ -574,7 +605,6 @@ object AiTurnPlayer {
     /** Medium's colour chase: this many dice already sharing a colour is one short of a set - see [colourChaseHoldIndices]. */
     private const val COLOUR_CHASE_GROUP_SIZE = 4
 
-    /** Medium's early-stop threshold: a group this size or bigger, on a die face this high, is worth banking in its upper box. */
-    private const val STRONG_UPPER_VALUE = 4
+    /** Medium's early-stop threshold: a group this size or bigger, on a die face in the top third, is worth banking in its box. */
     private const val STRONG_UPPER_GROUP_SIZE = 3
 }

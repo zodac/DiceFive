@@ -13,6 +13,7 @@ Modes so far:
 | `QUICKFIRE`  | `quickfire`  | 5x and six random other boxes are switched off every game: six turns, a scaled upper bonus, off the Leaderboard                                                                                                                        |
 | `STUD`       | `stud`       | Shown to players as "7 Dice Stud" (the enum and id stay `STUD` / `stud`). Seven dice rolled, five hold slots; only the five held dice score, but a box can be tapped with fewer held - the hand is completed for it (`HandCompletion`); off the Leaderboard |
 | `THIRD_WIND` | `third_wind` | Every box scored three times (39 turns); one upper bonus, 189 earns 105; joker once the 5x box's 3 slots are used; off the Leaderboard                                                                                                 |
+| `D20`        | `d20`        | Shown as "D20". Twenty-sided dice (`dieValues = 1..20`), 5 dice and 5 rolls; the card is the numbers 1-20 (`D20_1`..`D20_20`, each adds up the dice showing it) and two wildcards (`D20_WILD_LOW`/`D20_WILD_HIGH`: every die showing a number of the half, added up - they count towards their half, and so its bonus), no lower section, no 5x; 1st half (1-10) earns 75 at 138, 2nd half (11-20) 75 at 388, each half's total counting its wildcard (`sectionBonuses`); no Extended Scores; off the Leaderboard |
 | `HIT_LIST`   | `hit_list`   | No Standard boxes: 12 targets drawn each game (numbers by place, up to 2 any) plus the Alibi; exact order doubles; partial hits (2+ numbers rolled) score half the share rolled; no Extended Scores; off the Leaderboard               |
 
 History: `DESIGN.md` Phase 14 (Tricolour, and how modes were first modelled), Phase 20
@@ -59,6 +60,7 @@ When a new rule needs a field, add it here too. This is the map of where each ru
 | `allowsRollModifiers` (every mode allows them now) | `GameViewModel.startGame` (starts a game with `RollModifiers()`), the setup screen's locked Number of Rolls / Stored Rolls rows |
 | `maxRollsPerGame`                        | `flowerpotGrowthStage` - the Flowerpot's stages are spread evenly over it, and the sunflower blooms on its last roll (Greenfingers); `GameModeTest` |
 | `hitListShapes` (`hasHitList`; a game's own targets are `GameState`/`PlayerState.hitList`, drawn by `drawHitList` in `GameEngine.newGame`) | `ScoreCalculator.scoreFor` (targets and the Alibi - `DiceScoring` refuses them), `GameStateJson`, `AiTurnPlayer` (hands the whole turn to `HitListPlay`; `prepareHard` does nothing), `CategoryCell`/`CategoryIcon` (the target drawn on its tile, with progress bars), the achievement guards and Right On Target |
+| `sectionBonuses` (`SectionBonus`: section, threshold, amount) | `PlayerState.sectionBonusTotal`/`hasSectionBonus` (in `totalScore`), `AiTurnPlayer.HardTurn`'s bonus stake, the Critical Success achievement, the Totals button's Bonus line |
 | `allowsExtendedScores`                   | `categoriesWith` (ignores the modifier), `GameEngine.newGame`, `GameViewModel.startGame`, the setup screen's locked Extended Scores row |
 
 ## First, work out what kind of mode it is
@@ -581,6 +583,29 @@ so scoring them is always a zero); The Dice Hate Me (more likely - chasing an ex
 Greenfingers (39 rolls, as Standard); Look Ma, No Hands! (`LUCK_OF_THE_DRAW`) (13 turns). The mode's own: Contract Fulfilled
 (`HIT_LIST_WIN`, a multiplayer win) and Right On Target (`HIT_LIST_RIGHT_ON_TARGET`, an exact hit on a target naming
 all five numbers - judged mid-game, from the score its box holds).
+
+### D20 (twenty-sided dice, the numbers 1 to 20)
+
+Faces past 6 have no pips, so a D20 game is always drawn with a D20 dice style (`d20Like`, `TrayDiceStyles`): the player's
+own pick when it is one (white or blue, all twenty faces modelled in `D20_VIEWS`), otherwise white (`D20WhiteDiceStyle`). Only
+what is drawn changes: the saved pick is never touched, so every other mode still shows it. The Rules page draws examples past 6 with `numberedLike` (a flat numeral die), as a D20 is too small there. A
+card of numbers uses `ScoreCategory.number` - never `PlayerState.UPPER_CATEGORIES` - for "the number a box counts"
+(`UPPER_CATEGORIES[value - 1]` throws for a 7+). Board: `d20Layout` - 1st half down columns 1 and 3,
+2nd half down 2 and 4 (7 grid rows, the last four boxes of each half - the wildcard last - in the right pane's four top rows), no featured box (`BoardLayout.featured` is null), the cup in the two rows left, a little smaller but not misshapen. The halves are sky blue (1st, `TileSky*`) and indigo (2nd, `TileIndigo*`), neither the usual teal. The D20 dice style opens with either achievement: white and black (white numerals) with Nat 20, blue with Critical Success - the family's unlock is `StyleUnlock.AnyAchievement` and each colour's `secretAchievement` its own. D20 mode itself always has the white D20, locked or not. `GameMode.hasStandardCard`
+(ONES on the card) is what the Standard-card achievement guards ask, rather than `!hasHitList`.
+
+**Guarded - would be free, or measure something else, on a card of numbers** (`!hasStandardCard`; each test fails without
+the guard): Solid Round ... Dice Deity, Cold Dice, Low Rolls, Zero To Hero, Spotless.
+
+**Can't be earned in D20 - no guard needed**: every 5x one, Upper/Lower Class, Bonus Round, Exact Change, Six Appeal, Taking A
+Chance, Both Straights, Time To Let It Go and Commitment Issues (they read `UPPER_CATEGORIES`), Greenfingers (5 rolls a turn),
+New Personal Best and the score bands (off the Leaderboard), Nice, Rock Bottom.
+
+**Still earnable, worth knowing**: Impatient and Naturally Gifted, Look Ma No Hands (22 turns), the roll-pattern feats
+(House Call, Straight Away, I Can Count!, The Dice Hate Me - all far rarer on 20 faces), Landslide and the wins. The mode's own:
+Nat 20 (`D20_WIN`, a multiplayer win) and Critical Success (`D20_BOTH_BONUSES`, both half bonuses, judged mid-game, not
+with the roll modifiers). CPU games (100 seeded): with the wildcards outside the bonus Hard's halves had medians of 108 and 350 (Medium 70 and 309), and with them in 146 and
+432 (Medium 99 and 367). At 138 / 388 the wildcards (counting) put Hard at 58% of games for the first half, 93% for the second and 53% for both (60 seeded games).
 
 ### Tricolour (coloured dice, four colour boxes)
 

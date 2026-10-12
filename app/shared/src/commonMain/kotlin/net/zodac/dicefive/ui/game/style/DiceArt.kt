@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
@@ -414,6 +415,33 @@ class NumeralDiceStyle(
         heldRingColor = heldRing,
     )
 }
+
+/**
+ * The dice style a game with more faces than pips can show (D20 mode's twenty) is played with: [base] when it is one of
+ * the D20 styles, and the white D20 otherwise. No other style has true 1-20 art, and the player's own pick is never
+ * touched - another mode still draws it.
+ */
+fun d20Like(base: DiceStyle): DiceStyle = if (base is D20DiceStyle) base else D20WhiteDiceStyle
+
+/** The most faces a die's pips (and most styles' art) can show: a six-sided die's. */
+const val PIP_FACES = 6
+
+/**
+ * [base] as a plain numbered die, in the colour of its material with its number in whichever of black and white reads
+ * on it - what the Rules page draws examples with a number past six in, where a D20 would be too small to read.
+ */
+fun numberedLike(base: DiceStyle): DiceStyle {
+    val light = base.bodyColor
+    val dark = lerp(light, Color.Black, NUMBERED_DIE_SHADE)
+    val digit = if (light.luminance() > NUMBERED_DIE_LIGHT_LUMINANCE) Color(0xFF1A1A1A) else Color.White
+    return NumeralDiceStyle(base.id, light, dark, digit, size = NUMBERED_DIE_TEXT_SIZE)
+}
+
+// How far the lower corner of a numbered die darkens, which of black and white its digits are by the die's brightness,
+// and how big they are: small enough that two digits fit one die's width.
+private const val NUMBERED_DIE_SHADE = 0.3f
+private const val NUMBERED_DIE_LIGHT_LUMINANCE = 0.5f
+private const val NUMBERED_DIE_TEXT_SIZE = 0.5f
 
 /** The corners of the smallest convex outline around [points], in order round it. */
 internal fun convexHull(points: List<Offset>): List<Offset> {

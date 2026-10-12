@@ -79,6 +79,15 @@ val TileTealBottom = Color(0xFF122E2B)
 val TileTealBorder = Color(0xFF3C6C66)
 val TileIconColor = Color(0xFFE7F3EF)
 
+// D20's two halves in a colour each, neither the standard teal: sky blue for 1-10 and indigo for 11-20, so they read apart at a glance.
+val TileSkyTop = Color(0xFF1F6A8A)
+val TileSkyBottom = Color(0xFF0F3A4D)
+val TileSkyBorder = Color(0xFF4FA6CC)
+
+val TileIndigoTop = Color(0xFF3A3668)
+val TileIndigoBottom = Color(0xFF1F1C3D)
+val TileIndigoBorder = Color(0xFF6A63A6)
+
 val TileHighlightTop = Color(0xFF4A3B12)
 val TileHighlightBottom = Color(0xFF241C08)
 

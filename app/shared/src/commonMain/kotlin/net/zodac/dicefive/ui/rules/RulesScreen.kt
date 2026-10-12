@@ -143,6 +143,16 @@ import net.zodac.dicefive.resources.rules_extended_scores_title
 import net.zodac.dicefive.resources.rules_group_gameplay
 import net.zodac.dicefive.resources.rules_group_modes
 import net.zodac.dicefive.resources.rules_group_modifiers
+import net.zodac.dicefive.resources.rules_d20_1
+import net.zodac.dicefive.resources.rules_d20_2
+import net.zodac.dicefive.resources.rules_d20_3
+import net.zodac.dicefive.resources.rules_d20_4
+import net.zodac.dicefive.resources.rules_d20_5
+import net.zodac.dicefive.resources.rules_d20_6
+import net.zodac.dicefive.resources.rules_d20_7
+import net.zodac.dicefive.resources.rules_d20_8
+import net.zodac.dicefive.resources.rules_d20_tab
+import net.zodac.dicefive.resources.rules_d20_title
 import net.zodac.dicefive.resources.rules_hit_list_1
 import net.zodac.dicefive.resources.rules_hit_list_10
 import net.zodac.dicefive.resources.rules_hit_list_11
@@ -309,6 +319,8 @@ import net.zodac.dicefive.ui.game.LockedChains
 import net.zodac.dicefive.ui.game.TurnTimerBadge
 import net.zodac.dicefive.ui.game.style.ClassicGoldDiceCupStyle
 import net.zodac.dicefive.ui.game.style.IvoryDiceStyle
+import net.zodac.dicefive.ui.game.style.PIP_FACES
+import net.zodac.dicefive.ui.game.style.numberedLike
 import net.zodac.dicefive.ui.game.style.palette
 import net.zodac.dicefive.ui.game.targetProgress
 import org.jetbrains.compose.resources.StringResource
@@ -605,6 +617,22 @@ private val RULES_GROUPS = listOf(
                     text(Res.string.rules_stud_6),
                     text(Res.string.rules_stud_7),
                     text(Res.string.rules_stud_8),
+                ),
+            ),
+            RulesPage(
+                title = Res.string.rules_d20_title,
+                tabLabel = Res.string.rules_d20_tab,
+                blocks = listOf(
+                    text(Res.string.rules_d20_1),
+                    text(Res.string.rules_d20_2),
+                    dice(17, 3, 17, 9, 17, counting = 3, score = points(51)),
+                    text(Res.string.rules_d20_7),
+                    diceCounting(12, 3, 17, 9, 14, counting = setOf(0, 2, 4), score = points(43)),
+                    text(Res.string.rules_d20_8),
+                    text(Res.string.rules_d20_3),
+                    text(Res.string.rules_d20_4),
+                    text(Res.string.rules_d20_5),
+                    text(Res.string.rules_d20_6),
                 ),
             ),
             RulesPage(
@@ -1105,8 +1133,10 @@ private fun RulesDiceRow(example: RulesDice, modifier: Modifier = Modifier) {
         modifier = modifier.clearAndSetSemantics { contentDescription = spoken },
     ) {
         val anyPlaceColor = MaterialTheme.colorScheme.onSurfaceVariant
+        // Dice with a number past six (D20's) have no pips to show it with, so the whole row is numbered.
+        val plain = if (example.dice.any { it.value > PIP_FACES }) numberedLike(IvoryDiceStyle) else IvoryDiceStyle
         for (die in example.dice) {
-            val style = die.colour?.let { IvoryDiceStyle.recoloured(it.palette) } ?: IvoryDiceStyle
+            val style = die.colour?.let { plain.recoloured(it.palette) } ?: plain
             val dieModifier = Modifier
                 .padding(end = 6.dp)
                 .size(EXAMPLE_DIE_SIZE)

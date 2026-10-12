@@ -177,7 +177,7 @@ class HitListTest {
         // No Extended Scores.
         assertFalse(mode.allowsExtendedScores)
         assertEquals(mode.categories, mode.categoriesWith(extendedScores = true))
-        assertTrue(GameMode.entries.filter { it != mode }.all { it.allowsExtendedScores })
+        assertEquals(listOf(GameMode.D20, mode), GameMode.entries.filter { !it.allowsExtendedScores })
         assertFalse(mode.countsOnLeaderboard)
         assertEquals(785, mode.maxPossibleScore)
 

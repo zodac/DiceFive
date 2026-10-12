@@ -155,6 +155,10 @@
     <string name="achievement_third_wind_win_description">Gana una partida del modo 'Tercer aliento'</string>
     <string name="achievement_third_wind_no_zeroes_title">A la tercera va la vencida</string>
     <string name="achievement_third_wind_no_zeroes_description">Rellena las tres casillas de cada categoría sin ningún cero en el modo 'Tercer aliento'</string>
+    <string name="achievement_d20_win_title">20 natural</string>
+    <string name="achievement_d20_win_description">Gana una partida del modo 'D20'</string>
+    <string name="achievement_d20_both_bonuses_title">Éxito crítico</string>
+    <string name="achievement_d20_both_bonuses_description">En el modo 'D20', consigue la bonificación de las dos mitades en una partida</string>
     <string name="achievement_hit_list_win_title">Contrato cumplido</string>
     <string name="achievement_hit_list_win_description">Gana una partida del modo 'Lista de objetivos'</string>
     <string name="achievement_hit_list_right_on_target_title">Justo en la diana</string>
@@ -267,6 +271,8 @@
     <string name="mode_stud_description">Tira siete dados, pero solo puntúan los cinco que conserves</string>
     <string name="mode_third_wind">Tercer aliento</string>
     <string name="mode_third_wind_description">Cada categoría se anota tres veces</string>
+    <string name="mode_d20">D20</string>
+    <string name="mode_d20_description">Puntúa los números del 1 al 20 con dados de veinte caras</string>
     <string name="mode_hit_list">Lista de objetivos</string>
     <string name="mode_hit_list_description">Tira para una lista de números objetivo: puntos dobles con cada dado en su sitio</string>
     <string name="player_colour_cyan">Cian</string>
@@ -313,12 +319,14 @@
         <item quantity="other">Se necesitan `%1$d` logros</item>
     </plurals>
     <string name="styles_requirement_specific">Se necesita el logro `%1$s`</string>
+    <string name="styles_requirement_any">Se necesita el logro `%1$s` o `%2$s`</string>
     <string name="styles_unlock_free">%1$s está siempre disponible.</string>
     <plurals name="styles_unlock_count">
         <item quantity="one">Consigue `%1$d` logro para desbloquear %2$s. Llevas `%3$d` hasta ahora.</item>
         <item quantity="other">Consigue `%1$d` logros para desbloquear %2$s. Llevas `%3$d` hasta ahora.</item>
     </plurals>
     <string name="styles_unlock_specific">Consigue `%1$s` para desbloquear %2$s.</string>
+    <string name="styles_unlock_any">Consigue `%1$s` o `%2$s` para desbloquear %3$s.</string>
     <string name="styles_name_with_variant">%1$s (%2$s)</string>
     <string name="rules_example_any_place_spoken">cualquiera</string>
     <string name="rules_example_red_die_spoken">rojo %1$d</string>
@@ -424,6 +432,8 @@
     <string name="score_yellows_irish">Blancos</string>
     <string name="score_blues_irish">Naranjas</string>
     <string name="score_target">Objetivo %1$d</string>
+    <string name="score_number">Número %1$d</string>
+    <string name="score_wildcard">Comodín %1$d a %2$d</string>
     <string name="die_colour_red">Rojo</string>
     <string name="die_colour_yellow">Amarillo</string>
     <string name="die_colour_blue">Azul</string>
@@ -433,6 +443,7 @@
     <string name="common_cpu_cd">CPU</string>
     <string name="game_badge_evens">Pa</string>
     <string name="game_badge_odds">Im</string>
+    <string name="game_badge_range">%1$d-%2$d</string>
     <string name="game_undo_cd">Deshacer</string>
     <string name="game_review_title">Tarjetas</string>
     <string name="game_cup_rolls_left">×%1$d</string>
@@ -447,6 +458,9 @@
     <string name="game_totals_bonus">Bonificación</string>
     <string name="game_totals_lower">Inferior</string>
     <string name="game_totals_targets">Objetivos</string>
+    <string name="game_totals_first_half">1.ª mitad</string>
+    <string name="game_totals_second_half">2.ª mitad</string>
+    <string name="game_totals_progress">%1$d / %2$d</string>
     <string name="game_totals_cd">Totales</string>
     <string name="game_totals_show_action">Mostrar totales</string>
     <string name="game_totals_upper_spoken">Superior %1$d</string>
@@ -454,6 +468,8 @@
     <string name="game_totals_no_bonus_spoken">aún sin bonificación</string>
     <string name="game_totals_lower_spoken">inferior %1$d</string>
     <string name="game_totals_targets_spoken">Objetivos %1$d</string>
+    <string name="game_totals_first_half_spoken">primera mitad %1$d de %2$d</string>
+    <string name="game_totals_second_half_spoken">segunda mitad %1$d de %2$d</string>
     <string name="game_totals_alibi_spoken">alibi %1$d</string>
     <string name="game_box_disabled_spoken">Desactivada en esta partida, no se puede anotar</string>
     <string name="game_box_last_turn_spoken">puntuación del último turno</string>
@@ -909,6 +925,16 @@
     <string name="rules_third_wind_10">En un desempate, cada casilla que puntuó **0 pts** cuenta como una categoría anotada con **0 pts**.</string>
     <string name="rules_third_wind_11">Las puntuaciones de este modo no van a la *clasificación*, pero sí cuentan para tus *estadísticas*.</string>
     <string name="rules_third_wind_12">Todo lo demás se juega exactamente igual que en las reglas *Estándar*, ¡pero multiplicado por tres!</string>
+    <string name="rules_d20_title">D20</string>
+    <string name="rules_d20_tab">D20</string>
+    <string name="rules_d20_1">Un modo personalizado con **5** dados y **5** tiradas, pero los dados tienen **20** caras. La tarjeta son los números del `1` al `20`, sin *sección inferior* y sin `5x`.</string>
+    <string name="rules_d20_2">Cada categoría suma los dados que muestran su número, como la *sección superior*. Esta tirada vale **51 puntos** en `17`:</string>
+    <string name="rules_d20_7">Cada mitad tiene además un comodín, `1-10` y `11-20`. Suma todos los dados que muestran un número de su mitad, sean cuales sean. Esta tirada vale **43 puntos** en el comodín `11-20`:</string>
+    <string name="rules_d20_8">Los puntos de un comodín cuentan para su mitad, y por tanto para la bonificación de esa mitad.</string>
+    <string name="rules_d20_3">Los números se reparten en dos mitades, del `1` al `10` y del `11` al `20`. Suma **138 puntos** en la *1.ª mitad* para una bonificación de **75 puntos**, y **388 puntos** en la *2.ª mitad* para otra de **75 puntos**. Se pueden conseguir las dos en la misma partida. Es más o menos dos dados y medio de cada número.</string>
+    <string name="rules_d20_4">Sin la categoría `5x` no hay regla del comodín ni bonificación por 5x repetidos. El botón de *totales* muestra cada mitad y las bonificaciones.</string>
+    <string name="rules_d20_5">El modificador *Puntuaciones ampliadas* no se puede usar en este modo. El modificador *Número de tiradas* cambia las **5** tiradas, y con él no se puede conseguir el logro de las dos bonificaciones.</string>
+    <string name="rules_d20_6">Los totales aquí no se comparan con los de otros modos, así que los logros por una puntuación alta o baja, una tarjeta sin ceros, o por ganar yendo por detrás tras anotar tres ceros, no se pueden conseguir en él. Las puntuaciones de este modo no van a la *clasificación*, pero sí cuentan para tus *estadísticas*.</string>
     <string name="rules_hit_list_title">Lista de objetivos</string>
     <string name="rules_hit_list_tab">Lista de objetivos</string>
     <string name="rules_hit_list_1">Un modo personalizado con **5** dados y **3** tiradas, pero sin ninguna de las categorías *Estándar*. En su lugar, cada partida reparte una lista de **12** objetivos, además del `Alibi`.</string>
@@ -937,7 +963,7 @@
     <string name="rules_turn_timer_2">Si se acaba el tiempo de un jugador, su tirada se anota por él en la categoría libre donde menos valga (la primera de la tarjeta, si varias empatan).</string>
     <string name="rules_number_of_rolls_title">Número de tiradas</string>
     <string name="rules_number_of_rolls_tab">Número de tiradas</string>
-    <string name="rules_number_of_rolls_1">El *número de tiradas* fija cuántas veces puede tirar un jugador cada turno, de **1** a **9**. Esto sustituye el valor predeterminado de **3** por turno.</string>
+    <string name="rules_number_of_rolls_1">El *número de tiradas* fija cuántas veces puede tirar un jugador cada turno, de **1** a **9**. Esto sustituye el número habitual del modo, que es **3** en casi todos.</string>
     <string name="rules_number_of_rolls_2">Cambiar las tiradas cambia lo fácil que es puntuar alto, así que con el *número de tiradas* activado, no se pueden conseguir ciertos logros (como los de una puntuación alta, un total de sección, etc.).</string>
     <string name="rules_stored_rolls_title">Tiradas acumuladas</string>
     <string name="rules_stored_rolls_tab">Tiradas acumuladas</string>

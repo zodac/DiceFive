@@ -657,12 +657,15 @@ object DiceStyles : StyleCatalog<DiceStyle>(
         StyleFamily(
             Res.string.style_family_d20,
             listOf(
-                colour(Res.string.style_colour_white, D20DiceStyle("d20_white", Color(0xFFFBFBF8), Color(0xFFB9BCC2), Color(0xFF1A1A1A))),
+                // Nat 20 opens white and black; Critical Success opens blue - the family opens with either.
+                colour(Res.string.style_colour_white, D20WhiteDiceStyle).copy(secretAchievement = Achievement.D20_WIN),
+                colour(Res.string.style_colour_black, D20BlackDiceStyle).copy(secretAchievement = Achievement.D20_WIN),
                 // The brand's own pairing: the felt blue with the gold the board uses for "press this" -
                 // so the held ring is white instead, not lost against gold numbers.
-                colour(Res.string.style_colour_blue, D20DiceStyle("d20_blue", Color(0xFF3A6BB0), Color(0xFF14315C), GoldAccent, heldRing = Color.White)),
+                colour(Res.string.style_colour_blue, D20DiceStyle("d20_blue", Color(0xFF3A6BB0), Color(0xFF14315C), GoldAccent, heldRing = Color.White))
+                    .copy(secretAchievement = Achievement.D20_BOTH_BONUSES),
             ),
-            unlock = AchievementCount(102),
+            unlock = StyleUnlock.AnyAchievement(listOf(Achievement.D20_WIN, Achievement.D20_BOTH_BONUSES)),
         ),
         StyleFamily(
             Res.string.style_family_googly,

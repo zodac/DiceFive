@@ -11,12 +11,18 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFontFamilyResolver
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp as lerpFloat
@@ -110,7 +116,7 @@ internal class D20View(val right: Vec3, val up: Vec3, val towards: Vec3) {
     }
 }
 
-internal val D20_VIEWS: Map<Int, D20View> = (1..6).associateWith { D20View.facing(D20.face(it)) }
+internal val D20_VIEWS: Map<Int, D20View> = (1..20).associateWith { D20View.facing(D20.face(it)) }
 
 /** [v] rotated [degrees] about the unit [axis] (Rodrigues' rotation formula). */
 private fun rotate(v: Vec3, axis: Vec3, degrees: Float): Vec3 {
@@ -123,6 +129,9 @@ private fun rotate(v: Vec3, axis: Vec3, degrees: Float): Vec3 {
 // How strongly every number but the roll shows - there to make it a D20, not to be read.
 private const val D20_OTHER_NUMBER_ALPHA = 0.4f
 
+// Room for all twenty numbers' layouts (the 6 and 9 are underlined, so differ), so none is ever measured twice.
+private const val D20_TEXT_CACHE = 32
+
 // Mid-roll, the die starts out tumbling through a full turn this often about each of two axes,
 // slowing to a stop as the toss ends; at rest it lies on its rolled face, twisted up to this far
 // either way so no two landings look alike.
@@ -132,6 +141,11 @@ private const val D20_REST_TWIST_DEGREES = 30f
 // The rolled number fades up between these fractions of the toss.
 private const val D20_EMPHASIS_START = 0.35f
 private const val D20_EMPHASIS_END = 0.8f
+
+// How tall the rolled number's text is, in camera units: about as large as a facet holds - a two-digit number is as wide
+// as it is tall, and the facet is narrower than it is high.
+private const val ROLL_ONE_DIGIT_HEIGHT = 1.05f
+private const val ROLL_TWO_DIGIT_HEIGHT = 0.95f
 
 // Light from above, left and in front, in camera space.
 private val D20_LIGHT = Vec3(-0.4f, 0.6f, 1f).normalised()
@@ -194,8 +208,8 @@ private fun silhouetteShape(outline: List<Offset>): Shape = GenericShape { size,
 /**
  * A D20: a real icosahedron with all twenty numbers on its twenty faces, drawn in 3D with the ten
  * faces towards you shaded and their numbers foreshortened as they turn away. Only its front face
- * is ever the roll, though, and a roll only ever lands on 1-6 - it's still a six-sided die as far as
- * the rules are concerned; it just looks like a D20. The rolled number is printed larger and at full
+ * is ever the roll, though. In every mode but D20 a roll only lands on 1-6, so it's a six-sided die
+ * that looks like a D20; in D20 mode it lands on any of the twenty. The rolled number is printed as large as its facet holds and at full
  * strength, the rest faded back, so the roll reads at a glance. 6 and 9 are underlined, as on real dice.
  */
 class D20DiceStyle(
@@ -212,6 +226,19 @@ class D20DiceStyle(
     override fun recoloured(palette: DieColourPalette): DiceStyle =
         D20DiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, palette.heldRing)
 
+    // The measurer every die of this style draws its numbers with, rebuilt only if the font, density or direction change.
+    private var measurer: TextMeasurer? = null
+    private var measurerFor: Triple<FontFamily.Resolver, Density, LayoutDirection>? = null
+
+    private fun sharedMeasurer(resolver: FontFamily.Resolver, density: Density, direction: LayoutDirection): TextMeasurer {
+        val key = Triple(resolver, density, direction)
+        measurer?.takeIf { measurerFor == key }?.let { return it }
+        return TextMeasurer(resolver, density, direction, D20_TEXT_CACHE).also {
+            measurer = it
+            measurerFor = key
+        }
+    }
+
     /**
      * Its exact outline, twist and all at rest - and mid-tumble, the outline of the very orientation
      * it's being drawn in at [tumbleMillis], so the shadow turns with it.
@@ -227,8 +254,12 @@ class D20DiceStyle(
         val rollEmphasis = rollEmphasis(tumbleMillis)
         val outline = silhouette(view)
         val shape = silhouetteShape(outline)
-        val measurer = rememberTextMeasurer()
-        val style = TextStyle(color = numberColour, fontSize = 40.sp, fontWeight = FontWeight.Bold)
+        // Every number is measured once and kept, for every die of this style: the text measurer's default cache holds 8
+        // layouts, and a tumbling die shows ten numbers a frame - so each die measured them all again every frame, and
+        // each had its own to fill on the first roll, which was the lag.
+        val measurer = sharedMeasurer(LocalFontFamilyResolver.current, LocalDensity.current, LocalLayoutDirection.current)
+        // No colour in the style (it's applied as the number is drawn), so fading a number doesn't make it a new layout.
+        val style = TextStyle(fontSize = 40.sp, fontWeight = FontWeight.Black)
 
         Canvas(modifier = modifier.dieShadow(shape)) {
             val scale = size.minDimension / 2f / D20.circumradius
@@ -248,7 +279,8 @@ class D20DiceStyle(
                     close()
                 }
                 val lit = (normal dot D20_LIGHT).coerceIn(0f, 1f)
-                drawPath(facet, lerp(dark, light, 0.35f + 0.65f * lit))
+                // The rolled face is lit fully, so its number stands out against the brightest facet whatever the angle.
+                drawPath(facet, lerp(dark, light, lerpFloat(0.35f + 0.65f * lit, 1f, emphasis)))
                 drawPath(facet, dark.copy(alpha = 0.6f), style = Stroke(width = 0.8.dp.toPx()))
 
                 // The number, printed flat on its face: laid out along the face's own "up" (camera
@@ -258,12 +290,12 @@ class D20DiceStyle(
                 // Only the rolled number at full strength; every other face's is faded back, so the
                 // roll reads at a glance even at game size, tumbled across the mat.
                 val colour = numberColour.copy(alpha = lerpFloat(D20_OTHER_NUMBER_ALPHA, 1f, emphasis))
-                val text = measurer.measure(face.number.toString(), style.copy(color = colour, textDecoration = decoration))
+                val text = measurer.measure(face.number.toString(), if (decoration != null) style.copy(textDecoration = decoration) else style)
                 val faceUp = (Vec3(0f, 1f, 0f) - normal * normal.y).normalised()
                 val faceRight = faceUp cross normal
                 // Camera units per text pixel: a number stands about 0.7 units tall on its face - the
                 // rolled one a little taller.
-                val height = lerpFloat(if (face.number >= 10) 0.62f else 0.7f, 0.8f, emphasis)
+                val height = lerpFloat(if (face.number >= 10) 0.62f else 0.7f, if (face.number >= 10) ROLL_TWO_DIGIT_HEIGHT else ROLL_ONE_DIGIT_HEIGHT, emphasis)
                 val perPixel = height / text.size.height * scale
                 val middle = toScreen(view.cameraSpace(face.centre))
                 val matrix = Matrix().apply {
@@ -275,7 +307,7 @@ class D20DiceStyle(
                     values[Matrix.TranslateY] = middle.y
                 }
                 withTransform({ transform(matrix) }) {
-                    drawText(text, topLeft = Offset(-text.size.width / 2f, -text.size.height / 2f))
+                    drawText(text, color = colour, topLeft = Offset(-text.size.width / 2f, -text.size.height / 2f))
                 }
             }
 
@@ -290,3 +322,9 @@ class D20DiceStyle(
         }
     }
 }
+
+/** The black D20, its numbers white. */
+val D20BlackDiceStyle: D20DiceStyle = D20DiceStyle("d20_black", Color(0xFF34343A), Color(0xFF0E0E11), Color.White)
+
+/** The white D20 - the dice D20 mode is played with unless the player has picked another D20 style. */
+val D20WhiteDiceStyle: D20DiceStyle = D20DiceStyle("d20_white", Color(0xFFFBFBF8), Color(0xFFB9BCC2), Color(0xFF1A1A1A))

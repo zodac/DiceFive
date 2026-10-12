@@ -555,3 +555,12 @@ build (R8, Baseline Profile) is the one to judge.
   the pick-up with the resting composable (it's a pure slide - no roll or yaw) and switching to
   `Moving` once the die is off the mat would move the first into the middle of the shake, where
   it's hidden. The settle frame also lays out the new score previews.
+
+### D20 numbers (found with D20 mode, whose dice roll all twenty faces)
+
+`D20DiceStyle` draws ten numbers a frame. `rememberTextMeasurer()` keeps only 8 layouts, and the number's alpha was in the
+text style (so it fading was a new layout), so every die measured every number again every frame, and each of the five
+dice had a cache of its own to fill on the first roll. Now the style holds one measurer (32 layouts) for all its dice, with
+no colour in the measured style (it is applied by `drawText`). Robolectric, whole screen, first roll's first toss frames:
+65/62/62 ms before, 54/53/57 after; later rolls match Standard's ~52 ms. Not measured on a device.
+

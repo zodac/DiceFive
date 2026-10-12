@@ -652,6 +652,13 @@ More than six rows switches every tile to `COMPACT_TILE_SIZE` (40dp, from 48dp) 
 given that height regardless (it needs rows 4-6; Totals/Undo moved below it). Standard and Tricolour are both
 six rows and 380dp.
 
+**D20's card** (no featured box) is a seven-row board of compact tiles: numbers 1-7 down column 1 beside 11-17 in column 2, and
+8-10 then the wildcard (`1-10`) / 18-20 then the wildcard (`11-20`) in the right pane's four top rows, over a two-row cup (a little
+smaller than `CUP_SIZE`, never squashed). A wildcard's tile is its range as a small badge. Each tile is its number as a badge; the 1st half (1-10) is sky blue and the
+2nd half (11-20) indigo (colour is redundant with the number, so no spoken twin). The Totals button's popup shows 1st half and
+2nd half each out of its target ("95 / 138", gold once reached, wildcard included) and Bonus; its glyph lights its top half for the 1st bonus and
+its bottom half for the 2nd (`BoardButtonIcon`'s `litHalves`), all of it for both, and TalkBack hears the same as "1st half 95 of 138". Dice past six are D20s (`d20Like`). Rendered at 411dp - Robolectric only.
+
 **Hit List's card** (no 5x) puts its featured box (`ScoreCategory.featured`, `BoardLayout.featured`) - the Alibi -
 where 5x goes, and its twelve targets fill the grid two to a row in card order (easiest at the top). A target's tile
 (`CategoryIcon`'s `TargetIcon`) shows its five places - a number, or a dot for an any place - over its points, sized as

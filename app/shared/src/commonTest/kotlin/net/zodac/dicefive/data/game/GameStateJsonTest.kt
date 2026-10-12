@@ -206,6 +206,14 @@ class GameStateJsonTest {
         val dealt = roundTripped(GameEngine.commitScore(hitList.copy(dice = List(5) { Die(value = 6) }, phase = TurnPhase.ROLLED), ScoreCategory.ALIBI))
         assertTrue(dealt.hitList.values.any { target -> target.places.any { it == null } })
         assertTrue(dealt.players.all { it.hitList == dealt.hitList })
+
+        // D20: twenty-sided dice, five rolls a turn and a score in a box of the second half.
+        val d20 = GameEngine.newGame(twoSeats, GameMode.D20, random = Random(3))
+        val scored = roundTripped(GameEngine.commitScore(d20.copy(dice = List(5) { Die(value = 17) }, phase = TurnPhase.ROLLED), ScoreCategory.D20_17))
+        assertEquals(listOf(85), scored.players.first().scoresIn(ScoreCategory.D20_17))
+        assertEquals(85, scored.players.first().secondHalfTotal)
+        assertEquals(5, scored.rollsPerTurn)
+        assertEquals(5, roundTripped(d20).rollsRemaining)
     }
 
     @Test

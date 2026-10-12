@@ -1471,7 +1471,7 @@ class GameViewModel(
         if (lastReleasedCommitmentGroupValue != null &&
             committingValue != null &&
             committingValue != lastReleasedCommitmentGroupValue &&
-            category == PlayerState.UPPER_CATEGORIES[committingValue - 1]
+            category == PlayerState.UPPER_CATEGORIES.getOrNull(committingValue - 1)
         ) {
             unlockAchievements(setOf(Achievement.COMMITMENT_ISSUES))
         }

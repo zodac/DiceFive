@@ -106,7 +106,7 @@ class RulesScreenAccessibilityTest {
         compose.waitForIdle()
         compose.onNodeWithText("Modes").assertIsSelected()
         compose.onNodeWithText("Overview").assertIsSelected()
-        compose.onNode(hasContentDescription("Modes, page 1 of 6")).assertExists()
+        compose.onNode(hasContentDescription("Modes, page 1 of 7")).assertExists()
 
         // Each tab row announces how many tabs it has.
         openGroup("Modifiers")

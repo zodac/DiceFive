@@ -40,9 +40,14 @@ import net.zodac.dicefive.resources.game_totals_alibi_spoken
 import net.zodac.dicefive.resources.game_totals_bonus
 import net.zodac.dicefive.resources.game_totals_bonus_earned_spoken
 import net.zodac.dicefive.resources.game_totals_cd
+import net.zodac.dicefive.resources.game_totals_first_half
+import net.zodac.dicefive.resources.game_totals_first_half_spoken
 import net.zodac.dicefive.resources.game_totals_lower
 import net.zodac.dicefive.resources.game_totals_lower_spoken
 import net.zodac.dicefive.resources.game_totals_no_bonus_spoken
+import net.zodac.dicefive.resources.game_totals_progress
+import net.zodac.dicefive.resources.game_totals_second_half
+import net.zodac.dicefive.resources.game_totals_second_half_spoken
 import net.zodac.dicefive.resources.game_totals_show_action
 import net.zodac.dicefive.resources.game_totals_targets
 import net.zodac.dicefive.resources.game_totals_targets_spoken
@@ -86,6 +91,37 @@ fun TotalsButton(upperTotal: Int, upperBonus: Int, lowerTotal: Int, modifier: Mo
 }
 
 /**
+ * D20's totals - its two halves, each against the [firstTarget] or [secondTarget] that earns its bonus, and the
+ * [bonus] earned so far - behind the same button. The glyph's top half turns gold once the 1st half's bonus is
+ * earned and its bottom half once the 2nd's, so one earned reads as half lit; both earned lights all of it.
+ */
+@Composable
+fun D20TotalsButton(
+    firstHalf: Int,
+    secondHalf: Int,
+    firstTarget: Int,
+    secondTarget: Int,
+    bonus: Int,
+    modifier: Modifier = Modifier,
+    minSize: Dp = 48.dp,
+) {
+    val firstEarned = firstHalf >= firstTarget
+    val secondEarned = secondHalf >= secondTarget
+    TotalsButton(
+        lines = listOf(
+            TotalLine(stringResource(Res.string.game_totals_first_half), firstHalf, gold = firstEarned, target = firstTarget),
+            TotalLine(stringResource(Res.string.game_totals_second_half), secondHalf, gold = secondEarned, target = secondTarget),
+            TotalLine(stringResource(Res.string.game_totals_bonus), bonus, gold = bonus > 0),
+        ),
+        highlighted = firstEarned && secondEarned,
+        litHalves = setOfNotNull(IconHalf.TOP.takeIf { firstEarned }, IconHalf.BOTTOM.takeIf { secondEarned }),
+        spokenState = d20TotalsSpokenState(firstHalf, secondHalf, firstTarget, secondTarget, bonus),
+        modifier = modifier,
+        minSize = minSize,
+    )
+}
+
+/**
  * Hit List's totals - its targets, and the Alibi - behind the same button: a card of targets has no sections or
  * bonus to show.
  */
@@ -115,7 +151,7 @@ private fun TotalsTable(lines: List<TotalLine>) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 Text(text = line.label, style = style.copy(fontFamily = SoraFontFamily), color = color, modifier = Modifier.weight(1f))
                 Text(
-                    text = line.value.grouped(),
+                    text = line.target?.let { stringResource(Res.string.game_totals_progress, line.value, it) } ?: line.value.grouped(),
                     style = style,
                     color = color,
                     textAlign = TextAlign.End,
@@ -128,12 +164,19 @@ private fun TotalsTable(lines: List<TotalLine>) {
 
 private val TOTALS_COLUMN_GAP = 16.dp
 
-/** One line of a [TotalsButton]'s tooltip: [label] and [value], in gold when [gold]. */
-private class TotalLine(val label: String, val value: Int, val gold: Boolean = false)
+/** One line of a [TotalsButton]'s tooltip: [label] and [value] - out of [target], when it has one - in gold when [gold]. */
+private class TotalLine(val label: String, val value: Int, val gold: Boolean = false, val target: Int? = null)
 
 /** The button itself: [lines] in its tooltip, its glyph gold while [highlighted], and [spokenState] what TalkBack hears. */
 @Composable
-private fun TotalsButton(lines: List<TotalLine>, highlighted: Boolean, spokenState: String, modifier: Modifier, minSize: Dp) {
+private fun TotalsButton(
+    lines: List<TotalLine>,
+    highlighted: Boolean,
+    spokenState: String,
+    modifier: Modifier,
+    minSize: Dp,
+    litHalves: Set<IconHalf> = emptySet(),
+) {
     val tooltipState = rememberAppTooltipState()
     val scope = rememberCoroutineScope()
     val totalsName = stringResource(Res.string.game_totals_cd)
@@ -165,7 +208,7 @@ private fun TotalsButton(lines: List<TotalLine>, highlighted: Boolean, spokenSta
             contentAlignment = Alignment.Center,
         ) {
             // Decorative: the button's own semantics, above, name it and say the totals.
-            BoardButtonIcon(imageVector = Icons.Filled.Functions, contentDescription = null, tint = color)
+            BoardButtonIcon(imageVector = Icons.Filled.Functions, contentDescription = null, tint = color, litHalves = litHalves)
         }
     }
 }
@@ -184,3 +227,13 @@ internal fun totalsSpokenState(upperTotal: Int, upperBonus: Int, lowerTotal: Int
 @Composable
 internal fun hitListTotalsSpokenState(targetsTotal: Int, alibiTotal: Int): String =
     joinClauses(listOf(stringResource(Res.string.game_totals_targets_spoken, targetsTotal), stringResource(Res.string.game_totals_alibi_spoken, alibiTotal)))
+
+/** What a screen reader hears for [D20TotalsButton]: both halves out of their targets, and the bonuses said to be earned once they are. */
+@Composable
+internal fun d20TotalsSpokenState(firstHalf: Int, secondHalf: Int, firstTarget: Int, secondTarget: Int, bonus: Int): String = joinClauses(
+    listOf(
+        stringResource(Res.string.game_totals_first_half_spoken, firstHalf, firstTarget),
+        stringResource(Res.string.game_totals_second_half_spoken, secondHalf, secondTarget),
+        if (bonus > 0) stringResource(Res.string.game_totals_bonus_earned_spoken, bonus) else stringResource(Res.string.game_totals_no_bonus_spoken),
+    ),
+)

@@ -76,6 +76,8 @@ class TossPath(
     private val restY: Float,
     dieSize: Float,
     sideRoom: Float,
+    /** How many faces the die has, numbered 1 up - opposite faces add up to one more than this. */
+    faceCount: Int = PIP_FACES,
 ) {
     private val random = Random(seed)
     private val delay = random.nextFloat() * 0.08f
@@ -92,13 +94,14 @@ class TossPath(
         // (finalTurns) places back round it, so pick the neighbour and the turns to put startFace there.
         // The ring's last face is the one on top at rest, one turn back from the result.
         val closest = maxOf(1, travel.roundToInt())
-        val neighbours = (1..6).filter { it != result && it != 7 - result }
+        fun opposite(face: Int) = faceCount + 1 - face
+        val neighbours = (1..faceCount).filter { it != result && it != opposite(result) }
         val neighbour = when {
-            restTop != null && restTop in neighbours -> 7 - restTop
-            startFace != null && startFace in neighbours -> 7 - startFace
+            restTop != null && restTop in neighbours -> opposite(restTop)
+            startFace != null && startFace in neighbours -> opposite(startFace)
             else -> neighbours.random(random)
         }
-        ring = listOf(result, neighbour, 7 - result, 7 - neighbour)
+        ring = listOf(result, neighbour, opposite(result), opposite(neighbour))
         // It starts on the ring's face finalTurns places back from the result - or, if the face it
         // was picked up on isn't round this ring at all, anywhere.
         val startIndex = startFace?.let { ring.indexOf(it) }?.takeIf { it >= 0 }

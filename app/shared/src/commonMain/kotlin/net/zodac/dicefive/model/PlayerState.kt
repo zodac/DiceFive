@@ -160,6 +160,21 @@ data class PlayerState(
     fun targetOf(category: ScoreCategory): HitTarget =
         requireNotNull(hitList[category]) { "$category has no target on this card" }
 
+    /** D20's first half added up: the numbers 1 to 10 and its wildcard. Zero in a mode without them. */
+    val firstHalfTotal: Int
+        get() = sectionTotal(ScoreSection.FIRST_HALF)
+
+    /** D20's second half added up: the numbers 11 to 20 and its wildcard. Zero in a mode without them. */
+    val secondHalfTotal: Int
+        get() = sectionTotal(ScoreSection.SECOND_HALF)
+
+    /** Whether [bonus]'s section adds up to its threshold, its wildcard included. */
+    fun hasSectionBonus(bonus: SectionBonus): Boolean = sectionTotal(bonus.section) >= bonus.threshold
+
+    /** The bonuses of [GameMode.sectionBonuses] this player has earned, added up. */
+    val sectionBonusTotal: Int
+        get() = gameMode.sectionBonuses.filter { hasSectionBonus(it) }.sumOf { it.amount }
+
     val fiveOfAKindBonusTotal: Int
         get() = fiveOfAKindBonusCount * gameMode.fiveOfAKindBonusAmount
 
@@ -182,9 +197,10 @@ data class PlayerState(
 
     val totalScore: Int
         get() = upperSectionTotal + upperSectionBonus + lowerSectionTotal + colourSectionTotal + extendedSectionTotal + hitListSectionTotal +
-            fiveOfAKindBonusTotal
+            firstHalfTotal + secondHalfTotal + sectionBonusTotal + fiveOfAKindBonusTotal
 
-    private fun sectionTotal(section: ScoreSection): Int =
+    /** What this player's boxes in [section] add up to (no bonus). */
+    fun sectionTotal(section: ScoreSection): Int =
         categories.filter { it.section == section }.sumOf { scoresIn(it).sum() }
 
     companion object {

@@ -217,6 +217,34 @@ class AiTurnPlayerTest {
         }
     }
 
+    // ---- D20 --------------------------------------------------------------------------------------
+
+    @Test
+    fun `every difficulty plays whole legal D20 games of twenty-two turns - Hard ahead of Medium ahead of Easy - and Hard banks high numbers over low ones`() {
+        val averages = Difficulty.entries.associateWith { difficulty ->
+            val games = (1..D20_SEEDED_GAMES).map { seed -> playedOut(difficulty, GameMode.D20, Random(seed)) }
+            for ((game, turns) in games) {
+                assertEquals(22, turns, "$difficulty")
+                val player = game.players.single()
+                assertTrue(player.isScorecardComplete, "$difficulty")
+                assertTrue(player.scorecard.values.all { it.size == 1 }, "$difficulty")
+            }
+            games.map { (game, _) -> game.players.single().totalScore }.average()
+        }
+        assertTrue(averages.getValue(Difficulty.HARD) > averages.getValue(Difficulty.MEDIUM), "Hard averaged $averages")
+        assertTrue(averages.getValue(Difficulty.MEDIUM) > averages.getValue(Difficulty.EASY), "Medium averaged $averages")
+
+        // Four 17s on the first roll: Hard holds them and scores them in 17, not a lower number.
+        val player = PlayerState(name = "Bot", type = PlayerType.AI, difficulty = Difficulty.HARD, gameMode = GameMode.D20)
+        val fourSeventeens = GameState(gameMode = GameMode.D20, players = listOf(player), dice = listOf(17, 17, 3, 17, 17).map { Die(value = it) }, rollsRemaining = 4, phase = TurnPhase.ROLLED)
+        assertEquals(setOf(0, 1, 3, 4), AiTurnPlayer.chooseHolds(fourSeventeens))
+        assertEquals(ScoreCategory.D20_17, AiTurnPlayer.chooseCategory(fourSeventeens.copy(rollsRemaining = 0)))
+        // Medium does the same: a group of high numbers is kept, with that box open.
+        val medium = fourSeventeens.copy(players = listOf(player.copy(difficulty = Difficulty.MEDIUM)))
+        assertEquals(setOf(0, 1, 3, 4), AiTurnPlayer.chooseHolds(medium))
+        assertEquals(ScoreCategory.D20_17, AiTurnPlayer.chooseCategory(medium.copy(rollsRemaining = 0)))
+    }
+
     // ---- Tricolour -------------------------------------------------------------------------------
 
     private fun tricolourBot(difficulty: Difficulty) =
@@ -279,5 +307,6 @@ class AiTurnPlayerTest {
         const val SEEDED_GAMES = 200
         const val STUD_HOLD_CASES = 200
         const val STUD_SEEDED_GAMES = 40
+        const val D20_SEEDED_GAMES = 30
     }
 }

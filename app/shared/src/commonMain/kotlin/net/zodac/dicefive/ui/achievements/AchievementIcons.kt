@@ -75,6 +75,7 @@ import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
@@ -239,6 +240,9 @@ val Achievement.icon: ImageVector
         Achievement.STUD_LUCKY_SEVEN -> Icons.Filled.Filter7
         Achievement.THIRD_WIND_WIN -> Icons.Filled.Cyclone
         Achievement.THIRD_WIND_NO_ZEROES -> Icons.Filled.Air
+        // A hexagon, the outline of a twenty-sided die seen face on, with a 20 in it; and a star for each of the two bonuses.
+        Achievement.D20_WIN -> D20_NAT_20_ICON
+        Achievement.D20_BOTH_BONUSES -> Icons.Filled.Stars
         // A list with every job ticked off - the contract seen through.
         Achievement.HIT_LIST_WIN -> Icons.Filled.AssignmentTurnedIn
         // Drawn for this app: Material's bullseyes have no arrow in them.

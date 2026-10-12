@@ -22,12 +22,11 @@ class GameModeTest {
         // Every slot of the 5x box first, so every later 5x is a joker; then each box's slots in turn.
         // Boxes the game switched off aren't played.
         val player = state.players.single()
-        val turnOrder = (listOf(ScoreCategory.FIVE_OF_A_KIND) + mode.categories.filter { it != ScoreCategory.FIVE_OF_A_KIND })
+        val turnOrder = (listOf(ScoreCategory.FIVE_OF_A_KIND).filter { it in mode.categories } + mode.categories.filter { it != ScoreCategory.FIVE_OF_A_KIND })
             .filter { player.isOpen(it) }
             .flatMap { category -> List(mode.scoresPerCategory) { category } }
         for (category in turnOrder) {
-            val upperValue = PlayerState.UPPER_CATEGORIES.indexOf(category) + 1
-            val value = if (upperValue > 0) upperValue else mode.dieValues.last
+            val value = category.number ?: category.wildcardNumbers?.last ?: mode.dieValues.last
             val colour = category.matchingColour ?: mode.dieColours.firstOrNull()
             val dice = List(mode.diceCount) { Die(value = value, colour = colour) }
             // Where only held dice score, the hand is held first - five of the matching dice.
@@ -50,7 +49,7 @@ class GameModeTest {
 
     @Test
     fun `every mode's ceiling is exactly what a perfect game through the engine totals`() {
-        // Quickfire's card changes every game and has no 5x to play, and Hit List has no 5x at all.
+        // Quickfire's card changes every game and has no 5x to play, and Hit List and D20 have no 5x at all.
         for (mode in GameMode.entries - GameMode.QUICKFIRE - GameMode.HIT_LIST) {
             assertEquals(mode.maxPossibleScore, perfectGame(mode).totalScore, "$mode")
         }
@@ -101,6 +100,64 @@ class GameModeTest {
         assertEquals(18, GameMode.QUICKFIRE.maxRollsPerGame)
         assertEquals(39, GameMode.STUD.maxRollsPerGame)
         assertEquals(117, GameMode.THIRD_WIND.maxRollsPerGame)
+        assertEquals(110, GameMode.D20.maxRollsPerGame)
+    }
+
+    @Test
+    fun `D20 is twenty-sided dice and the numbers 1 to 20 in two halves - each with a bonus - five dice and five rolls`() {
+        val d20 = GameMode.D20
+        assertEquals(1..20, d20.dieValues)
+        assertEquals(5, d20.diceCount)
+        assertEquals(5, d20.rollsPerTurn)
+        assertEquals(ScoreCategory.D20_NUMBERS + listOf(ScoreCategory.D20_WILD_LOW, ScoreCategory.D20_WILD_HIGH), d20.categories)
+        assertEquals((1..20).toList(), d20.categories.mapNotNull { it.number })
+        assertEquals(22, d20.turnsPerGame)
+        assertEquals(1350, d20.maxPossibleScore)
+        assertFalse(d20.allowsExtendedScores)
+        assertFalse(d20.hasStandardCard)
+        assertEquals(listOf(ScoreSection.FIRST_HALF to 138, ScoreSection.SECOND_HALF to 388), d20.sectionBonuses.map { it.section to it.threshold })
+        assertEquals(listOf(75, 75), d20.sectionBonuses.map { it.amount })
+        // Each half is ten numbers and a wildcard, and every other card is Standard's or has none of these.
+        assertEquals(11, d20.categories.count { it.section == ScoreSection.FIRST_HALF })
+        assertEquals(11, d20.categories.count { it.section == ScoreSection.SECOND_HALF })
+        assertEquals(1..10, ScoreCategory.D20_WILD_LOW.wildcardNumbers)
+        assertEquals(11..20, ScoreCategory.D20_WILD_HIGH.wildcardNumbers)
+        for (mode in GameMode.entries - d20) assertTrue(mode.sectionBonuses.isEmpty(), "$mode")
+        // It is listed before Hit List, which is the order the setup screen shows the modes in.
+        assertTrue(GameMode.entries.indexOf(d20) < GameMode.entries.indexOf(GameMode.HIT_LIST))
+    }
+
+    @Test
+    fun `each D20 half earns its bonus at its threshold and not before - and both can be earned in one game`() {
+        fun player(firstHalf: Int, secondHalf: Int): PlayerState {
+            val first = ScoreCategory.D20_NUMBERS.filter { it.section == ScoreSection.FIRST_HALF }
+            val second = ScoreCategory.D20_NUMBERS.filter { it.section == ScoreSection.SECOND_HALF }
+            // Everything in the half's first box but the rest zero: the total is what matters.
+            val card = first.associateWith { listOf(if (it == first.first()) firstHalf else 0) } +
+                second.associateWith { listOf(if (it == second.first()) secondHalf else 0) }
+            return PlayerState(name = "P", type = PlayerType.HUMAN, gameMode = GameMode.D20, scorecard = card)
+        }
+        assertEquals(0, player(137, 387).sectionBonusTotal)
+        assertEquals(75, player(138, 387).sectionBonusTotal)
+        assertEquals(75, player(137, 388).sectionBonusTotal)
+        assertEquals(150, player(138, 388).sectionBonusTotal)
+        assertEquals(137 + 387, player(137, 387).totalScore)
+        assertEquals(138 + 388 + 150, player(138, 388).totalScore)
+        assertEquals(138, player(138, 388).firstHalfTotal)
+        assertEquals(388, player(138, 388).secondHalfTotal)
+    }
+
+    @Test
+    fun `a D20 wildcard counts towards its half and so towards that half's bonus`() {
+        val card = ScoreCategory.D20_CARD.associateWith { emptyList<Int>() } +
+            mapOf(ScoreCategory.D20_1 to listOf(100), ScoreCategory.D20_WILD_LOW to listOf(38), ScoreCategory.D20_11 to listOf(350), ScoreCategory.D20_WILD_HIGH to listOf(37))
+        val player = PlayerState(name = "P", type = PlayerType.HUMAN, gameMode = GameMode.D20, scorecard = card)
+        // 100 + 38 = 138 and 350 + 37 = 387: the wildcard takes the first half over its threshold, the second a point short.
+        assertEquals(138, player.firstHalfTotal)
+        assertEquals(387, player.secondHalfTotal)
+        assertEquals(75, player.sectionBonusTotal)
+        assertEquals(138 + 387 + 75, player.totalScore)
+        assertEquals(150, player.copy(scorecard = card + (ScoreCategory.D20_WILD_HIGH to listOf(38))).sectionBonusTotal)
     }
 
     @Test
@@ -129,7 +186,7 @@ class GameModeTest {
             assertEquals(mode.categories.size - mode.disabledCategoryCount, mode.turnsPerGame, "$mode")
         }
         // Only these keep their scores off the Leaderboard.
-        assertEquals(listOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.HIT_LIST, GameMode.QUICKFIRE), GameMode.entries.filter { !it.countsOnLeaderboard })
+        assertEquals(listOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.D20, GameMode.HIT_LIST, GameMode.QUICKFIRE), GameMode.entries.filter { !it.countsOnLeaderboard })
 
         // Tricolour: the four colour boxes, played with coloured dice.
         assertEquals(standard.categories + listOf(ScoreCategory.REDS, ScoreCategory.YELLOWS, ScoreCategory.BLUES, ScoreCategory.COLOURED_HOUSE), GameMode.TRICOLOUR.categories)
