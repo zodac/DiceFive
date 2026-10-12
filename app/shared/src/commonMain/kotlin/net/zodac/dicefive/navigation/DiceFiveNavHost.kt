@@ -174,6 +174,14 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                 val driftState = LocalDriftState.current
                 val gameOver by rememberUpdatedState(gameViewModel.game.collectAsStateWithLifecycle().value?.isGameOver == true)
                 DisposableEffect(driftState) { onDispose { if (!gameOver) driftState?.reset() } }
+                // Android can end the app's process while it's in the background, and on return rebuilds this back
+                // stack with a fresh view model holding no game - which drew only the empty backdrop. Every move is
+                // saved, so the game is loaded back as Continue would; with nothing saved, it's back to the menu.
+                LaunchedEffect(gameViewModel) {
+                    if (gameViewModel.game.value == null && !gameViewModel.resumeGame()) {
+                        navController.popBackStack(Screen.MENU, inclusive = false)
+                    }
+                }
                 GameScreen(
                     viewModel = gameViewModel,
                     onBackToMenu = { navController.popBackStack(Screen.MENU, inclusive = false) },
