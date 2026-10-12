@@ -31,8 +31,6 @@ import net.zodac.dicefive.resources.achievement_cunning_strategy_description
 import net.zodac.dicefive.resources.achievement_cunning_strategy_title
 import net.zodac.dicefive.resources.achievement_decisions_decisions_description
 import net.zodac.dicefive.resources.achievement_decisions_decisions_title
-import net.zodac.dicefive.resources.achievement_deja_vu_description
-import net.zodac.dicefive.resources.achievement_deja_vu_title
 import net.zodac.dicefive.resources.achievement_dice_10000_description
 import net.zodac.dicefive.resources.achievement_dice_10000_title
 import net.zodac.dicefive.resources.achievement_dice_hate_me_description
@@ -51,8 +49,6 @@ import net.zodac.dicefive.resources.achievement_extreme_low_rolls_description
 import net.zodac.dicefive.resources.achievement_extreme_low_rolls_title
 import net.zodac.dicefive.resources.achievement_first_5x_description
 import net.zodac.dicefive.resources.achievement_first_5x_title
-import net.zodac.dicefive.resources.achievement_first_roll_5x_description
-import net.zodac.dicefive.resources.achievement_first_roll_5x_title
 import net.zodac.dicefive.resources.achievement_first_roll_full_house_description
 import net.zodac.dicefive.resources.achievement_first_roll_full_house_title
 import net.zodac.dicefive.resources.achievement_first_roll_large_straight_description
@@ -857,12 +853,6 @@ enum class Achievement(
         Res.string.achievement_first_roll_large_straight_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
-    FIRST_ROLL_5X(
-        "5x_first_roll",
-        Res.string.achievement_first_roll_5x_title,
-        Res.string.achievement_first_roll_5x_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
-    ),
     SIXES_30(
         "sixes_30",
         Res.string.achievement_sixes_30_title,
@@ -875,14 +865,7 @@ enum class Achievement(
         Res.string.achievement_chance_30_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
-    DEJA_VU(
-        "deja_vu",
-        Res.string.achievement_deja_vu_title,
-        Res.string.achievement_deja_vu_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
-    ),
-    // Sits right after Déjà Vu, its complement: this is the *some dice held* case of the same
-    // "the dice landed the same twice" idea, where Déjà Vu is specifically the *nothing held* one.
+    // Titled "Déjà Vu": the dice not held keep landing on the same faces.
     LOADED_DICE(
         "loaded_dice",
         Res.string.achievement_loaded_dice_title,

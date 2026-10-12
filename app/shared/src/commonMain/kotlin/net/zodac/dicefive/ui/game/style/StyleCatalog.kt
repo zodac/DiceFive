@@ -662,7 +662,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 // so the held ring is white instead, not lost against gold numbers.
                 colour(Res.string.style_colour_blue, D20DiceStyle("d20_blue", Color(0xFF3A6BB0), Color(0xFF14315C), GoldAccent, heldRing = Color.White)),
             ),
-            unlock = AchievementCount(104),
+            unlock = AchievementCount(102),
         ),
         StyleFamily(
             Res.string.style_family_googly,

@@ -2602,3 +2602,12 @@ any page.
       with the profile, and only once it and every check have passed. `release` also requires the profile job to
       have passed or been skipped (a failed one only *skips* `apk`, which alone would let a release out without
       its APK). See Phase 19.
+
+### Achievement changes (after Phase 21)
+- `NATURAL_INTELLIGENCE` is now "How Do You Do, Fellow CPUs?": a four-player game against three Hard CPUs where the
+  human does not finish last (a tie for last counts as last). The Memory (CPU chip) icon, as in `CpuPlayerIcon`.
+- `DEJA_VU` (the nothing-held repeat) and `FIRST_ROLL_5X` ("Five on the Fly") were removed, with their strings in every
+  locale. `LOADED_DICE` (id kept so earned unlocks survive) is now titled "Déjà Vu".
+- `LUCK_OF_THE_DRAW` is now "Look Ma, No Hands!"; its hourglass icon and Time Wasting's shuffle icon were swapped.
+- 102 achievements now, so the D20 dice unlock moved from `AchievementCount(104)` to `102` (it was "every achievement").
+- Earlier mentions of the old names in this file are history and were left as written.

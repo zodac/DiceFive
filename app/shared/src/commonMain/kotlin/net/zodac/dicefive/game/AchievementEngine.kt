@@ -465,8 +465,9 @@ object AchievementEngine {
         )
         award(
             Achievement.NATURAL_INTELLIGENCE,
-            humanWon && players.size == FULL_TABLE_SIZE && aiPlayers.size == FULL_TABLE_SIZE - 1 &&
-                aiPlayers.all { it.difficulty == Difficulty.HARD },
+            players.size == FULL_TABLE_SIZE && aiPlayers.size == FULL_TABLE_SIZE - 1 &&
+                aiPlayers.all { it.difficulty == Difficulty.HARD } &&
+                primaryPlayerRank.rank < TieBreak.rank(players).maxOf { it.rank },
         )
 
         // Misfortune that only a finished score can settle.

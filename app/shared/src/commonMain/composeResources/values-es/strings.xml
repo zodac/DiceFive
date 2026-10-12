@@ -131,8 +131,8 @@
     <string name="achievement_comeback_description">Gana yendo por detrás al empezar la ronda final</string>
     <string name="achievement_beat_three_ai_title">El último humano</string>
     <string name="achievement_beat_three_ai_description">Gana una partida de cuatro jugadores contra tres jugadores CPU</string>
-    <string name="achievement_natural_intelligence_title">Inteligencia natural</string>
-    <string name="achievement_natural_intelligence_description">Gana una partida de cuatro jugadores contra tres jugadores CPU difíciles</string>
+    <string name="achievement_natural_intelligence_title">¿Qué tal, compañeros CPU?</string>
+    <string name="achievement_natural_intelligence_description">No acabes último en una partida de cuatro jugadores contra tres jugadores CPU difíciles</string>
     <string name="achievement_naturally_gifted_title">Talento natural</string>
     <string name="achievement_naturally_gifted_description">Gana una partida sin tirar más de una vez en ningún turno</string>
     <string name="achievement_everything_everywhere_title">Todo a la vez en todas partes</string>
@@ -191,7 +191,7 @@
     <string name="achievement_no_more_rolls_description">Toca el cubilete tres veces tras tu última tirada de un turno</string>
     <string name="achievement_impatient_title">Impaciente</string>
     <string name="achievement_impatient_description">Termina una partida sin tirar más de una vez en ningún turno</string>
-    <string name="achievement_luck_of_the_draw_title">La suerte del sorteo</string>
+    <string name="achievement_luck_of_the_draw_title">¡Mira, mamá, sin manos!</string>
     <string name="achievement_luck_of_the_draw_description">Gana una partida anotando tú mismo 3 categorías o menos: el temporizador hizo el resto</string>
     <string name="achievement_fresh_coat_of_paint_title">Mano de pintura</string>
     <string name="achievement_fresh_coat_of_paint_description">Juega una partida con algún elemento con un estilo no predeterminado</string>
@@ -203,15 +203,11 @@
     <string name="achievement_first_roll_full_house_description">Saca un full en la primera tirada de un turno</string>
     <string name="achievement_first_roll_large_straight_title">De inmediato</string>
     <string name="achievement_first_roll_large_straight_description">Saca una escalera grande en la primera tirada de un turno</string>
-    <string name="achievement_first_roll_5x_title">Cinco al vuelo</string>
-    <string name="achievement_first_roll_5x_description">Saca un 5x en la primera tirada de un turno</string>
     <string name="achievement_sixes_30_title">Seis de seis</string>
     <string name="achievement_sixes_30_description">Anota el máximo de 30 en Seises</string>
     <string name="achievement_chance_30_title">Probando suerte</string>
     <string name="achievement_chance_30_description">Anota el máximo de 30 en Azar</string>
-    <string name="achievement_deja_vu_title">Déjà vu</string>
-    <string name="achievement_deja_vu_description">Saca exactamente el mismo resultado dos veces seguidas, sin conservar ningún dado entre medias</string>
-    <string name="achievement_loaded_dice_title">¿Son dados trucados?</string>
+    <string name="achievement_loaded_dice_title">Déjà vu</string>
     <string name="achievement_loaded_dice_description">Tras conservar algunos dados, consigue que el resto salga exactamente igual en las dos tiradas siguientes</string>
     <string name="achievement_product_placement_title">Emplazamiento de producto</string>
     <string name="achievement_product_placement_description">Tira/conserva 2, 4, 5, 3, 6: los dados exactos del menú principal, en ese orden</string>

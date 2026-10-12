@@ -198,8 +198,8 @@
     <string name="achievement_comeback_description">Win after trailing at the start of the final round</string>
     <string name="achievement_beat_three_ai_title">Last Human Standing</string>
     <string name="achievement_beat_three_ai_description">Win a four-player game against three CPU players</string>
-    <string name="achievement_natural_intelligence_title">Natural Intelligence</string>
-    <string name="achievement_natural_intelligence_description">Win a four-player game against three Hard CPU players</string>
+    <string name="achievement_natural_intelligence_title">How Do You Do, Fellow CPUs?</string>
+    <string name="achievement_natural_intelligence_description">Don't finish last in a four-player game against three Hard CPU players</string>
     <string name="achievement_naturally_gifted_title">Naturally Gifted</string>
     <string name="achievement_naturally_gifted_description">Win a game never rolling more than once in any turn</string>
     <string name="achievement_everything_everywhere_title">Everything Everywhere All At Once</string>
@@ -258,7 +258,7 @@
     <string name="achievement_no_more_rolls_description">Tap the dice cup three times after your last roll of a turn</string>
     <string name="achievement_impatient_title">Impatient</string>
     <string name="achievement_impatient_description">Finish a game never rolling more than once in any turn</string>
-    <string name="achievement_luck_of_the_draw_title">Luck Of The Draw</string>
+    <string name="achievement_luck_of_the_draw_title">Look Ma, No Hands!</string>
     <string name="achievement_luck_of_the_draw_description">Win a game scoring 3 or fewer categories yourself - the turn timer did the rest</string>
     <string name="achievement_fresh_coat_of_paint_title">Fresh Coat Of Paint</string>
     <string name="achievement_fresh_coat_of_paint_description">Play a game with any item using a non-default style</string>
@@ -270,15 +270,11 @@
     <string name="achievement_first_roll_full_house_description">Roll a full house on the first roll of a turn</string>
     <string name="achievement_first_roll_large_straight_title">Straight Away</string>
     <string name="achievement_first_roll_large_straight_description">Roll a large straight on the first roll of a turn</string>
-    <string name="achievement_first_roll_5x_title">Five on the Fly</string>
-    <string name="achievement_first_roll_5x_description">Roll a 5x on the first roll of a turn</string>
     <string name="achievement_sixes_30_title">Six Appeal</string>
     <string name="achievement_sixes_30_description">Score the maximum 30 in Sixes</string>
     <string name="achievement_chance_30_title">Taking A Chance</string>
     <string name="achievement_chance_30_description">Score the maximum 30 in Chance</string>
-    <string name="achievement_deja_vu_title">Déjà Vu</string>
-    <string name="achievement_deja_vu_description">Roll the exact same result twice in a row, without holding any dice in between</string>
-    <string name="achievement_loaded_dice_title">Are These Loaded Dice?</string>
+    <string name="achievement_loaded_dice_title">Déjà Vu</string>
     <string name="achievement_loaded_dice_description">After holding some dice, have the rest come up exactly the same on both re-rolls</string>
     <string name="achievement_product_placement_title">Product Placement</string>
     <string name="achievement_product_placement_description">Roll/hold 2, 4, 5, 3, 6 - the exact dice on the main menu, in that order</string>

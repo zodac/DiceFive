@@ -54,7 +54,7 @@ When a new rule needs a field, add it here too. This is the map of where each ru
 | `upperBonus*`, `fiveOfAKindBonusAmount`  | `PlayerState` totals, `ScoreCalculator`, the 5x tile's bonus preview                                       |
 | `disabledCategories`, `randomDisabledCategories` (a game's own set is `GameState`/`PlayerState.disabledCategories`, drawn by `drawDisabledCategories` in `GameEngine.newGame`) | `PlayerState.isOpen` (never open - so `ScoreCalculator`, `HandScoring.filledMask` and the AI skip them), `turnsPerGame`, `upperBonusThreshold`/`hasUpperBonus`, `GameStateJson`, `CategoryCell`/`CategoryTile` (drawn as an outline), the achievement guards (`hasFullCard`) |
 | `maxPossibleScore`                       | `HIGHEST_POSSIBLE_SCORE` (Leaderboard/Statistics column width), `GameModeTest`                              |
-| `scoresPerCategory` (`turnsPerGame`)     | `PlayerState` (`scorecard` is a list per box; `isOpen`, `turnsTaken`/`turnsLeft`, `isScorecardComplete`, totals, `fiveOfAKindJokerActive`), `ScoreCalculator` (open boxes, the joker), `HandScoring.filledMask` (a full box), `AiTurnPlayer` (upper-bonus reach), `TieBreak` (every zero slot counts), `GameStateJson`, `CategoryCell` (`StackedScores`, spoken state), `GameViewModel` (turn timer's turn count, final round), the achievement guards, Luck Of The Draw's turn count |
+| `scoresPerCategory` (`turnsPerGame`)     | `PlayerState` (`scorecard` is a list per box; `isOpen`, `turnsTaken`/`turnsLeft`, `isScorecardComplete`, totals, `fiveOfAKindJokerActive`), `ScoreCalculator` (open boxes, the joker), `HandScoring.filledMask` (a full box), `AiTurnPlayer` (upper-bonus reach), `TieBreak` (every zero slot counts), `GameStateJson`, `CategoryCell` (`StackedScores`, spoken state), `GameViewModel` (turn timer's turn count, final round), the achievement guards, Look Ma, No Hands! (`LUCK_OF_THE_DRAW`)'s turn count |
 | `countsOnLeaderboard` (also off whenever a modifier, i.e. the turn timer, is on - `GameState.countsOnLeaderboard`) | `GameViewModel.persistHumanScores` → `ScoreEntry.onLeaderboard`, which `ScoreDao`'s Leaderboard page/count, best score and distinct scores filter on (Statistics and career points don't); New Personal Best's guard |
 | `allowsRollModifiers` (every mode allows them now) | `GameViewModel.startGame` (starts a game with `RollModifiers()`), the setup screen's locked Number of Rolls / Stored Rolls rows |
 | `maxRollsPerGame`                        | `flowerpotGrowthStage` - the Flowerpot's stages are spread evenly over it, and the sunflower blooms on its last roll (Greenfingers); `GameModeTest` |
@@ -157,7 +157,7 @@ A category's scoring rule is mode-independent; a mode only chooses which categor
   come out of a seeded `Random` exactly as before - tests depend on that.
 - `DiceTray` draws the dice (and a random face while rolling), and superuser mode's
   `GameEngine.cycleDieValue` steps through faces - both need to know the new faces.
-- Achievements that compare rolls (Déjà Vu, Are These Loaded Dice?) compare whole faces via
+- Achievements that compare rolls (Déjà Vu) compare whole faces via
   `faces()`, so a new property is included automatically - check that's what "the same roll" should
   mean.
 - AI Hard plans over every distinct hand and every set of dice that can be held from one
@@ -174,7 +174,7 @@ list. They aren't here, so:
 
 - **Score `GameState.scoringDice`, never `state.dice`.** That's the board's preview, `commitScore`,
   the AI's category choice, the timeout's category, and every achievement judged on the scored hand.
-  `state.dice` is still right for what's *on the table*: `lastRoll`, Déjà Vu, Loaded Dice, Lucky
+  `state.dice` is still right for what's *on the table*: `lastRoll`, Déjà Vu (`LOADED_DICE`), Lucky
   Seven, die indices. Grep each `state.dice` read and decide which it means.
 - **A part-held hand is scored and previewed**, so scoring must cope with fewer dice than a full
   hand. `DiceScoring.isFiveOfAKind` needed a dice-count check: three held 6s were "all the same" and
@@ -212,7 +212,7 @@ while untouched), so:
   had to be found by grepping, in tests above all (a "CPU took a turn" check that could never fail).
 - **"One turn per box" is gone.** A game is `GameMode.turnsPerGame` turns. Everything that counted
   boxes to mean turns needed it: the turn timer's new-turn detection (`turnsTaken`), the final-round
-  check (`turnsLeft == 1`), Luck Of The Draw's "3 or fewer of your own turns", and test helpers that
+  check (`turnsLeft == 1`), Look Ma, No Hands! (`LUCK_OF_THE_DRAW`)'s "3 or fewer of your own turns", and test helpers that
   loop `categories.size` times.
 - **Rules that look at "the box" need deciding per slot.** The joker is "the 5x box is full and one
   slot holds 50" (`fiveOfAKindJokerActive`), so the 2nd and 3rd 5x go in the box for 50 with no chip.
@@ -384,7 +384,7 @@ its `description`. Only a mode that changes *another* setup option needs work he
   something the final `GameState` can't show, add a field to `GameAchievementContext` and track it in
   `GameViewModel`: a `private var`, reset in `resetAchievementTracking`, passed in
   `recordEndOfGameAchievements`. Prefer a count to a flag (`playerOneTimeouts` started as a
-  `playerOneTimedOut` flag; Luck Of The Draw then needed the count). Only track player 1's turns.
+  `playerOneTimedOut` flag; Look Ma, No Hands! (`LUCK_OF_THE_DRAW`) then needed the count). Only track player 1's turns.
 - Per-game counters restart from zero when a saved game is resumed. Design each achievement so that
   can only make it harder, never hand it out.
 - Icon in `ui/achievements/AchievementIcons.kt` (exhaustive `when`). **Grep that the glyph isn't
@@ -412,10 +412,10 @@ Families to check:
 
 | Family              | Achievements                                                                                 | What to ask                                                                 |
 |---------------------|----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| Roll count          | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Loaded Dice, Time To Let It Go, Pointless Roll, Greenfingers, Probability? Never Heard of Her | Does "only one roll used" or "every roll used" become automatic or impossible? |
-| First roll          | House Call, Straight Away, Five on the Fly, I Can Count!                             | Is every roll now a first roll, or none?                                    |
+| Roll count          | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu (`LOADED_DICE`), Time To Let It Go, Pointless Roll, Greenfingers, Probability? Never Heard of Her | Does "only one roll used" or "every roll used" become automatic or impossible? |
+| First roll          | House Call, Straight Away, I Can Count!                                              | Is every roll now a first roll, or none?                                    |
 | Holds               | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues                     | Can dice still be held?                                                     |
-| Timer               | Out Of Time, Beat The Clock, Luck Of The Draw                                                | Is there always, or never, a timer?                                         |
+| Timer               | Out Of Time, Beat The Clock, Look Ma, No Hands! (`LUCK_OF_THE_DRAW`)                                                | Is there always, or never, a timer?                                         |
 | Card contents       | How Do You Play This Game?, Spotless, Bonus Round, Upper/Lower Class, Exact Change, the 5x ones | Is each box still on the card, and do totals still mean the same?            |
 | Score thresholds    | Solid Round ... Dice Deity, Cold Dice, Low Rolls, Ton!, Nice, Rock Bottom, the score bands   | Is a threshold now trivial or impossible for this ceiling?                  |
 | Dice look           | Fresh Coat Of Paint, Luck of the Irish                                                       | Does the mode draw the player's dice style?                                  |
@@ -442,7 +442,7 @@ without its guard):
 | Bonus Round (`UPPER_BONUS`)                           | The threshold shrinks with the boxes - 18 with only the 6s left         |
 
 **Can't be earned in Quickfire - no guard needed**: every 5x achievement that needs the 5x scored (First 5x,
-Encore, Hat Trick, Scratched, Twice in a Lifetime) and the rolled-a-5x ones (Natural 5x, Five on the Fly), which
+Encore, Hat Trick, Scratched, Twice in a Lifetime) and the rolled-a-5x ones (Natural 5x), which
 need a 5x that "could be scored as one" (`fiveOfAKindScorable`) - with the box off and no joker it never can.
 The score-collection bands (the games aren't on the Leaderboard) and New Personal Best (`countsOnLeaderboard`).
 Exact Change and Both Straights need those boxes to have come up in the draw.
@@ -450,7 +450,7 @@ Exact Change and Both Straights need those boxes to have come up in the draw.
 **Still earnable, and worth knowing - report these to the user rather than deciding alone**: Impatient and
 Naturally Gifted (three rolls, so a real choice), Greenfingers (grows over 18 rolls rather than 39, so easier but
 still every roll of every turn), Nice and Ton! (a total of 69 or 100 is likelier on a smaller card), Zero To Hero
-(three zeroes in six turns is harder), Luck Of The Draw (all but 3 of 6 turns), Landslide and the win ones.
+(three zeroes in six turns is harder), Look Ma, No Hands! (`LUCK_OF_THE_DRAW`) (all but 3 of 6 turns), Landslide and the win ones.
 The mode's own: Quick On The Draw (`QUICKFIRE_WIN`, a multiplayer win) and Six Of The Best (`QUICKFIRE_SCORE`,
 a total of 150 or more, not with extra rolls or Extended Scores). It used to have Beat The Clock, which went with
 the timer.
@@ -488,7 +488,7 @@ without its guard):
 
 | Achievement                                            | Why it would come too easily                                      |
 |--------------------------------------------------------|-------------------------------------------------------------------|
-| House Call, Straight Away, Five on the Fly (first roll) | Seven dice hold a straight or five matching far more often - and nothing is held yet, so it isn't a hand |
+| House Call, Straight Away (first roll) | Seven dice hold a straight or five matching far more often - and nothing is held yet, so it isn't a hand |
 | Natural 5x (`NATURAL_5X`)                               | Same, on a reroll with nothing held                               |
 | The Dice Hate Me (`DICE_HATE_ME`)                       | Judged on the roll, which isn't what scores                        |
 | Almost Famous (`ALMOST_FAMOUS`)                         | A 5x among seven dice never shows as one, so "never landed the 5x" was always true |
@@ -498,8 +498,8 @@ equal a five-dice sequence); What Was The Point Of That? (every die can never be
 held, two still roll).
 
 **Still earnable, and worth knowing**: A Cunning Strategy and Commitment Issues count "all five" as
-every hold slot (`scoringDiceCount`), so they work as in Standard. Déjà Vu and Are These Loaded
-Dice? compare all seven dice, so they're harder. Well Rolled counts seven dice a roll. Greenfingers
+every hold slot (`scoringDiceCount`), so they work as in Standard. Déjà Vu (`LOADED_DICE`)
+compares all seven dice, so they're harder. Well Rolled counts seven dice a roll. Greenfingers
 grows as in Standard (3 rolls a turn, 39 a game). Lucky Seven (`STUD_LUCKY_SEVEN`) is Stud's own:
 all seven dice showing one number after a roll - most often five held and the last two matching.
 
@@ -528,7 +528,7 @@ three slots); the score-collection bands (the rows aren't on the Leaderboard).
 
 **Still earnable, and worth knowing**: Bonus Round (the 105 bonus, as hard to reach as Standard's 35);
 Landslide (margins triple, so easier); Encore, Hat Trick and Dice Whisperer (three times the turns);
-Cold Dice, Low Rolls, Ton! and Nice (harder); Luck Of The Draw counts all 39 turns (36 timeouts);
+Cold Dice, Low Rolls, Ton! and Nice (harder); Look Ma, No Hands! (`LUCK_OF_THE_DRAW`) counts all 39 turns (36 timeouts);
 Professional Roller counts Third Wind points, which are earned a turn at a time like any others;
 Greenfingers grows over 117 rolls. The mode's own two: Gone With The Wind (`THIRD_WIND_WIN`, a win,
 multiplayer) and Third Time's The Charm (`THIRD_WIND_NO_ZEROES`), all 39 slots scored without a zero.
@@ -566,13 +566,13 @@ score-collection bands (off the Leaderboard).
 **Still earnable, and worth knowing**: How Do You
 Play This Game? (zeroing every box on purpose, as in Standard); Ton!; Wasted 5x (five matching dice never hit a target,
 so scoring them is always a zero); The Dice Hate Me (more likely - chasing an exact hit can lose the plain one);
-Greenfingers (39 rolls, as Standard); Luck Of The Draw (13 turns). The mode's own: Contract Fulfilled
+Greenfingers (39 rolls, as Standard); Look Ma, No Hands! (`LUCK_OF_THE_DRAW`) (13 turns). The mode's own: Contract Fulfilled
 (`HIT_LIST_WIN`, a multiplayer win) and Right On Target (`HIT_LIST_RIGHT_ON_TARGET`, an exact hit on a target naming
 all five numbers - judged mid-game, from the score its box holds).
 
 ### Tricolour (coloured dice, four colour boxes)
 
-Nothing guarded, nothing blocked. Déjà Vu and Are These Loaded Dice? compare number *and* colour.
+Nothing guarded, nothing blocked. Déjà Vu (`LOADED_DICE`) compares number *and* colour.
 Fresh Coat Of Paint counts the dice style as in any mode - Tricolour draws the player's style,
 recoloured per die (it once drew its own fixed coloured dice, and the dice style didn't count). How
 Do You Play This Game? needs the colour boxes zeroed too. See `DESIGN.md` Phase 14.

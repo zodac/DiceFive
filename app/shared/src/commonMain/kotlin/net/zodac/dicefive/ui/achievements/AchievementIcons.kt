@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Casino
-import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Cyclone
@@ -44,7 +43,6 @@ import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.Grade
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.HeartBroken
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.HourglassFull
@@ -75,7 +73,7 @@ import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
 import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Speed
@@ -220,7 +218,7 @@ val Achievement.icon: ImageVector
         // read of a last-round comeback, so this is the requested fallback: a plain cowboy hat.
         Achievement.COMEBACK -> vectorResource(Res.drawable.ic_cowboy_hat)
         Achievement.BEAT_THREE_AI -> Icons.Filled.EmojiPeople
-        Achievement.NATURAL_INTELLIGENCE -> Icons.Filled.SmartToy
+        Achievement.NATURAL_INTELLIGENCE -> Icons.Filled.Memory
         Achievement.NATURALLY_GIFTED -> Icons.Filled.Spa
         // Drawn for this app: a googly eye, its pupil off to one side.
         Achievement.EVERYTHING_EVERYWHERE -> GOOGLY_EYE_ICON
@@ -262,23 +260,21 @@ val Achievement.icon: ImageVector
         Achievement.COMMITMENT_ISSUES -> Icons.Filled.SwapHoriz
         Achievement.DECISIONS_DECISIONS -> Icons.AutoMirrored.Filled.Help
         Achievement.TIME_TO_LET_IT_GO -> Icons.Filled.HourglassEmpty
-        Achievement.TIME_WASTING -> Icons.Filled.HourglassFull
+        Achievement.TIME_WASTING -> Icons.Filled.Shuffle
         // The same glyph UndoButton.kt uses for the real undo control, not its Redo mirror image -
         // this achievement is about undoing, not redoing.
         Achievement.UNDO_DIFFERENT_CATEGORY -> Icons.AutoMirrored.Filled.Undo
         Achievement.NO_MORE_ROLLS -> Icons.Filled.Block
         Achievement.IMPATIENT -> Icons.Filled.FlashOn
         // The timer shuffling your scores into place for you.
-        Achievement.LUCK_OF_THE_DRAW -> Icons.Filled.Shuffle
+        Achievement.LUCK_OF_THE_DRAW -> Icons.Filled.HourglassFull
         Achievement.FRESH_COAT_OF_PAINT -> Icons.Filled.FormatPaint
         Achievement.EMPTY_HOUSE -> Icons.Filled.NoMeetingRoom
         Achievement.FULLER_HOUSE -> Icons.Filled.House
         Achievement.FIRST_ROLL_FULL_HOUSE -> Icons.Filled.HomeWork
         Achievement.FIRST_ROLL_LARGE_STRAIGHT -> Icons.Filled.Route
-        Achievement.FIRST_ROLL_5X -> Icons.Filled.Celebration
         Achievement.SIXES_30 -> Icons.Filled.Looks6
         Achievement.CHANCE_30 -> Icons.AutoMirrored.Filled.HelpOutline
-        Achievement.DEJA_VU -> Icons.Filled.History
         Achievement.PRODUCT_PLACEMENT -> Icons.Filled.Storefront
         Achievement.POINTLESS_ROLL -> Icons.Filled.RemoveCircle
         Achievement.NICE -> Icons.Filled.ThumbUp

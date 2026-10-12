@@ -148,8 +148,8 @@
     <string name="achievement_comeback_description">افز بعد أن كنت متأخرًا في بداية الجولة الأخيرة</string>
     <string name="achievement_beat_three_ai_title">آخر إنسان صامد</string>
     <string name="achievement_beat_three_ai_description">افز في لعبة من أربعة لاعبين ضد ثلاثة لاعبين من الحاسوب</string>
-    <string name="achievement_natural_intelligence_title">ذكاء طبيعي</string>
-    <string name="achievement_natural_intelligence_description">افز في لعبة من أربعة لاعبين ضد ثلاثة لاعبين صعبين من الحاسوب</string>
+    <string name="achievement_natural_intelligence_title">كيف حالكم يا زملاء المعالج؟</string>
+    <string name="achievement_natural_intelligence_description">لا تحتل المركز الأخير في لعبة من أربعة لاعبين ضد ثلاثة لاعبين صعبين من الحاسوب</string>
     <string name="achievement_naturally_gifted_title">موهبة فطرية</string>
     <string name="achievement_naturally_gifted_description">افز في لعبة دون أن ترمي أكثر من مرة واحدة في أي دور</string>
     <string name="achievement_everything_everywhere_title">كل شيء في كل مكان في آن واحد</string>
@@ -208,7 +208,7 @@
     <string name="achievement_no_more_rolls_description">اضغط على كأس النرد ثلاث مرات بعد رميتك الأخيرة في دور</string>
     <string name="achievement_impatient_title">قليل الصبر</string>
     <string name="achievement_impatient_description">أنهِ لعبة دون أن ترمي أكثر من مرة واحدة في أي دور</string>
-    <string name="achievement_luck_of_the_draw_title">ضربة حظ</string>
+    <string name="achievement_luck_of_the_draw_title">انظري يا أمي، بلا يدين!</string>
     <string name="achievement_luck_of_the_draw_description">افز في لعبة وأنت تسجّل بنفسك ٣ فئات أو أقل، وأنهى مؤقّت الدور الباقي</string>
     <string name="achievement_fresh_coat_of_paint_title">طلاء جديد</string>
     <string name="achievement_fresh_coat_of_paint_description">العب لعبة يستخدم فيها أي عنصر نمطًا غير الافتراضي</string>
@@ -220,15 +220,11 @@
     <string name="achievement_first_roll_full_house_description">احصل على فول هاوس في أول رمية من دور</string>
     <string name="achievement_first_roll_large_straight_title">مباشرة إلى التسلسل</string>
     <string name="achievement_first_roll_large_straight_description">احصل على تسلسل كبير في أول رمية من دور</string>
-    <string name="achievement_first_roll_5x_title">خمسة في الهواء</string>
-    <string name="achievement_first_roll_5x_description">احصل على 5x في أول رمية من دور</string>
     <string name="achievement_sixes_30_title">سحر الستة</string>
     <string name="achievement_sixes_30_description">سجّل الحد الأقصى ٣٠ في السداسيات</string>
     <string name="achievement_chance_30_title">تجربة الحظ</string>
     <string name="achievement_chance_30_description">سجّل الحد الأقصى ٣٠ في الحظ</string>
-    <string name="achievement_deja_vu_title">ديجا فو</string>
-    <string name="achievement_deja_vu_description">احصل على النتيجة نفسها تمامًا مرتين متتاليتين دون تثبيت أي نرد بينهما</string>
-    <string name="achievement_loaded_dice_title">هل هذا نرد مغشوش؟</string>
+    <string name="achievement_loaded_dice_title">ديجا فو</string>
     <string name="achievement_loaded_dice_description">بعد تثبيت بعض النرد، اجعل الباقي يظهر بالنتيجة نفسها تمامًا في الرميتين</string>
     <string name="achievement_product_placement_title">إعلان مدمج</string>
     <string name="achievement_product_placement_description">ارمِ أو ثبّت ٢، ٤، ٥، ٣، ٦ وهي أحجار النرد التي في القائمة الرئيسية، بهذا الترتيب</string>

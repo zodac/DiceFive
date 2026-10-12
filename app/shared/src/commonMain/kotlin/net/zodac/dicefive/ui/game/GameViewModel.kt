@@ -384,8 +384,6 @@ class GameViewModel(
     // else's turns touch any of this: AI turns roll and commit straight through GameEngine,
     // bypassing every method below, and turns belonging to a human in another seat are skipped by
     // the same isPlayerOneTurn checks that guard rollDice/toggleHold/commitScore.
-    private var previousRollFaces: List<Die>? = null
-    private var heldChangedSinceLastRoll = false
 
     /** The die indices that made up a first-roll four of a kind this turn - null if roll 1 wasn't
      * one. See [checkPostRollAchievements]'s Almost Famous comment. */
@@ -1184,13 +1182,12 @@ class GameViewModel(
 
     /**
      * The feats rolled straight out of the cup, earned mid-turn rather than off a scorecard: a
-     * full house, a large straight or a 5x on the first of a turn's three rolls. They're mutually
-     * exclusive on any given throw, but all three are checked rather than assuming that.
+     * full house or a large straight on the first of a turn's three rolls. They're mutually
+     * exclusive on any given throw, but both are checked rather than assuming that.
      *
      * Each one also requires that category still be a genuine, legal option - not just that the
      * dice happen to match the pattern. A full house/large straight rolled after that box is
-     * already filled (scored or zeroed) isn't a real choice, so it doesn't count; see
-     * [fiveOfAKindScorable] for the 5x case specifically.
+     * already filled (scored or zeroed) isn't a real choice, so it doesn't count.
      */
     private fun checkFirstRollAchievements() {
         val state = _game.value ?: return
@@ -1208,9 +1205,6 @@ class GameViewModel(
             }
             if (ScoreCategory.LARGE_STRAIGHT in available && DiceScoring.score(ScoreCategory.LARGE_STRAIGHT, dice) > 0) {
                 add(Achievement.FIRST_ROLL_LARGE_STRAIGHT)
-            }
-            if (DiceScoring.isFiveOfAKind(dice) && fiveOfAKindScorable(player, dice, available)) {
-                add(Achievement.FIRST_ROLL_5X)
             }
         }
         unlockAchievements(earned)
@@ -1248,15 +1242,6 @@ class GameViewModel(
         if (state.gameMode == GameMode.STUD && values.toSet().size == 1) {
             unlockAchievements(setOf(Achievement.STUD_LUCKY_SEVEN))
         }
-
-        // Déjà Vu: the same result as the immediately previous roll THIS turn, with nothing held -
-        // not just unchanged since the last roll (that's Are These Loaded Dice?'s territory, the
-        // partial-hold complement of this one), but actually zero dice held right now.
-        if (previousRollFaces != null && !heldChangedSinceLastRoll && dice.none { it.isHeld } && faces == previousRollFaces) {
-            unlockAchievements(setOf(Achievement.DEJA_VU))
-        }
-        previousRollFaces = faces
-        heldChangedSinceLastRoll = false
 
         // I Can Count!: 1,2,3,4,5 in that order, first roll of the turn only.
         if (rollsRemainingBeforeRoll == state.fullRolls && values == COUNTING_DICE_VALUES) {
@@ -1352,9 +1337,6 @@ class GameViewModel(
         val dice = state.dice
         val heldIndices = dice.withIndex().filter { it.value.isHeld }.map { it.index }.toSet()
         val justUnheld = wasHeld
-
-        // Breaks any pending Déjà Vu comparison for the next roll, whichever direction this toggle went.
-        heldChangedSinceLastRoll = true
 
         if (justUnheld) {
             val cycles = (holdUnholdCyclesByDieIndex[dieIndex] ?: 0) + 1
@@ -1554,8 +1536,6 @@ class GameViewModel(
     }
 
     private fun resetPerTurnTracking() {
-        previousRollFaces = null
-        heldChangedSinceLastRoll = false
         fourOfAKindIndicesFromFirstRoll = null
         heldFourOfAKindThroughTurn = false
         fiveOfAKindSeenThisTurn = false

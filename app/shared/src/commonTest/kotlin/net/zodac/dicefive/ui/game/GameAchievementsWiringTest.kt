@@ -350,7 +350,6 @@ class GameAchievementsWiringTest {
         val straight = unlockedAfter(CountingDice(1..5)) { rollDice() }
         assertTrue(Achievement.FIRST_ROLL_LARGE_STRAIGHT in straight, "FIRST_ROLL_LARGE_STRAIGHT should pop on the roll, got $straight")
         assertTrue(Achievement.I_CAN_COUNT in straight, "I_CAN_COUNT should pop, got $straight")
-        assertFalse(Achievement.FIRST_ROLL_5X in straight)
         assertFalse(Achievement.FIRST_ROLL_FULL_HOUSE in straight)
 
         // It waits for the dice to land before it pops.
@@ -390,7 +389,6 @@ class GameAchievementsWiringTest {
             rollDice()
             rollDice()
         }
-        assertFalse(Achievement.FIRST_ROLL_5X in fiveX, "FIRST_ROLL_5X should not pop once Five Of A Kind is zeroed, got $fiveX")
         assertFalse(Achievement.NATURAL_5X in fiveX, "NATURAL_5X should not pop once Five Of A Kind is zeroed, got $fiveX")
     }
 
@@ -491,32 +489,7 @@ class GameAchievementsWiringTest {
     }
 
     @Test
-    fun `the same result again is Deja Vu with nothing held - and Are These Loaded Dice with some held`() = runTest {
-        val dejaVu = unlockedAfter(ScriptedDice(listOf(3, 1, 4, 1, 5))) {
-            rollDice()
-            rollDice()
-        }
-        assertTrue(Achievement.DEJA_VU in dejaVu, "DEJA_VU should pop, got $dejaVu")
-
-        val heldBetween = unlockedAfter(ScriptedDice(listOf(3, 1, 4, 1, 5))) {
-            rollDice()
-            toggleHold(0)
-            toggleHold(0)
-            rollDice()
-        }
-        assertFalse(Achievement.DEJA_VU in heldBetween, "a hold in between should disqualify it, got $heldBetween")
-
-        // Roll 1: [1,2,2,2,3]; hold die 0 (value 1) and leave it held. Roll 2 lands [1,4,4,4,4]. Roll 3 re-rolls the same
-        // four unheld dice back to [4,4,4,4] - the FULL five-dice result matches roll 2's exactly, and nothing was toggled
-        // in between, but die 0 is still held - Are These Loaded Dice?'s territory (a partial hold), not Deja Vu's.
-        val stillHeld = unlockedAfter(ScriptedDice(listOf(1, 2, 2, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4))) {
-            rollDice()
-            toggleHold(0)
-            rollDice()
-            rollDice()
-        }
-        assertFalse(Achievement.DEJA_VU in stillHeld, "a die still held right now must disqualify Deja Vu, even if the hold itself is unchanged, got $stillHeld")
-
+    fun `the unheld dice landing the same on both re-rolls is Deja Vu`() = runTest {
         // Roll 1: [1,2,2,2,3]; hold the three 2s; rolls 2 and 3 land the same 1 and 3 in the gaps.
         val loaded = unlockedAfter(ScriptedDice(listOf(1, 2, 2, 2, 3, 1, 3, 1, 3))) {
             rollDice()
@@ -759,7 +732,6 @@ class GameAchievementsWiringTest {
         val stud: GameViewModel.() -> Unit = { setGameMode(GameMode.STUD) }
         val firstRoll = unlockedAfter(LoadedDice(6), setUp = stud) { rollDice() }
         assertTrue(Achievement.STUD_LUCKY_SEVEN in firstRoll, "STUD_LUCKY_SEVEN should pop, got $firstRoll")
-        assertFalse(Achievement.FIRST_ROLL_5X in firstRoll, "a Stud roll isn't a hand: $firstRoll")
         val rerolled = unlockedAfter(LoadedDice(6), setUp = stud) {
             rollDice()
             rollDice()

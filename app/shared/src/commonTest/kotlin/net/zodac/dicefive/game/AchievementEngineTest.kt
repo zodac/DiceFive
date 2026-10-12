@@ -187,7 +187,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `three Hard AI opponents are needed for I Robot`() {
+    fun `three Hard AI opponents and not finishing last are needed for How Do You Do Fellow CPUs`() {
         fun table(difficulty: Difficulty) = finishedGame(
             player(total = 300),
             player(name = "Bot 1", type = PlayerType.AI, total = 100, difficulty = difficulty),
@@ -202,6 +202,20 @@ class AchievementEngineTest {
         assertFalse(Achievement.NATURAL_INTELLIGENCE in medium.newlyUnlocked)
         assertTrue(Achievement.NATURAL_INTELLIGENCE in hard.newlyUnlocked)
         assertTrue(Achievement.FULL_TABLE in hard.newlyUnlocked)
+
+        // Not winning is fine, so long as somebody scored less - but last place (or tied for it) is not.
+        fun placed(humanTotal: Int) = evaluate(
+            finishedGame(
+                player(total = humanTotal),
+                player(name = "Bot 1", type = PlayerType.AI, total = 100, difficulty = Difficulty.HARD),
+                player(name = "Bot 2", type = PlayerType.AI, total = 200, difficulty = Difficulty.HARD),
+                player(name = "Bot 3", type = PlayerType.AI, total = 300, difficulty = Difficulty.HARD),
+            ),
+        )
+        assertTrue(Achievement.NATURAL_INTELLIGENCE in placed(150).newlyUnlocked)
+        assertFalse(Achievement.BEAT_THREE_AI in placed(150).newlyUnlocked)
+        assertFalse(Achievement.NATURAL_INTELLIGENCE in placed(50).newlyUnlocked)
+        assertFalse(Achievement.NATURAL_INTELLIGENCE in placed(100).newlyUnlocked)
     }
 
     // ---- The scorecard ----------------------------------------------------------------------------
@@ -433,14 +447,13 @@ class AchievementEngineTest {
             Achievement.entries.filter { it.category == AchievementCategory.SCORING },
         )
 
-        // The three first-roll feats are listed together - least unlikely first - adjacent, not merely in order.
+        // The first-roll feats are listed together - least unlikely first - adjacent, not merely in order.
         val misc = Achievement.entries.filter { it.category == AchievementCategory.MISCELLANEOUS }
         assertEquals(
-            listOf(Achievement.FIRST_ROLL_FULL_HOUSE, Achievement.FIRST_ROLL_LARGE_STRAIGHT, Achievement.FIRST_ROLL_5X),
+            listOf(Achievement.FIRST_ROLL_FULL_HOUSE, Achievement.FIRST_ROLL_LARGE_STRAIGHT),
             misc.filter { it.id.contains("first_roll") },
         )
         assertEquals(1, misc.indexOf(Achievement.FIRST_ROLL_LARGE_STRAIGHT) - misc.indexOf(Achievement.FIRST_ROLL_FULL_HOUSE))
-        assertEquals(1, misc.indexOf(Achievement.FIRST_ROLL_5X) - misc.indexOf(Achievement.FIRST_ROLL_LARGE_STRAIGHT))
 
         // The Game Modes achievements are ordered and count towards Completionist.
         val gameModes = Achievement.entries.filter { it.category == AchievementCategory.GAME_MODES }
@@ -495,11 +508,11 @@ class AchievementEngineTest {
         assertEquals(1, forced.newlyUnlocked.count { it == Achievement.COMPLETIONIST })
 
         // unlockNow raises a single mid-game achievement without touching counters.
-        val now = AchievementEngine.unlockNow(setOf(Achievement.FIRST_ROLL_5X), AchievementsState(counters = mapOf(AchievementCounter.GAMES_PLAYED to 3)), NOW)
-        assertEquals(listOf(Achievement.FIRST_ROLL_5X), now.newlyUnlocked)
+        val now = AchievementEngine.unlockNow(setOf(Achievement.FIRST_ROLL_LARGE_STRAIGHT), AchievementsState(counters = mapOf(AchievementCounter.GAMES_PLAYED to 3)), NOW)
+        assertEquals(listOf(Achievement.FIRST_ROLL_LARGE_STRAIGHT), now.newlyUnlocked)
         assertEquals(3, now.counters[AchievementCounter.GAMES_PLAYED])
         assertTrue(now.progressed.isEmpty())
-        assertEquals(mapOf(Achievement.FIRST_ROLL_5X to NOW), now.unlockedAt())
+        assertEquals(mapOf(Achievement.FIRST_ROLL_LARGE_STRAIGHT to NOW), now.unlockedAt())
     }
 
     @Test
