@@ -265,7 +265,14 @@ private fun PanelButtons(layout: BoardLayout, player: PlayerState?, cup: CupPane
             val upperTotal = player?.upperSectionTotal ?: 0
             val upperBonus = player?.upperSectionBonus ?: 0
             val lowerTotal = (player?.lowerSectionTotal ?: 0) + (player?.fiveOfAKindBonusTotal ?: 0)
-            TotalsButton(upperTotal = upperTotal, upperBonus = upperBonus, lowerTotal = lowerTotal, minSize = buttonSize)
+            TotalsButton(
+                upperTotal = upperTotal,
+                upperBonus = upperBonus,
+                lowerTotal = lowerTotal,
+                minSize = buttonSize,
+                // Out of what earns the bonus, where the card has one to earn (Quickfire's can have none).
+                upperTarget = player?.takeIf { it.hasUpperBonus }?.upperBonusThreshold,
+            )
         }
         if (cup != null && cup.showUndo) {
             UndoButton(enabled = cup.canUndo, onClick = cup.onUndo, minSize = buttonSize)

@@ -545,6 +545,7 @@
     <string name="game_totals_cd">المجاميع</string>
     <string name="game_totals_show_action">عرض المجاميع</string>
     <string name="game_totals_upper_spoken">العلوي %1$d</string>
+    <string name="game_totals_upper_progress_spoken">العلوي %1$d من %2$d</string>
     <string name="game_totals_bonus_earned_spoken">تم كسب مكافأة %1$d</string>
     <string name="game_totals_no_bonus_spoken">لا مكافأة بعد</string>
     <string name="game_totals_lower_spoken">السفلي %1$d</string>

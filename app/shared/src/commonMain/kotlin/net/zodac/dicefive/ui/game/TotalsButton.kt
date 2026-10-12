@@ -52,6 +52,7 @@ import net.zodac.dicefive.resources.game_totals_show_action
 import net.zodac.dicefive.resources.game_totals_targets
 import net.zodac.dicefive.resources.game_totals_targets_spoken
 import net.zodac.dicefive.resources.game_totals_upper
+import net.zodac.dicefive.resources.game_totals_upper_progress_spoken
 import net.zodac.dicefive.resources.game_totals_upper_spoken
 import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.SoraFontFamily
@@ -76,15 +77,22 @@ import net.zodac.dicefive.ui.theme.TileTealTop
  * action shows the tooltip too.
  */
 @Composable
-fun TotalsButton(upperTotal: Int, upperBonus: Int, lowerTotal: Int, modifier: Modifier = Modifier, minSize: Dp = 48.dp) {
+fun TotalsButton(
+    upperTotal: Int,
+    upperBonus: Int,
+    lowerTotal: Int,
+    modifier: Modifier = Modifier,
+    minSize: Dp = 48.dp,
+    upperTarget: Int? = null,
+) {
     TotalsButton(
         lines = listOf(
-            TotalLine(stringResource(Res.string.game_totals_upper), upperTotal),
+            TotalLine(stringResource(Res.string.game_totals_upper), upperTotal, gold = upperBonus > 0, target = upperTarget),
             TotalLine(stringResource(Res.string.game_totals_bonus), upperBonus, gold = upperBonus > 0),
             TotalLine(stringResource(Res.string.game_totals_lower), lowerTotal),
         ),
         highlighted = upperBonus > 0,
-        spokenState = totalsSpokenState(upperTotal, upperBonus, lowerTotal),
+        spokenState = totalsSpokenState(upperTotal, upperBonus, lowerTotal, upperTarget),
         modifier = modifier,
         minSize = minSize,
     )
@@ -215,9 +223,9 @@ private fun TotalsButton(
 
 /** What a screen reader hears for [TotalsButton]: every total, the bonus said to be earned once it is. */
 @Composable
-internal fun totalsSpokenState(upperTotal: Int, upperBonus: Int, lowerTotal: Int): String = joinClauses(
+internal fun totalsSpokenState(upperTotal: Int, upperBonus: Int, lowerTotal: Int, upperTarget: Int? = null): String = joinClauses(
     listOf(
-        stringResource(Res.string.game_totals_upper_spoken, upperTotal),
+        if (upperTarget != null) stringResource(Res.string.game_totals_upper_progress_spoken, upperTotal, upperTarget) else stringResource(Res.string.game_totals_upper_spoken, upperTotal),
         if (upperBonus > 0) stringResource(Res.string.game_totals_bonus_earned_spoken, upperBonus) else stringResource(Res.string.game_totals_no_bonus_spoken),
         stringResource(Res.string.game_totals_lower_spoken, lowerTotal),
     ),

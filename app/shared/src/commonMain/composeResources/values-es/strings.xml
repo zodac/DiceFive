@@ -464,6 +464,7 @@
     <string name="game_totals_cd">Totales</string>
     <string name="game_totals_show_action">Mostrar totales</string>
     <string name="game_totals_upper_spoken">Superior %1$d</string>
+    <string name="game_totals_upper_progress_spoken">Superior %1$d de %2$d</string>
     <string name="game_totals_bonus_earned_spoken">bonificación de %1$d conseguida</string>
     <string name="game_totals_no_bonus_spoken">aún sin bonificación</string>
     <string name="game_totals_lower_spoken">inferior %1$d</string>

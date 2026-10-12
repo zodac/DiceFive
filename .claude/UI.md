@@ -719,7 +719,7 @@ Wind's, and since fixed: the Upper/Bonus/Lower lines beside the cup wrapped at 1
 
 **The section totals are a button** (`TotalsButton`), not three lines beside the cup: an icon-only Σ,
 styled like Undo and sitting just left of it (both at the right of the row), that shows Upper, Bonus
-and Lower in the shared `AppTooltip` on a tap or a long press - as a two-column table (`TotalsTable`):
+and Lower in the shared `AppTooltip` on a tap or a long press (the Upper line out of what earns the bonus - "45 / 63", gold once earned, spoken "Upper 45 of 63" - wherever the card has an upper bonus: every mode but Hit List and D20, which show their own) - as a two-column table (`TotalsTable`):
 labels left in Sora, numbers right in the system font with thousands commas, the Bonus line gold once
 earned. The glyph turns gold once the upper bonus is earned, as the old Bonus line did. A tooltip isn't announced, so TalkBack hears the totals as
 the button's state ("Upper 61, no bonus yet, lower 91") and its action ("Show totals") opens the

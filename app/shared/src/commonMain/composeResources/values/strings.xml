@@ -611,6 +611,7 @@
     <string name="game_totals_show_action">Show totals</string>
     <!-- The totals read aloud, joined with common_clauses_join: "Upper 70, bonus 35 earned, lower 140". -->
     <string name="game_totals_upper_spoken">Upper %1$d</string>
+    <string name="game_totals_upper_progress_spoken">Upper %1$d of %2$d</string>
     <string name="game_totals_bonus_earned_spoken">bonus %1$d earned</string>
     <string name="game_totals_no_bonus_spoken">no bonus yet</string>
     <string name="game_totals_lower_spoken">lower %1$d</string>

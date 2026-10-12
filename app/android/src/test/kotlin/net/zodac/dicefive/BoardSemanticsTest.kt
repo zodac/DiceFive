@@ -278,6 +278,16 @@ class BoardSemanticsTest {
         showcase.show { DiceFiveTheme { TotalsButton(upperTotal = 40, upperBonus = 0, lowerTotal = 90) } }
         compose.onNodeWithContentDescription("Totals").assert(hasStateDescription("Upper 40, no bonus yet, lower 90"))
 
+        // With a target the upper section is said, and shown, out of it - a bonus not yet earned and one that is.
+        showcase.show { DiceFiveTheme { TotalsButton(upperTotal = 40, upperBonus = 0, lowerTotal = 90, upperTarget = 63) } }
+        compose.onNodeWithContentDescription("Totals").assert(hasStateDescription("Upper 40 of 63, no bonus yet, lower 90")).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("40 / 63").assertExists()
+        showcase.show { DiceFiveTheme { TotalsButton(upperTotal = 70, upperBonus = 35, lowerTotal = 90, upperTarget = 63) } }
+        compose.onNodeWithContentDescription("Totals").assert(hasStateDescription("Upper 70 of 63, bonus 35 earned, lower 90")).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("70 / 63").assertExists()
+
         // The Hit List one says the targets' total and the Alibi's.
         showcase.show { DiceFiveTheme { HitListTotalsButton(targetsTotal = 60, alibiTotal = 20) } }
         compose.onNodeWithContentDescription("Totals").assert(hasStateDescription("Targets 60, alibi 20"))
