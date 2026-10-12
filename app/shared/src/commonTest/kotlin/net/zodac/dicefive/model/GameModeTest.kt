@@ -76,9 +76,9 @@ class GameModeTest {
         }
         assertEquals(GameMode.QUICKFIRE.maxPossibleScore, best)
 
-        // Standard's is 1575, Quickfire's 225, Tricolour's 2120 and Third Wind's 4725 - exactly three of Standard's.
+        // Standard's is 1575, Quickfire's 210, Tricolour's 2120 and Third Wind's 4725 - exactly three of Standard's.
         assertEquals(1575, GameMode.STANDARD.maxPossibleScore)
-        assertEquals(225, GameMode.QUICKFIRE.maxPossibleScore)
+        assertEquals(210, GameMode.QUICKFIRE.maxPossibleScore)
         assertEquals(1575, GameMode.STUD.maxPossibleScore)
         assertEquals(2120, GameMode.TRICOLOUR.maxPossibleScore)
         assertEquals(3 * GameMode.STANDARD.maxPossibleScore, GameMode.THIRD_WIND.maxPossibleScore)

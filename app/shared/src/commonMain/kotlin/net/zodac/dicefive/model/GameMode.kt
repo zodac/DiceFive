@@ -317,9 +317,9 @@ enum class GameMode(
      * earns it (`3*(1+2+...)` over the enabled upper numbers, 63 with all six). With no upper box left there
      * is no bonus. Its scores don't go on the Leaderboard, since each game's card is different.
      *
-     * Max score: the best six boxes there can be, with no 5x and so no joker or chips - Large Straight 40,
-     * and five of the 30s (Sixes, 3x, 4x, Small Straight, Chance) = 190, `+35` the upper bonus, which five
-     * 6s earn on their own (30 against a threshold of 18). `190+35 = 225`.
+     * Max score: the best three upper and three lower boxes, with no 5x and so no joker or chips - Sixes 30,
+     * Fives 25 and Fours 20 (`75`), Large Straight 40, 3x 30 and 4x 30 (`100`), `+35` the upper bonus, which
+     * three of each enabled number earn. `75+100+35 = 210`.
      *
      * Max rolls: six boxes, 3 rolls each. `6*3 = 18`.
      */
@@ -336,7 +336,7 @@ enum class GameMode(
         upperBonusThreshold = 63,
         upperBonusAmount = 35,
         fiveOfAKindBonusAmount = 100,
-        maxPossibleScore = 225,
+        maxPossibleScore = 210,
         maxRollsPerGame = 18,
         countsOnLeaderboard = false,
         disabledCategories = setOf(ScoreCategory.FIVE_OF_A_KIND),

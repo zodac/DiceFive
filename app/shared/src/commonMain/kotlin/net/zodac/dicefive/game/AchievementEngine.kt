@@ -162,7 +162,7 @@ object AchievementEngine {
     private const val COLD_DICE_SCORE = 100
     private const val LOW_ROLLS_SCORE = 20
 
-    /** The total [Achievement.QUICKFIRE_SCORE] needs - a perfect Quickfire game is 225. */
+    /** The total [Achievement.QUICKFIRE_SCORE] needs - a perfect Quickfire game is 210. */
     private const val QUICKFIRE_SCORE_TARGET = 150
 
     /**
