@@ -1110,7 +1110,7 @@
     <string name="rules_modes_tab">Overview</string>
     <string name="rules_modes_1">A *Game Mode* changes the rules for a whole game. Choose one on the new game screen for a new way to play %1$s.</string>
     <string name="rules_modes_2">*Standard* is the default, and plays by the rules on the *Gameplay* pages. Every other mode starts from those rules and changes some of them: more dice, different categories, etc.</string>
-    <string name="rules_modes_3">Scores from *Standard*, *Tricolour* and *7 Dice Stud* go on the *Leaderboard*. The other modes' scores don't, since they can't be compared with a normal game, but every mode counts towards your *Statistics*.</string>
+    <string name="rules_modes_3">Scores from *Standard* and *Tricolour* go on the *Leaderboard*. The other modes' scores don't, since they can't be compared with a normal game, but every mode counts towards your *Statistics*.</string>
     <string name="rules_modes_4">Any mode can also be played with *Modifiers*, which have pages of their own.</string>
     <string name="rules_tricolour_title">Tricolour</string>
     <!-- A tab: keep it short. -->
@@ -1142,6 +1142,7 @@
     <string name="rules_stud_5">To override this, hold the dice you want first. Holding the 6 makes it the 2 to 6:</string>
     <string name="rules_stud_6">If the *Turn Timer* runs out, the first box that can still be scored is chosen.</string>
     <string name="rules_stud_7">Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules. You just get more dice to choose your hand from!</string>
+    <string name="rules_stud_8">Since you choose your best hand from seven dice, totals here don't compare with other modes, so the achievements for a high score, a scorecard with no zeroes, rolling 5x or a straight, or filling a section, can't be earned in it. Scores from this mode don't go on the *Leaderboard*, but they still count towards your *Statistics*.</string>
     <string name="rules_third_wind_title">Third Wind</string>
     <!-- A tab: keep it short. -->
     <string name="rules_third_wind_tab">Third Wind</string>

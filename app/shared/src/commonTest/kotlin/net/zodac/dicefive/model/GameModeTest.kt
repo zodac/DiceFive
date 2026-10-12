@@ -129,7 +129,7 @@ class GameModeTest {
             assertEquals(mode.categories.size - mode.disabledCategoryCount, mode.turnsPerGame, "$mode")
         }
         // Only these keep their scores off the Leaderboard.
-        assertEquals(listOf(GameMode.THIRD_WIND, GameMode.HIT_LIST, GameMode.QUICKFIRE), GameMode.entries.filter { !it.countsOnLeaderboard })
+        assertEquals(listOf(GameMode.THIRD_WIND, GameMode.STUD, GameMode.HIT_LIST, GameMode.QUICKFIRE), GameMode.entries.filter { !it.countsOnLeaderboard })
 
         // Tricolour: the four colour boxes, played with coloured dice.
         assertEquals(standard.categories + listOf(ScoreCategory.REDS, ScoreCategory.YELLOWS, ScoreCategory.BLUES, ScoreCategory.COLOURED_HOUSE), GameMode.TRICOLOUR.categories)

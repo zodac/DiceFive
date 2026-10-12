@@ -253,6 +253,9 @@ enum class GameMode(
      * five dice can be held, and a turn can only be scored once all five are; the board previews what
      * the held dice would score as soon as one is.
      *
+     * Its scores don't go on the Leaderboard: a box takes the best five of the seven dice, so a total is
+     * nothing like Standard's.
+     *
      * Max score: only five dice ever score, against Standard's card and bonuses, so the same perfect
      * game. `1575`.
      *
@@ -273,6 +276,7 @@ enum class GameMode(
         fiveOfAKindBonusAmount = 100,
         maxPossibleScore = 1575,
         maxRollsPerGame = 39,
+        countsOnLeaderboard = false,
     ),
 
     /**

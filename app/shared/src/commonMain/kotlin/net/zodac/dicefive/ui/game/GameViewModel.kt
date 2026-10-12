@@ -1495,7 +1495,8 @@ class GameViewModel(
         // SCORED_5X counter's own definition of "scored a 5x" (the box, or a bonus chip).
         val scoresFiveOfAKindNow = (category == ScoreCategory.FIVE_OF_A_KIND && DiceScoring.isFiveOfAKind(dice)) ||
             ScoreCalculator.awardsFiveOfAKindBonus(player, dice)
-        if (playerOnePreviousTurnWasFiveOfAKind && scoresFiveOfAKindNow) {
+        // Not where the best five of seven dice score (Stud): a 5x is no feat there.
+        if (!state.gameMode.scoresHeldDiceOnly && playerOnePreviousTurnWasFiveOfAKind && scoresFiveOfAKindNow) {
             unlockAchievements(setOf(Achievement.TWICE_IN_A_LIFETIME))
         }
         playerOnePreviousTurnWasFiveOfAKind = scoresFiveOfAKindNow

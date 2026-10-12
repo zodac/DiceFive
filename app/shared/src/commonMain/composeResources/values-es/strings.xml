@@ -865,7 +865,7 @@
     <string name="rules_modes_tab">Resumen</string>
     <string name="rules_modes_1">Un *modo de juego* cambia las reglas de toda la partida. Elige uno en la pantalla de nueva partida para jugar a %1$s de una forma nueva.</string>
     <string name="rules_modes_2">*Estándar* es el modo por defecto, y se juega con las reglas de las páginas de *Juego*. Los demás modos parten de esas reglas y cambian algunas: más dados, categorías distintas, etc.</string>
-    <string name="rules_modes_3">Las puntuaciones de *Estándar*, *Tricolor* y *Stud de 7 dados* van a la *clasificación*. Las de los demás modos no, porque no se pueden comparar con una partida normal, pero todos los modos cuentan para tus *estadísticas*.</string>
+    <string name="rules_modes_3">Las puntuaciones de *Estándar* y *Tricolor* van a la *clasificación*. Las de los demás modos no, porque no se pueden comparar con una partida normal, pero todos los modos cuentan para tus *estadísticas*.</string>
     <string name="rules_modes_4">Cualquier modo se puede jugar también con *modificadores*, que tienen sus propias páginas.</string>
     <string name="rules_tricolour_title">Tricolor</string>
     <string name="rules_tricolour_tab">Tricolor</string>
@@ -894,6 +894,7 @@
     <string name="rules_stud_5">Para cambiarlo, conserva antes los dados que quieras. Si conservas el 6, será del 2 al 6:</string>
     <string name="rules_stud_6">Si se acaba el *temporizador de turno*, se elige la primera casilla que aún se puede anotar.</string>
     <string name="rules_stud_7">La puntuación, las bonificaciones y la regla del comodín son exactamente las mismas que en las reglas *Estándar*. ¡Solo tienes más dados entre los que elegir tu mano!</string>
+    <string name="rules_stud_8">Como eliges tu mejor mano entre siete dados, los totales aquí no se comparan con los de otros modos, así que los logros por una puntuación alta, una tarjeta sin ceros, sacar 5x o una escalera, o completar una sección, no se pueden conseguir en él. Las puntuaciones de este modo no van a la *clasificación*, pero siguen contando para tus *estadísticas*.</string>
     <string name="rules_third_wind_title">Tercer aliento</string>
     <string name="rules_third_wind_tab">Tercer aliento</string>
     <string name="rules_third_wind_1">Una variante triple de *Estándar*. Cada categoría se anota **tres** veces en lugar de una, por lo que una partida dura **39** turnos.</string>

@@ -11,7 +11,7 @@ Modes so far:
 | `STANDARD`   | `standard`   | Nothing - the official rules. The default.                                                                                                                                                                                             |
 | `TRICOLOUR`  | `tricolour`  | Dice also roll red/yellow/blue; four colour boxes join the card                                                                                                                                                                        |
 | `QUICKFIRE`  | `quickfire`  | 5x and six random other boxes are switched off every game: six turns, a scaled upper bonus, off the Leaderboard                                                                                                                        |
-| `STUD`       | `stud`       | Shown to players as "7 Dice Stud" (the enum and id stay `STUD` / `stud`). Seven dice rolled, five hold slots; only the five held dice score, but a box can be tapped with fewer held - the hand is completed for it (`HandCompletion`) |
+| `STUD`       | `stud`       | Shown to players as "7 Dice Stud" (the enum and id stay `STUD` / `stud`). Seven dice rolled, five hold slots; only the five held dice score, but a box can be tapped with fewer held - the hand is completed for it (`HandCompletion`); off the Leaderboard |
 | `THIRD_WIND` | `third_wind` | Every box scored three times (39 turns); one upper bonus, 189 earns 105; joker once the 5x box's 3 slots are used; off the Leaderboard                                                                                                 |
 | `HIT_LIST`   | `hit_list`   | No Standard boxes: 12 targets drawn each game (numbers by place, up to 2 any) plus the Alibi; exact order doubles; partial hits (2+ numbers rolled) score half the share rolled; no Extended Scores; off the Leaderboard               |
 
@@ -492,6 +492,18 @@ without its guard):
 | Natural 5x (`NATURAL_5X`)                               | Same, on a reroll with nothing held                               |
 | The Dice Hate Me (`DICE_HATE_ME`)                       | Judged on the roll, which isn't what scores                        |
 | Almost Famous (`ALMOST_FAMOUS`)                         | A 5x among seven dice never shows as one, so "never landed the 5x" was always true |
+| First 5x, Encore, Hat Trick, Twice in a Lifetime, Total 5x (10) | A box takes the best five of seven dice, so 5x come far too easily. Stud's 5x don't add to the `SCORED_5X` counter either |
+| Both Straights, Chance 30, Six Appeal (`SIXES_30`)      | Same - the best five of seven reach them routinely                 |
+| Upper Bonus, Upper Class, Lower Class, Solid Round ... Dice Deity (`SCORE_200`-`500`) | Section and game totals run well above Standard's |
+| Spotless (`NO_ZEROES`), Zero To Hero (`ZERO_TO_HERO`)   | A zero is rare when every box picks its best five                  |
+| New Personal Best (`PERSONAL_BEST`)                     | Stud is off the Leaderboard (`countsOnLeaderboard = false`), as the totals aren't comparable |
+
+In the engine these are `PlayerState.scoresRolledHand` (`!scoresHeldDiceOnly`) in `AchievementEngine`, and
+`singleScoreCard`/`ZERO_TO_HERO`'s own condition; Twice in a Lifetime is guarded in `GameViewModel`.
+
+**Off the Leaderboard, with a migration.** Stud was on the board until Database version 4, whose
+hand-written `MIGRATION_3_4` sets `onLeaderboard = 0` for the rows with `gameModeId = 'stud'`. The SQL
+only runs on a device. The Stud rules page (`rules_stud_8`) and `rules_modes_3` say so.
 
 **Can't be earned in Stud - no guard needed**: I Can Count! and Product Placement (seven dice never
 equal a five-dice sequence); What Was The Point Of That? (every die can never be held - with five

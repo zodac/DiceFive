@@ -1029,6 +1029,56 @@ class AchievementEngineTest {
         assertFalse(Achievement.SIXES_30 in unlocked(finishedGame(thirdWindPlayer { category, slot -> if (category == ScoreCategory.SIXES) listOf(12, 12, 6)[slot] else 6 })))
     }
 
+    // ---- Stud: the best five of seven dice score ------------------------------------------------------
+
+    @Test
+    fun `Stud's best-of-seven hands earn none of the 5x or section feats that Standard's do`() {
+        val feats = mapOf(
+            ScoreCategory.FIVE_OF_A_KIND to 50, ScoreCategory.SMALL_STRAIGHT to 30, ScoreCategory.LARGE_STRAIGHT to 40, ScoreCategory.CHANCE to 30,
+            ScoreCategory.ONES to 5, ScoreCategory.TWOS to 10, ScoreCategory.THREES to 15, ScoreCategory.FOURS to 20, ScoreCategory.FIVES to 25, ScoreCategory.SIXES to 30,
+            ScoreCategory.THREE_OF_A_KIND to 30, ScoreCategory.FOUR_OF_A_KIND to 30, ScoreCategory.FULL_HOUSE to 25,
+        )
+        val guarded = listOf(
+            Achievement.FIRST_5X, Achievement.BOTH_STRAIGHTS, Achievement.CHANCE_30, Achievement.SIXES_30, Achievement.UPPER_BONUS,
+            Achievement.UPPER_84, Achievement.LOWER_150, Achievement.SCORE_200, Achievement.SCORE_300,
+        )
+        val standard = unlocked(finishedGame(player(total = 340, overrides = feats)))
+        for (achievement in guarded) assertTrue(achievement in standard, "Standard control: $achievement")
+
+        val stud = unlocked(finishedGame(player(total = 340, overrides = feats, gameMode = GameMode.STUD)))
+        for (achievement in guarded) assertFalse(achievement in stud, "$achievement in Stud")
+        val studMidGame = unlockedMidGame(midGamePlayer(feats, gameMode = GameMode.STUD))
+        for (achievement in guarded) assertFalse(achievement in studMidGame, "$achievement mid-game in Stud")
+    }
+
+    @Test
+    fun `Stud's 5x earn no 5x feat and don't add to Total 5x`() {
+        val bonuses = player(total = 400, fiveOfAKindBonusCount = 2, gameMode = GameMode.STUD)
+        val stud = evaluate(finishedGame(bonuses))
+        assertEquals(0, stud.counters[AchievementCounter.SCORED_5X])
+        for (achievement in listOf(Achievement.FIRST_5X, Achievement.ENCORE_5X, Achievement.HAT_TRICK_5X)) assertFalse(achievement in stud.newlyUnlocked, "$achievement")
+
+        val standard = evaluate(finishedGame(player(total = 400, fiveOfAKindBonusCount = 2)))
+        assertEquals(2, standard.counters[AchievementCounter.SCORED_5X])
+        assertTrue(Achievement.ENCORE_5X in standard.newlyUnlocked)
+    }
+
+    @Test
+    fun `Stud has no Spotless or Zero To Hero and is never a New Personal Best`() {
+        val noZeroes = GameMode.STUD.categories.associateWith { 10 }
+        assertTrue(Achievement.NO_ZEROES in unlocked(finishedGame(player(total = 130, overrides = noZeroes))))
+        assertFalse(Achievement.NO_ZEROES in unlocked(finishedGame(player(total = 130, overrides = noZeroes, gameMode = GameMode.STUD))))
+
+        val threeZeroes = mapOf(ScoreCategory.ONES to 0, ScoreCategory.TWOS to 0, ScoreCategory.THREES to 0, ScoreCategory.SIXES to 30)
+        val standardHero = unlocked(finishedGame(player(total = 200, overrides = threeZeroes), bot(total = 100)))
+        assertTrue(Achievement.ZERO_TO_HERO in standardHero)
+        val studHero = unlocked(finishedGame(player(total = 200, overrides = threeZeroes, gameMode = GameMode.STUD), bot(total = 100)))
+        assertFalse(Achievement.ZERO_TO_HERO in studHero)
+
+        val context = GameAchievementContext(previousBestScore = 100)
+        assertFalse(Achievement.PERSONAL_BEST in unlocked(finishedGame(player(total = 400, gameMode = GameMode.STUD)), context))
+    }
+
     // ---- Hit List -------------------------------------------------------------------------------------
 
     /** A Hit List card dealt [HIT_LIST]: every box holding what [scores] gives it, zero otherwise, and [total] made up in the first target. */

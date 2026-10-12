@@ -5,6 +5,9 @@ import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
+import androidx.room.migration.Migration
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.execSQL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 
@@ -20,13 +23,14 @@ import kotlinx.coroutines.IO
  */
 @Database(
     entities = [ScoreEntry::class, DismissedPlayerStats::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
     autoMigrations = [
         // 2: ScoreEntry.onLeaderboard, every existing row on it.
         AutoMigration(from = 1, to = 2),
         // 3: ScoreEntry.gameModeId, every existing row a Standard game.
         AutoMigration(from = 2, to = 3),
+        // 4 changes data, not the schema: see MIGRATION_3_4.
     ],
 )
 @ConstructedBy(AppDatabaseConstructor::class)
@@ -47,9 +51,20 @@ expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase> {
 }
 
 /**
+ * 4: Stud left the Leaderboard ([net.zodac.dicefive.model.GameMode.countsOnLeaderboard]), so the games already
+ * recorded in it come off too. The schema is unchanged, which is why this one is written by hand.
+ */
+private val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("UPDATE scores SET onLeaderboard = 0 WHERE gameModeId = 'stud'")
+    }
+}
+
+/**
  * Finishes a platform's builder the same way everywhere. No destructive fallback of any kind: a
  * missing migration must fail loudly in testing, never quietly wipe a player's scores.
  */
 fun RoomDatabase.Builder<AppDatabase>.buildAppDatabase(): AppDatabase = this
+    .addMigrations(MIGRATION_3_4)
     .setQueryCoroutineContext(Dispatchers.IO)
     .build()

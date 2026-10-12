@@ -292,7 +292,8 @@ object AchievementEngine {
     ): Map<AchievementCounter, Int> {
         val multiplayer = state.players.size > 1
         val humanWon = humanWon(state, humans)
-        val fiveOfAKindsThisGame = humans.sumOf { it.fiveOfAKindCount }
+        // The 5x that seven dice hand out (Stud) don't count toward Total 5x.
+        val fiveOfAKindsThisGame = humans.filter { it.scoresRolledHand }.sumOf { it.fiveOfAKindCount }
 
         return mapOf(
             AchievementCounter.GAMES_PLAYED to before.counter(AchievementCounter.GAMES_PLAYED) + 1,
@@ -333,17 +334,21 @@ object AchievementEngine {
 
         // Dice feats. 5x are counted, not bonus chips: where the 5x box has more than one slot
         // (Third Wind), the second and third 5x can go in it with no chip.
-        award(Achievement.FIRST_5X, anyHuman { it.fiveOfAKindCount > 0 })
-        award(Achievement.ENCORE_5X, anyHuman { it.fiveOfAKindCount >= ENCORE_5X_COUNT })
-        award(Achievement.HAT_TRICK_5X, anyHuman { it.fiveOfAKindCount >= HAT_TRICK_5X_COUNT })
+        // Nor where the best five of more dice score (Stud): a 5x or a straight among seven dice is no feat.
+        award(Achievement.FIRST_5X, anyHuman { it.scoresRolledHand && it.fiveOfAKindCount > 0 })
+        award(Achievement.ENCORE_5X, anyHuman { it.scoresRolledHand && it.fiveOfAKindCount >= ENCORE_5X_COUNT })
+        award(Achievement.HAT_TRICK_5X, anyHuman { it.scoresRolledHand && it.fiveOfAKindCount >= HAT_TRICK_5X_COUNT })
         award(
             Achievement.BOTH_STRAIGHTS,
-            anyHuman { it.scored(ScoreCategory.SMALL_STRAIGHT) && it.scored(ScoreCategory.LARGE_STRAIGHT) },
+            anyHuman { it.scoresRolledHand && it.scored(ScoreCategory.SMALL_STRAIGHT) && it.scored(ScoreCategory.LARGE_STRAIGHT) },
         )
         // A box "holds" a score if any one of its slots does, so these mean one turn's score.
-        award(Achievement.CHANCE_30, anyHuman { it.hasScore(ScoreCategory.CHANCE, MAX_CHANCE) })
-        award(Achievement.SIXES_30, anyHuman { it.hasScore(ScoreCategory.SIXES, MAX_SIXES) })
-        award(Achievement.UPPER_BONUS, anyHuman { !it.rollsModified && it.hasFullCard && it.upperSectionBonus > 0 })
+        award(Achievement.CHANCE_30, anyHuman { it.scoresRolledHand && it.hasScore(ScoreCategory.CHANCE, MAX_CHANCE) })
+        award(Achievement.SIXES_30, anyHuman { it.scoresRolledHand && it.hasScore(ScoreCategory.SIXES, MAX_SIXES) })
+        award(
+            Achievement.UPPER_BONUS,
+            anyHuman { it.scoresRolledHand && !it.rollsModified && it.hasFullCard && it.upperSectionBonus > 0 },
+        )
         // Section totals over a card scored three times over (Third Wind) would pass these with ease.
         award(Achievement.UPPER_84, anyHuman { it.hasSingleScoreCard && it.upperSectionTotal >= UPPER_CLASS_THRESHOLD })
         award(Achievement.LOWER_150, anyHuman { it.hasSingleScoreCard && it.lowerSectionTotalExcludingFiveOfAKind >= LOWER_CLASS_THRESHOLD })
@@ -399,7 +404,9 @@ object AchievementEngine {
 
         // A card scored three times over (Third Wind) has its own version of Spotless instead. Nor does one with
         // boxes switched off (Quickfire) - six turns without a zero is nothing like thirteen.
-        val singleScoreCard = state.gameMode.scoresPerCategory == 1 && !state.rollModifiers.isActive && state.disabledCategories.isEmpty()
+        // Nor where the best five of more dice score (Stud), whose cards are fuller than Standard's.
+        val singleScoreCard = state.gameMode.scoresPerCategory == 1 && !state.rollModifiers.isActive && state.disabledCategories.isEmpty() &&
+            !state.gameMode.scoresHeldDiceOnly
         val noZeroes = anyHuman { player -> player.allScores.none { it == 0 } }
         // Nor on a card of targets (Hit List), where a partial hit leaves a zero only now and then.
         award(Achievement.NO_ZEROES, singleScoreCard && !state.gameMode.hasHitList && noZeroes)
@@ -440,7 +447,7 @@ object AchievementEngine {
             // Unlucky Dice, or on a card of targets (Hit List) that misses about half of them, is the usual run of
             // things, not a comeback.
             state.gameMode.scoresPerCategory == 1 && !state.extendedScores && state.unluckyDice == null && !state.gameMode.hasHitList &&
-                multiplayer && humanWon &&
+                !state.gameMode.scoresHeldDiceOnly && multiplayer && humanWon &&
                 humans.any { it.totalScore == state.topScore && it.allScores.count { v -> v == 0 } >= ZEROES_FOR_HERO },
         )
         award(Achievement.TRICOLOUR_WIN, multiplayer && humanWon && state.gameMode == GameMode.TRICOLOUR)
@@ -642,7 +649,12 @@ object AchievementEngine {
      * the totals-based achievements assume both, since a card scored three times over or a turn with
      * extra rolls clears them as a matter of course. */
     private val PlayerState.hasSingleScoreCard: Boolean
-        get() = gameMode.scoresPerCategory == 1 && !rollsModified && hasFullCard
+        get() = gameMode.scoresPerCategory == 1 && !rollsModified && hasFullCard && scoresRolledHand
+
+    /** Whether a hand is the dice rolled, not the best five of more (Stud). With seven dice to choose from, a 5x, a
+     * straight, a full section or a 30 comes far too easily for the achievements that measure them. */
+    private val PlayerState.scoresRolledHand: Boolean
+        get() = !gameMode.scoresHeldDiceOnly
 
     /** Whether every box on the card can be scored - none switched off, as Quickfire does. With fewer turns and
      * boxes, the totals and the zeroes the achievements count are a different measure. */
