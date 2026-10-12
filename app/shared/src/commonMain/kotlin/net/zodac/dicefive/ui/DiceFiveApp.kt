@@ -17,6 +17,9 @@ import net.zodac.dicefive.data.achievements.StyleScrollRequests
 import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.navigation.DiceFiveNavHost
 import net.zodac.dicefive.navigation.Screen
+import net.zodac.dicefive.online.GameServices
+import net.zodac.dicefive.online.LocalGameServices
+import net.zodac.dicefive.online.NoGameServices
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
@@ -31,10 +34,10 @@ import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /**
  * The whole app, on whatever platform hosts it: each platform's entry point builds its
- * [AppContainer] and [PlatformServices] and hands them in here, and everything below is shared.
+ * [AppContainer] and [PlatformServices] (and, where the platform has one, its [GameServices]) and hands them in here, and everything below is shared.
  */
 @Composable
-fun DiceFiveApp(container: AppContainer, platform: PlatformServices) {
+fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameServices: GameServices = NoGameServices) {
     // Held here, above the NavHost, so the menu's drifting dice carry on unbroken across every screen off it.
     val driftState = remember { DriftState() }
     // Lifecycle-aware, so the system-settings observer behind it is only registered while the app is in front.
@@ -52,6 +55,7 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices) {
         LocalAnimationLevel provides animationLevel,
         LocalAppContainer provides container,
         LocalPlatformServices provides platform,
+        LocalGameServices provides gameServices,
         LocalDriftState provides driftState,
         LocalLeaveGameConfirmation provides leaveConfirmation,
     ) {

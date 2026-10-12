@@ -13,6 +13,7 @@ import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.scores.buildAppDatabase
 import net.zodac.dicefive.data.settings.SettingsRepository
+import net.zodac.dicefive.online.OnlineSettingsRepository
 
 /**
  * The process-wide [AppContainer] on Android - built on first use, from the application context.
@@ -42,6 +43,7 @@ object AndroidAppContainer {
             settingsRepository = SettingsRepository(dataStore(PreferencesFile.SETTINGS)),
             achievementsRepository = AchievementsRepository(dataStore(PreferencesFile.ACHIEVEMENTS)),
             inProgressGameRepository = InProgressGameRepository(dataStore(PreferencesFile.IN_PROGRESS_GAME)),
+            onlineSettingsRepository = OnlineSettingsRepository(dataStore(PreferencesFile.ONLINE)),
             buildInfo = BuildInfo(versionName = BuildConfig.VERSION_NAME, isDebug = BuildConfig.DEBUG),
         )
     }

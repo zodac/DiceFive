@@ -640,6 +640,13 @@
     <string name="setup_colour_swaps_cd">%1$s، يتبادل مع اللاعب %2$d</string>
     <string name="settings_title">الإعدادات</string>
     <string name="settings_version">الإصدار %1$s</string>
+    <string name="online_signed_out">لم يتم تسجيل الدخول</string>
+    <string name="online_signing_in">جارٍ تسجيل الدخول...</string>
+    <string name="online_signed_in_as">تم تسجيل الدخول باسم %1$s</string>
+    <string name="online_signed_in_cd">%1$s، تم تسجيل الدخول باسم %2$s</string>
+    <string name="online_sign_in">تسجيل الدخول</string>
+    <string name="online_use_on_device">استخدام %1$s على هذا الجهاز</string>
+    <string name="online_cloud_save">حفظ التقدّم في السحابة</string>
     <string name="settings_sound">المؤثرات الصوتية</string>
     <string name="settings_vibration">الاهتزاز</string>
     <string name="settings_animations">الحركات</string>

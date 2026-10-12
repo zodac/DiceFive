@@ -1,7 +1,8 @@
 # DiceFive: online game services (Google Play Games Services v2) - proposal and plan
 
-**Status (2026-10-12): proposal only, nothing built.** No Play Games dependency, no sign-in, no
-console configuration. This file replaces the scattered notes on the subject (`PUBLISHING.md`'s
+**Status (2026-10-12): Phase 1 built** (the seam, `GameMode.onlineLeaderboardKey`, the `online`
+DataStore, the Settings card hidden while the service is unavailable, `ScoreEntry.playedUnmodified`). No Play
+Games dependency, no sign-in, no console configuration: Phase 0 is the maintainer's and not yet done. This file replaces the scattered notes on the subject (`PUBLISHING.md`'s
 "Google Play Games Services" section and `DESIGN.md` Phase 13's "Google Play Games" entry). Where
 it disagrees with them, this file is the one to follow. Decisions still waiting on the maintainer are
 marked **Decided:** or **Deferred:**, and all of them are listed in [Decisions](#decisions).
@@ -264,8 +265,8 @@ no achievement currently uses `AchievementVisibility.SECRET`.
 
 ## 3. Leaderboards per game mode
 
-**One Play leaderboard per `GameMode`**: Standard, Tricolour, Quickfire, 7 Dice Stud, Third Wind and
-Hit List. That is 6 of the 70 allowed, in the same order as the New Game menu. This matches the local
+**One Play leaderboard per `GameMode`**: Standard, Tricolour, Quickfire, 7 Dice Stud, Third Wind, D20 and
+Hit List (the plan was written before D20 existed, so it said 6). That is 7 of the 70 allowed, in the same order as the New Game menu. This matches the local
 Leaderboard's per-mode cards (`ScoresViewModel.modeBoards`), which list every mode, including those
 kept off the Combined table.
 
@@ -319,7 +320,7 @@ kept off the Combined table.
 | Achievement unlocks | `achievements` DataStore | Yes | **Union**. For an achievement unlocked on both, the earliest timestamp wins. |
 | Achievement counters (games played, dice rolled...) | same | Yes, **per device** | Each device keeps its own counter (a G-counter). The total is the sum, so two phones that each played 10 games make 20, not 10. |
 | Win streak counter | same | Yes | Taken from the device that **finished a game most recently**. A streak can't be merged; it belongs to whichever device's timeline is newest. |
-| Scores (Leaderboard + Statistics) | Room `scores` | Yes | **Union of rows**, identified by a new `ScoreEntry.uuid` column (Room v5 migration; existing rows are given one). |
+| Scores (Leaderboard + Statistics) | Room `scores` | Yes | **Union of rows**, identified by a new `ScoreEntry.uuid` column (Room v6 migration; existing rows are given one). |
 | Dismissed Statistics cards | `DismissedPlayerStats` | Yes | Union. |
 | Style picks, New Game setup (names, seats, CPU difficulty, colours, mode, modifiers) | `settings` DataStore | Yes | **Last writer wins per key**. Every write gets a timestamp, kept in a side map in the save. |
 | Sound, vibration, animation level, Styles page fit, "confirm before leaving" | same | **No**: these depend on the device (a tablet and a phone want different animation levels and fits) | - |
@@ -476,6 +477,16 @@ achievements, which can be reset, from the console.
 
 ## Phased plan
 
+**Phase 1 as built:** `online/GameServices.kt` (interface, `GameServicesState`, `OnlineAccount`, `LocalGameServices`),
+`NoGameServices`, `OnlineSettingsRepository` (the `online.preferences_pb` file: `use_on_device`, `cloud_save_enabled`,
+both on by default), `ui/settings/OnlineAccountCard.kt`, `GameMode.onlineLeaderboardKey` (equal to each `id` today;
+pinned by `OnlineLeaderboardKeyTest`), and `ScoreEntry.playedUnmodified` (Room v5, null for old rows; `ranUnderOwnRules`
+reads a null one as `onLeaderboard` for Standard and Tricolour and as unknown for the other modes). `DiceFiveApp` takes an
+optional `gameServices` that defaults to `NoGameServices`, so no platform passes one yet. Not in Phase 1: the card's
+"Last saved" and error lines (they need cloud save), the account-switch prompt (Phase 2). The card's TalkBack text
+(header read as one heading, "<service>, signed in as <full name>") is tested in `OnlineAccountCardTest`; what real
+TalkBack says has not been heard on a device.
+
 Each phase ends in a debug APK (per `CLAUDE.md`), and its commits use the category below.
 **New commit category `[Play Games]`** (decided): Google Play Games Services integration (sign-in,
 achievement and leaderboard sync, cloud save, Sidekick). It was added to `CLAUDE.md`'s table
@@ -532,11 +543,11 @@ task. **Renders go to the maintainer for review before upload.** Change the "Res
 (signed-in behaviour) and add Achievements → "View in Google Play Games". Achievements stay in
 draft until Phase 6.
 
-**Phase 4 - Leaderboards.** Create 6 leaderboards (limits from `maxPossibleScore`, tamper protection
+**Phase 4 - Leaderboards.** Create 7 leaderboards (limits from `maxPossibleScore`, tamper protection
 on). Add submission from `finishGame` (seat 1 only, the mode's own rules only), the one-time backlog submission on first link (per mode, seat 1's best unmodified score, using the `playedUnmodified` column if Phase 1 hasn't already added it), the Leaderboard screen's "Global leaderboard" actions, the new step in
 `GAME_MODES.md`'s checklist for a new mode, and the Reset leaderboard wording.
 
-**Phase 5 - Cloud save.** Room v5 (`ScoreEntry.uuid`, migration plus exported schema), timestamps on
+**Phase 5 - Cloud save.** Room v6 (`ScoreEntry.uuid`, migration plus exported schema), timestamps on
 settings writes, per-device counters, `CloudSaveCodec` and `CloudSaveMerge` with thorough unit tests
 (union, G-counter sums, streak recency, last writer wins, reset markers, a newer blob version from a
 newer app read safely by an older one), the snapshot transport, the first-link "Combine" prompt, and

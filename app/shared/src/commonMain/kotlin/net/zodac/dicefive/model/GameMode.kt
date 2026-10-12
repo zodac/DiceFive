@@ -84,6 +84,13 @@ private val HIT_LIST_CATEGORIES = ScoreCategory.TARGETS.take(HIT_LIST_SHAPES.siz
  */
 enum class GameMode(
     val id: String,
+    /**
+     * The key this mode's online leaderboard is known by - what a platform's game service maps to its own
+     * leaderboard id (see `online/GameServices`). Stable like [id], but separate from it: a rule change
+     * that makes the old online scores unfair gets a new key here (the old board stays, frozen), while
+     * [id] keeps naming the mode in storage. Never reuse or change one once published.
+     */
+    val onlineLeaderboardKey: String,
     val displayName: StringResource,
     /** One line for the setup screen, saying what's different about this mode. */
     val description: StringResource,
@@ -178,6 +185,7 @@ enum class GameMode(
      */
     STANDARD(
         id = "standard",
+        onlineLeaderboardKey = "standard",
         displayName = Res.string.mode_standard,
         description = Res.string.mode_standard_description,
         diceCount = 5,
@@ -207,6 +215,7 @@ enum class GameMode(
      */
     TRICOLOUR(
         id = "tricolour",
+        onlineLeaderboardKey = "tricolour",
         displayName = Res.string.mode_tricolour,
         description = Res.string.mode_tricolour_description,
         diceCount = 5,
@@ -237,6 +246,7 @@ enum class GameMode(
      */
     THIRD_WIND(
         id = "third_wind",
+        onlineLeaderboardKey = "third_wind",
         displayName = Res.string.mode_third_wind,
         description = Res.string.mode_third_wind_description,
         diceCount = 5,
@@ -270,6 +280,7 @@ enum class GameMode(
      */
     STUD(
         id = "stud",
+        onlineLeaderboardKey = "stud",
         displayName = Res.string.mode_stud,
         description = Res.string.mode_stud_description,
         diceCount = 7,
@@ -302,6 +313,7 @@ enum class GameMode(
      */
     D20(
         id = "d20",
+        onlineLeaderboardKey = "d20",
         displayName = Res.string.mode_d20,
         description = Res.string.mode_d20_description,
         diceCount = 5,
@@ -340,6 +352,7 @@ enum class GameMode(
      */
     HIT_LIST(
         id = "hit_list",
+        onlineLeaderboardKey = "hit_list",
         displayName = Res.string.mode_hit_list,
         description = Res.string.mode_hit_list_description,
         diceCount = 5,
@@ -373,6 +386,7 @@ enum class GameMode(
      */
     QUICKFIRE(
         id = "quickfire",
+        onlineLeaderboardKey = "quickfire",
         displayName = Res.string.mode_quickfire,
         description = Res.string.mode_quickfire_description,
         diceCount = 5,

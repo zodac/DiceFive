@@ -22,6 +22,7 @@ import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.ui.achievements.announce
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMats
@@ -37,12 +38,34 @@ data class SettingsToggles(
     val confirmBeforeLeavingGame: Boolean = true,
 )
 
+/** The Settings card for the online service: whether it is used on this device, and whether progress is saved to the cloud. */
+data class OnlineToggles(val useOnDevice: Boolean = true, val cloudSaveEnabled: Boolean = true)
+
 /** All repositories are nullable so this stays constructible/testable without a Context - see [factory]. */
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository? = null,
     private val achievementsRepository: AchievementStore? = null,
     private val scoreRepository: ScoreRepository? = null,
+    private val onlineSettingsRepository: OnlineSettingsRepository? = null,
 ) : ViewModel() {
+
+    /** The online card's two switches as saved - the defaults until they load, and with no repository. */
+    val onlineToggles: StateFlow<OnlineToggles> = if (onlineSettingsRepository == null) {
+        MutableStateFlow(OnlineToggles())
+    } else {
+        combine(onlineSettingsRepository.useOnDevice, onlineSettingsRepository.cloudSaveEnabled, ::OnlineToggles)
+            .stateIn(viewModelScope, SharingStarted.Eagerly, OnlineToggles())
+    }
+
+    fun setUseOnDevice(use: Boolean) {
+        val repository = onlineSettingsRepository ?: return
+        viewModelScope.launch { repository.setUseOnDevice(use) }
+    }
+
+    fun setCloudSaveEnabled(enabled: Boolean) {
+        val repository = onlineSettingsRepository ?: return
+        viewModelScope.launch { repository.setCloudSaveEnabled(enabled) }
+    }
 
     /**
      * Null until every setting's saved value has loaded - all four together, so the screen never
@@ -139,6 +162,7 @@ class SettingsViewModel(
                     settingsRepository = container.settingsRepository,
                     achievementsRepository = container.achievementsRepository,
                     scoreRepository = container.scoreRepository,
+                    onlineSettingsRepository = container.onlineSettingsRepository,
                 )
             }
         }

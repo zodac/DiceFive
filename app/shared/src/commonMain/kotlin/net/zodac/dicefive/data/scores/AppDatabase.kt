@@ -23,7 +23,7 @@ import kotlinx.coroutines.IO
  */
 @Database(
     entities = [ScoreEntry::class, DismissedPlayerStats::class],
-    version = 4,
+    version = 5,
     exportSchema = true,
     autoMigrations = [
         // 2: ScoreEntry.onLeaderboard, every existing row on it.
@@ -31,6 +31,8 @@ import kotlinx.coroutines.IO
         // 3: ScoreEntry.gameModeId, every existing row a Standard game.
         AutoMigration(from = 2, to = 3),
         // 4 changes data, not the schema: see MIGRATION_3_4.
+        // 5: ScoreEntry.playedUnmodified, null for every existing row (not known).
+        AutoMigration(from = 4, to = 5),
     ],
 )
 @ConstructedBy(AppDatabaseConstructor::class)

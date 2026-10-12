@@ -8,6 +8,7 @@ import net.zodac.dicefive.data.achievements.AchievementsRepository
 import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
+import net.zodac.dicefive.online.OnlineSettingsRepository
 import platform.Foundation.NSBundle
 
 /**
@@ -24,6 +25,7 @@ internal object IosAppContainer {
             settingsRepository = SettingsRepository(createIosPreferencesDataStore(PreferencesFile.SETTINGS)),
             achievementsRepository = AchievementsRepository(createIosPreferencesDataStore(PreferencesFile.ACHIEVEMENTS)),
             inProgressGameRepository = InProgressGameRepository(createIosPreferencesDataStore(PreferencesFile.IN_PROGRESS_GAME)),
+            onlineSettingsRepository = OnlineSettingsRepository(createIosPreferencesDataStore(PreferencesFile.ONLINE)),
             buildInfo = BuildInfo(
                 versionName = NSBundle.mainBundle.objectForInfoDictionaryKey("CFBundleShortVersionString") as? String ?: "?",
                 isDebug = Platform.isDebugBinary,

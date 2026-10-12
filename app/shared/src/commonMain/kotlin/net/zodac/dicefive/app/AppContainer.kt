@@ -17,6 +17,7 @@ import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.savedStylesFlow
 import net.zodac.dicefive.game.StandardPerfectPlayTable
+import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.resources.Res
 
 /**
@@ -29,6 +30,7 @@ class AppContainer(
     val settingsRepository: SettingsRepository,
     val achievementsRepository: AchievementsRepository,
     val inProgressGameRepository: InProgressGameRepository,
+    val onlineSettingsRepository: OnlineSettingsRepository,
     val buildInfo: BuildInfo,
     /** Where [savedStyles] is kept loaded - the process, not any one screen. */
     scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),

@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.settings.AnimationLevel
+import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.about_title
 import net.zodac.dicefive.resources.common_cancel
@@ -75,7 +76,7 @@ import net.zodac.dicefive.ui.common.stringResource
 /** A setting's label: bodyLarge on one line when it fits, stepped down to [MIN_READABLE_FONT_SIZE] on a
  * narrow screen, and wrapped to a second line (the row grows) rather than shrunk further. */
 @Composable
-private fun SettingLabel(text: String, modifier: Modifier = Modifier) {
+internal fun SettingLabel(text: String, modifier: Modifier = Modifier) {
     ShrinkThenWrapText(text = text, style = MaterialTheme.typography.bodyLarge, modifier = modifier)
 }
 
@@ -86,7 +87,7 @@ private fun SettingLabel(text: String, modifier: Modifier = Modifier) {
  * clicks of its own ([Switch]'s `onCheckedChange = null`), so there's one target, not two.
  */
 @Composable
-private fun SwitchSetting(icon: ImageVector, label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+internal fun SwitchSetting(icon: ImageVector, label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     ListItem(
         leadingContent = { Icon(imageVector = icon, contentDescription = null) },
         headlineContent = { SettingLabel(label) },
@@ -185,6 +186,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val loadedToggles by viewModel.toggles.collectAsStateWithLifecycle()
+    val onlineToggles by viewModel.onlineToggles.collectAsStateWithLifecycle()
     // Saveable: a rotation mid-confirmation shouldn't silently drop the question.
     var showResetAchievementsConfirmation by rememberSaveable { mutableStateOf(false) }
     var showResetLeaderboardConfirmation by rememberSaveable { mutableStateOf(false) }
@@ -201,6 +203,13 @@ fun SettingsScreen(
         // Nothing but the title bar until the saved switches are back, rather than drawing them in
         // their default positions and then flipping the ones the player has changed.
         val toggles = loadedToggles ?: return@ScreenScaffold
+        OnlineAccountCard(
+            services = LocalGameServices.current,
+            useOnDevice = onlineToggles.useOnDevice,
+            cloudSaveEnabled = onlineToggles.cloudSaveEnabled,
+            onUseOnDeviceChange = viewModel::setUseOnDevice,
+            onCloudSaveChange = viewModel::setCloudSaveEnabled,
+        )
         Card(modifier = Modifier.fillMaxWidth()) {
             SwitchSetting(Icons.AutoMirrored.Filled.VolumeUp, stringResource(Res.string.settings_sound), toggles.soundEnabled, viewModel::setSoundEnabled)
             SwitchSetting(Icons.Filled.Vibration, stringResource(Res.string.settings_vibration), toggles.vibrationEnabled, viewModel::setVibrationEnabled)

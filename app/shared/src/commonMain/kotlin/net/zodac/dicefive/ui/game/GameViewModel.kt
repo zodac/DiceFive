@@ -1619,6 +1619,7 @@ class GameViewModel(
                     isPrimaryPlayer = index == 0,
                     onLeaderboard = state.countsOnLeaderboard,
                     gameMode = state.gameMode,
+                    playedUnmodified = !state.hasModifiers,
                 )
             }
         }
