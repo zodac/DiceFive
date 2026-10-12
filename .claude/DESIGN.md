@@ -1577,7 +1577,7 @@ install-over-existing succeeds:
         player-1-only `humans` used everywhere else.
 - [ ] **Google Play Games**: not started. The mapping is designed for, not
       built — no Play Games SDK dependency, no sign-in, no server-side
-      achievement definitions.
+      achievement definitions. The full plan is now `.claude/PLAY_GAMES.md`.
       **Decided, to apply once sync is actually wired up**:
       - The ledger keeps reading the whole device's leaderboard (`ScoreRepository.leaderboardTotals()`,
         every human's recorded score, not just player 1's) - unchanged from today's behaviour, and

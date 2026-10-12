@@ -37,6 +37,11 @@
   Android's platform code is in `app/android`), gotchas (e.g. no commas or parentheses in `commonTest` names), and what's left.
   Phases 1-4 are done - the game, UI and persistence are shared and compile for iOS; the iOS app
   itself (Phase 5) needs macOS.
+- `.claude/PLAY_GAMES.md` — the proposal and phased plan (not yet built) for Google Play Games
+  Services v2: sign-in kept apart from Player 1's name, mirroring achievements, a leaderboard per
+  game mode, cloud save with automatic merging, Play Games Sidekick, the platform seam that keeps
+  Google out of shared code (for a later Game Center version), where it appears in the app, and
+  what the reset buttons mean once data lives online. Read this before touching any of it.
 - `.claude/I18N.md` — the plan for moving every visible and spoken string into Compose resources
   (i18n) so a language can be added later (l10n): the decisions (plurals in `<plurals>` using
   Compose resources' bundled CLDR rules; ordinals, number grouping and lists through each
@@ -120,6 +125,7 @@
   | `[Game Over]`    | The end-of-game results page and its celebration                     |
   | `[Icon]`         | The app's launcher icon                                              |
   | `[Leaderboard]`  | The Leaderboard (scores) screen and the score records behind it      |
+  | `[Play Games]`   | Google Play Games Services - sign-in, online sync, cloud save, Sidekick |
   | `[Project]`      | Repo-wide setup that isn't any one feature (initial commit, tooling) |
   | `[Sandbox]`      | The Docker sandbox and its emulator tooling (`sandbox/`)             |
   | `[Settings]`     | The Settings screen and the preferences behind it                    |

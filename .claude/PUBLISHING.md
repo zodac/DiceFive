@@ -204,6 +204,10 @@ changes in the codebase to get a submittable build.
 
 ## Google Play Games Services - achievements, cloud save, sign-in
 
+> **Superseded by `.claude/PLAY_GAMES.md`**, the full proposal and phased plan (sign-in, achievements,
+> per-mode leaderboards, cloud save, Sidekick, resets). Where the notes below disagree with it, follow
+> that file. They are kept here for the console checklist.
+
 Covers three of the requested features at once: they're all facets of the one Play Games
 Services (v2) integration, not three separate SDKs. `DESIGN.md`'s Phase 13 "Google Play Games"
 entry already designed the achievement id mapping for this (secret achievements excluded) - none
