@@ -965,7 +965,9 @@ A `SegmentedChoiceRow` at the top (Combined | Game Mode; always shown) switches
 `CombinedLeaderboard` - the original table, with the gold/silver/bronze podium, its card as tall as its rows until it has the page - and
 `GameModeLeaderboard`: a card per mode that has a score (including modes that never reach the Combined table) in a scrolling page, **no podium colours** there. A card is
 capped at ten rows (`modeCardListHeight`, from `bodyMedium`'s line height so it follows the font) and
-scrolls inside; its Previous/Next are its list's last item, not pinned. The page's own scrollbar is in
+scrolls inside; its Previous/Next are its list's last item, not pinned. A card's list keeps the rest of a
+drag or fling once it reaches its end (`KeepScrollInside`) rather than handing it to the page, so one swipe never
+scrolls the card and then the page; a card too short to scroll still passes the swipe up. The page's own scrollbar is in
 the 20dp side margin (as on Styles) - the way to scroll the page when a finger is on a card's list.
 Adding the switch shortens the Combined table by its own height; nothing else moved.
 TalkBack: card titles are headings; the switch is the stock segmented row (radio buttons); a row's

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -41,6 +42,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
@@ -289,7 +295,7 @@ private fun ModeCard(mode: GameMode, board: ModeBoard, onPrevious: () -> Unit, o
             // A new page starts at its top, not wherever the last one was scrolled to.
             LaunchedEffect(board.pageIndex) { listState.scrollToItem(0) }
             val ranked = remember(board.entries, board.pageIndex) { rankEntries(board.entries, board.pageIndex) }
-            Box(modifier = Modifier.fillMaxWidth().heightIn(max = modeCardListHeight())) {
+            Box(modifier = Modifier.fillMaxWidth().heightIn(max = modeCardListHeight()).nestedScroll(remember(listState) { KeepScrollInside(listState) })) {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxWidth(),
@@ -323,6 +329,20 @@ private fun ModeCard(mode: GameMode, board: ModeBoard, onPrevious: () -> Unit, o
             }
         }
     }
+}
+
+/**
+ * Stops a card's list handing the rest of a drag or fling to the page once it reaches its end, which made one swipe
+ * scroll the card and then the page. A card with nothing to scroll still passes the swipe up, so the page moves.
+ */
+private class KeepScrollInside(private val state: LazyListState) : NestedScrollConnection {
+    private val scrolls get() = state.canScrollForward || state.canScrollBackward
+
+    override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset =
+        if (scrolls) available else Offset.Zero
+
+    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity =
+        if (scrolls) available else Velocity.Zero
 }
 
 /** What [MODE_CARD_VISIBLE_ROWS] ordinary rows add up to: a row is a line of `bodyMedium` and its padding, so it grows with the font. */
