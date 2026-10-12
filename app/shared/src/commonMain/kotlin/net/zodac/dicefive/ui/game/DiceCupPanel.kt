@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -112,6 +113,11 @@ data class CupPanelState(
     val onUndo: () -> Unit,
     /** The current player's plant, for the Flowerpot cup - see [FlowerpotGrowth]. */
     val flowerpotGrowth: FlowerpotGrowth,
+    /**
+     * Changes whenever a turn is scored (or undone), so the cup's art is rebuilt from rest: whatever it
+     * was still playing out - a volcano cooling, say - never carries over to the next turn.
+     */
+    val turnKey: Int = 0,
 )
 
 /** The cup's own square - what the rows it sits over must be tall enough for: two in a six-row board, more beyond that. */
@@ -420,16 +426,18 @@ internal fun DiceCup(
                         // GameScreen) or pour: it stands while the roll is in it and is simply tipped once
                         // the roll lands and scoring opens.
                         val reduceMotion = LocalReduceMotion.current
-                        cupStyle.Cup(
-                            rolling = cup.rolling && !cup.pouring && !reduceMotion,
-                            tilted = if (reduceMotion) {
-                                cup.tilted && !cup.rolling && !standingForBloom
-                            } else {
-                                (cup.tilted || cup.pouring) && !standingForBloom
-                            },
-                            // A cup's shape grid is its size in dp here - tall or squat, both fit this 104dp box.
-                            modifier = Modifier.size(width = cupStyle.shape.gridWidth.dp, height = cupStyle.shape.gridHeight.dp),
-                        )
+                        key(cup.turnKey) {
+                            cupStyle.Cup(
+                                rolling = cup.rolling && !cup.pouring && !reduceMotion,
+                                tilted = if (reduceMotion) {
+                                    cup.tilted && !cup.rolling && !standingForBloom
+                                } else {
+                                    (cup.tilted || cup.pouring) && !standingForBloom
+                                },
+                                // A cup's shape grid is its size in dp here - tall or squat, both fit this 104dp box.
+                                modifier = Modifier.size(width = cupStyle.shape.gridWidth.dp, height = cupStyle.shape.gridHeight.dp),
+                            )
+                        }
                     }
                 }
                 if (!countFirst) count(Modifier.weight(1f))

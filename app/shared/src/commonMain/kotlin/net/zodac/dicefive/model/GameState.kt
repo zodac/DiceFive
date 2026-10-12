@@ -44,6 +44,13 @@ data class GameState(
         get() = players.getOrNull(currentPlayerIndex)
 
     /**
+     * How many scores have been entered across every card: changes whenever a turn is committed (or
+     * undone), so anything tied to one turn - a shake, a flourish on the cup - can tell the turn has moved on.
+     */
+    val scoresEntered: Int
+        get() = players.sumOf { player -> player.scorecard.values.sumOf { it.size } }
+
+    /**
      * The dice this turn would be scored with: every die, or - in a mode where only held dice score
      * ([GameMode.scoresHeldDiceOnly]) - just the held ones, in hold-slot order. What the board
      * previews and what a committed score is worked out from.

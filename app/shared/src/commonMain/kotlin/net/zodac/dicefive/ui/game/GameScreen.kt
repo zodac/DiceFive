@@ -61,6 +61,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.game.ProjectedHand
 import net.zodac.dicefive.model.GameMode
@@ -406,13 +407,21 @@ private fun InProgressGame(
     // Two independent ifs, not if/else - "No More Rolls" is the mutually-exclusive fallback case
     // (rollsRemaining hit 0, the tap does nothing for the game itself), and keeping them separate
     // avoids Kotlin inferring this lambda's type from the join of a Job (the launch) and Unit.
+    //
+    // The shake belongs to the turn it started in: if the turn timer scores that turn mid-shake, the shake is
+    // dropped rather than carrying on to roll (and keep the cup shaking) for the next player.
+    var tapRollJob by remember { mutableStateOf<Job?>(null) }
+    LaunchedEffect(state.scoresEntered) { tapRollJob?.cancel() }
     val onCupTap = {
         if (canRoll && !rollInHand) {
-            coroutineScope.launch {
+            tapRollJob = coroutineScope.launch {
                 isTapRolling = true
-                lifecycle.delayWhileResumed(cupShakeMillis)
-                onRoll()
-                isTapRolling = false
+                try {
+                    lifecycle.delayWhileResumed(cupShakeMillis)
+                    onRoll()
+                } finally {
+                    isTapRolling = false
+                }
             }
         }
         if (!canRoll && isHumanTurn && state.rollsRemaining == 0 && !rollInHand) {

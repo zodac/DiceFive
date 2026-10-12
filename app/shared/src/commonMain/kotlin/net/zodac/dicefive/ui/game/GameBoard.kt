@@ -164,8 +164,12 @@ fun GameBoard(
     LaunchedEffect(fiveOfAKindShowing, state.currentPlayerIndex) {
         if (fiveOfAKindShowing && claimFiveOfAKindFlash(state.currentPlayerIndex)) {
             flashFiveOfAKind = true
-            lifecycle.delayWhileResumed(FIVE_OF_A_KIND_FLASH_HOLD_MILLIS)
-            flashFiveOfAKind = false
+            // finally: scoring before the hold ends cancels this effect, which must still switch the flash off.
+            try {
+                lifecycle.delayWhileResumed(FIVE_OF_A_KIND_FLASH_HOLD_MILLIS)
+            } finally {
+                flashFiveOfAKind = false
+            }
         }
     }
 
@@ -220,6 +224,7 @@ private fun cupPanelState(
         showUndo = state.players.size == 1,
         onCupTap = onCupTap,
         onUndo = onUndo,
+        turnKey = state.scoresEntered,
         flowerpotGrowth = FlowerpotGrowth(
             stage = player?.flowerpotStage ?: 0,
             grower = state.currentPlayerIndex,
