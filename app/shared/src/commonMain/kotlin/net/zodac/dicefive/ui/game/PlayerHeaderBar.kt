@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.selected
@@ -119,7 +120,6 @@ fun PlayerHeaderBar(
                 viewed = index == viewedPlayerIndex,
                 compactName = compactNames,
                 standing = places?.get(index),
-                showsPlaces = players.size > 1,
                 enabled = enabled,
                 onClick = { onPlayerTap(index) },
                 modifier = Modifier.weight(1f),
@@ -138,7 +138,6 @@ private fun PlayerTab(
     viewed: Boolean,
     compactName: Boolean,
     standing: Standing?,
-    showsPlaces: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -150,6 +149,8 @@ private fun PlayerTab(
     val currentTurn = stringResource(Res.string.game_tab_current_turn_spoken)
     val spokenState = joinClauses(listOfNotNull(currentTurn.takeIf { active }, spokenStanding))
     val viewScorecardLabel = stringResource(Res.string.game_tab_view_action)
+    // Larger text fills more of the tab, so a frame's sides and corners need more room to stay off it.
+    val sidePadding = (BASE_SIDE_PADDING_DP + (LocalDensity.current.fontScale - 1f).coerceAtLeast(0f) * SIDE_PADDING_DP_PER_FONT_SCALE).coerceAtMost(MAX_SIDE_PADDING_DP).dp
     Column(
         modifier = modifier
             .padding(horizontal = 3.dp)
@@ -168,7 +169,7 @@ private fun PlayerTab(
                 selected = viewed
                 if (spokenState.isNotEmpty()) stateDescription = spokenState
             }
-            .padding(vertical = 6.dp, horizontal = 2.dp),
+            .padding(vertical = 6.dp, horizontal = sidePadding),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val nameStyle = if (compactName) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge
@@ -201,16 +202,15 @@ private fun PlayerTab(
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.headlineSmall,
         )
-        // Whose turn it is (the dot) and the player's place. Its height is kept in any game with
-        // places to show, so the tabs don't grow the moment the first score puts someone ahead.
+        // Whose turn it is (the dot) and the player's place. Its height is always kept (also solo, so a border clears the dot), so
+        // the tabs don't grow the moment the first score puts someone ahead.
         Row(
-            modifier = Modifier.padding(top = 2.dp).then(if (showsPlaces) Modifier.heightIn(min = PLACE_ROW_HEIGHT) else Modifier),
+            modifier = Modifier.padding(top = 2.dp).heightIn(min = PLACE_ROW_HEIGHT),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .padding(top = if (showsPlaces) 0.dp else 2.dp)
                     .size(6.dp)
                     .clip(CircleShape)
                     .background(if (active) color else Color.Transparent),
@@ -230,6 +230,10 @@ private fun PlayerTab(
         }
     }
 }
+
+private const val BASE_SIDE_PADDING_DP = 2f
+private const val SIDE_PADDING_DP_PER_FONT_SCALE = 25f
+private const val MAX_SIDE_PADDING_DP = 10f
 
 /** Room for a place label under a score - so the tab's height doesn't change when one first appears. */
 private val PLACE_ROW_HEIGHT = 16.dp

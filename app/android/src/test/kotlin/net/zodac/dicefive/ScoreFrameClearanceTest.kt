@@ -14,10 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.model.PlayerColour
@@ -66,13 +68,15 @@ class ScoreFrameClearanceTest {
     private val tables = listOf(
         listOf(player("Wolfgang", false, PlayerColour.CYAN, 388), player("Player 2", false, PlayerColour.PURPLE, 388)),
         listOf(player("Payout", true, PlayerColour.CYAN, 388), player("Player 2", false, PlayerColour.PURPLE, 388)),
-    ).map { it + player("Cubes", true, PlayerColour.GREEN, 120) + player("Wildly", true, PlayerColour.AMBER, 120) }
+    ).map { it + player("Cubes", true, PlayerColour.GREEN, 120) + player("Wildly", true, PlayerColour.AMBER, 120) } + listOf(listOf(player("Wolfgang", false, PlayerColour.CYAN, 388)), listOf(player("Wolfgang", false, PlayerColour.CYAN, 388), player("Player 2", false, PlayerColour.PURPLE, 388)), listOf(player("Wolfgang", false, PlayerColour.CYAN, 388), player("Player 2", false, PlayerColour.PURPLE, 388), player("Cubes", true, PlayerColour.GREEN, 120)))
 
     @Test
     fun everyFrameClearsTheActiveTabsText() {
         var frame: ScoreFrame by mutableStateOf(NoFrame)
         var players by mutableStateOf(tables[0])
         compose.setContent {
+            val d = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(d.density, FS)) {
             DiceFiveTheme {
                 CompositionLocalProvider(LocalGameVisualTheme provides GameVisualTheme(frame = frame)) {
                     // The game screen's width for the tabs: 16dp padding each side and the back arrow's 36dp.
@@ -84,6 +88,7 @@ class ScoreFrameClearanceTest {
                     }
                 }
             }
+            }
         }
         val density = compose.density.density
         val failures = mutableListOf<String>()
@@ -93,13 +98,13 @@ class ScoreFrameClearanceTest {
             compose.waitForIdle()
             val plain = compose.onNodeWithTag("header").captureToImage().asAndroidBitmap()
             // The active (first) tab, and the few dp a frame may spill past it.
-            val width = (((SCREEN_DP - 68) / table.size + LEFT_MARGIN_DP + 4) * density).toInt()
+            val width = minOf((((SCREEN_DP - 68) / table.size + LEFT_MARGIN_DP + 4) * density).toInt(), plain.width)
             for (f in ScoreFrames.all) {
                 frame = f
                 compose.waitForIdle()
                 val framed = compose.onNodeWithTag("header").captureToImage().asAndroidBitmap()
                 val gap = closestGapPx(plain, framed, width, table[0].colour.color) / density
-                if (gap < MIN_GAP_DP) failures += "${f.id} with ${table[0].name}: %.1fdp".format(gap)
+                if (gap < MIN_GAP_DP) failures += "${f.id} ${table.size}p with ${table[0].name}: %.1fdp".format(gap)
             }
         }
         assertTrue("Frames too close to the active tab's text (need ${MIN_GAP_DP}dp): $failures", failures.isEmpty())
@@ -146,6 +151,8 @@ class ScoreFrameClearanceTest {
 
     private companion object {
         const val SCREEN_DP = 360
+        /** A larger system font fills more of the tab, so a frame has less room. */
+        const val FS = 1.3f
         const val LEFT_MARGIN_DP = 8
         const val MIN_GAP_DP = 1.5f
     }

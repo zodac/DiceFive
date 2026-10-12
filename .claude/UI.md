@@ -1093,7 +1093,9 @@ Anything new that marks a player in their colour should read it too, never a sea
   under 4.5; at 8% the lowest is Purple at 4.63:1 (Red 4.87:1). Raise it only after re-checking all eight.
 - **Frames stay off the tab's text.** The name sits `NAME_TOP_DROP` (3dp) below the tab's top padding, clear
   of the corner ornaments, and every frame keeps 1.5dp from the active tab's name, score, place and dot at
-  360dp with four players and the widest names - which `ScoreFrameClearanceTest` measures from renders. A new
+  360dp with one to four players, the widest names and a 1.3x system font - which `ScoreFrameClearanceTest` measures from renders.
+  The tab's side padding grows with the font scale (2dp, up to 10dp) so a larger font doesn't push text into a frame's sides,
+  and the dot's row keeps its place-row height even solo, so a bottom border (Greek key) never touches the dot. A new
   frame that fails it is drawn smaller or further out (a frame may spill a few dp past the tab), not given
   more room: the wreaths stop below the name, and the rose, swirl and knots are tucked into the corners.
 - **Setup**: a 28dp circle (48dp touch target) left of each player's name or difficulty
