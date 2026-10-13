@@ -37,6 +37,7 @@ import net.zodac.dicefive.ui.game.GameScreen
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.menu.MenuScreen
 import net.zodac.dicefive.ui.rules.RulesScreen
+import net.zodac.dicefive.ui.rules.resetRulesPageMemory
 import net.zodac.dicefive.ui.scores.ScoresScreen
 import net.zodac.dicefive.ui.scores.ScoresViewModel
 import net.zodac.dicefive.ui.settings.AboutDialog
@@ -195,6 +196,7 @@ open class TextFitTest {
 
     @Test
     fun `every page of the rules`() {
+        resetRulesPageMemory()
         content { RulesScreen(onBack = {}) }
         val isTab = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
         // The top row's tabs (the groups) come first, then the row of the showing group's pages.

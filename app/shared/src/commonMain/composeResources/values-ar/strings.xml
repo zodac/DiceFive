@@ -931,6 +931,7 @@
     <string name="achievements_title">الإنجازات</string>
     <string name="achievements_unlocked_count">%1$d من %2$d مفتوحة</string>
     <string name="achievements_all_unlocked">كل شيء مفتوح. لم يبقَ شيء تطارده!</string>
+    <string name="achievements_locked_only">المقفلة فقط</string>
     <string name="achievements_previous_category_cd">الفئة السابقة</string>
     <string name="achievements_next_category_cd">الفئة التالية</string>
     <string name="achievements_hidden_description">؟؟؟</string>

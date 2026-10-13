@@ -770,6 +770,16 @@ private val TAB_EDGE_EASE = 48.dp
  * tab that was cut off at the edge is still in view afterwards, now whole. */
 private const val TAB_CHEVRON_SCROLL_FRACTION = 0.6f
 
+/** The page the rules were last on, kept while the app process lives (not across a restart). */
+private object RulesPageMemory {
+    var lastPage = 0
+}
+
+/** Forgets the remembered page, so the rules open on the first again - tests start from there. */
+fun resetRulesPageMemory() {
+    RulesPageMemory.lastPage = 0
+}
+
 /**
  * The Rules page: two rows of tabs over a [HorizontalPager] of every [RulesPage]. The top row picks
  * one of [RULES_GROUPS] - the rules themselves, the game modes or the modifiers - and the row under
@@ -792,7 +802,9 @@ private const val TAB_CHEVRON_SCROLL_FRACTION = 0.6f
  */
 @Composable
 fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
-    val pagerState = rememberPagerState(pageCount = { RULES_PAGES.size })
+    val pagerState = rememberPagerState(initialPage = RulesPageMemory.lastPage.coerceIn(0, RULES_PAGES.size - 1), pageCount = { RULES_PAGES.size })
+    // Remembered for the app's run, so the rules reopen where they were left.
+    LaunchedEffect(pagerState) { snapshotFlow { pagerState.currentPage }.collect { RulesPageMemory.lastPage = it } }
     val coroutineScope = rememberCoroutineScope()
     // Only the group is read here, not the page: a page change then rebuilds only what shows the page (the two tabs
     // whose selection changes, the page row's indicator, the scrollbar and the footer), not the whole screen.

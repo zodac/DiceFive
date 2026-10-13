@@ -12,6 +12,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.rules.RulesScreen
+import net.zodac.dicefive.ui.rules.resetRulesPageMemory
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Rule
 import org.junit.Test
@@ -25,6 +26,7 @@ class RulesTextTest {
     val compose = createComposeRule()
 
     private fun showRules() {
+        resetRulesPageMemory()
         compose.setContent {
             CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
                 DiceFiveTheme { RulesScreen(onBack = {}) }

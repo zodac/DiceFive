@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,9 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -80,6 +85,7 @@ import net.zodac.dicefive.resources.achievements_reward_show_action
 import net.zodac.dicefive.resources.achievements_reward_unlocked
 import net.zodac.dicefive.resources.achievements_title
 import net.zodac.dicefive.resources.achievements_unlocked_at
+import net.zodac.dicefive.resources.achievements_locked_only
 import net.zodac.dicefive.resources.achievements_unlocked_count
 import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.ScreenScaffold
@@ -152,6 +158,7 @@ private fun LazyListState.centeredScrollOffset(estimatedItemHeightPx: Int): Int 
 private object AchievementsScrollMemory {
     var firstVisibleItemIndex = 0
     var firstVisibleItemScrollOffset = 0
+    var onlyLocked = false
 }
 
 /**
@@ -202,7 +209,16 @@ fun AchievementsScreen(
     // request (see below) is already waiting - that's about to move the list somewhere specific,
     // and restoring the old position first would just be a flash of the wrong place before it did.
     val listState = rememberLazyListState()
+    var onlyLocked by remember { mutableStateOf(AchievementsScrollMemory.onlyLocked) }
+    val groups = remember(state.groups, onlyLocked) {
+        if (!onlyLocked) {
+            state.groups
+        } else {
+            state.groups.map { group -> group.copy(items = group.items.filter { it.unlockedAt == null }) }.filter { it.items.isNotEmpty() }
+        }
+    }
     val scope = rememberCoroutineScope()
+    val currentGroups by rememberUpdatedState(groups)
     var restoredScroll by remember { mutableStateOf(false) }
     val listLoaded = state.isLoaded
     LaunchedEffect(listLoaded) {
@@ -226,8 +242,9 @@ fun AchievementsScreen(
     val estimatedRowHeightPx = with(LocalDensity.current) { ESTIMATED_ROW_HEIGHT_DP.roundToPx() }
     LaunchedEffect(Unit) {
         AchievementScrollRequests.requests.collect { request ->
-            val groups = snapshotFlow { state }.first { it.isLoaded }.groups
-            val flatIndex = flatIndexOf(groups, request.achievementId)
+            snapshotFlow { state }.first { it.isLoaded }
+            // The filtered groups are what its index is counted in; an unlocked row isn't in them while only the locked are shown.
+            val flatIndex = flatIndexOf(currentGroups, request.achievementId)
             if (flatIndex != null) {
                 // On a fresh navigation, the list hasn't necessarily had its first layout pass
                 // yet by the time its data has loaded - centredScrollOffset needs a real
@@ -286,10 +303,11 @@ fun AchievementsScreen(
         // it's armed, a long press unlocks every remaining achievement, and the long press after
         // that relocks everything - see onBannerLongPress's doc comment. No haptic feedback on long
         // press either: a buzz would tip off that something's there.
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Card(
             // Raw gestures, not combinedClickable: that would tell TalkBack this is a button with a
             // long-press action, announcing a control that (to anyone not in on it) does nothing.
-            modifier = Modifier.fillMaxWidth().pointerInput(Unit) {
+            modifier = Modifier.weight(1f).pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { viewModel.onUnlockedCountTapped() },
                     onLongPress = { viewModel.onBannerLongPress() },
@@ -303,13 +321,37 @@ fun AchievementsScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             )
         }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            // One target for the label and switch, read as "Locked only, switch, on".
+            // No ripple: it drew as a pale rectangle over the label, and the switch already shows the change.
+            modifier = Modifier.toggleable(
+                value = onlyLocked,
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                role = Role.Switch,
+            ) {
+                onlyLocked = it
+                AchievementsScrollMemory.onlyLocked = it
+                scope.launch { listState.scrollToItem(0) }
+            },
+        ) {
+            Text(
+                text = stringResource(Res.string.achievements_locked_only),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.widthIn(max = 104.dp),
+            )
+            Switch(checked = onlyLocked, onCheckedChange = null)
+        }
+        }
 
         LazyColumn(
             modifier = Modifier.fillMaxWidth().weight(1f),
             state = listState,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            if (state.groups.isEmpty()) {
+            if (groups.isEmpty()) {
                 item(key = "empty") {
                     Text(
                         text = stringResource(Res.string.achievements_all_unlocked),
@@ -321,8 +363,8 @@ fun AchievementsScreen(
                 }
             } else {
                 // Where each category's header sits in the list: one header item, then its rows.
-                val headerIndices = state.groups.runningFold(0) { index, group -> index + 1 + group.items.size }.dropLast(1)
-                state.groups.forEachIndexed { groupIndex, group ->
+                val headerIndices = groups.runningFold(0) { index, group -> index + 1 + group.items.size }.dropLast(1)
+                groups.forEachIndexed { groupIndex, group ->
                     stickyHeader(key = "group-${group.category.name}", contentType = HEADER_CONTENT_TYPE) {
                         GroupHeader(
                             text = stringResource(group.category.label),

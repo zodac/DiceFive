@@ -28,6 +28,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.rules.RulesScreen
+import net.zodac.dicefive.ui.rules.resetRulesPageMemory
 import net.zodac.dicefive.ui.rules.pagerIndicatorLayout
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
@@ -53,6 +54,7 @@ class RulesTabIndicatorTest {
     private val showcase = Showcase(compose)
 
     private fun showRules() = showcase.show {
+        resetRulesPageMemory()
         CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) { DiceFiveTheme { RulesScreen(onBack = {}) } }
     }
 

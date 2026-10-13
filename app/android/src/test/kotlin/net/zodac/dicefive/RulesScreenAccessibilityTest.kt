@@ -33,6 +33,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.rules.RulesScreen
+import net.zodac.dicefive.ui.rules.resetRulesPageMemory
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -61,6 +62,7 @@ class RulesScreenAccessibilityTest {
 
     /** A fresh Rules screen - each call starts again on the first page of the first group. */
     private fun showRules() = showcase.show {
+        resetRulesPageMemory()
         CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
             DiceFiveTheme { RulesScreen(onBack = {}) }
         }

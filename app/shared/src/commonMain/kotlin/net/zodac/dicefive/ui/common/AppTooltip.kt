@@ -16,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -26,6 +27,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_tooltip_show_details_action
 
@@ -127,9 +129,9 @@ fun tooltipMarkup(text: String): AnnotatedString {
 }
 
 /**
- * [AppTooltip] for content that's long-pressed rarely - a row among hundreds - so the tooltip is built only
+ * [AppTooltip] for content that's pressed rarely - a row among hundreds, shown by a tap or a long press - so the tooltip is built only
  * when it's asked for. Until then [content] is drawn bare, with the long press picked up by a plain gesture
- * (a `TooltipBox` per row was a real share of a list's first frame); the first long press arms the real
+ * (a `TooltipBox` per row was a real share of a list's first frame); the first tap or long press arms the real
  * tooltip around it and shows it, and from then on it behaves as [AppTooltip] does. [message] is read only
  * then, or when a screen reader asks - the `stateDescription` carries the same words, since a tooltip isn't
  * announced - so nothing is formatted for rows nobody touches.
@@ -143,13 +145,19 @@ fun OnDemandTooltip(message: () -> String, modifier: Modifier = Modifier, conten
     if (armed) {
         val state = rememberAppTooltipState()
         LaunchedEffect(Unit) { state.show() }
-        AppTooltip(message = message(), modifier = modifier.then(spoken), state = state, content = content)
+        val scope = rememberCoroutineScope()
+        AppTooltip(
+            message = message(),
+            modifier = modifier.then(spoken).pointerInput(Unit) { detectTapGestures(onTap = { scope.launch { state.show() } }) },
+            state = state,
+            content = content,
+        )
     } else {
         Box(
             modifier = modifier
                 .then(spoken)
                 .semantics { onLongClick(label = showDetailsLabel) { armed = true; true } }
-                .pointerInput(Unit) { detectTapGestures(onLongPress = { armed = true }) },
+                .pointerInput(Unit) { detectTapGestures(onTap = { armed = true }, onLongPress = { armed = true }) },
         ) { content() }
     }
 }
