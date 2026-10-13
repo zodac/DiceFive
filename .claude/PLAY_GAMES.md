@@ -1,11 +1,10 @@
 # DiceFive: online game services (Google Play Games Services v2) - proposal and plan
 
-**Status (2026-10-12): Phase 1 done** (the seam, `GameMode.onlineLeaderboardKey`, the `online`
-DataStore, the Settings card hidden while the service is unavailable, `ScoreEntry.playedUnmodified`). No Play
-Games dependency, no sign-in, no console configuration: Phase 0 is the maintainer's and not yet done. This file replaces the scattered notes on the subject (`PUBLISHING.md`'s
-"Google Play Games Services" section and `DESIGN.md` Phase 13's "Google Play Games" entry). Where
-it disagrees with them, this file is the one to follow. Decisions still waiting on the maintainer are
-marked **Decided:** or **Deferred:**, and all of them are listed in [Decisions](#decisions).
+**Status: Phase 1 done** (the seam, `GameMode.onlineLeaderboardKey`, the `online` DataStore, the Settings card hidden
+while the service is unavailable, `ScoreEntry.playedUnmodified`). No Play Games dependency, no sign-in, no console
+configuration: Phase 0 is the maintainer's and not yet done. This file is the one place for the subject; where another
+doc disagrees, follow this one. Decisions are marked **Decided:** or **Deferred:**, and all of them are listed in
+[Decisions](#decisions).
 
 > **This work is not complete while any decision is still open.** A decision may be deferred, but a
 > deferred one blocks completion of the phase that needs it (named in the list) and of the work as
@@ -67,8 +66,8 @@ and cloud-save guidelines) is **optional**. It brings store promotion and Quests
 asks for things this app doesn't do: PC distribution, keyboard/controller play, Rewards offers and
 form-factor coverage. This plan happens to meet its PGS, Sidekick, achievement and cloud-save
 guidelines along the way (10+ achievements with unique names and descriptions, 4 reachable in the
-first hour, cloud save with a conflict policy). It doesn't aim for the rest. **Decided
-(2026-10-12): Level Up is not a goal.** Game Stats stays documented as an
+first hour, cloud save with a conflict policy). It doesn't aim for the rest. **Decided:
+Level Up is not a goal.** Game Stats stays documented as an
 [optional extra](#optional-extra-game-stats-level-up), built only if that changes.
 
 ---
@@ -131,8 +130,7 @@ Rules that hold it together:
   `OnlineSync.reconcile()` compares the whole local state with the service and sends the
   difference. It runs on sign-in, on app start, and after each finished game. Nothing is lost when
   a send fails; the next reconcile sends it again.
-- **One hook per event, where the events already happen.** `AchievementUpdate.newlyUnlocked` (the
-  hook `DESIGN.md` Phase 13 earmarked) asks for a reconcile of achievements. `GameViewModel.finishGame`
+- **One hook per event, where the events already happen.** `AchievementUpdate.newlyUnlocked` asks for a reconcile of achievements. `GameViewModel.finishGame`
   / `persistHumanScores` asks for a score submission and a cloud-save write. Neither the engine nor
   `GameMode` learns that a network exists.
 - **Per-mode online data is a field on `GameMode`** (`onlineLeaderboardKey`), not a
@@ -166,7 +164,7 @@ in **one place**: the Settings card, as "Signed in as <name>" next to the avatar
 - It **never** fills, renames or replaces seat 1's name on the New Game screen. That name stays what
   the player typed, remembered per slot by `SettingsRepository.playerNameFor`, and limited by
   `GameSetupState.maxPlayerNameLength` (14/12/10/8 at 1-4 players). This keeps the cap a pure
-  layout rule (`UI.md`, "Player names cap..."). A gamer name of arbitrary length never reaches the
+  layout rule (`UI.md`, "Constraints worth knowing"). A gamer name of arbitrary length never reaches the
   in-game header, the Game Over page, the local Leaderboard or Statistics, so none of their
   measurements change.
 - On the Settings card it is run through `sanitizePlayerName` (the same protection against invisible,
@@ -180,7 +178,7 @@ in **one place**: the Settings card, as "Signed in as <name>" next to the avatar
   (`AchievementEngine`), and `ScoreEntry.isPrimaryPlayer` marks seat 1's rows. So everything is
   reported for **seat 1, whatever name is typed in it**, to whichever account is signed in on the
   device. Seats 2-4 (pass-and-play friends) are never submitted. The ledger achievements still
-  count every human's scores, as `DESIGN.md` Phase 13 already decided. Accepted cost: if a friend
+  count every human's scores, as `DESIGN.md` sets out. Accepted cost: if a friend
   plays as seat 1 on the owner's phone, the result goes on the owner's account. That is the same
   trade-off the achievements already make.
 
@@ -210,10 +208,10 @@ syncing off on this device until the player decides otherwise.
 
 ## 2. Achievements
 
-**What's there today:** 102 achievements (`model/Achievement.kt`), well inside Play's 400.
-`Achievement.id` is already a stable snake_case key ("never change one"). Every achievement is
-`NORMAL` or `HIDDEN`. The Easter Eggs category is now `HIDDEN` (title shown, description "???"), and
-no achievement currently uses `AchievementVisibility.SECRET`.
+**What's there today:** 103 achievements (`model/Achievement.kt`), well inside Play's 400.
+`Achievement.id` is a stable snake_case key (the enum constant, itself the English title, in lower case) that never
+changes once released. Every achievement is `NORMAL` or `HIDDEN` (the Easter Eggs included: title shown, description
+"???"); no achievement uses `AchievementVisibility.SECRET`.
 
 **Mapping, one row per achievement, in a generated table checked by a test:**
 
@@ -221,7 +219,7 @@ no achievement currently uses `AchievementVisibility.SECRET`.
 |---|---|---|
 | `NORMAL` | Revealed | |
 | `HIDDEN` | Hidden | Play blanks the description and icon until unlocked, the same as "???". |
-| `SECRET` | **Not registered** | Kept from the Phase 13 decision for any future use; unused today. |
+| `SECRET` | **Not registered** | A local-only surprise, never synced; unused today. |
 | `ProgressStyle.NONE` | Standard | `unlock`. |
 | `ProgressStyle.CUMULATIVE`, target ≤ 10,000 | Incremental, same target | `setSteps(localProgress)`: it only moves forward and is idempotent, so a repeat or a second device is harmless. |
 | `PROFESSIONAL_ROLLER` (100,000 career points) | Incremental, **10,000 steps of 10 points** | The only target above Play's 10,000-step ceiling. |
@@ -253,7 +251,7 @@ no achievement currently uses `AchievementVisibility.SECRET`.
   PNGs. As with all art, the renders are sent for review before anything is uploaded. **Deferred
   (blocks Phase 3):** whether a locked icon is each achievement's own icon, greyed (recommended), or
   one generic padlock. To be settled alongside the icon renders.
-- **Points (2,000 in total, multiples of 5):** 102 achievements average about 19 points. A proposed
+- **Points (2,000 in total, multiples of 5):** 103 achievements average about 19 points. A proposed
   formula, by tier: one-shot easy 5, medium 10, hard 20, ladders rising 5→50, the 6 ledger bands and
   Completionist 50-100, and **about 300 points held back** for future modes. A script computes and
   checks the total. **Deferred (blocks publishing in Phase 3/6):** use the tier formula, or set
@@ -265,8 +263,8 @@ no achievement currently uses `AchievementVisibility.SECRET`.
 
 ## 3. Leaderboards per game mode
 
-**One Play leaderboard per `GameMode`**: Standard, Tricolour, Quickfire, 7 Dice Stud, Third Wind, D20 and
-Hit List (the plan was written before D20 existed, so it said 6). That is 7 of the 70 allowed, in the same order as the New Game menu. This matches the local
+**One Play leaderboard per `GameMode`**: Standard, Tricolour, Third Wind, 7 Dice Stud, D20, Hit List and Quickfire.
+That is 7 of the 70 allowed, in the same order as the New Game menu. This matches the local
 Leaderboard's per-mode cards (`ScoresViewModel.modeBoards`), which list every mode, including those
 kept off the Combined table.
 
@@ -285,18 +283,12 @@ kept off the Combined table.
   description.
 - **Scores from before linking:** Play keeps each player's best, so submitting seat 1's best local
   score per mode once, when the account is first linked, is cheap. But it would appear on *today's*
-  daily and weekly tables. **Decided (revised 2026-10-12): submit the backlog.** When an account is
+  daily and weekly tables. **Decided: submit the backlog.** When an account is
   first linked on a device, seat 1's best local score in each mode is submitted to that mode's Play
   leaderboard. Daily and weekly tables showing it on that day and week is an accepted side effect.
-  - **Which rows count:** `isPrimaryPlayer` rows played under the mode's own rules, the same test a
-    new game's submission uses. One gap: `ScoreEntry.onLeaderboard` can't answer that for modes that
-    are always off the Combined board (Quickfire, 7 Dice Stud, Third Wind, Hit List). For those modes
-    it is `false` whether or not a modifier was on. So Phase 4 adds a column,
-    `ScoreEntry.playedUnmodified` (Room migration, nullable; `null` = recorded before the column
-    existed). Standard and Tricolour rows from before the column can be read as `onLeaderboard`. For
-    the other modes, a `null` row is **not submitted**, since we can't tell. **The column should land
-    as early as possible**, ideally in Phase 1, so that more history is known by the time
-    linking ships.
+  - **Which rows count:** `isPrimaryPlayer` rows with `ScoreEntry.playedUnmodified`, the same test a new game's
+    submission uses. (`onLeaderboard` can't answer it for a mode that is always off the Combined board, where it is
+    `false` whether or not a modifier was on - which is why that column exists. Every row records it.)
   - **When:** once per account per device, after the first cloud-save merge if cloud save is already
     on, so the best of all devices' merged rows is used. It also runs when a *different* account is
     linked through the account-switch prompt and the player chose to link this device's progress.
@@ -320,7 +312,7 @@ kept off the Combined table.
 | Achievement unlocks | `achievements` DataStore | Yes | **Union**. For an achievement unlocked on both, the earliest timestamp wins. |
 | Achievement counters (games played, dice rolled...) | same | Yes, **per device** | Each device keeps its own counter (a G-counter). The total is the sum, so two phones that each played 10 games make 20, not 10. |
 | Win streak counter | same | Yes | Taken from the device that **finished a game most recently**. A streak can't be merged; it belongs to whichever device's timeline is newest. |
-| Scores (Leaderboard + Statistics) | Room `scores` | Yes | **Union of rows**, identified by a new `ScoreEntry.uuid` column (Room v6 migration; existing rows are given one). |
+| Scores (Leaderboard + Statistics) | Room `scores` | Yes | **Union of rows**, identified by a new `ScoreEntry.uuid` column (a Room migration from version 1; existing rows are given one). |
 | Dismissed Statistics cards | `DismissedPlayerStats` | Yes | Union. |
 | Style picks, New Game setup (names, seats, CPU difficulty, colours, mode, modifiers) | `settings` DataStore | Yes | **Last writer wins per key**. Every write gets a timestamp, kept in a side map in the save. |
 | Sound, vibration, animation level, Styles page fit, "confirm before leaving" | same | **No**: these depend on the device (a tablet and a phone want different animation levels and fits) | - |
@@ -480,8 +472,7 @@ achievements, which can be reset, from the console.
 **Phase 1 as built:** `online/GameServices.kt` (interface, `GameServicesState`, `OnlineAccount`, `LocalGameServices`),
 `NoGameServices`, `OnlineSettingsRepository` (the `online.preferences_pb` file: `use_on_device`, `cloud_save_enabled`,
 both on by default), `ui/settings/OnlineAccountCard.kt`, `GameMode.onlineLeaderboardKey` (equal to each `id` today;
-pinned by `OnlineLeaderboardKeyTest`), and `ScoreEntry.playedUnmodified` (Room v5, null for old rows; `ranUnderOwnRules`
-reads a null one as `onLeaderboard` for Standard and Tricolour and as unknown for the other modes). `DiceFiveApp` takes an
+pinned by `OnlineLeaderboardKeyTest`), and `ScoreEntry.playedUnmodified` (recorded for every game). `DiceFiveApp` takes an
 optional `gameServices` that defaults to `NoGameServices`, so no platform passes one yet. Not in Phase 1: the card's
 "Last saved" and error lines (they need cloud save), the account-switch prompt (Phase 2). The card's TalkBack text
 (header read as one heading, "<service>, signed in as <full name>") is tested in `OnlineAccountCardTest`; what real
@@ -513,21 +504,18 @@ and the closed track, can wait until release):
 
 Achievements and leaderboards can be created later, from the exported files (Phases 3 and 4).
 
-**Phase 1 - The seam, with nothing behind it. DONE (2026-10-12).** `online/GameServices`, `NoGameServices`,
-`LocalGameServices`, `GameMode.onlineLeaderboardKey` (with a test that every mode has one) and the
-`online` DataStore file. The Settings card exists but is hidden while the service is `Unavailable`,
-so the app looks the same as before. Tests: card visibility, the switch, TalkBack text. No new
-dependency yet. Also add `ScoreEntry.playedUnmodified` (Room migration, with the schema exported) and
-start recording it, so the leaderboard backlog (section 3) knows about as many past games as
-possible by the time linking ships.
+**Phase 1 - The seam, with nothing behind it. Done.** `online/GameServices`, `NoGameServices`,
+`LocalGameServices`, `GameMode.onlineLeaderboardKey` (with a test that every mode has one), the
+`online` DataStore file and `ScoreEntry.playedUnmodified`. The Settings card exists but is hidden while the service is
+`Unavailable`, so the app looks the same as without it. Tests: card visibility, the switch, TalkBack text. No new
+dependency.
 
 **Phase 2 - Sign-in and the account card (Android).** Add `play-services-games-v2`.
 `PlayGamesSdk.initialize` goes in an `Application` subclass. Add the `APP_ID` meta-data,
 `PlayGamesServices` (state, `signIn`, the player's name and avatar) and the account-switch prompt.
 Before committing:
 
-- Measure the release APK size change (`IOS_SUPPORT.md` notes it was 1.95 MB; record the new figure
-  and what R8 kept).
+- Measure the release APK size before and after (record both, and what R8 kept).
 - Check that AboutLibraries' report lists the Play services licence and that the copyleft guard
   accepts it (it is Google's proprietary SDK licence; add it to `allowedLicenses` with a comment).
 - Update the privacy policy (`docs/privacy-policy.md`: the Play Games account and gameplay data) and
@@ -544,10 +532,10 @@ task. **Renders go to the maintainer for review before upload.** Change the "Res
 draft until Phase 6.
 
 **Phase 4 - Leaderboards.** Create 7 leaderboards (limits from `maxPossibleScore`, tamper protection
-on). Add submission from `finishGame` (seat 1 only, the mode's own rules only), the one-time backlog submission on first link (per mode, seat 1's best unmodified score, using the `playedUnmodified` column if Phase 1 hasn't already added it), the Leaderboard screen's "Global leaderboard" actions, the new step in
+on). Add submission from `finishGame` (seat 1 only, the mode's own rules only), the one-time backlog submission on first link (per mode, seat 1's best `playedUnmodified` score), the Leaderboard screen's "Global leaderboard" actions, the new step in
 `GAME_MODES.md`'s checklist for a new mode, and the Reset leaderboard wording.
 
-**Phase 5 - Cloud save.** Room v6 (`ScoreEntry.uuid`, migration plus exported schema), timestamps on
+**Phase 5 - Cloud save.** Room version 2 (`ScoreEntry.uuid`, migration plus exported schema), timestamps on
 settings writes, per-device counters, `CloudSaveCodec` and `CloudSaveMerge` with thorough unit tests
 (union, G-counter sums, streak recency, last writer wins, reset markers, a newer blob version from a
 newer app read safely by an older one), the snapshot transport, the first-link "Combine" prompt, and
@@ -559,7 +547,7 @@ both.
 and leaderboards. Run a closed test with Sidekick, then a 5% staged production rollout watching
 vitals. Check frame cost with the overlay open.
 
-**Later - iOS (after `IOS_SUPPORT.md` Phase 5).** `GameCenterServices` in `iosMain`:
+**Later - iOS (once the iOS app in `IOS_SUPPORT.md` exists).** `GameCenterServices` in `iosMain`:
 `GKLocalPlayer.authenticateHandler`, `GKAchievement` (incremental as `percentComplete`, hidden as
 `isHidden`), `GKLeaderboard` per `onlineLeaderboardKey`, and the shared blob over `GKSavedGame` or
 iCloud key-value storage. Game Center **does** let a player reset their own achievements
@@ -575,13 +563,12 @@ It can be done after Phase 3, at any point.
 
 ## Before Phase 0 is done
 
-The maintainer can't configure the console yet (as of 2026-10-12), so the work starts without it.
-**Phase 0 is needed for device testing, not for building.**
+The console isn't configured yet, so the work goes on without it. **Phase 0 is needed for device testing, not for
+building.**
 
 **Order of work:**
 
-1. **Phase 1 in full**, including `ScoreEntry.playedUnmodified`. Start it early: the column only
-   covers games recorded after it ships.
+1. Phase 1 (done).
 2. **The pure-logic parts of later phases**, all unit tested against a fake `GameServices`:
    - Phase 5's `CloudSaveCodec`/`CloudSaveMerge` and the `ScoreEntry.uuid` column. This is the
      riskiest logic in the plan, and none of it needs Google.
@@ -595,7 +582,7 @@ The maintainer can't configure the console yet (as of 2026-10-12), so the work s
    placeholder ids. It would compile, but nothing could show it works. If it's built anyway, missing
    ids must fall back to `NoGameServices`, so the Settings card stays hidden.
 
-**Why to keep the SDK off `main`:** the release pipeline (`DESIGN.md` Phase 12) publishes a GitHub
+**Why to keep the SDK off `main`:** the release pipeline (`DESIGN.md`, "Release pipeline") publishes a GitHub
 release on **every push to `main`**. A commit adding the SDK would ship it, and the `INTERNET`
 permission it merges in, in the next GitHub APK. That build would gain nothing from it (Play-only, by
 decision 6), but it would still need:
@@ -699,8 +686,7 @@ is built.
   from Play: published achievements can't be deleted, only hidden from new players. So retiring one
   is a migration (keep the mapping, stop reporting it), not a deletion.
 - **Points are permanent.** Hold some back, as described above.
-- **Changing a rule doesn't reset Play.** A mode whose rules change (as Quickfire did in Phase 30) keeps
-  its online scores from the old rules. If a rule change makes old scores unfair, the fix is a **new
+- **Changing a rule doesn't reset Play.** A mode whose rules change keeps its online scores from the old rules. If a rule change makes old scores unfair, the fix is a **new
   leaderboard key** for that mode (the old board stays, frozen). That is a deliberate choice in the
   mode change's commit.
 - **Test accounts.** Testers must be Play Games testers until publishing, or nothing works for them
@@ -720,14 +706,12 @@ is built.
 blocks the phase named next to it. Ask the maintainer when that phase reaches it, and record the
 answer here (and at the inline marker). Never settle one silently with the recommended default.
 
-Asked on 2026-10-12:
-
 | # | Decision | Answer | Needed by |
 |---|---|---|---|
 | 1 | Is Level Up a goal? | **Decided: no.** Game Stats stays an optional extra. | - |
 | 2 | "Reset achievements" while linked | **Decided: disabled while linked**, with the reason given. Works as today when not signed in. | Phase 3 |
 | 3 | "Reset leaderboard" when signed in | **Decided: all devices** (local + cloud). Play's online bests stay, and the confirmation says so. | Phase 4/5 |
-| 4 | Submit pre-link best scores | **Decided: yes** (revised from "new games only"). Seat 1's best unmodified score per mode, once per account per device on first link. | Phase 4 (column ideally Phase 1) |
+| 4 | Submit pre-link best scores | **Decided: yes.** Seat 1's best unmodified score per mode, once per account per device on first link. | Phase 4 |
 | 5 | In-progress game in the cloud | **Decided: yes**, newest wins. | Phase 5 |
 | 6 | GitHub release builds sign in? | **Decided: Play-only.** GitHub key not registered. | Phase 0/2 |
 | 7 | Achievement points | **Deferred:** tier formula (~300 held back), or by hand. | Phase 3 (before publishing) |

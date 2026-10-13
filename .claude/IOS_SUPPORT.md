@@ -1,24 +1,20 @@
 # DiceFive: iOS support reference
 
-Making the app run on iOS as well as Android without rewriting it in Swift, keeping as much of
-the existing Kotlin as possible.
+The app runs on iOS as well as Android without a Swift rewrite: Kotlin Multiplatform (KMP) + Compose Multiplatform
+(CMP). The game, its UI and its persistence all live in the `app/shared` module and compile for Android *and* iOS on
+every build; the Android app is a thin shell around them. Only a handful of platform services (sound, haptics, the
+accelerometer, transient messages, storage paths, the licence text view) have per-platform implementations, and those
+are Kotlin too - Swift will only be the ~20-line iOS app shell.
 
-**Status (2026-09-28): Phases 1-4 are done.** The game, its UI and its persistence all live in
-the Kotlin Multiplatform `app/shared` module and compile for Android *and* iOS on every build; the
-Android app is a thin shell around them. The iOS side of every platform service is written and
-compiles, but no iOS app has been linked or run yet - that needs a Mac (Phase 5).
-
-**The one-line version**: Kotlin Multiplatform (KMP) + Compose Multiplatform (CMP). Game logic
-*and* UI are shared Kotlin; only a handful of platform services (sound, haptics, the
-accelerometer, transient messages, storage paths, the licence text view) have per-platform
-implementations, and those are Kotlin too - Swift is only the ~20-line iOS app shell.
+**Status**: the iOS side of every platform service is written and compiles, but no iOS app has been linked or run - that
+needs a Mac. What's left is "The iOS app (needs macOS)" and "CI and release" below.
 
 ---
 
 ## Layout
 
 All the code lives under `app/`, split by platform: `app/shared` is everything platform-neutral,
-`app/android` the Android app, and `app/ios` (Phase 5) will be the Xcode project. They're separate
+`app/android` the Android app, and `app/ios` (still to come) will be the Xcode project. They're separate
 Gradle modules (`:app:shared`, `:app:android`) because AGP 9 won't let one module be both Kotlin
 Multiplatform and an Android application.
 
@@ -35,8 +31,9 @@ DiceFive/app/
 │       │   ├── platform/            PlatformServices and its parts - the interfaces a platform
 │       │   │                        implements (plus SilentPlatformServices, for previews)
 │       │   ├── navigation/  ui/     Compose Multiplatform; ui/DiceFiveApp.kt is the root
-│       ├── commonMain/composeResources/   drawable/ (3 vectors), font/ (Sora)  - Res.*
+│       ├── commonMain/composeResources/   strings, drawables, fonts, files  - Res.*
 │       ├── commonTest/              the unit tests (kotlin.test) - JVM now, iOS simulator later
+│       ├── androidHostTest/         JVM-only tests (resource files, the perfect-play table)
 │       ├── androidMain/             stripDiacritics actual only
 │       └── iosMain/kotlin/net/zodac/dicefive/
 │           ├── MainViewController.kt    the iOS entry point (MainActivity's counterpart)
@@ -48,94 +45,61 @@ DiceFive/app/
 │       ├── MainActivity.kt          builds the container + platform services, calls DiceFiveApp
 │       └── device/                  AndroidPlatformServices (SoundPool, Vibrator, SensorManager,
 │                                    Toast, licence JSON from res/raw), AndroidAppContainer, and
-│                                    TextViewLicenceDocument (see DESIGN.md Phase 17)
+│                                    TextViewLicenceDocument (see UI.md)
 ├── licensing/                       licence records for everything either platform ships: asset
 │                                    sources, library/asset entries, licence texts, the font's own
 │                                    OFL file (see its README)
-└── ios/                             (Phase 5) Xcode project hosting MainViewController()
+└── ios/                             (to come) Xcode project hosting MainViewController()
 ```
 
 The same package means the same job on each platform: the entry point sits in the root package
 (`MainActivity`, `MainViewController`), and everything a platform implements is in `device/`,
 prefixed with the platform's name (`AndroidSoundPlayer`, `IosSoundPlayer`).
 
-**Deviations from the original plan, and why:**
+**Decisions:**
 
-- **Both modules sit under `app/`** (`app/shared`, `app/android`) rather than side by side at the
-  root, so all the code has one home and the split inside it is by platform. The licence records
-  sit beside them in `app/licensing/`, not inside either module, because they cover files from
-  both and an iOS build will need them too; `app/android` is just the one that reads them today.
-- **Android's platform implementations live in `app/android` (`device/`), not in
-  `app/shared/src/androidMain`.** They
-  need the app's own resources (`R.raw` audio, the generated licence JSON) and its `BuildConfig`,
-  which the library can't see. iOS's live in `app/shared/src/iosMain`, because the iOS app is
-  Swift and can only call into the Kotlin framework the shared module builds.
-- **iOS targets were added in Phase 2, not Phase 5.** Kotlin/Native compiles iOS `.klib`s on
-  Linux - Apple platform libraries (UIKit, Foundation, CoreMotion...) included - so every build
-  now proves `commonMain` has no JVM/Android API in it, and that `iosMain` compiles against the
-  real Apple APIs. Only linking a binary and running tests needs macOS (those tasks are skipped
-  elsewhere - `kotlin.native.ignoreDisabledTargets` in `gradle.properties`).
-- **No data was carried over.** The app is pre-release, so the Room schema was collapsed into a
-  single initial version 1 (no migrations, no destructive fallback - an old pre-release install must
-  clear its data). From now on, schema changes need a version bump and a migration.
+- **Both modules sit under `app/`** (`app/shared`, `app/android`), so all the code has one home and the split inside it
+  is by platform. The licence records sit beside them in `app/licensing/`, not inside either module, because they cover
+  files from both and an iOS build will need them too; `app/android` is the one that reads them today.
+- **Android's platform implementations live in `app/android` (`device/`), not in `app/shared/src/androidMain`.** They
+  need the app's own resources (`R.raw` audio, the generated licence JSON) and its `BuildConfig`, which the library can't
+  see. iOS's live in `app/shared/src/iosMain`, because the iOS app is Swift and can only call into the Kotlin framework
+  the shared module builds.
+- **The iOS targets compile on Linux.** Kotlin/Native compiles iOS `.klib`s here - Apple platform libraries (UIKit,
+  Foundation, CoreMotion...) included - so every build proves `commonMain` has no JVM/Android API in it and that
+  `iosMain` compiles against the real Apple APIs. Only linking a binary and running tests needs macOS (those tasks are
+  skipped elsewhere - `kotlin.native.ignoreDisabledTargets` in `gradle.properties`). `:app:shared` registers a
+  `testDebugUnitTest` task (JVM host tests + both iOS compiles + the iOS test compile), so CI and the dependency-update
+  script cover it with no iOS-specific step.
 
----
+## How the seams work
 
-## What was done (Phases 1-4)
-
-### Phase 1 - Android-only APIs behind seams (commit `4241b5c`)
-
-- `org.json` → a small hand-written JSON reader/writer, `data/Json.kt` (`GameStateJson`, same
-  keys; licence notices). First done with kotlinx.serialization, which turned out to cost ~49KB of
-  the release APK for these two uses. The JVM tests still need `org.json` on their classpath,
-  because AboutLibraries' Android parser uses it internally.
-- `java.time` / `NumberFormat` → `formatTimestamp` as an `expect fun` (Android: the same
-  `java.time` formatter as before; iOS: `NSDateFormatter`) and a common `grouped()`, in
-  `ui/common/Formatting.kt`. First done with kotlinx-datetime - ~180 classes in the APK for one
-  pattern.
-- `System.currentTimeMillis()` → `game/Clock.kt`'s `nowEpochMillis()` (`kotlin.time.Clock`).
-- `platform/PlatformServices`: `SoundPlayer`, `HapticsPlayer`, `Accelerometer`,
-  `showTransientMessage` (was `Toast`). `SoundEffects` / `DiceHaptics` are shared wrappers;
-  `ShakeDetector` is now pure logic fed samples (and unit tested - `ShakeDetectorTest`).
-- ViewModel factories take an `AppContainer` (via `LocalAppContainer`) instead of a `Context`.
-- `BuildConfig.DEBUG` / `VERSION_NAME` → `BuildInfo`. The superuser-mode tests pass
-  `isDebugBuild = true` explicitly, and a new test pins that a release build never activates it.
-
-### Phase 2 - The shared module (commit `97476d6`; moved to `app/shared` later)
-
-- `model/`, `game/` and `AchievementsState` into `commonMain`; their tests into `commonTest`.
-- `IrishEasterEgg`'s `Normalizer` → `expect fun stripDiacritics` (iOS: Foundation's
+- **JSON**: `data/Json.kt`, a small hand-written reader/writer (`GameStateJson`, licence notices) - kotlinx.serialization
+  cost ~49KB of the release APK for those two uses. The JVM tests still need `org.json` on their classpath, because
+  AboutLibraries' Android parser uses it internally.
+- **Dates and numbers**: `formatTimestamp` is an `expect fun` (Android: `java.time`; iOS: `NSDateFormatter`), number
+  grouping a common `grouped()`, in `ui/common/Formatting.kt` - kotlinx-datetime was ~180 classes for one pattern.
+- **Time**: `game/Clock.kt`'s `nowEpochMillis()` (`kotlin.time.Clock`).
+- **Platform services**: `platform/PlatformServices` - `SoundPlayer`, `HapticsPlayer`, `Accelerometer`,
+  `showTransientMessage`, `LicenceDocument`, `loadLicenceReports`, `reduceMotion`, `capFrameRate`. `SoundEffects` /
+  `DiceHaptics` are shared wrappers; `ShakeDetector` is pure logic fed samples (`ShakeDetectorTest`).
+  `SilentPlatformServices` serves previews and tests.
+- **Build info**: `BuildInfo` (version name, debug flag). Superuser-mode tests pass `isDebugBuild` explicitly, and a test
+  pins that a release build never activates it.
+- **Text**: `IrishEasterEgg`'s accent folding is `expect fun stripDiacritics` (iOS: Foundation's
   `stringByFoldingWithOptions(NSDiacriticInsensitiveSearch)`).
-- `:app:shared` registers a `testDebugUnitTest` task (JVM host tests + both iOS compiles + the iOS
-  test compile), so CI, the dependency-update script and CLAUDE.md's habits cover it unchanged.
-
-### Phase 3 - Persistence (commit `745d9bb`)
-
-- Room's multiplatform build: `@ConstructedBy(AppDatabaseConstructor)`, KSP per target, schema
-  export to `app/shared/schemas/`. Android opens it on the framework SQLite (no driver set); iOS uses
-  `BundledSQLiteDriver` (`createIosAppDatabase`, in Application Support).
-- DataStore KMP: repositories take a `DataStore<Preferences>`; `createPreferencesDataStore(path)`
-  plus `PreferencesFile` names. Android uses the same `files/datastore/` directory as before.
-- `AndroidAppContainerTest` (Robolectric) opens the real Android storage, including the
-  leaderboard tie-break SQL.
-
-### Phase 4 - The UI (this commit)
-
-- `ui/`, `navigation/` and `platform/` into `commonMain`, on JetBrains' Compose Multiplatform
-  artifacts. On Android each resolves to the androidx artifact it wraps, so the APK runs the same
-  Compose/Material3 versions as before.
-- Resources: the three vectors and Sora → `composeResources/`, read as `Res.drawable.*` /
-  `Res.font.sora` (`SoraFontFamily` is now a `@Composable` getter, as CMP's `Font()` is).
-  `verifyAssetSources` scans both modules; `asset-sources.json` is keyed from the repo root.
-- `BackHandler`: `ui/common/BackHandler.kt`, a stand-in built on the multiplatform
-  navigation-event API (`NavigationBackHandler`) - CMP's own `BackHandler` is deprecated.
-- Licences: the dialog, report parsing and link detection are common; the platform supplies
-  the JSON (`loadLicenceReports`) and the document view (`PlatformServices.LicenceDocument`).
-  Android keeps its `TextView`; iOS and previews use `ComposeLicenceDocument`.
-- `MainActivitySmokeTest` (Robolectric) launches the real app: menu → setup → game → system
-  back → "Leave game?" → menu, exercising resources, navigation, storage and back handling.
-- iOS: `IosPlatformServices` (AVAudioPlayer, UIImpactFeedbackGenerator, CoreMotion, a snackbar
-  `TransientMessageHost`), `IosStorage`, and `MainViewController()` - all compile-checked only.
+- **Persistence**: Room's multiplatform build (`@ConstructedBy(AppDatabaseConstructor)`, KSP per target, schemas
+  exported to `app/shared/schemas/`); Android opens it on the framework SQLite, iOS on `BundledSQLiteDriver`
+  (`createIosAppDatabase`, in Application Support). DataStore repositories take a `DataStore<Preferences>` from
+  `createPreferencesDataStore(path)` and the `PreferencesFile` names. `AndroidAppContainerTest` (Robolectric) opens the
+  real Android storage.
+- **UI**: on Android each Compose Multiplatform artifact resolves to the androidx one it wraps, so the APK runs the same
+  Compose/Material3. Resources are `Res.*` from `composeResources/` (`SoraFontFamily` is a `@Composable` getter, as CMP's
+  `Font()` is). `BackHandler` is `ui/common/BackHandler.kt` on the multiplatform navigation-event API. Licences: the
+  dialog, report parsing and link detection are common; Android supplies its `TextView` document, iOS and previews
+  `ComposeLicenceDocument`. `MainActivitySmokeTest` (Robolectric) launches the real app end to end.
+- **iOS side**: `IosPlatformServices` (AVAudioPlayer, UIImpactFeedbackGenerator, CoreMotion, a snackbar
+  `TransientMessageHost`), `IosStorage`, `IosAppContainer` and `MainViewController()` - all compile-checked only.
 
 ---
 
@@ -143,16 +107,14 @@ prefixed with the platform's name (`AndroidSoundPlayer`, `IosSoundPlayer`).
 
 - **The KMP library plugin creates no lint tasks for its main code** unless `com.android.lint` is
   also applied - so `app/shared` applies it, and `app/android`'s lint sets `checkDependencies = true`,
-  which makes the `lintDebug` CI already runs analyse the shared code under the app's rules. Verified
-  by planting a lint error in `commonMain`: it failed `lintDebug`, which it silently hadn't before.
+  which makes the `lintDebug` CI runs analyse the shared code under the app's rules. Without both, lint silently skips
+  the shared code.
 - **`app/shared` reads `compileSdk`, `compileSdkMinor` and `minSdk` from
   `app/android/build.gradle.kts`** (the file the dependency-update and SDK-package scripts edit), so
   the two modules can't compile against different SDKs. Keep those as plain `name = <number>` lines.
 
-- **Watch the release APK size before adding a multiplatform library.** It was 1.93MB before the
-  port and reached 2.03MB; dropping kotlinx.serialization and kotlinx-datetime for small
-  hand-written/platform code brought it to 1.95MB. What remains (~16KB) is Compose Multiplatform's
-  resources runtime and the platform seams. Compare R8 mappings (`build/outputs/mapping/release/`)
+- **Watch the release APK size before adding a multiplatform library** - see "How the seams work" for the two that
+  were dropped for it. Compare R8 mappings (`build/outputs/mapping/release/`)
   class counts per package to see what a change retains.
 
 - **Kotlin/Native rejects some characters in function names**: no commas, parentheses (and
@@ -171,7 +133,7 @@ prefixed with the platform's name (`AndroidSoundPlayer`, `IosSoundPlayer`).
 
 ---
 
-## Phase 5 - iOS app (needs macOS)
+## The iOS app (needs macOS)
 
 - **Xcode project** (`app/ios/`): a SwiftUI app hosting `MainViewControllerKt.MainViewController()`
   (sample in `MainViewController.kt`'s KDoc); link the `shared` framework - add an
@@ -192,7 +154,7 @@ prefixed with the platform's name (`AndroidSoundPlayer`, `IosSoundPlayer`).
   report (built from `app/licensing/`) already covers everything app/shared uses on Android, but
   not iOS-only dependencies such as `sqlite-bundled` - see
   `PUBLISHING.md`. Check whether `ComposeLicenceDocument`'s links inside `SelectionContainer`
-  behave on iOS (they didn't on Android - `DESIGN.md` Phase 17); if not, a `UITextView` via
+  behave on iOS (they didn't on Android - see `DESIGN.md`, "Settings"); if not, a `UITextView` via
   `UIKitView`.
 - **Language: no partial translations** (`I18N.md`, "Layout direction and plural forms"). Declare
   `CFBundleLocalizations` (en, es...) with `CFBundleDevelopmentRegion` en, so iOS's own text follows the app's
@@ -222,7 +184,7 @@ prefixed with the platform's name (`AndroidSoundPlayer`, `IosSoundPlayer`).
   shake window stays while sound or vibration is on - re-check the m4a copies' lengths match the
   ogg ones, since the window is timed to them).
 
-## Phase 6 - CI and release
+## CI and release
 
 - A macOS job for the iOS build and `iosSimulatorArm64Test`; TestFlight / App Store Connect
   upload if wanted. The Linux jobs already compile iOS on every run (via `testDebugUnitTest`),
@@ -235,5 +197,5 @@ prefixed with the platform's name (`AndroidSoundPlayer`, `IosSoundPlayer`).
 
 ## Open decisions
 
-- **Mac access** - a local Mac, or macOS CI runners only? Without one, Phase 5 can't be tested.
+- **Mac access** - a local Mac, or macOS CI runners only? Without one, the iOS app can't be built or tested.
 - **Licences page on iOS** - keep `ComposeLicenceDocument`, or a native `UITextView`?

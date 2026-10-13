@@ -18,7 +18,7 @@ it outlives the shell that started it; **stop it when finished**, since it holds
 ## When to use it
 
 - **Running or debugging the Baseline Profile journey** (`app/baselineprofile`) - the main use. It turns
-  a "tell the maintainer, wait for their phone" loop into minutes. See `DESIGN.md` Phase 19. The release
+  a "tell the maintainer, wait for their phone" loop into minutes. See `DESIGN.md`, "Release pipeline". The release
   workflow runs the same journey on an emulator of its own (below), so a journey that fails here will fail
   the release too.
 - **Looking at the real app**: install a build, launch it, `screenshot`, Read the PNG. Useful to check a
@@ -39,7 +39,7 @@ sandbox/emulator.sh stop
 
 - `journeyLaps=1` keeps a run to one lap (~1.5 minutes); drop it for the default (up to 15 laps,
   about 20 minutes). A one-lap pass doesn't prove the full run: timing races (a dialog still closing)
-  only showed up on laps 4 and 5.
+  can take several laps to show.
 - The `adb uninstall` matters: a debug build installed earlier has a higher version code than the
   benchmark build, so the benchmark install is refused ("version downgrade") and the run is a no-op.
 - The generated profile lands in `app/android/src/release/generated/baselineProfiles/`, which is
@@ -71,31 +71,23 @@ without `sudo` (the runner's SDK is its own), and the emulator and image are cac
 (keyed on the API level, and saved even when the journey fails). And `/data` is set to 6 GB at boot
 (`-partition-size`).
 
-**That last one is what kept failing the release.** On the runner, the AVD came up with an **800 MB
-`/data`** (the sandbox's `avdmanager` and emulator give it 6-10 GB, and raise a smaller size in
-`config.ini` to that; the runner's leave it). A first boot of the Google APIs image fills 800 MB in about
-30 seconds - Play services and the launcher setting themselves up - and from then on every write fails
-(`ENOSPC`, `SQLiteFullException: database or disk is full`) and `system_server` crash-loops. Everything
-else seen was a symptom of that, which is why each looked like a flaky framework: `cmd: Can't find
-service: package`, an install refused with `android from uid 1000 not allowed to perform GET_USAGE_STATS`
-(AppOps can't verify a package while the system is dying, and reports it as a denied op), `DeadSystemException`,
-and Gradle passing with no profile (the plugin only warns when the tests yield none). It was a race
-between that setup and the install, so one early run got through and later ones didn't. `-partition-size`
-overrides whatever `config.ini` says (tried here: `config.ini` at 800M plus the flag gives 6 GB); the disk
-image is sparse, so the runner stores only what is used (about 2 GB for a first boot and a lap).
+**Why `/data` is pinned at 6 GB.** The runner's `avdmanager` leaves the AVD an **800 MB `/data`** (the sandbox's
+gives 6-10 GB). A first boot of the Google APIs image fills 800 MB in about 30 seconds - Play services and the launcher
+setting themselves up - after which every write fails (`ENOSPC`, `SQLiteFullException`) and `system_server`
+crash-loops. The symptoms look like a flaky framework rather than a full disk: `cmd: Can't find service: package`, an
+install refused with `android from uid 1000 not allowed to perform GET_USAGE_STATS`, `DeadSystemException`, and Gradle
+passing with no profile (the plugin only warns when the tests yield none). `-partition-size` overrides whatever
+`config.ini` says; the disk image is sparse, so the runner stores only what is used (about 2 GB).
 
-**The next thing it hit: no Vulkan.** With `/data` fixed, every app's `RenderThread` aborted on launch
-(`Abort message: 'Assertion failed: !gpuCount'` in `VulkanManager::initialize`) - SystemUI, the launcher
-and DiceFive - because the app renderer is forced to Vulkan (below) and the guest had no Vulkan device
-(`adb shell cmd gpu vkjson` lists `"devices" : []`). The emulator's `Vulkan` feature defaults to off, and
-at boot it turns Vulkan and GLDirectMem (the host memory Vulkan allocates from) on only from API 29. It
-reads the API level from the AVD's `target=` line, and the runner's `avdmanager` - too old for
-`37.0`-style API levels - wrote `target=android-0` (and none in `config.ini`), which it read as **API 3** (`-verbose`: "Deciding if GLDirectMem/Vulkan should be enabled ... API level: 3", "not enabling
-Vulkan because API level is < 29"). Forcing `-feature Vulkan` is not enough - without GLDirectMem, apps
-then crash in `AllocateVulkanMemory`. So `start` writes `target=android-<api>` into the AVD's `.ini` and
-`config.ini` itself (printing what `avdmanager` wrote), boots with `-verbose` and prints the emulator's
-decision line, and checks the guest has a Vulkan device before going on. With no `target`, the emulator
-assumes API 1000; a `target=android-3` reproduces the runner's failure here.
+**Why `start` writes the AVD's `target`.** The app renderer is forced to Vulkan (below), so the guest must have a
+Vulkan device, or every app's `RenderThread` aborts on launch (`Assertion failed: !gpuCount` in
+`VulkanManager::initialize`; `adb shell cmd gpu vkjson` lists no devices). The emulator turns Vulkan and GLDirectMem
+(the host memory Vulkan allocates from) on only from API 29, reading the API level from the AVD's `target=` line - and
+the runner's `avdmanager`, too old for `37.0`-style levels, writes `target=android-0`, which it reads as API 3. Forcing
+`-feature Vulkan` isn't enough: without GLDirectMem apps crash in `AllocateVulkanMemory`. So `start` writes
+`target=android-<api>` into the AVD's `.ini` and `config.ini` itself, boots with `-verbose` and prints the emulator's
+"Deciding if GLDirectMem/Vulkan should be enabled" line. With no `target` the emulator assumes API 1000; a
+`target=android-3` reproduces the failure.
 
 `start` then checks `/data`'s size and that the device has a Vulkan GPU, failing the boot if either is wrong, waits for the `package` and
 `activity` services and for an install session to open (`pm install-create`), all holding for 30 seconds
@@ -166,7 +158,7 @@ disabled in the AVD.
 
 ## Limits and things worth knowing
 
-- **Slower and software-drawn.** The journey's fixed waits (e.g. `Thread.sleep` after a roll) were tuned
+- **Slower and software-drawn.** The journey's fixed waits (e.g. `Thread.sleep` after a roll) are tuned
   on phones; they hold up here, but anything timing-sensitive may behave differently.
 - **One Android version at a time**, the one `EMULATOR_API` names (below): currently API 37.0 (Android 17).
 - **Image size.** The emulator and system image add about 5 GB (1.5 GB downloaded, then unpacked) to the

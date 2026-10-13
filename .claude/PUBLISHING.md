@@ -1,12 +1,12 @@
 # DiceFive: Play Store publishing reference
 
 Requirements for getting this app onto the Play Store that aren't produced by the normal build
-and aren't covered anywhere else. `.claude/DESIGN.md`'s Phase 12 covers the *GitHub* release
-pipeline (signed `assembleRelease` APK attached to a tagged GitHub Release on every push to
+and aren't covered anywhere else. `.claude/DESIGN.md`'s "Release pipeline" covers the *GitHub* release
+pipeline (a signed APK, App Bundle and mapping attached to a tagged GitHub Release on every push to
 `main`) - that is a different thing from a Play Store submission, which this file is about.
 
-Little in this file is done yet (the in-app licences page is, the store listing's descriptions are
-drafted, and its graphics are generated); it's a checklist for whenever that submission actually happens.
+Done so far: the in-app licences page, the App Bundle, signing, the mapping archive, the drafted store descriptions
+and privacy policy, and the generated listing graphics. The rest is a checklist for whenever the submission happens.
 
 ## Outside this repo
 
@@ -38,9 +38,9 @@ Google Cloud Console, not by editing anything here):**
   contact email.
 - The content rating questionnaire, data safety form, and target audience/content declarations.
   Each is re-visited (not just re-checked) once ads or billing ship, since both add questions.
-- ~~Enrolling in Play App Signing and generating the upload key~~ - done 2026-10-13 (see "Signing"
-  below). Play takes the upload certificate from the first signed `.aab` uploaded, unless App integrity
-  asks for it first (`keytool -export -rfc -alias upload`).
+- Play App Signing and the upload key are set up (see "Signing" below). Play takes the upload certificate
+  from the first signed `.aab` uploaded, unless App integrity asks for it first
+  (`keytool -export -rfc -alias upload`).
 - Creating the closed testing track and adding the 12+ testers Google requires for a new personal
   account, and leaving it running the required 14+ days before requesting production access.
 - Linking Play Games Services to the app (Play Console walks this through registering the SHA-1
@@ -70,8 +70,7 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
     cloud save, ads or Pro ship - rewrite it then (and the listing must declare ads).
   - **Counts and lists** in the full description must match what ships: the modes under "Seven ways
     to play" (and its heading's count), the modifiers under "House rules", "Over 100 achievements"
-    (103 today: 95 counted on the Achievements screen plus 8 secret Easter eggs) and "over 90 styles"
-    (92 today) with their examples.
+    (103 today, 8 of them Easter eggs) and "over 90 styles" with their examples.
   - **The trademark rule applies here too**: never the banned word from `CLAUDE.md` - Play also
     rejects listings that lean on another product's trademark. "3x", "4x" and "5x" are the
     terms, as in the app - never "three/four/five of a kind" (see `CLAUDE.md`).
@@ -84,7 +83,7 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
 
   Full description: `assets/full-description.txt`, beside the generated listing files - the one tracked file in
   that otherwise gitignored folder. Under Play's 4000-character limit (about 2500 today).
-- **Open-source licenses / third-party notices - done in-app** (`DESIGN.md` Phase 17): Settings >
+- **Open-source licenses / third-party notices - done in-app** (`DESIGN.md`, "Settings"): Settings >
   "Licences", generated from the dependency graph at build time, with a build-failing
   guard against copyleft or unrecognised licenses. The build strips each AndroidX artifact's bundled
   `META-INF/androidx/**/LICENSE.txt` (a size optimisation) - that's fine now, since the dialog ships
@@ -135,7 +134,7 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
     dependency graph, and iOS currently shows an empty one (`IosPlatformServices.loadLicenceReports`).
     Before an iOS release, generate iOS's own report and apply the copyleft guard to the iOS
     dependency graph (AboutLibraries supports Kotlin/Compose Multiplatform) - see
-    `IOS_SUPPORT.md` Phase 5. Apple's standard EULA covers App Store users - no custom EULA needed
+    `IOS_SUPPORT.md`, "The iOS app". Apple's standard EULA covers App Store users - no custom EULA needed
     unless wanted.
   - **The public GitHub release APKs** give the game away outside Play; once Pro exists, the Play
     Billing check won't work in a sideloaded copy. Decide before Pro ships whether GitHub releases
@@ -168,16 +167,14 @@ changes in the codebase to get a submittable build.
   and billing add it via their own SDK's merged manifest; ads may still expect it declared).
 - **Signing - done.** Play App Signing holds the app signing key; the certificates Play Console offers
   for download (`deployment_cert.der` and the hybrid ones) are public only and can't sign anything. The
-  upload key is the keystore behind the `RELEASE_KEY*` repository secrets (replaced 2026-10-13 with a
-  fresh one, alias `upload`, upload certificate SHA-256 `DD:9E:C8:0C:…:1E:A6:18`), which signs both the
-  APK and the bundle. Its copy is kept by the maintainer outside the repo; if it's ever lost, Play
+  upload key is the keystore behind the `RELEASE_KEY*` repository secrets (alias `upload`, upload
+  certificate SHA-256 `DD:9E:C8:0C:…:1E:A6:18`), which signs both the APK and the bundle. Its copy is kept by the maintainer outside the repo; if it's ever lost, Play
   support can reset the upload key.
 - **Archive `mapping.txt` per release - done.** Each release attaches `DiceFive-<version>-mapping.txt`,
   and the `.aab` carries the same mapping inside it (`BUNDLE-METADATA/.../proguard.map`), which Play
-  picks up on its own. Background: `DESIGN.md` Phase 12 turned on R8 shrinking and renaming
-  for the `release` build type, which means `app/android/build/outputs/mapping/release/mapping.txt` is now
-  a real deobfuscation mapping, not an empty file - without it, a renamed-class stack trace is
-  unreadable. Play Console auto-detects and uses this mapping to deobfuscate Android vitals crash/
+  picks up on its own. R8 shrinks and renames the `release` build, so
+  `app/android/build/outputs/mapping/release/mapping.txt` is a real deobfuscation mapping - without it, a
+  renamed-class stack trace is unreadable. Play Console auto-detects and uses this mapping to deobfuscate Android vitals crash/
   ANR reports (Google's automatic crash collection, no SDK needed) as long as it's uploaded/bundled
   with the same build - either included in the `.aab` upload or attached manually under App
   integrity > Deobfuscation files in Play Console. The attached copy is for the GitHub APK's stack
@@ -185,38 +182,15 @@ changes in the codebase to get a submittable build.
 
 ## Google Play Games Services - achievements, cloud save, sign-in
 
-> **Superseded by `.claude/PLAY_GAMES.md`**, the full proposal and phased plan (sign-in, achievements,
-> per-mode leaderboards, cloud save, Sidekick, resets). Where the notes below disagree with it, follow
-> that file. They are kept here for the console checklist.
+The plan, the decisions and the phases are all in `.claude/PLAY_GAMES.md`. The console side, for this checklist:
 
-Covers three of the requested features at once: they're all facets of the one Play Games
-Services (v2) integration, not three separate SDKs. `DESIGN.md`'s Phase 13 "Google Play Games"
-entry already designed the achievement id mapping for this (secret achievements excluded) - none
-of it is built yet. No Play Games dependency exists in `app/android/build.gradle.kts` today.
-
-- **Link the app in Play Console** under Play Games Services, register the package name plus the
-  **SHA-1 certificate fingerprint** for both the debug keystore (already in-repo) and whatever
-  release/upload key ends up signing production builds - each needs its own OAuth client under the
-  hood, which Play Console/Google Cloud Console generates once the fingerprint is registered.
-- **Sign-in.** Add `com.google.android.gms:play-services-games-v2`. v2 is mostly *auto* sign-in
-  (a silent attempt on launch, no explicit "Sign in with Google" button needed for the common
-  case) - still needs a signed-out fallback UI state for whenever it fails/is declined, since
-  nothing here currently has one.
-- **Achievements.** Create each non-secret `Achievement.id` as a Play Games achievement definition
-  in Play Console (hidden vs. revealed matching `AchievementVisibility.HIDDEN`/`NORMAL` - see
-  `Achievement.kt`), then a thin sync layer that calls the SDK off `AchievementUpdate.newlyUnlocked`
-  (the exact hook `DESIGN.md` Phase 13 already earmarks). Local storage stays the source of truth;
-  Play Games is a mirror, so this device already works fully offline/signed-out.
-- **Cloud save.** Play Games v2 still exposes this via the **Snapshots API** for arbitrary
-  save-game blobs. Decide what "user state" actually means here before wiring it up - likely
-  candidates: `SettingsRepository`'s DataStore (theme, name, style picks), the achievements
-  DataStore, and the scores Room database (leaderboard/statistics) - and a conflict-resolution
-  policy for two devices signed into the same account (last-write-wins vs. a merge, especially for
-  the leaderboard's additive rows vs. settings' overwrite-in-place values). Snapshots have their
-  own size ceiling and their own UI conventions (a save-picker) worth checking against how small
-  this app's actual state is before assuming a full picker UI is warranted.
-- Every one of these needs testers added as **Play Games Services testers** in Play Console before
-  achievements/sign-in work for anyone outside the closed-testing track.
+- **Link the app in Play Console** under Play Games Services and register the package name plus the **SHA-1
+  certificate fingerprint** of the in-repo debug keystore and of the Play app-signing and upload keys - each gets its
+  own OAuth client. The GitHub release key is deliberately not registered (Play Games is Play-only).
+- **Create the achievements and leaderboards** from the exports `PLAY_GAMES.md` describes, and keep them in draft
+  while testing (only draft ones can be reset).
+- **Turn on Saved Games.**
+- **Add testers as Play Games Services testers**, or sign-in fails for them in a way that looks like a bug.
 
 ## Future: ads + a one-time Pro purchase
 

@@ -1,6 +1,6 @@
 # DiceFive: UI reference
 
-How the app's interface is put together, and why. `.claude/DESIGN.md` covers the build plan
+How the app's interface is put together, and why. `.claude/DESIGN.md` covers what the app does
 and the game rules; this file covers the look, the shared chrome, and the decisions that are
 easy to undo by accident.
 
@@ -29,8 +29,8 @@ would mean re-drawing the art, so it holds its own palette and its own swap poin
 Don't "fix" the board by moving it onto colour roles; don't hardcode chrome colours to match
 the board.
 
-The board's first skins keep their colours as named constants in `Color.kt`'s game-table block.
-The Styles catalog's later styles (dozens of colour variants) keep theirs as literal palettes
+The Classic styles keep their colours as named constants in `Color.kt`'s game-table block.
+The rest of the Styles catalog (dozens of colour variants) keeps its colours as literal palettes
 beside their entries in `ui/game/style/StyleCatalog.kt` instead - each is only ever used by that one
 entry, and a few hundred one-use names in `Color.kt` would bury the ones that are shared. Either
 way they're fixed values, never colour roles.
@@ -56,7 +56,7 @@ Seeds:
 change the look, change a seed and regenerate the whole set (Material Theme Builder, or the
 tonal maths in the M3 spec), then paste the result in.
 
-**Dark only.** There is no light scheme and no theme option in Settings (both were removed):
+**Dark only.** There is no light scheme and no theme option in Settings:
 `DiceFiveTheme` takes no arguments and ignores the system's dark-mode setting. Two things outside
 Compose follow from that and are easy to miss: `MainActivity` passes `SystemBarStyle.dark` to
 `enableEdgeToEdge` (the default follows the system, so a phone in light mode would draw dark
@@ -68,9 +68,9 @@ navy-and-gold table is the game's identity and shouldn't change per device, so `
 a static scheme. Swapping in `dynamicDarkColorScheme(context)` on API 31+ is a two-line
 change if that's ever wanted.
 
-**No typography or shape overrides.** The M3 type and shape scales are used as shipped.
-`Type.kt` used to override two styles out of fifteen with hand-set sizes and was deleted -
-that's how an app quietly loses the system's sizing, tracking and optical corrections.
+**No typography or shape overrides.** The M3 type and shape scales are used as shipped - overriding a
+few styles with hand-set sizes is how an app quietly loses the system's sizing, tracking and optical
+corrections. There is no `Type.kt`.
 Per-use deviations (`style = MaterialTheme.typography.titleMedium` on a button label) belong
 at the call site.
 
@@ -114,19 +114,14 @@ regardless of theme, not a themeable role. The Leaderboard's podium follows the 
 which nothing in the M3 role set provides - so `Silver` and `Bronze` exist as fixed values,
 picked for contrast against the dark page background the same way `Primary` is. Reach for this pattern only when
 a role genuinely doesn't exist for what you mean (a medal colour, a fixed player identity) -
-not as a way around picking the right *existing* role, which was the mistake above.
+not as a way around picking the right *existing* role.
 
 ### Material 3 Expressive: why we're not on it
 
-`material3` 1.4.0 is the newest **stable** release and ships the Expressive-era components,
-but its `MaterialExpressiveTheme` is `internal`. The public expressive theme entry point -
-with `MotionScheme` and `ButtonGroup` - only exists in the `1.5.0-alpha` line, whose AAR
-declares `minCompileSdk=37` and `minAndroidGradlePluginVersion=9.1.0`.
-
-So Expressive costs an AGP 9 migration and a compileSdk bump, for an alpha dependency in the
-release pipeline. Not worth it yet. The Compose BOM is pinned at `2026.06.01`, which is the
-newest BOM whose Compose UI still runs on AGP 8.13.2 / compileSdk 35 (2026.08+ pulls UI 1.12,
-which needs compileSdk 37). Revisit when 1.5.0 is stable.
+The stable `material3` 1.4.x line ships the Expressive-era components, but its `MaterialExpressiveTheme` is
+`internal`. The public expressive theme entry point - with `MotionScheme` and `ButtonGroup` - is only in the
+`1.5.0` pre-releases, and an alpha dependency doesn't go in the release pipeline. Revisit when 1.5.0 is stable
+(the project is already on the AGP and compileSdk it needs).
 
 ## Shared chrome (`ui/common/`)
 
@@ -135,10 +130,10 @@ which needs compileSdk 37). Revisit when 1.5.0 is stable.
 | `BrandBackdrop.kt` | the app's one piece of scenery: surface gradient, `primary` spotlight, faint dice watermark (`showDice = false` drops the dice: the in-game screen sits on the plain gradient). Built from colour roles, so it tracks the theme. Quiet enough that ordinary components sit on it unmodified. |
 | `ScreenScaffold.kt` | the frame for every non-menu page: backdrop + M3 top app bar with a back arrow . The bar itself stays transparent over the backdrop; its title is bold and tinted `primary` (see "Colour" above) rather than left at the M3 default. Its content (not the app bar) fades in over `PAGE_CONTENT_FADE_IN_MILLIS` (100ms) when a page opens, so whatever lands a frame or two late - a loaded list, a Styles row centring on its pick - eases in with the rest rather than popping in. Also holds `PageColumn`, and takes an optional `footer` (a `FooterPill`, for scrollable pages) floated at the bottom centre with the content padded by its measured height - Settings' version. Its app bar is also `PageTopBar` on its own (back arrow optional), which the results screen uses so its title sits where every page's does. A scrollable page can narrow its side margin with `horizontalPadding` (24dp by default); the scorecard review uses the game screen's 16dp so the board's pieces come out the size they were in play. |
 | `DiceFiveDialog.kt` | the app's one dialog shape, so the menu and the board ask questions the same way. Its title is set like a page title - Sora, bold, `primary` gold, at `headlineSmall` - as are the pickers' (`PickerDialog`) and the About and Licences dialogs'; a new dialog's title should match. |
-| `AppLogo.kt` | placeholder app mark, built from the game's own dice via `IvoryDiceStyle`. |
+| `AppLogo.kt` | the app mark: the wordmark under a fan of dice and a cup, drawn live in the player's own dice and cup picks (see "The menu's backdrop and logo"). |
 | `FooterPill.kt` | the small gold pill pinned over the bottom of a page: the Rules page's "2 of 6" and Settings' version. Spoken forms and live regions go on its `modifier`. |
 | `Scrollbar.kt` | `LazyListScrollbar`, a `BoxScope` extension drawing a minimal scroll indicator over a `LazyColumn` - stock Compose has none for Android. Shared by the Leaderboard and Statistics screens. Also `VerticalScrollbar`, a draggable bar for a plain `verticalScroll` column (the Styles page, placed in its side margin), and `HorizontalScrollbar`, a bar placed under a horizontally scrolling row: one overload for a plain `Row` (`ScrollState`, exact) and one for a `LazyRow` (`LazyListState`, estimated from near-uniform items) - the Styles screen's colour pop-up and tile rows. |
-| `SegmentedChoiceRow.kt` | the app's one segmented-button row, generic over the option type. Every use drops the stock M3 checkmark-on-select icon (`icon = {}`) - reserving space for it crowded a label out at some of the widths this app uses it at (AI difficulty, three options in a third-width column). Used by player count, AI difficulty and turn timer. Takes `enabled` for a choice the rest of the form overrides - the turn timer while a mode with its own timer (Quickfire) is picked. It takes an optional per-option glyph: the turn timer's "None" is a crossed-out timer icon with a "No timer" content description, not a word. |
+| `SegmentedChoiceRow.kt` | the app's one segmented-button row, generic over the option type. Every use drops the stock M3 checkmark-on-select icon (`icon = {}`) - reserving space for it crowded a label out at some of the widths this app uses it at (AI difficulty, three options in a third-width column). Used by player count, AI difficulty and turn timer. Takes `enabled` for a choice the rest of the form overrides. It takes an optional per-option glyph: the turn timer's "None" is a crossed-out timer icon with a "No timer" content description, not a word. |
 
 ### PageColumn
 
@@ -175,14 +170,13 @@ bottom once the form is too tall to fit and has to scroll.
   collection stops while the app is in the background instead of carrying on for nothing (a
   `Flow` needs `initialValue =`; a `StateFlow` starts from its own value). It's common code -
   `lifecycle-runtime-compose` - so iOS gets the same.
-- **Stock M3 components**, themed by the scheme. No hand-built buttons. A gradient-and-gloss
-  button set was written and then deleted - it re-implemented state layers, ripple and
-  disabled colours worse than the framework does.
+- **Stock M3 components**, themed by the scheme. No hand-built buttons: a custom button set
+  re-implements state layers, ripple and disabled colours worse than the framework does.
 - **One filled button per screen**, tonal for the rest (the menu: filled Play, tonal
   destinations). That's M3's emphasis hierarchy, and it stops five identical slabs competing.
 - **The menu's Play button splits when there's a saved game** (`MenuScreen.PlayButton`): the same
   56dp pill, cut down the middle by a 2dp gap into New Game | Continue, each half its own stock
-  `Button` with the pill's rounded end on its outer side and a straight inner edge. It replaced a
+  `Button` with the pill's rounded end on its outer side and a straight inner edge - not a
   "Resume game?" dialog behind a single Play. The nearest M3 pattern is the Expressive *connected
   button group* (equal buttons, a 2dp gap, flattened inner corners) - not M3's *split button*, which
   is one action plus a menu, nor *segmented buttons*, which are for choosing an option and which M3
@@ -205,9 +199,9 @@ bottom once the form is too tall to fit and has to scroll.
   modifier: a `ModifierSetting` in the setup screen's list, plus a page of its own at the end of the Rules
   page's Modifiers group (`RULES_GROUPS`), titled with the modifier's name. TalkBack: the field is a `DropdownList` named by title with its value as state;
   rows are radio/switch with collection positions. Tested in `ChoicePickerTest`; not heard on a device.
-- **An option the rest of the form overrides is disabled, not hidden** - the Turn Timer row was, while
-  the first Quickfire was picked (`ModifierSetting.lockedNote` is the hook; no mode uses it now). Hiding it would move everything below; disabling
-  it keeps the layout still and shows the choice doesn't apply. The player's pick is kept, so it's
+- **An option the rest of the form overrides is locked, not hidden** - Extended Scores in D20 and Hit List
+  (`ModifierSetting.lockedNote`, a note saying why in place of its description). Hiding it would move everything
+  below; locking it keeps the layout still and shows the choice doesn't apply. The player's pick is kept, so it's
   back when they pick another mode.
 - **Cards** group a section. A `ListItem` inside a Card needs
   `ListItemDefaults.colors(containerColor = Color.Transparent)`, or it paints a second,
@@ -235,9 +229,8 @@ The exception is Easter Eggs, which have no ladder and run alphabetically by tit
 Unlocking one doesn't move it: it stays in its ladder and is highlighted in place instead (its own
 icon in place of the generic question mark every locked row shows, plus a raised
 `secondaryContainer` card), so a ladder always reads as a ladder, earned rungs and all, rather
-than the earned ones jumping out to a separate section. There is no "hide unlocked" filter - it
-was tried and removed; the unlocked/total count above the list is centred now that nothing else
-shares that row.
+than the earned ones jumping out to a separate section. There is no "hide unlocked" filter; the
+unlocked/total count is centred above the list.
 
 Every achievement has its own icon (`ui/achievements/AchievementIcons.kt`, a `@Composable` `when`
 over the enum, composable so a branch can use `ImageVector.vectorResource` for a bespoke drawable
@@ -258,10 +251,9 @@ heart (forced red via `iconTintOrUnspecified`, since `Icons.Filled.Favorite` is 
 vector with no fills of its own to preserve). A new Easter Egg's icon should follow the same rule -
 add its case to `iconTintOrUnspecified` rather than leaving it to inherit the ambient tint.
 
-An earlier version *did* split locked-first/unlocked-after (unlocked flat and newest-first, a
-history rather than a to-do list) - reverted because it scattered a themed ladder in two: an
-earned achievement disappeared from its group into an unrelated timeline, so seeing "how far along
-this ladder am I" meant checking two different parts of the screen.
+Don't split it locked-first/unlocked-after (unlocked flat and newest-first): that scatters a themed ladder
+in two - an earned achievement disappears from its group into an unrelated timeline, so seeing "how far along
+this ladder am I" means checking two different parts of the screen.
 
 Each category header carries up/down arrows on its right that jump to the previous/next category's
 header (`animateScrollToItem` to that header's index, where it then pins) - the list is long enough
@@ -289,8 +281,7 @@ anything `rememberSaveable`d. It is restored only after the list has loaded, sin
 that first lays out empty clamps any requested position back to the top. The same restore
 approach applies to any other list screen that needs to remember its position.
 
-Don't sort the list alphabetically. That was the very first version, and it put "Dice Deity" nine
-rows from "High Roller".
+Don't sort the list alphabetically: it puts "Dice Deity" nine rows from "High Roller".
 
 ## Achievement banners
 
@@ -314,7 +305,7 @@ The stack behaviour, and why each number is what it is (the constants are at the
 | Fade out | 820ms | a snap-out in the middle of a burst reads as a glitch |
 | Stagger | 300ms between arrivals | a burst deals like cards instead of landing as a wall |
 | Cap | 4 on screen | the rest **wait** rather than being dropped — the collector suspends on `snapshotFlow { banners.size }` until a slot frees |
-| Swipe | 15% of the banner's width, either direction; it leaves in 180ms | clears one early; the event flow's buffer holds the backlog meanwhile. 25% needed too firm a swipe |
+| Swipe | 15% of the banner's width, either direction; it leaves in 180ms | clears one early; the event flow's buffer holds the backlog meanwhile. More needs too firm a swipe |
 
 Only the front banner is interactive, and only it counts down: one waiting behind it starts its
 own full hold once it's promoted, so a burst plays out one banner after another rather than all
@@ -343,11 +334,11 @@ stack's height; it must never be full-screen (`fillMaxSize`), or it swallows eve
 screen beneath - the not-touch-modal flag only passes touches outside the window's bounds. Nor may it
 dim: `FLAG_DIM_BEHIND` is cleared, not set to a dim of 0. With the flag on, the system lays an invisible
 full-screen dim layer under the banner, and from Android 12 it drops taps on the window beneath as an
-untrusted occlusion - the About dialog's close button did nothing while "Who Made This?" was showing.
+untrusted occlusion (the About dialog's close button would do nothing while "Who Made This?" showed).
 
 Two achievement variants, deliberately unequal: an **unlock** banner is `primaryContainer` with the
 achievement's own icon (`Achievement.icon`, the same one its unlocked row shows - a generic trophy
-made a burst of unlocks read as a stack of identical cups) and a title plus up to two lines of
+would make a burst of unlocks read as a stack of identical cups) and a title plus up to two lines of
 description, with a small star badge on the icon's corner when the achievement unlocks a style (see "Style locks"); a
 **progress** banner is quieter (`surfaceContainerHigh`, one line plus a thin
 `LinearProgressIndicator` whose count and bar climb from the old value to the new over 700ms),
@@ -382,33 +373,28 @@ ellipsised past that (`BannerDescription`) - at 360dp the longest current ones j
 ## Style locks
 
 Every category's Classic style is free; every other style (`StyleFamily.unlock`, a `StyleUnlock`)
-waits on either a number of achievements or one specific achievement. The lock is on the style, not
-the colour: once it's met, all of its colours are available. Secret achievements never count
-towards a number (`AchievementsState.countedUnlocks`) - they're easter eggs, not checklist items.
-For now every lock is a distinct, arbitrarily picked count up to the number of non-secret
-achievements; `StyleCatalogTest` keeps them distinct and earnable.
+waits on either a number of achievements earned (`AchievementsState.countedUnlocks` - every achievement
+counts) or one specific achievement. The lock is on the style, not the colour: once it's met, all of its
+colours are available. `StyleCatalogTest` keeps the counts within what can be earned.
 
-A style locked behind one **secret** achievement is a secret style (`StyleUnlock.hiddenWhileLocked`):
-it isn't on the Styles screen at all, padlock or not, until that achievement is earned. Every easter
-egg has one: the Martini cup (Shaken, Not Tapped), the Floating Dice background (Not Those Dice!,
-the main menu's backdrop - same colours, same drifting dice - as a table background) and the Maths
-dice, all three colours (The Solution). Others are
-secret single **colours** of otherwise ordinary, count-locked styles (`StyleColour.secretAchievement`),
-which the tile's colour row and dots leave out until it's earned: the Irish dice in Multicolour (Luck
-of the Irish), the blue/gold Googly dice (Big Fan), the Flowerpot's plant-stage pots (Greenfingers -
-a pot held at each of seedling, bud, opening, sunflower) and the Top Hat with its rabbit always out,
-sliding about the opening as the hat is shaken (The Magician's Secret).
-The Egg dice's golden egg (Eggcellent Discovery) is another: with the Egg dice and the Chicken cup both
-picked, each die a human rolls has a 1-in-1000 chance of landing golden (`Die.isGolden`, set in
+A style behind one specific achievement shows on the Styles screen with a padlock like any other: Googly dice
+(Completionist), the Glitch dice and background (Big Fan), the Maths dice (The Solution), the Floating Dice
+background (Not Those Dice! - the main menu's backdrop, same colours and drifting dice, as a table background),
+the Martini cup (Shaken, Not Tapped), and the D20 dice (Nat 20 or Critical Success). Secret **colours** of a style
+(`StyleColour.secretAchievement`) are different: the tile's colour row and dots leave them out entirely until
+earned - the Irish dice in Multicolour (Luck of the Irish), the white and black D20 (Nat 20) and the blue one
+(Critical Success), the Flowerpot's plant-stage pots (Greenfingers - a pot held at each of seedling, bud,
+opening, sunflower), the Top Hat with its rabbit always out, sliding about the opening as the hat is shaken
+(The Magician's Secret), and the Egg dice's gold egg (Eggcellent Discovery). With the Egg dice and the Chicken cup
+both picked, each die a human rolls has a 1-in-1000 chance of landing golden (`Die.isGolden`, set in
 `GameEngine.rollDice(goldenOneIn = ...)` from `GameViewModel.performRoll`; saved with the game, drawn by
-`TrayDiceStyles.forDie` as `GoldenEggDiceStyle`, which is also the Egg style's secret Gold colour). Only
-player 1 earns the achievement, once the dice have landed.
+`TrayDiceStyles.forDie` as `GoldenEggDiceStyle`). Only player 1 earns the achievement, once the dice have landed.
 Any achievement
 that unlocks a specific style (`Achievement.unlocksStyle`) shows a plain tooltip (not a dialog) when
 its row is tapped or long-pressed, naming the style - "You've unlocked the 'Multicolour' dice
 style!", from `Achievement.styleRewards` and the catalog's `noun` (`StyleRewardTooltip`). The row
 and the unlock banner also carry a star (`StyleRewardStar`) - **a badge over the corner of the icon
-square, not a widget beside the text**: a star in the text row narrowed the text column and made
+square, not a widget beside the text**: a star in the text row narrows the text column and makes
 titles and descriptions wrap, so it must never take layout width. It's decorative to TalkBack: the
 row's one action says "Show which style this unlocks" and the banner's announcement ends "Unlocks a
 style". Superuser mode's long press on a row takes precedence, so the tooltip is off while it's on.
@@ -435,19 +421,19 @@ saves only a change (a new version of the page can change its height). A page th
 need less than 75%, stays full size (the latter scrolls); one opened before any measure exists (a fresh
 install, within a couple of seconds of launch) or on a screen it wasn't measured for is full size, and the
 warm-up measures again (only that) when the menu next shows on a changed screen. Measuring first in the
-warm-up was rejected: it would load the whole page's first-time code onto the menu 0.6s after launch,
-the hitch the warm-up's order exists to avoid. Asked for by the maintainer, whose phone (~369 x 816dp)
-needs about 76%; a runtime fit measured on opening was rejected as too costly for an already heavy page.
+warm-up is rejected: it would load the whole page's first-time code onto the menu 0.6s after launch,
+the hitch the warm-up's order exists to avoid. A fit measured on opening is rejected as too costly for an
+already heavy page.
 `PageFitTest`, `StylesPageFitTest`; checked on the sandbox emulator at 1080 x 2400, 470dpi.
 
-**Each category's tile row is a `LazyRow`, not a `horizontalScroll` `Row`.** Every tile's art is its
-own drawing code, some of it animated, and composing every tile of every category at once (40-odd
-and growing) made the first open after a restart hold the menu for several frames before the page
-came up. The lazy row composes only what's on screen. It opens with the current pick as its first
-item, then centres it once its size is known, and stays invisible until then, fading in over
-`PAGE_CONTENT_FADE_IN_MILLIS` like the rest of the page (see `ScreenScaffold`). The picks themselves come from `AppContainer.savedStyles`, one process-lifetime copy of the four ids
-and the achievements, loaded when the container is built and shared with the menu's logo - so the
-page normally has them on its first frame rather than waiting on its own load.
+**Each category's tile row is a plain scrolling `Row` whose tiles are built a few at a time** - those on
+screen when the page opens (the pick, and as many either side as fit) at once, then the rest over the next
+frames, nearest the pick first, as same-sized empty placeholders until then (silent to a screen reader), so
+nothing moves. A `LazyRow` built nothing ahead on a device, so a fling built each tile on the frame it arrived
+(`BENCHMARKS.md`). The row opens on the current pick, centred, and fades in over `PAGE_CONTENT_FADE_IN_MILLIS`
+like the rest of the page (see `ScreenScaffold`). The picks come from `AppContainer.savedStyles`, one
+process-lifetime copy of the five ids and the achievements, loaded when the container is built and shared with
+the menu's logo - so the page normally has them on its first frame.
 
 **Each category card can open as a gallery.** A small grid icon at the end of the card's title
 (`GalleryToggle`) switches it from its scrolling row to every tile at once (`GalleryGrid`): the same
@@ -457,13 +443,11 @@ card's width, which is why the tiles sit under a `BoxWithConstraints`): each til
 Basket" were renamed "Treasure" and "Picnic" so none is at the normal size) centres under it and spills into the gaps rather than widening the tile - with the same gap between. The gap
 is `TILE_SPACING` (12dp) where a gallery line has room for it, closing up to `GALLERY_MIN_TILE_SPACING`
 (4dp) where that fits one more tile on a line; the tiles' sides are `TILES_SIDE_PADDING` (8dp) in
-both. They used to differ (12dp from each tile's full width in the row, the computed gap in the
-gallery) - `StylesGalleryTest` now checks every category's step matches. Together that fits four
+both - `StylesGalleryTest` checks every category's step matches. Together that fits four
 dice or cups across a 360dp phone (its card leaves ~304dp: 4 x 72dp and 5dp gaps); three mats and
 four backgrounds fit too. **A mat's tile is 97 x 65dp** (the dice tray's wide shape, cut 10% from 108 x 72 so three fit
 across a gallery - the row matches), and **a background's is 72 x 80dp**: the score board's shape, about
-as tall as it's wide (380dp tall, the screen's width less padding), not the mat's - the two used to
-share one. **The page has a vertical scrollbar** (`VerticalScrollbar`, `ui/common/Scrollbar.kt`) whenever
+as tall as it's wide (380dp tall, the screen's width less padding), not the mat's. **The page has a vertical scrollbar** (`VerticalScrollbar`, `ui/common/Scrollbar.kt`) whenever
 it scrolls - an open gallery, a small phone - in ScreenScaffold's 20dp right-hand margin, beside the
 cards rather than over them. The whole margin is its handle: dragging it scrolls the page in
 proportion, so a long gallery is quick to get through. Silent to TalkBack, which scrolls by its own actions. Rejected on review: tiles shrunk to
@@ -475,26 +459,22 @@ are `movableContentOf`, moved between the row and the gallery rather than rebuil
 cheap and a cup mid-shake carries on. To TalkBack the toggle is a switch, "Dice gallery, off"
 (`StylesGalleryTest`); the tiles keep their row's position in the set ("3 of 21") either way.
 
-**The menu warms the Styles page up (`StylesWarmUp`).** Even lazily, the first open after a launch
-was slow in a release build too: it's the first time each tile's drawing code runs, and that's a
-one-off cost per process. So once the menu has settled (600ms), `StylesWarmUp` draws the page's
-five category cards one per frame, at screen width, in a 1dp clipped box under the menu's opaque
-backdrop, then drops them - once per process. Compose doesn't cull clipped content, so the art
-really is drawn. The screen and the warm-up share `StyleCategorySection`, so a new category or a
-change to how tiles draw is warmed automatically; keep it that way rather than giving the warm-up
-its own copy. After the tiles it builds each category's real card, then the screen's empty frame, then the whole
-screen (`StylesScaffold`, with `ScreenScaffold(driftingDice = false)` so the menu's shared drift isn't
-moved along by a second copy): that first-time code, not the art, was most of the first open's lag
-once the tiles were warm. See `BENCHMARKS.md`.
+**The menu warms the Styles page up (`StylesWarmUp`)**, as the first open after a launch is slow even in a
+release build: it's the first time each tile's drawing code runs. Once the menu has settled (600ms) it draws every
+tile a few at a time, then each category's real card, then the screen's empty frame, then the whole screen
+(`StylesScaffold`, with `ScreenScaffold(driftingDice = false)` so the menu's shared drift isn't moved along by a
+second copy), in a 1dp clipped box under the menu's opaque backdrop - once per process. Compose doesn't cull clipped
+content, so the art really is drawn. The screen and the warm-up share `StyleCategorySection`, so a new category or a
+change to how tiles draw is warmed automatically; keep it that way rather than giving the warm-up its own copy. See
+`BENCHMARKS.md`.
 
 ## Accessibility
 
 **Mandatory for every new or changed UI element.** Accessibility is part of building an element, not
 a later pass: a change that adds or alters something a player sees or touches isn't done until it's
 been through the checklist below, and the report back to the user says what TalkBack now does with
-it. The Rules page's tab row is why this is a rule and not a habit: it shipped with stock M3 tabs on
-the assumption that stock meant accessible, and TalkBack never said there were more than the three
-in view.
+it. Stock components are not assumed to be enough: stock M3 tabs, for one, never tell TalkBack there are more
+tabs than those in view.
 
 ### The checklist
 
@@ -528,8 +508,8 @@ in view.
 
 **Verifying**: any semantics added for this get a Robolectric test asserting them, as
 `BoardSemanticsTest` and `RulesScreenAccessibilityTest` do - that's the part that can be checked in
-the sandbox. What real TalkBack actually speaks can't be, so it goes in the DESIGN.md phase's "Not yet
-seen on a device" line and in the report to the user, not claimed as done.
+the sandbox. What real TalkBack actually speaks can't be, so the report to the user says it wasn't heard on a
+device, rather than claiming it's done.
 
 ### Known gaps
 
@@ -542,16 +522,14 @@ seen on a device" line and in the report to the user, not claimed as done.
   `UIAccessibility.isReduceMotionEnabled` (see `IOS_SUPPORT.md`), and Compose Multiplatform on iOS has
   no equivalent of the Android behaviour below. **None of it has been seen on a device.** See
   "Reduced motion" below for what it does.
-- **Text scaling**: the shrink-to-fit floors are gone - `ShrinkThenWrapText` (`ui/common`) shrinks a
-  label to `MIN_READABLE_FONT_SIZE` (12sp) at most, then wraps it (2 lines) instead. It's used for
-  player tab names, banner titles and Settings labels. Other `maxLines = 1` sites now allow a second
-  line (Scores/Statistics/Game Over names, menu buttons), the Statistics stat cells and the Scores pager
+- **Text scaling**: `ShrinkThenWrapText` (`ui/common`) shrinks a label to `MIN_READABLE_FONT_SIZE` (12sp) at
+  most, then wraps it (2 lines). It's used for player tab names, banner titles and Settings labels. Other
+  `maxLines = 1` sites allow a second line (Scores/Statistics/Game Over names, menu buttons), the Statistics stat cells and the Scores pager
   flow onto a second line, the Scores columns re-split above 1.15x font scale, and the New Game player
-  row stacks its controls above 1.05x. What's left: `ScoreGrid`'s numbers stay on one line by design
+  row stacks its controls above 1.05x. Gaps: `ScoreGrid`'s numbers stay on one line by design
   (a fixed grid, `overflow = Visible`); 11sp `labelSmall` (M3's smallest) is still used for
-  captions; and **none of it has been seen at a large font on a device** -
-  Robolectric's text engine never wraps, so `ShrinkThenWrapTextTest` pins only which size and line limit
-  are chosen. Try 130% and 200% font on: a 4-player game with 8-character names (and CPUs), the longest
+  captions; and **none of it has been seen at a large font on a device** - `ShrinkThenWrapTextTest` pins which size and line
+  limit are chosen. Try 130% and 200% font on: a 4-player game with 8-character names (and CPUs), the longest
   achievement banners, Settings, New Game, the Leaderboard and Statistics.
 - **Timer flash rate unchecked** against the three-flashes-per-second limit (period is
   `TURN_TIMER_FLASH_PERIOD_MILLIS`, a colour fade rather than an on/off flash). Its spoken twin is
@@ -632,8 +610,8 @@ used - and read with `by` in a composable, it recomposes that composable every f
 compose the clock only while it's needed (a highlighted score tile's `GlowBorder`, the cup's
 `rememberShakeWobble` while rolling or fading out, the turn timer's last seconds), and where it
 can, read the value in the draw phase (`graphicsLayer { }`, `drawBehind { }`) so each tick is a
-repaint rather than a recomposition. Every score tile once ran its own glow clock and every cup its
-shake clock at weight zero, which kept the whole board recomposing for the entire game.
+repaint rather than a recomposition. A clock kept running at weight zero on every tile or cup keeps the whole
+board recomposing for the entire game.
 
 ## The scorecard grid and game modes
 
@@ -693,8 +671,8 @@ mid-game), so no roll rebuilds one and a die gets the same style object every ti
 
 The colour-box tiles are a flat square of `DieColourPalette.swatch`; Coloured House is Full House's
 glyph over three equal-width diagonal stripes (red/yellow/blue corners-and-band, split at two-thirds
-of each edge so the diagonal is cut in thirds - equal *areas* was tried first, and left the yellow
-band looking much thinner than the corners) in the deeper `stripe` shades, with a soft shadow under
+of each edge so the diagonal is cut in thirds - equal *areas* leave the yellow band looking much thinner
+than the corners) in the deeper `stripe` shades, with a soft shadow under
 the glyph so white or gold still reads on the yellow band. These colours live in `Color.kt`'s
 game-table block - a fixed meaning (the dice's own colours), not a theme role.
 
@@ -713,23 +691,20 @@ re-scrolled only when that changes; whichever edge has more beyond it fades out 
 with a `DstOut` gradient, drawn only while it overflows, read in the draw phase). The stack is as wide
 as its numbers (`wrapContentWidth(unbounded = true)`), since the scroll's clip and the fade's layer
 otherwise cut off the digits that spill into the gap beside the column. Rendered at 100%, 130% (two
-lines show) and 200% (one) - Robolectric only, not seen on a device. Pre-existing and not Third
-Wind's, and since fixed: the Upper/Bonus/Lower lines beside the cup wrapped at 130% and broke at 200%
-- they're now behind the Totals button (below).
+lines show) and 200% (one) - Robolectric only, not seen on a device.
 
-**The section totals are a button** (`TotalsButton`), not three lines beside the cup: an icon-only Σ,
+**The section totals are a button** (`TotalsButton`), not lines beside the cup (which wrap at a large font): an icon-only Σ,
 styled like Undo and sitting just left of it (both at the right of the row), that shows Upper, Bonus
 and Lower in the shared `AppTooltip` on a tap or a long press (the Upper line out of what earns the bonus - "45 / 63", gold once earned, spoken "Upper 45 of 63" - wherever the card has an upper bonus: every mode but Hit List and D20, which show their own) - as a two-column table (`TotalsTable`):
 labels left in Sora, numbers right in the system font with thousands commas, the Bonus line gold once
-earned. The glyph turns gold once the upper bonus is earned, as the old Bonus line did. A tooltip isn't announced, so TalkBack hears the totals as
+earned. The glyph turns gold once the upper bonus is earned. A tooltip isn't announced, so TalkBack hears the totals as
 the button's state ("Upper 61, no bonus yet, lower 91") and its action ("Show totals") opens the
 tooltip too. **Gotcha:** `TooltipBox`'s anchor merges its content into one node of its own, which keeps
 the name, state and actions but drops the role - so `Role.Button` goes on the tooltip's modifier as
 well (`BoardSemanticsTest`).
 
-**Undo and Totals are icon-only** (`BoardButtonIcon`): the small "Undo"/"Totals" labels under the
-glyphs were dropped on review - the pair looked better without, and a label was what a large font
-broke. Undo's glyph carries its name ("Undo") for TalkBack. With no text, a large font changes
+**Undo and Totals are icon-only** (`BoardButtonIcon`), by the maintainer's choice on review: no labels under
+the glyphs, which also leaves nothing for a large font to break. Undo's glyph carries its name ("Undo") for TalkBack. With no text, a large font changes
 nothing here; the glyph is 26dp, and only shrinks (staying square) if the row the board gives it is
 shorter than that - a short screen. Both keep a 48dp minimum touch target where there's room. Rendered
 at 411dp, 320dp and 200% font - Robolectric only.
@@ -764,21 +739,18 @@ never below 1: a screen too short for the layout scrolls rather than shrinking t
 cap is `MAX_GAME_SCALE` (2x), and the width cap is `STACKED_MAX_WIDTH` (480dp before scaling), so a
 squarish screen centres the board. It picks whichever of two arrangements draws larger:
 
-- **Stacked** (phones, tablets held upright): header, board, tray - the original layout. A 411dp phone
-  is unchanged.
+- **Stacked** (phones, tablets held upright): header, board, tray. A 411dp phone is drawn at 1x.
 - **Side by side** (landscape): header across the top; the board on the left with its cup column left
   empty (`showCup = false`, the 5x tile and Σ/Undo stay put); and on the right the cup (`GameCup`, the
-  same `DiceCup` the board uses) with the tray under it. The maintainer asked for this: the cup stays on
-  the right-hand side, with the dice pouring out below it. On review the cup was too small beside the
-  tiles and dice, and too far from the edge to reach easily. So it's drawn `SIDE_CUP_SCALE` (1.5x)
-  larger, at the pane's right edge, with its roll count on its left (`countFirst`). On a screen too
+  same `DiceCup` the board uses) with the tray under it - the maintainer's layout: the cup stays on the
+  right-hand side, with the dice pouring out below it. At 1x the cup is too small beside the tiles and dice
+  and too far from the edge to reach easily, so it's drawn `SIDE_CUP_SCALE` (1.5x) larger, at the pane's right edge, with its roll count on its left (`countFirst`). On a screen too
   short for even 1x (a phone on its side) it's enlarged only as far as keeps the pane level with the
   board (`GameLayout.cupScale`, about 1.2x). While another player's scorecard is up, the cup's space is kept empty so the tray doesn't move.
 
 **A die on the mat is the size it is held**: column width less `HELD_DIE_INSET` either side
-(`matDieSize`), so the two scale together. It was a fixed 44dp against a column-wide slot, which looked
-mismatched on a phone and much worse on a tablet. The slot's old 52dp `sizeIn` cap sat after
-`fillMaxWidth` and never took effect, so it was removed; Stud's slot row still uses `MAX_SLOT_DIE_SIZE`.
+(`matDieSize`), so the two scale together - a fixed size looks mismatched on a phone and much worse on a
+tablet. Stud's slot row uses `MAX_SLOT_DIE_SIZE`.
 
 The game screen pads for `safeDrawing` top and sides (a landscape camera cutout or side navigation
 buttons). Other pages already cap at `CONTENT_MAX_WIDTH` and scroll, and they looked fine on tablets and
@@ -796,9 +768,8 @@ own share) each tab - and so each name - gets. It's a layout limit, not a gamepl
 Consequences:
 
 - Enforced in `GameViewModel.setPlayerName` against the *current* player count, not just the text
-  field - so it also applies to names restored from preferences saved before the cap existed, or
-  saved at a different player count. `setPlayerCount` re-clamps every slot's name whenever the
-  count changes, in either direction.
+  field - so it also applies to names restored from preferences saved at a different player count.
+  `setPlayerCount` re-clamps every slot's name whenever the count changes, in either direction.
 - **AI names obey a tighter version of the same cap, never truncated.** They're players in the
   same header, but every AI tab also carries the CPU chip icon, so `GameSetupState.
   maxAiNameLength` knocks a couple of characters off `maxPlayerNameLength` for the icon's own
@@ -809,8 +780,8 @@ Consequences:
   each pool against its own cap so a name added later that doesn't fit fails the build instead of
   showing up ellipsised in a real game.
 
-**Names are sanitised before they are capped** (`model/PlayerName.kt`, `sanitizePlayerName`), on every
-path in: typing, restore from preferences, and `startGame`. Nothing is censored; only what breaks
+**Names are sanitised before they are capped** (`model/PlayerName.kt`, `sanitizePlayerName`), as they're
+typed and again in `startGame`. Nothing is censored; only what breaks
 layout or hides in it goes: control characters (any whitespace becomes one space), zero-width and
 bidi override/isolate characters, soft hyphens, BOMs, replacement/private-use/non-characters, unpaired
 surrogates and the blank Hangul fillers. ZWJ/ZWNJ and LRM/RLM stay (emoji, Persian, Indic). At most 4
@@ -819,8 +790,6 @@ code points in all, so "glitch" text can't grow tall or wide or bloat storage. T
 (`normalizeNfc`, an expect/actual: `java.text.Normalizer` / Foundation). Names are compared with
 `playerNameKey` (sanitised, trimmed, lower-cased) for the duplicate check and Statistics grouping.
 Not trimmed on the way in - a trailing space must survive mid-typing. `PlayerNameTest` covers it.
-Leaderboard SQL still compares with `COLLATE NOCASE`, so a name saved decomposed by an old version
-won't match its composed twin there.
 
 `PlayerHeaderBar` also steps names down to `labelMedium` at 3+ players, which is what makes
 the cap actually deliver a full name on one line on a narrow phone.
@@ -868,8 +837,7 @@ here) still uses a plain `delay`.
 ## Reduced motion
 
 **The player's "Animations" level.** Settings has one row, **Animations** (`AnimationLevel`, saved by
-`SettingsRepository.animationLevel`; it replaced the "Remove animations" switch, which itself replaced "Simple dice
-roll" - a player who had the switch on starts at Off). It's a `SegmentedSetting` in a card of its own, between the
+`SettingsRepository.animationLevel`). It's a `SegmentedSetting` in a card of its own, between the
 switches and the resets: icon and label as a switch row has them, and a segmented row of the four levels under the
 label, Off to High from the start edge (so mirrored in Arabic) (`FittedSegmentedChoiceRow`, shared with the New Game AI difficulty: labels shrink together, then turn into
 initials - their own `_short` strings, as Arabic's Medium and Low share a letter - with Off as a crossed-out motion
@@ -941,8 +909,8 @@ left to cover loading, two things load differently: the Styles page builds every
 frame (one slower frame, but nothing else is moving) and shows each row as soon as it's scrolled to the pick,
 rather than building a pair a frame behind the fade; and continuing a game shows only the game's own plain
 backdrop until the board is ready (the spinner after `RESUME_SPINNER_DELAY_MILLIS`, `GameScreen` the same
-backdrop while its game or table settings load), where before the resume page, the menu and a blank frame
-each flashed up in turn. **What the game does doesn't change.**
+backdrop while its game or table settings load), rather than flashing the resume page, the menu and a blank
+frame in turn. **What the game does doesn't change.**
 
 **Audio and haptics are not motion, and stay.** The shake sound (~400ms), the shake buzz (336ms) and the
 landing sound (~490ms) are timed to the cup's `CUP_SHAKE_MILLIS` window - the first two start as it opens and
@@ -962,14 +930,13 @@ The Game Over fanfare and hold ticks are governed by their own settings, not by 
 ## The Leaderboard's two views
 
 A `SegmentedChoiceRow` at the top (Combined | Game Mode; always shown) switches
-`CombinedLeaderboard` - the original table, with the gold/silver/bronze podium, its card as tall as its rows until it has the page - and
+`CombinedLeaderboard` - one table, with the gold/silver/bronze podium, its card as tall as its rows until it has the page - and
 `GameModeLeaderboard`: a card per mode that has a score (including modes that never reach the Combined table) in a scrolling page, **no podium colours** there. A card is
 capped at ten rows (`modeCardListHeight`, from `bodyMedium`'s line height so it follows the font) and
 scrolls inside; its Previous/Next are its list's last item, not pinned. A card's list keeps the rest of a
 drag or fling once it reaches its end (`KeepScrollInside`) rather than handing it to the page, so one swipe never
 scrolls the card and then the page; a card too short to scroll still passes the swipe up. The page's own scrollbar is in
 the 20dp side margin (as on Styles) - the way to scroll the page when a finger is on a card's list.
-Adding the switch shortens the Combined table by its own height; nothing else moved.
 TalkBack: card titles are headings; the switch is the stock segmented row (radio buttons); a row's
 `stateDescription` carries what its long press shows. Rows use `OnDemandTooltip` (`ui/common/AppTooltip.kt`) - a plain gesture and a "Show details" long-click action until the first long press, then a real `AppTooltip` - because a `TooltipBox` per row was a real share of the list's first frame; use it for any long list of rarely long-pressed rows.
 
@@ -993,88 +960,33 @@ margin. So does the Licences dialog, in its right-hand margin: its list is a pla
 Android, so it uses the overload that takes a pixel position, maximum and `scrollBy` (fed by
 `LicenceScroll`) rather than a `ScrollState`, and the platform's own scrollbar is turned off. Anything
 else that scrolls should do the same rather than styling a platform scrollbar to look similar. The Rules pages share one, beside the pager, following whichever page is showing - which is
-why every scrollbar keys its "anything to scroll?" check on the state it's handed: unkeyed, it stayed
-on the first page's answer and never appeared on a longer one.
+why every scrollbar keys its "anything to scroll?" check on the state it's handed: unkeyed, it keeps the
+first page's answer and never appears on a longer one.
 
 Every page with a `LazyColumn` that can outgrow the screen (the Leaderboard, Statistics) wraps it
 in a `Box` and overlays `ui/common/Scrollbar.kt`'s `LazyListScrollbar` - written once and shared,
 rather than each screen drawing its own. It's `primary` (the app's gold) on a
 `surfaceContainerHighest` track, both colour roles rather than hardcoded values.
 
-Achievements used it too until its list was unified (see "The achievements list" above) and the
-scrollbar was dropped from that screen specifically. It's still the reason the notes below mention
-Achievements by name: that mixed-height list (section headers, group headers, cards with and
-without a progress bar) is what exposed the bugs these design decisions fix, and the fixes remain
-relevant to whatever heterogeneous list `LazyListScrollbar` is next used on.
+`LazyListScrollbar`'s rules, each of which fixes a real way a scrollbar goes wrong on a list of mixed-height items
+(headers and cards of varying height), so keep them for any list it's used on:
 
-**Show/hide is driven by `LazyListState.canScrollForward`/`canScrollBackward`, never by
-comparing `layoutInfo.visibleItemsInfo.size` to `totalItemsCount`.** The item-count comparison
-looks reasonable but is wrong: once scrolling has prefetched items past the viewport edge, a
-shortish list can end up with every item simultaneously present in `visibleItemsInfo`, which
-makes that check hide the bar partway through a scroll and never bring it back. `canScrollForward`
-/`canScrollBackward` answer the actual question ("is there more this way") regardless of how many
-items happen to be composed at once.
-
-**The thumb's size and position are pixel-based, not item-count-based, for the same family of
-reason.** An early version sized the thumb as `visibleItemCount / totalItemCount` and moved it by
-`firstVisibleItemIndex / scrollableItemCount` - on the Statistics screen (a handful of cards, each
-taller than half the viewport), that meant the thumb only updated once per whole card scrolled
-past: it looked pinned near the top, then ballooned to nearly the full track as more cards entered
-`visibleItemsInfo`, and the discrete jumps read as the whole screen scrolling janky rather than the
-indicator being wrong. `LazyListScrollbar` reads each visible item's pixel `size` and `offset`, so
-the thumb tracks the actual scroll position continuously - see the doc comment for the formula.
-
-**Item sizes used for that estimate are remembered per index, not re-averaged from the current
-viewport every frame.** A second version averaged `visibleItemsInfo`'s sizes fresh each frame,
-which is fine for a uniform list (every Leaderboard row or Statistics card is about the same
-height) but broke on Achievements: section headers, group headers, and cards with or without a
-progress bar are all different-sized items in the same `LazyColumn`, so the average - and with it
-the thumb's size - swung every time the mix of item types on screen changed, which read as the
-thumb resizing while scrolling rather than just moving. `LazyListScrollbar` now keeps a
-`remember`ed `index -> size` map that only ever grows: an item's size is fixed the first time it's
-seen, so the running average firms up as more of the list is scrolled through instead of lurching
-frame to frame.
-
-**Even that running average never fully settles on Achievements**, because a card's own height
-varies continuously - not just "with progress bar or without," but with however many lines its
-description happens to wrap to - so every newly-seen card nudges the average a little. A first
-attempt froze the *size* estimate (what sets the thumb's height) once a sample of items had been
-seen - but on a page where only a handful of items fit on screen at rest, that sample was only
-reached partway into the user's *first scroll*, so all the convergence meant to be spread out
-happened at once, right when scrolling started, and read as a single jarring resize rather than
-gradual settling. `LazyListScrollbar` instead freezes the size estimate from the very first layout,
-before any scrolling at all, trading a bit of proportional accuracy (the first screenful may not
-represent the whole list) for there being nothing left to converge once the user actually starts
-scrolling. The thumb's *position* is unaffected by the freeze - it's still computed from the exact
-remembered size of every item actually scrolled past, for the whole list, so it keeps tracking the
-finger precisely throughout.
-
-**All of that remembered state resets when `totalItemsCount` changes, not just when the
-`LazyListState` instance does.** The same `LazyListState` survives Achievements' "Hide unlocked"
-toggle and the Leaderboard's page navigation - only the *shape* of the list changes, so the cached
-per-index sizes (and the frozen size estimate built from them) would otherwise keep describing a
-list that no longer exists. A first version detected this via `derivedStateOf { listState.layoutInfo
-.totalItemsCount }` read at the composable level, keying `remember(listState, totalItems) {...}` -
-which worked at first, but wasn't reliable: `LazyListScrollbar`'s own parameters (`listState`,
-`modifier`) never change across a toggle, only what it reads from `listState` internally does, and
-that left the reset exposed to whether Compose happened to recompose a stable-parameter composable.
-It eventually got stuck holding a stale frozen estimate after a hide/unhide cycle. The check now
-lives as plain imperative code inside the `Canvas` draw phase instead - a `ScrollbarMemory` object
-(`remember(listState) {...}` only) with a `totalItemsAtLastCheck` field, compared and reset on every
-draw call. That draw phase already has to read every item's live pixel `offset` on every frame
-regardless, for the *position* math - piggybacking the shape check on that same guaranteed-fresh
-path removes the reliability question entirely rather than depending on it.
-
-**The two endpoints are pinned to `canScrollForward`/`canScrollBackward`, not left to the pixel
-estimate.** The estimate is extrapolated from a small early sample on a list whose real item
-heights vary continuously, so it can end up a little larger than the list's true content size -
-left alone, that shows up as the thumb never quite reaching the bottom (or top) of the track even
-once the list genuinely has, and it gets worse each time Achievements' "Hide unlocked" toggle
-re-freezes the estimate from a different, possibly differently-biased sample. Since
-`canScrollForward`/`canScrollBackward` are exact (not estimated), `LazyListScrollbar` overrides the
-calculated `scrollFraction` with `1f`/`0f` whenever Compose says there's genuinely nothing left to
-scroll in that direction - the pixel math still governs everything in between, only the two true
-edges are pinned.
+- **Show/hide is driven by `canScrollForward`/`canScrollBackward`**, never by comparing
+  `layoutInfo.visibleItemsInfo.size` to `totalItemsCount`: once scrolling has prefetched items past the viewport, a
+  shortish list can have every item in `visibleItemsInfo`, which hides the bar partway through a scroll.
+- **The thumb's size and position are pixel-based** (each visible item's `size` and `offset`), not item-count-based -
+  counting items moves the thumb a whole card at a time on a list of tall cards. See the doc comment for the formula.
+- **Item sizes are remembered per index** (an `index -> size` map that only grows), not re-averaged from the viewport
+  each frame, so the thumb doesn't resize as the mix of item types on screen changes.
+- **The size estimate is frozen from the very first layout**, before any scrolling, so nothing is left to converge
+  once the user starts scrolling (a late freeze reads as one jarring resize). The *position* still uses the exact
+  remembered size of every item scrolled past.
+- **That remembered state resets when `totalItemsCount` changes**, checked in the `Canvas` draw phase (a
+  `ScrollbarMemory` object with `totalItemsAtLastCheck`), not by keying a `remember` on a derived count, which
+  depends on Compose happening to recompose a composable whose parameters didn't change (the Leaderboard's paging
+  changes the list's shape under the same state).
+- **The two endpoints are pinned** to `canScrollForward`/`canScrollBackward`, which are exact: the pixel estimate can
+  be a little off, and the thumb would then never quite reach the end of its track.
 
 ## Player colours
 
@@ -1089,7 +1001,7 @@ Anything new that marks a player in their colour should read it too, never a sea
   the tab's "Current turn" state description is unchanged, whatever the frame.
 - **Every tab sits on a panel**: a `surfaceContainer` fill in the tab's 10dp rounded shape, tinted with 8% of the
   player's colour (`PANEL_TINT`), the same for every frame, drawn under the frame. Without it the names and
-  scores floated on the page. The tint is capped by contrast, not taste: at 10% Purple's name is 4.49:1, just
+  scores float on the page. The tint is capped by contrast, not taste: at 10% Purple's name is 4.49:1, just
   under 4.5; at 8% the lowest is Purple at 4.63:1 (Red 4.87:1). Raise it only after re-checking all eight.
 - **Frames stay off the tab's text.** The name sits `NAME_TOP_DROP` (3dp) below the tab's top padding, clear
   of the corner ornaments, and every frame keeps 1.5dp from the active tab's name, score, place and dot at
@@ -1107,15 +1019,15 @@ Anything new that marks a player in their colour should read it too, never a sea
   clear of the others.
 - **Always four distinct**: `GameViewModel.setPlayerColour` gives a colour another slot holds to that slot
   in exchange (all four slots, shown or not, so raising the player count can't produce a clash). Defaults
-  are `PlayerColour.defaultFor(seat)`: cyan, green, purple, amber - what the seats were before it was a choice.
+  are `PlayerColour.defaultFor(seat)`: cyan, green, purple, amber.
 - **Persisted** per slot in settings (`player_colour_N`, written when a game starts; a saved set that isn't
   four different colours falls back to the defaults) and saved with an in-progress game (`colour` per
-  player; an older save gets its seat's default).
+  player).
 - **TalkBack**: the circle is a button, "Player 2 colour, Pink", action "Choose colour"; the pop-up's choices
   are radio buttons named by colour, the current one selected, and one another player holds says "swaps with
   player 1". `PlayerColourPickerTest`. Not heard on a device.
 
-## Gotchas hit while building this
+## Gotchas
 
 - **A scrolling container eats a tap made while it scrolls.** Compose takes it as "stop scrolling" and never passes it
   to the child under the finger. So anything that scrolls itself after a tap - Material's scrollable tab rows re-centre
@@ -1132,7 +1044,7 @@ Anything new that marks a player in their colour should read it too, never a sea
   and silently ignored. Wrap in a real `Box` with `contentAlignment` instead.
 - **`padding` before `size` shrinks the node.** `Modifier.size(34.dp).padding(top = 6.dp)`
   renders a 34x28 box, not a 34x34 one lowered by 6dp. Use `offset` to move something without
-  resizing it - this is what made the logo dice non-square.
+  resizing it.
 - **Every tooltip is `AppTooltip`** (`ui/common/AppTooltip.kt`) - never `TooltipBox` directly - so the
   look and behaviour change in one place. `rememberAppTooltipState()` lets a tap show one too. Most
   take a `message`; one that needs a layout of its own (the totals table) passes `body` instead, and
@@ -1160,38 +1072,37 @@ Anything new that marks a player in their colour should read it too, never a sea
 
 ## Verifying UI work
 
-**There is no emulator in the sandbox** (see DESIGN.md's Verification section). UI changes are
-verified by `./gradlew assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lint` plus
-careful reading, and layout claims are arithmetic, not screenshots. Say so when reporting -
-"compile-and-read verified, not seen" - and prefer layouts that degrade safely on a screen
-size you can't check.
-
-Behaviour a screen drives can be tested under Robolectric with the real screen and view model -
-`GameScreenAutoRollTest` renders `GameScreen` (with `LocalPlatformServices provides
-SilentPlatformServices`) and steps both the compose clock and the paused main looper
-(`ShadowLooper.idleMainLooper`), since the view model's coroutines delay on the latter.
+`./gradlew testDebugUnitTest lint assembleDebug`, plus renders: Robolectric draws real screens with native graphics,
+so a throwaway test can save any screen to a PNG at a given size and font scale (`STYLE_ART.md`, "Rendering without
+a device"). Behaviour a screen drives is tested with the real screen and view model - `GameScreenCupGateTest`
+renders `GameScreen` (with `LocalPlatformServices provides SilentPlatformServices`) and steps both the compose clock
+and the paused main looper (`ShadowLooper.idleMainLooper`), since the view model's coroutines delay on the latter.
+The sandbox emulator (`EMULATOR.md`) can show the real app's screen. What still needs a device: TalkBack's actual
+speech, real frame times, haptics and the accelerometer. Say what was and wasn't seen when reporting, and prefer
+layouts that degrade safely on a screen size you can't check.
 
 ## Deliberately deferred
 
 - Material 3 Expressive (see above).
 - Dynamic colour, as a setting or a default.
-- The per-player difficulty selector on the setup screen: it cost a control row per player and
-  every option in it is disabled until AI difficulty exists, so it's one line of text for now.
-  `PlayerSetupSlot.difficulty` and `setPlayerDifficulty` are untouched - only the UI went.
+
+## The menu's backdrop and logo
+
 - `BrandBackdrop`'s watermark dice drift on the main menu and every screen off it (`driftingDice`,
   set by the menu, `ScreenScaffold` and the game-over page; the game itself has none, `showDice = false`). The drift
   is one `DriftState` held in `DiceFiveApp` and shared through `LocalDriftState`, so the dice keep
   their places and faces from screen to screen; it starts over only after a game left unfinished (the game
-  destination's `onDispose` resets it unless the game is over, so the results page's dice carry on into the menu) or on a fresh launch. `DiceDrift` holds the logic, free of Compose so
-  `DiceDriftTest` can pin it: five dice, each crossing in a straight line up and to one side and
-  turning slower than it travels (its corners move slower than its centre), then coming straight
-  back in just below the bottom edge on a new path, size and face - so there's no pool of dice
-  waiting off screen, and only dice actually showing are drawn. A path's lean is held to what lets
-  it cross most of the height before running out of width (about 25 degrees on an upright phone),
-  or a narrow screen's dice bunch in its lower half; and a returning die takes whichever of a dozen
-  candidate paths stays furthest from the others over the next twelve seconds. "Gone" and the entry
-  point use each die's extent at its current turn, not its worst-case half-diagonal, so none is out
-  of sight longer than it must be - which is what keeps three to five showing.
+  destination's `onDispose` resets it unless the game is over, so the results page's dice carry on into the menu) or
+  on a fresh launch. `DiceDrift` holds the logic, free of Compose so `DiceDriftTest` can pin it: five dice, each
+  crossing in a straight line up and to one side and turning slower than it travels (its corners move slower than
+  its centre), then coming straight back in just below the bottom edge on a new path, size and face - so there's no
+  pool of dice waiting off screen, and only dice actually showing are drawn. A path's lean is held to what lets it
+  cross most of the height before running out of width (about 25 degrees on an upright phone), or a narrow screen's
+  dice bunch in its lower half; and a returning die takes whichever of a dozen candidate paths stays furthest from
+  the others over the next twelve seconds. "Gone" and the entry point use each die's extent at its current turn, not
+  its worst-case half-diagonal, so none is out of sight longer than it must be - which is what keeps three to five
+  showing. The drift redraws at most about 30 times a second (`DriftState.onFrame`; the dice still move by the whole
+  time since their last move, so their speed is unchanged).
 - `AppLogo` is deliberately live Compose art, not a drawable - the launcher icon
   (`ic_launcher_foreground.xml`) is the app's static artwork of the default dice and cup; the
   in-app logo is not meant to duplicate it. On the menu it's drawn in the player's own dice and cup

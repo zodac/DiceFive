@@ -10,15 +10,11 @@ Modes so far:
 |--------------|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `STANDARD`   | `standard`   | Nothing - the official rules. The default.                                                                                                                                                                                             |
 | `TRICOLOUR`  | `tricolour`  | Dice also roll red/yellow/blue; four colour boxes join the card                                                                                                                                                                        |
-| `QUICKFIRE`  | `quickfire`  | 5x and six random other boxes are switched off every game: six turns, a scaled upper bonus, off the Leaderboard                                                                                                                        |
 | `STUD`       | `stud`       | Shown to players as "7 Dice Stud" (the enum and id stay `STUD` / `stud`). Seven dice rolled, five hold slots; only the five held dice score, but a box can be tapped with fewer held - the hand is completed for it (`HandCompletion`); off the Leaderboard |
 | `THIRD_WIND` | `third_wind` | Every box scored three times (39 turns); one upper bonus, 189 earns 105; joker once the 5x box's 3 slots are used; off the Leaderboard                                                                                                 |
 | `D20`        | `d20`        | Shown as "D20". Twenty-sided dice (`dieValues = 1..20`), 5 dice and 5 rolls; the card is the numbers 1-20 (`D20_1`..`D20_20`, each adds up the dice showing it) and two wildcards (`D20_WILD_LOW`/`D20_WILD_HIGH`: every die showing a number of the half, added up - they count towards their half, and so its bonus), no lower section, no 5x; 1st half (1-10) earns 75 at 138, 2nd half (11-20) 75 at 388, each half's total counting its wildcard (`sectionBonuses`); no Extended Scores; off the Leaderboard |
 | `HIT_LIST`   | `hit_list`   | No Standard boxes: 12 targets drawn each game (numbers by place, up to 2 any) plus the Alibi; exact order doubles; partial hits (2+ numbers rolled) score half the share rolled; no Extended Scores; off the Leaderboard               |
-
-History: `DESIGN.md` Phase 14 (Tricolour, and how modes were first modelled), Phase 20
-(the first Quickfire, replaced), Phase 25 (Stud), Phase 26 (Third Wind), Phase 30 (the new Quickfire) and Phase 31
-(Hit List).
+| `QUICKFIRE`  | `quickfire`  | 5x, three random upper boxes and three random lower boxes are switched off every game: six turns, a scaled upper bonus, off the Leaderboard                                                                                         |
 
 ## The one rule: a mode is data
 
@@ -34,13 +30,13 @@ they already handle a new one. A new mode should be:
 Nothing else should need to learn the mode exists. **Don't write `if (mode == QUICKFIRE)` in engine,
 view-model or UI code** - add a field that says what the rule *is* (`rollsPerTurn`,
 `disabledCategories`) and read that. The only checks for a named mode are
-achievements that name one ("Win a game of 'Quickfire' mode", and the non-Standard/non-default
-checks for Rules?), Tricolour's easter egg (`IrishEasterEgg`), and `TieBreak`'s
+achievements that name one ("Win a game of 'Quickfire' mode", and Where We're Going, We Don't Need
+Rules for any non-Standard mode), Tricolour's easter egg (`IrishEasterEgg`), and `TieBreak`'s
 Tricolour-only colour-box criterion. If you find a hard-coded `3` rolls or `5` dice, move it onto
 the mode.
 
-**`id` is a storage key** (settings, saved in-progress games). Never change one; rename
-`displayName` instead.
+**`id` is a storage key** (settings, saved in-progress games, recorded scores). Never change one once
+released; rename `displayName` instead.
 
 ### Every field, and what reads it
 
@@ -51,14 +47,13 @@ When a new rule needs a field, add it here too. This is the map of where each ru
 | `diceCount`, `dieValues`, `dieColours`   | `GameEngine.newGame`/`rollDice`/`cycleDieValue`, `DiceTray` (incl. the rolling scramble, and a coloured die's `DiceStyle.recoloured`), `AiTurnPlayer` |
 | `scoringDiceCount` (`scoresHeldDiceOnly`) | `GameState.scoringDice`/`hasFullHand` (what the board previews, what `GameEngine.commitScore` scores, and whether it may); `GameEngine.toggleHold`/`canHold`/`fillHand` (hold slots, `Die.heldSlot`); `DiceTray` (`SlottedDice`); `AiTurnPlayer` (`RollSpace`, `chooseHand`); the timeout; achievements judged on a roll (guarded) or a hand (read `scoringDice`); A Cunning Strategy's "all five" |
 | `rollsPerTurn` (the game's own is `GameState.rollsPerTurn`: the Number of Rolls modifier, else this) | `GameEngine` (turn reset) and the `GameState` default set `rollsRemaining`, which the cup's `xN` badge and the AI loop read; `GameViewModel`'s `fullRolls`/`rollsRemainingAfter*` helpers; Impatient/Naturally Gifted's guard |
-| `categories` (a game's own card is `GameMode.categoriesWith(extendedScores)`, read as `PlayerState.categories`; the Extended Scores modifier adds Two Pair, Evens, Odds - `DESIGN.md` Phase 28) | `PlayerState` (card, totals, completeness), `ScoreCalculator`, `ScoreGrid`, `GameStateJson`, `AiTurnPlayer` baselines, "How Do You Play This Game?" |
+| `categories` (a game's own card is `GameMode.categoriesWith(extendedScores)`, read as `PlayerState.categories`; the Extended Scores modifier adds Two Pair, Evens, Odds) | `PlayerState` (card, totals, completeness), `ScoreCalculator`, `ScoreGrid`, `GameStateJson`, `AiTurnPlayer` baselines, "How Do You Play This Game?" |
 | `upperBonus*`, `fiveOfAKindBonusAmount`  | `PlayerState` totals, `ScoreCalculator`, the 5x tile's bonus preview                                       |
-| `disabledCategories`, `randomDisabledCategories` (a game's own set is `GameState`/`PlayerState.disabledCategories`, drawn by `drawDisabledCategories` in `GameEngine.newGame`) | `PlayerState.isOpen` (never open - so `ScoreCalculator`, `HandScoring.filledMask` and the AI skip them), `turnsPerGame`, `upperBonusThreshold`/`hasUpperBonus`, `GameStateJson`, `CategoryCell`/`CategoryTile` (drawn as an outline), the achievement guards (`hasFullCard`) |
+| `disabledCategories`, `randomUpperDisabledCategories`, `randomLowerDisabledCategories` (a game's own set is `GameState`/`PlayerState.disabledCategories`, drawn by `drawDisabledCategories` in `GameEngine.newGame`) | `PlayerState.isOpen` (never open - so `ScoreCalculator`, `HandScoring.filledMask` and the AI skip them), `turnsPerGame`, `upperBonusThreshold`/`hasUpperBonus`, `GameStateJson`, `CategoryCell`/`CategoryTile` (drawn as an outline), the achievement guards (`hasFullCard`) |
 | `onlineLeaderboardKey`                   | `online/GameServices` (a platform maps it to its own leaderboard id); `OnlineLeaderboardKeyTest` pins every key - a new mode needs one, and `.claude/PLAY_GAMES.md` section 3 says what else |
 | `maxPossibleScore`                       | `HIGHEST_POSSIBLE_SCORE` (Leaderboard/Statistics column width), `GameModeTest`                              |
 | `scoresPerCategory` (`turnsPerGame`)     | `PlayerState` (`scorecard` is a list per box; `isOpen`, `turnsTaken`/`turnsLeft`, `isScorecardComplete`, totals, `fiveOfAKindJokerActive`), `ScoreCalculator` (open boxes, the joker), `HandScoring.filledMask` (a full box), `AiTurnPlayer` (upper-bonus reach), `TieBreak` (every zero slot counts), `GameStateJson`, `CategoryCell` (`StackedScores`, spoken state), `GameViewModel` (turn timer's turn count, final round), the achievement guards |
-| `countsOnLeaderboard` (also off whenever a modifier, i.e. the turn timer, is on - `GameState.countsOnLeaderboard`) | `GameViewModel.persistHumanScores` → `ScoreEntry.onLeaderboard`, which `ScoreDao`'s Leaderboard page/count, best score and distinct scores filter on (Statistics and career points don't); New Personal Best's guard |
-| `allowsRollModifiers` (every mode allows them now) | `GameViewModel.startGame` (starts a game with `RollModifiers()`), the setup screen's locked Number of Rolls / Stored Rolls rows |
+| `countsOnLeaderboard` (also off whenever any modifier is on - `GameState.countsOnLeaderboard`) | `GameViewModel.persistHumanScores` → `ScoreEntry.onLeaderboard`, which `ScoreDao`'s Leaderboard page/count, best score and distinct scores filter on (Statistics and career points don't); New Personal Best's guard |
 | `maxRollsPerGame`                        | `flowerpotGrowthStage` - the Flowerpot's stages are spread evenly over it, and the sunflower blooms on its last roll (Greenfingers); `GameModeTest` |
 | `hitListShapes` (`hasHitList`; a game's own targets are `GameState`/`PlayerState.hitList`, drawn by `drawHitList` in `GameEngine.newGame`) | `ScoreCalculator.scoreFor` (targets and the Alibi - `DiceScoring` refuses them), `GameStateJson`, `AiTurnPlayer` (hands the whole turn to `HitListPlay`; `prepareHard` does nothing), `CategoryCell`/`CategoryIcon` (the target drawn on its tile, with progress bars), the achievement guards and Right On Target |
 | `sectionBonuses` (`SectionBonus`: section, threshold, amount) | `PlayerState.sectionBonusTotal`/`hasSectionBonus` (in `totalScore`), `AiTurnPlayer.HardTurn`'s bonus stake, the Critical Success achievement, the Totals button's Bonus line |
@@ -73,15 +68,15 @@ Most of the work depends on which of these the mode touches. A mode can touch se
 - **New scoring** (new boxes): see [New categories](#new-categories).
 - **New dice** (a new property, faces, or dice count): see [New dice](#new-dice).
 - **More dice rolled than score** (a hand picked from the roll): see
-  [More dice than score](#more-dice-than-score). This is where Stud's problems were.
+  [More dice than score](#more-dice-than-score).
 - **A box scored more than once** (more turns, a bigger card): see
-  [More than one score a box](#more-than-one-score-a-box). This is where Third Wind's problems were.
+  [More than one score a box](#more-than-one-score-a-box).
 - **Boxes switched off for a game** (fixed or drawn at random): see
   [Boxes switched off](#boxes-switched-off).
 - **Scores that shouldn't sit with the others** (off the Leaderboard): see
   [Off the Leaderboard](#off-the-leaderboard).
 - **The turn's flow** (when rolls happen, timing, what's automatic): see
-  [Turn flow](#turn-flow-rolls-timers-undo). This is where Quickfire's problems were.
+  [Turn flow](#turn-flow-rolls-timers-undo).
 - **Another setup option** (it fixes or overrides one): see [New Game screen](#new-game-screen).
 
 Then audit the existing achievements against it - see
@@ -119,8 +114,8 @@ scoring category - its points go in the example row's score, not the text. Style
 convention in `RulesPage`'s doc comment: `` `backticks` `` (gold monospace) for a scoring category's
 name, `*italic*` for a section, mode or setting name, `**bold**` only for points or a count, no dashes as bullets or asides, no dice written out as
 text. The pager,
-both tab rows and the footer's count size themselves from the groups. Update the page each time the mode's rules change -
-Quickfire's changed three times after it was written.
+both tab rows and the footer's count size themselves from the groups. Update the page each time the mode's rules
+change, in every language.
 
 ### New categories
 
@@ -154,8 +149,9 @@ A category's scoring rule is mode-independent; a mode only chooses which categor
 
 ### New dice
 
-- A new property on `Die` (as `colour` was) must be written and read by `GameStateJson`, or a resumed
-  game loses it. Keep reading old saves that don't have it.
+- A new property on `Die` (as `colour` is) must be written and read by `GameStateJson`, or a resumed
+  game loses it. A game saved by the previous release won't have it, so read its absence as the
+  behaviour before it.
 - `GameEngine.rollDice` should only draw the new property in modes that use it, so other modes' dice
   come out of a seeded `Random` exactly as before - tests depend on that.
 - `DiceTray` draws the dice (and a random face while rolling), and superuser mode's
@@ -172,22 +168,20 @@ A category's scoring rule is mode-independent; a mode only chooses which categor
 ### More dice than score
 
 Stud rolls seven dice and scores the five held (`scoringDiceCount < diceCount`, i.e.
-`scoresHeldDiceOnly`). Almost everything was written assuming "the dice" and "the hand" are the same
-list. They aren't here, so:
+`scoresHeldDiceOnly`). "The dice" and "the hand" are different lists here, so:
 
 - **Score `GameState.scoringDice`, never `state.dice`.** That's the board's preview, `commitScore`,
   the AI's category choice, the timeout's category, and every achievement judged on the scored hand.
   `state.dice` is still right for what's *on the table*: `lastRoll`, Déjà Vu (`DEJA_VU`), Lucky
   Seven, die indices. Grep each `state.dice` read and decide which it means.
 - **A part-held hand is scored and previewed**, so scoring must cope with fewer dice than a full
-  hand. `DiceScoring.isFiveOfAKind` needed a dice-count check: three held 6s were "all the same" and
-  previewed a 5x, and could have triggered the joker rule.
+  hand. `DiceScoring.isFiveOfAKind` checks the dice count, or three held 6s would be "all the same",
+  preview a 5x and trigger the joker rule.
 - **Scoring needs a full hand** (`hasFullHand`): `GameEngine.commitScore` throws without one, but the
   view model never gives it a part-held one: `HandCompletion` completes it first (see below).
 - **Holding is capped** (`canHold`). Anything that changes holds in bulk must release before it
-  holds: the AI's `applyHolds` swapped dice in the wrong order and hit the cap.
-- **The AI**: `AiTurnPlayer` used "every die held" to mean "stop rolling", and five held no longer
-  is. Hard's exact search plans over hands. `RollSpace` maps each seven-dice roll to its best five-dice
+  holds, or it hits the cap (as the AI's `applyHolds` does it).
+- **The AI**: "every die held" can't mean "stop rolling" - five held still leaves dice to roll. Hard's exact search plans over hands. `RollSpace` maps each seven-dice roll to its best five-dice
   hand, and `DiceSpace(maxHeld)` caps the held sets, so the same search works. After the last roll the
   CPU must pick and hold its hand (`chooseHand`) before scoring, visibly and with a reaction delay.
 - **The tray**: more dice than a column each need their own layout (`DiceTray`'s `SlottedDice`).
@@ -197,23 +191,20 @@ list. They aren't here, so:
     - The tray keeps the usual height.
     - A held die goes to the *free* slot nearest its own column and **never moves once it's there**.
       An order-preserving version that slid held dice along to make room was rejected.
-  - Render it at 411dp and 360dp for review before any APK. Both sizing problems were caught on
-    the renders.
+  - Render it at 411dp and 360dp for review before any APK.
 - **Achievements**: a roll isn't a hand, so anything judged on the roll as it lands needs a guard -
   see [Stud](#stud-seven-dice-rolled-five-held-to-score).
 
 ### More than one score a box
 
-Third Wind scores every box three times (`scoresPerCategory`). Everything had assumed one score a
-box, one turn a box. `PlayerState.scorecard` is now a list of scores per box in every mode (empty
-while untouched), so:
+Third Wind scores every box three times (`scoresPerCategory`). `PlayerState.scorecard` is a list of
+scores per box in every mode (empty while untouched), so:
 
 - **Never read a box as `scorecard[c]`.** Use `scoresIn(c)` (its scores), `isOpen(c)` (a slot left),
   `hasScore(c, n)`, `allScores`, and `turnsTaken`/`turnsLeft`/`isScorecardComplete`. **Trap:**
   `scorecard[c] != null` and `scorecard.values.count { it != null }` still *compile* against a list -
-  and are always true. Changing the type turned most misuses into compile errors; those silent ones
-  had to be found by grepping, in tests above all (a "CPU took a turn" check that could never fail).
-- **"One turn per box" is gone.** A game is `GameMode.turnsPerGame` turns. Everything that counted
+  and are always true, so a test using them can never fail.
+- **A box isn't a turn.** A game is `GameMode.turnsPerGame` turns. Everything that counted
   boxes to mean turns needed it: the turn timer's new-turn detection (`turnsTaken`), the final-round
   check (`turnsLeft == 1`), and test helpers that
   loop `categories.size` times.
@@ -225,11 +216,11 @@ while untouched), so:
   perfect-game test fills each box's slots in turn), the upper bonus (its own threshold and amount
   fields), the Hard estimate's upper-bonus reach (counted per open slot), and the score-threshold
   achievements (guarded - see the audit below).
-- **Saves**: each box is written as a list; old saves (a number or null) still load.
+- **Saves**: each box is written as a list of its scores.
 - **The AI**: no new code - Hard estimates outside Standard (the bundled table is Standard's alone, and
   a Third Wind table would need ~4^13 card states before the upper total). Measure each difficulty in
   the mode against its Standard per-turn average before tuning: two plausible tweaks (no upper-bonus
-  pull; a cheaper baseline while slots remain) both made Hard worse - `DESIGN.md` Phase 26.
+  pull; a cheaper baseline while slots remain) both made Hard worse in Third Wind.
 - **The board** (`StackedScores`): one line per slot beside the tile, the preview only in the next open
   slot. See `UI.md` - the lines fill a tile exactly, so a large font scrolls them.
 
@@ -249,10 +240,10 @@ target calls is drawn per game (`HitTarget`, from the mode's `TargetShape`s), so
   (`HitTarget.MIN_PARTIAL_ROLLED`); one alone scores 0, however the rounding would fall (1 of 3 on a 15 is 2.5, which
   would round up to 5). Always less than a hit, so a box's score still tells which it was. It
   leaves few zeros (under one a game for a CPU), which is why Spotless is guarded. A CPU must count the partial its
-  held dice keep when a chase fails: without that, Hard stopped on partials and fell behind Medium.
+  held dice keep when a chase fails, or it stops on partials too readily.
 - **The Alibi** is worth the best open target's points the dice hit, never doubled, and leaves that target open. Once
-  every target is closed it can only score 0 - a CPU that keeps it to the end wastes it (Medium did, until it was
-  taught to use it on a plain hit of a five-number target).
+  every target is closed it can only score 0, so a CPU must use it before then (Medium takes it on a plain hit of a
+  five-number target).
 - **The board's featured box** (`ScoreCategory.featured`) is 5x on every other card and the Alibi here, the large
   square over rows 1-2. The targets have no upper section to pair with, so they fill the grid two to a row.
 - **The AI** is `HitListPlay` at every difficulty: the odds of hitting a target's remaining numbers in the rolls left
@@ -261,7 +252,8 @@ target calls is drawn per game (`HitTarget`, from the mode's `TargetShape`s), so
 
 ### Boxes switched off
 
-Quickfire switches off 5x and six random boxes (`disabledCategories`, `randomDisabledCategories`). A disabled box
+Quickfire switches off 5x and three random upper and three random lower boxes (`disabledCategories`,
+`randomUpperDisabledCategories`, `randomLowerDisabledCategories`). A disabled box
 stays on the card - the board lays out as it always does - but is never open:
 
 - **Ask `PlayerState.isOpen`, never "has no score".** An unscored disabled box is empty like an open one, so
@@ -284,7 +276,7 @@ stays on the card - the board lays out as it always does - but is never open:
 
 ### Unlucky Dice (a modifier that changes what a roll is)
 
-Unlucky Dice (`UnluckyDice`, `DESIGN.md` Phase 29) locks rolled dice (`Die.isUnlucky`): they can't be held and
+Unlucky Dice (`UnluckyDice`) locks rolled dice (`Die.isUnlucky`): they can't be held and
 don't score, in every mode. It's a modifier, not a mode field, but it changes assumptions a mode can too:
 
 - **A hand can be smaller than `scoringDiceCount`.** Score `GameState.scoringDice` and ask `hasFullHand`
@@ -299,16 +291,16 @@ don't score, in every mode. It's a modifier, not a mode field, but it changes as
 ### Off the Leaderboard
 
 `countsOnLeaderboard = false` records a game's scores with `ScoreEntry.onLeaderboard = false`: the
-Leaderboard, a personal best and the score-collection bands skip it (`ScoreDao`'s queries filter on
-it); Statistics and career points don't. That took a database version (2, an `AutoMigration` with
-`@ColumnInfo(defaultValue = "1")` so every existing row stays on the board). The SQL never runs in the
-sandbox - the fake DAOs in `ScoreRepositoryTest` and `GameAchievementsWiringTest` mirror its filters, so
-**a new filter has to be added to both fakes too**, and the real one is only checked on a device. A
-mode off the board also needs New Personal Best guarded: the "previous best" comes from the board.
+Leaderboard's Combined table, a personal best and the score-collection bands skip it (`ScoreDao`'s queries
+filter on it); the Game Mode view, Statistics and career points don't. The fake DAOs in `ScoreRepositoryTest`
+and `GameAchievementsWiringTest` mirror the real queries' filters, so **a new filter has to be added to both
+fakes too**; `AndroidAppContainerTest` runs the real database under Robolectric. A mode off the board also
+needs New Personal Best guarded: the "previous best" comes from the board. Moving a mode that has shipped
+on or off the board changes how its recorded rows should read, which needs a database migration.
 
 ### Turn flow: rolls, timers, undo
 
-The Number of Rolls and Stored Rolls modifiers (`RollModifiers`, Phase 27) change how many rolls a turn has
+The Number of Rolls and Stored Rolls modifiers (`RollModifiers`) change how many rolls a turn has
 in every mode. **Read the rolls a turn started with from
 `GameState.turnRolls`, not `gameMode.rollsPerTurn`** - stored rolls make it bigger - and the game's rolls
 per turn from `GameState.rollsPerTurn`. Totals-based achievements are guarded on `PlayerState.rollsModified`.
@@ -316,8 +308,8 @@ per turn from `GameState.rollsPerTurn`. Totals-based achievements are guarded on
 How a roll happens today, in every mode:
 
 - **Every roll lands through one function, `GameViewModel.performRoll`**, human or CPU.
-- **A human's roll always starts with a cup tap** - `GameScreen`'s `onCupTap`. A finger, a phone
-  shake and Quickfire's automatic roll all call it, so they all shake for `CUP_SHAKE_MILLIS`, play
+- **A human's roll always starts with a cup tap** - `GameScreen`'s `onCupTap`. A finger and a phone
+  shake both call it, so they both shake for `CUP_SHAKE_MILLIS`, play
   the same sound and haptics, then call `rollDice()`, where player 1's achievement tracking runs.
 - **A CPU's roll is driven by `GameViewModel.maybeStartAiTurn`**, which shakes for the same
   `CUP_SHAKE_MILLIS` (through `aiRolling`) and then calls `performRoll`. It stays in the view model,
@@ -329,49 +321,43 @@ How a roll happens today, in every mode:
   with the app in the background and would forfeit a turn or play a CPU's out behind the player's
   back (`GameViewModelTest` pins both).
 
-Rules that came out of Quickfire:
+Rules for anything that changes the turn's flow:
 
-- **Don't add a second kind of roll.** An automatic or special roll should go through the same tap
-  (for a human) or the same `performRoll` (for the CPU). A separate view-model roll with its own
-  delay was built for Quickfire and replaced on review, because it made auto-rolls look and behave
-  slightly differently from real ones.
+- **Don't add a second kind of roll.** An automatic or special roll goes through the same tap (for a
+  human) or the same `performRoll` (for the CPU), so it looks, sounds and behaves exactly like a real one.
+  A separate view-model roll with its own delay was tried and rejected on review for that reason.
 - **Never change the game state under the AI loop.** `maybeStartAiTurn` plays from its own copy of
   the state (`current`) across delays. Anything that rolls, holds or scores on a CPU's turn from
-  outside that loop puts the game out of step with it. That's why the first Quickfire's auto-roll
-  (`awaitsAutoRoll`, since removed) was false on a CPU's turn - the CPU's loop already starts with a roll.
-- **Screen-driven rules need the screen.** Quickfire's auto-roll only happens while `GameScreen` is
-  composed. That's acceptable for a human turn: if the screen isn't showing, the turn timer still
-  ends it (a timeout rolls first if needed). A rule that must happen with no screen belongs in the
-  view model.
+  outside that loop puts the game out of step with it.
+- **Screen-driven rules need the screen.** Something `GameScreen` does only happens while it's
+  composed. That's acceptable for a human turn, which the turn timer still ends if the screen isn't
+  showing; a rule that must happen with no screen belongs in the view model.
 - **A roll can't start while another is in hand.** `onCupTap` ignores a tap from the shake until
-  the dice have settled (`rollInHand`), and Quickfire's auto-roll `LaunchedEffect` is keyed on it, so
-  a turn that begins while the last dice are still settling rolls once they've landed rather than
-  never. A new automatic tap must wait on the same thing.
+  the dice have settled (`rollInHand`). A new automatic tap must wait on the same thing, keyed on it,
+  so a turn that begins while the last dice are still settling rolls once they've landed rather than never.
 - **A roll can land after its turn is gone.** The cup shakes before the roll lands, and Undo stays
   enabled meanwhile. Undo in that window brings back the previous turn, possibly with 0 rolls left,
   so `rollDice` ignores a roll with none remaining (`GameEngine.rollDice` throws on it). Any new
   delayed action should re-check the state it acts on.
-- **Undo only reaches a committed score, and any roll clears it.** In a mode that rolls
-  automatically, that roll comes right after the score, so the window to undo a score is the length
-  of the shake.
+- **Undo only reaches the last human action, and any CPU move clears it.**
 - **The timer**: `syncTurnTimer` restarts it for each new turn (human or CPU); running out calls
-  `autoScoreOnTimeout`, which rolls if the turn hasn't, then scores `ScoreCalculator.timeoutCategory`.
+  `autoScoreOnTimeout`, which scores a rolled turn in `ScoreCalculator.timeoutCategory` (the first open
+  box, the hand completed first in Stud) and forfeits an unrolled one as a zero (`GameEngine.forfeitTurn`).
   A timeout's score is final - it clears the undo snapshot.
 - `GameScreen.canHold` doesn't check rolls left, so dice can still be held after the last roll. That
-  keeps the hold-only achievements alive in a one-roll mode.
+  keeps the hold-only achievements alive with Number of Rolls at 1.
 
 ### New Game screen
 
 The Game Mode card lists `GameMode.entries` as radio rows, so a new mode appears automatically with
 its `description`. Only a mode that changes *another* setup option needs work here:
 
-- **Disable the option the mode overrides; don't hide it.** The first Quickfire disabled the Turn Timer row
-  and locked the roll modifiers (through `SegmentedChoiceRow`'s and `ModifierSetting`'s `enabled`/`lockedNote`;
-  the mode fields behind it were removed in Phase 30 - see `git log` if a mode needs them again).
+- **Lock the option the mode overrides; don't hide it.** D20 and Hit List lock Extended Scores
+  (`allowsExtendedScores = false`) through `ModifierSetting.lockedNote`, which shows the row with a note
+  saying why; `SegmentedChoiceRow` has `enabled` for the same.
 - **Keep and save the player's pick**, so it comes back when they choose another mode.
-- **Start the game with the neutral value** (`GameViewModel.startGame` passes `TurnTimer.NONE`), so a
-  saved game doesn't carry a setting that isn't in play. Whether it counts as "customised" for I Did
-  It My Way follows from that.
+- **Start the game with the neutral value** (`GameViewModel.startGame` and `GameEngine.newGame` play
+  without it), so a saved game doesn't carry a setting that isn't in play.
 - Don't add text or rows to the form for a mode. The `description` and rules page explain it, and an
   added element must not move or re-space the existing ones.
 
@@ -380,14 +366,15 @@ its `description`. Only a mode that changes *another* setup option needs work he
 - Add the mode's achievements to `model/Achievement.kt` in the Game Modes block, after the previous
   mode's. So far each mode has two: a win (multiplayer, like every win) and something only that mode
   can do.
-- Each needs a stable `id` (never changed), a title, and a description naming the mode in quotes
-  (`"Win a game of 'Quickfire' mode"`).
+- Each needs a title, a description naming the mode in quotes (`"Win a game of 'Quickfire' mode"`), an
+  enum constant that is the title in snake case and an `id` that is the constant in lower case
+  (`AchievementEngineTest` checks it). The id is permanent once released.
 - Judge them in `game/AchievementEngine.kt`: `earnedDuringPlay` if a scorecard mid-game already
   settles it (Tricolour Me Impressed), `earnedBy` if it needs the finished game. If it needs
   something the final `GameState` can't show, add a field to `GameAchievementContext` and track it in
   `GameViewModel`: a `private var`, reset in `resetAchievementTracking`, passed in
-  `recordEndOfGameAchievements`. Prefer a count to a flag (`playerOneTimeouts` started as a
-  `playerOneTimedOut` flag; a later achievement then needed the count). Only track player 1's turns.
+  `recordEndOfGameAchievements`. Prefer a count to a flag - a later achievement may need the count.
+  Only track player 1's turns.
 - A turn the timer runs out on before it's rolled scores a zero with no roll (`GameEngine.forfeitTurn`), so a
   card can be zeroed, or kept to single rolls, by doing nothing. `playerOneTimeouts` must be 0 for How Do You Play
   This Game?, Rock Bottom, Low Rolls, Cold Dice, Impatient and Naturally Gifted; Zero To Hero and Scratched
@@ -396,8 +383,7 @@ its `description`. Only a mode that changes *another* setup option needs work he
 - Per-game counters restart from zero when a saved game is resumed. Design each achievement so that
   can only make it harder, never hand it out.
 - Icon in `ui/achievements/AchievementIcons.kt` (exhaustive `when`). **Grep that the glyph isn't
-  already used** - Quickfire's first two picks (Speed, then ElectricBolt) clashed with Solid Round
-  and Dice Deity. Check the icon exists in `material-icons-extended`.
+  already used** by another achievement, and check it exists in `material-icons-extended`.
 - `WHERE_WERE_GOING_WE_DONT_NEED_RULES` already fires for any non-Standard mode.
 - A Miscellaneous achievement must be `HIDDEN`, and a hidden one must be Miscellaneous -
   `AchievementEngineTest` enforces both ways.
@@ -423,7 +409,7 @@ Families to check:
 | Roll count          | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu (`DEJA_VU`), Time To Let It Go, Pointless Roll, Greenfingers, Probability? Never Heard of Her | Does "only one roll used" or "every roll used" become automatic or impossible? |
 | First roll          | House Call, Straight Away, I Can Count!                                              | Is every roll now a first roll, or none?                                    |
 | Holds               | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues                     | Can dice still be held?                                                     |
-| Timer               | Out Of Time, Beat The Clock, and the timeout guards on the low and zeroed cards                                     | Is there always, or never, a timer?                                         |
+| Timer               | The timeout guards on the low and zeroed cards (see "Achievements" above)                     | Is there always, or never, a timer?                                         |
 | Card contents       | How Do You Play This Game?, Spotless, Bonus Round, Upper/Lower Class, Exact Change, the 5x ones | Is each box still on the card, and do totals still mean the same?            |
 | Score thresholds    | Solid Round ... Dice Deity, Cold Dice, Low Rolls, Ton!, Nice, Rock Bottom, the score bands   | Is a threshold now trivial or impossible for this ceiling?                  |
 | Dice look           | Fresh Coat Of Paint, Luck of the Irish                                                       | Does the mode draw the player's dice style?                                  |
@@ -434,6 +420,8 @@ against them may start matching the wrong roll, or never match - read each one.
 
 ### Quickfire (5x and six random boxes switched off)
 
+Its draw is always three upper and three lower boxes, so a card always has three upper boxes for the bonus.
+
 A card with boxes off is a short game with small totals, so anything measured on a whole card, a total or a
 zero needs deciding. `PlayerState.hasFullCard` (no box off) is the guard.
 
@@ -443,11 +431,11 @@ without its guard):
 | Achievement                                           | Why it would be free                                                    |
 |-------------------------------------------------------|-------------------------------------------------------------------------|
 | Spotless (`SPOTLESS`)                                | Six turns without a zero, not thirteen                                  |
-| Cold Dice (`COLD_DICE`), Low Rolls (`LOW_ROLLS`), Rock Bottom (`ROCK_BOTTOM`) | The ceiling is 225 - a low total is the usual run of things |
+| Cold Dice (`COLD_DICE`), Low Rolls (`LOW_ROLLS`), Rock Bottom (`ROCK_BOTTOM`) | The ceiling is 210 - a low total is the usual run of things |
 | How Do You Play This Game? (`HOW_DO_YOU_PLAY_THIS_GAME`)             | Fewer boxes to zero                                                     |
-| Solid Round ... Dice Deity (`SOLID_ROUND`-`500`)        | Not free, but a total over a different card measures nothing            |
+| Solid Round ... Dice Deity (`SOLID_ROUND`-`DICE_DEITY`) | Not free, but a total over a different card measures nothing            |
 | Upper Class (`UPPER_CLASS`), Lower Class (`LOWER_CLASS`)   | Section totals over a different set of boxes                            |
-| Bonus Round (`BONUS_ROUND`)                           | The threshold shrinks with the boxes - 18 with only the 6s left         |
+| Bonus Round (`BONUS_ROUND`)                           | The threshold shrinks with the boxes - 18 with only the 1s, 2s and 3s left |
 
 **Can't be earned in Quickfire - no guard needed**: every 5x achievement that needs the 5x scored (First 5x,
 Encore, Hat Trick, Scratched, Twice in a Lifetime) and the rolled-a-5x ones (Natural 5x), which
@@ -460,14 +448,12 @@ Naturally Gifted (three rolls, so a real choice), Greenfingers (grows over 18 ro
 still every roll of every turn), Nice and Ton! (a total of 69 or 100 is likelier on a smaller card), Zero To Hero
 (three zeroes in six turns is harder), Landslide and the win ones.
 The mode's own: Quick On The Draw (`QUICK_ON_THE_DRAW`, a multiplayer win) and Six Of The Best (`SIX_OF_THE_BEST`,
-a total of 150 or more, not with extra rolls or Extended Scores). It used to have Beat The Clock, which went with
-the timer.
+a total of 150 or more, not with extra rolls or Extended Scores).
 
-### The old Quickfire (1 roll per turn, 10s timer) - gone
+### One roll a turn (Number of Rolls at 1)
 
-Its achievement guards (Impatient, Naturally Gifted, Almost Famous for one roll) are still in the engine, now
-reachable only with the Number of Rolls modifier set to 1. Its notes on turn flow above still apply to any mode
-that automates a roll.
+Not a mode, but the same audit applies: Impatient, Naturally Gifted and Almost Famous are guarded so a single-roll
+game can't hand them out.
 
 ### Stud (seven dice rolled, five held to score)
 
@@ -502,16 +488,15 @@ without its guard):
 | Almost Famous (`ALMOST_FAMOUS`)                         | A 5x among seven dice never shows as one, so "never landed the 5x" was always true |
 | First 5x, Encore, Hat Trick, Twice in a Lifetime, Total 5x (10) | A box takes the best five of seven dice, so 5x come far too easily. Stud's 5x don't add to the `SCORED_5X` counter either |
 | Both Straights, Chance 30, Six Appeal (`SIX_APPEAL`)      | Same - the best five of seven reach them routinely                 |
-| Upper Bonus, Upper Class, Lower Class, Solid Round ... Dice Deity (`SOLID_ROUND`-`500`) | Section and game totals run well above Standard's |
+| Bonus Round, Upper Class, Lower Class, Solid Round ... Dice Deity (`SOLID_ROUND`-`DICE_DEITY`) | Section and game totals run well above Standard's |
 | Spotless (`SPOTLESS`), Zero To Hero (`ZERO_TO_HERO`)   | A zero is rare when every box picks its best five                  |
 | New Personal Best (`NEW_PERSONAL_BEST`)                     | Stud is off the Leaderboard (`countsOnLeaderboard = false`), as the totals aren't comparable |
 
 In the engine these are `PlayerState.scoresRolledHand` (`!scoresHeldDiceOnly`) in `AchievementEngine`, and
 `singleScoreCard`/`ZERO_TO_HERO`'s own condition; Twice in a Lifetime is guarded in `GameViewModel`.
 
-**Off the Leaderboard, with a migration.** Stud was on the board until Database version 4, whose
-hand-written `MIGRATION_3_4` sets `onLeaderboard = 0` for the rows with `gameModeId = 'stud'`. The SQL
-only runs on a device. The Stud rules page (`rules_stud_8`) and `rules_modes_3` say so.
+**Off the Leaderboard**, as a box takes the best five of seven dice and the totals aren't comparable. The Stud
+rules page (`rules_stud_8`) and `rules_modes_3` say so.
 
 **Can't be earned in Stud - no guard needed**: I Can Count! and Product Placement (seven dice never
 equal a five-dice sequence); What Was The Point Of That? (every die can never be held - with five
@@ -529,15 +514,15 @@ A box "holds" a score if any one of its slots does - Six Appeal and Taking A Cha
 slot (three slots adding to 30 don't count), Exact Change a 1 in one Ones slot and so on, Scratched a
 zero in one 5x slot, Straight Talker a non-zero slot in each straight. Every zero slot is a zero (Zero
 To Hero's count, How Do You Play This Game?, the tie-break). "Scored a 5x" counts every 50 in the 5x
-box plus chips (`fiveOfAKindCount`), so Encore and Hat Trick now read that count rather than bonus
-chips - the same thing in a one-slot mode, but a Third Wind 5x in the box's 2nd or 3rd slot earns no chip.
+box plus chips (`fiveOfAKindCount`), which Encore and Hat Trick read rather than bonus chips - the same
+thing in a one-slot mode, but a Third Wind 5x in the box's 2nd or 3rd slot earns no chip.
 
 **Guarded - would be free in Third Wind** (`scoresPerCategory == 1`, or `countsOnLeaderboard`; each
 test in `AchievementEngineTest` fails without its guard):
 
 | Achievement                                      | Why it would be free                                                    |
 |--------------------------------------------------|-------------------------------------------------------------------------|
-| Solid Round ... Dice Deity (`SOLID_ROUND`-`500`)   | Totals are three times Standard's - Hard averages over 700              |
+| Solid Round ... Dice Deity (`SOLID_ROUND`-`DICE_DEITY`) | Totals are three times Standard's - Hard averages over 700         |
 | Upper Class (`UPPER_CLASS`), Lower Class (`LOWER_CLASS`) | Section totals over 18/21 slots pass them as a matter of course       |
 | New Personal Best (`NEW_PERSONAL_BEST`)              | The best is read off the Leaderboard, which a Third Wind total dwarfs   |
 | Zero To Hero (`ZERO_TO_HERO`)                    | Three zeroes over 39 turns is the usual run of things                    |
@@ -553,15 +538,15 @@ Professional Roller counts Third Wind points, which are earned a turn at a time 
 Greenfingers grows over 117 rolls. The mode's own two: Gone With The Wind (`GONE_WITH_THE_WIND`, a win,
 multiplayer) and Third Time's The Charm (`THIRD_TIMES_THE_CHARM`), all 39 slots scored without a zero.
 
-### Third Wind: what it showed
+### Lessons for any audit
 
 - **Easier isn't free.** Landslide, Encore, Hat Trick and Dice Whisperer all come more easily over 39
-  turns but still need the dice, so they weren't guarded; the totals-based ones were, because any
+  turns but still need the dice, so they aren't guarded; the totals-based ones are, because any
   finished game passes them. Report the "easier" list to the user rather than deciding it alone.
-- **Prove a guard per guard.** One test covered both the score ladder and Upper/Lower Class; stripping
-  every guard at once made it fail, which proved nothing about each. Strip them one at a time.
-- **Count the thing, not its proxy.** Encore and Hat Trick read bonus chips, which equalled "2nd/3rd
-  5x" only while the 5x box had one slot. They now count `fiveOfAKindCount`.
+- **Prove a guard per guard.** Stripping every guard at once and watching one test fail proves nothing
+  about each. Strip them one at a time.
+- **Count the thing, not its proxy.** Bonus chips equal "2nd/3rd 5x" only while the 5x box has one slot;
+  `fiveOfAKindCount` is the 5x themselves.
 
 ### Hit List (twelve targets and the Alibi)
 
@@ -573,7 +558,7 @@ Points, partial hits included, are multiples of five.
 
 | Achievement                                           | Why                                                                      |
 |-------------------------------------------------------|--------------------------------------------------------------------------|
-| Solid Round ... Dice Deity (`SOLID_ROUND`-`500`)        | A total over a different card measures nothing - and 200 is an average game |
+| Solid Round ... Dice Deity (`SOLID_ROUND`-`DICE_DEITY`) | A total over a different card measures nothing - and 200 is an average game |
 | Cold Dice (`COLD_DICE`), Low Rolls (`LOW_ROLLS`) | A total under 100 is an ordinary run of misses (`hasStandardTotals`)    |
 | Zero To Hero (`ZERO_TO_HERO`)                         | Misses (and partial hits) are the usual run of things                     |
 | Spotless (`SPOTLESS`)                                | Partial hits leave under one zero a game                                  |
@@ -617,8 +602,7 @@ with the roll modifiers). CPU games (100 seeded): with the wildcards outside the
 
 Nothing guarded, nothing blocked. Déjà Vu (`DEJA_VU`) compares number *and* colour.
 Fresh Coat Of Paint counts the dice style as in any mode - Tricolour draws the player's style,
-recoloured per die (it once drew its own fixed coloured dice, and the dice style didn't count). How
-Do You Play This Game? needs the colour boxes zeroed too. See `DESIGN.md` Phase 14.
+recoloured per die. How Do You Play This Game? needs the colour boxes zeroed too.
 
 ## Tests
 
@@ -632,42 +616,40 @@ Where each kind of change is tested:
 | AI                             | `AiTurnPlayerTest`; `HandScoringTest` (Hard's copy of the joker rule); `StandardPerfectPlayTableTest` (the bundled table still matches Standard's rules) |
 | Achievement rules              | `AchievementEngineTest` - earned, and not in a loss, solo game or another mode; each guard        |
 | View-model flow, timers        | `GameViewModelTest`, `GameAchievementsWiringTest` (achievements through a real game)              |
-| Anything `GameScreen` drives   | A Robolectric test with the real screen and view model - `GameScreenAutoRollTest` is the pattern  |
-| Saved games                    | `GameStateJsonTest` (new per-game or per-die state round-trips; old saves still load)             |
+| Anything `GameScreen` drives   | A Robolectric test with the real screen and view model - `GameScreenCupGateTest` is the pattern   |
+| Saved games                    | `GameStateJsonTest` (new per-game or per-die state round-trips; a required field missing fails)   |
 
 Useful tools, and what tripped this work up:
 
 - **Scripted dice**: `LoadedDice` (every die one value), `ScriptedDice` (a fixed sequence) and
   `CountingDice` in `GameAchievementsWiringTest`; `FixedValueRandom` in `GameViewModelTest`. Pick
-  dice that make the mode's rule give a *different* answer from the old rule - a timeout test with
-  dice where "lowest" and "first open" pick the same box proves nothing.
+  dice that make the mode's rule give a *different* answer from the rule it replaces - a test whose
+  dice give the same answer under both proves nothing.
 - **Virtual time**: view-model tests run on a `StandardTestDispatcher`; pass it as `aiDispatcher`
   too, or the AI's work never runs. Use `advanceTimeBy` + `runCurrent` for timers.
   `advanceUntilIdle` in a timed game plays every turn out through timeouts.
 - **The screen harness**: `GameScreen` needs `LocalPlatformServices provides SilentPlatformServices`.
   The view model's coroutines delay on the Android main looper, which Robolectric keeps paused, so
   step it with `ShadowLooper.idleMainLooper(...)` alongside `compose.mainClock` - see
-  `GameScreenAutoRollTest.waitFor`.
+  `GameScreenCupGateTest.waitFor`.
 - **Only do what the UI allows.** The engine throws on impossible actions (a roll with none left, a
-  hold before rolling). A test calling `rollDice()` twice in a one-roll mode failed for that reason,
-  not because of a bug.
+  hold before rolling), so a test that does something the UI wouldn't fails for that reason, not
+  because of a bug.
 - **Work out expected values by hand before asserting.** A tie test assumed dice 1-2-3-4-5 scored
   above zero everywhere; Sixes scores 0.
 - **Timing constants**: a test that measures an AI turn's length should use `CUP_SHAKE_MILLIS`
   (internal) rather than a copied number.
 - **No commas or parentheses in `commonTest` test names** - Kotlin/Native rejects them (see
-  `IOS_SUPPORT.md`). Stud's first run broke the iOS compile on two of them; the JVM tests don't catch
-  it, only the root `testDebugUnitTest` does.
-- **Scorecards in tests**: `oneScoreEach(map)` (in `commonTest`) turns the old "a score or null per
-  box" map into the list-per-box scorecard, for tests of one-slot modes.
-- **A render that looks wrong may be right.** Third Wind's renders showed zeros in boxes that were never
-  scored - they were the roll's dimmed 0 *previews*, in the next open slot. Print the card alongside a
+  `IOS_SUPPORT.md`). The JVM tests don't catch it; only the root `testDebugUnitTest` does.
+- **Scorecards in tests**: `oneScoreEach(map)` (in `commonTest`) turns "a score or null per box" into
+  the list-per-box scorecard, for tests of one-slot modes.
+- **A render that looks wrong may be right.** A Third Wind render shows zeros in boxes never scored -
+  the roll's dimmed 0 *previews*, in the next open slot. Print the card alongside a
   render before chasing a bug. And re-run a scratch test with `--rerun`, then check the PNG's
   timestamp: Gradle skips an unchanged test, leaving the old picture in place.
 - **Measuring a board change's frame cost**: the frame loop in `BENCHMARKS.md`, plus a throwaway
   counter (a `var` on an `object`, bumped at the top of the composables in question) printed per frame,
-  shows *which* frames recompose what - Third Wind's showed only the tap and landing frames do, which
-  the timings alone couldn't.
+  shows *which* frames recompose what, which the timings alone can't.
 - **A tray screenshot for review**: a throwaway Robolectric test (native graphics, as every one is) with
   `@Config(qualifiers = "w411dp-h891dp-xxhdpi")`. It sets up `GameScreen` as in the screen harness,
   rolls with a scripted `Random`, holds, steps the clocks, then `onRoot().captureToImage()` to a PNG
@@ -677,8 +659,7 @@ Useful tools, and what tripped this work up:
 
 - This file: the mode table, the field map if a field was added, and the mode's section in the
   achievement audit.
-- `DESIGN.md`: the "Game modes" bullet under Decisions, the setup rules, the max-score line, the
-  achievement count, and a phase entry for the mode.
+- `DESIGN.md`: the "Game modes" table, the max-score line and the achievement count.
 - `UI.md`, if the board or a shared component changed.
 - Verify with `./gradlew assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin lint` (the
   root `testDebugUnitTest` also compiles the iOS code), then send the debug APK.

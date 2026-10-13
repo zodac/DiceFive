@@ -1,13 +1,14 @@
 # Reference docs
 
-- `.claude/DESIGN.md` — the build plan, game rules, and phase-by-phase log.
+- `.claude/DESIGN.md` — what the app is and how it works: the game rules, modes, modifiers, the CPU, persistence,
+  achievements, table art, the release pipeline, and the decisions behind them.
 - `.claude/UI.md` — how the interface is put together: the Material 3 colour system and how to
   regenerate it, the shared chrome in `ui/common/`, inset and layout rules, component
   conventions, the mandatory accessibility checklist for any UI change, the player-name cap and why
   it exists, and the gotchas worth not re-learning.
   Read this before changing anything visual.
 - `.claude/PUBLISHING.md` — Play Store submission requirements not covered by the build or by
-  `DESIGN.md`'s GitHub release pipeline (Phase 12), such as the store listing's separate hi-res
+  `DESIGN.md`'s GitHub release pipeline, such as the store listing's separate hi-res
   icon. Little in it is done yet (the in-app open-source licenses page is, the store descriptions are drafted, and its graphics are generated - see `STORE_ASSETS.md`); it's a running checklist for when that submission happens. It
   also records the app's own license (proprietary, all rights reserved - see `LICENSE`), why it was
   chosen, and how it must stay scoped to exclude third-party parts (the bundled font must stay OFL).
@@ -29,8 +30,8 @@
   visibly rest on something), painting heavy art once and off the frame, and the cup contract as a cup
   sees it. Read this before creating or reworking a style.
 - `.claude/BENCHMARKS.md` — how animation frame cost is measured without a device (Robolectric
-  harness, set-ups, pitfalls), the results for every dice, cup, mat and background style and the
-  Styles page, what was fixed, and what's still open. Only needed for performance work: a
+  harness, set-ups, pitfalls), the patterns that keep frames cheap, what each kind of art costs today, and
+  what's still open. Only needed for performance work: a
   reported stutter or slowdown, or new art that draws every frame.
 - `.claude/EMULATOR.md` — the Android emulator that boots on demand inside the sandbox
   (`sandbox/emulator.sh start|stop|status|screenshot`): running and debugging the Baseline Profile
@@ -40,8 +41,7 @@
 - `.claude/IOS_SUPPORT.md` — the iOS port via Kotlin Multiplatform + Compose Multiplatform: the
   `app/shared` (platform-neutral) / `app/android` module layout, what lives where (and why
   Android's platform code is in `app/android`), gotchas (e.g. no commas or parentheses in `commonTest` names), and what's left.
-  Phases 1-4 are done - the game, UI and persistence are shared and compile for iOS; the iOS app
-  itself (Phase 5) needs macOS.
+  The game, UI and persistence are shared and compile for iOS; the iOS app itself, still to come, needs macOS.
 - `.claude/PLAY_GAMES.md` — the proposal and phased plan (not yet built) for Google Play Games
   Services v2: sign-in kept apart from Player 1's name, mirroring achievements, a leaderboard per
   game mode, cloud save with automatic merging, Play Games Sidekick, the platform seam that keeps
@@ -50,7 +50,7 @@
 - `.claude/I18N.md` — the plan for moving every visible and spoken string into Compose resources
   (i18n) so a language can be added later (l10n): the decisions (plurals in `<plurals>` using
   Compose resources' bundled CLDR rules; ordinals, number grouping and lists through each
-  platform's formatter), string conventions, the guards, and the step-by-step status. It also sets
+  platform's formatter), string conventions, the guards, the shipped languages and how to add one. It also sets
   the rule of **no partial translations**: the app is wholly in a language it has a `values-xx` for
   (text, plurals, numbers, dates, layout direction, Android's own text), or wholly in English, left
   to right - and the licences stay English and left to right whatever the language. Read this
@@ -104,7 +104,7 @@
 
 - **`RELEASE_NOTES.md` is the maintainer's, not Claude's.** It holds their own summary of the next
   release, and becomes the top of the GitHub release description (above the grouped commit list -
-  see `DESIGN.md` Phase 12). Never create, edit, empty or rewrite it without the user's explicit
+  see `DESIGN.md`, "Release pipeline"). Never create, edit, empty or rewrite it without the user's explicit
   confirmation in the conversation - not even to "tidy" it, and not as a side effect of another
   change. A guard hook (`.claude/hooks/guard-release-notes.sh`, registered in
   `.claude/settings.json`) backs this up: a file edit aimed at it waits for a permission prompt, and

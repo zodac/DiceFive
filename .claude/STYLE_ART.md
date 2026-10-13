@@ -1,8 +1,8 @@
 # DiceFive: making table art (dice, cups, mats, backgrounds)
 
-How to design, draw, check and ship a new style, from the Maths, Gems and Treasure Chest work. What a
-style *is* (catalogs, families, locks) is in `UI.md` ("Style locks") and `DESIGN.md`; frame cost is in
-`BENCHMARKS.md`. This is the working method, plus the traps worth not re-learning.
+How to design, draw, check and ship a new style. What a style *is* (catalogs, families, ids, locks) is in `DESIGN.md`
+("Table art") and `UI.md` ("Style locks"); frame cost is in `BENCHMARKS.md`. This is the working method, plus the
+traps worth not re-learning.
 
 ---
 
@@ -17,10 +17,11 @@ style *is* (catalogs, families, locks) is in `UI.md` ("Style locks") and `DESIGN
 - **They care about frame cost.** Hundreds of live draws per frame will be refused even when the
   measurements are fine. Say plainly what's painted once and what's live, with counts.
 - **Unlocks:** when none is given, pick an unused `AchievementCount` (`StyleCatalogTest` keeps them
-  distinct and within the earnable count) and say which in the report. A style tied to an easter egg
-  is `StyleUnlock.SpecificAchievement` - secret, hidden until earned - and the achievement's star and
-  tooltip follow automatically from `styleRewards`.
-- **Style over realism, where asked:** the realistic gems were "too real"; what shipped is flat facet
+  within the earnable count) and say which in the report. A style earned by one achievement is
+  `StyleUnlock.SpecificAchievement` (shown padlocked until then); a colour kept secret until its
+  achievement is earned carries `StyleColour.secretAchievement` (not offered at all until then). Either way the
+  achievement's star and tooltip follow automatically from `styleRewards`.
+- **Style over realism, where asked:** the maintainer judged realistic gems "too real"; the Gems dice are flat facet
   tones, ink outlines and a crisp highlight. Offer the stylised version when realism is ambiguous.
 
 ## Rendering without a device
@@ -45,7 +46,7 @@ class ArtScratch {
 ```
 
 - **Always set a phone width.** The default screen is 320dp; a row of six 50dp dice overflows it
-  and the last die is silently squeezed into a sliver - which looked like a bug in the die.
+  and the last die is silently squeezed into a sliver, which looks like a bug in the die.
 - **Animations:** `compose.mainClock.autoAdvance = false`, change state with
   `compose.runOnIdle { x = y; Snapshot.sendApplyNotifications() }`, step with
   `mainClock.advanceTimeBy(ms)`, capture each step, and stitch the captures into one labelled sheet
@@ -108,11 +109,11 @@ colour - `grep` for `Color.Green`/`Magenta` before committing.
 - **Things must visibly rest on something.** Floating was the most repeated complaint: a lid with no
   hinge, coins over a flat fill, a pile above the walls. Hinges, contact shadows, shadows shaped like
   the object's footprint (not a generic oval), and edges that meet at corners all matter.
-- **Simulate rather than place.** Coins placed by a height formula always looked like they hovered,
-  however the gaps were patched. A seeded drop simulation (`settlePile`) fixed it at once: each piece
+- **Simulate rather than place.** Pieces placed by a height formula look like they hover, however the gaps
+  are patched; a seeded drop simulation (`settlePile`) doesn't: each piece
   lands on the highest point under its footprint and rolls downhill past a repose slope. Traps: a
   piece's tilt and roll check must sample the surface *outside* its own footprint (inside, the last
-  piece there already raised it - nothing ever rolled, and the coins built a tower), and the roll
+  piece there has already raised it, so nothing rolls and the pieces build a tower), and the roll
   check must use where the piece will actually rest, not the ground under its centre. Print peak
   height and counts from the simulation while tuning - it's quicker than reading renders.
 - **Natural variety:** seed per face and per die with `naturalPatternSeed(value)` (uses
@@ -136,12 +137,12 @@ colour - `grep` for `Color.Green`/`Magenta` before committing.
   per key and size, stamped after. The key must capture everything the painting depends on except
   size. The chest's body, its shadow included, is one.
 - **Very heavy one-time painting** (the chest's several-hundred-coin pile) must not happen on the frame
-  it first shows: resuming a game with the chest open hitched for ~160ms. Pattern
+  it first shows: done there, resuming a game with the chest open hitches for ~160ms. Pattern
   (`rememberHoardArt`): `produceState` + `withContext(Dispatchers.Default)` painting into an
   `ImageBitmap` via `CanvasDrawScope().draw(...)`, kept in a small main-thread map by (style, size),
   with a cheap stand-in drawn until it's ready. Start it only when it's needed (first shake, or
   already open) - never for a Styles preview that's merely shown (picking a cup there shakes and tips it, which counts) - and wrap it in `runCatching`, keeping the stand-in on
-  failure: Robolectric's legacy graphics mode (most UI tests) can't create the bitmap, and an uncaught
+  failure: an environment that can't create the bitmap must not take the screen down, and an uncaught
   failure in a `produceState` crashes the whole screen.
 - **Live per frame:** only what moves - a lid, a burst, a dozen top pieces. Say the count.
 - **Measure** with the frame loop in `BENCHMARKS.md` against an existing style in the same run, and
@@ -170,12 +171,13 @@ colour - `grep` for `Color.Green`/`Magenta` before committing.
 ## Shipping a style
 
 1. Add the style class (or colours of an existing one) and its `StyleFamily` in `StyleCatalog.kt`
-   (unlock as above). `StyleCatalogTest`'s invariants cover ids, counts and secret-style rules; add a
-   test for anything special (a secret unlock, a reward description).
+   (unlock as above). Its id is the family's string key then the colour's (`style_family_glitter` +
+   `style_colour_gold` is `glitter_gold`), and permanent once released. `StyleCatalogTest`'s invariants cover ids,
+   counts and secret-style rules; add a test for anything special (a secret unlock, a reward description).
 2. Render every state for review; iterate.
 3. Measure frame cost if it draws every frame or paints anything heavy; record it in `BENCHMARKS.md`.
 4. Accessibility: the tile reads "Family, Colour"; the tray and cup announce values and rolls
    regardless of style - say so in the report, and that it wasn't heard on a device.
-5. Note the style in `DESIGN.md`, and any reduced-motion behaviour in `UI.md`.
-6. Delete the scratch tests, run `:app:shared:testAndroid :app:android:testDebugUnitTest
-   :app:android:lintDebug :app:android:assembleDebug`, send the APK.
+5. Note anything a later change must know (a secret unlock, an easter egg) in `DESIGN.md`'s "Table art", and any
+   reduced-motion behaviour in `UI.md`.
+6. Delete the scratch tests, run `./gradlew testDebugUnitTest lint assembleDebug`, send the APK.
