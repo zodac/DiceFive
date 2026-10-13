@@ -30,6 +30,10 @@ data class GameState(
      * the countdown up where it stopped; null - the full [turnSeconds] - everywhere else. Only ever
      * set on the saved copy, never on the live game. */
     val turnSecondsLeft: Int? = null,
+    /** The box an undo took back that hasn't yet been followed by a score, so a resumed game still knows it (see
+     * `AchievementTracker`'s I Didn't Mean That); null everywhere else. Only ever set on the saved copy, never on the
+     * live game. */
+    val undoneCategory: ScoreCategory? = null,
 ) {
 
     /** Rolls a turn allows before any stored rolls: the Number of Rolls modifier's, else the mode's. */

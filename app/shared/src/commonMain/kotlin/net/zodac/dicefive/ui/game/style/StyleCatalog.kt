@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontFamily
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.settings.DefaultStyleIds
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.DieColour
 import net.zodac.dicefive.model.FLOWERPOT_FULL_BLOOM
@@ -319,7 +320,7 @@ private fun classicDie(id: String, colour: DieColour): StyleColour<DiceStyle> =
         colour.palette.swatch, ColouredClassicDiceStyle(id, colour.palette))
 
 /** Every category's catalog, in the Styles screen's order. */
-val StyleCatalogs: List<StyleCatalog<*>> by lazy { listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds, ScoreFrames) }
+val StyleCatalogs: List<StyleCatalog<*>> by lazy { StyleCategory.entries.map { it.catalog } }
 
 object DiceStyles : StyleCatalog<DiceStyle>(
     Res.string.style_noun_dice,
@@ -749,7 +750,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
  * new player's first cup is the one on the icon.
  */
 val ClassicGoldDiceCupStyle: DiceCupStyle = CasinoDiceCupStyle(
-    "classic_gold",
+    DefaultStyleIds.DICE_CUP,
     CupPalette(dark = Color(0xFF7A5A26), light = Color(0xFFEBC77F), mid = CupRimGold, accent = Color(0xFFE6C278), interior = DicePipColor),
     band = FeltNavyBottom,
 )

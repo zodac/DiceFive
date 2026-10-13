@@ -23,3 +23,6 @@ data class Die(
     val isUnlucky: Boolean = false,
     val isGolden: Boolean = false,
 )
+
+/** The indices of the held dice. */
+fun List<Die>.heldIndices(): Set<Int> = indices.filterTo(mutableSetOf()) { this[it].isHeld }

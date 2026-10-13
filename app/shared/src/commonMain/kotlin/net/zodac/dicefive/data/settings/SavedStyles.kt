@@ -17,8 +17,8 @@ data class SavedStyles(
     val tableBackgroundId: String,
     val diceMatId: String,
     val achievements: AchievementsState,
-    // Last, with ScoreFrames.default's id, as it came after the other four.
-    val scoreFrameId: String = "classic_ring",
+    // Last, with the default frame's id, as it came after the other four.
+    val scoreFrameId: String = DefaultStyleIds.SCORE_FRAME,
     /** The size the Styles page's cards fit its screen at, as the Styles screen saved it - null until it's measured. */
     val stylesPageFit: String? = null,
 )

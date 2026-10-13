@@ -15,6 +15,7 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerColour
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
+import net.zodac.dicefive.model.storedIdOf
 import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.model.TurnTimer
 
@@ -44,13 +45,13 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         fun playerNameFor(slot: Int): String? = prefs[playerNameKey(slot)]
 
         fun playerTypeFor(slot: Int): PlayerType? =
-            prefs[playerTypeKey(slot)]?.let { raw -> runCatching { PlayerType.valueOf(raw) }.getOrNull() }
+            prefs[playerTypeKey(slot)]?.let { storedIdOf<PlayerType>(it) }
 
         fun playerDifficultyFor(slot: Int): Difficulty? =
-            prefs[playerDifficultyKey(slot)]?.let { raw -> runCatching { Difficulty.valueOf(raw) }.getOrNull() }
+            prefs[playerDifficultyKey(slot)]?.let { storedIdOf<Difficulty>(it) }
 
         fun playerColourFor(slot: Int): PlayerColour? =
-            prefs[playerColourKey(slot)]?.let { raw -> runCatching { PlayerColour.valueOf(raw) }.getOrNull() }
+            prefs[playerColourKey(slot)]?.let { storedIdOf<PlayerColour>(it) }
 
         val playerCount: Int? get() = prefs[PLAYER_COUNT_KEY]
 
@@ -95,19 +96,19 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     fun playerTypeFor(slot: Int): Flow<PlayerType?> = readSnapshot { it.playerTypeFor(slot) }
 
     suspend fun setPlayerType(slot: Int, type: PlayerType) {
-        dataStore.edit { it[playerTypeKey(slot)] = type.name }
+        dataStore.edit { it[playerTypeKey(slot)] = type.id }
     }
 
     fun playerDifficultyFor(slot: Int): Flow<Difficulty?> = readSnapshot { it.playerDifficultyFor(slot) }
 
     suspend fun setPlayerDifficulty(slot: Int, difficulty: Difficulty) {
-        dataStore.edit { it[playerDifficultyKey(slot)] = difficulty.name }
+        dataStore.edit { it[playerDifficultyKey(slot)] = difficulty.id }
     }
 
     fun playerColourFor(slot: Int): Flow<PlayerColour?> = readSnapshot { it.playerColourFor(slot) }
 
     suspend fun setPlayerColour(slot: Int, colour: PlayerColour) {
-        dataStore.edit { it[playerColourKey(slot)] = colour.name }
+        dataStore.edit { it[playerColourKey(slot)] = colour.id }
     }
 
     val playerCount: Flow<Int?> = readSnapshot { it.playerCount }
@@ -203,43 +204,42 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
 
     /** The player's "Animations" level - see [AnimationLevel]. */
     val animationLevel: Flow<AnimationLevel> = read { prefs ->
-        prefs[ANIMATION_LEVEL_KEY]?.let { raw -> runCatching { AnimationLevel.valueOf(raw) }.getOrNull() } ?: AnimationLevel.default
+        prefs[ANIMATION_LEVEL_KEY]?.let { storedIdOf<AnimationLevel>(it) } ?: AnimationLevel.default
     }
 
     suspend fun setAnimationLevel(level: AnimationLevel) {
-        dataStore.edit { it[ANIMATION_LEVEL_KEY] = level.name }
+        dataStore.edit { it[ANIMATION_LEVEL_KEY] = level.id }
     }
 
     // Style ids, not the ui.game.style types themselves - this is the data layer, and resolving an
     // id to a concrete DiceStyle/DiceCupStyle/TableBackground is the Styles screen's job (via its
-    // catalog). The literal defaults below must match ui.game.style's DiceStyles/DiceCupStyles/
-    // TableBackgrounds/DiceMats/ScoreFrames.default ids.
-    val diceStyleId: Flow<String> = read { prefs -> prefs[DICE_STYLE_ID_KEY] ?: "classic_ivory" }
+    // catalog). The defaults are DefaultStyleIds, which the default styles themselves are given.
+    val diceStyleId: Flow<String> = read { prefs -> prefs[DICE_STYLE_ID_KEY] ?: DefaultStyleIds.DICE }
 
     suspend fun setDiceStyleId(id: String) {
         dataStore.edit { it[DICE_STYLE_ID_KEY] = id }
     }
 
-    val diceCupStyleId: Flow<String> = read { prefs -> prefs[DICE_CUP_STYLE_ID_KEY] ?: "classic_gold" }
+    val diceCupStyleId: Flow<String> = read { prefs -> prefs[DICE_CUP_STYLE_ID_KEY] ?: DefaultStyleIds.DICE_CUP }
 
     suspend fun setDiceCupStyleId(id: String) {
         dataStore.edit { it[DICE_CUP_STYLE_ID_KEY] = id }
     }
 
-    val tableBackgroundId: Flow<String> = read { prefs -> prefs[TABLE_BACKGROUND_ID_KEY] ?: "classic_navy" }
+    val tableBackgroundId: Flow<String> = read { prefs -> prefs[TABLE_BACKGROUND_ID_KEY] ?: DefaultStyleIds.TABLE_BACKGROUND }
 
     suspend fun setTableBackgroundId(id: String) {
         dataStore.edit { it[TABLE_BACKGROUND_ID_KEY] = id }
     }
 
-    val diceMatId: Flow<String> = read { prefs -> prefs[DICE_MAT_ID_KEY] ?: "classic_blue" }
+    val diceMatId: Flow<String> = read { prefs -> prefs[DICE_MAT_ID_KEY] ?: DefaultStyleIds.DICE_MAT }
 
     suspend fun setDiceMatId(id: String) {
         dataStore.edit { it[DICE_MAT_ID_KEY] = id }
     }
 
-    // The frame round the player whose turn it is - "classic_ring" is ScoreFrames.default's id.
-    val scoreFrameId: Flow<String> = read { prefs -> prefs[SCORE_FRAME_ID_KEY] ?: "classic_ring" }
+    // The frame round the player whose turn it is.
+    val scoreFrameId: Flow<String> = read { prefs -> prefs[SCORE_FRAME_ID_KEY] ?: DefaultStyleIds.SCORE_FRAME }
 
     suspend fun setScoreFrameId(id: String) {
         dataStore.edit { it[SCORE_FRAME_ID_KEY] = id }

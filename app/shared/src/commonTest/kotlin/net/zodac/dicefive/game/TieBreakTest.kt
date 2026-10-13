@@ -90,5 +90,11 @@ class TieBreakTest {
 
         val standard = PlayerState(name = "Player", type = PlayerType.HUMAN, gameMode = GameMode.STANDARD, scorecard = GameMode.STANDARD.categories.associateWith { listOf(0) })
         assertNull(standard.toTieBreakStats().tricolourScoredCount)
+
+        // Read off the card: only a mode with colour boxes has the count at all - Tricolour, today.
+        for (mode in GameMode.entries) {
+            val player = PlayerState(name = "Player", type = PlayerType.HUMAN, gameMode = mode, scorecard = mode.categories.associateWith { listOf(0) })
+            assertEquals(mode == GameMode.TRICOLOUR, player.toTieBreakStats().tricolourScoredCount != null, mode.id)
+        }
     }
 }

@@ -50,7 +50,6 @@ data class ScoresUiState(
     val entries: List<ScoreEntry> = emptyList(),
     val pageIndex: Int = 0,
     val totalCount: Int = 0,
-    val isLoading: Boolean = false,
     /** Whether the first page has been read yet - until then an empty [entries] means "not known
      * yet", not "no scores", and the screen shows neither the list nor its empty message. */
     val isLoaded: Boolean = false,
@@ -111,11 +110,10 @@ class ScoresViewModel(
     private fun loadPage(pageIndex: Int) {
         val repository = scoreRepository ?: return
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
             val entries = repository.page(pageIndex)
             val totalCount = repository.totalCount()
             _uiState.update {
-                it.copy(entries = entries, pageIndex = pageIndex, totalCount = totalCount, isLoading = false, isLoaded = true)
+                it.copy(entries = entries, pageIndex = pageIndex, totalCount = totalCount, isLoaded = true)
             }
         }
     }

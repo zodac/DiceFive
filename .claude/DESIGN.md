@@ -47,8 +47,9 @@ All numbers here are Standard's. Each comes from the game's `GameMode`.
 - **A turn** starts with 5 dice, 3 rolls and nothing held. A roll rolls every unheld die.
 - **One roll path.** Every roll, human or CPU, lands through `GameViewModel.performRoll` after the cup has shaken for
   `CUP_SHAKE_MILLIS`.
-  - A human's roll comes from the cup tap (`onCupTap`): a finger or a phone shake.
-  - A CPU's roll comes from its own turn loop.
+  - A human's roll comes from the cup tap (`onCupTap`): a finger or a phone shake, which calls
+    `GameViewModel.shakeAndRoll`.
+  - A CPU's roll comes from its own turn loop. Both shakes are timed in the view model and pause with the game.
   - A tap while a roll is shaking or landing is ignored.
 - **Holding** toggles a die once the turn has rolled. It's still allowed after the last roll: it does nothing then,
   but disabled dice looked broken.
@@ -242,7 +243,8 @@ will map to Play Games.
     or the dice and chosen box together (Wasted Fortune, Size Isn't Everything, Almost Famous, The Dice Hate Me,
     Commitment Issues).
   - `evaluate` at game end: everything else, and every counter.
-  - A `Mutex` in `GameViewModel` serialises them all, so nothing is announced twice.
+  - Every unlock goes through `AchievementUnlocker`, whose locks (its own and the store's `locked`) serialise them
+    all across screens, so nothing is announced twice.
 - **Modes.** Each mode's own achievements are in the Game Modes category. Achievements a mode would make trivial are
   guarded (`GAME_MODES_AUDIT.md`).
 - **Display.**

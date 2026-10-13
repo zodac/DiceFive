@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.AppContainer
@@ -19,16 +18,10 @@ import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.data.settings.SettingsRepository
-import net.zodac.dicefive.game.AchievementEngine
-import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.online.OnlineSettingsRepository
-import net.zodac.dicefive.ui.achievements.announce
-import net.zodac.dicefive.ui.game.style.DiceCupStyles
-import net.zodac.dicefive.ui.game.style.DiceMats
-import net.zodac.dicefive.ui.game.style.DiceStyles
-import net.zodac.dicefive.ui.game.style.ScoreFrames
-import net.zodac.dicefive.ui.game.style.TableBackgrounds
+import net.zodac.dicefive.ui.achievements.AchievementUnlocker
+import net.zodac.dicefive.ui.game.style.StyleCategory
 
 /** The Settings screen's switches and its animation level, as saved. */
 data class SettingsToggles(
@@ -104,19 +97,14 @@ class SettingsViewModel(
         viewModelScope.launch { repository.setAnimationLevel(level) }
     }
 
+    private val achievementUnlocker = achievementsRepository?.let(::AchievementUnlocker)
+
     /** Backs the one achievement this screen itself can earn - opening the About dialog
      * ("Who Made This?"). Same fire-and-check-once pattern as
      * [net.zodac.dicefive.ui.menu.MenuViewModel.onDiceTapped]. */
     fun onAboutViewed() {
-        val repository = achievementsRepository ?: return
-        viewModelScope.launch {
-            val before = repository.current()
-            val update = AchievementEngine.unlockNow(setOf(Achievement.WHO_MADE_THIS), before, nowEpochMillis())
-            if (update.isEmpty) return@launch
-            // Stored before it's announced, so a banner can never outlive its unlock.
-            repository.record(update.unlockedAt(), update.counters)
-            announce(update)
-        }
+        val unlocker = achievementUnlocker ?: return
+        viewModelScope.launch { unlocker.unlock(setOf(Achievement.WHO_MADE_THIS)) }
     }
 
     /**
@@ -136,11 +124,9 @@ class SettingsViewModel(
 
     private suspend fun resetLockedStylePicks(settings: SettingsRepository) {
         val none = AchievementsState()
-        if (!DiceStyles.isUnlocked(settings.diceStyleId.first(), none)) settings.setDiceStyleId(DiceStyles.default.id)
-        if (!DiceCupStyles.isUnlocked(settings.diceCupStyleId.first(), none)) settings.setDiceCupStyleId(DiceCupStyles.default.id)
-        if (!TableBackgrounds.isUnlocked(settings.tableBackgroundId.first(), none)) settings.setTableBackgroundId(TableBackgrounds.default.id)
-        if (!DiceMats.isUnlocked(settings.diceMatId.first(), none)) settings.setDiceMatId(DiceMats.default.id)
-        if (!ScoreFrames.isUnlocked(settings.scoreFrameId.first(), none)) settings.setScoreFrameId(ScoreFrames.default.id)
+        for (category in StyleCategory.entries) {
+            if (!category.catalog.isUnlocked(category.savedId(settings).first(), none)) category.saveId(settings, category.catalog.default.id)
+        }
     }
 
     /**

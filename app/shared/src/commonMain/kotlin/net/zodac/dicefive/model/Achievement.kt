@@ -222,12 +222,12 @@ import org.jetbrains.compose.resources.StringResource
  * A device-wide running total that one or more [Achievement]s are measured against. Shared rather
  * than per-achievement so "finish 10 / 50 / 100 games" is one stored number, not three.
  */
-enum class AchievementCounter {
-    GAMES_PLAYED,
-    GAMES_WON,
-    WIN_STREAK,
-    SCORED_5X,
-    DICE_ROLLED,
+enum class AchievementCounter(override val id: String) : StoredId {
+    GAMES_PLAYED("GAMES_PLAYED"),
+    GAMES_WON("GAMES_WON"),
+    WIN_STREAK("WIN_STREAK"),
+    SCORED_5X("SCORED_5X"),
+    DICE_ROLLED("DICE_ROLLED"),
 }
 
 /**

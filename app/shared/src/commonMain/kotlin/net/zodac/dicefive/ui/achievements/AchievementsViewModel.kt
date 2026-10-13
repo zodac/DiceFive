@@ -24,7 +24,6 @@ import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.LeaderboardTotals
-import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
 
@@ -89,6 +88,8 @@ class AchievementsViewModel(
     // corrupt a shared counter or seed the leaderboard with fake rows.
     private val superuserProgressOverride = MutableStateFlow<Map<Achievement, Int>>(emptyMap())
 
+    private val achievementUnlocker = achievementsRepository?.let(::AchievementUnlocker)
+
     private val _toastMessages = Channel<String>(Channel.BUFFERED)
     val toastMessages: Flow<String> = _toastMessages.receiveAsFlow()
 
@@ -105,11 +106,6 @@ class AchievementsViewModel(
         scoreRepository?.let { repository ->
             viewModelScope.launch { leaderboard.value = repository.leaderboardTotals() }
         }
-    }
-
-    fun resetAll() {
-        val repository = achievementsRepository ?: return
-        viewModelScope.launch { repository.resetAll() }
     }
 
     /** The unlocked-count banner's tap-5-times entry point into superuser mode. */
@@ -142,9 +138,9 @@ class AchievementsViewModel(
             val before = repository.current()
             when {
                 before.isUnlocked(achievement) -> if (tickCount == 1) forceLock(repository, achievement)
-                !achievement.hasProgressBar -> if (tickCount == 1) forceUnlock(repository, achievement, before)
-                tickCount >= SUPERUSER_FORCE_UNLOCK_TICKS -> forceUnlock(repository, achievement, before)
-                else -> bumpProgress(repository, achievement, before)
+                !achievement.hasProgressBar -> if (tickCount == 1) forceUnlock(achievement)
+                tickCount >= SUPERUSER_FORCE_UNLOCK_TICKS -> forceUnlock(achievement)
+                else -> bumpProgress(achievement, before)
             }
         }
     }
@@ -166,11 +162,7 @@ class AchievementsViewModel(
             val before = repository.current()
             val locked = Achievement.entries.filterNot(before::isUnlocked)
             if (locked.isNotEmpty()) {
-                val update = AchievementEngine.unlockNow(locked.toSet(), before, nowEpochMillis())
-                if (!update.isEmpty) {
-                    repository.record(update.unlockedAt(), update.counters)
-                    announce(update)
-                }
+                achievementUnlocker?.unlock(locked.toSet())
             } else {
                 Achievement.entries.forEach { repository.forceLock(it) }
             }
@@ -183,15 +175,12 @@ class AchievementsViewModel(
         superuserProgressOverride.value -= achievement
     }
 
-    private suspend fun forceUnlock(repository: AchievementStore, achievement: Achievement, before: AchievementsState) {
-        val update = AchievementEngine.unlockNow(setOf(achievement), before, nowEpochMillis())
-        if (update.isEmpty) return
-        repository.record(update.unlockedAt(), update.counters)
-        announce(update)
+    private suspend fun forceUnlock(achievement: Achievement) {
+        if (achievementUnlocker?.unlock(setOf(achievement))?.isEmpty != false) return
         superuserProgressOverride.value -= achievement
     }
 
-    private fun bumpProgress(repository: AchievementStore, achievement: Achievement, before: AchievementsState) {
+    private fun bumpProgress(achievement: Achievement, before: AchievementsState) {
         val overrides = superuserProgressOverride.value
         val baseProgress = AchievementEngine.progressOf(achievement, before.counters, leaderboard.value ?: LeaderboardTotals())
         val previousOverride = overrides[achievement] ?: 0
@@ -202,7 +191,7 @@ class AchievementsViewModel(
         if (current >= achievement.target) {
             // The unlock banner says it all - same reason AchievementEngine.progressEvent()
             // suppresses a progress event once an achievement is about to be reported unlocked.
-            viewModelScope.launch { forceUnlock(repository, achievement, before) }
+            viewModelScope.launch { forceUnlock(achievement) }
         } else if (current > previous) {
             AchievementEvents.emit(AchievementEvent.Progressed(achievement, previous, current))
         }

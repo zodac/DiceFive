@@ -505,7 +505,7 @@ object AiTurnPlayer {
         private val fiveScored = scoring.fiveOfAKindScored(player)
         private val upperTotal = player.cappedUpperTotal()
         // The bundled table is Standard's own card, so the extra boxes put a game outside it.
-        private val table = perfectPlay.takeIf { mode == GameMode.STANDARD && !player.extendedScores }
+        private val table = perfectPlay.takeIf { mode.playsByPerfectPlayTable(player.extendedScores) }
         private val baseline = CATEGORY_BASELINES.getValue(card).value
 
         /**

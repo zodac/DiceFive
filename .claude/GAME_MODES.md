@@ -42,7 +42,7 @@ When a new rule adds a field, add it here.
 |---|---|
 | `diceCount`, `dieValues`, `dieColours` | `GameEngine.newGame`/`rollDice`/`cycleDieValue`, `DiceTray` (incl. the rolling scramble and `recoloured`), `AiTurnPlayer` |
 | `scoringDiceCount` (`scoresHeldDiceOnly`) | `GameState.scoringDice`/`hasFullHand` (preview, `commitScore`); `GameEngine.toggleHold`/`canHold`/`fillHand` (`Die.heldSlot`); `DiceTray` (`SlottedDice`); `AiTurnPlayer` (`RollSpace`, `chooseHand`); the timeout; achievements on a roll (guarded) or a hand (`scoringDice`); A Cunning Strategy's "all five" |
-| `rollsPerTurn` (the game's own: `GameState.rollsPerTurn`, the Number of Rolls modifier else this) | `GameEngine` turn reset and the `GameState` default `rollsRemaining` (the cup's `xN`, the AI loop); `GameViewModel`'s `fullRolls`/`rollsRemainingAfter*`; Impatient/Naturally Gifted's guard |
+| `rollsPerTurn` (the game's own: `GameState.rollsPerTurn`, the Number of Rolls modifier else this) | `GameEngine` turn reset and the `GameState` default `rollsRemaining` (the cup's `xN`, the AI loop); `AchievementTracker`'s `fullRolls`/`rollsRemainingAfter*`; Impatient/Naturally Gifted's guard |
 | `categories` (a game's card: `categoriesWith(extendedScores)`, read as `PlayerState.categories`) | `PlayerState` (card, totals, completeness), `ScoreCalculator`, `ScoreGrid`, `GameStateJson`, `AiTurnPlayer` baselines, How Do You Play This Game? |
 | `upperBonus*`, `fiveOfAKindBonusAmount` | `PlayerState` totals, `ScoreCalculator`, the 5x tile's bonus preview |
 | `disabledCategories`, `randomUpper/LowerDisabledCategories` (a game's set: `GameState`/`PlayerState.disabledCategories`, drawn in `GameEngine.newGame`) | `PlayerState.isOpen` (so `ScoreCalculator`, `HandScoring.filledMask`, the AI skip them), `turnsPerGame`, `upperBonusThreshold`/`hasUpperBonus`, `GameStateJson`, `CategoryCell`/`CategoryTile`, guards (`hasFullCard`) |
@@ -54,6 +54,7 @@ When a new rule adds a field, add it here.
 | `hitListShapes` (`hasHitList`; a game's targets: `GameState`/`PlayerState.hitList`, drawn in `newGame`) | `ScoreCalculator.scoreFor` (`DiceScoring` refuses them), `GameStateJson`, `AiTurnPlayer` (hands the turn to `HitListPlay`; `prepareHard` does nothing), `CategoryCell`/`CategoryIcon`, guards and Right On Target |
 | `sectionBonuses` (`SectionBonus`) | `PlayerState.sectionBonusTotal`/`hasSectionBonus`, Hard's bonus stake, Critical Success, the Totals Bonus line |
 | `allowsExtendedScores` | `categoriesWith`, `GameEngine.newGame`, `GameViewModel.startGame`, the setup screen's locked row |
+| `hasPerfectPlayTable` (`playsByPerfectPlayTable(extendedScores)`) | `AiTurnPlayer` (Hard's table), `GameViewModel` (reading the table ahead, `perfectPlayFor`) |
 
 ## What kind of mode is it?
 
@@ -290,7 +291,7 @@ option needs work:
 - **Judging.**
   - `earnedDuringPlay` if a scorecard mid-game settles it; `earnedBy` if it needs the finished game.
   - If it needs something the final state can't show, add a field to `GameAchievementContext`, tracked in
-    `GameViewModel`: a `private var`, reset in `resetAchievementTracking`, passed in `recordEndOfGameAchievements`.
+    `game/AchievementTracker`: a `private var`, reset in `startGame`, passed in `endOfGameContext`.
   - Prefer counts to flags. Track only player 1's turns.
 - **Timeouts.** An unrolled timeout scores a zero with no roll, so a card can be zeroed by doing nothing.
   - `playerOneTimeouts` must be 0 for How Do You Play This Game?, Rock Bottom, Low Rolls, Cold Dice, Impatient and

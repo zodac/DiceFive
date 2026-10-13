@@ -1,6 +1,5 @@
 package net.zodac.dicefive.game
 
-import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
@@ -57,11 +56,9 @@ fun PlayerState.toTieBreakStats(): TieBreakStats = TieBreakStats(
     score = totalScore,
     fiveOfAKindCount = fiveOfAKindCount,
     zeroedCategoryCount = allScores.count { it == 0 },
-    tricolourScoredCount = if (gameMode == GameMode.TRICOLOUR) {
-        gameMode.categories.filter { it.section == ScoreSection.COLOUR }.sumOf { category -> scoresIn(category).count { it > 0 } }
-    } else {
-        null
-    },
+    // Only a card with colour boxes (Tricolour's) has a count; on any other it stays null, not 0.
+    tricolourScoredCount = gameMode.categories.filter { it.section == ScoreSection.COLOUR }.takeIf { it.isNotEmpty() }
+        ?.sumOf { category -> scoresIn(category).count { it > 0 } },
     upperSectionTotal = upperSectionTotal,
     chance = scoresIn(ScoreCategory.CHANCE).sum(),
     threeOfAKind = scoresIn(ScoreCategory.THREE_OF_A_KIND).sum(),

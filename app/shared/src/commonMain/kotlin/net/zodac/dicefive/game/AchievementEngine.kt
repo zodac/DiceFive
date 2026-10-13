@@ -18,7 +18,7 @@ import net.zodac.dicefive.model.isPhilWoodward
 
 /**
  * The parts of a finished game that aren't recoverable from its final [GameState], collected live
- * by `GameViewModel` while the game is played.
+ * by [AchievementTracker] while the game is played.
  */
 data class GameAchievementContext(
     /** Player 1's own best leaderboard score (by name) *before* this game's rows were inserted, or

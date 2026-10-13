@@ -406,6 +406,74 @@ class GameViewModelTest {
         laterTurn.holdSequence()
         assertTrue(laterTurn.superuserModeActive.value)
     }
+
+    @Test
+    fun `a cup tap shakes for the cup's time before its roll lands - once however often it's tapped - and pauses with the game`() = runTest(testDispatcher) {
+        val viewModel = started()
+        fun rollsLeft() = viewModel.game.value!!.rollsRemaining
+        /** Moves the clock on by [millis] and runs whatever is due then. */
+        fun wait(millis: Long) {
+            advanceTimeBy(millis)
+            runCurrent()
+        }
+
+        viewModel.shakeAndRoll()
+        viewModel.shakeAndRoll()
+        runCurrent()
+        assertTrue(viewModel.tapRolling.value, "the cup shakes from the tap")
+        wait(CUP_SHAKE_MILLIS - 1)
+        assertEquals(TurnPhase.AWAITING_ROLL, viewModel.game.value!!.phase, "nothing lands before the shake is done")
+        wait(1)
+        assertEquals(TurnPhase.ROLLED, viewModel.game.value!!.phase)
+        assertEquals(2, rollsLeft(), "the second tap mid-shake was ignored")
+        assertFalse(viewModel.tapRolling.value)
+
+        // Off screen, the shake waits, and starts its full length again on return - as a CPU's does.
+        viewModel.shakeAndRoll()
+        runCurrent()
+        viewModel.setForeground(false)
+        wait(CUP_SHAKE_MILLIS * 10)
+        assertEquals(2, rollsLeft())
+        viewModel.setForeground(true)
+        wait(CUP_SHAKE_MILLIS - 1)
+        assertEquals(2, rollsLeft())
+        wait(1)
+        assertEquals(1, rollsLeft())
+
+        // The same while the leave-game confirmation is up.
+        viewModel.shakeAndRoll()
+        runCurrent()
+        viewModel.setHeld(true)
+        wait(CUP_SHAKE_MILLIS * 10)
+        assertEquals(1, rollsLeft())
+        viewModel.setHeld(false)
+        wait(CUP_SHAKE_MILLIS)
+        assertEquals(0, rollsLeft())
+
+        // With no roll left, a tap doesn't shake at all.
+        viewModel.shakeAndRoll()
+        runCurrent()
+        assertFalse(viewModel.tapRolling.value)
+    }
+
+    @Test
+    fun `a shake whose turn is scored before it lands is dropped - it never rolls for the turn after`() = runTest(testDispatcher) {
+        val viewModel = started()
+        viewModel.takeATurn()
+        viewModel.shakeAndRoll()
+        runCurrent()
+        assertTrue(viewModel.tapRolling.value)
+
+        // Undo takes the score back mid-shake: the turn the shake was for is gone.
+        viewModel.undo()
+        runCurrent()
+        advanceTimeBy(CUP_SHAKE_MILLIS * 2)
+        runCurrent()
+        assertFalse(viewModel.tapRolling.value)
+        val restored = viewModel.game.value!!
+        assertEquals(0, restored.scoresEntered)
+        assertEquals(2, restored.rollsRemaining, "the dropped shake didn't roll the restored turn")
+    }
 }
 
 /** Dice that always land on [value] - lets a test force a specific roll deterministically. */

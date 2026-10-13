@@ -1,6 +1,6 @@
 package net.zodac.dicefive.model
 
-enum class PlayerType {
-    HUMAN,
-    AI,
+enum class PlayerType(override val id: String) : StoredId {
+    HUMAN("HUMAN"),
+    AI("AI"),
 }

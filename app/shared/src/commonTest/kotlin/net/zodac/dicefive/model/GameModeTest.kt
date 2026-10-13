@@ -324,4 +324,12 @@ class GameModeTest {
         assertEquals(65, player.colourSectionTotal)
         assertEquals(85, player.totalScore)
     }
+
+    @Test
+    fun `only Standard's own card is played by the perfect-play table - Extended Scores' boxes put a game off it`() {
+        assertEquals(listOf(GameMode.STANDARD), GameMode.entries.filter { it.hasPerfectPlayTable })
+        assertTrue(GameMode.STANDARD.playsByPerfectPlayTable(extendedScores = false))
+        assertFalse(GameMode.STANDARD.playsByPerfectPlayTable(extendedScores = true))
+        assertFalse(GameMode.TRICOLOUR.playsByPerfectPlayTable(extendedScores = false))
+    }
 }

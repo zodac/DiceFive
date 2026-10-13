@@ -1,8 +1,10 @@
 package net.zodac.dicefive.data
 
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import okio.Path.Companion.toPath
 
 /**
@@ -18,6 +20,13 @@ enum class PreferencesFile(val fileName: String) {
     ONLINE("online.preferences_pb"),
 }
 
-/** Opens the preferences file at [path] (a platform's directory plus a [PreferencesFile.fileName]). */
+/**
+ * Opens the preferences file at [path] (a platform's directory plus a [PreferencesFile.fileName]). A file that can't
+ * be read as preferences is replaced with an empty one, which resets only that file, rather than failing every read
+ * of it on every launch.
+ */
 fun createPreferencesDataStore(path: String): DataStore<Preferences> =
-    PreferenceDataStoreFactory.createWithPath(produceFile = { path.toPath() })
+    PreferenceDataStoreFactory.createWithPath(
+        corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+        produceFile = { path.toPath() },
+    )

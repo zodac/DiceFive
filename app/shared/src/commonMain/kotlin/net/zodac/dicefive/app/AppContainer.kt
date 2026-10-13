@@ -1,7 +1,6 @@
 package net.zodac.dicefive.app
 
 import androidx.compose.runtime.staticCompositionLocalOf
-import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -13,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import net.zodac.dicefive.data.achievements.AchievementsRepository
 import net.zodac.dicefive.data.game.InProgressGameRepository
+import net.zodac.dicefive.data.orNullOnFailure
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
@@ -60,16 +60,10 @@ class AppContainer(
      */
     suspend fun standardPerfectPlayTable(): StandardPerfectPlayTable? = standardPerfectPlay.await()
 
+    // A missing or damaged table costs Hard its strength in Standard, not the game: it falls back to
+    // estimating. StandardPerfectPlayTableTest keeps the bundled one whole and current.
     private suspend fun loadStandardPerfectPlayTable(): StandardPerfectPlayTable? =
-        try {
-            StandardPerfectPlayTable.decode(Res.readBytes(StandardPerfectPlayTable.RESOURCE_PATH))
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: Exception) {
-            // A missing or damaged table costs Hard its strength in Standard, not the game: it falls back
-            // to estimating. StandardPerfectPlayTableTest keeps the bundled one whole and current.
-            null
-        }
+        orNullOnFailure { StandardPerfectPlayTable.decode(Res.readBytes(StandardPerfectPlayTable.RESOURCE_PATH)) }
 }
 
 val LocalAppContainer = staticCompositionLocalOf<AppContainer> {

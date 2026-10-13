@@ -171,6 +171,11 @@ enum class GameMode(
     val allowsExtendedScores: Boolean = true,
     /** The bonuses this mode's sections earn besides Standard's upper one, each added to the total once its section reaches its threshold. */
     val sectionBonuses: List<SectionBonus> = emptyList(),
+    /**
+     * Whether a Hard CPU plays this mode's own card by the bundled perfect-play table (`StandardPerfectPlayTable`)
+     * rather than estimating - see [playsByPerfectPlayTable].
+     */
+    val hasPerfectPlayTable: Boolean = false,
 ) {
 
     /**
@@ -198,6 +203,7 @@ enum class GameMode(
         fiveOfAKindBonusAmount = 100,
         maxPossibleScore = 1575,
         maxRollsPerGame = 39,
+        hasPerfectPlayTable = true,
     ),
 
     /**
@@ -474,6 +480,9 @@ enum class GameMode(
      */
     val scoresHeldDiceOnly: Boolean
         get() = scoringDiceCount < diceCount
+
+    /** Whether a game of this mode is on the card the perfect-play table was built for: the mode's own, so not with Extended Scores' extra boxes. */
+    fun playsByPerfectPlayTable(extendedScores: Boolean): Boolean = hasPerfectPlayTable && !extendedScores
 
     companion object {
         val default: GameMode = STANDARD

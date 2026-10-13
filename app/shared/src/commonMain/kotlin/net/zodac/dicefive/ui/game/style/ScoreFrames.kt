@@ -18,13 +18,14 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.lerp
 import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.cos
 import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sin
+import net.zodac.dicefive.data.settings.DefaultStyleIds
 import net.zodac.dicefive.model.PlayerColour
 import net.zodac.dicefive.ui.theme.color
 
@@ -125,7 +126,7 @@ private fun leafPath(length: Float, width: Float): Path = Path().apply {
 // Classic: the plain ring the active tab has always had.
 
 /** The plain coloured ring round the tab - what the active player's tab had before there were frames. */
-val ClassicScoreFrame: ScoreFrame = DrawnScoreFrame("classic_ring") { w, h, colour ->
+val ClassicScoreFrame: ScoreFrame = DrawnScoreFrame(DefaultStyleIds.SCORE_FRAME) { w, h, colour ->
     drawTabOutline(w, h, colour.copy(alpha = 0.85f), width = 1.5f)
 }
 

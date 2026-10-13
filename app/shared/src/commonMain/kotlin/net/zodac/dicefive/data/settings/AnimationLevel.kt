@@ -1,5 +1,7 @@
 package net.zodac.dicefive.data.settings
 
+import net.zodac.dicefive.model.StoredId
+
 /**
  * The player's "Animations" setting: how much of the app moves, and how fast it's drawn. A step down trades
  * smoothness and decoration for less work a frame (an older phone, a longer battery), never what the game does.
@@ -15,19 +17,20 @@ package net.zodac.dicefive.data.settings
  * - [scorePulse]: whether a scoring tile's gold glow pulses or is steady.
  * - [maxFramesPerSecond]: the frame rate asked for, or null for whatever the screen does (90 or 120Hz on many phones).
  *
- * Saved by name. [HIGH] is the default; a player who had the old "Remove animations" switch on starts at [OFF].
+ * Saved by [id]. [HIGH] is the default; a player who had the old "Remove animations" switch on starts at [OFF].
  */
 enum class AnimationLevel(
+    override val id: String,
     val ambientMotion: Boolean,
     val gameplayMotion: Boolean,
     val scorePulse: Boolean,
     val simpleDiceRoll: Boolean,
     val maxFramesPerSecond: Int?,
-) {
-    HIGH(ambientMotion = true, gameplayMotion = true, scorePulse = true, simpleDiceRoll = false, maxFramesPerSecond = null),
-    MEDIUM(ambientMotion = false, gameplayMotion = true, scorePulse = true, simpleDiceRoll = false, maxFramesPerSecond = 60),
-    LOW(ambientMotion = false, gameplayMotion = true, scorePulse = false, simpleDiceRoll = true, maxFramesPerSecond = 30),
-    OFF(ambientMotion = false, gameplayMotion = false, scorePulse = false, simpleDiceRoll = false, maxFramesPerSecond = 30),
+) : StoredId {
+    HIGH("HIGH", ambientMotion = true, gameplayMotion = true, scorePulse = true, simpleDiceRoll = false, maxFramesPerSecond = null),
+    MEDIUM("MEDIUM", ambientMotion = false, gameplayMotion = true, scorePulse = true, simpleDiceRoll = false, maxFramesPerSecond = 60),
+    LOW("LOW", ambientMotion = false, gameplayMotion = true, scorePulse = false, simpleDiceRoll = true, maxFramesPerSecond = 30),
+    OFF("OFF", ambientMotion = false, gameplayMotion = false, scorePulse = false, simpleDiceRoll = false, maxFramesPerSecond = 30),
     ;
 
     companion object {

@@ -6,7 +6,7 @@ package net.zodac.dicefive.model
  * rolled, the player may hold dice and re-roll (while rolls remain) or
  * score at any point.
  */
-enum class TurnPhase {
-    AWAITING_ROLL,
-    ROLLED,
+enum class TurnPhase(override val id: String) : StoredId {
+    AWAITING_ROLL("AWAITING_ROLL"),
+    ROLLED("ROLLED"),
 }

@@ -16,7 +16,6 @@ import net.zodac.dicefive.data.scores.ScoreRepository
 
 data class StatisticsUiState(
     val players: List<PlayerStatistics> = emptyList(),
-    val isLoading: Boolean = false,
     /** Whether [players] has been read yet - until then an empty list means "not known yet", not
      * "no stats", and the screen shows neither the cards nor its empty message. */
     val isLoaded: Boolean = false,
@@ -35,9 +34,8 @@ class StatisticsViewModel(private val scoreRepository: ScoreRepository? = null) 
     private fun load() {
         val repository = scoreRepository ?: return
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
             val players = repository.playerStatistics()
-            _uiState.update { it.copy(players = players, isLoading = false, isLoaded = true) }
+            _uiState.update { it.copy(players = players, isLoaded = true) }
         }
     }
 

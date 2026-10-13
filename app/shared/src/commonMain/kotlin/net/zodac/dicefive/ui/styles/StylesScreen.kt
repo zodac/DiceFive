@@ -9,7 +9,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +25,6 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -132,7 +130,6 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementsState
@@ -154,6 +151,7 @@ import net.zodac.dicefive.resources.styles_gallery_all_action
 import net.zodac.dicefive.resources.styles_gallery_cd
 import net.zodac.dicefive.resources.styles_gallery_row_action
 import net.zodac.dicefive.resources.styles_locked_spoken
+import net.zodac.dicefive.resources.styles_name_with_variant
 import net.zodac.dicefive.resources.styles_requirement_any
 import net.zodac.dicefive.resources.styles_requirement_count
 import net.zodac.dicefive.resources.styles_requirement_free
@@ -164,7 +162,6 @@ import net.zodac.dicefive.resources.styles_show_unlock_action
 import net.zodac.dicefive.resources.styles_title
 import net.zodac.dicefive.resources.styles_unlock_any
 import net.zodac.dicefive.resources.styles_unlock_count
-import net.zodac.dicefive.resources.styles_name_with_variant
 import net.zodac.dicefive.resources.styles_unlock_free
 import net.zodac.dicefive.resources.styles_unlock_specific
 import net.zodac.dicefive.ui.common.AppTooltip
@@ -195,6 +192,7 @@ import net.zodac.dicefive.ui.game.style.ScoreFramePreviewColour
 import net.zodac.dicefive.ui.game.style.ScoreFrames
 import net.zodac.dicefive.ui.game.style.StyleCatalog
 import net.zodac.dicefive.ui.game.style.StyleCatalogs
+import net.zodac.dicefive.ui.game.style.StyleCategory
 import net.zodac.dicefive.ui.game.style.StyleColour
 import net.zodac.dicefive.ui.game.style.StyleFamily
 import net.zodac.dicefive.ui.game.style.StyleUnlock
@@ -280,15 +278,7 @@ fun StylesScreen(viewModel: StylesViewModel, onBack: () -> Unit, modifier: Modif
         picks = saved,
         focus = focus,
         onBack = onBack,
-        onSelect = { category ->
-            when (category) {
-                StyleCategory.DICE -> viewModel::setDiceStyleId
-                StyleCategory.DICE_CUP -> viewModel::setDiceCupStyleId
-                StyleCategory.MAT -> viewModel::setDiceMatId
-                StyleCategory.BACKGROUND -> viewModel::setTableBackgroundId
-                StyleCategory.FRAME -> viewModel::setScoreFrameId
-            }
-        },
+        onSelect = { category -> { id -> viewModel.setStyleId(category, id) } },
         modifier = modifier,
     )
 }
@@ -435,8 +425,6 @@ private const val FLASH_OVER_ART_ALPHA = 0.55f
 private val PAGE_MARGIN = 20.dp
 
 /** The Styles screen's categories, in its order. */
-private enum class StyleCategory { DICE, DICE_CUP, MAT, BACKGROUND, FRAME }
-
 // The gap between tiles in a row.
 private val TILE_SPACING = 12.dp
 
@@ -505,13 +493,6 @@ private fun TileLabel(name: String) {
 
 /** How many tiles [category]'s row has. */
 private fun StyleCategory.tileCount(achievements: AchievementsState): Int {
-    val catalog = when (this) {
-        StyleCategory.DICE -> DiceStyles
-        StyleCategory.DICE_CUP -> DiceCupStyles
-        StyleCategory.MAT -> DiceMats
-        StyleCategory.BACKGROUND -> TableBackgrounds
-        StyleCategory.FRAME -> ScoreFrames
-    }
     val (unlocked, locked) = catalog.shownFamilies(achievements)
     return unlocked.size + locked.size
 }

@@ -40,6 +40,7 @@ enum class ScoreSection {
  * to whichever mode's card (see [GameMode.categoriesWith]).
  */
 enum class ScoreCategory(
+    override val id: String,
     val section: ScoreSection,
     val fixedScore: Int? = null,
     val jokerFreeFill: Boolean = false,
@@ -47,85 +48,85 @@ enum class ScoreCategory(
     val featured: Boolean = false,
     val number: Int? = null,
     val wildcardNumbers: IntRange? = null,
-) {
-    ONES(ScoreSection.UPPER, number = 1),
-    TWOS(ScoreSection.UPPER, number = 2),
-    THREES(ScoreSection.UPPER, number = 3),
-    FOURS(ScoreSection.UPPER, number = 4),
-    FIVES(ScoreSection.UPPER, number = 5),
-    SIXES(ScoreSection.UPPER, number = 6),
-    THREE_OF_A_KIND(ScoreSection.LOWER),
-    FOUR_OF_A_KIND(ScoreSection.LOWER),
-    FULL_HOUSE(ScoreSection.LOWER, fixedScore = 25, jokerFreeFill = true),
-    SMALL_STRAIGHT(ScoreSection.LOWER, fixedScore = 30, jokerFreeFill = true),
-    LARGE_STRAIGHT(ScoreSection.LOWER, fixedScore = 40, jokerFreeFill = true),
-    FIVE_OF_A_KIND(ScoreSection.LOWER, fixedScore = 50, featured = true),
-    CHANCE(ScoreSection.LOWER),
+) : StoredId {
+    ONES("ONES", ScoreSection.UPPER, number = 1),
+    TWOS("TWOS", ScoreSection.UPPER, number = 2),
+    THREES("THREES", ScoreSection.UPPER, number = 3),
+    FOURS("FOURS", ScoreSection.UPPER, number = 4),
+    FIVES("FIVES", ScoreSection.UPPER, number = 5),
+    SIXES("SIXES", ScoreSection.UPPER, number = 6),
+    THREE_OF_A_KIND("THREE_OF_A_KIND", ScoreSection.LOWER),
+    FOUR_OF_A_KIND("FOUR_OF_A_KIND", ScoreSection.LOWER),
+    FULL_HOUSE("FULL_HOUSE", ScoreSection.LOWER, fixedScore = 25, jokerFreeFill = true),
+    SMALL_STRAIGHT("SMALL_STRAIGHT", ScoreSection.LOWER, fixedScore = 30, jokerFreeFill = true),
+    LARGE_STRAIGHT("LARGE_STRAIGHT", ScoreSection.LOWER, fixedScore = 40, jokerFreeFill = true),
+    FIVE_OF_A_KIND("FIVE_OF_A_KIND", ScoreSection.LOWER, fixedScore = 50, featured = true),
+    CHANCE("CHANCE", ScoreSection.LOWER),
 
-    REDS(ScoreSection.COLOUR, fixedScore = 40, matchingColour = DieColour.RED),
-    YELLOWS(ScoreSection.COLOUR, fixedScore = 40, matchingColour = DieColour.YELLOW),
-    BLUES(ScoreSection.COLOUR, fixedScore = 40, matchingColour = DieColour.BLUE),
+    REDS("REDS", ScoreSection.COLOUR, fixedScore = 40, matchingColour = DieColour.RED),
+    YELLOWS("YELLOWS", ScoreSection.COLOUR, fixedScore = 40, matchingColour = DieColour.YELLOW),
+    BLUES("BLUES", ScoreSection.COLOUR, fixedScore = 40, matchingColour = DieColour.BLUE),
 
     /** Three dice of one colour and two of another - a full house by colour rather than by number. */
-    COLOURED_HOUSE(ScoreSection.COLOUR, fixedScore = 25, jokerFreeFill = true),
+    COLOURED_HOUSE("COLOURED_HOUSE", ScoreSection.COLOUR, fixedScore = 25, jokerFreeFill = true),
 
     /** Two different numbers each on at least two dice: the four dice making the pairs are added up, whatever the fifth shows. */
-    TWO_PAIR(ScoreSection.EXTENDED),
+    TWO_PAIR("TWO_PAIR", ScoreSection.EXTENDED),
 
     /** The even dice added up. */
-    EVENS(ScoreSection.EXTENDED),
+    EVENS("EVENS", ScoreSection.EXTENDED),
 
     /** The odd dice added up. */
-    ODDS(ScoreSection.EXTENDED),
+    ODDS("ODDS", ScoreSection.EXTENDED),
 
     /** Hit List's targets, in card order - each one whatever [HitTarget] the game drew for it. */
-    TARGET_1(ScoreSection.HIT_LIST),
-    TARGET_2(ScoreSection.HIT_LIST),
-    TARGET_3(ScoreSection.HIT_LIST),
-    TARGET_4(ScoreSection.HIT_LIST),
-    TARGET_5(ScoreSection.HIT_LIST),
-    TARGET_6(ScoreSection.HIT_LIST),
-    TARGET_7(ScoreSection.HIT_LIST),
-    TARGET_8(ScoreSection.HIT_LIST),
-    TARGET_9(ScoreSection.HIT_LIST),
-    TARGET_10(ScoreSection.HIT_LIST),
-    TARGET_11(ScoreSection.HIT_LIST),
-    TARGET_12(ScoreSection.HIT_LIST),
+    TARGET_1("TARGET_1", ScoreSection.HIT_LIST),
+    TARGET_2("TARGET_2", ScoreSection.HIT_LIST),
+    TARGET_3("TARGET_3", ScoreSection.HIT_LIST),
+    TARGET_4("TARGET_4", ScoreSection.HIT_LIST),
+    TARGET_5("TARGET_5", ScoreSection.HIT_LIST),
+    TARGET_6("TARGET_6", ScoreSection.HIT_LIST),
+    TARGET_7("TARGET_7", ScoreSection.HIT_LIST),
+    TARGET_8("TARGET_8", ScoreSection.HIT_LIST),
+    TARGET_9("TARGET_9", ScoreSection.HIT_LIST),
+    TARGET_10("TARGET_10", ScoreSection.HIT_LIST),
+    TARGET_11("TARGET_11", ScoreSection.HIT_LIST),
+    TARGET_12("TARGET_12", ScoreSection.HIT_LIST),
 
     /**
      * Hit List's stand-in for a target: a hit scored here instead of in its target, which stays open for another
      * try. Worth the highest [HitTarget.points] among the open targets the dice hit - never doubled.
      */
-    ALIBI(ScoreSection.HIT_LIST, featured = true),
+    ALIBI("ALIBI", ScoreSection.HIT_LIST, featured = true),
 
     /** D20's numbers: each adds up the dice showing its number, like an upper box - 1 to 10 in the first half, 11 to 20 in the second. */
-    D20_1(ScoreSection.FIRST_HALF, number = 1),
-    D20_2(ScoreSection.FIRST_HALF, number = 2),
-    D20_3(ScoreSection.FIRST_HALF, number = 3),
-    D20_4(ScoreSection.FIRST_HALF, number = 4),
-    D20_5(ScoreSection.FIRST_HALF, number = 5),
-    D20_6(ScoreSection.FIRST_HALF, number = 6),
-    D20_7(ScoreSection.FIRST_HALF, number = 7),
-    D20_8(ScoreSection.FIRST_HALF, number = 8),
-    D20_9(ScoreSection.FIRST_HALF, number = 9),
-    D20_10(ScoreSection.FIRST_HALF, number = 10),
-    D20_11(ScoreSection.SECOND_HALF, number = 11),
-    D20_12(ScoreSection.SECOND_HALF, number = 12),
-    D20_13(ScoreSection.SECOND_HALF, number = 13),
-    D20_14(ScoreSection.SECOND_HALF, number = 14),
-    D20_15(ScoreSection.SECOND_HALF, number = 15),
-    D20_16(ScoreSection.SECOND_HALF, number = 16),
-    D20_17(ScoreSection.SECOND_HALF, number = 17),
-    D20_18(ScoreSection.SECOND_HALF, number = 18),
-    D20_19(ScoreSection.SECOND_HALF, number = 19),
-    D20_20(ScoreSection.SECOND_HALF, number = 20),
+    D20_1("D20_1", ScoreSection.FIRST_HALF, number = 1),
+    D20_2("D20_2", ScoreSection.FIRST_HALF, number = 2),
+    D20_3("D20_3", ScoreSection.FIRST_HALF, number = 3),
+    D20_4("D20_4", ScoreSection.FIRST_HALF, number = 4),
+    D20_5("D20_5", ScoreSection.FIRST_HALF, number = 5),
+    D20_6("D20_6", ScoreSection.FIRST_HALF, number = 6),
+    D20_7("D20_7", ScoreSection.FIRST_HALF, number = 7),
+    D20_8("D20_8", ScoreSection.FIRST_HALF, number = 8),
+    D20_9("D20_9", ScoreSection.FIRST_HALF, number = 9),
+    D20_10("D20_10", ScoreSection.FIRST_HALF, number = 10),
+    D20_11("D20_11", ScoreSection.SECOND_HALF, number = 11),
+    D20_12("D20_12", ScoreSection.SECOND_HALF, number = 12),
+    D20_13("D20_13", ScoreSection.SECOND_HALF, number = 13),
+    D20_14("D20_14", ScoreSection.SECOND_HALF, number = 14),
+    D20_15("D20_15", ScoreSection.SECOND_HALF, number = 15),
+    D20_16("D20_16", ScoreSection.SECOND_HALF, number = 16),
+    D20_17("D20_17", ScoreSection.SECOND_HALF, number = 17),
+    D20_18("D20_18", ScoreSection.SECOND_HALF, number = 18),
+    D20_19("D20_19", ScoreSection.SECOND_HALF, number = 19),
+    D20_20("D20_20", ScoreSection.SECOND_HALF, number = 20),
 
     /**
      * D20's wildcards, one for each half: every die showing a number in its half added up, whichever numbers they are - a
      * box that takes any of 1 to 10, or any of 11 to 20.
      */
-    D20_WILD_LOW(ScoreSection.FIRST_HALF, wildcardNumbers = 1..10),
-    D20_WILD_HIGH(ScoreSection.SECOND_HALF, wildcardNumbers = 11..20),
+    D20_WILD_LOW("D20_WILD_LOW", ScoreSection.FIRST_HALF, wildcardNumbers = 1..10),
+    D20_WILD_HIGH("D20_WILD_HIGH", ScoreSection.SECOND_HALF, wildcardNumbers = 11..20),
     ;
 
     /** The faces this box counts - one for a numbered box, a range for a wildcard, null for a box that counts no number. */

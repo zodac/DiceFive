@@ -7,8 +7,8 @@ package net.zodac.dicefive.model
  * (a strong lower-section shape, or a high 3-/4-of-a-kind for the upper section) without using every
  * roll, HARD computes exact expected value over every reroll to decide holds and category.
  */
-enum class Difficulty {
-    EASY,
-    MEDIUM,
-    HARD,
+enum class Difficulty(override val id: String) : StoredId {
+    EASY("EASY"),
+    MEDIUM("MEDIUM"),
+    HARD("HARD"),
 }

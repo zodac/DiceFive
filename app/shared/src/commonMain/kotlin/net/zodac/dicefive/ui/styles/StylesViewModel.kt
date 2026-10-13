@@ -19,6 +19,7 @@ import net.zodac.dicefive.data.settings.savedStylesFlow
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.game.style.StyleCategory
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 
 /** Nullable so this stays constructible/testable without a Context - see [factory], mirroring `SettingsViewModel`. */
@@ -44,29 +45,10 @@ class StylesViewModel(
         )
     }
 
-    fun setDiceStyleId(id: String) {
+    /** Saves [id] as [category]'s pick. */
+    fun setStyleId(category: StyleCategory, id: String) {
         val repository = settingsRepository ?: return
-        viewModelScope.launch { repository.setDiceStyleId(id) }
-    }
-
-    fun setDiceCupStyleId(id: String) {
-        val repository = settingsRepository ?: return
-        viewModelScope.launch { repository.setDiceCupStyleId(id) }
-    }
-
-    fun setTableBackgroundId(id: String) {
-        val repository = settingsRepository ?: return
-        viewModelScope.launch { repository.setTableBackgroundId(id) }
-    }
-
-    fun setDiceMatId(id: String) {
-        val repository = settingsRepository ?: return
-        viewModelScope.launch { repository.setDiceMatId(id) }
-    }
-
-    fun setScoreFrameId(id: String) {
-        val repository = settingsRepository ?: return
-        viewModelScope.launch { repository.setScoreFrameId(id) }
+        viewModelScope.launch { category.saveId(repository, id) }
     }
 
     companion object {

@@ -8,6 +8,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -23,6 +26,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.data.scores.PlayerGame
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreEntry
@@ -59,6 +63,16 @@ private class FakeAchievementStore : AchievementStore {
     }
 
     val unlocked: Set<Achievement> get() = _state.value.unlockedAt.keys
+}
+
+/** In-memory preferences, for a saved game a second view model can resume. */
+private class InMemoryPreferences : DataStore<Preferences> {
+
+    private val _data = MutableStateFlow(emptyPreferences())
+    override val data: Flow<Preferences> = _data
+
+    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
+        transform(_data.value).also { _data.value = it }
 }
 
 /** Dice that always land on [value], so a test can deal itself a known hand. */
@@ -794,6 +808,43 @@ class GameAchievementsWiringTest {
         }
         assertTrue(Achievement.I_DIDNT_MEAN_THAT in undoneInto(ScoreCategory.CHANCE), "I_DIDNT_MEAN_THAT should pop")
         assertFalse(Achievement.I_DIDNT_MEAN_THAT in undoneInto(ScoreCategory.THREES))
+
+        // An undo is forgotten with its game: left for a new one, a different first box earns nothing.
+        val newGame = unlockedAfter(LoadedDice(3)) {
+            rollDice()
+            commitScore(ScoreCategory.THREES)
+            undo()
+            startGame()
+            rollDice()
+            commitScore(ScoreCategory.CHANCE)
+        }
+        assertFalse(Achievement.I_DIDNT_MEAN_THAT in newGame, "carried over into a new game, got $newGame")
+    }
+
+    @Test
+    fun `an undo is kept when the game is left and resumed - Continue is the same game`() = runTest(testDispatcher) {
+        val saves = InProgressGameRepository(InMemoryPreferences(), backgroundScope)
+        val store = FakeAchievementStore()
+        fun table() = GameViewModel(
+            aiDispatcher = testDispatcher,
+            inProgressGameRepository = saves,
+            achievementsRepository = store,
+            random = LoadedDice(3),
+        )
+
+        val left = table()
+        left.startGame()
+        left.rollDice()
+        left.commitScore(ScoreCategory.THREES)
+        left.undo()
+        runCurrent()
+
+        // Leaving for the menu drops the view model; Continue builds a new one from the save.
+        val resumed = table()
+        assertTrue(resumed.resumeGame())
+        resumed.commitScore(ScoreCategory.CHANCE)
+        runCurrent()
+        assertTrue(Achievement.I_DIDNT_MEAN_THAT in store.unlocked, "the undo was lost on resuming, got ${store.unlocked}")
     }
 
     /**

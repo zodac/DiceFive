@@ -64,6 +64,9 @@ class GameStateJsonTest {
         assertEquals(TurnTimer.SECONDS_60, timed.turnTimer)
         assertEquals(23, timed.turnSecondsLeft)
 
+        // A box an undo took back, for a resumed game's I Didn't Mean That.
+        assertEquals(ScoreCategory.THREES, roundTripped(GameState(players = listOf(human), undoneCategory = ScoreCategory.THREES)).undoneCategory)
+
         // A partially filled scorecard - zero scores included - and a finished game.
         val partial = GameMode.STANDARD.categories.associateWith { category ->
             when (category) {
@@ -219,13 +222,22 @@ class GameStateJsonTest {
 
         // A plain game writes no Extended Scores, Unlucky Dice, switched-off boxes or Hit List - and loads with none.
         val written = GameStateJson.encode(plain)
-        for (field in listOf("extendedScores", "unluckyOdds", "isUnlucky", "isGolden", "disabledCategories", "hitList")) assertFalse(field in written, "$field written")
+        for (field in listOf("extendedScores", "unluckyOdds", "isUnlucky", "isGolden", "disabledCategories", "hitList", "undoneCategory")) {
+            assertFalse(field in written, "$field written")
+        }
         val loaded = GameStateJson.decode(written)
         assertFalse(loaded.extendedScores)
         assertEquals(13, loaded.players.single().scorecard.size)
         assertEquals(null, loaded.unluckyDice)
         assertTrue(loaded.dice.none { it.isUnlucky })
         assertEquals(emptySet(), loaded.disabledCategories)
+        assertEquals(null, loaded.undoneCategory)
+
+        // An undone box nothing recognises only costs an achievement, so the game still loads, with nothing undone.
+        val unknownUndo = GameStateJson.encode(plain.copy(undoneCategory = ScoreCategory.THREES))
+            .replace(Regex(""""undoneCategory"\s*:\s*"THREES""""), """"undoneCategory":"NOT_A_BOX"""")
+        assertTrue("NOT_A_BOX" in unknownUndo)
+        assertEquals(null, GameStateJson.decode(unknownUndo).undoneCategory)
     }
 
     @Test

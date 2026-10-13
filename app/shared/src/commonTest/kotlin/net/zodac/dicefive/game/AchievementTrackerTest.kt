@@ -1,0 +1,127 @@
+package net.zodac.dicefive.game
+
+import kotlin.random.Random
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.model.GameState
+import net.zodac.dicefive.model.PlayerConfig
+import net.zodac.dicefive.model.PlayerType
+import net.zodac.dicefive.model.ScoreCategory
+
+/** Dice that always land on [value]. */
+private class FixedDice(private val value: Int) : Random() {
+    override fun nextBits(bitCount: Int): Int = 0
+    override fun nextInt(from: Int, until: Int): Int = value
+}
+
+/**
+ * [AchievementTracker] on its own, fed the states [GameEngine] makes. `GameAchievementsWiringTest` covers the same
+ * achievements through `GameViewModel`; this pins the tracker's own bookkeeping - what carries from one event to the
+ * next, and what a new game forgets.
+ */
+class AchievementTrackerTest {
+
+    private fun soloGame(): GameState = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "P1")))
+
+    /** Player 1's roll of all 3s, reported to [tracker] - the state it lands in. */
+    private fun AchievementTracker.roll(state: GameState): GameState =
+        GameEngine.rollDice(state, FixedDice(3)).also { onRoll(state, it) }
+
+    @Test
+    fun `an undo into a different box is I Didn't Mean That - the same box or no undo is not`() {
+        val tracker = AchievementTracker()
+        tracker.startGame()
+        assertEquals(emptySet(), tracker.onCommitted(ScoreCategory.THREES, byPlayerOne = true))
+        tracker.onUndo()
+        assertEquals(setOf(Achievement.I_DIDNT_MEAN_THAT), tracker.onCommitted(ScoreCategory.CHANCE, byPlayerOne = true))
+
+        // Once only per undo: the next commit has nothing undone to differ from.
+        assertEquals(emptySet(), tracker.onCommitted(ScoreCategory.FOURS, byPlayerOne = true))
+
+        tracker.onUndo()
+        assertEquals(emptySet(), tracker.onCommitted(ScoreCategory.FOURS, byPlayerOne = true), "the same box again")
+    }
+
+    @Test
+    fun `I Didn't Mean That never carries over from one game to the next - whether it ended or was left`() {
+        val ended = AchievementTracker()
+        ended.startGame()
+        ended.onCommitted(ScoreCategory.THREES, byPlayerOne = true)
+        ended.onUndo()
+        ended.onGameOver()
+        ended.startGame()
+        assertEquals(emptySet(), ended.onCommitted(ScoreCategory.CHANCE, byPlayerOne = true), "after the game ended")
+
+        val left = AchievementTracker()
+        left.startGame()
+        left.onCommitted(ScoreCategory.THREES, byPlayerOne = true)
+        left.onUndo()
+        left.startGame()
+        assertEquals(emptySet(), left.onCommitted(ScoreCategory.CHANCE, byPlayerOne = true), "after leaving for a new game")
+
+        // The last commit of a game is forgotten at its end too, so an undo can't reach back to it.
+        val lastBox = AchievementTracker()
+        lastBox.startGame()
+        lastBox.onCommitted(ScoreCategory.THREES, byPlayerOne = true)
+        lastBox.onGameOver()
+        lastBox.onUndo()
+        assertEquals(emptySet(), lastBox.onCommitted(ScoreCategory.CHANCE, byPlayerOne = true))
+    }
+
+    @Test
+    fun `a resumed game keeps the box its undo took back - it's the same game`() {
+        val before = AchievementTracker()
+        before.startGame()
+        before.onCommitted(ScoreCategory.THREES, byPlayerOne = true)
+        before.onUndo()
+        assertEquals(ScoreCategory.THREES, before.undoneCategory, "saved with the game")
+
+        val resumed = AchievementTracker()
+        resumed.startGame(resumedUndo = before.undoneCategory)
+        assertEquals(setOf(Achievement.I_DIDNT_MEAN_THAT), resumed.onCommitted(ScoreCategory.CHANCE, byPlayerOne = true))
+        assertEquals(null, resumed.undoneCategory, "a score follows it, so there's nothing left to save")
+    }
+
+    @Test
+    fun `another seat's score clears an undo - and earns nothing itself`() {
+        val tracker = AchievementTracker()
+        tracker.startGame()
+        tracker.onCommitted(ScoreCategory.THREES, byPlayerOne = true)
+        tracker.onUndo()
+        assertEquals(emptySet(), tracker.onCommitted(ScoreCategory.CHANCE, byPlayerOne = false))
+        assertEquals(emptySet(), tracker.onCommitted(ScoreCategory.FOURS, byPlayerOne = true))
+    }
+
+    @Test
+    fun `dice rolled and cup taps are counted through a game - and a new game starts them from zero`() {
+        val tracker = AchievementTracker()
+        tracker.startGame()
+        tracker.roll(soloGame())
+        assertEquals(5, tracker.endOfGameContext(null, LeaderboardTotals()).diceRolledByPlayerOne)
+
+        assertEquals(emptySet(), tracker.onCupTapWithNoRollsLeft())
+        assertEquals(emptySet(), tracker.onCupTapWithNoRollsLeft())
+        assertEquals(setOf(Achievement.NO_MORE_ROLLS), tracker.onCupTapWithNoRollsLeft())
+
+        tracker.startGame()
+        assertEquals(0, tracker.endOfGameContext(null, LeaderboardTotals()).diceRolledByPlayerOne)
+        assertEquals(emptySet(), tracker.onCupTapWithNoRollsLeft(), "the taps start again")
+    }
+
+    @Test
+    fun `rolling with every die held is What Was the Point - and a second roll is an extra roll taken`() {
+        val tracker = AchievementTracker()
+        tracker.startGame()
+        val first = tracker.roll(soloGame())
+        assertFalse(tracker.endOfGameContext(null, LeaderboardTotals()).playerOneTookExtraRoll)
+
+        val allHeld = (0 until 5).fold(first) { state, index -> GameEngine.toggleHold(state, index) }
+        assertTrue(Achievement.WHAT_WAS_THE_POINT_OF_THAT in GameEngine.rollDice(allHeld, FixedDice(3)).let { tracker.onRoll(allHeld, it) })
+        assertTrue(tracker.endOfGameContext(null, LeaderboardTotals()).playerOneTookExtraRoll)
+        // The held dice didn't move, so none of them were rolled.
+        assertEquals(5, tracker.endOfGameContext(null, LeaderboardTotals()).diceRolledByPlayerOne)
+    }
+}

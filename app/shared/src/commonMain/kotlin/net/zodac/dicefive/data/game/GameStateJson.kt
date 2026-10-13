@@ -21,9 +21,11 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.StoredId
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.UnluckyDice
+import net.zodac.dicefive.model.storedIdOf
 
 /** Hand-rolled (de)serialization for [GameState], used to persist an in-progress game across sessions. */
 object GameStateJson {
@@ -44,12 +46,13 @@ object GameStateJson {
             put("unluckyMaxDice", it.maxDice)
         }
         // Only a mode that switches boxes off at random has any - see GameMode.drawDisabledCategories.
-        if (state.gameMode.randomDisabledCategories > 0) put("disabledCategories", JsonArray(state.disabledCategories.map { JsonString(it.name) }))
+        if (state.gameMode.randomDisabledCategories > 0) put("disabledCategories", JsonArray(state.disabledCategories.map { JsonString(it.id) }))
         // Only a mode with targets draws any - see GameMode.drawHitList.
         if (state.gameMode.hasHitList) put("hitList", encodeHitList(state.hitList))
-        put("phase", state.phase.name)
+        put("phase", state.phase.id)
         put("isGameOver", state.isGameOver)
         put("turnSecondsLeft", state.turnSecondsLeft)
+        state.undoneCategory?.let { put("undoneCategory", it.id) }
         put("dice", JsonArray(state.dice.map(::encodeDie)))
         put("players", JsonArray(state.players.map(::encodePlayer)))
     }.toJson()
@@ -77,9 +80,11 @@ object GameStateJson {
             currentPlayerIndex = obj.getInt("currentPlayerIndex"),
             rollsRemaining = rollsRemaining,
             turnRolls = obj.getInt("turnRolls"),
-            phase = TurnPhase.valueOf(obj.getString("phase")),
+            phase = storedId<TurnPhase>(obj.getString("phase")),
             isGameOver = obj.getBoolean("isGameOver"),
             turnSecondsLeft = (obj["turnSecondsLeft"] as? JsonNumber)?.toInt(),
+            // Left out by encode with nothing undone. One nothing recognises is dropped, not failed on: it only decides an achievement.
+            undoneCategory = obj.optString("undoneCategory").takeIf { it.isNotEmpty() }?.let { storedIdOf<ScoreCategory>(it) },
             dice = obj.getObjectList("dice").map(::decodeDie),
             players = obj.getObjectList("players").map { decodePlayer(it, gameMode, extendedScores, disabledCategories, hitList, rollModifiers.isActive) },
         )
@@ -103,14 +108,14 @@ object GameStateJson {
         if (gameMode.randomDisabledCategories == 0) return gameMode.disabledCategories
         if ("disabledCategories" !in obj) throw JsonParseException("A ${gameMode.id} game saved without its disabled boxes")
         val names = obj.getStringList("disabledCategories")
-        return names.map { name -> checkNotNull(ScoreCategory.entries.firstOrNull { it.name == name }) { "Unknown category: $name" } }.toSet()
+        return names.map { name -> checkNotNull(storedIdOf<ScoreCategory>(name)) { "Unknown category: $name" } }.toSet()
     }
 
     /** Each target box's places, an any place written as 0, and its points. */
     private fun encodeHitList(hitList: Map<ScoreCategory, HitTarget>): JsonObject = buildJsonObject {
         for ((category, target) in hitList) {
             put(
-                category.name,
+                category.id,
                 buildJsonObject {
                     put("places", JsonArray(target.places.map { JsonNumber((it ?: ANY_PLACE).toString()) }))
                     put("points", target.points)
@@ -124,7 +129,7 @@ object GameStateJson {
         if (!gameMode.hasHitList) return emptyMap()
         val hitList = obj.getObject("hitList")
         return gameMode.categories.filter { it.isTarget }.associateWith { category ->
-            val target = hitList.getObject(category.name)
+            val target = hitList.getObject(category.id)
             val places = (target.field("places") as? JsonArray ?: throw JsonParseException("A target's places aren't an array")).items.map { item ->
                 val value = (item as? JsonNumber)?.toInt() ?: throw JsonParseException("A place isn't a number")
                 value.takeIf { it != ANY_PLACE }
@@ -136,7 +141,7 @@ object GameStateJson {
     private fun encodeDie(die: Die): JsonObject = buildJsonObject {
         put("value", die.value)
         put("isHeld", die.isHeld)
-        die.colour?.let { put("colour", it.name) }
+        die.colour?.let { put("colour", it.id) }
         die.heldSlot?.let { put("heldSlot", it) }
         if (die.isUnlucky) put("isUnlucky", true)
         if (die.isGolden) put("isGolden", true)
@@ -145,7 +150,7 @@ object GameStateJson {
     private fun decodeDie(obj: JsonObject) = Die(
         value = obj.getInt("value"),
         isHeld = obj.getBoolean("isHeld"),
-        colour = obj.optString("colour").takeIf { it.isNotEmpty() }?.let { DieColour.valueOf(it) },
+        colour = obj.optString("colour").takeIf { it.isNotEmpty() }?.let { storedId<DieColour>(it) },
         heldSlot = (obj["heldSlot"] as? JsonNumber)?.toInt(),
         isUnlucky = "isUnlucky" in obj && obj.getBoolean("isUnlucky"),
         isGolden = "isGolden" in obj && obj.getBoolean("isGolden"),
@@ -160,21 +165,21 @@ object GameStateJson {
 
     private fun encodePlayer(player: PlayerState): JsonObject = buildJsonObject {
         put("name", player.name)
-        put("type", player.type.name)
-        put("difficulty", player.difficulty.name)
-        put("colour", player.colour.name)
+        put("type", player.type.id)
+        put("difficulty", player.difficulty.id)
+        put("colour", player.colour.id)
         put("fiveOfAKindBonusCount", player.fiveOfAKindBonusCount)
         put("rollCount", player.rollCount)
         if (player.storedRolls > 0) put("storedRolls", player.storedRolls)
         if (player.fiveOfAKindFlashed) put("fiveOfAKindFlashed", true)
         player.lastRoll?.let { put("lastRoll", JsonArray(it.map(::encodeDie))) }
-        player.lastScoredCategory?.let { put("lastScoredCategory", it.name) }
+        player.lastScoredCategory?.let { put("lastScoredCategory", it.id) }
         put(
             "scorecard",
             buildJsonObject {
                 // A list per box, its scores in the order they went in - see PlayerState.scorecard.
                 for ((category, scores) in player.scorecard) {
-                    put(category.name, JsonArray(scores.map { JsonNumber(it.toString()) }))
+                    put(category.id, JsonArray(scores.map { JsonNumber(it.toString()) }))
                 }
             },
         )
@@ -190,12 +195,12 @@ object GameStateJson {
     ): PlayerState {
         val scorecardJson = obj.getObject("scorecard")
         val categories = gameMode.categoriesWith(extendedScores)
-        val scorecard = categories.associateWith { category -> decodeScores(scorecardJson[category.name]) }
+        val scorecard = categories.associateWith { category -> decodeScores(scorecardJson[category.id]) }
         return PlayerState(
             name = obj.getString("name"),
-            type = PlayerType.valueOf(obj.getString("type")),
-            difficulty = Difficulty.valueOf(obj.getString("difficulty")),
-            colour = PlayerColour.valueOf(obj.getString("colour")),
+            type = storedId<PlayerType>(obj.getString("type")),
+            difficulty = storedId<Difficulty>(obj.getString("difficulty")),
+            colour = storedId<PlayerColour>(obj.getString("colour")),
             gameMode = gameMode,
             extendedScores = extendedScores,
             disabledCategories = disabledCategories,
@@ -206,7 +211,7 @@ object GameStateJson {
             lastRoll = if ("lastRoll" in obj) obj.getObjectList("lastRoll").map(::decodeDie) else null,
             // Left out by encode before the player's first turn ends: nothing is highlighted yet.
             lastScoredCategory = obj.optString("lastScoredCategory").takeIf { it.isNotEmpty() }
-                ?.let { name -> categories.firstOrNull { it.name == name } },
+                ?.let { id -> categories.firstOrNull { it.id == id } },
             rollCount = obj.getInt("rollCount"),
             storedRolls = if ("storedRolls" in obj) obj.getInt("storedRolls") else 0,
             rollsModified = rollsModified,
@@ -220,6 +225,10 @@ object GameStateJson {
         (value as? JsonArray ?: throw JsonParseException("A box's scores aren't an array")).items.map {
             (it as? JsonNumber)?.toInt() ?: throw JsonParseException("A score isn't a number")
         }
+
+    /** The [E] saved as [id] - failing the decode, as an unknown game mode does, for one nothing recognises. */
+    private inline fun <reified E> storedId(id: String): E where E : Enum<E>, E : StoredId =
+        storedIdOf<E>(id) ?: throw JsonParseException("Unknown ${E::class.simpleName}: $id")
 
     /** How an any place is written: no die shows a 0. */
     private const val ANY_PLACE = 0

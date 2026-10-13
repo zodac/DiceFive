@@ -39,7 +39,6 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,10 +60,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import net.zodac.dicefive.game.ProjectedHand
-import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
@@ -123,6 +119,7 @@ fun GameScreen(
     val confirmBeforeLeaving by viewModel.confirmBeforeLeavingGame.collectAsStateWithLifecycle()
     val superuserModeActive by viewModel.superuserModeActive.collectAsStateWithLifecycle()
     val aiRolling by viewModel.aiRolling.collectAsStateWithLifecycle()
+    val tapRolling by viewModel.tapRolling.collectAsStateWithLifecycle()
     // Kept as a State and read only by the timer itself, so its tick each second recomposes the timer, not the board.
     val turnSecondsRemaining = viewModel.turnSecondsRemaining.collectAsStateWithLifecycle()
     val table by viewModel.tableSettings.collectAsStateWithLifecycle()
@@ -262,10 +259,11 @@ fun GameScreen(
                             canUndo = canUndo,
                             superuserModeActive = superuserModeActive,
                             aiRolling = aiRolling,
+                            tapRolling = tapRolling,
                             turnSecondsRemaining = { turnSecondsRemaining.value },
                             onBack = leaveGame,
                             onUndo = viewModel::undo,
-                            onRoll = viewModel::rollDice,
+                            onRoll = viewModel::shakeAndRoll,
                             onToggleHold = viewModel::toggleHold,
                             onCycleValue = viewModel::cycleHeldDieValue,
                             onScoreCategory = viewModel::commitScore,
@@ -291,6 +289,7 @@ private fun InProgressGame(
     canUndo: Boolean,
     superuserModeActive: Boolean,
     aiRolling: Boolean,
+    tapRolling: Boolean,
     turnSecondsRemaining: () -> Int?,
     onBack: () -> Unit,
     onUndo: () -> Unit,
@@ -315,10 +314,9 @@ private fun InProgressGame(
     val canHold = isHumanTurn && state.phase == TurnPhase.ROLLED
 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    var isTapRolling by remember { mutableStateOf(false) }
-    // The cup/tray don't care whether the shake was kicked off by a human tap or the ViewModel's
-    // own AI-turn loop (GameViewModel.aiRolling) - either way it's the same "rolling" pose.
-    val isRolling = isTapRolling || aiRolling
+    // The cup/tray don't care whether the shake was kicked off by a human tap or a CPU's turn - both are timed by the
+    // view model (GameViewModel.shakeAndRoll and its CPU loop) and either way it's the same "rolling" pose.
+    val isRolling = tapRolling || aiRolling
     // A turn's first dice are still in the cup until they're thrown - there are no dice on the mat to
     // gather up yet - so they appear as the roll lands. Under reduced motion there's no toss: the dice
     // simply appear on their result then, and a later roll's dice stay put until they snap to theirs.
@@ -406,27 +404,11 @@ private fun InProgressGame(
         }
     }
 
-    val coroutineScope = rememberCoroutineScope()
     // Two independent ifs, not if/else - "No More Rolls" is the mutually-exclusive fallback case
-    // (rollsRemaining hit 0, the tap does nothing for the game itself), and keeping them separate
-    // avoids Kotlin inferring this lambda's type from the join of a Job (the launch) and Unit.
-    //
-    // The shake belongs to the turn it started in: if the turn timer scores that turn mid-shake, the shake is
-    // dropped rather than carrying on to roll (and keep the cup shaking) for the next player.
-    var tapRollJob by remember { mutableStateOf<Job?>(null) }
-    LaunchedEffect(state.scoresEntered) { tapRollJob?.cancel() }
+    // (rollsRemaining hit 0, the tap does nothing for the game itself). The shake and the roll after it are the view
+    // model's (GameViewModel.shakeAndRoll), timed and paused as a CPU's are.
     val onCupTap = {
-        if (canRoll && !rollInHand) {
-            tapRollJob = coroutineScope.launch {
-                isTapRolling = true
-                try {
-                    lifecycle.delayWhileResumed(cupShakeMillis)
-                    onRoll()
-                } finally {
-                    isTapRolling = false
-                }
-            }
-        }
+        if (canRoll && !rollInHand) onRoll()
         if (!canRoll && isHumanTurn && state.rollsRemaining == 0 && !rollInHand) {
             onTapCupWithNoRollsLeft()
         }

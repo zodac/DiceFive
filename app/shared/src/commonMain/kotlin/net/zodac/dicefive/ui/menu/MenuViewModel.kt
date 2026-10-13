@@ -16,10 +16,8 @@ import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.savedStylesFlow
-import net.zodac.dicefive.game.AchievementEngine
-import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
-import net.zodac.dicefive.ui.achievements.announce
+import net.zodac.dicefive.ui.achievements.AchievementUnlocker
 import net.zodac.dicefive.ui.game.style.DiceCupStyle
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceStyle
@@ -57,16 +55,11 @@ class MenuViewModel(
         DiceCupStyles.unlockedById(saved.diceCupStyleId, saved.achievements),
     )
 
+    private val achievementUnlocker = achievementsRepository?.let(::AchievementUnlocker)
+
     fun onDiceTapped() {
-        val repository = achievementsRepository ?: return
-        viewModelScope.launch {
-            val before = repository.current()
-            val update = AchievementEngine.unlockNow(setOf(Achievement.NOT_THOSE_DICE), before, nowEpochMillis())
-            if (update.isEmpty) return@launch
-            // Stored before it's announced, so a banner can never outlive its unlock.
-            repository.record(update.unlockedAt(), update.counters)
-            announce(update)
-        }
+        val unlocker = achievementUnlocker ?: return
+        viewModelScope.launch { unlocker.unlock(setOf(Achievement.NOT_THOSE_DICE)) }
     }
 
     companion object {

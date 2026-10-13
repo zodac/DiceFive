@@ -27,4 +27,11 @@ interface AchievementStore {
      * facing way to re-lock one achievement without wiping the whole set via [resetAll].
      */
     suspend fun forceLock(achievement: Achievement)
+
+    /**
+     * Runs [block] - a read, a decision and a write - with no other [locked] block on this store running at once, so
+     * two can't both read "not unlocked yet" and both announce it. A store used from one coroutine at a time needs no
+     * lock, which is the default.
+     */
+    suspend fun <T> locked(block: suspend () -> T): T = block()
 }

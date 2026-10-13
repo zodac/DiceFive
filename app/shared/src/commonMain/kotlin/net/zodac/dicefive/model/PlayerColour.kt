@@ -18,15 +18,15 @@ import org.jetbrains.compose.resources.StringResource
  *
  * The first four, in order, are each seat's default ([defaultFor]).
  */
-enum class PlayerColour(val label: StringResource) {
-    CYAN(Res.string.player_colour_cyan),
-    GREEN(Res.string.player_colour_green),
-    PURPLE(Res.string.player_colour_purple),
-    AMBER(Res.string.player_colour_amber),
-    PINK(Res.string.player_colour_pink),
-    RED(Res.string.player_colour_red),
-    BLUE(Res.string.player_colour_blue),
-    LIME(Res.string.player_colour_lime),
+enum class PlayerColour(override val id: String, val label: StringResource) : StoredId {
+    CYAN("CYAN", Res.string.player_colour_cyan),
+    GREEN("GREEN", Res.string.player_colour_green),
+    PURPLE("PURPLE", Res.string.player_colour_purple),
+    AMBER("AMBER", Res.string.player_colour_amber),
+    PINK("PINK", Res.string.player_colour_pink),
+    RED("RED", Res.string.player_colour_red),
+    BLUE("BLUE", Res.string.player_colour_blue),
+    LIME("LIME", Res.string.player_colour_lime),
     ;
 
     companion object {

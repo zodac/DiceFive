@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
 
@@ -17,7 +19,7 @@ import net.zodac.dicefive.model.AchievementCounter
  * `settings` - "Reset achievements" is a `clear()` on this file, and must not take the settings or
  * the remembered player names with it.
  *
- * Keys are built from [Achievement.id] / [AchievementCounter.name], so storage survives the enum
+ * Keys are built from [Achievement.id] / [AchievementCounter.id], so storage survives the enum
  * being reordered or having entries inserted. An id that no longer matches an [Achievement]
  * (something renamed or removed in a later version) is ignored on read.
  */
@@ -60,10 +62,15 @@ class AchievementsRepository(private val dataStore: DataStore<Preferences>) : Ac
         dataStore.edit { prefs -> prefs.remove(unlockedKey(achievement)) }
     }
 
+    /** One per repository, and so per process: every screen that earns an achievement goes through it. */
+    private val lock = Mutex()
+
+    override suspend fun <T> locked(block: suspend () -> T): T = lock.withLock { block() }
+
     private companion object {
         /** Every achievement's and counter's key, built once rather than on every read of [state]. */
         val UNLOCKED_KEYS = Achievement.entries.map { it to longPreferencesKey("unlocked_${it.id}") }
-        val COUNTER_KEYS = AchievementCounter.entries.map { it to intPreferencesKey("counter_${it.name}") }
+        val COUNTER_KEYS = AchievementCounter.entries.map { it to intPreferencesKey("counter_${it.id}") }
 
         fun unlockedKey(achievement: Achievement) = UNLOCKED_KEYS[achievement.ordinal].second
         fun counterKey(counter: AchievementCounter) = COUNTER_KEYS[counter.ordinal].second

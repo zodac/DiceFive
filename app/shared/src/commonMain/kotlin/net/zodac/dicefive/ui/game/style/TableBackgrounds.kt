@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.game.style
 
 import androidx.compose.ui.graphics.Brush
+import net.zodac.dicefive.data.settings.DefaultStyleIds
 import net.zodac.dicefive.ui.theme.BarrelBackgroundBottom
 import net.zodac.dicefive.ui.theme.BarrelBackgroundTop
 import net.zodac.dicefive.ui.theme.FeltNavyBottom
@@ -8,7 +9,7 @@ import net.zodac.dicefive.ui.theme.FeltNavyTop
 
 /** Default [TableBackground]: deep-navy felt behind the scorecard. */
 object MidnightFeltBackground : TableBackground {
-    override val id: String = "classic_navy"
+    override val id: String = DefaultStyleIds.TABLE_BACKGROUND
 
     override val scoreAreaBrush: Brush = Brush.verticalGradient(listOf(FeltNavyTop, FeltNavyBottom))
 }
