@@ -1,7 +1,7 @@
 name: Update dependencies
 
 # Once a month (and on demand), runs .github/scripts/update_dependency_versions.sh - every Gradle
-# dependency, the Android SDK platform, the JDK, the sandbox image's pins and the actionlint image -
+# dependency, the Android SDK platform, the NDK, the JDK, the sandbox image's pins and the actionlint image -
 # then re-runs the same gates the release workflow applies. Only if everything passes is the result
 # committed to main and a release started; a failure anywhere leaves main untouched (the run just
 # fails, with the reason in its log).
@@ -11,7 +11,8 @@ name: Update dependencies
 #   - It may not change files under .github/workflows/. So no version the update moves lives in a
 #     workflow: the JDK comes from the Gradle toolchain file and the SDK packages from
 #     app/android/build.gradle.kts, both read at run time (below, and in release.yml), and the actionlint
-#     image is pinned in .github/scripts/lint_workflows.sh. The one thing left in workflow files is
+#     image is pinned in .github/scripts/lint_workflows.sh (the NDK, like the SDK packages, comes from
+#     app/android/build.gradle.kts). The one thing left in workflow files is
 #     the actions' own versions (`uses: …@vN`): the script runs with --no-workflow-edits, so newer
 #     ones are only listed in the run summary, to apply by running the script locally.
 #   - A push made with it never triggers other workflows (which is what stops release.yml's own
@@ -55,8 +56,8 @@ jobs:
           distribution: temurin
           java-version: ${{ steps.java.outputs.version }}
 
-      # The packages app/android/build.gradle.kts builds against. A newer platform the script tries is
-      # installed by the script itself.
+      # The packages app/android/build.gradle.kts builds against. A newer platform or NDK the script
+      # tries is installed by the script itself.
       - name: Install required Android SDK packages
         run: |
           ANDROID_CLI="$ANDROID_HOME/cmdline-tools/latest/bin/android"

@@ -111,6 +111,12 @@ The sole holder can relicense later.
 - **`mapping.txt`**: done. Each release attaches `DiceFive-<version>-mapping.txt`, and the `.aab` carries it too
   (`BUNDLE-METADATA/.../proguard.map`), which Play uses to deobfuscate vitals. The attached copy is for GitHub-APK
   traces.
+- **Native debug symbols**: done. The app has no native code, but AndroidX ships some (DataStore, Compose
+  graphics-path). The release build type's `ndk.debugSymbolLevel = "SYMBOL_TABLE"` puts their symbol tables in the
+  `.aab` (`BUNDLE-METADATA/com.android.tools.build.debugsymbols/`), so Play needs no separate upload. This needs the NDK pinned by
+  `ndkVersion`: the sandbox image bakes it and CI installs it. No library may be listed in `keepDebugSymbols`,
+  because AGP leaves a kept library out of the extracted tables. Graphics-path ships pre-stripped, so its frames stay
+  as addresses.
 
 ## Future: ads and a one-time Pro purchase
 

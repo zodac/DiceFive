@@ -55,6 +55,12 @@ android {
     // lower pin here rather than failing on it, so this now just documents what AGP would use
     // anyway instead of actually choosing it.
     buildToolsVersion = "36.0.0"
+    // The app has no native code of its own, but AndroidX ships some (see `packaging` below). The NDK
+    // extracts their symbol tables for Play (`debugSymbolLevel` in the release build type) and strips
+    // the libraries; without it AGP warns and does neither. Pinned to match sandbox/Dockerfile; the workflows read it from here via
+    // .github/scripts/android_sdk_packages.sh, and .github/scripts/update_dependency_versions.sh moves it
+    // to the newest stable NDK that extracts the symbols.
+    ndkVersion = "30.0.16248370"
 
     // Output APK names: DiceFive-debug.apk / DiceFive-release.apk instead of the app-*.apk default.
     base {
@@ -116,6 +122,11 @@ android {
             if (hasReleaseSigningConfig) {
                 signingConfig = signingConfigs.getByName("release")
             }
+            // The App Bundle carries the native libraries' symbol tables (BUNDLE-METADATA), so Play
+            // symbolicates native crashes and ANRs without a separate upload.
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
         }
     }
 
@@ -130,12 +141,9 @@ android {
     }
 
     packaging {
-        // Prebuilt libraries (Compose's graphics-path, DataStore's shared counter) ship .so files with
-        // no symbol table AGP can strip, so it warns on every build and packages them as they are.
-        // Saying so here is the same outcome without the warning.
-        jniLibs {
-            keepDebugSymbols += setOf("**/libandroidx.graphics.path.so", "**/libdatastore_shared_counter.so")
-        }
+        // The native libraries (Compose's graphics-path, DataStore's shared counter) are stripped with the
+        // NDK (ndkVersion above). None may be listed in jniLibs.keepDebugSymbols: AGP also leaves a kept
+        // library out of the symbol tables it extracts for Play.
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             // A handful of AndroidX artifacts each bundle their own full copy of the same Apache

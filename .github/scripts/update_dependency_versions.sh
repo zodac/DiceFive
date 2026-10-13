@@ -24,6 +24,9 @@
 #                   fallback in sandbox/emulator.sh), which follows compileSdk: the newest stable Google
 #                   APIs system image of the same API level (Google publishes none for minor releases
 #                   like 37.2, so it matches the level, e.g. 37.0)
+#                 - the Android NDK (`ndkVersion` in app/android/build.gradle.kts and the `ndk;…` package in
+#                   sandbox/Dockerfile): the newest stable NDK in Google's SDK manifest that extracts the
+#                   release build's native symbol tables (see "0b. NDK")
 #                 - sandbox/Dockerfile's Android cmdline-tools download (URL + sha1, from Google's own SDK
 #                   repository manifest) and the Playwright CLI pin used for `install-deps`
 #                 - GitHub Actions `uses:` references (keeping the pin style: `@v4` stays a major tag) -
@@ -31,7 +34,7 @@
 #                 - The actionlint image pinned in .github/scripts/lint_workflows.sh
 #               Then two checks (NOT best-effort - either one failing fails the run):
 #                 - a consistency guard over values that must agree across files (JDK major, Android
-#                   platform, build-tools, emulator API), which also fails if the sandbox's emulator
+#                   platform, build-tools, NDK, emulator API), which also fails if the sandbox's emulator
 #                   is not on compileSdk's API level (when Google publishes an image for it) or its
 #                   system image has disappeared from Google's SDK manifest
 #                 - a real build (assembleDebug, unit tests, instrumented-test compile, lint - the CI
@@ -622,6 +625,107 @@ update_compile_sdk() {
     return 0
 }
 
+# ── 0b. NDK (proven by symbol extraction) ─────────────────────────────────────
+# The app compiles no native code; the NDK only extracts the symbol tables of the native libraries
+# AndroidX ships (`debugSymbolLevel` in the release build type, which puts them in the App Bundle for
+# Play) and strips those libraries. So a candidate is proven by exactly that: for each stable NDK newer
+# than `ndkVersion` (newest first, majors included), install it, set it, and run the strip and
+# symbol-extraction tasks; the first that runs clean and writes the symbol files is kept, and written
+# into sandbox/Dockerfile's NDK layer (the workflows pin none - .github/scripts/android_sdk_packages.sh
+# reads it from app/android/build.gradle.kts at run time). The full build gates still run at the end
+# (verify_build), since app/android/build.gradle.kts has then changed.
+#
+# NDK packages are named by their full version (ndk;30.0.16248370). Betas and release candidates sit on
+# a non-stable channel and carry a <preview> revision; neither is ever taken.
+
+NDK_PROOF_TASKS=(:app:android:stripDebugDebugSymbols :app:android:extractReleaseNativeSymbolTables)
+NDK_SYMBOLS_DIR="./app/android/build/intermediates/native_symbol_tables/release"
+
+read_ndk_version() {
+    grep -oP '^\s*ndkVersion\s*=\s*"\K[^"]+' "${APP_BUILD_GRADLE}" | head -1 || true
+}
+
+# Echoes every stable NDK version in the SDK manifest, newest first.
+stable_ndk_versions() {
+    local manifest
+    manifest=$(sdk_repository_manifest) || return 0
+    awk '
+        /<remotePackage path="ndk;[0-9]/ {
+            path = $0; sub(/.*path="ndk;/, "", path); sub(/".*/, "", path)
+            in_pkg = 1; stable = 0; preview = 0
+        }
+        in_pkg && /<preview>/ { preview = 1 }
+        in_pkg && /<channelRef ref="channel-0"\/>/ { stable = 1 }
+        in_pkg && /<\/remotePackage>/ {
+            in_pkg = 0
+            if (stable && !preview && path ~ /^[0-9]+\.[0-9]+\.[0-9]+$/) print path
+        }
+    ' <<< "${manifest}" | sort -V -r
+}
+
+# Runs the tasks the NDK serves; succeeds only if they pass, warn-free, and wrote symbol files. (AGP falls
+# back to a warning, not a failure, when it cannot use the NDK, so the warning is what gives it away.)
+prove_ndk() {
+    rm -rf "${NDK_SYMBOLS_DIR}"
+    ./gradlew --no-daemon --console=plain "${NDK_PROOF_TASKS[@]}" > "${BUILD_LOG}" 2>&1 || return 1
+    if grep -qiE 'unable to (strip|extract)' "${BUILD_LOG}"; then
+        echo "The NDK tasks warned:" >> "${BUILD_LOG}"
+        return 1
+    fi
+    [[ -n "$(find "${NDK_SYMBOLS_DIR}" -type f -name '*.sym' 2>/dev/null)" ]] || {
+        echo "No symbol files under ${NDK_SYMBOLS_DIR}" >> "${BUILD_LOG}"
+        return 1
+    }
+}
+
+update_ndk() {
+    echo
+    echo "🔍 Checking for a newer Android NDK..."
+
+    local current
+    current=$(read_ndk_version)
+    if [[ -z "${current}" ]]; then
+        warn "Could not read ndkVersion from ${APP_BUILD_GRADLE}, skipping"
+        return 0
+    fi
+    echo "  Current: ndkVersion ${current}"
+
+    local candidates=() version
+    while IFS= read -r version; do
+        [[ -n "${version}" ]] && version_gt "${version}" "${current}" && candidates+=("${version}")
+    done < <(stable_ndk_versions)
+    if [[ "${#candidates[@]}" -eq 0 ]]; then
+        echo "  ndkVersion=${current} (already the newest stable NDK)"
+        return 0
+    fi
+    if [[ "${SKIP_BUILD}" == "true" ]]; then
+        warn "NDK ${candidates[0]} is available, but --skip-build means it cannot be proven - not adopted"
+        return 0
+    fi
+
+    for version in "${candidates[@]}"; do
+        echo "  --- NDK ${version}"
+        if ! install_sdk_package "ndk;${version}" "ndk/${version}"; then
+            warn "Could not install ndk;${version}, skipping it"
+            continue
+        fi
+        sed -i -E "s|^([[:space:]]*ndkVersion[[:space:]]*=[[:space:]]*\")[^\"]+|\\1${version}|" "${APP_BUILD_GRADLE}"
+        echo "    Extracting the release symbol tables..."
+        if prove_ndk; then
+            sed -i -E "s#ndk([;/])[0-9]+\\.[0-9]+\\.[0-9]+#ndk\\1${version}#g" "${SANDBOX_DOCKERFILE}"
+            record_update "NDK: ${current} → ${version}"
+            ok "NDK ${current} → ${version}: it strips and extracts the native symbol tables"
+            return 0
+        fi
+        warn "NDK ${version} does not extract the symbol tables:"
+        show_build_failure
+        sed -i -E "s|^([[:space:]]*ndkVersion[[:space:]]*=[[:space:]]*\")[^\"]+|\\1${current}|" "${APP_BUILD_GRADLE}"
+    done
+
+    echo "  ndkVersion=${current} (no newer NDK extracts the symbols)"
+    return 0
+}
+
 # ── 1. Java (sandbox/Dockerfile jdk stage) ────────────────────────────────────
 # Step 1 of the two in the header's "Java" note: the newest eclipse-temurin:<major>…-jdk tag for the
 # major ALREADY pinned. It also lists every newer LTS major that has a -jdk tag on Docker Hub in
@@ -918,9 +1022,9 @@ update_playwright() {
 # package's Linux archive. The URL, the checksum and the "(tool revision N.M)" note in the comment
 # above them move together or not at all.
 #
-# The SDK *packages* installed with it (`platforms;android-N`, `build-tools;X.Y.Z`) are NOT bumped:
-# they must match compileSdk and buildToolsVersion in app/android/build.gradle.kts, which are code decisions.
-# verify_version_sync checks they still agree.
+# The SDK *packages* installed with it (`platforms;android-N`, `build-tools;X.Y.Z`) are NOT bumped here:
+# they must match compileSdk and buildToolsVersion in app/android/build.gradle.kts, which move in their own
+# sections (or not at all), as does the NDK. verify_version_sync checks they still agree.
 
 update_android_cmdline_tools() {
     echo
@@ -1625,6 +1729,8 @@ update_actionlint() {
 #   - Build-tools: app buildToolsVersion, and `build-tools;X` / `build-tools/X` in sandbox/Dockerfile
 #     (AGP enforces a minimum build-tools and silently fetches it over the network when the installed
 #     one is lower, so a stale pin still "works" - which is exactly why it needs a check)
+#   - NDK: app ndkVersion, and `ndk;X` / `ndk/X` in sandbox/Dockerfile (a mismatch only warns, at
+#     release time, and ships an App Bundle without native symbols)
 # The workflows are scanned too, so a pin re-added to one is held to the same value - but they are meant
 # to pin none of these: they read the JDK from the toolchain and the SDK packages from
 # app/android/build.gradle.kts at run time, so that the monthly update (pushing with GITHUB_TOKEN, which may not
@@ -1698,6 +1804,17 @@ verify_version_sync() {
         done < <(grep -oP 'build-tools[;/]\K[0-9][0-9.]*[0-9]' "${f}" || true)
     done
     check_group "Build-tools" "${entries[@]}"
+
+    # ── NDK ──
+    entries=()
+    v=$(read_ndk_version)
+    entries+=("${v} (${APP_BUILD_GRADLE} ndkVersion)")
+    for f in "${SANDBOX_DOCKERFILE}" "${WORKFLOWS_DIR}"/*.yml; do
+        while IFS= read -r v; do
+            entries+=("${v} (${f})")
+        done < <(grep -oP 'ndk[;/]\K[0-9]+\.[0-9]+\.[0-9]+' "${f}" || true)
+    done
+    check_group "NDK" "${entries[@]}"
 
     # ── Emulator API (sandbox/Dockerfile's choice, and the fallback in sandbox/emulator.sh) ──
     entries=()
@@ -2012,6 +2129,7 @@ GRADLE_INPUTS_BEFORE=$(gradle_inputs_hash)
 # compileSdk first, on the project exactly as committed (see its section for why).
 update_compile_sdk      || warn "compileSdk update failed, continuing..."
 sync_emulator_api       || warn "Sandbox emulator update failed, continuing..."
+update_ndk              || warn "NDK update failed, continuing..."
 update_gradle_wrapper   || warn "Gradle wrapper update failed, continuing..."
 update_settings_plugins || warn "settings.gradle.kts plugin update failed, continuing..."
 update_version_catalog  || warn "Version catalog update failed, continuing..."

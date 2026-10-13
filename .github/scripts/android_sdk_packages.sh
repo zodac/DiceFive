@@ -3,10 +3,10 @@
 # Script Name:  android_sdk_packages.sh
 #
 # Description:  Prints the Android SDK packages this project builds against, space-separated and ready
-#               to hand to `android sdk install`: the platform for compileSdk (+ compileSdkMinor) and the
-#               build-tools for buildToolsVersion, both read from app/android/build.gradle.kts. The workflows
-#               call this instead of pinning the packages themselves, so a compileSdk or build-tools
-#               change never has to edit a workflow file (which the monthly dependency update, pushing
+#               to hand to `android sdk install`: the platform for compileSdk (+ compileSdkMinor), the
+#               build-tools for buildToolsVersion and the NDK for ndkVersion, all read from
+#               app/android/build.gradle.kts. The workflows call this instead of pinning the packages
+#               themselves, so a compileSdk, build-tools or NDK change never has to edit a workflow file (which the monthly dependency update, pushing
 #               with GITHUB_TOKEN, is not allowed to do).
 #
 #               The platform's package NAME is not derivable from the API level alone: a minor release
@@ -29,8 +29,9 @@ build_file="app/android/build.gradle.kts"
 api=$(grep -oP '^\s*compileSdk\s*=\s*\K[0-9]+' "${build_file}" | head -1 || true)
 minor=$(grep -oP '^\s*compileSdkMinor\s*=\s*\K[0-9]+' "${build_file}" | head -1 || true)
 build_tools=$(grep -oP '^\s*buildToolsVersion\s*=\s*"\K[^"]+' "${build_file}" | head -1 || true)
-if [[ -z "${api}" || -z "${build_tools}" ]]; then
-    echo "Could not read compileSdk / buildToolsVersion from ${build_file}" >&2
+ndk=$(grep -oP '^\s*ndkVersion\s*=\s*"\K[^"]+' "${build_file}" | head -1 || true)
+if [[ -z "${api}" || -z "${build_tools}" || -z "${ndk}" ]]; then
+    echo "Could not read compileSdk / buildToolsVersion / ndkVersion from ${build_file}" >&2
     exit 1
 fi
 
@@ -56,4 +57,4 @@ if [[ -z "${platform}" ]]; then
     echo "Could not confirm the platform package name against the SDK manifest; using ${platform}" >&2
 fi
 
-echo "platforms;${platform} build-tools;${build_tools}"
+echo "platforms;${platform} build-tools;${build_tools} ndk;${ndk}"

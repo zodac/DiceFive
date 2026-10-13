@@ -370,8 +370,21 @@ RUN set -eux; \
     test -d /opt/android-sdk/build-tools/36.0.0; \
     chmod -R a+rX /opt/android-sdk
 
+# ── Android NDK (the release build extracts native symbol tables with it) ────────────────────────────
+# Its own layer, for the same reason as the emulator's below: the NDK is about 1 GB, so a bump to the SDK
+# pins above never re-downloads it, and a bump to it re-downloads nothing else. `ndk;30.0.16248370`
+# matches `ndkVersion` in app/android/build.gradle.kts; without it a release build cannot extract the
+# symbols (`debugSymbolLevel`) and no build can strip native libraries. .github/scripts/update_dependency_versions.sh
+# moves both together and its consistency check fails the run if they drift. The `test` line is what
+# verifies the install, not the exit code.
+RUN set -eux; \
+    /opt/android-sdk/cmdline-tools/latest/bin/android sdk install --sdk=/opt/android-sdk \
+        "ndk;30.0.16248370" </dev/null >/dev/null || true; \
+    test -d /opt/android-sdk/ndk/30.0.16248370; \
+    chmod -R a+rX /opt/android-sdk
+
 # ── Android emulator + one virtual device (so `sandbox/emulator.sh start` boots at once) ───────────────
-# Its own layers, below the SDK block, so a bump to the SDK pins above never re-downloads the ~1.5 GB
+# Its own layers, below the SDK and NDK blocks, so a bump to the pins above never re-downloads the ~1.5 GB
 # image and a change here never re-downloads the SDK. The emulator and the system image are named by
 # package only - the installer has no way to pin a revision, the same as `platform-tools` above - so what
 # is baked is whatever Google serves on the day this layer is built; it is rebuilt only when this text
