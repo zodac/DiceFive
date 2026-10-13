@@ -62,7 +62,7 @@ sandbox/emulator.sh stop
 
 ## The same journey in the release workflow
 
-`release.yml`'s `baseline-profile` job runs this journey (10 laps) on a GitHub-hosted runner for every
+`release.yml`'s `baseline-profile` job runs this journey (3 laps, or 10 when the journey or a profile file changed since the previous release) on a GitHub-hosted runner for every
 release APK, and the `apk` job builds with the profile it makes. `.github/scripts/ci_emulator.sh` is
 `emulator.sh`'s CI twin: same Android version (it reads `ENV EMULATOR_API` from `sandbox/Dockerfile` at run
 time), same Google APIs image, same `-gpu swiftshader_indirect` boot and the same Vulkan renderer setting

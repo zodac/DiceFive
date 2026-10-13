@@ -1975,11 +1975,12 @@ install-over-existing succeeds:
       the phone before/after in step 2 and the wildcard decision in step 3 are still open). `:app:baselineprofile`
       holds the Macrobenchmark journey (`BaselineProfileGenerator`, steps in `Journeys.kt`: a game
       played and then resumed, Styles, Achievements, Leaderboard, Statistics, Rules, Settings with its
-      Licences and About dialogs), `StartupBenchmark` and `StylesBenchmark` (frame times opening
+      Licences and About dialogs, and a game played to the end - Quickfire at one roll a turn, two users and an Easy CPU, for the Game Over fireworks,
+      the scorecards review and a CPU's turns; on the first lap of a short run only, every lap of a longer one), `StartupBenchmark` and `StylesBenchmark` (frame times opening
       Styles and swiping its rows), each compared with no compilation against the profile.
       **The profile is generated fresh for every release APK** (2026-10-08): `release.yml`'s
       `baseline-profile` job boots an emulator on the runner (`.github/scripts/ci_emulator.sh`), runs a
-      10-lap journey and hands the profile to the `apk` job. A failing journey fails the release at once (only a
+      3-lap journey (10 when the journey or a profile file changed since the previous release) and hands the profile to the `apk` job. A failing journey fails the release at once (only a
       failed emulator boot or APK install is retried, twice; the device's `/data` is pinned at 6 GB, as the runner's
       800 MB default filled on first boot and crash-looped the framework, and the AVD's `target` is written by the script, as the runner's
       `avdmanager` wrote one the emulator read as API 3, so it left Vulkan off and every app's renderer aborted - `.claude/EMULATOR.md`; the step times out at 150 minutes, the job at 170 - 60 was too short for 10 laps on a hosted runner); its report, screenshot, emulator log and logcat are uploaded as the

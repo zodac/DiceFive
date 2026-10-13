@@ -144,7 +144,7 @@ jobs:
   # emulator and the journey are explained in .claude/EMULATOR.md; the journey in .claude/DESIGN.md
   # Phase 19.
   #
-  # Timeouts: a lap of the journey is ~2 minutes on a 4-core sandbox emulator, and a hosted runner is at
+  # Timeouts: a lap of the journey is ~2.5 minutes on a 4-core sandbox emulator (the first one ~1.5 more, with its game played to the end), and a hosted runner is at
   # least three times slower - a 60-minute step timed out with laps still to run. The step stops at 150
   # (a boot of up to 15, the benchmark build, 10 laps, room for two retried boots) and fails like a failed
   # journey, so its report is still uploaded; the job's own 170 is the backstop for a hang anywhere else
@@ -164,6 +164,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the lap count below diffs against the previous release's tag
+
+      # 3 laps are enough for a profile (a rule is recorded once). 10 only when the journey or a
+      # profile file changed since the previous release: the journey's timing races only showed up
+      # from lap 4, so a changed journey is soaked once, before it goes on being run 3 laps at a time.
+      - name: Pick the number of laps
+        id: laps
+        run: |
+          previous_tag="$(git tag --merged HEAD --list 'v*' --sort=-version:refname \
+            | grep -vxF "v${{ needs.version.outputs.name }}" | head -n 1 || true)"
+          laps=3
+          if [ -z "$previous_tag" ] || ! git diff --quiet "$previous_tag" HEAD -- \
+              app/baselineprofile app/android/src/main/baseline-prof.txt; then
+            laps=10
+          fi
+          echo "laps=$laps" >> "$GITHUB_OUTPUT"
+          echo "Journey laps: $laps (previous release: ${previous_tag:-none})"
 
       # In the background for the rest of the job: it writes the marker file, and stops Gradle and the
       # emulator, as soon as a check fails. The generate step below reads the marker so it neither starts
@@ -209,7 +227,7 @@ jobs:
           ./gradlew :app:android:assembleNonMinifiedRelease :app:baselineprofile:assembleNonMinifiedRelease \
             --console=plain
 
-      # 10 laps: the journey's timing races only showed up from lap 4, so a short run doesn't prove it.
+      # 3 laps, or 10 when the journey or a profile file changed (see "Pick the number of laps").
       # Only the boot and the install are retried; a failed journey ends the step there and then (see the
       # job's comment).
       # The benchmark library logs "Compile iteration (N)" as each lap starts; those lines are echoed here
@@ -236,7 +254,8 @@ jobs:
             adb logcat -v time -s Benchmark:D -e "Compile iteration" &
             trap 'kill $! 2>/dev/null || true' EXIT
             if ./gradlew :app:android:generateBaselineProfile \
-                -Pandroid.testInstrumentationRunnerArguments.journeyLaps=10 --console=plain; then
+                -Pandroid.testInstrumentationRunnerArguments.journeyLaps=${{ steps.laps.outputs.laps }} \
+                --console=plain; then
               # The plugin only warns when the tests yield no profile, so Gradle can pass without one. That
               # means the APKs never installed (the emulator's framework fell over), not that the journey
               # failed, so it is retried like a failed boot.

@@ -35,7 +35,15 @@ internal fun intArgument(name: String): Int? =
 /** Waits for [selector] and returns it, or fails the run naming it. */
 internal fun MacrobenchmarkScope.await(selector: BySelector, what: String): UiObject2 =
     device.wait(Until.findObject(selector), TIMEOUT_MS)
-        ?: error("Baseline Profile journey: '$what' never appeared")
+        ?: error("Baseline Profile journey: '$what' never appeared (on screen: ${screenText()})")
+
+/** The text on screen, for a failure's message: what the journey was looking at instead. */
+private fun MacrobenchmarkScope.screenText(): String =
+    try {
+        device.findObjects(By.text(Pattern.compile(".+"))).joinToString(" | ") { it.text }.take(SCREEN_TEXT_CHARS)
+    } catch (_: StaleObjectException) {
+        "the screen was changing"
+    }
 
 internal fun MacrobenchmarkScope.tapText(text: String) = tap(text) { await(By.text(text), text) }
 
@@ -154,9 +162,7 @@ internal fun MacrobenchmarkScope.scrollRow(heightFraction: Float, times: Int) {
 
 /** From the menu: Play (or New Game, when a game is saved) -> Start Game, then back to the menu. */
 internal fun MacrobenchmarkScope.playATurn() {
-    // Waited for, not just looked for: the menu may still be drawing, and "Play" is only offered without a saved game.
-    await(By.text(Pattern.compile("Play|New Game")), "the menu's Play or New Game")
-    openFromMenu(if (hasText("New Game")) "New Game" else "Play")
+    openGameSetup()
     tapText("Start Game")
 
     // Roll, hold a die, roll again, then score: the loop a player spends nearly all their time in.
@@ -169,7 +175,18 @@ internal fun MacrobenchmarkScope.playATurn() {
     tapDesc("Chance")
     Thread.sleep(ROLL_SETTLE_MS)
 
+    // Back out, think better of it ("Cancel"), then leave for real.
+    cancelLeaving()
     leaveGame()
+}
+
+/**
+ * From the menu: Play (or New Game, when a game is saved), to the game's setup. Waited for, not just looked
+ * for: the menu may still be drawing, and "Play" is only offered without a saved game.
+ */
+private fun MacrobenchmarkScope.openGameSetup() {
+    await(By.text(Pattern.compile("Play|New Game")), "the menu's Play or New Game")
+    openFromMenu(if (hasText("New Game")) "New Game" else "Play")
 }
 
 /**
@@ -203,6 +220,16 @@ private fun MacrobenchmarkScope.leaveGame() {
         closeDialog(By.text("Leave"), "the leave dialog's Leave button")
     }
     await(By.text("Settings"), "the menu after leaving a game")
+}
+
+/** Back press in a game, then "Cancel" on the leave dialog (if the setting asks): the game carries on. */
+private fun MacrobenchmarkScope.cancelLeaving() {
+    back()
+    await(By.text(Pattern.compile("Leave game\\?|Settings")), "the leave dialog or the menu after a back press")
+    if (hasText("Leave game?")) {
+        closeDialog(By.text("Cancel"), "the leave dialog's Cancel button")
+        await(By.descStartsWith("Dice cup"), "the board after cancelling the leave dialog")
+    }
 }
 
 /** Settings, flipping one switch (and flipping it back), picking an animation level (and back) and opening the Licences and About dialogs. */
@@ -348,14 +375,136 @@ internal fun MacrobenchmarkScope.playAModeGame() {
 
     openFromMenu("New Game")
     chooseMode("Standard")
-    // Back only once the picker's dialog has gone: a back press sent while it closes leaves the app (see
-    // closeDialog). Its list is the only place the other mode's name shows, so that going says it has
-    // closed; the pause after covers the rest of its fade.
+    backOutOfSetup(replacedMode = "Tricolour")
+}
+
+/**
+ * Back from the setup once the mode picker's dialog has gone: a back press sent while it closes leaves the
+ * app (see closeDialog). Its list is the only place the mode just replaced shows ([replacedMode]), so that
+ * going says it has closed; the pause after covers the rest of its fade.
+ */
+private fun MacrobenchmarkScope.backOutOfSetup(replacedMode: String) {
     await(By.text("Start Game"), "the setup after choosing a mode")
-    device.wait(Until.gone(By.text("Tricolour")), TIMEOUT_MS)
+    device.wait(Until.gone(By.text(replacedMode)), TIMEOUT_MS)
     Thread.sleep(PICKER_CLOSE_MS)
     back()
     await(By.text("Settings"), "the menu after leaving the setup")
+}
+
+/**
+ * One whole game, played to the end - the part of the app nothing else reaches: the Game Over page with its
+ * fireworks, the scorecards review, and a CPU taking its turns. Three players, two of them users and one an
+ * Easy CPU (a user winning is what sets off the fireworks, and against an Easy CPU one nearly always does),
+ * in Quickfire with one roll a turn, so it is only six turns a player. The setup remembers its picks, so
+ * they are put back at the end.
+ */
+internal fun MacrobenchmarkScope.playFinishedGame() {
+    openGameSetup()
+    tapDesc("3")
+    setThirdSeatCpu(true)
+    setOneRollPerTurn(true)
+    chooseMode("Quickfire")
+    tapText("Start Game")
+    playToGameOver()
+    // The fireworks are given a moment to start: the profile records the code that ran, not how long they played
+    // (they run for GameOverScreen's CELEBRATION_MILLIS, as long as the fanfare).
+    Thread.sleep(CELEBRATION_MS)
+    tapText("Review Scorecards")
+    await(By.text("Scorecards"), "the scorecards review")
+    // Another player's tab: the first's name, one row, three quarters of the screen to the right (a name can be anything).
+    val firstTab = await(By.text("Player 1"), "the review's first player").visibleBounds
+    device.click(device.displayWidth * 3 / 4, firstTab.centerY())
+    device.waitForIdle()
+    back()
+    await(GAME_OVER, "the Game Over page after the review")
+    tapText("Main Menu")
+
+    openGameSetup()
+    setThirdSeatCpu(false)
+    tapDesc("2")
+    setOneRollPerTurn(false)
+    chooseMode("Standard")
+    backOutOfSetup(replacedMode = "Quickfire")
+}
+
+/**
+ * On the setup: the third seat a CPU (on Easy), or a user. Its chip - the lowest "User" or "CPU" on the page -
+ * names what the seat is now, and a tap turns it into the other, so it is only tapped when it isn't what's
+ * wanted (the setup keeps its picks from lap to lap).
+ */
+private fun MacrobenchmarkScope.setThirdSeatCpu(cpu: Boolean) {
+    val chip = By.text(Pattern.compile("User|CPU"))
+    fun lowestChip(): UiObject2 =
+        device.findObjects(chip).maxByOrNull { it.visibleBounds.top }
+            ?: error("Baseline Profile journey: the third seat's User or CPU chip never appeared")
+    await(chip, "the seats' User or CPU chips")
+    if ((lowestChip().text == "CPU") != cpu) tap("the third seat's chip") { lowestChip() }
+    if (cpu) tapText("Easy")
+}
+
+/** On the setup: the Number of Rolls modifier on at one roll a turn, or off. */
+private fun MacrobenchmarkScope.setOneRollPerTurn(on: Boolean) {
+    val decrease = By.desc("Decrease rolls per turn")
+    // Tapped until the modifiers page is up: a tap can be dropped while a dialog's dim layer fades.
+    repeat(CLOSE_ATTEMPTS) {
+        device.findObject(By.desc("Modifiers"))?.click()
+        if (device.wait(Until.hasObject(By.text("Number of Rolls")), CLOSE_WAIT_MS)) {
+            if (device.hasObject(decrease) != on) tapText("Number of Rolls")
+            if (on) {
+                // Down to the lowest, whatever it was left at: a tap at the lowest does nothing.
+                repeat(2) { tapDesc("Decrease rolls per turn") }
+            }
+            tapText("Done")
+            await(By.text("Start Game"), "the setup after the modifiers")
+            return
+        }
+    }
+    error("Baseline Profile journey: the modifiers page never opened")
+}
+
+/**
+ * One user's turn. The cup already reads as ready while a CPU is still taking the turn before, and a tap on it
+ * then does nothing - so it is tapped again until a roll leaves a box to score, which says the turn was the user's.
+ * Returns early if the Game Over page comes instead.
+ */
+private fun MacrobenchmarkScope.rollAndScore() {
+    repeat(ROLL_ATTEMPTS) {
+        // The cup may not be there: a CPU's move can have been the game's last.
+        if (device.hasObject(GAME_OVER)) return
+        try {
+            device.findObject(By.descStartsWith("Dice cup"))?.click()
+        } catch (_: StaleObjectException) {
+            // Re-composed between the lookup and the tap - look again.
+        }
+        if (device.wait(Until.hasObject(OPEN_BOX), ROLL_WAIT_MS)) {
+            tap("a box to score") { await(OPEN_BOX, "a box to score") }
+            return
+        }
+    }
+    error("Baseline Profile journey: rolling never left a box to score")
+}
+
+/**
+ * Rolls once and scores the first box the roll can fill, turn after turn, for every player, until the Game
+ * Over page is up. The boxes are found by name and by being tappable: a disabled or filled one isn't, and
+ * which of Quickfire's are disabled is drawn at random.
+ */
+private fun MacrobenchmarkScope.playToGameOver() = withShortIdleWait {
+    playTurnsToGameOver()
+}
+
+/** [playToGameOver]'s loop: everything in it waits for what it wants, so the dice's animations needn't be sat out as well. */
+private fun MacrobenchmarkScope.playTurnsToGameOver() {
+    repeat(MAX_TURNS) {
+        // The cup is back at its one roll when it is a user's turn - a CPU's moves go by in between.
+        val deadline = System.currentTimeMillis() + TURN_WAIT_MS
+        while (!device.hasObject(GAME_OVER) && !device.wait(Until.hasObject(NEXT_TURN), 1_000L)) {
+            check(System.currentTimeMillis() < deadline) { "Baseline Profile journey: no turn and no Game Over came" }
+        }
+        if (device.hasObject(GAME_OVER)) return
+        rollAndScore()
+    }
+    await(GAME_OVER, "the Game Over page")
 }
 
 /**
@@ -377,17 +526,38 @@ internal fun MacrobenchmarkScope.visitRules() {
     back()
 }
 
-/** Leaderboard and Statistics, which only need opening. */
+/** Leaderboard, on its Game Mode table and back on Combined, and Statistics, which only need opening. */
 internal fun MacrobenchmarkScope.visitScoreScreens() {
     openFromMenu("Leaderboard")
+    tapDesc("Game Mode")
+    tapDesc("Combined")
     back()
     openFromMenu("Statistics")
     back()
 }
 
+/**
+ * The Achievements page: scrolled, then the "Locked only" switch on and off, and the Collection's Tally
+ * long-pressed for the scores it still lacks (the page has them locked, as [resetAchievements] left them, and
+ * the Leaderboard has none of the scores it wants).
+ */
 internal fun MacrobenchmarkScope.visitAchievements() {
     openFromMenu("Achievements")
     scrollDown(2)
+    tapText("Locked only")
+    // Category by category until Tally's row is on screen.
+    // The scroll to a category goes on after the tap has returned, so each hop is given a moment to show it.
+    var hops = 0
+    while (!device.wait(Until.hasObject(By.text("Tally")), HOP_WAIT_MS) && hops++ < CATEGORY_HOPS) tapDesc("Next category")
+    // A press can be dropped (the row's tooltip, a banner fading out over it), so it is repeated until the dialog is up.
+    val missing = By.textStartsWith("Scores not yet on the leaderboard")
+    var pressed = 0
+    do {
+        longPressAt(await(By.text("Tally"), "Tally's row").visibleBounds)
+    } while (!device.wait(Until.hasObject(missing), CLOSE_WAIT_MS) && ++pressed < CLOSE_ATTEMPTS)
+    await(missing, "Tally's missing scores")
+    closeDialog(By.text("Done"), "the missing scores' Done button")
+    tapText("Locked only")
     back()
 }
 
@@ -408,6 +578,19 @@ internal fun MacrobenchmarkScope.visitStyles() {
     back()
 }
 
+private val GAME_OVER = By.text("Game Over")
+private val NEXT_TURN = By.descStartsWith("Dice cup, 1 roll")
+private val OPEN_BOX = By.clickable(true).desc(
+    Pattern.compile("Ones|Twos|Threes|Fours|Fives|Sixes|3x|4x|Full House|Small Straight|Large Straight|Chance"),
+)
+private const val SCREEN_TEXT_CHARS = 400
+private const val MAX_TURNS = 14
+private const val ROLL_ATTEMPTS = 12
+private const val ROLL_WAIT_MS = 2_500L
+private const val TURN_WAIT_MS = 60_000L
+private const val CELEBRATION_MS = 1_000L
+private const val CATEGORY_HOPS = 15
+private const val HOP_WAIT_MS = 800L
 private const val ROLL_SETTLE_MS = 2_000L
 private const val PICKER_CLOSE_MS = 1_000L
 private const val CLOSE_ATTEMPTS = 4
