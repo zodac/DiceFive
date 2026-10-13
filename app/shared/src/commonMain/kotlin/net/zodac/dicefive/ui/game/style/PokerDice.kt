@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.resources.Res
-import net.zodac.dicefive.resources.mathjax_main_regular
+import net.zodac.dicefive.resources.dicefive_maths_regular
 import net.zodac.dicefive.ui.theme.GoldAccent
 import org.jetbrains.compose.resources.Font
 
@@ -37,7 +37,7 @@ enum class Suit(val red: Boolean, build: () -> Path) {
 }
 
 /** Each value's card, 1 to 6: an Ace, then 2 to 6, each in the next suit round - spades, hearts, clubs, diamonds. */
-private val PokerRanks = listOf("A", "2", "3", "4", "5", "6")
+internal val PokerRanks = listOf("A", "2", "3", "4", "5", "6")
 private val PokerSuits = listOf(Suit.SPADES, Suit.HEARTS, Suit.CLUBS, Suit.DIAMONDS, Suit.SPADES, Suit.HEARTS)
 
 // The rank's index in the corners: its glyphs laid out at this size, then scaled to this height of the face.
@@ -50,8 +50,8 @@ private const val ACE_SUIT_RADIUS = 0.24f
 /**
  * Playing-card dice: every face a card - an Ace for 1, then 2 to 6 - each in a different suit from
  * the one before (see [PokerSuits]), with its rank and suit in two opposite corners in a formal serif
- * (the bundled MathJax font, a Computer Modern) and its suit pips laid out the way a card's are, the
- * lower ones upside down. On a coloured roll every suit takes the roll's pip colour.
+ * (the bundled DiceFive Maths font, MathJax's Computer Modern) and its suit pips laid out the way a
+ * card's are, the lower ones upside down. On a coloured roll every suit takes the roll's pip colour.
  */
 class PokerDiceStyle(
     override val id: String,
@@ -131,7 +131,7 @@ class PokerDiceStyle(
 @Composable
 private fun rememberRankLayout(text: String): TextLayoutResult {
     // Keyed on the font itself: where it loads asynchronously (iOS), it's laid out again once it arrives.
-    val font = Font(Res.font.mathjax_main_regular)
+    val font = Font(Res.font.dicefive_maths_regular)
     val measurer = rememberTextMeasurer(cacheSize = 0)
     val density = LocalDensity.current
     return remember(text, font, measurer, density) {

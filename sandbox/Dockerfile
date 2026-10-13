@@ -262,7 +262,8 @@ RUN set -eux; \
 # sandbox was copied from. fonttools now earns its keep in THIS repo too: `app/shared/src/commonMain/composeResources/font/sora.ttf`
 # is a static weight-700 instance produced with `python3 -m fontTools.varLib.instancer`, subset to
 # printable ASCII with `python3 -m fontTools.subset` (see AppLogo.kt's SoraFontFamily doc) - a one-off,
-# not a build-time step, so regenerating it later still needs this package. imagemagick/librsvg2-bin/
+# not a build-time step, so regenerating it later still needs this package. scripts/subset-maths-fonts.sh
+# (the Maths dice's cut-down DiceFive Maths fonts) needs it too. imagemagick/librsvg2-bin/
 # optipng remain unused by this repo; kept because the layer is already built and python3 is generally
 # useful in a session. Drop them from the list if the image size ever matters. fonttools is the distro
 # `python3-fonttools` package, NOT pip: the base image's Python is PEP-668 "externally managed", so

@@ -76,8 +76,8 @@ The sole holder can relicense later.
 - **Sora stays OFL-1.1.** Condition 5: modified or not, it must be distributed under the OFL only. Our `sora.ttf` is a
   modified weight-700 instance. `README.md`, the listings and any EULA must never claim "all files" without that
   carve-out.
-- **The MathJax TeX fonts** (the Maths dice) are OFL and unmodified, with Reserved Font Names. If they're ever changed,
-  rename them.
+- **The MathJax TeX fonts** (the Maths and Poker dice) are OFL, with Reserved Font Names. They ship cut down, so
+  renamed "DiceFive Maths" (`scripts/subset-maths-fonts.sh`; `MathsFontCoverageTest` guards the names).
 - **The OFL forbids selling the font on its own.** Bundling it in a paid app is fine.
 - **Audio.**
   - CC0 needs nothing.

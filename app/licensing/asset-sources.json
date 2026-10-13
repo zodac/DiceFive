@@ -89,17 +89,17 @@
     "copyright": "Copyright 2026 zodac.net",
     "license": "LicenseRef-DiceFive-AllRightsReserved"
   },
-  "app/shared/src/commonMain/composeResources/font/mathjax_main_regular.otf": {
-    "description": "MathJax_Main Regular (Computer Modern roman, as in Wikipedia's formulas) for the Maths dice's digits, root sign and factorial - unmodified, only the file renamed to a valid resource name (fonts/HTML-CSS/TeX/otf/MathJax_Main-Regular.otf in MathJax 2.7.9)",
-    "source": "https://cdn.jsdelivr.net/npm/mathjax@2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Main-Regular.otf",
+  "app/shared/src/commonMain/composeResources/font/dicefive_maths_italic.otf": {
+    "description": "DiceFive Maths Italic: MathJax_Math Italic (Computer Modern math italic, as in Wikipedia's formulas) for the Maths dice's x, e and π - modified, a modification the OFL permits: cut down to those characters and renamed, as the OFL requires of a modified font with a Reserved Font Name, by scripts/subset-maths-fonts.sh from the original kept in app/licensing/sources/ (fonts/HTML-CSS/TeX/otf/MathJax_Math-Italic.otf in MathJax 2.7.9)",
+    "source": "https://cdn.jsdelivr.net/npm/mathjax@2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Math-Italic.otf",
     "license": "OFL-1.1",
     "libraries": [
       "mathjax-fonts"
     ]
   },
-  "app/shared/src/commonMain/composeResources/font/mathjax_math_italic.otf": {
-    "description": "MathJax_Math Italic (Computer Modern math italic, as in Wikipedia's formulas) for the Maths dice's x - unmodified, only the file renamed to a valid resource name (fonts/HTML-CSS/TeX/otf/MathJax_Math-Italic.otf in MathJax 2.7.9)",
-    "source": "https://cdn.jsdelivr.net/npm/mathjax@2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Math-Italic.otf",
+  "app/shared/src/commonMain/composeResources/font/dicefive_maths_regular.otf": {
+    "description": "DiceFive Maths Regular: MathJax_Main Regular (Computer Modern roman, as in Wikipedia's formulas) for the Maths dice's digits, root sign, floor brackets, \"ln\" and factorial and the Poker dice's ranks - modified, a modification the OFL permits: cut down to those characters and renamed, as the OFL requires of a modified font with a Reserved Font Name, by scripts/subset-maths-fonts.sh from the original kept in app/licensing/sources/ (fonts/HTML-CSS/TeX/otf/MathJax_Main-Regular.otf in MathJax 2.7.9)",
+    "source": "https://cdn.jsdelivr.net/npm/mathjax@2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Main-Regular.otf",
     "license": "OFL-1.1",
     "libraries": [
       "mathjax-fonts"

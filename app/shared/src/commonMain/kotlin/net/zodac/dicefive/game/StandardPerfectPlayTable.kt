@@ -15,7 +15,8 @@ import net.zodac.dicefive.model.PlayerState
  * A turn's start is all that matters to the rest of the game: which boxes are filled, the upper
  * section's total (capped at the bonus threshold - past it, more makes no difference), and whether
  * the 5x box holds its full score (which makes later 5x jokers worth a bonus chip). 536,448 of those
- * can happen; each value is kept to 1/[SCALE] of a point in two bytes - 1 MB in all.
+ * can happen; each value is kept to 1/[SCALE] of a point in two bytes - 1 MB in all, about a third of
+ * that once the APK compresses it, because it's stored the way [encode] says.
  */
 class StandardPerfectPlayTable private constructor(private val values: ShortArray) {
 
@@ -23,15 +24,23 @@ class StandardPerfectPlayTable private constructor(private val values: ShortArra
     internal fun valueOf(filledMask: Int, upperTotal: Int, fiveOfAKindScored: Boolean): Double =
         decodeValue(values[StateIndex.of(filledMask, upperTotal, fiveOfAKindScored)])
 
-    /** As written to [RESOURCE_PATH]: a short header, then every state's value in [StateIndex] order. */
+    /**
+     * As written to [RESOURCE_PATH]: a short header, then every state's value in [StateIndex] order, each
+     * as its difference from the one before (wrapping, from 0) - all the low bytes, then all the high
+     * bytes. Neighbouring states' values are close, so the differences are small and repetitive, and the
+     * APK's own compression shrinks them far more than the plain values.
+     */
     internal fun encode(): ByteArray {
         val bytes = ByteArray(HEADER_SIZE + values.size * 2)
         MAGIC.copyInto(bytes)
         bytes[MAGIC.size] = FORMAT_VERSION
         writeInt(bytes, MAGIC.size + 1, values.size)
+        var previous = 0
         for ((index, value) in values.withIndex()) {
-            bytes[HEADER_SIZE + index * 2] = value.toByte()
-            bytes[HEADER_SIZE + index * 2 + 1] = (value.toInt() shr 8).toByte()
+            val difference = value.toInt() - previous
+            bytes[HEADER_SIZE + index] = difference.toByte()
+            bytes[HEADER_SIZE + values.size + index] = (difference shr 8).toByte()
+            previous = value.toInt()
         }
         return bytes
     }
@@ -94,7 +103,7 @@ class StandardPerfectPlayTable private constructor(private val values: ShortArra
         /** Values are kept to 1/SCALE of a point: two bytes hold up to 2,047 points, far beyond any expectation. */
         private const val SCALE = 32.0
         private val MAGIC = byteArrayOf('D'.code.toByte(), '5'.code.toByte(), 'P'.code.toByte(), 'P'.code.toByte())
-        private const val FORMAT_VERSION: Byte = 1
+        private const val FORMAT_VERSION: Byte = 2
         private const val HEADER_SIZE = 9
 
         private fun encodeValue(value: Double): Short {
@@ -111,9 +120,12 @@ class StandardPerfectPlayTable private constructor(private val values: ShortArra
             require(bytes[MAGIC.size] == FORMAT_VERSION) { "Perfect-play table format ${bytes[MAGIC.size]}, expected $FORMAT_VERSION" }
             val count = readInt(bytes, MAGIC.size + 1)
             require(count == StateIndex.size && bytes.size == HEADER_SIZE + count * 2) { "Perfect-play table has $count states, expected ${StateIndex.size}" }
+            var previous = 0
             return StandardPerfectPlayTable(
                 ShortArray(count) { index ->
-                    ((bytes[HEADER_SIZE + index * 2].toInt() and 0xFF) or ((bytes[HEADER_SIZE + index * 2 + 1].toInt() and 0xFF) shl 8)).toShort()
+                    val difference = (bytes[HEADER_SIZE + index].toInt() and 0xFF) or ((bytes[HEADER_SIZE + count + index].toInt() and 0xFF) shl 8)
+                    previous = (previous + difference) and 0xFFFF
+                    previous.toShort()
                 },
             )
         }

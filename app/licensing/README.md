@@ -23,10 +23,14 @@ what the plugin can't discover for itself:
   redistributed - in this repository as well as in the app, where the Licences dialog shows the same
   text (`licenses/OFL-1.1.json` plus `libraries/sora.json`'s copyright line). Kept here with the other
   licence records rather than beside `sora.ttf`, so all of them are in one place.
-- `mathjax-fonts-OFL.txt` - the same for the MathJax TeX fonts (`mathjax_main_regular.otf` and
-  `mathjax_math_italic.otf`, the Maths dice's face): the copyright and Reserved Font Name notice from
-  the fonts' own name table, and the full OFL. Shown in the dialog as `libraries/mathjax-fonts.json`.
-  They ship unmodified - a modified copy would have to drop the Reserved Font Names.
+- `mathjax-fonts-OFL.txt` - the same for the MathJax TeX fonts (the Maths and Poker dice's faces): the
+  copyright and Reserved Font Name notice from the fonts' own name table, and the full OFL. Shown in
+  the dialog as `libraries/mathjax-fonts.json`.
+- `sources/` - the untouched MathJax originals (`MathJax_Main-Regular.otf`, `MathJax_Math-Italic.otf`).
+  They don't ship: `scripts/subset-maths-fonts.sh` cuts them down to the characters the dice draw and
+  renames them `dicefive_maths_regular.otf` and `dicefive_maths_italic.otf` ("DiceFive Maths"), as the
+  OFL requires of a modified font with a Reserved Font Name. `MathsFontCoverageTest` fails if a die
+  draws a character the cut-down fonts lack, or if they keep a MathJax name.
 
 - `asset-sources.json` - where every bundled asset file came from: each file under any of
   `app/android`'s source sets' `res/` (except `values*/`), `rawAudioSource/` and `assets/`, and under

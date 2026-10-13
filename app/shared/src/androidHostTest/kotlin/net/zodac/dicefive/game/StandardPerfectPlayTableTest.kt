@@ -3,6 +3,7 @@ package net.zodac.dicefive.game
 import java.io.File
 import kotlin.random.Random
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertTrue
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
@@ -34,6 +35,13 @@ class StandardPerfectPlayTableTest {
         assertTrue(bundled.isFile, "No bundled table at ${bundled.absolutePath} - regenerate it, see the class doc")
         val mismatched = StandardPerfectPlayTable.mismatchedStates(StandardPerfectPlayTable.decode(bundled.readBytes()), SAMPLE_STRIDE)
         assertTrue(mismatched.isEmpty(), "The bundled table is out of date with Standard's rules - regenerate it, see the class doc. ${mismatched.size} sampled states differ, e.g. ${mismatched.take(3)}")
+    }
+
+    @Test
+    fun `the bundled table reads back to the same bytes it was written as`() {
+        val bytes = bundled.readBytes()
+
+        assertContentEquals(bytes, StandardPerfectPlayTable.decode(bytes).encode())
     }
 
     @Test

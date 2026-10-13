@@ -17,19 +17,19 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.resources.Res
-import net.zodac.dicefive.resources.mathjax_main_regular
-import net.zodac.dicefive.resources.mathjax_math_italic
+import net.zodac.dicefive.resources.dicefive_maths_italic
+import net.zodac.dicefive.resources.dicefive_maths_regular
 import net.zodac.dicefive.ui.theme.GoldAccent
 import org.jetbrains.compose.resources.Font
 
 /**
- * A glyph's advance and ink bounds, in ems (up is positive), read from the MathJax font's own
+ * A glyph's advance and ink bounds, in ems (up is positive), read from the Maths font's own
  * metrics - so a formula can be laid out and centred exactly as the font draws it, without
  * measuring ink at runtime.
  */
 private class Glyph(val advance: Float, val left: Float, val bottom: Float, val right: Float, val top: Float)
 
-// MathJax_Main Regular: the digits, the operators, the brackets and "ln".
+// DiceFive Maths Regular (MathJax_Main Regular, cut down): the digits, the operators, the brackets and "ln".
 private val MainGlyphs = mapOf(
     '0' to Glyph(0.5f, 0.039f, -0.022f, 0.46f, 0.666f),
     '2' to Glyph(0.5f, 0.05f, 0f, 0.449f, 0.666f),
@@ -43,12 +43,16 @@ private val MainGlyphs = mapOf(
     '√' to Glyph(0.833f, 0.072f, -0.2f, 0.853f, 0.8f),
 )
 
-// MathJax_Math Italic: the variable and the constants.
+// DiceFive Maths Italic (MathJax_Math Italic, cut down): the variable and the constants.
 private val ItalicGlyphs = mapOf(
     'x' to Glyph(0.572f, 0.035f, -0.011f, 0.522f, 0.442f),
     'e' to Glyph(0.466f, 0.039f, -0.011f, 0.429f, 0.442f),
     'π' to Glyph(0.57f, 0.019f, -0.011f, 0.573f, 0.431f),
 )
+
+/** The characters the Maths dice draw in each font: the fonts must keep them all (`scripts/subset-maths-fonts.sh`). */
+internal val MathsRegularCharacters: Set<Char> get() = MainGlyphs.keys
+internal val MathsItalicCharacters: Set<Char> get() = ItalicGlyphs.keys
 
 // TeX's layout constants for a formula in display style: how much smaller a superscript is set, and
 // how far its baseline is raised; and the default rule thickness, which the root's bar is drawn in.
@@ -137,7 +141,8 @@ private const val LAYOUT_EM_PX = 100f
 
 /**
  * Maths dice: every face a small formula that works out to its value - x⁰, ln e², ⌊π⌋, 2², √25 and 3! -
- * set in the MathJax TeX fonts, the Computer Modern faces Wikipedia's formulas are drawn in (see
+ * set in the DiceFive Maths fonts: the MathJax TeX fonts cut down to these characters, the Computer
+ * Modern faces Wikipedia's formulas are drawn in (see `scripts/subset-maths-fonts.sh` and
  * `app/licensing/`), in [ink] on a face shading from [light] to [dark].
  */
 class MathsDiceStyle(
@@ -177,8 +182,8 @@ class MathsDiceStyle(
 private fun rememberFormulaLayouts(formula: Formula): List<TextLayoutResult> {
     // Keyed on the fonts themselves: where a font resource loads asynchronously (iOS), the first
     // composition gets a stand-in, and the formula is laid out again once the real font arrives.
-    val mainFont = Font(Res.font.mathjax_main_regular)
-    val italicFont = Font(Res.font.mathjax_math_italic)
+    val mainFont = Font(Res.font.dicefive_maths_regular)
+    val italicFont = Font(Res.font.dicefive_maths_italic)
     val measurer = rememberTextMeasurer(cacheSize = 0)
     val density = LocalDensity.current
     return remember(formula, mainFont, italicFont, measurer, density) {
