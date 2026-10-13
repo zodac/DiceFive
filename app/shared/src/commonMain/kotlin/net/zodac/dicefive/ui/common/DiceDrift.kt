@@ -68,7 +68,7 @@ internal class DriftingDie(
  * The main menu's drifting watermark dice: each crosses the screen slowly, up and to one side, in a
  * straight line and turning slowly as it goes, then comes back in from below - out of sight at
  * first, so it glides on rather than popping in - on a new path, at a new size and showing a new
- * face, on whichever path keeps furthest from the others. The dice start where [start] places
+ * face (one no other die is showing), on whichever path keeps furthest from the others. The dice start where [start] places
  * them (the still backdrop's own dice), so the first frame is the familiar one, and any more up to
  * [DRIFT_DICE] start on their way in.
  *
@@ -108,11 +108,13 @@ internal class DiceDrift(start: List<DriftingDie>, private val random: Random = 
     /** Brings [die] back in from just below the bottom edge, on a new path, size and face. */
     private fun enter(die: DriftingDie, width: Float, height: Float) {
         die.size = random.between(MIN_SIZE, MAX_SIZE)
-        die.value = random.nextInt(1, 7)
+        val others = dice.filter { it !== die }
+        // A face none of the others is showing, so no two dice ever match (there are more faces than dice).
+        val taken = others.filter { it.crossing >= 0 }.map { it.value }.toSet()
+        die.value = (1..6).filter { it !in taken }.random(random)
         die.rotation = random.between(0f, 90f)
         // Just out of sight below the bottom edge - it shows as soon as it moves up.
         die.y = (height + extentPx(die, width, height)) / height
-        val others = dice.filter { it !== die }
         val best = List(ENTRY_CANDIDATES) {
             val towardsRight = random.nextBoolean()
             val lean = randomLean(width, height)

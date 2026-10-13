@@ -44,6 +44,16 @@ class DiceDriftTest {
     }
 
     @Test
+    fun noTwoDiceEverShowTheSameFace() {
+        for (seed in 1..5) {
+            run(minutes = 10, seed = seed) { drift ->
+                val faces = drift.dice.filter { it.crossing >= 0 }.map { it.value }
+                assertEquals(faces.size, faces.toSet().size, "seed $seed: repeated faces in $faces")
+            }
+        }
+    }
+
+    @Test
     fun eachCrossingIsASlowStraightLineUpAndAcrossTurningSlowerThanItTravelsAndDiceComeBackSometimesTheOtherWay() {
         val velocities = mutableMapOf<Pair<DriftingDie, Int>, Pair<Float, Float>>()
         val passes = mutableMapOf<DriftingDie, MutableList<Boolean>>()
