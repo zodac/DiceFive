@@ -43,6 +43,8 @@ import net.zodac.dicefive.resources.style_colour_green
 import net.zodac.dicefive.resources.style_colour_green_and_purple
 import net.zodac.dicefive.resources.style_colour_green_mono
 import net.zodac.dicefive.resources.style_colour_grey
+import net.zodac.dicefive.resources.style_colour_halo_rainbow
+import net.zodac.dicefive.resources.style_colour_halo_wave
 import net.zodac.dicefive.resources.style_colour_honey
 import net.zodac.dicefive.resources.style_colour_honeycomb
 import net.zodac.dicefive.resources.style_colour_ice
@@ -55,6 +57,8 @@ import net.zodac.dicefive.resources.style_colour_japanese_black
 import net.zodac.dicefive.resources.style_colour_key
 import net.zodac.dicefive.resources.style_colour_knot
 import net.zodac.dicefive.resources.style_colour_kraft
+import net.zodac.dicefive.resources.style_colour_lantern_rainbow
+import net.zodac.dicefive.resources.style_colour_lantern_wave
 import net.zodac.dicefive.resources.style_colour_lapis
 import net.zodac.dicefive.resources.style_colour_latin_american
 import net.zodac.dicefive.resources.style_colour_laurel
@@ -88,6 +92,7 @@ import net.zodac.dicefive.resources.style_colour_red
 import net.zodac.dicefive.resources.style_colour_red_block
 import net.zodac.dicefive.resources.style_colour_retro
 import net.zodac.dicefive.resources.style_colour_ring
+import net.zodac.dicefive.resources.style_colour_ripple
 import net.zodac.dicefive.resources.style_colour_roman
 import net.zodac.dicefive.resources.style_colour_roman_blue
 import net.zodac.dicefive.resources.style_colour_rose
@@ -102,6 +107,7 @@ import net.zodac.dicefive.resources.style_colour_slate
 import net.zodac.dicefive.resources.style_colour_snowcap
 import net.zodac.dicefive.resources.style_colour_soil
 import net.zodac.dicefive.resources.style_colour_sozu
+import net.zodac.dicefive.resources.style_colour_starlight
 import net.zodac.dicefive.resources.style_colour_stepped
 import net.zodac.dicefive.resources.style_colour_strawberry
 import net.zodac.dicefive.resources.style_colour_sunflower
@@ -117,6 +123,10 @@ import net.zodac.dicefive.resources.style_colour_wave
 import net.zodac.dicefive.resources.style_colour_waves
 import net.zodac.dicefive.resources.style_colour_western
 import net.zodac.dicefive.resources.style_colour_white
+import net.zodac.dicefive.resources.style_colour_white_halo_rainbow
+import net.zodac.dicefive.resources.style_colour_white_halo_wave
+import net.zodac.dicefive.resources.style_colour_white_lantern_rainbow
+import net.zodac.dicefive.resources.style_colour_white_lantern_wave
 import net.zodac.dicefive.resources.style_colour_white_marble
 import net.zodac.dicefive.resources.style_colour_white_rainbow
 import net.zodac.dicefive.resources.style_colour_white_wave
@@ -969,6 +979,21 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
             ),
             unlock = AchievementCount(95),
         ),
+        // The last of the styles to open, with the rest of the RGB set: a gift for earning them all.
+        StyleFamily(
+            Res.string.style_family_rgb,
+            listOf(
+                colour(Res.string.style_colour_halo_rainbow, RgbHaloDiceCupStyle("rgb_halo_rainbow", RgbBlackCup, wave = false)),
+                colour(Res.string.style_colour_halo_wave, RgbHaloDiceCupStyle("rgb_halo_wave", RgbBlackCup, wave = true)),
+                colour(Res.string.style_colour_white_halo_rainbow, RgbHaloDiceCupStyle("rgb_white_halo_rainbow", RgbWhiteCup, wave = false)),
+                colour(Res.string.style_colour_white_halo_wave, RgbHaloDiceCupStyle("rgb_white_halo_wave", RgbWhiteCup, wave = true)),
+                colour(Res.string.style_colour_lantern_rainbow, RgbLanternDiceCupStyle("rgb_lantern_rainbow", RgbBlackCup, wave = false)),
+                colour(Res.string.style_colour_lantern_wave, RgbLanternDiceCupStyle("rgb_lantern_wave", RgbBlackCup, wave = true)),
+                colour(Res.string.style_colour_white_lantern_rainbow, RgbLanternDiceCupStyle("rgb_white_lantern_rainbow", RgbWhiteCup, wave = false)),
+                colour(Res.string.style_colour_white_lantern_wave, RgbLanternDiceCupStyle("rgb_white_lantern_wave", RgbWhiteCup, wave = true)),
+            ),
+            unlock = AchievementCount(100),
+        ),
         StyleFamily(
             Res.string.style_family_martini,
             listOf(colour(Res.string.style_colour_classic, MartiniDiceCupStyle("martini"))),
@@ -1097,6 +1122,16 @@ object DiceMats : StyleCatalog<DiceMat>(
             ),
             unlock = AchievementCount(95),
         ),
+        StyleFamily(
+            Res.string.style_family_rgb,
+            listOf(
+                rgbMat(Res.string.style_colour_rainbow, "rgb_rainbow", RgbBlackMat, wave = false),
+                rgbMat(Res.string.style_colour_wave, "rgb_wave", RgbBlackMat, wave = true),
+                rgbMat(Res.string.style_colour_white_rainbow, "rgb_white_rainbow", RgbWhiteMat, wave = false),
+                rgbMat(Res.string.style_colour_white_wave, "rgb_white_wave", RgbWhiteMat, wave = true),
+            ),
+            unlock = AchievementCount(100),
+        ),
     ),
 )
 
@@ -1213,6 +1248,17 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 glitterBackground(Res.string.style_colour_emerald, "glitter_emerald", 0xFF0C3A2A, 0xFF041A12, 0xFFA8F6D0),
             ),
             unlock = AchievementCount(85),
+        ),
+        StyleFamily(
+            Res.string.style_family_rgb,
+            listOf(
+                rgbLights(Res.string.style_colour_rainbow, "rgb_rainbow", RgbEffect.RAINBOW),
+                rgbLights(Res.string.style_colour_wave, "rgb_wave", RgbEffect.WAVE),
+                rgbLights(Res.string.style_colour_ripple, "rgb_ripple", RgbEffect.RIPPLE),
+                rgbLights(Res.string.style_colour_swirl, "rgb_swirl", RgbEffect.SWIRL),
+                rgbLights(Res.string.style_colour_starlight, "rgb_starlight", RgbEffect.STARLIGHT),
+            ),
+            unlock = AchievementCount(100),
         ),
         StyleFamily(
             Res.string.style_family_glitch,
@@ -1401,3 +1447,18 @@ private fun background(
     top: Long,
     bottom: Long,
 ): StyleColour<TableBackground> = StyleColour(name, Color(top), create(id, BackgroundPalette(Color(top), Color(bottom))))
+
+// The RGB cup, mat and background: anodised black or white, lit by LEDs in the RGB dice's colours.
+private val RgbBlackCup = CupPalette(Color(0xFF050507), Color(0xFF3A3D46), Color(0xFF17181C), Color(0xFF17181C), Color(0xFF020203))
+private val RgbWhiteCup = CupPalette(Color(0xFF9EA1A8), Color(0xFFFFFFFF), Color(0xFFE3E4E8), Color(0xFFE3E4E8), Color(0xFF1C1C22))
+private val RgbBlackMat = MatPalette(Color(0xFF15151A), Color(0xFF0A0A0D), Color(0xFF060608), Color(0xFF020203), Color(0xFF3A3C44), Color.White)
+private val RgbWhiteMat = MatPalette(Color(0xFFF2F2F4), Color(0xFFD9DADF), Color(0xFFC6C7CC), Color(0xFFB2B3B8), Color(0xFFFFFFFF), Color.White)
+private val RgbPanel = BackgroundPalette(Color(0xFF0E0E12), Color(0xFF050507))
+
+/** An RGB mat: lit a colour at a time, or (a [wave]) with the colours chasing round it. Shown in the RGB dice's swatch, as they all are. */
+private fun rgbMat(name: StringResource, id: String, palette: MatPalette, wave: Boolean): StyleColour<DiceMat> =
+    StyleColour(name, Color(0xFFFF3B6B), RgbDiceMat(id, palette, wave))
+
+/** An RGB light panel, lit with a keyboard's lighting [effect]. */
+private fun rgbLights(name: StringResource, id: String, effect: RgbEffect): StyleColour<TableBackground> =
+    StyleColour(name, Color(0xFFFF3B6B), RgbLightBackground(id, RgbPanel, effect))

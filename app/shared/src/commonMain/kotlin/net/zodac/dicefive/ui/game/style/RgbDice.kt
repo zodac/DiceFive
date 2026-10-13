@@ -30,10 +30,11 @@ private val SCATTER: List<List<Scatter>> = List(6) { face ->
     }
 }
 
-// The colours: a full trip round the hues every RGB_CYCLE_SECONDS. Each face starts RGB_FACE_OFFSET of a
+// The colours: a full trip round the hues every RGB_CYCLE_SECONDS - the same clock for the RGB cup, mat and
+// background, so a whole RGB table changes together. Each face starts RGB_FACE_OFFSET of a
 // cycle after the one before it - so every die showing a number matches, and different numbers differ.
 // A wave die also has each lamp RGB_WAVE_SPREAD of a cycle behind the one to its left, like a keyboard's.
-private const val RGB_CYCLE_SECONDS = 6f
+internal const val RGB_CYCLE_SECONDS = 6f
 private const val RGB_WAVE_SPREAD = 0.35f
 private const val RGB_FACE_OFFSET = 1f / 6f
 
@@ -89,7 +90,7 @@ class RgbDiceStyle(
      */
     private fun DrawScope.drawLeds(value: Int, phase: Float) {
         val lens = size.minDimension * 0.062f
-        fun colourAt(position: Offset) = Color.hsv((((phase - if (wave) (position.x + position.y * 0.5f) * RGB_WAVE_SPREAD * 2f else 0f) % 1f) + 1f) % 1f * 360f, 0.9f, 1f)
+        fun colourAt(position: Offset) = rgbColour(phase - if (wave) (position.x + position.y * 0.5f) * RGB_WAVE_SPREAD * 2f else 0f)
         fun tint(colour: Color) = ColorFilter.tint(colour, BlendMode.SrcIn)
         val centre = Offset(size.width / 2f, size.height / 2f)
         val layout = pipLayout(value)
@@ -179,5 +180,13 @@ class RgbDiceStyle(
         }
     }
 }
+
+/** The RGB lighting's colour [cycles] of the way round the hues (any number of whole cycles either way). */
+internal fun rgbColour(cycles: Float): Color = Color.hsv(((cycles % 1f) + 1f) % 1f * 360f, 0.9f, 1f)
+
+/** The whole round of hues starting at [phase], ending where it began - for a gradient the colours go round. */
+internal fun rgbSpectrum(phase: Float): List<Color> = List(RGB_SPECTRUM_STOPS + 1) { rgbColour(phase + it / RGB_SPECTRUM_STOPS.toFloat()) }
+
+private const val RGB_SPECTRUM_STOPS = 6
 
 private data class RgbLight(val value: Int, val light: Boolean, val wave: Boolean)

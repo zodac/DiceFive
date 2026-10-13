@@ -878,6 +878,8 @@
     <string name="style_colour_green_and_purple">Green &amp; Purple</string>
     <string name="style_colour_green_mono">Green Mono</string>
     <string name="style_colour_grey">Grey</string>
+    <string name="style_colour_halo_rainbow">Halo Rainbow</string>
+    <string name="style_colour_halo_wave">Halo Wave</string>
     <string name="style_colour_honey">Honey</string>
     <string name="style_colour_honeycomb">Honeycomb</string>
     <string name="style_colour_ice">Ice</string>
@@ -890,6 +892,8 @@
     <string name="style_colour_key">Key</string>
     <string name="style_colour_knot">Knot</string>
     <string name="style_colour_kraft">Kraft</string>
+    <string name="style_colour_lantern_rainbow">Lantern Rainbow</string>
+    <string name="style_colour_lantern_wave">Lantern Wave</string>
     <string name="style_colour_lapis">Lapis</string>
     <string name="style_colour_latin_american">Latin American</string>
     <string name="style_colour_laurel">Laurel</string>
@@ -923,6 +927,7 @@
     <string name="style_colour_red_block">Red Block</string>
     <string name="style_colour_retro">Retro</string>
     <string name="style_colour_ring">Ring</string>
+    <string name="style_colour_ripple">Ripple</string>
     <string name="style_colour_roman">Roman</string>
     <string name="style_colour_roman_blue">Roman Blue</string>
     <string name="style_colour_rose">Rose</string>
@@ -937,6 +942,7 @@
     <string name="style_colour_snowcap">Snowcap</string>
     <string name="style_colour_soil">Soil</string>
     <string name="style_colour_sozu">Sozu</string>
+    <string name="style_colour_starlight">Starlight</string>
     <string name="style_colour_stepped">Stepped</string>
     <string name="style_colour_strawberry">Strawberry</string>
     <string name="style_colour_sunflower">Sunflower</string>
@@ -952,6 +958,10 @@
     <string name="style_colour_waves">Waves</string>
     <string name="style_colour_western">Western</string>
     <string name="style_colour_white">White</string>
+    <string name="style_colour_white_halo_rainbow">White Halo Rainbow</string>
+    <string name="style_colour_white_halo_wave">White Halo Wave</string>
+    <string name="style_colour_white_lantern_rainbow">White Lantern Rainbow</string>
+    <string name="style_colour_white_lantern_wave">White Lantern Wave</string>
     <string name="style_colour_white_marble">White Marble</string>
     <string name="style_colour_white_rainbow">White Rainbow</string>
     <string name="style_colour_white_wave">White Wave</string>

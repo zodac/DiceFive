@@ -886,7 +886,7 @@ The segmented row isn't inside the `ListItem`: its supporting slot is measured i
 
 "Decoration that moves on its own" is what keeps an idle screen drawing every refresh: the menu's drifting dice,
 `FloatingDiceBackground`, everything on `TwinkleClock`/`rememberArtSeconds` (stars, sparkles, Neon, RGB, Glitch, the
-bee...), the cups' ambient cycle (`rememberAmbientCycle` - steam, bubbles) and the googly dice's pupils. Each reads
+bee...), the RGB Halo cup's bobbing rings (the RGB cups' shake effects read `LocalReduceMotion` instead), the cups' ambient cycle (`rememberAmbientCycle` - steam, bubbles) and the googly dice's pupils. Each reads
 `ambientMotion` (`ui/common/ReduceMotion.kt`), true only at High, and below it holds the same still pose it has
 under reduced motion - so no new art. The score tile reads `scorePulse`. Both are false under a `LocalReduceMotion`
 provided further down, which is how a Styles tile off screen is still held. **Anything new that loops while nothing

@@ -207,6 +207,20 @@ decisions behind it. Read that before changing anything visual.
   glow is a soft, lopsided diffusion (a smooth bloom and one seeded patch per lamp, `SCATTER`) rather than a
   ring. The light is painted once per face as white and tinted as it's drawn (see `BENCHMARKS.md`, "7 Dice
   Stud"). Recoloured (Tricolour), the face takes the roll's colours and the lamps keep cycling. Still under reduced motion.
+  The RGB cup, mat and background (`RgbArt.kt`, all at 100 with the dice - the last unlock, a gift for finishing
+  the achievements) share the dice's 6s clock, so a whole RGB table changes colour together. Cups, two designs in
+  the four dice variants each: Halo - five separate LED rings floating in a cup's shape over a lit base, two RGB
+  dice showing through the gaps until poured; the rings bob (`ambientMotion`) and, shaken, jolt apart and rattle
+  (`rememberRgbShake`, `LocalReduceMotion`), all of it live (eight strokes a ring); Wave climbs the stack.
+  Lantern - a tapered hexagonal shell punched with hex holes, lit from inside; shell and holes' light painted once,
+  the light tinted (or, for Wave, a climbing gradient via `SrcIn` in a cup-sized layer); shaken, it flickers and
+  runs whiter. Mat: a woven desk mat with an LED edge and a die's five in LEDs in its corner, the same four. Background:
+  a dark LED-matrix panel lit with a keyboard's lighting effects (`RgbEffect`) - Rainbow (breathing), Wave,
+  Ripple, Swirl, Starlight - dark only, as the scorecard's numbers need. The matrix's light is painted once in
+  white and coloured per frame by a tint or, for the moving gradients, `SrcIn` in one offscreen layer. A first
+  round tried a round cup with an infinity mirror ("looks like the default cup with some colours"), then a PC
+  case ("too solid ... no different to other cubes"), and a keyboard background ("looks like 3 keyboards
+  stacked"); Halo and Lantern were picked from five mocked-up concepts.
   Their mats: Honeycomb (`HoneycombArt.kt`; Honey - 60) - real comb, honey, caps and the odd empty
   cell, painted once, with a honeybee near the bottom-left corner that flicks its wings every 3.6s
   (the only live part); Hex Tiles (`ThemedMats.kt`; Honey, Slate - 51); Sand (52); Circuit (Green,

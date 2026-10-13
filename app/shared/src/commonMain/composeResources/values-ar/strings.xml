@@ -769,6 +769,8 @@
     <string name="style_colour_green_and_purple">أخضر وبنفسجي</string>
     <string name="style_colour_green_mono">أخضر أحادي</string>
     <string name="style_colour_grey">رمادي</string>
+    <string name="style_colour_halo_rainbow">هالة قوس قزح</string>
+    <string name="style_colour_halo_wave">هالة موجة</string>
     <string name="style_colour_honey">عسلي</string>
     <string name="style_colour_honeycomb">خلية نحل</string>
     <string name="style_colour_ice">جليدي</string>
@@ -781,6 +783,8 @@
     <string name="style_colour_key">مفتاح</string>
     <string name="style_colour_knot">عقدة</string>
     <string name="style_colour_kraft">ورق كرافت</string>
+    <string name="style_colour_lantern_rainbow">فانوس قوس قزح</string>
+    <string name="style_colour_lantern_wave">فانوس موجة</string>
     <string name="style_colour_lapis">لازورد</string>
     <string name="style_colour_latin_american">أمريكا اللاتينية</string>
     <string name="style_colour_laurel">غار</string>
@@ -814,6 +818,7 @@
     <string name="style_colour_red_block">كتلة حمراء</string>
     <string name="style_colour_retro">قديم</string>
     <string name="style_colour_ring">حلقة</string>
+    <string name="style_colour_ripple">تموّج</string>
     <string name="style_colour_roman">روماني</string>
     <string name="style_colour_roman_blue">أزرق روماني</string>
     <string name="style_colour_rose">ورد قديم</string>
@@ -828,6 +833,7 @@
     <string name="style_colour_snowcap">ثلجي</string>
     <string name="style_colour_soil">تربة</string>
     <string name="style_colour_sozu">سوزو</string>
+    <string name="style_colour_starlight">ضوء النجوم</string>
     <string name="style_colour_stepped">مدرّج</string>
     <string name="style_colour_strawberry">فراولة</string>
     <string name="style_colour_sunflower">عباد الشمس</string>
@@ -843,6 +849,10 @@
     <string name="style_colour_waves">أمواج</string>
     <string name="style_colour_western">غربي</string>
     <string name="style_colour_white">أبيض</string>
+    <string name="style_colour_white_halo_rainbow">هالة بيضاء قوس قزح</string>
+    <string name="style_colour_white_halo_wave">هالة بيضاء موجة</string>
+    <string name="style_colour_white_lantern_rainbow">فانوس أبيض قوس قزح</string>
+    <string name="style_colour_white_lantern_wave">فانوس أبيض موجة</string>
     <string name="style_colour_white_marble">رخام أبيض</string>
     <string name="style_colour_white_rainbow">قوس قزح أبيض</string>
     <string name="style_colour_white_wave">موجة بيضاء</string>

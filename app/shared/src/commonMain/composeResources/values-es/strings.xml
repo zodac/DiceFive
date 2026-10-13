@@ -684,6 +684,8 @@
     <string name="style_colour_green_and_purple">Verde y morado</string>
     <string name="style_colour_green_mono">Monocromo verde</string>
     <string name="style_colour_grey">Gris</string>
+    <string name="style_colour_halo_rainbow">Halo arcoíris</string>
+    <string name="style_colour_halo_wave">Halo ola</string>
     <string name="style_colour_honey">Miel</string>
     <string name="style_colour_honeycomb">Panal</string>
     <string name="style_colour_ice">Hielo</string>
@@ -696,6 +698,8 @@
     <string name="style_colour_key">Greca</string>
     <string name="style_colour_knot">Nudo</string>
     <string name="style_colour_kraft">Kraft</string>
+    <string name="style_colour_lantern_rainbow">Farol arcoíris</string>
+    <string name="style_colour_lantern_wave">Farol ola</string>
     <string name="style_colour_lapis">Lapislázuli</string>
     <string name="style_colour_latin_american">Latinoamericano</string>
     <string name="style_colour_laurel">Laurel</string>
@@ -729,6 +733,7 @@
     <string name="style_colour_red_block">Bloque rojo</string>
     <string name="style_colour_retro">Retro</string>
     <string name="style_colour_ring">Anillo</string>
+    <string name="style_colour_ripple">Ondulación</string>
     <string name="style_colour_roman">Romano</string>
     <string name="style_colour_roman_blue">Azul romano</string>
     <string name="style_colour_rose">Rosa antiguo</string>
@@ -743,6 +748,7 @@
     <string name="style_colour_snowcap">Nevado</string>
     <string name="style_colour_soil">Tierra</string>
     <string name="style_colour_sozu">Sozu</string>
+    <string name="style_colour_starlight">Luz de estrellas</string>
     <string name="style_colour_stepped">Escalonado</string>
     <string name="style_colour_strawberry">Fresa</string>
     <string name="style_colour_sunflower">Girasol</string>
@@ -758,6 +764,10 @@
     <string name="style_colour_waves">Olas</string>
     <string name="style_colour_western">Occidental</string>
     <string name="style_colour_white">Blanco</string>
+    <string name="style_colour_white_halo_rainbow">Halo blanco arcoíris</string>
+    <string name="style_colour_white_halo_wave">Halo blanco ola</string>
+    <string name="style_colour_white_lantern_rainbow">Farol blanco arcoíris</string>
+    <string name="style_colour_white_lantern_wave">Farol blanco ola</string>
     <string name="style_colour_white_marble">Mármol blanco</string>
     <string name="style_colour_white_rainbow">Arcoíris blanco</string>
     <string name="style_colour_white_wave">Ola blanca</string>
