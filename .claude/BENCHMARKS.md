@@ -88,12 +88,8 @@ Profile).
 
 - **The tumble.** ~5-6ms with no face layers drawn; drawing them is the other 6-10. Untried: snapshot each face to an
   `ImageBitmap` (`GraphicsLayer.toImageBitmap`). The cost is that animated styles freeze through the 0.9s toss.
-- **The tray's per-frame work.**
-  - Each tossed die's position is read in composition (`toss.value`), so `ScatterArea` and `TossedCube` recompose with
-    `offset(x, y)` every frame.
-  - `GroundShadow` rebuilds its `Outline` and draws it four times.
-  - Reading these in layout or draw (`Modifier.offset { }`, `graphicsLayer { }`) would cut most of it. That's a sizeable
-    rework of `DiceTray.kt`/`RollingDie.kt`.
+- **The ground shadow.** `GroundShadow` (`DiceTray.kt`) rebuilds its `Outline` and draws it four times each frame a die
+  moves. Untried, and unmeasured on its own.
 - **Dice switching mode** rebuilds each die's nodes twice a roll. Drawing the pick-up with the resting composable and
   switching to `Moving` once off the mat would hide the first rebuild in the shake.
 - **Always-on animations' battery cost.** The menu drift is capped at ~30fps. Starry, steam, cauldron and the tile glow
@@ -105,3 +101,22 @@ Profile).
   - Decide whether the hand-written wildcard `app/android/src/main/baseline-prof.txt` (all app code hot, ~1.2MB
     compiled) can go.
   - Emulator numbers mean nothing here.
+
+## Tried and dropped
+
+- **Reading the toss in layout and drawing, not composition** (2026-10). Built, verified and discarded.
+  - **The idea.** A tossed die's pose was read in composition, so each moving die (`Moving`) and its `TossedCube`
+    recomposed every frame. Reading the pose only where the die and its shadow are placed and drawn, with the cube
+    rebuilt only as a face comes into or leaves view, would avoid that.
+  - **What it changed.** Per toss (five dice), `Moving` went from ~275 recompositions to 5 and `TossedCube` from ~265 to
+    ~30. `ScatterArea` itself already recomposed only once per die per toss.
+  - **What it saved.** Toss frames' compose and layout went from p50 ~0.90ms to ~0.85ms, p95 ~1.83ms to ~1.73ms (whole
+    game screen, two runs each). That's within run-to-run noise, and drawing, the bulk of a toss frame, was unchanged.
+    Each recomposition removed cost microseconds.
+  - **Why dropped.** No measurable gain, at the price of trickier code. A slower phone slows every part of the frame by
+    a similar factor, so the share saved stays ~5% of compose and layout. A toss's cost is in drawing its face layers
+    (see "The tumble" above).
+  - **The trap it found.** Pose readers passed as references to local functions (`::x`) compare equal whatever state they
+    capture, so Compose skipped the shadow and it kept the pick-up's pose: moving dice lost their shadows. The test suite
+    passed; only a frame-by-frame pixel diff of the tray (every dice style, Tricolour, D20, Stud, Unlucky; ~32,000 frames)
+    caught it. Pass lambdas, not references, to a skippable composable.
