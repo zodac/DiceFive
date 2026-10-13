@@ -349,6 +349,14 @@ rm -rf sandbox/.claude-history
 
 ## Notes
 
+- **The sandbox runs in the host's timezone.** `sandbox.sh` passes it in as `TZ` (an IANA name such as
+  `Pacific/Auckland`) - from `SANDBOX_TZ` if set, else the host's `TZ`, else the OS setting (`timedatectl`,
+  `/etc/timezone` or the `/etc/localtime` link; on Windows, converted from the Windows zone name), else UTC.
+  `entrypoint.sh` checks it against the image's tzdata, points `/etc/localtime` at it and keeps it for `dev`,
+  so shells, Gradle and Robolectric tests, the store-asset screenshots and the emulator (`-timezone`) all
+  read the host's local time. An unknown name falls back to UTC with a warning. CI stays on UTC; the test
+  suites pass in both.
+
 - The repo's `.env` (and anything else sensitive in the tree, e.g. `storage/`) is
   mounted at `/work`, so the sandbox *can* read it. Move such files out of the
   tree and inject via `-e` if you want zero exposure.

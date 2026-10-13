@@ -109,6 +109,8 @@ parts and `-PstoreAssetsDir` says where raw renders go. They check nothing, so C
 - **Timing**: the test clock moves in 16ms frames, so the video is encoded at 60fps and plays 4% slower than the
   app - not noticeable, and smooth whatever the machine, since every frame is exactly one frame on. Taps draw a
   fading ring, like Android's "Show taps".
+- **Times on screen** (the Achievements screen's "Unlocked ..." dates) are in the JVM's timezone - the sandbox's,
+  which is the host's (`sandbox/README.md`, Notes). Run with `TZ=<zone>` to render another.
 - **Locked styles** have no tile to tap and draw as the default when picked - choose ones the seed unlocks.
 - **Sound** is the app's own. `RecordingSoundPool` (the video test's shadow for `SoundPool`) reports every clip loaded
   at once - Robolectric's own never does, and the app waits for that before playing anything - and logs each play to

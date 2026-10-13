@@ -122,6 +122,9 @@ AVD has been booted before: for a first boot like CI's, run `.github/scripts/ci_
 | Boots with `-no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect` | Headless; `-no-snapshot` for a clean boot every time. |
 | `adb root`, then `setprop debug.hwui.renderer skiavk` | **The important one** - see below. |
 
+The guest's clock is in the host's timezone: `start` passes `-timezone "$TZ"` when `TZ` is set, which the sandbox
+always sets to the host's zone (see `sandbox/README.md`, Notes). `.github/scripts/ci_emulator.sh` doesn't - CI runs on UTC.
+
 Environment overrides: `EMULATOR_API`, `EMULATOR_AVD_NAME` (default `sandbox-api<API>`), `EMULATOR_MEMORY_MB`,
 `EMULATOR_CORES`.
 It is a **Google APIs** image (not Play Store): that is what allows `adb root`, which profile generation

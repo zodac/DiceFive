@@ -88,9 +88,13 @@ start() {
   mkdir -p "$(dirname "${log}")"
   echo "[emulator] booting '${avd_name}' (log: ${log})..."
   # setsid + redirected stdio: detached from this shell, so it outlives the command that started it.
+  # -timezone: the guest's clock in the host's zone (TZ, which sandbox.sh passes in), not the emulator's UTC default.
+  local zone=()
+  [[ -n "${TZ-}" ]] && zone=(-timezone "${TZ}")
   setsid nohup "${sdk}/emulator/emulator" -avd "${avd_name}" \
     -no-window -no-audio -no-boot-anim -no-snapshot \
     -gpu swiftshader_indirect -memory "${memory_mb}" -cores "${cores}" \
+    ${zone[@]+"${zone[@]}"} \
     >"${log}" 2>&1 </dev/null &
   disown
 

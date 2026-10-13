@@ -24,6 +24,21 @@ until docker info >/dev/null 2>&1; do
 done
 echo "[sandbox] nested dockerd is up."
 
+# ── The host's timezone ──────────────────────────────────────────────────────
+# sandbox.sh passes the host's zone as TZ (an IANA name, "Pacific/Auckland"), so dates here - test output,
+# screenshots, the emulator's clock (sandbox/emulator.sh) - read as they do on the host. TZ alone covers
+# glibc and the JVM; /etc/localtime is pointed at it too for anything that only reads that. A name the
+# image's tzdata doesn't know would make glibc silently use UTC under a wrong name, so it's dropped instead.
+if [[ -n "${TZ-}" ]]; then
+  if [[ -f "/usr/share/zoneinfo/${TZ}" ]]; then
+    ln -sf "/usr/share/zoneinfo/${TZ}" /etc/localtime
+    echo "${TZ}" > /etc/timezone
+  else
+    echo "[sandbox] unknown timezone '${TZ}' - using UTC (set SANDBOX_TZ on the host to an IANA name)" >&2
+    unset TZ
+  fi
+fi
+
 # ── Hand the persisted mount points to `dev` ─────────────────────────────────
 # Docker mounts named volumes root-owned, and a bind-mounted host directory can
 # also land root-owned if it didn't already exist when the mount was set up.
@@ -60,12 +75,12 @@ if [[ -t 0 ]]; then RUN_SETUP=1; else RUN_SETUP=0; fi
 export RUN_SETUP
 
 # JAVA_HOME/MAVEN_HOME/ANDROID_HOME/ANDROID_SDK_ROOT (and EMULATOR_API, which sandbox/emulator.sh and
-# sandbox/Dockerfile share) must be preserved explicitly too:
+# sandbox/Dockerfile share, and TZ, the host's timezone - see above) must be preserved explicitly too:
 # `sudo` resets the environment by default, and PATH alone (assigned directly below,
 # same as HOME) is not enough for a tool that reads one of these as a variable rather
 # than just finding its binary via PATH — AGP is exactly that case, and fails with
 # "SDK location not found" if ANDROID_HOME does not survive this hop.
 cd /work
 exec sudo -u dev \
-  --preserve-env=ANTHROPIC_API_KEY,CLAUDE_CONFIG_DIR,PLAYWRIGHT_BROWSERS_PATH,RUN_SETUP,JAVA_HOME,MAVEN_HOME,ANDROID_HOME,ANDROID_SDK_ROOT,EMULATOR_API \
+  --preserve-env=ANTHROPIC_API_KEY,CLAUDE_CONFIG_DIR,PLAYWRIGHT_BROWSERS_PATH,RUN_SETUP,JAVA_HOME,MAVEN_HOME,ANDROID_HOME,ANDROID_SDK_ROOT,EMULATOR_API,TZ \
   HOME=/home/dev PATH="${PATH}" /usr/local/bin/sandbox-launch.sh "$@"

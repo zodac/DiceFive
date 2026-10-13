@@ -50,6 +50,35 @@ CONTAINER="${NAME}"
 read -ra PUBLISH_PORTS <<< "${SANDBOX_PORTS-}"
 PUBLISH=()
 for port in ${PUBLISH_PORTS+"${PUBLISH_PORTS[@]}"}; do PUBLISH+=(-p "${port}"); done
+# The host's timezone, so the sandbox's clock reads the same as the machine it runs on: dates in test output,
+# screenshots (the store assets' "Unlocked ..." times) and the emulator's clock. An IANA name ("Pacific/Auckland").
+# SANDBOX_TZ overrides it; otherwise TZ, then the OS's own setting; UTC if none can be read. entrypoint.sh checks the
+# name against the image's tzdata and falls back to UTC (with a warning) for one it doesn't know.
+host_timezone() {
+  local zone=""
+  if [[ -n "${TZ-}" && "${TZ}" != :* ]]; then
+    zone="${TZ}"
+  elif command -v timedatectl &>/dev/null; then
+    zone="$(timedatectl show -p Timezone --value 2>/dev/null || true)"
+  fi
+  if [[ -z "${zone}" && -r /etc/timezone ]]; then
+    zone="$(head -n 1 /etc/timezone)"
+  fi
+  if [[ -z "${zone}" && -L /etc/localtime ]]; then
+    # Linux (/usr/share/zoneinfo/...) and macOS (/var/db/timezone/zoneinfo/...) both link to zoneinfo/<zone>.
+    zone="$(readlink /etc/localtime)"
+    zone="${zone##*zoneinfo/}"
+  fi
+  if [[ -z "${zone}" ]] && command -v powershell.exe &>/dev/null; then
+    # Windows names its zones its own way ("New Zealand Standard Time"); .NET converts to IANA.
+    zone="$(powershell.exe -NoProfile -Command \
+      '$i=$null; if ([TimeZoneInfo]::TryConvertWindowsIdToIanaId([TimeZoneInfo]::Local.Id, [ref]$i)) { $i }' \
+      2>/dev/null | tr -d '\r' || true)"
+  fi
+  echo "${zone:-UTC}"
+}
+SANDBOX_TIMEZONE="${SANDBOX_TZ:-$(host_timezone)}"
+
 # Git Bash on Windows resolves paths as /c/Users/... but Docker Desktop needs C:\Users\...
 if command -v cygpath &>/dev/null; then
   HERE="$(cygpath -w "${HERE}")"
@@ -246,6 +275,7 @@ run() {
     --cidfile "${CIDFILE}" \
     --privileged \
     --hostname "${NAME}" \
+    -e TZ="${SANDBOX_TIMEZONE}" \
     -v "${PROJECT_DIR}":/work \
     -v "${NAME}-docker":/var/lib/docker \
     -v "${CLAUDE_HISTORY_DIR}":/home/dev/.claude \
