@@ -2633,7 +2633,7 @@ any page.
       variable says which case failed. Robolectric tests that need several compositions use `Showcase`
       (`src/test/.../Showcase.kt`): one `setContent`, each `show` composing its content afresh under a new key. Kept
       apart only where a case needs its own `@Config` (locale, screen size) or a fresh activity's main looper.
-- [x] **Store assets**: `StoreAssetGeneratorTest` only runs with `-PgenerateStoreAssets` (see `ASSETS.md`).
+- [x] **Store assets**: the store-asset generators (now `src/test/.../store/`) only run with `-PgenerateStoreAssets` (see `STORE_ASSETS.md`).
 - [x] **Measured**: the two test tasks' forced re-run, 46s -> 25s locally (shared 19.7s -> 4.3s of test time, Android
       40.5s -> 20.2s).
 - [x] **Release pipeline**: `release.yml`'s one job (setup, then ~4 min of unit tests, then ~2 min of lint, in turn) is

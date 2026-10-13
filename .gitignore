@@ -30,8 +30,12 @@ keystore.properties
 # transcripts and memory. See sandbox/README.md's Persistence section.
 /sandbox/.claude-history/
 
-# Generated image assets for Play Store
-assets/
+# The Play Store listing's generated graphics (scripts/generate-store-assets.sh, see .claude/STORE_ASSETS.md) - never
+# committed. Anchored to the root, so an Android source set's own src/*/assets/ folder is still tracked. Its contents,
+# not the folder itself, so the hand-written full description can be tracked: git can't re-include a file whose
+# parent folder is ignored.
+/assets/*
+!/assets/full-description.txt
 
 # The generated Baseline Profile: the release workflow generates a fresh one for every APK (release.yml's
 # baseline-profile job), so a copy here would only go stale. See .claude/DESIGN.md Phase 19.

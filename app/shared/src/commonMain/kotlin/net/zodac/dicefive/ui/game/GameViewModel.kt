@@ -1878,6 +1878,7 @@ class GameViewModel(
                     settingsRepository = container.settingsRepository,
                     inProgressGameRepository = container.inProgressGameRepository,
                     achievementsRepository = container.achievementsRepository,
+                    random = container.diceRandom,
                     isDebugBuild = container.buildInfo.isDebug,
                     standardPerfectPlay = container::standardPerfectPlayTable,
                 )

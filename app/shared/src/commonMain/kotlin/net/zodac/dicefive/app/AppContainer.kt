@@ -2,6 +2,7 @@ package net.zodac.dicefive.app
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +43,12 @@ class AppContainer(
      */
     val savedStyles: StateFlow<SavedStyles?> =
         savedStylesFlow(settingsRepository, achievementsRepository).stateIn(scope, SharingStarted.Eagerly, null)
+
+    /**
+     * The dice every game rolls ([net.zodac.dicefive.ui.game.GameViewModel]'s random). Replaced only by the store-asset
+     * generator, to deal the rolls its promo video shows - see `.claude/STORE_ASSETS.md`.
+     */
+    var diceRandom: Random = Random.Default
 
     private val standardPerfectPlay = scope.async(start = CoroutineStart.LAZY) { loadStandardPerfectPlayTable() }
 

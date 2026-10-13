@@ -8,9 +8,14 @@
   Read this before changing anything visual.
 - `.claude/PUBLISHING.md` — Play Store submission requirements not covered by the build or by
   `DESIGN.md`'s GitHub release pipeline (Phase 12), such as the store listing's separate hi-res
-  icon. Little in it is done yet (the in-app open-source licenses page is, and the store descriptions are drafted); it's a running checklist for when that submission happens. It
+  icon. Little in it is done yet (the in-app open-source licenses page is, the store descriptions are drafted, and its graphics are generated - see `STORE_ASSETS.md`); it's a running checklist for when that submission happens. It
   also records the app's own license (proprietary, all rights reserved - see `LICENSE`), why it was
   chosen, and how it must stay scoped to exclude third-party parts (the bundled font must stay OFL).
+- `.claude/STORE_ASSETS.md` — the Play Store listing's graphics (hi-res icon, feature graphic, captioned phone and
+  7-inch tablet screenshots, promo video), all rendered from the real app by `scripts/generate-store-assets.sh` into
+  the gitignored `assets/<version>/`: how many of each and why, changing captions, scenes and staged games, and the
+  Robolectric traps (overlay windows, the frame clock, stray achievement banners). Read this before making or
+  changing store assets.
 - `.claude/GAME_MODES.md` — how game modes are built (every per-mode rule is a field on `GameMode`,
   never an `if (mode == X)`) and how to add one, including a mode unlike the existing ones: where
   each mode field is read, what to do for new categories, new dice, a changed turn flow (the one

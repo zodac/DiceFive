@@ -218,11 +218,17 @@ androidComponents {
     }
 }
 
-// `-PgenerateStoreAssets` makes StoreAssetGeneratorTest render the Play Store screenshots and icon into
-// the root assets/ folder (see .claude/ASSETS.md). It checks nothing, so it's skipped otherwise rather
-// than costing every test run - CI's included - several seconds of whole-app screens.
+// `-PgenerateStoreAssets` makes the store-asset generators (src/test/.../store/) render the Play Store listing's icon,
+// feature graphic, screenshots and video frames - scripts/generate-store-assets.sh runs them and finishes the job (see
+// .claude/STORE_ASSETS.md). They check nothing, so they're skipped otherwise rather than costing every test run - CI's
+// included - minutes of whole-app screens. `-PstoreAssetParts=icon,phone,...` picks parts; `-PstoreAssetsDir` is where
+// the raw renders go (build/store-assets/raw by default).
 tasks.withType<Test>().configureEach {
     systemProperty("dicefive.generateStoreAssets", providers.gradleProperty("generateStoreAssets").isPresent)
+    systemProperty("dicefive.storeAssetParts", providers.gradleProperty("storeAssetParts").getOrElse(""))
+    systemProperty("dicefive.storeAssetsDir", providers.gradleProperty("storeAssetsDir").getOrElse(""))
+    // A generator run always runs: its output is outside Gradle's view, so an up-to-date skip would leave it stale.
+    if (providers.gradleProperty("generateStoreAssets").isPresent) outputs.upToDateWhen { false }
 }
 
 // ── Audio loudness normalisation ──────────────────────────────────────────────
