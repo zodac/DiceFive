@@ -16,6 +16,10 @@ alphabetical order.
 - Up and down arrows jump to the previous or next header (`animateScrollToItem`). The arrow with nowhere to go is
   greyed, not removed.
 - They're stock `IconButton`s, so the header is 48dp tall.
+- Each header carries its category's earned/total (`3/12`), counted over the whole category even while "Locked only"
+  hides rows. The label is `onSurface`, and the whole header turns brand gold (`primary`) once every one is earned.
+  TalkBack reads "Milestones, 3 of 12 unlocked" as the heading; the drawn count is hidden from it. Easter Eggs have no
+  count, as their total is a secret.
 - Rows are clipped at the pinned header's bottom (`Modifier.hiddenUnderPinnedHeader`, from `layoutInfo` in the draw
   pass). Otherwise they'd show through its rounded corners.
 

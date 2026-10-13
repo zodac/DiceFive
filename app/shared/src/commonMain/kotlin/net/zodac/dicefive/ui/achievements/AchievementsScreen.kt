@@ -69,6 +69,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -83,6 +84,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementScrollRequests
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.AchievementVisibility
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.resources.Res
@@ -97,6 +99,7 @@ import net.zodac.dicefive.resources.achievements_reward_unlocked
 import net.zodac.dicefive.resources.achievements_title
 import net.zodac.dicefive.resources.achievements_unlocked_at
 import net.zodac.dicefive.resources.achievements_locked_only
+import net.zodac.dicefive.resources.achievements_category_count
 import net.zodac.dicefive.resources.achievements_unlocked_count
 import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.DiceFiveDialog
@@ -229,6 +232,7 @@ fun AchievementsScreen(
             state.groups.map { group -> group.copy(items = group.items.filter { it.unlockedAt == null }) }.filter { it.items.isNotEmpty() }
         }
     }
+    val fullGroups = state.groups
     val scope = rememberCoroutineScope()
     val currentGroups by rememberUpdatedState(groups)
     var restoredScroll by remember { mutableStateOf(false) }
@@ -380,6 +384,12 @@ fun AchievementsScreen(
                     stickyHeader(key = "group-${group.category.name}", contentType = HEADER_CONTENT_TYPE) {
                         GroupHeader(
                             text = stringResource(group.category.label),
+                            // The full category, not the "locked only" filtered rows; Easter Eggs stay uncounted so their total isn't spoiled.
+                            counts = if (group.category == AchievementCategory.EASTER_EGGS) {
+                                null
+                            } else {
+                                fullGroups.first { it.category == group.category }.items.let { all -> all.count { it.unlockedAt != null } to all.size }
+                            },
                             onPrevious = headerIndices.getOrNull(groupIndex - 1)?.let { target ->
                                 { scope.launch { listState.animateScrollToItem(target) } }
                             },
@@ -419,19 +429,31 @@ fun AchievementsScreen(
  * header is the 48dp minimum touch height rather than the bare label's.
  */
 @Composable
-private fun GroupHeader(text: String, onPrevious: (() -> Unit)?, onNext: (() -> Unit)?) {
+private fun GroupHeader(text: String, counts: Pair<Int, Int>?, onPrevious: (() -> Unit)?, onNext: (() -> Unit)?) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            val complete = counts != null && counts.first == counts.second
+            val color = if (complete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            val spokenCount = counts?.let { stringResource(Res.string.achievements_unlocked_count, it.first, it.second) }
             Text(
                 text = text.uppercase(),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                // Said as written, not spelled out as the all-caps it's drawn in.
-                modifier = Modifier.weight(1f).padding(horizontal = 12.dp).semantics {
+                color = color,
+                // Said as written, not spelled out as the all-caps it's drawn in, with the count after it.
+                modifier = Modifier.weight(1f).padding(start = 12.dp).semantics {
                     heading()
-                    contentDescription = text
+                    contentDescription = if (spokenCount == null) text else "$text, $spokenCount"
                 },
             )
+            if (counts != null) {
+                // The heading above already speaks the count.
+                Text(
+                    text = stringResource(Res.string.achievements_category_count, counts.first, counts.second),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = color,
+                    modifier = Modifier.padding(horizontal = 8.dp).clearAndSetSemantics { },
+                )
+            }
             IconButton(onClick = { onPrevious?.invoke() }, enabled = onPrevious != null) {
                 Icon(imageVector = Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(Res.string.achievements_previous_category_cd))
             }

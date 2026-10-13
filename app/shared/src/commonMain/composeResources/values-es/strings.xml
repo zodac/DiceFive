@@ -851,6 +851,7 @@
     <string name="stats_solo">Solitario</string>
     <string name="achievements_title">Logros</string>
     <string name="achievements_unlocked_count">%1$d de %2$d desbloqueados</string>
+    <string name="achievements_category_count">%1$d/%2$d</string>
     <string name="achievements_all_unlocked">¡Todo desbloqueado! No queda nada por conseguir.</string>
     <string name="achievements_locked_only">Solo pendientes</string>
     <string name="achievements_previous_category_cd">Categoría anterior</string>

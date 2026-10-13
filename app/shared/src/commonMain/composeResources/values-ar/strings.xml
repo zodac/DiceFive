@@ -948,6 +948,8 @@
     <string name="stats_solo">فردي</string>
     <string name="achievements_title">الإنجازات</string>
     <string name="achievements_unlocked_count">%1$d من %2$d مفتوحة</string>
+    <!-- Digits and "/" form one left-to-right run, so the total is written first to read "earned of total" from the right. -->
+    <string name="achievements_category_count">%2$d/%1$d</string>
     <string name="achievements_all_unlocked">كل شيء مفتوح. لم يبقَ شيء تطارده!</string>
     <string name="achievements_locked_only">المقفلة فقط</string>
     <string name="achievements_previous_category_cd">الفئة السابقة</string>
