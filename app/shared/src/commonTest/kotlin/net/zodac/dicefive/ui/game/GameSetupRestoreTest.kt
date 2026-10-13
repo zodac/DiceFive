@@ -207,7 +207,7 @@ class GameSetupRestoreTest {
     }
 
     @Test
-    fun `a name left blank is its seat's default in the player's language - saved blank - and an old English default reads as blank`() = runTest(testDispatcher) {
+    fun `a name left blank is its seat's default in the player's language - and is saved blank`() = runTest(testDispatcher) {
         val viewModel = GameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(3)
         viewModel.setPlayerName(2, "Wolfgang")
@@ -216,11 +216,10 @@ class GameSetupRestoreTest {
         assertEquals(listOf("Joueur 1", "Wolfgang"), checkNotNull(viewModel.game.value).players.take(2).map { it.name })
 
         val repository = SettingsRepository(FakePreferencesStore())
-        repository.setPlayerName(1, "Player 1")
+        repository.setPlayerName(1, "")
         repository.setPlayerName(2, "Wolfgang")
         repository.setPlayerName(3, "Player 4")
         val first = restored(repository)
-        // Slot 1's old default is not something the player typed; slot 3's "Player 4" isn't its own default, so it stays.
         assertEquals(listOf("", "Wolfgang", "Player 4"), first.setup.value.playerSlots.take(3).map { it.name })
         first.setPlayerCount(2)
         first.startGame()

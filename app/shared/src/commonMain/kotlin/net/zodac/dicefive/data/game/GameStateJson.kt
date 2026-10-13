@@ -34,7 +34,7 @@ object GameStateJson {
         put("currentPlayerIndex", state.currentPlayerIndex)
         put("rollsRemaining", state.rollsRemaining)
         put("turnRolls", state.turnRolls)
-        // Left out when off, so a game with no roll modifier is saved exactly as it always was.
+        // Each modifier's fields are left out when it's off.
         state.rollModifiers.rollsPerTurn?.let { put("rollsPerTurnModifier", it) }
         if (state.rollModifiers.storedRolls) put("storedRolls", true)
         state.rollModifiers.storedRollsMax?.let { put("storedRollsMax", it) }
@@ -76,13 +76,12 @@ object GameStateJson {
             hitList = hitList,
             currentPlayerIndex = obj.getInt("currentPlayerIndex"),
             rollsRemaining = rollsRemaining,
-            // Missing from a game saved before stored rolls: the turn started with the full allowance.
-            turnRolls = if ("turnRolls" in obj) obj.getInt("turnRolls") else rollModifiers.rollsPerTurn ?: gameMode.rollsPerTurn,
+            turnRolls = obj.getInt("turnRolls"),
             phase = TurnPhase.valueOf(obj.getString("phase")),
             isGameOver = obj.getBoolean("isGameOver"),
             turnSecondsLeft = (obj["turnSecondsLeft"] as? JsonNumber)?.toInt(),
             dice = obj.getObjectList("dice").map(::decodeDie),
-            players = obj.getObjectList("players").mapIndexed { seat, it -> decodePlayer(it, seat, gameMode, extendedScores, disabledCategories, hitList, rollModifiers.isActive) },
+            players = obj.getObjectList("players").map { decodePlayer(it, gameMode, extendedScores, disabledCategories, hitList, rollModifiers.isActive) },
         )
     }
 
@@ -96,9 +95,9 @@ object GameStateJson {
     }
 
     /**
-     * The boxes switched off, which a mode that draws some at random must have saved: a game saved without them
-     * (Quickfire's old one-roll rules shared its id) has no card to resume, so it fails the decode like an
-     * unknown mode, and `InProgressGameRepository.load` treats it as nothing to resume.
+     * The boxes switched off, which a mode that draws some at random must have saved: without them there's no
+     * card to resume, so it fails the decode like an unknown mode, and `InProgressGameRepository.load` treats it
+     * as nothing to resume.
      */
     private fun decodeDisabledCategories(obj: JsonObject, gameMode: GameMode): Set<ScoreCategory> {
         if (gameMode.randomDisabledCategories == 0) return gameMode.disabledCategories
@@ -152,7 +151,7 @@ object GameStateJson {
         isGolden = "isGolden" in obj && obj.getBoolean("isGolden"),
     )
 
-    /** The Unlucky Dice modifier, or null when the save has none - as every game saved before it existed. */
+    /** The Unlucky Dice modifier, or null when it was off - encode leaves its fields out. */
     private fun decodeUnluckyDice(obj: JsonObject): UnluckyDice? {
         val odds = (obj["unluckyOdds"] as? JsonNumber)?.toInt() ?: return null
         val maxDice = (obj["unluckyMaxDice"] as? JsonNumber)?.toInt() ?: return null
@@ -183,7 +182,6 @@ object GameStateJson {
 
     private fun decodePlayer(
         obj: JsonObject,
-        seat: Int,
         gameMode: GameMode,
         extendedScores: Boolean,
         disabledCategories: Set<ScoreCategory>,
@@ -197,9 +195,7 @@ object GameStateJson {
             name = obj.getString("name"),
             type = PlayerType.valueOf(obj.getString("type")),
             difficulty = Difficulty.valueOf(obj.getString("difficulty")),
-            // Missing from a game saved before colours were chosen: the seat's default, which is what it was drawn in.
-            colour = obj.optString("colour").takeIf { it.isNotEmpty() }?.let { runCatching { PlayerColour.valueOf(it) }.getOrNull() }
-                ?: PlayerColour.defaultFor(seat),
+            colour = PlayerColour.valueOf(obj.getString("colour")),
             gameMode = gameMode,
             extendedScores = extendedScores,
             disabledCategories = disabledCategories,
@@ -208,29 +204,22 @@ object GameStateJson {
             fiveOfAKindBonusCount = obj.getInt("fiveOfAKindBonusCount"),
             // Left out by encode for a player with no finished turn yet - no last roll to show.
             lastRoll = if ("lastRoll" in obj) obj.getObjectList("lastRoll").map(::decodeDie) else null,
-            // Missing before the first turn ends, and from a game saved before it was kept: nothing
-            // is highlighted as that player's last score until their next one.
+            // Left out by encode before the player's first turn ends: nothing is highlighted yet.
             lastScoredCategory = obj.optString("lastScoredCategory").takeIf { it.isNotEmpty() }
                 ?.let { name -> categories.firstOrNull { it.name == name } },
-            // Missing from a game saved before rolls were counted: it picks up from zero, which
-            // can only keep the Flowerpot's sunflower from blooming that game, never hand it out.
-            rollCount = if ("rollCount" in obj) obj.getInt("rollCount") else 0,
+            rollCount = obj.getInt("rollCount"),
             storedRolls = if ("storedRolls" in obj) obj.getInt("storedRolls") else 0,
             rollsModified = rollsModified,
-            // Left out unless set, and from a game saved before it existed: that player's flash is still to come.
+            // Left out unless set: that player's flash is still to come.
             fiveOfAKindFlashed = (obj["fiveOfAKindFlashed"] as? JsonBoolean)?.value == true,
         )
     }
 
-    /**
-     * One box's scores: a list of them, or - from a game saved before a box could be scored more than
-     * once - a single number for a filled box and null (or nothing) for an open one.
-     */
-    private fun decodeScores(value: JsonValue?): List<Int> = when (value) {
-        is JsonArray -> value.items.map { (it as? JsonNumber)?.toInt() ?: throw JsonParseException("A score isn't a number") }
-        is JsonNumber -> listOf(value.toInt())
-        else -> emptyList()
-    }
+    /** One box's scores, in the order they went in. */
+    private fun decodeScores(value: JsonValue?): List<Int> =
+        (value as? JsonArray ?: throw JsonParseException("A box's scores aren't an array")).items.map {
+            (it as? JsonNumber)?.toInt() ?: throw JsonParseException("A score isn't a number")
+        }
 
     /** How an any place is written: no die shows a 0. */
     private const val ANY_PLACE = 0

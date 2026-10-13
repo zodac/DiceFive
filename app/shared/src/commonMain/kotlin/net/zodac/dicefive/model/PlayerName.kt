@@ -74,8 +74,7 @@ fun sanitizePlayerName(raw: String): String {
 
 /**
  * What two names are compared by: sanitised, trimmed and lower-cased, so "BOB", "bob " and a name typed with a
- * decomposed accent all match the same player. Names are sanitised on the way in, so this only matters for ones
- * saved by an older version.
+ * decomposed accent all match the same player.
  */
 fun playerNameKey(name: String): String = sanitizePlayerName(name).trim().lowercase()
 

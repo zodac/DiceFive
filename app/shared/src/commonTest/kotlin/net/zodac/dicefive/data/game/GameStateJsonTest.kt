@@ -7,11 +7,8 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import net.zodac.dicefive.data.JsonArray
-import net.zodac.dicefive.data.JsonNull
-import net.zodac.dicefive.data.JsonNumber
 import net.zodac.dicefive.data.JsonObject
 import net.zodac.dicefive.data.JsonParseException
-import net.zodac.dicefive.data.JsonValue
 import net.zodac.dicefive.data.parseJson
 import net.zodac.dicefive.data.toJson
 import net.zodac.dicefive.game.GameEngine
@@ -38,12 +35,12 @@ class GameStateJsonTest {
     /** [state] encoded and decoded again - which must give back exactly [state]. */
     private fun roundTripped(state: GameState): GameState = GameStateJson.decode(GameStateJson.encode(state)).also { assertEquals(state, it) }
 
-    /** [state] saved as an older version did: without [field], or with [replaced] standing in for it, on the game or its first player. */
-    private fun savedWithout(state: GameState, field: String, onPlayer: Boolean = false, replaced: JsonValue? = null): String {
+    /** [state] saved without [field], on the game or its first player. */
+    private fun savedWithout(state: GameState, field: String, onPlayer: Boolean = false): String {
         val saved = GameStateJson.encode(state).toJsonObject()
         if (!onPlayer) return JsonObject(saved.fields - field).toJson()
         val players = (saved["players"] as JsonArray).items.map { it as JsonObject }
-        val first = JsonObject(players[0].fields - field + listOfNotNull(replaced?.let { field to it }))
+        val first = JsonObject(players[0].fields - field)
         return JsonObject(saved.fields + ("players" to JsonArray(listOf(first) + players.drop(1)))).toJson()
     }
 
@@ -217,42 +214,8 @@ class GameStateJsonTest {
     }
 
     @Test
-    fun `a save from before a field was kept loads with its default - and a game without a modifier writes none of its fields`() {
+    fun `a game without a modifier writes none of its fields - and loads with none`() {
         val plain = GameState(players = listOf(human), rollsRemaining = 2)
-
-        // Roll modifiers off and the full allowance.
-        val noRollModifiers = GameStateJson.decode(GameStateJson.encode(plain).replace(Regex("\"turnRolls\":[^,}]*,?"), ""))
-        assertEquals(RollModifiers(), noRollModifiers.rollModifiers)
-        assertEquals(3, noRollModifiers.turnRolls)
-        assertEquals(0, noRollModifiers.players.single().storedRolls)
-        assertFalse(noRollModifiers.players.single().rollsModified)
-
-        // A full timer, each seat's default colour, no last roll (no finished turn yet), no last scored box, no rolls.
-        assertEquals(null, GameStateJson.decode(savedWithout(plain, "turnSecondsLeft")).turnSecondsLeft)
-        val twoColours = GameState(players = listOf(PlayerState(name = "A", type = PlayerType.HUMAN, colour = PlayerColour.LIME), PlayerState(name = "B", type = PlayerType.HUMAN, colour = PlayerColour.PINK)))
-        val saved = GameStateJson.encode(twoColours).toJsonObject()
-        val uncoloured = (saved.fields.getValue("players") as JsonArray).items.map { JsonObject((it as JsonObject).fields - "colour") }
-        assertEquals(listOf(PlayerColour.CYAN, PlayerColour.GREEN), GameStateJson.decode(JsonObject(saved.fields + ("players" to JsonArray(uncoloured))).toJson()).players.map { it.colour })
-        assertEquals(null, GameStateJson.decode(savedWithout(plain, "lastRoll", onPlayer = true)).players.single().lastRoll)
-        val scored = GameState(players = listOf(human.copy(lastScoredCategory = ScoreCategory.FULL_HOUSE, rollCount = 12)))
-        assertEquals(null, GameStateJson.decode(savedWithout(scored, "lastScoredCategory", onPlayer = true)).players.single().lastScoredCategory)
-        assertEquals(0, GameStateJson.decode(savedWithout(scored, "rollCount", onPlayer = true)).players.single().rollCount)
-
-        // From before a box could hold several scores: a number per filled box and null per open one.
-        val oldScorecard = JsonObject(
-            GameMode.STANDARD.categories.associate { category ->
-                category.name to when (category) {
-                    ScoreCategory.ONES -> JsonNumber("3")
-                    ScoreCategory.FULL_HOUSE -> JsonNumber("0")
-                    else -> JsonNull
-                }
-            },
-        )
-        val singleScores = GameStateJson.decode(savedWithout(plain, "scorecard", onPlayer = true, replaced = oldScorecard)).players.single()
-        assertEquals(listOf(3), singleScores.scoresIn(ScoreCategory.ONES))
-        assertEquals(listOf(0), singleScores.scoresIn(ScoreCategory.FULL_HOUSE))
-        assertEquals(emptyList<Int>(), singleScores.scoresIn(ScoreCategory.CHANCE))
-        assertEquals(2, singleScores.turnsTaken)
 
         // A plain game writes no Extended Scores, Unlucky Dice, switched-off boxes or Hit List - and loads with none.
         val written = GameStateJson.encode(plain)
@@ -268,11 +231,14 @@ class GameStateJsonTest {
     @Test
     fun `a save that can't be resumed fails to decode rather than guessing - a required field or a mode's draw - missing`() {
         val plain = GameState(players = listOf(human))
-        for (field in listOf("gameMode", "turnTimer", "phase", "players")) {
+        for (field in listOf("gameMode", "turnTimer", "turnRolls", "phase", "players")) {
             assertFailsWith<IllegalArgumentException>("missing $field") { GameStateJson.decode(savedWithout(plain, field)) }
         }
 
-        // A Quickfire save from before the disabled boxes - the old one roll mode - and a Hit List one without its targets.
+        // A player without their colour or roll count, a Quickfire save without its disabled boxes, and a Hit List one without its targets.
+        for (field in listOf("colour", "rollCount", "scorecard")) {
+            assertFailsWith<IllegalArgumentException>("missing player $field") { GameStateJson.decode(savedWithout(plain, field, onPlayer = true)) }
+        }
         val solo = listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Player 1"))
         assertFailsWith<JsonParseException> { GameStateJson.decode(savedWithout(GameEngine.newGame(solo, GameMode.QUICKFIRE), "disabledCategories")) }
         assertFailsWith<JsonParseException> { GameStateJson.decode(savedWithout(GameEngine.newGame(solo, GameMode.HIT_LIST), "hitList")) }

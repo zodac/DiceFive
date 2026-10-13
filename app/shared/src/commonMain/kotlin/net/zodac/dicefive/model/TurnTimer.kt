@@ -10,7 +10,7 @@ data class TurnTimer(val seconds: Int?) {
         require(seconds == null || seconds in MIN_SECONDS..MAX_SECONDS) { "A turn timer is $MIN_SECONDS to $MAX_SECONDS seconds, not $seconds" }
     }
 
-    /** The form this is stored in: "NONE", or "SECONDS_" and the length - what the fixed lengths were once saved as, so older saves still read. */
+    /** The form this is stored in: "NONE", or "SECONDS_" and the length. */
     val name: String
         get() = if (seconds == null) "NONE" else "SECONDS_$seconds"
 

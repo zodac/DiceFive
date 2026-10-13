@@ -447,12 +447,10 @@ class GameViewModel(
                 }
                 val cap = GameSetupState.maxPlayerNameLength(restored.playerCount)
                 val slots = restored.playerSlots.map { slot ->
-                    // Capped on the way in, so a name saved before the length cap existed - or saved
-                    // at a longer-lived player count - is trimmed rather than reappearing over-long.
-                    // A name saved before defaults were left blank may be the English default itself: that's not something
-                    // the player typed, so it's put back to blank to be shown in the current language.
-                    val savedName = repository.playerNameFor(slot.slot).first()?.takeUnless { it == "Player ${slot.slot}" } // i18n: not translated - the English default older versions saved
-                    var updated = slot.copy(name = sanitizePlayerName(savedName ?: slot.name).takeNameWidth(cap))
+                    // Capped on the way in, so a name saved at a player count with wider tabs is trimmed
+                    // rather than reappearing over-long.
+                    val savedName = repository.playerNameFor(slot.slot).first()
+                    var updated = slot.copy(name = (savedName ?: slot.name).takeNameWidth(cap))
                     // Slot 1 is always Human, so its type and difficulty are never saved/restored.
                     if (slot.slot >= 2) {
                         repository.playerTypeFor(slot.slot).first()?.let { updated = updated.copy(type = it) }

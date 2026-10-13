@@ -71,12 +71,10 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
 
     /**
      * The turn timer length last chosen, kept while the timer is switched off ([turnTimer] is then
-     * [TurnTimer.NONE]) so switching it back on restores it. Falls back to the timer's own stored
-     * value from before this was kept separately, then to 60 seconds.
+     * [TurnTimer.NONE]) so switching it back on restores it. 60 seconds until one is chosen.
      */
     val turnTimerLength: Flow<TurnTimer> = dataStore.data.map { prefs ->
-        val stored = prefs[TURN_TIMER_LENGTH_KEY] ?: prefs[TURN_TIMER_KEY]
-        stored?.let { raw -> TurnTimer.parse(raw) }?.takeIf { it != TurnTimer.NONE } ?: TurnTimer.SECONDS_60
+        prefs[TURN_TIMER_LENGTH_KEY]?.let { raw -> TurnTimer.parse(raw) }?.takeIf { it != TurnTimer.NONE } ?: TurnTimer.SECONDS_60
     }
 
     suspend fun setTurnTimerLength(length: TurnTimer) {
@@ -97,7 +95,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
 
     /** The Number of Rolls value last chosen, kept while the modifier is off so switching it back on restores it. */
     val rollsPerTurnLength: Flow<Int> = dataStore.data.map { prefs ->
-        (prefs[ROLLS_PER_TURN_LENGTH_KEY] ?: prefs[ROLLS_PER_TURN_KEY])
+        prefs[ROLLS_PER_TURN_LENGTH_KEY]
             ?.takeIf { it in RollModifiers.MIN_ROLLS..RollModifiers.MAX_ROLLS } ?: RollModifiers.DEFAULT_ROLLS
     }
 
@@ -171,41 +169,26 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[VIBRATION_ENABLED_KEY] = enabled }
     }
 
-    /**
-     * The player's "Animations" level - see [AnimationLevel]. Replaced the "Remove animations" switch: a player who
-     * had it on starts at [AnimationLevel.OFF], which is what it did, and everyone else at the default. The old
-     * switch (itself the successor of "Simple dice roll", whose value wasn't carried over) is dropped on the first
-     * save of a level.
-     */
+    /** The player's "Animations" level - see [AnimationLevel]. */
     val animationLevel: Flow<AnimationLevel> = dataStore.data.map { prefs ->
-        prefs[ANIMATION_LEVEL_KEY]?.let { raw -> runCatching { AnimationLevel.valueOf(raw) }.getOrNull() }
-            ?: if (prefs[REMOVE_ANIMATIONS_KEY] == true) AnimationLevel.OFF else AnimationLevel.default
+        prefs[ANIMATION_LEVEL_KEY]?.let { raw -> runCatching { AnimationLevel.valueOf(raw) }.getOrNull() } ?: AnimationLevel.default
     }
 
     suspend fun setAnimationLevel(level: AnimationLevel) {
-        dataStore.edit { prefs ->
-            prefs[ANIMATION_LEVEL_KEY] = level.name
-            prefs.remove(REMOVE_ANIMATIONS_KEY)
-        }
+        dataStore.edit { it[ANIMATION_LEVEL_KEY] = level.name }
     }
 
     // Style ids, not the ui.game.style types themselves - this is the data layer, and resolving an
     // id to a concrete DiceStyle/DiceCupStyle/TableBackground is the Styles screen's job (via its
     // catalog). The literal defaults below must match ui.game.style's DiceStyles/DiceCupStyles/
-    // TableBackgrounds.default ids.
+    // TableBackgrounds/DiceMats/ScoreFrames.default ids.
     val diceStyleId: Flow<String> = dataStore.data.map { prefs -> prefs[DICE_STYLE_ID_KEY] ?: "classic_ivory" }
 
     suspend fun setDiceStyleId(id: String) {
         dataStore.edit { it[DICE_STYLE_ID_KEY] = id }
     }
 
-    // Dropped cups, read back as today's default: "leather" was the default before it went, and
-    // "casino_burgundy" made way for the Gold Classic cup. Anyone who picked one explicitly still has
-    // it saved, and it's drawn as the default - so it must not count as a non-default pick either,
-    // or it would unlock the cup style achievement for a cup they aren't playing with.
-    val diceCupStyleId: Flow<String> = dataStore.data.map { prefs ->
-        prefs[DICE_CUP_STYLE_ID_KEY]?.takeUnless { it in DROPPED_DICE_CUP_STYLE_IDS } ?: "classic_gold"
-    }
+    val diceCupStyleId: Flow<String> = dataStore.data.map { prefs -> prefs[DICE_CUP_STYLE_ID_KEY] ?: "classic_gold" }
 
     suspend fun setDiceCupStyleId(id: String) {
         dataStore.edit { it[DICE_CUP_STYLE_ID_KEY] = id }
@@ -242,7 +225,6 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val CONFIRM_BEFORE_LEAVING_GAME_KEY = booleanPreferencesKey("confirm_before_leaving_game")
         val SOUND_ENABLED_KEY = booleanPreferencesKey("sound_enabled")
         val VIBRATION_ENABLED_KEY = booleanPreferencesKey("vibration_enabled")
-        val REMOVE_ANIMATIONS_KEY = booleanPreferencesKey("remove_animations")
         val ANIMATION_LEVEL_KEY = stringPreferencesKey("animation_level")
         val PLAYER_COUNT_KEY = intPreferencesKey("player_count")
         val TURN_TIMER_KEY = stringPreferencesKey("turn_timer")
@@ -262,7 +244,6 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val DICE_MAT_ID_KEY = stringPreferencesKey("dice_mat_id")
         val SCORE_FRAME_ID_KEY = stringPreferencesKey("score_frame_id")
         val STYLES_PAGE_FIT_KEY = stringPreferencesKey("styles_page_fit")
-        val DROPPED_DICE_CUP_STYLE_IDS = setOf("leather", "casino_burgundy")
         fun playerNameKey(slot: Int) = stringPreferencesKey("player_name_$slot")
         fun playerTypeKey(slot: Int) = stringPreferencesKey("player_type_$slot")
         fun playerColourKey(slot: Int) = stringPreferencesKey("player_colour_$slot")

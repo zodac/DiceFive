@@ -79,8 +79,7 @@ private val HIT_LIST_CATEGORIES = ScoreCategory.TARGETS.take(HIT_LIST_SHAPES.siz
  * brings (a new [ScoreCategory], say); nothing else should have to learn it exists.
  *
  * [id] is the stable storage key, written to settings and to a saved in-progress game, so **never
- * change one** - rename [displayName] instead. (The enum names have changed before: [STANDARD] was
- * once `CLASSIC`, which `GameStateJson` still reads.)
+ * change one once released** - rename [displayName] instead.
  */
 enum class GameMode(
     val id: String,
