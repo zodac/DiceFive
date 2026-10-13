@@ -2648,6 +2648,14 @@ any page.
       with the profile, and only once it and every check have passed. `release` also requires the profile job to
       have passed or been skipped (a failed one only *skips* `apk`, which alone would let a release out without
       its APK). See Phase 19.
+- [x] **App Bundle per release** (2026-10-13): the `apk` job (same gate: 1.0.0, or `force_apk`) now runs
+      `bundleRelease` beside `assembleRelease` - one R8 run, so both share one `mapping.txt` - and the release gets
+      three assets: `DiceFive-<version>.apk`, `DiceFive-<version>.aab` for Play, and `DiceFive-<version>-mapping.txt`.
+      The bundle can't be renamed by `build.gradle.kts` (only APK names can be set, so it comes out as
+      `DiceFive-release.aab`) and has no `-unsigned` marker, so the job checks its signature with `keytool` before handing it
+      on. The `RELEASE_KEY*` secrets were replaced with a fresh keystore (alias `upload`), which is the app's Play App
+      Signing upload key: Google holds the app signing key and re-signs what Play serves. GitHub APKs from this point on
+      are signed with the new key, so they can't update in place over an earlier one signed with the old key.
 
 ### Achievement changes (after Phase 21)
 - `NATURAL_INTELLIGENCE` is now "How Do You Do, Fellow CPUs?": a four-player game against three Hard CPUs where the

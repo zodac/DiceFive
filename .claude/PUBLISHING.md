@@ -38,8 +38,9 @@ Google Cloud Console, not by editing anything here):**
   contact email.
 - The content rating questionnaire, data safety form, and target audience/content declarations.
   Each is re-visited (not just re-checked) once ads or billing ship, since both add questions.
-- Enrolling in Play App Signing and generating/uploading the upload key's certificate - a key this
-  session cannot generate on your behalf sight-unseen, since it's yours to keep.
+- ~~Enrolling in Play App Signing and generating the upload key~~ - done 2026-10-13 (see "Signing"
+  below). Play takes the upload certificate from the first signed `.aab` uploaded, unless App integrity
+  asks for it first (`keytool -export -rfc -alias upload`).
 - Creating the closed testing track and adding the 12+ testers Google requires for a new personal
   account, and leaving it running the required 14+ days before requesting production access.
 - Linking Play Games Services to the app (Play Console walks this through registering the SHA-1
@@ -158,26 +159,29 @@ add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK nee
 The account/console side of this is covered in "Outside this repo" above - this is what actually
 changes in the codebase to get a submittable build.
 
-- **App Bundle, not APK.** The GitHub release pipeline (Phase 12) only ever produces a signed
-  `assembleRelease` **APK** - Play has required an `.aab` for new apps' production tracks since
-  2021, nothing in `app/android/build.gradle.kts` currently runs `bundleRelease`, and CI has no step for
-  it; this needs its own build/signing path, separate from (or alongside) the GitHub one.
+- **App Bundle, not APK - done.** Play has required an `.aab` for new apps' production tracks since
+  2021. `release.yml`'s `apk` job runs `bundleRelease` beside `assembleRelease` (from 1.0.0, or with
+  `force_apk`) and attaches `DiceFive-<version>.aab` to the GitHub release next to the APK, for
+  uploading to Play by hand. Uploading straight to Play from CI isn't set up.
 - **`INTERNET` permission.** `AndroidManifest.xml` currently declares none at all - Play Games
   Services, cloud save, ads and billing all need `android.permission.INTERNET` (Games Services
   and billing add it via their own SDK's merged manifest; ads may still expect it declared).
-- Signing for the Play upload build should use the dedicated upload key from Play App Signing
-  (see "Outside this repo") - not `app/android/debug.keystore`, and not necessarily the same keystore the
-  GitHub release pipeline's `ANDROID_RELEASE_*` secrets point at either, since that key was chosen
-  for a different pipeline before Play App Signing was in the picture.
-- **Archive `mapping.txt` per release.** `DESIGN.md` Phase 12 turned on R8 shrinking and renaming
+- **Signing - done.** Play App Signing holds the app signing key; the certificates Play Console offers
+  for download (`deployment_cert.der` and the hybrid ones) are public only and can't sign anything. The
+  upload key is the keystore behind the `RELEASE_KEY*` repository secrets (replaced 2026-10-13 with a
+  fresh one, alias `upload`, upload certificate SHA-256 `DD:9E:C8:0C:…:1E:A6:18`), which signs both the
+  APK and the bundle. Its copy is kept by the maintainer outside the repo; if it's ever lost, Play
+  support can reset the upload key.
+- **Archive `mapping.txt` per release - done.** Each release attaches `DiceFive-<version>-mapping.txt`,
+  and the `.aab` carries the same mapping inside it (`BUNDLE-METADATA/.../proguard.map`), which Play
+  picks up on its own. Background: `DESIGN.md` Phase 12 turned on R8 shrinking and renaming
   for the `release` build type, which means `app/android/build/outputs/mapping/release/mapping.txt` is now
   a real deobfuscation mapping, not an empty file - without it, a renamed-class stack trace is
   unreadable. Play Console auto-detects and uses this mapping to deobfuscate Android vitals crash/
   ANR reports (Google's automatic crash collection, no SDK needed) as long as it's uploaded/bundled
   with the same build - either included in the `.aab` upload or attached manually under App
-  integrity > Deobfuscation files in Play Console. Nothing currently keeps a copy of this file past
-  a given local/CI build; the Play upload build/signing path this section describes needs to save
-  it somewhere retrievable per version before this matters.
+  integrity > Deobfuscation files in Play Console. The attached copy is for the GitHub APK's stack
+  traces, and in case Play ever needs it uploaded by hand.
 
 ## Google Play Games Services - achievements, cloud save, sign-in
 

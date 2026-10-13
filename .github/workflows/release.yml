@@ -18,9 +18,13 @@ name: Release
 # next release's notes.
 #
 # Versions below 1.0.0 are pre-1.0 milestones, not real releases: they're
-# marked as GitHub pre-releases and get no APK asset - just a version bump
+# marked as GitHub pre-releases and get no build assets - just a version bump
 # recorded as a tagged release. Signing/building only happens once VERSION
 # reaches 1.0.0, unless the force_apk dispatch input below overrides that.
+# The assets are the signed APK (for sideloading), the signed App Bundle (.aab)
+# for Google Play, and R8's mapping.txt for reading obfuscated stack traces.
+# Both are signed with the RELEASE_KEY* secrets' key, which is the app's
+# Play App Signing upload key - Play re-signs the bundle with its own key.
 #
 # The checks run side by side, each on a runner of its own - the app's Robolectric tests, the shared
 # module's tests with its iOS compile, lint, and (once there's an APK to ship) the Baseline Profile,
@@ -55,7 +59,7 @@ on:
   workflow_dispatch:
     inputs:
       force_apk:
-        description: "Build and attach the APK even if VERSION is still below 1.0.0 (release stays marked as a pre-release)"
+        description: "Build and attach the APK, App Bundle and mapping even if VERSION is still below 1.0.0 (release stays marked as a pre-release)"
         type: boolean
         default: false
 
@@ -310,9 +314,10 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # The signed release APK, built with the Baseline Profile generated above - only from 1.0.0 on, unless
-  # force_apk asks for one sooner, and only once the profile and every check have passed (there's no use
-  # for an APK that won't be released). Handed to the release job as an artifact.
+  # The signed release APK and App Bundle, built with the Baseline Profile generated above - only from 1.0.0
+  # on, unless force_apk asks for them sooner, and only once the profile and every check have passed
+  # (there's no use for a build that won't be released). Handed to the release job as an artifact, with
+  # the mapping.txt their shared R8 run wrote.
   apk:
     needs: [version, android-tests, shared-tests, lint, baseline-profile]
     if: needs.version.outputs.stable == 'true' || inputs.force_apk == true
@@ -336,24 +341,37 @@ jobs:
       - name: Decode release keystore
         run: echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore.jks"
 
-      - name: Build release APK
+      # One R8 run serves both, so the APK, the bundle and mapping.txt all match. The bundle also carries
+      # the mapping inside it (BUNDLE-METADATA), which Play uses to deobfuscate its crash reports.
+      - name: Build release APK and App Bundle
         env:
           ANDROID_RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore.jks
           ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease --console=plain
+        run: ./gradlew :app:android:assembleRelease :app:android:bundleRelease --console=plain
 
-      # app/android/build.gradle.kts names outputs DiceFive-<version>-<buildType>.apk (signed here, so no
-      # -unsigned suffix).
-      - name: Rename APK for release
-        run: cp "app/android/build/outputs/apk/release/DiceFive-${{ needs.version.outputs.name }}-release.apk" "DiceFive-${{ needs.version.outputs.name }}.apk"
+      # app/android/build.gradle.kts names the APK DiceFive-<version>-<buildType>.apk (signed here, so no
+      # -unsigned suffix - a missing secret fails this copy). The bundle's name has no version and no
+      # unsigned suffix (only APK names can be set), so its signature is checked here instead: Play
+      # refuses an unsigned one.
+      - name: Rename the release files
+        run: |
+          version="${{ needs.version.outputs.name }}"
+          mkdir release-files
+          cp "app/android/build/outputs/apk/release/DiceFive-$version-release.apk" "release-files/DiceFive-$version.apk"
+          cp app/android/build/outputs/bundle/release/DiceFive-release.aab "release-files/DiceFive-$version.aab"
+          cp app/android/build/outputs/mapping/release/mapping.txt "release-files/DiceFive-$version-mapping.txt"
+          if ! keytool -printcert -jarfile "release-files/DiceFive-$version.aab" | grep -q '^Owner:'; then
+            echo "::error::The App Bundle is not signed - check the RELEASE_KEY* secrets"
+            exit 1
+          fi
 
-      - name: Hand the APK to the release job
+      - name: Hand the release files to the release job
         uses: actions/upload-artifact@v7
         with:
-          name: release-apk
-          path: DiceFive-${{ needs.version.outputs.name }}.apk
+          name: release-files
+          path: release-files/
           if-no-files-found: error
           retention-days: 1
 
@@ -379,12 +397,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch the APK
-        id: apk
+      - name: Fetch the release files
         if: needs.apk.result == 'success'
         uses: actions/download-artifact@v8
         with:
-          name: release-apk
+          name: release-files
+          path: release-files/
 
       # RELEASE_NOTES.md as written (skipped if empty), then the grouped commit list. A copy of the
       # notes is kept aside so the bump step below can tell whether RELEASE_NOTES.md on main is
@@ -410,7 +428,7 @@ jobs:
           tag_name: v${{ needs.version.outputs.name }}
           name: DiceFive v${{ needs.version.outputs.name }}
           prerelease: ${{ needs.version.outputs.stable != 'true' }}
-          files: ${{ needs.apk.result == 'success' && format('DiceFive-{0}.apk', needs.version.outputs.name) || '' }}
+          files: ${{ needs.apk.result == 'success' && 'release-files/*' || '' }}
           body_path: ${{ steps.notes.outputs.path }}
 
       # Only reached once everything above has succeeded, so a failed build
