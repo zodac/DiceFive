@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -24,6 +25,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -129,6 +131,8 @@ import net.zodac.dicefive.resources.rules_example_roll_spoken
 import net.zodac.dicefive.resources.rules_example_scores_spoken
 import net.zodac.dicefive.resources.rules_example_spoken
 import net.zodac.dicefive.resources.rules_example_target_spoken
+import net.zodac.dicefive.resources.rules_example_pressed_alternatives_spoken
+import net.zodac.dicefive.resources.rules_example_pressed_takes_spoken
 import net.zodac.dicefive.resources.rules_example_tile_alibi_spoken
 import net.zodac.dicefive.resources.rules_example_tile_target_spoken
 import net.zodac.dicefive.resources.rules_example_worth_spoken
@@ -232,6 +236,7 @@ import net.zodac.dicefive.resources.rules_stud_5
 import net.zodac.dicefive.resources.rules_stud_6
 import net.zodac.dicefive.resources.rules_stud_7
 import net.zodac.dicefive.resources.rules_stud_8
+import net.zodac.dicefive.resources.rules_stud_9
 import net.zodac.dicefive.resources.rules_stud_tab
 import net.zodac.dicefive.resources.rules_stud_title
 import net.zodac.dicefive.resources.rules_third_wind_1
@@ -323,6 +328,8 @@ import net.zodac.dicefive.ui.game.style.PIP_FACES
 import net.zodac.dicefive.ui.game.style.numberedLike
 import net.zodac.dicefive.ui.game.style.palette
 import net.zodac.dicefive.ui.game.targetProgress
+import net.zodac.dicefive.ui.theme.GoldAccent
+import net.zodac.dicefive.ui.theme.GoldAccentDim
 import org.jetbrains.compose.resources.StringResource
 
 /** One page of [RulesScreen]. [title] heads the page itself; [tabLabel] is the shorter name its tab
@@ -348,6 +355,13 @@ private data object RulesIllustration : RulesBlock
 /** The game's own turn timer badge, stopped at [TURN_TIMER_EXAMPLE_SECONDS] so it flashes as it
  * does when a turn is running out. */
 private data object RulesTurnTimer : RulesBlock
+
+/**
+ * The dice mat as it looks while a finger is held on [category]'s box: a slot row, then a column per die (seven in Stud). The
+ * columns of the dice at [taking] have a solid gold outline, those at [alternatives] (a die that would have scored the same) a
+ * dashed one, and the other dice fade back - as in the game. The pressed box is drawn above it, lit.
+ */
+private data class RulesMat(val values: List<Int>, val taking: Set<Int>, val alternatives: Set<Int>, val category: ScoreCategory) : RulesBlock
 
 /** A paragraph of body text. */
 private data class RulesText(val text: StringResource) : RulesBlock
@@ -617,6 +631,13 @@ private val RULES_GROUPS = listOf(
                     text(Res.string.rules_stud_6),
                     text(Res.string.rules_stud_7),
                     text(Res.string.rules_stud_8),
+                    text(Res.string.rules_stud_9),
+                    RulesMat(
+                        values = listOf(1, 2, 3, 4, 5, 6, 2),
+                        taking = setOf(0, 1, 2, 3, 4),
+                        alternatives = setOf(5),
+                        category = ScoreCategory.LARGE_STRAIGHT,
+                    ),
                 ),
             ),
             RulesPage(
@@ -1095,6 +1116,7 @@ private fun RulesBlockView(block: RulesBlock) {
             )
         }
         is RulesDice -> RulesDiceRow(block, modifier = Modifier.padding(bottom = BLOCK_GAP))
+        is RulesMat -> RulesMatView(block, modifier = Modifier.padding(bottom = BLOCK_GAP))
         is RulesStep -> Column(modifier = Modifier.padding(bottom = BLOCK_GAP).semantics(mergeDescendants = true) {}) {
             Row {
                 Text(
@@ -1123,6 +1145,97 @@ private fun RulesBlockView(block: RulesBlock) {
             RulesDiceRow(block.example, modifier = Modifier.padding(top = 6.dp))
         }
     }
+}
+
+/** Where each die of a [RulesMatView] sits in its column (across, down: 0 to 1 of the room it has) and how far it is turned, as the mat scatters them. */
+private val MAT_SCATTER = listOf(
+    Triple(0.2f, 0.7f, -18f),
+    Triple(0.8f, 0.05f, 12f),
+    Triple(0.4f, 0.55f, -6f),
+    Triple(0.7f, 0.15f, 20f),
+    Triple(0.5f, 0.85f, -12f),
+    Triple(0.3f, 0.4f, 8f),
+    Triple(0.75f, 0.75f, -22f),
+)
+
+/** How tall a column of the mat is, as a multiple of its width. */
+private const val MAT_COLUMN_HEIGHT_RATIO = 2.3f
+
+/** A [RulesMat]: the pressed box, over the mat with its empty hold slots and its outlined columns. One TalkBack stop, which says it in words. */
+@Composable
+private fun RulesMatView(mat: RulesMat, modifier: Modifier = Modifier) {
+    val dice = mat.values.map { it.localised() }
+    val taking = spokenList(mat.taking.sorted().map { dice[it] })
+    val alternatives = mat.alternatives.sorted().map { dice[it] }
+    val spoken = joinSentences(
+        listOfNotNull(
+            stringResource(Res.string.rules_example_roll_spoken, joinClauses(dice)),
+            stringResource(Res.string.rules_example_pressed_takes_spoken, taking),
+            alternatives.takeIf { it.isNotEmpty() }?.let { stringResource(Res.string.rules_example_pressed_alternatives_spoken, spokenList(it)) },
+        ),
+    )
+    val matColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val slotColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    Column(modifier = modifier.clearAndSetSemantics { contentDescription = spoken }) {
+        CategoryTile(category = mat.category, highlighted = true)
+        Spacer(modifier = Modifier.height(10.dp))
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth().background(matColor, RoundedCornerShape(16.dp)).padding(10.dp)) {
+            val columns = mat.values.size
+            val gap = 6.dp
+            val columnWidth = (maxWidth - gap * (columns - 1)) / columns
+            val columnHeight = columnWidth * MAT_COLUMN_HEIGHT_RATIO
+            val dieSize = columnWidth * 0.8f
+            Column {
+                // Nothing is held yet, so the five slots are empty.
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    repeat(MAT_SLOTS) {
+                        Box(modifier = Modifier.size(columnWidth).background(slotColor, RoundedCornerShape(10.dp)))
+                    }
+                }
+                Spacer(modifier = Modifier.height(14.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                    mat.values.forEachIndexed { index, value ->
+                        val (across, down, turn) = MAT_SCATTER[index % MAT_SCATTER.size]
+                        val outlined = index in mat.taking || index in mat.alternatives
+                        Box(
+                            modifier = Modifier
+                                .size(columnWidth, columnHeight)
+                                .graphicsLayer { alpha = if (outlined) 1f else EXAMPLE_DIE_FADED_ALPHA }
+                                .drawBehind { drawColumnOutline(dashed = index !in mat.taking, show = outlined) },
+                        ) {
+                            IvoryDiceStyle.Die(
+                                value = value,
+                                held = false,
+                                modifier = Modifier
+                                    .size(dieSize)
+                                    .offset(x = (columnWidth - dieSize) * across, y = (columnHeight - dieSize) * down)
+                                    .rotate(turn),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private const val MAT_SLOTS = 5
+
+/** The outline the game draws round a column of the mat that a pressed box would take (solid) or that would have done as well ([dashed]). */
+private fun DrawScope.drawColumnOutline(dashed: Boolean, show: Boolean) {
+    if (!show) return
+    val stroke = Stroke(
+        width = 2.dp.toPx(),
+        pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 4.dp.toPx())) else null,
+    )
+    val inset = stroke.width / 2
+    drawRoundRect(
+        color = if (dashed) GoldAccentDim else GoldAccent,
+        topLeft = Offset(inset, inset),
+        size = Size(size.width - stroke.width, size.height - stroke.width),
+        cornerRadius = CornerRadius(8.dp.toPx()),
+        style = stroke,
+    )
 }
 
 /** The size of each die in a [RulesDiceRow]. */

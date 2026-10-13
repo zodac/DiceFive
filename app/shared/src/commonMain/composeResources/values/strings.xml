@@ -441,6 +441,8 @@
     <string name="rules_example_nothing_held_spoken">Nothing held.</string>
     <!-- %1$s is the held dice, joined into a list: "6, 6 and 6". -->
     <string name="rules_example_held_spoken">Held: %1$s.</string>
+    <string name="rules_example_pressed_takes_spoken">Pressing the box takes: %1$s.</string>
+    <string name="rules_example_pressed_alternatives_spoken">Would score the same: %1$s.</string>
     <string name="rules_example_spoken">Example: %1$s.</string>
     <!-- Chosen by how many dice are locked; %1$s is those dice, joined into a list. The text doesn't show the count. -->
     <plurals name="rules_example_locked_spoken">
@@ -1174,6 +1176,7 @@
     <string name="rules_stud_6">If the *Turn Timer* runs out, the first box that can still be scored is chosen.</string>
     <string name="rules_stud_7">Scoring, bonuses and the Joker rule are exactly the same as the *Standard* rules. You just get more dice to choose your hand from!</string>
     <string name="rules_stud_8">Since you choose your best hand from seven dice, totals here don't compare with other modes, so the achievements for a high score, a scorecard with no zeroes, rolling 5x or a straight, or filling a section, can't be earned in it. Scores from this mode don't go on the *Leaderboard*, but they still count towards your *Statistics*.</string>
+    <string name="rules_stud_9">Press and hold a box to see which dice it would take: a solid gold outline for the dice that score, a dashed one for any that would have scored the same, and the rest fade back. Here, holding `Large Straight`:</string>
     <string name="rules_third_wind_title">Third Wind</string>
     <!-- A tab: keep it short. -->
     <string name="rules_third_wind_tab">Third Wind</string>

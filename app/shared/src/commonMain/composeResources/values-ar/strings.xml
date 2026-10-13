@@ -386,6 +386,8 @@
     <string name="rules_example_roll_spoken">رمية للمثال: %1$s.</string>
     <string name="rules_example_nothing_held_spoken">لا شيء مثبّت.</string>
     <string name="rules_example_held_spoken">المثبّت: %1$s.</string>
+    <string name="rules_example_pressed_takes_spoken">الضغط على الخانة يأخذ: %1$s.</string>
+    <string name="rules_example_pressed_alternatives_spoken">ستُحتسب بالقدر نفسه: %1$s.</string>
     <string name="rules_example_spoken">مثال: %1$s.</string>
     <plurals name="rules_example_locked_spoken">
         <item quantity="zero">%1$s مقيّد بالسلاسل.</item>
@@ -1018,6 +1020,7 @@
     <string name="rules_stud_6">إذا انتهى *مؤقّت الدور*، تُختار أول خانة ما زال يمكن تسجيلها.</string>
     <string name="rules_stud_7">التسجيل والمكافآت وقاعدة الجوكر مثل قواعد *القياسي* تمامًا. كل ما في الأمر أن لديك أحجارًا أكثر تختار منها يدك!</string>
     <string name="rules_stud_8">لأنك تختار أفضل يد من بين سبعة أحجار، لا تُقارن المجاميع هنا بالأنماط الأخرى، فلا يمكن كسب إنجازات النتيجة العالية أو البطاقة بلا أصفار أو رمي 5x أو تسلسل أو إكمال قسم. لا تُسجَّل نتائج هذا النمط في *لوحة المتصدرين*، لكنها تُحتسب في *الإحصائيات*.</string>
+    <string name="rules_stud_9">اضغط مطولًا على خانة لترى الأحجار التي ستأخذها: إطار ذهبي متصل للأحجار التي تُحتسب، وإطار متقطع لأي حجر كان سيُحتسب بالقدر نفسه، ويخفت الباقي. هنا، عند الضغط مطولًا على *التسلسل الكبير*:</string>
     <string name="rules_third_wind_title">النفس الثالث</string>
     <string name="rules_third_wind_tab">النفس الثالث</string>
     <string name="rules_third_wind_1">نسخة ثلاثية من *القياسي*. تُسجَّل كل فئة **ثلاث** مرات بدل مرة واحدة، فتستمر اللعبة **٣٩** دورًا.</string>

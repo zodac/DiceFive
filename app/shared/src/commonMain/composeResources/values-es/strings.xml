@@ -337,6 +337,8 @@
     <string name="rules_example_roll_spoken">Tirada de ejemplo: %1$s.</string>
     <string name="rules_example_nothing_held_spoken">Ningún dado conservado.</string>
     <string name="rules_example_held_spoken">Conservados: %1$s.</string>
+    <string name="rules_example_pressed_takes_spoken">Al pulsar la casilla toma: %1$s.</string>
+    <string name="rules_example_pressed_alternatives_spoken">Puntuarían igual: %1$s.</string>
     <string name="rules_example_spoken">Ejemplo: %1$s.</string>
     <plurals name="rules_example_locked_spoken">
         <item quantity="one">El %1$s está encadenado.</item>
@@ -921,6 +923,7 @@
     <string name="rules_stud_6">Si se acaba el *temporizador de turno*, se elige la primera casilla que aún se puede anotar.</string>
     <string name="rules_stud_7">La puntuación, las bonificaciones y la regla del comodín son exactamente las mismas que en las reglas *Estándar*. ¡Solo tienes más dados entre los que elegir tu mano!</string>
     <string name="rules_stud_8">Como eliges tu mejor mano entre siete dados, los totales aquí no se comparan con los de otros modos, así que los logros por una puntuación alta, una tarjeta sin ceros, sacar 5x o una escalera, o completar una sección, no se pueden conseguir en él. Las puntuaciones de este modo no van a la *clasificación*, pero siguen contando para tus *estadísticas*.</string>
+    <string name="rules_stud_9">Mantén pulsada una casilla para ver qué dados tomaría: un contorno dorado continuo para los dados que puntúan, uno discontinuo para los que habrían puntuado igual, y el resto se atenúa. Aquí, al mantener pulsada `Escalera grande`:</string>
     <string name="rules_third_wind_title">Tercer aliento</string>
     <string name="rules_third_wind_tab">Tercer aliento</string>
     <string name="rules_third_wind_1">Una variante triple de *Estándar*. Cada categoría se anota **tres** veces en lugar de una, por lo que una partida dura **39** turnos.</string>
