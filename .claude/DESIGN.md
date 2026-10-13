@@ -1,372 +1,386 @@
 # DiceFive: design reference
 
-What the app is, how it works, and the decisions behind it. The interface itself (colour, shared chrome,
-layout, accessibility) is in `.claude/UI.md`; game modes in `.claude/GAME_MODES.md`; the table art in
-`.claude/STYLE_ART.md`. Read the relevant one before changing anything in its area.
+What the app does and why. The interface is in `UI.md` (plus `UI_BOARD.md` and `UI_SCREENS.md`), modes in
+`GAME_MODES.md`, and art in `STYLE_ART.md`.
 
-## The app
+## Stack
 
-A local (no netplay) dice game for 1-4 players, human and/or CPU, following the rules of the classic five-dice
-scorecard game, with house variants (game modes and modifiers), score history, statistics, achievements and
-unlockable table art. Android today; the game, its UI and its persistence are shared Kotlin Multiplatform code
-that also compiles for iOS (see `.claude/IOS_SUPPORT.md`).
-
-**The trademarked name is banned from the application entirely** - source, comments, identifiers, filenames and
-anything a player can see (see `CLAUDE.md`). The term is **"5x"** in user-facing text and
-**`FIVE_OF_A_KIND`/`fiveOfAKind`** in code. These `.claude/*.md` files are the only exception, because explaining
-what the game is needs the word; `README.md` is public and is not an exception.
-
-## Stack and layout
-
-- Kotlin Multiplatform, Compose Multiplatform, Material 3, Navigation Compose, MVVM (`ViewModel` + `StateFlow`).
-- Room (score history) and DataStore Preferences (everything else), both multiplatform.
-- `app/shared` holds everything platform-neutral; `app/android` is the Android app (`MainActivity`, the `device/`
-  platform services, the licence `TextView`); `app/baselineprofile` is the Baseline Profile journey;
-  `app/licensing` holds the licence records. The package map is in `README.md`.
-- Platform code sits behind `platform/PlatformServices` (sound, haptics, accelerometer, transient messages,
-  licences), `BuildInfo` (version, debug flag) and `AppContainer` (what each platform's entry point builds).
-  View models take an `AppContainer`, never a `Context`.
-- No `kotlinx.serialization` or `kotlinx-datetime`: `data/Json.kt` is a small strict JSON reader/writer, and
-  timestamps go through an `expect fun formatTimestamp` on each platform's own formatter. Both were dropped to keep
-  the APK small.
+- Platform code sits behind three seams. View models take an `AppContainer`, never a `Context`.
+  - `platform/PlatformServices`: sound, haptics, accelerometer, transient messages, licences, reduce motion, frame cap.
+  - `BuildInfo`: version and debug flag.
+  - `AppContainer`: what each platform's entry point builds.
+- There is no `kotlinx.serialization` or `kotlinx-datetime`; both were dropped to keep the APK small.
+  - `data/Json.kt` is a small strict JSON reader and writer.
+  - Timestamps go through `expect fun formatTimestamp`.
+- One dark theme only.
 
 ## Screens
 
 ```
 NavHost(start = "menu")
   "menu"         MenuScreen - Play (New Game | Continue), Achievements, Styles, Leaderboard, Statistics, Rules, Settings
-  "play" graph   one GameViewModel scoped to the graph, shared by:
+  "play" graph   one GameViewModel scoped to the graph (no player lists through nav args), shared by:
     "play/setup"   GameSetupScreen (optional `resume` argument resumes the saved game)
     "play/game"    GameScreen, then GameOverScreen and the scorecard review
-  "scores"       ScoresScreen (the Leaderboard)
-  "statistics"   StatisticsScreen
-  "achievements" AchievementsScreen
-  "styles"       StylesScreen
-  "rules"        RulesScreen
+  "scores"  ScoresScreen (the Leaderboard)   "statistics"  "achievements"  "styles"  "rules"
   "settings"     SettingsScreen (About and Licences open from its footer)
 ```
 
-Sharing one `GameViewModel` across setup and game avoids passing player lists through nav arguments. The app has a
-single dark theme - no light scheme and no theme setting.
-
 ## Game setup
 
-- 1-4 players. Player 1 is always human ("You") and is the only seat that earns achievements. Players 2-4 are
-  Human or CPU.
-- A human's name field is empty by default; it shows "Player N" in the app's language as a hint, and a game started
-  with it empty uses that. Names are sanitised as they're typed (`model/PlayerName.kt`) and capped by width to fit the
-  player tabs at the chosen player count (`GameSetupState.maxPlayerNameLength`: 14/12/10/8 for 1-4 players; a CPU's
-  generated name is shorter still, to leave room for its chip icon). See `UI.md` for why.
-- A CPU has a difficulty (Easy/Medium/Hard, default Medium) and a name generated at Start Game, unique within the game
-  (`AiNameGenerator`).
-- Each player picks a colour (`PlayerColour`); no two players share one.
-- The game mode and the modifiers are chosen here. Everything on the form - names, types, difficulties, colours,
-  player count, mode and modifiers - is remembered for next time in `SettingsRepository`.
+- **Players.** There are 1-4.
+  - Player 1 is always human and is the only seat that earns achievements.
+  - Players 2-4 are Human or CPU.
+  - A CPU has a difficulty (Easy/Medium/Hard, default Medium). Its name is generated at Start Game, unique in the game
+    (`AiNameGenerator`).
+- **Names.**
+  - An empty name field shows a localised "Player N" hint, and the game uses that name.
+  - Names are sanitised as they're typed (`model/PlayerName.kt`).
+  - Names are capped by width per player count (`maxPlayerNameLength` 14/12/10/8; see `UI_BOARD.md`).
+- **Colours.** Each player picks a distinct colour (`PlayerColour`).
+- **Remembered.** The mode, the modifiers and everything on the form are saved for next time in `SettingsRepository`.
 
 ## The turn and the rules
 
-Numbers here are Standard's; every one comes from the game's `GameMode` (see "Game modes" below).
+All numbers here are Standard's. Each comes from the game's `GameMode`.
 
-- A turn starts with 5 dice, 3 rolls, nothing held.
-- Rolling rolls every die not held. Every roll, human or CPU, lands through `GameViewModel.performRoll` after the
-  cup has shaken for `CUP_SHAKE_MILLIS`: a human's from the cup tap (`onCupTap` - a finger or shaking the phone), a
-  CPU's from its own turn loop. A tap while a roll is still shaking or its dice are still landing is ignored.
-- Holding toggles a die, once the turn has rolled. It's still allowed after the last roll (it does nothing then, but
-  disabled dice looked broken).
-- Scoring: any open box, at any point after the first roll. `ScoreCalculator` applies the upper bonus (63 or more in
-  the upper section earns 35) and the joker rule: every 5x after the first scored 50 adds a +100 chip, and if the
-  5x box is already filled the score must go in the matching upper box if open, else any open lower box (Full House
-  and the straights at their fixed values), else a zero in any open box.
-- Scoring ends the turn; a CPU then plays its rolls and its score with short pauses, so it's visibly animated.
-- **Turn timer** (a modifier): when it runs out on a rolled turn, the turn is scored in the first open box (in Stud,
-  the hand is completed first). When it runs out before the first roll, the player isn't rolled for: the turn is a
-  zero in the first open box, with no last roll and nothing kept for Stored Rolls (`GameEngine.forfeitTurn`). CPUs
-  are timed out the same way.
-- **Undo** (solo games only): one step back over the last human roll, hold or score. A CPU move clears it, and there
-  is no undo on a finished game.
-- The game ends when every card is full. Each **human** player's total is recorded (CPU scores never are), and the
-  results screen shows the ranking with the tie-break captions.
+- **A turn** starts with 5 dice, 3 rolls and nothing held. A roll rolls every unheld die.
+- **One roll path.** Every roll, human or CPU, lands through `GameViewModel.performRoll` after the cup has shaken for
+  `CUP_SHAKE_MILLIS`.
+  - A human's roll comes from the cup tap (`onCupTap`): a finger or a phone shake.
+  - A CPU's roll comes from its own turn loop.
+  - A tap while a roll is shaking or landing is ignored.
+- **Holding** toggles a die once the turn has rolled. It's still allowed after the last roll: it does nothing then,
+  but disabled dice looked broken.
+- **Scoring** is any open box after the first roll. `ScoreCalculator` applies two rules:
+  - The upper bonus: 63 or more in the upper section earns 35.
+  - The joker rule. Every 5x after a scored 50 adds a +100 chip. If the 5x box is filled, the score goes in the
+    matching upper box if it's open, else any open lower box (Full House and the straights at their fixed values),
+    else a zero in any open box.
+- **The CPU** scores, then plays its rolls with short pauses so it's visibly animated.
+- **Turn timer** (a modifier):
+  - Running out on a rolled turn scores the first open box (in Stud, the hand is completed first).
+  - Running out before the first roll forfeits the turn as a zero in the first open box, with no roll
+    (`GameEngine.forfeitTurn`).
+  - CPUs time out the same way.
+- **Undo** exists in solo games only. It steps back one human roll, hold or score. Any CPU move clears it, and a
+  finished game has none.
+- **The end.** The game ends when every card is full. **Human** totals are recorded; CPU scores never are. The results
+  screen shows the ranking with tie-break captions.
+- `DiceScoring`, `ScoreCalculator` and `GameEngine` are pure, with no platform dependencies.
 
-`DiceScoring`, `ScoreCalculator` and `GameEngine` are pure functions with no platform dependencies.
+**Maximum scores.** These are `GameMode.maxPossibleScore`, each with its derivation as a doc comment.
+`GameModeTest` locks each one by playing the perfect game through the engine.
 
-### Maximum scores
+| Mode | Maximum |
+|---|---|
+| Standard, Stud | 1575 |
+| Tricolour | 2120 |
+| Third Wind | 4725 |
+| D20 | 1350 |
+| Hit List | 785 |
+| Quickfire | 210 |
 
-`GameMode.maxPossibleScore`, each derivation a doc comment on its entry and locked by `GameModeTest` playing the
-perfect game through the real engine: Standard and Stud 1575, Tricolour 2120, Third Wind 4725, D20 1350, Hit List
-785, Quickfire 210. The Leaderboard pads scores to the digit width of the highest (`GameMode.HIGHEST_POSSIBLE_SCORE`,
-4 digits) so the column stays one width.
+The Leaderboard pads scores to the digit width of `HIGHEST_POSSIBLE_SCORE` (4 digits).
 
 ### Tie-break house rule
 
-Not in the official rules, which call a tie at the top a shared win. Equal scores are separated by whoever did it
-with more handicaps, in this order: fewest 5x, most zeroed boxes, fewest of Tricolour's four colour boxes scored
-(Tricolour only), lowest upper section (without its bonus), lowest Chance, lowest 3x, lowest 4x. The first that
-differs decides it; if all match it's a true tie and a shared rank ("=2").
+The official rules call a tie a shared win. Here, equal scores are separated by whoever had more handicaps, checked in
+this order:
 
-`game/TieBreak.kt` holds the criteria, `TieBreakStats`, and `TieBreak.rank` - the one ranking a finished game's
-players, shared by the results screen (which captions the deciding criterion: "Won on fewer 5x") and the Tie Break
-achievement. The Leaderboard ranks with the same criteria but leaves out the Tricolour one, as its Combined table
-mixes Standard and Tricolour; its SQL `ORDER BY` mirrors the comparator. This only changes ranking: a raw-score tie at
-the top still counts as a win for achievements and statistics.
+1. Fewest 5x.
+2. Most zeroed boxes.
+3. Fewest Tricolour colour boxes scored (Tricolour only).
+4. Lowest upper section (without its bonus).
+5. Lowest Chance.
+6. Lowest 3x.
+7. Lowest 4x.
 
-During a game the player tabs show each player's place by total alone ("=1st" when level); once every card is full
-they take `TieBreak.rank`, so the scorecard review agrees with the results.
+The first criterion that differs decides it. If all match, it's a true tie with a shared rank ("=2").
+
+- **Where it's used.** `game/TieBreak.kt` holds the criteria and `TieBreak.rank`. They're shared by the results
+  screen (its caption: "Won on fewer 5x") and the Tie Break achievement.
+- **The Leaderboard** uses the same criteria minus the Tricolour one, because its Combined table mixes modes. Its SQL
+  `ORDER BY` mirrors the comparator.
+- **Ranking only.** A raw-score tie at the top still counts as a win for achievements and statistics.
+- **Player tabs** rank by total during play ("=1st"), then take `TieBreak.rank` once every card is full.
 
 ## Game modes
 
-`model/GameMode.kt`. **Every rule that can differ between modes is a field on the mode** - dice count, how many score,
-rolls per turn, die faces and colours, the card, how many times each box is scored, bonuses, the 5x chip, boxes
-switched off, targets, whether it goes on the Leaderboard, whether Extended Scores is allowed, the ceiling. The engine,
-the CPU, the achievements, persistence and the board all read the rules from there; there is never an
-`if (mode == X)`. A box's own scoring rule is fixed and mode-independent (`ScoreCategory`); a mode chooses which boxes
-are on its card. `.claude/GAME_MODES.md` is how to add or change one.
+`model/GameMode.kt`. **Every rule that can differ between modes is a field on the mode. There is never an
+`if (mode == X)`.** A box's own scoring is fixed (`ScoreCategory`); a mode only chooses which boxes are on its card.
+`GAME_MODES.md` covers adding or changing a mode.
 
 | Mode | Rules beyond Standard | Leaderboard |
 |---|---|---|
 | Standard | The official rules. | Yes |
-| Tricolour | Each die also lands red, yellow or blue; four colour boxes - Reds/Yellows/Blues (40, all five that colour) and Coloured House (25, a joker free-fill like Full House). | Yes |
-| Third Wind | Every box scored three times (39 turns); one upper bonus, tripled (189 earns 105); the joker starts once the 5x box's three slots are used with a 50 among them. | No |
-| Stud | Seven dice rolled, five hold slots, only the held hand scores; a box can be scored with fewer held and `HandCompletion` completes the hand with the best dice for it. | No |
-| D20 | Twenty-sided dice, five rolls; a box per number 1-20 plus a wildcard per half; 75 bonus per half (at 138 and 388); no 5x or lower section; no Extended Scores. Dice always drawn as a D20 style. | No |
-| Hit List | Twelve targets drawn per game plus the Alibi; hits, exact hits (double) and partial hits; no Extended Scores. | No |
-| Quickfire | Seven boxes off each game - 5x always, three upper and three lower at random - so six turns; the upper bonus threshold scales to the upper boxes left. | No |
+| Tricolour | Dice also land red, yellow or blue. Four colour boxes: Reds/Yellows/Blues (40 for all five that colour) and Coloured House (25, a joker free-fill like Full House). | Yes |
+| Third Wind | Every box scored three times (39 turns). One upper bonus, tripled (189 earns 105). The joker starts once the 5x box's three slots are used with a 50 among them. | No |
+| Stud | Seven dice rolled, five hold slots; only the held hand scores. A box can be scored with fewer held, and `HandCompletion` completes the hand. | No |
+| D20 | Twenty-sided dice, five rolls. A box per number 1-20 plus a wildcard per half. A 75 bonus per half (at 138 and 388). No 5x, no lower section, no Extended Scores. Always drawn in a D20 style. | No |
+| Hit List | Twelve targets drawn per game plus the Alibi. Hits, exact hits (double) and partial hits. No Extended Scores. | No |
+| Quickfire | 5x plus three random upper and three random lower boxes are off each game: six turns. The upper bonus threshold scales to the upper boxes left. | No |
 
-A mode off the Leaderboard still records its games for Statistics and career points; the Leaderboard's Game Mode
-view lists it on its own card.
+A mode off the Leaderboard still records its games for Statistics and career points. The Leaderboard's Game Mode view
+lists it on its own card.
 
 ## Modifiers
 
-Optional extras on top of any mode, picked on the setup screen. **Any modifier takes a game off the Leaderboard**
-(`GameState.hasModifiers`; `ScoreEntry.playedUnmodified` records it).
+Optional extras on top of any mode. **Any modifier takes a game off the Leaderboard** (`GameState.hasModifiers`;
+`ScoreEntry.playedUnmodified` records it).
 
-- **Turn Timer** - a whole-turn limit: 30, 60 or 120 seconds, or any typed length from 5 to 999. See the turn rules
-  above for what a timeout does.
-- **Number of Rolls** - 1-9 rolls a turn instead of the mode's (remembered while off).
-- **Stored Rolls** - a player's unused rolls carry over to their own next turn, optionally capped (an empty cap is no
-  cap). `GameState.turnRolls` is what the turn started with, so first-roll checks still mean the first roll.
-- **Extended Scores** - three more boxes after the mode's own: Two Pair (the four dice making two different pairs),
-  Evens and Odds, in their own section that counts toward the total only. Not in D20 or Hit List, where the setup row
-  is locked with a note and the player's pick kept. A card is always read from `PlayerState.categories` /
-  `GameState.categories` (`GameMode.categoriesWith`), never `gameMode.categories`.
-- **Unlucky Dice** - after each roll every rolled die is `oddsPercent` likely (10-50%, steps of 10) to land locked in
-  chains, at most `maxDice` (1-5) a roll. A locked die can't be held or scored and rerolls with the rest. A game
-  without the modifier deals exactly the dice it always did.
+- **Turn Timer.** A whole-turn limit: 30, 60 or 120 seconds, or any typed length from 5 to 999.
+- **Number of Rolls.** 1-9 rolls a turn instead of the mode's (remembered while off).
+- **Stored Rolls.**
+  - A player's unused rolls carry over to their own next turn, optionally capped (an empty cap is no cap).
+  - `GameState.turnRolls` is what the turn started with.
+- **Extended Scores.**
+  - Three extra boxes in their own section, counting toward the total only: Two Pair (the four dice making two
+    different pairs), Evens and Odds.
+  - Locked (with a note, the pick kept) in D20 and Hit List.
+  - Always read a card from `PlayerState.categories`/`GameState.categories` (`categoriesWith`), never
+    `gameMode.categories`.
+- **Unlucky Dice.**
+  - After each roll, each rolled die has an `oddsPercent` chance (10-50%) of landing locked in chains, at most
+    `maxDice` (1-5) a roll.
+  - A locked die can't be held or scored, and rerolls with the rest.
+  - Without the modifier, the dice are dealt exactly as before.
 
 ## The CPU
 
-`game/AiTurnPlayer.kt`, from the player's own mode and card.
+`game/AiTurnPlayer.kt` plays from the player's own mode and card.
 
-- **Easy** never holds individual dice: it rerolls everything until any open box scores above zero, then takes the
-  highest-scoring box.
-- **Medium** holds by rule of thumb (a forming straight, else the largest matching group; colour sets in Tricolour,
-  the best open number in D20) and banks a good-enough hand early (Full House, Large Straight, a Small Straight once
-  Large Straight is gone, three or more 4s/5s/6s with that box open). Category ties lean toward an upper box on pace
-  for the bonus.
-- **Hard** plans the whole turn exactly: every distinct hold, every outcome of the freed dice, through every reroll
-  left (`DiceSpace`/`HandScoring` - every hand and held set of a mode's dice numbered once, scored once, so a
-  decision is a few array passes). It values a finished hand by:
-  - in Standard with no Extended Scores, the bundled **perfect-play table** (`StandardPerfectPlayTable`,
-    `composeResources/files/standard_perfect_play.bin`): the optimal expected value of every start-of-turn state,
-    solved by the same engine and scoring the game plays with. Hard plays Standard perfectly - about 254 a game.
-    `StandardPerfectPlayTableTest` re-works a sample of states from the table's own successors and fails if the rules
-    drift from it; `-PregeneratePerfectPlayTable` rewrites it.
-  - everywhere else, an estimate: the score less the box's baseline (its average when a whole turn chases it), plus a
-    share of any section bonus still reachable. Tricolour's space (~10 MB) is built in the background when a game with
-    a Hard CPU starts.
-  - Stud maps every seven-dice roll to its best five-dice hand (`RollSpace`); Hit List has its own exact play
-    (`HitListPlay.kt`, every difficulty); with a die locked by Unlucky Dice, Hard plays the turn as Medium.
+- **Easy** never holds. It rerolls everything until some open box scores above zero, then takes the highest.
+- **Medium** plays by rules of thumb.
+  - It holds a forming straight, else the largest matching group (colour sets in Tricolour, the best open number in
+    D20).
+  - It banks a good-enough hand early: Full House, Large Straight, a Small Straight once Large is gone, or three or
+    more 4s/5s/6s with that box open.
+  - Ties lean toward an upper box that's on pace for the bonus.
+- **Hard** plans the whole turn exactly: every hold, every outcome, every reroll left. `DiceSpace`/`HandScoring`
+  number and score each hand once, so a decision is a few array passes. It values a finished hand as follows.
+  - **Standard without Extended Scores.** The bundled **perfect-play table** (`StandardPerfectPlayTable`,
+    `composeResources/files/standard_perfect_play.bin`) holds the optimal expected value of every start-of-turn state.
+    - Hard plays Standard perfectly, about 254 a game.
+    - `StandardPerfectPlayTableTest` fails if the rules drift from the table. Regenerating it is in the `test` skill.
+  - **Elsewhere.** An estimate: the score less the box's baseline, plus a share of any reachable section bonus.
+    Tricolour's ~10 MB space is built in the background when a game with a Hard CPU starts.
+  - **Special cases.**
+    - Stud maps each seven-dice roll to its best five (`RollSpace`).
+    - Hit List has its own exact play at every difficulty (`HitListPlay.kt`).
+    - With a die locked by Unlucky Dice, Hard plays as Medium.
 
 ## Persistence
 
-All in each platform's app-private storage. **Every stored id - achievement, style, game mode, preference key - is
-permanent once released**: it's what's on players' devices, and achievements and modes will map to Play Games.
+Everything is in app-private storage. **Every stored id is permanent once released**, because achievements and modes
+will map to Play Games.
 
-- **Scores** - Room, `dicefive.db`, `AppDatabase` version 1 (the schema the app first shipped with, exported to
-  `app/shared/schemas/`). Tables `scores` (`ScoreEntry`: name, score, time, `won` - null for a solo game -,
-  `isPrimaryPlayer`, the tie-break stats, `onLeaderboard`, `gameModeId`, `playedUnmodified`; every column but `won`
-  NOT NULL) and `dismissed_player_stats`. Every later schema change needs a version bump and a migration, and there is
-  deliberately no destructive fallback: a missing migration must fail loudly, never wipe scores.
-- **Preferences** - four DataStore files (`PreferencesFile`), kept apart so a reset can clear one without the
-  others: `settings`, `achievements` (unlock times and counters - "Reset achievements" clears this file only),
-  `in_progress_game`, and `online` (Play Games choices, which no reset touches).
-- **The in-progress game** - `InProgressGameRepository`, at most one, saved as JSON (`GameStateJson`) after every
-  change and cleared when the game ends. Writes are queued and conflated in a process-lifetime scope, so leaving a game
-  can't strand its last move. A save that can't be decoded (a missing required field, an unknown mode, a mode's draw
-  missing) is treated as nothing to resume. Fields a modifier adds are left out when it's off.
-- **Style picks** - the five ids (dice, cup, mat, background, frame) in `settings`, resolved through the catalogs;
-  an id nothing recognises draws the category's default.
+- **Scores.**
+  - Room, `dicefive.db`, `AppDatabase` version 1, with its schema exported to `app/shared/schemas/`.
+  - Tables:
+    - `scores` (`ScoreEntry`): name, score, time, `won` (null for a solo game), `isPrimaryPlayer`, the tie-break stats,
+      `onLeaderboard`, `gameModeId` and `playedUnmodified`. Every column but `won` is NOT NULL.
+    - `dismissed_player_stats`.
+  - Every schema change needs a version bump and a migration. There is **deliberately no destructive fallback**: a
+    missing migration must fail loudly, never wipe scores.
+- **Preferences.** Four DataStore files (`PreferencesFile`), kept apart so a reset can clear one:
+  - `settings`.
+  - `achievements`: unlock times and counters. "Reset achievements" clears only this file.
+  - `in_progress_game`.
+  - `online`: Play Games choices. No reset touches it.
+- **The in-progress game.** `InProgressGameRepository` holds at most one, saved as JSON (`GameStateJson`).
+  - It's saved after every change and cleared when the game ends.
+  - Writes are queued and conflated in a process-lifetime scope, so leaving a game can't lose its last move.
+  - An undecodable save is treated as nothing to resume: a missing required field, an unknown mode, or a mode's draw
+    missing.
+  - Fields a modifier adds are left out when it's off.
+- **Style picks.** Five ids (dice, cup, mat, background, frame) in `settings`. An id nothing recognises draws the
+  default.
 
 ## Leaderboard and Statistics
 
-- **Leaderboard** (`ScoresScreen`): a switch picks **Combined** - one table of every on-board score, score-descending,
-  50 a page, 1st-3rd in gold/silver/bronze, "=" only for a true tie - or **Game Mode**, one card per mode with a score,
-  each ranked and paged on its own, no medals. A mode that never counts on Combined is listed only here; a Standard or
-  Tricolour game with modifiers is off both. Rows show rank, name, 5x count and score; a long press shows the date (and
-  on Combined the mode), which is also the row's spoken state. Not split by player.
-- **Statistics** (`StatisticsScreen`): one card per distinct human *name* (a rename starts a new player) - best score,
-  first played, played/won/lost, current and best win streak, total and average score, 5x scored, solo games. Every
-  recorded game counts, on the Leaderboard or not. A solo game is recorded with a null outcome: played, but not a win,
-  a loss, or a break in a streak. A long press dismisses a card (the scores stay); playing again under that name brings
-  it back.
-- Settings' "Reset leaderboard" deletes every score (and so Statistics).
+- **Leaderboard** (`ScoresScreen`). A switch picks one of two views; details are in `UI_SCREENS.md`.
+  - **Combined**: every on-board score, score-descending, 50 a page, 1st-3rd in gold/silver/bronze, "=" only for a true
+    tie.
+  - **Game Mode**: one card per mode, each ranked and paged on its own, no medals.
+  - Rows show rank, name, 5x count and score. A long press shows the date (and the mode on Combined), which is also the
+    row's spoken state.
+- **Statistics** (`StatisticsScreen`). One card per distinct human *name*; a rename starts a new player.
+  - It shows best score, first played, played/won/lost, current and best win streak, total and average, 5x scored and
+    solo games.
+  - Every recorded game counts. A solo game's outcome is null: it isn't a win or a loss, and it doesn't break a
+    streak.
+  - A long press dismisses a card (the scores stay). Playing again under that name brings it back.
+- Settings' "Reset leaderboard" deletes every score, and with them the Statistics.
 
 ## Achievements
 
-`model/Achievement.kt` (103), `game/AchievementEngine.kt` (pure: no platform, persistence or clock),
-`data/achievements/`, `ui/achievements/`.
+`model/Achievement.kt` (103), `game/AchievementEngine.kt` (pure), `data/achievements/`, `ui/achievements/`.
 
-- **Ids**: each achievement's enum constant is its English title in snake case, and its stored `id` is that constant
-  in lower case (`GETTING_COMFORTABLE` / `"getting_comfortable"`); `AchievementEngineTest` holds every id to it. The id
-  is the storage key and will be the Play Games key, so it never changes once released, even if a title's wording
-  does. String keys follow the same name (`achievement_getting_comfortable_title`).
-- **Player 1 only**: only `players[0]` earns anything; another human is an opponent like a CPU. The exceptions are the
-  ledger - the score-band achievements (Tally to Historian: every score in a 50-point band recorded) - which read the
-  whole device's Leaderboard, and Professional Roller (career points), which sums only player 1's rows
-  (`ScoreEntry.isPrimaryPlayer`, set from the seat, never inferred from a name).
-- **Rules**: a solo game counts for games played, feats and thresholds but neither extends nor breaks a win streak; a
-  tie at the top is a win; superuser mode (debug builds) doesn't disqualify a game; undo can't inflate a counter, as
-  counters move only at game end and only a human roll counts dice. New Personal Best is per name and reads the
-  player's best before this game's rows are written. The ledger and career points are derived from the scores table,
-  not a counter, so they always agree with the Leaderboard and re-earn from existing scores after a reset.
-- **When they're judged** - and the engine, never a call site, decides what's earned:
-  - `evaluateAtGameStart` (`GameStartContext`): style and mode picks, such as Fresh Coat Of Paint.
-  - `evaluateInProgress`, after every scored box: only what a later turn can't take away (a filled box, a banked bonus).
-    Score thresholds are judged only at game end, never off a total an abandoned game would throw away.
-  - `unlockNow` and the pre-commit checks: moments a finished card can't show - a hand straight out of the cup, the
-    dice and the chosen box together at the moment of a score (Wasted Fortune, Size Isn't Everything, Almost Famous,
-    The Dice Hate Me, Commitment Issues).
+- **Ids.**
+  - The enum constant is the English title in snake case; the stored `id` is that in lower case
+    (`GETTING_COMFORTABLE`/`"getting_comfortable"`). `AchievementEngineTest` enforces it.
+  - String keys follow the constant: `achievement_<constant>_title`.
+- **Player 1 only.** Other humans are opponents like CPUs. Two exceptions:
+  - The ledger (score-band achievements Tally to Historian: every score in a 50-point band) reads the whole device's
+    Leaderboard.
+  - Professional Roller (career points) sums player 1's rows (`ScoreEntry.isPrimaryPlayer`, set from the seat, never
+    from a name).
+- **Rules.**
+  - A solo game counts for games played, feats and thresholds, but neither extends nor breaks a win streak.
+  - A tie at the top is a win.
+  - Superuser mode doesn't disqualify a game.
+  - Undo can't inflate a counter: counters move only at game end, and only human rolls count dice.
+  - New Personal Best is per name, and reads the best from before this game's rows are written.
+  - The ledger and career points are derived from the scores table, so they always agree with the Leaderboard and
+    re-earn after a reset.
+- **When they're judged.** The engine decides, never a call site.
+  - `evaluateAtGameStart`: style and mode picks (Fresh Coat Of Paint).
+  - `evaluateInProgress`, after each scored box: only what a later turn can't take away. Score thresholds wait for game
+    end.
+  - `unlockNow` and the pre-commit checks: moments a finished card can't show, such as a hand straight out of the cup
+    or the dice and chosen box together (Wasted Fortune, Size Isn't Everything, Almost Famous, The Dice Hate Me,
+    Commitment Issues).
   - `evaluate` at game end: everything else, and every counter.
-  A `Mutex` in `GameViewModel` serialises the read-decide-write of all of them, so two paths can't double-announce.
-- **Modes and modifiers**: each mode's own achievements sit in the Game Modes category, and an achievement a mode or
-  modifier would make trivial is guarded - the audit is in `GAME_MODES.md`.
-- **Display**: declaration order is display order - grouped by `AchievementCategory`, easiest first within each, so a
-  ladder's rungs sit together. `AchievementEngineTest` fails if a category is split. Every Miscellaneous and Easter Egg
-  achievement is `HIDDEN` (title shown, description "???" until earned) and only those are. The eight Easter Eggs are
-  alphabetical, last, and outside Completionist.
-- **Progress banners**: a streak announces every step; a running total only at quarter marks, or every
-  `progressStepSize` for the very large ones; never for one being unlocked at the same moment.
-- **Superuser modes (debug builds only)**: in a game, a hidden hold sequence lets the player set dice (the Time Wasting
-  achievement is earned for the sequence in any build); on the Achievements screen, tapping the count banner
-  `SUPERUSER_TAP_TARGET` times lets a long press lock/unlock a row or step its progress (an in-memory overlay, never
-  written to the shared counters), and a long press on the banner unlocks or relocks everything.
-- **Not covered by automated tests**: Let's Finish This (leave and resume) and the end-to-end settings read behind the
-  style achievements - both need the concrete DataStore repositories.
-
-Banners, the list and their accessibility are in `UI.md`. Play Games mapping is planned in `.claude/PLAY_GAMES.md`.
+  - A `Mutex` in `GameViewModel` serialises them all, so nothing is announced twice.
+- **Modes.** Each mode's own achievements are in the Game Modes category. Achievements a mode would make trivial are
+  guarded (`GAME_MODES_AUDIT.md`).
+- **Display.**
+  - Declaration order is display order: grouped by `AchievementCategory`, easiest first, so ladders sit together.
+    `AchievementEngineTest` fails if a category is split.
+  - Every Miscellaneous and Easter Egg achievement is `HIDDEN` (the title is shown, the description is "???" until
+    earned), and only those are.
+  - The eight Easter Eggs are alphabetical, last, and outside Completionist.
+- **Progress banners.** A streak announces every step. A running total announces only at quarter marks (or every
+  `progressStepSize`), and never alongside its own unlock.
+- **Superuser modes (debug builds only).**
+  - In a game, a hidden hold sequence lets the player set dice. Time Wasting is earned for the sequence in any build.
+  - On the Achievements screen, tapping the count banner `SUPERUSER_TAP_TARGET` times turns on long-press editing:
+    - a long press on a row locks, unlocks or steps it (in-memory, never written);
+    - a long press on the banner toggles everything.
+- **Untested automatically.** Let's Finish This (leave and resume), and the end-to-end settings read behind the style
+  achievements.
 
 ## Table art (Styles)
 
-Five independently swappable, independently saved categories (`ui/game/style/`): dice (`DiceStyle`), cups
-(`DiceCupStyle`), mats (`DiceMat`), backgrounds (`TableBackground`) and frames (`ScoreFrame`, round the active player's
-tab), bundled as `GameVisualTheme`. `StyleCatalog.kt` lists every one: each catalog groups its art into `StyleFamily`s
-(a shape or pattern, the tile on the Styles screen) of `StyleColour`s (for frames, designs).
+There are five independently saved categories (`ui/game/style/`), bundled as `GameVisualTheme`:
 
-- **Ids** are the family's name then the colour's, from their string keys (`classic_gold`, `world_roman`,
-  `bestagons_honeycomb`); `StyleCatalogTest` holds every id to it.
-- Every category's first family is **Classic** and free; Classic's first colour is the default (ivory dice, the gold
-  casino shaker - the cup on the launcher icon -, the blue mat, the navy felt, the plain ring). Every other family is
-  locked behind a number of achievements earned (`StyleUnlock.AchievementCount`) or a specific one
-  (`SpecificAchievement`, `AnyAchievement`). A colour can carry its own secret achievement on top
-  (`StyleColour.secretAchievement`) and isn't offered until it's earned. A saved pick that's locked draws the default
-  but stays saved; resetting achievements also resets picks it locks.
-- Secret colours, not offered at all until their achievement is earned: the Irish multicolour dice (Luck of the
-  Irish), the golden Egg (Eggcellent Discovery), the Flowerpot's held-stage pots (Greenfingers), the Top Hat with its
-  rabbit out (The Magician's Secret) and the D20 dice (Nat 20, Critical Success). Families behind one particular
-  achievement are shown padlocked: Googly dice (Completionist), Glitch dice and background (Big Fan), Maths dice (The
-  Solution), the Floating Dice background (Not Those Dice!) and the Martini cup (Shaken, Not Tapped).
-- A tricoloured die (Tricolour mode) is drawn in the player's style recoloured (`DiceStyle.recoloured`), its pips and
-  held ring always in the palette's readable colour.
-- The five held-dice slots belong to the mat (`slotSocketBrush`, `slotSocketBorder`), so a new mat can't borrow
-  another's.
-- Cups draw inside `CupCanvas` (shared shake, pour and pivot), side-on from about 22 degrees above
-  (`CUP_VIEW_SQUASH`), on a grid set by their `CupShape` (TALL 58x84, MEDIUM 66x76, SQUAT 76x66). Liquids, plants and
-  loose pupils follow shared physics. A few cups draw their own canvas and never tip (Treasure Chest, Volcano, Chicken,
-  Picnic Basket, Shipping container). How to make new art, and the cup contract, is `.claude/STYLE_ART.md`; frame cost
-  is `.claude/BENCHMARKS.md`.
-- **Easter eggs in the art**: the Top Hat's rabbit peeks out after a quiet spell; the Flowerpot grows a sunflower over
-  the current player's rolls, blooming only for one who uses every roll of every turn in a three-roll mode; the Egg
-  dice with the Chicken cup roll a golden egg one time in a thousand; naming player 1 "Ireland" or "Éire" turns
-  Tricolour's dice and boxes green, white and orange; the menu logo's dice roll when tapped and its googly pupils follow the phone.
-- The Styles screen: one tile per family; a long press opens a row of previews per colour; picking a cup plays its
-  whole roll on the tile. Colour names are spoken, not shown.
+- dice (`DiceStyle`)
+- cups (`DiceCupStyle`)
+- mats (`DiceMat`)
+- backgrounds (`TableBackground`)
+- frames (`ScoreFrame`, around the active player's tab)
+
+`StyleCatalog.kt` groups each category's art into `StyleFamily`s (a shape or pattern, which is one tile on the Styles
+screen) of `StyleColour`s.
+
+- **Ids** are the family's string key, then the colour's (`classic_gold`, `bestagons_honeycomb`). `StyleCatalogTest`
+  enforces this.
+- **The Classic family** comes first in every category and is free. Its first colour is the default: ivory dice, the
+  gold casino shaker (the launcher icon's cup), the blue mat, navy felt, a plain ring.
+- **Locks.** Every other family is locked behind an achievement count (`StyleUnlock.AchievementCount`) or a specific
+  achievement (`SpecificAchievement`, `AnyAchievement`).
+  - A colour can also be secret (`StyleColour.secretAchievement`): not offered at all until earned.
+  - A locked saved pick draws the default but stays saved. Resetting achievements resets the picks it locks.
+  - Which styles and colours are locked, and how locks look, is in `UI_SCREENS.md`, "Style locks".
+- **Tricolour** draws a die in the player's style recoloured (`DiceStyle.recoloured`). Its pips and held ring always
+  use the palette's readable colours.
+- **Held-dice slots** belong to the mat (`slotSocketBrush`, `slotSocketBorder`).
+- **Cups** draw inside `CupCanvas`, which handles the shared shake, pour and pivot.
+  - The view is side-on from about 22 degrees (`CUP_VIEW_SQUASH`), on a `CupShape` grid: TALL 58x84, MEDIUM 66x76,
+    SQUAT 76x66.
+  - Liquids, plants and loose pupils share physics.
+  - A few cups draw their own canvas and never tip: Treasure Chest, Volcano, Chicken, Picnic Basket, Shipping
+    container.
+  - The cup contract is in `STYLE_ART.md`.
+- **Easter eggs in the art:**
+  - The Top Hat's rabbit peeks out after a quiet spell.
+  - The Flowerpot grows a sunflower over the current player's rolls. It blooms only for one who uses every roll of
+    every turn in a three-roll mode.
+  - Egg dice with the Chicken cup roll a golden egg one time in 1000.
+  - Naming player 1 "Ireland" or "Éire" turns Tricolour green, white and orange.
+  - The menu logo's dice roll when tapped, and its googly pupils follow the phone.
 
 ## Sound, haptics and motion
 
-- Clips: `cup_shake`, `mat_landing`, `hold`, `unhold` (at 0.35 volume) and `celebration` (a multiplayer game won by a
-  human, with gold fireworks). Source files are `app/android/src/main/rawAudioSource/*.ogg`, peak-normalised to
-  -0.8 dBFS by ffmpeg at build time into a generated res dir (`NormalizeOggAudioTask`) - never `res/raw/`, never
-  hand-adjusted. The build needs `ffmpeg` on PATH.
-- Haptics: a tick on hold/unhold, a buzz for the shake. Settings' Sound effects and Vibration switch each off.
-- The roll: as the cup shakes, unheld dice are swept off the mat into it; on landing they're thrown back up their own
-  columns, bounce off the far wall and tumble to rest on their results - a flat-faced style as a cube of its own faces,
-  starting on the face it was picked up showing, so no face ever jumps. A toss is under way in the frame its dice
-  arrive (`RollTracker`), so the result never flashes first. Scoring and the next roll both wait for the dice to land.
-  Each die casts one ground shadow from a fixed light, in its own outline.
-- **Animations** setting (`AnimationLevel`): High (uncapped frame rate), Medium (60fps, ambient decoration still), Low
-  (30fps, the simple roll - dice flick through faces where they lie - and a steady score glow), Off (no motion). The
-  system's own remove-animations setting counts as Off. Details in `UI.md`, "Reduced motion".
+- **Clips.** `cup_shake`, `mat_landing`, `hold`, `unhold` (at 0.35 volume), and `celebration` (a multiplayer game won
+  by a human, with gold fireworks).
+  - The sources are `app/android/src/main/rawAudioSource/*.ogg`.
+  - They're peak-normalised to -0.8 dBFS by ffmpeg at build time (`NormalizeOggAudioTask`): never `res/raw/`, never
+    hand-adjusted.
+- **Haptics.** A tick on hold or unhold, and a buzz for the shake. Settings switches sound and vibration off
+  separately.
+- **The roll.**
+  - As the cup shakes, unheld dice are swept into it.
+  - On landing they're thrown up their own columns, bounce off the far wall, and tumble to rest on their results. A
+    flat-faced die tumbles as a cube of its own faces, starting from the face it showed, so no face ever jumps.
+  - The toss starts in the frame its dice arrive (`RollTracker`), so the result never flashes first.
+  - Scoring and the next roll both wait for the dice to land.
+  - Each die casts one shadow from a fixed light.
+- **Animations setting** (`AnimationLevel`): High (uncapped), Medium (60fps, ambient decoration still), Low (30fps,
+  simple roll) or Off. The system's remove-animations setting counts as Off. Details are in `UI.md`, "Reduced motion".
 
 ## Settings
 
-Switches (Sound effects, Vibration, Confirm leaving game), the Animations level, and two resets behind confirmations
-(achievements, leaderboard). The footer shows the version and opens About and **Licences** - every library, font and
-sound the app ships with its licence text, generated at build time (`app/licensing/README.md`). The licence build guards
-fail the build on a copyleft or unrecognised licence, a missing licence text or copyright line, or an unlisted bundled
-asset.
-
-The licences page is one card per licence, each **one platform `TextView`** (`TextViewLicenceDocument`, Android) in one
-platform `ScrollView`, drawn with the app's own scrollbar. Only a single `TextView` lets a selection run across a card's
-rows without running into the next card, gives the system's own long-press selection and smart URL selection, and lets a
-long press on a link show the browser-style Copy link / Copy text menu. Compose was tried first and failed on a device:
-a `LinkAnnotation` opens on every press inside a `SelectionContainer`, long press included; a custom long-press link menu
-races the selection gesture and crashed; clearing focus doesn't drop a `SelectionContainer` selection in a dialog; and a
-selection can't span separate text elements. The `AndroidView` needs `clipToBounds()`, or scrolled text draws over the
-dialog's title. `LicensesDialogTest` covers taps, long presses, toggles and selection under Robolectric.
+- **Contents.** Switches for Sound effects, Vibration and Confirm leaving game; the Animations level; and two resets
+  behind confirmations (achievements, leaderboard).
+- **Footer.** It shows the version and opens About and **Licences**: every library, font and sound, with its licence
+  text, generated at build time (`app/licensing/README.md`).
+- **Licence guards.** The build fails on a copyleft or unknown licence, a missing text or copyright line, or an
+  unlisted bundled asset.
+- **The Licences list** is one card per licence. On Android each card is **one platform `TextView`**
+  (`TextViewLicenceDocument`), in one `ScrollView`, with the app's scrollbar.
+  - Only that gives selection across a card's rows without running into the next card, system long-press and smart
+    URL selection, and a Copy link / Copy text menu.
+  - Compose failed on a device:
+    - a `LinkAnnotation` opens on every press inside a `SelectionContainer`;
+    - a custom link menu raced selection and crashed;
+    - a selection in a dialog doesn't clear;
+    - a selection can't span separate texts.
+  - The `AndroidView` needs `clipToBounds()`, or scrolled text draws over the title.
+  - Tests: `LicensesDialogTest`.
 
 ## Rules screen
 
-`ui/rules/RulesScreen.kt`: two tab rows - **Gameplay**, **Modes**, **Modifiers** - with the pages of the group under
-them, one pager across every page. Text is kept in step with the engine (`ScoreCategory` values, the joker rule, the tie
--break order). A new mode or modifier gets its own page.
+`ui/rules/RulesScreen.kt`.
+
+- **Layout.** Two tab rows: groups (**Gameplay**, **Modes**, **Modifiers**), then the pages of the chosen group. One
+  pager runs across every page.
+- **Accuracy.** The text is kept in step with the engine: `ScoreCategory` values, the joker rule, the tie-break order.
+- **New mode or modifier.** It gets its own page; see `GAME_MODES.md`.
 
 ## Release pipeline
 
-- `VERSION` is the single source of the version: `versionName` is its contents, `versionCode`
-  `major*10000 + minor*100 + patch`. `scripts/set-version.sh` writes it; `scripts/bump-patch-version.sh` bumps the
-  patch. Never hand-edit it to make a debug build installable: debug builds take a wall-clock `versionCode` of their
-  own, so each installs over the last. Every debug build is signed with the repo's own `app/android/debug.keystore`,
-  so a debug APK built anywhere installs over another (and has the one SHA-1 Play Games testing registers).
-- Every push to `main` that changes what ships runs `.github/workflows/release.yml`: parallel jobs for the Android
-  tests, the shared tests (with the iOS compile), lint, the Baseline Profile (generated fresh on an emulator - see
-  `EMULATOR.md`), and the APK and App Bundle (from 1.0.0, or `force_apk`). A `release` job publishes the GitHub release
-  `v<VERSION>` only once every check passed, attaching `DiceFive-<version>.apk`, `.aab` and `-mapping.txt` (one R8 run,
-  one mapping). Before 1.0.0 a release is a pre-release with no files. The workflow then bumps the patch version and
-  empties `RELEASE_NOTES.md` in a `[Release] Bump version to X [skip ci]` commit.
-- The release description is `RELEASE_NOTES.md` (the maintainer's; Claude never edits it without being asked - see
-  `CLAUDE.md`) then "## Changes since X" from `scripts/release-changelog.sh`: every commit since the last release,
-  grouped by its `[Category]` prefix. `.githooks/commit-msg` enforces the prefix once `scripts/install-git-hooks.sh` has
-  been run.
-- Signing: four `ANDROID_RELEASE_*` env vars, from repository secrets in CI; without them the release build is
-  unsigned. The keystore (alias `upload`) is the Play App Signing upload key.
-- R8 shrinks, minifies and obfuscates release builds (`app/android/r8-rules.pro`); release dex is stored uncompressed
-  so it runs from the APK.
-- `.github/workflows/update-dependencies.yml` bumps every pinned version monthly (`update_dependency_versions.sh`),
-  re-runs the gates, commits `[Dependencies] Update dependency versions` and starts a release. targetSdk is never moved
-  by it.
-- Warnings are errors: deprecated APIs fail compilation, build-script warnings fail the build, and lint treats
-  `Deprecated`/`ObsoleteSdkInt` as errors.
-- Two known warnings come from plugins, not this build's scripts, and can't be silenced per plugin: AboutLibraries
-  resolves configurations while Gradle plans the build (the "`debugCompileClasspath` was resolved during configuration
-  time" CI warning, from its own task inputs), and AGP calls the deprecated `Configuration.setVisible` (shown under
-  `--warning-mode all`; it must be gone before Gradle 11). Revisit each on a plugin upgrade.
+- **Version.**
+  - `VERSION` is the single source: `versionName` is its contents, and `versionCode` is
+    `major*10000 + minor*100 + patch`.
+  - `scripts/set-version.sh` writes it, and `scripts/bump-patch-version.sh` bumps the patch.
+  - Debug builds take a wall-clock `versionCode` and the repo's `app/android/debug.keystore`. Every debug APK therefore
+    installs over another and shares one SHA-1 (which Play Games testing registers).
+- **On every push to `main` that changes what ships**, `.github/workflows/release.yml` runs:
+  - parallel jobs: Android tests, shared tests with the iOS compile, lint, the Baseline Profile (generated fresh on an
+    emulator; see `EMULATOR.md`), and the APK plus App Bundle (from 1.0.0, or with `force_apk`);
+  - then a `release` job that publishes GitHub release `v<VERSION>` once every check has passed, with
+    `DiceFive-<version>.apk`, `.aab` and `-mapping.txt` (one R8 run, one mapping). Before 1.0.0 the release is a
+    pre-release with no files;
+  - then a commit that bumps the patch and empties `RELEASE_NOTES.md` (`[Release] Bump version to X [skip ci]`).
+- **Release description.** `RELEASE_NOTES.md` (the maintainer's), then "## Changes since X" from
+  `scripts/release-changelog.sh`, grouped by each commit's `[Category]`.
+- **Signing.** Four `ANDROID_RELEASE_*` env vars (repo secrets in CI); without them the build is unsigned. The keystore
+  (alias `upload`) is the Play upload key.
+- **R8** shrinks and obfuscates release builds (`app/android/r8-rules.pro`). Release dex is stored uncompressed.
+- **Dependencies.** `.github/workflows/update-dependencies.yml` bumps every pinned version monthly, re-runs the gates,
+  commits `[Dependencies] Update dependency versions` and starts a release. It never moves targetSdk.
+- **Warnings are errors**: deprecated APIs, build-script warnings, and lint's `Deprecated`/`ObsoleteSdkInt`.
+- **Two known plugin warnings** can't be silenced. Revisit each on a plugin upgrade.
+  - AboutLibraries resolves configurations during configuration time ("`debugCompileClasspath` was resolved during
+    configuration time").
+  - AGP calls the deprecated `Configuration.setVisible`. It must be gone before Gradle 11.
 
-## Tests and verification
+## Verification
 
-- Pure logic and view models: `app/shared/src/commonTest` (JVM, and compiled for iOS); anything needing Android or a
-  rendered screen: `app/android/src/test` under Robolectric (SDK 36, native graphics, set once in
-  `robolectric.properties`) - which can also save a screen to a PNG to look at. A test is one behaviour or one screen,
-  its cases in sequence; `Showcase` composes several things in one test.
-- `./gradlew testDebugUnitTest` runs both and compiles the shared module for iOS; `./gradlew lint` and
-  `./gradlew assembleDebug` complete the gates. The store-asset generators run only with `-PgenerateStoreAssets`.
-- An Android emulator can boot inside the sandbox (`EMULATOR.md`) for the Baseline Profile journey and screenshots;
-  it's not for timing. Real-device checks still matter for TalkBack and for gestures Robolectric doesn't simulate.
+- **Gates and tests**: the `test` skill.
+- **Renders**: the `render` skill.
+- **The real app on the sandbox emulator**: the `emulator` skill.
+- **A real device is still needed** for TalkBack's speech, real frame times, haptics, the accelerometer and gestures
+  Robolectric doesn't simulate. Say what was and wasn't seen.

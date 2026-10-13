@@ -1,142 +1,123 @@
-# Reference docs
+# DiceFive
 
-- `.claude/DESIGN.md` — what the app is and how it works: the game rules, modes, modifiers, the CPU, persistence,
-  achievements, table art, the release pipeline, and the decisions behind them.
-- `.claude/UI.md` — how the interface is put together: the Material 3 colour system and how to
-  regenerate it, the shared chrome in `ui/common/`, inset and layout rules, component
-  conventions, the mandatory accessibility checklist for any UI change, the player-name cap and why
-  it exists, and the gotchas worth not re-learning.
-  Read this before changing anything visual.
-- `.claude/PUBLISHING.md` — Play Store submission requirements not covered by the build or by
-  `DESIGN.md`'s GitHub release pipeline, such as the store listing's separate hi-res
-  icon. Little in it is done yet (the in-app open-source licenses page is, the store descriptions are drafted, and its graphics are generated - see `STORE_ASSETS.md`); it's a running checklist for when that submission happens. It
-  also records the app's own license (proprietary, all rights reserved - see `LICENSE`), why it was
-  chosen, and how it must stay scoped to exclude third-party parts (the bundled font must stay OFL).
-- `.claude/STORE_ASSETS.md` — the Play Store listing's graphics (hi-res icon, feature graphic, captioned phone and
-  7-inch tablet screenshots, promo video), all rendered from the real app by `scripts/generate-store-assets.sh` into
-  the gitignored `assets/<version>/`: how many of each and why, changing captions, scenes and staged games, and the
-  Robolectric traps (overlay windows, the frame clock, stray achievement banners). Read this before making or
-  changing store assets.
-- `.claude/GAME_MODES.md` — how game modes are built (every per-mode rule is a field on `GameMode`,
-  never an `if (mode == X)`) and how to add one, including a mode unlike the existing ones: where
-  each mode field is read, what to do for new categories, new dice, a changed turn flow (the one
-  roll path, the AI loop, timers, undo) or an overridden setup option, the achievement audit (which
-  existing achievements each mode blocks, and which needed a guard so the mode doesn't hand them out
-  for free), and the test helpers and traps. Read this before adding or changing a mode.
-- `.claude/STYLE_ART.md` — how to make new table art (dice, cups, mats, backgrounds): working with the
-  maintainer on art (render for review before any APK; they check close-ups and frame cost), rendering
-  stills and animation sheets in Robolectric, the debug-colour trick for finding gaps, drawing
-  techniques (3D projection for non-round cups, simulating a pile instead of placing it, making things
-  visibly rest on something), painting heavy art once and off the frame, and the cup contract as a cup
-  sees it. Read this before creating or reworking a style.
-- `.claude/BENCHMARKS.md` — how animation frame cost is measured without a device (Robolectric
-  harness, set-ups, pitfalls), the patterns that keep frames cheap, what each kind of art costs today, and
-  what's still open. Only needed for performance work: a
-  reported stutter or slowdown, or new art that draws every frame.
-- `.claude/EMULATOR.md` — the Android emulator that boots on demand inside the sandbox
-  (`sandbox/emulator.sh start|stop|status|screenshot`): running and debugging the Baseline Profile
-  journey (`app/baselineprofile`) without a phone, looking at the real app's screen, why it needs the
-  Vulkan renderer (the default one segfaults the emulator while drawing the app), and what to do when
-  it dies. Read this before using an emulator or touching the journey; it is not for benchmark timings.
-- `.claude/IOS_SUPPORT.md` — the iOS port via Kotlin Multiplatform + Compose Multiplatform: the
-  `app/shared` (platform-neutral) / `app/android` module layout, what lives where (and why
-  Android's platform code is in `app/android`), gotchas (e.g. no commas or parentheses in `commonTest` names), and what's left.
-  The game, UI and persistence are shared and compile for iOS; the iOS app itself, still to come, needs macOS.
-- `.claude/PLAY_GAMES.md` — the proposal and phased plan (not yet built) for Google Play Games
-  Services v2: sign-in kept apart from Player 1's name, mirroring achievements, a leaderboard per
-  game mode, cloud save with automatic merging, Play Games Sidekick, the platform seam that keeps
-  Google out of shared code (for a later Game Center version), where it appears in the app, and
-  what the reset buttons mean once data lives online. Read this before touching any of it.
-- `.claude/I18N.md` — the plan for moving every visible and spoken string into Compose resources
-  (i18n) so a language can be added later (l10n): the decisions (plurals in `<plurals>` using
-  Compose resources' bundled CLDR rules; ordinals, number grouping and lists through each
-  platform's formatter), string conventions, the guards, the shipped languages and how to add one. It also sets
-  the rule of **no partial translations**: the app is wholly in a language it has a `values-xx` for
-  (text, plurals, numbers, dates, layout direction, Android's own text), or wholly in English, left
-  to right - and the licences stay English and left to right whatever the language. Read this
-  before adding or moving any player-visible string, or adding a formatter or platform text API.
+## The project
 
-# Working agreements
+A local (no netplay) five-dice scorecard game for Android, with iOS to follow. Its tagline: "Roll five dice, fill your
+scorecard, and outscore friends or AI. Fully offline."
 
-- **Never use the word "Yahtzee" in this application.** It is a trademark, and it is banned from
-  source code, comments, identifiers, filenames, resources and anything a player can see. The
-  established term for five matching dice is **"5x"** in user-facing text (that is what the
-  scorecard tile has always shown) and **`FIVE_OF_A_KIND` / `fiveOfAKind`** in code. Where the
-  game's rules need naming generically, say "the rules" or "a five-dice scorecard game".
+- **Players.** 1-4 per game: solo, pass-and-play, or CPU opponents (Easy/Medium/Hard).
+- **Content.** Seven game modes, optional house-rule modifiers, a Leaderboard, per-player Statistics, 100+
+  achievements (some hidden, some Easter eggs) and 90+ unlockable table styles.
+- **Aims.**
+  - A polished, offline-first game for the Play Store: no account, no network, data stays on the device.
+  - Accessible: TalkBack and large fonts are first-class.
+  - Smooth: 60fps minimum unless the player picks a lower Animations level.
+  - Small APK.
+  - Shared code, ready for an iOS app.
+- **Planned, not built.** Google Play Games Services (`PLAY_GAMES.md`), the iOS app (`IOS_SUPPORT.md`), and possibly
+  ads with a one-time Pro purchase (`PUBLISHING.md`).
+- **Audience.** `README.md` is the public, player-facing description; keep it true to the app.
 
-  Likewise, **"three of a kind", "four of a kind" and "five of a kind"** (spaced or hyphenated)
-  never appear in anything a player can see - in the app or in the store listing. Use **"3x"**,
-  **"4x"** and **"5x"**, as the scorecard does. The code identifiers (`FIVE_OF_A_KIND` etc.) are
-  fine.
+## Repo metadata
 
-  The only permitted exceptions are `.claude/*.md` reference documentation, which needs the word
-  to explain what the game is, and the single guard pattern in `StringChecks` (`app/shared/src/androidHostTest/…/i18n/`) that
-  checks no achievement title, description or category label contains it. `README.md` is public
-  and is **not** an exception.
+| | |
+|---|---|
+| Repo | `github.com/zodac/DiceFive`, default branch `main`. Every push to `main` that changes what ships cuts a GitHub release (`DESIGN.md`, "Release pipeline") |
+| Package | `net.zodac.dicefive` (Android `applicationId`, Kotlin root package) |
+| Version | `VERSION` (single source; pre-1.0 now). Never hand-edit for a debug install |
+| Platforms | Android minSdk 26, targetSdk/compileSdk 37 (`app/android/build.gradle.kts`); iOS compiles but no app yet |
+| Stack | Kotlin Multiplatform, Compose Multiplatform, Material 3 (dark only), Navigation Compose, MVVM (`ViewModel` + `StateFlow`), Room (scores), DataStore (everything else) |
+| Versions | `gradle/libs.versions.toml`, bumped monthly by CI; sandbox pins in `sandbox/Dockerfile` |
+| Languages | English (`en-GB` base, British spelling), Spanish, Arabic (RTL) - all player text in Compose resources (`I18N.md`) |
+| Licence | Proprietary, all rights reserved (`LICENSE`), source public read-only; no outside contributions. Third-party parts keep their own licences (the Sora font stays OFL) |
+| Sandbox | Claude runs in the Docker sandbox (`sandbox/README.md`); an emulator boots on demand |
 
-- **Build warnings and errors get dealt with, even when they were there before you started.** That
-  covers the compiler, `lint`, the tests and the Gradle build. "It fails the same without my change"
-  explains where a problem came from; it isn't a reason to leave it. Fix it, or - where it truly
-  can't or shouldn't be fixed (a deliberate design choice, a false positive) - suppress it at the
-  narrowest scope with a comment saying why, and say so in the report. Never just note it and move on.
-  If the fix is large or changes behaviour beyond the task, tell the user and let them decide, rather
-  than skipping it silently.
+## Code standards
 
-- **Every new or changed UI element must be checked for accessibility before it's done** - what
-  TalkBack says for it, whether visual-only meaning (colour, fades, position) has a spoken twin, and
-  whether every action is reachable without a custom gesture. Stock components are not assumed to be
-  enough. The checklist, and how to verify it, is in `.claude/UI.md`'s "Accessibility" section; the
-  report back to the user says what TalkBack does with the change, and what wasn't heard on a device.
+- **Layout.**
+  - `app/shared` holds the game, UI and persistence. It must compile for iOS: no Android or JVM APIs, resources
+    through `Res.*`, devices through `platform/PlatformServices`.
+  - `app/android` is the APK shell and Android's platform code (`device/`).
+  - `app/baselineprofile` is the profile journey; `app/licensing` holds the licence records.
+  - The package map is in `README.md`.
+- **Warnings are errors** throughout: Kotlin `allWarningsAsErrors`, lint `warningsAsErrors`, deprecations included.
+- **Pure core.** The game logic (`model/`, `game/`) is pure and unit-tested. Every per-mode rule is a `GameMode`
+  field, never `if (mode == X)`.
+- **Behaviour comes with tests.** A change comes with tests of its behaviour, and spoken text is asserted word for
+  word.
+- **Dependencies.** Keep them lean (APK size matters; `kotlinx.serialization` and `kotlinx-datetime` were dropped for
+  it). Any new library must pass the build's licence guard.
+- **Style.**
+  - Match the surrounding code's comment density and idiom.
+  - Doc comments state rules, not guessed rationale.
+  - British spelling in player text.
 
-- **An achievement's title must fit on ONE line of the unlock banner, at 12sp or larger - never
-  wrapped or shrunk further.** That caps it at `MAX_ACHIEVEMENT_TITLE_LENGTH` (38) characters
-  (`model/Achievement.kt`) in English, which `AchievementTextTest` enforces. A translation may set its
-  own cap (`achievement_title_max_length` in its `strings.xml`: a character is not the same width in
-  every script), which the test then holds that language's titles to - and its banner is rendered to
-  check they fit. Every banner is the same size, so a title that doesn't fit is shortened, not
-  accommodated. A description gets exactly two lines.
+## Rules that always apply
 
-- After implementing a code change (a fix, feature, or refactor the user asked for), build a
-  debug APK with `./gradlew assembleDebug` and send the resulting `.apk` from
-  `app/android/build/outputs/apk/debug/` to the user via SendUserFile so they can install/download it.
-  Do this once the change is verified (compiles, relevant tests pass) rather than after every
-  intermediate edit.
+- **Banned words.** "Yahtzee" (a trademark) never appears anywhere: source, comments, identifiers, filenames,
+  resources, `README.md`, anything a player sees.
+  - Five matching dice are **"5x"** to players and `FIVE_OF_A_KIND`/`fiveOfAKind` in code. Say "the rules" or "a
+    five-dice scorecard game" generically.
+  - Players (the app and the store listing) also never see "three/four/five of a kind", spaced or hyphenated. Use
+    **3x/4x/5x**.
+  - Only exceptions: these `.claude/` docs, and the one guard pattern in `StringChecks`
+    (`app/shared/src/androidHostTest/…/i18n/`).
+- **Fix every build warning and error**: compiler, lint, tests, Gradle. That includes ones that were there before you
+  started.
+  - If one truly shouldn't be fixed (a deliberate choice, a false positive), suppress it at the narrowest scope with a
+    comment saying why, and say so in the report.
+  - If the fix is large or changes behaviour beyond the task, ask rather than skip.
+- **Accessibility is part of done.** Every new or changed UI element goes through the checklist in `.claude/UI.md`.
+  The report says what TalkBack does with it, and what wasn't heard on a device.
+- **Achievement titles fit ONE line of the unlock banner at 12sp or larger.**
+  - English titles are at most `MAX_ACHIEVEMENT_TITLE_LENGTH` (38) characters (`AchievementTextTest`). A translation
+    may set its own `achievement_title_max_length`.
+  - Shorten a title that doesn't fit; never wrap or shrink it. A description gets exactly two lines.
+- **Stored ids are permanent once released**: achievement, style, game mode and preference key ids, and
+  `onlineLeaderboardKey`. Rename what players see, never the id.
+- **`RELEASE_NOTES.md` belongs to the maintainer.** Never create, edit, empty or tidy it without their explicit
+  agreement in this conversation. Once they agree, use Edit/Write, not the shell.
+  - `.claude/hooks/guard-release-notes.sh` backs this up: an edit waits for a permission prompt, and a shell change is
+    undone. The prompt is a backstop, not permission.
+  - Only the release workflow empties it. Hook tests: `.claude/hooks/tests/run-hook-tests.sh`.
+- **Commits**: the subject is `[Category] Short description` (`.githooks/commit-msg`). Use the `commit` skill; the
+  category list lives there.
+- **After a requested code change is verified** (it compiles and the relevant tests pass), build and send the debug
+  APK with the `debug-apk` skill.
+  - Visual work goes through the `render` skill first. The APK follows once the look is agreed.
 
-- **`RELEASE_NOTES.md` is the maintainer's, not Claude's.** It holds their own summary of the next
-  release, and becomes the top of the GitHub release description (above the grouped commit list -
-  see `DESIGN.md`, "Release pipeline"). Never create, edit, empty or rewrite it without the user's explicit
-  confirmation in the conversation - not even to "tidy" it, and not as a side effect of another
-  change. A guard hook (`.claude/hooks/guard-release-notes.sh`, registered in
-  `.claude/settings.json`) backs this up: a file edit aimed at it waits for a permission prompt, and
-  a shell command that changes it is undone afterwards (merely mentioning the name is fine). The
-  prompt is a backstop, not the permission. Once the user has agreed in the conversation, make the
-  change with Edit/Write, not the shell. Only the release workflow empties it on its own, after a
-  release ships. Tests: `.claude/hooks/tests/run-hook-tests.sh`.
+## Skills (procedures, loaded when invoked)
 
-- **Every commit's first line is `[Category] Short description`** - enforced by
-  `.githooks/commit-msg` (enable per clone with `scripts/install-git-hooks.sh`). The category is
-  what a release's changes are grouped under, so reuse one from the list below where it fits rather
-  than inventing a near-duplicate; later lines are free-form. The attribution trailers still go at
-  the end. When no category fits, pick a short, specific new one, **add it to this list in the same
-  commit**, and mention it to the user so they can rename it before it spreads.
+| Skill | For |
+|---|---|
+| `test` | Running tests, lint and the full gate; one class; reading failures; test traps |
+| `debug-apk` | Building and sending the debug APK |
+| `commit` | Commit format, category list, what never to commit |
+| `render` | PNG renders of screens and art via Robolectric, animation sheets, close-ups, gap finding |
+| `benchmark` | Measuring frame cost without a device |
+| `emulator` | Sandbox emulator: seeing the real app, the Baseline Profile journey |
+| `store-assets` | Generating and reviewing the Play Store graphics and video |
 
-  | Category         | Covers                                                               |
-  |------------------|----------------------------------------------------------------------|
-  | `[Achievements]` | Achievement rules, the achievements list and unlock banners          |
-  | `[CI]`           | GitHub workflows, release pipeline, git hooks and changelog scripts  |
-  | `[Dependencies]` | Version bumps - libraries, SDK, JDK, sandbox pins, actions           |
-  | `[Game Mode]`    | Game modes - adding or changing one, with its rules and achievements |
-  | `[Gameplay]`     | The in-game screen - dice, cup, scorecard, player tabs - and rules   |
-  | `[Game Over]`    | The end-of-game results page and its celebration                     |
-  | `[Icon]`         | The app's launcher icon                                              |
-  | `[Leaderboard]`  | The Leaderboard (scores) screen and the score records behind it      |
-  | `[Play Games]`   | Google Play Games Services - sign-in, online sync, cloud save, Sidekick |
-  | `[Project]`      | Repo-wide setup that isn't any one feature (initial commit, tooling) |
-  | `[Sandbox]`      | The Docker sandbox and its emulator tooling (`sandbox/`)             |
-  | `[Settings]`     | The Settings screen and the preferences behind it                    |
-  | `[Styles]`       | The Styles screen and the table art - dice, cups, mats, backgrounds  |
-  | `[UI]`           | App-wide layout and navigation - main menu, shared chrome, dialogs   |
+## Reference docs (read the one for an area before changing it)
 
-# Pending
+| Doc | Read when |
+|---|---|
+| `.claude/DESIGN.md` | Rules of play, modes and modifiers in brief, the CPU, persistence, Leaderboard/Statistics, achievements, table art, sound, settings, release pipeline |
+| `.claude/UI.md` | Any visual change: colour, the brand font, shared chrome, insets, component rules, **the accessibility checklist**, motion and reduced motion, scrollbars, player colours, gotchas |
+| `.claude/UI_BOARD.md` | The game screen: scorecard grid per mode, tiles, tray, cup, totals and undo, tablets and landscape, name caps |
+| `.claude/UI_SCREENS.md` | Achievements list and banners, Styles screen and locks, Leaderboard views, menu logo and backdrop |
+| `.claude/GAME_MODES.md` | Adding or changing a game mode or modifier: the mode-is-data rule, field map, checklist, turn flow, tests |
+| `.claude/GAME_MODES_AUDIT.md` | Which achievements each mode or modifier blocks or guards, and how to audit a new one |
+| `.claude/I18N.md` | Adding or moving any player-visible or spoken string, or a formatter or platform text API |
+| `.claude/I18N_LANGUAGES.md` | Translating: shipped languages, glossaries, adding a language |
+| `.claude/STYLE_ART.md` | Creating or reworking dice, cups, mats, backgrounds or frames |
+| `.claude/BENCHMARKS.md` | Performance: patterns that keep frames cheap, current costs, open items |
+| `.claude/EMULATOR.md` | Emulator internals, CI's twin, troubleshooting a dying emulator, versions |
+| `.claude/STORE_ASSETS.md` | Changing store screenshots, scenes, captions or the video, and the generator traps |
+| `.claude/PUBLISHING.md` | Play Store submission checklist, the app's licence and third-party licence scope |
+| `.claude/PLAY_GAMES.md` | Anything touching Google Play Games Services (planned; phase 1 built) |
+| `.claude/IOS_SUPPORT.md` | Module layout and platform seams, KMP gotchas, what the iOS app still needs |
+
+## Pending
 
 (None currently)

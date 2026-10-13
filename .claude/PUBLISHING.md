@@ -1,222 +1,130 @@
-# DiceFive: Play Store publishing reference
+# DiceFive: Play Store publishing
 
-Requirements for getting this app onto the Play Store that aren't produced by the normal build
-and aren't covered anywhere else. `.claude/DESIGN.md`'s "Release pipeline" covers the *GitHub* release
-pipeline (a signed APK, App Bundle and mapping attached to a tagged GitHub Release on every push to
-`main`) - that is a different thing from a Play Store submission, which this file is about.
+What a Play Store submission needs beyond the normal build. The GitHub release pipeline is in `DESIGN.md`.
 
-Done so far: the in-app licences page, the App Bundle, signing, the mapping archive, the drafted store descriptions
-and privacy policy, and the generated listing graphics. The rest is a checklist for whenever the submission happens.
+**Done**:
+- the in-app licences page;
+- the App Bundle, signing and the mapping archive;
+- the store descriptions and the privacy policy (drafted);
+- the listing graphics (`STORE_ASSETS.md`).
 
-## Outside this repo
+The rest is a checklist for when the submission happens.
 
-A meaningful chunk of this is accounts and console configuration that happens nowhere near the
-codebase - listed here up front, in the order it actually needs doing, so a session working
-through this doc knows what to ask the user to go do versus what it can build itself.
+## Outside this repo (the maintainer does these; ask, don't attempt)
 
-**Accounts to register (do these first - verification/propagation lag):**
+In order:
 
-1. **Google Play Console developer account** - $25 one-time fee, plus identity verification that
-   can take several days. Nothing else below can start (no app listing, no closed testing track,
-   no Play Games Services link) until this exists. Do this before anything else in this file.
-2. **A hosted privacy policy URL.** Needed the moment Google account sign-in, cloud save, ads, or
-   purchases are in scope - which is immediately, since sign-in/cloud save/achievements are asked
-   for now. A GitHub Pages page off this repo is a reasonable host; the content itself still needs
-   writing (what's collected: Play Games account id, gameplay/achievement data now, advertising id
-   and purchase data later). **Drafted:** `docs/privacy-policy.md`, published by GitHub Pages (from
-   `main`'s `/docs` folder, by `.github/workflows/pages.yml` - which runs only when `docs/` changes,
-   and needs the repo's Pages source set to "GitHub Actions") at https://zodac.github.io/DiceFive/privacy-policy - that URL goes in Play
-   Console. Contact email: zodacapps@gmail.com. Update it - and its "Last updated" date - whenever ads, billing, a new SDK or
-   `INTERNET` use ships, or when `android:allowBackup` changes (it currently mentions Android backup).
-3. **AdMob account** - only once ads work actually starts, not before. Linked to the Play Console
-   listing once created.
+1. **A Play Console developer account.** It costs $25 and identity verification takes days, and nothing else can start
+   without it.
+2. **A hosted privacy policy.** The draft is `docs/privacy-policy.md`.
+   - GitHub Pages publishes it (`.github/workflows/pages.yml`, which runs when `docs/` changes; the Pages source must be
+     "GitHub Actions") at https://zodac.github.io/DiceFive/privacy-policy.
+   - The contact is zodacapps@gmail.com.
+   - **Update it, and its "Last updated" date,** when ads, billing, a new SDK or `INTERNET` use ships, or when
+     `android:allowBackup` changes (it mentions backup).
+3. **An AdMob account**, only once ads work starts.
 
-**Console configuration with no repo equivalent (done by the user, in Play Console /
-Google Cloud Console, not by editing anything here):**
-
-- Filling in the store listing itself: descriptions, screenshots, feature graphic, category,
-  contact email.
-- The content rating questionnaire, data safety form, and target audience/content declarations.
-  Each is re-visited (not just re-checked) once ads or billing ship, since both add questions.
-- Play App Signing and the upload key are set up (see "Signing" below). Play takes the upload certificate
-  from the first signed `.aab` uploaded, unless App integrity asks for it first
-  (`keytool -export -rfc -alias upload`).
-- Creating the closed testing track and adding the 12+ testers Google requires for a new personal
-  account, and leaving it running the required 14+ days before requesting production access.
-- Linking Play Games Services to the app (Play Console walks this through registering the SHA-1
-  fingerprints against a Cloud project's OAuth clients - see the Play Games Services section
-  below) and adding Play Games Services testers.
-- Once built: creating the Pro in-app product under Monetize > Products, adding license-tester
-  accounts for it, and creating AdMob ad units.
-
-**What a session here can actually do once accounts/console setup catch up:** add the Play
-Games/Billing/Ads SDK dependencies, write the sign-in/achievement-sync/cloud-save/billing/ad code,
-add the `INTERNET` permission and whatever `<meta-data>` entries a given SDK needs, and set up the
-`.aab` build/signing path - all covered in the sections below.
+**Console-only configuration**:
+- **The listing.** Text, graphics, category and contact.
+- **Declarations.** The content rating, data safety form, and target audience. Each is revisited when ads or billing
+  ship.
+- **Play App Signing.** Play takes the upload certificate from the first signed `.aab`
+  (`keytool -export -rfc -alias upload` if App integrity asks first).
+- **Closed testing.** 12+ testers for 14+ days before requesting production.
+- **Play Games Services.** Link it, register the SHA-1s and add testers (`PLAY_GAMES.md`).
+- **Later.** The Pro product and its license testers, and AdMob ad units.
 
 ## Store listing
 
-- **Hi-res icon, feature graphic, screenshots and promo video - generated** by
-  `scripts/generate-store-assets.sh` from the real app into the gitignored `assets/<version>/`; see `STORE_ASSETS.md`
-  (what Play requires, how many of each and why, and how to change them). The hi-res icon is drawn from the launcher
-  icon itself, so it follows any change to it. Upload them in Play Console; the video goes to YouTube first, as Play
-  takes a URL.
-- **Short description** (80 chars) and **full description** (4000 chars) - **drafted**: the short one below, the
-  full one in `assets/full-description.txt`;
-  entered directly in Play Console alongside the privacy policy URL from "Outside this repo" above.
-  Category and contact email are still to pick (zodacapps@gmail.com is the privacy policy's
-  contact). Keep both texts in step with the app before each submission:
-  - **The short description's "Fully offline"** stops being true the moment Play Games sign-in,
-    cloud save, ads or Pro ship - rewrite it then (and the listing must declare ads).
-  - **Counts and lists** in the full description must match what ships: the modes under "Seven ways
-    to play" (and its heading's count), the modifiers under "House rules", "Over 100 achievements"
-    (103 today, 8 of them Easter eggs) and "over 90 styles" with their examples.
-  - **The trademark rule applies here too**: never the banned word from `CLAUDE.md` - Play also
-    rejects listings that lean on another product's trademark. "3x", "4x" and "5x" are the
-    terms, as in the app - never "three/four/five of a kind" (see `CLAUDE.md`).
-
-  Short description (79 characters):
+- **Graphics**: generated (the `store-assets` skill). The hi-res icon follows the launcher icon. The video goes to
+  YouTube; Play takes its URL.
+- **Short description** (80 chars max), drafted, 79 chars:
 
   ```
   Roll five dice, fill your scorecard, and outscore friends or AI. Fully offline.
   ```
 
-  Full description: `assets/full-description.txt`, beside the generated listing files - the one tracked file in
-  that otherwise gitignored folder. Under Play's 4000-character limit (about 2500 today).
-- **Open-source licenses / third-party notices - done in-app** (`DESIGN.md`, "Settings"): Settings >
-  "Licences", generated from the dependency graph at build time, with a build-failing
-  guard against copyleft or unrecognised licenses. The build strips each AndroidX artifact's bundled
-  `META-INF/androidx/**/LICENSE.txt` (a size optimisation) - that's fine now, since the dialog ships
-  the Apache-2.0 text once for all of them. The sound effects are credited too (Freesound, CC0 and
-  CC-BY 4.0 - see `app/licensing/asset-sources.json`). Remaining, optionally: linking a hosted copy from the Play listing /
-  `README.md` for people who want to read it before installing (not required - the licenses only
-  require that the text goes out *with* the app).
-- **Adding or allowing a license**: if a new dependency fails the build on strict mode, read its
-  license before adding it to `allowedLicenses` in `app/android/build.gradle.kts`. LGPL/MPL/EPL can often be
-  complied with in a closed app (conditions on the library only) but each has real obligations
-  (LGPL: the user must be able to relink/replace the library, awkward with R8); GPL/AGPL would
-  require the whole app to be released under the GPL.
-- **The app's own license - decided: proprietary, all rights reserved** (`LICENSE` at the repo root),
-  with the source kept publicly readable on GitHub. Chosen over PolyForm Strict 1.0.0 and over any
-  open-source license because:
-  - the maintainer wants the code read-only (no reuse, no forks on app stores) and takes no outside
-    contributions, and plain copyright - which is all "all rights reserved" relies on - is the most
-    tested legal footing there is. PolyForm is well drafted but has little or no case history, and
-    would add permissions (non-commercial use, a 32-day cure period) that weren't wanted;
-  - a permissive license would let anyone publish the game with Pro unlocked and no ads;
-  - the planned Google SDKs (AdMob, Play Billing, Play Games Services) are proprietary, and the
-    planned **iOS** version would ship through the App Store - GPL-style licenses conflict with both.
-  - The sole copyright holder can relicense later; copies already released stay under the terms
-    they were released with.
-- **The notice must stay scoped to DiceFive's own work.** It must never claim the bundled
-  third-party parts, which keep their own licenses - `LICENSE` says so, and names the font:
-  - **The Sora font must stay under the OFL.** OFL-1.1 condition 5: the font, "modified or
-    unmodified, in part or in whole, must be distributed entirely under this license, and must not
-    be distributed under any other license". Our `sora.ttf` is a modified (static weight-700)
-    instance, still covered. `README.md`, store listings and any future EULA wording must not claim
-    "all files" without that carve-out.
-  - **The MathJax TeX fonts** (`mathjax_main_regular.otf`, `mathjax_math_italic.otf` - the Maths
-    dice) are OFL too, and unmodified. They declare Reserved Font Names (MathJax_Main, MathJax_Math),
-    so if they're ever subset or otherwise changed, the modified fonts must be renamed.
-  - **The OFL also forbids selling the font on its own** (condition 1). Bundling it in a paid app
-    is fine; offering the font file by itself is not.
-  - **Audio**: CC0 needs nothing. CC-BY needs a credit, and §2(a)(5)(B) forbids adding terms that
-    restrict the original - so the clip stays outside the all-rights-reserved scope (volume
-    normalisation is too mechanical to create a new work anyway). CC-BY-SA adaptations must stay
-    CC-BY-SA. Anything NC (non-commercial) is incompatible with ads/Pro and must be replaced.
-  - The same applies to every library listed in the licenses dialog - not the app's to relicense.
-  - The app's own artwork is recorded as `LicenseRef-DiceFive-AllRightsReserved` in
-    `app/licensing/asset-sources.json` (constant `APP_LICENSE` in `VerifyAssetSourcesTask`) -
-    change both together if the license ever changes.
-- **Still open, related:**
-  - **iOS**: the licences dialog is shared code now, and `asset-sources.json` already covers the
-    shared font and icons - but the report it lists is generated from the *Android* build's
-    dependency graph, and iOS currently shows an empty one (`IosPlatformServices.loadLicenceReports`).
-    Before an iOS release, generate iOS's own report and apply the copyleft guard to the iOS
-    dependency graph (AboutLibraries supports Kotlin/Compose Multiplatform) - see
-    `IOS_SUPPORT.md`, "The iOS app". Apple's standard EULA covers App Store users - no custom EULA needed
-    unless wanted.
-  - **The public GitHub release APKs** give the game away outside Play; once Pro exists, the Play
-    Billing check won't work in a sideloaded copy. Decide before Pro ships whether GitHub releases
-    continue, stop, or become a Pro-less build.
-  - **AI authorship**: much of the code and artwork was written with Claude. Copyright protection
-    for AI-generated material is unsettled, which could weaken enforcement of the notice. Worth a
-    lawyer's view, together with the notice itself, if the app starts earning real money.
-  - **The copyright line is a pseudonym for now**: "Copyright 2026 zodac.net" (in `LICENSE`,
-    `README.md` and the app's own entries in `asset-sources.json`). The maintainer owns zodac.net and
-    has no company, so ownership is theirs personally either way. A domain can't own copyright, but a
-    notice may use "a generally known alternative designation of the owner" (17 U.S.C. §401(b)(3)).
-    The cost is that enforcing it means first proving who is behind zodac.net (the domain
-    registration helps). Deliberately kept anonymous until payments ship. **Revisit when
-    registering for Play/App Store payments**: individual seller accounts expose the legal name
-    anyway (Apple shows it as the seller; Play's monetisation/EU trader details can), at which point
-    "Copyright <legal name> (zodac.net)" costs no extra privacy and removes the proof step. Changing
-    it only affects future releases' notices; ownership doesn't change.
+  **"Fully offline" stops being true** when Play Games, cloud save, ads or Pro ship. Rewrite it then, and declare ads.
+- **Full description**: `assets/full-description.txt`, about 2500 of 4000 characters. Keep its counts and lists true:
+  - the modes under "Seven ways to play" (and that heading's count);
+  - the modifiers under "House rules";
+  - "Over 100 achievements" (103 today, 8 of them Easter eggs);
+  - "over 90 styles", and its examples.
+- **The banned-word rule applies.** Play also rejects listings that lean on another product's trademark. Use 3x/4x/5x.
+- **Open-source notices are done in-app** (Settings > Licences, generated with a copyleft guard).
+  - The build strips each AndroidX `META-INF/androidx/**/LICENSE.txt`, which is fine because the dialog ships the
+    Apache-2.0 text once.
+  - Sounds are credited (`app/licensing/asset-sources.json`).
+  - Optional: link a hosted copy.
+- **Allowing a new licence.** Read it before adding it to `allowedLicenses` (`app/android/build.gradle.kts`).
+  - LGPL, MPL and EPL can be workable, but carry real obligations (LGPL relinking is awkward with R8).
+  - GPL and AGPL would force the whole app open.
 
-## App build & manifest changes (in-repo)
+## The app's own licence
 
-The account/console side of this is covered in "Outside this repo" above - this is what actually
-changes in the codebase to get a submittable build.
+**Decided: proprietary, all rights reserved** (`LICENSE`). The source is publicly readable.
 
-- **App Bundle, not APK - done.** Play has required an `.aab` for new apps' production tracks since
-  2021. `release.yml`'s `apk` job runs `bundleRelease` beside `assembleRelease` (from 1.0.0, or with
-  `force_apk`) and attaches `DiceFive-<version>.aab` to the GitHub release next to the APK, for
-  uploading to Play by hand. Uploading straight to Play from CI isn't set up.
-- **`INTERNET` permission.** `AndroidManifest.xml` currently declares none at all - Play Games
-  Services, cloud save, ads and billing all need `android.permission.INTERNET` (Games Services
-  and billing add it via their own SDK's merged manifest; ads may still expect it declared).
-- **Signing - done.** Play App Signing holds the app signing key; the certificates Play Console offers
-  for download (`deployment_cert.der` and the hybrid ones) are public only and can't sign anything. The
-  upload key is the keystore behind the `RELEASE_KEY*` repository secrets (alias `upload`, upload
-  certificate SHA-256 `DD:9E:C8:0C:…:1E:A6:18`), which signs both the APK and the bundle. Its copy is kept by the maintainer outside the repo; if it's ever lost, Play
-  support can reset the upload key.
-- **Archive `mapping.txt` per release - done.** Each release attaches `DiceFive-<version>-mapping.txt`,
-  and the `.aab` carries the same mapping inside it (`BUNDLE-METADATA/.../proguard.map`), which Play
-  picks up on its own. R8 shrinks and renames the `release` build, so
-  `app/android/build/outputs/mapping/release/mapping.txt` is a real deobfuscation mapping - without it, a
-  renamed-class stack trace is unreadable. Play Console auto-detects and uses this mapping to deobfuscate Android vitals crash/
-  ANR reports (Google's automatic crash collection, no SDK needed) as long as it's uploaded/bundled
-  with the same build - either included in the `.aab` upload or attached manually under App
-  integrity > Deobfuscation files in Play Console. The attached copy is for the GitHub APK's stack
-  traces, and in case Play ever needs it uploaded by hand.
+**Why**, over PolyForm Strict and open source:
+- the maintainer wants read-only code, with no reuse, no store forks and no contributions;
+- plain copyright is the most tested footing;
+- a permissive licence would allow Pro-unlocked, ad-free rebuilds;
+- the proprietary Google SDKs and the App Store conflict with GPL-style licences.
 
-## Google Play Games Services - achievements, cloud save, sign-in
+The sole holder can relicense later.
 
-The plan, the decisions and the phases are all in `.claude/PLAY_GAMES.md`. The console side, for this checklist:
+**The notice must exclude third-party parts**, which keep their own licences. `LICENSE` says so and names the font.
+- **Sora stays OFL-1.1.** Condition 5: modified or not, it must be distributed under the OFL only. Our `sora.ttf` is a
+  modified weight-700 instance. `README.md`, the listings and any EULA must never claim "all files" without that
+  carve-out.
+- **The MathJax TeX fonts** (the Maths dice) are OFL and unmodified, with Reserved Font Names. If they're ever changed,
+  rename them.
+- **The OFL forbids selling the font on its own.** Bundling it in a paid app is fine.
+- **Audio.**
+  - CC0 needs nothing.
+  - CC-BY needs a credit and can't take added restrictions, so it stays outside the all-rights-reserved scope.
+  - CC-BY-SA adaptations stay CC-BY-SA.
+  - **NC licences are incompatible with ads or Pro.**
+- **Every library** in the licences dialog keeps its own licence.
+- **App artwork** is `LicenseRef-DiceFive-AllRightsReserved` in `asset-sources.json` (`APP_LICENSE` in
+  `VerifyAssetSourcesTask`). Change both together.
 
-- **Link the app in Play Console** under Play Games Services and register the package name plus the **SHA-1
-  certificate fingerprint** of the in-repo debug keystore and of the Play app-signing and upload keys - each gets its
-  own OAuth client. The GitHub release key is deliberately not registered (Play Games is Play-only).
-- **Create the achievements and leaderboards** from the exports `PLAY_GAMES.md` describes, and keep them in draft
-  while testing (only draft ones can be reset).
-- **Turn on Saved Games.**
-- **Add testers as Play Games Services testers**, or sign-in fails for them in a way that looks like a bug.
+**Still open:**
+- **iOS licences.** Before an iOS release, generate iOS's own report and apply the copyleft guard to its dependencies
+  (`IOS_SUPPORT.md`).
+- **GitHub release APKs.** Once Pro exists, decide whether they continue, stop, or become Pro-less (billing doesn't
+  work sideloaded).
+- **AI authorship.** Copyright in AI-generated material is unsettled. Worth a lawyer's view if the app earns real money.
+- **The copyright line is a pseudonym**: "Copyright 2026 zodac.net" (in `LICENSE`, `README.md` and
+  `asset-sources.json`).
+  - It's valid as a known alternative designation, but enforcing it needs proof of who owns the domain.
+  - Revisit when registering for payments, which exposes the legal name anyway:
+    "Copyright <legal name> (zodac.net)".
 
-## Future: ads + a one-time Pro purchase
+## In-repo build changes
 
-Not being built now, but both change the checklist above if/when they land, so noting the shape
-in advance:
+- **App Bundle**: done. `release.yml` builds `bundleRelease` beside the APK (from 1.0.0, or `force_apk`) and attaches
+  `DiceFive-<version>.aab`. Uploading to Play is by hand.
+- **`INTERNET` permission**: not declared yet. Play Games, cloud save, ads and billing need it (SDK manifests merge it;
+  ads may want it declared).
+- **Signing**: done. Play App Signing holds the app key. The upload key backs the `RELEASE_KEY*` secrets (alias
+  `upload`, SHA-256 `DD:9E:C8:0C:…:1E:A6:18`); the maintainer keeps a copy, and Play support can reset it if lost.
+- **`mapping.txt`**: done. Each release attaches `DiceFive-<version>-mapping.txt`, and the `.aab` carries it too
+  (`BUNDLE-METADATA/.../proguard.map`), which Play uses to deobfuscate vitals. The attached copy is for GitHub-APK
+  traces.
 
-- **In-app purchase (Pro, one-time)** needs the **Play Billing Library**
-  (`com.android.billingclient:billing-ktx`), a non-consumable in-app product created in Play
-  Console > Monetize > Products, and license-tester accounts configured before real purchases can
-  be tested (test purchases don't work until the app has at least reached internal/closed
-  testing). The library's merged manifest adds the `com.android.vending.BILLING` permission
-  automatically. Needs an entitlement check (`BillingClient.queryPurchasesAsync`) gating whatever
-  Pro unlocks, plus a "Restore purchases" affordance for a reinstall/new device.
-- **Non-intrusive ads** most likely means AdMob: `com.google.android.gms:play-services-ads`, an
-  AdMob account linked to the Play Console listing, ad unit ids, and the
-  `com.google.android.gms.ads.APPLICATION_ID` `<meta-data>` entry in the manifest. Targeting
-  API 33+ also needs the separate `com.google.android.gms.permission.AD_ID` permission. Serving
-  ads to EEA/UK/California users needs a consent flow - Google's **User Messaging Platform (UMP)**
-  SDK - before any ad request goes out, which is its own small integration, not just a
-  checkbox.
-- **The two interact**: Pro's "no ads" needs the billing entitlement check gating the ad-loading
-  code path, not just gating a settings toggle - and the content rating/data-safety/store-listing
-  declarations above ("Contains ads", advertising ID collection, purchase data) all need
-  re-submitting once either ships, even though the app was already live.
+## Future: ads and a one-time Pro purchase
 
-## Everything else
+Not being built, but both change this checklist.
 
-Release notes are the one piece of store-listing metadata that's per-submission text, not a
-checklist item - drafted at release time, not stored here.
+- **Pro.**
+  - Needs Play Billing (`com.android.billingclient:billing-ktx`; it merges the BILLING permission) and a non-consumable
+    product.
+  - License testers are needed, and test purchases only work from internal or closed testing.
+  - The app needs an entitlement check (`queryPurchasesAsync`) and a "Restore purchases" option.
+- **Ads.**
+  - AdMob: `play-services-ads`, the `com.google.android.gms.ads.APPLICATION_ID` meta-data, `AD_ID` (API 33+), and
+    Google's UMP consent flow for the EEA, UK and California before any ad request.
+- **Together.** Pro's "no ads" must gate the ad-loading code path. The rating, data-safety and listing declarations all
+  need re-submitting.
+
+Release notes for each submission are written at release time, not stored here.

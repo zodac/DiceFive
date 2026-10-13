@@ -1,196 +1,99 @@
-# Android emulator in the sandbox
+# Android emulator in the sandbox: internals
 
-`sandbox/emulator.sh` boots a headless Android emulator **inside the sandbox**, on demand, so an agent
-can run instrumented tests, drive the app and look at its screen without a phone. Run everything here
-from inside the sandbox (it is a container; the host's phones and emulators are not reachable from it).
-
-```
-sandbox/emulator.sh start               # boot (~20 s once installed), wait until ready
-sandbox/emulator.sh status              # exit 0 and a line if running, exit 1 if not
-sandbox/emulator.sh screenshot out.png  # what is on its screen right now (then Read the PNG)
-sandbox/emulator.sh stop
-```
-
-`start` is idempotent and does everything needed (below), in about 20 seconds: the emulator, its system
-image and a virtual device are baked into the sandbox image. It leaves the emulator running detached, so
-it outlives the shell that started it; **stop it when finished**, since it holds ~4 GB of RAM and 4 cores.
-
-## When to use it
-
-- **Running or debugging the Baseline Profile journey** (`app/baselineprofile`) - the main use. It turns
-  a "tell the maintainer, wait for their phone" loop into minutes. See `DESIGN.md`, "Release pipeline". The release
-  workflow runs the same journey on an emulator of its own (below), so a journey that fails here will fail
-  the release too.
-- **Looking at the real app**: install a build, launch it, `screenshot`, Read the PNG. Useful to check a
-  layout or what a UiAutomator selector will see. (Rendering is software-drawn: fine for layout and
-  behaviour, not for judging smoothness or art quality - for art, follow `STYLE_ART.md`.)
-- **Not for timings.** The benchmarks (`connectedBenchmarkReleaseAndroidTest`) measure the machine
-  running the emulator, not a phone, so their numbers mean nothing. Those stay on real hardware.
-- **Not needed for** unit tests, which run on the JVM under Robolectric.
-
-## Running the Baseline Profile journey on it
-
-```
-sandbox/emulator.sh start
-adb uninstall net.zodac.dicefive 2>/dev/null
-./gradlew :app:android:generateBaselineProfile -Pandroid.testInstrumentationRunnerArguments.journeyLaps=1
-sandbox/emulator.sh stop
-```
-
-- `journeyLaps=1` keeps a run to one lap (~1.5 minutes); drop it for the default (up to 15 laps,
-  about 20 minutes). A one-lap pass doesn't prove the full run: timing races (a dialog still closing)
-  can take several laps to show.
-- The `adb uninstall` matters: a debug build installed earlier has a higher version code than the
-  benchmark build, so the benchmark install is refused ("version downgrade") and the run is a no-op.
-- The generated profile lands in `app/android/src/release/generated/baselineProfiles/`, which is
-  gitignored: the release workflow generates its own for every APK (below), so one made here is only for
-  benchmarking or checking the journey locally.
-- A failing step names itself (`Baseline Profile journey: 'X' never appeared`); the report is
-  `app/baselineprofile/build/reports/androidTests/connected/nonMinifiedRelease/index.html`. Reproduce it
-  here, `screenshot` to see the screen it was stuck on, fix `Journeys.kt`, rerun.
-- **Write journey steps for a slow device.** On a hosted runner each UiAutomator lookup took 2-4 s
-  (here, well under one), so: wait for things rather than checking once (`hasText` only after an
-  `await`); open menu screens with `openFromMenu`, which retries until the menu's "DiceFive" wordmark is
-  gone (a screen's title is no proof - the menu has a button of the same name - and a back press on the
-  menu leaves the app); and don't race anything that times out on its own (the 4 s achievement banner
-  is hunted with UiAutomator's idle wait cut short, and pressed by position). To shake a change out,
-  pin the emulator and two busy loops to two cores - `taskset -c 0-1` on both, with `ci_emulator.sh`
-  as below - and run two laps: slower than the runner, so what passes there passes in CI.
-- The four benchmark tests show as skipped during `generateBaselineProfile`. That is expected: the
-  plugin sets `androidx.benchmark.enabledRules=BaselineProfile`, and `MacrobenchmarkRule` then assumes
-  itself out. Not a failure.
-
-## The same journey in the release workflow
-
-`release.yml`'s `baseline-profile` job runs this journey (3 laps, or 10 when the journey or a profile file changed since the previous release) on a GitHub-hosted runner for every
-release APK, and the `apk` job builds with the profile it makes. `.github/scripts/ci_emulator.sh` is
-`emulator.sh`'s CI twin: same Android version (it reads `ENV EMULATOR_API` from `sandbox/Dockerfile` at run
-time), same Google APIs image, same `-gpu swiftshader_indirect` boot and the same Vulkan renderer setting
-after it. It differs only where the runner does: `/dev/kvm` is opened with a udev rule, packages go in
-without `sudo` (the runner's SDK is its own), and the emulator and image are cached by the workflow
-(keyed on the API level, and saved even when the journey fails). And `/data` is set to 6 GB at boot
-(`-partition-size`).
-
-**Why `/data` is pinned at 6 GB.** The runner's `avdmanager` leaves the AVD an **800 MB `/data`** (the sandbox's
-gives 6-10 GB). A first boot of the Google APIs image fills 800 MB in about 30 seconds - Play services and the launcher
-setting themselves up - after which every write fails (`ENOSPC`, `SQLiteFullException`) and `system_server`
-crash-loops. The symptoms look like a flaky framework rather than a full disk: `cmd: Can't find service: package`, an
-install refused with `android from uid 1000 not allowed to perform GET_USAGE_STATS`, `DeadSystemException`, and Gradle
-passing with no profile (the plugin only warns when the tests yield none). `-partition-size` overrides whatever
-`config.ini` says; the disk image is sparse, so the runner stores only what is used (about 2 GB).
-
-**Why `start` writes the AVD's `target`.** The app renderer is forced to Vulkan (below), so the guest must have a
-Vulkan device, or every app's `RenderThread` aborts on launch (`Assertion failed: !gpuCount` in
-`VulkanManager::initialize`; `adb shell cmd gpu vkjson` lists no devices). The emulator turns Vulkan and GLDirectMem
-(the host memory Vulkan allocates from) on only from API 29, reading the API level from the AVD's `target=` line - and
-the runner's `avdmanager`, too old for `37.0`-style levels, writes `target=android-0`, which it reads as API 3. Forcing
-`-feature Vulkan` isn't enough: without GLDirectMem apps crash in `AllocateVulkanMemory`. So `start` writes
-`target=android-<api>` into the AVD's `.ini` and `config.ini` itself, boots with `-verbose` and prints the emulator's
-"Deciding if GLDirectMem/Vulkan should be enabled" line. With no `target` the emulator assumes API 1000; a
-`target=android-3` reproduces the failure.
-
-`start` then checks `/data`'s size and that the device has a Vulkan GPU, failing the boot if either is wrong, waits for the `package` and
-`activity` services and for an install session to open (`pm install-create`), all holding for 30 seconds
-on the same `system_server` (up to five minutes), and prints each reason it isn't ready and any
-`system_server` restart with its crash log; a failed boot saves a `logcat-boot-*.txt`. If Gradle still
-passes with no `baseline-prof.txt` written, the install failed, and the attempt is retried like a failed
-boot. The APKs are also built *before* the emulator boots, so the two don't compete for the runner's
-cores. It runs alongside the release's checks, and `.github/scripts/watch_checks.sh` stops it (Gradle and
-the emulator) as soon as one of them fails. A failing journey fails the job, and the release, straight away - only an
-emulator that fails to boot or to install the APKs is retried, twice. The generate step stops after 150 minutes and the job after 170
-(a lap is ~2 minutes on a 4-core sandbox emulator and at least three times that on a hosted runner; each
-lap's start is echoed in the step's log), so a hang can't hold the release for long; the `baseline-profile-report` artifact holds the test report, a
-screenshot of where the journey stopped, the emulator's log and its logcat (every buffer, so a
-`system_server` restart shows in `crash`/`events`). To debug one, reproduce it here as above - the two emulators are the same, except that the sandbox's
-AVD has been booted before: for a first boot like CI's, run `.github/scripts/ci_emulator.sh start` with
-`ANDROID_HOME=/opt/android-sdk` and an empty `ANDROID_AVD_HOME` and `RUNNER_TEMP`.
+Day-to-day use (start, screenshot, running the Baseline Profile journey) is the `emulator` skill. This file covers why
+`sandbox/emulator.sh` does what it does, CI's twin, troubleshooting, and versions.
 
 ## What `start` does, and why
 
 | Step | Why |
 |---|---|
-| `sudo chmod 666 /dev/kvm` if it isn't read-write | The sandbox is `--privileged` so the host's KVM is present, but the node is `root:<host's kvm gid>` and `dev` isn't in that group. Without KVM the emulator falls back to software CPU emulation - far too slow to drive an app. Only this container's copy of the node changes. |
-| Installs the `emulator` package, the system image or the virtual device **only if missing** | They are baked into `sandbox/Dockerfile`, so normally nothing happens here. It is the fallback for a container from an image built before they were added, or for another `EMULATOR_API`: the SDK is root-owned, so `android sdk install` runs under `sudo` and the permissions are then fixed (it unpacks without the other-user execute bit); about 1.5 GB to download (5 GB unpacked), for that container only. |
-| Boots with `-no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect` | Headless; `-no-snapshot` for a clean boot every time. |
-| `adb root`, then `setprop debug.hwui.renderer skiavk` | **The important one** - see below. |
+| `sudo chmod 666 /dev/kvm` if it isn't read-write | The sandbox is `--privileged`, but the node is `root:<host kvm gid>` and `dev` isn't in that group. Without KVM, emulation is far too slow. Only this container's node changes. |
+| Installs the emulator, system image or AVD **only if missing** | They're baked into `sandbox/Dockerfile`. This is the fallback for older images or another `EMULATOR_API`: `sudo android sdk install`, then a permission fix. About 1.5 GB download (5 GB unpacked). |
+| Writes `target=android-<api>` into the AVD's `.ini` and `config.ini` | The emulator turns on Vulkan and GLDirectMem only from API 29, reading the level from `target=`. Old `avdmanager`s write `target=android-0` (read as API 3). Apps then abort (`Assertion failed: !gpuCount`, or a crash in `AllocateVulkanMemory`). `-feature Vulkan` alone isn't enough. |
+| Boots `-no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -verbose` (+ `-timezone "$TZ"`) | Headless and a clean boot each time. It prints the "Deciding if GLDirectMem/Vulkan should be enabled" line. The guest uses the host's timezone. |
+| `adb root`, then `setprop debug.hwui.renderer skiavk` | **Never remove this.** See below. |
+| Checks `/data`'s size and that a Vulkan GPU exists, then waits for `package`/`activity` and an install session (`pm install-create`) to hold for 30s on one `system_server` (up to 5 minutes) | Prints each reason it isn't ready, plus any `system_server` restart and its crash log. A failed boot saves `logcat-boot-*.txt`. |
 
-The guest's clock is in the host's timezone: `start` passes `-timezone "$TZ"` when `TZ` is set, which the sandbox
-always sets to the host's zone (see `sandbox/README.md`, Notes). `.github/scripts/ci_emulator.sh` doesn't - CI runs on UTC.
-
-Environment overrides: `EMULATOR_API`, `EMULATOR_AVD_NAME` (default `sandbox-api<API>`), `EMULATOR_MEMORY_MB`,
-`EMULATOR_CORES`.
-It is a **Google APIs** image (not Play Store): that is what allows `adb root`, which profile generation
-and the renderer setting both need.
+- **Environment overrides**: `EMULATOR_API`, `EMULATOR_AVD_NAME` (default `sandbox-api<API>`), `EMULATOR_MEMORY_MB`,
+  `EMULATOR_CORES`.
+- **Image.** It's a **Google APIs** image, not Play Store, because that's what allows `adb root`. So Play Games
+  Services can't be tested here.
 
 ## The renderer setting (do not remove it)
 
-The emulator's software OpenGL ES path (gfxstream + SwiftShader) **segfaults in its render thread** while
-drawing DiceFive. The emulator process exits with status 139, with no crash report, a few seconds after
-the app opens - and everything above it reports a vague symptom: `adb: device offline`, a vanished
-device, a Gradle `connectedNonMinifiedReleaseAndroidTest` that fails ~15 s in having run no steps. Other
-apps (Settings) draw without trouble; the debug build installs fine; only *launching DiceFive* kills it.
+**The crash.** The emulator's software GLES path (gfxstream + SwiftShader) **segfaults in its render thread while
+drawing DiceFive**.
+- The emulator exits with 139 a few seconds after the app opens, leaving no report.
+- Everything above it shows a vague symptom: `adb: device offline`, a vanished device, or a
+  `connectedNonMinifiedReleaseAndroidTest` that fails ~15s in with no steps run.
+- Other apps draw fine.
 
-Its Vulkan path does not crash, and the app draws correctly through it. So after every boot the script
-sets `debug.hwui.renderer=skiavk`. That property resets on each boot (set it again if you boot the
-emulator some other way), and a boot-time `-prop debug.hwui.renderer=skiavk` flag does **not** take
-effect - it has to be set over adb once the device is up. It also needs the emulator to offer the guest
-Vulkan, which the emulator decides for itself at boot from the AVD's API level (on a GitHub runner it read
-the wrong one - see above). Tried and still crashing: `-gpu guest`, 
-`swiftshader_indirect` with `-feature -Vulkan`, `debug.hwui.renderer=skiagl`, sensors and audio
-disabled in the AVD.
+**The fix.** The Vulkan path works, so `start` sets `debug.hwui.renderer=skiavk` after every boot.
+- It resets on each boot; set it again if you boot another way.
+- A boot-time `-prop` flag does **not** take effect.
+- It needs guest Vulkan (the AVD `target`, above).
+- Tried and still crashing: `-gpu guest`, `swiftshader_indirect` with `-feature -Vulkan`, `skiagl`, and sensors or
+  audio disabled.
 
-## If the emulator dies anyway
+## If the emulator dies
 
-1. **Get its exit status**, not just "the device went away". Start it from a wrapper that records it:
-   `emulator -avd sandbox-api37.0 ...; echo "EXIT $?" >> log`. 139 is a segfault; 137 is a kill (memory).
-   (`start` writes the emulator's own output to `~/.android/emulator-sandbox-api37.0.log`.)
-2. **Get a backtrace.** There is no crash dump (crashpad writes nothing here and core files aren't kept).
-   `sudo apt-get update && sudo apt-get install -y gdb`, then run the emulator under it, following the
-   *parent* (the emulator forks a crash-handler child; following the child loses the real process):
-   `gdb -batch -ex "set follow-fork-mode parent" -ex "handle all nostop noprint pass" -ex "handle SIGSEGV stop print" -ex run -ex "bt 25" -ex "thread apply all bt 6" --args /opt/android-sdk/emulator/emulator -avd sandbox-api37.0 -no-window -no-audio -no-snapshot -gpu swiftshader_indirect`,
-   boot, launch the app over adb, and read the stack. A crash in `libgfxstream_backend.so` / the GLES
-   translator is the known one above.
-3. **Don't trust a process-listing check for "is it alive"** - a `case`/`grep` for `qemu-system` can match
-   your own command line. Use `adb shell true` / `sandbox/emulator.sh status`.
-4. `adb kill-server` and a re-`start` fixes a wedged adb connection; `-wipe-data` on the emulator fixes
-   a virtual device left in a bad state by an abrupt exit ("Skipping PackageSetting ... missing metadata"
-   in logcat).
+1. **Get the exit status.** Use `emulator ...; echo "EXIT $?" >> log`: 139 is a segfault, 137 a kill (memory).
+   `start` logs to `~/.android/emulator-sandbox-api37.0.log`.
+2. **Get a backtrace.** There's no crash dump.
+   - Install gdb: `sudo apt-get update && sudo apt-get install -y gdb`.
+   - Run the emulator under it, following the *parent* process:
+     `gdb -batch -ex "set follow-fork-mode parent" -ex "handle all nostop noprint pass" -ex "handle SIGSEGV stop print" -ex run -ex "bt 25" -ex "thread apply all bt 6" --args /opt/android-sdk/emulator/emulator -avd sandbox-api37.0 -no-window -no-audio -no-snapshot -gpu swiftshader_indirect`
+   - Boot, then launch the app over adb.
+   - A crash in `libgfxstream_backend.so` or the GLES translator is the known one.
+3. **Check liveness with `adb shell true` or `sandbox/emulator.sh status`**, never a process-listing grep (it can match
+   your own command line).
+4. **Fixes.** `adb kill-server` and a re-`start` fixes a wedged adb. `-wipe-data` fixes an AVD left broken by an abrupt
+   exit ("Skipping PackageSetting ... missing metadata").
 
-## Limits and things worth knowing
+## The same journey in CI
 
-- **Slower and software-drawn.** The journey's fixed waits (e.g. `Thread.sleep` after a roll) are tuned
-  on phones; they hold up here, but anything timing-sensitive may behave differently.
-- **One Android version at a time**, the one `EMULATOR_API` names (below): currently API 37.0 (Android 17).
-- **Image size.** The emulator and system image add about 5 GB (1.5 GB downloaded, then unpacked) to the
-  sandbox image. They sit in their own layers below the SDK block, so a platform-tools or build-tools bump
-  does not re-download them.
+`release.yml`'s `baseline-profile` job runs the journey on a GitHub-hosted runner for every release APK: 3 laps, or 10
+if the journey or a profile file changed. The `apk` job builds with the profile it makes.
+
+**`.github/scripts/ci_emulator.sh` is `emulator.sh`'s twin.** It uses the same API (read from the Dockerfile's
+`ENV EMULATOR_API`), the same image, the same boot and the same renderer fix. The differences:
+- `/dev/kvm` is opened with a udev rule;
+- packages install without `sudo`;
+- the emulator and image are cached per API level (saved even on failure);
+- there's no timezone (CI is UTC);
+- **`/data` is pinned at 6 GB with `-partition-size`.**
+
+**Why `/data` is pinned.** The runner's `avdmanager` gives 800 MB, and a first boot fills it in ~30s.
+- Every write then fails (`ENOSPC`, `SQLiteFullException`) and `system_server` crash-loops.
+- It looks like flakiness: `cmd: Can't find service: package`, `not allowed to perform GET_USAGE_STATS`,
+  `DeadSystemException`, or Gradle passing with no profile.
+- The image is sparse, so only ~2 GB is stored.
+
+**Robustness.**
+- The APKs build before the boot.
+- `.github/scripts/watch_checks.sh` stops the job as soon as another release check fails.
+- Only a failed boot or install is retried (twice). A failing journey fails the release at once.
+- Gradle passing with no `baseline-prof.txt` counts as a failed install.
+- Limits: 150 min for the step, 170 for the job. A lap takes ~2 min here and 3x+ that on a runner.
+- The `baseline-profile-report` artifact holds the report, a screenshot, the emulator log and every logcat buffer.
+
+**Reproducing a first boot like CI's**: run `.github/scripts/ci_emulator.sh start` with `ANDROID_HOME=/opt/android-sdk`
+and an empty `ANDROID_AVD_HOME` and `RUNNER_TEMP`.
 
 ## Versions: the emulator follows compileSdk
 
-- `ENV EMULATOR_API=37.0` in `sandbox/Dockerfile` is the one place the emulator's Android version is
-  chosen. It is written as the image package names it (`37.0`: from API 37 even the base release carries
-  a minor; older ones are plain, `34`). The Dockerfile derives the system image
-  (`system-images;android-<API>;google_apis;x86_64`) and the virtual device (`sandbox-api<API>`) from it,
-  `entrypoint.sh` forwards it to `dev` (sudo strips the environment), and `sandbox/emulator.sh` reads it,
-  with a fallback literal (`${EMULATOR_API:-37.0}`) for a shell that doesn't have it.
-- It **tracks compileSdk's API level** (`app/android/build.gradle.kts`): the newest stable Google APIs
-  image of that level. Google publishes no image for most minor releases (there is none for compileSdk's
-  37.2), so it matches the level, not the minor. Running on the newest Android the project compiles
-  against is the point: it is where targetSdk's runtime behaviour changes show up.
-- **`.github/scripts/update_dependency_versions.sh` keeps it there**: `sync_emulator_api` runs right after
-  the compileSdk step and moves `EMULATOR_API` (Dockerfile and the `emulator.sh` fallback) to the newest
-  image of compileSdk's level, whether or not compileSdk moved. When the platform is published before its
-  image, the emulator stays where it is. The guard at the end then fails the run if the Dockerfile and the
-  fallback disagree, if the image is no longer a stable image in Google's manifest, or if an image for
-  compileSdk's level exists but the emulator isn't on it; if none exists yet it only warns.
-- The emulator and image are named by package only; `android sdk install` cannot pin a revision (same as
-  `platform-tools`), so the revision baked in is whatever Google served when the layer was last built. The
-  layer is rebuilt only when its text changes, i.e. when `EMULATOR_API` does.
-- **To test on a different Android version** (an older one, say, to reproduce a bug): `EMULATOR_API=<N>
-  sandbox/emulator.sh start` installs that image and creates its virtual device for this container only
-  (about 1.5 GB). The Vulkan renderer workaround above is applied on any version, but a different image can
-  behave differently; the symptom of it not working is the emulator dying (exit 139) a few seconds after the
-  app opens. The journey has been run on API 34 and 37.0.
-
-- **Maintainer's phones remain the reference** for anything the emulator can't show: real frame times,
-  haptics, the accelerometer-driven googly eyes, how it feels.
+- **`ENV EMULATOR_API=37.0` in `sandbox/Dockerfile` is the one place** the emulator's version is chosen.
+  - It's written as the package names it: from API 37 even base releases carry a minor; older ones are plain (`34`).
+  - The image (`system-images;android-<API>;google_apis;x86_64`) and the AVD (`sandbox-api<API>`) derive from it.
+  - `entrypoint.sh` forwards it (sudo strips the environment), and `emulator.sh` falls back to `${EMULATOR_API:-37.0}`.
+- **It tracks compileSdk's API level**: the newest stable Google APIs image of that level. There's usually no image for
+  minor releases (none for 37.2).
+- **`update_dependency_versions.sh`'s `sync_emulator_api` keeps it there.**
+  - It moves the Dockerfile value and the fallback together.
+  - It fails if they disagree, if the image isn't stable, or if a compileSdk-level image exists but isn't used. It only
+    warns if none exists yet.
+- **Revisions can't be pinned.** The layer is rebuilt only when `EMULATOR_API` changes.
+- **Another Android version** for this container only: `EMULATOR_API=<N> sandbox/emulator.sh start` (~1.5 GB). The
+  journey has been run on 34 and 37.0.
+- **Limits.** The emulator is slower and software-drawn, and runs one Android version at a time. It adds ~5 GB to the
+  sandbox image, in layers below the SDK block.

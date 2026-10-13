@@ -1,738 +1,381 @@
-# DiceFive: online game services (Google Play Games Services v2) - proposal and plan
+# DiceFive: Google Play Games Services v2 - plan
 
-**Status: Phase 1 done** (the seam, `GameMode.onlineLeaderboardKey`, the `online` DataStore, the Settings card hidden
-while the service is unavailable, `ScoreEntry.playedUnmodified`). No Play Games dependency, no sign-in, no console
-configuration: Phase 0 is the maintainer's and not yet done. This file is the one place for the subject; where another
-doc disagrees, follow this one. Decisions are marked **Decided:** or **Deferred:**, and all of them are listed in
-[Decisions](#decisions).
+**Status: Phase 1 is done.** It covers the seam, `GameMode.onlineLeaderboardKey`, the `online` DataStore, the
+Settings card (hidden while the service is unavailable), and `ScoreEntry.playedUnmodified`.
+- There's no Play Games dependency, no sign-in, and no console setup yet.
+- Phase 0 is the maintainer's, and not done.
+- This file is the one source on the subject: where another doc disagrees, follow this one.
 
-> **This work is not complete while any decision is still open.** A decision may be deferred, but a
-> deferred one blocks completion of the phase that needs it (named in the list) and of the work as
-> a whole. When a phase reaches a deferred decision, ask the maintainer before building past it.
-> Don't settle it with the recommended default.
+> **The work isn't complete while a decision is Deferred.** A deferred decision blocks the phase named in "Decisions".
+> When a phase reaches one, **ask the maintainer**. Never settle it with the recommended default. Record the answer
+> here.
 
-What was asked for:
+**What was asked for**:
+1. Google account sign-in, kept apart from Player 1's name.
+2. Play achievements mirroring the game's.
+3. A Play leaderboard per mode.
+4. Cloud save across devices.
+5. The swipe panel, which is **Play Games Sidekick**.
 
-1. Link the game to a Google account, with the account's name kept apart from "Player 1" on the
-   New Game screen.
-2. Real Google Play achievements, mirroring the in-game ones.
-3. A Google Play leaderboard for each game mode.
-4. Cloud storage of the account's progress, so a player can move between devices.
-5. An investigation of the "swipe" panel some games show (this is **Play Games Sidekick**).
+The Google code stays out of shared code, because a Game Center version will follow.
 
-Constraints: the Google code must stay apart from the shared code because an iOS (Game Center)
-version will follow. This file also covers where all of this appears in the app, and what the two
-Settings reset buttons mean once some of the data lives on Google's servers.
+## What Google provides (October 2026)
 
----
+One SDK: `com.google.android.gms:play-services-games-v2` (v22.1.0; v1 is frozen).
 
-## Contents
-
-- [What Google provides (as of October 2026)](#what-google-provides-as-of-october-2026)
-- [Architecture: a platform seam, not a Google dependency](#architecture-a-platform-seam-not-a-google-dependency)
-- [1. Account linking and the player's name](#1-account-linking-and-the-players-name)
-- [2. Achievements](#2-achievements)
-- [3. Leaderboards per game mode](#3-leaderboards-per-game-mode)
-- [4. Cloud save](#4-cloud-save)
-- [5. The swipe panel: Play Games Sidekick](#5-the-swipe-panel-play-games-sidekick)
-- [Where it appears in the app](#where-it-appears-in-the-app)
-- [The reset buttons](#the-reset-buttons)
-- [Phased plan](#phased-plan)
-- [Before Phase 0 is done](#before-phase-0-is-done)
-- [Testing](#testing)
-- [Optional extra: Game Stats (Level Up)](#optional-extra-game-stats-level-up)
-- [Risks and gotchas](#risks-and-gotchas)
-- [Decisions](#decisions)
-- [Sources](#sources)
-
----
-
-## What Google provides (as of October 2026)
-
-All five requests come from one SDK, `com.google.android.gms:play-services-games-v2` (v22.1.0,
-September 2026; v1 is frozen). Sidekick is added to the build by Play itself (see section 5).
-
-| Feature | API | Limits and behaviour that shape this design |
+| Feature | API | Limits that shape the design |
 |---|---|---|
-| Sign-in | `GamesSignInClient` | **Automatic** at launch, with no button needed in the normal case. **No sign-out API**: the account is managed in the OS and Play Games settings. `isAuthenticated()`; `signIn()` for a manual retry. Needs `PlayGamesSdk.initialize()` in `Application.onCreate()` and the `com.google.android.gms.games.APP_ID` meta-data. |
-| Player | `PlayersClient.getCurrentPlayer()` | Display name (the gamer name), avatar URI, player id. The id may not be trusted server-side. That doesn't matter here, because there is no server. |
-| Achievements | `AchievementsClient` | Up to **400**. **2,000 points** in total, at most 200 each, in multiples of 5. Name up to 100 characters, description up to 500. Each needs a square icon. States: revealed, hidden, unlocked. An incremental achievement has **2 to 10,000 steps**. `setStepsImmediate` only ever moves forward. Unlocks made offline sync later. A published achievement **can't be reset**; only draft ones can (by testers, from the console or the Management API). |
-| Leaderboards | `LeaderboardsClient` | Up to **70**. Ordering is fixed once published. Daily, weekly and all-time spans are created automatically, plus public and friends collections. Optional minimum and maximum scores, and tamper protection (on by default for new leaderboards). Equal scores aren't ranked by our tie-break rules. A published leaderboard **can't be reset**; the developer can only hide a player. |
-| Saved games | `SnapshotsClient` | Named byte blobs of up to **3 MB** each. Enabled in Play Console. The save picker UI is optional. Commits made offline are cached and uploaded later. Conflicts arrive as `isConflict()`, carrying both versions, and are settled with `resolveConflict` using merged contents. |
-| Sidekick | Added by Play, or the `com.google.android.play:sidekick` SDK for APK-only releases | Android 13+, at least 3 GB RAM, a Play Games gamer profile, and the app **installed from Play**. Enabled per release in Play Console. Shows achievements. Locked ones appear only after the game earns an "achievements badge" (100+ players calling the achievements API in 30 days). |
+| Sign-in | `GamesSignInClient` | **Automatic** at launch. **No sign-out API.** `isAuthenticated()`, and `signIn()` for a retry. Needs `PlayGamesSdk.initialize()` in `Application.onCreate()` and the `APP_ID` meta-data |
+| Player | `PlayersClient.getCurrentPlayer()` | Gamer name, avatar, id |
+| Achievements | `AchievementsClient` | ≤400; **2,000 points** total, ≤200 each, multiples of 5; names ≤100 chars, descriptions ≤500; square icons; revealed/hidden/unlocked; incremental 2-10,000 steps; `setStepsImmediate` only moves forward; offline unlocks sync later. **Published ones can't be reset** (only drafts, by testers) |
+| Leaderboards | `LeaderboardsClient` | ≤70; ordering fixed once published; daily/weekly/all-time and public/friends are automatic; optional min/max and tamper protection; ties aren't ranked by our rules. **Can't be reset** |
+| Saved games | `SnapshotsClient` | Named blobs ≤3 MB; enabled in the console; offline commits cached; conflicts come as `isConflict()` and are settled with `resolveConflict` |
+| Sidekick | Added by Play to uploaded bundles | Android 13+, 3 GB+ RAM, a gamer profile, **installed from Play**; enabled per release. Locked achievements show only after 100+ players use the achievements API in 30 days |
 
-**Google Play Games Level Up** (the 2026 programme with the PGS v2, Sidekick, achievements, Game Stats
-and cloud-save guidelines) is **optional**. It brings store promotion and Quests/Rewards, but it also
-asks for things this app doesn't do: PC distribution, keyboard/controller play, Rewards offers and
-form-factor coverage. This plan happens to meet its PGS, Sidekick, achievement and cloud-save
-guidelines along the way (10+ achievements with unique names and descriptions, 4 reachable in the
-first hour, cloud save with a conflict policy). It doesn't aim for the rest. **Decided:
-Level Up is not a goal.** Game Stats stays documented as an
-[optional extra](#optional-extra-game-stats-level-up), built only if that changes.
+**Level Up** (the 2026 programme) is **decided: not a goal**. It also needs PC, controller support and Rewards. This
+plan happens to meet its PGS, Sidekick, achievement and cloud-save guidelines anyway.
 
----
+## Architecture: a platform seam
 
-## Architecture: a platform seam, not a Google dependency
-
-This uses the same pattern as `PlatformServices` (see `IOS_SUPPORT.md`): an interface in
-`commonMain`, implemented once per platform, with a do-nothing version for previews, tests and builds
-that have no service.
+The same pattern as `PlatformServices`:
 
 ```
-app/shared/src/commonMain/kotlin/net/zodac/dicefive/
-├── online/                          NEW - platform-neutral; nothing here names Google or Apple
-│   ├── GameServices.kt              the interface (below) + GameServicesState
-│   ├── NoGameServices.kt            "not available": previews, tests, sideloads without Play
-│   ├── OnlineSync.kt                the reconciler: local stores -> GameServices (idempotent)
-│   ├── CloudSaveCodec.kt            local stores <-> one versioned save blob (JSON + gzip)
-│   └── CloudSaveMerge.kt            merging two blobs (pure, fully unit tested)
-├── model/GameMode.kt                + onlineLeaderboardKey (a stable string, like Achievement.id)
-└── ui/settings/OnlineAccountCard.kt the Settings card, shared, labelled by the service's own name
-
-app/android/src/main/kotlin/net/zodac/dicefive/
-└── online/                          NEW - the only code that imports com.google.android.gms.games
-    ├── PlayGamesServices.kt         implements GameServices on PGS v2
-    ├── PlayGamesIds.kt              Achievement.id / GameMode key -> Play's generated ids
-    └── res/values/games-ids.xml     exported from Play Console (ids aren't secrets)
-
-app/shared/src/iosMain/.../online/   (later) GameCenterServices: GKLocalPlayer, GKAchievement,
-                                      GKLeaderboard, GKSavedGame or iCloud key-value storage
+app/shared/.../online/        GameServices.kt (interface + GameServicesState), NoGameServices.kt,
+                              OnlineSync.kt (reconciler), CloudSaveCodec.kt (stores <-> versioned JSON+gzip blob),
+                              CloudSaveMerge.kt (pure, fully tested)          - nothing here names Google or Apple
+app/shared/.../ui/settings/OnlineAccountCard.kt   labelled by the service's own name
+app/android/.../online/       PlayGamesServices.kt, PlayGamesIds.kt, res/values/games-ids.xml  - the only gms.games imports
+app/shared/src/iosMain/.../online/   (later) GameCenterServices
 ```
-
-A sketch of the interface, with every call suspending and none throwing to the UI:
 
 ```kotlin
 interface GameServices {
-    /** "Google Play Games" / "Game Center" - shown in Settings, never hard-coded in shared UI. */
-    val serviceName: String
-    val state: StateFlow<GameServicesState>   // Unavailable | SignedOut | SigningIn | SignedIn(account)
-    suspend fun signIn()                      // manual retry; auto sign-in is the platform's business
-    suspend fun unlockedAchievementIds(): Set<String>?            // null = couldn't ask
+    val serviceName: String                       // "Google Play Games" / "Game Center" - never hard-coded in shared UI
+    val state: StateFlow<GameServicesState>       // Unavailable | SignedOut | SigningIn | SignedIn(account)
+    suspend fun signIn()
+    suspend fun unlockedAchievementIds(): Set<String>?   // null = couldn't ask
     suspend fun unlock(achievementId: String)
-    suspend fun setProgress(achievementId: String, steps: Int)    // forward-only, idempotent
+    suspend fun setProgress(achievementId: String, steps: Int)   // forward-only, idempotent
     suspend fun submitScore(leaderboardKey: String, score: Long)
     suspend fun readCloudSave(): ByteArray?
     suspend fun writeCloudSave(data: ByteArray, merge: (local: ByteArray, remote: ByteArray) -> ByteArray)
-    val canShowAchievementsUi: Boolean;  fun showAchievementsUi()          // Play's own screens
+    val canShowAchievementsUi: Boolean;  fun showAchievementsUi()
     val canShowLeaderboardUi: Boolean;   fun showLeaderboardUi(leaderboardKey: String?)
 }
 data class OnlineAccount(val displayName: String, val avatar: ImageBitmap?, val accountKey: String)
 ```
 
-Rules that hold it together:
-
-- **Local storage stays the source of truth.** The game, achievements engine, Leaderboard and
-  Statistics never wait on, or read from, the network. `OnlineSync` *mirrors* local state out, and
-  merges cloud state *in*. A signed-out, offline or sideloaded copy behaves exactly as it does
-  today.
-- **Mirroring is idempotent, not a queue.** Unlocks and `setSteps` are safe to repeat, and Play keeps
-  a player's best leaderboard score. So rather than keeping an outbox of "unlocks not sent yet",
-  `OnlineSync.reconcile()` compares the whole local state with the service and sends the
-  difference. It runs on sign-in, on app start, and after each finished game. Nothing is lost when
-  a send fails; the next reconcile sends it again.
-- **One hook per event, where the events already happen.** `AchievementUpdate.newlyUnlocked` asks for a reconcile of achievements. `GameViewModel.finishGame`
-  / `persistHumanScores` asks for a score submission and a cloud-save write. Neither the engine nor
-  `GameMode` learns that a network exists.
-- **Per-mode online data is a field on `GameMode`** (`onlineLeaderboardKey`), not a
-  `when (mode)` in the Google code. This is the same rule `GAME_MODES.md` sets for every per-mode
-  rule. The platform layer maps the key to its own id. Play's ids are generated by the console;
-  Game Center's are chosen by us. A mode with no mapping on a platform is simply not submitted
+- **Local storage stays the source of truth.** The game never waits on or reads from the network. A signed-out,
+  offline or sideloaded app behaves exactly as today.
+- **Mirroring is idempotent, not a queue.** `OnlineSync.reconcile()` compares the whole local state with the service
+  and sends the difference. It runs on sign-in, on app start and after each finished game, so a failed send is retried
+  next time.
+- **One hook per existing event.**
+  - `AchievementUpdate.newlyUnlocked` asks for a reconcile.
+  - `finishGame`/`persistHumanScores` ask for a score submission and a save write.
+  - The engine and `GameMode` never learn the network exists.
+- **Per-mode data is a field** (`onlineLeaderboardKey`), mapped per platform. A mode with no mapping isn't submitted
   there, and a test reports it.
-- **Activity scope.** PGS v2 clients are created from an `Activity`, while `AndroidPlatformServices`
-  holds only the application context. `PlayGamesServices` is therefore built in `MainActivity`,
-  re-attached across configuration changes, and handed to `DiceFiveApp` next to `PlatformServices`
-  (as `LocalGameServices`).
-- **Builds without Play.** The GitHub release APK and devices without Play services get
-  `NoGameServices` once PGS reports it is unavailable, so the Settings card is hidden rather than
-  broken. **Decided: Play Games is Play-only.** The GitHub release key's SHA-1 is *not* registered,
-  so a sideloaded GitHub build never signs in. It shows no Play Games card and behaves as it does
-  today.
+- **Activity scope.** PGS clients need an `Activity`, so `PlayGamesServices` is built in `MainActivity`, re-attached
+  across config changes, and passed as `LocalGameServices`.
+- **Play-only (decided).** The GitHub release key's SHA-1 isn't registered, so sideloads get `NoGameServices` and no
+  card.
+- **Never block on the network.** Every call runs in the app scope with a timeout, and errors go into `state`. Our
+  banners stay local and instant.
 
----
+## 1. Account and name
 
-## 1. Account linking and the player's name
-
-**Sign-in.** We rely on PGS v2's automatic sign-in at launch. When it fails or the player has
-declined it, the Settings card offers a single **Sign in** button (`signIn()`). There is **no
-sign-out**, because v2 doesn't have one. Instead, the card has a local **"Use Google Play Games on this
-device"** switch. Turning it off stops every call (no mirroring, no cloud save) without touching the
-account. This is the only kind of "off" Google allows, and it is honest about it.
-
-**The name - kept completely apart from Player 1, as suggested.** The account's gamer name appears
-in **one place**: the Settings card, as "Signed in as <name>" next to the avatar.
-
-- It **never** fills, renames or replaces seat 1's name on the New Game screen. That name stays what
-  the player typed, remembered per slot by `SettingsRepository.playerNameFor`, and limited by
-  `GameSetupState.maxPlayerNameLength` (14/12/10/8 at 1-4 players). This keeps the cap a pure
-  layout rule (`UI.md`, "Constraints worth knowing"). A gamer name of arbitrary length never reaches the
-  in-game header, the Game Over page, the local Leaderboard or Statistics, so none of their
-  measurements change.
-- On the Settings card it is run through `sanitizePlayerName` (the same protection against invisible,
-  direction-changing and "glitch" text that typed names get) and is **ellipsised, not capped**. It sits
-  on a row of its own that can take two lines at large font sizes. For TalkBack, the card reads
-  "Google Play Games, signed in as <full name>", so the full name is heard even when it is cut short
-  on screen.
-- Google's own surfaces (online leaderboards, Sidekick, the "Welcome back" pop-up) show the gamer
-  name in Google's UI. That is outside our layout and our cap.
-- **Who an online score or achievement belongs to.** Achievements are already player-1 only
-  (`AchievementEngine`), and `ScoreEntry.isPrimaryPlayer` marks seat 1's rows. So everything is
-  reported for **seat 1, whatever name is typed in it**, to whichever account is signed in on the
-  device. Seats 2-4 (pass-and-play friends) are never submitted. The ledger achievements still
-  count every human's scores, as `DESIGN.md` sets out. Accepted cost: if a friend
-  plays as seat 1 on the owner's phone, the result goes on the owner's account. That is the same
-  trade-off the achievements already make.
-
-**Choosing which Google account (several on one phone).** The game **doesn't get an account picker
-at start-up**. PGS v2 signs in silently with the device's **default games account**, and there is no
-v2 API for a game to list or choose accounts. The player chooses outside the game:
-
-- *Default for every game:* Android Settings > Google > All services > Settings for Google apps >
-  Play Games > Sign-in account > Change.
-- *Just this game:* long-press DiceFive's launcher icon > **Choose profile**. This is the "quick
-  profile switcher", which appears only when the device has more than one Google account.
-- If no default has been set and there are several accounts, Play Games itself asks once on the
-  first sign-in. That is Google's screen, not ours.
-
-Google warns that changing profiles for a game "may load different progress". So the Settings card
-should say which account is in use, and mention, in its description text, where to change it.
-Calling `signIn()` again doesn't switch accounts. It only retries the same default. The prompt below
-is what makes a switch safe.
-
-**Switching accounts on one device.** The device remembers which account it last synced with (a
-salted hash of the player id, in a new `online` DataStore file). If a *different* account signs in,
-nothing merges automatically. The card asks: "This device's progress was linked to another Google
-Play Games account. **Link it to <name>** / **Keep it separate**". Choosing "separate" switches online
-syncing off on this device until the player decides otherwise.
-
----
+- **Sign-in** relies on automatic sign-in at launch. If that fails, the card shows **Sign in**.
+- **There's no sign-out.** Instead the card has a local **"Use Google Play Games on this device"** switch that stops
+  every call.
+- **The gamer name appears only on the Settings card** ("Signed in as <name>").
+  - It **never** touches seat 1's name, so the name cap stays a pure layout rule.
+  - It's sanitised (`sanitizePlayerName`) and ellipsised, not capped, on its own row of up to two lines.
+  - TalkBack hears the full name: "Google Play Games, signed in as <full name>".
+- **Everything is reported for seat 1, whatever name it holds,** to whichever account is signed in. Seats 2-4 are never
+  submitted. The accepted cost: a friend in seat 1 plays to the owner's account.
+- **Choosing the account happens outside the game.** v2 has no picker.
+  - The system setting: Android Settings > Google > All services > Settings for Google apps > Play Games > Sign-in
+    account.
+  - Per game: long-press the icon > **Choose profile**.
+  - Play asks once itself if no default is set.
+  - The card names the account and where to change it.
+- **Switching accounts.** The device remembers a salted hash of the last synced player id (in the `online` store).
+  - A different account triggers a prompt: "**Link it to <name>** / **Keep it separate**".
+  - "Separate" switches syncing off.
 
 ## 2. Achievements
 
-**What's there today:** 103 achievements (`model/Achievement.kt`), well inside Play's 400.
-`Achievement.id` is a stable snake_case key (the enum constant, itself the English title, in lower case) that never
-changes once released. Every achievement is `NORMAL` or `HIDDEN` (the Easter Eggs included: title shown, description
-"???"); no achievement uses `AchievementVisibility.SECRET`.
+There are 103 (out of Play's 400). `Achievement.id` is the stable key. Every achievement is `NORMAL` or `HIDDEN`;
+`SECRET` is unused.
 
-**Mapping, one row per achievement, in a generated table checked by a test:**
+| Local | Play |
+|---|---|
+| `NORMAL` / `HIDDEN` | Revealed / Hidden |
+| `SECRET` | not registered (local only) |
+| `ProgressStyle.NONE` | Standard (`unlock`) |
+| `CUMULATIVE`, target ≤10,000 | Incremental, same target (`setSteps`, forward-only and idempotent) |
+| `PROFESSIONAL_ROLLER` (100,000 points) | Incremental, **10,000 steps of 10** |
+| Ledger bands | Incremental, read from the scores table |
+| `STREAK` | Standard (steps can't go back; the local bar stays) |
 
-| Local | Play | Notes |
-|---|---|---|
-| `NORMAL` | Revealed | |
-| `HIDDEN` | Hidden | Play blanks the description and icon until unlocked, the same as "???". |
-| `SECRET` | **Not registered** | A local-only surprise, never synced; unused today. |
-| `ProgressStyle.NONE` | Standard | `unlock`. |
-| `ProgressStyle.CUMULATIVE`, target ≤ 10,000 | Incremental, same target | `setSteps(localProgress)`: it only moves forward and is idempotent, so a repeat or a second device is harmless. |
-| `PROFESSIONAL_ROLLER` (100,000 career points) | Incremental, **10,000 steps of 10 points** | The only target above Play's 10,000-step ceiling. |
-| Ledger bands (46/50 distinct scores) | Incremental | Progress is read from the scores table as it is today. |
-| `ProgressStyle.STREAK` (win streaks) | Standard | Already decided: Play steps can't go backwards. The local progress bar stays. |
+- **Local → Play** happens always, in reconcile only. That includes achievements earned before linking.
+- **Play → local** happens on sign-in. Play-unlocked but locally locked achievements unlock quietly, with today's time
+  and one "N achievements restored" message. Their styles unlock too. This restores a reinstall even without cloud
+  save.
+- **Mode guards** need nothing new; the mirror copies only what the engine decided.
+- **Console work, prepared by code.**
+  - **An export task** writes every achievement's id, text (en/es/ar), state, type and steps, under a banned-word
+    guard.
+  - **A Robolectric render task** exports 512x512 icons from `AchievementIcons.kt`. They're reviewed before upload.
+  - **Points** use a tier formula (~19 average; ~300 held back for future modes), checked by a script.
+  - Everything stays **draft** until ready, because only drafts can be reset.
 
-**Direction of sync.**
+## 3. Leaderboards per mode
 
-- **Local → Play (always):** every locally unlocked achievement is unlocked on Play, and every
-  cumulative one gets `setSteps`. That includes achievements earned before the account was linked.
-  It only happens in reconcile, never inline in the game.
-- **Play → local (on sign-in):** any achievement Play says is unlocked but is locked on the device is
-  **unlocked locally** with today's timestamp, without a banner (one quiet "N achievements restored
-  from Google Play Games" message). This restores a reinstall or a new phone *even without cloud
-  save*. It also unlocks the styles tied to those achievements, so they stay in step.
-- Mode-blocked achievements (see the `GAME_MODES.md` audit) and the cheat rules need nothing new.
-  The engine has already decided what is earned; the mirror copies only that.
+**There are 7**, one per `GameMode`, in New Game order.
 
-**Console work the code can't do, prepared by a script the code *can* write:**
+- **Submitted**: seat 1's final score, **only under the mode's own rules** (no modifiers, so no timer; the same test as
+  `countsOnLeaderboard`). Off-Combined modes still get their own board.
+- **Ordering**: larger is better, 0 to `maxPossibleScore`, with tamper protection on.
+- **Ties** are ordered by submission time on Play. Our tie-break stays local; the online button's description can say
+  so in a line.
+- **The backlog (decided: yes).** On an account's first link on a device, submit seat 1's best score per mode:
+  - rows with `isPrimaryPlayer` and `playedUnmodified` (`onLeaderboard` can't answer it for always-off modes, which is
+    why that column exists);
+  - after the first cloud merge, if cloud save is on;
+  - also on a "Link" from the switch prompt ("Separate" submits nothing);
+  - recorded per account in the `online` store;
+  - skipping any row over `maxPossibleScore`.
 
-- **Text:** a generator task writes a CSV/JSON of every achievement's id, title, description,
-  state, type and steps for English, Spanish and Arabic (the app's `values-xx`). It is pasted into
-  Play Console, or pushed with the Publishing/Management API. Play's limits (100 characters for a
-  name, 500 for a description) are far looser than ours (38 characters on one line), so the in-app
-  text is reused as it is. The trademark rule applies to the console text too, and a guard test
-  covers the generated file.
-- **Icons:** each achievement needs a square icon. `ui/achievements/AchievementIcons.kt` already draws
-  each one in Compose, so a Robolectric render task (the `STYLE_ART.md` technique) exports 512×512
-  PNGs. As with all art, the renders are sent for review before anything is uploaded. **Deferred
-  (blocks Phase 3):** whether a locked icon is each achievement's own icon, greyed (recommended), or
-  one generic padlock. To be settled alongside the icon renders.
-- **Points (2,000 in total, multiples of 5):** 103 achievements average about 19 points. A proposed
-  formula, by tier: one-shot easy 5, medium 10, hard 20, ladders rising 5→50, the 6 ledger bands and
-  Completionist 50-100, and **about 300 points held back** for future modes. A script computes and
-  checks the total. **Deferred (blocks publishing in Phase 3/6):** use the tier formula, or set
-  points by hand.
-- **Draft until ready:** everything stays in draft while testing, because only draft achievements
-  can be reset for testers.
-
----
-
-## 3. Leaderboards per game mode
-
-**One Play leaderboard per `GameMode`**: Standard, Tricolour, Third Wind, 7 Dice Stud, D20, Hit List and Quickfire.
-That is 7 of the 70 allowed, in the same order as the New Game menu. This matches the local
-Leaderboard's per-mode cards (`ScoresViewModel.modeBoards`), which list every mode, including those
-kept off the Combined table.
-
-- **What is submitted:** seat 1's final score from a finished game, but **only when the game ran
-  under that mode's own rules**. No modifiers, which also means no turn timer (the same test that
-  takes a Standard game off the local Leaderboard, `GameState.countsOnLeaderboard`). Comparing like
-  with like is the point of a per-mode table. AI scores are never recorded, as today.
-  `countsOnLeaderboard = false` modes (Stud, Third Wind and so on) **do** get their own online table:
-  that flag keeps them off the *combined* local board, and doesn't mean they can't be compared with
-  themselves.
-- **Ordering:** larger is better, numeric. **Upper limit = `GameMode.maxPossibleScore`** and lower
-  limit = 0, with tamper protection on, so an obviously fake score is rejected by Google.
-- **Ties:** Play ranks equal scores by when they were submitted, not by our tie-break rules
-  (`game/TieBreak`). The local Leaderboard keeps the house rules, and the online one is "best score
-  per player". The Rules page needs no change. It is worth one line on the online button's
-  description.
-- **Scores from before linking:** Play keeps each player's best, so submitting seat 1's best local
-  score per mode once, when the account is first linked, is cheap. But it would appear on *today's*
-  daily and weekly tables. **Decided: submit the backlog.** When an account is
-  first linked on a device, seat 1's best local score in each mode is submitted to that mode's Play
-  leaderboard. Daily and weekly tables showing it on that day and week is an accepted side effect.
-  - **Which rows count:** `isPrimaryPlayer` rows with `ScoreEntry.playedUnmodified`, the same test a new game's
-    submission uses. (`onLeaderboard` can't answer it for a mode that is always off the Combined board, where it is
-    `false` whether or not a modifier was on - which is why that column exists. Every row records it.)
-  - **When:** once per account per device, after the first cloud-save merge if cloud save is already
-    on, so the best of all devices' merged rows is used. It also runs when a *different* account is
-    linked through the account-switch prompt and the player chose to link this device's progress.
-    "Keep it separate" submits nothing. Done is recorded in the `online` store against the account
-    key. Repeating it is harmless anyway, because Play keeps the best score.
-  - Each score is still checked against the mode's `maxPossibleScore` limit. A row over it (a
-    corrupted row, or a rule change since) is skipped rather than rejected by Google.
-- **A new mode** adds a leaderboard in the console plus its `onlineLeaderboardKey`. `GAME_MODES.md`'s
-  checklist gains that line. A test fails if a mode has no key, so a new mode can't be forgotten.
-- **Viewing:** Play's own leaderboard screen (`getLeaderboardIntent`) opened from each mode card on
-  the Leaderboard screen. We don't redraw Google's tables ourselves.
-
----
+  Appearing on that day's and week's boards is accepted.
+- **A new mode** adds a console board and an `onlineLeaderboardKey` (`OnlineLeaderboardKeyTest` fails without one).
+- **Viewing** uses Play's own screen (`getLeaderboardIntent`), opened from each mode card.
 
 ## 4. Cloud save
 
-**What is saved, as one versioned snapshot named `dicefive-progress`** (JSON, gzipped; far below 3 MB):
+There's one snapshot, `dicefive-progress`: versioned JSON, gzipped.
 
-| Data | Today | In the save? | Merge rule |
-|---|---|---|---|
-| Achievement unlocks | `achievements` DataStore | Yes | **Union**. For an achievement unlocked on both, the earliest timestamp wins. |
-| Achievement counters (games played, dice rolled...) | same | Yes, **per device** | Each device keeps its own counter (a G-counter). The total is the sum, so two phones that each played 10 games make 20, not 10. |
-| Win streak counter | same | Yes | Taken from the device that **finished a game most recently**. A streak can't be merged; it belongs to whichever device's timeline is newest. |
-| Scores (Leaderboard + Statistics) | Room `scores` | Yes | **Union of rows**, identified by a new `ScoreEntry.uuid` column (a Room migration from version 1; existing rows are given one). |
-| Dismissed Statistics cards | `DismissedPlayerStats` | Yes | Union. |
-| Style picks, New Game setup (names, seats, CPU difficulty, colours, mode, modifiers) | `settings` DataStore | Yes | **Last writer wins per key**. Every write gets a timestamp, kept in a side map in the save. |
-| Sound, vibration, animation level, Styles page fit, "confirm before leaving" | same | **No**: these depend on the device (a tablet and a phone want different animation levels and fits) | - |
-| In-progress game | `in_progress_game` DataStore | **Yes (decided)** | Last writer wins. "Continue" on device B carries on device A's game. Two unfinished games: the newer one wins, and the older one is lost. |
+| Data | In the save? | Merge |
+|---|---|---|
+| Achievement unlocks | Yes | Union; the earliest timestamp wins |
+| Achievement counters | Yes, **per device** | G-counter: the sum across devices |
+| Win streak | Yes | From the device that finished a game most recently |
+| Scores | Yes | Union of rows by a new `ScoreEntry.uuid` (a Room migration from v1) |
+| Dismissed stats cards | Yes | Union |
+| Style picks, New Game setup | Yes | Last writer wins per key (timestamps in a side map) |
+| Sound, vibration, animation level, page fit, confirm-leaving | **No** (per device) | - |
+| In-progress game | **Yes (decided)** | Newest wins; an older unfinished game is lost |
 
-**Why merge automatically rather than "pick a save".** Level Up's guideline says "usually the player
-decides", but it only *requires* a conflict policy. This app's data is a set of facts (unlocks,
-finished games), not one linear save, so a merge never needs to throw any of it away. Showing a
-picker would make a player choose between two halves of their own history. The only prompt is the
-**first link on a device that already has its own progress while the cloud also has some**. Even
-then, the recommendation is to merge, with a one-line explanation:
+- **Merge automatically; don't pick a save.** The data is facts, so nothing needs throwing away.
+  - The only prompt comes on the first link when both the device and the cloud have progress: "**Combine** / **Use
+    only the saved progress** / **Not now**", recommending Combine.
+- **Resets travel too.** Each store carries a **reset marker** timestamp, and merges drop anything older.
+- **When it syncs.**
+  - Read and merge on sign-in and app start.
+  - Write after a game, after a Styles change (debounced), and on going to the background.
+  - Conflicts use `RESOLUTION_POLICY_MANUAL` → `CloudSaveMerge`, retrying up to 10 times.
+- **Size.** ~120 bytes per score row before gzip. A test pins a 20,000-game save under 1.5 MB.
+- **iOS** shares the blob and merge, over `GKSavedGame` or iCloud key-value storage (1 MB).
+- **Android backup** (`allowBackup`) already restores one device. Cloud save adds simultaneous devices.
 
-> "Your progress on this device will be combined with your saved progress from Google Play Games."
-> **Combine** / **Use only the saved progress** / **Not now**
+## 5. Sidekick
 
-**Resets must travel too.** Union merging would bring back anything a reset deleted, the moment
-another device synced. Each store therefore carries a **reset marker** (a timestamp). A merge drops
-anything older than the newest marker it sees. See [The reset buttons](#the-reset-buttons) for what
-each reset does once an account is linked.
+An overlay Play draws: an edge tab that slides out achievements, streaks, Play Points, offers, videos and recording
+tools. We don't build it.
 
-**When it syncs:**
-
-- Read and merge on sign-in and on app start.
-- Write after each finished game, after a Styles change (debounced) and when the app goes to the
-  background.
-- With `RESOLUTION_POLICY_MANUAL`, a conflict calls `CloudSaveMerge`, retrying up to 10 times as
-  Google's sample does.
-- Offline commits are cached by Play itself.
-
-**Size check:** a score row is about 120 bytes of JSON before gzip, so 10,000 games come to about
-1.2 MB raw and well under 300 KB gzipped. A test pins the encoded size of a 20,000-game save below
-1.5 MB, as headroom against the 3 MB limit.
-
-**iOS:** the blob format and merge are shared code, so only the transport changes: `GKSavedGame`,
-which needs iCloud, or iCloud key-value storage (1 MB). The same blob even lets a player who switches
-platforms carry progress over, though linking a Google account to an Apple one is out of scope.
-
-**Android backup.** `android:allowBackup="true"` already restores local data on a new phone through
-Google's device backup. Cloud save covers what backup doesn't: two devices *at once*, and devices that
-don't share a backup.
-
----
-
-## 5. The swipe panel: Play Games Sidekick
-
-**What it is.** The panel is **Play Games Sidekick**, an overlay Play draws over the game. It has a
-small tab on the screen edge (middle-right by default) that slides a panel out. The panel holds the
-player's achievements, streaks, Play Points, Play Pass offers, Quests (for enrolled games), the
-official YouTube videos added to the store listing, and screenshot, screen-recording, livestream and
-do-not-disturb tools. Gemini Live is optional. We don't build it. Play adds it.
-
-**What it needs from us:**
-
-- **An Android App Bundle uploaded to Play**, with "Sidekick is on by default" ticked on the release
-  (Testing > Advanced settings > Play Games Sidekick, to keep it on for later bundles). The
-  `com.google.android.play:sidekick` SDK is only for APK-only publishing, which we won't do. The AAB
-  path is already a `PUBLISHING.md` requirement.
-- **PGS v2 achievements** (section 2) for the achievements tab. Until 100+ players have called the
-  achievements API within 30 days, players only see what they've unlocked. After that, locked
-  achievements appear as well.
-- Players need Android 13+, at least 3 GB RAM, a gamer profile and a Play install. Everyone else
-  simply doesn't see it (our `minSdk` stays 26). It is never present in GitHub sideloads.
-
-**What we control** (`AndroidManifest.xml` meta-data `com.google.android.finsky.deku.OVERLAY_CONFIG`
-→ `res/xml/sidekick_config.xml`):
-
-- **Where the tab sits.** The middle-right default is in the way on this portrait game screen: the
-  scorecard's right column and the dice tray. **Deferred (blocks Phase 6): decided on a device**,
-  looking at Sidekick over the real screens. `TOP_RIGHT` or `TOP_LEFT`, by the screen title and back
-  arrow, are the likely candidates. A player who drags the tab keeps their own position.
-- **Snooze**, so the tab doesn't sit on a brand-new player's first game. **Decided: 300 seconds**
-  (5 minutes; the maximum is 30).
-- Players can turn it off in Play Store settings.
-
-**Recommendation: enable it.** It costs us almost nothing in code. Being Play's own overlay, it reads
-our achievements without any extra work. It meets Level Up's Sidekick guideline in case that becomes
-a goal. Google's advice is a **5% staged rollout** comparing crashes, ANRs and engagement first. We
-should also check frame cost on a 3-4 GB device with the overlay open, against the 60 fps floor. Its
-accessibility is Google's, but we confirm that its tab doesn't cover a control TalkBack users need.
-
----
+- **What it needs.**
+  - An AAB uploaded to Play, with "Sidekick on by default" ticked (Testing > Advanced settings). The sidekick SDK is
+    APK-only, and we don't need it.
+  - PGS achievements.
+  - Players on Android 13+ with 3 GB+ RAM and a Play install. It never appears in sideloads.
+- **What we control** (`com.google.android.finsky.deku.OVERLAY_CONFIG` → `res/xml/sidekick_config.xml`).
+  - **Tab position: deferred, decided on a device.** The middle-right default covers the scorecard and tray, so
+    `TOP_RIGHT` or `TOP_LEFT` is likely.
+  - **Snooze: decided, 300s.**
+- **Recommendation: enable it.**
+  - Stage the rollout at 5%, comparing crashes, ANRs and engagement.
+  - Check frame cost on a 3-4 GB device against the 60fps floor.
+  - Confirm the tab doesn't cover a control TalkBack users need.
 
 ## Where it appears in the app
 
-**Recommended: a Settings card, plus links where the data is already shown. No new menu button.**
-The main menu stays as it is: "adding an element must not move or re-space existing ones", and the
-menu's six destinations are already a full column.
+No new menu button: the menu is full, and adding one would move existing elements.
 
-1. **Settings, a new card at the top** (above Sound/Vibration), titled with `GameServices.serviceName`.
-   The shared UI never writes "Google". Layout: avatar, "Signed in as <name>" (or "Not signed in" with a
-   **Sign in** button), the **"Use <service> on this device"** switch, "Save progress to the cloud"
-   (a switch, on by default when signed in) with "Last saved <time>", and a quiet status line for
-   errors ("Couldn't reach Google Play Games - will retry"). The card is hidden entirely when the
-   service is `Unavailable`. The existing cards keep their order below it.
-2. **Achievements screen:** a "View in Google Play Games" button in the unlocked-count banner's
-   footer, opening Play's own achievements UI. It is shown only when signed in.
-3. **Leaderboard screen:** each per-mode card gets a "Global leaderboard" action (an icon button
-   with a label) opening that mode's Play leaderboard. The local tables stay as they are.
-4. **Game Over:** nothing new on screen. **Decided: the online submission happens quietly**, with no
-   "Posted to Google Play Games" line.
-5. **First launch:** nothing of ours. Play's own "Welcome back" pop-up appears at the top of the
-   screen. Check that it doesn't hide the menu logo for too long.
+1. **Settings, a card at the top**, titled `serviceName` (never "Google" in shared UI).
+   - Avatar, then "Signed in as <name>", or "Not signed in" with **Sign in**.
+   - A "Use <service> on this device" switch.
+   - "Save progress to the cloud", on by default, with "Last saved <time>".
+   - A quiet error line ("Couldn't reach Google Play Games - will retry").
+   - Hidden when `Unavailable`.
+2. **Achievements**: "View in Google Play Games" in the count banner's footer, when signed in.
+3. **Leaderboard**: a "Global leaderboard" action per mode card. The local tables stay.
+4. **Game Over**: nothing. **Decided: submissions are quiet.**
+5. **First launch**: nothing of ours. Check Play's "Welcome back" pop-up doesn't hide the logo too long.
 
-**Accessibility (per `UI.md`'s checklist, verified when built):** the card is one TalkBack group with
-the status as its `stateDescription`. Both switches announce their state. "Sign in", "View in Google
-Play Games" and "Global leaderboard" are real buttons with labels, not icon-only buttons. The
-avatar is decorative (`contentDescription = null`). Every action can be reached with plain taps.
-Play's own screens and Sidekick are Google's, which we check on a device but can't change.
-
-**i18n (per `I18N.md`):** every new string goes into Compose resources in en, es and ar, with
-"Last saved" times through the existing `formatTimestamp`. The service's *name* comes from the
-platform, but the sentences around it are ours, with the name as an argument. The console text
-(achievement and leaderboard names) is translated in Play Console from the same strings.
-
----
+- **Accessibility.**
+  - The card is one group, with its status as `stateDescription`.
+  - The switches announce their state.
+  - The buttons are labelled, not icon-only.
+  - The avatar is decorative.
+  - Play's own screens are Google's: check them on a device.
+- **Strings.** All in en/es/ar, with the service name as an argument. "Last saved" goes through `formatTimestamp`.
 
 ## The reset buttons
 
-Play's achievements and leaderboards **cannot be reset once published**. Players can't do it and
-neither can we (only draft items can be reset, for testers). Cloud save, on the other hand, *can* be
-cleared. So each button needs its meaning settled:
+Play's achievements and leaderboards can't be reset once published; cloud save can.
 
-**"Reset achievements"** (today: clears the `achievements` DataStore and drops any style picks it
-locks again).
+- **Reset achievements (decided: disabled while linked).** Otherwise Play would restore everything at the next sign-in.
+  - The row stays visible, with the text "Your achievements are linked to Google Play Games and can't be reset"
+    (spoken as disabled, with the reason).
+  - To reset, turn the service off first. The confirmation says Play keeps its copy.
+- **Reset leaderboard (decided: all devices).** It clears local and cloud copies, with a reset marker. The Play boards
+  keep their entries, and the confirmation says so. There's no "this device only" option, because the cloud would
+  restore it.
+- **Superuser unlocks are never mirrored.** A flag in the `online` store stops achievement mirroring on that install,
+  and a test pins that a superuser unlock makes no `GameServices` call.
 
-- **Not signed in:** works as it does today.
-- **Signed in:** a local reset is undone at the next sign-in, because Play would unlock everything again
-  (section 2, Play → local). The cloud save would bring it all back too. That makes it a button that
-  appears to work and then quietly doesn't. **Decided:** while an account is linked, the row
-  stays visible but **disabled**, with its description changed to "Your achievements are linked to
-  Google Play Games and can't be reset" (read by TalkBack as disabled, with the reason). The only way
-  to reset is to turn the account off on this device first. Even then, the confirmation says Play
-  keeps its copy, and that switching syncing back on restores them.
+## Phases
 
-**"Reset leaderboard"** (today: deletes every score row, clearing the Leaderboard, Statistics and the
-ledger's progress).
+Each phase ends in a debug APK. Commits use **`[Play Games]`** (decided), which also covers the shared `online/` seam.
+Game Center work later uses `[iOS]`.
 
-- This still has a real purpose: clearing pass-and-play friends' names and history from a shared
-  device.
-- **Signed in:** it resets the **local and cloud** copies, with a reset marker so other devices
-  clear as well. The **Google Play leaderboards keep their entries**. The confirmation says exactly
-  that: "This clears the scores and statistics on all your devices. Your best scores on the Google
-  Play leaderboards stay." The online best is untouched, and the next game simply competes with it.
-- **Decided: all devices only.** No "this device only" option, because with cloud save on, a
-  device-only delete would come straight back from the cloud.
+- **Phase 0 (the maintainer's, no code).**
+  - The Play Console account, the app, signing, and a closed track.
+  - A PGS project, with OAuth clients for the debug SHA-1 and the upload and app-signing SHA-1s (not the GitHub key).
+  - Testers, and Saved Games turned on.
+  - **The minimum for debug-APK testing**:
+    1. Create the app.
+    2. Create and link the PGS project.
+    3. Add an Android credential for `net.zodac.dicefive` with the debug SHA-1
+       `76:7A:8F:8E:BF:D9:A9:58:4E:4C:21:D4:0B:9D:6E:51:1B:EB:21:A0`.
+    4. Add PGS testers.
+    5. Turn on Saved Games.
+- **Phase 1: the seam. Done.**
+  - `online/GameServices.kt` (with `GameServicesState`, `OnlineAccount` and `LocalGameServices`) and `NoGameServices`.
+  - `OnlineSettingsRepository` (`online.preferences_pb`: `use_on_device` and `cloud_save_enabled`, both default on).
+  - `OnlineAccountCard`.
+  - `onlineLeaderboardKey` (equal to each `id`; `OnlineLeaderboardKeyTest`).
+  - `playedUnmodified`.
+  - `DiceFiveApp`'s optional `gameServices` defaults to `NoGameServices`.
+  - The card's TalkBack text is tested (`OnlineAccountCardTest`), but not heard on a device.
+- **Phase 2: sign-in and the card.**
+  - Add `play-services-games-v2`, an `Application` subclass calling `initialize`, the `APP_ID` meta-data, and
+    `PlayGamesServices` (state, sign-in, name, avatar).
+  - Add the account-switch prompt.
+  - Before committing:
+    - record the release APK size before and after, and what R8 kept;
+    - check AboutLibraries lists the Play services licence, and add it to `allowedLicenses` with a comment;
+    - update the privacy policy and the "Fully offline" line.
+  - Verify on a real phone.
+- **Phase 3: the achievements mirror.**
+  - `OnlineSync`: reconcile, restore, and the superuser guard.
+  - The mapping table and its test: every non-`SECRET` achievement mapped, steps ≤10,000, Professional Roller scaled.
+  - The export and icon tasks, with renders reviewed before upload.
+  - The Reset achievements row, and "View in Google Play Games".
+  - Achievements stay in draft.
+- **Phase 4: leaderboards.**
+  - Create 7 boards (limits from `maxPossibleScore`, tamper protection on).
+  - Submit from `finishGame`, plus the backlog on first link.
+  - The "Global leaderboard" actions, the new step in `GAME_MODES.md`'s checklist, and the Reset leaderboard wording.
+- **Phase 5: cloud save.**
+  - Room v2 (`uuid`, a migration and the exported schema), timestamped settings writes, and per-device counters.
+  - The codec and merge, tested for: union, G-counter sums, streak recency, last writer wins, reset markers, and a newer
+    blob read safely by an older app.
+  - The transport, the Combine prompt, and "Last saved".
+  - Test on two devices, including offline edits on both.
+- **Phase 6: Sidekick and release.**
+  - `sidekick_config.xml`, and the bundle upload path.
+  - Publish the achievements and boards.
+  - A closed test, then a 5% rollout watching vitals, and the frame cost with the overlay open.
+- **Later: iOS.** `GameCenterServices`: `authenticateHandler`, `GKAchievement` (`percentComplete`, `isHidden`),
+  `GKLeaderboard` per key, and the shared blob.
+  - Game Center **can** reset achievements, so reset rules become `GameServices` properties (`canResetAchievements`),
+    never `if (iOS)`.
+  - `GKAccessPoint` has the same placement concern as Sidekick.
 
-**The debug "superuser" mode** (the Achievements screen's tester shortcut, which writes real unlocks
-through `forceLock` and the bulk unlock) must **never be mirrored**. While it has been used, a flag
-in the `online` store stops achievement mirroring on that install. A test pins that a superuser
-unlock produces no `GameServices` call. Debug builds that are registered as testers can use draft
-achievements, which can be reset, from the console.
+**Before Phase 0 is done**, build the pure logic first, unit-tested against a fake `GameServices`:
+- the codec and merge, plus `uuid`;
+- the mapping table and test, and the export and icon tasks (points can't be finalised);
+- the reset rules, the backlog selection and the superuser guard.
 
----
-
-## Phased plan
-
-**Phase 1 as built:** `online/GameServices.kt` (interface, `GameServicesState`, `OnlineAccount`, `LocalGameServices`),
-`NoGameServices`, `OnlineSettingsRepository` (the `online.preferences_pb` file: `use_on_device`, `cloud_save_enabled`,
-both on by default), `ui/settings/OnlineAccountCard.kt`, `GameMode.onlineLeaderboardKey` (equal to each `id` today;
-pinned by `OnlineLeaderboardKeyTest`), and `ScoreEntry.playedUnmodified` (recorded for every game). `DiceFiveApp` takes an
-optional `gameServices` that defaults to `NoGameServices`, so no platform passes one yet. Not in Phase 1: the card's
-"Last saved" and error lines (they need cloud save), the account-switch prompt (Phase 2). The card's TalkBack text
-(header read as one heading, "<service>, signed in as <full name>") is tested in `OnlineAccountCardTest`; what real
-TalkBack says has not been heard on a device.
-
-Each phase ends in a debug APK (per `CLAUDE.md`), and its commits use the category below.
-**New commit category `[Play Games]`** (decided): Google Play Games Services integration (sign-in,
-achievement and leaderboard sync, cloud save, Sidekick). It was added to `CLAUDE.md`'s table
-in the commit that added this plan. The shared seam (`online/`) also goes under it while Play Games is its only
-user. Game Center work later uses `IOS_SUPPORT.md`'s planned `[iOS]` category.
-
-**Phase 0 - Accounts and console (the maintainer's part; no code).** The Play Console developer
-account (`PUBLISHING.md` step 1), the app listing, Play App Signing and an upload key, and a closed
-testing track. Create the Play Games Services project. Register OAuth clients for the **debug
-keystore's SHA-1** and the upload/app-signing SHA-1, plus the GitHub key if we decide to. Add PGS
-testers. Turn on Saved Games. ("Plus the GitHub key if we decide to" is settled: we don't.)
-Nothing below can be tested on a device until this exists, but a large part of it can be built and
-unit tested first. See [Before Phase 0 is done](#before-phase-0-is-done) for the order.
-
-**The minimum Phase 0 for debug-APK testing** (the rest, such as the upload key, Play App Signing
-and the closed track, can wait until release):
-
-1. Create the app in Play Console.
-2. Create the Play Games Services project and link it to the app.
-3. Register an Android credential for package `net.zodac.dicefive` with the debug key's SHA-1,
-   `76:7A:8F:8E:BF:D9:A9:58:4E:4C:21:D4:0B:9D:6E:51:1B:EB:21:A0`.
-4. Add the maintainer's Google account (and any other testers) as **Play Games Services testers**.
-5. Turn on Saved Games.
-
-Achievements and leaderboards can be created later, from the exported files (Phases 3 and 4).
-
-**Phase 1 - The seam, with nothing behind it. Done.** `online/GameServices`, `NoGameServices`,
-`LocalGameServices`, `GameMode.onlineLeaderboardKey` (with a test that every mode has one), the
-`online` DataStore file and `ScoreEntry.playedUnmodified`. The Settings card exists but is hidden while the service is
-`Unavailable`, so the app looks the same as without it. Tests: card visibility, the switch, TalkBack text. No new
-dependency.
-
-**Phase 2 - Sign-in and the account card (Android).** Add `play-services-games-v2`.
-`PlayGamesSdk.initialize` goes in an `Application` subclass. Add the `APP_ID` meta-data,
-`PlayGamesServices` (state, `signIn`, the player's name and avatar) and the account-switch prompt.
-Before committing:
-
-- Measure the release APK size before and after (record both, and what R8 kept).
-- Check that AboutLibraries' report lists the Play services licence and that the copyleft guard
-  accepts it (it is Google's proprietary SDK licence; add it to `allowedLicenses` with a comment).
-- Update the privacy policy (`docs/privacy-policy.md`: the Play Games account and gameplay data) and
-  the store's "Fully offline" line (`PUBLISHING.md`).
-
-Verify on the sandbox emulator with a Play image, and on a real phone.
-
-**Phase 3 - Achievements mirror.** Add `OnlineSync` with achievement reconcile (local → Play), restore
-(Play → local) and the superuser guard. Add the mapping table and its test (every non-`SECRET`
-achievement mapped, steps ≤ 10,000, `PROFESSIONAL_ROLLER` scaled). Add tooling: the
-console-export task (text in 3 languages, states, steps, points total ≤ 2,000) and the icon render
-task. **Renders go to the maintainer for review before upload.** Change the "Reset achievements" row
-(signed-in behaviour) and add Achievements → "View in Google Play Games". Achievements stay in
-draft until Phase 6.
-
-**Phase 4 - Leaderboards.** Create 7 leaderboards (limits from `maxPossibleScore`, tamper protection
-on). Add submission from `finishGame` (seat 1 only, the mode's own rules only), the one-time backlog submission on first link (per mode, seat 1's best `playedUnmodified` score), the Leaderboard screen's "Global leaderboard" actions, the new step in
-`GAME_MODES.md`'s checklist for a new mode, and the Reset leaderboard wording.
-
-**Phase 5 - Cloud save.** Room version 2 (`ScoreEntry.uuid`, migration plus exported schema), timestamps on
-settings writes, per-device counters, `CloudSaveCodec` and `CloudSaveMerge` with thorough unit tests
-(union, G-counter sums, streak recency, last writer wins, reset markers, a newer blob version from a
-newer app read safely by an older one), the snapshot transport, the first-link "Combine" prompt, and
-the "Last saved" line. Test with two emulators or phones on one account, including offline edits on
-both.
-
-**Phase 6 - Sidekick and release.** Add `sidekick_config.xml` (tab position, snooze) and the
-`bundleRelease` + upload path from `PUBLISHING.md` if it doesn't exist yet. Publish the achievements
-and leaderboards. Run a closed test with Sidekick, then a 5% staged production rollout watching
-vitals. Check frame cost with the overlay open.
-
-**Later - iOS (once the iOS app in `IOS_SUPPORT.md` exists).** `GameCenterServices` in `iosMain`:
-`GKLocalPlayer.authenticateHandler`, `GKAchievement` (incremental as `percentComplete`, hidden as
-`isHidden`), `GKLeaderboard` per `onlineLeaderboardKey`, and the shared blob over `GKSavedGame` or
-iCloud key-value storage. Game Center **does** let a player reset their own achievements
-(`GKAchievement.resetAchievements`), so the reset rows' rules become per-platform properties of
-`GameServices` (`canResetAchievements`), never an `if (iOS)` in the UI. Game Center has no Sidekick
-equivalent, and its access point (`GKAccessPoint`) is an optional overlay with the same placement
-concern as Sidekick.
-
-**Optional - Game Stats.** See [Optional extra: Game Stats](#optional-extra-game-stats-level-up).
-It can be done after Phase 3, at any point.
-
----
-
-## Before Phase 0 is done
-
-The console isn't configured yet, so the work goes on without it. **Phase 0 is needed for device testing, not for
-building.**
-
-**Order of work:**
-
-1. Phase 1 (done).
-2. **The pure-logic parts of later phases**, all unit tested against a fake `GameServices`:
-   - Phase 5's `CloudSaveCodec`/`CloudSaveMerge` and the `ScoreEntry.uuid` column. This is the
-     riskiest logic in the plan, and none of it needs Google.
-   - Phase 3's achievement mapping table and its test, the console-export task, and the icon render
-     task. The renders go to the maintainer for review. Points are a deferred decision, so the
-     points script can be written but not finalised.
-   - The reset-row rules, the backlog selection (seat 1, unmodified, best per mode, skipping a score
-     above the mode's `maxPossibleScore`) and the superuser guard.
-3. **Stop before adding `play-services-games-v2`**, or add it only on a branch kept off `main`,
-   until Phase 0 exists. Without the console, the wrapper (`PlayGamesServices`) can only use
-   placeholder ids. It would compile, but nothing could show it works. If it's built anyway, missing
-   ids must fall back to `NoGameServices`, so the Settings card stays hidden.
-
-**Why to keep the SDK off `main`:** the release pipeline (`DESIGN.md`, "Release pipeline") publishes a GitHub
-release on **every push to `main`**. A commit adding the SDK would ship it, and the `INTERNET`
-permission it merges in, in the next GitHub APK. That build would gain nothing from it (Play-only, by
-decision 6), but it would still need:
-
-- the privacy policy updated,
-- the store text's "Fully offline" changed (`PUBLISHING.md`),
-- the APK size change accounted for.
-
-Phase 1 and the pure-logic work change nothing a player sees, so they are safe on `main`.
+**Keep `play-services-games-v2` off `main` until Phase 0 exists.** Every push to `main` ships a GitHub release, and the
+SDK merges `INTERNET` in. Shipping it would mean updating the privacy policy and the "Fully offline" text, and
+accounting for the APK size, all for no benefit in a Play-only feature. If the SDK is built anyway, missing ids fall
+back to `NoGameServices`.
 
 ## Testing
 
-**Debug APKs can test almost all of this.** Play Games recognises an app by package name plus
-signing-key fingerprint:
+- **Debug APKs test almost everything** once Phase 0's minimum is done. They use package `net.zodac.dicefive` (no
+  suffix) and are always signed with the repo's debug keystore.
+  - That covers sign-in and account switching, both mirror directions, the superuser guard, leaderboards and the
+    backlog, and cloud save across two devices.
+  - Draft achievements and boards can be reset for repeats.
+  - The phone needs Play services and an account on the **PGS testers** list. Anyone else fails sign-in in a way that
+    looks like a bug.
+- **These need the Play release flow**:
+  - Sidekick: the internal testing track, installed from Play, on Android 13+ with 3 GB+;
+  - the Play-signed build's own SHA-1;
+  - locked achievements in Sidekick, which need 100+ players and can't be seen in testing.
+- **The sandbox emulator** is a Google APIs image without Play, so plan on a real phone.
 
-- Debug builds use the release package name, `net.zodac.dicefive` (there is no `applicationIdSuffix`).
-- They are always signed with the repo's `app/android/debug.keystore`, so every debug APK, built
-  anywhere, has the same SHA-1 (above).
+## Optional extra: Game Stats (Level Up only)
 
-Once Phase 0's minimum is done, a sideloaded debug APK can test:
+Not in scope. Build it only if Level Up becomes a goal. Its rules: 5+ repeating stats with 1+ competitive (LU-GS-GAA);
+a progression stat if there's a progression mechanic (LU-GS-GAB, exemption LU-GS-EAB); and each stat with a display
+string, a unique icon and an aggregation (LU-GS-GAC).
 
-- **Sign-in:** automatic sign-in, the Settings card, and switching accounts (long-press > Choose
-  profile, or the system setting).
-- **Achievements:** both directions of the mirror, and the superuser guard. **Draft** achievements
-  can be reset for testers in the console, so a test can be repeated.
-- **Leaderboards:** submissions, per-mode tables and the first-link backlog. Draft leaderboards can
-  be reset too.
-- **Cloud save:** merging and offline edits, on two devices with the same account.
-
-Conditions: the phone needs Play services and a Google account on the **PGS testers** list. While the
-game's Play Games configuration is unpublished, anyone else fails sign-in in a way that looks like a
-bug.
-
-**Needs the Play release flow:**
-
-- **Sidekick.** It only appears in an app installed from Play, and Play adds it to an uploaded bundle.
-  Use the **internal testing** track: upload a bundle, add testers, install from Play. That track
-  doesn't need the 12-tester, 14-day closed test, which is only for production access. The device
-  also needs Android 13+ and at least 3 GB RAM.
-- **The Play-signed build.** Play App Signing re-signs uploads with Google's key, which has its own
-  SHA-1 to register. Confirm that a Play-installed build signs in before release.
-- **Locked achievements in Sidekick:** shown only after 100+ players have used the achievements API
-  in 30 days. They can't be seen in testing.
-
-**Emulator:** PGS needs a Google Play system image, and whether `sandbox/emulator.sh` boots one is
-unchecked (`EMULATOR.md`). Plan on a real phone for every PGS check, and use the emulator only if it
-turns out to have Play.
-
-## Optional extra: Game Stats (Level Up)
-
-**Not part of the requested scope.** It's worth doing if Level Up becomes a goal, or if richer
-Sidekick and Play profile content is wanted. **Game Stats** are numbers Play keeps per player, such
-as "games played", which Google shows on the player's profile and in Sidekick, and uses for
-"competitive engagement" features (comparisons with friends, challenges). Level Up's rules for them:
-
-- **LU-GS-GAA:** at least **5 repeating stats** (actions that happen regularly), **at least 1** of
-  them usable for competition.
-- **LU-GS-GAB:** if the game has a main progression mechanic, **1 extra progression stat**. The
-  exemption LU-GS-EAB covers games without one. Achievements completed, or best score, could serve if
-  wanted.
-- **LU-GS-GAC:** each stat needs a display string, a **unique icon** and aggregation rules (sum,
-  max and so on), set up in Play tools.
-
-**Proposed stats.** Every one already exists locally, so this adds no new tracking:
-
-| Stat | Source | Aggregation | Competitive? |
+| Stat | Source | Aggregation | Competitive |
 |---|---|---|---|
 | Games played | `AchievementCounter.GAMES_PLAYED` | sum | yes |
-| Games won | `AchievementCounter.GAMES_WON` | sum | yes |
-| Dice rolled | `AchievementCounter.DICE_ROLLED` | sum | yes |
-| 5x scored | `AchievementCounter.SCORED_5X` | sum | yes |
+| Games won | `GAMES_WON` | sum | yes |
+| Dice rolled | `DICE_ROLLED` | sum | yes |
+| 5x scored | `SCORED_5X` | sum | yes |
 | Career points | `ScoreDao.primaryPlayerTotalPoints` | sum | yes |
-| *(progression, optional)* Achievements unlocked | `AchievementsState` | max | no |
+| (optional) Achievements unlocked | `AchievementsState` | max | no |
 
-**How it would be built:**
+- **Building it.** An `OnlineSync` step reports each counter's increase since the last report (per device, in the
+  `online` store), with reviewed icons and en/es/ar strings.
+- **iOS** has no equivalent: `supportsGameStats = false`.
+- **Stats only grow,** so the reset confirmations must mention them.
 
-- An `OnlineSync` step that reports each counter's increase since the last report, after each
-  finished game. A per-device "last reported" value goes in the `online` store, so a reconcile never
-  counts anything twice.
-- Icons rendered with the achievement icon tooling (and reviewed first).
-- Strings in en, es and ar.
-- On iOS there is no equivalent. `GameServices` exposes `supportsGameStats = false` there, and the
-  step is skipped.
+## Risks
 
-**Watch out:** stats only grow. A local "Reset leaderboard" or "Reset achievements" doesn't lower
-them, just like the online leaderboard. The reset confirmations' wording (see
-[The reset buttons](#the-reset-buttons)) must mention "statistics on Google Play Games" too if this
-is built.
-
----
-
-## Risks and gotchas
-
-- **Never block the game on the network.** Every `GameServices` call runs in the app scope, with a
-  timeout, swallowing errors into `state`. Achievement banners stay local and instant. Play's own
-  unlock pop-up would duplicate ours. **Deferred (blocks Phase 3):** suppress it if v2 allows
-  (`setViewForPopups` / gravity existed in v1; check v2), or accept it. To be decided after seeing it
-  on a device.
-- **Id stability works in both directions now.** An `Achievement.id` or `onlineLeaderboardKey`, once
-  published, is permanent on Google's side as well. Removing an achievement locally can't remove it
-  from Play: published achievements can't be deleted, only hidden from new players. So retiring one
-  is a migration (keep the mapping, stop reporting it), not a deletion.
-- **Points are permanent.** Hold some back, as described above.
-- **Changing a rule doesn't reset Play.** A mode whose rules change keeps its online scores from the old rules. If a rule change makes old scores unfair, the fix is a **new
-  leaderboard key** for that mode (the old board stays, frozen). That is a deliberate choice in the
-  mode change's commit.
-- **Test accounts.** Testers must be Play Games testers until publishing, or nothing works for them
-  and the errors look like a sign-in bug.
-- **Emulator.** `EMULATOR.md`'s emulator needs a Google Play system image for PGS. Check what the
-  sandbox can run; otherwise PGS is verified on a real phone only.
-- **Trademark rule:** applies to every console string as well. The generated export goes through the
-  same guard as `StringChecks`.
-- **Data safety form and privacy policy** need updating before Phase 2 reaches any tester outside the
-  team.
-
----
+- **Play's own unlock pop-up** would duplicate ours (decision 9).
+- **Ids and points are permanent on Google's side.**
+  - Retiring an achievement is a migration (keep the mapping, stop reporting it), not a deletion.
+  - A rule change that makes old scores unfair needs a **new leaderboard key**; the old board stays frozen.
+- **Testers must be PGS testers** until publishing.
+- **Banned words** apply to every console string; the export goes through the `StringChecks` guard.
+- **The data safety form and privacy policy** need updating before Phase 2 reaches anyone outside the team.
 
 ## Decisions
 
-**Rule: this work is not complete while any decision below is Deferred.** Each deferred decision
-blocks the phase named next to it. Ask the maintainer when that phase reaches it, and record the
-answer here (and at the inline marker). Never settle one silently with the recommended default.
-
 | # | Decision | Answer | Needed by |
 |---|---|---|---|
-| 1 | Is Level Up a goal? | **Decided: no.** Game Stats stays an optional extra. | - |
-| 2 | "Reset achievements" while linked | **Decided: disabled while linked**, with the reason given. Works as today when not signed in. | Phase 3 |
-| 3 | "Reset leaderboard" when signed in | **Decided: all devices** (local + cloud). Play's online bests stay, and the confirmation says so. | Phase 4/5 |
-| 4 | Submit pre-link best scores | **Decided: yes.** Seat 1's best unmodified score per mode, once per account per device on first link. | Phase 4 |
-| 5 | In-progress game in the cloud | **Decided: yes**, newest wins. | Phase 5 |
-| 6 | GitHub release builds sign in? | **Decided: Play-only.** GitHub key not registered. | Phase 0/2 |
-| 7 | Achievement points | **Deferred:** tier formula (~300 held back), or by hand. | Phase 3 (before publishing) |
-| 8a | Sidekick tab position | **Deferred: decided on a device** (`TOP_RIGHT`/`TOP_LEFT` likely). | Phase 6 |
-| 8b | Sidekick snooze | **Decided: 300 seconds.** | Phase 6 |
-| 9 | Play's unlock pop-up alongside ours | **Deferred:** suppress it if v2 allows, or accept it. | Phase 3 |
-| 10 | Commit category | **Decided: `[Play Games]`.** | Phase 1 |
-| 11 | Locked achievement icon on Play | **Deferred:** own icon greyed (recommended), or a generic padlock. | Phase 3 (with the renders) |
-| 12 | Game Over note on submission | **Decided: stay quiet.** | Phase 4 |
+| 1 | Level Up a goal? | **Decided: no** | - |
+| 2 | Reset achievements while linked | **Decided: disabled, with the reason** | Phase 3 |
+| 3 | Reset leaderboard when signed in | **Decided: all devices**; Play bests stay | Phase 4/5 |
+| 4 | Submit pre-link bests | **Decided: yes**, once per account per device | Phase 4 |
+| 5 | In-progress game in the cloud | **Decided: yes**, newest wins | Phase 5 |
+| 6 | GitHub builds sign in? | **Decided: Play-only** | Phase 0/2 |
+| 7 | Achievement points | **Deferred**: the tier formula (~300 held back), or set by hand | Phase 3, before publishing |
+| 8a | Sidekick tab position | **Deferred**: decided on a device | Phase 6 |
+| 8b | Sidekick snooze | **Decided: 300s** | Phase 6 |
+| 9 | Play's unlock pop-up | **Deferred**: suppress if v2 allows (`setViewForPopups` existed in v1), or accept | Phase 3 |
+| 10 | Commit category | **Decided: `[Play Games]`** | Phase 1 |
+| 11 | Locked icon on Play | **Deferred**: own icon greyed (recommended), or a padlock | Phase 3, with the renders |
+| 12 | Game Over note | **Decided: stay quiet** | Phase 4 |
 
 **Still deferred: 7, 8a, 9, 11.**
 
----
-
 ## Sources
 
-- [Platform authentication for Android games](https://developer.android.com/games/pgs/android/android-signin)
-- [Achievements](https://developer.android.com/games/pgs/achievements)
-- [Leaderboards](https://developer.android.com/games/pgs/leaderboards)
-- [Saved games for Android games](https://developer.android.com/games/pgs/android/saved-games)
-- [Play Games Sidekick](https://developer.android.com/games/pgs/play-games-sidekick) and
-  [Sidekick SDK](https://developer.android.com/games/pgs/play-games-sidekick-sdk)
-- [Google Play Games Level Up guidelines](https://developer.android.com/games/guidelines)
-- [Android games release notes](https://developer.android.com/games/docs/release-notes)
+[Sign-in](https://developer.android.com/games/pgs/android/android-signin) ·
+[Achievements](https://developer.android.com/games/pgs/achievements) ·
+[Leaderboards](https://developer.android.com/games/pgs/leaderboards) ·
+[Saved games](https://developer.android.com/games/pgs/android/saved-games) ·
+[Sidekick](https://developer.android.com/games/pgs/play-games-sidekick) ·
+[Sidekick SDK](https://developer.android.com/games/pgs/play-games-sidekick-sdk) ·
+[Level Up](https://developer.android.com/games/guidelines) ·
+[Release notes](https://developer.android.com/games/docs/release-notes)
