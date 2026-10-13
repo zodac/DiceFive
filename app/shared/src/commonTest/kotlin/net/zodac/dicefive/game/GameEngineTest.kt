@@ -326,6 +326,39 @@ class GameEngineTest {
     }
 
     @Test
+    fun `a turn forfeited before its first roll is a zero in the first open box - no roll shown - nothing stored - and the turn moves on`() {
+        val rolled = GameEngine.rollDice(GameEngine.newGame(twoPlayers))
+        assertFailsWith<IllegalStateException> { GameEngine.forfeitTurn(rolled) }
+
+        // Player 1's roll is on show until their next turn - forfeited, which has no roll to show.
+        var state = GameEngine.commitScore(rolled, ScoreCategory.CHANCE)
+        state = GameEngine.commitScore(GameEngine.rollDice(state), ScoreCategory.CHANCE)
+        assertEquals(0, state.currentPlayerIndex)
+        state = GameEngine.forfeitTurn(state)
+        val player = state.players[0]
+        assertEquals(listOf(0), player.scoresIn(ScoreCategory.ONES))
+        assertEquals(ScoreCategory.ONES, player.lastScoredCategory)
+        assertEquals(null, player.lastRoll)
+        assertEquals(1, state.currentPlayerIndex)
+        assertEquals(TurnPhase.AWAITING_ROLL, state.phase)
+
+        // The first open box in scorecard order, skipping those filled: Ones gone, Twos next.
+        state = GameEngine.forfeitTurn(GameEngine.forfeitTurn(state))
+        assertEquals(listOf(0), state.players[0].scoresIn(ScoreCategory.TWOS))
+
+        // With Stored Rolls on, the forfeited turn's rolls aren't kept for the next.
+        val stored = GameEngine.forfeitTurn(GameEngine.newGame(onePlayer, rollModifiers = RollModifiers(storedRolls = true)))
+        assertEquals(0, stored.players.single().storedRolls)
+        assertEquals(3, stored.rollsRemaining)
+
+        // It can end the game, like any score.
+        var timedOut = GameEngine.newGame(onePlayer)
+        repeat(GameMode.STANDARD.categories.size) { timedOut = GameEngine.forfeitTurn(timedOut) }
+        assertTrue(timedOut.isGameOver)
+        assertEquals(0, timedOut.players.single().totalScore)
+    }
+
+    @Test
     fun `Stored Rolls carries a player's unused rolls into their own next turn - up to its cap - on top of Number of Rolls`() {
         // Without it, unused rolls are lost.
         val plain = scoreNow(GameEngine.rollDice(GameEngine.newGame(onePlayer)))

@@ -195,8 +195,6 @@
     <string name="achievement_no_more_rolls_description">Toca el cubilete tres veces tras tu última tirada de un turno</string>
     <string name="achievement_impatient_title">Impaciente</string>
     <string name="achievement_impatient_description">Termina una partida sin tirar más de una vez en ningún turno</string>
-    <string name="achievement_luck_of_the_draw_title">¡Mira, mamá, sin manos!</string>
-    <string name="achievement_luck_of_the_draw_description">Gana una partida anotando tú mismo 3 categorías o menos: el temporizador hizo el resto</string>
     <string name="achievement_fresh_coat_of_paint_title">Mano de pintura</string>
     <string name="achievement_fresh_coat_of_paint_description">Juega una partida con algún elemento con un estilo no predeterminado</string>
     <string name="achievement_empty_house_title">Casa vacía</string>
@@ -969,7 +967,7 @@
     <string name="rules_turn_timer_title">Temporizador de turno</string>
     <string name="rules_turn_timer_tab">Temporizador</string>
     <string name="rules_turn_timer_1">El *temporizador de turno* pone un límite al tiempo que tiene cada jugador para terminar su turno (no cada tirada). Elige **30**, **60** o **120** segundos. Opcionalmente, puedes elegir tu propio valor entre **5** s y **999** s. El tiempo restante empezará a parpadear en rojo cuando queden 5 segundos.</string>
-    <string name="rules_turn_timer_2">Si se acaba el tiempo de un jugador, su tirada se anota por él en la categoría libre donde menos valga (la primera de la tarjeta, si varias empatan).</string>
+    <string name="rules_turn_timer_2">Si se acaba el tiempo de un jugador, su turno se anota por él en la primera categoría libre de la tarjeta: con los dados tal como están, o con un cero si aún no había tirado.</string>
     <string name="rules_number_of_rolls_title">Número de tiradas</string>
     <string name="rules_number_of_rolls_tab">Número de tiradas</string>
     <string name="rules_number_of_rolls_1">El *número de tiradas* fija cuántas veces puede tirar un jugador cada turno, de **1** a **9**. Esto sustituye el número habitual del modo, que es **3** en casi todos.</string>

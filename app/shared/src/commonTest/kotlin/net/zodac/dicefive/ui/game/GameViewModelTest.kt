@@ -167,6 +167,10 @@ class GameViewModelTest {
         advanceTimeBy(30_000)
         runCurrent()
         assertEquals(1, expired.game.value!!.players.single().turnsTaken)
+        // Never rolled, so nothing is rolled for it: a zero in the first box, and no dice to show for the turn.
+        assertEquals(listOf(0), expired.game.value!!.players.single().scoresIn(ScoreCategory.ONES))
+        assertEquals(0, expired.game.value!!.players.single().rollCount)
+        assertNull(expired.game.value!!.players.single().lastRoll)
         // The very next turn's timer (same lone player) is already ticking again by this point.
         assertEquals(30, expired.turnSecondsRemaining.value)
 

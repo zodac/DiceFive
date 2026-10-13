@@ -6,6 +6,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -755,29 +756,26 @@ class GameAchievementsWiringTest {
     }
 
     @Test
-    fun `letting every turn time out and still winning unlocks Luck Of The Draw`() = runTest {
-        // Every die a 6. Player 1 never touches their turn: the timer scores each one in the first open box, and their last
-        // is a repeat 5x - Chance plus the 100 bonus. Player 2 scores every turn by hand, the 5x box last so they never earn
-        // a bonus - so player 1 wins by 100 or more.
-        val table = started(LoadedDice(6), players = 2) { setTurnTimer(TurnTimer.SECONDS_30) }
-        val playerTwoOrder = listOf(
-            ScoreCategory.ONES, ScoreCategory.TWOS, ScoreCategory.THREES, ScoreCategory.FOURS,
-            ScoreCategory.FIVES, ScoreCategory.FULL_HOUSE, ScoreCategory.SMALL_STRAIGHT,
-            ScoreCategory.LARGE_STRAIGHT, ScoreCategory.SIXES, ScoreCategory.THREE_OF_A_KIND,
-            ScoreCategory.FOUR_OF_A_KIND, ScoreCategory.CHANCE, ScoreCategory.FIVE_OF_A_KIND,
-        )
-        for (category in playerTwoOrder) {
+    fun `letting every turn time out scores a zero in each box with no roll - and earns none of the low or zeroed cards`() = runTest {
+        val table = started(LoadedDice(1)) { setTurnTimer(TurnTimer.SECONDS_30) }
+        repeat(GameMode.STANDARD.categories.size) {
             testDispatcher.scheduler.advanceTimeBy(30_000)
             testDispatcher.scheduler.runCurrent()
-            table.viewModel.rollDice()
-            table.viewModel.commitScore(category)
         }
         advanceUntilIdle()
 
         val state = table.viewModel.game.value!!
         assertTrue(state.isGameOver)
-        assertTrue(state.players[0].totalScore > state.players[1].totalScore, "player 1 should win: ${state.players.map { it.totalScore }}")
-        assertTrue(Achievement.LUCK_OF_THE_DRAW in table.unlocked, "LUCK_OF_THE_DRAW should pop, got ${table.unlocked}")
+        val player = state.players.single()
+        assertEquals(0, player.totalScore)
+        assertTrue(player.allScores.all { it == 0 }, "every box a zero: ${player.scorecard}")
+        assertEquals(0, player.rollCount, "nothing was rolled")
+        assertNull(player.lastRoll)
+        for (achievement in listOf(
+            Achievement.ALL_ZEROES, Achievement.LOW_ROLLS, Achievement.SCORE_UNDER_100, Achievement.SCRATCHED_5X, Achievement.IMPATIENT,
+        )) {
+            assertFalse(achievement in table.unlocked, "$achievement shouldn't pop for a game the timer played, got ${table.unlocked}")
+        }
     }
 
     @Test

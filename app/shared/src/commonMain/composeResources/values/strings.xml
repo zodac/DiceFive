@@ -262,8 +262,6 @@
     <string name="achievement_no_more_rolls_description">Tap the dice cup three times after your last roll of a turn</string>
     <string name="achievement_impatient_title">Impatient</string>
     <string name="achievement_impatient_description">Finish a game never rolling more than once in any turn</string>
-    <string name="achievement_luck_of_the_draw_title">Look Ma, No Hands!</string>
-    <string name="achievement_luck_of_the_draw_description">Win a game scoring 3 or fewer categories yourself - the turn timer did the rest</string>
     <string name="achievement_fresh_coat_of_paint_title">Fresh Coat Of Paint</string>
     <string name="achievement_fresh_coat_of_paint_description">Play a game with any item using a non-default style</string>
     <string name="achievement_empty_house_title">Empty House</string>
@@ -1225,7 +1223,7 @@
     <!-- A tab: keep it short. -->
     <string name="rules_turn_timer_tab">Turn Timer</string>
     <string name="rules_turn_timer_1">*Turn Timer* sets a limit on how long each player has to finish their turn (not each roll). Choose **30**, **60** or **120** seconds. Optionally, you may select your own value between **5**s and **999**s. The remaining time will begin to flash red when there are 5 seconds remaining.</string>
-    <string name="rules_turn_timer_2">If a player's time runs out, their roll is scored for them in whichever open category is worth the least (the first one on the scorecard, if several tie).</string>
+    <string name="rules_turn_timer_2">If a player's time runs out, their turn is scored for them in the first open category on the scorecard: with their dice as they lie, or as a zero if they hadn't rolled yet.</string>
     <string name="rules_number_of_rolls_title">Number of Rolls</string>
     <!-- A tab: keep it short. -->
     <string name="rules_number_of_rolls_tab">Number of Rolls</string>

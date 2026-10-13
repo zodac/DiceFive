@@ -497,7 +497,7 @@ private fun InProgressGame(
     // The one DiceTray call for both branches above - a live turn's own dice, or a viewed player's
     // last roll - so the gap beside it is identical either way, not a second hand-picked layout that
     // only one branch remembers to apply. Skipped entirely for a viewed player who hasn't finished a
-    // turn yet - there's no roll of theirs to show, not even an empty mat.
+    // turn yet, or whose last turn timed out unrolled - there's no roll of theirs to show, not even an empty mat.
     val viewedLastRoll = viewedPlayer?.lastRoll
     val tray = @Composable {
         if (viewedPlayer == null || viewedLastRoll != null) {

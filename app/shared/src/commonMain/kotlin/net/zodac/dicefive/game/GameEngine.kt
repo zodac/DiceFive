@@ -225,6 +225,25 @@ object GameEngine {
         return advanceTurn(state.copy(players = updatedPlayers))
     }
 
+    /**
+     * A turn the timer ran out on before its first roll: a zero in the first open box, in scorecard order, and on to the
+     * next turn. There's no hand, so no [PlayerState.lastRoll] to show for it, and none of the turn's rolls are kept for
+     * later (Stored Rolls) - letting the clock run down is never a way to bank rolls.
+     */
+    fun forfeitTurn(state: GameState): GameState {
+        check(state.phase == TurnPhase.AWAITING_ROLL) { "Only a turn not yet rolled is forfeited" }
+        val player = requireNotNull(state.currentPlayer) { "No current player" }
+        val category = player.categories.first { player.isOpen(it) }
+        val updatedPlayer = player.copy(
+            scorecard = player.scorecard + (category to player.scoresIn(category) + 0),
+            lastRoll = null,
+            lastScoredCategory = category,
+            storedRolls = 0,
+        )
+        val updatedPlayers = state.players.toMutableList().apply { this[state.currentPlayerIndex] = updatedPlayer }
+        return advanceTurn(state.copy(players = updatedPlayers))
+    }
+
     private const val PERCENT = 100
 
     private fun advanceTurn(state: GameState): GameState {

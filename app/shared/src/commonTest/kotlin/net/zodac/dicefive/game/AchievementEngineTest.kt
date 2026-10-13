@@ -873,41 +873,44 @@ class AchievementEngineTest {
         assertFalse(Achievement.LOWER_150 in unlocked(quickfireGame(lower)))
     }
 
-    // ---- Luck Of The Draw -------------------------------------------------------------------------
-
-    private fun wonGame(mode: GameMode = GameMode.STANDARD) = finishedGame(player(total = 300, gameMode = mode), bot(total = 200, gameMode = mode))
-
-    private fun luckOfTheDraw(state: GameState, timeouts: Int) =
-        Achievement.LUCK_OF_THE_DRAW in unlocked(state, GameAchievementContext(playerOneTimeouts = timeouts))
+    // ---- The turn timer ------------------------------------------------------------------------------
 
     @Test
-    fun `winning with 3 or fewer boxes scored yourself is Luck Of The Draw - measured against each mode's own card`() {
-        // Standard's 13 boxes: 10 timeouts leaves 3 scored by hand.
-        assertTrue(luckOfTheDraw(wonGame(), timeouts = 10))
-        assertTrue(luckOfTheDraw(wonGame(), timeouts = 13))
-        assertFalse(luckOfTheDraw(wonGame(), timeouts = 9))
-        // It needs a win against an opponent.
-        assertFalse(luckOfTheDraw(finishedGame(player(total = 100), bot(total = 200)), timeouts = 13))
-        assertFalse(luckOfTheDraw(finishedGame(player(total = 300)), timeouts = 13))
-        // Quickfire's six boxes: 3 timeouts leaves 3 by hand, 2 leaves 4.
-        val quickfire = quickfireGame(quickfirePlayer(total = 300), quickfirePlayer(total = 200, name = "Bot", type = PlayerType.AI))
-        assertTrue(luckOfTheDraw(quickfire, timeouts = 3))
-        assertFalse(luckOfTheDraw(quickfire, timeouts = 2))
-        // Tricolour's 17 boxes: 14 timeouts leaves 3 by hand, 13 leaves 4.
-        assertTrue(luckOfTheDraw(wonGame(GameMode.TRICOLOUR), timeouts = 14))
-        assertFalse(luckOfTheDraw(wonGame(GameMode.TRICOLOUR), timeouts = 13))
-        // Third Wind's 39 turns: 36 timeouts leaves 3.
-        val thirdWind = finishedGame(thirdWindNoZeroes(), thirdWindPlayer(name = "Bot", type = PlayerType.AI) { _, _ -> 1 })
-        assertTrue(luckOfTheDraw(thirdWind, timeouts = 36))
-        assertFalse(luckOfTheDraw(thirdWind, timeouts = 35))
-        // Extended Scores counts its turns too: 13 boxes need 10 timeouts, 16 boxes 13.
-        fun won(extended: Boolean): GameState {
-            val me = player(total = 300).let { if (extended) it.copy(extendedScores = true, scorecard = it.scorecard + ScoreCategory.EXTENDED.associateWith { listOf(0) }) else it }
-            return finishedGame(me, bot(total = 100)).copy(extendedScores = extended)
-        }
-        assertTrue(luckOfTheDraw(won(extended = false), timeouts = 10))
-        assertFalse(luckOfTheDraw(won(extended = true), timeouts = 10))
-        assertTrue(luckOfTheDraw(won(extended = true), timeouts = 13))
+    fun `a turn timed out is a zero for nothing - so the low and zeroed cards and Impatient need a game without one`() {
+        // Five on the card, every box but Chance a zero: all of these, played out by hand.
+        val rockBottom = finishedGame(player(total = 5))
+        val lowAndZeroed = listOf(
+            Achievement.ALL_ZEROES, Achievement.EXTREME_LOW_ROLLS, Achievement.LOW_ROLLS, Achievement.SCORE_UNDER_100,
+            Achievement.SCRATCHED_5X, Achievement.IMPATIENT,
+        )
+        val byHand = unlocked(rockBottom)
+        for (achievement in lowAndZeroed) assertTrue(achievement in byHand, "$achievement by hand")
+
+        // One timeout, a zero in the 5x box, and none of them - not even Scratched 5x, whose only zero the timer took.
+        val timedOut = unlocked(rockBottom, GameAchievementContext(playerOneTimeouts = 1, playerOneTimedOutZeroes = listOf(ScoreCategory.FIVE_OF_A_KIND)))
+        for (achievement in lowAndZeroed) assertFalse(achievement in timedOut, "$achievement with a turn timed out")
+        // A timeout that zeroed some other box leaves the 5x zero player 1's own.
+        assertTrue(Achievement.SCRATCHED_5X in unlocked(rockBottom, GameAchievementContext(playerOneTimeouts = 1, playerOneTimedOutZeroes = listOf(ScoreCategory.ONES))))
+        // Nor is a winner's Naturally Gifted (never rolling twice) earned by never rolling at all.
+        val won = finishedGame(player(total = 200), bot(total = 150))
+        assertTrue(Achievement.NATURALLY_GIFTED in unlocked(won))
+        assertFalse(Achievement.NATURALLY_GIFTED in unlocked(won, GameAchievementContext(playerOneTimeouts = 1)))
+    }
+
+    @Test
+    fun `Zero To Hero counts only the zeroes player 1 took - and Scratched 5x mid-game only one the timer didn't score`() {
+        val threeZeroes = player(total = 200, overrides = mapOf(ScoreCategory.ONES to 0, ScoreCategory.TWOS to 0, ScoreCategory.THREES to 0, ScoreCategory.SIXES to 30))
+        val won = finishedGame(threeZeroes, bot(total = 100))
+        // The player() card zeroes every box it isn't told to fill - so count them, then hand all but two to the timer.
+        val zeroes = threeZeroes.allScores.count { it == 0 }
+        fun timedOut(count: Int) = GameAchievementContext(playerOneTimeouts = count, playerOneTimedOutZeroes = List(count) { ScoreCategory.ONES })
+        assertTrue(Achievement.ZERO_TO_HERO in unlocked(won, timedOut(zeroes - 3)))
+        assertFalse(Achievement.ZERO_TO_HERO in unlocked(won, timedOut(zeroes - 2)))
+
+        val scratched = midGamePlayer(mapOf(ScoreCategory.FIVE_OF_A_KIND to 0))
+        assertTrue(Achievement.SCRATCHED_5X in unlockedMidGame(scratched))
+        val byTimer = AchievementEngine.evaluateInProgress(inProgress(scratched), AchievementsState(), NOW, listOf(ScoreCategory.FIVE_OF_A_KIND)).newlyUnlocked
+        assertFalse(Achievement.SCRATCHED_5X in byTimer)
     }
 
     // ---- Modifiers ----------------------------------------------------------------------------------

@@ -353,9 +353,13 @@ class GameViewModel(
     private var playerOneTookExtraRoll = false
 
     /** How many of player 1's own turns the turn timer has run out on this game - see
-     * [Achievement.LUCK_OF_THE_DRAW]. A timed-out score
+     * [GameAchievementContext.playerOneTimeouts]. A timed-out score
      * can't be undone, so this never needs counting back down. */
     private var playerOneTimeouts = 0
+
+    /** The box of each zero the turn timer scored for player 1 this game, once per zero - see
+     * [GameAchievementContext.playerOneTimedOutZeroes]. Never undone, as [playerOneTimeouts]. */
+    private val playerOneTimedOutZeroes = mutableListOf<ScoreCategory>()
 
     /** Whether player 1's most recently completed turn scored a genuine 5x - see
      * [Achievement.TWICE_IN_A_LIFETIME]. */
@@ -1000,9 +1004,10 @@ class GameViewModel(
     }
 
     /**
-     * The turn timer running out: forfeits the rest of this turn's rolls (rolling first, if the
-     * player hadn't yet, since a category can't be committed before that) and commits into the
-     * the first open category (scoring zero if the dice don't match it).
+     * The turn timer running out: forfeits the rest of this turn's rolls and commits into the first
+     * open category - with the dice as they lie (scoring zero if they don't match it), or with a zero
+     * and no roll at all if the turn was never rolled ([GameEngine.forfeitTurn]): nothing is rolled
+     * that the player didn't roll themselves.
      * A forced miss rather than picking the player's best option for them. Applies equally to an AI
      * seat that's taken too long to decide - Hard's exhaustive search is the only realistic way
      * this fires for one - cancelling its in-flight turn job first so it can't keep acting after
@@ -1019,17 +1024,23 @@ class GameViewModel(
         // it just doesn't feed Achievement tracking.
         val isPlayerOneTurn = state.currentPlayerIndex == 0
 
-        if (state.phase != TurnPhase.ROLLED) {
-            state = GameEngine.rollDice(state, random)
+        val scored = if (state.phase != TurnPhase.ROLLED) {
+            GameEngine.forfeitTurn(state)
+        } else {
+            // Where only held dice score, the first box that can be scored is chosen, and the hand completed for it.
+            val category = HandCompletion.timeoutCategory(state) ?: return
+            state = HandCompletion.bestCompletion(state, category) ?: return
+            GameEngine.commitScore(state, category)
         }
-        // Where only held dice score, the first box that can be scored is chosen, and the hand completed for it.
-        val category = HandCompletion.timeoutCategory(state) ?: return
-        state = HandCompletion.bestCompletion(state, category) ?: return
-        setUndoSnapshot(null)
-        applyGameState(GameEngine.commitScore(state, category))
+        // Counted before the state goes out: a timeout on the game's last turn ends it, and the results' achievements read these.
         if (isPlayerOneTurn) {
             playerOneTimeouts++
+            val playerOne = scored.players.first()
+            val category = requireNotNull(playerOne.lastScoredCategory)
+            if (playerOne.scoresIn(category).last() == 0) playerOneTimedOutZeroes += category
         }
+        setUndoSnapshot(null)
+        applyGameState(scored)
     }
 
     /**
@@ -1137,7 +1148,7 @@ class GameViewModel(
 
         viewModelScope.launch {
             withAchievementLock {
-                val update = AchievementEngine.evaluateInProgress(state, repository.current(), nowEpochMillis())
+                val update = AchievementEngine.evaluateInProgress(state, repository.current(), nowEpochMillis(), playerOneTimedOutZeroes.toList())
                 persistAndAnnounce(repository, update)
             }
         }
@@ -1157,6 +1168,7 @@ class GameViewModel(
             diceRolledByPlayerOne = diceRolledByPlayerOne,
             playerOneTookExtraRoll = playerOneTookExtraRoll,
             playerOneTimeouts = playerOneTimeouts,
+            playerOneTimedOutZeroes = playerOneTimedOutZeroes.toList(),
         )
         withAchievementLock {
             val update = AchievementEngine.evaluate(state, context, repository.current(), nowEpochMillis())
@@ -1531,6 +1543,7 @@ class GameViewModel(
         ledIntoFinalRound = false
         playerOneTookExtraRoll = false
         playerOneTimeouts = 0
+        playerOneTimedOutZeroes.clear()
         playerOnePreviousTurnWasFiveOfAKind = false
         outOfRollsCupTaps = 0
         resetPerTurnTracking()

@@ -45,7 +45,6 @@ import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.HeartBroken
 import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material.icons.filled.HourglassEmpty
-import androidx.compose.material.icons.filled.HourglassFull
 import androidx.compose.material.icons.filled.House
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowUp
@@ -271,7 +270,6 @@ val Achievement.icon: ImageVector
         Achievement.NO_MORE_ROLLS -> Icons.Filled.Block
         Achievement.IMPATIENT -> Icons.Filled.FlashOn
         // The timer shuffling your scores into place for you.
-        Achievement.LUCK_OF_THE_DRAW -> Icons.Filled.HourglassFull
         Achievement.FRESH_COAT_OF_PAINT -> Icons.Filled.FormatPaint
         Achievement.EMPTY_HOUSE -> Icons.Filled.NoMeetingRoom
         Achievement.FULLER_HOUSE -> Icons.Filled.House

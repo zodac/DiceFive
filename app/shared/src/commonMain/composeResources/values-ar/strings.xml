@@ -212,8 +212,6 @@
     <string name="achievement_no_more_rolls_description">اضغط على كأس النرد ثلاث مرات بعد رميتك الأخيرة في دور</string>
     <string name="achievement_impatient_title">قليل الصبر</string>
     <string name="achievement_impatient_description">أنهِ لعبة دون أن ترمي أكثر من مرة واحدة في أي دور</string>
-    <string name="achievement_luck_of_the_draw_title">انظري يا أمي، بلا يدين!</string>
-    <string name="achievement_luck_of_the_draw_description">افز في لعبة وأنت تسجّل بنفسك ٣ فئات أو أقل، وأنهى مؤقّت الدور الباقي</string>
     <string name="achievement_fresh_coat_of_paint_title">طلاء جديد</string>
     <string name="achievement_fresh_coat_of_paint_description">العب لعبة يستخدم فيها أي عنصر نمطًا غير الافتراضي</string>
     <string name="achievement_empty_house_title">بيت فارغ</string>
@@ -1066,7 +1064,7 @@
     <string name="rules_turn_timer_title">مؤقّت الدور</string>
     <string name="rules_turn_timer_tab">مؤقّت الدور</string>
     <string name="rules_turn_timer_1">يضع *مؤقّت الدور* حدًا لما يملكه كل لاعب من وقت لإنهاء دوره (لا كل رمية). اختر **٣٠** أو **٦٠** أو **١٢٠** ثانية. ويمكنك اختياريًا تحديد قيمتك الخاصة بين **٥** ث و**٩٩٩** ث. سيبدأ الوقت المتبقي بالوميض باللون الأحمر عندما تتبقى ٥ ثوانٍ.</string>
-    <string name="rules_turn_timer_2">إذا نفد وقت لاعب، تُسجَّل رميته نيابةً عنه في الفئة المفتوحة التي تساوي فيها أقل قيمة (أول فئة في بطاقة النتائج إن تساوت عدة فئات).</string>
+    <string name="rules_turn_timer_2">إذا نفد وقت لاعب، يُسجَّل دوره نيابةً عنه في أول فئة مفتوحة في بطاقة النتائج: بالنرد كما هو، أو بصفر إن لم يكن قد رمى بعد.</string>
     <string name="rules_number_of_rolls_title">عدد الرميات</string>
     <string name="rules_number_of_rolls_tab">عدد الرميات</string>
     <string name="rules_number_of_rolls_1">يحدّد *عدد الرميات* كم مرة يحق للاعب أن يرمي في كل دور، من **١** إلى **٩**. وهذا يستبدل العدد المعتاد للنمط، وهو **٣** في معظمها.</string>

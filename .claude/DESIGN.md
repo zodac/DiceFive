@@ -2616,6 +2616,10 @@ any page.
 - 102 achievements now, so the D20 dice unlock moved from `AchievementCount(104)` to `102` (it was "every achievement").
 - Earlier mentions of the old names in this file are history and were left as written.
 
+- `LUCK_OF_THE_DRAW` ("Look Ma, No Hands!") was removed, with its strings in every locale: a turn the timer runs out on
+  before it's rolled is now a zero with no roll (see below), so winning on timeouts no longer made sense. One already
+  unlocked is simply no longer counted.
+
 
 ### Phase 35 — Game mode: D20
 
@@ -2624,3 +2628,15 @@ any page.
 - [x] AI: Medium holds the best open number (`numberHoldIndices`), Hard's bonus stake generalised per section and the baseline for a number worked out in closed form.
 - [x] Achievements (two more): Nat 20 (`D20_WIN`, unlocks the white and black D20 dice) and Critical Success (`D20_BOTH_BONUSES`, unlocks the blue D20); `GameMode.hasStandardCard` guards the totals/zero ones.
 - [x] Rules page, strings in English, Spanish and Arabic.
+
+### Turn timer: no roll, no score
+- [x] A turn the timer runs out on before its first roll is no longer rolled for the player: `GameEngine.forfeitTurn`
+      scores a zero in the first open box, with no `lastRoll` to show and nothing kept for Stored Rolls (running the
+      clock down is never a way to bank rolls). A turn already rolled is still scored with its dice, as before. CPU
+      seats are timed out the same way.
+- [x] Guards, since a zero can now be had for nothing: How Do You Play This Game?, Rock Bottom, Low Rolls, Cold Dice,
+      Impatient and Naturally Gifted need a game without a timeout (`GameAchievementContext.playerOneTimeouts`);
+      Zero To Hero and Scratched leave out the zeroes the timer scored (`playerOneTimedOutZeroes`, passed to
+      `evaluateInProgress` too). Like the other per-game counters, these restart on a resumed game.
+- [x] Rules page: the Turn Timer's second line rewritten in every language (it also said "worth the least", which
+      the code never did - it's the first open box).

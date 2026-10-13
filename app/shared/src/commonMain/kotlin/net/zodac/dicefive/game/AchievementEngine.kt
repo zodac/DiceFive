@@ -40,10 +40,16 @@ data class GameAchievementContext(
     val playerOneTookExtraRoll: Boolean = false,
     /**
      * How many of player 1's own turns the turn timer ran out on (and so scored for them) this game.
-     * Every turn ends either that way or by player 1 scoring it, so the rest of their card is what
-     * they scored themselves. [Achievement.LUCK_OF_THE_DRAW] needs it high enough.
+     * A turn timed out before it was rolled scores a zero with no roll at all, so the achievements for
+     * a low or zeroed card - and Impatient's single rolls - need this to be 0: letting the clock run
+     * down would otherwise earn them for nothing.
      */
     val playerOneTimeouts: Int = 0,
+    /**
+     * The box of each zero the turn timer scored for player 1 this game, once per zero: the zeroes
+     * [Achievement.ZERO_TO_HERO] and [Achievement.SCRATCHED_5X] don't count, as player 1 didn't take them.
+     */
+    val playerOneTimedOutZeroes: List<ScoreCategory> = emptyList(),
     /**
      * What the leaderboard said *before* this game's rows were inserted. Read pre-insert for the
      * same reason [previousBestScore] is, and because the engine adds this game's own human totals
@@ -167,13 +173,10 @@ object AchievementEngine {
 
     /**
      * The lowest total the rules permit. Legal, if perverse: five 1s taken as Chance scores 5,
-     * and every other box can be zeroed deliberately.
+     * and every other box can be zeroed deliberately. (A turn timed out unrolled scores a zero even in
+     * Chance - which is why the low-score achievements need a game without timeouts.)
      */
     private const val LOWEST_POSSIBLE_SCORE = 5
-
-    /** The most categories player 1 can score themselves - not the turn timer - and still earn
-     * [Achievement.LUCK_OF_THE_DRAW]. */
-    private const val LUCK_OF_THE_DRAW_MAX_OWN_SCORES = 3
 
     private const val MAX_CHANCE = 30
     private const val MAX_SIXES = 30
@@ -231,6 +234,7 @@ object AchievementEngine {
         state: GameState,
         before: AchievementsState,
         now: Long,
+        timedOutZeroes: List<ScoreCategory> = emptyList(),
     ): AchievementUpdate {
         if (state.isGameOver) return AchievementUpdate()
 
@@ -238,7 +242,7 @@ object AchievementEngine {
         if (state.players.firstOrNull()?.type != PlayerType.HUMAN) return AchievementUpdate()
         val humans = listOf(state.players.first())
 
-        return update(earnedDuringPlay(state.players, humans), emptyMap(), before, now)
+        return update(earnedDuringPlay(state.players, humans, timedOutZeroes), emptyMap(), before, now)
     }
 
     /**
@@ -323,7 +327,7 @@ object AchievementEngine {
      * complete card, "Cold Dice" needs a score that can no longer climb, and anything about
      * winning needs a result.
      */
-    private fun earnedDuringPlay(players: List<PlayerState>, humans: List<PlayerState>): Set<Achievement> {
+    private fun earnedDuringPlay(players: List<PlayerState>, humans: List<PlayerState>, timedOutZeroes: List<ScoreCategory>): Set<Achievement> {
         val earned = mutableSetOf<Achievement>()
 
         fun award(achievement: Achievement, condition: Boolean) {
@@ -352,7 +356,13 @@ object AchievementEngine {
         // Section totals over a card scored three times over (Third Wind) would pass these with ease.
         award(Achievement.UPPER_84, anyHuman { it.hasSingleScoreCard && it.upperSectionTotal >= UPPER_CLASS_THRESHOLD })
         award(Achievement.LOWER_150, anyHuman { it.hasSingleScoreCard && it.lowerSectionTotalExcludingFiveOfAKind >= LOWER_CLASS_THRESHOLD })
-        award(Achievement.SCRATCHED_5X, anyHuman { it.hasScore(ScoreCategory.FIVE_OF_A_KIND, 0) })
+        // Taken, not handed out by the turn timer: a zero there that the timer didn't score.
+        award(
+            Achievement.SCRATCHED_5X,
+            anyHuman { player ->
+                player.scoresIn(ScoreCategory.FIVE_OF_A_KIND).count { it == 0 } > timedOutZeroes.count { it == ScoreCategory.FIVE_OF_A_KIND }
+            },
+        )
 
         // Game modes. Only a Tricolour scorecard has these boxes at all, so no separate mode check.
         award(Achievement.TRICOLOUR_ALL_COLOURS, anyHuman { player -> TRICOLOUR_SET.all { player.scored(it) } })
@@ -391,7 +401,9 @@ object AchievementEngine {
         leaderboard: LeaderboardTotals,
     ): Set<Achievement> {
         val players = state.players
-        val earned = earnedDuringPlay(players, humans).toMutableSet()
+        val earned = earnedDuringPlay(players, humans, context.playerOneTimedOutZeroes).toMutableSet()
+        // A turn timed out before it was rolled is a zero for nothing (see GameAchievementContext.playerOneTimeouts).
+        val noTimeouts = context.playerOneTimeouts == 0
         val multiplayer = players.size > 1
         val primaryPlayerRank = TieBreak.rank(players).first { it.originalIndex == 0 }
         val humanWon = primaryPlayerRank.rank == 1
@@ -457,7 +469,7 @@ object AchievementEngine {
             // things, not a comeback.
             state.gameMode.scoresPerCategory == 1 && !state.extendedScores && state.unluckyDice == null && state.gameMode.hasStandardCard &&
                 !state.gameMode.scoresHeldDiceOnly && multiplayer && humanWon &&
-                humans.any { it.totalScore == state.topScore && it.allScores.count { v -> v == 0 } >= ZEROES_FOR_HERO },
+                humans.any { it.totalScore == state.topScore && it.allScores.count { v -> v == 0 } - context.playerOneTimedOutZeroes.size >= ZEROES_FOR_HERO },
         )
         award(Achievement.TRICOLOUR_WIN, multiplayer && humanWon && state.gameMode == GameMode.TRICOLOUR)
         award(Achievement.QUICKFIRE_WIN, multiplayer && humanWon && state.gameMode == GameMode.QUICKFIRE)
@@ -470,10 +482,6 @@ object AchievementEngine {
         award(Achievement.THIRD_WIND_WIN, multiplayer && humanWon && state.gameMode == GameMode.THIRD_WIND)
         award(Achievement.D20_WIN, multiplayer && humanWon && state.gameMode == GameMode.D20)
         award(Achievement.HIT_LIST_WIN, multiplayer && humanWon && state.gameMode == GameMode.HIT_LIST)
-        // Any mode - the game's length comes from player 1's own mode, so it's "all but 3" of 13 turns
-        // in Standard, of 6 in Quickfire, of 17 in Tricolour, and of 39 in Third Wind.
-        val playerOneScoredThemselves = players[0].turnsPerGame - context.playerOneTimeouts
-        award(Achievement.LUCK_OF_THE_DRAW, multiplayer && humanWon && playerOneScoredThemselves <= LUCK_OF_THE_DRAW_MAX_OWN_SCORES)
         award(Achievement.PIPPED_TO_THE_POST, multiplayer && !humanWon && state.topScore - bestHumanScore == PIPPED_MARGIN)
         award(Achievement.JAWS_OF_VICTORY, multiplayer && !humanWon && context.ledIntoFinalRound)
         award(
@@ -490,16 +498,17 @@ object AchievementEngine {
         // Misfortune that only a finished score can settle.
         // Not on a card with boxes switched off (Quickfire), where a total is low by construction, nor on a card of
         // targets (Hit List), where a total under 100 comes of an ordinary run of misses.
-        award(Achievement.SCORE_UNDER_100, anyHuman { it.hasStandardTotals && it.totalScore < COLD_DICE_SCORE })
-        award(Achievement.LOW_ROLLS, anyHuman { it.hasStandardTotals && it.totalScore < LOW_ROLLS_SCORE })
+        // Nor with the turn timer having zeroed any of it.
+        award(Achievement.SCORE_UNDER_100, noTimeouts && anyHuman { it.hasStandardTotals && it.totalScore < COLD_DICE_SCORE })
+        award(Achievement.LOW_ROLLS, noTimeouts && anyHuman { it.hasStandardTotals && it.totalScore < LOW_ROLLS_SCORE })
         // Chance is excluded because it cannot be zeroed - five dice always sum to at least 5.
         award(
             Achievement.ALL_ZEROES,
-            anyHuman { player ->
+            noTimeouts && anyHuman { player ->
                 player.hasFullCard && player.categories.filter { it != ScoreCategory.CHANCE }.all { category -> player.scoresIn(category).all { it == 0 } }
             },
         )
-        award(Achievement.EXTREME_LOW_ROLLS, anyHuman { it.hasFullCard && it.totalScore == LOWEST_POSSIBLE_SCORE })
+        award(Achievement.EXTREME_LOW_ROLLS, noTimeouts && anyHuman { it.hasFullCard && it.totalScore == LOWEST_POSSIBLE_SCORE })
         // "Lose a game to a CPU player" specifically - not just any loss. Losing to another human seat is
         // still a loss (PIPPED_TO_THE_POST/JAWS_OF_VICTORY don't care who won), but with only
         // player 1 earning achievements now, `!humanWon` alone would also fire whenever another
@@ -518,7 +527,8 @@ object AchievementEngine {
 
         // Impatient/Naturally Gifted: player 1 took every one of their own turns on a single roll -
         // by choice, so never when a turn has only one roll (the Number of Rolls modifier), where it would be free.
-        val playerOneNeverRolledTwice = !context.playerOneTookExtraRoll && state.rollsPerTurn > 1
+        // Nor with a turn timed out, which takes no extra roll by never being rolled at all.
+        val playerOneNeverRolledTwice = !context.playerOneTookExtraRoll && state.rollsPerTurn > 1 && noTimeouts
         award(Achievement.IMPATIENT, playerOneNeverRolledTwice)
         award(Achievement.NATURALLY_GIFTED, multiplayer && playerOneNeverRolledTwice && humanWon)
         // Every modifier at once, in a mode of its own: the timer, both roll modifiers, Extended Scores and Unlucky Dice.

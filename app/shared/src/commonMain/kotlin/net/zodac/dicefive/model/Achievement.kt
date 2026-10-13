@@ -95,8 +95,6 @@ import net.zodac.dicefive.resources.achievement_low_rolls_description
 import net.zodac.dicefive.resources.achievement_low_rolls_title
 import net.zodac.dicefive.resources.achievement_lower_150_description
 import net.zodac.dicefive.resources.achievement_lower_150_title
-import net.zodac.dicefive.resources.achievement_luck_of_the_draw_description
-import net.zodac.dicefive.resources.achievement_luck_of_the_draw_title
 import net.zodac.dicefive.resources.achievement_luck_of_the_irish_description
 import net.zodac.dicefive.resources.achievement_luck_of_the_irish_title
 import net.zodac.dicefive.resources.achievement_magicians_secret_description
@@ -819,13 +817,6 @@ enum class Achievement(
         "impatient",
         Res.string.achievement_impatient_title,
         Res.string.achievement_impatient_description,
-        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
-    ),
-    // Any game with the Turn Timer modifier on. Needs an opponent, like every win.
-    LUCK_OF_THE_DRAW(
-        "luck_of_the_draw",
-        Res.string.achievement_luck_of_the_draw_title,
-        Res.string.achievement_luck_of_the_draw_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
 
