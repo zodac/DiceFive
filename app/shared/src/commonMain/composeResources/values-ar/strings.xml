@@ -860,6 +860,9 @@
     <string name="achievements_reward_unlocked">لقد فتحت %1$s!</string>
     <string name="achievements_reward_locked">احصل على هذا لتفتح %1$s</string>
     <string name="achievements_reward_show_action">عرض النمط الذي يفتحه هذا</string>
+    <string name="achievements_missing_message">النتائج غير الموجودة بعد في لوحة المتصدرين (متبقٍ %1$s):</string>
+    <string name="achievements_missing_action">عرض النتائج الناقصة</string>
+    <string name="achievements_score_recorded">%1$s، مسجّلة</string>
     <string name="styles_title">الأنماط</string>
     <string name="styles_category_dice">النرد</string>
     <string name="styles_category_dice_cup">كأس النرد</string>

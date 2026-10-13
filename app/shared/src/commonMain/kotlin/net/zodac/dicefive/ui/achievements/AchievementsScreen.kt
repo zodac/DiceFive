@@ -5,6 +5,16 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import net.zodac.dicefive.resources.achievements_missing_action
+import net.zodac.dicefive.resources.achievements_missing_message
+import net.zodac.dicefive.resources.achievements_score_recorded
+import net.zodac.dicefive.resources.common_done
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -63,6 +73,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -88,6 +99,7 @@ import net.zodac.dicefive.resources.achievements_unlocked_at
 import net.zodac.dicefive.resources.achievements_locked_only
 import net.zodac.dicefive.resources.achievements_unlocked_count
 import net.zodac.dicefive.ui.common.AppTooltip
+import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.timestamp
@@ -455,6 +467,10 @@ private fun AchievementRow(
 ) {
     val unlocked = item.unlockedAt != null
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    var showMissing by remember { mutableStateOf(false) }
+    val missingLabel = stringResource(Res.string.achievements_missing_action)
+    val listsMissing = !unlocked && !superuserModeActive && item.missingScores.isNotEmpty()
+    if (showMissing && listsMissing) MissingScoresDialog(item, onDismiss = { showMissing = false })
     // The flash is gold, which the usual text, icon and border colours (light, or gold itself) vanish into: on it,
     // they all become the unlocked row's own blue instead.
     val flashInk = MaterialTheme.colorScheme.secondaryContainer
@@ -471,6 +487,20 @@ private fun AchievementRow(
             modifier = modifier
                 .fillMaxWidth()
                 .then(tooltipModifier)
+                // A long press, and a tap too so a screen reader has it as the row's one action.
+                .then(
+                    if (listsMissing) {
+                        Modifier.combinedClickable(
+                            onClickLabel = missingLabel,
+                            onLongClickLabel = missingLabel,
+                            role = Role.Button,
+                            onLongClick = { showMissing = true },
+                            onClick = { showMissing = true },
+                        )
+                    } else {
+                        Modifier
+                    },
+                )
                 .pointerInput(superuserModeActive, item.achievement) {
                     if (!superuserModeActive) return@pointerInput
                     val touchSlop = viewConfiguration.touchSlop
@@ -571,6 +601,42 @@ private fun AchievementRow(
                         item.achievement.hasProgressBar -> ProgressRow(item, ::ink)
                     }
                 }
+            }
+        }
+    }
+}
+
+/** Every score a score-collection achievement needs, recorded ones struck through, in a scrollable pop-up. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MissingScoresDialog(item: AchievementItem, onDismiss: () -> Unit) {
+    DiceFiveDialog(
+        icon = item.achievement.icon,
+        iconTint = item.achievement.iconTintOrUnspecified(MaterialTheme.colorScheme.primary),
+        title = stringResource(item.achievement.title),
+        message = stringResource(Res.string.achievements_missing_message, item.missingScores.size.grouped()),
+        confirmLabel = stringResource(Res.string.common_done),
+        onConfirm = onDismiss,
+        onDismissRequest = onDismiss,
+    ) {
+        val scroll = rememberScrollState()
+        FlowRow(
+            modifier = Modifier.padding(top = 12.dp).heightIn(max = 240.dp).verticalScroll(scroll),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            // Every score in the band, the recorded ones struck through and faded; TalkBack gets the same as words.
+            item.achievement.scoreBand?.forEach { score ->
+                val recorded = score in item.recordedScores
+                val text = score.grouped()
+                val spoken = if (recorded) stringResource(Res.string.achievements_score_recorded, text) else text
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (recorded) 0.38f else 1f),
+                    textDecoration = if (recorded) TextDecoration.LineThrough else null,
+                    modifier = Modifier.semantics { contentDescription = spoken },
+                )
             }
         }
     }

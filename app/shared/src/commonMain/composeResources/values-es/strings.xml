@@ -771,6 +771,9 @@
     <string name="achievements_reward_unlocked">¡Has desbloqueado %1$s!</string>
     <string name="achievements_reward_locked">Consigue esto para desbloquear %1$s</string>
     <string name="achievements_reward_show_action">Mostrar qué estilo desbloquea</string>
+    <string name="achievements_missing_message">Puntuaciones que aún no están en la clasificación (faltan %1$s):</string>
+    <string name="achievements_missing_action">Mostrar las puntuaciones que faltan</string>
+    <string name="achievements_score_recorded">%1$s, registrada</string>
     <string name="styles_title">Estilos</string>
     <string name="styles_category_dice">Dados</string>
     <string name="styles_category_dice_cup">Cubilete</string>

@@ -33,7 +33,12 @@ data class AchievementItem(
     val achievement: Achievement,
     val unlockedAt: Long? = null,
     val progress: Int = 0,
+    /** For a score-collection achievement, the scores in its band already on the leaderboard; empty otherwise. */
+    val recordedScores: Set<Int> = emptySet(),
 ) {
+    /** The scores in the achievement's band not yet on the leaderboard; empty for any other achievement. */
+    val missingScores: List<Int> get() = achievement.scoreBand?.filter { it !in recordedScores }.orEmpty()
+
     val progressFraction: Float get() = progress.toFloat() / achievement.target
 }
 
@@ -212,7 +217,8 @@ class AchievementsViewModel(
             .map {
                 val progress = (AchievementEngine.progressOf(it, state.counters, leaderboard) + (progressOverride[it] ?: 0))
                     .coerceAtMost(it.target)
-                AchievementItem(it, state.unlockedAt[it], progress)
+                val recorded = it.scoreBand?.filter { score -> score in leaderboard.distinctScores }.orEmpty().toSet()
+                AchievementItem(it, state.unlockedAt[it], progress, recorded)
             }
 
         return AchievementsUiState(

@@ -975,6 +975,11 @@
     <string name="achievements_reward_locked">Earn this to unlock %1$s</string>
     <!-- TalkBack's name for tapping the star on an achievement. -->
     <string name="achievements_reward_show_action">Show which style this unlocks</string>
+    <string name="achievements_missing_message">Scores not yet on the leaderboard (%1$s left):</string>
+    <!-- TalkBack's name for tapping a score-collection achievement. -->
+    <string name="achievements_missing_action">Show the missing scores</string>
+    <!-- TalkBack: a score already on the leaderboard, drawn struck through. -->
+    <string name="achievements_score_recorded">%1$s, recorded</string>
 
     <!-- Styles screen (ui/styles/StylesScreen.kt) -->
     <string name="styles_title">Styles</string>

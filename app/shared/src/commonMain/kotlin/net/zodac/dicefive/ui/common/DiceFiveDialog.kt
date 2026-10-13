@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui.common
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -10,6 +11,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -52,6 +54,7 @@ fun DiceFiveDialog(
     dismissLabel: String? = null,
     onDismiss: (() -> Unit)? = null,
     iconTint: Color = MaterialTheme.colorScheme.primary,
+    extraContent: (@Composable () -> Unit)? = null,
 ) = DiceFiveDialog(
     icon = icon,
     title = title,
@@ -63,6 +66,7 @@ fun DiceFiveDialog(
     dismissLabel = dismissLabel,
     onDismiss = onDismiss,
     iconTint = iconTint,
+    extraContent = extraContent,
 )
 
 @Composable
@@ -80,6 +84,8 @@ fun DiceFiveDialog(
     // meant to be tinted - see Achievement.iconTintOrUnspecified. Every other caller leaves this at
     // its default.
     iconTint: Color = MaterialTheme.colorScheme.primary,
+    // Shown under the message, e.g. a scrollable list too long for the message itself.
+    extraContent: (@Composable () -> Unit)? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -107,13 +113,16 @@ fun DiceFiveDialog(
             }
         },
         text = {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                extraContent?.invoke()
+            }
         },
         confirmButton = {
             Button(onClick = onConfirm) { Text(confirmLabel) }
