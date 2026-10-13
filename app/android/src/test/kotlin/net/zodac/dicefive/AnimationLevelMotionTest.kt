@@ -48,4 +48,9 @@ class AnimationLevelMotionTest {
         // Only off stops the gameplay's own motion.
         assertEquals(listOf(AnimationLevel.OFF), AnimationLevel.entries.filterNot { it.gameplayMotion })
     }
+
+    @Test
+    fun `only low rolls the dice as the simple flick through faces`() {
+        assertEquals(listOf(AnimationLevel.LOW), AnimationLevel.entries.filter { it.simpleDiceRoll })
+    }
 }

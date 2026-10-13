@@ -10,6 +10,8 @@ package net.zodac.dicefive.data.settings
  *   frame drawn every refresh of an idle screen, so they're the first thing to go.
  * - [gameplayMotion]: everything that answers what's happening - the cup's shake and pour, the dice's toss, banners,
  *   page fades, score count-ups, fireworks. Off only at [OFF], which is the app's reduced motion (`LocalReduceMotion`).
+ * - [simpleDiceRoll]: whether the dice stay where they lie and flick through faces while the cup shakes, instead of
+ *   being swept into it and tossed back. The cup still shakes; the dice are at rest the moment it lands.
  * - [scorePulse]: whether a scoring tile's gold glow pulses or is steady.
  * - [maxFramesPerSecond]: the frame rate asked for, or null for whatever the screen does (90 or 120Hz on many phones).
  *
@@ -19,12 +21,13 @@ enum class AnimationLevel(
     val ambientMotion: Boolean,
     val gameplayMotion: Boolean,
     val scorePulse: Boolean,
+    val simpleDiceRoll: Boolean,
     val maxFramesPerSecond: Int?,
 ) {
-    HIGH(ambientMotion = true, gameplayMotion = true, scorePulse = true, maxFramesPerSecond = null),
-    MEDIUM(ambientMotion = false, gameplayMotion = true, scorePulse = true, maxFramesPerSecond = 60),
-    LOW(ambientMotion = false, gameplayMotion = true, scorePulse = false, maxFramesPerSecond = 30),
-    OFF(ambientMotion = false, gameplayMotion = false, scorePulse = false, maxFramesPerSecond = 30),
+    HIGH(ambientMotion = true, gameplayMotion = true, scorePulse = true, simpleDiceRoll = false, maxFramesPerSecond = null),
+    MEDIUM(ambientMotion = false, gameplayMotion = true, scorePulse = true, simpleDiceRoll = false, maxFramesPerSecond = 60),
+    LOW(ambientMotion = false, gameplayMotion = true, scorePulse = false, simpleDiceRoll = true, maxFramesPerSecond = 30),
+    OFF(ambientMotion = false, gameplayMotion = false, scorePulse = false, simpleDiceRoll = false, maxFramesPerSecond = 30),
     ;
 
     companion object {

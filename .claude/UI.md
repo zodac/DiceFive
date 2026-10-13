@@ -881,7 +881,7 @@ The segmented row isn't inside the `ListItem`: its supporting slot is measured i
 |---|---|---|---|---|
 | **High** (default) | moves | plays | pulses | the screen's own rate (90/120Hz where it has one) |
 | **Medium** | still | plays | pulses | up to 60 |
-| **Low** | still | plays | steady | up to 30 |
+| **Low** | still | plays, but the dice flick through faces in place instead of being tossed (`simpleDiceRoll`) | steady | up to 30 |
 | **Off** | still | none (`LocalReduceMotion`) | steady | up to 30 |
 
 "Decoration that moves on its own" is what keeps an idle screen drawing every refresh: the menu's drifting dice,

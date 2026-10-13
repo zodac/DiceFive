@@ -2525,6 +2525,10 @@ and longer battery life, without changing what the game does. UI.md's "Reduced m
       fitting is now `FittedSegmentedChoiceRow`, shared, with per-language initials and a glyph for Off. Rendered in
       English (411/320dp), Spanish (411/360dp) and Arabic (411/320dp); Spanish "Off" is "No" so the words fit
       (`SettingsRowsTest`).
+- [x] **Low rolls the simple way** (`simpleDiceRoll`): the cup still shakes, but the dice stay where they lie and flick
+      through random faces (every 90ms, a coloured die through colours too) instead of being swept into the cup and
+      tossed back - the old "Simple dice roll" - and settle at once on landing, so scoring and the CPU don't wait for a toss
+      (`GameViewModel.diceAnimated`). High and Medium keep the toss.
 - [ ] **Not seen on a device**: the refresh-rate request on a 90/120Hz phone, TalkBack on the row and its list, and
       the Spanish and Arabic level names and lines (written here, not by a translator).
 

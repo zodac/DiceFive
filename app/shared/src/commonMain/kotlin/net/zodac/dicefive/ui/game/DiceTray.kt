@@ -28,6 +28,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -59,6 +60,7 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin
+import kotlin.random.Random
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -78,6 +80,7 @@ import net.zodac.dicefive.resources.game_die_spoken
 import net.zodac.dicefive.resources.game_slot_empty_spoken
 import net.zodac.dicefive.resources.game_slot_held_spoken
 import net.zodac.dicefive.resources.game_slot_spoken
+import net.zodac.dicefive.ui.common.LocalAnimationLevel
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.ambientMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
@@ -141,6 +144,7 @@ private const val TIPPED_FOOTPRINT = 1.06f
 private val LIGHT_X = (-48).dp
 private val LIGHT_Y = (-140).dp
 private const val SHADOW_LENGTH = 0.022f
+private const val SCRAMBLE_INTERVAL_MILLIS = 90L
 private const val CYCLE_INTERVAL_MILLIS = 1_000L
 
 /**
@@ -204,7 +208,7 @@ fun DiceTray(
         // Built once for the game: none of the style, the mode's colours or Luck of the Irish
         // changes mid-game, so every roll reuses the same recoloured styles.
         val diceStyles = remember(visualTheme.diceStyle, gameMode.dieColours, irish, gameMode.dieValues) {
-            TrayDiceStyles(visualTheme.diceStyle, gameMode.dieColours, irish, faceCount = gameMode.dieValues.last)
+            TrayDiceStyles(visualTheme.diceStyle, gameMode.dieColours, irish, dieValues = gameMode.dieValues)
         }
 
         if (gameMode.scoresHeldDiceOnly) {
@@ -764,7 +768,18 @@ private fun ScatterArea(
     fitToColumn: Boolean = false,
 ) {
     // Under reduced motion there's no pick-up or toss: the die stays where it lies until it snaps to its result.
-    val simple = LocalReduceMotion.current
+    // At the Low animation level it stays too, but flicks through faces while rolling instead (the simple roll).
+    val reduceMotion = LocalReduceMotion.current
+    val flicker = LocalAnimationLevel.current.simpleDiceRoll && !reduceMotion
+    val simple = reduceMotion || flicker
+    var scrambleTick by remember { mutableIntStateOf(0) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(rolling, flicker) {
+        while (rolling && flicker) {
+            lifecycle.delayWhileResumed(SCRAMBLE_INTERVAL_MILLIS)
+            scrambleTick++
+        }
+    }
     val tracker = remember { RollTracker(rolling) }
     tracker.update(rolling)
     val pickUp = remember(tracker.starts) { Animatable(if (tracker.starts == 0 || simple) 1f else 0f) }
@@ -793,7 +808,9 @@ private fun ScatterArea(
         // its near edge all the same - where a later roll's dice have been swept to by then - so the
         // throw carries on in them instead of building them on the frame the cup tips.
         val offMat = !show && rolling && !simple
-        if ((!show && !offMat) || die.isHeld) return@BoxWithConstraints
+        // The simple roll flicks through faces on the very first roll of a turn too, when the dice aren't shown yet.
+        val flickering = !show && rolling && flicker
+        if ((!show && !offMat && !flickering) || die.isHeld) return@BoxWithConstraints
         val rest = Modifier.align(Alignment.TopCenter).size(dieSize)
         val selfTumbling = style.tumblesItself
         // How the die lies at rest: at its own angle, or straight up for one that stands (the Egg).
@@ -914,14 +931,17 @@ private fun ScatterArea(
                 }
 
                 else -> {
-                    // At rest - or, under reduced motion, lying still on its last face while the cup "shakes".
+                    // At rest - or lying still while the cup "shakes", on its last face under reduced motion, or
+                    // flicking through faces (a coloured die through colours too) at the Low animation level. Reads
+                    // scrambleTick so each tick seeds a fresh face - deliberately not remember()'d.
+                    val displayDie = if (rolling && flicker) diceStyles.scrambledFace(Random(scrambleTick * 31 + seed)) else die
                     val restX = keptIn(scatter.xOffset, restYaw)
                     Shadow(restX, scatter.yOffset, restYaw, lift = 0f)
                     Track(restX, scatter.yOffset, restYaw)
                     // Landed: the pupils stop with the dice, rather than sloshing on once scoring is open.
                     if (motion != null && !rolling) SideEffect { motion.settle() }
                     DieFace(
-                        die = die,
+                        die = displayDie,
                         held = false,
                         diceStyles = diceStyles,
                         modifier = rest
@@ -978,7 +998,15 @@ private fun DieFace(die: Die, held: Boolean, diceStyles: TrayDiceStyles, modifie
  * of the Irish's while [irish] - all built up front, so a die of any colour is drawn in the same
  * style object every time it lands that colour.
  */
-private class TrayDiceStyles(base: DiceStyle, colours: List<DieColour>, irish: Boolean, val faceCount: Int) {
+private class TrayDiceStyles(base: DiceStyle, private val colours: List<DieColour>, irish: Boolean, private val dieValues: IntRange) {
+    val faceCount: Int = dieValues.last
+
+    /** A random face the mode's dice could land on - its number, and its colour if it has them. */
+    fun scrambledFace(random: Random): Die = Die(
+        value = random.nextInt(dieValues.first, dieValues.last + 1),
+        colour = if (colours.isEmpty()) null else colours[random.nextInt(colours.size)],
+    )
+
     /** [base], or - for dice with more faces than its art has (D20's) - the white D20 (or the D20 style the player picked). */
     val plain: DiceStyle = if (faceCount > PIP_FACES) d20Like(base) else base
 
