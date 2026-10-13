@@ -125,7 +125,7 @@ private fun leafPath(length: Float, width: Float): Path = Path().apply {
 // Classic: the plain ring the active tab has always had.
 
 /** The plain coloured ring round the tab - what the active player's tab had before there were frames. */
-val ClassicScoreFrame: ScoreFrame = DrawnScoreFrame("classic") { w, h, colour ->
+val ClassicScoreFrame: ScoreFrame = DrawnScoreFrame("classic_ring") { w, h, colour ->
     drawTabOutline(w, h, colour.copy(alpha = 0.85f), width = 1.5f)
 }
 
@@ -157,7 +157,7 @@ private fun DrawScope.drawLeaf(colour: Color, length: Float, width: Float, vein:
     if (vein) drawLine(colour.darker(0.4f), Offset(length * 0.1f, 0f), Offset(length * 0.8f, 0f), strokeWidth = 0.4f)
 }
 
-private val RoseScoreFrame: ScoreFrame = DrawnScoreFrame("rose") { w, h, colour ->
+private val RoseScoreFrame: ScoreFrame = DrawnScoreFrame("floral_rose") { w, h, colour ->
     drawTabOutline(w, h, colour.copy(alpha = 0.7f), width = 1.1f)
     val leafColour = colour.darker(0.45f)
     val rose: DrawScope.() -> Unit = {
@@ -197,7 +197,7 @@ private fun DrawScope.drawDaisy(colour: Color, radius: Float, turn: Float = 0f) 
     drawCircle(colour.lighter(0.3f), radius * 0.16f, Offset(-radius * 0.08f, -radius * 0.08f))
 }
 
-private val DaisyScoreFrame: ScoreFrame = DrawnScoreFrame("daisy") { w, h, colour ->
+private val DaisyScoreFrame: ScoreFrame = DrawnScoreFrame("floral_daisy") { w, h, colour ->
     drawTabOutline(w, h, colour.copy(alpha = 0.5f), width = 1f)
     eachCorner(w, h) {
         placed(Offset(9.5f, 1.5f), 0f) { drawLeaf(colour.darker(0.45f), 5.5f, 1.7f, vein = false) }
@@ -206,7 +206,7 @@ private val DaisyScoreFrame: ScoreFrame = DrawnScoreFrame("daisy") { w, h, colou
     }
 }
 
-private val VineScoreFrame: ScoreFrame = DrawnScoreFrame("vine") { w, h, colour ->
+private val VineScoreFrame: ScoreFrame = DrawnScoreFrame("floral_vine") { w, h, colour ->
     drawTabOutline(w, h, colour.copy(alpha = 0.35f), width = 0.8f)
     val stem = colour.darker(0.25f)
     val leaf = colour.darker(0.4f)
@@ -250,7 +250,7 @@ private fun DrawScope.drawDecoWash(w: Float, h: Float, colour: Color) {
     )
 }
 
-private val DecoFanScoreFrame: ScoreFrame = DrawnScoreFrame("deco_fan") { w, h, colour ->
+private val DecoFanScoreFrame: ScoreFrame = DrawnScoreFrame("art_deco_fan") { w, h, colour ->
     drawDecoWash(w, h, colour)
     drawTabOutline(w, h, colour, width = 1.2f)
     drawTabOutline(w, h, colour.copy(alpha = 0.7f), width = 0.6f, inset = 3f)
@@ -288,7 +288,7 @@ private fun steppedOutline(w: Float, h: Float, inset: Float, step: Float): Path 
     )
 }
 
-private val DecoSteppedScoreFrame: ScoreFrame = DrawnScoreFrame("deco_stepped") { w, h, colour ->
+private val DecoSteppedScoreFrame: ScoreFrame = DrawnScoreFrame("art_deco_stepped") { w, h, colour ->
     val outer = steppedOutline(w, h, 0.6f, 3f)
     drawPath(outer, Brush.verticalGradient(listOf(colour.copy(alpha = 0.16f), colour.copy(alpha = 0.03f)), startY = 0f, endY = h))
     drawPath(outer, colour, style = Stroke(1.2f, join = StrokeJoin.Miter))
@@ -476,11 +476,11 @@ private fun DrawScope.drawWreathBranch(w: Float, h: Float, colour: Color, leafLe
 /** How far down the tab, as a fraction of its height, a wreath's leaves stop - clear of the name above them. */
 private const val WREATH_TOP = 0.36f
 
-private val LaurelScoreFrame: ScoreFrame = DrawnScoreFrame("laurel") { w, h, colour ->
+private val LaurelScoreFrame: ScoreFrame = DrawnScoreFrame("wreath_laurel") { w, h, colour ->
     bothSides(w) { drawWreathBranch(w, h, colour, leafLength = 5f, leafWidth = 2.3f, spacing = 3.2f, berries = false) }
 }
 
-private val OliveScoreFrame: ScoreFrame = DrawnScoreFrame("olive") { w, h, colour ->
+private val OliveScoreFrame: ScoreFrame = DrawnScoreFrame("wreath_olive") { w, h, colour ->
     bothSides(w) { drawWreathBranch(w, h, colour, leafLength = 6.5f, leafWidth = 1.6f, spacing = 3.6f, berries = true) }
 }
 
@@ -565,7 +565,7 @@ private fun DrawScope.drawNeonTube(w: Float, h: Float, colour: Color, inset: Flo
     drawTabOutline(w, h, colour.lighter(0.6f), width = 1f * core, inset = inset)
 }
 
-private val NeonScoreFrame: ScoreFrame = DrawnScoreFrame("neon") { w, h, colour ->
+private val NeonScoreFrame: ScoreFrame = DrawnScoreFrame("neon_single") { w, h, colour ->
     drawNeonTube(w, h, colour, inset = 1.5f, core = 1f)
 }
 
@@ -577,7 +577,7 @@ private val NeonDoubleScoreFrame: ScoreFrame = DrawnScoreFrame("neon_double") { 
 // ---------------------------------------------------------------------------------------------
 // Pixel.
 
-private val PixelScoreFrame: ScoreFrame = DrawnScoreFrame("pixel") { w, h, colour ->
+private val PixelScoreFrame: ScoreFrame = DrawnScoreFrame("pixel_retro") { w, h, colour ->
     val g = 2f
     val columns = floor(w / g).toInt()
     val rows = floor(h / g).toInt()

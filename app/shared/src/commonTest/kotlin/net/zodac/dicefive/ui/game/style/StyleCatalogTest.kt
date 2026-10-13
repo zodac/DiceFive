@@ -19,13 +19,21 @@ class StyleCatalogTest {
     }
 
     @Test
+    fun `every id is its family's name then its colour's - as the Styles screen shows them`() {
+        for (catalog in catalogs) for (family in catalog.families) for (colour in family.colours) {
+            val expected = family.name.key.removePrefix("style_family_") + "_" + colour.name.key.removePrefix("style_colour_")
+            assertEquals(expected, colour.style.id)
+        }
+    }
+
+    @Test
     fun `Nat 20 opens D20 white and black - Critical Success opens blue - and a locked pick draws the default elsewhere`() {
         val d20 = DiceStyles.all.filterIsInstance<D20DiceStyle>().associateBy { it.id }
         assertEquals(listOf("d20_white", "d20_black", "d20_blue"), d20.keys.toList())
         val none = AchievementsState()
-        val nat20 = AchievementsState(mapOf(Achievement.D20_WIN to 0L))
-        val critical = AchievementsState(mapOf(Achievement.D20_BOTH_BONUSES to 0L))
-        val both = AchievementsState(mapOf(Achievement.D20_WIN to 0L, Achievement.D20_BOTH_BONUSES to 0L))
+        val nat20 = AchievementsState(mapOf(Achievement.NAT_20 to 0L))
+        val critical = AchievementsState(mapOf(Achievement.CRITICAL_SUCCESS to 0L))
+        val both = AchievementsState(mapOf(Achievement.NAT_20 to 0L, Achievement.CRITICAL_SUCCESS to 0L))
 
         for ((id, style) in d20) {
             assertTrue(!DiceStyles.isUnlocked(id, none), "$id is open before either achievement")
@@ -41,8 +49,8 @@ class StyleCatalogTest {
         assertTrue(!DiceStyles.isUnlocked("d20_blue", nat20), "blue is open with only Nat 20")
         assertEquals(DiceStyles.default, DiceStyles.unlockedById("d20_blue", nat20))
         // Each achievement carries the star that says it unlocks a style.
-        assertTrue(Achievement.D20_WIN.unlocksStyle)
-        assertTrue(Achievement.D20_BOTH_BONUSES.unlocksStyle)
+        assertTrue(Achievement.NAT_20.unlocksStyle)
+        assertTrue(Achievement.CRITICAL_SUCCESS.unlocksStyle)
     }
 
     @Test

@@ -10,7 +10,7 @@ import net.zodac.dicefive.ui.theme.IvoryDiceTop
 
 /** Default [DiceStyle]: a rounded ivory die with a soft bevel, matching the reference art. */
 object IvoryDiceStyle : DiceStyle {
-    override val id: String = "ivory"
+    override val id: String = "classic_ivory"
     override val bodyColor: Color = lerp(IvoryDiceTop, IvoryDiceBottom, 0.5f)
 
     override fun recoloured(palette: DieColourPalette): DiceStyle = ColouredClassicDiceStyle(id, palette)

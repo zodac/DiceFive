@@ -23,7 +23,7 @@ import net.zodac.dicefive.ui.theme.FacetedCupShadeFace
  * no foot - see [drawFacetedCup], which [FireDiceCupStyle] shares.
  */
 object FacetedDiceCupStyle : DiceCupStyle {
-    override val id: String = "faceted"
+    override val id: String = "faceted_green"
 
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {

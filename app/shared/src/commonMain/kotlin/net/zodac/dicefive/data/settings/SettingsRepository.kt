@@ -193,7 +193,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     // id to a concrete DiceStyle/DiceCupStyle/TableBackground is the Styles screen's job (via its
     // catalog). The literal defaults below must match ui.game.style's DiceStyles/DiceCupStyles/
     // TableBackgrounds.default ids.
-    val diceStyleId: Flow<String> = dataStore.data.map { prefs -> prefs[DICE_STYLE_ID_KEY] ?: "ivory" }
+    val diceStyleId: Flow<String> = dataStore.data.map { prefs -> prefs[DICE_STYLE_ID_KEY] ?: "classic_ivory" }
 
     suspend fun setDiceStyleId(id: String) {
         dataStore.edit { it[DICE_STYLE_ID_KEY] = id }
@@ -204,27 +204,27 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     // it saved, and it's drawn as the default - so it must not count as a non-default pick either,
     // or it would unlock the cup style achievement for a cup they aren't playing with.
     val diceCupStyleId: Flow<String> = dataStore.data.map { prefs ->
-        prefs[DICE_CUP_STYLE_ID_KEY]?.takeUnless { it in DROPPED_DICE_CUP_STYLE_IDS } ?: "casino_gold"
+        prefs[DICE_CUP_STYLE_ID_KEY]?.takeUnless { it in DROPPED_DICE_CUP_STYLE_IDS } ?: "classic_gold"
     }
 
     suspend fun setDiceCupStyleId(id: String) {
         dataStore.edit { it[DICE_CUP_STYLE_ID_KEY] = id }
     }
 
-    val tableBackgroundId: Flow<String> = dataStore.data.map { prefs -> prefs[TABLE_BACKGROUND_ID_KEY] ?: "midnight_felt" }
+    val tableBackgroundId: Flow<String> = dataStore.data.map { prefs -> prefs[TABLE_BACKGROUND_ID_KEY] ?: "classic_navy" }
 
     suspend fun setTableBackgroundId(id: String) {
         dataStore.edit { it[TABLE_BACKGROUND_ID_KEY] = id }
     }
 
-    val diceMatId: Flow<String> = dataStore.data.map { prefs -> prefs[DICE_MAT_ID_KEY] ?: "tray_blue" }
+    val diceMatId: Flow<String> = dataStore.data.map { prefs -> prefs[DICE_MAT_ID_KEY] ?: "classic_blue" }
 
     suspend fun setDiceMatId(id: String) {
         dataStore.edit { it[DICE_MAT_ID_KEY] = id }
     }
 
-    // The frame round the player whose turn it is - "classic" is ScoreFrames.default's id.
-    val scoreFrameId: Flow<String> = dataStore.data.map { prefs -> prefs[SCORE_FRAME_ID_KEY] ?: "classic" }
+    // The frame round the player whose turn it is - "classic_ring" is ScoreFrames.default's id.
+    val scoreFrameId: Flow<String> = dataStore.data.map { prefs -> prefs[SCORE_FRAME_ID_KEY] ?: "classic_ring" }
 
     suspend fun setScoreFrameId(id: String) {
         dataStore.edit { it[SCORE_FRAME_ID_KEY] = id }

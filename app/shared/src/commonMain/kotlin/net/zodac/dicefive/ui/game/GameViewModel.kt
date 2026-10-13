@@ -618,7 +618,7 @@ class GameViewModel(
         checkGameStartAchievements()
 
         if (previousGame != null && previousGame.isGameOver && !humanWonGame(previousGame)) {
-            unlockAchievements(setOf(Achievement.REPLAY_AFTER_LOSS))
+            unlockAchievements(setOf(Achievement.ONE_MORE_TIME))
         }
     }
 
@@ -635,7 +635,7 @@ class GameViewModel(
         prepareHardCpus()
         checkInProgressAchievements()
         checkGameStartAchievements()
-        unlockAchievements(setOf(Achievement.CONTINUED_GAME))
+        unlockAchievements(setOf(Achievement.LETS_FINISH_THIS))
         return true
     }
 
@@ -657,7 +657,7 @@ class GameViewModel(
         if (isPlayerOneTurn) heldBackRollUnlocks = mutableSetOf()
 
         if (isPlayerOneTurn) {
-            if (state.dice.all { it.isHeld }) unlockAchievements(setOf(Achievement.POINTLESS_ROLL))
+            if (state.dice.all { it.isHeld }) unlockAchievements(setOf(Achievement.WHAT_WAS_THE_POINT_OF_THAT))
             if (state.rollsRemaining == state.fullRolls) resetPerTurnTracking()
             if (state.rollsRemaining < state.fullRolls) playerOneTookExtraRoll = true
 
@@ -789,7 +789,7 @@ class GameViewModel(
         applyGameState(GameEngine.commitScore(committing, category))
 
         if (isPlayerOneTurn && categoryJustUndone != null && category != categoryJustUndone) {
-            unlockAchievements(setOf(Achievement.UNDO_DIFFERENT_CATEGORY))
+            unlockAchievements(setOf(Achievement.I_DIDNT_MEAN_THAT))
         }
         pendingUndoneCategory = null
         lastCommittedCategory = category
@@ -832,12 +832,12 @@ class GameViewModel(
         unlockAchievements(setOf(Achievement.SHAKEN_NOT_TAPPED))
     }
 
-    /** The Top Hat cup's rabbit just peeked out - see [Achievement.MAGICIANS_SECRET]. Only on a human's
+    /** The Top Hat cup's rabbit just peeked out - see [Achievement.THE_MAGICIANS_SECRET]. Only on a human's
      * turn: the hat has to have been left alone by someone at the table, not tipped by an AI. */
     fun onRabbitSeen() {
         val state = _game.value ?: return
         if (state.currentPlayer?.type != PlayerType.HUMAN) return
-        unlockAchievements(setOf(Achievement.MAGICIANS_SECRET))
+        unlockAchievements(setOf(Achievement.THE_MAGICIANS_SECRET))
     }
 
     /**
@@ -1213,10 +1213,10 @@ class GameViewModel(
         val available = ScoreCalculator.availableCategories(player, dice)
         val earned = buildSet {
             if (ScoreCategory.FULL_HOUSE in available && DiceScoring.score(ScoreCategory.FULL_HOUSE, dice) > 0) {
-                add(Achievement.FIRST_ROLL_FULL_HOUSE)
+                add(Achievement.HOUSE_CALL)
             }
             if (ScoreCategory.LARGE_STRAIGHT in available && DiceScoring.score(ScoreCategory.LARGE_STRAIGHT, dice) > 0) {
-                add(Achievement.FIRST_ROLL_LARGE_STRAIGHT)
+                add(Achievement.STRAIGHT_AWAY)
             }
         }
         unlockAchievements(earned)
@@ -1252,7 +1252,7 @@ class GameViewModel(
 
         // Lucky Seven: every one of 'Stud' mode's seven dice showing the same number.
         if (state.gameMode == GameMode.STUD && values.toSet().size == 1) {
-            unlockAchievements(setOf(Achievement.STUD_LUCKY_SEVEN))
+            unlockAchievements(setOf(Achievement.LUCKY_SEVEN))
         }
 
         // I Can Count!: 1,2,3,4,5 in that order, first roll of the turn only.
@@ -1303,7 +1303,7 @@ class GameViewModel(
             hadScoringOptionAfterSecondRoll = hasScoringOption(player, dice)
         } else if (rollsRemainingBeforeRoll == state.rollsRemainingAfterSecond) {
             if (hadScoringOptionAfterSecondRoll && !hasScoringOption(player, dice)) {
-                unlockAchievements(setOf(Achievement.DICE_HATE_ME))
+                unlockAchievements(setOf(Achievement.THE_DICE_HATE_ME))
             }
         }
 
@@ -1318,7 +1318,7 @@ class GameViewModel(
                 !unheldStillMatches -> loadedDiceHeldIndices = null
                 rollsRemainingBeforeRoll == state.rollsRemainingAfterFirst -> loadedDiceMatchedSecondRoll = true
                 rollsRemainingBeforeRoll == state.rollsRemainingAfterSecond && loadedDiceMatchedSecondRoll ->
-                    unlockAchievements(setOf(Achievement.LOADED_DICE))
+                    unlockAchievements(setOf(Achievement.DEJA_VU))
             }
         }
     }
@@ -1363,7 +1363,7 @@ class GameViewModel(
         val fullHand = state.gameMode.scoringDiceCount
         when {
             heldIndices.size == fullHand -> everHeldAllFiveThisTurn = true
-            heldIndices.isEmpty() && everHeldAllFiveThisTurn -> unlockAchievements(setOf(Achievement.CUNNING_STRATEGY))
+            heldIndices.isEmpty() && everHeldAllFiveThisTurn -> unlockAchievements(setOf(Achievement.A_CUNNING_STRATEGY))
         }
 
         val heldValues = heldIndices.map { dice[it].value }
@@ -1415,7 +1415,7 @@ class GameViewModel(
         val dice = state.scoringDice
         if (!DiceScoring.isFiveOfAKind(dice)) return
         if (ScoreCalculator.scoreFor(player, category, dice) != 0) return
-        unlockAchievements(setOf(Achievement.WASTED_5X))
+        unlockAchievements(setOf(Achievement.WASTED_FORTUNE))
     }
 
     /** Everything else that has to be judged at the moment of commit, against the dice and
@@ -1433,7 +1433,7 @@ class GameViewModel(
             ScoreCategory.LARGE_STRAIGHT in ScoreCalculator.availableCategories(player, dice) &&
             DiceScoring.score(ScoreCategory.LARGE_STRAIGHT, dice) > 0
         ) {
-            unlockAchievements(setOf(Achievement.WHY_DID_YOU_DO_THAT))
+            unlockAchievements(setOf(Achievement.SIZE_ISNT_EVERYTHING))
         }
 
         // Almost Famous: this turn had a first-roll four of a kind, held exactly as-is (see

@@ -8,9 +8,9 @@ import net.zodac.dicefive.ui.theme.TrayBlueSlotBottom
 import net.zodac.dicefive.ui.theme.TrayBlueSlotTop
 import net.zodac.dicefive.ui.theme.TrayBlueTop
 
-/** Default [DiceMat]: a bright blue tray, matching [MidnightFeltBackground]'s original pairing. */
+/** Default [DiceMat]: a bright blue tray, matching [MidnightFeltBackground]. */
 object TrayBlueMat : DiceMat {
-    override val id: String = "tray_blue"
+    override val id: String = "classic_blue"
 
     override val diceTrayBrush: Brush = Brush.verticalGradient(listOf(TrayBlueTop, TrayBlueBottom))
     override val slotSocketBrush: Brush = Brush.verticalGradient(listOf(TrayBlueSlotTop, TrayBlueSlotBottom))

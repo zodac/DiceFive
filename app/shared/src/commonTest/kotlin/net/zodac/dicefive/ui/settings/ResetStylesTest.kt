@@ -53,7 +53,7 @@ class ResetStylesTest {
 
     @Test
     fun `resetting achievements puts a locked dice pick back to the default - and keeps one that needs no achievement`() = runTest {
-        for ((picked, afterReset) in listOf("frosted_ice" to DiceStyles.default.id, "barrel" to "barrel")) {
+        for ((picked, afterReset) in listOf("frosted_ice" to DiceStyles.default.id, "classic_oak" to "classic_oak")) {
             val settings = SettingsRepository(ResetFakePreferences())
             settings.setDiceStyleId(picked)
             val viewModel = SettingsViewModel(settingsRepository = settings, achievementsRepository = ResetFakeStore())

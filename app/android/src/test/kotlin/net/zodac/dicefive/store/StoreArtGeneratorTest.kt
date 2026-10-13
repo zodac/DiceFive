@@ -140,6 +140,6 @@ private val TOSSES = listOf(
     Toss("retro_amber", 4, 0.87f, 0.32f, -8f),
     Toss("obsidian_lava", 3, 0.66f, 0.68f, 18f),
     Toss("googly_ivory", 2, 0.80f, 0.60f, -20f),
-    Toss("marble_white", 6, 0.92f, 0.76f, 9f),
-    Toss("cake_pink", 1, 0.55f, 0.84f, -6f),
+    Toss("stone_white_marble", 6, 0.92f, 0.76f, 9f),
+    Toss("cake_strawberry", 1, 0.55f, 0.84f, -6f),
 )

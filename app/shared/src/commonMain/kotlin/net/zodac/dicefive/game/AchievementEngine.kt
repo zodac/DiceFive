@@ -26,7 +26,7 @@ data class GameAchievementContext(
     val previousBestScore: Int? = null,
     /** Whether a human went into their final turn behind every other player. */
     val trailedIntoFinalRound: Boolean = false,
-    /** Whether a human went into their final turn AHEAD of every other player - [JAWS_OF_VICTORY]'s
+    /** Whether a human went into their final turn AHEAD of every other player - [DEFEAT_FROM_THE_JAWS_OF_VICTORY]'s
      * precondition, the mirror image of [trailedIntoFinalRound]. */
     val ledIntoFinalRound: Boolean = false,
     /** How many dice player 1 actually re-rolled across the game. Nobody else's rolls count -
@@ -47,7 +47,7 @@ data class GameAchievementContext(
     val playerOneTimeouts: Int = 0,
     /**
      * The box of each zero the turn timer scored for player 1 this game, once per zero: the zeroes
-     * [Achievement.ZERO_TO_HERO] and [Achievement.SCRATCHED_5X] don't count, as player 1 didn't take them.
+     * [Achievement.ZERO_TO_HERO] and [Achievement.SCRATCHED] don't count, as player 1 didn't take them.
      */
     val playerOneTimedOutZeroes: List<ScoreCategory> = emptyList(),
     /**
@@ -80,7 +80,7 @@ data class GameStartContext(
     val hasHumanPlayerNamedZodac: Boolean = false,
     /** [net.zodac.dicefive.model.isLuckOfTheIrish] - [Achievement.LUCK_OF_THE_IRISH]'s trigger. */
     val hasIrishPlayerOneInTricolour: Boolean = false,
-    /** The rules this game is played under - [Achievement.NON_STANDARD_MODE]'s trigger. */
+    /** The rules this game is played under - [Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES]'s trigger. */
     val gameMode: GameMode = GameMode.default,
 )
 
@@ -168,7 +168,7 @@ object AchievementEngine {
     private const val COLD_DICE_SCORE = 100
     private const val LOW_ROLLS_SCORE = 20
 
-    /** The total [Achievement.QUICKFIRE_SCORE] needs - a perfect Quickfire game is 210. */
+    /** The total [Achievement.SIX_OF_THE_BEST] needs - a perfect Quickfire game is 210. */
     private const val QUICKFIRE_SCORE_TARGET = 150
 
     /**
@@ -182,7 +182,7 @@ object AchievementEngine {
     private const val MAX_SIXES = 30
     private const val FULL_TABLE_SIZE = 4
 
-    /** Every box [Achievement.TRICOLOUR_ALL_COLOURS] needs a non-zero score in. */
+    /** Every box [Achievement.TRICOLOUR_ME_IMPRESSED] needs a non-zero score in. */
     private val TRICOLOUR_SET = listOf(
         ScoreCategory.REDS,
         ScoreCategory.YELLOWS,
@@ -267,7 +267,7 @@ object AchievementEngine {
             if (context.playedNonDefaultStyle) add(Achievement.FRESH_COAT_OF_PAINT)
             if (context.hasHumanPlayerNamedZodac) add(Achievement.BIG_FAN)
             if (context.hasIrishPlayerOneInTricolour) add(Achievement.LUCK_OF_THE_IRISH)
-            if (context.gameMode != GameMode.STANDARD) add(Achievement.NON_STANDARD_MODE)
+            if (context.gameMode != GameMode.STANDARD) add(Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES)
         }
         return update(earned, before.counters, before, now)
     }
@@ -320,7 +320,7 @@ object AchievementEngine {
      * already banked.
      *
      * Deliberately NOT any score-total threshold, even one a running total could only ever grow
-     * past ([SCORE_200][Achievement.SCORE_200] and friends): leaving a game in progress records
+     * past ([SOLID_ROUND][Achievement.SOLID_ROUND] and friends): leaving a game in progress records
      * nothing on the leaderboard, so unlocking here off a total that's about to vanish would leave
      * an achievement earned with no matching score anywhere to show for it. Those wait for
      * [earnedBy] instead, same as everything else that needs an actual result - "Spotless" needs a
@@ -339,36 +339,36 @@ object AchievementEngine {
         // Dice feats. 5x are counted, not bonus chips: where the 5x box has more than one slot
         // (Third Wind), the second and third 5x can go in it with no chip.
         // Nor where the best five of more dice score (Stud): a 5x or a straight among seven dice is no feat.
-        award(Achievement.FIRST_5X, anyHuman { it.scoresRolledHand && it.fiveOfAKindCount > 0 })
-        award(Achievement.ENCORE_5X, anyHuman { it.scoresRolledHand && it.fiveOfAKindCount >= ENCORE_5X_COUNT })
-        award(Achievement.HAT_TRICK_5X, anyHuman { it.scoresRolledHand && it.fiveOfAKindCount >= HAT_TRICK_5X_COUNT })
+        award(Achievement.FIVE_X, anyHuman { it.scoresRolledHand && it.fiveOfAKindCount > 0 })
+        award(Achievement.ENCORE, anyHuman { it.scoresRolledHand && it.fiveOfAKindCount >= ENCORE_5X_COUNT })
+        award(Achievement.HAT_TRICK, anyHuman { it.scoresRolledHand && it.fiveOfAKindCount >= HAT_TRICK_5X_COUNT })
         award(
-            Achievement.BOTH_STRAIGHTS,
+            Achievement.STRAIGHT_TALKER,
             anyHuman { it.scoresRolledHand && it.scored(ScoreCategory.SMALL_STRAIGHT) && it.scored(ScoreCategory.LARGE_STRAIGHT) },
         )
         // A box "holds" a score if any one of its slots does, so these mean one turn's score.
-        award(Achievement.CHANCE_30, anyHuman { it.scoresRolledHand && it.hasScore(ScoreCategory.CHANCE, MAX_CHANCE) })
-        award(Achievement.SIXES_30, anyHuman { it.scoresRolledHand && it.hasScore(ScoreCategory.SIXES, MAX_SIXES) })
+        award(Achievement.TAKING_A_CHANCE, anyHuman { it.scoresRolledHand && it.hasScore(ScoreCategory.CHANCE, MAX_CHANCE) })
+        award(Achievement.SIX_APPEAL, anyHuman { it.scoresRolledHand && it.hasScore(ScoreCategory.SIXES, MAX_SIXES) })
         award(
-            Achievement.UPPER_BONUS,
+            Achievement.BONUS_ROUND,
             anyHuman { it.scoresRolledHand && !it.rollsModified && it.hasFullCard && it.upperSectionBonus > 0 },
         )
         // Section totals over a card scored three times over (Third Wind) would pass these with ease.
-        award(Achievement.UPPER_84, anyHuman { it.hasSingleScoreCard && it.upperSectionTotal >= UPPER_CLASS_THRESHOLD })
-        award(Achievement.LOWER_150, anyHuman { it.hasSingleScoreCard && it.lowerSectionTotalExcludingFiveOfAKind >= LOWER_CLASS_THRESHOLD })
+        award(Achievement.UPPER_CLASS, anyHuman { it.hasSingleScoreCard && it.upperSectionTotal >= UPPER_CLASS_THRESHOLD })
+        award(Achievement.LOWER_CLASS, anyHuman { it.hasSingleScoreCard && it.lowerSectionTotalExcludingFiveOfAKind >= LOWER_CLASS_THRESHOLD })
         // Taken, not handed out by the turn timer: a zero there that the timer didn't score.
         award(
-            Achievement.SCRATCHED_5X,
+            Achievement.SCRATCHED,
             anyHuman { player ->
                 player.scoresIn(ScoreCategory.FIVE_OF_A_KIND).count { it == 0 } > timedOutZeroes.count { it == ScoreCategory.FIVE_OF_A_KIND }
             },
         )
 
         // Game modes. Only a Tricolour scorecard has these boxes at all, so no separate mode check.
-        award(Achievement.TRICOLOUR_ALL_COLOURS, anyHuman { player -> TRICOLOUR_SET.all { player.scored(it) } })
+        award(Achievement.TRICOLOUR_ME_IMPRESSED, anyHuman { player -> TRICOLOUR_SET.all { player.scored(it) } })
         // Only a Hit List card has targets. A target's exact hit is the only score worth its exact points.
         award(
-            Achievement.HIT_LIST_RIGHT_ON_TARGET,
+            Achievement.RIGHT_ON_TARGET,
             anyHuman { player ->
                 player.hitList.any { (category, target) -> target.called.size == target.places.size && player.hasScore(category, target.exactPoints) }
             },
@@ -376,7 +376,7 @@ object AchievementEngine {
 
         // Only a D20 card has half bonuses, and with extra rolls they come far more easily.
         award(
-            Achievement.D20_BOTH_BONUSES,
+            Achievement.CRITICAL_SUCCESS,
             anyHuman { player ->
                 val bonuses = player.gameMode.sectionBonuses
                 !player.rollsModified && bonuses.isNotEmpty() && bonuses.all { player.hasSectionBonus(it) }
@@ -430,11 +430,11 @@ object AchievementEngine {
             !state.gameMode.scoresHeldDiceOnly
         val noZeroes = anyHuman { player -> player.allScores.none { it == 0 } }
         // Nor on a card of targets (Hit List), where a partial hit leaves a zero only now and then.
-        award(Achievement.NO_ZEROES, singleScoreCard && state.gameMode.hasStandardCard && noZeroes)
-        award(Achievement.THIRD_WIND_NO_ZEROES, state.gameMode == GameMode.THIRD_WIND && noZeroes)
+        award(Achievement.SPOTLESS, singleScoreCard && state.gameMode.hasStandardCard && noZeroes)
+        award(Achievement.THIRD_TIMES_THE_CHARM, state.gameMode == GameMode.THIRD_WIND && noZeroes)
         // The best is off the Leaderboard, so a game that isn't on it has nothing to compare with.
         award(
-            Achievement.PERSONAL_BEST,
+            Achievement.NEW_PERSONAL_BEST,
             state.countsOnLeaderboard && context.previousBestScore != null && bestHumanScore > context.previousBestScore,
         )
 
@@ -444,24 +444,24 @@ object AchievementEngine {
         // Nor with the Extended Scores modifier's three extra boxes, which add around 50 points to a card.
         // Nor on a card of targets (Hit List), whose totals are a different measure altogether.
         val standardCard = singleScoreCard && !state.extendedScores && state.gameMode.hasStandardCard
-        award(Achievement.SCORE_200, standardCard && bestHumanScore >= 200)
-        award(Achievement.SCORE_300, standardCard && bestHumanScore >= 300)
-        award(Achievement.SCORE_400, standardCard && bestHumanScore >= 400)
-        award(Achievement.SCORE_500, standardCard && bestHumanScore >= 500)
+        award(Achievement.SOLID_ROUND, standardCard && bestHumanScore >= 200)
+        award(Achievement.SHARPSHOOTER, standardCard && bestHumanScore >= 300)
+        award(Achievement.HIGH_ROLLER, standardCard && bestHumanScore >= 400)
+        award(Achievement.DICE_DEITY, standardCard && bestHumanScore >= 500)
 
         // Winning.
         // Judged directly off this game's own result, not off the GAMES_WON counter (unlike
-        // WINS_25): a counter can already sit at or past its target from an earlier win, so
-        // checking it here would re-flag FIRST_WIN as newly earned on a later loss if superuser
+        // HALL_OF_FAMER): a counter can already sit at or past its target from an earlier win, so
+        // checking it here would re-flag FIRST_VICTORY as newly earned on a later loss if superuser
         // mode's forceLock ever relocked it without also rolling the counter back.
-        award(Achievement.FIRST_WIN, multiplayer && humanWon)
-        award(Achievement.WIN_BY_100, multiplayer && humanWon && margin != null && margin >= LANDSLIDE_MARGIN)
-        award(Achievement.WIN_BY_5, multiplayer && humanWon && margin == PHOTO_FINISH_MARGIN)
+        award(Achievement.FIRST_VICTORY, multiplayer && humanWon)
+        award(Achievement.LANDSLIDE, multiplayer && humanWon && margin != null && margin >= LANDSLIDE_MARGIN)
+        award(Achievement.PHOTO_FINISH, multiplayer && humanWon && margin == PHOTO_FINISH_MARGIN)
         // Player 1 holds the top rank, but only because the house rule (TieBreak.kt) separated
         // them from another player who matched their raw score - a plain, unbroken top score
         // leaves tieBreakReason null, same as a solo win with nobody to tie.
         award(Achievement.TIE_BREAK, multiplayer && humanWon && primaryPlayerRank.tieBreakReason != null)
-        award(Achievement.COMEBACK, multiplayer && humanWon && context.trailedIntoFinalRound)
+        award(Achievement.COMEBACK_KID, multiplayer && humanWon && context.trailedIntoFinalRound)
         award(
             Achievement.ZERO_TO_HERO,
             // Three zeroes over 39 turns (Third Wind), with Two Pair on the card, with dice locked by
@@ -471,25 +471,25 @@ object AchievementEngine {
                 !state.gameMode.scoresHeldDiceOnly && multiplayer && humanWon &&
                 humans.any { it.totalScore == state.topScore && it.allScores.count { v -> v == 0 } - context.playerOneTimedOutZeroes.size >= ZEROES_FOR_HERO },
         )
-        award(Achievement.TRICOLOUR_WIN, multiplayer && humanWon && state.gameMode == GameMode.TRICOLOUR)
-        award(Achievement.QUICKFIRE_WIN, multiplayer && humanWon && state.gameMode == GameMode.QUICKFIRE)
+        award(Achievement.TRICOLOURFUL, multiplayer && humanWon && state.gameMode == GameMode.TRICOLOUR)
+        award(Achievement.QUICK_ON_THE_DRAW, multiplayer && humanWon && state.gameMode == GameMode.QUICKFIRE)
         award(
-            Achievement.QUICKFIRE_SCORE,
+            Achievement.SIX_OF_THE_BEST,
             state.gameMode == GameMode.QUICKFIRE && !state.rollModifiers.isActive && !state.extendedScores &&
                 bestHumanScore >= QUICKFIRE_SCORE_TARGET,
         )
-        award(Achievement.STUD_WIN, multiplayer && humanWon && state.gameMode == GameMode.STUD)
-        award(Achievement.THIRD_WIND_WIN, multiplayer && humanWon && state.gameMode == GameMode.THIRD_WIND)
-        award(Achievement.D20_WIN, multiplayer && humanWon && state.gameMode == GameMode.D20)
-        award(Achievement.HIT_LIST_WIN, multiplayer && humanWon && state.gameMode == GameMode.HIT_LIST)
+        award(Achievement.HOLD_EM, multiplayer && humanWon && state.gameMode == GameMode.STUD)
+        award(Achievement.GONE_WITH_THE_WIND, multiplayer && humanWon && state.gameMode == GameMode.THIRD_WIND)
+        award(Achievement.NAT_20, multiplayer && humanWon && state.gameMode == GameMode.D20)
+        award(Achievement.CONTRACT_FULFILLED, multiplayer && humanWon && state.gameMode == GameMode.HIT_LIST)
         award(Achievement.PIPPED_TO_THE_POST, multiplayer && !humanWon && state.topScore - bestHumanScore == PIPPED_MARGIN)
-        award(Achievement.JAWS_OF_VICTORY, multiplayer && !humanWon && context.ledIntoFinalRound)
+        award(Achievement.DEFEAT_FROM_THE_JAWS_OF_VICTORY, multiplayer && !humanWon && context.ledIntoFinalRound)
         award(
-            Achievement.BEAT_THREE_AI,
+            Achievement.LAST_HUMAN_STANDING,
             humanWon && players.size == FULL_TABLE_SIZE && aiPlayers.size == FULL_TABLE_SIZE - 1,
         )
         award(
-            Achievement.NATURAL_INTELLIGENCE,
+            Achievement.HOW_DO_YOU_DO_FELLOW_CPUS,
             players.size == FULL_TABLE_SIZE && aiPlayers.size == FULL_TABLE_SIZE - 1 &&
                 aiPlayers.all { it.difficulty == Difficulty.HARD } &&
                 primaryPlayerRank.rank < TieBreak.rank(players).maxOf { it.rank },
@@ -499,24 +499,24 @@ object AchievementEngine {
         // Not on a card with boxes switched off (Quickfire), where a total is low by construction, nor on a card of
         // targets (Hit List), where a total under 100 comes of an ordinary run of misses.
         // Nor with the turn timer having zeroed any of it.
-        award(Achievement.SCORE_UNDER_100, noTimeouts && anyHuman { it.hasStandardTotals && it.totalScore < COLD_DICE_SCORE })
+        award(Achievement.COLD_DICE, noTimeouts && anyHuman { it.hasStandardTotals && it.totalScore < COLD_DICE_SCORE })
         award(Achievement.LOW_ROLLS, noTimeouts && anyHuman { it.hasStandardTotals && it.totalScore < LOW_ROLLS_SCORE })
         // Chance is excluded because it cannot be zeroed - five dice always sum to at least 5.
         award(
-            Achievement.ALL_ZEROES,
+            Achievement.HOW_DO_YOU_PLAY_THIS_GAME,
             noTimeouts && anyHuman { player ->
                 player.hasFullCard && player.categories.filter { it != ScoreCategory.CHANCE }.all { category -> player.scoresIn(category).all { it == 0 } }
             },
         )
-        award(Achievement.EXTREME_LOW_ROLLS, noTimeouts && anyHuman { it.hasFullCard && it.totalScore == LOWEST_POSSIBLE_SCORE })
+        award(Achievement.ROCK_BOTTOM, noTimeouts && anyHuman { it.hasFullCard && it.totalScore == LOWEST_POSSIBLE_SCORE })
         // "Lose a game to a CPU player" specifically - not just any loss. Losing to another human seat is
-        // still a loss (PIPPED_TO_THE_POST/JAWS_OF_VICTORY don't care who won), but with only
+        // still a loss (PIPPED_TO_THE_POST/DEFEAT_FROM_THE_JAWS_OF_VICTORY don't care who won), but with only
         // player 1 earning achievements now, `!humanWon` alone would also fire whenever another
         // human player at the table beat player 1, which isn't what this achievement means.
         val aiWon = players.any { it.type == PlayerType.AI && it.totalScore == state.topScore }
         award(Achievement.I_ROBOT, multiplayer && !humanWon && aiWon)
 
-        award(Achievement.SOLO_GAME, players.size == 1)
+        award(Achievement.PRACTICE_MAKES_PERFECT, players.size == 1)
         // Player 1's name and the card are fixed for the whole game, so this only needs the result.
         // No modifier may be on (timer, roll modifiers, Extended Scores, Unlucky Dice): they change the score.
         award(
@@ -533,7 +533,7 @@ object AchievementEngine {
         award(Achievement.NATURALLY_GIFTED, multiplayer && playerOneNeverRolledTwice && humanWon)
         // Every modifier at once, in a mode of its own: the timer, both roll modifiers, Extended Scores and Unlucky Dice.
         award(
-            Achievement.EVERYTHING_EVERYWHERE,
+            Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE,
             multiplayer && humanWon && state.gameMode != GameMode.STANDARD && state.turnTimer != TurnTimer.NONE &&
                 state.rollModifiers.rollsPerTurn != null && state.rollModifiers.storedRolls && state.extendedScores && state.unluckyDice != null,
         )

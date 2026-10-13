@@ -8,9 +8,9 @@ import net.zodac.dicefive.ui.theme.FireCupShadeFace
 import net.zodac.dicefive.ui.theme.FireCupShadow
 import net.zodac.dicefive.ui.theme.FlameOrange
 
-/** A "fire" [DiceCupStyle]: [FacetedDiceCupStyle]'s shape in reds with orange edges. */
+/** The Faceted cup in Red [DiceCupStyle]: [FacetedDiceCupStyle]'s shape in reds with orange edges. */
 object FireDiceCupStyle : DiceCupStyle {
-    override val id: String = "fire"
+    override val id: String = "faceted_red"
 
     @Composable
     override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {

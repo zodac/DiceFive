@@ -50,7 +50,7 @@ private val STAVE_JOIN_OFFSETS = listOf(-18f, -6f, 6f, 18f)
  * wide as it's tall.
  */
 object BarrelDiceCupStyle : DiceCupStyle {
-    override val id: String = "barrel"
+    override val id: String = "containers_barrel"
     override val shape: CupShape = CupShape.MEDIUM
 
     @Composable

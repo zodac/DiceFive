@@ -15,9 +15,9 @@ import net.zodac.dicefive.ui.theme.BarrelTrayTop
 
 private const val PLANK_COUNT = 4
 
-/** A "barrel" [DiceMat]: a tray of brown wooden planks in the barrel cup's own wood. */
+/** The Wood mat in Brown [DiceMat]: a tray of brown wooden planks in the barrel cup's own wood. */
 object BarrelDiceMat : DiceMat {
-    override val id: String = "barrel"
+    override val id: String = "wood_brown"
 
     override val diceTrayBrush: Brush = Brush.verticalGradient(listOf(BarrelTrayTop, BarrelTrayBottom))
     override val slotSocketBrush: Brush = Brush.verticalGradient(listOf(BarrelSlotTop, BarrelSlotBottom))

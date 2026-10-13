@@ -98,8 +98,8 @@ class AchievementEngineTest {
         val solo = evaluate(finishedGame(player(total = 150)))
         assertEquals(1, solo.counters[AchievementCounter.GAMES_PLAYED])
         assertEquals(0, solo.counters[AchievementCounter.GAMES_WON])
-        assertTrue(Achievement.SOLO_GAME in solo.newlyUnlocked)
-        assertFalse(Achievement.FIRST_WIN in solo.newlyUnlocked)
+        assertTrue(Achievement.PRACTICE_MAKES_PERFECT in solo.newlyUnlocked)
+        assertFalse(Achievement.FIRST_VICTORY in solo.newlyUnlocked)
         val soloOnAStreak = evaluate(finishedGame(player()), before = AchievementsState(counters = mapOf(AchievementCounter.WIN_STREAK to 2)))
         assertEquals(2, soloOnAStreak.counters[AchievementCounter.WIN_STREAK])
 
@@ -107,7 +107,7 @@ class AchievementEngineTest {
         val beatBot = evaluate(finishedGame(player(total = 200), bot(total = 180)))
         assertEquals(1, beatBot.counters[AchievementCounter.GAMES_WON])
         assertEquals(1, beatBot.counters[AchievementCounter.WIN_STREAK])
-        assertTrue(Achievement.FIRST_WIN in beatBot.newlyUnlocked)
+        assertTrue(Achievement.FIRST_VICTORY in beatBot.newlyUnlocked)
         assertFalse(Achievement.I_ROBOT in beatBot.newlyUnlocked)
 
         // Losing to an AI is I Robot and resets the streak.
@@ -122,8 +122,8 @@ class AchievementEngineTest {
         // Player 2 (the second player passed in - never player 1) wins big; player 1 barely scores. And the winner is a
         // second human, not an AI - so it's not I Robot either, which is specifically about an AI.
         val lostToHuman = evaluate(finishedGame(player(name = "P1", total = 60), player(name = "P2", total = 500)))
-        assertFalse(Achievement.FIRST_WIN in lostToHuman.newlyUnlocked, "player 2 winning must not earn player 1 a win")
-        assertFalse(Achievement.SCORE_300 in lostToHuman.newlyUnlocked, "player 2's score must not earn player 1 Sharpshooter")
+        assertFalse(Achievement.FIRST_VICTORY in lostToHuman.newlyUnlocked, "player 2 winning must not earn player 1 a win")
+        assertFalse(Achievement.SHARPSHOOTER in lostToHuman.newlyUnlocked, "player 2's score must not earn player 1 Sharpshooter")
         assertEquals(0, lostToHuman.counters[AchievementCounter.GAMES_WON])
         assertFalse(Achievement.I_ROBOT in evaluate(finishedGame(player(name = "P1", total = 120), player(name = "P2", total = 300))).newlyUnlocked)
 
@@ -131,9 +131,9 @@ class AchievementEngineTest {
         val secondHumansFeats = evaluate(
             finishedGame(player(name = "Alice", total = 90), player(name = "Bob", total = 320, overrides = mapOf(ScoreCategory.FIVE_OF_A_KIND to 50))),
         )
-        assertFalse(Achievement.SCORE_300 in secondHumansFeats.newlyUnlocked)
-        assertFalse(Achievement.FIRST_5X in secondHumansFeats.newlyUnlocked)
-        assertTrue(Achievement.SCORE_UNDER_100 in secondHumansFeats.newlyUnlocked)
+        assertFalse(Achievement.SHARPSHOOTER in secondHumansFeats.newlyUnlocked)
+        assertFalse(Achievement.FIVE_X in secondHumansFeats.newlyUnlocked)
+        assertTrue(Achievement.COLD_DICE in secondHumansFeats.newlyUnlocked)
 
         // Player 1 outscores the weaker bot, but the strongest one still finished on top overall - "win" means
         // finishing 1st across the whole table, not merely ahead of *someone*.
@@ -144,7 +144,7 @@ class AchievementEngineTest {
                 player(name = "Strong Bot", type = PlayerType.AI, total = 400),
             ),
         )
-        assertFalse(Achievement.FIRST_WIN in thirdAhead.newlyUnlocked, "player 1 didn't actually finish 1st, so this must not count as a win")
+        assertFalse(Achievement.FIRST_VICTORY in thirdAhead.newlyUnlocked, "player 1 didn't actually finish 1st, so this must not count as a win")
         assertEquals(0, thirdAhead.counters[AchievementCounter.GAMES_WON])
     }
 
@@ -152,17 +152,17 @@ class AchievementEngineTest {
     fun `margins and ties - Landslide - Photo Finish - Pipped To The Post and Tie Break`() {
         val landslide = evaluate(finishedGame(player(total = 300), bot(total = 150)))
         val photoFinish = evaluate(finishedGame(player(total = 201), bot(total = 200)))
-        assertTrue(Achievement.WIN_BY_100 in landslide.newlyUnlocked)
-        assertFalse(Achievement.WIN_BY_5 in landslide.newlyUnlocked)
-        assertTrue(Achievement.WIN_BY_5 in photoFinish.newlyUnlocked)
-        assertFalse(Achievement.WIN_BY_100 in photoFinish.newlyUnlocked)
-        assertFalse(Achievement.WIN_BY_5 in unlocked(finishedGame(player(total = 202), bot(total = 200))), "winning by 2 is not a photo finish")
+        assertTrue(Achievement.LANDSLIDE in landslide.newlyUnlocked)
+        assertFalse(Achievement.PHOTO_FINISH in landslide.newlyUnlocked)
+        assertTrue(Achievement.PHOTO_FINISH in photoFinish.newlyUnlocked)
+        assertFalse(Achievement.LANDSLIDE in photoFinish.newlyUnlocked)
+        assertFalse(Achievement.PHOTO_FINISH in unlocked(finishedGame(player(total = 202), bot(total = 200))), "winning by 2 is not a photo finish")
 
         // A tie at the top counts as a win for the human.
         val tie = evaluate(finishedGame(player(total = 200), bot(total = 200)))
-        assertTrue(Achievement.FIRST_WIN in tie.newlyUnlocked)
+        assertTrue(Achievement.FIRST_VICTORY in tie.newlyUnlocked)
         // A tie is a 0-point margin, not a 1-point one - Photo Finish is exactly 1, no more no less.
-        assertFalse(Achievement.WIN_BY_5 in tie.newlyUnlocked)
+        assertFalse(Achievement.PHOTO_FINISH in tie.newlyUnlocked)
         assertFalse(Achievement.I_ROBOT in tie.newlyUnlocked)
         // Identical scorecards either side - the house rule has nothing to break here, so this is still a true,
         // unbroken tie, not a Tie Break win.
@@ -170,12 +170,12 @@ class AchievementEngineTest {
 
         // Matching the top score with fewer 5x wins Tie Break.
         val tieBreakWon = unlocked(finishedGame(player(total = 200, fiveOfAKindBonusCount = 0), bot(total = 200, fiveOfAKindBonusCount = 1)))
-        assertTrue(Achievement.FIRST_WIN in tieBreakWon)
+        assertTrue(Achievement.FIRST_VICTORY in tieBreakWon)
         assertTrue(Achievement.TIE_BREAK in tieBreakWon)
         // Losing the tie-break is losing, full stop - a raw-score tie the house rule then decides against player 1
-        // must not count as a win anywhere, FIRST_WIN included.
+        // must not count as a win anywhere, FIRST_VICTORY included.
         val tieBreakLost = evaluate(finishedGame(player(total = 200, fiveOfAKindBonusCount = 1), bot(total = 200, fiveOfAKindBonusCount = 0)))
-        assertFalse(Achievement.FIRST_WIN in tieBreakLost.newlyUnlocked, "the bot won the tie-break, not player 1")
+        assertFalse(Achievement.FIRST_VICTORY in tieBreakLost.newlyUnlocked, "the bot won the tie-break, not player 1")
         assertFalse(Achievement.TIE_BREAK in tieBreakLost.newlyUnlocked, "the bot won the tie-break, not player 1")
         assertEquals(0, tieBreakLost.counters[AchievementCounter.GAMES_WON])
         // Tie Break needs an opponent to tie with.
@@ -198,9 +198,9 @@ class AchievementEngineTest {
         val medium = evaluate(table(Difficulty.MEDIUM))
         val hard = evaluate(table(Difficulty.HARD))
 
-        assertTrue(Achievement.BEAT_THREE_AI in medium.newlyUnlocked)
-        assertFalse(Achievement.NATURAL_INTELLIGENCE in medium.newlyUnlocked)
-        assertTrue(Achievement.NATURAL_INTELLIGENCE in hard.newlyUnlocked)
+        assertTrue(Achievement.LAST_HUMAN_STANDING in medium.newlyUnlocked)
+        assertFalse(Achievement.HOW_DO_YOU_DO_FELLOW_CPUS in medium.newlyUnlocked)
+        assertTrue(Achievement.HOW_DO_YOU_DO_FELLOW_CPUS in hard.newlyUnlocked)
         assertTrue(Achievement.FULL_TABLE in hard.newlyUnlocked)
 
         // Not winning is fine, so long as somebody scored less - but last place (or tied for it) is not.
@@ -212,10 +212,10 @@ class AchievementEngineTest {
                 player(name = "Bot 3", type = PlayerType.AI, total = 300, difficulty = Difficulty.HARD),
             ),
         )
-        assertTrue(Achievement.NATURAL_INTELLIGENCE in placed(150).newlyUnlocked)
-        assertFalse(Achievement.BEAT_THREE_AI in placed(150).newlyUnlocked)
-        assertFalse(Achievement.NATURAL_INTELLIGENCE in placed(50).newlyUnlocked)
-        assertFalse(Achievement.NATURAL_INTELLIGENCE in placed(100).newlyUnlocked)
+        assertTrue(Achievement.HOW_DO_YOU_DO_FELLOW_CPUS in placed(150).newlyUnlocked)
+        assertFalse(Achievement.LAST_HUMAN_STANDING in placed(150).newlyUnlocked)
+        assertFalse(Achievement.HOW_DO_YOU_DO_FELLOW_CPUS in placed(50).newlyUnlocked)
+        assertFalse(Achievement.HOW_DO_YOU_DO_FELLOW_CPUS in placed(100).newlyUnlocked)
     }
 
     // ---- The scorecard ----------------------------------------------------------------------------
@@ -225,37 +225,37 @@ class AchievementEngineTest {
         // 5x counts the box and every bonus chip after it.
         val fiveX = evaluate(finishedGame(player(total = 400, fiveOfAKindBonusCount = 2, overrides = mapOf(ScoreCategory.FIVE_OF_A_KIND to 50))))
         assertEquals(3, fiveX.counters[AchievementCounter.SCORED_5X])
-        assertTrue(Achievement.FIRST_5X in fiveX.newlyUnlocked)
-        assertTrue(Achievement.ENCORE_5X in fiveX.newlyUnlocked)
-        assertTrue(Achievement.HAT_TRICK_5X in fiveX.newlyUnlocked)
-        assertTrue(Achievement.SCORE_400 in fiveX.newlyUnlocked)
+        assertTrue(Achievement.FIVE_X in fiveX.newlyUnlocked)
+        assertTrue(Achievement.ENCORE in fiveX.newlyUnlocked)
+        assertTrue(Achievement.HAT_TRICK in fiveX.newlyUnlocked)
+        assertTrue(Achievement.HIGH_ROLLER in fiveX.newlyUnlocked)
 
         val scratched = unlocked(finishedGame(player(total = 120, overrides = mapOf(ScoreCategory.FIVE_OF_A_KIND to 0))))
-        assertTrue(Achievement.SCRATCHED_5X in scratched)
-        assertFalse(Achievement.FIRST_5X in scratched)
-        assertFalse(Achievement.NO_ZEROES in scratched)
+        assertTrue(Achievement.SCRATCHED in scratched)
+        assertFalse(Achievement.FIVE_X in scratched)
+        assertFalse(Achievement.SPOTLESS in scratched)
 
         // The lowest score the rules allow earns every bad-game achievement at once - and zeroes everything but Chance.
         val lowest = unlocked(finishedGame(player(total = 5)))
-        assertTrue(Achievement.EXTREME_LOW_ROLLS in lowest)
+        assertTrue(Achievement.ROCK_BOTTOM in lowest)
         assertTrue(Achievement.LOW_ROLLS in lowest)
-        assertTrue(Achievement.SCORE_UNDER_100 in lowest)
-        assertTrue(Achievement.ALL_ZEROES in lowest)
-        assertFalse(Achievement.SCORE_200 in lowest)
+        assertTrue(Achievement.COLD_DICE in lowest)
+        assertTrue(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in lowest)
+        assertFalse(Achievement.SOLID_ROUND in lowest)
 
         // Zeroing everything but Chance is its own achievement: Chance is the one box that cannot be zeroed.
-        assertTrue(Achievement.ALL_ZEROES in unlocked(finishedGame(player(total = 30))))
-        assertFalse(Achievement.ALL_ZEROES in unlocked(finishedGame(player(total = 35, overrides = mapOf(ScoreCategory.FIVES to 5)))))
+        assertTrue(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in unlocked(finishedGame(player(total = 30))))
+        assertFalse(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in unlocked(finishedGame(player(total = 35, overrides = mapOf(ScoreCategory.FIVES to 5)))))
 
         // Spotless and How Do You Play This Game are mutually exclusive.
         val spotless = unlocked(finishedGame(player(total = 250, overrides = GameMode.STANDARD.categories.associateWith { 10 })))
-        assertTrue(Achievement.NO_ZEROES in spotless)
-        assertFalse(Achievement.ALL_ZEROES in spotless)
+        assertTrue(Achievement.SPOTLESS in spotless)
+        assertFalse(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in spotless)
 
         // Low Rolls is a range but Extreme Low Rolls is exactly 5.
         val nineteen = unlocked(finishedGame(player(total = 19)))
         assertTrue(Achievement.LOW_ROLLS in nineteen)
-        assertFalse(Achievement.EXTREME_LOW_ROLLS in nineteen)
+        assertFalse(Achievement.ROCK_BOTTOM in nineteen)
         assertFalse(Achievement.LOW_ROLLS in unlocked(finishedGame(player(total = 20))))
     }
 
@@ -269,9 +269,9 @@ class AchievementEngineTest {
         assertFalse(Achievement.NICE in unlocked(finishedGame(player(total = 70))))
         assertFalse(Achievement.NICE in unlocked(finishedGame(player(total = 68))))
 
-        assertTrue(Achievement.SCORE_200 in unlocked(finishedGame(player(total = 200))), "200 should unlock Solid Round")
-        assertTrue(Achievement.SCORE_200 in unlocked(finishedGame(player(total = 250))), "250 is over 200, so it should unlock Solid Round")
-        assertTrue(Achievement.SCORE_300 in unlocked(finishedGame(player(total = 300))), "300 should unlock Sharpshooter")
+        assertTrue(Achievement.SOLID_ROUND in unlocked(finishedGame(player(total = 200))), "200 should unlock Solid Round")
+        assertTrue(Achievement.SOLID_ROUND in unlocked(finishedGame(player(total = 250))), "250 is over 200, so it should unlock Solid Round")
+        assertTrue(Achievement.SHARPSHOOTER in unlocked(finishedGame(player(total = 300))), "300 should unlock Sharpshooter")
 
         // Exact Change needs every upper box to hold precisely its own pip count; one box over its target - two 2s in
         // Twos instead of one - doesn't count.
@@ -293,8 +293,8 @@ class AchievementEngineTest {
         )
         // 170 in the lower boxes, and nothing later can take it away.
         val update = unlockedMidGame(midGamePlayer(lower))
-        assertTrue(Achievement.LOWER_150 in update)
-        assertFalse(Achievement.UPPER_84 in update)
+        assertTrue(Achievement.LOWER_CLASS in update)
+        assertFalse(Achievement.UPPER_CLASS in update)
 
         // 140 without the 5x - a scored 5x on top would cross 150 in the raw lower section total, but must not count
         // towards this achievement.
@@ -306,27 +306,27 @@ class AchievementEngineTest {
             ScoreCategory.CHANCE to 35,
             ScoreCategory.FIVE_OF_A_KIND to 50,
         )
-        assertFalse(Achievement.LOWER_150 in unlockedMidGame(midGamePlayer(withFiveX)))
+        assertFalse(Achievement.LOWER_CLASS in unlockedMidGame(midGamePlayer(withFiveX)))
     }
 
     @Test
     fun `how the game went - Personal Best - Comeback Kid - Jaws Of Victory - Zero To Hero - Impatient and Naturally Gifted`() {
         val state = finishedGame(player(total = 250))
-        assertTrue(Achievement.PERSONAL_BEST in unlocked(state, GameAchievementContext(previousBestScore = 240)))
-        assertFalse(Achievement.PERSONAL_BEST in unlocked(state, GameAchievementContext(previousBestScore = 260)))
-        assertFalse(Achievement.PERSONAL_BEST in unlocked(state, GameAchievementContext(previousBestScore = null)))
+        assertTrue(Achievement.NEW_PERSONAL_BEST in unlocked(state, GameAchievementContext(previousBestScore = 240)))
+        assertFalse(Achievement.NEW_PERSONAL_BEST in unlocked(state, GameAchievementContext(previousBestScore = 260)))
+        assertFalse(Achievement.NEW_PERSONAL_BEST in unlocked(state, GameAchievementContext(previousBestScore = null)))
 
         // Comeback Kid needs both the trailing position and the win; Jaws Of Victory both the lead and the loss.
         val won = finishedGame(player(total = 200), bot(total = 190))
         val lost = finishedGame(player(total = 180), bot(total = 190))
         val trailed = GameAchievementContext(trailedIntoFinalRound = true)
         val led = GameAchievementContext(ledIntoFinalRound = true)
-        assertTrue(Achievement.COMEBACK in unlocked(won, trailed))
-        assertFalse(Achievement.COMEBACK in unlocked(lost, trailed))
-        assertFalse(Achievement.COMEBACK in unlocked(won))
-        assertTrue(Achievement.JAWS_OF_VICTORY in unlocked(lost, led))
-        assertFalse(Achievement.JAWS_OF_VICTORY in unlocked(won, led))
-        assertFalse(Achievement.JAWS_OF_VICTORY in unlocked(lost))
+        assertTrue(Achievement.COMEBACK_KID in unlocked(won, trailed))
+        assertFalse(Achievement.COMEBACK_KID in unlocked(lost, trailed))
+        assertFalse(Achievement.COMEBACK_KID in unlocked(won))
+        assertTrue(Achievement.DEFEAT_FROM_THE_JAWS_OF_VICTORY in unlocked(lost, led))
+        assertFalse(Achievement.DEFEAT_FROM_THE_JAWS_OF_VICTORY in unlocked(won, led))
+        assertFalse(Achievement.DEFEAT_FROM_THE_JAWS_OF_VICTORY in unlocked(lost))
 
         // Winning with at least three zeroes on the winning scorecard is Zero to Hero. player()'s own defaults are 0
         // for anything not overridden and not Chance, so every OTHER category needs an explicit non-zero override here
@@ -364,7 +364,7 @@ class AchievementEngineTest {
         // Superuser mode used to disqualify a game outright. It no longer does: the cheat is gated on a debug build,
         // so the rule protected nobody, and it made the one tool best placed to test achievements useless for testing them.
         val handSet = evaluate(finishedGame(player(total = 500, fiveOfAKindBonusCount = 3)))
-        assertTrue(Achievement.SCORE_500 in handSet.newlyUnlocked)
+        assertTrue(Achievement.DICE_DEITY in handSet.newlyUnlocked)
         assertEquals(1, handSet.counters[AchievementCounter.GAMES_PLAYED])
     }
 
@@ -400,6 +400,8 @@ class AchievementEngineTest {
         // The ids are the storage and Play Games keys.
         val ids = Achievement.entries.map { it.id }
         assertEquals(ids.size, ids.toSet().size)
+        // Each is its constant's name in lower case, so storage, code and the title all use one name.
+        Achievement.entries.forEach { assertEquals(it.name.lowercase(), it.id, it.name) }
 
         // Declaration order is display order, so a new entry appended to the end of the enum instead of filed into its
         // theme would silently split that theme across the list.
@@ -413,7 +415,7 @@ class AchievementEngineTest {
             Achievement.LUCK_OF_THE_IRISH,
             Achievement.NOT_THOSE_DICE,
             Achievement.SHAKEN_NOT_TAPPED,
-            Achievement.MAGICIANS_SECRET,
+            Achievement.THE_MAGICIANS_SECRET,
             Achievement.THE_SOLUTION,
         )
         assertEquals(easterEggs, Achievement.entries.filter { it.category == AchievementCategory.EASTER_EGGS })
@@ -421,8 +423,8 @@ class AchievementEngineTest {
             assertEquals(AchievementVisibility.HIDDEN, it.visibility)
             assertFalse(it in Achievement.COMPLETION_REQUIREMENTS, "$it gates Completionist")
         }
-        // I Robot counts toward Completionist - Completionist does not count toward itself.
-        assertTrue(Achievement.NATURAL_INTELLIGENCE in Achievement.COMPLETION_REQUIREMENTS)
+        // How Do You Do, Fellow CPUs? counts toward Completionist - Completionist does not count toward itself.
+        assertTrue(Achievement.HOW_DO_YOU_DO_FELLOW_CPUS in Achievement.COMPLETION_REQUIREMENTS)
         assertFalse(Achievement.COMPLETIONIST in Achievement.COMPLETION_REQUIREMENTS)
 
         // Miscellaneous and Easter Eggs are the only categories with hidden visibility (title visible, description "???").
@@ -437,41 +439,37 @@ class AchievementEngineTest {
     fun `the achievements list - the score ladder - the first-roll feats and the Game Modes are each in order`() {
         assertEquals(
             listOf(
-                Achievement.PERSONAL_BEST,
+                Achievement.NEW_PERSONAL_BEST,
                 Achievement.TON,
-                Achievement.SCORE_200,
-                Achievement.SCORE_300,
-                Achievement.SCORE_400,
-                Achievement.SCORE_500,
+                Achievement.SOLID_ROUND,
+                Achievement.SHARPSHOOTER,
+                Achievement.HIGH_ROLLER,
+                Achievement.DICE_DEITY,
             ),
             Achievement.entries.filter { it.category == AchievementCategory.SCORING },
         )
 
         // The first-roll feats are listed together - least unlikely first - adjacent, not merely in order.
         val misc = Achievement.entries.filter { it.category == AchievementCategory.MISCELLANEOUS }
-        assertEquals(
-            listOf(Achievement.FIRST_ROLL_FULL_HOUSE, Achievement.FIRST_ROLL_LARGE_STRAIGHT),
-            misc.filter { it.id.contains("first_roll") },
-        )
-        assertEquals(1, misc.indexOf(Achievement.FIRST_ROLL_LARGE_STRAIGHT) - misc.indexOf(Achievement.FIRST_ROLL_FULL_HOUSE))
+        assertEquals(1, misc.indexOf(Achievement.STRAIGHT_AWAY) - misc.indexOf(Achievement.HOUSE_CALL))
 
         // The Game Modes achievements are ordered and count towards Completionist.
         val gameModes = Achievement.entries.filter { it.category == AchievementCategory.GAME_MODES }
         assertEquals(
             listOf(
-                Achievement.NON_STANDARD_MODE,
-                Achievement.TRICOLOUR_WIN,
-                Achievement.TRICOLOUR_ALL_COLOURS,
-                Achievement.THIRD_WIND_WIN,
-                Achievement.THIRD_WIND_NO_ZEROES,
-                Achievement.STUD_WIN,
-                Achievement.STUD_LUCKY_SEVEN,
-                Achievement.D20_WIN,
-                Achievement.D20_BOTH_BONUSES,
-                Achievement.HIT_LIST_WIN,
-                Achievement.HIT_LIST_RIGHT_ON_TARGET,
-                Achievement.QUICKFIRE_WIN,
-                Achievement.QUICKFIRE_SCORE,
+                Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES,
+                Achievement.TRICOLOURFUL,
+                Achievement.TRICOLOUR_ME_IMPRESSED,
+                Achievement.GONE_WITH_THE_WIND,
+                Achievement.THIRD_TIMES_THE_CHARM,
+                Achievement.HOLD_EM,
+                Achievement.LUCKY_SEVEN,
+                Achievement.NAT_20,
+                Achievement.CRITICAL_SUCCESS,
+                Achievement.CONTRACT_FULFILLED,
+                Achievement.RIGHT_ON_TARGET,
+                Achievement.QUICK_ON_THE_DRAW,
+                Achievement.SIX_OF_THE_BEST,
             ),
             gameModes,
         )
@@ -484,8 +482,8 @@ class AchievementEngineTest {
     fun `an unlock happens once - counters accumulate and Completionist unlocks with the last of its requirements`() {
         // An already-unlocked achievement is not unlocked again - and the check is per-achievement, not a blanket freeze:
         // a still-locked one the same game earns still unlocks.
-        val alreadyUnlocked = evaluate(finishedGame(player()), before = AchievementsState(unlockedAt = mapOf(Achievement.SOLO_GAME to 1L)))
-        assertFalse(Achievement.SOLO_GAME in alreadyUnlocked.newlyUnlocked)
+        val alreadyUnlocked = evaluate(finishedGame(player()), before = AchievementsState(unlockedAt = mapOf(Achievement.PRACTICE_MAKES_PERFECT to 1L)))
+        assertFalse(Achievement.PRACTICE_MAKES_PERFECT in alreadyUnlocked.newlyUnlocked)
         assertTrue(Achievement.IMPATIENT in alreadyUnlocked.newlyUnlocked)
 
         // Dice rolled accumulate towards Well Rolled.
@@ -494,9 +492,9 @@ class AchievementEngineTest {
         assertEquals(65, evaluate(finishedGame(player()), rolled, AchievementsState(counters = mapOf(AchievementCounter.DICE_ROLLED to 40))).counters[AchievementCounter.DICE_ROLLED])
 
         // Completionist unlocks once everything it waits on is done.
-        val everythingElse = Achievement.COMPLETION_REQUIREMENTS.filterNot { it == Achievement.SOLO_GAME }.associateWith { 1L }
+        val everythingElse = Achievement.COMPLETION_REQUIREMENTS.filterNot { it == Achievement.PRACTICE_MAKES_PERFECT }.associateWith { 1L }
         val last = evaluate(finishedGame(player()), before = AchievementsState(unlockedAt = everythingElse, counters = mapOf(AchievementCounter.GAMES_PLAYED to 100)))
-        assertTrue(Achievement.SOLO_GAME in last.newlyUnlocked)
+        assertTrue(Achievement.PRACTICE_MAKES_PERFECT in last.newlyUnlocked)
         assertTrue(Achievement.COMPLETIONIST in last.newlyUnlocked)
 
         // The superuser force-unlock path (AchievementsViewModel.forceUnlock) calls unlockNow with exactly the
@@ -510,25 +508,25 @@ class AchievementEngineTest {
         assertEquals(1, forced.newlyUnlocked.count { it == Achievement.COMPLETIONIST })
 
         // unlockNow raises a single mid-game achievement without touching counters.
-        val now = AchievementEngine.unlockNow(setOf(Achievement.FIRST_ROLL_LARGE_STRAIGHT), AchievementsState(counters = mapOf(AchievementCounter.GAMES_PLAYED to 3)), NOW)
-        assertEquals(listOf(Achievement.FIRST_ROLL_LARGE_STRAIGHT), now.newlyUnlocked)
+        val now = AchievementEngine.unlockNow(setOf(Achievement.STRAIGHT_AWAY), AchievementsState(counters = mapOf(AchievementCounter.GAMES_PLAYED to 3)), NOW)
+        assertEquals(listOf(Achievement.STRAIGHT_AWAY), now.newlyUnlocked)
         assertEquals(3, now.counters[AchievementCounter.GAMES_PLAYED])
         assertTrue(now.progressed.isEmpty())
-        assertEquals(mapOf(Achievement.FIRST_ROLL_LARGE_STRAIGHT to NOW), now.unlockedAt())
+        assertEquals(mapOf(Achievement.STRAIGHT_AWAY to NOW), now.unlockedAt())
     }
 
     @Test
     fun `progress is announced every step of a streak - but only at the milestones of a total`() {
-        // A win streak announces progress every single step. STREAK_3 is at 2 of 3 too, so it also reports - but only
+        // A win streak announces progress every single step. ON_A_ROLL is at 2 of 3 too, so it also reports - but only
         // ones still locked do.
         val streak = evaluate(finishedGame(player(total = 200), bot(total = 100)), before = AchievementsState(counters = mapOf(AchievementCounter.WIN_STREAK to 1)))
-        assertEquals(2, streak.progressed.single { it.achievement == Achievement.STREAK_10 }.current)
-        assertTrue(streak.progressed.any { it.achievement == Achievement.STREAK_3 })
+        assertEquals(2, streak.progressed.single { it.achievement == Achievement.UNTOUCHABLE }.current)
+        assertTrue(streak.progressed.any { it.achievement == Achievement.ON_A_ROLL })
 
         // A cumulative total only announces progress at milestones: 1 -> 2 of 100 isn't worth interrupting anyone for,
         // 24 -> 25 of 100 crosses the first quarter.
         fun gamesProgressed(before: Int) = evaluate(finishedGame(player()), before = AchievementsState(counters = mapOf(AchievementCounter.GAMES_PLAYED to before)))
-            .progressed.any { it.achievement == Achievement.GAMES_100 }
+            .progressed.any { it.achievement == Achievement.CENTURION }
         assertFalse(gamesProgressed(1))
         assertTrue(gamesProgressed(24))
 
@@ -538,7 +536,7 @@ class AchievementEngineTest {
             finishedGame(player()),
             context = GameAchievementContext(diceRolledByPlayerOne = rolled),
             before = AchievementsState(counters = mapOf(AchievementCounter.DICE_ROLLED to before)),
-        ).progressed.any { it.achievement == Achievement.DICE_10000 }
+        ).progressed.any { it.achievement == Achievement.WELL_ROLLED }
         assertFalse(diceProgressed(before = 990, rolled = 5))
         assertTrue(diceProgressed(before = 999, rolled = 1))
 
@@ -556,14 +554,14 @@ class AchievementEngineTest {
         fun winsProgressed(before: Int) = evaluate(
             finishedGame(player(total = 200), bot(total = 100)),
             before = AchievementsState(counters = mapOf(AchievementCounter.GAMES_WON to before)),
-        ).progressed.any { it.achievement == Achievement.WINS_25 }
+        ).progressed.any { it.achievement == Achievement.HALL_OF_FAMER }
         assertFalse(winsProgressed(before = 3))
         assertTrue(winsProgressed(before = 4))
 
         // An achievement being unlocked right now does not also report progress.
         val unlocking = evaluate(finishedGame(player()), before = AchievementsState(counters = mapOf(AchievementCounter.GAMES_PLAYED to 9)))
-        assertTrue(Achievement.GAMES_10 in unlocking.newlyUnlocked)
-        assertFalse(unlocking.progressed.any { it.achievement == Achievement.GAMES_10 })
+        assertTrue(Achievement.GETTING_COMFORTABLE in unlocking.newlyUnlocked)
+        assertFalse(unlocking.progressed.any { it.achievement == Achievement.GETTING_COMFORTABLE })
     }
 
     @Test
@@ -643,8 +641,8 @@ class AchievementEngineTest {
         assertEquals(listOf(Achievement.LUCK_OF_THE_IRISH), atStart(GameStartContext(hasIrishPlayerOneInTricolour = true)).newlyUnlocked)
         // Starting any non-Standard mode unlocks Rules - and Standard does not.
         assertTrue(atStart(GameStartContext(gameMode = GameMode.STANDARD)).isEmpty)
-        assertEquals(listOf(Achievement.NON_STANDARD_MODE), atStart(GameStartContext(gameMode = GameMode.TRICOLOUR)).newlyUnlocked)
-        assertEquals(listOf(Achievement.NON_STANDARD_MODE), atStart(GameStartContext(gameMode = GameMode.QUICKFIRE)).newlyUnlocked)
+        assertEquals(listOf(Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES), atStart(GameStartContext(gameMode = GameMode.TRICOLOUR)).newlyUnlocked)
+        assertEquals(listOf(Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES), atStart(GameStartContext(gameMode = GameMode.QUICKFIRE)).newlyUnlocked)
 
         // Game start touches no counters and skips an already-unlocked style.
         val styled = AchievementEngine.evaluateAtGameStart(
@@ -659,24 +657,24 @@ class AchievementEngineTest {
     @Test
     fun `mid-game - banked feats unlock at once - nothing a later turn could change does and no counters move`() {
         // A maxed box unlocks mid-game - without waiting for the results screen - but an AI maxing one earns the device nothing.
-        assertTrue(Achievement.SIXES_30 in unlockedMidGame(midGamePlayer(mapOf(ScoreCategory.SIXES to 30))))
-        assertFalse(Achievement.SIXES_30 in unlockedMidGame(midGamePlayer(mapOf(ScoreCategory.ONES to 1)), midGamePlayer(mapOf(ScoreCategory.SIXES to 30), type = PlayerType.AI)))
+        assertTrue(Achievement.SIX_APPEAL in unlockedMidGame(midGamePlayer(mapOf(ScoreCategory.SIXES to 30))))
+        assertFalse(Achievement.SIX_APPEAL in unlockedMidGame(midGamePlayer(mapOf(ScoreCategory.ONES to 1)), midGamePlayer(mapOf(ScoreCategory.SIXES to 30), type = PlayerType.AI)))
 
         // 30 + 50 + 200 bonus = 280 - already well past the 200 rung, but leaving this game now records nothing on the
-        // leaderboard, so SCORE_200 must not have fired off a total that's about to disappear.
+        // leaderboard, so SOLID_ROUND must not have fired off a total that's about to disappear.
         val banked = unlockedMidGame(midGamePlayer(mapOf(ScoreCategory.CHANCE to 30, ScoreCategory.FIVE_OF_A_KIND to 50), fiveOfAKindBonusCount = 2))
-        assertTrue(Achievement.FIRST_5X in banked)
-        assertTrue(Achievement.ENCORE_5X in banked)
-        assertTrue(Achievement.HAT_TRICK_5X in banked)
-        assertTrue(Achievement.CHANCE_30 in banked)
-        assertFalse(Achievement.SCORE_200 in banked, "a score threshold must wait for the game to actually finish")
+        assertTrue(Achievement.FIVE_X in banked)
+        assertTrue(Achievement.ENCORE in banked)
+        assertTrue(Achievement.HAT_TRICK in banked)
+        assertTrue(Achievement.TAKING_A_CHANCE in banked)
+        assertFalse(Achievement.SOLID_ROUND in banked, "a score threshold must wait for the game to actually finish")
 
         // An almost-empty card is not "Spotless", "Cold Dice" or a solo win - those need an ending.
         val almostEmpty = unlockedMidGame(midGamePlayer(mapOf(ScoreCategory.ONES to 3)))
-        assertFalse(Achievement.NO_ZEROES in almostEmpty)
-        assertFalse(Achievement.SCORE_UNDER_100 in almostEmpty)
+        assertFalse(Achievement.SPOTLESS in almostEmpty)
+        assertFalse(Achievement.COLD_DICE in almostEmpty)
         assertFalse(Achievement.LOW_ROLLS in almostEmpty)
-        assertFalse(Achievement.SOLO_GAME in almostEmpty)
+        assertFalse(Achievement.PRACTICE_MAKES_PERFECT in almostEmpty)
 
         // Mid-game touches no counters - so an undo can't inflate a running total.
         val update = AchievementEngine.evaluateInProgress(
@@ -728,7 +726,7 @@ class AchievementEngineTest {
             return finishedGame(*players.toTypedArray()).copy(turnTimer = timer, rollModifiers = rolls, extendedScores = extended, unluckyDice = unlucky)
         }
 
-        fun earned(state: GameState) = Achievement.EVERYTHING_EVERYWHERE in unlocked(state)
+        fun earned(state: GameState) = Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE in unlocked(state)
         assertTrue(earned(table()))
         assertFalse(earned(table(mode = GameMode.STANDARD)), "Standard")
         assertFalse(earned(table(humanTotal = 100)), "a loss")
@@ -747,7 +745,7 @@ class AchievementEngineTest {
         fun table(mode: GameMode, humanTotal: Int, withBot: Boolean = true) =
             if (withBot) finishedGame(player(total = humanTotal, gameMode = mode), bot(total = 200, gameMode = mode)) else finishedGame(player(total = humanTotal, gameMode = mode))
 
-        for ((mode, achievement) in listOf(GameMode.TRICOLOUR to Achievement.TRICOLOUR_WIN, GameMode.QUICKFIRE to Achievement.QUICKFIRE_WIN, GameMode.STUD to Achievement.STUD_WIN)) {
+        for ((mode, achievement) in listOf(GameMode.TRICOLOUR to Achievement.TRICOLOURFUL, GameMode.QUICKFIRE to Achievement.QUICK_ON_THE_DRAW, GameMode.STUD to Achievement.HOLD_EM)) {
             assertTrue(achievement in unlocked(table(mode, 300)), "$achievement for a win")
             assertFalse(achievement in unlocked(table(mode, 100)), "$achievement for a loss")
             // Same rule as First Victory and the win counter: a solo game has nobody to beat.
@@ -757,12 +755,12 @@ class AchievementEngineTest {
 
         val bot = thirdWindPlayer(name = "Bot", type = PlayerType.AI) { _, _ -> 1 }
         val strongBot = thirdWindPlayer(name = "Bot", type = PlayerType.AI) { _, _ -> 30 }
-        assertTrue(Achievement.THIRD_WIND_WIN in unlocked(finishedGame(thirdWindNoZeroes(), bot)))
-        assertFalse(Achievement.THIRD_WIND_WIN in unlocked(finishedGame(thirdWindNoZeroes(), strongBot)))
-        assertFalse(Achievement.THIRD_WIND_WIN in unlocked(finishedGame(thirdWindNoZeroes())))
-        assertFalse(Achievement.THIRD_WIND_WIN in unlocked(finishedGame(player(total = 250), bot(total = 100))))
+        assertTrue(Achievement.GONE_WITH_THE_WIND in unlocked(finishedGame(thirdWindNoZeroes(), bot)))
+        assertFalse(Achievement.GONE_WITH_THE_WIND in unlocked(finishedGame(thirdWindNoZeroes(), strongBot)))
+        assertFalse(Achievement.GONE_WITH_THE_WIND in unlocked(finishedGame(thirdWindNoZeroes())))
+        assertFalse(Achievement.GONE_WITH_THE_WIND in unlocked(finishedGame(player(total = 250), bot(total = 100))))
 
-        fun hitListWin(state: GameState) = Achievement.HIT_LIST_WIN in unlocked(state)
+        fun hitListWin(state: GameState) = Achievement.CONTRACT_FULFILLED in unlocked(state)
         assertTrue(hitListWin(finishedGame(hitListPlayer(total = 200), hitListPlayer(name = "Bot", type = PlayerType.AI, total = 150))))
         assertFalse(hitListWin(finishedGame(hitListPlayer(total = 100), hitListPlayer(name = "Bot", type = PlayerType.AI, total = 150))))
         assertFalse(hitListWin(finishedGame(hitListPlayer(total = 200))))
@@ -773,14 +771,14 @@ class AchievementEngineTest {
     fun `Tricolour - all four colour boxes scored is Tricolour Me Impressed and How Do You Play This Game zeroes them too`() {
         // It unlocks mid-game, the moment the fourth goes in.
         val threeOfFour = mapOf(ScoreCategory.REDS to 40, ScoreCategory.YELLOWS to 40, ScoreCategory.BLUES to 40)
-        assertFalse(Achievement.TRICOLOUR_ALL_COLOURS in unlockedMidGame(midGamePlayer(threeOfFour, gameMode = GameMode.TRICOLOUR)))
-        assertTrue(Achievement.TRICOLOUR_ALL_COLOURS in unlockedMidGame(midGamePlayer(threeOfFour + (ScoreCategory.COLOURED_HOUSE to 25), gameMode = GameMode.TRICOLOUR)))
+        assertFalse(Achievement.TRICOLOUR_ME_IMPRESSED in unlockedMidGame(midGamePlayer(threeOfFour, gameMode = GameMode.TRICOLOUR)))
+        assertTrue(Achievement.TRICOLOUR_ME_IMPRESSED in unlockedMidGame(midGamePlayer(threeOfFour + (ScoreCategory.COLOURED_HOUSE to 25), gameMode = GameMode.TRICOLOUR)))
         // A zero in any colour box doesn't count.
         val zeroYellow = mapOf(ScoreCategory.REDS to 40, ScoreCategory.YELLOWS to 0, ScoreCategory.BLUES to 40, ScoreCategory.COLOURED_HOUSE to 25)
-        assertFalse(Achievement.TRICOLOUR_ALL_COLOURS in unlockedMidGame(midGamePlayer(zeroYellow, gameMode = GameMode.TRICOLOUR)))
+        assertFalse(Achievement.TRICOLOUR_ME_IMPRESSED in unlockedMidGame(midGamePlayer(zeroYellow, gameMode = GameMode.TRICOLOUR)))
 
-        assertFalse(Achievement.ALL_ZEROES in unlocked(finishedGame(player(total = 45, overrides = mapOf(ScoreCategory.REDS to 40), gameMode = GameMode.TRICOLOUR))))
-        assertTrue(Achievement.ALL_ZEROES in unlocked(finishedGame(player(total = 5, gameMode = GameMode.TRICOLOUR))))
+        assertFalse(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in unlocked(finishedGame(player(total = 45, overrides = mapOf(ScoreCategory.REDS to 40), gameMode = GameMode.TRICOLOUR))))
+        assertTrue(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in unlocked(finishedGame(player(total = 5, gameMode = GameMode.TRICOLOUR))))
     }
 
     // ---- Quickfire: a card with boxes switched off -------------------------------------------------
@@ -815,27 +813,27 @@ class AchievementEngineTest {
     fun `scoring 150 in Quickfire unlocks Six Of The Best - win or lose - but not with extra rolls or boxes or in another mode`() {
         fun game(mode: GameMode, total: Int) = quickfireGame(quickfirePlayer(total = total)).copy(gameMode = mode)
 
-        assertTrue(Achievement.QUICKFIRE_SCORE in unlocked(game(GameMode.QUICKFIRE, 150)))
-        assertFalse(Achievement.QUICKFIRE_SCORE in unlocked(game(GameMode.QUICKFIRE, 149)))
-        assertFalse(Achievement.QUICKFIRE_SCORE in unlocked(game(GameMode.STANDARD, 200)))
-        assertFalse(Achievement.QUICKFIRE_SCORE in unlocked(game(GameMode.QUICKFIRE, 200).copy(rollModifiers = RollModifiers(rollsPerTurn = 5))))
-        assertFalse(Achievement.QUICKFIRE_SCORE in unlocked(game(GameMode.QUICKFIRE, 200).copy(extendedScores = true)))
+        assertTrue(Achievement.SIX_OF_THE_BEST in unlocked(game(GameMode.QUICKFIRE, 150)))
+        assertFalse(Achievement.SIX_OF_THE_BEST in unlocked(game(GameMode.QUICKFIRE, 149)))
+        assertFalse(Achievement.SIX_OF_THE_BEST in unlocked(game(GameMode.STANDARD, 200)))
+        assertFalse(Achievement.SIX_OF_THE_BEST in unlocked(game(GameMode.QUICKFIRE, 200).copy(rollModifiers = RollModifiers(rollsPerTurn = 5))))
+        assertFalse(Achievement.SIX_OF_THE_BEST in unlocked(game(GameMode.QUICKFIRE, 200).copy(extendedScores = true)))
         val lost = quickfireGame(quickfirePlayer(total = 160), quickfirePlayer(total = 200, name = "Bot", type = PlayerType.AI))
-        assertTrue(Achievement.QUICKFIRE_SCORE in unlocked(lost))
+        assertTrue(Achievement.SIX_OF_THE_BEST in unlocked(lost))
     }
 
     @Test
     fun `a Quickfire card earns none of the full-card achievements - Spotless - the low scores - the ladder - the bonus or the sections`() {
         // A Quickfire card with no zero doesn't unlock Spotless - a full Standard one does.
         val enabled = GameMode.QUICKFIRE.categories - QUICKFIRE_OFF
-        assertFalse(Achievement.NO_ZEROES in unlocked(quickfireGame(quickfirePlayer(total = 100, overrides = enabled.associateWith { 10 }))))
-        assertTrue(Achievement.NO_ZEROES in unlocked(finishedGame(player(total = 100, overrides = GameMode.STANDARD.categories.associateWith { 10 }))))
+        assertFalse(Achievement.SPOTLESS in unlocked(quickfireGame(quickfirePlayer(total = 100, overrides = enabled.associateWith { 10 }))))
+        assertTrue(Achievement.SPOTLESS in unlocked(finishedGame(player(total = 100, overrides = GameMode.STANDARD.categories.associateWith { 10 }))))
 
         // A low Quickfire total doesn't unlock Cold Dice or Low Rolls or Rock Bottom - a Standard one does.
         for ((total, achievements) in listOf(
-            90 to listOf(Achievement.SCORE_UNDER_100),
-            15 to listOf(Achievement.SCORE_UNDER_100, Achievement.LOW_ROLLS),
-            5 to listOf(Achievement.SCORE_UNDER_100, Achievement.LOW_ROLLS, Achievement.EXTREME_LOW_ROLLS),
+            90 to listOf(Achievement.COLD_DICE),
+            15 to listOf(Achievement.COLD_DICE, Achievement.LOW_ROLLS),
+            5 to listOf(Achievement.COLD_DICE, Achievement.LOW_ROLLS, Achievement.ROCK_BOTTOM),
         )) {
             val quickfire = unlocked(quickfireGame(quickfirePlayer(total = total)))
             val standard = unlocked(finishedGame(player(total = total)))
@@ -846,31 +844,31 @@ class AchievementEngineTest {
         }
 
         // Zeroing every Quickfire box but Chance doesn't unlock How Do You Play This Game.
-        assertFalse(Achievement.ALL_ZEROES in unlocked(quickfireGame(quickfirePlayer(total = 20))))
-        assertTrue(Achievement.ALL_ZEROES in unlocked(finishedGame(player(total = 20))))
+        assertFalse(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in unlocked(quickfireGame(quickfirePlayer(total = 20))))
+        assertTrue(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in unlocked(finishedGame(player(total = 20))))
 
         // The score ladder isn't climbed in Quickfire however high the total.
-        assertFalse(Achievement.SCORE_200 in unlocked(quickfireGame(quickfirePlayer(total = 210))))
-        assertTrue(Achievement.SCORE_200 in unlocked(finishedGame(player(total = 210))))
+        assertFalse(Achievement.SOLID_ROUND in unlocked(quickfireGame(quickfirePlayer(total = 210))))
+        assertTrue(Achievement.SOLID_ROUND in unlocked(finishedGame(player(total = 210))))
 
         // A scaled Quickfire upper bonus doesn't unlock Bonus Round - nor do the section totals unlock Upper or Lower Class.
         val onlySixes = GameMode.QUICKFIRE.categories.filter { it != ScoreCategory.SIXES && it.section == ScoreSection.UPPER }.toSet() + ScoreCategory.FIVE_OF_A_KIND
         val bonus = midGamePlayer(mapOf(ScoreCategory.SIXES to 18), gameMode = GameMode.QUICKFIRE).copy(disabledCategories = onlySixes)
         assertEquals(35, bonus.upperSectionBonus)
-        assertFalse(Achievement.UPPER_BONUS in unlockedMidGame(bonus))
-        assertTrue(Achievement.UPPER_BONUS in unlockedMidGame(midGamePlayer(PlayerState.UPPER_CATEGORIES.associateWith { 3 * (PlayerState.UPPER_CATEGORIES.indexOf(it) + 1) })))
+        assertFalse(Achievement.BONUS_ROUND in unlockedMidGame(bonus))
+        assertTrue(Achievement.BONUS_ROUND in unlockedMidGame(midGamePlayer(PlayerState.UPPER_CATEGORIES.associateWith { 3 * (PlayerState.UPPER_CATEGORIES.indexOf(it) + 1) })))
         val upper = quickfirePlayer(
             overrides = mapOf(ScoreCategory.SIXES to 30, ScoreCategory.FIVES to 25, ScoreCategory.FOURS to 20, ScoreCategory.THREES to 15),
             off = setOf(ScoreCategory.FIVE_OF_A_KIND, ScoreCategory.ONES, ScoreCategory.TWOS, ScoreCategory.FULL_HOUSE, ScoreCategory.SMALL_STRAIGHT, ScoreCategory.LARGE_STRAIGHT),
         )
         assertEquals(90, upper.upperSectionTotal)
-        assertFalse(Achievement.UPPER_84 in unlocked(quickfireGame(upper, off = upper.disabledCategories)))
+        assertFalse(Achievement.UPPER_CLASS in unlocked(quickfireGame(upper, off = upper.disabledCategories)))
         val lower = quickfirePlayer(
             total = 200,
             overrides = mapOf(ScoreCategory.THREE_OF_A_KIND to 30, ScoreCategory.FOUR_OF_A_KIND to 30, ScoreCategory.LARGE_STRAIGHT to 40, ScoreCategory.SMALL_STRAIGHT to 30),
         )
         assertTrue(lower.lowerSectionTotalExcludingFiveOfAKind >= 150)
-        assertFalse(Achievement.LOWER_150 in unlocked(quickfireGame(lower)))
+        assertFalse(Achievement.LOWER_CLASS in unlocked(quickfireGame(lower)))
     }
 
     // ---- The turn timer ------------------------------------------------------------------------------
@@ -880,8 +878,8 @@ class AchievementEngineTest {
         // Five on the card, every box but Chance a zero: all of these, played out by hand.
         val rockBottom = finishedGame(player(total = 5))
         val lowAndZeroed = listOf(
-            Achievement.ALL_ZEROES, Achievement.EXTREME_LOW_ROLLS, Achievement.LOW_ROLLS, Achievement.SCORE_UNDER_100,
-            Achievement.SCRATCHED_5X, Achievement.IMPATIENT,
+            Achievement.HOW_DO_YOU_PLAY_THIS_GAME, Achievement.ROCK_BOTTOM, Achievement.LOW_ROLLS, Achievement.COLD_DICE,
+            Achievement.SCRATCHED, Achievement.IMPATIENT,
         )
         val byHand = unlocked(rockBottom)
         for (achievement in lowAndZeroed) assertTrue(achievement in byHand, "$achievement by hand")
@@ -890,7 +888,7 @@ class AchievementEngineTest {
         val timedOut = unlocked(rockBottom, GameAchievementContext(playerOneTimeouts = 1, playerOneTimedOutZeroes = listOf(ScoreCategory.FIVE_OF_A_KIND)))
         for (achievement in lowAndZeroed) assertFalse(achievement in timedOut, "$achievement with a turn timed out")
         // A timeout that zeroed some other box leaves the 5x zero player 1's own.
-        assertTrue(Achievement.SCRATCHED_5X in unlocked(rockBottom, GameAchievementContext(playerOneTimeouts = 1, playerOneTimedOutZeroes = listOf(ScoreCategory.ONES))))
+        assertTrue(Achievement.SCRATCHED in unlocked(rockBottom, GameAchievementContext(playerOneTimeouts = 1, playerOneTimedOutZeroes = listOf(ScoreCategory.ONES))))
         // Nor is a winner's Naturally Gifted (never rolling twice) earned by never rolling at all.
         val won = finishedGame(player(total = 200), bot(total = 150))
         assertTrue(Achievement.NATURALLY_GIFTED in unlocked(won))
@@ -908,9 +906,9 @@ class AchievementEngineTest {
         assertFalse(Achievement.ZERO_TO_HERO in unlocked(won, timedOut(zeroes - 2)))
 
         val scratched = midGamePlayer(mapOf(ScoreCategory.FIVE_OF_A_KIND to 0))
-        assertTrue(Achievement.SCRATCHED_5X in unlockedMidGame(scratched))
+        assertTrue(Achievement.SCRATCHED in unlockedMidGame(scratched))
         val byTimer = AchievementEngine.evaluateInProgress(inProgress(scratched), AchievementsState(), NOW, listOf(ScoreCategory.FIVE_OF_A_KIND)).newlyUnlocked
-        assertFalse(Achievement.SCRATCHED_5X in byTimer)
+        assertFalse(Achievement.SCRATCHED in byTimer)
     }
 
     // ---- Modifiers ----------------------------------------------------------------------------------
@@ -927,16 +925,16 @@ class AchievementEngineTest {
         val strong = player(total = 520, overrides = GameMode.STANDARD.categories.associateWith { 30 })
         val plain = unlocked(finishedGame(strong))
         val modified = unlocked(modifiedGame(strong))
-        for (achievement in listOf(Achievement.SCORE_200, Achievement.SCORE_300, Achievement.SCORE_400, Achievement.SCORE_500, Achievement.UPPER_84, Achievement.LOWER_150)) {
+        for (achievement in listOf(Achievement.SOLID_ROUND, Achievement.SHARPSHOOTER, Achievement.HIGH_ROLLER, Achievement.DICE_DEITY, Achievement.UPPER_CLASS, Achievement.LOWER_CLASS)) {
             assertTrue(achievement in plain, "$achievement in a plain game")
             assertFalse(achievement in modified, "$achievement with roll modifiers")
         }
 
         val clean = player(total = 250, overrides = GameMode.STANDARD.categories.associateWith { 10 } + mapOf(ScoreCategory.SIXES to 30))
-        assertTrue(Achievement.NO_ZEROES in unlocked(finishedGame(clean)))
-        assertFalse(Achievement.NO_ZEROES in unlocked(modifiedGame(clean)))
-        assertTrue(Achievement.UPPER_BONUS in unlocked(finishedGame(clean)))
-        assertFalse(Achievement.UPPER_BONUS in unlocked(modifiedGame(clean)))
+        assertTrue(Achievement.SPOTLESS in unlocked(finishedGame(clean)))
+        assertFalse(Achievement.SPOTLESS in unlocked(modifiedGame(clean)))
+        assertTrue(Achievement.BONUS_ROUND in unlocked(finishedGame(clean)))
+        assertFalse(Achievement.BONUS_ROUND in unlocked(modifiedGame(clean)))
 
         // A single roll chosen with Number of Rolls isn't Impatient - nor Naturally Gifted for a win. Quickfire's three
         // rolls still are.
@@ -957,7 +955,7 @@ class AchievementEngineTest {
         val strong = player(total = 520, overrides = GameMode.STANDARD.categories.associateWith { 30 })
         val plain = unlocked(finishedGame(strong))
         val extended = unlocked(extendedGame(strong))
-        for (achievement in listOf(Achievement.SCORE_200, Achievement.SCORE_300, Achievement.SCORE_400, Achievement.SCORE_500)) {
+        for (achievement in listOf(Achievement.SOLID_ROUND, Achievement.SHARPSHOOTER, Achievement.HIGH_ROLLER, Achievement.DICE_DEITY)) {
             assertTrue(achievement in plain, "$achievement in a plain game")
             assertFalse(achievement in extended, "$achievement with Extended Scores")
         }
@@ -970,8 +968,8 @@ class AchievementEngineTest {
         val standardZeroes = player(total = 5)
         val allZeroes = standardZeroes.copy(extendedScores = true, scorecard = standardZeroes.scorecard + ScoreCategory.EXTENDED.associateWith { listOf(0) })
         val withEvens = allZeroes.copy(scorecard = allZeroes.scorecard + (ScoreCategory.EVENS to listOf(12)))
-        assertFalse(Achievement.ALL_ZEROES in unlocked(finishedGame(withEvens).copy(extendedScores = true)))
-        assertTrue(Achievement.ALL_ZEROES in unlocked(finishedGame(allZeroes).copy(extendedScores = true)))
+        assertFalse(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in unlocked(finishedGame(withEvens).copy(extendedScores = true)))
+        assertTrue(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in unlocked(finishedGame(allZeroes).copy(extendedScores = true)))
     }
 
     // ---- Third Wind: every box scored three times -----------------------------------------------
@@ -997,27 +995,27 @@ class AchievementEngineTest {
     @Test
     fun `Third Time's The Charm is Third Wind's Spotless - no zero in all 39 slots - and each card earns only its own`() {
         val thirdWind = unlocked(finishedGame(thirdWindNoZeroes()))
-        assertTrue(Achievement.THIRD_WIND_NO_ZEROES in thirdWind)
-        assertFalse(Achievement.NO_ZEROES in thirdWind)
+        assertTrue(Achievement.THIRD_TIMES_THE_CHARM in thirdWind)
+        assertFalse(Achievement.SPOTLESS in thirdWind)
 
         val oneZero = thirdWindPlayer { category, slot -> if (category == ScoreCategory.LARGE_STRAIGHT && slot == 2) 0 else 10 }
-        assertFalse(Achievement.THIRD_WIND_NO_ZEROES in unlocked(finishedGame(oneZero)))
+        assertFalse(Achievement.THIRD_TIMES_THE_CHARM in unlocked(finishedGame(oneZero)))
 
         val standard = unlocked(finishedGame(player(total = 250, overrides = GameMode.STANDARD.categories.associateWith { 10 })))
-        assertTrue(Achievement.NO_ZEROES in standard)
-        assertFalse(Achievement.THIRD_WIND_NO_ZEROES in standard)
+        assertTrue(Achievement.SPOTLESS in standard)
+        assertFalse(Achievement.THIRD_TIMES_THE_CHARM in standard)
     }
 
     @Test
     fun `Third Wind's tripled card - no thresholds - Personal Best or Zero To Hero - but its 5x box and Sixes count per slot`() {
         // 30 in every slot: 540 upper, 870 lower without the 5x box - past every rung in one go.
         val tripled = unlocked(finishedGame(thirdWindPlayer { _, _ -> 30 }))
-        for (achievement in listOf(Achievement.SCORE_200, Achievement.SCORE_300, Achievement.SCORE_400, Achievement.SCORE_500, Achievement.UPPER_84, Achievement.LOWER_150)) {
+        for (achievement in listOf(Achievement.SOLID_ROUND, Achievement.SHARPSHOOTER, Achievement.HIGH_ROLLER, Achievement.DICE_DEITY, Achievement.UPPER_CLASS, Achievement.LOWER_CLASS)) {
             assertFalse(achievement in tripled, "$achievement")
         }
 
         // It isn't on the Leaderboard, so never a New Personal Best.
-        assertFalse(Achievement.PERSONAL_BEST in unlocked(finishedGame(thirdWindNoZeroes()), GameAchievementContext(previousBestScore = 100)))
+        assertFalse(Achievement.NEW_PERSONAL_BEST in unlocked(finishedGame(thirdWindNoZeroes()), GameAchievementContext(previousBestScore = 100)))
 
         // Three zeroes over 39 turns is the usual run of things.
         val threeZeroes = thirdWindPlayer { category, _ -> if (category == ScoreCategory.LARGE_STRAIGHT) 0 else 10 }
@@ -1026,12 +1024,12 @@ class AchievementEngineTest {
         // Three 50s in its 5x box are a Hat Trick with no bonus chip.
         val hatTrick = evaluate(finishedGame(thirdWindPlayer { category, _ -> if (category == ScoreCategory.FIVE_OF_A_KIND) 50 else 10 }))
         assertEquals(3, hatTrick.counters[AchievementCounter.SCORED_5X])
-        assertTrue(Achievement.ENCORE_5X in hatTrick.newlyUnlocked)
-        assertTrue(Achievement.HAT_TRICK_5X in hatTrick.newlyUnlocked)
+        assertTrue(Achievement.ENCORE in hatTrick.newlyUnlocked)
+        assertTrue(Achievement.HAT_TRICK in hatTrick.newlyUnlocked)
 
         // Six Appeal needs a 30 in one Sixes slot - not three slots adding up to it.
-        assertTrue(Achievement.SIXES_30 in unlocked(finishedGame(thirdWindPlayer { category, slot -> if (category == ScoreCategory.SIXES && slot == 1) 30 else 6 })))
-        assertFalse(Achievement.SIXES_30 in unlocked(finishedGame(thirdWindPlayer { category, slot -> if (category == ScoreCategory.SIXES) listOf(12, 12, 6)[slot] else 6 })))
+        assertTrue(Achievement.SIX_APPEAL in unlocked(finishedGame(thirdWindPlayer { category, slot -> if (category == ScoreCategory.SIXES && slot == 1) 30 else 6 })))
+        assertFalse(Achievement.SIX_APPEAL in unlocked(finishedGame(thirdWindPlayer { category, slot -> if (category == ScoreCategory.SIXES) listOf(12, 12, 6)[slot] else 6 })))
     }
 
     // ---- Stud: the best five of seven dice score ------------------------------------------------------
@@ -1044,8 +1042,8 @@ class AchievementEngineTest {
             ScoreCategory.THREE_OF_A_KIND to 30, ScoreCategory.FOUR_OF_A_KIND to 30, ScoreCategory.FULL_HOUSE to 25,
         )
         val guarded = listOf(
-            Achievement.FIRST_5X, Achievement.BOTH_STRAIGHTS, Achievement.CHANCE_30, Achievement.SIXES_30, Achievement.UPPER_BONUS,
-            Achievement.UPPER_84, Achievement.LOWER_150, Achievement.SCORE_200, Achievement.SCORE_300,
+            Achievement.FIVE_X, Achievement.STRAIGHT_TALKER, Achievement.TAKING_A_CHANCE, Achievement.SIX_APPEAL, Achievement.BONUS_ROUND,
+            Achievement.UPPER_CLASS, Achievement.LOWER_CLASS, Achievement.SOLID_ROUND, Achievement.SHARPSHOOTER,
         )
         val standard = unlocked(finishedGame(player(total = 340, overrides = feats)))
         for (achievement in guarded) assertTrue(achievement in standard, "Standard control: $achievement")
@@ -1061,18 +1059,18 @@ class AchievementEngineTest {
         val bonuses = player(total = 400, fiveOfAKindBonusCount = 2, gameMode = GameMode.STUD)
         val stud = evaluate(finishedGame(bonuses))
         assertEquals(0, stud.counters[AchievementCounter.SCORED_5X])
-        for (achievement in listOf(Achievement.FIRST_5X, Achievement.ENCORE_5X, Achievement.HAT_TRICK_5X)) assertFalse(achievement in stud.newlyUnlocked, "$achievement")
+        for (achievement in listOf(Achievement.FIVE_X, Achievement.ENCORE, Achievement.HAT_TRICK)) assertFalse(achievement in stud.newlyUnlocked, "$achievement")
 
         val standard = evaluate(finishedGame(player(total = 400, fiveOfAKindBonusCount = 2)))
         assertEquals(2, standard.counters[AchievementCounter.SCORED_5X])
-        assertTrue(Achievement.ENCORE_5X in standard.newlyUnlocked)
+        assertTrue(Achievement.ENCORE in standard.newlyUnlocked)
     }
 
     @Test
     fun `Stud has no Spotless or Zero To Hero and is never a New Personal Best`() {
         val noZeroes = GameMode.STUD.categories.associateWith { 10 }
-        assertTrue(Achievement.NO_ZEROES in unlocked(finishedGame(player(total = 130, overrides = noZeroes))))
-        assertFalse(Achievement.NO_ZEROES in unlocked(finishedGame(player(total = 130, overrides = noZeroes, gameMode = GameMode.STUD))))
+        assertTrue(Achievement.SPOTLESS in unlocked(finishedGame(player(total = 130, overrides = noZeroes))))
+        assertFalse(Achievement.SPOTLESS in unlocked(finishedGame(player(total = 130, overrides = noZeroes, gameMode = GameMode.STUD))))
 
         val threeZeroes = mapOf(ScoreCategory.ONES to 0, ScoreCategory.TWOS to 0, ScoreCategory.THREES to 0, ScoreCategory.SIXES to 30)
         val standardHero = unlocked(finishedGame(player(total = 200, overrides = threeZeroes), bot(total = 100)))
@@ -1081,7 +1079,7 @@ class AchievementEngineTest {
         assertFalse(Achievement.ZERO_TO_HERO in studHero)
 
         val context = GameAchievementContext(previousBestScore = 100)
-        assertFalse(Achievement.PERSONAL_BEST in unlocked(finishedGame(player(total = 400, gameMode = GameMode.STUD)), context))
+        assertFalse(Achievement.NEW_PERSONAL_BEST in unlocked(finishedGame(player(total = 400, gameMode = GameMode.STUD)), context))
     }
 
     // ---- Hit List -------------------------------------------------------------------------------------
@@ -1108,7 +1106,7 @@ class AchievementEngineTest {
     fun `Right On Target unlocks mid-game for an exact hit on a five-number target - not a plain hit or one with any places`() {
         val (fiveNumbers, target) = HIT_LIST.entries.first { it.value.called.size == 5 }.toPair()
         val (withAnyPlace, anyTarget) = HIT_LIST.entries.first { it.value.called.size < 5 }.toPair()
-        fun earned(scores: Map<ScoreCategory, Int>) = Achievement.HIT_LIST_RIGHT_ON_TARGET in unlockedMidGame(hitListPlayer(scores = scores))
+        fun earned(scores: Map<ScoreCategory, Int>) = Achievement.RIGHT_ON_TARGET in unlockedMidGame(hitListPlayer(scores = scores))
 
         assertTrue(earned(mapOf(fiveNumbers to target.exactPoints)))
         assertFalse(earned(mapOf(fiveNumbers to target.points)))
@@ -1120,18 +1118,18 @@ class AchievementEngineTest {
     @Test
     fun `a Hit List card earns no ladder rung - low score - Zero To Hero or Spotless - misses and partial hits are its usual run`() {
         val high = unlocked(finishedGame(hitListPlayer(total = 500)))
-        assertFalse(Achievement.SCORE_200 in high)
-        assertFalse(Achievement.SCORE_500 in high)
-        assertTrue(Achievement.SCORE_200 in unlocked(finishedGame(player(total = 200))))
+        assertFalse(Achievement.SOLID_ROUND in high)
+        assertFalse(Achievement.DICE_DEITY in high)
+        assertTrue(Achievement.SOLID_ROUND in unlocked(finishedGame(player(total = 200))))
 
-        assertFalse(Achievement.SCORE_UNDER_100 in unlocked(finishedGame(hitListPlayer(total = 60))))
+        assertFalse(Achievement.COLD_DICE in unlocked(finishedGame(hitListPlayer(total = 60))))
         assertFalse(Achievement.LOW_ROLLS in unlocked(finishedGame(hitListPlayer(total = 15))))
 
         // Every box but the first is a zero: far more than three.
         assertFalse(Achievement.ZERO_TO_HERO in unlocked(finishedGame(hitListPlayer(total = 200), hitListPlayer(name = "Bot", type = PlayerType.AI, total = 150))))
 
-        assertFalse(Achievement.NO_ZEROES in unlocked(finishedGame(hitListPlayer(scores = GameMode.HIT_LIST.categories.associateWith { 5 }))))
-        assertTrue(Achievement.NO_ZEROES in unlocked(finishedGame(player(overrides = GameMode.STANDARD.categories.associateWith { 5 }, total = 100))))
+        assertFalse(Achievement.SPOTLESS in unlocked(finishedGame(hitListPlayer(scores = GameMode.HIT_LIST.categories.associateWith { 5 }))))
+        assertTrue(Achievement.SPOTLESS in unlocked(finishedGame(player(overrides = GameMode.STANDARD.categories.associateWith { 5 }, total = 100))))
     }
 
     // ---- D20 --------------------------------------------------------------------------------------------
@@ -1150,7 +1148,7 @@ class AchievementEngineTest {
 
     @Test
     fun `Critical Success unlocks mid-game once both D20 halves have earned their bonus - not one half - not with extra rolls - not on another card`() {
-        fun earned(player: PlayerState) = Achievement.D20_BOTH_BONUSES in unlockedMidGame(player)
+        fun earned(player: PlayerState) = Achievement.CRITICAL_SUCCESS in unlockedMidGame(player)
         val bothScored = mapOf(ScoreCategory.D20_1 to 138, ScoreCategory.D20_11 to 388)
 
         assertTrue(earned(midGamePlayer(bothScored, gameMode = GameMode.D20)))
@@ -1172,7 +1170,7 @@ class AchievementEngineTest {
 
     @Test
     fun `Nat 20 needs a win in D20 against an opponent`() {
-        fun d20Win(state: GameState) = Achievement.D20_WIN in unlocked(state)
+        fun d20Win(state: GameState) = Achievement.NAT_20 in unlocked(state)
         val bot = d20Player(name = "Bot", type = PlayerType.AI, firstHalf = 50, secondHalf = 100)
         assertTrue(d20Win(finishedGame(d20Player(firstHalf = 100, secondHalf = 300), bot)))
         assertFalse(d20Win(finishedGame(d20Player(firstHalf = 10, secondHalf = 20), bot)))
@@ -1184,17 +1182,17 @@ class AchievementEngineTest {
     fun `a D20 card earns no ladder rung - low score - Zero To Hero or Spotless - its totals are a different measure`() {
         // Both halves in: 138 + 388 + 150 = 676, far past every rung of Standard's.
         val high = unlocked(finishedGame(d20Player(firstHalf = 138, secondHalf = 388)))
-        assertFalse(Achievement.SCORE_200 in high)
-        assertFalse(Achievement.SCORE_500 in high)
+        assertFalse(Achievement.SOLID_ROUND in high)
+        assertFalse(Achievement.DICE_DEITY in high)
 
         val low = unlocked(finishedGame(d20Player(firstHalf = 10, secondHalf = 20)))
-        assertFalse(Achievement.SCORE_UNDER_100 in low)
+        assertFalse(Achievement.COLD_DICE in low)
         assertFalse(Achievement.LOW_ROLLS in low)
 
         val bot = d20Player(name = "Bot", type = PlayerType.AI, firstHalf = 50, secondHalf = 100)
         assertFalse(Achievement.ZERO_TO_HERO in unlocked(finishedGame(d20Player(firstHalf = 100, secondHalf = 300), bot)))
 
-        assertFalse(Achievement.NO_ZEROES in unlocked(finishedGame(d20Player(scores = GameMode.D20.categories.associateWith { 5 }))))
+        assertFalse(Achievement.SPOTLESS in unlocked(finishedGame(d20Player(scores = GameMode.D20.categories.associateWith { 5 }))))
     }
 
     private companion object HitListCard {

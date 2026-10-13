@@ -400,7 +400,7 @@ decisions behind it. Read that before changing anything visual.
   Easter egg: the Top Hat (drawn as deep as its opening is wide) hides a rabbit. Left tipped over
   after a roll with nothing happening for a random 5-10s, a rabbit pokes its head and paws out for
   5s, twitches an ear and ducks back in - once per quiet spell. Seeing it (on a human's turn)
-  unlocks the secret achievement The Magician's Secret (`MAGICIANS_SECRET`), through
+  unlocks the secret achievement The Magician's Secret (`THE_MAGICIANS_SECRET`), through
   `LocalOnRabbitSeen`, which `GameScreen` points at `GameViewModel.onRabbitSeen`; its icon is the
   same tipped hat and rabbit, rebuilt as a fixed-colour vector (`rememberMagicianIcon`). "Nothing happening" is `LocalCupActivity`, which
   `DiceCupPanel` sets to the current dice, so holding or releasing one restarts the wait (as do a
@@ -490,12 +490,12 @@ decisions behind it. Read that before changing anything visual.
   (called from `startGame`/`resumeGame`) is only responsible for the async `SettingsRepository`
   read that builds that context and for persisting/announcing whatever the engine decides. A future
   game-start achievement is a new field on `GameStartContext` and a line in `evaluateAtGameStart` -
-  never a new ad hoc check at a `GameViewModel` call site. `WASTED_5X` ("Roll a 5x but score a zero
+  never a new ad hoc check at a `GameViewModel` call site. `WASTED_FORTUNE` ("Roll a 5x but score a zero
   with it anyway") is checked at the moment of `commitScore`, not from the finished scorecard: a
   filled-in `FIVE_OF_A_KIND` box already answers "was it ever a real 5x", but not "were the dice a
   5x right when THIS zero went in" - that needs the dice and the chosen category together, which
   only `GameViewModel` sees before the commit changes anything. `DOUBLE_TON`/`TRIPLE_TON` (exactly
-  200/300) sit right after `SCORE_200`/`SCORE_300` on the Scoring ladder, not before - despite the
+  200/300) sit right after `SOLID_ROUND`/`SHARPSHOOTER` on the Scoring ladder, not before - despite the
   same threshold, hitting it exactly is harder than clearing it by any margin. `EXACT_CHANGE` needs
   every upper box scored with precisely its own pip count (1 in Ones, ..., 6 in Sixes) in one game.
   A second, much larger batch (25 more) covers interaction patterns a finished scorecard can't
@@ -532,9 +532,9 @@ decisions behind it. Read that before changing anything visual.
     roll, checked at game end against `state.players` by index rather than by name (names aren't
     unique, human vs AI matters, and the set is built purely from `GameViewModel.rollDice` noticing
     `rollsRemaining < FULL_ROLLS_REMAINING`).
-  - **`WHY_DID_YOU_DO_THAT`, `ALMOST_FAMOUS`, `DICE_HATE_ME` and `COMMITMENT_ISSUES` all fire from
+  - **`SIZE_ISNT_EVERYTHING`, `ALMOST_FAMOUS`, `THE_DICE_HATE_ME` and `COMMITMENT_ISSUES` all fire from
     `checkPreCommitAchievements`, called before `GameEngine.commitScore` changes anything** - same
-    reasoning as `WASTED_5X`: the dice and the chosen category have to be read together, at the
+    reasoning as `WASTED_FORTUNE`: the dice and the chosen category have to be read together, at the
     exact moment of commit, before the scorecard and turn move on.
   - **The dice cup stays clickable even with zero rolls left** (`DiceCupPanel`'s `enabled` was
     `canRoll`, now unconditional) purely so `NO_MORE_ROLLS` has a tap to count - `onCupTap` itself
@@ -570,7 +570,7 @@ decisions behind it. Read that before changing anything visual.
     time. The bump is a purely in-memory overlay (`AchievementsViewModel.superuserProgressOverride`)
     added on top of the real stored progress only for this display/decision, never persisted - the
     real `AchievementCounter`s are shared across several achievements (`GAMES_PLAYED` backs
-    `GAMES_10`/`50`/`100`) and the leaderboard-backed ones (`PROFESSIONAL_ROLLER`, the score-band
+    `GETTING_COMFORTABLE`/`50`/`100`) and the leaderboard-backed ones (`PROFESSIONAL_ROLLER`, the score-band
     ledger) are read from real recorded scores, so actually writing a fake counter or leaderboard
     row would corrupt real state rather than just performing a test unlock. Locking an already
     unlocked achievement back up needed a new `AchievementStore.forceLock`, since the only existing
@@ -580,7 +580,7 @@ decisions behind it. Read that before changing anything visual.
     achievement still locked in one go, and the *next* long press - once nothing is left locked -
     relocks every one of them instead, decided fresh from what's actually locked each time rather
     than a remembered flag.
-  - Not covered by an automated test: `CONTINUED_GAME` ("leave a game, come back to finish it") and
+  - Not covered by an automated test: `LETS_FINISH_THIS` ("leave a game, come back to finish it") and
     the real, end-to-end "picked a non-default style" path for `STYLE_DICE`/`STYLE_CUP`/
     `STYLE_BACKGROUND` - specifically the `SettingsRepository` read that feeds `GameStartContext`.
     Both need `SettingsRepository`/`InProgressGameRepository` - concrete DataStore-backed classes,
@@ -1440,16 +1440,16 @@ install-over-existing succeeds:
         from the final scorecard, and the only live counter (dice rolled)
         is only ever incremented by a human roll, which is itself not
         undoable.
-      - *`PERSONAL_BEST` reads the leaderboard before this game's own rows
+      - *`NEW_PERSONAL_BEST` reads the leaderboard before this game's own rows
         are inserted* — hence `ScoreDao.bestScore()` and the reordering of
         `GameViewModel.finishGame`, which now sequences read → persist →
         evaluate in one coroutine instead of firing persistence and
         forgetting about it.
-      - *`NATURAL_INTELLIGENCE` is not currently earnable* (AI difficulty is deferred and
+      - *`HOW_DO_YOU_DO_FELLOW_CPUS` is not currently earnable* (AI difficulty is deferred and
         every AI plays the same strategy), so it is excluded from
         `COMPLETIONIST`'s requirements via `countsTowardCompletion = false`.
         Flip that back when difficulty lands.
-      - *`EXTREME_LOW_ROLLS` (finish on exactly 5) is* earnable: five 1s
+      - *`ROCK_BOTTOM` (finish on exactly 5) is* earnable: five 1s
         taken as Chance is legal play, and holding 1s makes it grindable.
         It stays a `COMPLETIONIST` requirement.
 - [x] **When achievements are evaluated**: three moments, not one.
@@ -1509,7 +1509,7 @@ install-over-existing succeeds:
       Later grown to 95 tests total with the mid-game evaluation and the
       `GameAchievementsWiringTest` suite.
 - [x] **"5x", not the trademark**: `Achievement`'s titles, descriptions and
-      ids were renamed off the word ("5x!", `5x_first`, `SCRATCHED_5X`,
+      ids were renamed off the word ("5x!", `5x_first`, `SCRATCHED`,
       `AchievementCounter.SCORED_5X`), matching what the scorecard tile has
       always shown. A test asserts no title, description or category label
       contains it, so it can't creep back in. The ids changed, which resets
@@ -1557,7 +1557,7 @@ install-over-existing succeeds:
       parameters.
       Two consequences worth knowing: a reset re-locks them but the
       underlying scores remain, so they re-earn on the next qualifying game
-      (the same is already true of `PERSONAL_BEST`); and they count toward
+      (the same is already true of `NEW_PERSONAL_BEST`); and they count toward
       `COMPLETIONIST`, which makes that achievement a ~296-game commitment -
       flip `countsTowardCompletion` on the six if that is not wanted.
 - [x] **Player 1 only, not any human**: achievements used to be per-device -
@@ -1596,10 +1596,10 @@ install-over-existing succeeds:
         `humans` to player 1 alone breaks that: player 1 losing to a
         *second human* now also makes `humanWon` false. Fixed by requiring
         an AI to actually hold `topScore` (`aiWon`) before awarding it.
-        `PIPPED_TO_THE_POST`/`JAWS_OF_VICTORY` needed no such fix - their
+        `PIPPED_TO_THE_POST`/`DEFEAT_FROM_THE_JAWS_OF_VICTORY` needed no such fix - their
         own descriptions never named an opponent type, so "player 1 simply
         lost" was already the right reading.
-      - **`PERSONAL_BEST` needed a data-layer change**: "beat your best
+      - **`NEW_PERSONAL_BEST` needed a data-layer change**: "beat your best
         score" only makes sense per-name once a second human at the table
         stops counting as "you". `ScoreDao.bestScore()`/
         `ScoreRepository.bestScore()` (a global `MAX(score)` across every
@@ -1671,10 +1671,10 @@ install-over-existing succeeds:
       the dice already fill and holds four of one colour to chase the fifth (after a forming
       straight, before a number group). Easy needed nothing new.
 - [x] **Achievements**: new `AchievementCategory.GAME_MODES` (after Winning, before Misfortune):
-      `NON_STANDARD_MODE` "Where We're Going, We Don't Need Rules" (game start, any
+      `WHERE_WERE_GOING_WE_DONT_NEED_RULES` "Where We're Going, We Don't Need Rules" (game start, any
       non-Standard mode, via `GameStartContext.gameMode`; its icon, `ic_time_machine_car`, is an
-      original wedge-car silhouette trailing fire - a nod to the film, not its car), `TRICOLOUR_WIN` "Tricolourful" (game end;
-      needs an opponent, like every other win), `TRICOLOUR_ALL_COLOURS` "Tricolour Me Impressed"
+      original wedge-car silhouette trailing fire - a nod to the film, not its car), `TRICOLOURFUL` "Tricolourful" (game end;
+      needs an opponent, like every other win), `TRICOLOUR_ME_IMPRESSED` "Tricolour Me Impressed"
       (non-zero in all four colour boxes; judged in `earnedDuringPlay`, so it lands the moment the
       fourth one is committed). `CHEATER_CHEATER` now checks the game's own mode's maximum and no
       longer names 1575 (it was later dropped - see Phase 13). Picking a mode other than Standard also counts as customising the game for
@@ -1763,7 +1763,7 @@ install-over-existing succeeds:
       (`AchievementEngineTest` enforces it both ways) and this is a normal, chaseable win condition
       like its neighbours): unlocked when player 1 holds `TieBreak.rank`'s rank 1 *and* their
       `tieBreakReason` is non-null - a plain, unbroken top score leaves that null, same as a solo
-      win with nobody to tie. Deliberately separate from `FIRST_WIN`'s existing "a raw-score tie
+      win with nobody to tie. Deliberately separate from `FIRST_VICTORY`'s existing "a raw-score tie
       counts as a win" rule (Phase 13), which stays untouched - `TIE_BREAK` only fires when the
       house rule was actually the reason player 1, not the other tied player, holds the win. Icon:
       `Icons.Filled.Gavel` in `AchievementIcons.kt` - the ruling that settled an otherwise-equal
@@ -2081,7 +2081,7 @@ and its `GameMode` fields (`turnTimerSeconds`, `timeoutPick`, `autoRollAtTurnSta
       The Turn Timer row is disabled while it's picked (`SegmentedChoiceRow` gained `enabled`); the
       player's pick is kept and saved, and the game starts with `TurnTimer.NONE`.
 - [x] **Rules page**: "Mode: Quickfire", last in `RULES_PAGES`.
-- [x] **Achievements** (Game Modes, after Tricolour's): `QUICKFIRE_WIN` "Quick On The Draw" (win,
+- [x] **Achievements** (Game Modes, after Tricolour's): `QUICK_ON_THE_DRAW` "Quick On The Draw" (win,
       multiplayer) and `QUICKFIRE_BEAT_THE_CLOCK` "Beat The Clock" (finish without player 1's timer
       ever running out - first a `playerOneTimedOut` flag, now `GameAchievementContext
       .playerOneTimeouts == 0`, see Phase 21). Impatient, Naturally Gifted and Almost Famous are
@@ -2303,7 +2303,7 @@ and its `GameMode` fields (`turnTimerSeconds`, `timeoutPick`, `autoRollAtTurnSta
       for their early stop, Medium keeping to its rules of thumb within five dice. After its last roll
       the CPU holds its hand (`chooseHand`), visibly, then scores it. Hard averages more in Stud than in
       Standard over the same seeded games.
-- [x] **Achievements**: `STUD_WIN` "Hold 'Em" (win, multiplayer) and `STUD_LUCKY_SEVEN` "Lucky Seven"
+- [x] **Achievements**: `HOLD_EM` "Hold 'Em" (win, multiplayer) and `LUCKY_SEVEN` "Lucky Seven"
       (all seven dice showing one number, judged as the roll lands). First-roll feats, Natural 5x, The
       Dice Hate Me and Almost Famous are guarded (a Stud roll isn't a hand); the audit is in
       `.claude/GAME_MODES.md`.
@@ -2353,8 +2353,8 @@ and its `GameMode` fields (`turnTimerSeconds`, `timeoutPick`, `autoRollAtTurnSta
       upper-bonus estimate counts each upper box's open slots. Over 60 seeded games: Easy 413, Medium 624,
       Hard 736 (Standard, all estimating: 126/185/244). Tried and rejected: dropping the upper-bonus
       share (723) and halving a box's baseline while two slots are open (734), against 751 over 120 games.
-- [x] **Achievements**: `THIRD_WIND_WIN` "Gone With The Wind" (win, multiplayer) and
-      `THIRD_WIND_NO_ZEROES` "Third Time's The Charm" (all 39 slots without a zero), Third Wind's own
+- [x] **Achievements**: `GONE_WITH_THE_WIND` "Gone With The Wind" (win, multiplayer) and
+      `THIRD_TIMES_THE_CHARM` "Third Time's The Charm" (all 39 slots without a zero), Third Wind's own
       Spotless, which is blocked there. Score thresholds, Upper/Lower Class, New
       Personal Best and Zero To Hero are guarded; Encore/Hat Trick now count 5x rather than chips; the
       audit is in `.claude/GAME_MODES.md`.
@@ -2495,7 +2495,7 @@ and its `GameMode` fields (`turnTimerSeconds`, `timeoutPick`, `autoRollAtTurnSta
       (and `GameState.awaitsAutoRoll`, `GameScreen`'s auto-roll effect) and `allowsRollModifiers` (and the setup
       screen's locked rows). `GameState.turnSeconds` is now just the Turn Timer modifier's; a timeout always scores
       the first open box. `ModifierSetting.lockedNote` stays as a generic picker feature (`ChoicePickerTest`).
-- [x] **New achievement** `QUICKFIRE_SCORE` "Six Of The Best": a total of 150 or more in Quickfire (ceiling 225),
+- [x] **New achievement** `SIX_OF_THE_BEST` "Six Of The Best": a total of 150 or more in Quickfire (ceiling 225),
       not with a roll modifier or Extended Scores. Replaces Beat The Clock; bullseye icon.
 - [ ] **Not seen on a device**: the disabled tile, TalkBack on it, and how a six-turn game feels to play.
 
@@ -2541,8 +2541,8 @@ and its `GameMode` fields (`turnTimerSeconds`, `timeoutPick`, `autoRollAtTurnSta
       Each of those dice rows ends with the box's tile as the board draws it for those dice (`RulesTile`, the real
       `CategoryTile`): the target on its own, part filled, a hit, an exact hit and a partial hit; the Alibi lit. TalkBack hears it in
       the row's description ("Its tile shows 3 of 4 rolled, 2 in place" - `RulesScreenAccessibilityTest`).
-- [x] **Achievements** (108 now): Contract Fulfilled (`HIT_LIST_WIN`, clipboard-tick icon) and Right On Target
-      (`HIT_LIST_RIGHT_ON_TARGET`, an exact hit on a five-number target; a bullseye with an arrow in it, drawn for the
+- [x] **Achievements** (108 now): Contract Fulfilled (`CONTRACT_FULFILLED`, clipboard-tick icon) and Right On Target
+      (`RIGHT_ON_TARGET`, an exact hit on a five-number target; a bullseye with an arrow in it, drawn for the
       app). Guarded: the score ladder, Cold Dice, Low Rolls, Zero To Hero and Spotless - see `GAME_MODES.md`.
 - [ ] **Not seen on a device**: the target tiles at a real phone's density, TalkBack on them and the Alibi, the locked
       Extended Scores row, and how a game plays.
@@ -2658,10 +2658,10 @@ any page.
       are signed with the new key, so they can't update in place over an earlier one signed with the old key.
 
 ### Achievement changes (after Phase 21)
-- `NATURAL_INTELLIGENCE` is now "How Do You Do, Fellow CPUs?": a four-player game against three Hard CPUs where the
+- `HOW_DO_YOU_DO_FELLOW_CPUS` is now "How Do You Do, Fellow CPUs?": a four-player game against three Hard CPUs where the
   human does not finish last (a tie for last counts as last). The Memory (CPU chip) icon, as in `CpuPlayerIcon`.
 - `DEJA_VU` (the nothing-held repeat) and `FIRST_ROLL_5X` ("Five on the Fly") were removed, with their strings in every
-  locale. `LOADED_DICE` (id kept so earned unlocks survive) is now titled "Déjà Vu".
+  locale. `DEJA_VU` (id kept so earned unlocks survive) is now titled "Déjà Vu".
 - `LUCK_OF_THE_DRAW` is now "Look Ma, No Hands!"; its hourglass icon and Time Wasting's shuffle icon were swapped.
 - 102 achievements now, so the D20 dice unlock moved from `AchievementCount(104)` to `102` (it was "every achievement").
 - Earlier mentions of the old names in this file are history and were left as written.
@@ -2676,7 +2676,7 @@ any page.
 - [x] `GameMode.D20`: `dieValues = 1..20`, 5 dice, 5 rolls, card `D20_1`..`D20_20` and a wildcard per half (`ScoreSection.FIRST_HALF`/`SECOND_HALF`; a wildcard adds up every die showing a number of its half, counting towards its half and its bonus), no 5x or lower section, `sectionBonuses` of 75pts at 138 (1-10) and 388 (11-20), max score 1350, max rolls 110, off the Leaderboard, no Extended Scores. Listed before Hit List.
 - [x] Dice always drawn as a D20 style (`d20Like`: the player's D20 pick, else white; their saved pick untouched); board layout `d20Layout` (7 compact rows, 14 + 8 boxes by half, sky blue and indigo halves, cup in two rows); Totals popup shows each half out of its target and the Bonus, the glyph half lit per bonus earned (`D20TotalsButton`).
 - [x] AI: Medium holds the best open number (`numberHoldIndices`), Hard's bonus stake generalised per section and the baseline for a number worked out in closed form.
-- [x] Achievements (two more): Nat 20 (`D20_WIN`, unlocks the white and black D20 dice) and Critical Success (`D20_BOTH_BONUSES`, unlocks the blue D20); `GameMode.hasStandardCard` guards the totals/zero ones.
+- [x] Achievements (two more): Nat 20 (`NAT_20`, unlocks the white and black D20 dice) and Critical Success (`CRITICAL_SUCCESS`, unlocks the blue D20); `GameMode.hasStandardCard` guards the totals/zero ones.
 - [x] Rules page, strings in English, Spanish and Arabic.
 
 ### Turn timer: no roll, no score

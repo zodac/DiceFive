@@ -168,93 +168,93 @@ val Achievement.icon: ImageVector
     get() = when (this) {
         // ---- Milestones ---------------------------------------------------------------------
         Achievement.THE_JOURNEY_BEGINS -> Icons.Filled.RocketLaunch
-        Achievement.SOLO_GAME -> Icons.Filled.Person
+        Achievement.PRACTICE_MAKES_PERFECT -> Icons.Filled.Person
         Achievement.FULL_TABLE -> Icons.Filled.Groups
-        Achievement.CONTINUED_GAME -> Icons.Filled.Restore
-        Achievement.REPLAY_AFTER_LOSS -> Icons.Filled.Replay
-        Achievement.GAMES_10 -> Icons.Filled.Numbers
-        Achievement.GAMES_50 -> Icons.Filled.EventRepeat
-        Achievement.GAMES_100 -> Icons.Filled.MilitaryTech
-        Achievement.WINS_25 -> Icons.Filled.EmojiEvents
-        Achievement.DICE_10000 -> Icons.Filled.Casino
-        Achievement.STREAK_3 -> Icons.Filled.Whatshot
-        Achievement.STREAK_10 -> Icons.Filled.LocalFireDepartment
+        Achievement.LETS_FINISH_THIS -> Icons.Filled.Restore
+        Achievement.ONE_MORE_TIME -> Icons.Filled.Replay
+        Achievement.GETTING_COMFORTABLE -> Icons.Filled.Numbers
+        Achievement.REGULAR -> Icons.Filled.EventRepeat
+        Achievement.CENTURION -> Icons.Filled.MilitaryTech
+        Achievement.HALL_OF_FAMER -> Icons.Filled.EmojiEvents
+        Achievement.WELL_ROLLED -> Icons.Filled.Casino
+        Achievement.ON_A_ROLL -> Icons.Filled.Whatshot
+        Achievement.UNTOUCHABLE -> Icons.Filled.LocalFireDepartment
         Achievement.PROFESSIONAL_ROLLER -> Icons.Filled.WorkspacePremium
 
         // ---- Dice feats -----------------------------------------------------------------------
-        Achievement.UPPER_BONUS -> Icons.Filled.Star
-        Achievement.FIRST_5X -> Icons.Filled.NewReleases
-        Achievement.NO_ZEROES -> Icons.Filled.CheckCircle
+        Achievement.BONUS_ROUND -> Icons.Filled.Star
+        Achievement.FIVE_X -> Icons.Filled.NewReleases
+        Achievement.SPOTLESS -> Icons.Filled.CheckCircle
         // Same custom shape as Small/Large Straight's own tile icon (CategoryIcon.kt) - see
         // ic_stairs.xml for why that's a bespoke drawable rather than Icons.Filled/Outlined.Stairs.
-        Achievement.BOTH_STRAIGHTS -> vectorResource(Res.drawable.ic_stairs)
-        Achievement.UPPER_84 -> Icons.Filled.ArrowUpward
-        Achievement.LOWER_150 -> Icons.Filled.ArrowDownward
-        Achievement.ENCORE_5X -> Icons.Filled.Repeat
-        Achievement.TOTAL_5X_10 -> Icons.Filled.Grade
-        Achievement.HAT_TRICK_5X -> Icons.Filled.Looks3
-        Achievement.LOADED_DICE -> Icons.Filled.Balance
+        Achievement.STRAIGHT_TALKER -> vectorResource(Res.drawable.ic_stairs)
+        Achievement.UPPER_CLASS -> Icons.Filled.ArrowUpward
+        Achievement.LOWER_CLASS -> Icons.Filled.ArrowDownward
+        Achievement.ENCORE -> Icons.Filled.Repeat
+        Achievement.DICE_WHISPERER -> Icons.Filled.Grade
+        Achievement.HAT_TRICK -> Icons.Filled.Looks3
+        Achievement.DEJA_VU -> Icons.Filled.Balance
         Achievement.TWICE_IN_A_LIFETIME -> Icons.Filled.SyncAlt
         Achievement.NATURAL_5X -> Icons.Filled.AutoAwesome
         Achievement.I_CAN_COUNT -> Icons.Filled.FormatListNumbered
-        Achievement.CUNNING_STRATEGY -> Icons.Filled.Psychology
+        Achievement.A_CUNNING_STRATEGY -> Icons.Filled.Psychology
         Achievement.EXACT_CHANGE -> Icons.Filled.Calculate
 
         // ---- Scoring ----------------------------------------------------------------------------
-        Achievement.PERSONAL_BEST -> Icons.AutoMirrored.Filled.TrendingUp
+        Achievement.NEW_PERSONAL_BEST -> Icons.AutoMirrored.Filled.TrendingUp
         Achievement.TON -> Icons.Filled.Filter1
-        Achievement.SCORE_200 -> Icons.Filled.Speed
-        Achievement.SCORE_300 -> Icons.Filled.GpsFixed
-        Achievement.SCORE_400 -> Icons.Filled.KeyboardDoubleArrowUp
-        Achievement.SCORE_500 -> Icons.Filled.Bolt
+        Achievement.SOLID_ROUND -> Icons.Filled.Speed
+        Achievement.SHARPSHOOTER -> Icons.Filled.GpsFixed
+        Achievement.HIGH_ROLLER -> Icons.Filled.KeyboardDoubleArrowUp
+        Achievement.DICE_DEITY -> Icons.Filled.Bolt
 
         // ---- Winning ----------------------------------------------------------------------------
-        Achievement.FIRST_WIN -> Icons.Filled.Flag
-        Achievement.WIN_BY_100 -> Icons.Filled.Landslide
-        Achievement.WIN_BY_5 -> Icons.Filled.PhotoCamera
+        Achievement.FIRST_VICTORY -> Icons.Filled.Flag
+        Achievement.LANDSLIDE -> Icons.Filled.Landslide
+        Achievement.PHOTO_FINISH -> Icons.Filled.PhotoCamera
         // A gavel - the ruling that settled an otherwise-equal score.
         Achievement.TIE_BREAK -> Icons.Filled.Gavel
         // No cowboy-with-twin-pistols glyph in Material (nor any hat at all) for the "quick draw"
         // read of a last-round comeback, so this is the requested fallback: a plain cowboy hat.
-        Achievement.COMEBACK -> vectorResource(Res.drawable.ic_cowboy_hat)
-        Achievement.BEAT_THREE_AI -> Icons.Filled.EmojiPeople
-        Achievement.NATURAL_INTELLIGENCE -> Icons.Filled.Memory
+        Achievement.COMEBACK_KID -> vectorResource(Res.drawable.ic_cowboy_hat)
+        Achievement.LAST_HUMAN_STANDING -> Icons.Filled.EmojiPeople
+        Achievement.HOW_DO_YOU_DO_FELLOW_CPUS -> Icons.Filled.Memory
         Achievement.NATURALLY_GIFTED -> Icons.Filled.Spa
         // Drawn for this app: a googly eye, its pupil off to one side.
-        Achievement.EVERYTHING_EVERYWHERE -> GOOGLY_EYE_ICON
+        Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE -> GOOGLY_EYE_ICON
 
         // ---- Game modes ---------------------------------------------------------------------------
         // A wedge-shaped sports car trailing fire - a nod to the film the title quotes, drawn from
         // scratch rather than traced from it.
-        Achievement.NON_STANDARD_MODE -> vectorResource(Res.drawable.ic_time_machine_car)
+        Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES -> vectorResource(Res.drawable.ic_time_machine_car)
         // Three lights, for three colours.
-        Achievement.TRICOLOUR_WIN -> Icons.Filled.Traffic
-        Achievement.TRICOLOUR_ALL_COLOURS -> Icons.Filled.ColorLens
+        Achievement.TRICOLOURFUL -> Icons.Filled.Traffic
+        Achievement.TRICOLOUR_ME_IMPRESSED -> Icons.Filled.ColorLens
         // Fast-forward rather than Speed or a bolt - those are Solid Round's and Dice Deity's.
-        Achievement.QUICKFIRE_WIN -> Icons.Filled.FastForward
+        Achievement.QUICK_ON_THE_DRAW -> Icons.Filled.FastForward
         // A bullseye, for hitting the mark with so few boxes to do it in.
-        Achievement.QUICKFIRE_SCORE -> Icons.Filled.Adjust
+        Achievement.SIX_OF_THE_BEST -> Icons.Filled.Adjust
         // A hand of cards, for the poker game the mode is named after.
-        Achievement.STUD_WIN -> Icons.Filled.Style
-        Achievement.STUD_LUCKY_SEVEN -> Icons.Filled.Filter7
-        Achievement.THIRD_WIND_WIN -> Icons.Filled.Cyclone
-        Achievement.THIRD_WIND_NO_ZEROES -> Icons.Filled.Air
+        Achievement.HOLD_EM -> Icons.Filled.Style
+        Achievement.LUCKY_SEVEN -> Icons.Filled.Filter7
+        Achievement.GONE_WITH_THE_WIND -> Icons.Filled.Cyclone
+        Achievement.THIRD_TIMES_THE_CHARM -> Icons.Filled.Air
         // A hexagon, the outline of a twenty-sided die seen face on, with a 20 in it; and a star for each of the two bonuses.
-        Achievement.D20_WIN -> D20_NAT_20_ICON
-        Achievement.D20_BOTH_BONUSES -> Icons.Filled.Stars
+        Achievement.NAT_20 -> D20_NAT_20_ICON
+        Achievement.CRITICAL_SUCCESS -> Icons.Filled.Stars
         // A list with every job ticked off - the contract seen through.
-        Achievement.HIT_LIST_WIN -> Icons.Filled.AssignmentTurnedIn
+        Achievement.CONTRACT_FULFILLED -> Icons.Filled.AssignmentTurnedIn
         // Drawn for this app: Material's bullseyes have no arrow in them.
-        Achievement.HIT_LIST_RIGHT_ON_TARGET -> BULLSEYE_ARROW_ICON
+        Achievement.RIGHT_ON_TARGET -> BULLSEYE_ARROW_ICON
 
         // ---- Misfortune -------------------------------------------------------------------------
-        Achievement.SCRATCHED_5X -> Icons.Filled.Cancel
-        Achievement.DICE_HATE_ME -> Icons.Filled.SentimentVeryDissatisfied
+        Achievement.SCRATCHED -> Icons.Filled.Cancel
+        Achievement.THE_DICE_HATE_ME -> Icons.Filled.SentimentVeryDissatisfied
         Achievement.ALMOST_FAMOUS -> Icons.Filled.HeartBroken
         Achievement.I_ROBOT -> Icons.Filled.Android
         Achievement.PIPPED_TO_THE_POST -> Icons.Filled.Timer
-        Achievement.JAWS_OF_VICTORY -> Icons.Filled.PriorityHigh
-        Achievement.SCORE_UNDER_100 -> Icons.Filled.AcUnit
+        Achievement.DEFEAT_FROM_THE_JAWS_OF_VICTORY -> Icons.Filled.PriorityHigh
+        Achievement.COLD_DICE -> Icons.Filled.AcUnit
         Achievement.LOW_ROLLS -> Icons.AutoMirrored.Filled.TrendingDown
         // Drawn for this app: the bonus's 63, struck through.
         Achievement.PROBABILITY_NEVER_HEARD_OF_HER -> STRUCK_THROUGH_63_ICON
@@ -266,25 +266,25 @@ val Achievement.icon: ImageVector
         Achievement.TIME_WASTING -> Icons.Filled.Shuffle
         // The same glyph UndoButton.kt uses for the real undo control, not its Redo mirror image -
         // this achievement is about undoing, not redoing.
-        Achievement.UNDO_DIFFERENT_CATEGORY -> Icons.AutoMirrored.Filled.Undo
+        Achievement.I_DIDNT_MEAN_THAT -> Icons.AutoMirrored.Filled.Undo
         Achievement.NO_MORE_ROLLS -> Icons.Filled.Block
         Achievement.IMPATIENT -> Icons.Filled.FlashOn
         // The timer shuffling your scores into place for you.
         Achievement.FRESH_COAT_OF_PAINT -> Icons.Filled.FormatPaint
         Achievement.EMPTY_HOUSE -> Icons.Filled.NoMeetingRoom
         Achievement.FULLER_HOUSE -> Icons.Filled.House
-        Achievement.FIRST_ROLL_FULL_HOUSE -> Icons.Filled.HomeWork
-        Achievement.FIRST_ROLL_LARGE_STRAIGHT -> Icons.Filled.Route
-        Achievement.SIXES_30 -> Icons.Filled.Looks6
-        Achievement.CHANCE_30 -> Icons.AutoMirrored.Filled.HelpOutline
+        Achievement.HOUSE_CALL -> Icons.Filled.HomeWork
+        Achievement.STRAIGHT_AWAY -> Icons.Filled.Route
+        Achievement.SIX_APPEAL -> Icons.Filled.Looks6
+        Achievement.TAKING_A_CHANCE -> Icons.AutoMirrored.Filled.HelpOutline
         Achievement.PRODUCT_PLACEMENT -> Icons.Filled.Storefront
-        Achievement.POINTLESS_ROLL -> Icons.Filled.RemoveCircle
+        Achievement.WHAT_WAS_THE_POINT_OF_THAT -> Icons.Filled.RemoveCircle
         Achievement.NICE -> Icons.Filled.ThumbUp
         Achievement.ZERO_TO_HERO -> Icons.Filled.Upgrade
-        Achievement.WASTED_5X -> Icons.Filled.DeleteForever
-        Achievement.WHY_DID_YOU_DO_THAT -> Icons.Filled.PriorityHigh
-        Achievement.ALL_ZEROES -> Icons.Filled.Quiz
-        Achievement.EXTREME_LOW_ROLLS -> Icons.Filled.KeyboardDoubleArrowDown
+        Achievement.WASTED_FORTUNE -> Icons.Filled.DeleteForever
+        Achievement.SIZE_ISNT_EVERYTHING -> Icons.Filled.PriorityHigh
+        Achievement.HOW_DO_YOU_PLAY_THIS_GAME -> Icons.Filled.Quiz
+        Achievement.ROCK_BOTTOM -> Icons.Filled.KeyboardDoubleArrowDown
         Achievement.WHO_MADE_THIS -> Icons.Filled.Groups
 
         // ---- Collection ---------------------------------------------------------------------------
@@ -309,7 +309,7 @@ val Achievement.icon: ImageVector
         // fixed colours (glass, liquid, olive), not a single ambient tint.
         Achievement.SHAKEN_NOT_TAPPED -> rememberMartiniIcon()
         // The Top Hat cup with its rabbit peeking out, drawn the way the player found it.
-        Achievement.MAGICIANS_SECRET -> rememberMagicianIcon()
+        Achievement.THE_MAGICIANS_SECRET -> rememberMagicianIcon()
         // The menu logo's own fan - the default ivory dice, 2-4-5-3-6 - that it's earned by tapping.
         Achievement.NOT_THOSE_DICE -> rememberDiceFanIcon()
         // The sunflower the Flowerpot grew, in the pot's own colours.
@@ -352,7 +352,7 @@ fun Achievement.iconTintOrUnspecified(tint: Color): Color = when (this) {
     Achievement.COMPLETIONIST -> AchievementTrophyGold
     Achievement.LUCK_OF_THE_IRISH -> Color.Unspecified
     Achievement.SHAKEN_NOT_TAPPED -> Color.Unspecified
-    Achievement.MAGICIANS_SECRET -> Color.Unspecified
+    Achievement.THE_MAGICIANS_SECRET -> Color.Unspecified
     Achievement.NOT_THOSE_DICE -> Color.Unspecified
     Achievement.GREENFINGERS -> Color.Unspecified
     Achievement.EGGCELLENT_DISCOVERY -> Color.Unspecified
@@ -501,7 +501,7 @@ private fun PathBuilder.ellipse(cx: Float, cy: Float, rx: Float, ry: Float) {
 
 /**
  * The Top Hat cup (in its black colour) lying tipped over with its rabbit peeking out - see
- * [Achievement.MAGICIANS_SECRET]. Drawn on the game art's own grid, with the same measurements as
+ * [Achievement.THE_MAGICIANS_SECRET]. Drawn on the game art's own grid, with the same measurements as
  * `TopHatDiceCupStyle` - hat 46 wide and 46 deep, rabbit at full height - then scaled into the icon
  * and tipped the same way the game tips it, so the achievement shows exactly what the player found.
  * Fixed colours throughout, like the other Easter Eggs icons - see [iconTintOrUnspecified].

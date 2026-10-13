@@ -177,7 +177,7 @@ list. They aren't here, so:
 
 - **Score `GameState.scoringDice`, never `state.dice`.** That's the board's preview, `commitScore`,
   the AI's category choice, the timeout's category, and every achievement judged on the scored hand.
-  `state.dice` is still right for what's *on the table*: `lastRoll`, Déjà Vu (`LOADED_DICE`), Lucky
+  `state.dice` is still right for what's *on the table*: `lastRoll`, Déjà Vu (`DEJA_VU`), Lucky
   Seven, die indices. Grep each `state.dice` read and decide which it means.
 - **A part-held hand is scored and previewed**, so scoring must cope with fewer dice than a full
   hand. `DiceScoring.isFiveOfAKind` needed a dice-count check: three held 6s were "all the same" and
@@ -398,7 +398,7 @@ its `description`. Only a mode that changes *another* setup option needs work he
 - Icon in `ui/achievements/AchievementIcons.kt` (exhaustive `when`). **Grep that the glyph isn't
   already used** - Quickfire's first two picks (Speed, then ElectricBolt) clashed with Solid Round
   and Dice Deity. Check the icon exists in `material-icons-extended`.
-- `NON_STANDARD_MODE` already fires for any non-Standard mode.
+- `WHERE_WERE_GOING_WE_DONT_NEED_RULES` already fires for any non-Standard mode.
 - A Miscellaneous achievement must be `HIDDEN`, and a hidden one must be Miscellaneous -
   `AchievementEngineTest` enforces both ways.
 - Update the "Game Modes achievements are ordered" list in `AchievementEngineTest`, and the
@@ -420,7 +420,7 @@ Families to check:
 
 | Family              | Achievements                                                                                 | What to ask                                                                 |
 |---------------------|----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| Roll count          | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu (`LOADED_DICE`), Time To Let It Go, Pointless Roll, Greenfingers, Probability? Never Heard of Her | Does "only one roll used" or "every roll used" become automatic or impossible? |
+| Roll count          | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu (`DEJA_VU`), Time To Let It Go, Pointless Roll, Greenfingers, Probability? Never Heard of Her | Does "only one roll used" or "every roll used" become automatic or impossible? |
 | First roll          | House Call, Straight Away, I Can Count!                                              | Is every roll now a first roll, or none?                                    |
 | Holds               | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues                     | Can dice still be held?                                                     |
 | Timer               | Out Of Time, Beat The Clock, and the timeout guards on the low and zeroed cards                                     | Is there always, or never, a timer?                                         |
@@ -442,12 +442,12 @@ without its guard):
 
 | Achievement                                           | Why it would be free                                                    |
 |-------------------------------------------------------|-------------------------------------------------------------------------|
-| Spotless (`NO_ZEROES`)                                | Six turns without a zero, not thirteen                                  |
-| Cold Dice (`SCORE_UNDER_100`), Low Rolls (`LOW_ROLLS`), Rock Bottom (`EXTREME_LOW_ROLLS`) | The ceiling is 225 - a low total is the usual run of things |
-| How Do You Play This Game? (`ALL_ZEROES`)             | Fewer boxes to zero                                                     |
-| Solid Round ... Dice Deity (`SCORE_200`-`500`)        | Not free, but a total over a different card measures nothing            |
-| Upper Class (`UPPER_84`), Lower Class (`LOWER_150`)   | Section totals over a different set of boxes                            |
-| Bonus Round (`UPPER_BONUS`)                           | The threshold shrinks with the boxes - 18 with only the 6s left         |
+| Spotless (`SPOTLESS`)                                | Six turns without a zero, not thirteen                                  |
+| Cold Dice (`COLD_DICE`), Low Rolls (`LOW_ROLLS`), Rock Bottom (`ROCK_BOTTOM`) | The ceiling is 225 - a low total is the usual run of things |
+| How Do You Play This Game? (`HOW_DO_YOU_PLAY_THIS_GAME`)             | Fewer boxes to zero                                                     |
+| Solid Round ... Dice Deity (`SOLID_ROUND`-`500`)        | Not free, but a total over a different card measures nothing            |
+| Upper Class (`UPPER_CLASS`), Lower Class (`LOWER_CLASS`)   | Section totals over a different set of boxes                            |
+| Bonus Round (`BONUS_ROUND`)                           | The threshold shrinks with the boxes - 18 with only the 6s left         |
 
 **Can't be earned in Quickfire - no guard needed**: every 5x achievement that needs the 5x scored (First 5x,
 Encore, Hat Trick, Scratched, Twice in a Lifetime) and the rolled-a-5x ones (Natural 5x), which
@@ -459,7 +459,7 @@ Exact Change and Both Straights need those boxes to have come up in the draw.
 Naturally Gifted (three rolls, so a real choice), Greenfingers (grows over 18 rolls rather than 39, so easier but
 still every roll of every turn), Nice and Ton! (a total of 69 or 100 is likelier on a smaller card), Zero To Hero
 (three zeroes in six turns is harder), Landslide and the win ones.
-The mode's own: Quick On The Draw (`QUICKFIRE_WIN`, a multiplayer win) and Six Of The Best (`QUICKFIRE_SCORE`,
+The mode's own: Quick On The Draw (`QUICK_ON_THE_DRAW`, a multiplayer win) and Six Of The Best (`SIX_OF_THE_BEST`,
 a total of 150 or more, not with extra rolls or Extended Scores). It used to have Beat The Clock, which went with
 the timer.
 
@@ -498,13 +498,13 @@ without its guard):
 |--------------------------------------------------------|-------------------------------------------------------------------|
 | House Call, Straight Away (first roll) | Seven dice hold a straight or five matching far more often - and nothing is held yet, so it isn't a hand |
 | Natural 5x (`NATURAL_5X`)                               | Same, on a reroll with nothing held                               |
-| The Dice Hate Me (`DICE_HATE_ME`)                       | Judged on the roll, which isn't what scores                        |
+| The Dice Hate Me (`THE_DICE_HATE_ME`)                       | Judged on the roll, which isn't what scores                        |
 | Almost Famous (`ALMOST_FAMOUS`)                         | A 5x among seven dice never shows as one, so "never landed the 5x" was always true |
 | First 5x, Encore, Hat Trick, Twice in a Lifetime, Total 5x (10) | A box takes the best five of seven dice, so 5x come far too easily. Stud's 5x don't add to the `SCORED_5X` counter either |
-| Both Straights, Chance 30, Six Appeal (`SIXES_30`)      | Same - the best five of seven reach them routinely                 |
-| Upper Bonus, Upper Class, Lower Class, Solid Round ... Dice Deity (`SCORE_200`-`500`) | Section and game totals run well above Standard's |
-| Spotless (`NO_ZEROES`), Zero To Hero (`ZERO_TO_HERO`)   | A zero is rare when every box picks its best five                  |
-| New Personal Best (`PERSONAL_BEST`)                     | Stud is off the Leaderboard (`countsOnLeaderboard = false`), as the totals aren't comparable |
+| Both Straights, Chance 30, Six Appeal (`SIX_APPEAL`)      | Same - the best five of seven reach them routinely                 |
+| Upper Bonus, Upper Class, Lower Class, Solid Round ... Dice Deity (`SOLID_ROUND`-`500`) | Section and game totals run well above Standard's |
+| Spotless (`SPOTLESS`), Zero To Hero (`ZERO_TO_HERO`)   | A zero is rare when every box picks its best five                  |
+| New Personal Best (`NEW_PERSONAL_BEST`)                     | Stud is off the Leaderboard (`countsOnLeaderboard = false`), as the totals aren't comparable |
 
 In the engine these are `PlayerState.scoresRolledHand` (`!scoresHeldDiceOnly`) in `AchievementEngine`, and
 `singleScoreCard`/`ZERO_TO_HERO`'s own condition; Twice in a Lifetime is guarded in `GameViewModel`.
@@ -518,9 +518,9 @@ equal a five-dice sequence); What Was The Point Of That? (every die can never be
 held, two still roll).
 
 **Still earnable, and worth knowing**: A Cunning Strategy and Commitment Issues count "all five" as
-every hold slot (`scoringDiceCount`), so they work as in Standard. Déjà Vu (`LOADED_DICE`)
+every hold slot (`scoringDiceCount`), so they work as in Standard. Déjà Vu (`DEJA_VU`)
 compares all seven dice, so they're harder. Well Rolled counts seven dice a roll. Greenfingers
-grows as in Standard (3 rolls a turn, 39 a game). Lucky Seven (`STUD_LUCKY_SEVEN`) is Stud's own:
+grows as in Standard (3 rolls a turn, 39 a game). Lucky Seven (`LUCKY_SEVEN`) is Stud's own:
 all seven dice showing one number after a roll - most often five held and the last two matching.
 
 ### Third Wind (every box scored three times)
@@ -537,11 +537,11 @@ test in `AchievementEngineTest` fails without its guard):
 
 | Achievement                                      | Why it would be free                                                    |
 |--------------------------------------------------|-------------------------------------------------------------------------|
-| Solid Round ... Dice Deity (`SCORE_200`-`500`)   | Totals are three times Standard's - Hard averages over 700              |
-| Upper Class (`UPPER_84`), Lower Class (`LOWER_150`) | Section totals over 18/21 slots pass them as a matter of course       |
-| New Personal Best (`PERSONAL_BEST`)              | The best is read off the Leaderboard, which a Third Wind total dwarfs   |
+| Solid Round ... Dice Deity (`SOLID_ROUND`-`500`)   | Totals are three times Standard's - Hard averages over 700              |
+| Upper Class (`UPPER_CLASS`), Lower Class (`LOWER_CLASS`) | Section totals over 18/21 slots pass them as a matter of course       |
+| New Personal Best (`NEW_PERSONAL_BEST`)              | The best is read off the Leaderboard, which a Third Wind total dwarfs   |
 | Zero To Hero (`ZERO_TO_HERO`)                    | Three zeroes over 39 turns is the usual run of things                    |
-| Spotless (`NO_ZEROES`)                           | Not free, but replaced: Third Time's The Charm is Third Wind's own       |
+| Spotless (`SPOTLESS`)                           | Not free, but replaced: Third Time's The Charm is Third Wind's own       |
 
 **Can't be earned in Third Wind - no guard needed**: Rock Bottom (the lowest total is 15, Chance's
 three slots); the score-collection bands (the rows aren't on the Leaderboard).
@@ -550,8 +550,8 @@ three slots); the score-collection bands (the rows aren't on the Leaderboard).
 Landslide (margins triple, so easier); Encore, Hat Trick and Dice Whisperer (three times the turns);
 Cold Dice, Low Rolls, Ton! and Nice (harder);
 Professional Roller counts Third Wind points, which are earned a turn at a time like any others;
-Greenfingers grows over 117 rolls. The mode's own two: Gone With The Wind (`THIRD_WIND_WIN`, a win,
-multiplayer) and Third Time's The Charm (`THIRD_WIND_NO_ZEROES`), all 39 slots scored without a zero.
+Greenfingers grows over 117 rolls. The mode's own two: Gone With The Wind (`GONE_WITH_THE_WIND`, a win,
+multiplayer) and Third Time's The Charm (`THIRD_TIMES_THE_CHARM`), all 39 slots scored without a zero.
 
 ### Third Wind: what it showed
 
@@ -573,10 +573,10 @@ Points, partial hits included, are multiples of five.
 
 | Achievement                                           | Why                                                                      |
 |-------------------------------------------------------|--------------------------------------------------------------------------|
-| Solid Round ... Dice Deity (`SCORE_200`-`500`)        | A total over a different card measures nothing - and 200 is an average game |
-| Cold Dice (`SCORE_UNDER_100`), Low Rolls (`LOW_ROLLS`) | A total under 100 is an ordinary run of misses (`hasStandardTotals`)    |
+| Solid Round ... Dice Deity (`SOLID_ROUND`-`500`)        | A total over a different card measures nothing - and 200 is an average game |
+| Cold Dice (`COLD_DICE`), Low Rolls (`LOW_ROLLS`) | A total under 100 is an ordinary run of misses (`hasStandardTotals`)    |
 | Zero To Hero (`ZERO_TO_HERO`)                         | Misses (and partial hits) are the usual run of things                     |
-| Spotless (`NO_ZEROES`)                                | Partial hits leave under one zero a game                                  |
+| Spotless (`SPOTLESS`)                                | Partial hits leave under one zero a game                                  |
 
 **Can't be earned in Hit List - no guard needed**: every 5x one (no box, no joker), Upper/Lower Class, Bonus Round,
 Exact Change, Six Appeal, Taking A Chance, Both Straights, the house and straight roll feats (their boxes aren't on
@@ -587,7 +587,7 @@ score-collection bands (off the Leaderboard).
 Play This Game? (zeroing every box on purpose, as in Standard); Ton!; Wasted 5x (five matching dice never hit a target,
 so scoring them is always a zero); The Dice Hate Me (more likely - chasing an exact hit can lose the plain one);
 Greenfingers (39 rolls, as Standard). The mode's own: Contract Fulfilled
-(`HIT_LIST_WIN`, a multiplayer win) and Right On Target (`HIT_LIST_RIGHT_ON_TARGET`, an exact hit on a target naming
+(`CONTRACT_FULFILLED`, a multiplayer win) and Right On Target (`RIGHT_ON_TARGET`, an exact hit on a target naming
 all five numbers - judged mid-game, from the score its box holds).
 
 ### D20 (twenty-sided dice, the numbers 1 to 20)
@@ -609,13 +609,13 @@ New Personal Best and the score bands (off the Leaderboard), Nice, Rock Bottom.
 
 **Still earnable, worth knowing**: Impatient and Naturally Gifted, the roll-pattern feats
 (House Call, Straight Away, I Can Count!, The Dice Hate Me - all far rarer on 20 faces), Landslide and the wins. The mode's own:
-Nat 20 (`D20_WIN`, a multiplayer win) and Critical Success (`D20_BOTH_BONUSES`, both half bonuses, judged mid-game, not
+Nat 20 (`NAT_20`, a multiplayer win) and Critical Success (`CRITICAL_SUCCESS`, both half bonuses, judged mid-game, not
 with the roll modifiers). CPU games (100 seeded): with the wildcards outside the bonus Hard's halves had medians of 108 and 350 (Medium 70 and 309), and with them in 146 and
 432 (Medium 99 and 367). At 138 / 388 the wildcards (counting) put Hard at 58% of games for the first half, 93% for the second and 53% for both (60 seeded games).
 
 ### Tricolour (coloured dice, four colour boxes)
 
-Nothing guarded, nothing blocked. Déjà Vu (`LOADED_DICE`) compares number *and* colour.
+Nothing guarded, nothing blocked. Déjà Vu (`DEJA_VU`) compares number *and* colour.
 Fresh Coat Of Paint counts the dice style as in any mode - Tricolour draws the player's style,
 recoloured per die (it once drew its own fixed coloured dice, and the dice style didn't count). How
 Do You Play This Game? needs the colour boxes zeroed too. See `DESIGN.md` Phase 14.

@@ -172,7 +172,6 @@ import net.zodac.dicefive.resources.style_family_metal
 import net.zodac.dicefive.resources.style_family_misprint
 import net.zodac.dicefive.resources.style_family_multicolour
 import net.zodac.dicefive.resources.style_family_neon
-import net.zodac.dicefive.resources.style_family_non_english
 import net.zodac.dicefive.resources.style_family_numeral
 import net.zodac.dicefive.resources.style_family_obsidian
 import net.zodac.dicefive.resources.style_family_picnic
@@ -198,6 +197,7 @@ import net.zodac.dicefive.resources.style_family_tribal
 import net.zodac.dicefive.resources.style_family_urn
 import net.zodac.dicefive.resources.style_family_volcano
 import net.zodac.dicefive.resources.style_family_wood
+import net.zodac.dicefive.resources.style_family_world
 import net.zodac.dicefive.resources.style_family_wreath
 import net.zodac.dicefive.resources.style_noun_background
 import net.zodac.dicefive.resources.style_noun_dice
@@ -390,39 +390,39 @@ object DiceStyles : StyleCatalog<DiceStyle>(
         StyleFamily(
             Res.string.style_family_numeral,
             listOf(
-                colour(Res.string.style_colour_digits, NumeralDiceStyle("numeral_white", Color(0xFFFBFBFB), Color(0xFFD6D6D6), Color(0xFF1E1E1E))),
+                colour(Res.string.style_colour_digits, NumeralDiceStyle("numeral_digits", Color(0xFFFBFBFB), Color(0xFFD6D6D6), Color(0xFF1E1E1E))),
                 colour(Res.string.style_colour_red, NumeralDiceStyle("numeral_red", Color(0xFFE53935), Color(0xFF8E0E0E), Color.White)),
                 colour(Res.string.style_colour_blue, NumeralDiceStyle("numeral_blue", Color(0xFF2F7FE0), Color(0xFF0B3A80), Color.White)),
             ),
             unlock = AchievementCount(15),
         ),
         StyleFamily(
-            Res.string.style_family_non_english,
+            Res.string.style_family_world,
             listOf(
                 colour(
                     Res.string.style_colour_roman,
-                    NumeralDiceStyle("numeral_roman", Color(0xFFF3E9D2), Color(0xFFD8C8A0), Color(0xFF7A1F1F), NumeralSystem.ROMAN),
+                    NumeralDiceStyle("world_roman", Color(0xFFF3E9D2), Color(0xFFD8C8A0), Color(0xFF7A1F1F), NumeralSystem.ROMAN),
                 ),
                 colour(
                     Res.string.style_colour_roman_blue,
-                    NumeralDiceStyle("numeral_roman_blue", Color(0xFF2F4A73), Color(0xFF17263F), Color(0xFFF3E9D2), NumeralSystem.ROMAN),
+                    NumeralDiceStyle("world_roman_blue", Color(0xFF2F4A73), Color(0xFF17263F), Color(0xFFF3E9D2), NumeralSystem.ROMAN),
                 ),
                 colour(
                     Res.string.style_colour_arabic_green,
-                    NumeralDiceStyle("numeral_arabic_green", Color(0xFF006C35), Color(0xFF00471F), Color.White, NumeralSystem.EASTERN_ARABIC),
+                    NumeralDiceStyle("world_arabic_green", Color(0xFF006C35), Color(0xFF00471F), Color.White, NumeralSystem.EASTERN_ARABIC),
                 ),
                 colour(
                     Res.string.style_colour_arabic,
-                    NumeralDiceStyle("numeral_arabic", Color(0xFF3A3A3A), Color(0xFF121212), Color(0xFFE8C66A), NumeralSystem.EASTERN_ARABIC),
+                    NumeralDiceStyle("world_arabic", Color(0xFF3A3A3A), Color(0xFF121212), Color(0xFFE8C66A), NumeralSystem.EASTERN_ARABIC),
                 ),
                 colour(
                     Res.string.style_colour_japanese,
-                    NumeralDiceStyle("numeral_japanese", Color(0xFFFBFBFB), Color(0xFFE3E3E3), Color(0xFFBC002D), NumeralSystem.JAPANESE),
+                    NumeralDiceStyle("world_japanese", Color(0xFFFBFBFB), Color(0xFFE3E3E3), Color(0xFFBC002D), NumeralSystem.JAPANESE),
                 ),
                 colour(
                     // Black urushi lacquer with maki-e gold.
                     Res.string.style_colour_japanese_black,
-                    NumeralDiceStyle("numeral_japanese_black", Color(0xFF1A1714), Color(0xFF050403), Color(0xFFD4AF37), NumeralSystem.JAPANESE),
+                    NumeralDiceStyle("world_japanese_black", Color(0xFF1A1714), Color(0xFF050403), Color(0xFFD4AF37), NumeralSystem.JAPANESE),
                 ),
             ),
             unlock = AchievementCount(20),
@@ -450,35 +450,35 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(
                     Res.string.style_colour_ivory_serif,
                     NumeralDiceStyle(
-                        "text_serif", Color(0xFFF7F0DC), Color(0xFFDCCFA8), Color(0xFF1F2F5C), NumeralSystem.ENGLISH,
+                        "text_ivory_serif", Color(0xFFF7F0DC), Color(0xFFDCCFA8), Color(0xFF1F2F5C), NumeralSystem.ENGLISH,
                         font = FontFamily.Serif, size = 0.26f,
                     ),
                 ),
                 colour(
                     Res.string.style_colour_green_mono,
                     NumeralDiceStyle(
-                        "text_mono", Color(0xFF1A1F1A), Color(0xFF080B08), Color(0xFF4CE07A), NumeralSystem.ENGLISH,
+                        "text_green_mono", Color(0xFF1A1F1A), Color(0xFF080B08), Color(0xFF4CE07A), NumeralSystem.ENGLISH,
                         font = FontFamily.Monospace, size = 0.2f,
                     ),
                 ),
                 colour(
                     Res.string.style_colour_purple_script,
                     NumeralDiceStyle(
-                        "text_script", Color(0xFF6A3FA0), Color(0xFF34195C), Color(0xFFFFD86B), NumeralSystem.ENGLISH,
+                        "text_purple_script", Color(0xFF6A3FA0), Color(0xFF34195C), Color(0xFFFFD86B), NumeralSystem.ENGLISH,
                         font = FontFamily.Cursive, size = 0.32f,
                     ),
                 ),
                 colour(
                     Res.string.style_colour_red_block,
                     NumeralDiceStyle(
-                        "text_block", Color(0xFFE53935), Color(0xFF8E0E0E), Color.White, NumeralSystem.ENGLISH_CAPS,
+                        "text_red_block", Color(0xFFE53935), Color(0xFF8E0E0E), Color.White, NumeralSystem.ENGLISH_CAPS,
                         font = FontFamily.SansSerif,
                     ),
                 ),
                 colour(
                     Res.string.style_colour_teal_plain,
                     NumeralDiceStyle(
-                        "text_plain", Color(0xFF1FA6A0), Color(0xFF0B5A57), Color.White, NumeralSystem.ENGLISH,
+                        "text_teal_plain", Color(0xFF1FA6A0), Color(0xFF0B5A57), Color.White, NumeralSystem.ENGLISH,
                         font = FontFamily.SansSerif, size = 0.27f,
                     ),
                 ),
@@ -526,11 +526,10 @@ object DiceStyles : StyleCatalog<DiceStyle>(
         StyleFamily(
             Res.string.style_family_games,
             listOf(
-                // Poker was once a style of its own (unlocked later); its id is a saved pick, so it stays as it was.
-                colour(Res.string.style_colour_poker, PokerDiceStyle("poker_white", Color.White, Color(0xFFE6E6EA))),
-                colour(Res.string.style_colour_pinzu, MahjongDiceStyle("mahjong_pinzu", MahjongSuit.PINZU, MahjongFace, MahjongFaceShade, MahjongBack)),
-                colour(Res.string.style_colour_manzu, MahjongDiceStyle("mahjong_manzu", MahjongSuit.MANZU, MahjongFace, MahjongFaceShade, MahjongBack)),
-                colour(Res.string.style_colour_sozu, MahjongDiceStyle("mahjong_sozu", MahjongSuit.SOZU, MahjongFace, MahjongFaceShade, MahjongBack)),
+                colour(Res.string.style_colour_poker, PokerDiceStyle("games_poker", Color.White, Color(0xFFE6E6EA))),
+                colour(Res.string.style_colour_pinzu, MahjongDiceStyle("games_pinzu", MahjongSuit.PINZU, MahjongFace, MahjongFaceShade, MahjongBack)),
+                colour(Res.string.style_colour_manzu, MahjongDiceStyle("games_manzu", MahjongSuit.MANZU, MahjongFace, MahjongFaceShade, MahjongBack)),
+                colour(Res.string.style_colour_sozu, MahjongDiceStyle("games_sozu", MahjongSuit.SOZU, MahjongFace, MahjongFaceShade, MahjongBack)),
             ),
             unlock = AchievementCount(40),
         ),
@@ -567,7 +566,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(
                     Res.string.style_colour_latin_american,
                     TallyDiceStyle(
-                        "tally_latin", TallySystem.SQUARE, TallyPen.PENCIL, TallySurface.NOTEBOOK,
+                        "tally_latin_american", TallySystem.SQUARE, TallyPen.PENCIL, TallySurface.NOTEBOOK,
                         Color.White, Color(0xFFECEFF3), Color(0xFF3A3A3E), Color(0xFF8FB4E0),
                     ),
                 ),
@@ -595,7 +594,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
         StyleFamily(
             Res.string.style_family_cake,
             listOf(
-                colour(Res.string.style_colour_strawberry, CakeDiceStyle("cake_pink", Color(0xFFFFD3DE), Color(0xFFEFA9BA))),
+                colour(Res.string.style_colour_strawberry, CakeDiceStyle("cake_strawberry", Color(0xFFFFD3DE), Color(0xFFEFA9BA))),
                 colour(Res.string.style_colour_vanilla, CakeDiceStyle("cake_vanilla", Color(0xFFFFF6E6), Color(0xFFEBD9BC))),
                 // Milk chocolate, light enough for the strawberries to stand out, each on a dollop of cream.
                 colour(Res.string.style_colour_chocolate, CakeDiceStyle("cake_chocolate", Color(0xFFA06A45), Color(0xFF70452B), dollop = Color(0xFFFFF6E6))),
@@ -610,14 +609,13 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(Res.string.style_colour_sandstone, StoneDiceStyle("stone_sandstone", StoneKind.SANDSTONE, Color(0xFFE2BE8C), Color(0xFFB0824E), Color(0xFF5A3A1E))),
                 colour(Res.string.style_colour_limestone, StoneDiceStyle("stone_limestone", StoneKind.LIMESTONE, Color(0xFFEDE6D3), Color(0xFFC9BFA4), Color(0xFF5E5646))),
                 colour(Res.string.style_colour_basalt, StoneDiceStyle("stone_basalt", StoneKind.BASALT, Color(0xFF45464A), Color(0xFF1A1B1E), Color(0xFF8E9096))),
-                // Marble, once a style of its own: its ids are saved picks, so they stay as they were.
                 colour(
                     Res.string.style_colour_white_marble,
-                    MarbleDiceStyle("marble_white", Color(0xFFF4F2EE), Color(0xFFD9D5CE), Color(0xFF8E8A84), Color(0xFF222222), seed = 1),
+                    MarbleDiceStyle("stone_white_marble", Color(0xFFF4F2EE), Color(0xFFD9D5CE), Color(0xFF8E8A84), Color(0xFF222222), seed = 1),
                 ),
                 colour(
                     Res.string.style_colour_black_marble,
-                    MarbleDiceStyle("marble_black", Color(0xFF3A3A3E), Color(0xFF141416), Color(0xFFD8D8D8), Color(0xFFC8C8CC), seed = 2),
+                    MarbleDiceStyle("stone_black_marble", Color(0xFF3A3A3E), Color(0xFF141416), Color(0xFFD8D8D8), Color(0xFFC8C8CC), seed = 2),
                 ),
             ),
             unlock = AchievementCount(60),
@@ -700,14 +698,14 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             Res.string.style_family_d20,
             listOf(
                 // Nat 20 opens white and black; Critical Success opens blue - the family opens with either.
-                colour(Res.string.style_colour_white, D20WhiteDiceStyle).copy(secretAchievement = Achievement.D20_WIN),
-                colour(Res.string.style_colour_black, D20BlackDiceStyle).copy(secretAchievement = Achievement.D20_WIN),
+                colour(Res.string.style_colour_white, D20WhiteDiceStyle).copy(secretAchievement = Achievement.NAT_20),
+                colour(Res.string.style_colour_black, D20BlackDiceStyle).copy(secretAchievement = Achievement.NAT_20),
                 // The brand's own pairing: the felt blue with the gold the board uses for "press this" -
                 // so the held ring is white instead, not lost against gold numbers.
                 colour(Res.string.style_colour_blue, D20DiceStyle("d20_blue", Color(0xFF3A6BB0), Color(0xFF14315C), GoldAccent, heldRing = Color.White))
-                    .copy(secretAchievement = Achievement.D20_BOTH_BONUSES),
+                    .copy(secretAchievement = Achievement.CRITICAL_SUCCESS),
             ),
-            unlock = StyleUnlock.AnyAchievement(listOf(Achievement.D20_WIN, Achievement.D20_BOTH_BONUSES)),
+            unlock = StyleUnlock.AnyAchievement(listOf(Achievement.NAT_20, Achievement.CRITICAL_SUCCESS)),
         ),
         StyleFamily(
             Res.string.style_family_googly,
@@ -751,7 +749,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
  * new player's first cup is the one on the icon.
  */
 val ClassicGoldDiceCupStyle: DiceCupStyle = CasinoDiceCupStyle(
-    "casino_gold",
+    "classic_gold",
     CupPalette(dark = Color(0xFF7A5A26), light = Color(0xFFEBC77F), mid = CupRimGold, accent = Color(0xFFE6C278), interior = DicePipColor),
     band = FeltNavyBottom,
 )
@@ -760,13 +758,12 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
     Res.string.style_noun_dice_cup,
     listOf(
         // The casino shaker, first so it's the default - "Classic", like every category's default.
-        // Its ids still say "casino": they're saved picks, so they stay put if the default moves.
         StyleFamily(
             Res.string.style_family_classic,
             listOf(
                 StyleColour(Res.string.style_colour_gold, CupRimGold, ClassicGoldDiceCupStyle),
-                cup(Res.string.style_colour_black, ::CasinoDiceCupStyle, "casino_black", 0xFF0F0F10, 0xFF4A4A4E, 0xFF26262A, 0xFFD4AF37, 0xFF050505),
-                cup(Res.string.style_colour_green, ::CasinoDiceCupStyle, "casino_green", 0xFF0B2A12, 0xFF2F7A45, 0xFF1B5227, 0xFFD4AF37, 0xFF04120A),
+                cup(Res.string.style_colour_black, ::CasinoDiceCupStyle, "classic_black", 0xFF0F0F10, 0xFF4A4A4E, 0xFF26262A, 0xFFD4AF37, 0xFF050505),
+                cup(Res.string.style_colour_green, ::CasinoDiceCupStyle, "classic_green", 0xFF0B2A12, 0xFF2F7A45, 0xFF1B5227, 0xFFD4AF37, 0xFF04120A),
             ),
         ),
         StyleFamily(
@@ -778,16 +775,15 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
             ),
             unlock = AchievementCount(5),
         ),
-        // Things for holding things. The wooden barrel was once a style of its own, and its unlock
-        // count is the family's, so no one loses it.
+        // Things for holding things.
         StyleFamily(
             Res.string.style_family_containers,
             listOf(
                 StyleColour(Res.string.style_colour_barrel, BarrelWood, BarrelDiceCupStyle),
                 // Glossy blue enamel, the hoops and rims a shade darker.
-                cup(Res.string.style_colour_oil_drum, ::OilDrumDiceCupStyle, "oil_drum_blue", 0xFF0A1250, 0xFF4462D2, 0xFF1A2C9E, 0xFF13217C, 0xFF070D3A),
+                cup(Res.string.style_colour_oil_drum, ::OilDrumDiceCupStyle, "containers_oil_drum", 0xFF0A1250, 0xFF4462D2, 0xFF1A2C9E, 0xFF13217C, 0xFF070D3A),
                 // Rust-red steel with bare dark-grey fittings.
-                cup(Res.string.style_colour_shipping, ::ShippingContainerDiceCupStyle, "shipping_container_red", 0xFF5E1A12, 0xFFD4604A, 0xFFA83A28, 0xFF3A3A3C, 0xFF1A1A1A),
+                cup(Res.string.style_colour_shipping, ::ShippingContainerDiceCupStyle, "containers_shipping", 0xFF5E1A12, 0xFFD4604A, 0xFFA83A28, 0xFF3A3A3C, 0xFF1A1A1A),
             ),
             unlock = AchievementCount(10),
         ),
@@ -850,7 +846,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                     { id, palette -> TopHatDiceCupStyle(id, palette, rabbitAlwaysOut = true) },
                     "top_hat_rabbit",
                     0xFF0B0B0C, 0xFF3C3C40, 0xFF1E1E21, 0xFFB71C1C, 0xFF030303,
-                ).copy(swatch = RabbitFur, secretAchievement = Achievement.MAGICIANS_SECRET),
+                ).copy(swatch = RabbitFur, secretAchievement = Achievement.THE_MAGICIANS_SECRET),
             ),
             unlock = AchievementCount(35),
         ),
@@ -917,10 +913,10 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
         StyleFamily(
             Res.string.style_family_christmas,
             listOf(
-                colour(Res.string.style_colour_red, GiftBoxDiceCupStyle("gift_box_red", ChristmasRedPaper, ChristmasGoldRibbon)),
+                colour(Res.string.style_colour_red, GiftBoxDiceCupStyle("christmas_red", ChristmasRedPaper, ChristmasGoldRibbon)),
                 colour(
                     Res.string.style_colour_blue,
-                    GiftBoxDiceCupStyle("gift_box_blue", CupPalette(Color(0xFF173A70), Color(0xFF5A8AD8), Color(0xFF2C5CA8), Color(0xFFBFD6F7), Color(0xFF081428)), Color(0xFFE8E8EE)),
+                    GiftBoxDiceCupStyle("christmas_blue", CupPalette(Color(0xFF173A70), Color(0xFF5A8AD8), Color(0xFF2C5CA8), Color(0xFFBFD6F7), Color(0xFF081428)), Color(0xFFE8E8EE)),
                 ),
             ),
             unlock = AchievementCount(65),
@@ -945,7 +941,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 colour(
                     Res.string.style_colour_oak,
                     TreasureChestDiceCupStyle(
-                        "treasure_chest_oak",
+                        "treasure_oak",
                         ChestPalette(
                             woodLight = Color(0xFF9A5B2E), woodDark = Color(0xFF5E3317), seam = Color(0xFF3E200D),
                             goldLight = Color(0xFFFFE08A), gold = Color(0xFFD4A437), goldDark = Color(0xFF8C6414),
@@ -970,7 +966,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 colour(
                     Res.string.style_colour_pink_and_blue,
                     NeonDiceCupStyle(
-                        "neon_pink_blue",
+                        "neon_pink_and_blue",
                         CupPalette(Color(0xFF050506), Color(0xFF3A3A40), Color(0xFF1A1A1E), Color(0xFF3A3A40), Color(0xFF020203)),
                         upper = Color(0xFFFF3FA4),
                         lower = Color(0xFF3FE6FF),
@@ -996,7 +992,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
         ),
         StyleFamily(
             Res.string.style_family_martini,
-            listOf(colour(Res.string.style_colour_classic, MartiniDiceCupStyle("martini"))),
+            listOf(colour(Res.string.style_colour_classic, MartiniDiceCupStyle("martini_classic"))),
             unlock = StyleUnlock.SpecificAchievement(Achievement.SHAKEN_NOT_TAPPED),
         ),
     ),
@@ -1069,16 +1065,16 @@ object DiceMats : StyleCatalog<DiceMat>(
                 stoneMat(Res.string.style_colour_sandstone, "stone_sandstone", StoneKind.SANDSTONE, 0xFFE2BE8C, 0xFFB0824E, 0xFF6A4A2A),
                 stoneMat(Res.string.style_colour_limestone, "stone_limestone", StoneKind.LIMESTONE, 0xFFEDE6D3, 0xFFC9BFA4, 0xFF7A7262),
                 stoneMat(Res.string.style_colour_basalt, "stone_basalt", StoneKind.BASALT, 0xFF45464A, 0xFF1A1B1E, 0xFF0A0A0C),
-                stoneMat(Res.string.style_colour_white_marble, "marble_white", null, 0xFFF4F2EE, 0xFFD9D5CE, 0xFF8E8A84, vein = 0xFF8E8A84),
-                stoneMat(Res.string.style_colour_black_marble, "marble_black", null, 0xFF3A3A3E, 0xFF141416, 0xFF050506, vein = 0xFFD8D8D8),
+                stoneMat(Res.string.style_colour_white_marble, "stone_white_marble", null, 0xFFF4F2EE, 0xFFD9D5CE, 0xFF8E8A84, vein = 0xFF8E8A84),
+                stoneMat(Res.string.style_colour_black_marble, "stone_black_marble", null, 0xFF3A3A3E, 0xFF141416, 0xFF050506, vein = 0xFFD8D8D8),
             ),
             unlock = AchievementCount(60),
         ),
         StyleFamily(
             Res.string.style_family_christmas,
             listOf(
-                mat(Res.string.style_colour_red, ::GiftWrapDiceMat, "gift_wrap_red", 0xFFB8282E, 0xFF8E1A20, 0xFF5A0E12, 0xFF3E080B, 0xFFF2C14E, 0xFFFFFFFF),
-                mat(Res.string.style_colour_kraft, ::GiftWrapDiceMat, "gift_wrap_kraft", 0xFFC49A6C, 0xFFA77D50, 0xFF6A4A2A, 0xFF4A321C, 0xFFD32F2F, 0xFFF7EDE0),
+                mat(Res.string.style_colour_red, ::GiftWrapDiceMat, "christmas_red", 0xFFB8282E, 0xFF8E1A20, 0xFF5A0E12, 0xFF3E080B, 0xFFF2C14E, 0xFFFFFFFF),
+                mat(Res.string.style_colour_kraft, ::GiftWrapDiceMat, "christmas_kraft", 0xFFC49A6C, 0xFFA77D50, 0xFF6A4A2A, 0xFF4A321C, 0xFFD32F2F, 0xFFF7EDE0),
             ),
             unlock = AchievementCount(65),
         ),
@@ -1093,10 +1089,9 @@ object DiceMats : StyleCatalog<DiceMat>(
         StyleFamily(
             Res.string.style_family_bestagons,
             listOf(
-                // The Honeycomb mat, once a style of its own (unlocked at 40): its id is a saved pick, so it stays as it was.
-                mat(Res.string.style_colour_honeycomb, ::HoneycombDiceMat, "honeycomb_honey", 0xFFF2A81E, 0xFF9A5A06, 0xFF5A3A0E, 0xFF3E2806, 0xFFFFD27A, 0xFFE8B850),
-                mat(Res.string.style_colour_honey, ::HexTileDiceMat, "hex_tiles_honey", 0xFFE6A53A, 0xFFB87818, 0xFF5A3A0E, 0xFF3E2806, 0xFFFFD27A, 0xFF3E2806),
-                mat(Res.string.style_colour_slate, ::HexTileDiceMat, "hex_tiles_slate", 0xFF5C6B78, 0xFF3A4550, 0xFF232A31, 0xFF151A1F, 0xFFAEBBC6, 0xFF1C2228),
+                mat(Res.string.style_colour_honeycomb, ::HoneycombDiceMat, "bestagons_honeycomb", 0xFFF2A81E, 0xFF9A5A06, 0xFF5A3A0E, 0xFF3E2806, 0xFFFFD27A, 0xFFE8B850),
+                mat(Res.string.style_colour_honey, ::HexTileDiceMat, "bestagons_honey", 0xFFE6A53A, 0xFFB87818, 0xFF5A3A0E, 0xFF3E2806, 0xFFFFD27A, 0xFF3E2806),
+                mat(Res.string.style_colour_slate, ::HexTileDiceMat, "bestagons_slate", 0xFF5C6B78, 0xFF3A4550, 0xFF232A31, 0xFF151A1F, 0xFFAEBBC6, 0xFF1C2228),
             ),
             unlock = AchievementCount(80),
         ),
@@ -1116,9 +1111,9 @@ object DiceMats : StyleCatalog<DiceMat>(
         StyleFamily(
             Res.string.style_family_neon,
             listOf(
-                neonMat(Res.string.style_colour_pink_and_blue, "neon_pink_blue", 0xFF2A1C24, 0xFF140C12, outer = 0xFFFF3FA4, inner = 0xFF3FE6FF),
-                neonMat(Res.string.style_colour_green_and_purple, "neon_green_purple", 0xFF141A3A, 0xFF080B1E, outer = 0xFF39FF88, inner = 0xFFB45CFF),
-                neonMat(Res.string.style_colour_orange_and_teal, "neon_orange_teal", 0xFF2A1640, 0xFF140A22, outer = 0xFFFF8A1F, inner = 0xFF2EE6D0),
+                neonMat(Res.string.style_colour_pink_and_blue, "neon_pink_and_blue", 0xFF2A1C24, 0xFF140C12, outer = 0xFFFF3FA4, inner = 0xFF3FE6FF),
+                neonMat(Res.string.style_colour_green_and_purple, "neon_green_and_purple", 0xFF141A3A, 0xFF080B1E, outer = 0xFF39FF88, inner = 0xFFB45CFF),
+                neonMat(Res.string.style_colour_orange_and_teal, "neon_orange_and_teal", 0xFF2A1640, 0xFF140A22, outer = 0xFFFF8A1F, inner = 0xFF2EE6D0),
             ),
             unlock = AchievementCount(95),
         ),
@@ -1217,8 +1212,8 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
         StyleFamily(
             Res.string.style_family_christmas,
             listOf(
-                background(Res.string.style_colour_green, ::GiftWrapBackground, "gift_wrap_green", 0xFF1E5A34, 0xFF0E3A1E),
-                background(Res.string.style_colour_red, ::GiftWrapBackground, "gift_wrap_red", 0xFF7A1A20, 0xFF4E0E12),
+                background(Res.string.style_colour_green, ::GiftWrapBackground, "christmas_green", 0xFF1E5A34, 0xFF0E3A1E),
+                background(Res.string.style_colour_red, ::GiftWrapBackground, "christmas_red", 0xFF7A1A20, 0xFF4E0E12),
             ),
             unlock = AchievementCount(65),
         ),
@@ -1229,10 +1224,10 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 StyleColour(
                     Res.string.style_colour_honey,
                     Color(0xFFD9A040),
-                    HoneycombCombBackground("honeycomb_honey", BackgroundPalette(Color(0xFF3A2406), Color(0xFF1E1203), Color(0xFFD9A040))),
+                    HoneycombCombBackground("bestagons_honey", BackgroundPalette(Color(0xFF3A2406), Color(0xFF1E1203), Color(0xFFD9A040))),
                 ),
-                background(Res.string.style_colour_charcoal, ::HoneycombBackground, "honeycomb_charcoal", 0xFF2A2D33, 0xFF16181C),
-                background(Res.string.style_colour_indigo, ::HoneycombBackground, "honeycomb_indigo", 0xFF262A5A, 0xFF12142E),
+                background(Res.string.style_colour_charcoal, ::HoneycombBackground, "bestagons_charcoal", 0xFF2A2D33, 0xFF16181C),
+                background(Res.string.style_colour_indigo, ::HoneycombBackground, "bestagons_indigo", 0xFF262A5A, 0xFF12142E),
             ),
             unlock = AchievementCount(80),
         ),
@@ -1358,8 +1353,7 @@ private val FlowerpotTerracotta = CupPalette(
 /**
  * The Flowerpot's colours: the pot that grows its plant through a game (the one everyone has), then
  * one pot for each stage of the plant, held there - secret, all of them, until Greenfingers is
- * earned. Each shows the plant's own colour on the Styles screen, since the pot is the same. The
- * full bloom's id is the old Sunflower cup's, so a saved pick of it still resolves.
+ * earned. Each shows the plant's own colour on the Styles screen, since the pot is the same.
  */
 private fun flowerpotColours(): List<StyleColour<DiceCupStyle>> {
     fun stage(name: StringResource, id: String, swatch: Color, stage: Int) =
@@ -1369,7 +1363,7 @@ private fun flowerpotColours(): List<StyleColour<DiceCupStyle>> {
         stage(Res.string.style_colour_seedling, "flowerpot_seedling", FlowerpotLeaf, 1),
         stage(Res.string.style_colour_bud, "flowerpot_bud", FlowerpotStem, 2),
         stage(Res.string.style_colour_opening, "flowerpot_opening", SunflowerPetalShade, 3),
-        stage(Res.string.style_colour_sunflower, "sunflower_terracotta", SunflowerPetal, FLOWERPOT_FULL_BLOOM),
+        stage(Res.string.style_colour_sunflower, "flowerpot_sunflower", SunflowerPetal, FLOWERPOT_FULL_BLOOM),
     )
 }
 

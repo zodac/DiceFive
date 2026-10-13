@@ -227,7 +227,7 @@ class StoreScreensGeneratorTest {
         FrameRecorder(compose, File(root, "5-achievements")).apply {
             hold(500)
             // Not the 5x again - the first scene unlocked that one for real.
-            AchievementEvents.emit(AchievementEvent.Unlocked(Achievement.SCORE_300))
+            AchievementEvents.emit(AchievementEvent.Unlocked(Achievement.SHARPSHOOTER))
             hold(2_800)
             finish()
         }
@@ -313,7 +313,7 @@ class StoreScreensGeneratorTest {
 internal object Scenes {
 
     /** A dressed-up table, for the Tricolour scenes: all unlocked by the achievements [StoreState.seed] grants. */
-    val SHOWPIECE = StylePicks(dice = "obsidian_lava", cup = "treasure_chest_oak", background = "planks_walnut", mat = "casino_green", frame = "laurel")
+    val SHOWPIECE = StylePicks(dice = "obsidian_lava", cup = "treasure_oak", background = "planks_walnut", mat = "casino_green", frame = "wreath_laurel")
 
     /** The dice the video picks on the Styles screen, by family - the start of a tile's spoken name, "Gems, Ivory". */
     val VIDEO_DICE_PICKS = listOf("Metal", "Obsidian", "Retro", "Cake")

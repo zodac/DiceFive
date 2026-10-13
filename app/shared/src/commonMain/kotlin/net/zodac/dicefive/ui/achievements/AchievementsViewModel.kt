@@ -82,7 +82,7 @@ class AchievementsViewModel(
     private var unlockedCountTapCount = 0
 
     // A counter achievement's progress is a real, persisted number shared with other achievements
-    // on the same counter (e.g. GAMES_PLAYED backs GAMES_10/50/100) and a leaderboard achievement's
+    // on the same counter (e.g. GAMES_PLAYED backs GETTING_COMFORTABLE/50/100) and a leaderboard achievement's
     // progress comes from real recorded scores - superuser mode fakes neither. Instead each ticked
     // achievement gets its own purely in-memory bump, added on top of its real progress only for
     // display and for deciding when to force-unlock it; nothing here is ever persisted, so it can't

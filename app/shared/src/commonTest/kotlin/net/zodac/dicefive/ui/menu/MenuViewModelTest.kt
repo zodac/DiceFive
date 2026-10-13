@@ -96,31 +96,31 @@ class MenuViewModelTest {
 
         // No styles until the saved picks load - never a flash of the defaults.
         val saved = SettingsRepository(FakePreferencesStore())
-        saved.setDiceStyleId("barrel")
+        saved.setDiceStyleId("classic_oak")
         val loading = MenuViewModel(settingsRepository = saved)
         assertNull(loading.logoStyles.value)
         advanceUntilIdle()
-        assertEquals("barrel", loading.logoStyles.value?.dice?.id)
+        assertEquals("classic_oak", loading.logoStyles.value?.dice?.id)
 
         // There from the start when the app's copy of the picks has already loaded - and following it.
-        val loaded = MutableStateFlow<SavedStyles?>(SavedStyles("barrel", "casino_black", "midnight_felt", "tray_blue", AchievementsState()))
+        val loaded = MutableStateFlow<SavedStyles?>(SavedStyles("classic_oak", "classic_black", "classic_navy", "classic_blue", AchievementsState()))
         val preloaded = MenuViewModel(settingsRepository = SettingsRepository(FakePreferencesStore()), savedStyles = loaded)
-        assertEquals("barrel", preloaded.logoStyles.value?.dice?.id)
-        assertEquals("casino_black", preloaded.logoStyles.value?.cup?.id)
-        loaded.value = loaded.value?.copy(diceStyleId = "ivory")
+        assertEquals("classic_oak", preloaded.logoStyles.value?.dice?.id)
+        assertEquals("classic_black", preloaded.logoStyles.value?.cup?.id)
+        loaded.value = loaded.value?.copy(diceStyleId = "classic_ivory")
         advanceUntilIdle()
-        assertEquals("ivory", preloaded.logoStyles.value?.dice?.id)
+        assertEquals("classic_ivory", preloaded.logoStyles.value?.dice?.id)
 
         // It follows the player's dice and cup picks.
         val settings = SettingsRepository(FakePreferencesStore())
         val following = MenuViewModel(settingsRepository = settings)
         advanceUntilIdle()
         assertEquals(LogoStyles(DiceStyles.default, DiceCupStyles.default), following.logoStyles.value)
-        settings.setDiceStyleId("barrel")
-        settings.setDiceCupStyleId("casino_black")
+        settings.setDiceStyleId("classic_oak")
+        settings.setDiceCupStyleId("classic_black")
         advanceUntilIdle()
-        assertEquals("barrel", following.logoStyles.value?.dice?.id)
-        assertEquals("casino_black", following.logoStyles.value?.cup?.id)
+        assertEquals("classic_oak", following.logoStyles.value?.dice?.id)
+        assertEquals("classic_black", following.logoStyles.value?.cup?.id)
 
         // A pick whose style is locked is drawn as the default until it unlocks.
         val lockedSettings = SettingsRepository(FakePreferencesStore())

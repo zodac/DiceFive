@@ -227,13 +227,13 @@ class GameAchievementsWiringTest {
         solo.viewModel.playToCompletion()
         advanceUntilIdle()
         assertEquals(1, dao.count(), "the human's score should be on the leaderboard")
-        assertTrue(Achievement.SOLO_GAME in solo.unlocked, "SOLO_GAME should unlock, got ${solo.unlocked}")
+        assertTrue(Achievement.PRACTICE_MAKES_PERFECT in solo.unlocked, "PRACTICE_MAKES_PERFECT should unlock, got ${solo.unlocked}")
         // One roll of all five dice per turn, one turn per category.
         assertEquals(GameMode.STANDARD.categories.size * 5, solo.store.state.first().counter(AchievementCounter.DICE_ROLLED))
         // A solo game is never "lost" - nobody to lose to - so replaying it must not count as One More Time.
         solo.viewModel.startGame()
         advanceUntilIdle()
-        assertFalse(Achievement.REPLAY_AFTER_LOSS in solo.unlocked)
+        assertFalse(Achievement.ONE_MORE_TIME in solo.unlocked)
 
         // Every die comes up 6, so both humans fill identical scorecards in the same order - a tie, which counts as a
         // win for player 1 (the only player whose achievements count - see AchievementEngine's player-1-only rule).
@@ -241,7 +241,7 @@ class GameAchievementsWiringTest {
         twoHumans.viewModel.playToCompletion()
         advanceUntilIdle()
         assertTrue(twoHumans.viewModel.game.value?.isGameOver == true, "game should be over")
-        assertTrue(Achievement.FIRST_WIN in twoHumans.unlocked, "FIRST_WIN should unlock, got ${twoHumans.unlocked}")
+        assertTrue(Achievement.FIRST_VICTORY in twoHumans.unlocked, "FIRST_VICTORY should unlock, got ${twoHumans.unlocked}")
         assertEquals(1, twoHumans.store.state.first().counter(AchievementCounter.GAMES_PLAYED))
 
         // Both seats HUMAN - a local pass-and-play game. If player 2's rolls counted too, Well Rolled would be double.
@@ -269,7 +269,7 @@ class GameAchievementsWiringTest {
     /**
      * The real "picked a non-default style" -> unlock path needs [net.zodac.dicefive.data.settings.SettingsRepository],
      * which - unlike [AchievementStore]/[ScoreDao] - is a concrete DataStore-backed class with no fake to substitute
-     * here (see `.claude/DESIGN.md`'s note on the same gap for CONTINUED_GAME). What IS covered on a plain JVM: starting
+     * here (see `.claude/DESIGN.md`'s note on the same gap for LETS_FINISH_THIS). What IS covered on a plain JVM: starting
      * a game with no settings repository at all doesn't unlock a style achievement out of nowhere, and doesn't crash.
      * `AchievementEngineTest` covers the actual "non-default -> unlocked" decision, in `AchievementEngine.evaluateAtGameStart`.
      */
@@ -333,7 +333,7 @@ class GameAchievementsWiringTest {
         table.viewModel.commitScore(ScoreCategory.SIXES)
         advanceUntilIdle()
         assertTrue(table.viewModel.game.value?.isGameOver == false, "game should still be running")
-        assertTrue(Achievement.SIXES_30 in table.unlocked, "SIXES_30 should pop mid-game, got ${table.unlocked}")
+        assertTrue(Achievement.SIX_APPEAL in table.unlocked, "SIX_APPEAL should pop mid-game, got ${table.unlocked}")
 
         // Superuser mode no longer disqualifies a game - the cheat has to stay debuggable. It only exists in debug builds.
         val cheat = started(LoadedDice(6), isDebugBuild = true)
@@ -342,16 +342,16 @@ class GameAchievementsWiringTest {
         assertTrue(cheat.viewModel.superuserModeActive.value, "superuser mode should be active")
         cheat.viewModel.commitScore(ScoreCategory.SIXES)
         advanceUntilIdle()
-        assertTrue(Achievement.SIXES_30 in cheat.unlocked, "SIXES_30 should still unlock, got ${cheat.unlocked}")
+        assertTrue(Achievement.SIX_APPEAL in cheat.unlocked, "SIX_APPEAL should still unlock, got ${cheat.unlocked}")
     }
 
     @Test
     fun `a feat rolled straight out of the cup pops once the dice land - and only while its box is still open`() = runTest {
         // 1-2-3-4-5 on the first throw: a large straight out of the cup - and I Can Count.
         val straight = unlockedAfter(CountingDice(1..5)) { rollDice() }
-        assertTrue(Achievement.FIRST_ROLL_LARGE_STRAIGHT in straight, "FIRST_ROLL_LARGE_STRAIGHT should pop on the roll, got $straight")
+        assertTrue(Achievement.STRAIGHT_AWAY in straight, "STRAIGHT_AWAY should pop on the roll, got $straight")
         assertTrue(Achievement.I_CAN_COUNT in straight, "I_CAN_COUNT should pop, got $straight")
-        assertFalse(Achievement.FIRST_ROLL_FULL_HOUSE in straight)
+        assertFalse(Achievement.HOUSE_CALL in straight)
 
         // It waits for the dice to land before it pops.
         val tossing = started(CountingDice(1..5))
@@ -359,10 +359,10 @@ class GameAchievementsWiringTest {
         tossing.viewModel.rollDice()
         advanceTimeBy(999L)
         runCurrent()
-        assertFalse(Achievement.FIRST_ROLL_LARGE_STRAIGHT in tossing.unlocked, "popped while the dice were still tossing: ${tossing.unlocked}")
+        assertFalse(Achievement.STRAIGHT_AWAY in tossing.unlocked, "popped while the dice were still tossing: ${tossing.unlocked}")
         advanceTimeBy(2L)
         runCurrent()
-        assertTrue(Achievement.FIRST_ROLL_LARGE_STRAIGHT in tossing.unlocked, "should pop once the dice have landed: ${tossing.unlocked}")
+        assertTrue(Achievement.STRAIGHT_AWAY in tossing.unlocked, "should pop once the dice have landed: ${tossing.unlocked}")
 
         // The menu logo's exact dice are Product Placement.
         assertTrue(Achievement.PRODUCT_PLACEMENT in unlockedAfter(ScriptedDice(listOf(2, 4, 5, 3, 6))) { rollDice() })
@@ -374,14 +374,14 @@ class GameAchievementsWiringTest {
             commitScore(ScoreCategory.FULL_HOUSE)
             rollDice()
         }
-        assertFalse(Achievement.FIRST_ROLL_FULL_HOUSE in houseCall, "FIRST_ROLL_FULL_HOUSE should not pop once Full House is zeroed, got $houseCall")
+        assertFalse(Achievement.HOUSE_CALL in houseCall, "HOUSE_CALL should not pop once Full House is zeroed, got $houseCall")
         // Five 6s, then 1-2-3-4-5: no Straight Away.
         val straightAway = unlockedAfter(ScriptedDice(listOf(6, 6, 6, 6, 6, 1, 2, 3, 4, 5))) {
             rollDice()
             commitScore(ScoreCategory.LARGE_STRAIGHT)
             rollDice()
         }
-        assertFalse(Achievement.FIRST_ROLL_LARGE_STRAIGHT in straightAway, "FIRST_ROLL_LARGE_STRAIGHT should not pop once Large Straight is zeroed, got $straightAway")
+        assertFalse(Achievement.STRAIGHT_AWAY in straightAway, "STRAIGHT_AWAY should not pop once Large Straight is zeroed, got $straightAway")
         // No 5x, then five 6s on both rolls - a 5x on the first roll and (nothing held) the second - and the box hasn't
         // shown a genuine 50 for the joker bonus to kick in either.
         val fiveX = unlockedAfter(ScriptedDice(listOf(1, 2, 3, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6))) {
@@ -428,12 +428,12 @@ class GameAchievementsWiringTest {
             rollDice()
             commitScore(ScoreCategory.ONES)
         }
-        assertTrue(Achievement.WASTED_5X in wasted, "WASTED_5X should pop on the commit itself, got $wasted")
+        assertTrue(Achievement.WASTED_FORTUNE in wasted, "WASTED_FORTUNE should pop on the commit itself, got $wasted")
         val kept = unlockedAfter(LoadedDice(6)) {
             rollDice()
             commitScore(ScoreCategory.FIVE_OF_A_KIND)
         }
-        assertFalse(Achievement.WASTED_5X in kept, "scoring 50 in the 5x box is not a waste, got $kept")
+        assertFalse(Achievement.WASTED_FORTUNE in kept, "scoring 50 in the 5x box is not a waste, got $kept")
         // Player 1 commits the 5x itself; player 2 wastes theirs on Ones - which would count were it player 1's turn.
         val playerTwoWasted = unlockedAfter(LoadedDice(6), players = 2) {
             rollDice()
@@ -441,7 +441,7 @@ class GameAchievementsWiringTest {
             rollDice()
             commitScore(ScoreCategory.ONES)
         }
-        assertFalse(Achievement.WASTED_5X in playerTwoWasted, "wasting a 5x on another human's turn must not unlock an achievement, got $playerTwoWasted")
+        assertFalse(Achievement.WASTED_FORTUNE in playerTwoWasted, "wasting a 5x on another human's turn must not unlock an achievement, got $playerTwoWasted")
 
         // A 5x on two turns in a row is Twice in a Lifetime - the second forced by the joker rule (Twos is the matching
         // upper box), still a genuine bonus 5x.
@@ -486,7 +486,7 @@ class GameAchievementsWiringTest {
             rollDice()
             onRabbitSeen()
         }
-        assertTrue(Achievement.MAGICIANS_SECRET in rabbit, "MAGICIANS_SECRET should pop, got $rabbit")
+        assertTrue(Achievement.THE_MAGICIANS_SECRET in rabbit, "THE_MAGICIANS_SECRET should pop, got $rabbit")
     }
 
     @Test
@@ -500,7 +500,7 @@ class GameAchievementsWiringTest {
             rollDice()
             rollDice()
         }
-        assertTrue(Achievement.LOADED_DICE in loaded, "LOADED_DICE should pop, got $loaded")
+        assertTrue(Achievement.DEJA_VU in loaded, "DEJA_VU should pop, got $loaded")
     }
 
     @Test
@@ -620,14 +620,14 @@ class GameAchievementsWiringTest {
             repeat(5) { toggleHold(it) }
             rollDice()
         }
-        assertTrue(Achievement.POINTLESS_ROLL in pointless, "POINTLESS_ROLL should pop, got $pointless")
+        assertTrue(Achievement.WHAT_WAS_THE_POINT_OF_THAT in pointless, "WHAT_WAS_THE_POINT_OF_THAT should pop, got $pointless")
 
         val cunning = unlockedAfter(LoadedDice(4)) {
             rollDice()
             repeat(5) { toggleHold(it) }
             repeat(5) { toggleHold(it) }
         }
-        assertTrue(Achievement.CUNNING_STRATEGY in cunning, "CUNNING_STRATEGY should pop, got $cunning")
+        assertTrue(Achievement.A_CUNNING_STRATEGY in cunning, "A_CUNNING_STRATEGY should pop, got $cunning")
 
         val noMoreRolls = unlockedAfter(LoadedDice(3)) {
             repeat(3) { rollDice() }
@@ -732,7 +732,7 @@ class GameAchievementsWiringTest {
     fun `Stud - seven matching dice are Lucky Seven but no 5x feat and a timed-out turn completes and scores only the held hand`() = runTest {
         val stud: GameViewModel.() -> Unit = { setGameMode(GameMode.STUD) }
         val firstRoll = unlockedAfter(LoadedDice(6), setUp = stud) { rollDice() }
-        assertTrue(Achievement.STUD_LUCKY_SEVEN in firstRoll, "STUD_LUCKY_SEVEN should pop, got $firstRoll")
+        assertTrue(Achievement.LUCKY_SEVEN in firstRoll, "LUCKY_SEVEN should pop, got $firstRoll")
         val rerolled = unlockedAfter(LoadedDice(6), setUp = stud) {
             rollDice()
             rollDice()
@@ -772,7 +772,7 @@ class GameAchievementsWiringTest {
         assertEquals(0, player.rollCount, "nothing was rolled")
         assertNull(player.lastRoll)
         for (achievement in listOf(
-            Achievement.ALL_ZEROES, Achievement.LOW_ROLLS, Achievement.SCORE_UNDER_100, Achievement.SCRATCHED_5X, Achievement.IMPATIENT,
+            Achievement.HOW_DO_YOU_PLAY_THIS_GAME, Achievement.LOW_ROLLS, Achievement.COLD_DICE, Achievement.SCRATCHED, Achievement.IMPATIENT,
         )) {
             assertFalse(achievement in table.unlocked, "$achievement shouldn't pop for a game the timer played, got ${table.unlocked}")
         }
@@ -784,7 +784,7 @@ class GameAchievementsWiringTest {
             rollDice()
             commitScore(ScoreCategory.SMALL_STRAIGHT)
         }
-        assertTrue(Achievement.WHY_DID_YOU_DO_THAT in small, "WHY_DID_YOU_DO_THAT should pop, got $small")
+        assertTrue(Achievement.SIZE_ISNT_EVERYTHING in small, "SIZE_ISNT_EVERYTHING should pop, got $small")
 
         fun undoneInto(box: ScoreCategory) = unlockedAfter(LoadedDice(3)) {
             rollDice()
@@ -792,8 +792,8 @@ class GameAchievementsWiringTest {
             undo()
             commitScore(box)
         }
-        assertTrue(Achievement.UNDO_DIFFERENT_CATEGORY in undoneInto(ScoreCategory.CHANCE), "UNDO_DIFFERENT_CATEGORY should pop")
-        assertFalse(Achievement.UNDO_DIFFERENT_CATEGORY in undoneInto(ScoreCategory.THREES))
+        assertTrue(Achievement.I_DIDNT_MEAN_THAT in undoneInto(ScoreCategory.CHANCE), "I_DIDNT_MEAN_THAT should pop")
+        assertFalse(Achievement.I_DIDNT_MEAN_THAT in undoneInto(ScoreCategory.THREES))
     }
 
     /**
@@ -831,7 +831,7 @@ class GameAchievementsWiringTest {
             }
             repeat(3) { rollDice() }
         }
-        assertTrue(Achievement.DICE_HATE_ME in hate, "DICE_HATE_ME should pop, got $hate")
+        assertTrue(Achievement.THE_DICE_HATE_ME in hate, "THE_DICE_HATE_ME should pop, got $hate")
 
         // A zero in the last box with one die short of the upper bonus after every roll - which needs every roll spent and
         // the last box scoring nothing.

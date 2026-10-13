@@ -29,7 +29,7 @@ private const val MENU_REFERENCE_HEIGHT_DP = 760f
  * that Not Those Dice unlocks.
  */
 object FloatingDiceBackground : TableBackground {
-    override val id: String = "floating_dice"
+    override val id: String = "floating_dice_menu"
 
     override val scoreAreaBrush: Brush = Brush.verticalGradient(listOf(SurfaceContainerHigh, Surface, SurfaceContainerLowest))
 

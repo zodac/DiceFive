@@ -81,12 +81,12 @@ class GameTableSettingsTest {
         assertEquals(TableSettings(), GameViewModel().tableSettings.value)
 
         val settings = SettingsRepository(TablePreferencesStore())
-        settings.setDiceStyleId("barrel")
+        settings.setDiceStyleId("classic_oak")
         settings.setSoundEnabled(false)
         val viewModel = GameViewModel(settingsRepository = settings, achievementsRepository = TableAchievementStore())
         assertNull(viewModel.tableSettings.value)
         advanceUntilIdle()
-        assertEquals("barrel", viewModel.tableSettings.value?.visualTheme?.diceStyle?.id)
+        assertEquals("classic_oak", viewModel.tableSettings.value?.visualTheme?.diceStyle?.id)
         assertEquals(false, viewModel.tableSettings.value?.soundEnabled)
 
         val lockedSettings = SettingsRepository(TablePreferencesStore())

@@ -523,7 +523,7 @@ class StripedDiceStyle(
  * all three. The first colour of Multicolour, the secret style that achievement unlocks.
  */
 val IrishFlagDiceStyle: StripedDiceStyle = StripedDiceStyle(
-    id = "irish_flag",
+    id = "multicolour_irish",
     stripes = listOf(IrishGreenSwatch, IrishWhiteSwatch, IrishOrangeSwatch),
     edge = IrishWhiteDiceBottom,
     pipColor = IrishWhitePipColor,

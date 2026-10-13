@@ -8,14 +8,14 @@ import net.zodac.dicefive.ui.theme.FeltNavyTop
 
 /** Default [TableBackground]: deep-navy felt behind the scorecard. */
 object MidnightFeltBackground : TableBackground {
-    override val id: String = "midnight_felt"
+    override val id: String = "classic_navy"
 
     override val scoreAreaBrush: Brush = Brush.verticalGradient(listOf(FeltNavyTop, FeltNavyBottom))
 }
 
-/** A "barrel" [TableBackground]: dark stained wood behind the scorecard. */
+/** The Classic background in Brown [TableBackground]: dark stained wood behind the scorecard. */
 object BarrelTableBackground : TableBackground {
-    override val id: String = "barrel"
+    override val id: String = "classic_brown"
 
     override val scoreAreaBrush: Brush = Brush.verticalGradient(listOf(BarrelBackgroundTop, BarrelBackgroundBottom))
 }

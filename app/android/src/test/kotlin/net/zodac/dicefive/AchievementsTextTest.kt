@@ -77,7 +77,7 @@ class AchievementsTextTest {
         compose.onNode(hasContentDescription("Achievement unlocked: The Journey Begins. Start your first game")).assertExists()
         // A progress banner is read as its title and how far along.
         showBannerHost()
-        AchievementEvents.emit(AchievementEvent.Progressed(Achievement.GAMES_10, 4, 5))
+        AchievementEvents.emit(AchievementEvent.Progressed(Achievement.GETTING_COMFORTABLE, 4, 5))
         compose.waitForIdle()
         compose.onNode(hasContentDescription("Getting Comfortable: 5 of 10")).assertExists()
         val config = compose.onAllNodesWithContentDescription("Getting Comfortable: 5 of 10").onFirst().fetchSemanticsNode().config

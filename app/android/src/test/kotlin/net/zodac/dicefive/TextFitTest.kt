@@ -187,7 +187,7 @@ open class TextFitTest {
         check("Results")
 
         content { AchievementBannerHost(isOnGameScreen = { false }, onAchievementSelected = {}, onStylesSelected = {}) { Box(Modifier.fillMaxSize()) } }
-        AchievementEvents.emit(AchievementEvent.Unlocked(Achievement.NON_STANDARD_MODE))
+        AchievementEvents.emit(AchievementEvent.Unlocked(Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES))
         compose.waitForIdle()
         check("Banner")
 

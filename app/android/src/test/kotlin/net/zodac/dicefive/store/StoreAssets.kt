@@ -125,11 +125,11 @@ internal object Cast {
 
 /** One set of Styles picks, by id - see StyleCatalog.kt. */
 internal data class StylePicks(
-    val dice: String = "ivory",
-    val cup: String = "casino_gold",
-    val background: String = "midnight_felt",
-    val mat: String = "tray_blue",
-    val frame: String = "classic",
+    val dice: String = "classic_ivory",
+    val cup: String = "classic_gold",
+    val background: String = "classic_navy",
+    val mat: String = "classic_blue",
+    val frame: String = "classic_ring",
 )
 
 /** The app state behind every store screen: a believable history, most achievements earned, and a game to resume. */
@@ -142,15 +142,15 @@ internal object StoreState {
      * also brings a "Styles unlocked" banner. Check that still holds when achievements or style unlocks change.
      */
     private val STILL_LOCKED = setOf(
-        Achievement.GAMES_100, Achievement.STREAK_10, Achievement.PROFESSIONAL_ROLLER, Achievement.HAT_TRICK_5X,
-        Achievement.SCORE_400, Achievement.SCORE_500, Achievement.TOTAL_5X_10, Achievement.EVERYTHING_EVERYWHERE,
-        Achievement.STUD_LUCKY_SEVEN, Achievement.D20_BOTH_BONUSES, Achievement.EXTREME_LOW_ROLLS, Achievement.ALL_ZEROES,
+        Achievement.CENTURION, Achievement.UNTOUCHABLE, Achievement.PROFESSIONAL_ROLLER, Achievement.HAT_TRICK,
+        Achievement.HIGH_ROLLER, Achievement.DICE_DEITY, Achievement.DICE_WHISPERER, Achievement.EVERYTHING_EVERYWHERE_ALL_AT_ONCE,
+        Achievement.LUCKY_SEVEN, Achievement.CRITICAL_SUCCESS, Achievement.ROCK_BOTTOM, Achievement.HOW_DO_YOU_PLAY_THIS_GAME,
         Achievement.COMPLETIONIST, Achievement.ARCHIVIST, Achievement.HISTORIAN, Achievement.LOW_ROLLS,
-        Achievement.SCORE_UNDER_100,
+        Achievement.COLD_DICE,
     )
 
     /** Left locked for the video to unlock for real, banner and all, when it scores its 5x. */
-    val FIRST_UNLOCK = Achievement.FIRST_5X
+    val FIRST_UNLOCK = Achievement.FIVE_X
 
     private const val DAY_MILLIS = 86_400_000L
 
