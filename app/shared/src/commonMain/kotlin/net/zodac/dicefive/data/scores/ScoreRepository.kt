@@ -9,14 +9,57 @@ import net.zodac.dicefive.model.playerNameKey
 /** How many leaderboard rows make up one page. Was 100; halved so a page is a shorter scroll. */
 const val SCORES_PAGE_SIZE = 50
 
+/**
+ * One human player's part of a finished game, for [ScoreRepository.recordGame]: their score and tie-break stats (see
+ * [PlayerState.toTieBreakStats][net.zodac.dicefive.game.toTieBreakStats]), whether they won (null for a solo game) and
+ * whether they were player 1.
+ */
+data class PlayerResult(
+    val playerName: String,
+    val stats: TieBreakStats,
+    val won: Boolean?,
+    val isPrimaryPlayer: Boolean,
+)
+
 class ScoreRepository(private val scoreDao: ScoreDao) {
 
     /**
-     * Records one human player's finished game: their score and tie-break stats (see
-     * [PlayerState.toTieBreakStats][net.zodac.dicefive.game.toTieBreakStats]), whether they won
-     * (null for a solo game), whether they were player 1, whether the game's mode puts it on the
-     * Leaderboard ([ScoreEntry.onLeaderboard]), which [gameMode] it was played in, and whether it ran under that mode's own rules ([ScoreEntry.playedUnmodified]).
+     * Records one finished game's human players ([results]) in a single write: all of them or none. With each, whether
+     * the game's mode puts it on the Leaderboard ([ScoreEntry.onLeaderboard]), which [gameMode] it was played in, and
+     * whether it ran under that mode's own rules ([ScoreEntry.playedUnmodified]). A player dismissed from the Statistics
+     * screen is shown there again.
      */
+    suspend fun recordGame(
+        results: List<PlayerResult>,
+        onLeaderboard: Boolean = true,
+        gameMode: GameMode = GameMode.STANDARD,
+        playedUnmodified: Boolean = true,
+        timestampEpochMillis: Long = nowEpochMillis(),
+    ) {
+        if (results.isEmpty()) return
+        scoreDao.insertGame(
+            results.map { result ->
+                ScoreEntry(
+                    playerName = result.playerName,
+                    score = result.stats.score,
+                    timestampEpochMillis = timestampEpochMillis,
+                    won = result.won,
+                    isPrimaryPlayer = result.isPrimaryPlayer,
+                    fiveOfAKindCount = result.stats.fiveOfAKindCount,
+                    zeroedCategoryCount = result.stats.zeroedCategoryCount,
+                    upperSectionTotal = result.stats.upperSectionTotal,
+                    chanceScore = result.stats.chance,
+                    threeOfAKindScore = result.stats.threeOfAKind,
+                    fourOfAKindScore = result.stats.fourOfAKind,
+                    onLeaderboard = onLeaderboard,
+                    gameModeId = gameMode.id,
+                    playedUnmodified = playedUnmodified,
+                )
+            },
+        )
+    }
+
+    /** [recordGame] for a game with one human player. */
     suspend fun recordScore(
         playerName: String,
         stats: TieBreakStats,
@@ -26,28 +69,13 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
         gameMode: GameMode = GameMode.STANDARD,
         playedUnmodified: Boolean = true,
         timestampEpochMillis: Long = nowEpochMillis(),
-    ) {
-        scoreDao.insert(
-            ScoreEntry(
-                playerName = playerName,
-                score = stats.score,
-                timestampEpochMillis = timestampEpochMillis,
-                won = won,
-                isPrimaryPlayer = isPrimaryPlayer,
-                fiveOfAKindCount = stats.fiveOfAKindCount,
-                zeroedCategoryCount = stats.zeroedCategoryCount,
-                upperSectionTotal = stats.upperSectionTotal,
-                chanceScore = stats.chance,
-                threeOfAKindScore = stats.threeOfAKind,
-                fourOfAKindScore = stats.fourOfAKind,
-                onLeaderboard = onLeaderboard,
-                gameModeId = gameMode.id,
-                playedUnmodified = playedUnmodified,
-            ),
-        )
-        // A dismissed player who plays again clearly cares about their stats once more.
-        scoreDao.clearDismissal(playerName)
-    }
+    ) = recordGame(
+        listOf(PlayerResult(playerName, stats, won, isPrimaryPlayer)),
+        onLeaderboard = onLeaderboard,
+        gameMode = gameMode,
+        playedUnmodified = playedUnmodified,
+        timestampEpochMillis = timestampEpochMillis,
+    )
 
     suspend fun page(pageIndex: Int, pageSize: Int = SCORES_PAGE_SIZE): List<ScoreEntry> =
         scoreDao.pagedScores(limit = pageSize, offset = pageIndex * pageSize)

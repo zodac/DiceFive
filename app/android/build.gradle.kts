@@ -183,6 +183,13 @@ android {
     }
 }
 
+// R8 lays the release dex out from the startup profile (startup-prof.txt, StartupProfileGenerator's cold start to the
+// menu), so the code a launch runs is loaded first, from the primary dex. The release workflow generates the profile
+// for every APK; a build without one (a local release) is laid out as before.
+baselineProfile {
+    dexLayoutOptimization = true
+}
+
 // The toolchain (the JDK that compiles Kotlin and Java and runs the unit tests) and the Kotlin
 // counterpart of compileOptions above, all on javaVersion. (compilerOptions replaces
 // android.kotlinOptions, which Kotlin 2.3+ rejects outright as deprecated.)

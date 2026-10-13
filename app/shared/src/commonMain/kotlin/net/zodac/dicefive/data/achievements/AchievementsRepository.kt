@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import net.zodac.dicefive.model.Achievement
@@ -22,16 +23,13 @@ import net.zodac.dicefive.model.AchievementCounter
  */
 class AchievementsRepository(private val dataStore: DataStore<Preferences>) : AchievementStore {
 
+    /** Emits only when an unlock or a counter changes, not on every write to the file. */
     override val state: Flow<AchievementsState> = dataStore.data.map { prefs ->
         AchievementsState(
-            unlockedAt = Achievement.entries.mapNotNull { achievement ->
-                prefs[unlockedKey(achievement)]?.let { achievement to it }
-            }.toMap(),
-            counters = AchievementCounter.entries.mapNotNull { counter ->
-                prefs[counterKey(counter)]?.let { counter to it }
-            }.toMap(),
+            unlockedAt = UNLOCKED_KEYS.mapNotNull { (achievement, key) -> prefs[key]?.let { achievement to it } }.toMap(),
+            counters = COUNTER_KEYS.mapNotNull { (counter, key) -> prefs[key]?.let { counter to it } }.toMap(),
         )
-    }
+    }.distinctUntilChanged()
 
     override suspend fun current(): AchievementsState = state.first()
 
@@ -63,7 +61,11 @@ class AchievementsRepository(private val dataStore: DataStore<Preferences>) : Ac
     }
 
     private companion object {
-        fun unlockedKey(achievement: Achievement) = longPreferencesKey("unlocked_${achievement.id}")
-        fun counterKey(counter: AchievementCounter) = intPreferencesKey("counter_${counter.name}")
+        /** Every achievement's and counter's key, built once rather than on every read of [state]. */
+        val UNLOCKED_KEYS = Achievement.entries.map { it to longPreferencesKey("unlocked_${it.id}") }
+        val COUNTER_KEYS = AchievementCounter.entries.map { it to intPreferencesKey("counter_${it.name}") }
+
+        fun unlockedKey(achievement: Achievement) = UNLOCKED_KEYS[achievement.ordinal].second
+        fun counterKey(counter: AchievementCounter) = COUNTER_KEYS[counter.ordinal].second
     }
 }

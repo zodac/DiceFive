@@ -29,6 +29,7 @@ commit**, and tell the user so they can rename it before it spreads.
 | `[Game Over]`    | The end-of-game results page and its celebration                        |
 | `[Icon]`         | The app's launcher icon                                                 |
 | `[Leaderboard]`  | The Leaderboard (scores) screen and the score records behind it         |
+| `[Performance]`  | Start-up, loading, storage and frame cost across the app                |
 | `[Play Games]`   | Google Play Games Services - sign-in, online sync, cloud save, Sidekick |
 | `[Project]`      | Repo-wide setup that isn't any one feature (tooling, docs, skills)      |
 | `[Sandbox]`      | The Docker sandbox and its emulator tooling (`sandbox/`)                |

@@ -264,7 +264,14 @@ jobs:
               # means the APKs never installed (the emulator's framework fell over), not that the journey
               # failed, so it is retried like a failed boot.
               if [ -s app/android/src/release/generated/baselineProfiles/baseline-prof.txt ]; then
-                exit 0
+                # R8 lays the dex out from the startup profile (dexLayoutOptimization), so a release without
+                # one would quietly lose that. The install worked, so this is the startup journey's fault, not
+                # the emulator's: it fails rather than retries.
+                if [ -s app/android/src/release/generated/baselineProfiles/startup-prof.txt ]; then
+                  exit 0
+                fi
+                echo "::error::Gradle wrote a Baseline Profile but no startup profile - see StartupProfileGenerator"
+                exit 1
               fi
               .github/scripts/ci_emulator.sh logcat "$RUNNER_TEMP/logcat-attempt$attempt.txt" || true
               .github/scripts/ci_emulator.sh stop

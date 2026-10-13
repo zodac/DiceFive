@@ -1,3 +1,7 @@
 <resources>
-    <style name="Theme.DiceFive" parent="android:Theme.Material.NoActionBar" />
+    <!-- The window is the backdrop's colour, so the system's launch screen hands over to the app's first frame
+         without a change of colour. From Android 12 the launch screen takes its background from it too. -->
+    <style name="Theme.DiceFive" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
 </resources>

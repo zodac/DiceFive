@@ -1,12 +1,20 @@
 package net.zodac.dicefive.device
 
+import android.content.Context
+import android.database.sqlite.SQLiteConstraintException
+import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import net.zodac.dicefive.data.scores.AppDatabase
+import net.zodac.dicefive.data.scores.PlayerResult
+import net.zodac.dicefive.data.scores.ScoreEntry
+import net.zodac.dicefive.data.scores.buildAppDatabase
 import net.zodac.dicefive.game.TieBreakStats
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -69,6 +77,53 @@ class AndroidAppContainerTest {
         // Settings are written to and read back from their preferences file.
         container.settingsRepository.setPlayerName(slot = 1, name = "Tester")
         assertEquals("Tester", container.settingsRepository.playerNameFor(1).first())
+    }
+
+    @Test
+    fun `a game's players are recorded in one write - each dismissed one shown again`() = runTest {
+        val scores = container.scoreRepository
+        scores.recordScore("Alice", stats(score = 100), won = null, isPrimaryPlayer = true)
+        scores.recordScore("Bob", stats(score = 90), won = null, isPrimaryPlayer = false)
+        scores.dismissPlayerStatistics("Alice")
+        scores.dismissPlayerStatistics("Bob")
+
+        scores.recordGame(
+            listOf(
+                PlayerResult("Alice", stats(score = 200), won = true, isPrimaryPlayer = true),
+                PlayerResult("Bob", stats(score = 150), won = false, isPrimaryPlayer = false),
+            ),
+        )
+
+        assertEquals(listOf(200, 150, 100, 90), scores.page(0).map { it.score })
+        assertEquals(listOf("Alice" to 2, "Bob" to 2), scores.playerStatistics().map { it.playerName to it.gamesPlayed })
+    }
+
+    @Test
+    fun `a game whose rows can't all be written records none of them`() = runTest {
+        val database = Room.inMemoryDatabaseBuilder<AppDatabase>(ApplicationProvider.getApplicationContext<Context>()).buildAppDatabase()
+        try {
+            val dao = database.scoreDao()
+            // The second row reuses the first's id, so it can't be inserted.
+            val row = ScoreEntry(
+                id = 7,
+                playerName = "Alice",
+                score = 200,
+                timestampEpochMillis = 0L,
+                won = null,
+                isPrimaryPlayer = true,
+                fiveOfAKindCount = 0,
+                zeroedCategoryCount = 0,
+                upperSectionTotal = 0,
+                chanceScore = 0,
+                threeOfAKindScore = 0,
+                fourOfAKindScore = 0,
+            )
+            val failure = runCatching { dao.insertGame(listOf(row, row.copy(playerName = "Bob"))) }.exceptionOrNull()
+            assertTrue("$failure", failure is SQLiteConstraintException)
+            assertEquals(0, dao.count())
+        } finally {
+            database.close()
+        }
     }
 
     private fun stats(score: Int, fiveOfAKindCount: Int = 0) = TieBreakStats(

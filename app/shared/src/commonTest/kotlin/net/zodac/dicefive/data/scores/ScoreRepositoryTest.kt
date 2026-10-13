@@ -101,6 +101,17 @@ private suspend fun ScoreRepository.record(
     timestampEpochMillis = timestampEpochMillis,
 )
 
+private fun tieBreakStats(score: Int) = TieBreakStats(
+    score = score,
+    fiveOfAKindCount = 0,
+    zeroedCategoryCount = 0,
+    tricolourScoredCount = null,
+    upperSectionTotal = 0,
+    chance = 0,
+    threeOfAKind = 0,
+    fourOfAKind = 0,
+)
+
 class ScoreRepositoryTest {
 
     @Test
@@ -189,6 +200,33 @@ class ScoreRepositoryTest {
         val broken = outcomes(true, true, true, false, true)
         assertEquals(1, broken.currentWinStreak)
         assertEquals(3, broken.bestWinStreak)
+    }
+
+    @Test
+    fun `a game records every human player's row - each with the game's mode - time - and whether it counts on the board`() = runTest {
+        val dao = FakeScoreDao()
+        val repository = ScoreRepository(dao)
+        repository.recordGame(
+            listOf(
+                PlayerResult("Alice", tieBreakStats(score = 200), won = true, isPrimaryPlayer = true),
+                PlayerResult("Bob", tieBreakStats(score = 150), won = false, isPrimaryPlayer = false),
+            ),
+            onLeaderboard = false,
+            gameMode = GameMode.THIRD_WIND,
+            playedUnmodified = false,
+            timestampEpochMillis = 1_000L,
+        )
+        val rows = repository.pageForMode(GameMode.THIRD_WIND, pageIndex = 0)
+        assertEquals(listOf("Alice" to 200, "Bob" to 150), rows.map { it.playerName to it.score })
+        assertEquals(listOf(true, false), rows.map { it.won })
+        assertEquals(listOf(true, false), rows.map { it.isPrimaryPlayer })
+        assertTrue(rows.all { it.timestampEpochMillis == 1_000L && !it.onLeaderboard && !it.playedUnmodified })
+        // Off the Combined board, as the game's mode says.
+        assertEquals(0, repository.totalCount())
+
+        // A game with no human players records nothing.
+        repository.recordGame(emptyList())
+        assertEquals(2, repository.totalCountForMode(GameMode.THIRD_WIND))
     }
 
     @Test

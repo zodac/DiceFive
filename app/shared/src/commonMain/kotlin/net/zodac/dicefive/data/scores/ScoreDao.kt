@@ -3,6 +3,7 @@ package net.zodac.dicefive.data.scores
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 
 /** The Leaderboard's row order - see [ScoreDao.pagedScores]. Shared by every query that pages it. */
 private const val LEADERBOARD_ORDER = """
@@ -19,6 +20,18 @@ interface ScoreDao {
 
     @Insert
     suspend fun insert(entry: ScoreEntry)
+
+    /**
+     * One finished game's rows, in a single transaction: all of them are recorded or none are. Each row's player is
+     * shown on the Statistics screen again if they were dismissed from it - see [clearDismissal].
+     */
+    @Transaction
+    suspend fun insertGame(entries: List<ScoreEntry>) {
+        for (entry in entries) {
+            insert(entry)
+            clearDismissal(entry.playerName)
+        }
+    }
 
     /**
      * Ties on [ScoreEntry.score] are broken by the same house rule `GameOverScreen` applies within

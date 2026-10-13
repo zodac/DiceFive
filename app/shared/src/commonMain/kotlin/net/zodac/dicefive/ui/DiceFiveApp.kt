@@ -30,6 +30,8 @@ import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.game.LeaveGameConfirmation
 import net.zodac.dicefive.ui.game.LeaveGameConfirmationDialog
 import net.zodac.dicefive.ui.game.LocalLeaveGameConfirmation
+import net.zodac.dicefive.ui.game.LocalSoundEffects
+import net.zodac.dicefive.ui.game.rememberAppSoundEffects
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /**
@@ -59,40 +61,43 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameService
         LocalDriftState provides driftState,
         LocalLeaveGameConfirmation provides leaveConfirmation,
     ) {
-        DiceFiveTheme {
-            Surface(modifier = Modifier.fillMaxSize()) {
-                // Hoisted out of DiceFiveNavHost (which otherwise creates its own) so a banner
-                // long press, handled above the NavHost, can navigate the same controller the
-                // NavHost itself renders from.
-                val navController = rememberNavController()
-                // Above the NavHost, not inside it: the burst of banners at the end of a game
-                // has to survive the move from the board to the results screen and on to the
-                // menu, which a per-destination overlay wouldn't.
-                AchievementBannerHost(
-                    modifier = Modifier.fillMaxSize(),
-                    isOnGameScreen = { navController.currentDestination?.route == Screen.PLAY_GAME },
-                    onAchievementSelected = { achievement ->
-                        val alreadyOnAchievements = navController.currentDestination?.route == Screen.ACHIEVEMENTS
-                        // The request has to be made before navigating, not after: if the
-                        // Achievements screen isn't open yet, its own collector only starts once
-                        // it composes, and the request's replay is what lets it still catch this.
-                        AchievementScrollRequests.request(achievement.id, animate = alreadyOnAchievements)
-                        if (!alreadyOnAchievements) {
-                            navController.navigate(Screen.ACHIEVEMENTS)
-                        }
-                    },
-                    onStylesSelected = { styles ->
-                        val alreadyOnStyles = navController.currentDestination?.route == Screen.STYLES
-                        // Before navigating, for the same reason as the achievement request above.
-                        StyleScrollRequests.request(styles, animate = alreadyOnStyles)
-                        if (!alreadyOnStyles) {
-                            navController.navigate(Screen.STYLES)
-                        }
-                    },
-                ) {
-                    DiceFiveNavHost(navController = navController)
+        // Inside the provider above, for the platform it creates its player from.
+        CompositionLocalProvider(LocalSoundEffects provides rememberAppSoundEffects(container.settingsRepository.soundEnabled)) {
+            DiceFiveTheme {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    // Hoisted out of DiceFiveNavHost (which otherwise creates its own) so a banner
+                    // long press, handled above the NavHost, can navigate the same controller the
+                    // NavHost itself renders from.
+                    val navController = rememberNavController()
+                    // Above the NavHost, not inside it: the burst of banners at the end of a game
+                    // has to survive the move from the board to the results screen and on to the
+                    // menu, which a per-destination overlay wouldn't.
+                    AchievementBannerHost(
+                        modifier = Modifier.fillMaxSize(),
+                        isOnGameScreen = { navController.currentDestination?.route == Screen.PLAY_GAME },
+                        onAchievementSelected = { achievement ->
+                            val alreadyOnAchievements = navController.currentDestination?.route == Screen.ACHIEVEMENTS
+                            // The request has to be made before navigating, not after: if the
+                            // Achievements screen isn't open yet, its own collector only starts once
+                            // it composes, and the request's replay is what lets it still catch this.
+                            AchievementScrollRequests.request(achievement.id, animate = alreadyOnAchievements)
+                            if (!alreadyOnAchievements) {
+                                navController.navigate(Screen.ACHIEVEMENTS)
+                            }
+                        },
+                        onStylesSelected = { styles ->
+                            val alreadyOnStyles = navController.currentDestination?.route == Screen.STYLES
+                            // Before navigating, for the same reason as the achievement request above.
+                            StyleScrollRequests.request(styles, animate = alreadyOnStyles)
+                            if (!alreadyOnStyles) {
+                                navController.navigate(Screen.STYLES)
+                            }
+                        },
+                    ) {
+                        DiceFiveNavHost(navController = navController)
+                    }
+                    LeaveGameConfirmationDialog(leaveConfirmation)
                 }
-                LeaveGameConfirmationDialog(leaveConfirmation)
             }
         }
     }

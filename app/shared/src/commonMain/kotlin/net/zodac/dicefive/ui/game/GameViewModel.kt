@@ -18,8 +18,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -31,8 +33,10 @@ import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.game.InProgressGameRepository
+import net.zodac.dicefive.data.scores.PlayerResult
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
+import net.zodac.dicefive.data.settings.savedStylesFlow
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.AchievementUpdate
 import net.zodac.dicefive.game.AiNameGenerator
@@ -294,24 +298,15 @@ class GameViewModel(
     val tableSettings: StateFlow<TableSettings?> = if (settingsRepository == null) {
         MutableStateFlow(TableSettings())
     } else {
-        val visualTheme = combine(
-            settingsRepository.diceStyleId,
-            settingsRepository.diceCupStyleId,
-            settingsRepository.tableBackgroundId,
-            settingsRepository.diceMatId,
-            achievementsRepository?.state ?: flowOf(AchievementsState()),
-        ) { diceId, cupId, backgroundId, matId, achievements ->
+        val visualTheme = savedStylesFlow(settingsRepository, achievementsRepository).map { saved ->
             GameVisualTheme(
-                diceStyle = DiceStyles.unlockedById(diceId, achievements),
-                diceCupStyle = DiceCupStyles.unlockedById(cupId, achievements),
-                background = TableBackgrounds.unlockedById(backgroundId, achievements),
-                mat = DiceMats.unlockedById(matId, achievements),
+                diceStyle = DiceStyles.unlockedById(saved.diceStyleId, saved.achievements),
+                diceCupStyle = DiceCupStyles.unlockedById(saved.diceCupStyleId, saved.achievements),
+                background = TableBackgrounds.unlockedById(saved.tableBackgroundId, saved.achievements),
+                mat = DiceMats.unlockedById(saved.diceMatId, saved.achievements),
+                frame = ScoreFrames.unlockedById(saved.scoreFrameId, saved.achievements),
             )
-        }.combine(
-            combine(settingsRepository.scoreFrameId, achievementsRepository?.state ?: flowOf(AchievementsState())) { frameId, achievements ->
-                ScoreFrames.unlockedById(frameId, achievements)
-            },
-        ) { theme, frame -> theme.copy(frame = frame) }
+        }.distinctUntilChanged()
         combine(
             visualTheme,
             settingsRepository.soundEnabled,
@@ -434,13 +429,14 @@ class GameViewModel(
             viewModelScope.launch {
                 // Built up off to the side and published in one update, then flagged restored: the
                 // setup screen holds its form back until [setupRestored], so it never draws the
-                // defaults (Standard mode, 2 players) for the frames these reads take and then
-                // visibly switches to the saved choices.
+                // defaults (Standard mode, 2 players) for the frames this read takes and then
+                // visibly switches to the saved choices. Every setting comes from the one read.
+                val saved = repository.snapshot()
                 var restored = _setup.value
                 // Restored first: every restored name is capped to whatever length fits *this*
                 // player count's tabs, so that cap has to be known before any name is restored,
                 // not applied against the default count of 2.
-                repository.playerCount.first()?.let { savedCount ->
+                saved.playerCount?.let { savedCount ->
                     restored = restored.copy(
                         playerCount = savedCount.coerceIn(GameSetupState.MIN_PLAYERS, GameSetupState.MAX_PLAYERS),
                     )
@@ -449,29 +445,29 @@ class GameViewModel(
                 val slots = restored.playerSlots.map { slot ->
                     // Capped on the way in, so a name saved at a player count with wider tabs is trimmed
                     // rather than reappearing over-long.
-                    val savedName = repository.playerNameFor(slot.slot).first()
+                    val savedName = saved.playerNameFor(slot.slot)
                     var updated = slot.copy(name = (savedName ?: slot.name).takeNameWidth(cap))
                     // Slot 1 is always Human, so its type and difficulty are never saved/restored.
                     if (slot.slot >= 2) {
-                        repository.playerTypeFor(slot.slot).first()?.let { updated = updated.copy(type = it) }
-                        repository.playerDifficultyFor(slot.slot).first()?.let { updated = updated.copy(difficulty = it) }
+                        saved.playerTypeFor(slot.slot)?.let { updated = updated.copy(type = it) }
+                        saved.playerDifficultyFor(slot.slot)?.let { updated = updated.copy(difficulty = it) }
                     }
                     updated
                 }
                 // A saved set that isn't four different colours (never written by this app, but a hand-edited
                 // or partly written store could) is dropped for the defaults, so no two players ever match.
-                val colours = slots.map { slot -> repository.playerColourFor(slot.slot).first() }
+                val colours = slots.map { slot -> saved.playerColourFor(slot.slot) }
                 val restoredColours = colours.takeIf { saved -> saved.none { it == null } && saved.toSet().size == saved.size }
                 restored = restored.copy(
                     playerSlots = if (restoredColours == null) slots else slots.mapIndexed { i, slot -> slot.copy(colour = restoredColours[i]!!) },
-                    turnTimer = repository.turnTimer.first(),
-                    turnTimerLength = repository.turnTimerLength.first(),
-                    rollModifiers = repository.rollModifiers.first(),
-                    rollsPerTurnLength = repository.rollsPerTurnLength.first(),
-                    extendedScores = repository.extendedScores.first(),
-                    unluckyDiceEnabled = repository.unluckyDiceEnabled.first(),
-                    unluckyDice = repository.unluckyDice.first(),
-                    gameMode = repository.gameMode.first(),
+                    turnTimer = saved.turnTimer,
+                    turnTimerLength = saved.turnTimerLength,
+                    rollModifiers = saved.rollModifiers,
+                    rollsPerTurnLength = saved.rollsPerTurnLength,
+                    extendedScores = saved.extendedScores,
+                    unluckyDiceEnabled = saved.unluckyDiceEnabled,
+                    unluckyDice = saved.unluckyDice,
+                    gameMode = saved.gameMode,
                 )
                 _setup.value = restored
                 _setupRestored.value = true
@@ -1615,25 +1611,25 @@ class GameViewModel(
         // "doesn't count toward win/loss" treatment AchievementEngine gives the WIN_STREAK counter.
         val multiplayer = state.players.size > 1
         val topScore = state.topScore
-        state.players.forEachIndexed { index, player ->
-            if (player.type == PlayerType.HUMAN) {
-                val won = if (multiplayer) player.totalScore == topScore else null
+        val results = state.players.withIndex().filter { (_, player) -> player.type == PlayerType.HUMAN }.map { (index, player) ->
+            PlayerResult(
+                playerName = player.name,
                 // Feeds the leaderboard's own tie-break ordering (see TieBreak.kt) - unrelated to
-                // [won] above, which keeps its existing "a tie at the top counts as a win" rule for
+                // won below, which keeps its existing "a tie at the top counts as a win" rule for
                 // achievements/statistics untouched.
-                val tieBreakStats = player.toTieBreakStats()
+                stats = player.toTieBreakStats(),
+                won = if (multiplayer) player.totalScore == topScore else null,
                 // Index 0 is always the primary player ("You") - see AchievementEngine's class doc.
-                repository.recordScore(
-                    player.name,
-                    tieBreakStats,
-                    won = won,
-                    isPrimaryPlayer = index == 0,
-                    onLeaderboard = state.countsOnLeaderboard,
-                    gameMode = state.gameMode,
-                    playedUnmodified = !state.hasModifiers,
-                )
-            }
+                isPrimaryPlayer = index == 0,
+            )
         }
+        // Every human's row in one write.
+        repository.recordGame(
+            results,
+            onLeaderboard = state.countsOnLeaderboard,
+            gameMode = state.gameMode,
+            playedUnmodified = !state.hasModifiers,
+        )
     }
 
     // Queued and conflated by the repository - see InProgressGameRepository.

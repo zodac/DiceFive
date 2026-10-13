@@ -1,3 +1,6 @@
 <resources>
     <color name="ic_launcher_background">#0B1E3A</color>
+    <!-- The window's own colour, shown before the app's first frame: the theme's surface (Surface in the shared
+         module's ui/theme/Color.kt), the middle of the backdrop that frame draws. LaunchWindowTest keeps them equal. -->
+    <color name="window_background">#11131A</color>
 </resources>

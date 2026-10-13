@@ -123,7 +123,8 @@ fun GameScreen(
     val confirmBeforeLeaving by viewModel.confirmBeforeLeavingGame.collectAsStateWithLifecycle()
     val superuserModeActive by viewModel.superuserModeActive.collectAsStateWithLifecycle()
     val aiRolling by viewModel.aiRolling.collectAsStateWithLifecycle()
-    val turnSecondsRemaining by viewModel.turnSecondsRemaining.collectAsStateWithLifecycle()
+    // Kept as a State and read only by the timer itself, so its tick each second recomposes the timer, not the board.
+    val turnSecondsRemaining = viewModel.turnSecondsRemaining.collectAsStateWithLifecycle()
     val table by viewModel.tableSettings.collectAsStateWithLifecycle()
     // Until the game (and below, the table's settings) load, just the page the board is drawn on - the backdrop
     // the screen before it hands over on, too - rather than nothing, which showed whatever was behind for a frame.
@@ -261,7 +262,7 @@ fun GameScreen(
                             canUndo = canUndo,
                             superuserModeActive = superuserModeActive,
                             aiRolling = aiRolling,
-                            turnSecondsRemaining = turnSecondsRemaining,
+                            turnSecondsRemaining = { turnSecondsRemaining.value },
                             onBack = leaveGame,
                             onUndo = viewModel::undo,
                             onRoll = viewModel::rollDice,
@@ -290,7 +291,7 @@ private fun InProgressGame(
     canUndo: Boolean,
     superuserModeActive: Boolean,
     aiRolling: Boolean,
-    turnSecondsRemaining: Int?,
+    turnSecondsRemaining: () -> Int?,
     onBack: () -> Unit,
     onUndo: () -> Unit,
     onRoll: () -> Unit,
@@ -469,10 +470,7 @@ private fun InProgressGame(
         )
     }
 
-    // Only shown while a timer is actually running for this turn - see GameViewModel.syncTurnTimer.
-    if (turnSecondsRemaining != null) {
-        TurnTimerBadge(secondsRemaining = turnSecondsRemaining, modifier = Modifier.fillMaxWidth())
-    }
+    RunningTurnTimer(turnSecondsRemaining)
 
     val board = @Composable {
         val viewedIndex = viewedPlayerIndex
@@ -653,6 +651,16 @@ fun TurnTimerBadge(secondsRemaining: Int, modifier: Modifier = Modifier) {
         color = color,
         style = MaterialTheme.typography.labelMedium,
     )
+}
+
+/**
+ * The [TurnTimerBadge] for [secondsRemaining], only while a timer is actually running for this turn - see
+ * GameViewModel.syncTurnTimer. The seconds are read here, so a tick recomposes this alone.
+ */
+@Composable
+private fun RunningTurnTimer(secondsRemaining: () -> Int?) {
+    val seconds = secondsRemaining() ?: return
+    TurnTimerBadge(secondsRemaining = seconds, modifier = Modifier.fillMaxWidth())
 }
 
 /** [TurnTimerBadge]'s flash: the error red and back to [mutedColor], round and round. */

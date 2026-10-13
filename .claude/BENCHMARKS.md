@@ -36,8 +36,13 @@ Each of these fixed a reported stutter. New work must keep them.
   - Styles tile names share one `TextMeasurer` (`rememberTileLabelMeasurer`).
   - `D20DiceStyle` shares one measurer, with no colour in the measured style.
   - `formatList`, `isRightToLeft` and the number formats are cached per language.
-- **Read changing state where it's used.** The Rules screen reads the current page only where it's shown
-  (`derivedStateOf`), and remembers its tab modifiers.
+- **Read changing state where it's used.**
+  - The Rules screen reads the current page only where it's shown (`derivedStateOf`), and remembers its tab modifiers.
+  - The turn timer's seconds are read only by its badge (`RunningTurnTimer`): a tick recomposes the badge, not the
+    board.
+  - Settings, achievements and the saved-game flag emit only when their own value changes (`distinctUntilChanged`).
+- **Load ahead of the first use.** The sound clips load a second after launch, off the main thread, not on a game's
+  first roll.
 - **The Styles page.**
   - Each tile's preview is drawn in its own offscreen layer.
   - Rows are plain `Row`s built deterministically: the tiles on screen at open, then one every `TILE_BUILD_FRAMES`

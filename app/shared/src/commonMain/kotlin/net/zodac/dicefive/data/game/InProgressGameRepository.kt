@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -30,7 +31,8 @@ class InProgressGameRepository(
     scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) {
 
-    val hasInProgressGame: Flow<Boolean> = dataStore.data.map { it[STATE_KEY] != null }
+    /** Whether a game is saved - only when that changes, not on every move saved. */
+    val hasInProgressGame: Flow<Boolean> = dataStore.data.map { it[STATE_KEY] != null }.distinctUntilChanged()
 
     /** What should be on disk next - a game to save, or [Clear] - or null before anything's asked. */
     private val pending = MutableStateFlow<Any?>(null)

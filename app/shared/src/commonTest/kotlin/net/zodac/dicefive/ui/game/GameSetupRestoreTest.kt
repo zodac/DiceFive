@@ -14,6 +14,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -40,6 +41,12 @@ private class FakePreferencesStore : DataStore<Preferences> {
 
     override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
         transform(_data.value).also { _data.value = it }
+}
+
+/** [FakePreferencesStore], counting the reads of it that finish: a `first()`, not a flow held open. */
+private class CountingReadsStore(private val store: FakePreferencesStore = FakePreferencesStore()) : DataStore<Preferences> by store {
+    var finishedReads = 0
+    override val data: Flow<Preferences> = store.data.onCompletion { finishedReads++ }
 }
 
 /** The setup form comes back with the last game's choices, all at once - never the defaults first. */
@@ -98,6 +105,21 @@ class GameSetupRestoreTest {
         assertEquals(PlayerType.AI, restored.playerSlots[1].type)
         assertEquals(Difficulty.HARD, restored.playerSlots[1].difficulty)
         assertEquals(restored, viewModel.setup.value)
+    }
+
+    @Test
+    fun `the saved setup is restored from one read of the settings`() = runTest(testDispatcher) {
+        val store = CountingReadsStore()
+        val repository = SettingsRepository(store)
+        repository.setPlayerCount(4)
+        repository.setGameMode(GameMode.TRICOLOUR)
+        store.finishedReads = 0
+
+        val viewModel = restored(repository)
+
+        assertEquals(1, store.finishedReads)
+        assertEquals(4, viewModel.setup.value.playerCount)
+        assertEquals(GameMode.TRICOLOUR, viewModel.setup.value.gameMode)
     }
 
     @Test

@@ -308,6 +308,9 @@ screen) of `StyleColour`s.
   - The sources are `app/android/src/main/rawAudioSource/*.ogg`.
   - They're peak-normalised to -0.8 dBFS by ffmpeg at build time (`NormalizeOggAudioTask`): never `res/raw/`, never
     hand-adjusted.
+  - The app has one player (`rememberAppSoundEffects`, provided at `DiceFiveApp` as `LocalSoundEffects`). With sound
+    on it loads its clips off the main thread a second after launch; otherwise on its first sound. It's held in the
+    background and released with the app, so a sound started on one screen carries on to the next.
 - **Haptics.** A tick on hold or unhold, and a buzz for the shake. Settings switches sound and vibration off
   separately.
 - **The roll.**
@@ -369,6 +372,8 @@ screen) of `StyleColour`s.
 - **Signing.** Four `ANDROID_RELEASE_*` env vars (repo secrets in CI); without them the build is unsigned. The keystore
   (alias `upload`) is the Play upload key.
 - **R8** shrinks and obfuscates release builds (`app/android/r8-rules.pro`). Release dex is stored uncompressed.
+  - It lays the dex out from the startup profile (`dexLayoutOptimization`): the code a cold start runs to the menu
+    (`StartupProfileGenerator`) goes first. The release workflow fails if it generates no `startup-prof.txt`.
 - **Dependencies.** `.github/workflows/update-dependencies.yml` bumps every pinned version monthly, re-runs the gates,
   commits `[Dependencies] Update dependency versions` and starts a release. It never moves targetSdk.
 - **Warnings are errors**: deprecated APIs, build-script warnings, and lint's `Deprecated`/`ObsoleteSdkInt`.
