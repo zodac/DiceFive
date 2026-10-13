@@ -4,10 +4,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
@@ -70,6 +73,26 @@ class PlanksBackground(override val id: String, private val palette: BackgroundP
             }
             top += plank
             drawLine(Color.Black.copy(alpha = 0.35f), Offset(0f, top), Offset(size.width, top), strokeWidth = 1.dp.toPx())
+        }
+    }
+}
+
+/**
+ * Leather - to go with the Leather dice, cup and mat: a faint pebbled hide over the gradient, stitched
+ * round just inside the edge in [BackgroundPalette.detail]. Painted once.
+ */
+class LeatherBackground(override val id: String, private val palette: BackgroundPalette) : TableBackground {
+    override val scoreAreaBrush: Brush = Brush.verticalGradient(listOf(palette.top, palette.bottom))
+
+    override fun DrawScope.drawScoreAreaDecoration() {
+        drawCachedSurface("background:$id") {
+            val pebble = 1.4.dp.toPx()
+            paintPebbledHide(palette.top, palette.bottom, Random(9), pebbles = (size.width * size.height / (pebble * pebble * 6f)).toInt(), pebbleSize = pebble, alpha = 0.7f)
+            val inset = 6.dp.toPx()
+            val stitch = Stroke(width = 1.3.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx())))
+            val box = Size(size.width - inset * 2, size.height - inset * 2)
+            drawRoundRect(Color.Black.copy(alpha = 0.3f), Offset(inset, inset + 1.dp.toPx()), box, CornerRadius(10.dp.toPx()), style = stitch)
+            drawRoundRect(palette.detail.copy(alpha = 0.55f), Offset(inset, inset), box, CornerRadius(10.dp.toPx()), style = stitch)
         }
     }
 }

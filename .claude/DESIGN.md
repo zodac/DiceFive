@@ -220,6 +220,31 @@ decisions behind it. Read that before changing anything visual.
   tips, pops up and off, tumbles and lands on the table in front with a bounce (drawn in screen
   space, undoing the box's turn, so it lands level) - back on when it stands up again. The round-cup
   helpers in `RoundCups.kt` became `internal` for these.
+  Later reshuffle: Poker moved into Mahjong's family, renamed Games (Poker first, then Pinzu, Manzu,
+  Sozu - 40, Mahjong's count; Poker's own 75 went with it, its id unchanged). The gift-based cup,
+  mat and background families are all named Christmas (ids unchanged), and gained Christmas dice
+  (`ChristmasDice.kt`, 65 like the cup): Snowcap (red, snow drifted over the top edge with an icicle
+  kept between the pip columns, snowball pips; picked from six mock-ups - candy cane, jumper, holly,
+  gingerbread and starry night were the others), Gift (the red cup's paper and gold ribbon down the
+  middle to a bow, white pips ringed dark so they read on the ribbon; recoloured, the ribbon takes
+  a shade of the pip colour, as gold vanished on yellow) and Baubles (pine green, red and gold
+  bauble pips). Leather dice (`LeatherDice.kt`; Tan, Black, Oxblood - 5, like the Leather cup and
+  mat): a fine pebbled hide (`paintPebbledHide`, shared with the new Leather background, also 5),
+  stitched round, pips pressed in. Wood dice (`WoodDice.kt`; Oak, Walnut, Maple - 10, like the
+  barrel and the Wood mat): long grain on four faces, growth rings on the 1 and 6 (a cube's end
+  grain), pips inlaid in a contrasting wood. The Neon mat lost its bricks - a plain dark tray inside
+  its tubes - and gained Green & Purple (on navy) and Orange & Teal (on deep purple).
+  To open Leather (5) and Wood (10) first, Metal moved to 15, Frosted to 25 and Retro to 40, each
+  sharing its count with unrelated dice rather than a matched set, and placed in the row by count.
+  The Wood mat gained Oak, Walnut and Maple floorboards (`WoodPlankDiceMat`, painted once: four
+  planks of slightly different shades, wavy grain, the odd knot, staggered butt joints). A Stone mat
+  (`StoneDiceMat`, 60, like the Stone dice, in all seven of their colours): flagstones in running
+  bond, textured with the dice's own `paintStone` (or `paintMarble`, painted straight in rather
+  than through `drawMarble`, whose cache a flag apiece would crowd) inside `inset` + `clipPath`,
+  bevelled, set in grout - painted once as one surface, from only three textured flags reused
+  across the floor (see `BENCHMARKS.md`, "The Stone and Wood mats"). The Honeycomb mat merged into Hex Tiles as Bestagons (Honeycomb first, then
+  Honey and Slate - 80, with the Bestagon dice and background: 40 already opened several styles),
+  and the Honeycomb background was renamed Bestagons, its Honey colour first. Ids unchanged.
   Stone (`StoneDice.kt`; Granite, Slate, Sandstone, Limestone, Basalt, then White and Black Marble -
   the Marble dice, once a style of their own at 60 achievements, merged in, their ids unchanged so
   saved picks still resolve, and given the same carved pips - `drawCarvedPips`, shared): one class
@@ -366,9 +391,11 @@ decisions behind it. Read that before changing anything visual.
   same tipped hat and rabbit, rebuilt as a fixed-colour vector (`rememberMagicianIcon`). "Nothing happening" is `LocalCupActivity`, which
   `DiceCupPanel` sets to the current dice, so holding or releasing one restarts the wait (as do a
   roll or a score, through the cup's own `rolling`/`tilted`).
-  The always-out rabbit (`RabbitSlide`) comes to rest against the low end of a tipped hat rather than
-  bouncing off it: at 60fps each bounce stayed just over `RABBIT_AT_REST_SPEED`, so the hat's frame
-  clock never stopped while it lay tipped. The rabbit is clipped only below the opening's centre line
+  The rabbit (always-out or peeking) rides a short rail along the opening, like the Martini's olive
+  (`rabbitRailX`, `rabbitLean`): the hat's angle sets where it sits - the low end once tipped - and
+  the slosh nudges and leans it a little. It replaced a sliding-bead simulation (`RabbitSlide`) that
+  rattled the rabbit end to end and bounced too much, and needed its own frame clock.
+  The rabbit is clipped only below the opening's centre line
   (so nothing shows down inside the hat), not to the opening's width above it: slid to one end and
   leaning, its ear tip used to be cut off square at the opening's edge.
   Easter egg: the Flowerpot's plant grows with the current player's rolls (`PlayerState.rollCount`,

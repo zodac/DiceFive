@@ -108,7 +108,7 @@ internal fun DrawScope.drawCarvedPips(value: Int, light: Color, dark: Color, pip
 }
 
 /** [kind]'s texture over a face of [light] to [dark], from [pattern] - painted once per face. */
-private fun DrawScope.paintStone(kind: StoneKind, light: Color, dark: Color, pattern: Int) {
+internal fun DrawScope.paintStone(kind: StoneKind, light: Color, dark: Color, pattern: Int) {
     val random = Random(pattern * 11 + kind.ordinal)
     when (kind) {
         StoneKind.GRANITE -> paintGranite(light, dark, random)

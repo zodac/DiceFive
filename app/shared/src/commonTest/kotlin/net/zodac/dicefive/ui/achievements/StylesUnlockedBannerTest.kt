@@ -15,7 +15,7 @@ import net.zodac.dicefive.data.achievements.countsTowardStyleLocks
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.resources.Res
-import net.zodac.dicefive.resources.style_family_frosted
+import net.zodac.dicefive.resources.style_family_garden
 import net.zodac.dicefive.resources.style_family_martini
 import net.zodac.dicefive.resources.style_family_maths
 import net.zodac.dicefive.resources.style_noun_dice
@@ -51,10 +51,10 @@ class StylesUnlockedBannerTest {
 
     @Test
     fun `each count-locked style is unlocked by the step onto its count and no other - a jump over several unlocking each on the way`() {
-        // One short or one past does not: Frosted is unlocked at 23, but no styles are unlocked at 22 or 24.
-        assertEquals(listOf(StyleReward(Res.string.style_family_frosted, Res.string.style_noun_dice)), stylesUnlockedByCount(22, 23))
-        assertEquals(emptyList(), stylesUnlockedByCount(21, 22))
-        assertEquals(emptyList(), stylesUnlockedByCount(23, 24))
+        // One short or one past does not: Garden is unlocked at 90, but no styles are unlocked at 89 or 91.
+        assertEquals(listOf(StyleReward(Res.string.style_family_garden, Res.string.style_noun_dice)), stylesUnlockedByCount(89, 90))
+        assertEquals(emptyList(), stylesUnlockedByCount(88, 89))
+        assertEquals(emptyList(), stylesUnlockedByCount(90, 91))
 
         for ((count, reward) in countLocks) {
             assertTrue(stylesUnlockedByCount(count - 1, count).contains(reward), "${reward.styleName} ${reward.categoryNoun} missing at $count")

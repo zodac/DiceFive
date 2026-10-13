@@ -395,6 +395,20 @@ only while it rattles or falls.
 
 ---
 
+### The Stone and Wood mats (Stone reworked before shipping)
+
+A mat in a 395x200dp box, the frame loop above, every mat switched to in turn with the first frame
+(its pattern painted) timed apart from the next 20 (stamped from the cache). Desktop JVM, ms, same
+run: once painted, every mat costs the same as a plain one (medians 12-20 for Leather, Barrel, Oak
+floorboards, Granite and both Marbles alike) - nothing on a mat is repainted during play. The first
+frame is where they differ. Painting each flagstone its own texture: Granite 126, Marble 86-105 -
+the Honeycomb mat's 95 and a visible hitch the first time the mat shows. Painting three flags
+(`STONE_MAT_FLAG_VARIANTS`) and stamping them across the floor, some turned round, with each flag's
+own shade and bevel drawn over it: Granite 55, Basalt 38, Marble 40-47 - about the Glitter mat's 38,
+against 17-25 for a plain mat. Wood floorboards: 17-23. The marble flags are painted straight in
+(`paintMarble`), not through `drawMarble`, which would put a flag apiece in the shared surface cache
+and push the dice faces out of it.
+
 ### Third Wind's stacked scores (designed to it)
 
 Third Wind shows three scores beside every box - about 50 more text nodes on the board. Measured on

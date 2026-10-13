@@ -133,7 +133,7 @@ private data class SizedSurface(val key: Any, val width: Int, val height: Int)
 // Styles previews) - about 90KB apiece at a phone's usual die size.
 private const val SURFACE_CACHE_SIZE = 128
 
-private fun DrawScope.paintMarble(seed: Int, vein: Color) {
+internal fun DrawScope.paintMarble(seed: Int, vein: Color) {
     val random = Random(seed)
     val w = size.width
     val h = size.height

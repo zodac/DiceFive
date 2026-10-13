@@ -2,18 +2,26 @@ package net.zodac.dicefive.ui.game.style
 
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -148,8 +156,8 @@ class CircuitDiceMat(id: String, palette: MatPalette) : PatternedDiceMat(id, pal
 private const val NEON_MAT_PULSE_SECONDS = 2.4f
 
 /**
- * A neon-lit wall - to go with the Neon dice: dark bricks, framed by two neon tubes running round the
- * tray just inside its edge, [MatPalette.detail] outside and [MatPalette.slotBorder] inside, their
+ * A neon-lit tray - to go with the Neon dice: a plain dark surface framed by two neon tubes running
+ * round it just inside its edge, [MatPalette.detail] outside and [MatPalette.slotBorder] inside, their
  * glow pulsing gently and out of step. Steady under reduced motion.
  */
 class NeonDiceMat(id: String, palette: MatPalette) : PatternedDiceMat(id, palette) {
@@ -158,7 +166,6 @@ class NeonDiceMat(id: String, palette: MatPalette) : PatternedDiceMat(id, palett
     override fun DrawScope.drawPattern() = drawPattern(seconds = 0f)
 
     override fun DrawScope.drawPattern(seconds: Float) {
-        drawCachedSurface("mat:$id") { paintBricks(palette.detail.copy(alpha = 0f), Color.Black.copy(alpha = 0.35f), lerp(palette.top, Color.White, 0.04f), seed = 2) }
         val swell = 0.5f + 0.5f * sin(2f * PI.toFloat() * seconds / NEON_MAT_PULSE_SECONDS)
         drawNeonFrame(3.dp.toPx(), palette.detail, 0.6f + 0.4f * swell)
         drawNeonFrame(7.dp.toPx(), palette.slotBorder, 0.6f + 0.4f * (1f - swell))
@@ -300,6 +307,64 @@ class GlitterDiceMat(id: String, palette: MatPalette) : PatternedDiceMat(id, pal
                 val (at, grow) = sparkle(id.hashCode(), slot, seconds, period = 2.2f) ?: continue
                 drawSparkle(Offset(at.x * size.width, at.y * size.height), 7.dp.toPx() * grow, palette.detail)
             }
+        }
+    }
+}
+
+// How many different flagstones the Stone mat paints; every flag on the floor is one of them, some
+// turned round. Painting each flag its own texture cost several times as much, for a floor nobody
+// inspects flag by flag.
+private const val STONE_MAT_FLAG_VARIANTS = 3
+
+/**
+ * A floor of flagstones - to go with the Stone dice: big rectangular flags in running bond, set in
+ * [MatPalette.detail] grout, cut from [kind]'s stone (or, with no [kind], polished marble veined in
+ * [vein]), each in its own slight shade, its edges bevelled. Painted once: only
+ * [STONE_MAT_FLAG_VARIANTS] flags are actually textured, and the rest are copies of them, some turned
+ * round, so the first paint costs about as much as a plain mat's.
+ */
+class StoneDiceMat(id: String, palette: MatPalette, private val kind: StoneKind?, private val vein: Color = Color.Gray) : PatternedDiceMat(id, palette) {
+    override fun DrawScope.drawPattern() = drawCachedSurface("mat:$id") {
+        val flagWidth = 92.dp.toPx()
+        val flagHeight = 62.dp.toPx()
+        val grout = 2.dp.toPx()
+        val w = flagWidth - grout
+        val h = flagHeight - grout
+        val random = Random(id.hashCode())
+        val flags = List(STONE_MAT_FLAG_VARIANTS) { variant ->
+            ImageBitmap(ceil(w).toInt(), ceil(h).toInt()).also { image ->
+                CanvasDrawScope().draw(this, layoutDirection, Canvas(image), Size(w, h)) {
+                    drawRect(Brush.linearGradient(listOf(palette.top, palette.bottom)))
+                    if (kind != null) paintStone(kind, palette.top, palette.bottom, variant * 211 + 7) else paintMarble(variant * 211 + 7, vein)
+                }
+            }
+        }
+        drawRect(palette.detail)
+        val corner = CornerRadius(2.dp.toPx())
+        val bevel = 1.5.dp.toPx()
+        var row = 0
+        var y = -flagHeight * 0.3f
+        while (y < size.height) {
+            var x = if (row % 2 == 0) 0f else -flagWidth / 2f
+            while (x < size.width) {
+                val topLeft = Offset(x + grout / 2f, y + grout / 2f)
+                val flag = flags[random.nextInt(flags.size)]
+                val turned = random.nextBoolean()
+                val shade = random.nextFloat() - 0.5f
+                clipPath(Path().apply { addRoundRect(RoundRect(Rect(topLeft, Size(w, h)), corner)) }) {
+                    rotate(if (turned) 180f else 0f, topLeft + Offset(w / 2f, h / 2f)) { drawImage(flag, topLeft) }
+                    // Its own shade, a touch lighter or darker than the next.
+                    drawRect(if (shade > 0f) Color.White.copy(alpha = shade * 0.16f) else Color.Black.copy(alpha = -shade * 0.2f), topLeft, Size(w, h))
+                    // The bevel: lit along the top and left, shadowed along the bottom and right.
+                    drawRect(Color.White.copy(alpha = 0.18f), topLeft, Size(w, bevel))
+                    drawRect(Color.White.copy(alpha = 0.12f), topLeft, Size(bevel, h))
+                    drawRect(Color.Black.copy(alpha = 0.25f), topLeft + Offset(0f, h - bevel), Size(w, bevel))
+                    drawRect(Color.Black.copy(alpha = 0.18f), topLeft + Offset(w - bevel, 0f), Size(bevel, h))
+                }
+                x += flagWidth
+            }
+            y += flagHeight
+            row++
         }
     }
 }

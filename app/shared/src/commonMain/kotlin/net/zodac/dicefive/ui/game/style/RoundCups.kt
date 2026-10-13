@@ -10,11 +10,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -37,7 +35,6 @@ import androidx.compose.ui.graphics.lerp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.sign
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -527,74 +524,31 @@ private const val HAT_BRIM_RADIUS = 36f
 // The rabbit's size relative to the proportions it was sketched at.
 private const val RABBIT_SCALE = 1.4f
 
-// A rabbit that's always out slides about the opening like a bead in a tray: how far either way it
-// can go from the centre line (grid units - it never leaves the opening), how hard the hat's tilt
-// pulls it (units/s^2 at a right angle), how hard the hat's own swinging throws it back (units per
-// radian of angular acceleration), the most it's ever accelerated, how quickly it loses speed, and
-// how much of its speed it keeps bouncing off an end.
-internal const val RABBIT_SLIDE_RANGE = 7f
-private const val RABBIT_GRAVITY = 500f
-private const val RABBIT_THROW = 15f
-private const val RABBIT_MAX_ACCELERATION = 3_000f
-private const val RABBIT_DRAG = 1.2f
-private const val RABBIT_BOUNCE = 0.35f
-// How long the physics keeps running after the hat last changed - shaking, or tipping over - and how
-// still the rabbit has to be by then for it to stop and ask for no more frames.
-private const val RABBIT_SETTLE_MILLIS = 2_500L
-private const val RABBIT_AT_REST_SPEED = 1f
-// How far it leans, in degrees, at its top speed.
-private const val RABBIT_LEAN_DEGREES = 9f
-// The speed at which it leans that far.
-private const val RABBIT_MAX_SPEED = 60f
+// The rabbit rides a short rail along the opening, like the Martini's olive: the hat's tilt sets
+// where on it the rabbit sits (the low end once the hat lies tipped over), and the slosh of a shake
+// or a pour nudges it by at most RABBIT_SWING_MAX and leans it by at most RABBIT_LEAN_MAX degrees -
+// however hard the hat is thrown about, it never travels further than RABBIT_RAIL_HALF_LENGTH (grid
+// units) either way from the centre line, and never bounces.
+internal const val RABBIT_RAIL_HALF_LENGTH = 4f
+private const val RABBIT_SWING_PER_DEGREE = 0.2f
+private const val RABBIT_SWING_MAX = 1.5f
+private const val RABBIT_LEAN_PER_DEGREE = 0.3f
+private const val RABBIT_LEAN_MAX = 6f
 
 /**
- * A rabbit sliding along a hat's opening. Given the hat's angle every frame ([step]) it works out
- * what the hat is doing to it: gravity pulls it towards whichever side of the hat is lower, and as
- * the hat swings it's thrown the opposite way - so a shaken hat rattles it from end to end. It
- * bounces off either end of [RABBIT_SLIDE_RANGE] and never leaves.
+ * Where the rabbit sits on its rail (grid units from the centre line) with the hat at [rotation]
+ * degrees (clockwise) and its contents lagging by [slosh] (see [CupPose.slosh]): towards whichever
+ * side is lower, the whole way there once the hat is tipped over, plus a little swing from the slosh,
+ * never past either end.
  */
-internal class RabbitSlide {
-    var x = 0f
-        private set
-    var velocity = 0f
-        private set
-    private var lastNanos = 0L
-    private var lastAngle = 0f
-    private var lastAngularVelocity = 0f
-
-    /** Moves on to the frame at [nowNanos], with the hat at [angleDegrees] (clockwise). */
-    fun step(nowNanos: Long, angleDegrees: Float) {
-        if (lastNanos == 0L) {
-            lastNanos = nowNanos
-            lastAngle = angleDegrees
-            return
-        }
-        val seconds = ((nowNanos - lastNanos) / 1e9f).coerceAtMost(1f / 30f)
-        // Several draws in one frame, or none yet: nothing has moved.
-        if (seconds <= 0f) return
-        val angularVelocity = (angleDegrees - lastAngle) * (PI.toFloat() / 180f) / seconds
-        val angularAcceleration = (angularVelocity - lastAngularVelocity) / seconds
-        lastNanos = nowNanos
-        lastAngle = angleDegrees
-        lastAngularVelocity = angularVelocity
-
-        val gravity = RABBIT_GRAVITY * sin(angleDegrees * PI.toFloat() / 180f)
-        val acceleration = (gravity - RABBIT_THROW * angularAcceleration).coerceIn(-RABBIT_MAX_ACCELERATION, RABBIT_MAX_ACCELERATION)
-        velocity = (velocity + acceleration * seconds) * (1f - RABBIT_DRAG * seconds)
-        x += velocity * seconds
-        if (abs(x) > RABBIT_SLIDE_RANGE) {
-            x = RABBIT_SLIDE_RANGE * sign(x)
-            // Arriving no faster than a couple of frames' pull from a standstill, it's lying against
-            // that end rather than hitting it, and stays there. Bounced instead, it would hop off and
-            // fall back every frame for as long as the hat lay tipped (at 60fps, never slowing to
-            // RABBIT_AT_REST_SPEED), keeping the hat's frame clock running for nothing.
-            velocity = if (abs(velocity) <= 2f * abs(acceleration) * seconds) 0f else -velocity * RABBIT_BOUNCE
-        }
-    }
-
-    val isAtRest: Boolean get() = abs(velocity) < RABBIT_AT_REST_SPEED
+internal fun rabbitRailX(rotation: Float, slosh: Float): Float {
+    val tilt = sin(rotation * PI.toFloat() / 180f) / sin(abs(RESTING_TILT_DEGREES) * PI.toFloat() / 180f) * RABBIT_RAIL_HALF_LENGTH
+    val swing = (-slosh * RABBIT_SWING_PER_DEGREE).coerceIn(-RABBIT_SWING_MAX, RABBIT_SWING_MAX)
+    return (tilt + swing).coerceIn(-RABBIT_RAIL_HALF_LENGTH, RABBIT_RAIL_HALF_LENGTH)
 }
 
+/** How far (degrees, clockwise) the rabbit leans as its contents lag the hat by [slosh]: its head left behind. */
+internal fun rabbitLean(slosh: Float): Float = (-slosh * RABBIT_LEAN_PER_DEGREE).coerceIn(-RABBIT_LEAN_MAX, RABBIT_LEAN_MAX)
 
 /**
  * A top hat turned upside down: the crown as the cup, a [CupPalette.accent] ribbon, and the wide
@@ -607,8 +561,8 @@ internal class RabbitSlide {
  * does sends it straight back down and starts the wait again.
  *
  * With [rabbitAlwaysOut] - the secret hat that earns - the rabbit is simply always there, up out of
- * the opening, and slides from side to side along it as the hat is shaken and tipped (see
- * [RabbitSlide]), never falling out.
+ * the opening. Either way it rides a short rail along the opening ([rabbitRailX]), moving with the
+ * hat's tilt and the slosh of a shake but never far, and never bouncing.
  */
 class TopHatDiceCupStyle(
     override val id: String,
@@ -624,23 +578,6 @@ class TopHatDiceCupStyle(
         val activity = LocalCupActivity.current
         val lifecycle = LocalLifecycleOwner.current.lifecycle
         val onRabbitSeen by rememberUpdatedState(LocalOnRabbitSeen.current)
-        val slide = remember { RabbitSlide() }
-        // A frame clock for the slide, only while the hat is moving or has just been: it starts when
-        // the hat is shaken or tipped and stops once the rabbit has come to rest, so a still hat asks
-        // for no frames at all.
-        val tick = remember { mutableLongStateOf(0L) }
-        // No sliding about under reduced motion: the rabbit just stays out where it is.
-        if (rabbitAlwaysOut && !LocalReduceMotion.current) {
-            LaunchedEffect(rolling, tilted) {
-                var until = 0L
-                while (true) {
-                    val now = withFrameNanos { it }
-                    if (until == 0L) until = now + RABBIT_SETTLE_MILLIS * 1_000_000L
-                    tick.longValue = now
-                    if (!rolling && now > until && slide.isAtRest) break
-                }
-            }
-        }
         val reduceMotion = LocalReduceMotion.current
         LaunchedEffect(tilted, rolling, activity, reduceMotion) {
             if (rabbitAlwaysOut) return@LaunchedEffect
@@ -686,12 +623,7 @@ class TopHatDiceCupStyle(
 
             // Read only here, inside the draw, so the peek just repaints the hat.
             val progress = peek.value
-            if (rabbitAlwaysOut) {
-                slide.step(tick.longValue, pose.rotation)
-                drawRabbit(progress, earTwitch.value, slide.x, slide.velocity / RABBIT_MAX_SPEED * RABBIT_LEAN_DEGREES)
-            } else if (progress > 0f) {
-                drawRabbit(progress, earTwitch.value)
-            }
+            if (progress > 0f) drawRabbit(progress, earTwitch.value, rabbitRailX(pose.rotation, pose.slosh), rabbitLean(pose.slosh))
         }
     }
 

@@ -115,11 +115,11 @@ class StylesGalleryTest {
         // opened on, so the row has to move to show it.
         compose.onNodeWithContentDescription("Dice gallery").performClick()
         compose.waitForIdle()
-        saved.value = saved.value!!.copy(diceStyleId = DiceStyles.familyNamed("Mahjong").colours.first().style.id)
+        saved.value = saved.value!!.copy(diceStyleId = DiceStyles.familyNamed("Games").colours.first().style.id)
         compose.waitForIdle()
         compose.onNodeWithContentDescription("Dice gallery").performClick()
         compose.waitForIdle()
-        val tile = compose.onNode(tiles and hasContentDescription("Mahjong", substring = true)).fetchSemanticsNode()
+        val tile = compose.onNode(tiles and hasContentDescription("Games", substring = true)).fetchSemanticsNode()
         assertEquals(width / 2f, tile.positionInRoot.x + tile.size.width / 2f, 2f)
 
         // Dragging the page's right-hand margin scrolls it: down the page's 20dp margin, beside the cards - a scrollbar's

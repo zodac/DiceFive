@@ -13,6 +13,7 @@ import net.zodac.dicefive.resources.style_colour_arabic
 import net.zodac.dicefive.resources.style_colour_arabic_green
 import net.zodac.dicefive.resources.style_colour_barrel
 import net.zodac.dicefive.resources.style_colour_basalt
+import net.zodac.dicefive.resources.style_colour_baubles
 import net.zodac.dicefive.resources.style_colour_black
 import net.zodac.dicefive.resources.style_colour_black_marble
 import net.zodac.dicefive.resources.style_colour_blue
@@ -35,12 +36,15 @@ import net.zodac.dicefive.resources.style_colour_emerald
 import net.zodac.dicefive.resources.style_colour_fan
 import net.zodac.dicefive.resources.style_colour_flame
 import net.zodac.dicefive.resources.style_colour_forestry
+import net.zodac.dicefive.resources.style_colour_gift
 import net.zodac.dicefive.resources.style_colour_gold
 import net.zodac.dicefive.resources.style_colour_granite
 import net.zodac.dicefive.resources.style_colour_green
+import net.zodac.dicefive.resources.style_colour_green_and_purple
 import net.zodac.dicefive.resources.style_colour_green_mono
 import net.zodac.dicefive.resources.style_colour_grey
 import net.zodac.dicefive.resources.style_colour_honey
+import net.zodac.dicefive.resources.style_colour_honeycomb
 import net.zodac.dicefive.resources.style_colour_ice
 import net.zodac.dicefive.resources.style_colour_indigo
 import net.zodac.dicefive.resources.style_colour_irish
@@ -57,6 +61,7 @@ import net.zodac.dicefive.resources.style_colour_laurel
 import net.zodac.dicefive.resources.style_colour_lava
 import net.zodac.dicefive.resources.style_colour_limestone
 import net.zodac.dicefive.resources.style_colour_manzu
+import net.zodac.dicefive.resources.style_colour_maple
 import net.zodac.dicefive.resources.style_colour_menu
 import net.zodac.dicefive.resources.style_colour_midnight
 import net.zodac.dicefive.resources.style_colour_mixed
@@ -67,12 +72,14 @@ import net.zodac.dicefive.resources.style_colour_oak
 import net.zodac.dicefive.resources.style_colour_oil_drum
 import net.zodac.dicefive.resources.style_colour_olive
 import net.zodac.dicefive.resources.style_colour_opening
+import net.zodac.dicefive.resources.style_colour_orange_and_teal
 import net.zodac.dicefive.resources.style_colour_oxblood
 import net.zodac.dicefive.resources.style_colour_pencil
 import net.zodac.dicefive.resources.style_colour_pewter
 import net.zodac.dicefive.resources.style_colour_pink
 import net.zodac.dicefive.resources.style_colour_pink_and_blue
 import net.zodac.dicefive.resources.style_colour_pinzu
+import net.zodac.dicefive.resources.style_colour_poker
 import net.zodac.dicefive.resources.style_colour_purple
 import net.zodac.dicefive.resources.style_colour_purple_script
 import net.zodac.dicefive.resources.style_colour_rabbit
@@ -92,6 +99,7 @@ import net.zodac.dicefive.resources.style_colour_shipping
 import net.zodac.dicefive.resources.style_colour_silver
 import net.zodac.dicefive.resources.style_colour_single
 import net.zodac.dicefive.resources.style_colour_slate
+import net.zodac.dicefive.resources.style_colour_snowcap
 import net.zodac.dicefive.resources.style_colour_soil
 import net.zodac.dicefive.resources.style_colour_sozu
 import net.zodac.dicefive.resources.style_colour_stepped
@@ -117,12 +125,14 @@ import net.zodac.dicefive.resources.style_colour_yellow
 import net.zodac.dicefive.resources.style_family_art_deco
 import net.zodac.dicefive.resources.style_family_beaker
 import net.zodac.dicefive.resources.style_family_bestagon
+import net.zodac.dicefive.resources.style_family_bestagons
 import net.zodac.dicefive.resources.style_family_brick
 import net.zodac.dicefive.resources.style_family_cake
 import net.zodac.dicefive.resources.style_family_casino
 import net.zodac.dicefive.resources.style_family_cauldron
 import net.zodac.dicefive.resources.style_family_celtic
 import net.zodac.dicefive.resources.style_family_chicken
+import net.zodac.dicefive.resources.style_family_christmas
 import net.zodac.dicefive.resources.style_family_circuit
 import net.zodac.dicefive.resources.style_family_classic
 import net.zodac.dicefive.resources.style_family_containers
@@ -134,21 +144,17 @@ import net.zodac.dicefive.resources.style_family_floating_dice
 import net.zodac.dicefive.resources.style_family_floral
 import net.zodac.dicefive.resources.style_family_flowerpot
 import net.zodac.dicefive.resources.style_family_frosted
+import net.zodac.dicefive.resources.style_family_games
 import net.zodac.dicefive.resources.style_family_garden
 import net.zodac.dicefive.resources.style_family_gems
-import net.zodac.dicefive.resources.style_family_gift_box
-import net.zodac.dicefive.resources.style_family_gift_wrap
 import net.zodac.dicefive.resources.style_family_gingham
 import net.zodac.dicefive.resources.style_family_glass
 import net.zodac.dicefive.resources.style_family_glitch
 import net.zodac.dicefive.resources.style_family_glitter
 import net.zodac.dicefive.resources.style_family_googly
 import net.zodac.dicefive.resources.style_family_greek
-import net.zodac.dicefive.resources.style_family_hex_tiles
-import net.zodac.dicefive.resources.style_family_honeycomb
 import net.zodac.dicefive.resources.style_family_lcd
 import net.zodac.dicefive.resources.style_family_leather
-import net.zodac.dicefive.resources.style_family_mahjong
 import net.zodac.dicefive.resources.style_family_martini
 import net.zodac.dicefive.resources.style_family_maths
 import net.zodac.dicefive.resources.style_family_meadow
@@ -163,7 +169,6 @@ import net.zodac.dicefive.resources.style_family_picnic
 import net.zodac.dicefive.resources.style_family_pinstripe
 import net.zodac.dicefive.resources.style_family_pixel
 import net.zodac.dicefive.resources.style_family_planks
-import net.zodac.dicefive.resources.style_family_poker
 import net.zodac.dicefive.resources.style_family_pyramid
 import net.zodac.dicefive.resources.style_family_retro
 import net.zodac.dicefive.resources.style_family_rgb
@@ -319,18 +324,25 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 StyleColour(Res.string.style_colour_oak, BarrelDiceTop, BarrelDiceStyle),
             ),
         ),
+        // Leather and Wood, like the cups, mats and backgrounds of the same names, open with them.
         StyleFamily(
-            Res.string.style_family_retro,
+            Res.string.style_family_leather,
             listOf(
-                colour(Res.string.style_colour_green, RetroDiceStyle("retro_green", Color(0xFF9BBC0F), Color(0xFF306230), Color(0xFF0F380F))),
-                colour(
-                    Res.string.style_colour_amber,
-                    RetroDiceStyle("retro_amber", Color(0xFFFFB000), Color(0xFF9A5B00), Color(0xFF3A2400), heldRing = Color.White),
-                ),
-                colour(Res.string.style_colour_blue, RetroDiceStyle("retro_blue", Color(0xFF9CC8F5), Color(0xFF2E5C99), Color(0xFF0D2547))),
-                colour(Res.string.style_colour_red, RetroDiceStyle("retro_red", Color(0xFFF29C94), Color(0xFF9E2A24), Color(0xFF3D0B08))),
+                colour(Res.string.style_colour_tan, LeatherDiceStyle("leather_tan", Color(0xFFB98553), Color(0xFF8A5A2E), Color(0xFFF0DDB8), Color(0xFF4A2E14))),
+                colour(Res.string.style_colour_black, LeatherDiceStyle("leather_black", Color(0xFF4A4A4A), Color(0xFF262626), Color(0xFFBDBDBD), Color(0xFF0A0A0A))),
+                colour(Res.string.style_colour_oxblood, LeatherDiceStyle("leather_oxblood", Color(0xFF92323A), Color(0xFF641A20), Color(0xFFE8C9A0), Color(0xFF2A0809))),
             ),
             unlock = AchievementCount(5),
+        ),
+        StyleFamily(
+            Res.string.style_family_wood,
+            listOf(
+                // Each with pips of a contrasting wood, inlaid.
+                colour(Res.string.style_colour_oak, WoodDiceStyle("wood_oak", Color(0xFFC9935A), Color(0xFF94612F), Color(0xFF5A3A1A), Color(0xFF3E2614))),
+                colour(Res.string.style_colour_walnut, WoodDiceStyle("wood_walnut", Color(0xFF7A5234), Color(0xFF4A2E1A), Color(0xFF2A180C), Color(0xFFF0DCB0))),
+                colour(Res.string.style_colour_maple, WoodDiceStyle("wood_maple", Color(0xFFF2DDB0), Color(0xFFD9B97E), Color(0xFFA07A48), Color(0xFF4A2E1A))),
+            ),
+            unlock = AchievementCount(10),
         ),
         StyleFamily(
             Res.string.style_family_metal,
@@ -363,15 +375,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     ),
                 ),
             ),
-            unlock = AchievementCount(10),
-        ),
-        StyleFamily(
-            Res.string.style_family_frosted,
-            listOf(
-                colour(Res.string.style_colour_ice, FrostedDiceStyle("frosted_ice", Color(0xFFE3F4FF), Color(0xFFA9D3EE), Color(0xFF1D4E6E))),
-                colour(Res.string.style_colour_white, FrostedDiceStyle("frosted_white", Color(0xFFFAFBFC), Color(0xFFD5DADF), Color(0xFF3A4550))),
-            ),
-            unlock = AchievementCount(23),
+            unlock = AchievementCount(15),
         ),
         StyleFamily(
             Res.string.style_family_numeral,
@@ -421,6 +425,14 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(Res.string.style_colour_lapis, PyramidDiceStyle("pyramid_lapis", Color(0xFF3C63B8), Color(0xFF162E6A), Color(0xFFE8C66A), heldRing = Color.White)),
             ),
             unlock = AchievementCount(20),
+        ),
+        StyleFamily(
+            Res.string.style_family_frosted,
+            listOf(
+                colour(Res.string.style_colour_ice, FrostedDiceStyle("frosted_ice", Color(0xFFE3F4FF), Color(0xFFA9D3EE), Color(0xFF1D4E6E))),
+                colour(Res.string.style_colour_white, FrostedDiceStyle("frosted_white", Color(0xFFFAFBFC), Color(0xFFD5DADF), Color(0xFF3A4550))),
+            ),
+            unlock = AchievementCount(25),
         ),
         StyleFamily(
             Res.string.style_family_text,
@@ -502,11 +514,26 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             unlock = AchievementCount(35),
         ),
         StyleFamily(
-            Res.string.style_family_mahjong,
+            Res.string.style_family_games,
             listOf(
+                // Poker was once a style of its own (unlocked later); its id is a saved pick, so it stays as it was.
+                colour(Res.string.style_colour_poker, PokerDiceStyle("poker_white", Color.White, Color(0xFFE6E6EA))),
                 colour(Res.string.style_colour_pinzu, MahjongDiceStyle("mahjong_pinzu", MahjongSuit.PINZU, MahjongFace, MahjongFaceShade, MahjongBack)),
                 colour(Res.string.style_colour_manzu, MahjongDiceStyle("mahjong_manzu", MahjongSuit.MANZU, MahjongFace, MahjongFaceShade, MahjongBack)),
                 colour(Res.string.style_colour_sozu, MahjongDiceStyle("mahjong_sozu", MahjongSuit.SOZU, MahjongFace, MahjongFaceShade, MahjongBack)),
+            ),
+            unlock = AchievementCount(40),
+        ),
+        StyleFamily(
+            Res.string.style_family_retro,
+            listOf(
+                colour(Res.string.style_colour_green, RetroDiceStyle("retro_green", Color(0xFF9BBC0F), Color(0xFF306230), Color(0xFF0F380F))),
+                colour(
+                    Res.string.style_colour_amber,
+                    RetroDiceStyle("retro_amber", Color(0xFFFFB000), Color(0xFF9A5B00), Color(0xFF3A2400), heldRing = Color.White),
+                ),
+                colour(Res.string.style_colour_blue, RetroDiceStyle("retro_blue", Color(0xFF9CC8F5), Color(0xFF2E5C99), Color(0xFF0D2547))),
+                colour(Res.string.style_colour_red, RetroDiceStyle("retro_red", Color(0xFFF29C94), Color(0xFF9E2A24), Color(0xFF3D0B08))),
             ),
             unlock = AchievementCount(40),
         ),
@@ -601,15 +628,20 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             ),
             unlock = AchievementCount(65),
         ),
+        // Opens with the Christmas cup, mat and background.
+        StyleFamily(
+            Res.string.style_family_christmas,
+            listOf(
+                colour(Res.string.style_colour_snowcap, SnowcapDiceStyle("christmas_snowcap", Color(0xFFD32F2F), Color(0xFF8E1B1B))),
+                colour(Res.string.style_colour_gift, GiftDiceStyle("christmas_gift", ChristmasRedPaper, ChristmasGoldRibbon)),
+                colour(Res.string.style_colour_baubles, BaubleDiceStyle("christmas_baubles", Color(0xFF2F7A45), Color(0xFF15452A), Color(0xFFD32F2F), Color(0xFFF2C14E))),
+            ),
+            unlock = AchievementCount(65),
+        ),
         StyleFamily(
             Res.string.style_family_meadow,
             listOf(colour(Res.string.style_colour_green, MeadowDiceStyle("meadow_green", Color(0xFF7CB342), Color(0xFF4E8A2A)))),
             unlock = AchievementCount(70),
-        ),
-        StyleFamily(
-            Res.string.style_family_poker,
-            listOf(colour(Res.string.style_colour_white, PokerDiceStyle("poker_white", Color.White, Color(0xFFE6E6EA)))),
-            unlock = AchievementCount(75),
         ),
         StyleFamily(
             Res.string.style_family_ribbon,
@@ -873,12 +905,9 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
             unlock = AchievementCount(60),
         ),
         StyleFamily(
-            Res.string.style_family_gift_box,
+            Res.string.style_family_christmas,
             listOf(
-                colour(
-                    Res.string.style_colour_red,
-                    GiftBoxDiceCupStyle("gift_box_red", CupPalette(Color(0xFF7A1418), Color(0xFFE85A5E), Color(0xFFC8282E), Color(0xFFFFFFFF), Color(0xFF2A0608)), Color(0xFFF2C14E)),
-                ),
+                colour(Res.string.style_colour_red, GiftBoxDiceCupStyle("gift_box_red", ChristmasRedPaper, ChristmasGoldRibbon)),
                 colour(
                     Res.string.style_colour_blue,
                     GiftBoxDiceCupStyle("gift_box_blue", CupPalette(Color(0xFF173A70), Color(0xFF5A8AD8), Color(0xFF2C5CA8), Color(0xFFBFD6F7), Color(0xFF081428)), Color(0xFFE8E8EE)),
@@ -971,6 +1000,10 @@ object DiceMats : StyleCatalog<DiceMat>(
             Res.string.style_family_wood,
             listOf(
                 StyleColour(Res.string.style_colour_brown, BarrelTrayTop, BarrelDiceMat),
+                // Floorboards in the Wood dice's woods.
+                mat(Res.string.style_colour_oak, ::WoodPlankDiceMat, "wood_oak", 0xFFB07A44, 0xFF7A5028, 0xFF3E2814, 0xFF26180A, 0xFFE0B880, 0xFF4A2E14),
+                mat(Res.string.style_colour_walnut, ::WoodPlankDiceMat, "wood_walnut", 0xFF5E3E26, 0xFF3A2414, 0xFF22140A, 0xFF140A04, 0xFFC8A070, 0xFF1E1008),
+                mat(Res.string.style_colour_maple, ::WoodPlankDiceMat, "wood_maple", 0xFFE6CC98, 0xFFC4A46A, 0xFF6A4E2A, 0xFF4A3418, 0xFFFFF0D0, 0xFF9A7444),
             ),
             unlock = AchievementCount(10),
         ),
@@ -986,11 +1019,6 @@ object DiceMats : StyleCatalog<DiceMat>(
                 mat(Res.string.style_colour_purple, ::CasinoDiceMat, "casino_purple", 0xFF4A2266, 0xFF2A1040, 0xFF1E0A30, 0xFF12061E, 0xFFE0C45A, 0xFFD4AF37),
             ),
             unlock = AchievementCount(35),
-        ),
-        StyleFamily(
-            Res.string.style_family_honeycomb,
-            listOf(mat(Res.string.style_colour_honey, ::HoneycombDiceMat, "honeycomb_honey", 0xFFF2A81E, 0xFF9A5A06, 0xFF5A3A0E, 0xFF3E2806, 0xFFFFD27A, 0xFFE8B850)),
-            unlock = AchievementCount(40),
         ),
         StyleFamily(
             Res.string.style_family_starry,
@@ -1009,7 +1037,20 @@ object DiceMats : StyleCatalog<DiceMat>(
             unlock = AchievementCount(55),
         ),
         StyleFamily(
-            Res.string.style_family_gift_wrap,
+            Res.string.style_family_stone,
+            listOf(
+                stoneMat(Res.string.style_colour_granite, "stone_granite", StoneKind.GRANITE, 0xFFB8AEA8, 0xFF7A716D, 0xFF3A3532),
+                stoneMat(Res.string.style_colour_slate, "stone_slate", StoneKind.SLATE, 0xFF5A6470, 0xFF2E353D, 0xFF1A1E22),
+                stoneMat(Res.string.style_colour_sandstone, "stone_sandstone", StoneKind.SANDSTONE, 0xFFE2BE8C, 0xFFB0824E, 0xFF6A4A2A),
+                stoneMat(Res.string.style_colour_limestone, "stone_limestone", StoneKind.LIMESTONE, 0xFFEDE6D3, 0xFFC9BFA4, 0xFF7A7262),
+                stoneMat(Res.string.style_colour_basalt, "stone_basalt", StoneKind.BASALT, 0xFF45464A, 0xFF1A1B1E, 0xFF0A0A0C),
+                stoneMat(Res.string.style_colour_white_marble, "marble_white", null, 0xFFF4F2EE, 0xFFD9D5CE, 0xFF8E8A84, vein = 0xFF8E8A84),
+                stoneMat(Res.string.style_colour_black_marble, "marble_black", null, 0xFF3A3A3E, 0xFF141416, 0xFF050506, vein = 0xFFD8D8D8),
+            ),
+            unlock = AchievementCount(60),
+        ),
+        StyleFamily(
+            Res.string.style_family_christmas,
             listOf(
                 mat(Res.string.style_colour_red, ::GiftWrapDiceMat, "gift_wrap_red", 0xFFB8282E, 0xFF8E1A20, 0xFF5A0E12, 0xFF3E080B, 0xFFF2C14E, 0xFFFFFFFF),
                 mat(Res.string.style_colour_kraft, ::GiftWrapDiceMat, "gift_wrap_kraft", 0xFFC49A6C, 0xFFA77D50, 0xFF6A4A2A, 0xFF4A321C, 0xFFD32F2F, 0xFFF7EDE0),
@@ -1025,8 +1066,10 @@ object DiceMats : StyleCatalog<DiceMat>(
             unlock = AchievementCount(75),
         ),
         StyleFamily(
-            Res.string.style_family_hex_tiles,
+            Res.string.style_family_bestagons,
             listOf(
+                // The Honeycomb mat, once a style of its own (unlocked at 40): its id is a saved pick, so it stays as it was.
+                mat(Res.string.style_colour_honeycomb, ::HoneycombDiceMat, "honeycomb_honey", 0xFFF2A81E, 0xFF9A5A06, 0xFF5A3A0E, 0xFF3E2806, 0xFFFFD27A, 0xFFE8B850),
                 mat(Res.string.style_colour_honey, ::HexTileDiceMat, "hex_tiles_honey", 0xFFE6A53A, 0xFFB87818, 0xFF5A3A0E, 0xFF3E2806, 0xFFFFD27A, 0xFF3E2806),
                 mat(Res.string.style_colour_slate, ::HexTileDiceMat, "hex_tiles_slate", 0xFF5C6B78, 0xFF3A4550, 0xFF232A31, 0xFF151A1F, 0xFFAEBBC6, 0xFF1C2228),
             ),
@@ -1047,7 +1090,11 @@ object DiceMats : StyleCatalog<DiceMat>(
         ),
         StyleFamily(
             Res.string.style_family_neon,
-            listOf(mat(Res.string.style_colour_pink_and_blue, ::NeonDiceMat, "neon_pink_blue", 0xFF2A1C24, 0xFF140C12, 0xFF0E080C, 0xFF060305, 0xFF3FE6FF, 0xFFFF3FA4)),
+            listOf(
+                neonMat(Res.string.style_colour_pink_and_blue, "neon_pink_blue", 0xFF2A1C24, 0xFF140C12, outer = 0xFFFF3FA4, inner = 0xFF3FE6FF),
+                neonMat(Res.string.style_colour_green_and_purple, "neon_green_purple", 0xFF141A3A, 0xFF080B1E, outer = 0xFF39FF88, inner = 0xFFB45CFF),
+                neonMat(Res.string.style_colour_orange_and_teal, "neon_orange_teal", 0xFF2A1640, 0xFF140A22, outer = 0xFFFF8A1F, inner = 0xFF2EE6D0),
+            ),
             unlock = AchievementCount(95),
         ),
     ),
@@ -1063,6 +1110,15 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 StyleColour(Res.string.style_colour_red, FireBackgroundTop, FireTableBackground),
                 StyleColour(Res.string.style_colour_brown, BarrelBackgroundTop, BarrelTableBackground),
             ),
+        ),
+        StyleFamily(
+            Res.string.style_family_leather,
+            listOf(
+                leatherBackground(Res.string.style_colour_tan, "leather_tan", 0xFF6B4424, 0xFF3E2612, 0xFFE0C08E),
+                leatherBackground(Res.string.style_colour_oxblood, "leather_oxblood", 0xFF5A1A1E, 0xFF2E080B, 0xFFE0A89A),
+                leatherBackground(Res.string.style_colour_black, "leather_black", 0xFF2A2A2A, 0xFF111111, 0xFF9E9E9E),
+            ),
+            unlock = AchievementCount(5),
         ),
         StyleFamily(
             Res.string.style_family_planks,
@@ -1124,7 +1180,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
             unlock = AchievementCount(55),
         ),
         StyleFamily(
-            Res.string.style_family_gift_wrap,
+            Res.string.style_family_christmas,
             listOf(
                 background(Res.string.style_colour_green, ::GiftWrapBackground, "gift_wrap_green", 0xFF1E5A34, 0xFF0E3A1E),
                 background(Res.string.style_colour_red, ::GiftWrapBackground, "gift_wrap_red", 0xFF7A1A20, 0xFF4E0E12),
@@ -1132,16 +1188,16 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
             unlock = AchievementCount(65),
         ),
         StyleFamily(
-            Res.string.style_family_honeycomb,
+            Res.string.style_family_bestagons,
             listOf(
-                background(Res.string.style_colour_charcoal, ::HoneycombBackground, "honeycomb_charcoal", 0xFF2A2D33, 0xFF16181C),
-                background(Res.string.style_colour_indigo, ::HoneycombBackground, "honeycomb_indigo", 0xFF262A5A, 0xFF12142E),
                 // Real comb, wax and honey, dimmed well back - to go with the Bestagon dice and the Honeycomb mat.
                 StyleColour(
                     Res.string.style_colour_honey,
                     Color(0xFFD9A040),
                     HoneycombCombBackground("honeycomb_honey", BackgroundPalette(Color(0xFF3A2406), Color(0xFF1E1203), Color(0xFFD9A040))),
                 ),
+                background(Res.string.style_colour_charcoal, ::HoneycombBackground, "honeycomb_charcoal", 0xFF2A2D33, 0xFF16181C),
+                background(Res.string.style_colour_indigo, ::HoneycombBackground, "honeycomb_indigo", 0xFF262A5A, 0xFF12142E),
             ),
             unlock = AchievementCount(80),
         ),
@@ -1228,6 +1284,10 @@ private val MahjongFace = Color(0xFFFBF7EC)
 private val MahjongFaceShade = Color(0xFFE6DFCB)
 private val MahjongBack = Color(0xFF2E7D4F)
 
+// The Christmas cup's red paper and gold ribbon, which the Gift dice are wrapped in too.
+private val ChristmasRedPaper = CupPalette(Color(0xFF7A1418), Color(0xFFE85A5E), Color(0xFFC8282E), Color(0xFFFFFFFF), Color(0xFF2A0608))
+private val ChristmasGoldRibbon = Color(0xFFF2C14E)
+
 // Shorthands for the entries above. A colour's swatch - its dot on the Styles screen - is the most
 // representative colour of its palette.
 
@@ -1298,6 +1358,37 @@ private fun glitterMat(name: StringResource, id: String, top: Long, bottom: Long
         Color(flakes),
         GlitterDiceMat(id, MatPalette(Color(top), Color(bottom), lerp(Color(bottom), Color.Black, 0.45f), lerp(Color(bottom), Color.Black, 0.7f), Color(border), Color(flakes))),
     )
+
+/**
+ * A Neon mat: a plain [top]-to-[bottom] tray framed by an [outer] and an [inner] tube - its slots sunk
+ * darker and ringed in the inner tube's colour. Shown by its outer tube's colour.
+ */
+private fun neonMat(name: StringResource, id: String, top: Long, bottom: Long, outer: Long, inner: Long): StyleColour<DiceMat> =
+    StyleColour(
+        name,
+        Color(outer),
+        NeonDiceMat(id, MatPalette(Color(top), Color(bottom), lerp(Color(bottom), Color.Black, 0.35f), lerp(Color(bottom), Color.Black, 0.65f), Color(inner), Color(outer))),
+    )
+
+/**
+ * A Stone mat: flagstones of [kind] (or marble veined in [vein], with no [kind]) from [light] to
+ * [dark], set in [grout] - its slots sunk darker and ringed a touch lighter than the stone.
+ */
+private fun stoneMat(name: StringResource, id: String, kind: StoneKind?, light: Long, dark: Long, grout: Long, vein: Long = grout): StyleColour<DiceMat> =
+    StyleColour(
+        name,
+        Color(light),
+        StoneDiceMat(
+            id,
+            MatPalette(Color(light), Color(dark), lerp(Color(dark), Color.Black, 0.45f), lerp(Color(dark), Color.Black, 0.7f), lerp(Color(light), Color.White, 0.3f), Color(grout)),
+            kind,
+            Color(vein),
+        ),
+    )
+
+/** A Leather background: a [top]-to-[bottom] hide stitched in [thread]. */
+private fun leatherBackground(name: StringResource, id: String, top: Long, bottom: Long, thread: Long): StyleColour<TableBackground> =
+    StyleColour(name, Color(top), LeatherBackground(id, BackgroundPalette(Color(top), Color(bottom), Color(thread))))
 
 /** A Glitter background: [flakes] of glitter over a [top]-to-[bottom] gradient. */
 private fun glitterBackground(name: StringResource, id: String, top: Long, bottom: Long, flakes: Long): StyleColour<TableBackground> =

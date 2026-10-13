@@ -66,9 +66,9 @@ class StylesTextTest {
     @Test
     fun `a locked style tile shows the unlock requirement dialog with resolved style name`() {
         show(AchievementsState())
-        val frosted = compose.onAllNodesWithContentDescription("Frosted").onFirst()
-        frosted.performTouchInput { longClick() }
+        val metal = compose.onAllNodesWithContentDescription("Metal").onFirst()
+        metal.performTouchInput { longClick() }
         compose.waitForIdle()
-        compose.onNodeWithText("Earn 23 achievements to unlock Frosted. You've earned 0 so far.").assertExists()
+        compose.onNodeWithText("Earn 15 achievements to unlock Metal. You've earned 0 so far.").assertExists()
     }
 }
