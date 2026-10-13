@@ -1,6 +1,5 @@
 package net.zodac.dicefive.data.scores
 
-import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import net.zodac.dicefive.game.TieBreakStats
@@ -49,37 +48,19 @@ data class ScoreEntry(
     /**
      * Whether this game's mode puts its scores on the Leaderboard ([net.zodac.dicefive.model.GameMode.countsOnLeaderboard]).
      * A row that doesn't is still a game played - Statistics and career points count it - but the
-     * Leaderboard, a personal best and the score-collection achievements leave it out. Every row
-     * recorded before the column existed was a game that counted.
+     * Leaderboard, a personal best and the score-collection achievements leave it out.
      */
-    @ColumnInfo(defaultValue = "1")
     val onLeaderboard: Boolean = true,
-    /**
-     * The [GameMode.id] this game was played in, for the Leaderboard's per-mode cards and the mode
-     * its long-press names. Every row recorded before the column existed was a Standard game as far
-     * as can be told - the mode wasn't kept - so that is its default.
-     */
-    @ColumnInfo(defaultValue = "'standard'")
+    /** The [GameMode.id] this game was played in, for the Leaderboard's per-mode cards and the mode its long-press names. */
     val gameModeId: String = GameMode.STANDARD.id,
     /**
      * Whether the game ran under its mode's own rules, with no modifier (not even the turn timer) -
-     * [GameState.hasModifiers] false. [onLeaderboard] can't say so for a mode that is always off the Combined
+     * [net.zodac.dicefive.model.GameState.hasModifiers] false. [onLeaderboard] can't say so for a mode that is always off the Combined
      * board (it's false whether or not a modifier was on), and an online leaderboard compares like with like, so
-     * this is what decides whether the row may be submitted to one. Null for a row recorded before the column
-     * existed: for Standard and Tricolour that reads as [onLeaderboard], for any other mode it is unknown (see
-     * [ranUnderOwnRules]).
+     * this is what decides whether the row may be submitted to one.
      */
-    val playedUnmodified: Boolean? = null,
+    val playedUnmodified: Boolean = true,
 ) {
-
-    /**
-     * Whether the game is known to have run under its mode's own rules - [playedUnmodified], or for a row from
-     * before that column, [onLeaderboard] where that answers it (the two modes that are on the Combined board
-     * only without modifiers). False when it can't be told.
-     */
-    val ranUnderOwnRules: Boolean
-        get() = playedUnmodified ?: (onLeaderboard && gameMode?.countsOnLeaderboard == true)
-
 
     /** The mode [gameModeId] names, or null for an id this build doesn't know (a mode since removed). */
     val gameMode: GameMode? get() = GameMode.fromId(gameModeId)

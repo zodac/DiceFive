@@ -24,7 +24,7 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
         isPrimaryPlayer: Boolean,
         onLeaderboard: Boolean = true,
         gameMode: GameMode = GameMode.STANDARD,
-        playedUnmodified: Boolean? = null,
+        playedUnmodified: Boolean = true,
         timestampEpochMillis: Long = nowEpochMillis(),
     ) {
         scoreDao.insert(
