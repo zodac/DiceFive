@@ -30,9 +30,30 @@ on a device.
   it).
 - **Otherwise** it's a wide tile (`CategoryTile(wide = true)`).
   - Its right edge lines up with column 4's tile, and its score sits where column 4's scores are.
-  - The 5x bonus is written inside the tile.
+  - A repeat 5x's bonus is written beside the box it scored in, not on this tile (see **Joker bonus** below).
   - The cup is drawn over its two rows, offset from the row height and gap, not sized by weights (which wouldn't line
     up).
+
+**Joker bonus.** Each joker's +100 is written beside the box that joker scored in (`PlayerState.jokerBonusSlots`: box -> slot
+indexes), not summed on the 5x tile.
+- A one-slot box shows it as a gold `labelSmall` line under its score; a roll that would be a joker previews it on every legal box.
+- A Third Wind slot shows it after its score on the same line ("30 +100"; the lines already fill the tile). All three slots of a
+  box can carry one, since the joker is forced into the matching upper box while it has a slot open.
+- **One size for the whole board** (`LocalBonusFontSize`, from `fitBonus` in `BonusFit.kt`): the largest the tightest box allows,
+  at most `labelSmall`'s 11sp and at least 8sp (`BONUS_MIN_SIZE`), so a screen never shows two. It's a highlight beside a score,
+  gold and bold, and spoken in full, not text to read at length. Below 8sp every bonus on the board is a bare gold "+".
+  - Room is measured: a bonus may spill past its column into the gap before the next column's tile, or in the cup panel's last
+    column into the board's padding (kept `BOARD_EDGE_MARGIN` off the edge). Third Wind's also gives up a two-digit score's width.
+  - Roughly: 11sp at 411dp on every card; Tricolour and Extended about 9-10sp at 360-362dp; Third Wind about 8sp at 360dp and "+" a
+    little narrower or at large fonts. (Measured in Robolectric; the phone's Roboto is a little wider.)
+- Spoken with the score ("Scored 30 plus 100 bonus, 24"), and as "plus 100 bonus" on a previewed box.
+- A game saved before this has chips only in `fiveOfAKindBonusCount`; `unplacedFiveOfAKindBonusCount` of them stay on the 5x tile.
+- **Pane split** (`fitBonus`). The cup panel and the grid trade width to make room for the bonus:
+  - nothing under the large 5x tile (Standard, Third Wind, Stud, Quickfire): the grid takes what's spare beside the tile, up to
+    16dp, so the tile never shrinks;
+  - boxes under 5x (Tricolour's colours, Extended Scores'), whose tile is the pane's width: the split moves up to 12dp either way
+    to even the grid's room against the panel's (about 10dp toward the cup panel at 360dp);
+  - any other card keeps equal halves.
 
 ### Per-mode cards
 
@@ -61,7 +82,7 @@ on a device.
   - Each slot is a line beside the tile, in fill order: each filled slot's score, then the preview in the next open slot
     (gold when it's worth picking), then "-" in the rest.
   - Lines are `labelMedium` beside a grid tile (3 x 16sp fills 48dp) and `bodyMedium` beside 5x, with the bonus line
-    under them.
+    under them (the 5x tile's, for a game saved before bonuses were per box).
   - The tile greys only once every slot is used.
   - Each `SlotScore` keeps its number laid out under the "-", and `ShownScore` compares by value, so a roll recomposes
     only the preview lines.
@@ -87,7 +108,8 @@ on a device.
 ## Buttons
 
 **Totals** (`TotalsButton`). An icon-only Σ left of Undo.
-- A tap or long press shows `TotalsTable` in an `AppTooltip`: Sora labels left, system-font numbers right with
+- A tap toggles `TotalsTable` in a persistent `AppTooltip` (open until a second tap or an outside tap, no timeout); a long
+  press shows it: Sora labels left, system-font numbers right with
   thousands commas, and the Bonus line gold once earned.
 - The Upper line is shown against its threshold ("45 / 63", spoken "Upper 45 of 63") wherever the card has an upper
   bonus.

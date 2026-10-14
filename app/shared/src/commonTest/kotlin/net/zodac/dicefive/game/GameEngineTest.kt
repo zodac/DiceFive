@@ -521,4 +521,54 @@ class GameEngineTest {
         assertTrue(filled.hasFullHand)
         assertEquals(4, filled.scoringDice.size)
     }
+
+    @Test
+    fun `a joker's bonus is written on the slot it scored in - one slot a box in Standard - three in Third Wind`() {
+        val sixes = List(5) { Die(value = 6) }
+        fun rolled(game: GameState, withPlayer: (PlayerState) -> PlayerState) =
+            game.copy(phase = TurnPhase.ROLLED, dice = sixes, players = game.players.map(withPlayer))
+
+        // Standard: a 5x already on the card, then five 6s go in the 6s - the joker's forced box - and carry the chip.
+        val standard = rolled(GameEngine.newGame(onePlayer)) {
+            it.copy(scorecard = it.scorecard + (ScoreCategory.FIVE_OF_A_KIND to listOf(50)))
+        }
+        val afterSixes = GameEngine.commitScore(standard, ScoreCategory.SIXES).players.single()
+        assertEquals(mapOf(ScoreCategory.SIXES to setOf(0)), afterSixes.jokerBonusSlots)
+        assertEquals(1, afterSixes.fiveOfAKindBonusCount)
+        assertEquals(100, afterSixes.jokerBonusIn(ScoreCategory.SIXES))
+        assertEquals(0, afterSixes.unplacedFiveOfAKindBonusCount)
+
+        // With the 6s full, the next joker goes in a lower box: it carries its chip, and the 6s keep theirs.
+        val afterHouse = GameEngine.commitScore(rolled(standard) { afterSixes }, ScoreCategory.FULL_HOUSE).players.single()
+        assertEquals(mapOf(ScoreCategory.SIXES to setOf(0), ScoreCategory.FULL_HOUSE to setOf(0)), afterHouse.jokerBonusSlots)
+        assertEquals(2, afterHouse.fiveOfAKindBonusCount)
+
+        // A roll that isn't a joker adds none.
+        val plain = GameEngine.newGame(onePlayer).copy(phase = TurnPhase.ROLLED, dice = listOf(1, 2, 3, 4, 6).map { Die(it) })
+        assertTrue(GameEngine.commitScore(plain, ScoreCategory.CHANCE).players.single().jokerBonusSlots.isEmpty())
+
+        // Third Wind: all three slots of the 6s can carry one - the joker forces the 6s while any slot is open.
+        val thirdWind = rolled(GameEngine.newGame(onePlayer, GameMode.THIRD_WIND)) {
+            it.copy(scorecard = it.scorecard + (ScoreCategory.FIVE_OF_A_KIND to listOf(50, 0, 0)))
+        }
+        var player = thirdWind.players.single()
+        repeat(3) {
+            assertEquals(listOf(ScoreCategory.SIXES), ScoreCalculator.availableCategories(player, sixes))
+            player = GameEngine.commitScore(rolled(thirdWind) { player }, ScoreCategory.SIXES).players.single()
+        }
+        assertEquals(setOf(0, 1, 2), player.jokerBonusSlots[ScoreCategory.SIXES])
+        assertEquals(3, player.fiveOfAKindBonusCount)
+        assertEquals(300, player.jokerBonusIn(ScoreCategory.SIXES))
+        assertTrue(player.hasJokerBonus(ScoreCategory.SIXES, 2))
+        assertFalse(player.hasJokerBonus(ScoreCategory.SIXES, 3))
+        // The 6s full, the next one is free to go in 3x - scored as the dice's total - and its first slot takes the chip.
+        assertTrue(ScoreCategory.THREE_OF_A_KIND in ScoreCalculator.availableCategories(player, sixes))
+        assertEquals(30, ScoreCalculator.scoreFor(player, ScoreCategory.THREE_OF_A_KIND, sixes))
+        val threeX = GameEngine.commitScore(rolled(thirdWind) { player }, ScoreCategory.THREE_OF_A_KIND).players.single()
+        assertEquals(setOf(0), threeX.jokerBonusSlots[ScoreCategory.THREE_OF_A_KIND])
+
+        // Chips from a game saved before they were tied to a box are counted but not placed.
+        val legacy = PlayerState(name = "Old", type = PlayerType.HUMAN, fiveOfAKindBonusCount = 3, jokerBonusSlots = mapOf(ScoreCategory.SIXES to setOf(0)))
+        assertEquals(2, legacy.unplacedFiveOfAKindBonusCount)
+    }
 }

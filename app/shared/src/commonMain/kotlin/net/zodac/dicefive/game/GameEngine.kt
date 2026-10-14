@@ -216,6 +216,11 @@ object GameEngine {
         val updatedPlayer = player.copy(
             scorecard = player.scorecard + (category to player.scoresIn(category) + value),
             fiveOfAKindBonusCount = player.fiveOfAKindBonusCount + if (bonus) 1 else 0,
+            jokerBonusSlots = if (bonus) {
+                player.jokerBonusSlots + (category to player.jokerBonusSlots[category].orEmpty() + player.scoresIn(category).size)
+            } else {
+                player.jokerBonusSlots
+            },
             lastRoll = state.dice,
             lastScoredCategory = category,
             // Whatever is left of this turn's rolls waits for their next one (none, unless Stored Rolls is on).

@@ -169,6 +169,14 @@ object GameStateJson {
         put("difficulty", player.difficulty.id)
         put("colour", player.colour.id)
         put("fiveOfAKindBonusCount", player.fiveOfAKindBonusCount)
+        if (player.jokerBonusSlots.isNotEmpty()) {
+            put(
+                "jokerBonusSlots",
+                buildJsonObject {
+                    for ((category, slots) in player.jokerBonusSlots) put(category.id, JsonArray(slots.sorted().map { JsonNumber(it.toString()) }))
+                },
+            )
+        }
         put("rollCount", player.rollCount)
         if (player.storedRolls > 0) put("storedRolls", player.storedRolls)
         if (player.fiveOfAKindFlashed) put("fiveOfAKindFlashed", true)
@@ -207,6 +215,8 @@ object GameStateJson {
             hitList = hitList,
             scorecard = scorecard,
             fiveOfAKindBonusCount = obj.getInt("fiveOfAKindBonusCount"),
+            // Left out by encode until a joker has scored; also absent from a game saved before the chips were tied to a box.
+            jokerBonusSlots = decodeJokerBonusSlots(obj["jokerBonusSlots"] as? JsonObject, categories),
             // Left out by encode for a player with no finished turn yet - no last roll to show.
             lastRoll = if ("lastRoll" in obj) obj.getObjectList("lastRoll").map(::decodeDie) else null,
             // Left out by encode before the player's first turn ends: nothing is highlighted yet.
@@ -218,6 +228,14 @@ object GameStateJson {
             // Left out unless set: that player's flash is still to come.
             fiveOfAKindFlashed = (obj["fiveOfAKindFlashed"] as? JsonBoolean)?.value == true,
         )
+    }
+
+    private fun decodeJokerBonusSlots(obj: JsonObject?, categories: List<ScoreCategory>): Map<ScoreCategory, Set<Int>> {
+        if (obj == null) return emptyMap()
+        return categories.mapNotNull { category ->
+            val slots = (obj[category.id] as? JsonArray)?.items?.mapNotNull { (it as? JsonNumber)?.toInt() }?.toSet()
+            slots?.takeIf { it.isNotEmpty() }?.let { category to it }
+        }.toMap()
     }
 
     /** One box's scores, in the order they went in. */

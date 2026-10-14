@@ -68,13 +68,13 @@ import net.zodac.dicefive.ui.theme.TileTealTop
 
 /**
  * The scorecard's section totals - Upper, the upper bonus and Lower - behind an icon-only Σ button,
- * shown in a tooltip on a tap or a long press. They used to sit beside the cup as three lines of text,
+ * shown in a tooltip a tap toggles (it stays open until dismissed, not timing out) and a long press shows. They used to sit beside the cup as three lines of text,
  * which a large system font wrapped and broke; a button holds its size, and they're a
  * glance-when-needed, not something to keep in view. Styled like [UndoButton] beside it.
  *
  * The glyph turns gold once the bonus is earned, as the old Bonus line did. A tooltip isn't
  * announced, so a screen reader hears the totals as the button's state ([totalsSpokenState]) - its
- * action shows the tooltip too.
+ * action toggles the tooltip too.
  */
 @Composable
 fun TotalsButton(
@@ -185,7 +185,7 @@ private fun TotalsButton(
     minSize: Dp,
     litHalves: Set<IconHalf> = emptySet(),
 ) {
-    val tooltipState = rememberAppTooltipState()
+    val tooltipState = rememberAppTooltipState(persistent = true)
     val scope = rememberCoroutineScope()
     val totalsName = stringResource(Res.string.game_totals_cd)
     val showTotalsLabel = stringResource(Res.string.game_totals_show_action)
@@ -202,7 +202,7 @@ private fun TotalsButton(
                     stateDescription = spokenState
                     role = Role.Button
                     onClick(label = showTotalsLabel) {
-                        scope.launch { tooltipState.show() }
+                        scope.launch { tooltipState.toggle() }
                         true
                     }
                 }
@@ -211,7 +211,7 @@ private fun TotalsButton(
                 .clip(shape)
                 .background(Brush.linearGradient(listOf(TileTealTop, TileTealBottom)))
                 .border(1.dp, TileTealBorder, shape)
-                .clickable(role = Role.Button) { scope.launch { tooltipState.show() } }
+                .clickable(role = Role.Button) { scope.launch { tooltipState.toggle() } }
                 .padding(horizontal = 6.dp, vertical = 6.dp),
             contentAlignment = Alignment.Center,
         ) {

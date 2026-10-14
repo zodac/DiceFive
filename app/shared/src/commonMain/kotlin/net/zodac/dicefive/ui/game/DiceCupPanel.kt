@@ -123,8 +123,8 @@ data class CupPanelState(
 /** The cup's own square - what the rows it sits over must be tall enough for: two in a six-row board, more beyond that. */
 internal val CUP_SIZE = 104.dp
 
-/** The room kept beside the large 5x tile for its score and bonus. */
-private val LARGE_FIVE_SCORE_ROOM = 36.dp
+/** The room kept beside the large 5x tile for its score. */
+internal val LARGE_FIVE_SCORE_ROOM = 36.dp
 
 /**
  * The right-hand half of the board, beside the category grid, in the same rows as it: the wide 5x tile

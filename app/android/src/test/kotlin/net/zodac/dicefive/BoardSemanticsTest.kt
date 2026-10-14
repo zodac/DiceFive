@@ -116,6 +116,12 @@ class BoardSemanticsTest {
         compose.onNodeWithContentDescription("Fives").assert(hasStateDescription("Would score 10")).performSemanticsAction(SemanticsActions.OnClick)
         assertEquals(listOf(ScoreCategory.FIVES), scored)
 
+        // A roll that would be a joker says its bonus on the box it's forced into, and on no other.
+        val joker = PlayerState(name = "Tester", type = PlayerType.HUMAN).let { it.copy(scorecard = it.scorecard + (ScoreCategory.FIVE_OF_A_KIND to listOf(50))) }
+        showGrid(joker, List(5) { Die(4) }, setOf(ScoreCategory.FOURS)) {}
+        compose.onNodeWithContentDescription("Fours").assert(hasStateDescription("Would score 20, plus 100 bonus"))
+        compose.onNodeWithContentDescription("Threes").assert(hasStateDescription("Open"))
+
         // The Extended Scores boxes are named and say what they would score.
         val extended = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Tester")), extendedScores = true)
             .copy(phase = TurnPhase.ROLLED, rollsRemaining = 2, dice = listOf(6, 6, 5, 5, 1).map { Die(it) })
@@ -210,6 +216,30 @@ class BoardSemanticsTest {
             },
         )
         compose.onNode(hasStateDescription("Scored 50, 0, 50, plus 200 bonus, last turn's score 50")).assertExists()
+
+        // A joker's bonus is said with the score it's on - one slot, or each of several - and not again on the 5x box.
+        showReadOnly(
+            PlayerState(name = "Robo", type = PlayerType.AI, gameMode = GameMode.THIRD_WIND).let {
+                it.copy(
+                    scorecard = it.scorecard + (ScoreCategory.FIVE_OF_A_KIND to listOf(50, 0, 0)) + (ScoreCategory.SIXES to listOf(30, 24, 30)),
+                    fiveOfAKindBonusCount = 2,
+                    jokerBonusSlots = mapOf(ScoreCategory.SIXES to setOf(0, 2)),
+                )
+            },
+        )
+        compose.onNodeWithContentDescription("Sixes").assert(hasStateDescription("Scored 30 plus 100 bonus, 24, 30 plus 100 bonus"))
+        compose.onNodeWithContentDescription("5x").assert(hasStateDescription("Scored 50, 0, 0"))
+        showReadOnly(
+            PlayerState(name = "Robo", type = PlayerType.AI).let {
+                it.copy(
+                    scorecard = it.scorecard + (ScoreCategory.FIVE_OF_A_KIND to listOf(50)) + (ScoreCategory.FULL_HOUSE to listOf(25)),
+                    fiveOfAKindBonusCount = 1,
+                    jokerBonusSlots = mapOf(ScoreCategory.FULL_HOUSE to setOf(0)),
+                )
+            },
+        )
+        compose.onNodeWithContentDescription("Full House").assert(hasStateDescription("Scored 25, plus 100 bonus"))
+        compose.onNodeWithContentDescription("5x").assert(hasStateDescription("Scored 50"))
     }
 
     @Test
@@ -256,6 +286,23 @@ class BoardSemanticsTest {
         listOf("1st place", "Current turn, 2nd place", "3rd place", "4th place").forEachIndexed { index, state ->
             compose.onNode(hasText("P${index + 1}") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)).assert(hasStateDescription(state))
         }
+    }
+
+    @Test
+    fun `the Totals popup is a toggle - a tap opens it, it stays open past a tooltip's usual timeout, and a second tap closes it`() {
+        showcase.show { DiceFiveTheme { TotalsButton(upperTotal = 70, upperBonus = 35, lowerTotal = 140) } }
+        compose.onNodeWithText("Lower").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Totals").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Lower").assertExists()
+
+        compose.mainClock.advanceTimeBy(30_000)
+        compose.onNodeWithText("Lower").assertExists()
+
+        compose.onNodeWithContentDescription("Totals").performClick()
+        compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onNodeWithText("Lower").assertDoesNotExist()
     }
 
     @Test

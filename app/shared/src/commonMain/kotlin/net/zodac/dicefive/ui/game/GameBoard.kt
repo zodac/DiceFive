@@ -2,7 +2,16 @@ package net.zodac.dicefive.ui.game
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.BoxWithConstraints
+import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.resources.common_bonus_amount
+import net.zodac.dicefive.resources.Res
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -72,7 +81,8 @@ private fun ScoreBoardRow(
     val visualTheme = LocalGameVisualTheme.current
     visualTheme.background.Animate()
 
-    Row(
+    val layout = boardLayout(categories)
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
             .height(gameBoardHeight(categories))
@@ -81,38 +91,63 @@ private fun ScoreBoardRow(
             .drawBehind { with(visualTheme.background) { drawScoreAreaDecoration() } }
             .padding(BOARD_PADDING),
     ) {
-        ScoreGrid(
-            categories = categories,
-            player = player,
-            dice = dice,
-            canScore = canScore,
-            showPreview = showPreview,
-            available = available,
-            onScoreCategory = onScoreCategory,
-            // Equal weight with the cup panel, not less: the grid splits into two columns per row,
-            // so per-category it actually has HALF the width the cup panel's single-column content
-            // gets - it needs the room more, not less.
-            modifier = Modifier.weight(1f),
-        )
-        // Wider than a purely decorative gap needs to be: a 2-digit score in the grid's rightmost
-        // column can render past its own column's edge (see the Visible-overflow comment on that
-        // Text in ScoreGrid.kt) - this gap doubles as the dead space that spillover lands in
-        // harmlessly, before it would otherwise reach the cup panel's content.
-        Spacer(modifier = Modifier.width(20.dp))
-        DiceCupPanel(
-            categories = categories,
-            player = player,
-            dice = dice,
-            canScore = canScore,
-            showPreview = showPreview,
-            available = available,
-            onScoreCategory = onScoreCategory,
-            cup = cup,
-            showCup = showCup,
-            modifier = Modifier.weight(1f),
-        )
+        // Two equal halves, not less for the grid: it splits into two columns per row, so per-category it actually has
+        // HALF the width the cup panel's single-column content gets - it needs the room more, not less. A joker's bonus is
+        // written as big as the tightest box on the board allows, at one size for all of them; where that's the cost of a
+        // few dp, the split moves to make room (see [fitBonus]).
+        val pane = (maxWidth - BOARD_PANE_GAP) / 2
+        val density = LocalDensity.current
+        val measurer = rememberTextMeasurer()
+        val chip = player?.gameMode?.fiveOfAKindBonusAmount ?: 0
+        val bonusText = stringResource(Res.string.common_bonus_amount, chip)
+        val stacked = (player?.gameMode?.scoresPerCategory ?: 1) > 1
+        val scoreStyle = MaterialTheme.typography.labelMedium
+        val bonusStyle = MaterialTheme.typography.labelSmall.copy(fontSize = BONUS_MAX_SIZE, fontWeight = FontWeight.Bold)
+        val fit = remember(layout, pane, density, bonusText, stacked, scoreStyle, bonusStyle) {
+            with(density) {
+                val bonusWidth = measurer.measure(bonusText, bonusStyle).size.width.toDp()
+                // Third Wind writes it after a two digit score on the same line.
+                val reserve = if (stacked) measurer.measure("88", scoreStyle).size.width.toDp() + SLOT_BONUS_GAP else 0.dp
+                fitBonus(layout, pane, bonusWidth, reserve)
+            }
+        }
+        val shift = fit.paneShift
+        CompositionLocalProvider(LocalBonusFontSize provides fit.fontSize) {
+            Row(modifier = Modifier.fillMaxSize()) {
+                ScoreGrid(
+                    categories = categories,
+                    player = player,
+                    dice = dice,
+                    canScore = canScore,
+                    showPreview = showPreview,
+                    available = available,
+                    onScoreCategory = onScoreCategory,
+                    modifier = Modifier.width(pane + shift),
+                )
+                // Wider than a purely decorative gap needs to be: a 2-digit score in the grid's rightmost
+                // column can render past its own column's edge (see the Visible-overflow comment on that
+                // Text in ScoreGrid.kt) - this gap doubles as the dead space that spillover lands in
+                // harmlessly, before it would otherwise reach the cup panel's content.
+                Spacer(modifier = Modifier.width(BOARD_PANE_GAP))
+                DiceCupPanel(
+                    categories = categories,
+                    player = player,
+                    dice = dice,
+                    canScore = canScore,
+                    showPreview = showPreview,
+                    available = available,
+                    onScoreCategory = onScoreCategory,
+                    cup = cup,
+                    showCup = showCup,
+                    modifier = Modifier.width(pane - shift),
+                )
+            }
+        }
     }
 }
+
+/** The gap between the score grid and the cup panel. */
+private val BOARD_PANE_GAP = 20.dp
 
 @Composable
 fun GameBoard(

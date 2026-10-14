@@ -55,7 +55,7 @@ All numbers here are Standard's. Each comes from the game's `GameMode`.
   but disabled dice looked broken.
 - **Scoring** is any open box after the first roll. `ScoreCalculator` applies two rules:
   - The upper bonus: 63 or more in the upper section earns 35.
-  - The joker rule. Every 5x after a scored 50 adds a +100 chip. If the 5x box is filled, the score goes in the
+  - The joker rule. Every 5x after a scored 50 adds a +100 chip, recorded on the box it scores in (`jokerBonusSlots`) and shown there. If the 5x box is filled, the score goes in the
     matching upper box if it's open, else any open lower box (Full House and the straights at their fixed values),
     else a zero in any open box.
 - **The CPU** scores, then plays its rolls with short pauses so it's visibly animated.

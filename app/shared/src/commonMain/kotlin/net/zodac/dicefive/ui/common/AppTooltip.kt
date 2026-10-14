@@ -34,14 +34,21 @@ import net.zodac.dicefive.resources.common_tooltip_show_details_action
 /** What [AppTooltip] shows on request - see [rememberAppTooltipState]; wraps Material's experimental state. */
 @OptIn(ExperimentalMaterial3Api::class)
 class AppTooltipState internal constructor(internal val state: TooltipState) {
-    /** Shows the tooltip, until it times out. */
+    /** Shows the tooltip, until it times out - or, for a persistent one, until it's dismissed. */
     suspend fun show() = state.show()
+
+    /** Hides the tooltip. */
+    fun dismiss() = state.dismiss()
+
+    /** Shows the tooltip if it's hidden, hides it if it's showing. */
+    suspend fun toggle() = if (state.isVisible) state.dismiss() else state.show()
 }
 
+/** A state for [AppTooltip]; with [persistent] its tooltip stays until it's dismissed, rather than timing out. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun rememberAppTooltipState(): AppTooltipState {
-    val state = rememberTooltipState()
+fun rememberAppTooltipState(persistent: Boolean = false): AppTooltipState {
+    val state = rememberTooltipState(isPersistent = persistent)
     return remember(state) { AppTooltipState(state) }
 }
 
