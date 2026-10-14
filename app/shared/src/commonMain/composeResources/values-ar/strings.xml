@@ -114,6 +114,8 @@
     <string name="achievement_dice_whisperer_description">سجّل 5x عشر مرات في المجموع</string>
     <string name="achievement_hat_trick_title">هاتريك</string>
     <string name="achievement_hat_trick_description">سجّل ثلاث نتائج 5x أو أكثر في لعبة واحدة</string>
+    <string name="achievement_full_set_title">المجموعة الكاملة</string>
+    <string name="achievement_full_set_description">سجّل 5x لكل رقم من ١ إلى ٦</string>
     <string name="achievement_twice_in_a_lifetime_title">مرتان في العمر</string>
     <string name="achievement_twice_in_a_lifetime_description">سجّل 5x في دورين متتاليين</string>
     <string name="achievement_natural_5x_title">5x طبيعية</string>
@@ -164,6 +166,12 @@
     <string name="achievement_quick_on_the_draw_description">افز في لعبة بنمط «الإطلاق السريع»</string>
     <string name="achievement_six_of_the_best_title">ستة من أفضل ما يكون</string>
     <string name="achievement_six_of_the_best_description">سجّل ١٥٠ نقطة أو أكثر في لعبة بنمط «الإطلاق السريع»</string>
+    <string name="achievement_rainy_day_fund_title">مدّخرات للأيام الصعبة</string>
+    <string name="achievement_rainy_day_fund_description">ابدأ دورًا بـ ١٠٠ رمية أو أكثر مع تفعيل «الرميات المخزّنة»</string>
+    <string name="achievement_bad_omen_title">نذير شؤم</string>
+    <string name="achievement_bad_omen_description">اجعل كل النرد مقيَّدًا بالسلاسل في آن واحد مع تفعيل «نرد سيئ الحظ»</string>
+    <string name="achievement_grand_tour_title">الجولة الكبرى</string>
+    <string name="achievement_grand_tour_description">أنهِ لعبة في كل نمط من أنماط اللعب</string>
     <string name="achievement_hold_em_title">ثبّتها</string>
     <string name="achievement_hold_em_description">افز في لعبة بنمط «ستاد ٧ أحجار»</string>
     <string name="achievement_lucky_seven_title">سبعة محظوظة</string>
@@ -206,6 +214,8 @@
     <string name="achievement_time_to_let_it_go_description">ثبّت حجر النرد نفسه بعد الرمية الأولى والثانية، ثم سجّل دون استخدامه</string>
     <string name="achievement_time_wasting_title">إضاعة الوقت</string>
     <string name="achievement_time_wasting_description">ثبّت كل حجر نرد ثم حرّره بالتتابع</string>
+    <string name="achievement_hands_off_title">بلا أيدٍ!</string>
+    <string name="achievement_hands_off_description">سجّل ٢٠٠ نقطة أو أكثر في لعبة قياسية دون معدّلات ودون أن تثبّت أي نرد</string>
     <string name="achievement_i_didnt_mean_that_title">لم أقصد ذلك</string>
     <string name="achievement_i_didnt_mean_that_description">تراجع عن نتيجة وسجّل في فئة مختلفة</string>
     <string name="achievement_no_more_rolls_title">لا مزيد من الرميات</string>
@@ -260,6 +270,8 @@
     <string name="achievement_historian_description">سجّل في لوحة المتصدرين كل نتيجة من ٢٥١ إلى ٣٠٠</string>
     <string name="achievement_completionist_title">الإتمامي</string>
     <string name="achievement_completionist_description">افتح كل الإنجازات الأخرى</string>
+    <string name="achievement_are_you_a_developer_title">هل أنت مطوّر؟</string>
+    <string name="achievement_are_you_a_developer_description">اضغط على رقم الإصدار سبع مرات</string>
     <string name="achievement_big_fan_title">معجب كبير</string>
     <string name="achievement_big_fan_description">العب لعبة فردية ضد المطوّر</string>
     <string name="achievement_greenfingers_title">يد خضراء</string>
@@ -268,6 +280,8 @@
     <string name="achievement_luck_of_the_irish_description">العب لعبة «ثلاثي الألوان» بوصفك أيرلندا/Éire</string>
     <string name="achievement_not_those_dice_title">ليس هذا النرد!</string>
     <string name="achievement_not_those_dice_description">اضغط على النرد في القائمة الرئيسية</string>
+    <string name="achievement_rolling_the_midnight_dice_title">نرد منتصف الليل</string>
+    <string name="achievement_rolling_the_midnight_dice_description">ابدأ لعبة بين منتصف الليل والساعة ٦ صباحًا</string>
     <string name="achievement_shaken_not_tapped_title">هزًّا لا ضغطًا</string>
     <string name="achievement_shaken_not_tapped_description">هزّ هاتفك لترمي النرد</string>
     <string name="achievement_eggcellent_discovery_title">اكتشاف ذهبي</string>
@@ -683,6 +697,7 @@
     <string name="style_family_containers">حاويات</string>
     <string name="style_family_d20">دي ٢٠</string>
     <string name="style_family_desert">صحراء</string>
+    <string name="style_family_devil">شيطان</string>
     <string name="style_family_egg">بيضة</string>
     <string name="style_family_faceted">مُوجَّه الأوجه</string>
     <string name="style_family_floating_dice">نرد عائم</string>
@@ -732,6 +747,7 @@
     <string name="style_family_tribal">قبلي</string>
     <string name="style_family_urn">جرّة</string>
     <string name="style_family_volcano">بركان</string>
+    <string name="style_family_wireframe">إطار سلكي</string>
     <string name="style_family_wood">خشب</string>
     <string name="style_family_wreath">إكليل</string>
     <string name="style_colour_amber">عنبري</string>
@@ -754,6 +770,7 @@
     <string name="style_colour_clear">شفاف</string>
     <string name="style_colour_copper">نحاسي</string>
     <string name="style_colour_crimson">قرمزي</string>
+    <string name="style_colour_cyan">سماوي</string>
     <string name="style_colour_daisy">أقحوان</string>
     <string name="style_colour_digits">أرقام</string>
     <string name="style_colour_double">مزدوج</string>
@@ -880,6 +897,13 @@
     <string name="achievements_missing_message">النتائج غير الموجودة بعد في لوحة المتصدرين (متبقٍ %1$s):</string>
     <string name="achievements_missing_action">عرض النتائج الناقصة</string>
     <string name="achievements_score_recorded">%1$s، مسجّلة</string>
+    <string name="achievements_missing_numbers_message">أرقام لم تسجّل منها 5x بعد (متبقٍ %1$s):</string>
+    <string name="achievements_missing_numbers_action">عرض الأرقام الناقصة</string>
+    <string name="achievements_number_scored">%1$s، مسجّل</string>
+    <string name="achievements_number_label">%1$s</string>
+    <string name="achievements_missing_modes_message">أنماط لم تُنهِ فيها أي لعبة بعد (متبقٍ %1$s):</string>
+    <string name="achievements_missing_modes_action">عرض الأنماط الناقصة</string>
+    <string name="achievements_mode_finished">%1$s، منتهٍ</string>
     <string name="styles_title">الأنماط</string>
     <string name="styles_category_dice">النرد</string>
     <string name="styles_category_dice_cup">كأس النرد</string>

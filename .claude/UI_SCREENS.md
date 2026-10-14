@@ -115,6 +115,9 @@ A lock is on the style (`StyleFamily.unlock`), not the colour: once it's met, al
   - Googly dice (Completionist);
   - Glitch dice and background (Big Fan);
   - Maths dice (The Solution);
+  - Wireframe dice and mat (Are You A Developer?);
+  - Devil dice (Bad Omen);
+  - Starry dice, mat and background (Rolling The Midnight Dice);
   - the Floating Dice background (Not Those Dice!: the menu's backdrop as a table background);
   - the Martini cup (Shaken, Not Tapped);
   - the D20 dice (Nat 20 or Critical Success, `AnyAchievement`).

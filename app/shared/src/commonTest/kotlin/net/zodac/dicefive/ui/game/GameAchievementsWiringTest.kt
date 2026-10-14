@@ -31,6 +31,7 @@ import net.zodac.dicefive.data.scores.PlayerGame
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
 import net.zodac.dicefive.model.GameMode
@@ -133,6 +134,8 @@ private class FakeScoreDao : ScoreDao {
 
     override suspend fun primaryPlayerTotalPoints(): Int? =
         entries.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
+
+    override suspend fun primaryPlayerGameModeIds(): List<String> = entries.filter { it.isPrimaryPlayer }.map { it.gameModeId }.distinct()
 
     override suspend fun playerGames(): List<PlayerGame> = emptyList()
 
@@ -845,6 +848,34 @@ class GameAchievementsWiringTest {
         resumed.commitScore(ScoreCategory.CHANCE)
         runCurrent()
         assertTrue(Achievement.I_DIDNT_MEAN_THAT in store.unlocked, "the undo was lost on resuming, got ${store.unlocked}")
+    }
+
+    @Test
+    fun `a new game started in the small hours is Rolling The Midnight Dice - one resumed then is not`() = runTest(testDispatcher) {
+        val saves = InProgressGameRepository(InMemoryPreferences(), backgroundScope)
+        val store = FakeAchievementStore()
+        fun table(hour: Int) = GameViewModel(
+            aiDispatcher = testDispatcher,
+            inProgressGameRepository = saves,
+            settingsRepository = SettingsRepository(InMemoryPreferences()),
+            achievementsRepository = store,
+            localHour = { hour },
+        )
+
+        // Started in the afternoon, then left.
+        table(hour = 14).startGame()
+        advanceUntilIdle()
+        assertFalse(Achievement.ROLLING_THE_MIDNIGHT_DICE in store.unlocked, "started at 2pm")
+
+        // Resumed at 2am: the game began in the afternoon.
+        assertTrue(table(hour = 2).resumeGame())
+        advanceUntilIdle()
+        assertFalse(Achievement.ROLLING_THE_MIDNIGHT_DICE in store.unlocked, "resumed at 2am")
+
+        // A new one at 2am.
+        table(hour = 2).startGame()
+        advanceUntilIdle()
+        assertTrue(Achievement.ROLLING_THE_MIDNIGHT_DICE in store.unlocked, "started at 2am, got ${store.unlocked}")
     }
 
     /**

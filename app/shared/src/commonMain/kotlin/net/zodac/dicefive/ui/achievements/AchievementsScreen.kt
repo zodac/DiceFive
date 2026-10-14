@@ -11,8 +11,16 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.resources.achievements_missing_action
 import net.zodac.dicefive.resources.achievements_missing_message
+import net.zodac.dicefive.resources.achievements_missing_modes_action
+import net.zodac.dicefive.resources.achievements_missing_modes_message
+import net.zodac.dicefive.resources.achievements_missing_numbers_action
+import net.zodac.dicefive.resources.achievements_missing_numbers_message
+import net.zodac.dicefive.resources.achievements_mode_finished
+import net.zodac.dicefive.resources.achievements_number_label
+import net.zodac.dicefive.resources.achievements_number_scored
 import net.zodac.dicefive.resources.achievements_score_recorded
 import net.zodac.dicefive.resources.common_done
 import androidx.compose.foundation.clickable
@@ -105,6 +113,7 @@ import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.delayWhileResumed
+import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.timestamp
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
@@ -490,9 +499,15 @@ private fun AchievementRow(
     val unlocked = item.unlockedAt != null
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var showMissing by remember { mutableStateOf(false) }
-    val missingLabel = stringResource(Res.string.achievements_missing_action)
-    val listsMissing = !unlocked && !superuserModeActive && item.missingScores.isNotEmpty()
-    if (showMissing && listsMissing) MissingScoresDialog(item, onDismiss = { showMissing = false })
+    val missingLabel = stringResource(
+        when {
+            item.achievement.scoreBand != null -> Res.string.achievements_missing_action
+            item.achievement.isEveryMode -> Res.string.achievements_missing_modes_action
+            else -> Res.string.achievements_missing_numbers_action
+        },
+    )
+    val listsMissing = !unlocked && !superuserModeActive && item.missing.isNotEmpty()
+    if (showMissing && listsMissing) MissingDialog(item, onDismiss = { showMissing = false })
     // The flash is gold, which the usual text, icon and border colours (light, or gold itself) vanish into: on it,
     // they all become the unlocked row's own blue instead.
     val flashInk = MaterialTheme.colorScheme.secondaryContainer
@@ -628,15 +643,28 @@ private fun AchievementRow(
     }
 }
 
-/** Every score a score-collection achievement needs, recorded ones struck through, in a scrollable pop-up. */
+/**
+ * Everything a collection achievement needs - a score band's scores, Full Set's numbers ("1s" to "6s"), or Grand Tour's
+ * game modes - the ones already collected struck through and faded, in a scrollable pop-up. Modes go one to a line, as
+ * a name of several words run together with the next would be hard to tell apart.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun MissingScoresDialog(item: AchievementItem, onDismiss: () -> Unit) {
+private fun MissingDialog(item: AchievementItem, onDismiss: () -> Unit) {
+    val achievement = item.achievement
+    val isScores = achievement.scoreBand != null
     DiceFiveDialog(
-        icon = item.achievement.icon,
-        iconTint = item.achievement.iconTintOrUnspecified(MaterialTheme.colorScheme.primary),
-        title = stringResource(item.achievement.title),
-        message = stringResource(Res.string.achievements_missing_message, item.missingScores.size.grouped()),
+        icon = achievement.icon,
+        iconTint = achievement.iconTintOrUnspecified(MaterialTheme.colorScheme.primary),
+        title = stringResource(achievement.title),
+        message = stringResource(
+            when {
+                isScores -> Res.string.achievements_missing_message
+                achievement.isEveryMode -> Res.string.achievements_missing_modes_message
+                else -> Res.string.achievements_missing_numbers_message
+            },
+            item.missing.size.grouped(),
+        ),
         confirmLabel = stringResource(Res.string.common_done),
         onConfirm = onDismiss,
         onDismissRequest = onDismiss,
@@ -646,17 +674,27 @@ private fun MissingScoresDialog(item: AchievementItem, onDismiss: () -> Unit) {
             modifier = Modifier.padding(top = 12.dp).heightIn(max = 240.dp).verticalScroll(scroll),
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
             verticalArrangement = Arrangement.spacedBy(6.dp),
+            maxItemsInEachRow = if (achievement.isEveryMode) 1 else Int.MAX_VALUE,
         ) {
-            // Every score in the band, the recorded ones struck through and faded; TalkBack gets the same as words.
-            item.achievement.scoreBand?.forEach { score ->
-                val recorded = score in item.recordedScores
-                val text = score.grouped()
-                val spoken = if (recorded) stringResource(Res.string.achievements_score_recorded, text) else text
+            // Every entry, the collected ones struck through and faded; TalkBack gets the same as words.
+            achievement.checklist?.forEach { entry ->
+                val collected = entry in item.collected
+                val text = when {
+                    isScores -> entry.grouped()
+                    achievement.isEveryMode -> stringResource(GameMode.entries[entry].displayName)
+                    else -> stringResource(Res.string.achievements_number_label, entry.localised())
+                }
+                val spoken = when {
+                    !collected -> text
+                    isScores -> stringResource(Res.string.achievements_score_recorded, text)
+                    achievement.isEveryMode -> stringResource(Res.string.achievements_mode_finished, text)
+                    else -> stringResource(Res.string.achievements_number_scored, text)
+                }
                 Text(
                     text = text,
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (recorded) 0.38f else 1f),
-                    textDecoration = if (recorded) TextDecoration.LineThrough else null,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (collected) 0.38f else 1f),
+                    textDecoration = if (collected) TextDecoration.LineThrough else null,
                     modifier = Modifier.semantics { contentDescription = spoken },
                 )
             }

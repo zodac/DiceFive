@@ -39,6 +39,15 @@ class AchievementTracker {
     /** Whether player 1's most recently completed turn scored a genuine 5x - see [Achievement.TWICE_IN_A_LIFETIME]. */
     private var playerOnePreviousTurnWasFiveOfAKind = false
 
+    /** The number of each 5x player 1 has scored this game, once per 5x - see [GameAchievementContext.fiveOfAKindNumbers]. */
+    private val fiveOfAKindNumbers = mutableListOf<Int>()
+
+    /** The number of the 5x [onCommit] is about to score, until [onCommitted] confirms the commit. */
+    private var committingFiveOfAKindNumber: Int? = null
+
+    /** The number of the 5x the last commit scored, if it was player 1's and scored one - what an undo takes back. */
+    private var lastCommittedFiveOfAKindNumber: Int? = null
+
     private var lastCommittedCategory: ScoreCategory? = null
     private var pendingUndoneCategory: ScoreCategory? = null
 
@@ -94,6 +103,8 @@ class AchievementTracker {
         playerOneTimeouts = 0
         playerOneTimedOutZeroes.clear()
         playerOnePreviousTurnWasFiveOfAKind = false
+        fiveOfAKindNumbers.clear()
+        committingFiveOfAKindNumber = null
         outOfRollsCupTaps = 0
         resetTurn()
     }
@@ -137,6 +148,12 @@ class AchievementTracker {
     fun onRoll(before: GameState, rolled: GameState): Set<Achievement> = buildSet {
         if (before.dice.all { it.isHeld }) add(Achievement.WHAT_WAS_THE_POINT_OF_THAT)
         if (before.rollsRemaining == before.fullRolls) resetTurn()
+        // Rainy Day Fund: a turn started with this many rolls, Stored Rolls having brought in what its own allowance didn't.
+        if (before.rollsRemaining == before.fullRolls && before.rollModifiers.storedRolls && before.turnRolls >= RAINY_DAY_FUND_ROLLS) {
+            add(Achievement.RAINY_DAY_FUND)
+        }
+        // Bad Omen: every die on the table landed in Unlucky Dice's chains.
+        if (rolled.dice.all { it.isUnlucky }) add(Achievement.BAD_OMEN)
         if (before.rollsRemaining < before.fullRolls) playerOneTookExtraRoll = true
 
         // Decisions, Decisions: all three hold/unhold cycles on a die have to land in the same gap between rolls.
@@ -395,6 +412,8 @@ class AchievementTracker {
             add(Achievement.TWICE_IN_A_LIFETIME)
         }
         playerOnePreviousTurnWasFiveOfAKind = scoresFiveOfAKindNow
+        // Full Set: the same "scored a 5x", and not Stud's either - noted once the commit goes through (onCommitted).
+        committingFiveOfAKindNumber = dice.first().value.takeIf { !state.gameMode.scoresHeldDiceOnly && scoresFiveOfAKindNow }
     }
 
     /**
@@ -405,12 +424,17 @@ class AchievementTracker {
         val undone = pendingUndoneCategory
         pendingUndoneCategory = null
         lastCommittedCategory = category
+        lastCommittedFiveOfAKindNumber = committingFiveOfAKindNumber.takeIf { byPlayerOne }
+        committingFiveOfAKindNumber = null
+        lastCommittedFiveOfAKindNumber?.let { fiveOfAKindNumbers += it }
         return if (byPlayerOne && undone != null && category != undone) setOf(Achievement.I_DIDNT_MEAN_THAT) else emptySet()
     }
 
     /** The last score was undone. */
     fun onUndo() {
         pendingUndoneCategory = lastCommittedCategory
+        lastCommittedFiveOfAKindNumber?.let { fiveOfAKindNumbers.remove(it) }
+        lastCommittedFiveOfAKindNumber = null
     }
 
     /** The game has ended: an undo in it can't lead to I Didn't Mean That in the next one. */
@@ -447,6 +471,7 @@ class AchievementTracker {
         playerOneTookExtraRoll = playerOneTookExtraRoll,
         playerOneTimeouts = playerOneTimeouts,
         playerOneTimedOutZeroes = playerOneTimedOutZeroes.toList(),
+        fiveOfAKindNumbers = fiveOfAKindNumbers.toSet(),
     )
 
     private companion object {
@@ -468,6 +493,9 @@ class AchievementTracker {
         const val FOUR_OF_A_KIND_COUNT = 4
         const val HOLD_UNHOLD_CYCLE_TARGET = 3
         const val NO_MORE_ROLLS_TAP_TARGET = 3
+
+        /** The rolls a turn has to start with for Rainy Day Fund. */
+        const val RAINY_DAY_FUND_ROLLS = 100
 
         /** The exact roll "I Can Count!" is named for. */
         val COUNTING_DICE_VALUES = listOf(1, 2, 3, 4, 5)

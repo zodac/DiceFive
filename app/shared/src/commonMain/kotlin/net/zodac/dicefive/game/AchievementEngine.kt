@@ -57,6 +57,9 @@ data class GameAchievementContext(
      * against the board.
      */
     val previousLeaderboard: LeaderboardTotals = LeaderboardTotals(),
+    /** Each number (1-6) player 1 scored a 5x of this game, as the [AchievementCounter.SCORED_5X] counter counts one -
+     * [Achievement.FULL_SET]'s. */
+    val fiveOfAKindNumbers: Set<Int> = emptySet(),
 )
 
 /**
@@ -82,6 +85,8 @@ data class GameStartContext(
     val hasIrishPlayerOneInTricolour: Boolean = false,
     /** The rules this game is played under - [Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES]'s trigger. */
     val gameMode: GameMode = GameMode.default,
+    /** The hour (0-23) on the phone's clock a new game started at, or null for a resumed one - [Achievement.ROLLING_THE_MIDNIGHT_DICE]'s trigger. */
+    val startedAtLocalHour: Int? = null,
 )
 
 /**
@@ -94,17 +99,22 @@ data class GameStartContext(
 data class LeaderboardTotals(
     val distinctScores: Set<Int> = emptySet(),
     val totalPoints: Int = 0,
+    /** Every [GameMode] player 1 has a recorded game in, on the Leaderboard or not - [Achievement.GRAND_TOUR]'s measure. */
+    val modesPlayed: Set<GameMode> = emptySet(),
 ) {
     /**
      * The same totals with a finished game folded in - what the board will say once it's saved.
      * [allHumanScores] (every human at the table) feeds [distinctScores]; [primaryPlayerScore]
      * (player 1 alone) feeds [totalPoints] - passed separately, not derived from one list, because
      * conflating them is exactly the bug this split guards against (see git history: career points
-     * used to count every human at the table, not just the one whose achievement it is).
+     * used to count every human at the table, not just the one whose achievement it is). [gameMode]
+     * joins [modesPlayed], as player 1 is always recorded. The scores join [distinctScores] only [onLeaderboard] - a
+     * game in a mode off the board, or with a modifier, is recorded but never shown there.
      */
-    fun plusGame(allHumanScores: List<Int>, primaryPlayerScore: Int) = LeaderboardTotals(
-        distinctScores = distinctScores + allHumanScores,
+    fun plusGame(allHumanScores: List<Int>, primaryPlayerScore: Int, gameMode: GameMode, onLeaderboard: Boolean) = LeaderboardTotals(
+        distinctScores = if (onLeaderboard) distinctScores + allHumanScores else distinctScores,
         totalPoints = totalPoints + primaryPlayerScore,
+        modesPlayed = modesPlayed + gameMode,
     )
 }
 
@@ -168,6 +178,9 @@ object AchievementEngine {
     private const val COLD_DICE_SCORE = 100
     private const val LOW_ROLLS_SCORE = 20
 
+    /** The total [Achievement.HANDS_OFF] needs. */
+    private const val HANDS_OFF_SCORE = 200
+
     /** The total [Achievement.SIX_OF_THE_BEST] needs - a perfect Quickfire game is 210. */
     private const val QUICKFIRE_SCORE_TARGET = 150
 
@@ -177,6 +190,9 @@ object AchievementEngine {
      * Chance - which is why the low-score achievements need a game without timeouts.)
      */
     private const val LOWEST_POSSIBLE_SCORE = 5
+
+    /** The hours a new game has to start in for [Achievement.ROLLING_THE_MIDNIGHT_DICE]: midnight up to 6am. */
+    private val MIDNIGHT_DICE_HOURS = 0 until 6
 
     private const val MAX_CHANCE = 30
     private const val MAX_SIXES = 30
@@ -216,7 +232,7 @@ object AchievementEngine {
         val allHumans = state.players.filter { it.type == PlayerType.HUMAN }
 
         val leaderboardBefore = context.previousLeaderboard
-        val leaderboardAfter = leaderboardBefore.plusGame(allHumans.map { it.totalScore }, humans.first().totalScore)
+        val leaderboardAfter = leaderboardBefore.plusGame(allHumans.map { it.totalScore }, humans.first().totalScore, state.gameMode, state.countsOnLeaderboard)
 
         val counters = countersAfter(state, humans, context, before)
         val earned = earnedBy(state, humans, context, counters, leaderboardAfter)
@@ -268,6 +284,7 @@ object AchievementEngine {
             if (context.hasHumanPlayerNamedZodac) add(Achievement.BIG_FAN)
             if (context.hasIrishPlayerOneInTricolour) add(Achievement.LUCK_OF_THE_IRISH)
             if (context.gameMode != GameMode.STANDARD) add(Achievement.WHERE_WERE_GOING_WE_DONT_NEED_RULES)
+            if (context.startedAtLocalHour in MIDNIGHT_DICE_HOURS) add(Achievement.ROLLING_THE_MIDNIGHT_DICE)
         }
         return update(earned, before.counters, before, now)
     }
@@ -284,7 +301,8 @@ object AchievementEngine {
     ): Int = when {
         achievement.scoreBand != null -> leaderboard.distinctScores.count { it in achievement.scoreBand }
         achievement.isCareerPoints -> leaderboard.totalPoints.coerceAtMost(achievement.target)
-        achievement.counter != null -> (counters[achievement.counter] ?: 0).coerceAtMost(achievement.target)
+        achievement.isEveryMode -> leaderboard.modesPlayed.size.coerceAtMost(achievement.target)
+        achievement.counter != null -> achievement.counter.progressOf(counters[achievement.counter] ?: 0).coerceAtMost(achievement.target)
         else -> 0
     }
 
@@ -303,6 +321,9 @@ object AchievementEngine {
             AchievementCounter.GAMES_PLAYED to before.counter(AchievementCounter.GAMES_PLAYED) + 1,
             AchievementCounter.SCORED_5X to before.counter(AchievementCounter.SCORED_5X) + fiveOfAKindsThisGame,
             AchievementCounter.DICE_ROLLED to before.counter(AchievementCounter.DICE_ROLLED) + context.diceRolledByPlayerOne,
+            AchievementCounter.FIVE_X_NUMBERS to context.fiveOfAKindNumbers.fold(before.counter(AchievementCounter.FIVE_X_NUMBERS)) { flags, number ->
+                flags or (1 shl (number - 1))
+            },
             AchievementCounter.GAMES_WON to before.counter(AchievementCounter.GAMES_WON) +
                 if (multiplayer && humanWon) 1 else 0,
             // A solo game has nobody to beat, so it neither extends nor breaks a streak.
@@ -420,7 +441,7 @@ object AchievementEngine {
         // Counter-driven: earned the moment the running total reaches the target.
         for (achievement in Achievement.entries) {
             val counter = achievement.counter ?: continue
-            award(achievement, (counters[counter] ?: 0) >= achievement.target)
+            award(achievement, counter.progressOf(counters[counter] ?: 0) >= achievement.target)
         }
 
         // A card scored three times over (Third Wind) has its own version of Spotless instead. Nor does one with
@@ -538,6 +559,13 @@ object AchievementEngine {
                 state.rollModifiers.rollsPerTurn != null && state.rollModifiers.storedRolls && state.extendedScores && state.unluckyDice != null,
         )
 
+        // Hands Off!: 200 or more without a die held all game - on Standard's own card and rules, nothing to make it easier.
+        award(
+            Achievement.HANDS_OFF,
+            state.gameMode == GameMode.STANDARD && !state.hasModifiers && humans.first().diceHeld == 0 &&
+                humans.first().totalScore >= HANDS_OFF_SCORE,
+        )
+
         // Exactly 69/100 - thresholds the running total can overshoot, so they can only be judged
         // now, unlike the 200-or-more/300-or-more rungs further up the ladder.
         award(Achievement.NICE, anyHuman { it.totalScore == NICE_SCORE })
@@ -553,6 +581,7 @@ object AchievementEngine {
             award(achievement, band.all { it in leaderboard.distinctScores })
         }
         award(Achievement.PROFESSIONAL_ROLLER, leaderboard.totalPoints >= Achievement.PROFESSIONAL_ROLLER.target)
+        award(Achievement.GRAND_TOUR, leaderboard.modesPlayed.containsAll(GameMode.entries))
 
         return earned
     }
@@ -615,7 +644,7 @@ object AchievementEngine {
         val previous: Int
         val current: Int
         when {
-            achievement.scoreBand != null || achievement.isCareerPoints -> {
+            achievement.scoreBand != null || achievement.isCareerPoints || achievement.isEveryMode -> {
                 previous = progressOf(achievement, counters, leaderboardBefore)
                 current = progressOf(achievement, counters, leaderboardAfter)
             }

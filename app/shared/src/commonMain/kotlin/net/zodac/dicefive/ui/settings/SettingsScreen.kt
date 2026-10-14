@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,6 +33,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -198,7 +200,14 @@ fun SettingsScreen(
         onBack = onBack,
         modifier = modifier,
         scrollable = true,
-        footer = { FooterPill(stringResource(Res.string.settings_version, LocalAppContainer.current.buildInfo.versionName)) },
+        footer = {
+            FooterPill(
+                stringResource(Res.string.settings_version, LocalAppContainer.current.buildInfo.versionName),
+                // Raw taps, not clickable, and no ripple: the "Are You A Developer?" easter egg. A clickable would give
+                // TalkBack a "double tap to activate" on a label that does nothing anyone could use - as AppLogo's dice.
+                modifier = Modifier.pointerInput(Unit) { detectTapGestures { viewModel.onVersionTapped() } },
+            )
+        },
     ) {
         // Nothing but the title bar until the saved switches are back, rather than drawing them in
         // their default positions and then flipping the ones the player has changed.

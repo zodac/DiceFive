@@ -95,6 +95,9 @@ class GameStateJsonTest {
         assertEquals(listOf(PlayerColour.LIME, PlayerColour.PINK), roundTripped(coloured).players.map { it.colour })
         assertTrue(roundTripped(GameState(players = listOf(human.copy(fiveOfAKindFlashed = true)))).players.single().fiveOfAKindFlashed)
         assertFalse(roundTripped(GameState(players = listOf(human))).players.single().fiveOfAKindFlashed)
+        // The holds a player has made, for Hands Off! once the game is resumed.
+        assertEquals(7, roundTripped(GameState(players = listOf(human.copy(diceHeld = 7)))).players.single().diceHeld)
+        assertEquals(0, roundTripped(GameState(players = listOf(human))).players.single().diceHeld)
 
         // The roll modifiers and a player's stored rolls.
         roundTripped(

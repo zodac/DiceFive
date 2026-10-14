@@ -48,6 +48,42 @@ private val DIE_FACE_ICONS: Map<Int, ImageVector> by lazy {
     }
 }
 
+/**
+ * All six die faces, 1 to 6, in two rows of three, each cut out of its own small rounded square - the set Full Set
+ * collects, a 5x of each number.
+ */
+internal val DIE_FACE_SET_ICON: ImageVector by lazy {
+    icon("DieFaceSet") {
+        val die = 7.2f
+        val gap = 1.0f
+        val left = (24f - die * 3 - gap * 2) / 2
+        val top = (24f - die * 2 - gap) / 2
+        val faces = StringBuilder()
+        for (value in 1..6) {
+            val x = left + ((value - 1) % 3) * (die + gap)
+            val y = top + ((value - 1) / 3) * (die + gap)
+            faces.append(roundRect(x, y, die, die, 1.6f))
+            for (pip in pipLayout(value)) faces.append(circle(x + 1.1f + pip.x * (die - 2.2f), y + 1.1f + pip.y * (die - 2.2f), 0.72f))
+        }
+        fill(faces.toString(), evenOdd = true)
+    }
+}
+
+/**
+ * A devil's head - a round face, two horns curling up off its brow, slanted eyes and a grin cut out of it. For Bad
+ * Omen, every die cursed into chains at once.
+ */
+internal val DEVIL_HEAD_ICON: ImageVector by lazy {
+    icon("DevilHead") {
+        // The horns, each its own shape so the face doesn't cut a hole where they meet it.
+        fill("M6.6,8.6Q4.2,6.2 4.2,2.2Q7.4,4.6 9.6,7.0Z")
+        fill("M17.4,8.6Q19.8,6.2 19.8,2.2Q16.6,4.6 14.4,7.0Z")
+        val eyes = polygon(8.0f to 11.6f, 11.0f to 13.0f, 8.6f to 14.4f) + polygon(16.0f to 11.6f, 13.0f to 13.0f, 15.4f to 14.4f)
+        val grin = "M8.4,16.4Q12,20.6 15.6,16.4Q12,18.4 8.4,16.4Z"
+        fill(circle(12f, 14f, 7.5f) + eyes + grin, evenOdd = true)
+    }
+}
+
 /** A closed polygon through [points], as path data. */
 private fun polygon(vararg points: Pair<Float, Float>): String =
     points.joinToString(separator = "L", prefix = "M", postfix = "z") { (x, y) -> "$x,$y" }

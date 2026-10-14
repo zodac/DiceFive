@@ -29,6 +29,7 @@ import net.zodac.dicefive.resources.style_colour_classic
 import net.zodac.dicefive.resources.style_colour_clear
 import net.zodac.dicefive.resources.style_colour_copper
 import net.zodac.dicefive.resources.style_colour_crimson
+import net.zodac.dicefive.resources.style_colour_cyan
 import net.zodac.dicefive.resources.style_colour_daisy
 import net.zodac.dicefive.resources.style_colour_digits
 import net.zodac.dicefive.resources.style_colour_double
@@ -149,6 +150,7 @@ import net.zodac.dicefive.resources.style_family_classic
 import net.zodac.dicefive.resources.style_family_containers
 import net.zodac.dicefive.resources.style_family_d20
 import net.zodac.dicefive.resources.style_family_desert
+import net.zodac.dicefive.resources.style_family_devil
 import net.zodac.dicefive.resources.style_family_egg
 import net.zodac.dicefive.resources.style_family_faceted
 import net.zodac.dicefive.resources.style_family_floating_dice
@@ -197,6 +199,7 @@ import net.zodac.dicefive.resources.style_family_treasure
 import net.zodac.dicefive.resources.style_family_tribal
 import net.zodac.dicefive.resources.style_family_urn
 import net.zodac.dicefive.resources.style_family_volcano
+import net.zodac.dicefive.resources.style_family_wireframe
 import net.zodac.dicefive.resources.style_family_wood
 import net.zodac.dicefive.resources.style_family_world
 import net.zodac.dicefive.resources.style_family_wreath
@@ -741,6 +744,54 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             ),
             unlock = StyleUnlock.SpecificAchievement(Achievement.THE_SOLUTION),
         ),
+        StyleFamily(
+            Res.string.style_family_wireframe,
+            listOf(
+                colour(Res.string.style_colour_cyan, WireframeDiceStyle("wireframe_cyan", Color(0xFF071418), Color(0xFF3FE6FF))),
+                colour(Res.string.style_colour_green, WireframeDiceStyle("wireframe_green", Color(0xFF07140B), Color(0xFF4CFF7A))),
+            ),
+            unlock = StyleUnlock.SpecificAchievement(Achievement.ARE_YOU_A_DEVELOPER),
+        ),
+        StyleFamily(
+            Res.string.style_family_devil,
+            listOf(
+                colour(
+                    Res.string.style_colour_crimson,
+                    DevilDiceStyle(
+                        "devil_crimson",
+                        Color(0xFFC62828),
+                        Color(0xFF5A0A0E),
+                        flame = Color(0xFFFF9A1F),
+                        flameCore = Color(0xFFFFE27A),
+                        horn = Color(0xFF1A0A0A),
+                        hornLight = Color(0xFF5A2A2A),
+                    ),
+                ),
+                colour(
+                    Res.string.style_colour_black,
+                    DevilDiceStyle(
+                        "devil_black",
+                        Color(0xFF3A3A3E),
+                        Color(0xFF0E0E10),
+                        flame = Color(0xFFFF4A1F),
+                        flameCore = Color(0xFFFFB04A),
+                        horn = Color(0xFF7A1212),
+                        hornLight = Color(0xFFD04040),
+                    ),
+                ),
+            ),
+            unlock = StyleUnlock.SpecificAchievement(Achievement.BAD_OMEN),
+        ),
+        // To go with the Starry mat and background, and earned with them.
+        StyleFamily(
+            Res.string.style_family_starry,
+            listOf(
+                colour(Res.string.style_colour_midnight, StarryDiceStyle("starry_midnight", Color(0xFF1C2A5E), Color(0xFF0B1230), Color(0xFFFFD54A))),
+                colour(Res.string.style_colour_silver, StarryDiceStyle("starry_silver", Color(0xFF2A2A33), Color(0xFF0C0C10), Color(0xFFE8ECF4))),
+                colour(Res.string.style_colour_purple, StarryDiceStyle("starry_purple", Color(0xFF3A1F5E), Color(0xFF170A2E), Color(0xFFFFC46A))),
+            ),
+            unlock = StyleUnlock.SpecificAchievement(Achievement.ROLLING_THE_MIDNIGHT_DICE),
+        ),
     ),
 )
 
@@ -1047,7 +1098,7 @@ object DiceMats : StyleCatalog<DiceMat>(
             listOf(
                 mat(Res.string.style_colour_midnight, ::StarryDiceMat, "starry_midnight", 0xFF152550, 0xFF070E24, 0xFF0A1330, 0xFF050A1C, 0xFF8FA8E8, 0xFFFFFFFF),
             ),
-            unlock = AchievementCount(45),
+            unlock = StyleUnlock.SpecificAchievement(Achievement.ROLLING_THE_MIDNIGHT_DICE),
         ),
         StyleFamily(
             Res.string.style_family_gingham,
@@ -1128,6 +1179,14 @@ object DiceMats : StyleCatalog<DiceMat>(
             ),
             unlock = AchievementCount(100),
         ),
+        StyleFamily(
+            Res.string.style_family_wireframe,
+            listOf(
+                mat(Res.string.style_colour_cyan, ::WireframeDiceMat, "wireframe_cyan", 0xFF0C1A20, 0xFF060E12, 0xFF03080A, 0xFF010304, 0xFF3FE6FF, 0xFF3FE6FF),
+                mat(Res.string.style_colour_green, ::WireframeDiceMat, "wireframe_green", 0xFF0C1A10, 0xFF060E08, 0xFF030804, 0xFF010301, 0xFF4CFF7A, 0xFF4CFF7A),
+            ),
+            unlock = StyleUnlock.SpecificAchievement(Achievement.ARE_YOU_A_DEVELOPER),
+        ),
     ),
 )
 
@@ -1199,7 +1258,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
             listOf(
                 background(Res.string.style_colour_midnight, ::StarryBackground, "starry_midnight", 0xFF12224A, 0xFF060C22),
             ),
-            unlock = AchievementCount(45),
+            unlock = StyleUnlock.SpecificAchievement(Achievement.ROLLING_THE_MIDNIGHT_DICE),
         ),
         StyleFamily(
             Res.string.style_family_gingham,

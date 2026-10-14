@@ -19,7 +19,7 @@ mode changes, decide:
 |---|---|---|
 | Roll count | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Time To Let It Go, Pointless Roll, Greenfingers, Probability? Never Heard of Her | Does "one roll used" or "every roll used" become automatic or impossible? |
 | First roll | House Call, Straight Away, I Can Count! | Is every roll now a first roll, or none? |
-| Holds | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues | Can dice still be held? |
+| Holds | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues, Hands Off! (Standard only) | Can dice still be held? |
 | Timer | The timeout guards on low or zeroed cards (`GAME_MODES.md`) | Always or never a timer? |
 | Card contents | How Do You Play This Game?, Spotless, Bonus Round, Upper/Lower Class, Exact Change, the 5x ones | Is each box still there, and do totals mean the same? |
 | Score thresholds | Solid Round ... Dice Deity, Cold Dice, Low Rolls, Ton!, Nice, Rock Bottom, the score bands | Trivial or impossible at this ceiling? |
@@ -69,6 +69,17 @@ The draw is always three upper and three lower boxes. A short game with small to
 
 The mode's own: Quick On The Draw (a multiplayer win) and Six Of The Best (150+, not with extra rolls or Extended
 Scores).
+
+## Modifier achievements
+
+- **Rainy Day Fund** (a turn started with 100+ rolls under Stored Rolls) needs about 8+ rolls a turn in a 13-turn
+  mode (9 a turn with one roll used each turn reaches 105 on the last turn). Third Wind's 39 turns make it easier;
+  Quickfire's six turns make it impossible.
+- **Bad Omen** (a Game Modes achievement, unlocking the Devil dice: every die chained at once) needs Unlucky Dice's
+  cap at 5 and nothing held. Impossible in Stud: seven
+  dice, at most five chained.
+- **Grand Tour** counts a finished game in each mode, modifiers or not. A new mode raises its target
+  (`GameMode.entries.size`); anyone already holding it keeps it.
 
 ## One roll a turn (Number of Rolls at 1)
 

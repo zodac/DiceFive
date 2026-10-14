@@ -7,8 +7,12 @@ import net.zodac.dicefive.resources.achievement_almost_famous_description
 import net.zodac.dicefive.resources.achievement_almost_famous_title
 import net.zodac.dicefive.resources.achievement_archivist_description
 import net.zodac.dicefive.resources.achievement_archivist_title
+import net.zodac.dicefive.resources.achievement_are_you_a_developer_description
+import net.zodac.dicefive.resources.achievement_are_you_a_developer_title
 import net.zodac.dicefive.resources.achievement_auditor_description
 import net.zodac.dicefive.resources.achievement_auditor_title
+import net.zodac.dicefive.resources.achievement_bad_omen_description
+import net.zodac.dicefive.resources.achievement_bad_omen_title
 import net.zodac.dicefive.resources.achievement_big_fan_description
 import net.zodac.dicefive.resources.achievement_big_fan_title
 import net.zodac.dicefive.resources.achievement_bonus_round_description
@@ -55,6 +59,8 @@ import net.zodac.dicefive.resources.achievement_five_x_description
 import net.zodac.dicefive.resources.achievement_five_x_title
 import net.zodac.dicefive.resources.achievement_fresh_coat_of_paint_description
 import net.zodac.dicefive.resources.achievement_fresh_coat_of_paint_title
+import net.zodac.dicefive.resources.achievement_full_set_description
+import net.zodac.dicefive.resources.achievement_full_set_title
 import net.zodac.dicefive.resources.achievement_full_table_description
 import net.zodac.dicefive.resources.achievement_full_table_title
 import net.zodac.dicefive.resources.achievement_fuller_house_description
@@ -63,10 +69,14 @@ import net.zodac.dicefive.resources.achievement_getting_comfortable_description
 import net.zodac.dicefive.resources.achievement_getting_comfortable_title
 import net.zodac.dicefive.resources.achievement_gone_with_the_wind_description
 import net.zodac.dicefive.resources.achievement_gone_with_the_wind_title
+import net.zodac.dicefive.resources.achievement_grand_tour_description
+import net.zodac.dicefive.resources.achievement_grand_tour_title
 import net.zodac.dicefive.resources.achievement_greenfingers_description
 import net.zodac.dicefive.resources.achievement_greenfingers_title
 import net.zodac.dicefive.resources.achievement_hall_of_famer_description
 import net.zodac.dicefive.resources.achievement_hall_of_famer_title
+import net.zodac.dicefive.resources.achievement_hands_off_description
+import net.zodac.dicefive.resources.achievement_hands_off_title
 import net.zodac.dicefive.resources.achievement_hat_trick_description
 import net.zodac.dicefive.resources.achievement_hat_trick_title
 import net.zodac.dicefive.resources.achievement_high_roller_description
@@ -135,6 +145,8 @@ import net.zodac.dicefive.resources.achievement_professional_roller_description
 import net.zodac.dicefive.resources.achievement_professional_roller_title
 import net.zodac.dicefive.resources.achievement_quick_on_the_draw_description
 import net.zodac.dicefive.resources.achievement_quick_on_the_draw_title
+import net.zodac.dicefive.resources.achievement_rainy_day_fund_description
+import net.zodac.dicefive.resources.achievement_rainy_day_fund_title
 import net.zodac.dicefive.resources.achievement_registrar_description
 import net.zodac.dicefive.resources.achievement_registrar_title
 import net.zodac.dicefive.resources.achievement_regular_description
@@ -143,6 +155,8 @@ import net.zodac.dicefive.resources.achievement_right_on_target_description
 import net.zodac.dicefive.resources.achievement_right_on_target_title
 import net.zodac.dicefive.resources.achievement_rock_bottom_description
 import net.zodac.dicefive.resources.achievement_rock_bottom_title
+import net.zodac.dicefive.resources.achievement_rolling_the_midnight_dice_description
+import net.zodac.dicefive.resources.achievement_rolling_the_midnight_dice_title
 import net.zodac.dicefive.resources.achievement_scratched_description
 import net.zodac.dicefive.resources.achievement_scratched_title
 import net.zodac.dicefive.resources.achievement_shaken_not_tapped_description
@@ -221,13 +235,23 @@ import org.jetbrains.compose.resources.StringResource
 /**
  * A device-wide running total that one or more [Achievement]s are measured against. Shared rather
  * than per-achievement so "finish 10 / 50 / 100 games" is one stored number, not three.
+ *
+ * An [isFlags] counter stores a set of flags, one bit each, rather than a total: its progress is how
+ * many are set ([progressOf]), and a game adds its flags with a bitwise or.
  */
-enum class AchievementCounter(override val id: String) : StoredId {
+enum class AchievementCounter(override val id: String, val isFlags: Boolean = false) : StoredId {
     GAMES_PLAYED("GAMES_PLAYED"),
     GAMES_WON("GAMES_WON"),
     WIN_STREAK("WIN_STREAK"),
     SCORED_5X("SCORED_5X"),
     DICE_ROLLED("DICE_ROLLED"),
+
+    /** Each number player 1 has scored a 5x of: bit `n - 1` for the number `n`. */
+    FIVE_X_NUMBERS("FIVE_X_NUMBERS", isFlags = true),
+    ;
+
+    /** How far [stored] - this counter's stored value - counts towards an achievement's target. */
+    fun progressOf(stored: Int): Int = if (isFlags) stored.countOneBits() else stored
 }
 
 /**
@@ -340,6 +364,8 @@ enum class Achievement(
     val scoreBand: IntRange? = null,
     /** True for the one achievement measured against every point ever scored, rather than a counter. */
     val isCareerPoints: Boolean = false,
+    /** True for the one achievement measured against the game modes player 1 has finished a game in, rather than a counter. */
+    val isEveryMode: Boolean = false,
     /**
      * Whether [COMPLETIONIST] waits on this one. False for [COMPLETIONIST] itself, and for every
      * [AchievementCategory.EASTER_EGGS] one.
@@ -496,6 +522,14 @@ enum class Achievement(
         Res.string.achievement_hat_trick_title,
         Res.string.achievement_hat_trick_description,
         AchievementCategory.DICE,
+    ),
+    // A 5x as the SCORED_5X counter counts one - in the box or as a bonus chip, never Stud's - of each number 1-6, over
+    // any number of games. A banner for every new number.
+    FULL_SET(
+        "full_set",
+        Res.string.achievement_full_set_title,
+        Res.string.achievement_full_set_description,
+        AchievementCategory.DICE, AchievementCounter.FIVE_X_NUMBERS, target = 6, progressStepSize = 1,
     ),
 
     // ---- Dice feats continued: interaction quirks, not just what the dice show ----------------
@@ -715,6 +749,29 @@ enum class Achievement(
         Res.string.achievement_six_of_the_best_description,
         AchievementCategory.GAME_MODES,
     ),
+    // Judged on player 1's first roll of a turn: the rolls it started with, its own and those Stored Rolls brought in.
+    RAINY_DAY_FUND(
+        "rainy_day_fund",
+        Res.string.achievement_rainy_day_fund_title,
+        Res.string.achievement_rainy_day_fund_description,
+        AchievementCategory.GAME_MODES,
+    ),
+    // Judged as player 1's dice land: every die on the table in Unlucky Dice's chains at once - so up to five a roll,
+    // and nothing held. Never in Stud, whose seven dice can't all be chained.
+    BAD_OMEN(
+        "bad_omen",
+        Res.string.achievement_bad_omen_title,
+        Res.string.achievement_bad_omen_description,
+        AchievementCategory.GAME_MODES,
+    ),
+    // Measured against the scores table, like career points, so it's retroactive: a game player 1 finished in each mode,
+    // solo or not, modifiers or not. A banner for every new mode.
+    GRAND_TOUR(
+        "grand_tour",
+        Res.string.achievement_grand_tour_title,
+        Res.string.achievement_grand_tour_description,
+        AchievementCategory.GAME_MODES, target = GameMode.entries.size, isEveryMode = true, progressStepSize = 1,
+    ),
 
     // ---- Misfortune: going badly, on purpose or otherwise --------------------------------------
     SCRATCHED(
@@ -799,6 +856,14 @@ enum class Achievement(
         "time_wasting",
         Res.string.achievement_time_wasting_title,
         Res.string.achievement_time_wasting_description,
+        AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
+    ),
+    // Judged on the finished game: 200 or more in Standard with no modifiers, never a die held - counted on player 1's
+    // own state (PlayerState.diceHeld), so it's saved with a game left and resumed.
+    HANDS_OFF(
+        "hands_off",
+        Res.string.achievement_hands_off_title,
+        Res.string.achievement_hands_off_description,
         AchievementCategory.MISCELLANEOUS, visibility = AchievementVisibility.HIDDEN,
     ),
     I_DIDNT_MEAN_THAT(
@@ -997,6 +1062,14 @@ enum class Achievement(
     // Unlike every other category, these run alphabetically by title rather than easiest-first -
     // there's no ladder among easter eggs to keep in order. AchievementEngineTest holds them to it.
     //
+    // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the version number on the Settings
+    // screen can be tapped, let alone seven times, as Android's own build number is to turn on its developer options.
+    ARE_YOU_A_DEVELOPER(
+        "are_you_a_developer",
+        Res.string.achievement_are_you_a_developer_title,
+        Res.string.achievement_are_you_a_developer_description,
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
+    ),
     // Excluded from COMPLETIONIST like the rest of this category - naming yourself after the creator, or a human P2/P3/P4 named exactly "zodac"
     // (case-sensitive, never P1, who's always the human player at this device), isn't something
     // every player could reasonably be expected to stumble into on the way to 100%.
@@ -1040,6 +1113,14 @@ enum class Achievement(
         Res.string.achievement_not_those_dice_description,
         AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
     ),
+    // Excluded from COMPLETIONIST like the rest of this category - nothing hints that the time of day means anything. A
+    // new game started between midnight and 6am on the phone's own clock; a game resumed then doesn't count.
+    ROLLING_THE_MIDNIGHT_DICE(
+        "rolling_the_midnight_dice",
+        Res.string.achievement_rolling_the_midnight_dice_title,
+        Res.string.achievement_rolling_the_midnight_dice_description,
+        AchievementCategory.EASTER_EGGS, countsTowardCompletion = false, visibility = AchievementVisibility.HIDDEN,
+    ),
     // Excluded from COMPLETIONIST the same way Big Fan/Luck of the Irish are - shaking the phone to
     // roll isn't something every player could reasonably be expected to stumble into on the way to
     // 100%, since nothing in the UI hints it's possible.
@@ -1070,9 +1151,9 @@ enum class Achievement(
 
     val progressStyle: ProgressStyle
         get() = when {
-            // A band only ever gains scores, and career points only ever go up, so both climb
-            // like any other running total.
-            scoreBand != null || isCareerPoints -> ProgressStyle.CUMULATIVE
+            // A band only ever gains scores, career points only ever go up, and a mode once played stays played,
+            // so all three climb like any other running total.
+            scoreBand != null || isCareerPoints || isEveryMode -> ProgressStyle.CUMULATIVE
             // A target of 1 is a plain unlock that happens to be driven by a counter: a "0 of 1"
             // progress bar says nothing the locked state doesn't already.
             counter == null || target <= 1 -> ProgressStyle.NONE
@@ -1082,6 +1163,20 @@ enum class Achievement(
 
     val hasProgressBar: Boolean
         get() = progressStyle != ProgressStyle.NONE
+
+    /**
+     * What a collection achievement collects, one entry each, for the list of what's still missing: a score band's
+     * scores, the numbers an [AchievementCounter.isFlags] counter's bits stand for (bit `n - 1` for `n`), or for
+     * [isEveryMode] each [GameMode]'s position in [GameMode.entries] (for display only, never stored). Null for every
+     * other achievement.
+     */
+    val checklist: List<Int>?
+        get() = when {
+            scoreBand != null -> scoreBand.toList()
+            isEveryMode -> GameMode.entries.indices.toList()
+            counter?.isFlags == true -> (1..target).toList()
+            else -> null
+        }
 
     companion object {
 

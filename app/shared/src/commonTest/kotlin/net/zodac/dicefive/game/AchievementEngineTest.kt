@@ -409,11 +409,13 @@ class AchievementEngineTest {
 
         // The Easter Eggs are hidden achievements (description "???") and none gates Completionist.
         val easterEggs = listOf(
+            Achievement.ARE_YOU_A_DEVELOPER,
             Achievement.BIG_FAN,
             Achievement.EGGCELLENT_DISCOVERY,
             Achievement.GREENFINGERS,
             Achievement.LUCK_OF_THE_IRISH,
             Achievement.NOT_THOSE_DICE,
+            Achievement.ROLLING_THE_MIDNIGHT_DICE,
             Achievement.SHAKEN_NOT_TAPPED,
             Achievement.THE_MAGICIANS_SECRET,
             Achievement.THE_SOLUTION,
@@ -470,6 +472,9 @@ class AchievementEngineTest {
                 Achievement.RIGHT_ON_TARGET,
                 Achievement.QUICK_ON_THE_DRAW,
                 Achievement.SIX_OF_THE_BEST,
+                Achievement.RAINY_DAY_FUND,
+                Achievement.BAD_OMEN,
+                Achievement.GRAND_TOUR,
             ),
             gameModes,
         )
@@ -592,6 +597,15 @@ class AchievementEngineTest {
         assertTrue(Achievement.TALLY in unlocked(finishedGame(player(total = 42)), context(allButOne)))
         // The leaderboard read happens before the insert, so the engine has to add this game's own score itself.
         assertTrue(Achievement.TALLY in unlocked(finishedGame(player(total = 50)), context((5..49).toSet())))
+        // Only a game that goes on the Leaderboard: one in a mode off it, or with a modifier, is never shown there.
+        assertTrue(Achievement.TALLY in unlocked(finishedGame(player(total = 42, gameMode = GameMode.TRICOLOUR)), context(allButOne)))
+        assertFalse(Achievement.TALLY in unlocked(finishedGame(player(total = 42, gameMode = GameMode.HIT_LIST)), context(allButOne)))
+        assertFalse(Achievement.TALLY in unlocked(finishedGame(player(total = 42, gameMode = GameMode.QUICKFIRE)), context(allButOne)))
+        assertFalse(Achievement.TALLY in unlocked(finishedGame(player(total = 42)).copy(turnTimer = TurnTimer.SECONDS_30), context(allButOne)))
+        assertFalse(
+            evaluate(finishedGame(player(total = 16, gameMode = GameMode.HIT_LIST)), context((5..15).toSet())).progressed.any { it.achievement == Achievement.TALLY },
+            "no progress banner for a score that never reaches the board",
+        )
 
         // Bands only count scores inside their own range.
         val oneBand = unlocked(finishedGame(player(total = 300)), context((5..50).toSet()))
@@ -617,10 +631,88 @@ class AchievementEngineTest {
         assertEquals((5..300).toSet(), bands.mapNotNull { it.scoreBand }.flatten().toSet())
     }
 
+    @Test
+    fun `Full Set - a 5x of every number - collected across games - a banner for each new number`() {
+        fun numbers(vararg values: Int) = GameAchievementContext(fiveOfAKindNumbers = values.toSet())
+        fun flags(vararg values: Int) = values.fold(0) { flags, value -> flags or (1 shl (value - 1)) }
+
+        // Each game's numbers join those already stored: 1, 2 and 6 stored, plus 2 and 4 this game, is four of six.
+        val partial = evaluate(
+            finishedGame(player()),
+            numbers(2, 4),
+            AchievementsState(counters = mapOf(AchievementCounter.FIVE_X_NUMBERS to flags(1, 2, 6))),
+        )
+        assertEquals(flags(1, 2, 4, 6), partial.counters[AchievementCounter.FIVE_X_NUMBERS])
+        assertFalse(Achievement.FULL_SET in partial.newlyUnlocked)
+        assertEquals(AchievementProgress(Achievement.FULL_SET, 3, 4), partial.progressed.single { it.achievement == Achievement.FULL_SET })
+        assertEquals(4, AchievementEngine.progressOf(Achievement.FULL_SET, partial.counters, LeaderboardTotals()))
+
+        // A number already stored is no progress, and no banner.
+        val repeat = evaluate(finishedGame(player()), numbers(6), AchievementsState(counters = mapOf(AchievementCounter.FIVE_X_NUMBERS to flags(6))))
+        assertEquals(flags(6), repeat.counters[AchievementCounter.FIVE_X_NUMBERS])
+        assertFalse(repeat.progressed.any { it.achievement == Achievement.FULL_SET })
+
+        // The sixth number completes the set.
+        val complete = evaluate(
+            finishedGame(player()),
+            numbers(3),
+            AchievementsState(counters = mapOf(AchievementCounter.FIVE_X_NUMBERS to flags(1, 2, 4, 5, 6))),
+        )
+        assertTrue(Achievement.FULL_SET in complete.newlyUnlocked)
+        assertTrue(Achievement.FULL_SET in Achievement.COMPLETION_REQUIREMENTS)
+    }
+
+    @Test
+    fun `Grand Tour - a game finished in every mode - measured against player 1's recorded games`() {
+        val allButHitList = (GameMode.entries - GameMode.HIT_LIST).toSet()
+        fun context(modes: Set<GameMode>) = GameAchievementContext(previousLeaderboard = LeaderboardTotals(modesPlayed = modes))
+
+        // The board is read before this game's rows go in, so the engine adds this game's own mode itself.
+        assertFalse(Achievement.GRAND_TOUR in unlocked(finishedGame(player()), context(allButHitList)))
+        assertTrue(Achievement.GRAND_TOUR in unlocked(finishedGame(player(gameMode = GameMode.HIT_LIST)), context(allButHitList)))
+        // Solo or not, with modifiers or not: a finished game in the mode is all it takes.
+        val modified = finishedGame(player(gameMode = GameMode.HIT_LIST)).copy(turnTimer = TurnTimer.SECONDS_30, extendedScores = true)
+        assertTrue(Achievement.GRAND_TOUR in unlocked(modified, context(allButHitList)))
+
+        // A banner for every new mode, none for one already played.
+        fun progressed(before: Set<GameMode>, mode: GameMode) =
+            evaluate(finishedGame(player(gameMode = mode)), context(before)).progressed.singleOrNull { it.achievement == Achievement.GRAND_TOUR }
+        assertEquals(AchievementProgress(Achievement.GRAND_TOUR, 1, 2), progressed(setOf(GameMode.STANDARD), GameMode.STUD))
+        assertEquals(null, progressed(setOf(GameMode.STANDARD), GameMode.STANDARD))
+
+        assertEquals(7, Achievement.GRAND_TOUR.target)
+        assertEquals(3, AchievementEngine.progressOf(Achievement.GRAND_TOUR, emptyMap(), LeaderboardTotals(modesPlayed = setOf(GameMode.STANDARD, GameMode.D20, GameMode.STUD))))
+    }
+
     // ---- Game start and mid-game --------------------------------------------------------------------
     // Gathering GameStartContext's booleans needs an async SettingsRepository read only GameViewModel can do (see
     // checkGameStartAchievements), but deciding what they earn is this pure engine's job, same as
     // evaluate/evaluateInProgress for the rest of a game.
+
+    @Test
+    fun `Hands Off - 200 or more in Standard with no die held - not 199 - not after a hold - not in another mode or with a modifier`() {
+        fun earned(game: GameState) = Achievement.HANDS_OFF in unlocked(game)
+        assertTrue(earned(finishedGame(player(total = 200))))
+        assertFalse(earned(finishedGame(player(total = 199))))
+        assertFalse(earned(finishedGame(player(total = 250).copy(diceHeld = 1))))
+        // Only player 1's holds count: the CPU holding its dice is no matter.
+        assertTrue(earned(finishedGame(player(total = 250), bot(total = 100).copy(diceHeld = 30))))
+        assertFalse(earned(finishedGame(player(total = 250, gameMode = GameMode.TRICOLOUR))))
+        assertFalse(earned(finishedGame(player(total = 250)).copy(turnTimer = TurnTimer.SECONDS_60)))
+        assertFalse(earned(finishedGame(player(total = 250)).copy(extendedScores = true)))
+        // Player 1's own score: a 200 by the CPU beside a lower one of theirs is no help.
+        assertFalse(earned(finishedGame(player(total = 150), bot(total = 260))))
+    }
+
+    @Test
+    fun `game start - Rolling The Midnight Dice from midnight up to 6am - not at 6 - not on a resumed game`() {
+        fun earnedAt(hour: Int?) =
+            Achievement.ROLLING_THE_MIDNIGHT_DICE in AchievementEngine.evaluateAtGameStart(GameStartContext(startedAtLocalHour = hour), AchievementsState(), NOW).newlyUnlocked
+        for (hour in 0..5) assertTrue(earnedAt(hour), "a game started at hour $hour")
+        for (hour in listOf(6, 12, 23)) assertFalse(earnedAt(hour), "a game started at hour $hour")
+        // A resumed game has no start hour.
+        assertFalse(earnedAt(null))
+    }
 
     @Test
     fun `game start - The Journey Begins once - then each flag GameViewModel hands it and no counters touched`() {

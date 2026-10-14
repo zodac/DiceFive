@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
@@ -14,15 +15,24 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.flow.MutableStateFlow
 import net.zodac.dicefive.app.LocalAppContainer
+import net.zodac.dicefive.data.achievements.AchievementStore
+import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.scores.ScoreDao
+import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.device.AndroidAppContainer
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
+import net.zodac.dicefive.model.AchievementCounter
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
@@ -42,6 +52,16 @@ class AchievementsTextTest {
     val compose = createComposeRule()
 
     private val showcase = Showcase(compose)
+
+    /**
+     * Closes the pop-up and scrolls back to the top: the screen remembers where it was scrolled to for the whole
+     * process, so a test left scrolled down starts the next one there.
+     */
+    private fun leaveListAtTop() {
+        compose.onNodeWithText("Done").performClick()
+        compose.onNode(hasScrollAction()).performScrollToIndex(0)
+        compose.waitForIdle()
+    }
 
     @Test
     fun `the page is titled - counts what is unlocked - hides a description as three question marks - and each banner says what it is`() {
@@ -85,5 +105,65 @@ class AchievementsTextTest {
         compose.onNode(hasContentDescription("Getting Comfortable: 5 of 10")).assertExists()
         val config = compose.onAllNodesWithContentDescription("Getting Comfortable: 5 of 10").onFirst().fetchSemanticsNode().config
         assertEquals(true, SemanticsActions.OnClick in config)
+    }
+
+    @Test
+    fun `Full Set opens a list of its numbers - 1s to 6s - the ones scored read as scored`() {
+        // A 5x of 1s and 3s scored so far: bits 0 and 2.
+        val store = object : AchievementStore {
+            override val state = MutableStateFlow(AchievementsState(counters = mapOf(AchievementCounter.FIVE_X_NUMBERS to 0b101)))
+            override suspend fun current() = state.value
+            override suspend fun record(unlockedAt: Map<Achievement, Long>, counters: Map<AchievementCounter, Int>) = Unit
+            override suspend fun resetAll() = Unit
+            override suspend fun forceLock(achievement: Achievement) = Unit
+        }
+        val viewModel = AchievementsViewModel(achievementsRepository = store)
+        showcase.show {
+            CompositionLocalProvider(
+                LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
+                LocalPlatformServices provides SilentPlatformServices,
+            ) {
+                DiceFiveTheme { AchievementsScreen(viewModel = viewModel, onBack = {}) }
+            }
+        }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Full Set"))
+        // Its tap is named for TalkBack.
+        val row = compose.onNode(SemanticsMatcher("clicks to show the missing numbers") { it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label == "Show the missing numbers" })
+        row.performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Numbers with no 5x scored yet (4 left):").assertExists()
+        // Each number is shown as "1s" to "6s"; the scored ones are read as scored.
+        for (number in listOf(1, 3)) compose.onNodeWithContentDescription("${number}s, scored").assertExists()
+        for (number in listOf(2, 4, 5, 6)) compose.onNodeWithContentDescription("${number}s").assertExists()
+        leaveListAtTop()
+    }
+
+    @Test
+    fun `Grand Tour opens a list of every mode by name - the ones finished read as finished`() {
+        val modesPlayed = listOf(GameMode.STANDARD, GameMode.STUD, GameMode.THIRD_WIND)
+        val dao = object : ScoreDao by RowsDao(emptyList()) {
+            override suspend fun primaryPlayerGameModeIds(): List<String> = modesPlayed.map { it.id }
+        }
+        val viewModel = AchievementsViewModel(scoreRepository = ScoreRepository(dao))
+        showcase.show {
+            CompositionLocalProvider(
+                LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
+                LocalPlatformServices provides SilentPlatformServices,
+            ) {
+                DiceFiveTheme { AchievementsScreen(viewModel = viewModel, onBack = {}) }
+            }
+        }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Grand Tour"))
+        // Its tap is named for TalkBack.
+        compose.onNode(SemanticsMatcher("clicks to show the missing modes") { it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label == "Show the missing modes" })
+            .performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Modes with no game finished yet (4 left):").assertExists()
+        // Each mode by its whole name, the finished ones read as finished.
+        for (mode in listOf("Standard", "7 Dice Stud", "Third Wind")) compose.onNodeWithContentDescription("$mode, finished").assertExists()
+        for (mode in listOf("Tricolour", "Quickfire", "D20", "Hit List")) compose.onNodeWithContentDescription(mode).assertExists()
+        leaveListAtTop()
     }
 }

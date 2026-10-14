@@ -32,11 +32,14 @@ data class AchievementItem(
     val achievement: Achievement,
     val unlockedAt: Long? = null,
     val progress: Int = 0,
-    /** For a score-collection achievement, the scores in its band already on the leaderboard; empty otherwise. */
-    val recordedScores: Set<Int> = emptySet(),
+    /**
+     * For a collection achievement, the entries of its [Achievement.checklist] already collected - a score band's
+     * scores on the leaderboard, Full Set's numbers scored as a 5x, Grand Tour's modes played; empty otherwise.
+     */
+    val collected: Set<Int> = emptySet(),
 ) {
-    /** The scores in the achievement's band not yet on the leaderboard; empty for any other achievement. */
-    val missingScores: List<Int> get() = achievement.scoreBand?.filter { it !in recordedScores }.orEmpty()
+    /** The entries of the achievement's [Achievement.checklist] not yet collected; empty for any other achievement. */
+    val missing: List<Int> get() = achievement.checklist?.filter { it !in collected }.orEmpty()
 
     val progressFraction: Float get() = progress.toFloat() / achievement.target
 }
@@ -206,8 +209,13 @@ class AchievementsViewModel(
             .map {
                 val progress = (AchievementEngine.progressOf(it, state.counters, leaderboard) + (progressOverride[it] ?: 0))
                     .coerceAtMost(it.target)
-                val recorded = it.scoreBand?.filter { score -> score in leaderboard.distinctScores }.orEmpty().toSet()
-                AchievementItem(it, state.unlockedAt[it], progress, recorded)
+                val flags = it.counter?.takeIf { counter -> counter.isFlags }?.let(state::counter) ?: 0
+                val collected = when {
+                    it.scoreBand != null -> it.scoreBand.filter { score -> score in leaderboard.distinctScores }.toSet()
+                    it.isEveryMode -> leaderboard.modesPlayed.map { mode -> mode.ordinal }.toSet()
+                    else -> it.checklist?.filter { number -> flags and (1 shl (number - 1)) != 0 }.orEmpty().toSet()
+                }
+                AchievementItem(it, state.unlockedAt[it], progress, collected)
             }
 
         return AchievementsUiState(

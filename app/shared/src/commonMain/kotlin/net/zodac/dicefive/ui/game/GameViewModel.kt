@@ -44,6 +44,7 @@ import net.zodac.dicefive.game.GameStartContext
 import net.zodac.dicefive.game.HandCompletion
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.game.StandardPerfectPlayTable
+import net.zodac.dicefive.game.localHourOfDay
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.game.toTieBreakStats
 import net.zodac.dicefive.model.Achievement
@@ -165,6 +166,8 @@ class GameViewModel(
     private val isDebugBuild: Boolean = false,
     /** Standard's perfect-play table, for Hard CPUs in Standard (see [StandardPerfectPlayTable]) - without it, they estimate. */
     private val standardPerfectPlay: (suspend () -> StandardPerfectPlayTable?)? = null,
+    /** The hour (0-23) on the phone's clock now. Injectable so a test can start a game at any time of day. */
+    private val localHour: () -> Int = { localHourOfDay(nowEpochMillis()) },
 ) : ViewModel() {
 
     private val _setup = MutableStateFlow(GameSetupState())
@@ -529,6 +532,7 @@ class GameViewModel(
         val extendedScores = setupState.extendedScores && setupState.gameMode.allowsExtendedScores
         beginGame(
             GameEngine.newGame(playerConfigs, setupState.gameMode, setupState.turnTimer, setupState.rollModifiers, extendedScores, setupState.activeUnluckyDice),
+            startedAtLocalHour = localHour(),
         )
 
         if (previousGame != null && previousGame.isGameOver && !humanWonGame(previousGame)) {
@@ -552,10 +556,11 @@ class GameViewModel(
     /**
      * Puts [state] on the table as a game starting or resuming, with nothing to undo, no cheat active and nothing
      * tracked towards an achievement yet - [resumedSecondsLeft] is what a resumed turn's timer starts from, and
-     * [resumedUndo] the box an undo in it took back. A new game's achievements are checked straight away: "Full
-     * Table" is settled the moment four seats are taken.
+     * [resumedUndo] the box an undo in it took back, and [startedAtLocalHour] the hour on the phone's clock a new game
+     * started at (null for one resumed). A new game's achievements are checked straight away: "Full Table" is settled
+     * the moment four seats are taken.
      */
-    private fun beginGame(state: GameState, resumedSecondsLeft: Int? = null, resumedUndo: ScoreCategory? = null) {
+    private fun beginGame(state: GameState, resumedSecondsLeft: Int? = null, resumedUndo: ScoreCategory? = null, startedAtLocalHour: Int? = null) {
         setUndoSnapshot(null)
         resetSuperuserMode()
         tracker.startGame(resumedUndo)
@@ -564,7 +569,7 @@ class GameViewModel(
         this.resumedSecondsLeft = null
         prepareHardCpus()
         checkInProgressAchievements()
-        checkGameStartAchievements()
+        checkGameStartAchievements(startedAtLocalHour)
     }
 
     /**
@@ -983,7 +988,7 @@ class GameViewModel(
      * game-start achievement is a new field on [GameStartContext] and a line in that engine
      * function, not a new method here.
      */
-    private fun checkGameStartAchievements() {
+    private fun checkGameStartAchievements(startedAtLocalHour: Int?) {
         val unlocker = achievementUnlocker ?: return
         val repository = achievementsRepository ?: return
         val settings = settingsRepository ?: return
@@ -1007,6 +1012,7 @@ class GameViewModel(
                 hasHumanPlayerNamedZodac = hasZodacAsPlayerTwo,
                 hasIrishPlayerOneInTricolour = isLuckOfTheIrish,
                 gameMode = gameMode,
+                startedAtLocalHour = startedAtLocalHour,
             )
             unlocker.apply { state -> AchievementEngine.evaluateAtGameStart(context, state, nowEpochMillis()) }
         }

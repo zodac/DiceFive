@@ -261,6 +261,9 @@ val Bronze = Color(0xFFE0965A)
 // shouldn't couple an unrelated achievement's colour to a game mode's palette.
 val AchievementHeartRed = Color(0xFFE53935)
 
+/** Are You A Developer?'s icon: the cyan of the Wireframe dice it unlocks. */
+val AchievementDeveloperCyan = Color(0xFF3FE6FF)
+
 /** The Completionist trophy: always gold, whatever the row or banner holding it. */
 val AchievementTrophyGold = Color(0xFFFFC107)
 

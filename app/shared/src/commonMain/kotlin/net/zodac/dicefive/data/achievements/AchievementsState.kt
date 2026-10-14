@@ -24,7 +24,7 @@ data class AchievementsState(
 
     /** How far along [achievement] is, capped at its target (a counter can run past it). */
     fun progress(achievement: Achievement): Int =
-        achievement.counter?.let { counter(it).coerceAtMost(achievement.target) } ?: 0
+        achievement.counter?.let { it.progressOf(counter(it)).coerceAtMost(achievement.target) } ?: 0
 }
 
 /** Whether earning this achievement counts towards [AchievementsState.countedUnlocks]. */

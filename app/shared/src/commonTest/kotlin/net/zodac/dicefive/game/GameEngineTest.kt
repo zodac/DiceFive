@@ -94,6 +94,20 @@ class GameEngineTest {
     }
 
     @Test
+    fun `each hold is counted for the player whose turn it is - a release is not - and the count lasts the game`() {
+        val rolled = GameEngine.rollDice(GameEngine.newGame(twoPlayers))
+        val held = GameEngine.toggleHold(GameEngine.toggleHold(rolled, dieIndex = 0), dieIndex = 1)
+        assertEquals(listOf(2, 0), held.players.map { it.diceHeld })
+        // Released and held again: one more hold, not two.
+        val again = GameEngine.toggleHold(GameEngine.toggleHold(held, dieIndex = 0), dieIndex = 0)
+        assertEquals(listOf(3, 0), again.players.map { it.diceHeld })
+
+        // Into player 2's turn: player 1's count stays, and player 2's holds are their own.
+        val nextTurn = GameEngine.rollDice(GameEngine.commitScore(again, ScoreCategory.CHANCE))
+        assertEquals(listOf(3, 1), GameEngine.toggleHold(nextTurn, dieIndex = 4).players.map { it.diceHeld })
+    }
+
+    @Test
     fun `committing a score - after a roll - in an open box - records the hand - moves the turn on and ends the game when full`() {
         assertFailsWith<IllegalStateException> { GameEngine.commitScore(GameEngine.newGame(onePlayer), ScoreCategory.CHANCE) }
         // There is only one player, so it's back to the same one - with Chance already filled.

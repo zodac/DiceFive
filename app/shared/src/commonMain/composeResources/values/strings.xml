@@ -164,6 +164,8 @@
     <string name="achievement_dice_whisperer_description">Score 5x ten times in total</string>
     <string name="achievement_hat_trick_title">Hat Trick</string>
     <string name="achievement_hat_trick_description">Score three or more 5x in a single game</string>
+    <string name="achievement_full_set_title">Full Set</string>
+    <string name="achievement_full_set_description">Score a 5x of every number from 1 to 6</string>
     <string name="achievement_twice_in_a_lifetime_title">Twice In A Lifetime</string>
     <string name="achievement_twice_in_a_lifetime_description">Score a 5x on two of your turns in a row</string>
     <string name="achievement_natural_5x_title">Natural 5x</string>
@@ -214,6 +216,12 @@
     <string name="achievement_quick_on_the_draw_description">Win a game of 'Quickfire' mode</string>
     <string name="achievement_six_of_the_best_title">Six Of The Best</string>
     <string name="achievement_six_of_the_best_description">Score 150 or more in a game of 'Quickfire' mode</string>
+    <string name="achievement_rainy_day_fund_title">Rainy Day Fund</string>
+    <string name="achievement_rainy_day_fund_description">Start a turn with 100 or more rolls with 'Stored Rolls' on</string>
+    <string name="achievement_bad_omen_title">Bad Omen</string>
+    <string name="achievement_bad_omen_description">Have every die locked in chains at once with 'Unlucky Dice' on</string>
+    <string name="achievement_grand_tour_title">Grand Tour</string>
+    <string name="achievement_grand_tour_description">Finish a game in every game mode</string>
     <string name="achievement_hold_em_title">Hold 'Em</string>
     <string name="achievement_hold_em_description">Win a game of '7 Dice Stud' mode</string>
     <string name="achievement_lucky_seven_title">Lucky Seven</string>
@@ -256,6 +264,8 @@
     <string name="achievement_time_to_let_it_go_description">Hold the same die after the 1st and 2nd roll, then score without using it</string>
     <string name="achievement_time_wasting_title">Time Wasting</string>
     <string name="achievement_time_wasting_description">Hold then unhold each die in sequence</string>
+    <string name="achievement_hands_off_title">Hands Off!</string>
+    <string name="achievement_hands_off_description">Score 200 or more in a Standard game with no modifiers, without ever holding a die</string>
     <string name="achievement_i_didnt_mean_that_title">I Didn't Mean That</string>
     <string name="achievement_i_didnt_mean_that_description">Undo a score and score a different category</string>
     <string name="achievement_no_more_rolls_title">No More Rolls</string>
@@ -310,6 +320,8 @@
     <string name="achievement_historian_description">Record every score from 251 to 300 on the leaderboard</string>
     <string name="achievement_completionist_title">Completionist</string>
     <string name="achievement_completionist_description">Unlock every other achievement</string>
+    <string name="achievement_are_you_a_developer_title">Are You A Developer?</string>
+    <string name="achievement_are_you_a_developer_description">Tap the version number seven times</string>
     <string name="achievement_big_fan_title">Big Fan</string>
     <string name="achievement_big_fan_description">Play a 1v1 game against the creator</string>
     <string name="achievement_greenfingers_title">Greenfingers</string>
@@ -318,6 +330,8 @@
     <string name="achievement_luck_of_the_irish_description">Play a game of Tricolour as Ireland/Éire</string>
     <string name="achievement_not_those_dice_title">Not Those Dice!</string>
     <string name="achievement_not_those_dice_description">Tap the dice on the main menu</string>
+    <string name="achievement_rolling_the_midnight_dice_title">Rolling The Midnight Dice</string>
+    <string name="achievement_rolling_the_midnight_dice_description">Start a game between midnight and 6am</string>
     <string name="achievement_shaken_not_tapped_title">Shaken, Not Tapped</string>
     <string name="achievement_shaken_not_tapped_description">Shake your phone to roll the dice</string>
     <string name="achievement_eggcellent_discovery_title">Eggcellent Discovery</string>
@@ -792,6 +806,7 @@
     <string name="style_family_containers">Containers</string>
     <string name="style_family_d20">D20</string>
     <string name="style_family_desert">Desert</string>
+    <string name="style_family_devil">Devil</string>
     <string name="style_family_egg">Egg</string>
     <string name="style_family_faceted">Faceted</string>
     <string name="style_family_floating_dice">Floating Dice</string>
@@ -841,6 +856,7 @@
     <string name="style_family_tribal">Tribal</string>
     <string name="style_family_urn">Urn</string>
     <string name="style_family_volcano">Volcano</string>
+    <string name="style_family_wireframe">Wireframe</string>
     <string name="style_family_wood">Wood</string>
     <string name="style_family_wreath">Wreath</string>
     <string name="style_colour_amber">Amber</string>
@@ -863,6 +879,7 @@
     <string name="style_colour_clear">Clear</string>
     <string name="style_colour_copper">Copper</string>
     <string name="style_colour_crimson">Crimson</string>
+    <string name="style_colour_cyan">Cyan</string>
     <string name="style_colour_daisy">Daisy</string>
     <string name="style_colour_digits">Digits</string>
     <string name="style_colour_double">Double</string>
@@ -997,6 +1014,20 @@
     <string name="achievements_missing_action">Show the missing scores</string>
     <!-- TalkBack: a score already on the leaderboard, drawn struck through. -->
     <string name="achievements_score_recorded">%1$s, recorded</string>
+    <!-- Full Set's pop-up: the die numbers (1-6) it still needs a 5x of. -->
+    <string name="achievements_missing_numbers_message">Numbers with no 5x scored yet (%1$s left):</string>
+    <!-- TalkBack's name for tapping Full Set. -->
+    <string name="achievements_missing_numbers_action">Show the missing numbers</string>
+    <!-- TalkBack: a die number already scored as a 5x, drawn struck through and faded. -->
+    <string name="achievements_number_scored">%1$s, scored</string>
+    <!-- Full Set's pop-up: one die number, as in "1s" (a 5x of 1s). %1$s is the number. -->
+    <string name="achievements_number_label">%1$ss</string>
+    <!-- Grand Tour's pop-up: the game modes it still needs a finished game in. -->
+    <string name="achievements_missing_modes_message">Modes with no game finished yet (%1$s left):</string>
+    <!-- TalkBack's name for tapping Grand Tour. -->
+    <string name="achievements_missing_modes_action">Show the missing modes</string>
+    <!-- TalkBack: a game mode already finished, drawn struck through and faded. %1$s is the mode's name. -->
+    <string name="achievements_mode_finished">%1$s, finished</string>
 
     <!-- Styles screen (ui/styles/StylesScreen.kt) -->
     <string name="styles_title">Styles</string>

@@ -49,6 +49,8 @@ private class FakeScoreDao : ScoreDao {
     override suspend fun primaryPlayerTotalPoints(): Int? =
         entries.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
 
+    override suspend fun primaryPlayerGameModeIds(): List<String> = entries.filter { it.isPrimaryPlayer }.map { it.gameModeId }.distinct()
+
     override suspend fun playerGames(): List<PlayerGame> =
         entries.filter { it.playerName !in dismissed }
             // SQLite's COLLATE NOCASE (for the names used here), then the exact name, then newest first.

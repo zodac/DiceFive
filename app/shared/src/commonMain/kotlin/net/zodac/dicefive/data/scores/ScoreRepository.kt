@@ -134,9 +134,13 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
      * [ScoreEntry.isPrimaryPlayer]. Zero when the board is empty. */
     suspend fun primaryPlayerTotalPoints(): Int = scoreDao.primaryPlayerTotalPoints() ?: 0
 
-    /** Both leaderboard-derived figures in one go, for the achievements measured against the board. */
+    /** Every mode the primary player has a recorded game in - see [ScoreDao.primaryPlayerGameModeIds]. An id this build
+     * doesn't know (a mode since removed) is left out. */
+    suspend fun primaryPlayerModesPlayed(): Set<GameMode> = scoreDao.primaryPlayerGameModeIds().mapNotNull(GameMode::fromId).toSet()
+
+    /** Every leaderboard-derived figure in one go, for the achievements measured against the board. */
     suspend fun leaderboardTotals(): LeaderboardTotals =
-        LeaderboardTotals(distinctScores = distinctScores(), totalPoints = primaryPlayerTotalPoints())
+        LeaderboardTotals(distinctScores = distinctScores(), totalPoints = primaryPlayerTotalPoints(), modesPlayed = primaryPlayerModesPlayed())
 
     /**
      * Per-player aggregate stats for the Statistics screen - see [PlayerStatistics]. One query for

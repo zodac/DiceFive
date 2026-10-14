@@ -21,7 +21,7 @@ class StoredIdTest {
         assertEquals(listOf("RED", "YELLOW", "BLUE"), ids(DieColour.entries))
         assertEquals(listOf("AWAITING_ROLL", "ROLLED"), ids(TurnPhase.entries))
         assertEquals(listOf("HIGH", "MEDIUM", "LOW", "OFF"), ids(AnimationLevel.entries))
-        assertEquals(listOf("GAMES_PLAYED", "GAMES_WON", "WIN_STREAK", "SCORED_5X", "DICE_ROLLED"), ids(AchievementCounter.entries))
+        assertEquals(listOf("GAMES_PLAYED", "GAMES_WON", "WIN_STREAK", "SCORED_5X", "DICE_ROLLED", "FIVE_X_NUMBERS"), ids(AchievementCounter.entries))
         assertEquals(
             listOf(
                 "ONES", "TWOS", "THREES", "FOURS", "FIVES", "SIXES",

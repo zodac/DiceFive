@@ -216,7 +216,7 @@ will map to Play Games.
 
 ## Achievements
 
-`model/Achievement.kt` (103), `game/AchievementEngine.kt` (pure), `data/achievements/`, `ui/achievements/`.
+`model/Achievement.kt` (110), `game/AchievementEngine.kt` (pure), `data/achievements/`, `ui/achievements/`.
 
 - **Ids.**
   - The enum constant is the English title in snake case; the stored `id` is that in lower case
@@ -233,7 +233,9 @@ will map to Play Games.
   - Superuser mode doesn't disqualify a game.
   - Undo can't inflate a counter: counters move only at game end, and only human rolls count dice.
   - New Personal Best is per name, and reads the best from before this game's rows are written.
-  - The ledger and career points are derived from the scores table, so they always agree with the Leaderboard and
+  - Full Set's counter (`FIVE_X_NUMBERS`) is a set of flags, one bit per number; its progress is the bits set
+    (`AchievementCounter.progressOf`).
+  - The ledger, career points and Grand Tour (player 1's modes played) are derived from the scores table, so they always agree with the Leaderboard and
     re-earn after a reset.
 - **When they're judged.** The engine decides, never a call site.
   - `evaluateAtGameStart`: style and mode picks (Fresh Coat Of Paint).
@@ -252,7 +254,7 @@ will map to Play Games.
     `AchievementEngineTest` fails if a category is split.
   - Every Miscellaneous and Easter Egg achievement is `HIDDEN` (the title is shown, the description is "???" until
     earned), and only those are.
-  - The eight Easter Eggs are alphabetical, last, and outside Completionist.
+  - The ten Easter Eggs are alphabetical, last, and outside Completionist.
 - **Progress banners.** A streak announces every step. A running total announces only at quarter marks (or every
   `progressStepSize`), and never alongside its own unlock.
 - **Superuser modes (debug builds only).**
@@ -302,6 +304,10 @@ screen) of `StyleColour`s.
   - Egg dice with the Chicken cup roll a golden egg one time in 1000.
   - Naming player 1 "Ireland" or "Éire" turns Tricolour green, white and orange.
   - The menu logo's dice roll when tapped, and its googly pupils follow the phone.
+  - Seven quick taps on the Settings version pill (each within 1.5s) earn Are You A Developer?, which unlocks the
+    Wireframe dice and mat. Raw taps, so TalkBack announces no button.
+  - Starting a new game (not resuming one) between midnight and 6am on the phone's clock (`localHourOfDay`) earns
+    Rolling The Midnight Dice, which unlocks the Starry dice, mat and background.
 
 ## Sound, haptics and motion
 

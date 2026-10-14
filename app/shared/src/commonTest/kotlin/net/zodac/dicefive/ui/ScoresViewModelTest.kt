@@ -41,6 +41,7 @@ private class ListScoreDao(private val rows: List<ScoreEntry>) : ScoreDao {
     override suspend fun bestScoreForPlayer(playerName: String): Int? = null
     override suspend fun distinctScores(): List<Int> = emptyList()
     override suspend fun primaryPlayerTotalPoints(): Int? = null
+    override suspend fun primaryPlayerGameModeIds(): List<String> = emptyList()
     override suspend fun playerGames(): List<PlayerGame> = emptyList()
     override suspend fun dismissPlayer(playerName: String) = Unit
     override suspend fun clearDismissal(playerName: String) = Unit

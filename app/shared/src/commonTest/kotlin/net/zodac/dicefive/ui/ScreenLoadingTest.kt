@@ -62,6 +62,7 @@ private class GatedEmptyScoreDao : ScoreDao {
     override suspend fun bestScoreForPlayer(playerName: String): Int? = gate.await().let { null }
     override suspend fun distinctScores(): List<Int> = gate.await().let { emptyList() }
     override suspend fun primaryPlayerTotalPoints(): Int? = gate.await().let { null }
+    override suspend fun primaryPlayerGameModeIds(): List<String> = gate.await().let { emptyList() }
     override suspend fun playerGames(): List<PlayerGame> = gate.await().let { emptyList() }
     override suspend fun dismissPlayer(playerName: String) = Unit
     override suspend fun clearDismissal(playerName: String) = Unit

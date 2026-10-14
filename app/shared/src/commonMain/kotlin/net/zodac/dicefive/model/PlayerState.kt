@@ -51,6 +51,9 @@ data class PlayerState(
     /** How many times this player has rolled so far this game, every turn's rolls added up - what
      * the Flowerpot cup's plant grows by (see [flowerpotGrowthStage]). */
     val rollCount: Int = 0,
+    /** How many times this player has held a die so far this game - a release isn't counted. Saved with the game, so a
+     * resumed game remembers it (see [net.zodac.dicefive.model.Achievement.HANDS_OFF]). */
+    val diceHeld: Int = 0,
     /** Rolls this player left unused at the end of their last turn and keeps for their next - always 0
      * unless the Stored Rolls modifier is on. */
     val storedRolls: Int = 0,

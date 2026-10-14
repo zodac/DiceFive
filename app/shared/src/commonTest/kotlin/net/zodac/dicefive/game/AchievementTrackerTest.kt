@@ -9,7 +9,9 @@ import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerConfig
 import net.zodac.dicefive.model.PlayerType
+import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.model.UnluckyDice
 
 /** Dice that always land on [value]. */
 private class FixedDice(private val value: Int) : Random() {
@@ -123,5 +125,68 @@ class AchievementTrackerTest {
         assertTrue(tracker.endOfGameContext(null, LeaderboardTotals()).playerOneTookExtraRoll)
         // The held dice didn't move, so none of them were rolled.
         assertEquals(5, tracker.endOfGameContext(null, LeaderboardTotals()).diceRolledByPlayerOne)
+    }
+
+    /** The 5x numbers [tracker] would hand the end of the game. */
+    private fun fiveOfAKindNumbers(tracker: AchievementTracker) = tracker.endOfGameContext(null, LeaderboardTotals()).fiveOfAKindNumbers
+
+    @Test
+    fun `a 5x scored is noted by its number for Full Set - an undo takes it back - another seat's never counts`() {
+        val tracker = AchievementTracker()
+        tracker.startGame()
+        val fiveThrees = tracker.roll(soloGame())
+        tracker.onCommit(fiveThrees, ScoreCategory.FIVE_OF_A_KIND)
+        tracker.onCommitted(ScoreCategory.FIVE_OF_A_KIND, byPlayerOne = true)
+        assertEquals(setOf(3), fiveOfAKindNumbers(tracker))
+
+        // Undone, it's gone; scored as a zero elsewhere instead, it's no 5x scored.
+        tracker.onUndo()
+        assertEquals(emptySet(), fiveOfAKindNumbers(tracker))
+        tracker.onCommit(fiveThrees, ScoreCategory.LARGE_STRAIGHT)
+        tracker.onCommitted(ScoreCategory.LARGE_STRAIGHT, byPlayerOne = true)
+        assertEquals(emptySet(), fiveOfAKindNumbers(tracker))
+
+        // An undo of another seat's score leaves player 1's 5x alone.
+        tracker.onCommit(fiveThrees, ScoreCategory.FIVE_OF_A_KIND)
+        tracker.onCommitted(ScoreCategory.FIVE_OF_A_KIND, byPlayerOne = true)
+        tracker.onCommitted(ScoreCategory.CHANCE, byPlayerOne = false)
+        tracker.onUndo()
+        assertEquals(setOf(3), fiveOfAKindNumbers(tracker))
+
+        tracker.startGame()
+        assertEquals(emptySet(), fiveOfAKindNumbers(tracker), "a new game starts with none")
+    }
+
+    @Test
+    fun `Rainy Day Fund - a turn starting with 100 rolls under Stored Rolls - not 99 - and not without the modifier`() {
+        fun earns(rolls: Int, stored: Boolean): Boolean {
+            val tracker = AchievementTracker()
+            tracker.startGame()
+            val start = soloGame().copy(rollModifiers = RollModifiers(rollsPerTurn = 9, storedRolls = stored), rollsRemaining = rolls, turnRolls = rolls)
+            return Achievement.RAINY_DAY_FUND in GameEngine.rollDice(start, FixedDice(3)).let { tracker.onRoll(start, it) }
+        }
+        assertTrue(earns(100, stored = true))
+        assertFalse(earns(99, stored = true))
+        assertFalse(earns(100, stored = false))
+
+        // Only as the turn starts: its second roll, with 99 left, is no new turn.
+        val tracker = AchievementTracker()
+        tracker.startGame()
+        val start = soloGame().copy(rollModifiers = RollModifiers(rollsPerTurn = 9, storedRolls = true), rollsRemaining = 100, turnRolls = 100)
+        val first = tracker.roll(start)
+        assertFalse(Achievement.RAINY_DAY_FUND in GameEngine.rollDice(first, FixedDice(3)).let { tracker.onRoll(first, it) })
+    }
+
+    @Test
+    fun `Bad Omen - every die chained by Unlucky Dice at once - not four of five`() {
+        fun earns(maxDice: Int): Boolean {
+            val tracker = AchievementTracker()
+            tracker.startGame()
+            // FixedDice's 3 is under any odds, so as many dice as the cap allows are chained.
+            val start = soloGame().copy(unluckyDice = UnluckyDice(oddsPercent = 50, maxDice = maxDice))
+            return Achievement.BAD_OMEN in GameEngine.rollDice(start, FixedDice(3)).let { tracker.onRoll(start, it) }
+        }
+        assertTrue(earns(5))
+        assertFalse(earns(4))
     }
 }

@@ -26,9 +26,12 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Cyclone
 import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.DeveloperMode
+import androidx.compose.material.icons.filled.DoNotTouch
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.EmojiPeople
 import androidx.compose.material.icons.filled.EventRepeat
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.Filter7
 import androidx.compose.material.icons.filled.Favorite
@@ -70,6 +73,7 @@ import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Route
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Memory
@@ -101,6 +105,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathBuilder
+import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.graphics.vector.group
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
@@ -111,6 +116,7 @@ import net.zodac.dicefive.resources.ic_stairs
 import net.zodac.dicefive.resources.ic_time_machine_car
 import net.zodac.dicefive.ui.game.style.CUP_VIEW_SQUASH
 import net.zodac.dicefive.ui.game.style.pipLayout
+import net.zodac.dicefive.ui.theme.AchievementDeveloperCyan
 import net.zodac.dicefive.ui.theme.AchievementHeartRed
 import net.zodac.dicefive.ui.theme.AchievementTrophyGold
 import net.zodac.dicefive.ui.theme.DicePipColor
@@ -193,6 +199,8 @@ val Achievement.icon: ImageVector
         Achievement.ENCORE -> Icons.Filled.Repeat
         Achievement.DICE_WHISPERER -> Icons.Filled.Grade
         Achievement.HAT_TRICK -> Icons.Filled.Looks3
+        // Drawn for this app: every die face, 1 to 6 - the set of numbers it collects.
+        Achievement.FULL_SET -> DIE_FACE_SET_ICON
         Achievement.DEJA_VU -> Icons.Filled.Balance
         Achievement.TWICE_IN_A_LIFETIME -> Icons.Filled.SyncAlt
         Achievement.NATURAL_5X -> Icons.Filled.AutoAwesome
@@ -246,6 +254,12 @@ val Achievement.icon: ImageVector
         Achievement.CONTRACT_FULFILLED -> Icons.Filled.AssignmentTurnedIn
         // Drawn for this app: Material's bullseyes have no arrow in them.
         Achievement.RIGHT_ON_TARGET -> BULLSEYE_ARROW_ICON
+        // A piggy bank, for rolls put by for a rainy day.
+        Achievement.RAINY_DAY_FUND -> Icons.Filled.Savings
+        // Drawn for this app: a devil's head, for dice cursed into chains.
+        Achievement.BAD_OMEN -> DEVIL_HEAD_ICON
+        // A compass, for finding the way round every mode there is.
+        Achievement.GRAND_TOUR -> Icons.Filled.Explore
 
         // ---- Misfortune -------------------------------------------------------------------------
         Achievement.SCRATCHED -> Icons.Filled.Cancel
@@ -264,6 +278,8 @@ val Achievement.icon: ImageVector
         Achievement.DECISIONS_DECISIONS -> Icons.AutoMirrored.Filled.Help
         Achievement.TIME_TO_LET_IT_GO -> Icons.Filled.HourglassEmpty
         Achievement.TIME_WASTING -> Icons.Filled.Shuffle
+        // A hand crossed out - not a die touched all game.
+        Achievement.HANDS_OFF -> Icons.Filled.DoNotTouch
         // The same glyph UndoButton.kt uses for the real undo control, not its Redo mirror image -
         // this achievement is about undoing, not redoing.
         Achievement.I_DIDNT_MEAN_THAT -> Icons.AutoMirrored.Filled.Undo
@@ -300,6 +316,8 @@ val Achievement.icon: ImageVector
         // ---- Easter Eggs ------------------------------------------------------------------------
         // Every icon in this category is a fixed colour rather than the ambient tint - see
         // [iconTintOrUnspecified] and .claude/UI.md's "The achievements list" section.
+        // Android's own developer-mode glyph, in the Wireframe dice's cyan.
+        Achievement.ARE_YOU_A_DEVELOPER -> Icons.Filled.DeveloperMode
         Achievement.BIG_FAN -> Icons.Filled.Favorite
         // A real tricolour flag, not a single-colour Material glyph - this one's whole point is
         // its own three fixed colours, so it's built with real fills rather than borrowed from
@@ -312,6 +330,8 @@ val Achievement.icon: ImageVector
         Achievement.THE_MAGICIANS_SECRET -> rememberMagicianIcon()
         // The menu logo's own fan - the default ivory dice, 2-4-5-3-6 - that it's earned by tapping.
         Achievement.NOT_THOSE_DICE -> rememberDiceFanIcon()
+        // A crescent moon and two stars, for the small hours it was earned in.
+        Achievement.ROLLING_THE_MIDNIGHT_DICE -> rememberMidnightIcon()
         // The sunflower the Flowerpot grew, in the pot's own colours.
         Achievement.GREENFINGERS -> rememberSunflowerIcon()
         // A fried egg - the golden egg's yolk in its white - as found in the pan.
@@ -348,12 +368,14 @@ private val STAR_BADGE_OFFSET = 6.dp
  * colour, not whatever container happens to hold it - see .claude/UI.md.
  */
 fun Achievement.iconTintOrUnspecified(tint: Color): Color = when (this) {
+    Achievement.ARE_YOU_A_DEVELOPER -> AchievementDeveloperCyan
     Achievement.BIG_FAN -> AchievementHeartRed
     Achievement.COMPLETIONIST -> AchievementTrophyGold
     Achievement.LUCK_OF_THE_IRISH -> Color.Unspecified
     Achievement.SHAKEN_NOT_TAPPED -> Color.Unspecified
     Achievement.THE_MAGICIANS_SECRET -> Color.Unspecified
     Achievement.NOT_THOSE_DICE -> Color.Unspecified
+    Achievement.ROLLING_THE_MIDNIGHT_DICE -> Color.Unspecified
     Achievement.GREENFINGERS -> Color.Unspecified
     Achievement.EGGCELLENT_DISCOVERY -> Color.Unspecified
     Achievement.THE_SOLUTION -> Color.Unspecified
@@ -744,6 +766,26 @@ private fun rememberFriedEggIcon(): ImageVector = remember {
         path(fill = SolidColor(FriedEggGlint)) { ellipse(10.8f, 10.0f, 1.3f, 1.0f) }
     }.build()
 }
+
+/** A pale gold crescent moon with two white stars beside it, each its own fixed fill - see [Achievement.ROLLING_THE_MIDNIGHT_DICE]. */
+@Composable
+private fun rememberMidnightIcon(): ImageVector = remember {
+    ImageVector.Builder(name = "Midnight", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f).apply {
+        // The crescent: round the outside of a circle about (11, 12), back along the inside of one about (15, 9).
+        addPath(addPathNodes("M10.04,4.06A8,8 0 1,0 18.36,15.14A7,7 0 0,1 10.04,4.06Z"), fill = SolidColor(MidnightIconMoon))
+        // Two four-pointed stars, as the Starry mat's.
+        for ((cx, cy, r) in listOf(Triple(18.6f, 4.4f, 2.6f), Triple(21f, 10.4f, 1.7f))) {
+            val waist = r * 0.3f
+            addPath(
+                addPathNodes("M$cx,${cy - r}L${cx + waist},${cy - waist}L${cx + r},${cy}L${cx + waist},${cy + waist}L$cx,${cy + r}L${cx - waist},${cy + waist}L${cx - r},${cy}L${cx - waist},${cy - waist}Z"),
+                fill = SolidColor(MidnightIconStar),
+            )
+        }
+    }.build()
+}
+
+private val MidnightIconMoon = Color(0xFFFFE08A)
+private val MidnightIconStar = Color(0xFFFFFFFF)
 
 private val FriedEggWhite = Color(0xFFFFFFFF)
 private val FriedEggEdge = Color(0xFFC9C3B6)

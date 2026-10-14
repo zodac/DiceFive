@@ -90,6 +90,10 @@ interface ScoreDao {
     @Query("SELECT SUM(score) FROM scores WHERE isPrimaryPlayer = 1")
     suspend fun primaryPlayerTotalPoints(): Int?
 
+    /** The [ScoreEntry.gameModeId] of every mode the primary player has a recorded game in, on the Leaderboard or not. */
+    @Query("SELECT DISTINCT gameModeId FROM scores WHERE isPrimaryPlayer = 1")
+    suspend fun primaryPlayerGameModeIds(): List<String>
+
     /**
      * Every recorded game, grouped by player name alphabetically and most recent first within each
      * player - excluding anyone dismissed from the Statistics screen (see [DismissedPlayerStats]).

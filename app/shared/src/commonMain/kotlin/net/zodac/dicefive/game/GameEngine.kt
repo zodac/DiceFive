@@ -125,7 +125,13 @@ object GameEngine {
             if (index == dieIndex) current.copy(isHeld = !current.isHeld, heldSlot = null) else current
         }
         val placed = if (!die.isHeld && state.gameMode.scoresHeldDiceOnly) placeInSlots(newDice, state.gameMode.scoringDiceCount) else newDice
-        return state.copy(dice = placed)
+        // A hold, not a release, is counted for the player whose turn it is.
+        val players = if (die.isHeld) {
+            state.players
+        } else {
+            state.players.mapIndexed { index, player -> if (index == state.currentPlayerIndex) player.copy(diceHeld = player.diceHeld + 1) else player }
+        }
+        return state.copy(dice = placed, players = players)
     }
 
     /**

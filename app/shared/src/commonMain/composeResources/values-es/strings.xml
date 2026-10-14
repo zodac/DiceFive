@@ -97,6 +97,8 @@
     <string name="achievement_dice_whisperer_description">Anota 5x diez veces en total</string>
     <string name="achievement_hat_trick_title">Triplete</string>
     <string name="achievement_hat_trick_description">Anota tres o más 5x en una misma partida</string>
+    <string name="achievement_full_set_title">Colección completa</string>
+    <string name="achievement_full_set_description">Anota un 5x de cada número del 1 al 6</string>
     <string name="achievement_twice_in_a_lifetime_title">Dos veces en la vida</string>
     <string name="achievement_twice_in_a_lifetime_description">Anota un 5x en dos de tus turnos seguidos</string>
     <string name="achievement_natural_5x_title">5x natural</string>
@@ -147,6 +149,12 @@
     <string name="achievement_quick_on_the_draw_description">Gana una partida del modo 'Ráfaga'</string>
     <string name="achievement_six_of_the_best_title">Seis de los buenos</string>
     <string name="achievement_six_of_the_best_description">Suma 150 o más en una partida del modo 'Ráfaga'</string>
+    <string name="achievement_rainy_day_fund_title">Para los días de lluvia</string>
+    <string name="achievement_rainy_day_fund_description">Empieza un turno con 100 tiradas o más con 'Tiradas acumuladas' activado</string>
+    <string name="achievement_bad_omen_title">Mal presagio</string>
+    <string name="achievement_bad_omen_description">Ten todos los dados encadenados a la vez con 'Dados malditos' activado</string>
+    <string name="achievement_grand_tour_title">Gran gira</string>
+    <string name="achievement_grand_tour_description">Termina una partida en cada modo de juego</string>
     <string name="achievement_hold_em_title">Quédate con esos</string>
     <string name="achievement_hold_em_description">Gana una partida del modo 'Stud de 7 dados'</string>
     <string name="achievement_lucky_seven_title">Siete de la suerte</string>
@@ -189,6 +197,8 @@
     <string name="achievement_time_to_let_it_go_description">Conserva el mismo dado tras la 1.ª y la 2.ª tirada y luego anota sin usarlo</string>
     <string name="achievement_time_wasting_title">Perdiendo el tiempo</string>
     <string name="achievement_time_wasting_description">Conserva y suelta cada dado en secuencia</string>
+    <string name="achievement_hands_off_title">¡Sin manos!</string>
+    <string name="achievement_hands_off_description">Suma 200 o más en una partida estándar sin modificadores, sin conservar nunca un dado</string>
     <string name="achievement_i_didnt_mean_that_title">No quería eso</string>
     <string name="achievement_i_didnt_mean_that_description">Deshaz una puntuación y anota en otra categoría</string>
     <string name="achievement_no_more_rolls_title">Sin más tiradas</string>
@@ -243,6 +253,8 @@
     <string name="achievement_historian_description">Registra todas las puntuaciones del 251 al 300 en la clasificación</string>
     <string name="achievement_completionist_title">Completista</string>
     <string name="achievement_completionist_description">Desbloquea todos los demás logros</string>
+    <string name="achievement_are_you_a_developer_title">¿Eres desarrollador?</string>
+    <string name="achievement_are_you_a_developer_description">Toca el número de versión siete veces</string>
     <string name="achievement_big_fan_title">Gran fan</string>
     <string name="achievement_big_fan_description">Juega una partida 1 contra 1 contra el creador</string>
     <string name="achievement_greenfingers_title">Mano verde</string>
@@ -251,6 +263,8 @@
     <string name="achievement_luck_of_the_irish_description">Juega una partida de Tricolor como Irlanda/Éire</string>
     <string name="achievement_not_those_dice_title">¡Esos dados no!</string>
     <string name="achievement_not_those_dice_description">Toca los dados del menú principal</string>
+    <string name="achievement_rolling_the_midnight_dice_title">Dados de medianoche</string>
+    <string name="achievement_rolling_the_midnight_dice_description">Empieza una partida entre la medianoche y las 6 de la mañana</string>
     <string name="achievement_shaken_not_tapped_title">Agitado, no tocado</string>
     <string name="achievement_shaken_not_tapped_description">Agita el teléfono para tirar los dados</string>
     <string name="achievement_eggcellent_discovery_title">Un descubrimiento de oro</string>
@@ -598,6 +612,7 @@
     <string name="style_family_containers">Contenedores</string>
     <string name="style_family_d20">D20</string>
     <string name="style_family_desert">Desierto</string>
+    <string name="style_family_devil">Diablo</string>
     <string name="style_family_egg">Huevo</string>
     <string name="style_family_faceted">Facetado</string>
     <string name="style_family_floating_dice">Dados flotantes</string>
@@ -647,6 +662,7 @@
     <string name="style_family_tribal">Tribal</string>
     <string name="style_family_urn">Urna</string>
     <string name="style_family_volcano">Volcán</string>
+    <string name="style_family_wireframe">Malla</string>
     <string name="style_family_wood">Madera</string>
     <string name="style_family_wreath">Corona</string>
     <string name="style_colour_amber">Ámbar</string>
@@ -669,6 +685,7 @@
     <string name="style_colour_clear">Transparente</string>
     <string name="style_colour_copper">Cobre</string>
     <string name="style_colour_crimson">Carmesí</string>
+    <string name="style_colour_cyan">Cian</string>
     <string name="style_colour_daisy">Margarita</string>
     <string name="style_colour_digits">Dígitos</string>
     <string name="style_colour_double">Doble</string>
@@ -791,6 +808,13 @@
     <string name="achievements_missing_message">Puntuaciones que aún no están en la clasificación (faltan %1$s):</string>
     <string name="achievements_missing_action">Mostrar las puntuaciones que faltan</string>
     <string name="achievements_score_recorded">%1$s, registrada</string>
+    <string name="achievements_missing_numbers_message">Números sin un 5x anotado todavía (faltan %1$s):</string>
+    <string name="achievements_missing_numbers_action">Mostrar los números que faltan</string>
+    <string name="achievements_number_scored">%1$s, anotado</string>
+    <string name="achievements_number_label">%1$s</string>
+    <string name="achievements_missing_modes_message">Modos sin ninguna partida terminada todavía (faltan %1$s):</string>
+    <string name="achievements_missing_modes_action">Mostrar los modos que faltan</string>
+    <string name="achievements_mode_finished">%1$s, terminado</string>
     <string name="styles_title">Estilos</string>
     <string name="styles_category_dice">Dados</string>
     <string name="styles_category_dice_cup">Cubilete</string>

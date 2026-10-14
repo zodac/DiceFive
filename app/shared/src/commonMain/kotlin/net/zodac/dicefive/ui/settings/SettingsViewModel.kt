@@ -18,6 +18,7 @@ import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.data.settings.SettingsRepository
+import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.ui.achievements.AchievementUnlocker
@@ -107,6 +108,23 @@ class SettingsViewModel(
         viewModelScope.launch { unlocker.unlock(setOf(Achievement.WHO_MADE_THIS)) }
     }
 
+    private var versionTaps = 0
+    private var lastVersionTapMillis = 0L
+
+    /**
+     * A tap on the version number, at [nowMillis]. The [VERSION_TAP_TARGET]th in a row - each within
+     * [VERSION_TAP_GAP_MILLIS] of the last - earns "Are You A Developer?", as the same taps on Android's own build
+     * number turn on its developer options. A slower tap starts the count again.
+     */
+    fun onVersionTapped(nowMillis: Long = nowEpochMillis()) {
+        versionTaps = if (versionTaps > 0 && nowMillis - lastVersionTapMillis <= VERSION_TAP_GAP_MILLIS) versionTaps + 1 else 1
+        lastVersionTapMillis = nowMillis
+        if (versionTaps < VERSION_TAP_TARGET) return
+        versionTaps = 0
+        val unlocker = achievementUnlocker ?: return
+        viewModelScope.launch { unlocker.unlock(setOf(Achievement.ARE_YOU_A_DEVELOPER)) }
+    }
+
     /**
      * Wipes every unlock and every progress counter. Only the achievements DataStore file is
      * cleared - the theme, the remembered player names and any game in progress are on their own
@@ -142,6 +160,12 @@ class SettingsViewModel(
     }
 
     companion object {
+        /** How many taps on the version number earn "Are You A Developer?" - Android's own count for its build number. */
+        const val VERSION_TAP_TARGET = 7
+
+        /** The longest a tap on the version number can come after the last and still count towards [VERSION_TAP_TARGET]. */
+        const val VERSION_TAP_GAP_MILLIS = 1_500L
+
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 SettingsViewModel(
