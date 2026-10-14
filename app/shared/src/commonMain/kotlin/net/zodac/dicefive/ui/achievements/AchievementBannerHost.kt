@@ -59,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
@@ -526,8 +527,14 @@ private fun BannerSlot(
 }
 
 /**
+ * The smallest a banner title is shrunk to, below the app-wide [net.zodac.dicefive.ui.common.MIN_READABLE_FONT_SIZE]
+ * (12sp): a banner title is one line and never wraps, and the longest title needs this much room.
+ */
+private val BANNER_TITLE_MIN_FONT_SIZE = 11.sp
+
+/**
  * An achievement's title: always ONE line, so every banner is the same height. Set in the brand
- * face ([SoraFontFamily], bold - its only weight), at titleMedium when it fits, otherwise stepped down until it does, but never below [MIN_READABLE_FONT_SIZE]; a title too
+ * face ([SoraFontFamily], bold - its only weight), at titleMedium when it fits, otherwise stepped down until it does, but never below [BANNER_TITLE_MIN_FONT_SIZE]; a title too
  * long even then is ellipsised, not wrapped. `MAX_ACHIEVEMENT_TITLE_LENGTH` keeps every title short
  * enough not to get that far on a normal phone.
  */
@@ -537,6 +544,7 @@ private fun BannerTitle(title: String, modifier: Modifier = Modifier) {
         text = title,
         style = MaterialTheme.typography.titleMedium.copy(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold),
         wrappedMaxLines = 1,
+        minFontSize = BANNER_TITLE_MIN_FONT_SIZE,
         modifier = modifier,
     )
 }

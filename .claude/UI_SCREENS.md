@@ -98,9 +98,11 @@ The constants are at the top of `AchievementBannerHost.kt`:
 
 **Text.**
 - **The title is always one line** (`BannerTitle`, `ShrinkThenWrapText` with a one-line limit). It starts at 16sp and
-  steps down 0.5sp to 12sp, then ellipsises; it never wraps.
-  - That's what the 38-character cap is for. The longest title is ~221dp at 12sp against a ~244dp column on a 360dp
-    phone (an estimate).
+  steps down 0.5sp to 11sp (`BANNER_TITLE_MIN_FONT_SIZE`, below the app-wide 12sp floor), then ellipsises; it never
+  wraps.
+  - That's what the 38-character cap is for. The longest title ("Where We're Going, We Don't Need Rules") fits at 11sp
+    on the maintainer's ~345dp phone with about a character to spare. On a 360dp render (a 244dp column) it fits at
+    11sp only at font scale 1.0: at 1.15 it is ellipsised, and at 12sp it was already cut at 1.0.
 - **The description** is bodySmall (12sp), always exactly two lines, then ellipsised (`BannerDescription`). At 320dp
   about eight descriptions are cut.
 

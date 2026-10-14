@@ -232,10 +232,10 @@ enum class AchievementCounter(override val id: String) : StoredId {
 
 /**
  * The longest an [Achievement.title] may be. The unlock banner shows a title on ONE line, shrunk to no
- * smaller than 12sp and never wrapped (every banner is the same size), so a title has to fit its
+ * smaller than 11sp and never wrapped (every banner is the same size), so a title has to fit its
  * column at that size: 38 characters is the longest there is ("Where We're Going, We Don't Need
- * Rules"), which the banner's text column holds on a 360dp phone. Narrower screens ellipsise it
- * first. A longer title is a project-rule breach - shorten it; see CLAUDE.md. `AchievementTextTest`
+ * Rules"), which fits at 11sp on the maintainer's phone (about 345dp wide) with a character or so
+ * to spare. Narrower screens and larger system fonts ellipsise it first. A longer title is a project-rule breach - shorten it; see CLAUDE.md. `AchievementTextTest`
  * enforces this.
  *
  * That is the English figure. A character is not the same width in every language, so each translation

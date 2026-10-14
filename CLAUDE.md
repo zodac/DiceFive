@@ -69,7 +69,7 @@ scorecard, and outscore friends or AI. Fully offline."
   - If the fix is large or changes behaviour beyond the task, ask rather than skip.
 - **Accessibility is part of done.** Every new or changed UI element goes through the checklist in `.claude/UI.md`.
   The report says what TalkBack does with it, and what wasn't heard on a device.
-- **Achievement titles fit ONE line of the unlock banner at 12sp or larger.**
+- **Achievement titles fit ONE line of the unlock banner at 11sp or larger.**
   - English titles are at most `MAX_ACHIEVEMENT_TITLE_LENGTH` (38) characters (`AchievementTextTest`). A translation
     may set its own `achievement_title_max_length`.
   - Shorten a title that doesn't fit; never wrap or shrink it. A description gets exactly two lines.
