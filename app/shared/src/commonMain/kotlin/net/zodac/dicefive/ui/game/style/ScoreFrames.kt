@@ -3,14 +3,19 @@ package net.zodac.dicefive.ui.game.style
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
@@ -19,11 +24,13 @@ import androidx.compose.ui.graphics.lerp
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.math.round
 import kotlin.math.sin
 import net.zodac.dicefive.data.settings.DefaultStyleIds
 import net.zodac.dicefive.model.PlayerColour
@@ -32,8 +39,9 @@ import net.zodac.dicefive.ui.theme.color
 // The frames round the player whose turn it is, in the row of tabs above the board (PlayerHeaderBar).
 // Every one is drawn in that player's own colour - shades of it, never a colour of its own - so up to
 // four players' frames all read as theirs. They're drawn behind the tab's name and score, in dp
-// (see inDp), and stretch to any tab: a narrow one of four, a wide one of two. Nothing here moves,
-// and a frame is only redrawn when its tab is, so there's nothing to cache.
+// (see inDp), and stretch to any tab: a narrow one of four, a wide one of two. Nothing here moves.
+// A frame is redrawn whenever its tab is, which is every frame while a score counts up, so one made of
+// hundreds of leaves, links or stars is painted once instead (see paintedFrame).
 
 /** The colour a frame's Styles tile shows it in: player 1's default. */
 val ScoreFramePreviewColour: Color get() = PlayerColour.defaultFor(0).color
@@ -41,12 +49,53 @@ val ScoreFramePreviewColour: Color get() = PlayerColour.defaultFor(0).color
 /** The tab's own corner radius, which a frame that follows its outline rounds to. */
 private const val TAB_CORNER = 10f
 
-/** A frame defined by one drawing function, in dp - see [inDp]. */
+/**
+ * A frame defined by one drawing function, in dp - see [inDp]. A [painted] one is drawn once per colour and tab size and
+ * then stamped (see [paintedFrame]): for one with so many parts that drawing it afresh on every redraw would cost more
+ * than the rest of the tab.
+ */
 private class DrawnScoreFrame(
     override val id: String,
+    private val painted: Boolean = false,
     private val draw: DrawScope.(w: Float, h: Float, colour: Color) -> Unit,
 ) : ScoreFrame {
-    override fun DrawScope.drawFrame(color: Color) = inDp { w, h -> draw(w, h, color) }
+    override fun DrawScope.drawFrame(color: Color) {
+        if (painted) paintedFrame(id, color, draw) else inDp { w, h -> draw(w, h, color) }
+    }
+}
+
+/** How far, in dp, past the tab a painted frame may draw: a glow or an ornament can spill into the gap beside it. */
+private const val FRAME_SPILL = 8f
+
+private data class FrameSurface(val id: String, val colour: Color, val width: Int, val height: Int)
+
+// Only ever drawn on the main thread, so never shared between threads. A game uses one frame in one colour at
+// one tab size; the Styles page shows a few more, at the size of its tiles.
+private val frameImages = LinkedHashMap<FrameSurface, ImageBitmap>()
+private const val FRAME_CACHE_SIZE = 24
+
+/** [draw] in [colour], painted once for this id, colour and size (with room all round for [FRAME_SPILL]) and then just stamped. */
+private fun DrawScope.paintedFrame(id: String, colour: Color, draw: DrawScope.(w: Float, h: Float, colour: Color) -> Unit) {
+    val width = ceil(size.width).toInt()
+    val height = ceil(size.height).toInt()
+    if (width <= 0 || height <= 0) return
+    val spill = ceil(FRAME_SPILL * density)
+    val key = FrameSurface(id, colour, width, height)
+    val image = frameImages.remove(key) ?: ImageBitmap(width + 2 * spill.toInt(), height + 2 * spill.toInt()).also { image ->
+        val unit = density
+        val wDp = size.width / unit
+        val hDp = size.height / unit
+        CanvasDrawScope().draw(this, layoutDirection, Canvas(image), Size(image.width.toFloat(), image.height.toFloat())) {
+            withTransform({
+                translate(spill, spill)
+                scale(unit, unit, Offset.Zero)
+            }) { draw(wDp, hDp, colour) }
+        }
+    }
+    // Re-added on every use, so the map runs least recently used first.
+    frameImages[key] = image
+    if (frameImages.size > FRAME_CACHE_SIZE) frameImages.remove(frameImages.keys.first())
+    drawImage(image, Offset(-spill, -spill))
 }
 
 /** Draws [block] with one unit to the dp, handing it the tab's width and height in dp. */
@@ -434,25 +483,43 @@ private val CelticKnotScoreFrame: ScoreFrame = DrawnScoreFrame("celtic_knot") { 
 // Wreath.
 
 /**
- * A branch of leaves up one side of the tab: from the bottom centre, along the bottom, round the
- * corner and up the left side to near the top, a leaf every [spacing], alternating sides.
+ * One half of a wreath round the whole tab: a branch of leaves from the bottom centre, along the bottom, up the left side
+ * and along the top to the top centre, a leaf every [spacing], alternating sides. Mirrored, the two halves close the ring.
+ *
+ * Beside the name, which can reach nearly to the tab's sides, the stem squeezes out to the edge and the leaves pointing in
+ * shrink, while those pointing out (into the gap between tabs) hardly do. Everywhere else the leaves are full size, and
+ * along the top edge, above the name, they have room to spare.
  */
 private fun DrawScope.drawWreathBranch(w: Float, h: Float, colour: Color, leafLength: Float, leafWidth: Float, spacing: Float, berries: Boolean) {
     val inset = 3f
     val corner = TAB_CORNER - inset
-    // The stem's line, as points a little apart: bottom edge, corner arc, left side.
-    val stem = buildList {
-        val startX = w / 2 - 5f
-        var x = startX
-        while (x > inset + corner) { add(Offset(x, h - inset)); x -= 1f }
-        for (i in 0..12) {
-            val angle = PI.toFloat() / 2 + i / 12f * PI.toFloat() / 2
-            add(Offset(inset + corner + cos(angle) * corner, h - inset - corner + sin(angle) * corner))
-        }
-        var y = h - inset - corner - 1f
-        // Up to below the name, which sits across the top of the tab: a wreath open at the top.
-        while (y > WREATH_TOP * h + leafLength) { add(Offset(inset, y)); y -= 1f }
+    val nameBottom = WREATH_NAME_BOTTOM * h
+    /** How far into the name's rows [y] is down a side, from 0 (below them) to 1 (beside the name). */
+    fun squeeze(y: Float) = ((nameBottom - y) / WREATH_SQUEEZE_RAMP).coerceIn(0f, 1f)
+    val stem = ArrayList<Offset>()
+    val squeezes = ArrayList<Float>()
+    fun add(at: Offset, squeezed: Float = 0f) { stem += at; squeezes += squeezed }
+    // Bottom edge from the centre to the corner, the corner's arc, then up the side to the top corner's arc and along the top.
+    var x = w / 2
+    while (x > inset + corner) { add(Offset(x, h - inset)); x -= 1f }
+    for (i in 0..12) {
+        val angle = PI.toFloat() / 2 + i / 12f * PI.toFloat() / 2
+        add(Offset(inset + corner + cos(angle) * corner, h - inset - corner + sin(angle) * corner))
     }
+    var y = h - inset - corner - 1f
+    while (y > inset + corner) {
+        val squeezed = squeeze(y)
+        add(Offset(inset - WREATH_SQUEEZE_OUT * squeezed, y), squeezed)
+        y -= 1f
+    }
+    for (i in 0..12) {
+        val angle = PI.toFloat() + i / 12f * PI.toFloat() / 2
+        add(Offset(inset + corner + cos(angle) * corner, inset + corner + sin(angle) * corner))
+    }
+    // Stops a leaf's length short of the centre, so the two halves' last leaves just meet.
+    var tx = inset + corner + 1f
+    while (tx < w / 2 - leafLength * 0.6f) { add(Offset(tx, inset)); tx += 1f }
+
     drawPath(smoothPath(stem), colour.darker(0.3f), style = Stroke(0.8f, cap = StrokeCap.Round))
     var travelled = 0f
     var next = spacing * 0.6f
@@ -464,24 +531,36 @@ private fun DrawScope.drawWreathBranch(w: Float, h: Float, colour: Color, leafLe
         val along = stem[min(i + 1, stem.size - 1)] - stem[i - 1]
         val heading = atan2(along.y, along.x) * 180 / PI.toFloat()
         val shade = if (outward) colour else colour.darker(0.2f)
-        placed(stem[i], heading + if (outward) 38f else -38f) { drawLeaf(shade, leafLength, leafWidth) }
-        if (berries && !outward && i % 3 == 0) {
+        val squeezed = squeezes[i]
+        val scale = if (outward) 1f - WREATH_OUT_SHRINK * squeezed else 1f - WREATH_IN_SHRINK * squeezed
+        placed(stem[i], heading + if (outward) 38f else -38f) { drawLeaf(shade, leafLength * scale, leafWidth * scale) }
+        if (berries && !outward && i % 3 == 0 && squeezed == 0f) {
             drawCircle(colour.lighter(0.35f), 1.1f, stem[i] + Offset(0.8f, -0.8f))
         }
         outward = !outward
     }
-    // The tip: one last leaf pointing on up the side.
-    placed(stem.last(), -90f) { drawLeaf(colour, leafLength, leafWidth) }
+    // The tip: one last leaf pointing on along the top.
+    placed(stem.last(), 0f) { drawLeaf(colour, leafLength, leafWidth) }
 }
 
-/** How far down the tab, as a fraction of its height, a wreath's leaves stop - clear of the name above them. */
-private const val WREATH_TOP = 0.36f
+/** How far down the tab, as a fraction of its height, the name's rows end: the leaves beside them are squeezed. */
+private const val WREATH_NAME_BOTTOM = 0.36f
 
-private val LaurelScoreFrame: ScoreFrame = DrawnScoreFrame("wreath_laurel") { w, h, colour ->
+/** How many dp below the name's rows the squeeze eases off over. */
+private const val WREATH_SQUEEZE_RAMP = 6f
+
+/** How far, in dp, the stem moves out to the edge beside the name. */
+private const val WREATH_SQUEEZE_OUT = 1f
+
+/** How much of its size a leaf pointing in, and one pointing out, loses beside the name. */
+private const val WREATH_IN_SHRINK = 0.65f
+private const val WREATH_OUT_SHRINK = 0.1f
+
+private val LaurelScoreFrame: ScoreFrame = DrawnScoreFrame("wreath_laurel", painted = true) { w, h, colour ->
     bothSides(w) { drawWreathBranch(w, h, colour, leafLength = 5f, leafWidth = 2.3f, spacing = 3.2f, berries = false) }
 }
 
-private val OliveScoreFrame: ScoreFrame = DrawnScoreFrame("wreath_olive") { w, h, colour ->
+private val OliveScoreFrame: ScoreFrame = DrawnScoreFrame("wreath_olive", painted = true) { w, h, colour ->
     bothSides(w) { drawWreathBranch(w, h, colour, leafLength = 6.5f, leafWidth = 1.6f, spacing = 3.6f, berries = true) }
 }
 
@@ -602,6 +681,181 @@ private val PixelScoreFrame: ScoreFrame = DrawnScoreFrame("pixel_retro") { w, h,
 }
 
 // ---------------------------------------------------------------------------------------------
+// Starry, Nautical and Marquee: things strung along the tab's edge.
+
+/** A spot on the tab's outline: where it is, which way (in degrees clockwise from along +x) the outline runs there, and whether it's a corner's middle. */
+private class OutlineSpot(val at: Offset, val degrees: Float, val corner: Boolean)
+
+/**
+ * Spots all the way round the tab's outline, [inset] in and about [spacing] apart: each edge's are evenly spread from one
+ * corner's arc to the next, and the middle of every rounded corner has one of its own, so a corner is always marked.
+ * Clockwise from the top left.
+ */
+private fun outlineSpots(w: Float, h: Float, inset: Float, spacing: Float): List<OutlineSpot> {
+    val r = max(TAB_CORNER - inset, 1f)
+    val left = inset + r
+    val right = w - inset - r
+    val top = inset + r
+    val bottom = h - inset - r
+    val diagonal = r * 0.7071f
+    val spots = ArrayList<OutlineSpot>()
+    fun edge(from: Offset, to: Offset, degrees: Float) {
+        val steps = max(round((to - from).getDistance() / spacing).toInt(), 1)
+        for (i in 0..steps) spots += OutlineSpot(from + (to - from) * (i / steps.toFloat()), degrees, corner = false)
+    }
+    edge(Offset(left, inset), Offset(right, inset), 0f)
+    spots += OutlineSpot(Offset(right + diagonal, top - diagonal), 45f, corner = true)
+    edge(Offset(w - inset, top), Offset(w - inset, bottom), 90f)
+    spots += OutlineSpot(Offset(right + diagonal, bottom + diagonal), 135f, corner = true)
+    edge(Offset(right, h - inset), Offset(left, h - inset), 180f)
+    spots += OutlineSpot(Offset(left - diagonal, bottom + diagonal), 225f, corner = true)
+    edge(Offset(inset, bottom), Offset(inset, top), 270f)
+    spots += OutlineSpot(Offset(left - diagonal, top - diagonal), 315f, corner = true)
+    return spots
+}
+
+/** The tab's outline, [inset] in, as one closed path to stroke or measure. */
+private fun outlinePath(w: Float, h: Float, inset: Float): Path = Path().apply {
+    addRoundRect(RoundRect(Rect(inset, inset, w - inset, h - inset), CornerRadius(max(TAB_CORNER - inset, 1f))))
+}
+
+/** A five-pointed star [radius] out from [centre], one point straight up. */
+private fun starPath(centre: Offset, radius: Float, inner: Float = 0.45f): Path = Path().apply {
+    for (i in 0 until 10) {
+        val angle = -PI.toFloat() / 2 + i * PI.toFloat() / 5
+        val reach = if (i % 2 == 0) radius else radius * inner
+        val x = centre.x + cos(angle) * reach
+        val y = centre.y + sin(angle) * reach + radius * 0.07f
+        if (i == 0) moveTo(x, y) else lineTo(x, y)
+    }
+    close()
+}
+
+/** How big a star is, in dp, beside the one before it on the edge: big and small in turn, with a corner's the biggest. */
+private fun starRadius(spot: OutlineSpot, index: Int, big: Float, small: Float, corner: Float) = when {
+    spot.corner -> corner
+    index % 2 == 0 -> big
+    else -> small
+}
+
+private val StarsScoreFrame: ScoreFrame = DrawnScoreFrame("starry_stars", painted = true) { w, h, colour ->
+    val spots = outlineSpots(w, h, inset = 2.8f, spacing = 6.4f)
+    spots.forEachIndexed { index, spot ->
+        val radius = starRadius(spot, index, big = 2.0f, small = 1.35f, corner = 3.0f)
+        drawPath(starPath(spot.at, radius), if (radius > 1.8f) colour.lighter(0.3f) else colour)
+    }
+    // Faint specks of distant stars between them.
+    for (i in 1 until spots.size) {
+        val mid = (spots[i].at + spots[i - 1].at) / 2f
+        if ((spots[i].at - spots[i - 1].at).getDistance() < 8f) drawCircle(colour.copy(alpha = 0.55f), 0.45f, mid)
+    }
+}
+
+private val SparklesScoreFrame: ScoreFrame = DrawnScoreFrame("starry_sparkles", painted = true) { w, h, colour ->
+    val spots = outlineSpots(w, h, inset = 2.8f, spacing = 6.4f)
+    val star = Path()
+    spots.forEachIndexed { index, spot ->
+        val radius = starRadius(spot, index, big = 2.6f, small = 1.8f, corner = 3.6f)
+        drawSoftSpot(colour.copy(alpha = if (index % 2 == 0 || spot.corner) 0.34f else 0.2f), spot.at, radius * 1.9f)
+        drawPath(star.fourPointStar(spot.at, radius), colour.lighter(if (index % 2 == 0 || spot.corner) 0.55f else 0.25f))
+    }
+}
+
+private val ConstellationScoreFrame: ScoreFrame = DrawnScoreFrame("starry_constellation", painted = true) { w, h, colour ->
+    val spots = outlineSpots(w, h, inset = 2.9f, spacing = 7.6f)
+    val random = kotlin.random.Random(23)
+    // Each star knocked a little off the line, so the border reads as a constellation, not a row.
+    val nodes = spots.map { spot ->
+        val turn = spot.degrees * PI.toFloat() / 180f
+        val along = (random.nextFloat() - 0.5f) * 2.4f
+        val across = (random.nextFloat() - 0.5f) * 1.8f
+        spot.at + Offset(cos(turn) * along - sin(turn) * across, sin(turn) * along + cos(turn) * across)
+    }
+    for (i in nodes.indices) {
+        drawLine(colour.copy(alpha = 0.5f), nodes[i], nodes[(i + 1) % nodes.size], strokeWidth = 0.55f)
+    }
+    nodes.forEachIndexed { index, at ->
+        val radius = if (spots[index].corner) 2.6f else 1.1f + random.nextFloat() * 1.0f
+        drawSoftSpot(colour.copy(alpha = 0.28f), at, radius * 2.1f)
+        drawPath(starPath(at, radius), colour.lighter(if (radius > 1.7f) 0.5f else 0.2f))
+    }
+}
+
+private val RopeScoreFrame: ScoreFrame = DrawnScoreFrame("nautical_rope", painted = true) { w, h, colour ->
+    val inset = 2.3f
+    val path = outlinePath(w, h, inset)
+    val measure = PathMeasure().apply { setPath(path, false) }
+    // The rope's body, then its strands twisting across it every couple of dp, each lit on one side.
+    drawPath(path, colour.darker(0.45f), style = Stroke(3.2f))
+    var distance = 0f
+    while (distance < measure.length) {
+        val at = measure.getPosition(distance)
+        val along = measure.getTangent(distance)
+        val across = Offset(-along.y, along.x)
+        drawLine(colour.darker(0.15f), at - across * 1.35f - along * 0.85f, at + across * 1.35f + along * 0.85f, strokeWidth = 1.05f, cap = StrokeCap.Round)
+        drawLine(colour.lighter(0.3f).copy(alpha = 0.85f), at - across * 1.0f - along * 0.7f, at + across * 0.2f + along * 0.2f, strokeWidth = 0.5f, cap = StrokeCap.Round)
+        distance += 1.9f
+    }
+}
+
+private val ChainScoreFrame: ScoreFrame = DrawnScoreFrame("nautical_chain", painted = true) { w, h, colour ->
+    val inset = 2.6f
+    val path = outlinePath(w, h, inset)
+    val measure = PathMeasure().apply { setPath(path, false) }
+    val spacing = 3.7f
+    val links = max(round(measure.length / spacing).toInt(), 1)
+    for (i in 0 until links) {
+        val distance = measure.length * i / links
+        val at = measure.getPosition(distance)
+        val along = measure.getTangent(distance)
+        val degrees = atan2(along.y, along.x) * 180f / PI.toFloat()
+        if (i % 2 == 0) {
+            // A link seen flat: an oval ring.
+            placed(at, degrees) {
+                drawRoundRect(colour.darker(0.5f), Offset(-2.5f, -1.6f), Size(5f, 3.2f), CornerRadius(1.6f), style = Stroke(1.5f))
+                drawRoundRect(colour.lighter(0.15f), Offset(-2.4f, -1.5f), Size(4.8f, 3.0f), CornerRadius(1.5f), style = Stroke(0.85f))
+            }
+        } else {
+            // The next one turned side-on: a short bar.
+            placed(at, degrees) {
+                drawRoundRect(colour.darker(0.2f), Offset(-1.5f, -0.75f), Size(3f, 1.5f), CornerRadius(0.75f))
+                drawLine(colour.lighter(0.4f).copy(alpha = 0.8f), Offset(-1.0f, -0.3f), Offset(1.0f, -0.3f), strokeWidth = 0.4f, cap = StrokeCap.Round)
+            }
+        }
+    }
+}
+
+private val BulbsScoreFrame: ScoreFrame = DrawnScoreFrame("marquee_bulbs", painted = true) { w, h, colour ->
+    val inset = 3.2f
+    drawPath(outlinePath(w, h, inset), colour.darker(0.45f), style = Stroke(0.8f))
+    outlineSpots(w, h, inset, spacing = 6.2f).forEachIndexed { index, spot ->
+        // Every other bulb lit bright, as a marquee's chase is caught mid-run.
+        val lit = index % 2 == 0 || spot.corner
+        val radius = if (spot.corner) 2.0f else 1.55f
+        drawSoftSpot(colour.copy(alpha = if (lit) 0.34f else 0.14f), spot.at, radius * 2.3f)
+        drawCircle(if (lit) colour.lighter(0.5f) else colour.darker(0.2f), radius, spot.at)
+        if (lit) drawCircle(Color.White.copy(alpha = 0.8f), radius * 0.3f, spot.at + Offset(-radius * 0.3f, -radius * 0.3f))
+    }
+}
+
+private val DiamondsScoreFrame: ScoreFrame = DrawnScoreFrame("marquee_diamonds", painted = true) { w, h, colour ->
+    val inset = 3.3f
+    val rail = outlinePath(w, h, inset)
+    drawPath(rail, colour.darker(0.5f), style = Stroke(0.7f))
+    outlineSpots(w, h, inset, spacing = 6.8f).forEachIndexed { index, spot ->
+        if (index % 2 == 0 || spot.corner) {
+            val half = if (spot.corner) 2.7f else 2.0f
+            val diamond = polygonPath(listOf(spot.at + Offset(0f, -half), spot.at + Offset(half * 0.8f, 0f), spot.at + Offset(0f, half), spot.at + Offset(-half * 0.8f, 0f)))
+            drawPath(diamond, colour.lighter(0.35f))
+            drawPath(diamond, colour.darker(0.35f), style = Stroke(0.5f))
+            drawLine(Color.White.copy(alpha = 0.7f), spot.at + Offset(0f, -half * 0.6f), spot.at + Offset(half * 0.35f, -half * 0.1f), strokeWidth = 0.4f, cap = StrokeCap.Round)
+        } else {
+            drawCircle(colour.lighter(0.15f), 0.8f, spot.at)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
 
 /** Every frame by its id, for the catalog. */
 internal object ScoreFrameArt {
@@ -621,4 +875,11 @@ internal object ScoreFrameArt {
     val neon = NeonScoreFrame
     val neonDouble = NeonDoubleScoreFrame
     val pixel = PixelScoreFrame
+    val stars = StarsScoreFrame
+    val sparkles = SparklesScoreFrame
+    val constellation = ConstellationScoreFrame
+    val rope = RopeScoreFrame
+    val chain = ChainScoreFrame
+    val bulbs = BulbsScoreFrame
+    val diamonds = DiamondsScoreFrame
 }

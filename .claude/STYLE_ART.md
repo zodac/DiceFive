@@ -79,6 +79,22 @@ once, in a function every category calls, rather than copying it. Already shared
   start points), the Glitter mat's and background's flake dust, and the scanlines of the Glitch dice and background.
   Sharing them would take a lambda for each difference.
 
+## Frames
+
+- **A frame is one drawing function** in dp (`DrawnScoreFrame`), given the tab's width and height and the player's colour. It
+  draws behind the text and may spill a few dp past the tab, into the gap beside it (`FRAME_SPILL`, 8dp).
+- **Only shades of the player's colour**, never a colour of its own.
+- **Keep off the text.** The name can reach to within a few dp of the tab's sides, at four players and a large font, so
+  beside it a frame squeezes in or shrinks (the wreath's leaves pointing inward). Above the name there's about 10dp. Run
+  `ScoreFrameClearanceTest`; it is the judge.
+- **Many small parts means `painted = true`**: the frame is drawn once per colour and tab size into an image and stamped,
+  about 0.01ms a redraw instead of 0.5-1ms. Live drawing is fine for a few strokes. The stamped frame is within 6 of 255
+  of the live one in any channel.
+- **Strung along the edge** (stars, links, bulbs): `outlineSpots` gives evenly spaced points all the way round, a
+  corner's middle always one of them, with the direction the outline runs there. `outlinePath` is the edge as a path to
+  stroke or measure for rope-like things.
+- **A frame that goes all the way round** is held to it by `FrameCoverageTest`.
+
 ## Heavy art: paint once, keep it off the frame
 
 - **Static, costly surfaces** go through `drawCachedSurface(key) { ... }` (`Patterns.kt`). The key captures everything

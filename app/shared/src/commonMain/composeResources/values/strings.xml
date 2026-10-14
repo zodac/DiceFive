@@ -830,6 +830,8 @@
     <string name="style_family_misprint">Misprint</string>
     <string name="style_family_multicolour">Multicolour</string>
     <string name="style_family_neon">Neon</string>
+    <string name="style_family_nautical">Nautical</string>
+    <string name="style_family_marquee">Marquee</string>
     <string name="style_family_world">World</string>
     <string name="style_family_numeral">Numeral</string>
     <string name="style_family_obsidian">Obsidian</string>
@@ -862,6 +864,13 @@
     <string name="style_colour_arabic">Arabic</string>
     <string name="style_colour_arabic_green">Arabic Green</string>
     <string name="style_colour_barrel">Barrel</string>
+    <string name="style_colour_rope">Rope</string>
+    <string name="style_colour_chain">Chain</string>
+    <string name="style_colour_bulbs">Bulbs</string>
+    <string name="style_colour_diamonds">Diamonds</string>
+    <string name="style_colour_stars">Stars</string>
+    <string name="style_colour_sparkles">Sparkles</string>
+    <string name="style_colour_constellation">Constellation</string>
     <string name="style_colour_beaker_blue">Beaker Blue</string>
     <string name="style_colour_beaker_green">Beaker Green</string>
     <string name="style_colour_basalt">Basalt</string>

@@ -18,7 +18,9 @@ import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.style_family_garden
 import net.zodac.dicefive.resources.style_family_martini
 import net.zodac.dicefive.resources.style_family_maths
+import net.zodac.dicefive.resources.style_family_nautical
 import net.zodac.dicefive.resources.style_noun_dice
+import net.zodac.dicefive.resources.style_noun_frame
 import net.zodac.dicefive.ui.game.style.StyleCatalogs
 import net.zodac.dicefive.ui.game.style.StyleReward
 import net.zodac.dicefive.ui.game.style.StyleUnlock
@@ -51,8 +53,11 @@ class StylesUnlockedBannerTest {
 
     @Test
     fun `each count-locked style is unlocked by the step onto its count and no other - a jump over several unlocking each on the way`() {
-        // One short or one past does not: Garden is unlocked at 90, but no styles are unlocked at 89 or 91.
-        assertEquals(listOf(StyleReward(Res.string.style_family_garden, Res.string.style_noun_dice)), stylesUnlockedByCount(89, 90))
+        // One short or one past does not: Garden dice and the Nautical frame are unlocked at 90, but no styles are unlocked at 89 or 91.
+        assertEquals(
+            listOf(StyleReward(Res.string.style_family_garden, Res.string.style_noun_dice), StyleReward(Res.string.style_family_nautical, Res.string.style_noun_frame)),
+            stylesUnlockedByCount(89, 90),
+        )
         assertEquals(emptyList(), stylesUnlockedByCount(88, 89))
         assertEquals(emptyList(), stylesUnlockedByCount(90, 91))
 

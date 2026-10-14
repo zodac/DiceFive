@@ -71,6 +71,9 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
     screen, captured: 25-26ms against 22), level with Pinstripe, Starry and Desert. Neon is ~29ms, level with
     Honeycomb and under Glitter and Glitch (32-34ms).
   - Treasure Chest, Urn, Volcano and Picnic Basket are within a few ms of Classic Gold.
+- **Score frames** (one draw of the active tab's frame, 3x, desktop JVM, median ms): a plain ring 0.03-0.06; Neon,
+  Pixel, Greek Key and the tribal and floral ones 0.1-0.5; Celtic Knot 0.62. Drawn live, the wreath was 0.61, Rope 1.08,
+  Chain 0.90, and Starry Sparkles, Constellation and Marquee Bulbs 0.54-0.58. Those nine are `painted` and cost 0.013.
 - **Live per frame**, for moving art:
   - glitter: 2 sparkles a die, 6 on its mat, 5 on its background, 2 on its cup;
   - neon strokes, and the Neon background's horizon glow (one gradient rect; its grid is painted once);

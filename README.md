@@ -41,8 +41,8 @@ Unlock over 90 styles as you earn achievements, most in several colours:
 - **Dice** - gemstones, marble, mahjong tiles, LCD digits, googly eyes, Roman numerals, cake and more
 - **Dice cups** - a top hat, a treasure chest, a volcano, a flowerpot, a cauldron and more
 - **Dice mats** - leather, wood, casino felt, stone, circuit boards, honeycomb and more
-- **Backgrounds** - wooden planks, desert nights, starry skies, neon brick, sunbursts and more
-- **Scorecard frames** - floral, Art Deco, Celtic knots, Greek key, pixel art and neon
+- **Backgrounds** - wooden planks, desert nights, a river meadow, stone, circuit boards, neon grids and more
+- **Scorecard frames** - floral, laurel wreaths, Celtic knots, rope and chain, marquee lights, starry skies, pixel art and neon
 
 ## Track every game
 

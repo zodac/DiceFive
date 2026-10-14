@@ -24,15 +24,19 @@ import net.zodac.dicefive.resources.style_colour_blueprint
 import net.zodac.dicefive.resources.style_colour_bronze
 import net.zodac.dicefive.resources.style_colour_brown
 import net.zodac.dicefive.resources.style_colour_bud
+import net.zodac.dicefive.resources.style_colour_bulbs
+import net.zodac.dicefive.resources.style_colour_chain
 import net.zodac.dicefive.resources.style_colour_charcoal
 import net.zodac.dicefive.resources.style_colour_chinese
 import net.zodac.dicefive.resources.style_colour_chocolate
 import net.zodac.dicefive.resources.style_colour_classic
 import net.zodac.dicefive.resources.style_colour_clear
+import net.zodac.dicefive.resources.style_colour_constellation
 import net.zodac.dicefive.resources.style_colour_copper
 import net.zodac.dicefive.resources.style_colour_crimson
 import net.zodac.dicefive.resources.style_colour_cyan
 import net.zodac.dicefive.resources.style_colour_daisy
+import net.zodac.dicefive.resources.style_colour_diamonds
 import net.zodac.dicefive.resources.style_colour_digits
 import net.zodac.dicefive.resources.style_colour_double
 import net.zodac.dicefive.resources.style_colour_dunes
@@ -99,6 +103,7 @@ import net.zodac.dicefive.resources.style_colour_ring
 import net.zodac.dicefive.resources.style_colour_ripple
 import net.zodac.dicefive.resources.style_colour_roman
 import net.zodac.dicefive.resources.style_colour_roman_blue
+import net.zodac.dicefive.resources.style_colour_rope
 import net.zodac.dicefive.resources.style_colour_rose
 import net.zodac.dicefive.resources.style_colour_rose_gold
 import net.zodac.dicefive.resources.style_colour_sandstone
@@ -111,7 +116,9 @@ import net.zodac.dicefive.resources.style_colour_slate
 import net.zodac.dicefive.resources.style_colour_snowcap
 import net.zodac.dicefive.resources.style_colour_soil
 import net.zodac.dicefive.resources.style_colour_sozu
+import net.zodac.dicefive.resources.style_colour_sparkles
 import net.zodac.dicefive.resources.style_colour_starlight
+import net.zodac.dicefive.resources.style_colour_stars
 import net.zodac.dicefive.resources.style_colour_stepped
 import net.zodac.dicefive.resources.style_colour_strawberry
 import net.zodac.dicefive.resources.style_colour_sunflower
@@ -169,12 +176,14 @@ import net.zodac.dicefive.resources.style_family_googly
 import net.zodac.dicefive.resources.style_family_greek
 import net.zodac.dicefive.resources.style_family_lcd
 import net.zodac.dicefive.resources.style_family_leather
+import net.zodac.dicefive.resources.style_family_marquee
 import net.zodac.dicefive.resources.style_family_martini
 import net.zodac.dicefive.resources.style_family_maths
 import net.zodac.dicefive.resources.style_family_meadow
 import net.zodac.dicefive.resources.style_family_metal
 import net.zodac.dicefive.resources.style_family_misprint
 import net.zodac.dicefive.resources.style_family_multicolour
+import net.zodac.dicefive.resources.style_family_nautical
 import net.zodac.dicefive.resources.style_family_neon
 import net.zodac.dicefive.resources.style_family_numeral
 import net.zodac.dicefive.resources.style_family_obsidian
@@ -1389,7 +1398,7 @@ object ScoreFrames : StyleCatalog<ScoreFrame>(
         StyleFamily(
             Res.string.style_family_wreath,
             listOf(frame(Res.string.style_colour_laurel, ScoreFrameArt.laurel), frame(Res.string.style_colour_olive, ScoreFrameArt.olive)),
-            unlock = AchievementCount(40),
+            unlock = AchievementCount(45),
         ),
         StyleFamily(
             Res.string.style_family_greek,
@@ -1402,6 +1411,26 @@ object ScoreFrames : StyleCatalog<ScoreFrame>(
             Res.string.style_family_neon,
             listOf(frame(Res.string.style_colour_single, ScoreFrameArt.neon), frame(Res.string.style_colour_double, ScoreFrameArt.neonDouble)),
             unlock = AchievementCount(80),
+        ),
+        StyleFamily(
+            Res.string.style_family_nautical,
+            listOf(frame(Res.string.style_colour_rope, ScoreFrameArt.rope), frame(Res.string.style_colour_chain, ScoreFrameArt.chain)),
+            unlock = AchievementCount(90),
+        ),
+        StyleFamily(
+            Res.string.style_family_marquee,
+            listOf(frame(Res.string.style_colour_bulbs, ScoreFrameArt.bulbs), frame(Res.string.style_colour_diamonds, ScoreFrameArt.diamonds)),
+            unlock = AchievementCount(100),
+        ),
+        // Opens at 40 achievements rather than with the Starry dice, mat and background (the Easter egg).
+        StyleFamily(
+            Res.string.style_family_starry,
+            listOf(
+                frame(Res.string.style_colour_stars, ScoreFrameArt.stars),
+                frame(Res.string.style_colour_sparkles, ScoreFrameArt.sparkles),
+                frame(Res.string.style_colour_constellation, ScoreFrameArt.constellation),
+            ),
+            unlock = AchievementCount(40),
         ),
     ),
     variantNoun = Res.string.style_variant_design,

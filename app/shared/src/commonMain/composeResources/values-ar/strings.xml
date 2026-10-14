@@ -721,6 +721,8 @@
     <string name="style_family_misprint">خطأ طباعة</string>
     <string name="style_family_multicolour">متعدد الألوان</string>
     <string name="style_family_neon">نيون</string>
+    <string name="style_family_nautical">بحري</string>
+    <string name="style_family_marquee">لافتة مضيئة</string>
     <string name="style_family_world">عالم</string>
     <string name="style_family_numeral">أرقام</string>
     <string name="style_family_obsidian">سبج</string>
@@ -753,6 +755,13 @@
     <string name="style_colour_arabic">عربي</string>
     <string name="style_colour_arabic_green">أخضر عربي</string>
     <string name="style_colour_barrel">برميل</string>
+    <string name="style_colour_rope">حبل</string>
+    <string name="style_colour_chain">سلسلة</string>
+    <string name="style_colour_bulbs">مصابيح</string>
+    <string name="style_colour_diamonds">ألماس</string>
+    <string name="style_colour_stars">نجوم</string>
+    <string name="style_colour_sparkles">بريق</string>
+    <string name="style_colour_constellation">كوكبة</string>
     <string name="style_colour_beaker_blue">دورق أزرق</string>
     <string name="style_colour_beaker_green">دورق أخضر</string>
     <string name="style_colour_basalt">بازلت</string>

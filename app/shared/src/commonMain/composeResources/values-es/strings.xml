@@ -636,6 +636,8 @@
     <string name="style_family_misprint">Error de imprenta</string>
     <string name="style_family_multicolour">Multicolor</string>
     <string name="style_family_neon">Neón</string>
+    <string name="style_family_nautical">Náutico</string>
+    <string name="style_family_marquee">Marquesina</string>
     <string name="style_family_world">Mundo</string>
     <string name="style_family_numeral">Numeral</string>
     <string name="style_family_obsidian">Obsidiana</string>
@@ -668,6 +670,13 @@
     <string name="style_colour_arabic">Árabe</string>
     <string name="style_colour_arabic_green">Verde árabe</string>
     <string name="style_colour_barrel">Barril</string>
+    <string name="style_colour_rope">Cuerda</string>
+    <string name="style_colour_chain">Cadena</string>
+    <string name="style_colour_bulbs">Bombillas</string>
+    <string name="style_colour_diamonds">Diamantes</string>
+    <string name="style_colour_stars">Estrellas</string>
+    <string name="style_colour_sparkles">Destellos</string>
+    <string name="style_colour_constellation">Constelación</string>
     <string name="style_colour_beaker_blue">Vaso azul</string>
     <string name="style_colour_beaker_green">Vaso verde</string>
     <string name="style_colour_basalt">Basalto</string>

@@ -275,6 +275,13 @@ There are five independently saved categories (`ui/game/style/`), bundled as `Ga
 - backgrounds (`TableBackground`)
 - frames (`ScoreFrame`, around the active player's tab)
 
+**Frames** are drawn in the active player's own colour behind their tab (`ScoreFrames.kt`, in dp), and stay 1.5dp off the
+text (`ScoreFrameClearanceTest`). One made of many parts (the wreaths, Starry, Nautical, Marquee) is `painted`: drawn once
+per colour and tab size, then stamped, as the tab redraws every frame while a score counts up. The wreath goes all the
+way round the tab, thinning its inward leaves beside the name, and `FrameCoverageTest` holds those frames to filling the
+band along every edge. Unlocks climb in tens (Floral 10 to Marquee 100), with the Wreath at 45 to leave 40 for Starry, which
+opens by count and not with the Starry dice, mat and background (Rolling The Midnight Dice).
+
 `StyleCatalog.kt` groups each category's art into `StyleFamily`s (a shape or pattern, which is one tile on the Styles
 screen) of `StyleColour`s.
 
