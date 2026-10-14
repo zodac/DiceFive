@@ -24,9 +24,9 @@ import net.zodac.dicefive.ui.theme.GoldAccent
 
 /**
  * [rows] lines of wave crests in [colour] across the surface, each a gentle swell [wavelength] long
- * and [amplitude] high, with a faint band of the same colour hanging below it. Each row has its own
- * offset from [seed], and [seconds] moves them: alternate rows drift opposite ways at
- * [speed] wavelengths a second, and rise and fall a little. At 0 they're where [seed] put them.
+ * and [amplitude] high. Each row has its own offset from [seed], and [seconds] moves them: alternate
+ * rows drift opposite ways at [speed] wavelengths a second, and rise and fall a little. At 0 they're
+ * where [seed] put them.
  */
 internal fun DrawScope.drawWaveCrests(
     colour: Color,
@@ -37,7 +37,6 @@ internal fun DrawScope.drawWaveCrests(
     seed: Int,
     seconds: Float = 0f,
     speed: Float = 0f,
-    band: Float = 0f,
 ) {
     val random = Random(seed)
     val twoPi = 2f * PI.toFloat()
@@ -57,15 +56,6 @@ internal fun DrawScope.drawWaveCrests(
         while (x < size.width + step) {
             x += step
             crest.lineTo(x, y + amplitude * sin(x / wavelength * twoPi + phase))
-        }
-        if (band > 0f) {
-            val fill = Path().apply {
-                addPath(crest)
-                lineTo(x, y + band)
-                lineTo(-step, y + band)
-                close()
-            }
-            drawPath(fill, Brush.verticalGradient(listOf(colour.copy(alpha = 0.06f * strength), Color.Transparent), startY = y - amplitude, endY = y + band))
         }
         drawPath(crest, colour.copy(alpha = colour.alpha * strength), style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
     }
@@ -161,7 +151,8 @@ class OceanDiceMat(id: String, palette: MatPalette) : PatternedDiceMat(id, palet
 
 /**
  * The open sea: rows of wave crests in [BackgroundPalette.detail] rolling slowly across the table,
- * alternate rows each way, each rising and falling on the swell. Still under reduced motion.
+ * alternate rows each way, each rising and falling on the swell, under a glow from above that's
+ * painted once. Only the crest lines are drawn each frame. Still under reduced motion.
  */
 class OceanWavesBackground(override val id: String, private val palette: BackgroundPalette) : TableBackground {
     override val scoreAreaBrush: Brush = Brush.verticalGradient(listOf(palette.top, palette.bottom))
@@ -174,7 +165,9 @@ class OceanWavesBackground(override val id: String, private val palette: Backgro
     }
 
     override fun DrawScope.drawScoreAreaDecoration() {
-        drawSoftSpot(palette.detail.copy(alpha = 0.10f), Offset(size.width * 0.5f, 0f), size.maxDimension * 0.6f)
+        drawCachedSurface("background:$id") {
+            drawSoftSpot(palette.detail.copy(alpha = 0.10f), Offset(size.width * 0.5f, 0f), size.maxDimension * 0.6f)
+        }
         drawWaveCrests(
             palette.detail.copy(alpha = 0.16f),
             rows = 7,
@@ -184,7 +177,6 @@ class OceanWavesBackground(override val id: String, private val palette: Backgro
             seed = 5,
             seconds = seconds,
             speed = 0.05f,
-            band = 40.dp.toPx(),
         )
     }
 }

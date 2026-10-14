@@ -76,9 +76,10 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
   - A cup alone, 110x96dp (median of three runs, p95): the Fishbowl is ~6.1 in idle, ~6.7 shaking and ~6.6 pouring,
     level with the Cauldron (~7.1, ~7.2, ~6.2) and Classic Gold in the same runs. Clipping its fish to the water with
     two nested clips, not a `Path.combine` intersection built every frame, took its shake and pour from ~9.2-9.5.
-  - A background alone, 411x560dp (p95): Ocean Waves is the dearest, ~28-34 against Glitch ~25-32, Glitter ~23-25 and
-    Neon ~21. Its seven moving gradient bands are ~5 of that: without them it measured ~22, level with Glitch. Ocean
-    Lagoon is painted once and sits with Neon; the Ocean mats sit with Classic and Stone.
+  - A background alone, 411x560dp (median of three runs, p95): Ocean Waves is ~19, under Glitch ~22 and Glitter ~20,
+    level with Starry ~17.5 and Classic ~16-20. It draws only its seven moving crest lines each frame; its glow is
+    painted once. A gradient band hanging under each crest cost ~5 more and was dropped. Ocean Lagoon is painted once
+    and sits with Neon; the Ocean mats sit with Classic and Stone.
 - **Score frames** (one draw of the active tab's frame, 3x, desktop JVM, median ms): a plain ring 0.03-0.06; Neon,
   Pixel, Greek Key and the tribal and floral ones 0.1-0.5; Celtic Knot 0.62. Drawn live, the wreath was 0.61, Rope 1.08,
   Chain 0.90, and Starry Sparkles, Constellation and Marquee Bulbs 0.54-0.58. Those nine are `painted` and cost 0.013.
@@ -88,7 +89,7 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
   - the Honeycomb bee (~40 shapes);
   - the Volcano's crater, 5 lava ribbons and eruption;
   - the Fishbowl's water, clownfish (body, 3 bands of up to 16 pieces, fins, eyes), 5 fronds, 3 rocks and 3 bubbles;
-  - the Ocean Waves background's 7 crest lines and the gradient band under each;
+  - the Ocean Waves background's 7 crest lines;
   - the Basket's lids and food;
   - the Chest's lid, top coins and spill;
   - glitch bands only during a burst.
