@@ -35,7 +35,7 @@ class StyleCatalogTest {
     fun `the beakers are variants of Glass - open with it - under the ids they were released with`() {
         val glass = DiceCupStyles.families.single { it.name.key == "style_family_glass" }
         assertEquals(listOf("glass_clear", "glass_blue", "glass_amber", "beaker_blue", "beaker_green"), glass.colours.map { it.style.id })
-        assertEquals(StyleUnlock.AchievementCount(25), glass.unlock)
+        assertEquals(StyleUnlock.AchievementCount(30), glass.unlock)
         for (id in IDS_KEPT_FROM_MERGED_FAMILIES) assertEquals(glass, DiceCupStyles.familyOf(id), id)
         assertTrue(DiceCupStyles.families.none { it.name.key == "style_family_beaker" })
     }
@@ -77,6 +77,33 @@ class StyleCatalogTest {
         for (family in listOf("stone", "circuit", "neon", "meadow", "leather", "gingham", "christmas", "glitter", "rgb")) {
             assertTrue(TableBackgrounds.families.any { it.name.key == "style_family_$family" }, "no $family background")
         }
+    }
+
+    @Test
+    fun `no count lock is beyond 100 achievements - and the water set opens at 15`() {
+        for (catalog in catalogs) for (family in catalog.families) {
+            val unlock = family.unlock
+            if (unlock is StyleUnlock.AchievementCount) assertTrue(unlock.count <= 100, "${family.name.key} needs ${unlock.count}")
+        }
+        val water = listOf(
+            DiceStyles to "style_family_ocean",
+            DiceCupStyles to "style_family_fishbowl",
+            DiceMats to "style_family_ocean",
+            TableBackgrounds to "style_family_ocean",
+            ScoreFrames to "style_family_nautical",
+        )
+        for ((catalog, family) in water) {
+            assertEquals(StyleUnlock.AchievementCount(15), catalog.families.single { it.name.key == family }.unlock, family)
+        }
+    }
+
+    @Test
+    fun `the Nautical frame offers Chain first - and the Ocean background rolling Waves then still Lagoon`() {
+        assertEquals(listOf("nautical_chain", "nautical_rope"), ScoreFrames.families.single { it.name.key == "style_family_nautical" }.colours.map { it.style.id })
+        val ocean = TableBackgrounds.families.single { it.name.key == "style_family_ocean" }.colours.map { it.style }
+        assertEquals(listOf("ocean_waves", "ocean_lagoon"), ocean.map { it.id })
+        assertTrue(ocean[0] is OceanWavesBackground)
+        assertTrue(ocean[1] is OceanLagoonBackground)
     }
 
     @Test

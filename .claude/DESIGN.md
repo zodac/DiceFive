@@ -279,8 +279,8 @@ There are five independently saved categories (`ui/game/style/`), bundled as `Ga
 text (`ScoreFrameClearanceTest`). One made of many parts (the wreaths, Starry, Nautical, Marquee) is `painted`: drawn once
 per colour and tab size, then stamped, as the tab redraws every frame while a score counts up. The wreath goes all the
 way round the tab, thinning its inward leaves beside the name, and `FrameCoverageTest` holds those frames to filling the
-band along every edge. Unlocks climb in tens (Floral 10 to Marquee 100), with the Wreath at 45 to leave 40 for Starry, which
-opens by count and not with the Starry dice, mat and background (Rolling The Midnight Dice).
+band along every edge. Unlocks run from Floral at 10 to Marquee at 100, with Nautical at 15 as part of the water set and
+Starry at 45, which opens by count and not with the Starry dice, mat and background (Rolling The Midnight Dice).
 
 `StyleCatalog.kt` groups each category's art into `StyleFamily`s (a shape or pattern, which is one tile on the Styles
 screen) of `StyleColour`s.
@@ -291,8 +291,15 @@ screen) of `StyleColour`s.
     colours of Glass (`Beaker Blue`, `Beaker Green`) but are still `beaker_blue` and `beaker_green`, because ids are
     permanent. They're listed in the test.
 - **A style with a counterpart of the same name is unlocked by the same thing** in every category that has one: Stone
-  (dice, mat, background) opens at 60 achievements, Circuit at 75, Neon at 95, Meadow at 70. `StyleCatalogTest` checks
+  (dice, mat, background) opens at 65 achievements, Circuit at 80, Neon at 100, Meadow at 75. `StyleCatalogTest` checks
   every family name across dice, cups, mats and backgrounds.
+- **The water set opens together, at 15 achievements** (`WATER_SET_UNLOCK`): the Ocean dice, mat and background, the
+  Fishbowl cup and the Nautical frame. No count lock is above 100, and the 50 and 100 locks are fixed points.
+  - The Ocean background's Waves roll (`TwinkleClock`); its Lagoon is painted once. The dice, mat and Lagoon share
+    `drawWaveCrests` and `paintCaustics` (`OceanArt.kt`).
+  - The Fishbowl's clownfish swims a rail (`clownfishOnRail`) as a turning solid, its face always swinging towards the
+    viewer. Its three rocks roll with the water's lagging tilt, and its fronds lean back against the bowl's tilt and
+    swing with the slosh.
 - **The Classic family** comes first in every category and is free. Its first colour is the default: ivory dice, the
   gold casino shaker (the launcher icon's cup), the blue mat, navy felt, a plain ring.
 - **Locks.** Every other family is locked behind an achievement count (`StyleUnlock.AchievementCount`) or a specific

@@ -266,6 +266,8 @@ in Settings, between the switches and the resets.
   `rememberAmbientCycle` cups, and googly pupils;
 - each reads `ambientMotion` (`ui/common/ReduceMotion.kt`), which is true only at High. Below High it holds its
   reduced-motion pose, so no new art is needed;
+- a cup whose ambient art travels (the Fishbowl's fish) holds where it was when its cycle stops, the cup spent, and
+  sets off from there next turn (`HeldLap`), rather than snapping to its resting pose;
 - the score tile reads `scorePulse`;
 - both are false under a nested `LocalReduceMotion`, which is how an off-screen Styles tile is held still.
 

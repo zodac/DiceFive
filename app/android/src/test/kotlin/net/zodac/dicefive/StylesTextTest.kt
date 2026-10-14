@@ -21,6 +21,7 @@ import net.zodac.dicefive.ui.styles.StylesScreen
 import net.zodac.dicefive.ui.styles.StylesViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -67,8 +68,9 @@ class StylesTextTest {
     fun `a locked style tile shows the unlock requirement dialog with resolved style name`() {
         show(AchievementsState())
         val metal = compose.onAllNodesWithContentDescription("Metal").onFirst()
+        metal.performScrollTo()
         metal.performTouchInput { longClick() }
         compose.waitForIdle()
-        compose.onNodeWithText("Earn 15 achievements to unlock Metal. You've earned 0 so far.").assertExists()
+        compose.onNodeWithText("Earn 20 achievements to unlock Metal. You've earned 0 so far.").assertExists()
     }
 }

@@ -31,15 +31,15 @@ import net.zodac.dicefive.resources.style_colour_chinese
 import net.zodac.dicefive.resources.style_colour_chocolate
 import net.zodac.dicefive.resources.style_colour_classic
 import net.zodac.dicefive.resources.style_colour_clear
+import net.zodac.dicefive.resources.style_colour_clownfish
 import net.zodac.dicefive.resources.style_colour_constellation
-import net.zodac.dicefive.resources.style_colour_copper
 import net.zodac.dicefive.resources.style_colour_crimson
 import net.zodac.dicefive.resources.style_colour_cyan
 import net.zodac.dicefive.resources.style_colour_daisy
+import net.zodac.dicefive.resources.style_colour_deep
 import net.zodac.dicefive.resources.style_colour_diamonds
 import net.zodac.dicefive.resources.style_colour_digits
 import net.zodac.dicefive.resources.style_colour_double
-import net.zodac.dicefive.resources.style_colour_dunes
 import net.zodac.dicefive.resources.style_colour_emerald
 import net.zodac.dicefive.resources.style_colour_fan
 import net.zodac.dicefive.resources.style_colour_flame
@@ -65,9 +65,9 @@ import net.zodac.dicefive.resources.style_colour_japanese_black
 import net.zodac.dicefive.resources.style_colour_key
 import net.zodac.dicefive.resources.style_colour_knot
 import net.zodac.dicefive.resources.style_colour_kraft
+import net.zodac.dicefive.resources.style_colour_lagoon
 import net.zodac.dicefive.resources.style_colour_lantern_rainbow
 import net.zodac.dicefive.resources.style_colour_lantern_wave
-import net.zodac.dicefive.resources.style_colour_lapis
 import net.zodac.dicefive.resources.style_colour_latin_american
 import net.zodac.dicefive.resources.style_colour_laurel
 import net.zodac.dicefive.resources.style_colour_lava
@@ -87,7 +87,6 @@ import net.zodac.dicefive.resources.style_colour_opening
 import net.zodac.dicefive.resources.style_colour_orange_and_teal
 import net.zodac.dicefive.resources.style_colour_oxblood
 import net.zodac.dicefive.resources.style_colour_pencil
-import net.zodac.dicefive.resources.style_colour_pewter
 import net.zodac.dicefive.resources.style_colour_pink
 import net.zodac.dicefive.resources.style_colour_pink_and_blue
 import net.zodac.dicefive.resources.style_colour_pinzu
@@ -157,10 +156,10 @@ import net.zodac.dicefive.resources.style_family_circuit
 import net.zodac.dicefive.resources.style_family_classic
 import net.zodac.dicefive.resources.style_family_containers
 import net.zodac.dicefive.resources.style_family_d20
-import net.zodac.dicefive.resources.style_family_desert
 import net.zodac.dicefive.resources.style_family_devil
 import net.zodac.dicefive.resources.style_family_egg
 import net.zodac.dicefive.resources.style_family_faceted
+import net.zodac.dicefive.resources.style_family_fishbowl
 import net.zodac.dicefive.resources.style_family_floating_dice
 import net.zodac.dicefive.resources.style_family_floral
 import net.zodac.dicefive.resources.style_family_flowerpot
@@ -187,22 +186,20 @@ import net.zodac.dicefive.resources.style_family_nautical
 import net.zodac.dicefive.resources.style_family_neon
 import net.zodac.dicefive.resources.style_family_numeral
 import net.zodac.dicefive.resources.style_family_obsidian
+import net.zodac.dicefive.resources.style_family_ocean
 import net.zodac.dicefive.resources.style_family_picnic
 import net.zodac.dicefive.resources.style_family_pinstripe
 import net.zodac.dicefive.resources.style_family_pixel
 import net.zodac.dicefive.resources.style_family_planks
-import net.zodac.dicefive.resources.style_family_pyramid
 import net.zodac.dicefive.resources.style_family_retro
 import net.zodac.dicefive.resources.style_family_rgb
 import net.zodac.dicefive.resources.style_family_ribbon
-import net.zodac.dicefive.resources.style_family_sand
 import net.zodac.dicefive.resources.style_family_spotlight
 import net.zodac.dicefive.resources.style_family_starry
 import net.zodac.dicefive.resources.style_family_stone
 import net.zodac.dicefive.resources.style_family_sunburst
 import net.zodac.dicefive.resources.style_family_takeaway
 import net.zodac.dicefive.resources.style_family_tally
-import net.zodac.dicefive.resources.style_family_tankard
 import net.zodac.dicefive.resources.style_family_text
 import net.zodac.dicefive.resources.style_family_top_hat
 import net.zodac.dicefive.resources.style_family_treasure
@@ -332,6 +329,9 @@ private fun classicDie(id: String, colour: DieColour): StyleColour<DiceStyle> =
         },
         colour.palette.swatch, ColouredClassicDiceStyle(id, colour.palette))
 
+/** The achievement count at which every style of the water set opens, in each category that has one. */
+private const val WATER_SET_UNLOCK = 15
+
 /** Every category's catalog, in the Styles screen's order. */
 val StyleCatalogs: List<StyleCatalog<*>> by lazy { StyleCategory.entries.map { it.catalog } }
 
@@ -368,6 +368,15 @@ object DiceStyles : StyleCatalog<DiceStyle>(
             ),
             unlock = AchievementCount(10),
         ),
+        // The water set, with the Fishbowl cup, the Ocean mat and backgrounds and the Nautical frame.
+        StyleFamily(
+            Res.string.style_family_ocean,
+            listOf(
+                colour(Res.string.style_colour_lagoon, OceanDiceStyle("ocean_lagoon", Color(0xFF1A9DB5), Color(0xFF0A5C7A), Color(0xFFD8FBFF), Color(0xFFF7F3EA))),
+                colour(Res.string.style_colour_deep, OceanDiceStyle("ocean_deep", Color(0xFF235EA8), Color(0xFF0B2350), Color(0xFFB8DCFF), Color(0xFFF7F3EA))),
+            ),
+            unlock = AchievementCount(WATER_SET_UNLOCK),
+        ),
         StyleFamily(
             Res.string.style_family_metal,
             listOf(
@@ -399,7 +408,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     ),
                 ),
             ),
-            unlock = AchievementCount(15),
+            unlock = AchievementCount(20),
         ),
         StyleFamily(
             Res.string.style_family_numeral,
@@ -408,7 +417,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(Res.string.style_colour_red, NumeralDiceStyle("numeral_red", Color(0xFFE53935), Color(0xFF8E0E0E), Color.White)),
                 colour(Res.string.style_colour_blue, NumeralDiceStyle("numeral_blue", Color(0xFF2F7FE0), Color(0xFF0B3A80), Color.White)),
             ),
-            unlock = AchievementCount(15),
+            unlock = AchievementCount(20),
         ),
         StyleFamily(
             Res.string.style_family_world,
@@ -439,16 +448,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     NumeralDiceStyle("world_japanese_black", Color(0xFF1A1714), Color(0xFF050403), Color(0xFFD4AF37), NumeralSystem.JAPANESE),
                 ),
             ),
-            unlock = AchievementCount(20),
-        ),
-        StyleFamily(
-            Res.string.style_family_pyramid,
-            listOf(
-                colour(Res.string.style_colour_sandstone, PyramidDiceStyle("pyramid_sandstone", Color(0xFFEACB8E), Color(0xFFB0824E), Color(0xFF4A2C12))),
-                // Lapis lazuli and gold - the gold pips would swallow the usual gold held ring, so theirs is white.
-                colour(Res.string.style_colour_lapis, PyramidDiceStyle("pyramid_lapis", Color(0xFF3C63B8), Color(0xFF162E6A), Color(0xFFE8C66A), heldRing = Color.White)),
-            ),
-            unlock = AchievementCount(20),
+            unlock = AchievementCount(25),
         ),
         StyleFamily(
             Res.string.style_family_frosted,
@@ -456,7 +456,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(Res.string.style_colour_ice, FrostedDiceStyle("frosted_ice", Color(0xFFE3F4FF), Color(0xFFA9D3EE), Color(0xFF1D4E6E))),
                 colour(Res.string.style_colour_white, FrostedDiceStyle("frosted_white", Color(0xFFFAFBFC), Color(0xFFD5DADF), Color(0xFF3A4550))),
             ),
-            unlock = AchievementCount(25),
+            unlock = AchievementCount(30),
         ),
         StyleFamily(
             Res.string.style_family_text,
@@ -497,7 +497,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     ),
                 ),
             ),
-            unlock = AchievementCount(25),
+            unlock = AchievementCount(30),
         ),
         StyleFamily(
             Res.string.style_family_misprint,
@@ -505,7 +505,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(Res.string.style_colour_pencil, MisprintDiceStyle("misprint_pencil", Color(0xFFFAF7F0), Color(0xFF3A3A3A), seed = 1)),
                 colour(Res.string.style_colour_blueprint, MisprintDiceStyle("misprint_blueprint", Color(0xFF1F4E8C), Color(0xFFEAF2FF), seed = 2)),
             ),
-            unlock = AchievementCount(30),
+            unlock = AchievementCount(35),
         ),
         StyleFamily(
             Res.string.style_family_obsidian,
@@ -525,7 +525,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     ),
                 ),
             ),
-            unlock = AchievementCount(30),
+            unlock = AchievementCount(35),
         ),
         StyleFamily(
             Res.string.style_family_multicolour,
@@ -535,7 +535,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 // Secret: only offered once Luck of the Irish is earned.
                 StyleColour(Res.string.style_colour_irish, IrishFlagDiceStyle.swatch, IrishFlagDiceStyle, secretAchievement = Achievement.LUCK_OF_THE_IRISH),
             ),
-            unlock = AchievementCount(35),
+            unlock = AchievementCount(40),
         ),
         StyleFamily(
             Res.string.style_family_games,
@@ -545,7 +545,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(Res.string.style_colour_manzu, MahjongDiceStyle("games_manzu", MahjongSuit.MANZU, MahjongFace, MahjongFaceShade, MahjongBack)),
                 colour(Res.string.style_colour_sozu, MahjongDiceStyle("games_sozu", MahjongSuit.SOZU, MahjongFace, MahjongFaceShade, MahjongBack)),
             ),
-            unlock = AchievementCount(40),
+            unlock = AchievementCount(45),
         ),
         StyleFamily(
             Res.string.style_family_retro,
@@ -558,7 +558,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(Res.string.style_colour_blue, RetroDiceStyle("retro_blue", Color(0xFF9CC8F5), Color(0xFF2E5C99), Color(0xFF0D2547))),
                 colour(Res.string.style_colour_red, RetroDiceStyle("retro_red", Color(0xFFF29C94), Color(0xFF9E2A24), Color(0xFF3D0B08))),
             ),
-            unlock = AchievementCount(40),
+            unlock = AchievementCount(45),
         ),
         StyleFamily(
             Res.string.style_family_tally,
@@ -592,7 +592,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     ),
                 ),
             ),
-            unlock = AchievementCount(45),
+            unlock = AchievementCount(50),
         ),
         StyleFamily(
             Res.string.style_family_egg,
@@ -613,7 +613,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 // Milk chocolate, light enough for the strawberries to stand out, each on a dollop of cream.
                 colour(Res.string.style_colour_chocolate, CakeDiceStyle("cake_chocolate", Color(0xFFA06A45), Color(0xFF70452B), dollop = Color(0xFFFFF6E6))),
             ),
-            unlock = AchievementCount(55),
+            unlock = AchievementCount(60),
         ),
         StyleFamily(
             Res.string.style_family_stone,
@@ -632,7 +632,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                     MarbleDiceStyle("stone_black_marble", Color(0xFF3A3A3E), Color(0xFF141416), Color(0xFFD8D8D8), Color(0xFFC8C8CC), seed = 2),
                 ),
             ),
-            unlock = AchievementCount(60),
+            unlock = AchievementCount(65),
         ),
         StyleFamily(
             Res.string.style_family_gems,
@@ -640,7 +640,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(Res.string.style_colour_ivory, GemDiceStyle("gems_ivory", IvoryDiceTop, IvoryDiceBottom)),
                 colour(Res.string.style_colour_black, GemDiceStyle("gems_black", Color(0xFF2E2E31), Color(0xFF0E0E0F))),
             ),
-            unlock = AchievementCount(60),
+            unlock = AchievementCount(65),
         ),
         StyleFamily(
             Res.string.style_family_lcd,
@@ -648,7 +648,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(Res.string.style_colour_neon, LcdDiceStyle("lcd_neon", Color(0xFF15181D), Color(0xFF07090D), Color(0xFF3FD7FF), glow = true)),
                 colour(Res.string.style_colour_white, LcdDiceStyle("lcd_white", Color(0xFFF4F4F0), Color(0xFFE2E4DE), Color(0xFF151515), glow = false)),
             ),
-            unlock = AchievementCount(65),
+            unlock = AchievementCount(70),
         ),
         // Opens with the Christmas cup, mat and background.
         StyleFamily(
@@ -658,12 +658,12 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(Res.string.style_colour_gift, GiftDiceStyle("christmas_gift", ChristmasRedPaper, ChristmasGoldRibbon)),
                 colour(Res.string.style_colour_baubles, BaubleDiceStyle("christmas_baubles", Color(0xFF2F7A45), Color(0xFF15452A), Color(0xFFD32F2F), Color(0xFFF2C14E))),
             ),
-            unlock = AchievementCount(65),
+            unlock = AchievementCount(70),
         ),
         StyleFamily(
             Res.string.style_family_meadow,
             listOf(colour(Res.string.style_colour_green, MeadowDiceStyle("meadow_green", Color(0xFF7CB342), Color(0xFF4E8A2A)))),
-            unlock = AchievementCount(70),
+            unlock = AchievementCount(75),
         ),
         StyleFamily(
             Res.string.style_family_ribbon,
@@ -671,7 +671,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(Res.string.style_colour_white, RibbonDiceStyle("ribbon_white", Color(0xFFFCFBF7), Color(0xFFE4E1D8), RibbonColours)),
                 colour(Res.string.style_colour_black, RibbonDiceStyle("ribbon_black", Color(0xFF2E2E33), Color(0xFF161618), RibbonColours)),
             ),
-            unlock = AchievementCount(75),
+            unlock = AchievementCount(80),
         ),
         StyleFamily(
             Res.string.style_family_bestagon,
@@ -679,24 +679,24 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 colour(Res.string.style_colour_honey, BestagonDiceStyle("bestagon_honey", Color(0xFFF5BE45), Color(0xFFC4801A), Color(0xFF4A2A08))),
                 colour(Res.string.style_colour_slate, BestagonDiceStyle("bestagon_slate", Color(0xFF6E7F8F), Color(0xFF39444F), Color(0xFFF2F4F6))),
             ),
-            unlock = AchievementCount(80),
+            unlock = AchievementCount(85),
         ),
         StyleFamily(
             Res.string.style_family_glitter,
             listOf(colour(Res.string.style_colour_mixed, GlitterDiceStyle("glitter_mixed", GlitterColours, Color(0xFFFFFBF2)))),
-            unlock = AchievementCount(85),
+            unlock = AchievementCount(90),
         ),
         StyleFamily(
             Res.string.style_family_garden,
             listOf(
                 colour(Res.string.style_colour_soil, GardenDiceStyle("garden_soil", Color(0xFF6A4A30), Color(0xFF3E2A1A), soil = true)),
             ),
-            unlock = AchievementCount(90),
+            unlock = AchievementCount(95),
         ),
         StyleFamily(
             Res.string.style_family_neon,
             listOf(colour(Res.string.style_colour_night, NeonDiceStyle("neon_night", Color(0xFF141418), NeonColours))),
-            unlock = AchievementCount(95),
+            unlock = AchievementCount(100),
         ),
         StyleFamily(
             Res.string.style_family_rgb,
@@ -850,25 +850,22 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
             unlock = AchievementCount(10),
         ),
         StyleFamily(
+            Res.string.style_family_fishbowl,
+            listOf(colour(Res.string.style_colour_clownfish, FishbowlDiceCupStyle("fishbowl_clownfish", Color(0xFFD6F0F7), Color(0xFF8FD8EC)))),
+            unlock = AchievementCount(WATER_SET_UNLOCK),
+        ),
+        StyleFamily(
             Res.string.style_family_faceted,
             listOf(
                 StyleColour(Res.string.style_colour_green, FacetedCupLitFace, FacetedDiceCupStyle),
                 StyleColour(Res.string.style_colour_black, Color(0xFF3A3A3F), BlackFacetedDiceCupStyle),
                 StyleColour(Res.string.style_colour_red, FireCupLitFace, FireDiceCupStyle),
             ),
-            unlock = AchievementCount(15),
+            unlock = AchievementCount(20),
         ),
         StyleFamily(
             Res.string.style_family_flowerpot,
             flowerpotColours(),
-            unlock = AchievementCount(20),
-        ),
-        StyleFamily(
-            Res.string.style_family_tankard,
-            listOf(
-                cup(Res.string.style_colour_pewter, ::TankardDiceCupStyle, "tankard_pewter", 0xFF4E555A, 0xFFC9D0D4, 0xFF8C959B, 0xFF5E676D, 0xFF1C2023),
-                cup(Res.string.style_colour_copper, ::TankardDiceCupStyle, "tankard_copper", 0xFF6B3417, 0xFFE0A07A, 0xFFB8683D, 0xFF7A3C1B, 0xFF2A1308),
-            ),
             unlock = AchievementCount(25),
         ),
         StyleFamily(
@@ -881,7 +878,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 colour(Res.string.style_colour_beaker_blue, BeakerDiceCupStyle("beaker_blue", Color(0xFFD6ECF7), Color(0xFF4FC3F7))),
                 colour(Res.string.style_colour_beaker_green, BeakerDiceCupStyle("beaker_green", Color(0xFFD6ECF7), Color(0xFF7CE08A))),
             ),
-            unlock = AchievementCount(25),
+            unlock = AchievementCount(30),
         ),
         StyleFamily(
             Res.string.style_family_volcano,
@@ -898,7 +895,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                     ),
                 ),
             ),
-            unlock = AchievementCount(30),
+            unlock = AchievementCount(35),
         ),
         StyleFamily(
             Res.string.style_family_top_hat,
@@ -913,7 +910,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                     0xFF0B0B0C, 0xFF3C3C40, 0xFF1E1E21, 0xFFB71C1C, 0xFF030303,
                 ).copy(swatch = RabbitFur, secretAchievement = Achievement.THE_MAGICIANS_SECRET),
             ),
-            unlock = AchievementCount(35),
+            unlock = AchievementCount(40),
         ),
         StyleFamily(
             Res.string.style_family_takeaway,
@@ -921,7 +918,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 cup(Res.string.style_colour_white, ::TakeawayDiceCupStyle, "takeaway_white", 0xFFBDB6AA, 0xFFFFFFFF, 0xFFECE7DE, 0xFFA87A4E, 0xFF2A1A10),
                 cup(Res.string.style_colour_black, ::TakeawayDiceCupStyle, "takeaway_black", 0xFF111111, 0xFF4A4A4A, 0xFF262626, 0xFFC08A55, 0xFF2A1A10),
             ),
-            unlock = AchievementCount(45),
+            unlock = AchievementCount(50),
         ),
         StyleFamily(
             Res.string.style_family_chicken,
@@ -957,7 +954,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                     ),
                 ),
             ),
-            unlock = AchievementCount(55),
+            unlock = AchievementCount(60),
         ),
         StyleFamily(
             Res.string.style_family_cauldron,
@@ -965,7 +962,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 cauldron(Res.string.style_colour_green, "cauldron_green", 0xFF5BE36A, 0xFF1E7A2B),
                 cauldron(Res.string.style_colour_purple, "cauldron_purple", 0xFFB06CF0, 0xFF5A2A8A),
             ),
-            unlock = AchievementCount(60),
+            unlock = AchievementCount(65),
         ),
         StyleFamily(
             Res.string.style_family_christmas,
@@ -976,7 +973,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                     GiftBoxDiceCupStyle("christmas_blue", CupPalette(Color(0xFF173A70), Color(0xFF5A8AD8), Color(0xFF2C5CA8), Color(0xFFBFD6F7), Color(0xFF081428)), Color(0xFFE8E8EE)),
                 ),
             ),
-            unlock = AchievementCount(65),
+            unlock = AchievementCount(70),
         ),
         StyleFamily(
             Res.string.style_family_urn,
@@ -990,7 +987,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                     UrnDiceCupStyle("urn_bronze", UrnPalette(Color(0xFF9A6B32), Color(0xFFE0B070), Color(0xFF4A3010), Color(0xFF2E6B5A), Color(0xFF140C04))),
                 ),
             ),
-            unlock = AchievementCount(70),
+            unlock = AchievementCount(75),
         ),
         StyleFamily(
             Res.string.style_family_treasure,
@@ -1007,7 +1004,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                     ),
                 ),
             ),
-            unlock = AchievementCount(75),
+            unlock = AchievementCount(80),
         ),
         StyleFamily(
             Res.string.style_family_glitter,
@@ -1015,7 +1012,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 colour(Res.string.style_colour_gold, GlitterDiceCupStyle("glitter_gold", Color(0xFFD9A030), Color(0xFFFFE08A))),
                 colour(Res.string.style_colour_pink, GlitterDiceCupStyle("glitter_pink", Color(0xFFE0458F), Color(0xFFF2F2F6))),
             ),
-            unlock = AchievementCount(85),
+            unlock = AchievementCount(90),
         ),
         StyleFamily(
             Res.string.style_family_neon,
@@ -1030,7 +1027,7 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                     ),
                 ),
             ),
-            unlock = AchievementCount(95),
+            unlock = AchievementCount(100),
         ),
         // The last of the styles to open, with the rest of the RGB set: a gift for earning them all.
         StyleFamily(
@@ -1086,9 +1083,12 @@ object DiceMats : StyleCatalog<DiceMat>(
             unlock = AchievementCount(10),
         ),
         StyleFamily(
-            Res.string.style_family_sand,
-            listOf(mat(Res.string.style_colour_dunes, ::SandDiceMat, "sand_dunes", 0xFFE2C084, 0xFFC9A062, 0xFF8A6430, 0xFF6A4A20, 0xFFF7E2B5, 0xFF8A6430)),
-            unlock = AchievementCount(15),
+            Res.string.style_family_ocean,
+            listOf(
+                mat(Res.string.style_colour_lagoon, ::OceanDiceMat, "ocean_lagoon", 0xFF1C8FA3, 0xFF0D5A6E, 0xFF0A4757, 0xFF06323E, 0xFF7FD6E6, 0xFFCFF8FF),
+                mat(Res.string.style_colour_deep, ::OceanDiceMat, "ocean_deep", 0xFF1E4F8C, 0xFF0C2652, 0xFF0A1E40, 0xFF06142C, 0xFF6E9CD6, 0xFFA8CCFF),
+            ),
+            unlock = AchievementCount(WATER_SET_UNLOCK),
         ),
         StyleFamily(
             Res.string.style_family_casino,
@@ -1096,7 +1096,7 @@ object DiceMats : StyleCatalog<DiceMat>(
                 mat(Res.string.style_colour_green, ::CasinoDiceMat, "casino_green", 0xFF1E6B3A, 0xFF0E3F22, 0xFF0A2E18, 0xFF061F10, 0xFFE0C45A, 0xFFD4AF37),
                 mat(Res.string.style_colour_purple, ::CasinoDiceMat, "casino_purple", 0xFF4A2266, 0xFF2A1040, 0xFF1E0A30, 0xFF12061E, 0xFFE0C45A, 0xFFD4AF37),
             ),
-            unlock = AchievementCount(35),
+            unlock = AchievementCount(40),
         ),
         StyleFamily(
             Res.string.style_family_starry,
@@ -1112,7 +1112,7 @@ object DiceMats : StyleCatalog<DiceMat>(
                 mat(Res.string.style_colour_blue, ::GinghamDiceMat, "gingham_blue", 0xFF2F5C8F, 0xFF1E3E63, 0xFF122640, 0xFF0B182B, 0xFFB8D0F0, 0xFFFFFFFF),
                 mat(Res.string.style_colour_green, ::GinghamDiceMat, "gingham_green", 0xFF3E7D4A, 0xFF27562F, 0xFF16331C, 0xFF0E2312, 0xFFBFE3C6, 0xFFFFFFFF),
             ),
-            unlock = AchievementCount(55),
+            unlock = AchievementCount(60),
         ),
         StyleFamily(
             Res.string.style_family_stone,
@@ -1125,7 +1125,7 @@ object DiceMats : StyleCatalog<DiceMat>(
                 stoneMat(Res.string.style_colour_white_marble, "stone_white_marble", null, 0xFFF4F2EE, 0xFFD9D5CE, 0xFF8E8A84, vein = 0xFF8E8A84),
                 stoneMat(Res.string.style_colour_black_marble, "stone_black_marble", null, 0xFF3A3A3E, 0xFF141416, 0xFF050506, vein = 0xFFD8D8D8),
             ),
-            unlock = AchievementCount(60),
+            unlock = AchievementCount(65),
         ),
         StyleFamily(
             Res.string.style_family_christmas,
@@ -1133,7 +1133,7 @@ object DiceMats : StyleCatalog<DiceMat>(
                 mat(Res.string.style_colour_red, ::GiftWrapDiceMat, "christmas_red", 0xFFB8282E, 0xFF8E1A20, 0xFF5A0E12, 0xFF3E080B, 0xFFF2C14E, 0xFFFFFFFF),
                 mat(Res.string.style_colour_kraft, ::GiftWrapDiceMat, "christmas_kraft", 0xFFC49A6C, 0xFFA77D50, 0xFF6A4A2A, 0xFF4A321C, 0xFFD32F2F, 0xFFF7EDE0),
             ),
-            unlock = AchievementCount(65),
+            unlock = AchievementCount(70),
         ),
         StyleFamily(
             Res.string.style_family_circuit,
@@ -1141,7 +1141,7 @@ object DiceMats : StyleCatalog<DiceMat>(
                 mat(Res.string.style_colour_green, ::CircuitDiceMat, "circuit_green", 0xFF16503A, 0xFF0B3325, 0xFF07231A, 0xFF041710, 0xFF6BE0A6, 0xFFD9A84A),
                 mat(Res.string.style_colour_black, ::CircuitDiceMat, "circuit_black", 0xFF1E2024, 0xFF111215, 0xFF0A0B0D, 0xFF050506, 0xFF6A6E78, 0xFF3FE6FF),
             ),
-            unlock = AchievementCount(75),
+            unlock = AchievementCount(80),
         ),
         StyleFamily(
             Res.string.style_family_bestagons,
@@ -1150,7 +1150,7 @@ object DiceMats : StyleCatalog<DiceMat>(
                 mat(Res.string.style_colour_honey, ::HexTileDiceMat, "bestagons_honey", 0xFFE6A53A, 0xFFB87818, 0xFF5A3A0E, 0xFF3E2806, 0xFFFFD27A, 0xFF3E2806),
                 mat(Res.string.style_colour_slate, ::HexTileDiceMat, "bestagons_slate", 0xFF5C6B78, 0xFF3A4550, 0xFF232A31, 0xFF151A1F, 0xFFAEBBC6, 0xFF1C2228),
             ),
-            unlock = AchievementCount(80),
+            unlock = AchievementCount(85),
         ),
         StyleFamily(
             Res.string.style_family_glitter,
@@ -1163,7 +1163,7 @@ object DiceMats : StyleCatalog<DiceMat>(
                 glitterMat(Res.string.style_colour_blue, "glitter_blue", 0xFF16306A, 0xFF0A1838, 0xFF9AC8FF, 0xFFB8DCFF),
                 glitterMat(Res.string.style_colour_emerald, "glitter_emerald", 0xFF0E4A34, 0xFF06261A, 0xFF8AF0C0, 0xFFA8F6D0),
             ),
-            unlock = AchievementCount(85),
+            unlock = AchievementCount(90),
         ),
         StyleFamily(
             Res.string.style_family_neon,
@@ -1172,7 +1172,7 @@ object DiceMats : StyleCatalog<DiceMat>(
                 neonMat(Res.string.style_colour_green_and_purple, "neon_green_and_purple", 0xFF141A3A, 0xFF080B1E, outer = 0xFF39FF88, inner = 0xFFB45CFF),
                 neonMat(Res.string.style_colour_orange_and_teal, "neon_orange_and_teal", 0xFF2A1640, 0xFF140A22, outer = 0xFFFF8A1F, inner = 0xFF2EE6D0),
             ),
-            unlock = AchievementCount(95),
+            unlock = AchievementCount(100),
         ),
         StyleFamily(
             Res.string.style_family_rgb,
@@ -1223,10 +1223,14 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
             ),
             unlock = AchievementCount(10),
         ),
+        // The waves roll; the lagoon is still.
         StyleFamily(
-            Res.string.style_family_desert,
-            listOf(StyleColour(Res.string.style_colour_night, Color(0xFF4A3020), DesertBackground("desert_night", BackgroundPalette(Color(0xFF1C1838), Color(0xFF4A3020), Color(0xFFF2C88A))))),
-            unlock = AchievementCount(15),
+            Res.string.style_family_ocean,
+            listOf(
+                StyleColour(Res.string.style_colour_waves, Color(0xFF1A4A7A), OceanWavesBackground("ocean_waves", BackgroundPalette(Color(0xFF1A4A7A), Color(0xFF0A1E3C), Color(0xFFBFE6FF)))),
+                StyleColour(Res.string.style_colour_lagoon, Color(0xFF156E80), OceanLagoonBackground("ocean_lagoon", BackgroundPalette(Color(0xFF156E80), Color(0xFF083A48), Color(0xFFCFF8FF)))),
+            ),
+            unlock = AchievementCount(WATER_SET_UNLOCK),
         ),
         StyleFamily(
             Res.string.style_family_spotlight,
@@ -1235,7 +1239,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 background(Res.string.style_colour_navy, ::SpotlightBackground, "spotlight_navy", 0xFF2A5590, 0xFF0A1A33),
                 background(Res.string.style_colour_green, ::SpotlightBackground, "spotlight_green", 0xFF2E7A48, 0xFF0A2A16),
             ),
-            unlock = AchievementCount(25),
+            unlock = AchievementCount(30),
         ),
         StyleFamily(
             Res.string.style_family_pinstripe,
@@ -1243,12 +1247,12 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 background(Res.string.style_colour_charcoal, ::PinstripeBackground, "pinstripe_charcoal", 0xFF2E3136, 0xFF1C1E22),
                 background(Res.string.style_colour_navy, ::PinstripeBackground, "pinstripe_navy", 0xFF1E2E4C, 0xFF0F1A30),
             ),
-            unlock = AchievementCount(30),
+            unlock = AchievementCount(35),
         ),
         StyleFamily(
             Res.string.style_family_brick,
             listOf(StyleColour(Res.string.style_colour_neon, Color(0xFF2A1A1C), BrickWallBackground("brick_neon", BackgroundPalette(Color(0xFF2A1A1C), Color(0xFF140C0E), Color(0xFFFF3FA4))))),
-            unlock = AchievementCount(35),
+            unlock = AchievementCount(40),
         ),
         StyleFamily(
             Res.string.style_family_sunburst,
@@ -1256,7 +1260,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 background(Res.string.style_colour_crimson, ::SunburstBackground, "sunburst_crimson", 0xFF6A1218, 0xFF2E0508),
                 background(Res.string.style_colour_amber, ::SunburstBackground, "sunburst_amber", 0xFF7A4A0E, 0xFF331E04),
             ),
-            unlock = AchievementCount(40),
+            unlock = AchievementCount(45),
         ),
         StyleFamily(
             Res.string.style_family_starry,
@@ -1272,7 +1276,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 background(Res.string.style_colour_blue, ::GinghamBackground, "gingham_blue", 0xFF264C78, 0xFF183352),
                 background(Res.string.style_colour_green, ::GinghamBackground, "gingham_green", 0xFF33693D, 0xFF214A28),
             ),
-            unlock = AchievementCount(55),
+            unlock = AchievementCount(60),
         ),
         StyleFamily(
             Res.string.style_family_stone,
@@ -1281,7 +1285,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 stoneBackground(Res.string.style_colour_granite, "stone_granite", StoneKind.GRANITE, 0xFF6E6560, 0xFF3A3532, 0xFF1E1B19),
                 stoneBackground(Res.string.style_colour_black_marble, "stone_black_marble", null, 0xFF3A3A3E, 0xFF141416, 0xFF050506, vein = 0xFFD8D8D8),
             ),
-            unlock = AchievementCount(60),
+            unlock = AchievementCount(65),
         ),
         StyleFamily(
             Res.string.style_family_christmas,
@@ -1289,7 +1293,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 background(Res.string.style_colour_green, ::GiftWrapBackground, "christmas_green", 0xFF1E5A34, 0xFF0E3A1E),
                 background(Res.string.style_colour_red, ::GiftWrapBackground, "christmas_red", 0xFF7A1A20, 0xFF4E0E12),
             ),
-            unlock = AchievementCount(65),
+            unlock = AchievementCount(70),
         ),
         // The Meadow dice's grass, wildflowers and river, across the whole table.
         StyleFamily(
@@ -1301,7 +1305,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                     MeadowBackground("meadow_green", BackgroundPalette(Color(0xFF3E7A2A), Color(0xFF1F4A1B))),
                 ),
             ),
-            unlock = AchievementCount(70),
+            unlock = AchievementCount(75),
         ),
         StyleFamily(
             Res.string.style_family_circuit,
@@ -1309,7 +1313,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 circuitBackground(Res.string.style_colour_green, "circuit_green", 0xFF0F3A2B, 0xFF06201A, 0xFFD9A84A),
                 circuitBackground(Res.string.style_colour_black, "circuit_black", 0xFF16181B, 0xFF08090B, 0xFF3FE6FF),
             ),
-            unlock = AchievementCount(75),
+            unlock = AchievementCount(80),
         ),
         StyleFamily(
             Res.string.style_family_bestagons,
@@ -1323,7 +1327,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 background(Res.string.style_colour_charcoal, ::HoneycombBackground, "bestagons_charcoal", 0xFF2A2D33, 0xFF16181C),
                 background(Res.string.style_colour_indigo, ::HoneycombBackground, "bestagons_indigo", 0xFF262A5A, 0xFF12142E),
             ),
-            unlock = AchievementCount(80),
+            unlock = AchievementCount(85),
         ),
         StyleFamily(
             Res.string.style_family_glitter,
@@ -1336,7 +1340,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 glitterBackground(Res.string.style_colour_blue, "glitter_blue", 0xFF122650, 0xFF060E26, 0xFFB8DCFF),
                 glitterBackground(Res.string.style_colour_emerald, "glitter_emerald", 0xFF0C3A2A, 0xFF041A12, 0xFFA8F6D0),
             ),
-            unlock = AchievementCount(85),
+            unlock = AchievementCount(90),
         ),
         StyleFamily(
             Res.string.style_family_neon,
@@ -1345,7 +1349,7 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 neonBackground(Res.string.style_colour_green_and_purple, "neon_green_and_purple", 0xFF0E1838, 0xFF050A1C, outer = 0xFF39FF88, inner = 0xFFB45CFF),
                 neonBackground(Res.string.style_colour_orange_and_teal, "neon_orange_and_teal", 0xFF1E1236, 0xFF0A0618, outer = 0xFFFF8A1F, inner = 0xFF2EE6D0),
             ),
-            unlock = AchievementCount(95),
+            unlock = AchievementCount(100),
         ),
         StyleFamily(
             Res.string.style_family_rgb,
@@ -1386,43 +1390,43 @@ object ScoreFrames : StyleCatalog<ScoreFrame>(
             unlock = AchievementCount(10),
         ),
         StyleFamily(
+            Res.string.style_family_nautical,
+            listOf(frame(Res.string.style_colour_chain, ScoreFrameArt.chain), frame(Res.string.style_colour_rope, ScoreFrameArt.rope)),
+            unlock = AchievementCount(WATER_SET_UNLOCK),
+        ),
+        StyleFamily(
             Res.string.style_family_art_deco,
             listOf(frame(Res.string.style_colour_fan, ScoreFrameArt.decoFan), frame(Res.string.style_colour_stepped, ScoreFrameArt.decoStepped)),
-            unlock = AchievementCount(20),
+            unlock = AchievementCount(25),
         ),
         StyleFamily(
             Res.string.style_family_tribal,
             listOf(frame(Res.string.style_colour_swirl, ScoreFrameArt.tribalSwirl), frame(Res.string.style_colour_flame, ScoreFrameArt.tribalFlame)),
-            unlock = AchievementCount(30),
+            unlock = AchievementCount(35),
         ),
         StyleFamily(
             Res.string.style_family_wreath,
             listOf(frame(Res.string.style_colour_laurel, ScoreFrameArt.laurel), frame(Res.string.style_colour_olive, ScoreFrameArt.olive)),
-            unlock = AchievementCount(45),
+            unlock = AchievementCount(50),
         ),
         StyleFamily(
             Res.string.style_family_greek,
             listOf(frame(Res.string.style_colour_key, ScoreFrameArt.greekKey), frame(Res.string.style_colour_waves, ScoreFrameArt.greekWaves)),
             unlock = AchievementCount(50),
         ),
-        StyleFamily(Res.string.style_family_celtic, listOf(frame(Res.string.style_colour_knot, ScoreFrameArt.celticKnot)), unlock = AchievementCount(60)),
-        StyleFamily(Res.string.style_family_pixel, listOf(frame(Res.string.style_colour_retro, ScoreFrameArt.pixel)), unlock = AchievementCount(70)),
+        StyleFamily(Res.string.style_family_celtic, listOf(frame(Res.string.style_colour_knot, ScoreFrameArt.celticKnot)), unlock = AchievementCount(65)),
+        StyleFamily(Res.string.style_family_pixel, listOf(frame(Res.string.style_colour_retro, ScoreFrameArt.pixel)), unlock = AchievementCount(75)),
         StyleFamily(
             Res.string.style_family_neon,
             listOf(frame(Res.string.style_colour_single, ScoreFrameArt.neon), frame(Res.string.style_colour_double, ScoreFrameArt.neonDouble)),
-            unlock = AchievementCount(80),
-        ),
-        StyleFamily(
-            Res.string.style_family_nautical,
-            listOf(frame(Res.string.style_colour_rope, ScoreFrameArt.rope), frame(Res.string.style_colour_chain, ScoreFrameArt.chain)),
-            unlock = AchievementCount(90),
+            unlock = AchievementCount(85),
         ),
         StyleFamily(
             Res.string.style_family_marquee,
             listOf(frame(Res.string.style_colour_bulbs, ScoreFrameArt.bulbs), frame(Res.string.style_colour_diamonds, ScoreFrameArt.diamonds)),
             unlock = AchievementCount(100),
         ),
-        // Opens at 40 achievements rather than with the Starry dice, mat and background (the Easter egg).
+        // Opens at 45 achievements rather than with the Starry dice, mat and background (the Easter egg).
         StyleFamily(
             Res.string.style_family_starry,
             listOf(
@@ -1430,7 +1434,7 @@ object ScoreFrames : StyleCatalog<ScoreFrame>(
                 frame(Res.string.style_colour_sparkles, ScoreFrameArt.sparkles),
                 frame(Res.string.style_colour_constellation, ScoreFrameArt.constellation),
             ),
-            unlock = AchievementCount(40),
+            unlock = AchievementCount(45),
         ),
     ),
     variantNoun = Res.string.style_variant_design,

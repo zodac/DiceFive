@@ -63,14 +63,20 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
   - Tumbling, every style is over 10: Classic ~12, the heaviest ~16, blank ~5.
   - Composition and layout are under 1ms; the rest is drawing 14 face layers under perspective. That's probably
     overstated versus a device's textured quads (unmeasured).
-  - Bestagon and Pyramid are cheaper: they spin one flat face.
+  - Bestagon is cheaper: it spins one flat face.
 - **Cups, backgrounds, mats** (board plus tray): 2-4 a frame in idle, shake and toss for every one, within ~20% of each
   other. A cup alone is 0.8-1.7.
   - A patterned mat's or background's first frame is 17-55. Stone stamps three textured flags to stay there.
   - The Stone, Meadow and Circuit backgrounds are painted once and sit within ~3.5ms of the plain Classic one (whole
-    screen, captured: 25-26ms against 22), level with Pinstripe, Starry and Desert. Neon is ~29ms, level with
+    screen, captured: 25-26ms against 22), level with Pinstripe and Starry. Neon is ~29ms, level with
     Honeycomb and under Glitter and Glitch (32-34ms).
   - Treasure Chest, Urn, Volcano and Picnic Basket are within a few ms of Classic Gold.
+  - A cup alone, 110x96dp (median of three runs, p95): the Fishbowl is ~5.8 in idle, ~6.1 shaking, ~6.2 pouring, against
+    Cauldron ~5.2, Top Hat ~4.5 and Classic Gold ~4.2 in idle, and Treasure Chest ~6.3 shaking and ~8.4 pouring.
+    Measured with a painted stone bed; it now draws three rocks live and its fish as a turning solid (unmeasured).
+  - A background alone, 411x560dp (p95): Ocean Waves is the dearest, ~28-34 against Glitch ~25-32, Glitter ~23-25 and
+    Neon ~21. Its seven moving gradient bands are ~5 of that: without them it measured ~22, level with Glitch. Ocean
+    Lagoon is painted once and sits with Neon; the Ocean mats sit with Classic and Stone.
 - **Score frames** (one draw of the active tab's frame, 3x, desktop JVM, median ms): a plain ring 0.03-0.06; Neon,
   Pixel, Greek Key and the tribal and floral ones 0.1-0.5; Celtic Knot 0.62. Drawn live, the wreath was 0.61, Rope 1.08,
   Chain 0.90, and Starry Sparkles, Constellation and Marquee Bulbs 0.54-0.58. Those nine are `painted` and cost 0.013.
@@ -79,6 +85,8 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
   - neon strokes, and the Neon background's horizon glow (one gradient rect; its grid is painted once);
   - the Honeycomb bee (~40 shapes);
   - the Volcano's crater, 5 lava ribbons and eruption;
+  - the Fishbowl's water, clownfish (body, 3 bands of up to 16 pieces, fins, eyes), 5 fronds, 3 rocks and 3 bubbles;
+  - the Ocean Waves background's 7 crest lines and the gradient band under each;
   - the Basket's lids and food;
   - the Chest's lid, top coins and spill;
   - glitch bands only during a burst.

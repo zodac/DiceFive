@@ -8,13 +8,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
-import kotlin.math.PI
 import kotlin.math.floor
-import kotlin.math.sin
 import kotlin.random.Random
 
 /** A brick wall - to go with the Neon dice - lit faintly from above by a sign in [BackgroundPalette.detail]. */
@@ -76,46 +73,6 @@ class GlitchBackground(override val id: String, private val palette: BackgroundP
                 val shift = (random.nextFloat() * 2f - 1f) * 18.dp.toPx()
                 drawRect(Color(0xFF00F0FF).copy(alpha = 0.12f), topLeft = Offset(shift, y), size = Size(size.width, h))
                 drawRect(Color(0xFFFF2BD6).copy(alpha = 0.12f), topLeft = Offset(-shift, y + h * 0.4f), size = Size(size.width, h))
-            }
-        }
-    }
-}
-
-/**
- * The desert by night - to go with the Pyramid dice: a deep sky over rolling dunes, each ridge a little
- * lighter than the one behind it, and pyramids far off on the horizon. Painted once.
- */
-class DesertBackground(override val id: String, private val palette: BackgroundPalette) : TableBackground {
-    override val scoreAreaBrush: Brush = Brush.verticalGradient(listOf(palette.top, palette.bottom))
-
-    override fun DrawScope.drawScoreAreaDecoration() {
-        drawCachedSurface("background:$id") {
-            val horizon = size.height * 0.3f
-            // Pyramids on the horizon, faint.
-            for ((x, w) in listOf(0.68f to 0.2f, 0.84f to 0.13f, 0.56f to 0.09f)) {
-                val base = horizon + size.height * 0.02f
-                val half = size.width * w / 2f
-                val apex = Offset(size.width * x, base - half * 0.95f)
-                drawPath(polygonPath(listOf(apex, Offset(apex.x - half, base), Offset(apex.x + half, base))), palette.detail.copy(alpha = 0.07f))
-                drawPath(polygonPath(listOf(apex, Offset(apex.x + half * 0.25f, base), Offset(apex.x + half, base))), Color.Black.copy(alpha = 0.08f))
-            }
-            // Dunes, back to front.
-            val random = Random(3)
-            for (layer in 0 until 4) {
-                val top = horizon + size.height * 0.17f * layer
-                val wavelength = size.width * (0.7f + random.nextFloat() * 0.6f)
-                val phase = random.nextFloat() * 6f
-                val dune = Path().apply {
-                    moveTo(0f, size.height)
-                    var x = 0f
-                    while (x <= size.width) {
-                        lineTo(x, top + sin(x / wavelength * 2f * PI.toFloat() + phase) * size.height * 0.035f)
-                        x += 6.dp.toPx()
-                    }
-                    lineTo(size.width, size.height)
-                    close()
-                }
-                drawPath(dune, palette.detail.copy(alpha = 0.035f + layer * 0.012f))
             }
         }
     }

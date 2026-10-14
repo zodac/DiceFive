@@ -15,12 +15,17 @@ import net.zodac.dicefive.data.achievements.countsTowardStyleLocks
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.style_family_fishbowl
 import net.zodac.dicefive.resources.style_family_garden
 import net.zodac.dicefive.resources.style_family_martini
 import net.zodac.dicefive.resources.style_family_maths
 import net.zodac.dicefive.resources.style_family_nautical
+import net.zodac.dicefive.resources.style_family_ocean
+import net.zodac.dicefive.resources.style_noun_background
 import net.zodac.dicefive.resources.style_noun_dice
+import net.zodac.dicefive.resources.style_noun_dice_cup
 import net.zodac.dicefive.resources.style_noun_frame
+import net.zodac.dicefive.resources.style_noun_mat
 import net.zodac.dicefive.ui.game.style.StyleCatalogs
 import net.zodac.dicefive.ui.game.style.StyleReward
 import net.zodac.dicefive.ui.game.style.StyleUnlock
@@ -53,13 +58,21 @@ class StylesUnlockedBannerTest {
 
     @Test
     fun `each count-locked style is unlocked by the step onto its count and no other - a jump over several unlocking each on the way`() {
-        // One short or one past does not: Garden dice and the Nautical frame are unlocked at 90, but no styles are unlocked at 89 or 91.
+        // One short or one past does not: Garden dice are unlocked at 95, but no styles are unlocked at 94 or 96.
+        assertEquals(listOf(StyleReward(Res.string.style_family_garden, Res.string.style_noun_dice)), stylesUnlockedByCount(94, 95))
+        assertEquals(emptyList(), stylesUnlockedByCount(93, 94))
+        assertEquals(emptyList(), stylesUnlockedByCount(95, 96))
+        // The water set opens together, at one count: dice, cup, mat, background and frame, in the Styles screen's order.
         assertEquals(
-            listOf(StyleReward(Res.string.style_family_garden, Res.string.style_noun_dice), StyleReward(Res.string.style_family_nautical, Res.string.style_noun_frame)),
-            stylesUnlockedByCount(89, 90),
+            listOf(
+                StyleReward(Res.string.style_family_ocean, Res.string.style_noun_dice),
+                StyleReward(Res.string.style_family_fishbowl, Res.string.style_noun_dice_cup),
+                StyleReward(Res.string.style_family_ocean, Res.string.style_noun_mat),
+                StyleReward(Res.string.style_family_ocean, Res.string.style_noun_background),
+                StyleReward(Res.string.style_family_nautical, Res.string.style_noun_frame),
+            ),
+            stylesUnlockedByCount(14, 15),
         )
-        assertEquals(emptyList(), stylesUnlockedByCount(88, 89))
-        assertEquals(emptyList(), stylesUnlockedByCount(90, 91))
 
         for ((count, reward) in countLocks) {
             assertTrue(stylesUnlockedByCount(count - 1, count).contains(reward), "${reward.styleName} ${reward.categoryNoun} missing at $count")

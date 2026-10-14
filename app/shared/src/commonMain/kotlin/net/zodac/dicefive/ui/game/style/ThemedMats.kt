@@ -67,41 +67,6 @@ internal fun hexagonPoints(centre: Offset, radius: Float): List<Offset> = (0..5)
 }
 
 /**
- * Desert sand - to go with the Pyramid dice - blown into ripples, each lit along its windward side
- * and shadowed on its lee, over a fine grain. Painted once.
- */
-class SandDiceMat(id: String, palette: MatPalette) : PatternedDiceMat(id, palette) {
-    override fun DrawScope.drawPattern() = drawCachedSurface("mat:$id") {
-        val random = Random(4)
-        val spacing = 9.dp.toPx()
-        val step = 4.dp.toPx()
-        var y = -spacing
-        var row = 0
-        while (y < size.height + spacing) {
-            val phase = random.nextFloat() * 6f
-            val wavelength = (60 + random.nextInt(40)).dp.toPx()
-            fun ripple(dy: Float) = Path().apply {
-                var x = -step
-                moveTo(x, y + dy)
-                while (x <= size.width + step) {
-                    x += step
-                    lineTo(x, y + dy + sin(x / wavelength * 2f * PI.toFloat() + phase) * 3.dp.toPx() + sin(x / (wavelength * 0.37f) + row) * 1.dp.toPx())
-                }
-            }
-            drawPath(ripple(0f), lerp(palette.top, Color.White, 0.35f).copy(alpha = 0.45f), style = Stroke(width = 1.4.dp.toPx(), cap = StrokeCap.Round))
-            drawPath(ripple(1.6.dp.toPx()), palette.detail.copy(alpha = 0.3f), style = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round))
-            y += spacing * (0.8f + random.nextFloat() * 0.4f)
-            row++
-        }
-        val grain = 1.dp.toPx()
-        repeat((size.width * size.height / (grain * grain * 18f)).toInt()) {
-            val at = Offset(random.nextFloat() * size.width, random.nextFloat() * size.height)
-            drawCircle((if (random.nextBoolean()) palette.detail else Color.White).copy(alpha = 0.12f + random.nextFloat() * 0.12f), grain * (0.3f + random.nextFloat() * 0.4f), at)
-        }
-    }
-}
-
-/**
  * A circuit board - to go with the Glitch dice: copper traces in [MatPalette.detail] running across
  * the board at right angles and diagonals, ending in solder pads, with a couple of chips. Painted once.
  */
