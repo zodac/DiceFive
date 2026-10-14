@@ -1,9 +1,10 @@
 # DiceFive: Google Play Games Services v2 - plan
 
-**Status: Phase 1 is done.** It covers the seam, `GameMode.onlineLeaderboardKey`, the `online` DataStore, the
-Settings card (hidden while the service is unavailable), and `ScoreEntry.playedUnmodified`.
-- There's no Play Games dependency, no sign-in, and no console setup yet.
-- Phase 0 is the maintainer's, and not done.
+**Status: Phase 1 is done; Phase 2 is in progress.** Phase 1 covers the seam, `GameMode.onlineLeaderboardKey`, the
+`online` DataStore, the Settings card (hidden while the service is unavailable), and `ScoreEntry.playedUnmodified`.
+- Phase 0's minimum is done: the PGS project (APP_ID `308613893005`), the consent screen and an Android credential.
+- Phase 2 so far: the SDK, `DiceFiveApplication`, the `APP_ID` meta-data and `PlayGamesServices` (state, sign-in, name,
+  avatar). Not yet: the account-switch prompt, and a check on a real phone.
 - This file is the one source on the subject: where another doc disagrees, follow this one.
 
 > **The work isn't complete while a decision is Deferred.** A deferred decision blocks the phase named in "Decisions".
@@ -25,7 +26,7 @@ One SDK: `com.google.android.gms:play-services-games-v2` (v22.1.0; v1 is frozen)
 
 | Feature | API | Limits that shape the design |
 |---|---|---|
-| Sign-in | `GamesSignInClient` | **Automatic** at launch. **No sign-out API.** `isAuthenticated()`, and `signIn()` for a retry. Needs `PlayGamesSdk.initialize()` in `Application.onCreate()` and the `APP_ID` meta-data |
+| Sign-in | `GamesSignInClient` | **Automatic** whenever the SDK starts. **No sign-out API**, and no way to turn the automatic one off (`isAuthenticated`, `signIn` and `requestServerSideAccess` are all there is, in 22.1.0). Needs `PlayGamesSdk.initialize()` (the docs say in `Application.onCreate()`) and the `APP_ID` meta-data |
 | Player | `PlayersClient.getCurrentPlayer()` | Gamer name, avatar, id |
 | Achievements | `AchievementsClient` | ≤400; **2,000 points** total, ≤200 each, multiples of 5; names ≤100 chars, descriptions ≤500; square icons; revealed/hidden/unlocked; incremental 2-10,000 steps; `setStepsImmediate` only moves forward; offline unlocks sync later. **Published ones can't be reset** (only drafts, by testers) |
 | Leaderboards | `LeaderboardsClient` | ≤70; ordering fixed once published; daily/weekly/all-time and public/friends are automatic; optional min/max and tamper protection; ties aren't ranked by our rules. **Can't be reset** |
@@ -78,16 +79,23 @@ data class OnlineAccount(val displayName: String, val avatar: ImageBitmap?, val 
   there, and a test reports it.
 - **Activity scope.** PGS clients need an `Activity`, so `PlayGamesServices` is built in `MainActivity`, re-attached
   across config changes, and passed as `LocalGameServices`.
-- **Play-only (decided).** The GitHub release key's SHA-1 isn't registered, so sideloads get `NoGameServices` and no
-  card.
+- **Play-only (decided).** A release build uses Play Games only when installed by Google Play (`com.android.vending`);
+  a debug build always does; and neither does without Google Play services (`PlayGamesServices.usesPlayGames`).
+  Everything else gets `NoGameServices` and no card. A check at run time, not a missing credential: the GitHub APK is
+  signed with the upload key, which may be registered.
 - **Never block on the network.** Every call runs in the app scope with a timeout, and errors go into `state`. Our
   banners stay local and instant.
 
 ## 1. Account and name
 
-- **Sign-in** relies on automatic sign-in at launch. If that fails, the card shows **Sign in**.
-- **There's no sign-out.** Instead the card has a local **"Use Google Play Games on this device"** switch that stops
-  every call.
+- **Sign-in is the player's choice, from Settings only (decided).** Nothing signs in or asks to at launch.
+  - The SDK signs in by itself whenever it starts, so it isn't started (`PlayGamesSdk.initialize`) until the player
+    taps **Sign in** on the card.
+  - A successful sign-in sets `signed_in` in the `online` store. From then on the SDK starts with the app and signs in
+    again quietly.
+- **Sign out (decided)** replaces the old "Use Google Play Games on this device" switch. v2 has no sign-out API, so it
+  is ours: it clears `signed_in` and stops every call. The SDK stays signed in until the app next starts, unused, and
+  isn't started again. The account itself is untouched.
 - **The gamer name appears only on the Settings card** ("Signed in as <name>").
   - It **never** touches seat 1's name, so the name cap stays a pure layout rule.
   - It's sanitised (`sanitizePlayerName`) and ellipsised, not capped, on its own row of up to two lines.
@@ -102,7 +110,7 @@ data class OnlineAccount(val displayName: String, val avatar: ImageBitmap?, val 
   - The card names the account and where to change it.
 - **Switching accounts.** The device remembers a salted hash of the last synced player id (in the `online` store).
   - A different account triggers a prompt: "**Link it to <name>** / **Keep it separate**".
-  - "Separate" switches syncing off.
+  - "Separate" signs out.
 
 ## 2. Achievements
 
@@ -203,9 +211,9 @@ tools. We don't build it.
 No new menu button: the menu is full, and adding one would move existing elements.
 
 1. **Settings, a card at the top**, titled `serviceName` (never "Google" in shared UI).
-   - Avatar, then "Signed in as <name>", or "Not signed in" with **Sign in**.
-   - A "Use <service> on this device" switch.
-   - "Save progress to the cloud", on by default, with "Last saved <time>".
+   - Avatar, then "Signed in as <name>" with **Sign out**, or "Not signed in" with **Sign in**, the button on the
+     header's row.
+   - No switches. **Cloud save is always on while signed in (decided)**; "Last saved <time>" shows under the header.
    - A quiet error line ("Couldn't reach Google Play Games - will retry").
    - Hidden when `Unavailable`.
 2. **Achievements**: "View in Google Play Games" in the count banner's footer, when signed in.
@@ -215,7 +223,6 @@ No new menu button: the menu is full, and adding one would move existing element
 
 - **Accessibility.**
   - The card is one group, with its status as `stateDescription`.
-  - The switches announce their state.
   - The buttons are labelled, not icon-only.
   - The avatar is decorative.
   - Play's own screens are Google's: check them on a device.
@@ -228,7 +235,7 @@ Play's achievements and leaderboards can't be reset once published; cloud save c
 - **Reset achievements (decided: disabled while linked).** Otherwise Play would restore everything at the next sign-in.
   - The row stays visible, with the text "Your achievements are linked to Google Play Games and can't be reset"
     (spoken as disabled, with the reason).
-  - To reset, turn the service off first. The confirmation says Play keeps its copy.
+  - To reset, sign out first. The confirmation says Play keeps its copy.
 - **Reset leaderboard (decided: all devices).** It clears local and cloud copies, with a reset marker. The Play boards
   keep their entries, and the confirmation says so. There's no "this device only" option, because the cloud would
   restore it.
@@ -253,7 +260,8 @@ Game Center work later uses `[iOS]`.
     5. Turn on Saved Games.
 - **Phase 1: the seam. Done.**
   - `online/GameServices.kt` (with `GameServicesState`, `OnlineAccount` and `LocalGameServices`) and `NoGameServices`.
-  - `OnlineSettingsRepository` (`online.preferences_pb`: `use_on_device` and `cloud_save_enabled`, both default on).
+  - `OnlineSettingsRepository` (`online.preferences_pb`: `signed_in`, default off. `use_on_device` and
+    `cloud_save_enabled` were never released and are no longer read).
   - `OnlineAccountCard`.
   - `onlineLeaderboardKey` (equal to each `id`; `OnlineLeaderboardKeyTest`).
   - `playedUnmodified`.
@@ -299,10 +307,10 @@ Game Center work later uses `[iOS]`.
 - the mapping table and test, and the export and icon tasks (points can't be finalised);
 - the reset rules, the backlog selection and the superuser guard.
 
-**Keep `play-services-games-v2` off `main` until Phase 0 exists.** Every push to `main` ships a GitHub release, and the
-SDK merges `INTERNET` in. Shipping it would mean updating the privacy policy and the "Fully offline" text, and
-accounting for the APK size, all for no benefit in a Play-only feature. If the SDK is built anyway, missing ids fall
-back to `NoGameServices`.
+**The SDK's cost** (v22.1.0, measured): the release APK grows 5.49 MB to 5.83 MB (+346 KB; about +143 KB
+compressed), almost all of it in the second dex. It adds **no permission**: v2 talks to the Play services app, so
+`INTERNET` is not merged in. Every push to `main` ships a GitHub release, so before the SDK lands there the "Fully
+offline" text and the privacy policy must still be right for a Play install.
 
 ## Testing
 
@@ -366,6 +374,8 @@ string, a unique icon and an aggregation (LU-GS-GAC).
 | 10 | Commit category | **Decided: `[Play Games]`** | Phase 1 |
 | 11 | Locked icon on Play | **Deferred**: own icon greyed (recommended), or a padlock | Phase 3, with the renders |
 | 12 | Game Over note | **Decided: stay quiet** | Phase 4 |
+| 13 | Sign-in at launch | **Decided: never before the player signs in from Settings**; Sign out replaces the device switch | Phase 2 |
+| 14 | Cloud save switch | **Decided: none**; cloud save is always on while signed in | Phase 2 |
 
 **Still deferred: 7, 8a, 9, 11.**
 

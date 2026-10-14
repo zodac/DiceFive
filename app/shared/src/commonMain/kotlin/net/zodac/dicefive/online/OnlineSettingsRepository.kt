@@ -9,27 +9,22 @@ import kotlinx.coroutines.flow.map
 
 /**
  * What this device has chosen about the online service, in a file of its own
- * ([net.zodac.dicefive.data.PreferencesFile.ONLINE]) so no reset button touches it: whether the service is used
- * at all (the only "off" Play Games allows, as it has no sign-out) and whether progress is saved to the cloud.
+ * ([net.zodac.dicefive.data.PreferencesFile.ONLINE]) so no reset button touches it: whether the player has signed
+ * in here.
  */
 class OnlineSettingsRepository(private val dataStore: DataStore<Preferences>) {
 
-    /** Whether the service is used on this device. Off stops every call, without touching the account. */
-    val useOnDevice: Flow<Boolean> = dataStore.data.map { it[USE_ON_DEVICE_KEY] ?: true }
+    /**
+     * Whether the player signed in from Settings on this device, and hasn't signed out since. Until then the service
+     * isn't started at all, so nothing signs in, or asks to, at launch.
+     */
+    val signedIn: Flow<Boolean> = dataStore.data.map { it[SIGNED_IN_KEY] ?: false }
 
-    suspend fun setUseOnDevice(use: Boolean) {
-        dataStore.edit { it[USE_ON_DEVICE_KEY] = use }
-    }
-
-    /** Whether progress is saved to the cloud (on by default once signed in). */
-    val cloudSaveEnabled: Flow<Boolean> = dataStore.data.map { it[CLOUD_SAVE_KEY] ?: true }
-
-    suspend fun setCloudSaveEnabled(enabled: Boolean) {
-        dataStore.edit { it[CLOUD_SAVE_KEY] = enabled }
+    suspend fun setSignedIn(signedIn: Boolean) {
+        dataStore.edit { it[SIGNED_IN_KEY] = signedIn }
     }
 
     private companion object {
-        val USE_ON_DEVICE_KEY = booleanPreferencesKey("use_on_device")
-        val CLOUD_SAVE_KEY = booleanPreferencesKey("cloud_save_enabled")
+        val SIGNED_IN_KEY = booleanPreferencesKey("signed_in")
     }
 }

@@ -574,8 +574,7 @@
     <string name="online_signed_in_as">Sesión iniciada como %1$s</string>
     <string name="online_signed_in_cd">%1$s, sesión iniciada como %2$s</string>
     <string name="online_sign_in">Iniciar sesión</string>
-    <string name="online_use_on_device">Usar %1$s en este dispositivo</string>
-    <string name="online_cloud_save">Guardar el progreso en la nube</string>
+    <string name="online_sign_out">Cerrar sesión</string>
     <string name="settings_sound">Efectos de sonido</string>
     <string name="settings_vibration">Vibración</string>
     <string name="settings_animations">Animaciones</string>

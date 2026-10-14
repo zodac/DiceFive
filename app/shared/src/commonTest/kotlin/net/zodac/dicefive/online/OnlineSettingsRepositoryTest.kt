@@ -21,19 +21,12 @@ private class OnlinePreferencesStore : DataStore<Preferences> {
 class OnlineSettingsRepositoryTest {
 
     @Test
-    fun bothSwitchesAreOnUntilChanged() = runTest {
+    fun signedOutUntilSignedIn() = runTest {
         val repository = OnlineSettingsRepository(OnlinePreferencesStore())
-        assertTrue(repository.useOnDevice.first())
-        assertTrue(repository.cloudSaveEnabled.first())
-    }
-
-    @Test
-    fun eachSwitchIsKeptOnItsOwn() = runTest {
-        val repository = OnlineSettingsRepository(OnlinePreferencesStore())
-        repository.setUseOnDevice(false)
-        assertFalse(repository.useOnDevice.first())
-        assertTrue(repository.cloudSaveEnabled.first())
-        repository.setCloudSaveEnabled(false)
-        assertFalse(repository.cloudSaveEnabled.first())
+        assertFalse(repository.signedIn.first())
+        repository.setSignedIn(true)
+        assertTrue(repository.signedIn.first())
+        repository.setSignedIn(false)
+        assertFalse(repository.signedIn.first())
     }
 }

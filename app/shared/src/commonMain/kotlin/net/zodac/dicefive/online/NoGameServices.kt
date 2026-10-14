@@ -12,6 +12,8 @@ object NoGameServices : GameServices {
 
     override suspend fun signIn() = Unit
 
+    override suspend fun signOut() = Unit
+
     override suspend fun unlockedAchievementIds(): Set<String>? = null
 
     override suspend fun unlock(achievementId: String) = Unit

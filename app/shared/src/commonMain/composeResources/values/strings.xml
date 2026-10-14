@@ -763,8 +763,7 @@
     <string name="online_signed_in_as">Signed in as %1$s</string>
     <string name="online_signed_in_cd">%1$s, signed in as %2$s</string>
     <string name="online_sign_in">Sign in</string>
-    <string name="online_use_on_device">Use %1$s on this device</string>
-    <string name="online_cloud_save">Save progress to the cloud</string>
+    <string name="online_sign_out">Sign out</string>
     <string name="settings_sound">Sound effects</string>
     <string name="settings_vibration">Vibration</string>
     <!-- The "Animations" setting: its label and each level's name. -->

@@ -188,7 +188,6 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val loadedToggles by viewModel.toggles.collectAsStateWithLifecycle()
-    val onlineToggles by viewModel.onlineToggles.collectAsStateWithLifecycle()
     // Saveable: a rotation mid-confirmation shouldn't silently drop the question.
     var showResetAchievementsConfirmation by rememberSaveable { mutableStateOf(false) }
     var showResetLeaderboardConfirmation by rememberSaveable { mutableStateOf(false) }
@@ -212,13 +211,7 @@ fun SettingsScreen(
         // Nothing but the title bar until the saved switches are back, rather than drawing them in
         // their default positions and then flipping the ones the player has changed.
         val toggles = loadedToggles ?: return@ScreenScaffold
-        OnlineAccountCard(
-            services = LocalGameServices.current,
-            useOnDevice = onlineToggles.useOnDevice,
-            cloudSaveEnabled = onlineToggles.cloudSaveEnabled,
-            onUseOnDeviceChange = viewModel::setUseOnDevice,
-            onCloudSaveChange = viewModel::setCloudSaveEnabled,
-        )
+        OnlineAccountCard(services = LocalGameServices.current)
         Card(modifier = Modifier.fillMaxWidth()) {
             SwitchSetting(Icons.AutoMirrored.Filled.VolumeUp, stringResource(Res.string.settings_sound), toggles.soundEnabled, viewModel::setSoundEnabled)
             SwitchSetting(Icons.Filled.Vibration, stringResource(Res.string.settings_vibration), toggles.vibrationEnabled, viewModel::setVibrationEnabled)

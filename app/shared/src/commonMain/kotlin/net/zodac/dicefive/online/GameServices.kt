@@ -19,8 +19,11 @@ interface GameServices {
 
     val state: StateFlow<GameServicesState>
 
-    /** A manual retry. Signing in at launch is the platform's business, and there is no sign-out. */
+    /** Signs in, from the player's tap in Settings: nothing signs in before the first one. */
     suspend fun signIn()
+
+    /** Stops using the service on this device until [signIn] again. The account itself is untouched. */
+    suspend fun signOut()
 
     /** The ids of the achievements the service says are unlocked, or null if it couldn't be asked. */
     suspend fun unlockedAchievementIds(): Set<String>?

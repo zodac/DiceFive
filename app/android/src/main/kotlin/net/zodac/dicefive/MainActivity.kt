@@ -18,6 +18,7 @@ import net.zodac.dicefive.device.AndroidAppContainer
 import net.zodac.dicefive.device.AndroidPlatformServices
 import net.zodac.dicefive.device.CappedFrameClock
 import net.zodac.dicefive.device.preferRefreshRateFor
+import net.zodac.dicefive.online.PlayGamesServices
 import net.zodac.dicefive.ui.DiceFiveApp
 import net.zodac.dicefive.ui.common.stringsLanguageConfiguration
 
@@ -43,6 +44,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val container = AndroidAppContainer.get(this)
         val platform = AndroidPlatformServices(this)
+        val gameServices = PlayGamesServices.attach(this)
         // The window's recomposer, built as Compose would build it itself, but on a frame clock that can be capped
         // for the player's "Animations" level - see CappedFrameClock. setContent's ComposeView finds it on the
         // decor view, its parent, and composes with it instead of making its own.
@@ -56,7 +58,7 @@ class MainActivity : ComponentActivity() {
             CappedFrameClock.maxFramesPerSecondChanges.collect { window.preferRefreshRateFor(it) }
         }
         setContent {
-            DiceFiveApp(container = container, platform = platform)
+            DiceFiveApp(container = container, platform = platform, gameServices = gameServices)
         }
     }
 

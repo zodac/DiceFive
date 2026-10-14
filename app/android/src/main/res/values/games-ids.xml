@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The Play Games Services project id (Play Console > Play Games Services > Configuration), read by the SDK
+         through the APP_ID meta-data in AndroidManifest.xml. -->
+    <string name="game_services_project_id" translatable="false">308613893005</string>
+</resources>

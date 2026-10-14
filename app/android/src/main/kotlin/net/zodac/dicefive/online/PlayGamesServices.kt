@@ -1,0 +1,245 @@
+package net.zodac.dicefive.online
+
+import android.app.Application
+import android.content.Context
+import android.net.Uri
+import android.os.Build
+import android.util.Log
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.graphics.drawable.toBitmap
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
+import com.google.android.gms.common.images.ImageManager
+import com.google.android.gms.games.PlayGames
+import com.google.android.gms.games.PlayGamesSdk
+import com.google.android.gms.tasks.Task
+import java.lang.ref.WeakReference
+import java.security.MessageDigest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.coroutines.resume
+import net.zodac.dicefive.BuildConfig
+import net.zodac.dicefive.device.AndroidAppContainer
+
+/**
+ * [GameServices] on Google Play Games Services v2 - the only code that imports the Play Games SDK. One per
+ * process, so its state survives a configuration change; each Activity attaches itself, as the SDK's clients
+ * need one. Present only where [isEnabled]; everywhere else the app gets [NoGameServices].
+ *
+ * The SDK signs in by itself whenever it starts, and has no sign-out, so it isn't started until the player signs in
+ * from Settings ([signIn]). From then on ([OnlineSettingsRepository.signedIn]) it starts with the app and signs in
+ * again quietly, until [signOut]. None of the calls throws: a failure leaves the player signed out, and is logged
+ * under [LOG_TAG] with Google's status code. Every call has a timeout, bar the two that wait for the player to pick
+ * an account.
+ *
+ * Only the account is wired up so far. Achievements, leaderboards and saved games are later phases of
+ * `.claude/PLAY_GAMES.md`, and do nothing until then.
+ */
+class PlayGamesServices private constructor(
+    private val application: Application,
+    private val settings: OnlineSettingsRepository,
+) : GameServices {
+
+    override val serviceName: String = SERVICE_NAME
+
+    private val mutableState = MutableStateFlow<GameServicesState>(GameServicesState.SigningIn)
+    override val state: StateFlow<GameServicesState> = mutableState.asStateFlow()
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var activity: WeakReference<ComponentActivity>? = null
+    private var sdkStarted = false
+    private var refreshWhenAttached = false
+
+    init {
+        scope.launch {
+            if (settings.signedIn.first()) {
+                startSdk()
+                refresh()
+            } else {
+                mutableState.value = GameServicesState.SignedOut
+            }
+        }
+    }
+
+    private fun startSdk() {
+        if (sdkStarted) return
+        sdkStarted = true
+        PlayGamesSdk.initialize(application)
+    }
+
+    private fun attach(activity: ComponentActivity) {
+        this.activity = WeakReference(activity)
+        activity.lifecycle.addObserver(
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_DESTROY && this.activity?.get() === activity) this.activity = null
+            },
+        )
+        if (refreshWhenAttached) {
+            refreshWhenAttached = false
+            scope.launch { refresh() }
+        }
+    }
+
+    override suspend fun signIn() {
+        val activity = activity?.get() ?: return
+        mutableState.value = GameServicesState.SigningIn
+        startSdk()
+        val result = PlayGames.getGamesSignInClient(activity).signIn().awaitOrNull("signIn", timeoutMillis = null)
+        if (result?.isAuthenticated == false) failed("signIn: not authenticated")
+        refresh()
+        settings.setSignedIn(mutableState.value is GameServicesState.SignedIn)
+    }
+
+    /** The SDK stays signed in until the app next starts, but nothing here uses it, and it isn't started again. */
+    override suspend fun signOut() {
+        settings.setSignedIn(false)
+        mutableState.value = GameServicesState.SignedOut
+    }
+
+    /** Asks whether the player is signed in and, if so, who as. A player who was already shown stays shown meanwhile. */
+    private suspend fun refresh() {
+        val activity = activity?.get() ?: run {
+            refreshWhenAttached = true
+            return
+        }
+        // No timeout: at launch this waits for the SDK's own sign-in, which may be waiting for the player to pick an account.
+        val authenticated = PlayGames.getGamesSignInClient(activity).isAuthenticated()
+            .awaitOrNull("isAuthenticated", timeoutMillis = null)?.isAuthenticated == true
+        if (!authenticated) failed("isAuthenticated: not authenticated")
+        val player = if (authenticated) PlayGames.getPlayersClient(activity).currentPlayer.awaitOrNull("getCurrentPlayer") else null
+        if (player == null) {
+            mutableState.value = GameServicesState.SignedOut
+            return
+        }
+        val account = OnlineAccount(displayName = player.displayName, avatar = null, accountKey = accountKey(player.playerId))
+        val shown = (mutableState.value as? GameServicesState.SignedIn)?.account
+        // The same account again keeps the avatar it already has, rather than blinking back to the icon.
+        mutableState.value = GameServicesState.SignedIn(if (shown?.accountKey == account.accountKey) shown else account)
+        player.iconImageUri?.let { loadAvatar(it, account.accountKey) }
+    }
+
+    private fun loadAvatar(uri: Uri, accountKey: String) {
+        ImageManager.create(application).loadImage({ _, drawable, isRequestedDrawable ->
+            val signedIn = mutableState.value as? GameServicesState.SignedIn
+            if (drawable != null && isRequestedDrawable && signedIn?.account?.accountKey == accountKey) {
+                val avatar = drawable.toBitmap(AVATAR_SIZE_PX, AVATAR_SIZE_PX).asImageBitmap()
+                mutableState.value = GameServicesState.SignedIn(signedIn.account.copy(avatar = avatar))
+            }
+        }, uri)
+    }
+
+    /** The task's result, or null if it failed or took longer than [timeoutMillis] (null: no limit). */
+    private suspend fun <T> Task<T>.awaitOrNull(call: String, timeoutMillis: Long? = TIMEOUT_MILLIS): T? {
+        val await: suspend () -> T? = {
+            suspendCancellableCoroutine { continuation ->
+                addOnCompleteListener { task ->
+                    if (!task.isSuccessful) failed("$call failed: ${describe(task.exception)}", task.exception)
+                    continuation.resume(if (task.isSuccessful) task.result else null)
+                }
+            }
+        }
+        if (timeoutMillis == null) return await()
+        return withTimeoutOrNull(timeoutMillis) { await() } ?: null.also { failed("$call timed out") }
+    }
+
+    private fun failed(message: String, cause: Throwable? = null) {
+        Log.w(LOG_TAG, message, cause)
+    }
+
+    override suspend fun unlockedAchievementIds(): Set<String>? = null
+
+    override suspend fun unlock(achievementId: String) = Unit
+
+    override suspend fun setProgress(achievementId: String, steps: Int) = Unit
+
+    override suspend fun submitScore(leaderboardKey: String, score: Long) = Unit
+
+    override suspend fun readCloudSave(): ByteArray? = null
+
+    override suspend fun writeCloudSave(data: ByteArray, merge: (local: ByteArray, remote: ByteArray) -> ByteArray) = Unit
+
+    override val canShowAchievementsUi: Boolean = false
+
+    override fun showAchievementsUi() = Unit
+
+    override val canShowLeaderboardUi: Boolean = false
+
+    override fun showLeaderboardUi(leaderboardKey: String?) = Unit
+
+    companion object {
+
+        /** The service's own name, which Google doesn't translate. */
+        const val SERVICE_NAME = "Google Play Games"
+
+        /** Why a call failed, in logcat: `adb logcat -s DiceFivePlayGames`. */
+        const val LOG_TAG = "DiceFivePlayGames"
+
+        private const val PLAY_STORE_PACKAGE = "com.android.vending"
+        private const val TIMEOUT_MILLIS = 15_000L
+        private const val AVATAR_SIZE_PX = 96
+
+        /** Hashed into [OnlineAccount.accountKey], so this device never stores the raw player id. */
+        private const val ACCOUNT_KEY_SALT = "net.zodac.dicefive.online:"
+
+        @Volatile
+        private var instance: PlayGamesServices? = null
+
+        /**
+         * Sets up the service where Play Games is used: a device with Google Play services, running a debug build or one
+         * installed from Google Play. A sideloaded release build gets no service at all.
+         */
+        fun initialize(application: Application) {
+            if (!isEnabled(application)) return
+            instance = PlayGamesServices(application, AndroidAppContainer.get(application).onlineSettingsRepository)
+        }
+
+        /** The service for [activity] to provide, attached to it; [NoGameServices] where [initialize] started none. */
+        fun attach(activity: ComponentActivity): GameServices = instance?.also { it.attach(activity) } ?: NoGameServices
+
+        private fun isEnabled(context: Context): Boolean = usesPlayGames(
+            playServicesAvailable = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context) == ConnectionResult.SUCCESS,
+            isDebugBuild = BuildConfig.DEBUG,
+            installer = installerPackage(context),
+        )
+
+        /** Play Games needs Google Play services, and is only for debug builds and installs from Google Play. */
+        internal fun usesPlayGames(playServicesAvailable: Boolean, isDebugBuild: Boolean, installer: String?): Boolean =
+            playServicesAvailable && (isDebugBuild || installer == PLAY_STORE_PACKAGE)
+
+        private fun installerPackage(context: Context): String? = runCatching {
+            val packageManager = context.packageManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                packageManager.getInstallSourceInfo(context.packageName).installingPackageName
+            } else {
+                // The only way to ask before Android 11, which deprecated it for getInstallSourceInfo above.
+                @Suppress("DEPRECATION")
+                packageManager.getInstallerPackageName(context.packageName)
+            }
+        }.getOrNull()
+
+        /** Google's status code and its name for an [ApiException] (10 is DEVELOPER_ERROR, a credential mismatch). */
+        private fun describe(error: Exception?): String = when (error) {
+            is ApiException -> "status ${error.statusCode} (${CommonStatusCodes.getStatusCodeString(error.statusCode)})"
+            null -> "no reason given"
+            else -> error.toString()
+        }
+
+        internal fun accountKey(playerId: String): String =
+            MessageDigest.getInstance("SHA-256").digest((ACCOUNT_KEY_SALT + playerId).toByteArray())
+                .joinToString("") { "%02x".format(it) }
+
+    }
+}

@@ -411,6 +411,14 @@ aboutLibraries {
             // and Pro; neither is allowed here.)
             "CC0-1.0" to listOf("freesound-588198", "freesound-695731", "freesound-185986", "freesound-596051"),
             "CC-BY-4.0" to listOf("freesound-140147"),
+            // Google's own terms for the Play services SDKs (Play Games Services and what it pulls in): proprietary,
+            // free to ship in an app, with no condition on the app's own licence. Allowed for these artifacts only.
+            "ASDKL" to listOf(
+                "com.google.android.gms:play-services-base",
+                "com.google.android.gms:play-services-basement",
+                "com.google.android.gms:play-services-games-v2",
+                "com.google.android.gms:play-services-tasks",
+            ),
         )
     }
 }
@@ -696,6 +704,8 @@ dependencies {
     // AndroidAppContainer opens the shared module's database and preferences files.
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.datastore.preferences.core)
+    // Google Play Games Services v2: sign-in, achievements, leaderboards and saved games (online/PlayGamesServices).
+    implementation(libs.play.services.games.v2)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
