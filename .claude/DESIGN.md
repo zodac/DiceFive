@@ -280,6 +280,12 @@ screen) of `StyleColour`s.
 
 - **Ids** are the family's string key, then the colour's (`classic_gold`, `bestagons_honeycomb`). `StyleCatalogTest`
   enforces this.
+  - **One exception: a style folded into another family keeps the id it was released with.** The Beaker cups are
+    colours of Glass (`Beaker Blue`, `Beaker Green`) but are still `beaker_blue` and `beaker_green`, because ids are
+    permanent. They're listed in the test.
+- **A style with a counterpart of the same name is unlocked by the same thing** in every category that has one: Stone
+  (dice, mat, background) opens at 60 achievements, Circuit at 75, Neon at 95, Meadow at 70. `StyleCatalogTest` checks
+  every family name across dice, cups, mats and backgrounds.
 - **The Classic family** comes first in every category and is free. Its first colour is the default: ivory dice, the
   gold casino shaker (the launcher icon's cup), the blue mat, navy felt, a plain ring.
 - **Locks.** Every other family is locked behind an achievement count (`StyleUnlock.AchievementCount`) or a specific

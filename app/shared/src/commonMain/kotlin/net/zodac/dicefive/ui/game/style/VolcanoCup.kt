@@ -307,7 +307,7 @@ class VolcanoDiceCupStyle(override val id: String, private val palette: VolcanoP
         clipPath(cone) {
             for ((at, r, light) in patches) {
                 val tint = if (light) palette.rockLight else palette.rockDark
-                drawCircle(Brush.radialGradient(listOf(tint.copy(alpha = 0.35f), Color.Transparent), at, r), r, at)
+                drawSoftSpot(tint.copy(alpha = 0.35f), at, r)
             }
             for ((upper, lower) in ledges) {
                 drawPath(lower, palette.rockDark.copy(alpha = 0.3f), style = Stroke(thin * 2.4f, cap = StrokeCap.Round, join = StrokeJoin.Round))

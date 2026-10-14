@@ -104,11 +104,7 @@ class WireframeDiceStyle(
                 val angle = 2.0 * PI * side / WIREFRAME_PIP_SIDES + PI / WIREFRAME_PIP_SIDES
                 centre + Offset((cos(angle) * radius).toFloat(), (sin(angle) * radius).toFloat())
             }
-            val octagon = Path().apply {
-                moveTo(points.first().x, points.first().y)
-                points.drop(1).forEach { lineTo(it.x, it.y) }
-                close()
-            }
+            val octagon = polygonPath(points)
             drawPath(octagon, line.copy(alpha = 0.4f))
             drawPath(octagon, lerp(line, Color.White, 0.35f), style = outline)
             for (point in points) drawCircle(Color.White, vertex, point)

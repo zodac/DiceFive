@@ -107,7 +107,7 @@ class TallyDiceStyle(
                 repeat(6) {
                     val at = Offset(random.nextFloat() * w, random.nextFloat() * h)
                     val r = m * (0.15f + random.nextFloat() * 0.3f)
-                    drawCircle(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.09f), Color.Transparent), at, r), r, at)
+                    drawSoftSpot(Color.White.copy(alpha = 0.09f), at, r)
                 }
                 repeat(4) {
                     val y = random.nextFloat() * h

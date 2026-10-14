@@ -92,7 +92,7 @@ class LeatherBackground(override val id: String, private val palette: Background
             val stitch = Stroke(width = 1.3.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx())))
             val box = Size(size.width - inset * 2, size.height - inset * 2)
             drawRoundRect(Color.Black.copy(alpha = 0.3f), Offset(inset, inset + 1.dp.toPx()), box, CornerRadius(10.dp.toPx()), style = stitch)
-            drawRoundRect(palette.detail.copy(alpha = 0.55f), Offset(inset, inset), box, CornerRadius(10.dp.toPx()), style = stitch)
+            insetOutline(6.dp, 10.dp, palette.detail.copy(alpha = 0.55f), stitch)
         }
     }
 }
@@ -136,14 +136,7 @@ class HoneycombBackground(override val id: String, private val palette: Backgrou
         while (cx < size.width + radius) {
             var cy = if (column % 2 == 0) 0f else rowHeight / 2
             while (cy < size.height + rowHeight) {
-                val hexagon = Path().apply {
-                    for (corner in 0..5) {
-                        val angle = PI.toFloat() / 3f * corner
-                        val point = Offset(cx + radius * cos(angle), cy + radius * sin(angle))
-                        if (corner == 0) moveTo(point.x, point.y) else lineTo(point.x, point.y)
-                    }
-                    close()
-                }
+                val hexagon = polygonPath(hexagonPoints(Offset(cx, cy), radius))
                 drawPath(hexagon, color, style = outline)
                 cy += rowHeight
             }

@@ -106,54 +106,68 @@ class SandDiceMat(id: String, palette: MatPalette) : PatternedDiceMat(id, palett
  * the board at right angles and diagonals, ending in solder pads, with a couple of chips. Painted once.
  */
 class CircuitDiceMat(id: String, palette: MatPalette) : PatternedDiceMat(id, palette) {
-    override fun DrawScope.drawPattern() = drawCachedSurface("mat:$id") {
-        val random = Random(8)
-        val cell = 10.dp.toPx()
-        val columns = (size.width / cell).toInt() + 1
-        val rows = (size.height / cell).toInt() + 1
-        val trace = Stroke(width = 1.4.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
-        val copper = palette.detail.copy(alpha = 0.38f)
-        // Chips first, so traces run out from under them.
-        val chips = List(2) {
-            val w = cell * (3 + random.nextInt(2))
-            val h = cell * 2
-            Offset(cell * (1 + random.nextInt(columns - 6)), cell * (1 + random.nextInt((rows - 4).coerceAtLeast(1)))) to Size(w, h)
-        }
-        repeat(columns * rows / 9) {
-            val path = Path()
-            var x = random.nextInt(columns)
-            var y = random.nextInt(rows)
-            path.moveTo(x * cell, y * cell)
-            var dx = listOf(-1, 0, 1).random(random)
-            var dy = if (dx == 0) listOf(-1, 1).random(random) else 0
-            repeat(2 + random.nextInt(6)) {
-                if (random.nextFloat() < 0.3f) {
-                    // A turn: to a diagonal, or off one back to straight.
-                    if (dx != 0 && dy != 0) { if (random.nextBoolean()) dx = 0 else dy = 0 } else if (dx == 0) dx = listOf(-1, 1).random(random) else dy = listOf(-1, 1).random(random)
-                }
-                x += dx
-                y += dy
-                path.lineTo(x * cell, y * cell)
+    override fun DrawScope.drawPattern() = drawCachedSurface("mat:$id") { paintCircuitBoard(palette.detail, palette.bottom) }
+}
+
+/**
+ * A printed circuit board's traces and chips, in [detail]: traces wander the board in straight runs and 45-degree turns,
+ * each ending in a pad with a [hole] drilled through it, and a couple of chips sit among them, pins down both sides. A
+ * [strength] under 1 draws the traces and pins fainter, for a board behind a scorecard rather than under dice; the
+ * chips' own colours, [chip] and the dot [chipMark] on it, are as given.
+ */
+internal fun DrawScope.paintCircuitBoard(
+    detail: Color,
+    hole: Color,
+    strength: Float = 1f,
+    chip: Color = Color(0xFF121416),
+    chipMark: Color = Color(0xFF2A2E32),
+) {
+    val random = Random(8)
+    val cell = 10.dp.toPx()
+    val columns = (size.width / cell).toInt() + 1
+    val rows = (size.height / cell).toInt() + 1
+    val trace = Stroke(width = 1.4.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+    val copper = detail.copy(alpha = 0.38f * strength)
+    // Chips first, so traces run out from under them.
+    val chipSpots = List(2) {
+        val w = cell * (3 + random.nextInt(2))
+        val h = cell * 2
+        Offset(cell * (1 + random.nextInt(columns - 6)), cell * (1 + random.nextInt((rows - 4).coerceAtLeast(1)))) to Size(w, h)
+    }
+    repeat(columns * rows / 9) {
+        val path = Path()
+        var x = random.nextInt(columns)
+        var y = random.nextInt(rows)
+        path.moveTo(x * cell, y * cell)
+        var dx = listOf(-1, 0, 1).random(random)
+        var dy = if (dx == 0) listOf(-1, 1).random(random) else 0
+        repeat(2 + random.nextInt(6)) {
+            if (random.nextFloat() < 0.3f) {
+                // A turn: to a diagonal, or off one back to straight.
+                if (dx != 0 && dy != 0) { if (random.nextBoolean()) dx = 0 else dy = 0 } else if (dx == 0) dx = listOf(-1, 1).random(random) else dy = listOf(-1, 1).random(random)
             }
-            drawPath(path, copper, style = trace)
-            drawCircle(copper, 2.6.dp.toPx(), Offset(x * cell, y * cell))
-            drawCircle(palette.bottom, 1.1.dp.toPx(), Offset(x * cell, y * cell))
+            x += dx
+            y += dy
+            path.lineTo(x * cell, y * cell)
         }
-        for ((at, chip) in chips) {
-            val pin = 2.dp.toPx()
-            var px = at.x + pin * 2
-            while (px < at.x + chip.width - pin) {
-                drawLine(lerp(palette.detail, Color.White, 0.3f), Offset(px, at.y - pin * 1.5f), Offset(px, at.y + chip.height + pin * 1.5f), strokeWidth = pin * 0.7f)
-                px += pin * 2.2f
-            }
-            drawRoundRect(Color(0xFF121416), at, chip, CornerRadius(pin))
-            drawCircle(Color(0xFF2A2E32), pin * 0.7f, at + Offset(pin * 1.8f, pin * 1.8f))
+        drawPath(path, copper, style = trace)
+        drawCircle(copper, 2.6.dp.toPx(), Offset(x * cell, y * cell))
+        drawCircle(hole, 1.1.dp.toPx(), Offset(x * cell, y * cell))
+    }
+    for ((at, chipSize) in chipSpots) {
+        val pin = 2.dp.toPx()
+        var px = at.x + pin * 2
+        while (px < at.x + chipSize.width - pin) {
+            drawLine(lerp(detail, Color.White, 0.3f).copy(alpha = strength), Offset(px, at.y - pin * 1.5f), Offset(px, at.y + chipSize.height + pin * 1.5f), strokeWidth = pin * 0.7f)
+            px += pin * 2.2f
         }
+        drawRoundRect(chip, at, chipSize, CornerRadius(pin))
+        drawCircle(chipMark, pin * 0.7f, at + Offset(pin * 1.8f, pin * 1.8f))
     }
 }
 
 // The Neon mat's pulse - see NEON_PULSE_SECONDS on the dice.
-private const val NEON_MAT_PULSE_SECONDS = 2.4f
+internal const val NEON_MAT_PULSE_SECONDS = 2.4f
 
 /**
  * A neon-lit tray - to go with the Neon dice: a plain dark surface framed by two neon tubes running
@@ -219,17 +233,7 @@ internal fun DrawScope.paintBricks(brick: Color, mortar: Color, light: Color, se
 class GiftWrapDiceMat(id: String, palette: MatPalette) : PatternedDiceMat(id, palette) {
     override fun DrawScope.drawPattern() = drawCachedSurface("mat:$id") {
         val gap = 18.dp.toPx()
-        var row = 0
-        var y = gap / 2f
-        while (y < size.height + gap) {
-            var x = if (row % 2 == 0) gap / 2f else gap
-            while (x < size.width + gap) {
-                drawCircle(palette.detail.copy(alpha = 0.5f), 2.6.dp.toPx(), Offset(x, y))
-                x += gap
-            }
-            y += gap / 2f
-            row++
-        }
+        paintPolkaDots(palette.detail.copy(alpha = 0.5f), gap, 2.6.dp.toPx(), overscan = gap)
         val ribbon = palette.slotBorder
         val band = 12.dp.toPx()
         val acrossY = size.height * 0.78f
@@ -237,6 +241,24 @@ class GiftWrapDiceMat(id: String, palette: MatPalette) : PatternedDiceMat(id, pa
         drawRibbonBand(Offset(0f, acrossY), Offset(size.width, acrossY), band, ribbon)
         drawRibbonBand(Offset(downX, 0f), Offset(downX, size.height), band, ribbon)
         drawBow(Offset(downX, acrossY), band * 1.2f, ribbon)
+    }
+}
+
+/**
+ * Dots of [colour], [radius] across, on a grid [gap] apart in both directions, every other row shifted half a step. Dots
+ * are laid [overscan] past the right and bottom edges as well, so ones part-way over an edge are drawn.
+ */
+internal fun DrawScope.paintPolkaDots(colour: Color, gap: Float, radius: Float, overscan: Float = 0f) {
+    var row = 0
+    var y = gap / 2f
+    while (y < size.height + overscan) {
+        var x = if (row % 2 == 0) gap / 2f else gap
+        while (x < size.width + overscan) {
+            drawCircle(colour, radius, Offset(x, y))
+            x += gap
+        }
+        y += gap / 2f
+        row++
     }
 }
 
@@ -325,46 +347,63 @@ private const val STONE_MAT_FLAG_VARIANTS = 3
  */
 class StoneDiceMat(id: String, palette: MatPalette, private val kind: StoneKind?, private val vein: Color = Color.Gray) : PatternedDiceMat(id, palette) {
     override fun DrawScope.drawPattern() = drawCachedSurface("mat:$id") {
-        val flagWidth = 92.dp.toPx()
-        val flagHeight = 62.dp.toPx()
-        val grout = 2.dp.toPx()
-        val w = flagWidth - grout
-        val h = flagHeight - grout
-        val random = Random(id.hashCode())
-        val flags = List(STONE_MAT_FLAG_VARIANTS) { variant ->
-            ImageBitmap(ceil(w).toInt(), ceil(h).toInt()).also { image ->
-                CanvasDrawScope().draw(this, layoutDirection, Canvas(image), Size(w, h)) {
-                    drawRect(Brush.linearGradient(listOf(palette.top, palette.bottom)))
-                    if (kind != null) paintStone(kind, palette.top, palette.bottom, variant * 211 + 7) else paintMarble(variant * 211 + 7, vein)
-                }
+        paintFlagstones(palette.top, palette.bottom, palette.detail, kind, vein, id.hashCode(), flagWidth = 92.dp.toPx(), flagHeight = 62.dp.toPx())
+    }
+}
+
+/**
+ * Flagstones laid in running bond, each [flagWidth] by [flagHeight] and in its own slight shade, set in [grout] and
+ * cut from [kind]'s stone from [light] to [dark] (or, with no [kind], marble veined in [vein]), their edges bevelled,
+ * laid out from [seed]. Only [STONE_MAT_FLAG_VARIANTS] flags are actually textured, and the rest are copies of them,
+ * some turned round, so the first paint costs about as much as a plain surface's.
+ */
+internal fun DrawScope.paintFlagstones(
+    light: Color,
+    dark: Color,
+    grout: Color,
+    kind: StoneKind?,
+    vein: Color,
+    seed: Int,
+    flagWidth: Float,
+    flagHeight: Float,
+) {
+    val mortar = 2.dp.toPx()
+    val w = flagWidth - mortar
+    val h = flagHeight - mortar
+    val random = Random(seed)
+    val flags = List(STONE_MAT_FLAG_VARIANTS) { variant ->
+        ImageBitmap(ceil(w).toInt(), ceil(h).toInt()).also { image ->
+            CanvasDrawScope().draw(this, layoutDirection, Canvas(image), Size(w, h)) {
+                drawRect(Brush.linearGradient(listOf(light, dark)))
+                if (kind != null) paintStone(kind, light, dark, variant * 211 + 7) else paintMarble(variant * 211 + 7, vein)
             }
         }
-        drawRect(palette.detail)
-        val corner = CornerRadius(2.dp.toPx())
-        val bevel = 1.5.dp.toPx()
-        var row = 0
-        var y = -flagHeight * 0.3f
-        while (y < size.height) {
-            var x = if (row % 2 == 0) 0f else -flagWidth / 2f
-            while (x < size.width) {
-                val topLeft = Offset(x + grout / 2f, y + grout / 2f)
-                val flag = flags[random.nextInt(flags.size)]
-                val turned = random.nextBoolean()
-                val shade = random.nextFloat() - 0.5f
-                clipPath(Path().apply { addRoundRect(RoundRect(Rect(topLeft, Size(w, h)), corner)) }) {
-                    rotate(if (turned) 180f else 0f, topLeft + Offset(w / 2f, h / 2f)) { drawImage(flag, topLeft) }
-                    // Its own shade, a touch lighter or darker than the next.
-                    drawRect(if (shade > 0f) Color.White.copy(alpha = shade * 0.16f) else Color.Black.copy(alpha = -shade * 0.2f), topLeft, Size(w, h))
-                    // The bevel: lit along the top and left, shadowed along the bottom and right.
-                    drawRect(Color.White.copy(alpha = 0.18f), topLeft, Size(w, bevel))
-                    drawRect(Color.White.copy(alpha = 0.12f), topLeft, Size(bevel, h))
-                    drawRect(Color.Black.copy(alpha = 0.25f), topLeft + Offset(0f, h - bevel), Size(w, bevel))
-                    drawRect(Color.Black.copy(alpha = 0.18f), topLeft + Offset(w - bevel, 0f), Size(bevel, h))
-                }
-                x += flagWidth
+    }
+    drawRect(grout)
+    val corner = CornerRadius(2.dp.toPx())
+    val bevel = 1.5.dp.toPx()
+    var row = 0
+    var y = -flagHeight * 0.3f
+    while (y < size.height) {
+        var x = if (row % 2 == 0) 0f else -flagWidth / 2f
+        while (x < size.width) {
+            val topLeft = Offset(x + mortar / 2f, y + mortar / 2f)
+            val flag = flags[random.nextInt(flags.size)]
+            val turned = random.nextBoolean()
+            val shade = random.nextFloat() - 0.5f
+            clipPath(Path().apply { addRoundRect(RoundRect(Rect(topLeft, Size(w, h)), corner)) }) {
+                rotate(if (turned) 180f else 0f, topLeft + Offset(w / 2f, h / 2f)) { drawImage(flag, topLeft) }
+                // Its own shade, a touch lighter or darker than the next.
+                drawRect(if (shade > 0f) Color.White.copy(alpha = shade * 0.16f) else Color.Black.copy(alpha = -shade * 0.2f), topLeft, Size(w, h))
+                // The bevel: lit along the top and left, shadowed along the bottom and right.
+                drawRect(Color.White.copy(alpha = 0.18f), topLeft, Size(w, bevel))
+                drawRect(Color.White.copy(alpha = 0.12f), topLeft, Size(bevel, h))
+                drawRect(Color.Black.copy(alpha = 0.25f), topLeft + Offset(0f, h - bevel), Size(w, bevel))
+                drawRect(Color.Black.copy(alpha = 0.18f), topLeft + Offset(w - bevel, 0f), Size(bevel, h))
             }
-            y += flagHeight
-            row++
+            x += flagWidth
         }
+        y += flagHeight
+        row++
     }
 }

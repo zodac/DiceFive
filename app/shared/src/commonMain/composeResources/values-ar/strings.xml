@@ -682,7 +682,6 @@
     <string name="settings_reset_leaderboard_title">إعادة ضبط لوحة المتصدرين؟</string>
     <string name="settings_reset_leaderboard_message">ستُحذف كل نتيجة مسجّلة، فتُفرَّغ شاشة لوحة المتصدرين، ومعها الإحصائيات لأنها تُحسب من النتائج نفسها. لا يمكن التراجع عن هذا. لن تتأثر الإنجازات ولا الإعدادات، لكن أي تقدّم في الإنجازات يُقاس بلوحة المتصدرين سيبدأ من جديد.</string>
     <string name="style_family_art_deco">آرت ديكو</string>
-    <string name="style_family_beaker">دورق مخبري</string>
     <string name="style_family_bestagon">بيستاغون</string>
     <string name="style_family_bestagons">بيستاغونات</string>
     <string name="style_family_brick">طوب</string>
@@ -754,6 +753,8 @@
     <string name="style_colour_arabic">عربي</string>
     <string name="style_colour_arabic_green">أخضر عربي</string>
     <string name="style_colour_barrel">برميل</string>
+    <string name="style_colour_beaker_blue">دورق أزرق</string>
+    <string name="style_colour_beaker_green">دورق أخضر</string>
     <string name="style_colour_basalt">بازلت</string>
     <string name="style_colour_baubles">كرات الزينة</string>
     <string name="style_colour_black">أسود</string>

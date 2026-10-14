@@ -207,7 +207,7 @@ private fun DrawScope.drawFrost(seed: Int) {
         Triple(Offset(random.nextFloat() * w, random.nextFloat() * h), size.minDimension * (0.2f + random.nextFloat() * 0.35f), 0.12f + random.nextFloat() * 0.2f)
     }
     for ((centre, radius, strength) in patches) {
-        drawCircle(Brush.radialGradient(listOf(Color.White.copy(alpha = strength), Color.Transparent), center = centre, radius = radius), radius, centre)
+        drawSoftSpot(Color.White.copy(alpha = strength), centre, radius)
     }
     // Grain: denser inside the patches than between them.
     val speck = 2.dp.toPx()

@@ -99,7 +99,7 @@ class DevilDiceStyle(
     private fun DrawScope.drawFlame(centre: Offset, radius: Float) {
         // A teardrop's weight sits low, so it's drawn lower down the pip's spot to look centred on it.
         val base = centre + Offset(0f, radius * 0.35f)
-        drawCircle(Brush.radialGradient(listOf(flame.copy(alpha = 0.45f), Color.Transparent), center = base, radius = radius * 2.2f), radius * 2.2f, base)
+        drawSoftSpot(flame.copy(alpha = 0.45f), base, radius * 2.2f)
         drawPath(teardrop(base, radius), flame)
         scale(0.55f, pivot = base + Offset(0f, radius * 0.3f)) { drawPath(teardrop(base, radius), flameCore) }
     }

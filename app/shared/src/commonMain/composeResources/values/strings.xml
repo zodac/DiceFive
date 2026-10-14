@@ -791,7 +791,6 @@
 
     <!-- Style names (ui/game/style/StyleCatalog.kt): what each style, and each colour of it, is called on the Styles screen. Short: they sit under a small tile. -->
     <string name="style_family_art_deco">Art Deco</string>
-    <string name="style_family_beaker">Beaker</string>
     <string name="style_family_bestagon">Bestagon</string>
     <string name="style_family_bestagons">Bestagons</string>
     <string name="style_family_brick">Brick</string>
@@ -863,6 +862,8 @@
     <string name="style_colour_arabic">Arabic</string>
     <string name="style_colour_arabic_green">Arabic Green</string>
     <string name="style_colour_barrel">Barrel</string>
+    <string name="style_colour_beaker_blue">Beaker Blue</string>
+    <string name="style_colour_beaker_green">Beaker Green</string>
     <string name="style_colour_basalt">Basalt</string>
     <string name="style_colour_baubles">Baubles</string>
     <string name="style_colour_black">Black</string>

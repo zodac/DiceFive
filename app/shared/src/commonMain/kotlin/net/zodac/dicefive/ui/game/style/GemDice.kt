@@ -134,7 +134,7 @@ private fun DrawScope.paintGemFace(light: Color, dark: Color, seed: Int) {
         val at = Offset(random.nextFloat() * w, random.nextFloat() * h)
         val r = size.minDimension * (0.25f + random.nextFloat() * 0.3f)
         val tint = if (random.nextBoolean()) light else dark
-        drawCircle(Brush.radialGradient(listOf(tint.copy(alpha = 0.35f), Color.Transparent), at, r), r, at)
+        drawSoftSpot(tint.copy(alpha = 0.35f), at, r)
     }
     drawRect(
         Brush.linearGradient(

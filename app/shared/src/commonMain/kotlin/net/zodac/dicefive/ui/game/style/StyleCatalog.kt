@@ -13,6 +13,8 @@ import net.zodac.dicefive.resources.style_colour_amber
 import net.zodac.dicefive.resources.style_colour_arabic
 import net.zodac.dicefive.resources.style_colour_arabic_green
 import net.zodac.dicefive.resources.style_colour_barrel
+import net.zodac.dicefive.resources.style_colour_beaker_blue
+import net.zodac.dicefive.resources.style_colour_beaker_green
 import net.zodac.dicefive.resources.style_colour_basalt
 import net.zodac.dicefive.resources.style_colour_baubles
 import net.zodac.dicefive.resources.style_colour_black
@@ -135,7 +137,6 @@ import net.zodac.dicefive.resources.style_colour_white_wave
 import net.zodac.dicefive.resources.style_colour_wicker
 import net.zodac.dicefive.resources.style_colour_yellow
 import net.zodac.dicefive.resources.style_family_art_deco
-import net.zodac.dicefive.resources.style_family_beaker
 import net.zodac.dicefive.resources.style_family_bestagon
 import net.zodac.dicefive.resources.style_family_bestagons
 import net.zodac.dicefive.resources.style_family_brick
@@ -867,6 +868,9 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 colour(Res.string.style_colour_clear, GlassDiceCupStyle("glass_clear", Color(0xFFD6ECF7), Color(0xFF8FD3F4))),
                 colour(Res.string.style_colour_blue, GlassDiceCupStyle("glass_blue", Color(0xFF5AA8E8), Color(0xFF2F7FE0))),
                 colour(Res.string.style_colour_amber, GlassDiceCupStyle("glass_amber", Color(0xFFE8C98A), Color(0xFFE8A030))),
+                // The laboratory beaker, once a style of its own: its ids stay as they were released (StyleCatalogTest).
+                colour(Res.string.style_colour_beaker_blue, BeakerDiceCupStyle("beaker_blue", Color(0xFFD6ECF7), Color(0xFF4FC3F7))),
+                colour(Res.string.style_colour_beaker_green, BeakerDiceCupStyle("beaker_green", Color(0xFFD6ECF7), Color(0xFF7CE08A))),
             ),
             unlock = AchievementCount(25),
         ),
@@ -901,14 +905,6 @@ object DiceCupStyles : StyleCatalog<DiceCupStyle>(
                 ).copy(swatch = RabbitFur, secretAchievement = Achievement.THE_MAGICIANS_SECRET),
             ),
             unlock = AchievementCount(35),
-        ),
-        StyleFamily(
-            Res.string.style_family_beaker,
-            listOf(
-                colour(Res.string.style_colour_blue, BeakerDiceCupStyle("beaker_blue", Color(0xFFD6ECF7), Color(0xFF4FC3F7))),
-                colour(Res.string.style_colour_green, BeakerDiceCupStyle("beaker_green", Color(0xFFD6ECF7), Color(0xFF7CE08A))),
-            ),
-            unlock = AchievementCount(40),
         ),
         StyleFamily(
             Res.string.style_family_takeaway,
@@ -1270,12 +1266,41 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
             unlock = AchievementCount(55),
         ),
         StyleFamily(
+            Res.string.style_family_stone,
+            listOf(
+                stoneBackground(Res.string.style_colour_slate, "stone_slate", StoneKind.SLATE, 0xFF3C4650, 0xFF1C2228, 0xFF0E1114),
+                stoneBackground(Res.string.style_colour_granite, "stone_granite", StoneKind.GRANITE, 0xFF6E6560, 0xFF3A3532, 0xFF1E1B19),
+                stoneBackground(Res.string.style_colour_black_marble, "stone_black_marble", null, 0xFF3A3A3E, 0xFF141416, 0xFF050506, vein = 0xFFD8D8D8),
+            ),
+            unlock = AchievementCount(60),
+        ),
+        StyleFamily(
             Res.string.style_family_christmas,
             listOf(
                 background(Res.string.style_colour_green, ::GiftWrapBackground, "christmas_green", 0xFF1E5A34, 0xFF0E3A1E),
                 background(Res.string.style_colour_red, ::GiftWrapBackground, "christmas_red", 0xFF7A1A20, 0xFF4E0E12),
             ),
             unlock = AchievementCount(65),
+        ),
+        // The Meadow dice's grass, wildflowers and river, across the whole table.
+        StyleFamily(
+            Res.string.style_family_meadow,
+            listOf(
+                StyleColour(
+                    Res.string.style_colour_green,
+                    Color(0xFF4E8A2A),
+                    MeadowBackground("meadow_green", BackgroundPalette(Color(0xFF3E7A2A), Color(0xFF1F4A1B))),
+                ),
+            ),
+            unlock = AchievementCount(70),
+        ),
+        StyleFamily(
+            Res.string.style_family_circuit,
+            listOf(
+                circuitBackground(Res.string.style_colour_green, "circuit_green", 0xFF0F3A2B, 0xFF06201A, 0xFFD9A84A),
+                circuitBackground(Res.string.style_colour_black, "circuit_black", 0xFF16181B, 0xFF08090B, 0xFF3FE6FF),
+            ),
+            unlock = AchievementCount(75),
         ),
         StyleFamily(
             Res.string.style_family_bestagons,
@@ -1303,6 +1328,15 @@ object TableBackgrounds : StyleCatalog<TableBackground>(
                 glitterBackground(Res.string.style_colour_emerald, "glitter_emerald", 0xFF0C3A2A, 0xFF041A12, 0xFFA8F6D0),
             ),
             unlock = AchievementCount(85),
+        ),
+        StyleFamily(
+            Res.string.style_family_neon,
+            listOf(
+                neonBackground(Res.string.style_colour_pink_and_blue, "neon_pink_and_blue", 0xFF1E1030, 0xFF0A0614, outer = 0xFFFF3FA4, inner = 0xFF3FE6FF),
+                neonBackground(Res.string.style_colour_green_and_purple, "neon_green_and_purple", 0xFF0E1838, 0xFF050A1C, outer = 0xFF39FF88, inner = 0xFFB45CFF),
+                neonBackground(Res.string.style_colour_orange_and_teal, "neon_orange_and_teal", 0xFF1E1236, 0xFF0A0618, outer = 0xFFFF8A1F, inner = 0xFF2EE6D0),
+            ),
+            unlock = AchievementCount(95),
         ),
         StyleFamily(
             Res.string.style_family_rgb,
@@ -1485,6 +1519,18 @@ private fun stoneMat(name: StringResource, id: String, kind: StoneKind?, light: 
             Color(vein),
         ),
     )
+
+/** A Stone background: flags of [kind]'s stone (or marble veined in [vein], with no [kind]) from [top] to [bottom], set in [grout]. */
+private fun stoneBackground(name: StringResource, id: String, kind: StoneKind?, top: Long, bottom: Long, grout: Long, vein: Long = grout): StyleColour<TableBackground> =
+    StyleColour(name, Color(top), StoneBackground(id, BackgroundPalette(Color(top), Color(bottom), Color(grout)), kind, Color(vein)))
+
+/** A Circuit background: a board from [top] to [bottom], its traces in [traces]. */
+private fun circuitBackground(name: StringResource, id: String, top: Long, bottom: Long, traces: Long): StyleColour<TableBackground> =
+    StyleColour(name, Color(traces), CircuitBackground(id, BackgroundPalette(Color(top), Color(bottom), Color(traces))))
+
+/** A Neon background: a [top]-to-[bottom] night, its grid and glow in [outer] and the tube along the horizon in [inner]. Shown by its grid's colour. */
+private fun neonBackground(name: StringResource, id: String, top: Long, bottom: Long, outer: Long, inner: Long): StyleColour<TableBackground> =
+    StyleColour(name, Color(outer), NeonGridBackground(id, BackgroundPalette(Color(top), Color(bottom), Color(outer)), Color(inner)))
 
 /** A Leather background: a [top]-to-[bottom] hide stitched in [thread]. */
 private fun leatherBackground(name: StringResource, id: String, top: Long, bottom: Long, thread: Long): StyleColour<TableBackground> =

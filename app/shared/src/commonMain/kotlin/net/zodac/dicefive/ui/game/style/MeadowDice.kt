@@ -135,7 +135,7 @@ class MeadowDiceStyle(
             val at = Offset(random.nextFloat() * w, random.nextFloat() * h)
             val r = m * (0.15f + random.nextFloat() * 0.25f)
             val tint = if (random.nextBoolean()) lerp(grass, Color(0xFFE8F27A), 0.35f) else grassDark
-            drawCircle(Brush.radialGradient(listOf(tint.copy(alpha = 0.4f), Color.Transparent), at, r), r, at)
+            drawSoftSpot(tint.copy(alpha = 0.4f), at, r)
         }
         val light = lerp(grass, Color.White, 0.25f)
         val dark = lerp(grassDark, Color.Black, 0.2f)
@@ -211,6 +211,6 @@ class MeadowDiceStyle(
     }
 }
 
-private val RiverWater = Shades(Color(0xFF1C5C9E), Color(0xFF3D8FD6), Color(0xFFC4E8FF))
-private val RiverBank = Color(0xFF8A7448)
-private val Wildflowers = listOf(Color.White, Color(0xFFFFF59D), Color(0xFFF8BBD0), Color(0xFFB39DDB))
+internal val RiverWater = Shades(Color(0xFF1C5C9E), Color(0xFF3D8FD6), Color(0xFFC4E8FF))
+internal val RiverBank = Color(0xFF8A7448)
+internal val Wildflowers = listOf(Color.White, Color(0xFFFFF59D), Color(0xFFF8BBD0), Color(0xFFB39DDB))

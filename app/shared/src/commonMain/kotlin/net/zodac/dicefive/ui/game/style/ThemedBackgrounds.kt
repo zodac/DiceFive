@@ -25,7 +25,7 @@ class BrickWallBackground(override val id: String, private val palette: Backgrou
         drawCachedSurface("background:$id") {
             paintBricks(Color.Transparent, Color.Black.copy(alpha = 0.4f), Color.White.copy(alpha = 0.07f), seed = 6, rowHeight = 16.dp.toPx())
             val glow = Offset(size.width * 0.5f, -size.height * 0.05f)
-            drawCircle(Brush.radialGradient(listOf(palette.detail.copy(alpha = 0.16f), Color.Transparent), center = glow, radius = size.width * 0.9f), size.width * 0.9f, glow)
+            drawSoftSpot(palette.detail.copy(alpha = 0.16f), glow, size.width * 0.9f)
         }
     }
 }
@@ -133,18 +133,7 @@ class GiftWrapBackground(override val id: String, private val palette: Backgroun
                 drawLine(palette.detail.copy(alpha = 0.06f), Offset(x, size.height), Offset(x + size.height, 0f), strokeWidth = band)
                 x += band * 3f
             }
-            val gap = 22.dp.toPx()
-            var row = 0
-            var y = gap / 2f
-            while (y < size.height) {
-                var dx = if (row % 2 == 0) gap / 2f else gap
-                while (dx < size.width) {
-                    drawCircle(palette.detail.copy(alpha = 0.09f), 2.dp.toPx(), Offset(dx, y))
-                    dx += gap
-                }
-                y += gap / 2f
-                row++
-            }
+            paintPolkaDots(palette.detail.copy(alpha = 0.09f), gap = 22.dp.toPx(), radius = 2.dp.toPx())
         }
     }
 }

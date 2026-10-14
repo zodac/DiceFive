@@ -181,7 +181,7 @@ class RgbHaloDiceCupStyle(override val id: String, private val body: CupPalette,
         val glowAt = Offset(gx(centreX), gy(HALO_BASE_Y - 10f))
         val glow = gx(HALO_BASE_RADIUS)
         scale(0.9f, 1.5f, glowAt) {
-            drawCircle(Brush.radialGradient(listOf(colour.copy(alpha = 0.22f), Color.Transparent), center = glowAt, radius = glow), glow, glowAt)
+            drawSoftSpot(colour.copy(alpha = 0.22f), glowAt, glow)
         }
     }
 
@@ -360,7 +360,7 @@ class RgbLanternDiceCupStyle(override val id: String, private val body: CupPalet
         drawPath(rim, lerp(body.light, Color.White, 0.2f), style = Stroke(width = gx(1.2f)))
         val glow = gx(LANTERN_TOP_RADIUS * 0.9f)
         scale(1f, 0.6f, middle) {
-            drawCircle(Brush.radialGradient(listOf(colour.copy(alpha = 0.3f * brightness), Color.Transparent), center = middle, radius = glow), glow, middle)
+            drawSoftSpot(colour.copy(alpha = 0.3f * brightness), middle, glow)
         }
     }
 }
@@ -404,7 +404,7 @@ class RgbDiceMat(id: String, palette: MatPalette, private val wave: Boolean) : P
         for ((dx, dy) in listOf(-1f to -1f, 1f to -1f, 0f to 0f, -1f to 1f, 1f to 1f)) {
             val spot = middle + Offset(dx * pitch, dy * pitch)
             val reach = pitch * 1.1f
-            drawCircle(Brush.radialGradient(listOf(colour.copy(alpha = 0.5f), Color.Transparent), center = spot, radius = reach), reach, spot)
+            drawSoftSpot(colour.copy(alpha = 0.5f), spot, reach)
             drawCircle(colour, pitch * 0.32f, spot)
             drawCircle(lerp(colour, Color.White, 0.75f), pitch * 0.15f, spot)
         }

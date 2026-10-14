@@ -47,22 +47,39 @@ internal fun DrawScope.drawStars(seed: Int, color: Color = Color.White, seconds:
         val phase = beat.nextFloat() * 2f * PI.toFloat()
         val speed = 0.5f + beat.nextFloat() * 1.1f
         val twinkle = 1f - TWINKLE_DEPTH * (0.5f + 0.5f * sin(seconds * speed + phase))
-        // Four long points with hollow sides, so even a small one reads as a star and not a dot.
-        star.rewind()
-        for (i in 0 until 8) {
-            val angle = i * PI.toFloat() / 4f - PI.toFloat() / 2f
-            val reach = if (i % 2 == 0) radius else radius * STAR_WAIST
-            val x = centre.x + cos(angle) * reach
-            val y = centre.y + sin(angle) * reach
-            if (i == 0) star.moveTo(x, y) else star.lineTo(x, y)
-        }
-        star.close()
+        star.fourPointStar(centre, radius)
         drawPath(star, color.copy(alpha = alpha * twinkle))
     }
 }
 
 // How far in a star's hollow sides pinch, as a fraction of its points' reach.
 private const val STAR_WAIST = 0.3f
+
+/**
+ * Rebuilds this path as a star of four long points [reach] out from [centre], with hollow sides so even a small one
+ * reads as a star and not a dot. Returns the path, so one can be reused star after star.
+ */
+internal fun Path.fourPointStar(centre: Offset, reach: Float): Path {
+    rewind()
+    for (i in 0 until 8) {
+        val angle = i * PI.toFloat() / 4f - PI.toFloat() / 2f
+        val distance = if (i % 2 == 0) reach else reach * STAR_WAIST
+        val x = centre.x + cos(angle) * distance
+        val y = centre.y + sin(angle) * distance
+        if (i == 0) moveTo(x, y) else lineTo(x, y)
+    }
+    close()
+    return this
+}
+
+/**
+ * A soft round spot of [colour] at [centre], [radius] out, fading to nothing at its edge. [colour] carries its own
+ * strength, so `Color.White.copy(alpha = 0.3f)` is a faint glow. Fades to [Color.Transparent], which dims the colour
+ * towards black as it goes; a glow that must stay its own colour all the way out fades to its own zero alpha instead.
+ */
+internal fun DrawScope.drawSoftSpot(colour: Color, centre: Offset, radius: Float) {
+    drawCircle(Brush.radialGradient(listOf(colour, Color.Transparent), center = centre, radius = radius), radius, centre)
+}
 
 // How far a star dims at the bottom of its twinkle, as a fraction of its brightness.
 private const val TWINKLE_DEPTH = 0.55f

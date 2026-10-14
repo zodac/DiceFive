@@ -67,10 +67,13 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
 - **Cups, backgrounds, mats** (board plus tray): 2-4 a frame in idle, shake and toss for every one, within ~20% of each
   other. A cup alone is 0.8-1.7.
   - A patterned mat's or background's first frame is 17-55. Stone stamps three textured flags to stay there.
+  - The Stone, Meadow and Circuit backgrounds are painted once and sit within ~3.5ms of the plain Classic one (whole
+    screen, captured: 25-26ms against 22), level with Pinstripe, Starry and Desert. Neon is ~29ms, level with
+    Honeycomb and under Glitter and Glitch (32-34ms).
   - Treasure Chest, Urn, Volcano and Picnic Basket are within a few ms of Classic Gold.
 - **Live per frame**, for moving art:
   - glitter: 2 sparkles a die, 6 on its mat, 5 on its background, 2 on its cup;
-  - neon strokes;
+  - neon strokes, and the Neon background's horizon glow (one gradient rect; its grid is painted once);
   - the Honeycomb bee (~40 shapes);
   - the Volcano's crater, 5 lava ribbons and eruption;
   - the Basket's lids and food;

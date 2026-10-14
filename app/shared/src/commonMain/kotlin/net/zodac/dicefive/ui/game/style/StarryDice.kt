@@ -68,30 +68,20 @@ class StarryDiceStyle(
     private fun DrawScope.drawSpecks(seed: Int, pips: List<Offset>, clearance: Float) {
         val random = Random(seed)
         val margin = size.minDimension * 0.1f
+        val speck = Path()
         repeat(STARRY_SPECKS) {
             val at = Offset(margin + random.nextFloat() * (size.width - margin * 2), margin + random.nextFloat() * (size.height - margin * 2))
             val reach = size.minDimension * (0.018f + random.nextFloat() * 0.022f)
             val alpha = 0.25f + random.nextFloat() * 0.35f
             if (pips.any { (it - at).getDistance() < clearance }) return@repeat
-            val waist = reach * 0.3f
-            val speck = Path().apply {
-                moveTo(at.x, at.y - reach)
-                lineTo(at.x + waist, at.y - waist)
-                lineTo(at.x + reach, at.y)
-                lineTo(at.x + waist, at.y + waist)
-                lineTo(at.x, at.y + reach)
-                lineTo(at.x - waist, at.y + waist)
-                lineTo(at.x - reach, at.y)
-                lineTo(at.x - waist, at.y - waist)
-                close()
-            }
+            speck.fourPointStar(at, reach)
             drawPath(speck, Color.White.copy(alpha = alpha))
         }
     }
 
     /** A five-pointed star pip at [centre], its points [radius] out, pointing up, in a soft glow. */
     private fun DrawScope.drawStarPip(centre: Offset, radius: Float) {
-        drawCircle(Brush.radialGradient(listOf(star.copy(alpha = 0.35f), Color.Transparent), center = centre, radius = radius * 1.9f), radius * 1.9f, centre)
+        drawSoftSpot(star.copy(alpha = 0.35f), centre, radius * 1.9f)
         val path = Path()
         for (i in 0 until 10) {
             val angle = -PI / 2 + i * PI / 5

@@ -58,7 +58,7 @@ abstract class PatternedDiceMat(final override val id: String, protected val pal
 }
 
 /** A rounded rectangle [inset] from the edges, stroked in [color]. */
-private fun DrawScope.insetOutline(inset: Dp, corner: Dp, color: Color, stroke: Stroke) {
+internal fun DrawScope.insetOutline(inset: Dp, corner: Dp, color: Color, stroke: Stroke) {
     val px = inset.toPx()
     drawRoundRect(
         color = color,

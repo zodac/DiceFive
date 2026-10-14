@@ -46,7 +46,7 @@ internal fun DrawScope.paintGlitter(seed: Int, base: Color, pitch: Float) {
 /** A sparkle: a four-pointed star of light [radius] across, at [centre], in a soft glow of [colour]. */
 internal fun DrawScope.drawSparkle(centre: Offset, radius: Float, colour: Color = Color.White, alpha: Float = 1f) {
     if (radius <= 0f || alpha <= 0f) return
-    drawCircle(Brush.radialGradient(listOf(colour.copy(alpha = 0.45f * alpha), Color.Transparent), center = centre, radius = radius * 0.7f), radius * 0.7f, centre)
+    drawSoftSpot(colour.copy(alpha = 0.45f * alpha), centre, radius * 0.7f)
     val star = Path().apply {
         val waist = radius * 0.13f
         moveTo(centre.x, centre.y - radius)

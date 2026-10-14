@@ -156,7 +156,7 @@ class RgbDiceStyle(
             at,
         )
         if (!wave && !light) {
-            drawCircle(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.16f), Color.Transparent), center = middle, radius = size.minDimension * 0.6f), size.minDimension * 0.6f, middle)
+            drawSoftSpot(Color.White.copy(alpha = 0.16f), middle, size.minDimension * 0.6f)
         }
         for ((index, position) in pipLayout(value).withIndex()) {
             val spot = Offset(position.x * size.width, position.y * size.height)

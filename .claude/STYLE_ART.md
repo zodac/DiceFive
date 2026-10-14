@@ -52,6 +52,33 @@ The working method and the drawing techniques. Elsewhere:
 - **Recoloured.** Every `DiceStyle.recoloured(palette)` draws in the roll's colours. Multi-coloured pips all take
   `palette.pip`.
 
+## Shared painters
+
+A theme often shows up in more than one category (Stone dice and mat and background; Circuit mat and background). Paint it
+once, in a function every category calls, rather than copying it. Already shared:
+
+| Painter | What | Used by |
+|---|---|---|
+| `paintFlagstones` (`ThemedMats.kt`) | Flags in running bond, three textured and the rest stamped | Stone mat, Stone background |
+| `paintCircuitBoard` | Traces, pads and chips; `strength` fades it for a background | Circuit mat, Circuit background |
+| `paintPolkaDots` | Dots on a half-stepped grid | Gift Wrap mat, Gift Wrap background |
+| `paintBricks`, `paintMarble`, `paintStone`, `paintPebbledHide`, `paintGlitter` | Textures | Dice, mats, backgrounds and cups of that name |
+| `drawGingham`, `drawStars`, `drawSparkle` | Patterns | Gingham mat and background; Starry mat and background; Glitter art |
+| `drawSoftSpot` (`Patterns.kt`) | A glow fading to `Color.Transparent` | Every soft glow of the two-stop kind |
+| `Path.fourPointStar` | The hollow-sided star | Starry mat, background and dice |
+| `hexagonPoints`, `polygonPath`, `smoothPath` | Outlines | Bestagon art, Honeycomb, Wireframe, Meadow |
+| `insetOutline` | A rounded outline inset from the edge | Leather mat, Leather background |
+
+- **Extract without changing a pixel.** Render every dice, cup, mat and background before and after (the `render`
+  skill's snapshot approach, one PNG per style) and compare the files byte for byte. Rendering is deterministic, so any
+  difference is real. Only the Picnic Wicker cup's tilted pose varies between runs.
+- **Same maths, not just the same look.** `drawSoftSpot` fades to `Color.Transparent`, which dims the colour towards
+  black as it fades. A glow that fades to its own colour at zero alpha (the Obsidian lava's) looks different, so it
+  stays as it is.
+- **Left alone because they only look alike:** the wavy grain of the Planks background and the Wood Plank mat (different
+  start points), the Glitter mat's and background's flake dust, and the scanlines of the Glitch dice and background.
+  Sharing them would take a lambda for each difference.
+
 ## Heavy art: paint once, keep it off the frame
 
 - **Static, costly surfaces** go through `drawCachedSurface(key) { ... }` (`Patterns.kt`). The key captures everything

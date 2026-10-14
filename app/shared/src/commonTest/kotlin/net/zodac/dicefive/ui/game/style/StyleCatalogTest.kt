@@ -6,6 +6,9 @@ import kotlin.test.assertTrue
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.model.Achievement
 
+/** Ids of styles that were a family of their own when released, and are now colours of another: see [StyleCatalogTest]. */
+private val IDS_KEPT_FROM_MERGED_FAMILIES = setOf("beaker_blue", "beaker_green")
+
 class StyleCatalogTest {
 
     private val catalogs = listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds, ScoreFrames)
@@ -21,9 +24,20 @@ class StyleCatalogTest {
     @Test
     fun `every id is its family's name then its colour's - as the Styles screen shows them`() {
         for (catalog in catalogs) for (family in catalog.families) for (colour in family.colours) {
-            val expected = family.name.key.removePrefix("style_family_") + "_" + colour.name.key.removePrefix("style_colour_")
+            val colourKey = colour.name.key.removePrefix("style_colour_")
+            // A style folded into another family since it was released keeps the id it had: ids are permanent.
+            val expected = if (colour.style.id in IDS_KEPT_FROM_MERGED_FAMILIES) colourKey else family.name.key.removePrefix("style_family_") + "_" + colourKey
             assertEquals(expected, colour.style.id)
         }
+    }
+
+    @Test
+    fun `the beakers are variants of Glass - open with it - under the ids they were released with`() {
+        val glass = DiceCupStyles.families.single { it.name.key == "style_family_glass" }
+        assertEquals(listOf("glass_clear", "glass_blue", "glass_amber", "beaker_blue", "beaker_green"), glass.colours.map { it.style.id })
+        assertEquals(StyleUnlock.AchievementCount(25), glass.unlock)
+        for (id in IDS_KEPT_FROM_MERGED_FAMILIES) assertEquals(glass, DiceCupStyles.familyOf(id), id)
+        assertTrue(DiceCupStyles.families.none { it.name.key == "style_family_beaker" })
     }
 
     @Test
@@ -51,6 +65,18 @@ class StyleCatalogTest {
         // Each achievement carries the star that says it unlocks a style.
         assertTrue(Achievement.NAT_20.unlocksStyle)
         assertTrue(Achievement.CRITICAL_SUCCESS.unlocksStyle)
+    }
+
+    @Test
+    fun `a style that goes with another of the same name is unlocked by the same thing - in dice - cups - mats and backgrounds`() {
+        val unlocks = listOf(DiceStyles, DiceCupStyles, DiceMats, TableBackgrounds)
+            .flatMap { catalog -> catalog.families.map { it.name.key to it.unlock } }
+            .groupBy({ it.first }, { it.second })
+        for ((family, locks) in unlocks) assertEquals(1, locks.distinct().size, "$family is unlocked by ${locks.distinct()}")
+        // The ones that go together by name, so a new background can't quietly miss its dice or mat.
+        for (family in listOf("stone", "circuit", "neon", "meadow", "leather", "gingham", "christmas", "glitter", "rgb")) {
+            assertTrue(TableBackgrounds.families.any { it.name.key == "style_family_$family" }, "no $family background")
+        }
     }
 
     @Test

@@ -174,7 +174,7 @@ private fun DrawScope.paintSlate(light: Color, dark: Color, random: Random) {
     repeat(2) {
         val at = anywhere(random)
         val r = m * (0.12f + random.nextFloat() * 0.15f)
-        drawCircle(Brush.radialGradient(listOf(Color(0xFF8A6A4A).copy(alpha = 0.18f), Color.Transparent), at, r), r, at)
+        drawSoftSpot(Color(0xFF8A6A4A).copy(alpha = 0.18f), at, r)
     }
 }
 
@@ -210,7 +210,7 @@ private fun DrawScope.paintLimestone(light: Color, dark: Color, random: Random) 
         val at = anywhere(random)
         val r = m * (0.12f + random.nextFloat() * 0.25f)
         val tint = if (random.nextBoolean()) lerp(light, Color.White, 0.5f) else dark
-        drawCircle(Brush.radialGradient(listOf(tint.copy(alpha = 0.3f), Color.Transparent), at, r), r, at)
+        drawSoftSpot(tint.copy(alpha = 0.3f), at, r)
     }
     repeat(140) {
         drawCircle(lerp(dark, Color.Black, 0.3f).copy(alpha = 0.3f), m * (0.003f + random.nextFloat() * 0.006f), anywhere(random))
