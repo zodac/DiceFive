@@ -653,7 +653,6 @@ class FishbowlDiceCupStyle(override val id: String, private val tint: Color, pri
             val surfaceRadius = bowlHalfWidth(BOWL_WATER_Y)
             // Everything in pixels up front: the cup grid can't be reached from inside clipPath.
             val volume = liquidVolume(liquid, surfaceRadius)
-            val waterInBowl = Path.combine(PathOperation.Intersect, volume, bowl)
             val surface = liquidRing(liquid, surfaceRadius)
             val fronds = frondPaths(lap)
             val (railX, yaw) = if (lap == null) 0f to 180f else clownfishOnRail(lap)
@@ -684,15 +683,19 @@ class FishbowlDiceCupStyle(override val id: String, private val tint: Color, pri
                 }
                 drawPath(surface, lerp(water, Color.White, 0.4f).copy(alpha = 0.4f))
             }
-            clipPath(waterInBowl) {
-                // Level on screen, however the bowl is tipped.
-                translate(fishAt.x, fishAt.y) {
-                    rotate(-level, pivot = Offset.Zero) {
-                        scale(unit, pivot = Offset.Zero) { drawClownfish(yaw, wag) }
+            // The water inside the bowl, as two nested clips rather than one combined path: building
+            // that every frame is far dearer.
+            clipPath(bowl) {
+                clipPath(volume) {
+                    // Level on screen, however the bowl is tipped.
+                    translate(fishAt.x, fishAt.y) {
+                        rotate(-level, pivot = Offset.Zero) {
+                            scale(unit, pivot = Offset.Zero) { drawClownfish(yaw, wag) }
+                        }
                     }
-                }
-                for ((at, radius) in bubbles) {
-                    drawCircle(Color.White.copy(alpha = 0.6f), radius = radius, center = at, style = Stroke(width = radius * 0.4f))
+                    for ((at, radius) in bubbles) {
+                        drawCircle(Color.White.copy(alpha = 0.6f), radius = radius, center = at, style = Stroke(width = radius * 0.4f))
+                    }
                 }
             }
 

@@ -64,6 +64,8 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
   - Composition and layout are under 1ms; the rest is drawing 14 face layers under perspective. That's probably
     overstated versus a device's textured quads (unmeasured).
   - Bestagon is cheaper: it spins one flat face.
+  - Devil, Starry, Wireframe and Ocean (all drawn live but Ocean's waves, which are painted) sit inside that range: at
+    rest p95 6.6-8.1 against Classic ~6.4 and Glitter ~9.7, tumbling p95 14-16 against Classic ~17.9 and Glitter ~19.5.
 - **Cups, backgrounds, mats** (board plus tray): 2-4 a frame in idle, shake and toss for every one, within ~20% of each
   other. A cup alone is 0.8-1.7.
   - A patterned mat's or background's first frame is 17-55. Stone stamps three textured flags to stay there.
@@ -71,9 +73,9 @@ Desktop JVM, warm, in ms. These are relative only: compare within a run.
     screen, captured: 25-26ms against 22), level with Pinstripe and Starry. Neon is ~29ms, level with
     Honeycomb and under Glitter and Glitch (32-34ms).
   - Treasure Chest, Urn, Volcano and Picnic Basket are within a few ms of Classic Gold.
-  - A cup alone, 110x96dp (median of three runs, p95): the Fishbowl is ~5.8 in idle, ~6.1 shaking, ~6.2 pouring, against
-    Cauldron ~5.2, Top Hat ~4.5 and Classic Gold ~4.2 in idle, and Treasure Chest ~6.3 shaking and ~8.4 pouring.
-    Measured with a painted stone bed; it now draws three rocks live and its fish as a turning solid (unmeasured).
+  - A cup alone, 110x96dp (median of three runs, p95): the Fishbowl is ~6.1 in idle, ~6.7 shaking and ~6.6 pouring,
+    level with the Cauldron (~7.1, ~7.2, ~6.2) and Classic Gold in the same runs. Clipping its fish to the water with
+    two nested clips, not a `Path.combine` intersection built every frame, took its shake and pour from ~9.2-9.5.
   - A background alone, 411x560dp (p95): Ocean Waves is the dearest, ~28-34 against Glitch ~25-32, Glitter ~23-25 and
     Neon ~21. Its seven moving gradient bands are ~5 of that: without them it measured ~22, level with Glitch. Ocean
     Lagoon is painted once and sits with Neon; the Ocean mats sit with Classic and Stone.
