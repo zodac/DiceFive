@@ -27,24 +27,53 @@ In order:
 **Console-only configuration**:
 - **The listing.** Text, graphics, category and contact.
 - **Declarations.** The content rating, data safety form, and target audience. Each is revisited when ads or billing
-  ship.
+  ship. They're under Play Console > the app > **Policy and programs > App content**; the data safety answers are below.
 - **Play App Signing.** Play takes the upload certificate from the first signed `.aab`
   (`keytool -export -rfc -alias upload` if App integrity asks first).
 - **Closed testing.** 12+ testers for 14+ days before requesting production.
 - **Play Games Services.** Link it, register the SHA-1s and add testers (`PLAY_GAMES.md`).
 - **Later.** The Pro product and its license testers, and AdMob ad units.
 
+## Data safety
+
+Play Console > the app > Policy and programs > App content > **Data safety**. The answers are the maintainer's to give
+(Google says the developer alone is responsible for them). This draft follows what the app sends while signed in to
+Play Games (`PLAY_GAMES.md`) and Google's list for the SDK
+([Play Games data disclosure](https://developer.android.com/games/pgs/data-collection)). Nothing leaves the device
+until the player signs in.
+
+- **Does the app collect or share user data?** Yes: Play Games and cloud save send data off the device.
+- **Encrypted in transit?** Yes (Play Games Services uses HTTPS).
+- **Account creation**: "My app does not allow users to create an account". DiceFive has no account or identity of
+  its own; sign-in uses the player's existing Google Play Games profile, which Google owns. So no account-deletion URL
+  is required. Then:
+  - **Can users log in with accounts created outside the app?** Yes, **Other**: "Optional sign-in with an existing
+    Google Play Games profile, for achievements, leaderboards and cloud save."
+- **Can users ask for deletion?** Yes: from their Play Games profile (one game's data, or the whole account) or their
+  Google Account. If the form asks for a URL, give the privacy policy, whose section 3 says how.
+- **Data types, all collected, none shared** (Google acting for the app isn't "sharing"), all **optional** (sign-in is
+  the player's choice), purpose **App functionality** unless noted:
+  - Personal info > **Name**: the player names typed in travel in the cloud save.
+  - Personal info > **User IDs**: the Play Games player id and gamer name.
+  - Photos and videos > none. The avatar is Google's, shown, not collected.
+  - App activity > **In-app actions** (scores, achievements, progress counters) and **Other user-generated content**
+    (the saved game: settings, styles, the game in progress).
+  - App info and performance > **Crash logs** and **Diagnostics**: collected by the Play Games SDK itself, purpose
+    Analytics (Google's list says "to improve the stability of our SDKs").
+- **Revisit** when ads, billing or analytics ship, or the cloud save gains a new kind of data.
+
 ## Store listing
 
 - **Graphics**: generated (the `store-assets` skill). The hi-res icon follows the launcher icon. The video goes to
   YouTube; Play takes its URL.
-- **Short description** (80 chars max), drafted, 79 chars:
+- **Short description** (80 chars max), drafted, 77 chars:
 
   ```
-  Roll five dice, fill your scorecard, and outscore friends or AI. Fully offline.
+  Roll five dice and outscore friends or AI. Offline unless you use Play Games.
   ```
 
-  **"Fully offline" stops being true** when Play Games, cloud save, ads or Pro ship. Rewrite it then, and declare ads.
+  The full tagline (`README.md`'s first line, 120 chars) doesn't fit. Keep both true when ads or Pro ship, and declare
+  ads.
 - **Full description**: `assets/full-description.txt`, about 2500 of 4000 characters. Keep its counts and lists true:
   - the modes under "Seven ways to play" (and that heading's count);
   - the modifiers under "House rules";
@@ -104,9 +133,10 @@ The sole holder can relicense later.
 
 - **App Bundle**: done. `release.yml` builds `bundleRelease` beside the APK (from 1.0.0, or `force_apk`) and attaches
   `DiceFive-<version>.aab`. Uploading to Play is by hand, with "Sidekick is on by default" ticked (`PLAY_GAMES.md`,
-  Phase 6).
-- **`INTERNET` permission**: not declared yet. Play Games, cloud save, ads and billing need it (SDK manifests merge it;
-  ads may want it declared).
+  "Release").
+- **`INTERNET` permission**: not declared, and Play Games doesn't add it. The v2 SDK talks to the Play services app,
+  which does the network work (`PLAY_GAMES.md`, "What Google provides"). Ads and billing will likely need it (their SDK
+  manifests merge it; ads may want it declared).
 - **Signing**: done. Play App Signing holds the app key. The upload key backs the `RELEASE_KEY*` secrets (alias
   `upload`, SHA-256 `DD:9E:C8:0C:…:1E:A6:18`); the maintainer keeps a copy, and Play support can reset it if lost.
 - **`mapping.txt`**: done. Each release attaches `DiceFive-<version>-mapping.txt`, and the `.aab` carries it too

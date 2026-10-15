@@ -5,7 +5,7 @@
 # - achievements.csv and icons/: the same achievements as one sheet with a header, and their 512px icons, to review;
 # - leaderboards.csv and leaderboard-icons/: one leaderboard per game mode, made by hand (Play has no import for
 #   them), and their 512px icons.
-# See .claude/PLAY_GAMES.md, sections 2 and 3.
+# See .claude/PLAY_GAMES.md, "Play Console".
 set -euo pipefail
 
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

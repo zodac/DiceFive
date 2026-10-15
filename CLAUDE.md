@@ -3,7 +3,7 @@
 ## The project
 
 A local (no netplay) five-dice scorecard game for Android, with iOS to follow. Its tagline: "Roll five dice, fill your
-scorecard, and outscore friends or AI. Fully offline."
+scorecard, and outscore friends or AI. Fully offline, unless you sign in to Google Play Games."
 
 - **Players.** 1-4 per game: solo, pass-and-play, or CPU opponents (Easy/Medium/Hard).
 - **Content.** Seven game modes, optional house-rule modifiers, a Leaderboard, per-player Statistics, 100+
@@ -14,8 +14,10 @@ scorecard, and outscore friends or AI. Fully offline."
   - Smooth: 60fps minimum unless the player picks a lower Animations level.
   - Small APK.
   - Shared code, ready for an iOS app.
-- **Planned, not built.** Google Play Games Services (`PLAY_GAMES.md`), the iOS app (`IOS_SUPPORT.md`), and possibly
-  ads with a one-time Pro purchase (`PUBLISHING.md`).
+- **Google Play Games Services** (`PLAY_GAMES.md`) is built on Android: sign-in, achievements, leaderboards, cloud save
+  and Sidekick. Its Play Console release remains.
+- **Planned, not built.** The iOS app (`IOS_SUPPORT.md`), and possibly ads with a one-time Pro purchase
+  (`PUBLISHING.md`).
 - **Audience.** `README.md` is the public, player-facing description; keep it true to the app.
 
 ## Repo metadata
@@ -115,7 +117,7 @@ scorecard, and outscore friends or AI. Fully offline."
 | `.claude/EMULATOR.md` | Emulator internals, CI's twin, troubleshooting a dying emulator, versions |
 | `.claude/STORE_ASSETS.md` | Changing store screenshots, scenes, captions or the video, and the generator traps |
 | `.claude/PUBLISHING.md` | Play Store submission checklist, the app's licence and third-party licence scope |
-| `.claude/PLAY_GAMES.md` | Anything touching Google Play Games Services (planned; phase 1 built) |
+| `.claude/PLAY_GAMES.md` | Anything touching Google Play Games Services: sign-in, achievement mirror, leaderboards, cloud save, Sidekick |
 | `.claude/IOS_SUPPORT.md` | Module layout and platform seams, KMP gotchas, what the iOS app still needs |
 
 ## Pending

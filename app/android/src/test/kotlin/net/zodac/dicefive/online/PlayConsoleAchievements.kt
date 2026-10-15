@@ -8,7 +8,7 @@ import net.zodac.dicefive.model.AchievementCategory
  * Each achievement's Play Games points, from its difficulty tier: entered by hand in Play Console from the export
  * (`scripts/export-play-console.sh`), so this is their record. Every Easter egg is worth the minimum, and the other
  * 100 share the rest of Play's 2,000 by tier. Published points can't change, so a new achievement needs points freed
- * up before it ships (`.claude/PLAY_GAMES.md`, decision 7).
+ * up before it ships (`.claude/PLAY_GAMES.md`, "Achievements").
  */
 internal enum class PlayPointsTier(val points: Int) {
     TRIVIAL(5),

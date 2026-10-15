@@ -387,6 +387,7 @@
     <string name="about_inspiration_link">Dice Me Online en Google Play</string>
     <string name="about_privacy_heading">Privacidad</string>
     <string name="about_privacy_body">%1$s no guarda datos de usuario. Tus partidas, puntuaciones y ajustes se quedan en este dispositivo, y no hay anuncios, analíticas ni seguimiento.</string>
+    <string name="about_privacy_body_online">%1$s no guarda datos de usuario. Tus partidas, puntuaciones y ajustes se quedan en este dispositivo, salvo que inicies sesión en %2$s. No hay anuncios, analíticas ni seguimiento.</string>
     <string name="about_privacy_link">Política de privacidad completa</string>
     <string name="licences_title">Licencias</string>
     <string name="licences_close_cd">Cerrar licencias</string>

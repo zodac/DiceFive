@@ -46,7 +46,7 @@ When a new rule adds a field, add it here.
 | `categories` (a game's card: `categoriesWith(extendedScores)`, read as `PlayerState.categories`) | `PlayerState` (card, totals, completeness), `ScoreCalculator`, `ScoreGrid`, `GameStateJson`, `AiTurnPlayer` baselines, How Do You Play This Game? |
 | `upperBonus*`, `fiveOfAKindBonusAmount` | `PlayerState` totals, `ScoreCalculator`, the 5x tile's bonus preview |
 | `disabledCategories`, `randomUpper/LowerDisabledCategories` (a game's set: `GameState`/`PlayerState.disabledCategories`, drawn in `GameEngine.newGame`) | `PlayerState.isOpen` (so `ScoreCalculator`, `HandScoring.filledMask`, the AI skip them), `turnsPerGame`, `upperBonusThreshold`/`hasUpperBonus`, `GameStateJson`, `CategoryCell`/`CategoryTile`, guards (`hasFullCard`) |
-| `onlineLeaderboardKey` | `online/GameServices`; `OnlineLeaderboardKeyTest` pins every key, so a new mode needs one (`PLAY_GAMES.md` section 3) |
+| `onlineLeaderboardKey` | `online/GameServices`; `OnlineLeaderboardKeyTest` pins every key, so a new mode needs one (`PLAY_GAMES.md`, "Leaderboards") |
 | `maxPossibleScore` | `HIGHEST_POSSIBLE_SCORE` (column width), `GameModeTest` |
 | `scoresPerCategory` (`turnsPerGame`) | `PlayerState` (`scorecard` is a list per box; `isOpen`, `turnsTaken`/`turnsLeft`, `isScorecardComplete`, totals, `fiveOfAKindJokerActive`), `ScoreCalculator`, `HandScoring.filledMask`, `AiTurnPlayer` (bonus reach), `TieBreak`, `GameStateJson`, `CategoryCell` (`StackedScores`), `GameViewModel` (timer turn count, final round), guards |
 | `countsOnLeaderboard` (off too whenever a modifier is on: `GameState.countsOnLeaderboard`) | `persistHumanScores` → `ScoreEntry.onLeaderboard`, which `ScoreDao`'s board page/count, best score and distinct scores filter on (Statistics and career points don't); New Personal Best's guard |
@@ -84,7 +84,7 @@ has changed something there.
   through the engine.
   - A rule that changes what "perfect" means (no 5x possible, say) may need `perfectGame` taught about it.
 - Doc comments state the rule. **Don't write a guessed rationale**; it reads as fact later.
-- **Its online leaderboard** (`PLAY_GAMES.md`, section 3): a new `onlineLeaderboardKey`, an icon in
+- **Its online leaderboard** (`PLAY_GAMES.md`, "Leaderboards"): a new `onlineLeaderboardKey`, an icon in
   `PlayConsoleLeaderboards.kt`, a board made by hand in Play Console from `scripts/export-play-console.sh`'s
   `leaderboards.csv`, and its id in `playLeaderboardIds` (`PlayGamesIdsTest` fails without it).
 

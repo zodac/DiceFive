@@ -448,6 +448,7 @@
     <string name="about_inspiration_link">Dice Me Online على Google Play</string>
     <string name="about_privacy_heading">الخصوصية</string>
     <string name="about_privacy_body">لا تحتفظ %1$s بأي بيانات للمستخدم. تبقى ألعابك ونتائجك وإعداداتك على هذا الجهاز، ولا توجد إعلانات ولا تحليلات ولا تتبّع.</string>
+    <string name="about_privacy_body_online">لا تحتفظ %1$s بأي بيانات للمستخدم. تبقى ألعابك ونتائجك وإعداداتك على هذا الجهاز، ما لم تسجّل الدخول إلى %2$s. لا توجد إعلانات ولا تحليلات ولا تتبّع.</string>
     <string name="about_privacy_link">سياسة الخصوصية الكاملة</string>
     <string name="licences_title">التراخيص</string>
     <string name="licences_close_cd">إغلاق التراخيص</string>

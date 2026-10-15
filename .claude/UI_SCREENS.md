@@ -96,7 +96,7 @@ The constants are at the top of `AchievementBannerHost.kt`:
     'Multicolour' dice colour"); then **at most one** styles banner for every count lock crossed
     (`stylesUnlockedByCount`, from `countedUnlocksBefore` to `countedUnlocksAfter`); then the progress nudges.
   - The achievement's own banner keeps its star. The styles banner is what remains when Play Games' pop-up replaces the
-    unlock banner (`PLAY_GAMES.md`, decision 9).
+    unlock banner (`PLAY_GAMES.md`, "Achievements").
   - One achievement's styles of one name are named once ("'Starry' dice, mat and background"), so they fit the two
     lines in Spanish.
   - TalkBack hears every style unlocked (`StylesUnlockedBannerSemanticsTest`).

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Play Games Sidekick, which Play adds to bundles uploaded with "Sidekick on by default" (PLAY_GAMES.md, section 5).
+<!-- Play Games Sidekick, which Play adds to bundles uploaded with "Sidekick on by default" (PLAY_GAMES.md, "Sidekick").
      Positions are physical edges, the same in RTL. Top-right in both orientations: Play's middle-right default covers
      the totals button and the cup. A player's own drag of the tab outranks these. -->
 <deku-config>

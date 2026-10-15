@@ -29,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.heading
@@ -39,6 +40,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import net.zodac.dicefive.online.GameServicesState
+import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.about_author_body
 import net.zodac.dicefive.resources.app_name
@@ -49,6 +52,7 @@ import net.zodac.dicefive.resources.about_inspiration_body
 import net.zodac.dicefive.resources.about_inspiration_heading
 import net.zodac.dicefive.resources.about_inspiration_link
 import net.zodac.dicefive.resources.about_privacy_body
+import net.zodac.dicefive.resources.about_privacy_body_online
 import net.zodac.dicefive.resources.about_privacy_heading
 import net.zodac.dicefive.resources.about_privacy_link
 import net.zodac.dicefive.resources.about_title
@@ -70,8 +74,14 @@ private data class AboutLink(val label: StringResource, val url: String)
 /** One About section: a heading, its body text and an optional link. Kept as data rather than
  * inlined composables so the list itself documents what the page says, in order, without reading
  * the layout code. Names in [body] go between backticks, which draws them a shade brighter than the
- * rest of the sentence. */
-private data class AboutSection(val heading: StringResource, val body: StringResource, val link: AboutLink? = null)
+ * rest of the sentence. [onlineBody] replaces [body] where the device has an online game service,
+ * taking its name as a second argument. */
+private data class AboutSection(
+    val heading: StringResource,
+    val body: StringResource,
+    val link: AboutLink? = null,
+    val onlineBody: StringResource? = null,
+)
 
 private val ABOUT_SECTIONS = listOf(
     AboutSection(
@@ -88,6 +98,7 @@ private val ABOUT_SECTIONS = listOf(
         heading = Res.string.about_privacy_heading,
         body = Res.string.about_privacy_body,
         link = AboutLink(Res.string.about_privacy_link, PRIVACY_POLICY_URL),
+        onlineBody = Res.string.about_privacy_body_online,
     ),
 )
 
@@ -105,6 +116,9 @@ private val ABOUT_SECTIONS = listOf(
 @Composable
 fun AboutDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
+    val services = LocalGameServices.current
+    // Null without a service: no Settings card, so nothing to sign in to.
+    val serviceName = services.serviceName.takeIf { services.state.collectAsState().value != GameServicesState.Unavailable }
 
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -143,6 +157,7 @@ fun AboutDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
                         for (section in ABOUT_SECTIONS) {
                             AboutSectionCard(
                                 section = section,
+                                serviceName = serviceName,
                                 nameStyle = nameStyle,
                                 onOpenLink = uriHandler::openUri,
                             )
@@ -155,7 +170,7 @@ fun AboutDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun AboutSectionCard(section: AboutSection, nameStyle: SpanStyle, onOpenLink: (String) -> Unit) {
+private fun AboutSectionCard(section: AboutSection, serviceName: String?, nameStyle: SpanStyle, onOpenLink: (String) -> Unit) {
     // One step above the dialog's surfaceContainerHigh, so the card reads as raised on it.
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -170,8 +185,14 @@ private fun AboutSectionCard(section: AboutSection, nameStyle: SpanStyle, onOpen
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.semantics { heading() },
             )
+            val appName = stringResource(Res.string.app_name)
+            val body = if (section.onlineBody != null && serviceName != null) {
+                stringResource(section.onlineBody, appName, serviceName)
+            } else {
+                stringResource(section.body, appName)
+            }
             Text(
-                text = parseInlineMarkup(stringResource(section.body, stringResource(Res.string.app_name)), nameStyle),
+                text = parseInlineMarkup(body, nameStyle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp),

@@ -17,45 +17,48 @@ The App lets you type in names for the players in a game. These names are stored
 section 4) and are not sent to us. If you sign in to Google Play Games, they are also kept in your cloud-saved game data
 (see section 3), with your scores, so your other signed-in devices can show them.
 
-The App may use Google Play Games Services to provide features such as player accounts, achievements,
-and other Google Play Games functionality. When you use these features, Google may process information
-associated with your Google Play Games account in accordance with Google's own privacy policies.
+Signing in to Google Play Games is optional. The App never signs you in by itself: it does so only when you choose
+Sign in in the App's Settings. Until then, nothing leaves your device through the App. The App connects to Google
+Play Games only through the Google Play services app on your device, and only when it was installed from Google Play.
+Copies of the App downloaded from elsewhere never use Google Play Games.
 
-The App may also use cloud storage or cloud-save functionality to synchronise your game progress and
-settings between devices. This information may be associated with your Google Play Games account or
-another account or service used to provide the cloud-save functionality.
+## 2. Google Play Games Services
 
-## 2. Google Play Services
+While you are signed in, the App uses Google Play Games Services for:
 
-The App uses Google Play Games Services for features including:
+- **Your Play Games account.** The App shows your Play Games gamer name and avatar in its Settings.
+- **Achievements.** Achievements you unlock in the App are also unlocked on your Play Games account, and those
+  already on your account are shown in the App.
+- **Leaderboards.** Your final score from each game you play as the first player, under a game mode's standard rules,
+  is sent to that mode's Google Play Games leaderboard. Leaderboards are public: other players can see your score
+  with your gamer name and avatar, as your Play Games profile settings allow. The player names you type into the App
+  are not sent to leaderboards.
+- **Saved games.** Your game data is kept in your Google account's Play Games saved games (see section 3).
 
-- Player account/sign-in functionality
-- Achievements
-- Synchronisation of game-related information between devices, where supported
-
-Google may collect and process information when you use Google Play Games Services. Google's handling
-of this information is governed by Google's Privacy Policy and the applicable Google Play terms and
-policies.
+Google may also collect information when you use Google Play Games Services, such as diagnostic and usage
+information about the service itself. Google's handling of this information is governed by Google's Privacy Policy
+and the applicable Google Play terms and policies.
 
 For more information, please refer to Google's Privacy Policy:
 <https://policies.google.com/privacy>
 
 ## 3. Cloud-Saved Game Data
 
-The App may store game-related information using an online cloud-storage or cloud-save service. This
-may include information such as:
+While you are signed in to Google Play Games, the App keeps a copy of your game data in your Play Games saved games,
+so that your devices signed in to the same account share it. It includes:
 
-- Game progress
-- Scores and statistics
-- Achievements or achievement-related information
-- Game settings and preferences
+- Scores and statistics, with the player names typed in for them
+- Achievements and achievement progress
+- Game settings and preferences, including the styles you have chosen
+- The game in progress, if there is one
 
-Cloud-saved information is used to allow you to restore or synchronise your game data across
-supported devices.
+This data is stored by Google in your Google account. It is not sent to us, and we cannot access it.
 
-The specific cloud-storage technology used by the App may change as the App develops. Any third-party
-service used to provide this functionality will process information according to its own privacy
-policy and applicable terms.
+Signing out of Google Play Games in the App stops this syncing, but does not delete the copy already saved. Resetting
+the Leaderboard in the App also clears the scores in the saved copy. You can delete the App's saved games, and all
+other Play Games data for the App, from your Play Games profile; you can delete your whole Play Games account and its
+data from your Play Games profile or your Google Account. Scores already on a leaderboard and achievements already
+unlocked on your Play Games account are kept by Google Play Games, and the App cannot remove them.
 
 ## 4. Information Stored on Your Device
 

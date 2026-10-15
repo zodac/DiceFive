@@ -12,6 +12,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import net.zodac.dicefive.online.GameServices
+import net.zodac.dicefive.online.GameServicesState
+import net.zodac.dicefive.online.LocalGameServices
+import net.zodac.dicefive.online.NoGameServices
 import net.zodac.dicefive.ui.settings.AboutDialog
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
@@ -31,14 +37,14 @@ class AboutDialogTest {
 
     private val opened = mutableListOf<String>()
 
-    private fun showDialog() {
+    private fun showDialog(services: GameServices = NoGameServices) {
         val uriHandler = object : UriHandler {
             override fun openUri(uri: String) {
                 opened += uri
             }
         }
         compose.setContent {
-            CompositionLocalProvider(LocalUriHandler provides uriHandler) {
+            CompositionLocalProvider(LocalUriHandler provides uriHandler, LocalGameServices provides services) {
                 DiceFiveTheme { AboutDialog(onDismissRequest = {}) }
             }
         }
@@ -64,4 +70,28 @@ class AboutDialogTest {
 
         compose.onNodeWithText("DiceFive holds no user data", substring = true).performScrollTo()
     }
+
+    @Test
+    fun `without an online service the privacy section says everything stays on this device`() {
+        showDialog()
+        compose.onNodeWithText(
+            "DiceFive holds no user data. Your games, scores and settings stay on this device, and there are no ads, " +
+                "analytics or tracking.",
+        ).performScrollTo()
+    }
+
+    @Test
+    fun `with an online service the privacy section says the data leaves the device only once signed in`() {
+        // Signed out still says it: the sentence is about what signing in would do.
+        showDialog(OnlineServices(GameServicesState.SignedOut))
+        compose.onNodeWithText(
+            "DiceFive holds no user data. Your games, scores, and settings stay on this device, unless you sign in to " +
+                "Google Play Games. There are no ads, analytics, or tracking.",
+        ).performScrollTo()
+    }
+}
+
+private class OnlineServices(state: GameServicesState) : GameServices by NoGameServices {
+    override val serviceName = "Google Play Games"
+    override val state: StateFlow<GameServicesState> = MutableStateFlow(state)
 }

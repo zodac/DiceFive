@@ -1,6 +1,6 @@
 # DiceFive
 
-**Roll five dice, fill your scorecard, and outscore friends or AI. Fully offline.**
+**Roll five dice, fill your scorecard, and outscore friends or AI. Fully offline, unless you sign in to Google Play Games.**
 
 DiceFive is a classic five-dice scorecard game. Roll up to three times a turn, hold the dice you want to keep, and
 decide where each roll scores. Chase a full house, a large straight or a 5x, and try to make the upper-section bonus

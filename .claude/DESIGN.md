@@ -195,7 +195,7 @@ will map to Play Games.
   - `online`: Play Games choices and the cloud save's bookkeeping (leaderboard reset marker, "Last saved").
     No reset clears it.
 - **Cloud save** (signed in only): one gzipped JSON snapshot of all of the above but the Animations level and the
-  Styles page fit, merged, never picked. `PLAY_GAMES.md` section 4 is the source.
+  Styles page fit, merged, never picked. `PLAY_GAMES.md`, "Cloud save", is the source.
 - **The in-progress game.** `InProgressGameRepository` holds at most one, saved as JSON (`GameStateJson`).
   - It's saved after every change and cleared when the game ends.
   - Writes are queued and conflated in a process-lifetime scope, so leaving a game can't lose its last move.

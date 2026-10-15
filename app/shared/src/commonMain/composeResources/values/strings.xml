@@ -507,6 +507,8 @@
     <string name="about_inspiration_link">Dice Me Online on Google Play</string>
     <string name="about_privacy_heading">Privacy</string>
     <string name="about_privacy_body">%1$s holds no user data. Your games, scores and settings stay on this device, and there are no ads, analytics or tracking.</string>
+    <!-- about_privacy_body where the device has an online game service: %2$s is its name (Google Play Games). -->
+    <string name="about_privacy_body_online">%1$s holds no user data. Your games, scores, and settings stay on this device, unless you sign in to %2$s. There are no ads, analytics, or tracking.</string>
     <string name="about_privacy_link">Full privacy policy</string>
 
     <!-- Licences dialog (ui/settings/LicensesDialog.kt, ComposeLicenceDocument.kt, and Android's TextViewLicenceDocument via LicenceLabels). -->
