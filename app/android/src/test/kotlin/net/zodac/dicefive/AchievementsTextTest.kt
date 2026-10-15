@@ -10,6 +10,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -18,6 +19,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -128,9 +131,18 @@ class AchievementsTextTest {
             }
         }
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Full Set"))
-        // Its tap is named for TalkBack.
+        // Its action is named for TalkBack. A tap shows the short tip, and a long press - or TalkBack's action - the full list.
         val row = compose.onNode(SemanticsMatcher("clicks to show the missing numbers") { it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label == "Show the missing numbers" })
         row.performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Numbers with no 5x scored yet: 4 left").assertExists()
+        compose.onNodeWithText("Numbers with no 5x scored yet (4 left):").assertDoesNotExist()
+        row.performSemanticsAction(SemanticsActions.OnClick)
+        compose.waitForIdle()
+        compose.onNodeWithText("Numbers with no 5x scored yet (4 left):").assertExists()
+        compose.onNodeWithText("Done").performClick()
+        compose.waitForIdle()
+        row.performTouchInput { longClick() }
         compose.waitForIdle()
 
         compose.onNodeWithText("Numbers with no 5x scored yet (4 left):").assertExists()
@@ -157,9 +169,13 @@ class AchievementsTextTest {
             }
         }
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Grand Tour"))
-        // Its tap is named for TalkBack.
-        compose.onNode(SemanticsMatcher("clicks to show the missing modes") { it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label == "Show the missing modes" })
-            .performClick()
+        // Its action is named for TalkBack. A tap shows the short tip, and a long press the full list.
+        val row = compose.onNode(SemanticsMatcher("clicks to show the missing modes") { it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label == "Show the missing modes" })
+        row.performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Modes with no game finished yet: 4 left").assertExists()
+        compose.onNodeWithText("Modes with no game finished yet (4 left):").assertDoesNotExist()
+        row.performTouchInput { longClick() }
         compose.waitForIdle()
 
         compose.onNodeWithText("Modes with no game finished yet (4 left):").assertExists()
@@ -167,5 +183,34 @@ class AchievementsTextTest {
         for (mode in listOf("Standard", "7 Dice Stud", "Third Wind")) compose.onNodeWithContentDescription("$mode, finished").assertExists()
         for (mode in listOf("Tricolour", "Quickfire", "D20", "Hit List")) compose.onNodeWithContentDescription(mode).assertExists()
         leaveListAtTop()
+    }
+
+    @Test
+    fun `a row that unlocks a style shows its tooltip on a tap - and the same words in a dialog on a long press`() {
+        val viewModel = AchievementsViewModel()
+        showcase.show {
+            CompositionLocalProvider(
+                LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
+                LocalPlatformServices provides SilentPlatformServices,
+            ) {
+                DiceFiveTheme { AchievementsScreen(viewModel = viewModel, onBack = {}) }
+            }
+        }
+        val reward = SemanticsMatcher("clicks to show which style it unlocks") {
+            it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label == "Show which style this unlocks"
+        }
+        compose.onNode(hasScrollAction()).performScrollToNode(reward)
+        val row = compose.onAllNodes(reward).onFirst()
+        row.performClick()
+        compose.waitForIdle()
+        compose.onAllNodesWithText("Earn this to unlock", substring = true).onFirst().assertExists()
+        // No dialog yet: its OK button is not there.
+        compose.onNodeWithText("OK").assertDoesNotExist()
+
+        row.performTouchInput { longClick() }
+        compose.waitForIdle()
+        compose.onNodeWithText("OK").performClick()
+        compose.onNode(hasScrollAction()).performScrollToIndex(0)
+        compose.waitForIdle()
     }
 }

@@ -132,7 +132,8 @@ indexes), not summed on the 5x tile.
     uses `MAX_SLOT_DIE_SIZE`.
   - Both layouts share the `columnPresses` gesture. Each slot and die is its own TalkBack node (`SlottedDiceTrayTest`).
   - **Ambiguity hints.** Pressing a box marks the dice it would take (a solid gold lane) and the unheld dice that would
-    score the same (dashed). The rest fade (`ProjectedHand`, `LocalHandPreview`). This is sighted-only, because the
+    score the same (dashed). The rest fade (`ProjectedHand`, `LocalHandPreview`) to `FADED_DIE_ALPHA` (0.45), which the Rules' example dice
+    share so they look like the game. This is sighted-only, because the
     score is identical either way.
 - **A die locked by Unlucky Dice** (`LockedChains`, drawn in `DieFace`).
   - The look: a red veil in the die's own outline (`shadowShape`), with a red cross of two chains over it. Each chain is

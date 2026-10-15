@@ -138,13 +138,15 @@ A lock is on the style (`StyleFamily.unlock`), not the colour: once it's met, al
   - The roll: `Die.isGolden`, set by `GameEngine.rollDice(goldenOneIn = ...)` from `performRoll`. It's saved with the
     game and drawn as `GoldenEggDiceStyle`.
   - Only player 1 earns it, and only once the dice have landed.
-- **On the Achievements screen**, a row whose achievement unlocks a style (`unlocksStyle`) shows a plain tooltip when
-  tapped: "You've unlocked the 'Multicolour' dice style!" (`StyleRewardTooltip`).
+- **On the Achievements screen**, a row follows the same rule as Styles: a tap shows a short tooltip, a long press
+  opens a dialog. The tooltip holds the style reward line ("You've unlocked the 'Multicolour' dice style!") and, for a
+  collection row, how many are missing ("Modes with no game finished yet: 4 left"). The dialog is the missing list,
+  or for a reward-only row the same reward line. A row with neither has no gesture.
   - Rows and banners carry `StyleRewardStar`, **a badge over the icon's corner, never in the text row** (which would
     wrap titles).
   - The star is decorative to TalkBack: the row's action says "Show which style this unlocks", and the banner says
     "Unlocks a style".
-  - Superuser mode's long press takes precedence over the tooltip.
+  - Superuser mode's long press takes precedence over both.
 - **On the Styles screen**, a locked tile shows its first colour under a scrim, with a faded padlock.
   - A tap shows a tooltip with the core requirement ("23 achievements needed").
   - A long press opens a dialog with progress. That dialog is TalkBack's one action, since tooltips aren't announced.

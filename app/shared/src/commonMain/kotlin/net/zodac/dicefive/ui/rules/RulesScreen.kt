@@ -320,6 +320,7 @@ import net.zodac.dicefive.ui.common.spokenList
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 import net.zodac.dicefive.ui.game.CategoryTile
+import net.zodac.dicefive.ui.game.FADED_DIE_ALPHA
 import net.zodac.dicefive.ui.game.LockedChains
 import net.zodac.dicefive.ui.game.TurnTimerBadge
 import net.zodac.dicefive.ui.game.style.ClassicGoldDiceCupStyle
@@ -1199,7 +1200,7 @@ private fun RulesMatView(mat: RulesMat, modifier: Modifier = Modifier) {
                         Box(
                             modifier = Modifier
                                 .size(columnWidth, columnHeight)
-                                .graphicsLayer { alpha = if (outlined) 1f else EXAMPLE_DIE_FADED_ALPHA }
+                                .graphicsLayer { alpha = if (outlined) 1f else FADED_DIE_ALPHA }
                                 .drawBehind { if (outlined) drawColumnOutline(dashed = index !in mat.taking) },
                         ) {
                             IvoryDiceStyle.Die(
@@ -1223,9 +1224,6 @@ private const val MAT_SLOTS = 5
 /** The size of each die in a [RulesDiceRow]. */
 private val EXAMPLE_DIE_SIZE = 28.dp
 
-/** How faint a die that doesn't count towards the example's category is drawn. */
-private const val EXAMPLE_DIE_FADED_ALPHA = 0.35f
-
 /**
  * Five example dice in the Classic style (each in its own colour in a Tricolour example), then what
  * they score. Dice that don't count towards the category are faded, so "three 5s, plus two others"
@@ -1247,7 +1245,7 @@ private fun RulesDiceRow(example: RulesDice, modifier: Modifier = Modifier) {
             val dieModifier = Modifier
                 .padding(end = 6.dp)
                 .size(EXAMPLE_DIE_SIZE)
-                .graphicsLayer { alpha = if (die.counts || die.locked) 1f else EXAMPLE_DIE_FADED_ALPHA }
+                .graphicsLayer { alpha = if (die.counts || die.locked) 1f else FADED_DIE_ALPHA }
             if (example.isTarget && die.anyPlace) {
                 Box(modifier = dieModifier.drawBehind { drawAnyPlace(anyPlaceColor) })
             } else if (die.locked) {

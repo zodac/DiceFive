@@ -1050,12 +1050,16 @@
     <string name="achievements_missing_message">Scores not yet on the leaderboard (%1$s left):</string>
     <!-- TalkBack's name for tapping a score-collection achievement. -->
     <string name="achievements_missing_action">Show the missing scores</string>
+    <!-- The short tip on tapping a collection achievement; a long press opens the full list. %1$s is how many are missing. -->
+    <string name="achievements_missing_tooltip">Scores not yet on the leaderboard: %1$s left</string>
     <!-- TalkBack: a score already on the leaderboard, drawn struck through. -->
     <string name="achievements_score_recorded">%1$s, recorded</string>
     <!-- Full Set's pop-up: the die numbers (1-6) it still needs a 5x of. -->
     <string name="achievements_missing_numbers_message">Numbers with no 5x scored yet (%1$s left):</string>
     <!-- TalkBack's name for tapping Full Set. -->
     <string name="achievements_missing_numbers_action">Show the missing numbers</string>
+    <!-- The short tip on tapping a collection achievement; a long press opens the full list. %1$s is how many are missing. -->
+    <string name="achievements_missing_numbers_tooltip">Numbers with no 5x scored yet: %1$s left</string>
     <!-- TalkBack: a die number already scored as a 5x, drawn struck through and faded. -->
     <string name="achievements_number_scored">%1$s, scored</string>
     <!-- Full Set's pop-up: one die number, as in "1s" (a 5x of 1s). %1$s is the number. -->
@@ -1064,6 +1068,8 @@
     <string name="achievements_missing_modes_message">Modes with no game finished yet (%1$s left):</string>
     <!-- TalkBack's name for tapping Grand Tour. -->
     <string name="achievements_missing_modes_action">Show the missing modes</string>
+    <!-- The short tip on tapping a collection achievement; a long press opens the full list. %1$s is how many are missing. -->
+    <string name="achievements_missing_modes_tooltip">Modes with no game finished yet: %1$s left</string>
     <!-- TalkBack: a game mode already finished, drawn struck through and faded. %1$s is the mode's name. -->
     <string name="achievements_mode_finished">%1$s, finished</string>
 

@@ -574,7 +574,7 @@ private fun Modifier.handPreviewMark(preview: ProjectedHand?, index: Int, die: D
     preview == null || die.isHeld -> this
     index in preview.used -> drawBehind { drawColumnOutline(dashed = false) }
     index in preview.alternatives -> drawBehind { drawColumnOutline(dashed = true) }
-    else -> graphicsLayer { alpha = HAND_PREVIEW_FADED_ALPHA }
+    else -> graphicsLayer { alpha = FADED_DIE_ALPHA }
 }
 
 /**
@@ -596,8 +596,8 @@ internal fun DrawScope.drawColumnOutline(dashed: Boolean) {
     )
 }
 
-/** How far the dice a pressed box would not take fade back. */
-private const val HAND_PREVIEW_FADED_ALPHA = 0.45f
+/** How far a die that isn't counted fades back: the ones a pressed box would not take, and the Rules' examples (shared so they look alike). */
+internal const val FADED_DIE_ALPHA = 0.45f
 
 /** Which of [columnCount] equal-width columns a touch at local x-position [x] (within a row of
  * [totalWidthPx] pixels) falls in. Approximate - it divides the row's full width evenly rather

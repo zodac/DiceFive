@@ -833,13 +833,16 @@
     <string name="achievements_reward_show_action">Mostrar qué estilo desbloquea</string>
     <string name="achievements_missing_message">Puntuaciones que aún no están en la clasificación (faltan %1$s):</string>
     <string name="achievements_missing_action">Mostrar las puntuaciones que faltan</string>
+    <string name="achievements_missing_tooltip">Puntuaciones que aún no están en la clasificación: faltan %1$s</string>
     <string name="achievements_score_recorded">%1$s, registrada</string>
     <string name="achievements_missing_numbers_message">Números sin un 5x anotado todavía (faltan %1$s):</string>
     <string name="achievements_missing_numbers_action">Mostrar los números que faltan</string>
+    <string name="achievements_missing_numbers_tooltip">Números sin un 5x anotado todavía: faltan %1$s</string>
     <string name="achievements_number_scored">%1$s, anotado</string>
     <string name="achievements_number_label">%1$s</string>
     <string name="achievements_missing_modes_message">Modos sin ninguna partida terminada todavía (faltan %1$s):</string>
     <string name="achievements_missing_modes_action">Mostrar los modos que faltan</string>
+    <string name="achievements_missing_modes_tooltip">Modos sin ninguna partida terminada todavía: faltan %1$s</string>
     <string name="achievements_mode_finished">%1$s, terminado</string>
     <string name="styles_title">Estilos</string>
     <string name="styles_category_dice">Dados</string>

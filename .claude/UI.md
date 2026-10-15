@@ -174,6 +174,8 @@ are the patterns). Real TalkBack speech can't be checked here, so the report say
   The board itself is in `UI_BOARD.md`.
 - **`clearAndSetSemantics` only overrides what's inside it**, so put it *before* `clickable`/`combinedClickable` in
   the chain. Otherwise the clickable's `onClick` leaks through (`ScreenReaderSemanticsTest`).
+- **"Why is this locked?" is one rule everywhere**: a tap shows a short tooltip, a long press opens the full dialog,
+  and TalkBack's one action opens that dialog (a tooltip isn't announced). Styles and Achievements both do this.
 - **Raw gestures that shouldn't be buttons** use `detectTapGestures`, so TalkBack isn't handed an unnamed button. The
   superuser counter and the logo dice do this.
 - **A field with no visible label** gets an accessibility-only label, and its error as `error(...)`.

@@ -360,7 +360,8 @@ private fun InProgressGame(
         if (isRolling && !previousRolling) {
             shakenDice = state.dice
             soundEffects.playRollSound(shakeSound(state.dice, chickenCup))
-            haptics.playShakeBuzz()
+            // A CPU's roll is heard but not felt: the phone only buzzes for the player's own roll.
+            if (isHumanTurn) haptics.playShakeBuzz()
         } else if (!isRolling && previousRolling) {
             landingSounds(shakenDice, state.dice).forEach(soundEffects::playRollSound)
         }

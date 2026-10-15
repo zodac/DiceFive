@@ -922,13 +922,16 @@
     <string name="achievements_reward_show_action">عرض النمط الذي يفتحه هذا</string>
     <string name="achievements_missing_message">النتائج غير الموجودة بعد في لوحة المتصدرين (متبقٍ %1$s):</string>
     <string name="achievements_missing_action">عرض النتائج الناقصة</string>
+    <string name="achievements_missing_tooltip">النتائج غير الموجودة بعد في لوحة المتصدرين: متبقٍ %1$s</string>
     <string name="achievements_score_recorded">%1$s، مسجّلة</string>
     <string name="achievements_missing_numbers_message">أرقام لم تسجّل منها 5x بعد (متبقٍ %1$s):</string>
     <string name="achievements_missing_numbers_action">عرض الأرقام الناقصة</string>
+    <string name="achievements_missing_numbers_tooltip">أرقام لم تسجّل منها 5x بعد: متبقٍ %1$s</string>
     <string name="achievements_number_scored">%1$s، مسجّل</string>
     <string name="achievements_number_label">%1$s</string>
     <string name="achievements_missing_modes_message">أنماط لم تُنهِ فيها أي لعبة بعد (متبقٍ %1$s):</string>
     <string name="achievements_missing_modes_action">عرض الأنماط الناقصة</string>
+    <string name="achievements_missing_modes_tooltip">أنماط لم تُنهِ فيها أي لعبة بعد: متبقٍ %1$s</string>
     <string name="achievements_mode_finished">%1$s، منتهٍ</string>
     <string name="styles_title">الأنماط</string>
     <string name="styles_category_dice">النرد</string>

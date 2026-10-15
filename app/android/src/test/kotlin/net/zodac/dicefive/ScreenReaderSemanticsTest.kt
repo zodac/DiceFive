@@ -27,7 +27,7 @@ import org.junit.runner.RunWith
 
 /**
  * What a screen reader gets from the Styles, Statistics and turn-timer changes: a style tile that is
- * a selectable radio button with its pick state, a stats card whose only action is the delete, and a
+ * a selectable radio button with its pick state, a stats card whose delete is a button of its own, and a
  * timer that warns once in words rather than by colour alone.
  */
 @RunWith(AndroidJUnit4::class)
@@ -35,6 +35,10 @@ class ScreenReaderSemanticsTest {
 
     @get:Rule
     val compose = createComposeRule()
+
+    /** The stats card itself: the one carrying the state, not the delete button, whose label has the name in it too. */
+    private fun statsCard() =
+        compose.onNode(hasContentDescription("Ann", substring = true) and SemanticsMatcher.keyIsDefined(SemanticsProperties.StateDescription))
 
     private val player = PlayerStatistics(
         playerName = "Ann",
@@ -80,18 +84,20 @@ class ScreenReaderSemanticsTest {
     @Test
     fun `a stats card is collapsed to name and best score - its tap opening the rest - one solo game said as game`() {
         var deleted = 0
-        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player, onLongPress = { deleted++ }) } }
+        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player, onDelete = { deleted++ }) } }
 
-        val node = compose.onNodeWithContentDescription("Ann", substring = true)
+        val node = statsCard()
         var config = node.fetchSemanticsNode().config
         assertEquals("Ann. Best score 250.", config[SemanticsProperties.ContentDescription].single())
         assertEquals("Collapsed", config[SemanticsProperties.StateDescription])
         assertEquals("Show details", config[SemanticsActions.OnClick].label)
-        assertEquals("Delete Ann's stats", config[SemanticsActions.OnLongClick].label)
+        // The long press is gone: deleting is a button of its own, not a hidden gesture or a custom action.
+        assertFalse(SemanticsActions.OnLongClick in config)
+        assertFalse(SemanticsActions.CustomActions in config)
 
         node.performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
-        config = compose.onNodeWithContentDescription("Ann", substring = true).fetchSemanticsNode().config
+        config = statsCard().fetchSemanticsNode().config
         val spoken = config[SemanticsProperties.ContentDescription].single()
         assertEquals("Expanded", config[SemanticsProperties.StateDescription])
         assertEquals("Hide details", config[SemanticsActions.OnClick].label)
@@ -99,15 +105,16 @@ class ScreenReaderSemanticsTest {
         assertTrue(spoken.contains("Total score 1,001. Average score 200."))
         assertTrue(spoken.contains("4 5x scored. 2 solo games played."))
 
-        node.performSemanticsAction(SemanticsActions.OnLongClick)
-        config[SemanticsActions.CustomActions].single().action()
-        assertEquals(2, deleted)
+        val delete = compose.onNodeWithContentDescription("Delete Ann's stats")
+        assertEquals(Role.Button, delete.fetchSemanticsNode().config[SemanticsProperties.Role])
+        delete.performSemanticsAction(SemanticsActions.OnClick)
+        assertEquals(1, deleted)
 
         // One solo game is said as game - not games.
-        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player.copy(soloGames = 1), onLongPress = {}) } }
-        compose.onNodeWithContentDescription("Ann", substring = true).performSemanticsAction(SemanticsActions.OnClick)
+        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player.copy(soloGames = 1), onDelete = {}) } }
+        statsCard().performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
-        val one = compose.onNodeWithContentDescription("Ann", substring = true).fetchSemanticsNode().config[SemanticsProperties.ContentDescription].single()
+        val one = statsCard().fetchSemanticsNode().config[SemanticsProperties.ContentDescription].single()
         assertTrue(one, one.contains("1 solo game played."))
         assertTrue(one, !one.contains("1 solo games"))
     }

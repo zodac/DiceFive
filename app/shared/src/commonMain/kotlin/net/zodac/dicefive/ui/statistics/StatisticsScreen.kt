@@ -1,8 +1,7 @@
 package net.zodac.dicefive.ui.statistics
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,25 +24,27 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.data.scores.PlayerStatistics
@@ -121,7 +123,7 @@ fun StatisticsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(state.players, key = { it.playerName }) { player ->
-                        PlayerStatsCard(player, onLongPress = { pendingDeleteName = player.playerName })
+                        PlayerStatsCard(player, onDelete = { pendingDeleteName = player.playerName })
                     }
                 }
                 LazyListScrollbar(listState = listState)
@@ -149,11 +151,10 @@ fun StatisticsScreen(
 /**
  * One player's card. Closed it is just their name and best score (gold, thousands-separated), with a
  * dropdown arrow after the score; tapping the card opens the rest - first played, the win/loss record
- * and the lifetime totals. Long-pressing deletes, open or closed.
+ * and the lifetime totals. The delete button at its top end, open or closed, is a control of its own.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
+fun PlayerStatsCard(player: PlayerStatistics, onDelete: () -> Unit) {
     var expanded by rememberSaveable(player.playerName) { mutableStateOf(false) }
     val deleteLabel = stringResource(Res.string.stats_delete_action, player.playerName)
     val maxScore = player.maxScore.grouped()
@@ -171,102 +172,117 @@ fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
     val toggleLabel = stringResource(if (expanded) Res.string.stats_hide_action else Res.string.stats_show_action)
     val stateText = stringResource(if (expanded) Res.string.stats_expanded_spoken else Res.string.stats_collapsed_spoken)
     val reduceMotion = LocalReduceMotion.current
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            // One announcement in words, not a dozen separate texts. The tap opens or closes the card (its
-            // state is spoken, its action labelled), and the delete is in TalkBack's actions menu.
-            .clearAndSetSemantics {
-                contentDescription = spoken
-                stateDescription = stateText
-                onClick(label = toggleLabel) {
-                    expanded = !expanded
-                    true
-                }
-                onLongClick(label = deleteLabel) {
-                    onLongPress()
-                    true
-                }
-                customActions = listOf(
-                    CustomAccessibilityAction(deleteLabel) {
-                        onLongPress()
-                        true
-                    },
-                )
-            }
-            .combinedClickable(
-                onClick = { expanded = !expanded },
-                onClickLabel = toggleLabel,
-                onLongClick = onLongPress,
-                onLongClickLabel = deleteLabel,
-            ),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp).then(if (reduceMotion) Modifier else Modifier.animateContentSize()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = player.playerName,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    // A second line before an ellipsis, so a name at a large font wraps rather than losing its end.
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = player.maxScore.grouped(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.End,
-                )
-                // Decorative: the card's own state and action are spoken (above).
-                Icon(
-                    imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            if (expanded) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+    // The header row's height, which a name on two lines makes taller: the delete button centres on it.
+    var headerHeightPx by remember { mutableIntStateOf(0) }
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Box {
+            Column(
+                modifier = Modifier
+                    // One announcement in words, not a dozen separate texts; its state is spoken and its action
+                    // labelled. The delete button is a sibling, so this doesn't swallow it.
+                    .clearAndSetSemantics {
+                        contentDescription = spoken
+                        stateDescription = stateText
+                        onClick(label = toggleLabel) {
+                            expanded = !expanded
+                            true
+                        }
+                    }
+                    .clickable(onClickLabel = toggleLabel) { expanded = !expanded }
+                    .padding(CARD_PADDING)
+                    .then(if (reduceMotion) Modifier else Modifier.animateContentSize()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(
+                    // Leaves the delete button's room at the end.
+                    modifier = Modifier
+                        .padding(end = DELETE_BUTTON_ROOM)
+                        .onSizeChanged { headerHeightPx = it.height },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Text(
-                        text = stringResource(Res.string.stats_first_played),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = player.playerName,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        // A second line before an ellipsis, so a name at a large font wraps rather than losing its end.
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
                     )
                     Text(
-                        text = timestamp(player.firstPlayedEpochMillis),
-                        style = MaterialTheme.typography.labelMedium,
+                        text = player.maxScore.grouped(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
                         textAlign = TextAlign.End,
                     )
+                    // Decorative: the card's own state and action are spoken (above).
+                    Icon(
+                        imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
 
-                // FlowRows: at a large font the cells no longer fit across, and the last ones drop to a
-                // second line rather than overlapping. At the normal size each is one row.
-                StatRow {
-                    StatCell(label = stringResource(Res.string.stats_played), value = player.gamesPlayed.localised())
-                    StatCell(label = stringResource(Res.string.stats_won), value = player.gamesWon.localised())
-                    StatCell(label = stringResource(Res.string.stats_lost), value = player.gamesLost.localised())
-                    StatCell(label = stringResource(Res.string.stats_streak), value = player.currentWinStreak.localised())
-                    // End-aligned rather than centred, so its last digit sits on the card's edge.
-                    StatCell(label = stringResource(Res.string.stats_best), value = player.bestWinStreak.localised(), alignment = Alignment.End)
-                }
+                if (expanded) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                StatRow {
-                    StatCell(label = stringResource(Res.string.stats_total_score), value = player.totalScore.grouped(), alignment = Alignment.Start)
-                    StatCell(label = stringResource(Res.string.stats_average), value = player.averageScore.grouped())
-                    StatCell(label = requireNotNull(ScoreCategory.FIVE_OF_A_KIND.mark), value = player.fiveOfAKindCount.grouped())
-                    StatCell(label = stringResource(Res.string.stats_solo), value = player.soloGames.grouped(), alignment = Alignment.End)
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = stringResource(Res.string.stats_first_played),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = timestamp(player.firstPlayedEpochMillis),
+                            style = MaterialTheme.typography.labelMedium,
+                            textAlign = TextAlign.End,
+                        )
+                    }
+
+                    // FlowRows: at a large font the cells no longer fit across, and the last ones drop to a
+                    // second line rather than overlapping. At the normal size each is one row.
+                    StatRow {
+                        StatCell(label = stringResource(Res.string.stats_played), value = player.gamesPlayed.localised())
+                        StatCell(label = stringResource(Res.string.stats_won), value = player.gamesWon.localised())
+                        StatCell(label = stringResource(Res.string.stats_lost), value = player.gamesLost.localised())
+                        StatCell(label = stringResource(Res.string.stats_streak), value = player.currentWinStreak.localised())
+                        // End-aligned rather than centred, so its last digit sits on the card's edge.
+                        StatCell(label = stringResource(Res.string.stats_best), value = player.bestWinStreak.localised(), alignment = Alignment.End)
+                    }
+
+                    StatRow {
+                        StatCell(label = stringResource(Res.string.stats_total_score), value = player.totalScore.grouped(), alignment = Alignment.Start)
+                        StatCell(label = stringResource(Res.string.stats_average), value = player.averageScore.grouped())
+                        StatCell(label = requireNotNull(ScoreCategory.FIVE_OF_A_KIND.mark), value = player.fiveOfAKindCount.grouped())
+                        StatCell(label = stringResource(Res.string.stats_solo), value = player.soloGames.grouped(), alignment = Alignment.End)
+                    }
                 }
+            }
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(end = 4.dp)
+                    .offset { IntOffset(0, CARD_PADDING.roundToPx() + (headerHeightPx - DELETE_BUTTON_SIZE.roundToPx()) / 2) },
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.DeleteForever,
+                    contentDescription = deleteLabel,
+                    tint = MaterialTheme.colorScheme.error,
+                )
             }
         }
     }
 }
+
+/** The card's padding, and the delete button's own size (the 48dp minimum touch target). */
+private val CARD_PADDING = 16.dp
+private val DELETE_BUTTON_SIZE = 48.dp
+
+/** Space left at the end of a card's header row for its delete button (48dp, less the card's own padding). */
+private val DELETE_BUTTON_ROOM = 40.dp
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

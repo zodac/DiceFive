@@ -15,16 +15,19 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.navigation.AchievementScrollRequests
 import net.zodac.dicefive.resources.achievements_missing_action
 import net.zodac.dicefive.resources.achievements_missing_message
+import net.zodac.dicefive.resources.achievements_missing_tooltip
 import net.zodac.dicefive.resources.achievements_missing_modes_action
 import net.zodac.dicefive.resources.achievements_missing_modes_message
+import net.zodac.dicefive.resources.achievements_missing_modes_tooltip
 import net.zodac.dicefive.resources.achievements_missing_numbers_action
 import net.zodac.dicefive.resources.achievements_missing_numbers_message
+import net.zodac.dicefive.resources.achievements_missing_numbers_tooltip
 import net.zodac.dicefive.resources.achievements_mode_finished
 import net.zodac.dicefive.resources.achievements_number_label
 import net.zodac.dicefive.resources.achievements_number_scored
 import net.zodac.dicefive.resources.achievements_score_recorded
 import net.zodac.dicefive.resources.common_done
-import androidx.compose.foundation.clickable
+import net.zodac.dicefive.resources.common_ok
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -81,6 +84,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -110,6 +114,7 @@ import net.zodac.dicefive.resources.achievements_locked_only
 import net.zodac.dicefive.resources.achievements_category_count
 import net.zodac.dicefive.resources.achievements_unlocked_count
 import net.zodac.dicefive.ui.common.AppTooltip
+import net.zodac.dicefive.ui.common.AppTooltipState
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.delayWhileResumed
@@ -500,7 +505,7 @@ private fun AchievementRow(
 ) {
     val unlocked = item.unlockedAt != null
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    var showMissing by remember { mutableStateOf(false) }
+    var showDetails by remember { mutableStateOf(false) }
     val missingLabel = stringResource(
         when {
             item.achievement.scoreBand != null -> Res.string.achievements_missing_action
@@ -509,7 +514,40 @@ private fun AchievementRow(
         },
     )
     val listsMissing = !unlocked && !superuserModeActive && item.missing.isNotEmpty()
-    if (showMissing && listsMissing) MissingDialog(item, onDismiss = { showMissing = false })
+    // A tap shows the short tip - the style(s) it unlocks, and how many are still missing - and a long press opens the
+    // full dialog, as on the Styles screen. A row with neither has no gesture at all.
+    val rewardMessage = rewardTooltipMessage(item.achievement, unlocked)
+    val missingMessage = if (listsMissing) {
+        stringResource(
+            when {
+                item.achievement.scoreBand != null -> Res.string.achievements_missing_tooltip
+                item.achievement.isEveryMode -> Res.string.achievements_missing_modes_tooltip
+                else -> Res.string.achievements_missing_numbers_tooltip
+            },
+            item.missing.size.grouped(),
+        )
+    } else {
+        null
+    }
+    val tipMessage = listOfNotNull(rewardMessage, missingMessage).joinToString("\n").ifEmpty { null }.takeIf { !superuserModeActive }
+    val detailsLabel = if (listsMissing) missingLabel else stringResource(Res.string.achievements_reward_show_action)
+    val tooltipState = rememberAppTooltipState()
+    val scope = rememberCoroutineScope()
+    if (showDetails && tipMessage != null) {
+        if (listsMissing) {
+            MissingDialog(item, onDismiss = { showDetails = false })
+        } else {
+            DiceFiveDialog(
+                icon = item.achievement.icon,
+                iconTint = item.achievement.iconTintOrUnspecified(MaterialTheme.colorScheme.primary),
+                title = stringResource(item.achievement.title),
+                message = rewardMessage.orEmpty(),
+                confirmLabel = stringResource(Res.string.common_ok),
+                onConfirm = { showDetails = false },
+                onDismissRequest = { showDetails = false },
+            )
+        }
+    }
     // The flash is gold, which the usual text, icon and border colours (light, or gold itself) vanish into: on it,
     // they all become the unlocked row's own blue instead.
     val flashInk = MaterialTheme.colorScheme.secondaryContainer
@@ -521,21 +559,27 @@ private fun AchievementRow(
     )
     fun ink(normal: Color): Color = lerp(normal, flashInk, flash)
 
-    StyleRewardTooltip(item.achievement, unlocked, enabled = !superuserModeActive) { tooltipModifier ->
+    RowTooltip(tipMessage, tooltipState) {
         Card(
             modifier = modifier
                 .fillMaxWidth()
-                .then(tooltipModifier)
-                // A long press, and a tap too so a screen reader has it as the row's one action.
                 .then(
-                    if (listsMissing) {
-                        Modifier.combinedClickable(
-                            onClickLabel = missingLabel,
-                            onLongClickLabel = missingLabel,
-                            role = Role.Button,
-                            onLongClick = { showMissing = true },
-                            onClick = { showMissing = true },
-                        )
+                    if (tipMessage != null) {
+                        // A tooltip isn't announced, so a screen reader's one action is the dialog, which says the same and more.
+                        Modifier
+                            .semantics(mergeDescendants = true) {
+                                onClick(label = detailsLabel) {
+                                    showDetails = true
+                                    true
+                                }
+                            }
+                            .combinedClickable(
+                                onClickLabel = detailsLabel,
+                                onLongClickLabel = detailsLabel,
+                                role = Role.Button,
+                                onLongClick = { showDetails = true },
+                                onClick = { scope.launch { tooltipState.show() } },
+                            )
                     } else {
                         Modifier
                     },
@@ -705,42 +749,27 @@ private fun MissingDialog(item: AchievementItem, onDismiss: () -> Unit) {
 }
 
 /**
- * A plain tooltip naming the style(s) an achievement unlocks, shown when its row is tapped or
- * long-pressed - [content] gets the modifier that makes the row do that, and is given none at all for
- * an achievement that unlocks no style. Not marked on the row (there's no icon for it): a tooltip
- * rather than a dialog because it's a passing "what's this?", not something to stop and dismiss.
- * [enabled] false (superuser mode, whose long press on a row means something else) switches both
- * gestures off.
+ * The line(s) naming the style(s) an achievement unlocks, or null for one that unlocks none. Not marked on the
+ * row (there's no icon for it): a tooltip rather than only a dialog because it's a passing "what's this?".
  */
 @Composable
-private fun StyleRewardTooltip(
-    achievement: Achievement,
-    unlocked: Boolean,
-    enabled: Boolean,
-    content: @Composable (Modifier) -> Unit,
-) {
-    if (!achievement.unlocksStyle) {
-        content(Modifier)
-        return
-    }
-    val tooltipState = rememberAppTooltipState()
-    val scope = rememberCoroutineScope()
-    val message = achievement.styleRewards.map { reward ->
+private fun rewardTooltipMessage(achievement: Achievement, unlocked: Boolean): String? {
+    if (!achievement.unlocksStyle) return null
+    return achievement.styleRewards.map { reward ->
         stringResource(if (unlocked) Res.string.achievements_reward_unlocked else Res.string.achievements_reward_locked, reward.description())
     }.joinToString("\n")
-    val showWhichLabel = stringResource(Res.string.achievements_reward_show_action)
-    AppTooltip(message = message, state = tooltipState, enabled = enabled) {
-        content(
-            if (enabled) {
-                // A tap, as well as the long press TooltipBox already listens for; a screen reader gets it as
-                // this row's one action.
-                Modifier.clickable(onClickLabel = showWhichLabel, role = Role.Button) {
-                    scope.launch { tooltipState.show() }
-                }
-            } else {
-                Modifier
-            },
-        )
+}
+
+/**
+ * The tip shown over a row's [content] when it's tapped ([state] is shown from the row's own tap), or just
+ * [content] for a row with no [message]. Its own long press is off: that opens the row's dialog.
+ */
+@Composable
+private fun RowTooltip(message: String?, state: AppTooltipState, content: @Composable () -> Unit) {
+    if (message == null) {
+        content()
+    } else {
+        AppTooltip(message = message, state = state, enabled = false, content = content)
     }
 }
 

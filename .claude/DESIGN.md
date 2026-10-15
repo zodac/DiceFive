@@ -218,7 +218,8 @@ will map to Play Games.
     solo games.
   - Every recorded game counts. A solo game's outcome is null: it isn't a win or a loss, and it doesn't break a
     streak.
-  - A long press dismisses a card (the scores stay). Playing again under that name brings it back.
+  - Each card has a delete button (top end, open or closed) that dismisses it after a confirmation; the scores stay.
+    Playing again under that name brings it back.
 - Settings' "Reset leaderboard" deletes every score, and with them the Statistics.
 
 ## Achievements
@@ -353,7 +354,7 @@ screen) of `StyleColour`s.
     on it loads its clips off the main thread a second after launch; otherwise on its first sound. It's held in the
     background and released with the app, so a sound started on one screen carries on to the next.
 - **Haptics.** A tick on hold or unhold, and a buzz for the shake. Settings switches sound and vibration off
-  separately.
+  separately. Only the player's own rolls and holds vibrate: a CPU's roll still plays its sounds but never buzzes.
 - **The roll.**
   - As the cup shakes, unheld dice are swept into it.
   - On landing they're thrown up their own columns, bounce off the far wall, and tumble to rest on their results. A

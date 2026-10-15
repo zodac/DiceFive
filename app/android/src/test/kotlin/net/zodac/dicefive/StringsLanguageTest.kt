@@ -3,6 +3,8 @@ package net.zodac.dicefive
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
@@ -53,12 +55,16 @@ class StringsLanguageTest {
         return direction!!
     }
 
+    /** The stats card itself: the one carrying the state, not the delete button, whose label has the name in it too. */
+    private fun statsCard(name: String) =
+        compose.onNode(hasContentDescription(name, substring = true) and SemanticsMatcher.keyIsDefined(SemanticsProperties.StateDescription))
+
     /** What the stats card says, opened. */
     private fun openedCard(player: PlayerStatistics): String {
-        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player, onLongPress = {}) } }
-        compose.onNodeWithContentDescription(player.playerName, substring = true).performSemanticsAction(SemanticsActions.OnClick)
+        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player, onDelete = {}) } }
+        statsCard(player.playerName).performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
-        return compose.onNodeWithContentDescription(player.playerName, substring = true).fetchSemanticsNode()
+        return statsCard(player.playerName).fetchSemanticsNode()
             .config[SemanticsProperties.ContentDescription].single()
     }
 
@@ -94,10 +100,10 @@ class StringsLanguageTest {
 
     @Test
     fun `a name in a right-to-left script is set apart inside an English sentence - one in its own direction left as it is`() {
-        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player.copy(playerName = "علي"), onLongPress = {}) } }
-        assertEquals("Delete \u2068علي\u2069's stats", compose.onNodeWithContentDescription("علي", substring = true).fetchSemanticsNode().config[SemanticsActions.OnLongClick].label)
+        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player.copy(playerName = "علي"), onDelete = {}) } }
+        compose.onNodeWithContentDescription("Delete \u2068علي\u2069's stats").assertExists()
 
-        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player, onLongPress = {}) } }
-        assertEquals("Delete Ann's stats", compose.onNodeWithContentDescription("Ann", substring = true).fetchSemanticsNode().config[SemanticsActions.OnLongClick].label)
+        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player, onDelete = {}) } }
+        compose.onNodeWithContentDescription("Delete Ann's stats").assertExists()
     }
 }
