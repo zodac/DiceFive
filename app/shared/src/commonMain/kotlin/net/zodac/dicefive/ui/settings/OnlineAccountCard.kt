@@ -25,7 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -41,6 +40,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.model.sanitizePlayerName
 import net.zodac.dicefive.online.GameServices
@@ -99,7 +99,7 @@ fun OnlineAccountCard(
     unreachable: Boolean = false,
     signInSynced: Boolean = true,
 ) {
-    val state = services.state.collectAsState().value
+    val state = services.state.collectAsStateWithLifecycle().value
     if (state is GameServicesState.Unavailable) return
     val scope = rememberCoroutineScope()
     val name = services.serviceName

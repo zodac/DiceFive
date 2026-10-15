@@ -151,7 +151,7 @@ class ScreenLoadingTest {
         for (dao in listOf(scoresDao, statisticsDao, achievementsDao)) dao.gate.complete(Unit)
         advanceUntilIdle()
         assertTrue(scores.uiState.value.isLoaded)
-        assertTrue(scores.uiState.value.entries.isEmpty())
+        assertTrue(scores.uiState.value.combined.entries.isEmpty())
         assertTrue(statistics.uiState.value.isLoaded)
         assertTrue(statistics.uiState.value.players.isEmpty())
         val state = achievements.uiState.value

@@ -804,10 +804,14 @@
     <!-- In Reset achievements' place while signed in: %1$s is the online service ("Google Play Games"). -->
     <string name="settings_online_achievements">View in %1$s</string>
     <string name="settings_online_achievements_description">See your achievements there</string>
+    <!-- What a screen reader says a tap on that row does: %1$s is the online service. -->
+    <string name="settings_online_achievements_action">Open %1$s</string>
     <string name="settings_reset_achievements">Reset achievements</string>
     <string name="settings_reset_achievements_description">Lock every achievement again</string>
     <string name="settings_reset_leaderboard">Reset leaderboard</string>
     <string name="settings_reset_leaderboard_description">Delete all recorded scores</string>
+    <!-- What a screen reader says a tap on either reset row does (it opens the "are you sure" dialog). -->
+    <string name="settings_reset_action">Reset</string>
     <!-- The red button of both "are you sure" dialogs. -->
     <string name="settings_reset_confirm">Reset</string>
     <string name="settings_reset_achievements_title">Reset Achievements?</string>

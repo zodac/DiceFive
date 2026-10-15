@@ -2,6 +2,7 @@ package net.zodac.dicefive
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
@@ -87,9 +88,11 @@ class SettingsRowsTest {
         // Each reset is one button row - one node carrying the name and what it does, a single TalkBack stop - below the
         // fold on the test's small screen.
         val isButton = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
-        val achievements = compose.onNode(hasText("Reset achievements") and hasText("Lock every achievement again") and hasClickAction() and isButton)
+        // TalkBack says what a tap does: "double-tap to reset".
+        val saysReset = SemanticsMatcher("double-tap to reset") { it.config[SemanticsActions.OnClick].label == "Reset" }
+        val achievements = compose.onNode(hasText("Reset achievements") and hasText("Lock every achievement again") and hasClickAction() and isButton and saysReset)
         achievements.performScrollTo().assertIsDisplayed()
-        compose.onNode(hasText("Reset leaderboard") and hasText("Delete all recorded scores") and hasClickAction() and isButton).performScrollTo().assertIsDisplayed()
+        compose.onNode(hasText("Reset leaderboard") and hasText("Delete all recorded scores") and hasClickAction() and isButton and saysReset).performScrollTo().assertIsDisplayed()
 
         // Its confirmation says what it will do - and can be cancelled.
         compose.onNodeWithText("Reset leaderboard").performScrollTo().performClick()

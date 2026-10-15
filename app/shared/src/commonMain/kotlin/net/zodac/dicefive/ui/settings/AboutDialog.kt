@@ -29,7 +29,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.heading
@@ -40,6 +39,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.resources.Res
@@ -118,7 +118,7 @@ fun AboutDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
     val services = LocalGameServices.current
     // Null without a service: no Settings card, so nothing to sign in to.
-    val serviceName = services.serviceName.takeIf { services.state.collectAsState().value != GameServicesState.Unavailable }
+    val serviceName = services.serviceName.takeIf { services.state.collectAsStateWithLifecycle().value != GameServicesState.Unavailable }
 
     Dialog(
         onDismissRequest = onDismissRequest,

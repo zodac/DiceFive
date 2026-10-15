@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,8 +36,8 @@ val LEADERBOARD_MODES: List<GameMode> = GameMode.entries.toList()
 /** How many pages [totalCount] rows make up - at least one, so an empty board still has a "page 1". */
 private fun pageCount(totalCount: Int): Int = ((totalCount - 1) / SCORES_PAGE_SIZE + 1).coerceAtLeast(1)
 
-/** One game mode's card: the page of its scores on view, which page that is and how many rows the mode has. */
-data class ModeBoard(
+/** One board - the Combined table, or a game mode's card: the page of its scores on view, which page that is and how many rows it has. */
+data class LeaderboardPage(
     val entries: List<ScoreEntry> = emptyList(),
     val pageIndex: Int = 0,
     val totalCount: Int = 0,
@@ -47,23 +48,18 @@ data class ModeBoard(
 }
 
 data class ScoresUiState(
-    val entries: List<ScoreEntry> = emptyList(),
-    val pageIndex: Int = 0,
-    val totalCount: Int = 0,
-    /** Whether the first page has been read yet - until then an empty [entries] means "not known
+    /** The Combined table's page on view. */
+    val combined: LeaderboardPage = LeaderboardPage(),
+    /** Whether the first page has been read yet - until then an empty [combined] means "not known
      * yet", not "no scores", and the screen shows neither the list nor its empty message. */
     val isLoaded: Boolean = false,
     val view: LeaderboardView = LeaderboardView.COMBINED,
     /** Each mode's card, once read - read the first time [LeaderboardView.GAME_MODE] is shown, so a
      * mode missing from the map just isn't loaded yet. */
-    val modeBoards: Map<GameMode, ModeBoard> = emptyMap(),
+    val modeBoards: Map<GameMode, LeaderboardPage> = emptyMap(),
 ) {
     /** Whether every mode's card has been read - until then the cards shown so far are all there is to show. */
     val modeBoardsLoaded: Boolean get() = modeBoards.keys.containsAll(LEADERBOARD_MODES)
-
-    val totalPages: Int get() = pageCount(totalCount)
-    val hasNextPage: Boolean get() = pageIndex < totalPages - 1
-    val hasPreviousPage: Boolean get() = pageIndex > 0
 }
 
 /**
@@ -78,16 +74,24 @@ class ScoresViewModel(
     private val _uiState = MutableStateFlow(initialState ?: ScoresUiState(isLoaded = scoreRepository == null))
     val uiState: StateFlow<ScoresUiState> = _uiState.asStateFlow()
 
+    /**
+     * Each board's load under way, by board (null: the Combined table). A new page's load cancels the one before, so
+     * a slow earlier page can't land over a later one.
+     */
+    private val loads = HashMap<GameMode?, Job>()
+
     init {
         loadPage(0)
     }
 
     fun nextPage() {
-        if (_uiState.value.hasNextPage) loadPage(_uiState.value.pageIndex + 1)
+        val board = _uiState.value.combined
+        if (board.hasNextPage) loadPage(board.pageIndex + 1)
     }
 
     fun previousPage() {
-        if (_uiState.value.hasPreviousPage) loadPage(_uiState.value.pageIndex - 1)
+        val board = _uiState.value.combined
+        if (board.hasPreviousPage) loadPage(board.pageIndex - 1)
     }
 
     fun selectView(view: LeaderboardView) {
@@ -109,25 +113,28 @@ class ScoresViewModel(
 
     private fun loadPage(pageIndex: Int) {
         val repository = scoreRepository ?: return
-        viewModelScope.launch {
-            val entries = repository.page(pageIndex)
-            val totalCount = repository.totalCount()
-            _uiState.update {
-                it.copy(entries = entries, pageIndex = pageIndex, totalCount = totalCount, isLoaded = true)
-            }
+        load(null) {
+            val board = LeaderboardPage(entries = repository.page(pageIndex), pageIndex = pageIndex, totalCount = repository.totalCount())
+            _uiState.update { it.copy(combined = board, isLoaded = true) }
         }
     }
 
     private fun loadModePage(mode: GameMode, pageIndex: Int) {
         val repository = scoreRepository ?: return
-        viewModelScope.launch {
-            val board = ModeBoard(
+        load(mode) {
+            val board = LeaderboardPage(
                 entries = repository.pageForMode(mode, pageIndex),
                 pageIndex = pageIndex,
                 totalCount = repository.totalCountForMode(mode),
             )
             _uiState.update { it.copy(modeBoards = it.modeBoards + (mode to board)) }
         }
+    }
+
+    /** Runs [block] as [board]'s load, cancelling the one already under way. */
+    private fun load(board: GameMode?, block: suspend () -> Unit) {
+        loads[board]?.cancel()
+        loads[board] = viewModelScope.launch { block() }
     }
 
     companion object {

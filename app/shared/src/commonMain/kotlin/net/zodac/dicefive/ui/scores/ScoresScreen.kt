@@ -196,13 +196,14 @@ private fun NoScoresCard() {
 /** Every mode's scores in one table, 1st-3rd called out in gold, silver and bronze; a long press names a row's mode and date. */
 @Composable
 private fun ColumnScope.CombinedLeaderboard(state: ScoresUiState, viewModel: ScoresViewModel) {
-    if (state.entries.isEmpty()) {
+    val board = state.combined
+    if (board.entries.isEmpty()) {
         NoScoresCard()
         return
     }
     // Ranks/`=` ties reflect the same house-rule ordering ScoreDao.pagedScores
     // already sorted this page by - see rankEntries.
-    val ranked = remember(state.entries, state.pageIndex) { rankEntries(state.entries, state.pageIndex) }
+    val ranked = remember(board.entries, board.pageIndex) { rankEntries(board.entries, board.pageIndex) }
     // A podium row's tint runs to its own edge, so a card that ends on one looks to have less room below it than
     // one that ends on a plain row, whose text has nothing painted around it. Give it a little more.
     val endsOnPodium = ranked.last().rank <= PODIUM_RANKS
@@ -250,12 +251,12 @@ private fun ColumnScope.CombinedLeaderboard(state: ScoresUiState, viewModel: Sco
         modifier = Modifier.fillMaxWidth().heightIn(min = PAGINATION_ROW_HEIGHT * LocalDensity.current.fontScale.coerceAtLeast(1f)),
         contentAlignment = Alignment.Center,
     ) {
-        if (state.totalPages > 1) {
+        if (board.totalPages > 1) {
             PaginationControls(
-                pageIndex = state.pageIndex,
-                totalPages = state.totalPages,
-                hasPrevious = state.hasPreviousPage,
-                hasNext = state.hasNextPage,
+                pageIndex = board.pageIndex,
+                totalPages = board.totalPages,
+                hasPrevious = board.hasPreviousPage,
+                hasNext = board.hasNextPage,
                 onPrevious = viewModel::previousPage,
                 onNext = viewModel::nextPage,
             )
@@ -302,7 +303,7 @@ private fun ColumnScope.GameModeLeaderboard(state: ScoresUiState, viewModel: Sco
 }
 
 @Composable
-private fun ModeCard(mode: GameMode, board: ModeBoard, onPrevious: () -> Unit, onNext: () -> Unit, onlineServices: GameServices? = null) {
+private fun ModeCard(mode: GameMode, board: LeaderboardPage, onPrevious: () -> Unit, onNext: () -> Unit, onlineServices: GameServices? = null) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(8.dp)) {
             val title = stringResource(mode.displayName)
@@ -691,8 +692,8 @@ private fun warmUpState(): ScoresUiState {
         gameModeId = mode.id,
     )
     val standard = listOf(entry(1, 250, GameMode.STANDARD), entry(2, 200, GameMode.STANDARD))
-    val boards = LEADERBOARD_MODES.associateWith { ModeBoard() } +
-        (GameMode.STANDARD to ModeBoard(entries = standard, totalCount = standard.size)) +
-        (GameMode.TRICOLOUR to ModeBoard(entries = listOf(entry(3, 180, GameMode.TRICOLOUR)), totalCount = 1))
-    return ScoresUiState(entries = standard, totalCount = standard.size, isLoaded = true, modeBoards = boards)
+    val boards = LEADERBOARD_MODES.associateWith { LeaderboardPage() } +
+        (GameMode.STANDARD to LeaderboardPage(entries = standard, totalCount = standard.size)) +
+        (GameMode.TRICOLOUR to LeaderboardPage(entries = listOf(entry(3, 180, GameMode.TRICOLOUR)), totalCount = 1))
+    return ScoresUiState(combined = LeaderboardPage(entries = standard, totalCount = standard.size), isLoaded = true, modeBoards = boards)
 }

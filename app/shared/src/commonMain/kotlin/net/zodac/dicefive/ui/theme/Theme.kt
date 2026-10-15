@@ -43,15 +43,15 @@ private val Colors = darkColorScheme(
 )
 
 /**
- * The app theme, on Material 3 (material3 1.4.0 - the newest stable release).
+ * The app theme, on Material 3 (JetBrains material3 1.9.0, which is androidx material3 1.4.0).
  *
  * Four deliberate choices:
  * - **One scheme, dark.** There is no light variant: the app always looks like this, whatever the
  *   system's dark-mode setting, and there is no theme option in Settings.
- * - **`MaterialTheme`, not `MaterialExpressiveTheme`.** 1.4.0 ships the Expressive-era components,
- *   but its `MaterialExpressiveTheme` is `internal`; the public expressive theme entry point, with
- *   `MotionScheme` and `ButtonGroup`, only appears in the 1.5.0 alpha line, which requires
- *   compileSdk 37 and AGP 9.1+. Revisit when 1.5.0 is stable and that migration is worth doing.
+ * - **`MaterialTheme`, not `MaterialExpressiveTheme`.** androidx 1.4.0 ships the Expressive-era
+ *   components, but its `MaterialExpressiveTheme` is `internal`; the public expressive theme entry
+ *   point, with `MotionScheme` and `ButtonGroup`, is androidx 1.5.0's. Revisit once a stable
+ *   JetBrains material3 is built on it and that migration is worth doing.
  * - **No dynamic colour.** M3 recommends deriving the palette from the user's wallpaper, but the
  *   navy-and-gold table is the game's identity and shouldn't change per device. Swapping this for
  *   `dynamicDarkColorScheme(context)` on API 31+ is a two-line change if that's ever wanted.

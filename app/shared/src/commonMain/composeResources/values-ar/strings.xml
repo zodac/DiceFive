@@ -688,10 +688,12 @@
     <string name="settings_confirm_leaving">تأكيد مغادرة اللعبة</string>
     <string name="settings_online_achievements">عرض في %1$s</string>
     <string name="settings_online_achievements_description">اطّلع على إنجازاتك هناك</string>
+    <string name="settings_online_achievements_action">فتح %1$s</string>
     <string name="settings_reset_achievements">إعادة ضبط الإنجازات</string>
     <string name="settings_reset_achievements_description">أقفل كل إنجاز من جديد</string>
     <string name="settings_reset_leaderboard">إعادة ضبط لوحة المتصدرين</string>
     <string name="settings_reset_leaderboard_description">احذف كل النتائج المسجّلة</string>
+    <string name="settings_reset_action">إعادة ضبط</string>
     <string name="settings_reset_confirm">إعادة ضبط</string>
     <string name="settings_reset_achievements_title">إعادة ضبط الإنجازات؟</string>
     <string name="settings_reset_achievements_message">سيُقفل كل إنجاز من جديد ويضيع كل التقدّم نحوها. لا يمكن التراجع عن هذا. لن تتأثر نتائجك ولا إعداداتك.</string>

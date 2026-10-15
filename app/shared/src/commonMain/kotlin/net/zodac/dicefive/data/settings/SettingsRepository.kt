@@ -26,16 +26,17 @@ import net.zodac.dicefive.model.UnluckyDice
 import net.zodac.dicefive.model.TurnTimer
 
 /**
- * DataStore-backed settings: the last-used name/type/difficulty (User/CPU) for each player slot
- * (1-4, slot 1 always Human) plus the last-used player count, so returning to setup pre-fills it,
- * whether leaving an in-progress game needs a confirmation, and whether sound effects/vibration
- * are enabled.
+ * DataStore-backed settings:
+ * - the New Game form's last choices, so returning to it pre-fills them: each player slot's name, type (Human/CPU),
+ *   CPU difficulty and colour (1-4, slot 1 always Human), the player count, the game mode, the turn timer and every
+ *   modifier;
+ * - the Styles picks (as ids) and the Styles page's fitted size;
+ * - sound, vibration, the Animations level and whether leaving a game in progress asks first.
  *
  * Every setting but the Animations level and the Styles page fit goes in the cloud save ([SYNCED_KEYS]): those two are
- * about this device - what it can draw, and its screen. Each
- * synced key is stamped with when its value last changed ([stampKey]), and the cloud save keeps whichever device set
- * it last. A Styles pick Reset achievements unstamps ([unstampStylePicks]) is stamped 0: it loses to any later change,
- * but beats a device that never set one.
+ * about this device - what it can draw, and its screen. Each synced key is stamped with when its value last changed
+ * ([stampKey]), and the cloud save keeps whichever device set it last. A Styles pick Reset achievements unstamps
+ * ([unstampStylePicks]) is stamped 0: it loses to any later change, but beats a device that never set one.
  */
 class SettingsRepository(
     private val dataStore: DataStore<Preferences>,

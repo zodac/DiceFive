@@ -49,7 +49,7 @@ data class UnlockedStyle(val name: StringResource, val categoryNoun: StringResou
  *
  * A process-wide object rather than state on a ViewModel, because the two ends have no scope in
  * common: achievements are raised by the "play"-graph-scoped `GameViewModel`, while the host sits
- * above the whole `NavHost` in `MainActivity` so an end-of-game burst keeps showing as the player
+ * above the whole `NavHost` in `DiceFiveApp` so an end-of-game burst keeps showing as the player
  * moves from the board to the results screen (and on to the menu). Achievements are per device,
  * and there is exactly one of these per process, which is the same scope.
  *

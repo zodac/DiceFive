@@ -2,6 +2,7 @@ package net.zodac.dicefive
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -73,6 +74,8 @@ class OnlineAchievementsRowTest {
         val link = compose.onNode(hasText("View in Test Games") and hasClickAction(), useUnmergedTree = false)
         link.performScrollTo()
         link.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+        // TalkBack: "double-tap to open Test Games".
+        link.assert(SemanticsMatcher("double-tap to open the service") { it.config[SemanticsActions.OnClick].label == "Open Test Games" })
         compose.onNodeWithText("See your achievements there", useUnmergedTree = true).assertExists()
         link.performClick()
         assertEquals(1, services.shown)

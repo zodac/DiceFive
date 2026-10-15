@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -29,11 +30,17 @@ import kotlin.test.BeforeTest
 private class ListScoreDao(private val rows: List<ScoreEntry>) : ScoreDao {
     var modeReads = 0
 
+    /** How long a read of the Combined table's page at each offset takes - none unless set. */
+    var pageDelays: Map<Int, Long> = emptyMap()
+
     private fun ordered(modeId: String?) =
         rows.filter { if (modeId == null) it.onLeaderboard else it.playedUnmodified && it.gameModeId == modeId }.sortedByDescending { it.score }
 
     override suspend fun insert(entry: ScoreEntry) = Unit
-    override suspend fun pagedScores(limit: Int, offset: Int) = ordered(null).drop(offset).take(limit)
+    override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> {
+        pageDelays[offset]?.let { delay(it) }
+        return ordered(null).drop(offset).take(limit)
+    }
     override suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int): List<ScoreEntry> {
         modeReads++
         return ordered(gameModeId).drop(offset).take(limit)
@@ -109,7 +116,7 @@ class ScoresViewModelTest {
         assertTrue(after.hasPreviousPage)
         // Standard's card didn't move, nor did the combined table.
         assertEquals(0, paging.uiState.value.modeBoards.getValue(GameMode.STANDARD).pageIndex)
-        assertEquals(0, paging.uiState.value.pageIndex)
+        assertEquals(0, paging.uiState.value.combined.pageIndex)
         paging.previousModePage(GameMode.TRICOLOUR)
         advanceUntilIdle()
         assertEquals(0, paging.uiState.value.modeBoards.getValue(GameMode.TRICOLOUR).pageIndex)
@@ -123,12 +130,30 @@ class ScoresViewModelTest {
         advanceUntilIdle()
         val state = offBoard.uiState.value
         // Not on the combined table, nor counted in it...
-        assertEquals(listOf(3L), state.entries.map { it.id })
-        assertEquals(1, state.totalCount)
+        assertEquals(listOf(3L), state.combined.entries.map { it.id })
+        assertEquals(1, state.combined.totalCount)
         // ...but listed on its own card; a game with modifiers on is on no card, whichever its mode.
         assertEquals(listOf(1L), state.modeBoards.getValue(GameMode.QUICKFIRE).entries.map { it.id })
         assertEquals(listOf(3L), state.modeBoards.getValue(GameMode.STANDARD).entries.map { it.id })
         assertEquals(0, state.modeBoards.getValue(GameMode.STUD).totalCount)
         assertTrue(state.modeBoardsLoaded)
+    }
+
+    @Test
+    fun `a page asked for later is never overwritten by a slower one asked for before it`() = runTest(testDispatcher) {
+        val dao = ListScoreDao((1..SCORES_PAGE_SIZE * 3).map { entry(it.toLong(), it, GameMode.STANDARD) })
+        val viewModel = ScoresViewModel(ScoreRepository(dao))
+        advanceUntilIdle()
+        viewModel.nextPage()
+        advanceUntilIdle()
+        assertEquals(1, viewModel.uiState.value.combined.pageIndex)
+
+        // Back to page 1, slowly - then on to page 3 before it arrives: page 3 is what stays.
+        dao.pageDelays = mapOf(0 to 1_000L)
+        viewModel.previousPage()
+        viewModel.nextPage()
+        advanceUntilIdle()
+        assertEquals(2, viewModel.uiState.value.combined.pageIndex)
+        assertEquals(SCORES_PAGE_SIZE, viewModel.uiState.value.combined.entries.size)
     }
 }

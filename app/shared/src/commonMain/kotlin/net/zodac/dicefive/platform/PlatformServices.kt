@@ -41,7 +41,7 @@ interface PlatformServices {
      */
     fun capFrameRate(maxFramesPerSecond: Int?) {}
 
-    /** A short message that shows for a moment and needs no response (an Android toast). */
+    /** A short message that shows for a moment and needs no response - each platform's own (a toast, on Android). */
     fun showTransientMessage(message: String)
 
     /** The build-generated open-source licence reports the Licences dialog lists - see [LicenceReports]. */
