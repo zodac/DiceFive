@@ -378,13 +378,15 @@ fun AchievementsScreen(
         ) {
             if (groups.isEmpty()) {
                 item(key = "empty") {
-                    Text(
-                        text = stringResource(Res.string.achievements_all_unlocked),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(24.dp),
-                    )
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = stringResource(Res.string.achievements_all_unlocked),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(24.dp),
+                        )
+                    }
                 }
             } else {
                 // Where each category's header sits in the list: one header item, then its rows.
