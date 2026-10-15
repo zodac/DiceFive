@@ -579,6 +579,8 @@
     <string name="online_signed_in_saved_cd">%1$s, sesión iniciada como %2$s, guardado por última vez: %3$s</string>
     <string name="online_unreachable">No se pudo conectar con %1$s; se volverá a intentar</string>
     <string name="online_unreachable_cd">no se pudo conectar con %1$s, se volverá a intentar</string>
+    <string name="online_sign_in_failed">No se pudo iniciar sesión: %1$s</string>
+    <string name="online_sign_in_failed_cd">no se pudo iniciar sesión: %1$s</string>
     <string name="online_sync_progress">%1$s (%2$d/%3$d)</string>
     <string name="online_sync_step_downloading">Descargando tu progreso</string>
     <string name="online_sync_step_achievements">Combinando logros</string>

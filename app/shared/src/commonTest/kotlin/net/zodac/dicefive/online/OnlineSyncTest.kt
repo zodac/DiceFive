@@ -46,7 +46,7 @@ private class SyncStore(initial: AchievementsState) : AchievementStore {
 /** Records every call; [remote] is what it says is unlocked, null if it can't be asked. */
 private class SyncServices(account: String?, var remote: Set<String>? = emptySet()) : GameServices by NoGameServices {
     val mutableState = MutableStateFlow<GameServicesState>(
-        if (account == null) GameServicesState.SignedOut else GameServicesState.SignedIn(OnlineAccount(account, null, account)),
+        if (account == null) GameServicesState.SignedOut() else GameServicesState.SignedIn(OnlineAccount(account, null, account)),
     )
     override val state: StateFlow<GameServicesState> = mutableState
     val unlocked = mutableListOf<String>()
@@ -176,7 +176,7 @@ class OnlineSyncTest {
         val sync = sync(services, SyncStore(state()), OnlineSettingsRepository(SyncPreferences()))
         sync.reconcile()
         assertTrue(sync.announcesUnlock(Achievement.NAT_20))
-        services.mutableState.value = GameServicesState.SignedOut
+        services.mutableState.value = GameServicesState.SignedOut()
         assertFalse(sync.announcesUnlock(Achievement.NAT_20))
     }
 
@@ -495,7 +495,7 @@ class OnlineSyncTest {
         services.remote = null
         sync.reconcile()
         assertTrue(sync.unreachable.value)
-        services.mutableState.value = GameServicesState.SignedOut
+        services.mutableState.value = GameServicesState.SignedOut()
         sync.reconcile()
         assertFalse(sync.unreachable.value)
     }

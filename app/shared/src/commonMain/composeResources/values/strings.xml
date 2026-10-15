@@ -775,6 +775,10 @@
     <string name="online_unreachable">Couldn't reach %1$s - will retry</string>
     <!-- online_unreachable read aloud, as the last clause of the card (joined with common_clauses_join). -->
     <string name="online_unreachable_cd">couldn't reach %1$s, will retry</string>
+    <!-- Under "Not signed in", in red, after a sign-in that didn't work. %1$s is the service's own reason, never translated (Google's status code, say), for the player to report. -->
+    <string name="online_sign_in_failed">Couldn't sign in: %1$s</string>
+    <!-- online_sign_in_failed read aloud, as the last clause of the card (joined with common_clauses_join). -->
+    <string name="online_sign_in_failed_cd">couldn't sign in: %1$s</string>
     <!-- In place of online_last_saved while the account's data is being synced, after a spinner and above a progress bar: %1$s is the step (one of online_sync_step_*), %2$d which step it is and %3$d how many there are. -->
     <string name="online_sync_progress">%1$s (%2$d/%3$d)</string>
     <string name="online_sync_step_downloading">Downloading your progress</string>

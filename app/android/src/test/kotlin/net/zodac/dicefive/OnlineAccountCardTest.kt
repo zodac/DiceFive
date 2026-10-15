@@ -163,9 +163,30 @@ class OnlineAccountCardTest {
 
     @Test
     fun `signed out - an unreachable service says nothing`() {
-        show(FakeGameServices(GameServicesState.SignedOut), unreachable = true)
+        show(FakeGameServices(GameServicesState.SignedOut()), unreachable = true)
         compose.onNodeWithText("Couldn't reach", substring = true, useUnmergedTree = true).assertDoesNotExist()
         assertEquals(listOf("Test Games, Not signed in"), compose.onNode(isHeading()).fetchSemanticsNode().config[SemanticsProperties.ContentDescription])
+    }
+
+    @Test
+    fun `a failed sign-in shows the service's reason in red - spoken last - and Sign in stays offered`() {
+        var red = Color.Unspecified
+        val services = FakeGameServices(GameServicesState.SignedOut(failure = "signIn failed: status 10 (DEVELOPER_ERROR)"))
+        compose.setContent {
+            DiceFiveTheme {
+                red = MaterialTheme.colorScheme.error
+                OnlineAccountCard(services)
+            }
+        }
+        val line = "Couldn't sign in: signIn failed: status 10 (DEVELOPER_ERROR)"
+        val layouts = mutableListOf<TextLayoutResult>()
+        compose.onNodeWithText(line, useUnmergedTree = true).performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        assertEquals(red, layouts.single().layoutInput.style.color)
+        assertEquals(
+            listOf("Test Games, Not signed in, couldn't sign in: signIn failed: status 10 (DEVELOPER_ERROR)"),
+            compose.onNode(isHeading()).fetchSemanticsNode().config[SemanticsProperties.ContentDescription],
+        )
+        compose.onNodeWithText("Sign in").assertIsEnabled()
     }
 
     @Test
@@ -183,7 +204,7 @@ class OnlineAccountCardTest {
 
     @Test
     fun `never saved - or signed out - shows no save time`() {
-        show(FakeGameServices(GameServicesState.SignedOut), lastSavedEpochMillis = 1_792_073_100_000L)
+        show(FakeGameServices(GameServicesState.SignedOut()), lastSavedEpochMillis = 1_792_073_100_000L)
         compose.onNodeWithText("Last saved", substring = true, useUnmergedTree = true).assertDoesNotExist()
         assertEquals(listOf("Test Games, Not signed in"), compose.onNode(isHeading()).fetchSemanticsNode().config[SemanticsProperties.ContentDescription])
     }
@@ -197,7 +218,7 @@ class OnlineAccountCardTest {
 
     @Test
     fun `signed out offers sign in and nothing else`() {
-        val services = FakeGameServices(GameServicesState.SignedOut)
+        val services = FakeGameServices(GameServicesState.SignedOut())
         show(services)
         // The header is one node for TalkBack (its pieces cleared), so its words are read from the unmerged tree.
         compose.onNodeWithText("Test Games", useUnmergedTree = true).assertExists()

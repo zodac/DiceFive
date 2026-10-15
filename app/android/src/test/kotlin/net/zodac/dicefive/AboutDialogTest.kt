@@ -83,7 +83,7 @@ class AboutDialogTest {
     @Test
     fun `with an online service the privacy section says the data leaves the device only once signed in`() {
         // Signed out still says it: the sentence is about what signing in would do.
-        showDialog(OnlineServices(GameServicesState.SignedOut))
+        showDialog(OnlineServices(GameServicesState.SignedOut()))
         compose.onNodeWithText(
             "DiceFive holds no user data. Your games, scores, and settings stay on this device, unless you sign in to " +
                 "Google Play Games. There are no ads, analytics, or tracking.",

@@ -88,7 +88,11 @@ sealed interface GameServicesState {
     /** There is no service on this device (not installed, a sideload, a preview). The Settings card is hidden. */
     data object Unavailable : GameServicesState
 
-    data object SignedOut : GameServicesState
+    /**
+     * Not signed in. [failure] is why the last sign-in didn't work, in the service's own terms (Google's status code,
+     * say), shown so a player can report it; null before any attempt, and after signing out.
+     */
+    data class SignedOut(val failure: String? = null) : GameServicesState
 
     data object SigningIn : GameServicesState
 

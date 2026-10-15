@@ -49,6 +49,9 @@ app/android/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchievements,
 - **Only from Settings.** The SDK isn't started (`PlayGamesSdk.initialize`) until the player taps **Sign in**, and its
   auto-start `PlayGamesInitProvider` is removed in the manifest (`PlayGamesServicesTest`). A sign-in sets `signed_in`
   (the `online` store); from then on the SDK starts with the app and signs in quietly.
+- **A failed sign-in says why** on the card, in red: "Couldn't sign in: " and the first failure's log message
+  (`GameServicesState.SignedOut.failure`), untranslated, for a player to report. It goes on the next Sign in tap.
+  Cancelling the account picker shows it too ("not authenticated"): the SDK can't tell the two apart.
 - **Sign out is ours** (v2 has none): it clears `signed_in` and stops every call. It waits for the sign-in's sync to
   finish (`OnlineSync.signInSynced`).
 - **The gamer name appears only on the Settings card** and never touches seat 1's name. Sanitised, ellipsised, up to
@@ -137,8 +140,14 @@ Play's overlay: an edge tab that slides out achievements, streaks, offers and re
 
 ## Play Console
 
-- **Project**: APP_ID `308613893005`; Android credentials for the debug key (SHA-1
-  `76:7A:8F:8E:BF:D9:A9:58:4E:4C:21:D4:0B:9D:6E:51:1B:EB:21:A0`) and the release keys; Saved Games on.
+- **Project**: APP_ID `308613893005`; Saved Games on. Android credentials, one per signing key (SHA-1):
+  - debug key `76:7A:8F:8E:BF:D9:A9:58:4E:4C:21:D4:0B:9D:6E:51:1B:EB:21:A0` (debug APKs);
+  - Play's app signing key `B3:92:54:2F:11:F1:67:02:F4:84:FF:CE:67:53:B1:DA:5E:78:D2:FB` (every install from a Play
+    track: players get only this);
+  - the upload key `FD:64:0E:6D:55:7E:13:7C:77:2E:BD:0A:02:C9:03:00:9D:45:80:A9` (the `RELEASE_KEY*` secrets; only
+    builds signed by hand).
+  A build whose key has no credential fails sign-in with Google's `DEVELOPER_ERROR`, which only logcat shows (its
+  `PlayGamesServices[SignInAuthenticator]` lines print the build's SHA-1); the app sees only "not authenticated".
 - **Sheets**: `scripts/export-play-console.sh` writes the gitignored `play-console/`:
   - `achievements-import.zip` for Achievements > Import achievements (metadata, es-ES/es-419/ar localisations, icon
     mappings, icons; no header rows, keyed by English name). Add the translations in Play Console first.
@@ -154,7 +163,8 @@ The code is done. The rest is the maintainer's, in Play Console:
 2. **Upload a signed `.aab` by hand** (CI has no Play credentials). Take it from the GitHub release (from 1.0.0, or a
    manual run with `force_apk`), put it on an internal or closed track, and tick **Sidekick is on by default**.
 3. **Check on a Play install** (Android 13+, 3 GB+): the tab sits top-right in both orientations over no control;
-   TalkBack still reaches the back arrow and header; Play's "Welcome back" pop-up doesn't hide the logo long; 60fps
+   TalkBack still reaches the back arrow and header; Play's sign-in pop-up doesn't hide the logo long (its wording, "Hey there" or "Welcome back", is Play's own, not
+   ours); 60fps
    holds with the overlay open on a 3-4 GB phone.
 4. Run a closed test (`PUBLISHING.md`), then a 5% rollout watching crashes, ANRs and engagement.
 

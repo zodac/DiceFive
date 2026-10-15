@@ -84,7 +84,7 @@ class OnlineAchievementsRowTest {
 
     @Test
     fun `signed out - Reset achievements as before - and no link`() {
-        show(AchievementsUiServices(GameServicesState.SignedOut))
+        show(AchievementsUiServices(GameServicesState.SignedOut()))
         compose.onNodeWithText("Reset achievements").assertExists()
         compose.onNodeWithText("View in Test Games").assertDoesNotExist()
     }
@@ -109,6 +109,6 @@ class OnlineAchievementsRowTest {
 
     @Test
     fun `signed out - Reset leaderboard's confirmation as before`() {
-        assertEquals(resetMessage, resetLeaderboardMessage(AchievementsUiServices(GameServicesState.SignedOut)))
+        assertEquals(resetMessage, resetLeaderboardMessage(AchievementsUiServices(GameServicesState.SignedOut())))
     }
 }

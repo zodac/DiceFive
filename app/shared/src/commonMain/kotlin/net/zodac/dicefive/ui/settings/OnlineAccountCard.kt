@@ -51,6 +51,8 @@ import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_clauses_join
 import net.zodac.dicefive.resources.online_last_saved
 import net.zodac.dicefive.resources.online_sign_in
+import net.zodac.dicefive.resources.online_sign_in_failed
+import net.zodac.dicefive.resources.online_sign_in_failed_cd
 import net.zodac.dicefive.resources.online_signed_in_cd
 import net.zodac.dicefive.resources.online_signed_in_saved_cd
 import net.zodac.dicefive.resources.online_signed_in_syncing_cd
@@ -87,6 +89,10 @@ import org.jetbrains.compose.resources.StringResource
  * through ("Merging scores (3/7)") show under the header at the card's full width, after a spinner (a still sync icon
  * under reduced motion) and above a progress bar; the unreachable line waits for its result.
  *
+ * Signed out after a sign-in that didn't work, the service's reason ([GameServicesState.SignedOut.failure]) shows in
+ * red under "Not signed in" ("Couldn't sign in: ..."), untranslated so a player can report it, and is spoken last. It
+ * goes once Sign in is tapped again.
+ *
  * Sign out is offered only once the sign-in's sync has finished ([signInSynced]): until then, and while signing in,
  * Sign in stays where it was, greyed and disabled, so the card doesn't look finished while it isn't.
  */
@@ -113,6 +119,7 @@ fun OnlineAccountCard(
     val sync = syncProgress?.takeIf { accountName != null }
     val syncStep = sync?.let { stringResource(it.step.label) }
     val showUnreachable = unreachable && accountName != null && sync == null
+    val failure = (state as? GameServicesState.SignedOut)?.failure
     // The full name is spoken even where the screen cuts it short.
     val account = when {
         accountName == null -> "$name, $status"
@@ -120,10 +127,10 @@ fun OnlineAccountCard(
         lastSaved == null -> stringResource(Res.string.online_signed_in_cd, name, accountName)
         else -> stringResource(Res.string.online_signed_in_saved_cd, name, accountName, lastSaved)
     }
-    val spoken = if (showUnreachable) {
-        stringResource(Res.string.common_clauses_join, account, stringResource(Res.string.online_unreachable_cd, name))
-    } else {
-        account
+    val spoken = when {
+        showUnreachable -> stringResource(Res.string.common_clauses_join, account, stringResource(Res.string.online_unreachable_cd, name))
+        failure != null -> stringResource(Res.string.common_clauses_join, account, stringResource(Res.string.online_sign_in_failed_cd, failure))
+        else -> account
     }
 
     Card(modifier = modifier.fillMaxWidth()) {
@@ -156,6 +163,7 @@ fun OnlineAccountCard(
                         }
                         if (lastSaved != null) Text(stringResource(Res.string.online_last_saved, lastSaved))
                         if (showUnreachable) Text(stringResource(Res.string.online_unreachable, name))
+                        if (failure != null) Text(stringResource(Res.string.online_sign_in_failed, failure), color = MaterialTheme.colorScheme.error)
                     }
                 },
                 modifier = Modifier.weight(1f).clearAndSetSemantics {
@@ -171,7 +179,7 @@ fun OnlineAccountCard(
             } else {
                 TextButton(
                     onClick = { scope.launch { services.signIn() } },
-                    enabled = state == GameServicesState.SignedOut,
+                    enabled = state is GameServicesState.SignedOut,
                     modifier = Modifier.padding(end = 8.dp),
                 ) {
                     Text(stringResource(Res.string.online_sign_in))

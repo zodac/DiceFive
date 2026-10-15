@@ -664,6 +664,8 @@
     <string name="online_signed_in_saved_cd">%1$s، تم تسجيل الدخول باسم %2$s، آخر حفظ: %3$s</string>
     <string name="online_unreachable">تعذّر الاتصال بـ %1$s - ستتم إعادة المحاولة</string>
     <string name="online_unreachable_cd">تعذّر الاتصال بـ %1$s، ستتم إعادة المحاولة</string>
+    <string name="online_sign_in_failed">تعذّر تسجيل الدخول: %1$s</string>
+    <string name="online_sign_in_failed_cd">تعذّر تسجيل الدخول: %1$s</string>
     <string name="online_sync_progress">%1$s (%2$d/%3$d)</string>
     <string name="online_sync_step_downloading">جارٍ تنزيل تقدّمك</string>
     <string name="online_sync_step_achievements">جارٍ دمج الإنجازات</string>

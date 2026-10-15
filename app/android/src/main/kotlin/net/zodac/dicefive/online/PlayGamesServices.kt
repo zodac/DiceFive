@@ -53,7 +53,8 @@ import net.zodac.dicefive.model.Achievement
  * from Settings ([signIn]). From then on it starts with the app, in `Application.onCreate` as Google requires, and
  * signs in again quietly, until [signOut]. That choice is kept in SharedPreferences ([START_AT_LAUNCH_KEY]), read
  * there and then: DataStore's read would start the SDK only after the first Activity, too late for its sign-in. None of the calls throws: a failure leaves the player signed out, and is logged
- * under [LOG_TAG] with Google's status code. Every call has a timeout, bar the two that wait for the player to pick
+ * under [LOG_TAG] with Google's status code. A sign-in that fails also carries its first failure's message in
+ * [GameServicesState.SignedOut], for the Settings card to show. Every call has a timeout, bar the two that wait for the player to pick
  * an account.
  *
  * Achievements are mirrored and scores posted ([OnlineSync] decides what to send), by [playAchievementIds] and
@@ -73,13 +74,16 @@ class PlayGamesServices private constructor(private val application: Application
     private var sdkStarted = false
     private var refreshWhenAttached = false
 
+    /** The first failure since this sign-in began, which a sign-in that ends signed out shows on the Settings card. */
+    private var signInFailure: String? = null
+
     init {
         if (preferences.getBoolean(START_AT_LAUNCH_KEY, false)) {
             startSdk()
             // Who is signed in is asked once there's an Activity to ask with.
             refreshWhenAttached = true
         } else {
-            mutableState.value = GameServicesState.SignedOut
+            mutableState.value = GameServicesState.SignedOut()
         }
     }
 
@@ -98,6 +102,7 @@ class PlayGamesServices private constructor(private val application: Application
         )
         if (refreshWhenAttached) {
             refreshWhenAttached = false
+            signInFailure = null
             scope.launch { refresh() }
         }
     }
@@ -105,6 +110,7 @@ class PlayGamesServices private constructor(private val application: Application
     override suspend fun signIn() {
         val activity = activity?.get() ?: return
         mutableState.value = GameServicesState.SigningIn
+        signInFailure = null
         startSdk()
         val result = PlayGames.getGamesSignInClient(activity).signIn().awaitOrNull("signIn", timeoutMillis = null)
         if (result?.isAuthenticated == false) failed("signIn: not authenticated")
@@ -115,7 +121,7 @@ class PlayGamesServices private constructor(private val application: Application
     /** The SDK stays signed in until the app next starts, but nothing here uses it, and it isn't started again. */
     override suspend fun signOut() {
         setStartAtLaunch(false)
-        mutableState.value = GameServicesState.SignedOut
+        mutableState.value = GameServicesState.SignedOut()
     }
 
     private fun setStartAtLaunch(start: Boolean) {
@@ -134,7 +140,7 @@ class PlayGamesServices private constructor(private val application: Application
         if (!authenticated) failed("isAuthenticated: not authenticated")
         val player = if (authenticated) PlayGames.getPlayersClient(activity).currentPlayer.awaitOrNull("getCurrentPlayer") else null
         if (player == null) {
-            mutableState.value = GameServicesState.SignedOut
+            mutableState.value = GameServicesState.SignedOut(failure = signInFailure ?: "getCurrentPlayer: no player")
             return
         }
         val account = OnlineAccount(displayName = player.displayName, avatar = null, accountKey = accountKey(player.playerId))
@@ -176,6 +182,7 @@ class PlayGamesServices private constructor(private val application: Application
 
     private fun failed(message: String, cause: Throwable? = null) {
         Log.w(LOG_TAG, message, cause)
+        if (signInFailure == null) signInFailure = message
     }
 
     override fun mirrors(achievementId: String): Boolean = achievementId in playIdsById
