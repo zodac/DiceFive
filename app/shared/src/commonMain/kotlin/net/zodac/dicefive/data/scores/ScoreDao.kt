@@ -2,6 +2,7 @@ package net.zodac.dicefive.data.scores
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 
@@ -127,9 +128,9 @@ interface ScoreDao {
     )
     suspend fun playerGames(): List<PlayerGame>
 
-    /** Hides [playerName] from the Statistics screen - see [DismissedPlayerStats]. */
-    @Query("INSERT OR REPLACE INTO dismissed_player_stats (playerName) VALUES (:playerName)")
-    suspend fun dismissPlayer(playerName: String)
+    /** Hides [playerName] from the Statistics screen, as of [atEpochMillis] - see [DismissedPlayerStats]. */
+    @Query("INSERT OR REPLACE INTO dismissed_player_stats (playerName, dismissedAtEpochMillis) VALUES (:playerName, :atEpochMillis)")
+    suspend fun dismissPlayer(playerName: String, atEpochMillis: Long)
 
     /** Un-hides [playerName] from the Statistics screen, if they were dismissed. */
     @Query("DELETE FROM dismissed_player_stats WHERE playerName = :playerName COLLATE NOCASE")
@@ -142,4 +143,57 @@ interface ScoreDao {
     /** Wipes every per-player Statistics dismissal, so `clearAllScores` starts from a clean slate. */
     @Query("DELETE FROM dismissed_player_stats")
     suspend fun clearAllDismissals()
+
+    /** Every recorded row, for the cloud save. */
+    @Query("SELECT * FROM scores")
+    suspend fun allScores(): List<ScoreEntry>
+
+    /** Every Statistics dismissal, for the cloud save. */
+    @Query("SELECT * FROM dismissed_player_stats")
+    suspend fun allDismissals(): List<DismissedPlayerStats>
+
+    /** Adds the rows whose [ScoreEntry.uuid] this device doesn't have yet; one it has is left as it is. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertMissing(entries: List<ScoreEntry>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun putDismissals(dismissals: List<DismissedPlayerStats>)
+
+    /** Drops every row from a game played at or before [epochMillis] - a Reset leaderboard made then, on any device. */
+    @Query("DELETE FROM scores WHERE timestampEpochMillis <= :epochMillis")
+    suspend fun deleteScoresThrough(epochMillis: Long)
+
+    @Query("DELETE FROM dismissed_player_stats WHERE dismissedAtEpochMillis <= :epochMillis")
+    suspend fun deleteDismissalsThrough(epochMillis: Long)
+
+    /** Drops each dismissal that a later game under the same name (ignoring case) has undone, wherever it was played. */
+    @Query(
+        """
+        DELETE FROM dismissed_player_stats WHERE EXISTS (
+            SELECT 1 FROM scores
+            WHERE scores.playerName = dismissed_player_stats.playerName COLLATE NOCASE
+                AND scores.timestampEpochMillis > dismissed_player_stats.dismissedAtEpochMillis
+        )
+        """,
+    )
+    suspend fun deleteUndoneDismissals()
+
+    /**
+     * Merges the cloud save's scores into this device's, in one transaction: drops what a reset at [resetAtEpochMillis]
+     * cleared (0: none), adds the [entries] this device lacks, keeps the later of each name's dismissals, then drops any
+     * a later game has undone - the rules [net.zodac.dicefive.online.CloudSaveMerge] merges two saves by.
+     */
+    @Transaction
+    suspend fun mergeCloud(resetAtEpochMillis: Long, entries: List<ScoreEntry>, dismissals: List<DismissedPlayerStats>) {
+        if (resetAtEpochMillis > 0) {
+            deleteScoresThrough(resetAtEpochMillis)
+            deleteDismissalsThrough(resetAtEpochMillis)
+        }
+        insertMissing(entries.filter { it.timestampEpochMillis > resetAtEpochMillis }.map { it.copy(id = 0) })
+        val local = allDismissals().associate { it.playerName to it.dismissedAtEpochMillis }
+        putDismissals(
+            dismissals.filter { it.dismissedAtEpochMillis > resetAtEpochMillis && it.dismissedAtEpochMillis > (local[it.playerName] ?: Long.MIN_VALUE) },
+        )
+        deleteUndoneDismissals()
+    }
 }

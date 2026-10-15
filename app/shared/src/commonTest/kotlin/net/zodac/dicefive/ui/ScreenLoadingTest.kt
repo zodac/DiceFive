@@ -24,6 +24,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.scores.DismissedPlayerStats
 import net.zodac.dicefive.data.scores.PlayerGame
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreEntry
@@ -66,10 +67,17 @@ private class GatedEmptyScoreDao : ScoreDao {
     override suspend fun primaryPlayerGameModeIds(): List<String> = gate.await().let { emptyList() }
     override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
     override suspend fun playerGames(): List<PlayerGame> = gate.await().let { emptyList() }
-    override suspend fun dismissPlayer(playerName: String) = Unit
+    override suspend fun dismissPlayer(playerName: String, atEpochMillis: Long) = Unit
     override suspend fun clearDismissal(playerName: String) = Unit
     override suspend fun clearAllScores() = Unit
     override suspend fun clearAllDismissals() = Unit
+    override suspend fun allScores(): List<ScoreEntry> = emptyList()
+    override suspend fun allDismissals(): List<DismissedPlayerStats> = emptyList()
+    override suspend fun insertMissing(entries: List<ScoreEntry>) = Unit
+    override suspend fun putDismissals(dismissals: List<DismissedPlayerStats>) = Unit
+    override suspend fun deleteScoresThrough(epochMillis: Long) = Unit
+    override suspend fun deleteDismissalsThrough(epochMillis: Long) = Unit
+    override suspend fun deleteUndoneDismissals() = Unit
 }
 
 private class LoadingAchievementStore : AchievementStore {

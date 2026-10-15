@@ -1,6 +1,6 @@
 # DiceFive: Google Play Games Services v2 - plan
 
-**Status: Phases 1-4 are done; Phase 5 (cloud save) is next.** Phase 1 covers the seam, `GameMode.onlineLeaderboardKey`, the
+**Status: Phases 1-5 are done; Phase 6 (Sidekick and release) is next.** Phase 1 covers the seam, `GameMode.onlineLeaderboardKey`, the
 `online` DataStore, the Settings card (hidden while the service is unavailable), and `ScoreEntry.playedUnmodified`.
 - Phase 0's minimum is done: the PGS project (APP_ID `308613893005`), the consent screen and an Android credential.
 - Phase 2 is done: the SDK, `DiceFiveApplication`, the `APP_ID` meta-data and
@@ -15,6 +15,9 @@
   `OnlineSync.reconcile` posts each mode's best unposted score (per account, a high-water mark of when the newest
   posted game was played, moved only once Play takes it), each Game Mode card has a Global button, and the Reset
   leaderboard confirmation says Play keeps its scores. Checked on a real phone.
+- Phase 5 is done: Room v2 (`uuid`), stamped settings and in-progress writes, per-install counter shares,
+  `CloudSave`/`CloudSaveMerge`/`CloudSaveCodec`/`LocalCloudSave`, the Snapshots transport, "Last saved", the retry line,
+  and the sign-in sync's progress on the Settings card. Checked by the maintainer on real devices.
 - This file is the one source on the subject: where another doc disagrees, follow this one.
 
 > **The work isn't complete while a decision is Deferred.** A deferred decision blocks the phase named in "Decisions".
@@ -52,8 +55,9 @@ The same pattern as `PlatformServices`:
 
 ```
 app/shared/.../online/        GameServices.kt (interface + GameServicesState), NoGameServices.kt,
-                              OnlineSync.kt (reconciler), CloudSaveCodec.kt (stores <-> versioned JSON+gzip blob),
-                              CloudSaveMerge.kt (pure, fully tested)          - nothing here names Google or Apple
+                              OnlineSync.kt (reconciler), CloudSave.kt (the save + CloudSaveMerge, pure, fully tested),
+                              CloudSaveCodec.kt (versioned JSON+gzip blob), CloudSaveStore.kt (LocalCloudSave: stores <-> save)
+                                                                              - nothing here names Google or Apple
 app/shared/.../ui/settings/OnlineAccountCard.kt   labelled by the service's own name
 app/android/.../online/       PlayGamesServices.kt, PlayGamesIds.kt, res/values/games-ids.xml  - the only gms.games imports
 app/shared/src/iosMain/.../online/   (later) GameCenterServices
@@ -68,8 +72,8 @@ interface GameServices {
     suspend fun unlock(achievementId: String)
     suspend fun setProgress(achievementId: String, steps: Int)   // forward-only, idempotent
     suspend fun submitScore(leaderboardKey: String, score: Long)
-    suspend fun readCloudSave(): ByteArray?
-    suspend fun writeCloudSave(data: ByteArray, merge: (local: ByteArray, remote: ByteArray) -> ByteArray)
+    suspend fun readCloudSave(merge: (local: ByteArray, remote: ByteArray) -> ByteArray): CloudSaveRead  // Found | Empty | Failed
+    suspend fun writeCloudSave(data: ByteArray, merge: (local: ByteArray, remote: ByteArray) -> ByteArray): ByteArray?  // what was committed
     val canShowAchievementsUi: Boolean;  fun showAchievementsUi()
     val canShowLeaderboardUi: Boolean;   fun showLeaderboardUi(leaderboardKey: String?)
 }
@@ -108,7 +112,8 @@ data class OnlineAccount(val displayName: String, val avatar: ImageBitmap?, val 
 - **Sign out (decided)** replaces the old "Use Google Play Games on this device" switch. v2 has no sign-out API, so it
   is ours: it clears `signed_in` and stops every call. The SDK stays signed in until the app next starts, unused, and
   isn't started again. The account itself is untouched.
-- **The gamer name appears only on the Settings card** ("Signed in as <name>").
+- **The gamer name appears only on the Settings card**: on its own, in the brand gold (`primary`), at 15sp - a size up
+  from the lines under it, one below the service's name (maintainer's choice). TalkBack still hears "signed in as".
   - It **never** touches seat 1's name, so the name cap stays a pure layout rule.
   - It's sanitised (`sanitizePlayerName`) and ellipsised, not capped, on its own row of up to two lines.
   - TalkBack hears the full name: "Google Play Games, signed in as <full name>".
@@ -125,11 +130,11 @@ data class OnlineAccount(val displayName: String, val avatar: ImageBitmap?, val 
   - The first account to sync, or the same one again, **merges** with the device: progress made signed out goes up
     (Google's guidance).
   - A **different** account **wipes** the device's synced data and restores its own. Today that's achievements and
-    their counters (as Reset achievements does); with cloud save (Phase 5), everything in the save. The last account's
-    data is already online and returns when it signs in again. Nothing is wiped until the service has answered.
+    their counters (as Reset achievements does), then everything else in the cloud save (scores, synced settings, the
+    game in progress; `CloudSaveStore.wipe`, which sets no reset marker). The last account's data is already online and
+    returns when it signs in again. Nothing is wiped until the service has answered, about the save too.
   - Signing out wipes nothing: local state carries on, and merges into the next sign-in if it's the same account.
-  - Accepted: anything the last account hadn't yet sent is lost on a switch; local scores (not synced until Phase 5)
-    still count towards the score-band achievements.
+  - Accepted: anything the last account hadn't yet sent is lost on a switch.
   - No prompt. Sign in always uses Play's default account; changing it happens in Play Games' own settings.
 - **Local → Play** happens always, in reconcile only. That includes achievements earned before linking.
 - **Play → local** happens on sign-in. Play-unlocked but locally locked achievements unlock quietly, with today's time
@@ -168,8 +173,7 @@ data class OnlineAccount(val displayName: String, val avatar: ImageBitmap?, val 
 - **The backlog (decided: yes).** On an account's first link on a device, submit seat 1's best score per mode:
   - rows with `isPrimaryPlayer` and `playedUnmodified` (`onLeaderboard` can't answer it for always-off modes, which is
     why that column exists);
-  - after the first cloud merge, if cloud save is on;
-  - also on a "Link" from the switch prompt ("Separate" submits nothing);
+  - after the cloud save's merge, so rows from the account's other devices go up too (Play keeps each player's best);
   - recorded per account in the `online` store;
   - skipping any row over `maxPossibleScore`.
 
@@ -186,28 +190,48 @@ data class OnlineAccount(val displayName: String, val avatar: ImageBitmap?, val 
 
 ## 4. Cloud save
 
-There's one snapshot, `dicefive-progress`: versioned JSON, gzipped.
+There's one snapshot, `dicefive-progress` (`CloudSaveCodec.SNAPSHOT_NAME`, permanent): versioned JSON, gzipped (okio,
+already in the APK through DataStore).
 
 | Data | In the save? | Merge |
 |---|---|---|
 | Achievement unlocks | Yes | Union; the earliest timestamp wins |
-| Achievement counters | Yes, **per device** | G-counter: the sum across devices |
-| Win streak | Yes | From the device that finished a game most recently |
-| Scores | Yes | Union of rows by a new `ScoreEntry.uuid` (a Room migration from v1) |
-| Dismissed stats cards | Yes | Union |
-| Style picks, New Game setup | Yes | Last writer wins per key (timestamps in a side map) |
-| Sound, vibration, animation level, page fit, confirm-leaving | **No** (per device) | - |
-| In-progress game | **Yes (decided)** | Newest wins; an older unfinished game is lost |
+| Achievement counters | Yes, **per device** | `CounterMerge` on each counter. `SUM`: each share, added up. A share is one install's count from its last reset on (`counter_share_id`, in the achievements file, so a reset starts a new one); this one is the total less the other shares, kept in `counter_shares`. `FLAGS` (5x numbers): union |
+| Win streak | Yes | `LATEST`: from the device that finished a game most recently (`counter_at_WIN_STREAK`) |
+| Scores | Yes | Union of rows by `ScoreEntry.uuid` (Room v2) |
+| Dismissed stats cards | Yes | Union, the later dismissal kept; dropped once a later game under the name (any case) is in the save |
+| Style picks, New Game setup, sound, vibration, confirm-leaving | Yes (sound, vibration and confirm-leaving **decided: account state**, by the maintainer after testing) | Last writer wins per key (`synced_at:<key>` stamps, set only when a value changes; an unset key travels too). A value set before stamps existed is stamped 0 and beats one never set, so it travels at the first sync |
+| Animations level, Styles page fit | **No (decided)**: about the device - what it can draw, and its screen | - |
+| In-progress game | **Yes (decided)** | Newest wins (`saved_at`, stamped on save and on clear); an older unfinished game is lost. One this app can't read is never taken |
 
-- **Merge automatically; don't pick a save.** The data is facts, so nothing needs throwing away.
-  - The only prompt comes on the first link when both the device and the cloud have progress: "**Combine** / **Use
-    only the saved progress** / **Not now**", recommending Combine.
-- **Resets travel too.** Each store carries a **reset marker** timestamp, and merges drop anything older.
-- **When it syncs.**
-  - Read and merge on sign-in and app start.
-  - Write after a game, after a Styles change (debounced), and on going to the background.
+- **Merge automatically; don't pick a save. No prompt (decided).** The data is facts, so nothing needs throwing away.
+  The first account (or the same again) merges; a different one wipes and restores (section 1).
+- **Ids, not enums.** The save holds ids as strings, so an achievement, counter or setting a newer app added is carried
+  through an older app's merge, not dropped.
+- **Versions.** Every format is gzipped JSON with a top-level `version`; fields are only added within one. An app reads
+  a newer version's fields it knows (merging them in) but **never writes over it** (`CloudSave.writableHere`; a merge
+  keeps the higher version). A save that can't be read at all (corrupt) is replaced by this device's.
+- **Resets.**
+  - **Reset leaderboard travels**: `scores_reset_at` in the `online` store, the later of each copy's, and merges drop
+    every score and dismissal at or before it, on every device.
+  - **Reset achievements doesn't travel (decided)**: no marker, so the same account's next sync brings back unlocks and
+    counters, as Play brings back its unlocks, on top of anything counted since (the reset started a new share). The
+    style picks it reset are unstamped, so the cloud's come back too.
+- **Targets reached together.** After a merge, `AchievementEngine.evaluateProgress` unlocks (quietly, then mirrored, so
+  Play's pop-up announces it) anything the combined totals reach: a counter, a score band, career points, every mode.
+- **When it syncs.** Every `OnlineSync.reconcile`: read, merge in, then write the union back only if this device added
+  anything - before posting scores, so a sync started by going to the background saves first. That's on sign-in and
+  app start, after a game, on leaving the game screen part-way through, 5s after the last synced-setting change (a
+  Styles pick), on going to the background (`ON_STOP`) and on coming back (`ON_START`). No polling: a device sees
+  another's changes at its own next trigger, so handing over is "put one down, pick the other up".
+  - The write opens the snapshot again and merges with whatever another device committed since the read; the result
+    is merged in here too.
   - Conflicts use `RESOLUTION_POLICY_MANUAL` → `CloudSaveMerge`, retrying up to 10 times.
-- **Size.** ~120 bytes per score row before gzip. A test pins a 20,000-game save under 1.5 MB.
+  - "Last saved" (`cloud_saved:<account>`) is when the save last matched this device, written or not.
+  - "Couldn't reach Google Play Games - will retry" shows on the card while the last sync failed to reach Play for
+    achievements or the save (`OnlineSync.unreachable`).
+  - Superuser mode stops it entirely, as it stops the mirror.
+- **Size.** Measured: 20,000 games gzip to about 637 KB (~32 bytes a game); a test pins it under 1.5 MB.
 - **iOS** shares the blob and merge, over `GKSavedGame` or iCloud key-value storage (1 MB).
 - **Android backup** (`allowBackup`) already restores one device. Cloud save adds simultaneous devices.
 
@@ -235,9 +259,20 @@ tools. We don't build it.
 No new menu button: the menu is full, and adding one would move existing elements.
 
 1. **Settings, a card at the top**, titled `serviceName` (never "Google" in shared UI).
-   - Avatar, then "Signed in as <name>" with **Sign out**, or "Not signed in" with **Sign in**, the button on the
+   - Avatar, then the gold gamer name with **Sign out**, or "Not signed in" with **Sign in**, the button on the
      header's row.
+   - **Sign out waits for the sign-in's sync (maintainer's request).** While signing in, and until that sync has
+     finished (got through or not: `OnlineSync.signInSynced`, cleared on signing out), the button stays **Sign in**,
+     greyed and disabled.
    - No switches. **Cloud save is always on while signed in (decided)**; "Last saved <time>" shows under the header.
+   - **While a sign-in's sync runs** (`OnlineSync.progress`; the quiet syncs after it show nothing), a full-width
+     block under the header names the step and how far through it is ("Merging scores (5/7)"), after a spinner (a
+     still sync icon under reduced motion) and above a progress bar that glides 400ms from step to step (snapping
+     under reduced motion). The seven steps (`SyncStep`), in the maintainer's order: downloading, settings, the game
+     in progress, achievements (with Play's unlocks restored), scores (then any target the merged totals reach),
+     uploading, leaderboard scores. The merges go by in a blink; the download and upload take the time. TalkBack
+     hears the step in the heading ("..., Merging scores, step 5 of 7"); the block itself is hidden from it. The
+     maintainer asked for it, after testing, so a sign-in doesn't look finished while it isn't.
    - A quiet error line ("Couldn't reach Google Play Games - will retry").
    - Hidden when `Unavailable`.
 2. **Achievements**: "View in Google Play Games" takes Reset achievements' place in Settings while signed in.
@@ -308,12 +343,15 @@ Game Center work later uses `[iOS]`.
   - Create 7 boards (limits from `maxPossibleScore`, tamper protection on), from the exported sheet and icons.
   - Submit after each game, plus the backlog on first link (built as `OnlineSync`'s high-water mark; section 3).
   - The "Global leaderboard" actions, the new step in `GAME_MODES.md`'s checklist, and the Reset leaderboard wording.
-- **Phase 5: cloud save.**
-  - Room v2 (`uuid`, a migration and the exported schema), timestamped settings writes, and per-device counters.
+- **Phase 5: cloud save. Done.**
+  - Room v2 (`uuid`, `MIGRATION_1_2`, the exported schema, a Robolectric migration test), timestamped settings and
+    in-progress writes, and per-device counter shares.
   - The codec and merge, tested for: union, G-counter sums, streak recency, last writer wins, reset markers, and a newer
-    blob read safely by an older app.
-  - The transport, the Combine prompt, and "Last saved".
-  - Test on two devices, including offline edits on both.
+    blob read safely by an older app (`CloudSaveMergeTest`, `CloudSaveCodecTest`, `OnlineSyncTest`, the stores' own).
+  - The transport (`PlayGamesServices`: Snapshots, manual conflicts), "Last saved" and the retry line. No Combine
+    prompt (decided).
+  - The sign-in sync's progress on the card, with Sign in held disabled until it ends, and the gold gamer name.
+  - Checked by the maintainer across devices. Saved Games is on in Play Console (Phase 0, step 5).
 - **Phase 6: Sidekick and release.**
   - `sidekick_config.xml`, and the bundle upload path.
   - Publish the achievements and boards.
@@ -400,6 +438,8 @@ string, a unique icon and an aggregation (LU-GS-GAC).
 | 14 | Cloud save switch | **Decided: none**; cloud save is always on while signed in | Phase 2 |
 | 15 | Styles behind one achievement | **Decided: they get a styles banner too** (as count locks do), whether or not signed in, so the reward still shows when Play's pop-up replaces the unlock banner | Phase 3 |
 | 16 | Another account signing in | **Decided: wipe the synced data and restore that account's**; the first account (or the same again) merges; no prompt; nothing wiped on sign-out | Phase 3 |
+| 17 | First-link Combine prompt | **Decided: none.** Every sync merges (a different account wipes and restores, per 16) | Phase 5 |
+| 18 | Reset achievements while signed out | **Decided: doesn't travel.** No marker; the same account's next sync restores unlocks and counters | Phase 5 |
 
 **Still deferred: 8a.**
 

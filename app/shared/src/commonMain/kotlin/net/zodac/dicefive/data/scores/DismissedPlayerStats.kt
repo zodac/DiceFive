@@ -12,4 +12,9 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "dismissed_player_stats")
 data class DismissedPlayerStats(
     @PrimaryKey val playerName: String,
+    /**
+     * When the card was dismissed. A game under the name recorded after this shows the card again, on whichever device
+     * it was played - the cloud save drops a dismissal older than the name's newest game.
+     */
+    val dismissedAtEpochMillis: Long = 0,
 )

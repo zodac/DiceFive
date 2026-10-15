@@ -19,12 +19,17 @@ import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.images.ImageManager
+import com.google.android.gms.games.GamesClientStatusCodes
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.PlayGamesSdk
+import com.google.android.gms.games.SnapshotsClient
 import com.google.android.gms.games.achievement.Achievement as PlayAchievement
+import com.google.android.gms.games.snapshot.Snapshot
+import com.google.android.gms.games.snapshot.SnapshotMetadataChange
 import com.google.android.gms.tasks.Task
 import java.lang.ref.WeakReference
 import java.security.MessageDigest
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +39,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import net.zodac.dicefive.BuildConfig
 import net.zodac.dicefive.model.Achievement
@@ -51,7 +57,8 @@ import net.zodac.dicefive.model.Achievement
  * an account.
  *
  * Achievements are mirrored and scores posted ([OnlineSync] decides what to send), by [playAchievementIds] and
- * [playLeaderboardIds]. Saved games are a later phase of `.claude/PLAY_GAMES.md`, and do nothing until then.
+ * [playLeaderboardIds]. The cloud save is one Saved Games snapshot ([CloudSaveCodec.SNAPSHOT_NAME]), opened with
+ * manual conflict resolution: two copies in conflict are merged, never one picked ([openSave]).
  */
 class PlayGamesServices private constructor(private val application: Application) : GameServices {
 
@@ -148,17 +155,23 @@ class PlayGamesServices private constructor(private val application: Application
     }
 
     /** The task's result, or null if it failed or took longer than [timeoutMillis] (null: no limit). */
-    private suspend fun <T> Task<T>.awaitOrNull(call: String, timeoutMillis: Long? = TIMEOUT_MILLIS): T? {
-        val await: suspend () -> T? = {
+    private suspend fun <T> Task<T>.awaitOrNull(call: String, timeoutMillis: Long? = TIMEOUT_MILLIS): T? =
+        awaitResult(call, timeoutMillis).getOrNull()
+
+    /** The task's result, or why it failed: its exception, or a timeout after [timeoutMillis] (null: no limit). */
+    private suspend fun <T> Task<T>.awaitResult(call: String, timeoutMillis: Long? = TIMEOUT_MILLIS): Result<T> {
+        val await: suspend () -> Result<T> = {
             suspendCancellableCoroutine { continuation ->
                 addOnCompleteListener { task ->
                     if (!task.isSuccessful) failed("$call failed: ${describe(task.exception)}", task.exception)
-                    continuation.resume(if (task.isSuccessful) task.result else null)
+                    continuation.resume(
+                        if (task.isSuccessful) Result.success(task.result) else Result.failure(task.exception ?: IllegalStateException(call)),
+                    )
                 }
             }
         }
         if (timeoutMillis == null) return await()
-        return withTimeoutOrNull(timeoutMillis) { await() } ?: null.also { failed("$call timed out") }
+        return withTimeoutOrNull(timeoutMillis) { await() } ?: Result.failure<T>(IllegalStateException("$call timed out")).also { failed("$call timed out") }
     }
 
     private fun failed(message: String, cause: Throwable? = null) {
@@ -211,9 +224,92 @@ class PlayGamesServices private constructor(private val application: Application
         return PlayGames.getLeaderboardsClient(activity).submitScoreImmediate(playId, score).awaitOrNull("submitScore") != null
     }
 
-    override suspend fun readCloudSave(): ByteArray? = null
+    /** The snapshot's bytes, opened only to read: [CloudSaveRead.Empty] if the account has none yet. */
+    override suspend fun readCloudSave(merge: (local: ByteArray, remote: ByteArray) -> ByteArray): CloudSaveRead =
+        orOnThrow("readCloudSave", CloudSaveRead.Failed) { readSave(merge) }
 
-    override suspend fun writeCloudSave(data: ByteArray, merge: (local: ByteArray, remote: ByteArray) -> ByteArray) = Unit
+    private suspend fun readSave(merge: (local: ByteArray, remote: ByteArray) -> ByteArray): CloudSaveRead {
+        val activity = signedInActivity() ?: return CloudSaveRead.Failed
+        val client = PlayGames.getSnapshotsClient(activity)
+        val snapshot = openSave(client, createIfNotFound = false, merge).getOrElse { error ->
+            val notFound = (error as? ApiException)?.statusCode == GamesClientStatusCodes.SNAPSHOT_NOT_FOUND
+            return if (notFound) CloudSaveRead.Empty else CloudSaveRead.Failed
+        }
+        val bytes = snapshot.bytes()
+        client.discardAndClose(snapshot).awaitOrNull("discardSnapshot")
+        return when {
+            bytes == null -> CloudSaveRead.Failed
+            bytes.isEmpty() -> CloudSaveRead.Empty
+            else -> CloudSaveRead.Found(bytes)
+        }
+    }
+
+    /** Commits [data], merged with what the snapshot holds by now if that differs; nothing is committed if it already holds it all. */
+    override suspend fun writeCloudSave(data: ByteArray, merge: (local: ByteArray, remote: ByteArray) -> ByteArray): ByteArray? =
+        orOnThrow("writeCloudSave", null) { writeSave(data, merge) }
+
+    private suspend fun writeSave(data: ByteArray, merge: (local: ByteArray, remote: ByteArray) -> ByteArray): ByteArray? {
+        val activity = signedInActivity() ?: return null
+        val client = PlayGames.getSnapshotsClient(activity)
+        val snapshot = openSave(client, createIfNotFound = true, merge).getOrNull() ?: return null
+        val current = snapshot.bytes()
+        val final = when {
+            current == null -> null
+            current.isEmpty() || current.contentEquals(data) -> data
+            else -> withContext(Dispatchers.Default) { merge(data, current) }
+        }
+        return when {
+            final == null || final.contentEquals(current) -> final.also { client.discardAndClose(snapshot).awaitOrNull("discardSnapshot") }
+            !withContext(Dispatchers.IO) { snapshot.snapshotContents.writeBytes(final) } ->
+                null.also { client.discardAndClose(snapshot).awaitOrNull("discardSnapshot") }
+            else -> final.takeIf { client.commitAndClose(snapshot, SnapshotMetadataChange.EMPTY_CHANGE).awaitOrNull("commitSnapshot") != null }
+        }
+    }
+
+    /**
+     * Opens the save, settling any conflict Play reports (an offline commit against a newer one, say) by merging the
+     * two with [merge] - up to [MAX_CONFLICT_RESOLUTIONS] times, as each settling can meet another device's newer
+     * commit. The caller closes the snapshot.
+     */
+    private suspend fun openSave(
+        client: SnapshotsClient,
+        createIfNotFound: Boolean,
+        merge: (local: ByteArray, remote: ByteArray) -> ByteArray,
+    ): Result<Snapshot> {
+        var opened = client.open(CloudSaveCodec.SNAPSHOT_NAME, createIfNotFound, SnapshotsClient.RESOLUTION_POLICY_MANUAL)
+            .awaitResult("openSnapshot").getOrElse { return Result.failure(it) }
+        repeat(MAX_CONFLICT_RESOLUTIONS) {
+            val conflict = opened.conflictOrNull()
+                ?: return opened.data?.let { Result.success(it) } ?: Result.failure(IllegalStateException("openSnapshot: no snapshot"))
+            val remote = conflict.snapshot.bytes() ?: return Result.failure(IllegalStateException("conflict: unreadable"))
+            val local = conflict.conflictingSnapshot.bytes() ?: return Result.failure(IllegalStateException("conflict: unreadable"))
+            val resolved = withContext(Dispatchers.Default) { merge(local, remote) }
+            val contents = conflict.resolutionSnapshotContents
+            if (!withContext(Dispatchers.IO) { contents.writeBytes(resolved) }) return Result.failure(IllegalStateException("conflict: unwritable"))
+            opened = client.resolveConflict(conflict.conflictId, conflict.snapshot.metadata.snapshotId, SnapshotMetadataChange.EMPTY_CHANGE, contents)
+                .awaitResult("resolveConflict").getOrElse { return Result.failure(it) }
+        }
+        failed("openSnapshot: still in conflict after $MAX_CONFLICT_RESOLUTIONS resolutions")
+        return Result.failure(IllegalStateException("openSnapshot: unresolved conflict"))
+    }
+
+    /**
+     * [block], or [fallback] if Play's SDK throws instead of failing its task - as some of its getters do - so a
+     * surprise from it is a sync that didn't happen, retried next time, never a crash. Cancellation still cancels.
+     */
+    private suspend fun <T> orOnThrow(call: String, fallback: T, block: suspend () -> T): T = try {
+        block()
+    } catch (error: CancellationException) {
+        throw error
+    } catch (error: Exception) {
+        failed("$call threw", error)
+        fallback
+    }
+
+    /** The snapshot's contents, or null if they can't be read. */
+    private suspend fun Snapshot.bytes(): ByteArray? = withContext(Dispatchers.IO) {
+        runCatching { snapshotContents.readFully() }.onFailure { failed("readSnapshot failed", it) }.getOrNull()
+    }
 
     override val canShowAchievementsUi: Boolean
         get() = signedInActivity() != null
@@ -277,6 +373,7 @@ class PlayGamesServices private constructor(private val application: Application
 
         private const val PLAY_STORE_PACKAGE = "com.android.vending"
         private const val TIMEOUT_MILLIS = 15_000L
+        private const val MAX_CONFLICT_RESOLUTIONS = 10
         private const val AVATAR_SIZE_PX = 96
 
         /** Hashed into [OnlineAccount.accountKey], so this device never stores the raw player id. */
@@ -324,6 +421,9 @@ class PlayGamesServices private constructor(private val application: Application
             null -> "no reason given"
             else -> error.toString()
         }
+
+        /** The conflict, or null if there is none - asked first, as Play's own getConflict throws when there isn't one. */
+        internal fun <T> SnapshotsClient.DataOrConflict<T>.conflictOrNull(): SnapshotsClient.SnapshotConflict? = if (isConflict) conflict else null
 
         internal fun accountKey(playerId: String): String =
             MessageDigest.getInstance("SHA-256").digest((ACCOUNT_KEY_SALT + playerId).toByteArray())

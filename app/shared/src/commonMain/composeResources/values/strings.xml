@@ -764,8 +764,26 @@
     <!-- The online game service card on Settings (ui/settings/OnlineAccountCard.kt). %1$s is the service's own name, or the account's gamer name. -->
     <string name="online_signed_out">Not signed in</string>
     <string name="online_signing_in">Signing in...</string>
-    <string name="online_signed_in_as">Signed in as %1$s</string>
     <string name="online_signed_in_cd">%1$s, signed in as %2$s</string>
+    <!-- Under the account, once its cloud save has matched this device. %1$s is the time, in common_timestamp_pattern. -->
+    <string name="online_last_saved">Last saved %1$s</string>
+    <!-- The card read aloud once it has been saved: %1$s the service, %2$s the gamer name, %3$s the time of online_last_saved. -->
+    <string name="online_signed_in_saved_cd">%1$s, signed in as %2$s, last saved %3$s</string>
+    <!-- Under the account while the service couldn't be reached for the last sync; it is tried again at the next sync (a finished game, launch, leaving or coming back to the app). %1$s is the service; the no-break space before the dash keeps the dash off the start of a line. -->
+    <string name="online_unreachable">Couldn't reach %1$s - will retry</string>
+    <!-- online_unreachable read aloud, as the last clause of the card (joined with common_clauses_join). -->
+    <string name="online_unreachable_cd">couldn't reach %1$s, will retry</string>
+    <!-- In place of online_last_saved while the account's data is being synced, after a spinner and above a progress bar: %1$s is the step (one of online_sync_step_*), %2$d which step it is and %3$d how many there are. -->
+    <string name="online_sync_progress">%1$s (%2$d/%3$d)</string>
+    <string name="online_sync_step_downloading">Downloading your progress</string>
+    <string name="online_sync_step_achievements">Merging achievements</string>
+    <string name="online_sync_step_scores">Merging scores</string>
+    <string name="online_sync_step_settings">Merging settings</string>
+    <string name="online_sync_step_game">Merging the game in progress</string>
+    <string name="online_sync_step_uploading">Uploading your progress</string>
+    <string name="online_sync_step_leaderboards">Sending leaderboard scores</string>
+    <!-- The card read aloud while syncing: %1$s the service, %2$s the gamer name, %3$s the step (online_sync_step_*), %4$d which step it is and %5$d how many there are. -->
+    <string name="online_signed_in_syncing_cd">%1$s, signed in as %2$s, %3$s, step %4$d of %5$d</string>
     <string name="online_sign_in">Sign in</string>
     <string name="online_sign_out">Sign out</string>
     <string name="settings_sound">Sound effects</string>

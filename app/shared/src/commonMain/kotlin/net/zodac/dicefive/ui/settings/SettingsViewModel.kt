@@ -20,6 +20,8 @@ import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.online.OnlineSettingsRepository
+import net.zodac.dicefive.online.OnlineSyncRequests
 import net.zodac.dicefive.ui.achievements.AchievementUnlocker
 import net.zodac.dicefive.ui.game.style.StyleCategory
 
@@ -36,6 +38,8 @@ class SettingsViewModel(
     private val settingsRepository: SettingsRepository? = null,
     private val achievementsRepository: AchievementStore? = null,
     private val scoreRepository: ScoreRepository? = null,
+    private val onlineSettingsRepository: OnlineSettingsRepository? = null,
+    private val now: () -> Long = ::nowEpochMillis,
 ) : ViewModel() {
 
     /**
@@ -108,6 +112,9 @@ class SettingsViewModel(
      * files and are deliberately untouched. The one exception is the Styles picks: any saved pick
      * that the reset locks again goes back to its category's default, so earning the style a second
      * time doesn't quietly bring the old pick back. Picks that need no achievement are kept.
+     *
+     * Only on this device: nothing marks the reset for the cloud save, so the same account's next sync brings the
+     * achievements back, and the picks with them ([SettingsRepository.unstampStylePicks]).
      */
     fun resetAchievements() {
         val repository = achievementsRepository ?: return
@@ -122,6 +129,7 @@ class SettingsViewModel(
         for (category in StyleCategory.entries) {
             if (!category.catalog.isUnlocked(category.savedId(settings).first(), none)) category.saveId(settings, category.catalog.default.id)
         }
+        settings.unstampStylePicks()
     }
 
     /**
@@ -130,10 +138,17 @@ class SettingsViewModel(
      * Achievements measured live against the board (the score-collection ones) lose their progress
      * too, though their unlock timestamps live in the separate achievements DataStore and are
      * untouched.
+     *
+     * On every device of the synced account too: the reset is marked with its time, and the cloud save drops every score
+     * from before it ([OnlineSettingsRepository.scoresResetAt]). The online service's own leaderboards keep theirs.
      */
     fun resetLeaderboard() {
         val repository = scoreRepository ?: return
-        viewModelScope.launch { repository.resetLeaderboard() }
+        viewModelScope.launch {
+            onlineSettingsRepository?.setScoresResetAt(now())
+            repository.resetLeaderboard()
+            OnlineSyncRequests.request()
+        }
     }
 
     companion object {
@@ -149,6 +164,7 @@ class SettingsViewModel(
                     settingsRepository = container.settingsRepository,
                     achievementsRepository = container.achievementsRepository,
                     scoreRepository = container.scoreRepository,
+                    onlineSettingsRepository = container.onlineSettingsRepository,
                 )
             }
         }

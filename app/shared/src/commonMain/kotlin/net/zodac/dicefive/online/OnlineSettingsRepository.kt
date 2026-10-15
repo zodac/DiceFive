@@ -13,8 +13,8 @@ import kotlinx.coroutines.flow.map
 /**
  * What this device has chosen about the online service, in a file of its own
  * ([net.zodac.dicefive.data.PreferencesFile.ONLINE]) so no reset button touches it: which account this
- * device last synced with, whether its achievements may be mirrored at all, and how far each account's scores have
- * been posted.
+ * device last synced with, whether its achievements may be mirrored at all, how far each account's scores have
+ * been posted, and the cloud save's bookkeeping.
  */
 class OnlineSettingsRepository(private val dataStore: DataStore<Preferences>) {
 
@@ -47,7 +47,28 @@ class OnlineSettingsRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[scoresPostedKey(accountKey, leaderboardKey)] = timestampEpochMillis }
     }
 
+    /**
+     * When the leaderboard was last reset (0: never), here or on another device of the synced account. The cloud save
+     * drops every score from before it, on every device.
+     */
+    suspend fun scoresResetAt(): Long = dataStore.data.first()[SCORES_RESET_AT_KEY] ?: 0
+
+    suspend fun setScoresResetAt(epochMillis: Long) {
+        dataStore.edit { it[SCORES_RESET_AT_KEY] = epochMillis }
+    }
+
+    /** When [accountKey]'s cloud save last matched this device ("Last saved"), or null if it never has. */
+    fun cloudSavedAt(accountKey: String): Flow<Long?> = dataStore.data.map { it[cloudSavedKey(accountKey)] }
+
+    suspend fun setCloudSavedAt(accountKey: String, epochMillis: Long) {
+        dataStore.edit { it[cloudSavedKey(accountKey)] = epochMillis }
+    }
+
     private companion object {
+        fun cloudSavedKey(accountKey: String) = longPreferencesKey("cloud_saved:$accountKey")
+
+        val SCORES_RESET_AT_KEY = longPreferencesKey("scores_reset_at")
+
         fun scoresPostedKey(accountKey: String, leaderboardKey: String) = longPreferencesKey("scores_posted:$accountKey:$leaderboardKey")
 
         val MIRRORING_BLOCKED_KEY = booleanPreferencesKey("mirroring_blocked")

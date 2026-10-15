@@ -177,18 +177,25 @@ Everything is in app-private storage. **Every stored id is permanent once releas
 will map to Play Games.
 
 - **Scores.**
-  - Room, `dicefive.db`, `AppDatabase` version 1, with its schema exported to `app/shared/schemas/`.
+  - Room, `dicefive.db`, `AppDatabase` version 2, with each version's schema exported to `app/shared/schemas/`.
+    Version 2 (`MIGRATION_1_2`) added `uuid` and `dismissedAtEpochMillis` for the cloud save.
   - Tables:
     - `scores` (`ScoreEntry`): name, score, time, `won` (null for a solo game), `isPrimaryPlayer`, the tie-break stats,
-      `onLeaderboard`, `gameModeId` and `playedUnmodified`. Every column but `won` is NOT NULL.
-    - `dismissed_player_stats`.
+      `onLeaderboard`, `gameModeId`, `playedUnmodified` and a unique random `uuid` (a row's id across devices). Every
+      column but `won` is NOT NULL.
+    - `dismissed_player_stats`: name and when it was dismissed.
   - Every schema change needs a version bump and a migration. There is **deliberately no destructive fallback**: a
     missing migration must fail loudly, never wipe scores.
 - **Preferences.** Four DataStore files (`PreferencesFile`), kept apart so a reset can clear one:
-  - `settings`.
-  - `achievements`: unlock times and counters. "Reset achievements" clears only this file.
-  - `in_progress_game`.
-  - `online`: Play Games choices. No reset touches it.
+  - `settings`. Every key but the Animations level and the Styles page fit is synced
+    (`SettingsRepository.SYNCED_KEYS`) and stamped `synced_at:<key>` when it changes.
+  - `achievements`: unlock times and counters, plus the cloud save's counter shares (this file's own share id and the
+    others' counts) and the streak's stamp. "Reset achievements" clears only this file.
+  - `in_progress_game`, stamped `saved_at` on every save and clear.
+  - `online`: Play Games choices and the cloud save's bookkeeping (leaderboard reset marker, "Last saved").
+    No reset clears it.
+- **Cloud save** (signed in only): one gzipped JSON snapshot of all of the above but the Animations level and the
+  Styles page fit, merged, never picked. `PLAY_GAMES.md` section 4 is the source.
 - **The in-progress game.** `InProgressGameRepository` holds at most one, saved as JSON (`GameStateJson`).
   - It's saved after every change and cleared when the game ends.
   - Writes are queued and conflated in a process-lifetime scope, so leaving a game can't lose its last move.

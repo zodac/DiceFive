@@ -30,6 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -41,10 +42,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.flowOf
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
+import net.zodac.dicefive.online.LocalOnlineSyncStatus
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.about_title
 import net.zodac.dicefive.resources.common_cancel
@@ -233,7 +236,21 @@ fun SettingsScreen(
         // Nothing but the title bar until the saved switches are back, rather than drawing them in
         // their default positions and then flipping the ones the player has changed.
         val toggles = loadedToggles ?: return@ScreenScaffold
-        OnlineAccountCard(services = LocalGameServices.current)
+        val services = LocalGameServices.current
+        val accountKey = (services.state.collectAsState().value as? GameServicesState.SignedIn)?.account?.accountKey
+        val online = LocalAppContainer.current.onlineSettingsRepository
+        val lastSaved by remember(accountKey) { accountKey?.let(online::cloudSavedAt) ?: flowOf(null) }.collectAsState(initial = null)
+        val syncStatus = LocalOnlineSyncStatus.current
+        val syncProgress by syncStatus.progress.collectAsState()
+        val unreachable by syncStatus.unreachable.collectAsState()
+        val signInSynced = syncStatus.signInSynced?.collectAsState()?.value.let { synced -> syncStatus.signInSynced == null || synced == accountKey }
+        OnlineAccountCard(
+            services = services,
+            lastSavedEpochMillis = lastSaved,
+            syncProgress = syncProgress,
+            unreachable = unreachable,
+            signInSynced = signInSynced,
+        )
         Card(modifier = Modifier.fillMaxWidth()) {
             SwitchSetting(Icons.AutoMirrored.Filled.VolumeUp, stringResource(Res.string.settings_sound), toggles.soundEnabled, viewModel::setSoundEnabled)
             SwitchSetting(Icons.Filled.Vibration, stringResource(Res.string.settings_vibration), toggles.vibrationEnabled, viewModel::setVibrationEnabled)

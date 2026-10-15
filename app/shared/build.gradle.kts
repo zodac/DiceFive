@@ -78,6 +78,8 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.datastore.preferences.core)
+            // Gzip for the cloud save (online/CloudSaveCodec). Already in the APK as DataStore's file layer.
+            implementation(libs.okio)
             implementation(libs.aboutlibraries.core)
 
             // The UI. `api`, not `implementation`, for the handful :app:android's own Compose code (MainActivity

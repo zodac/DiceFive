@@ -24,9 +24,9 @@ object NoGameServices : GameServices {
 
     override suspend fun submitScore(leaderboardKey: String, score: Long): Boolean = false
 
-    override suspend fun readCloudSave(): ByteArray? = null
+    override suspend fun readCloudSave(merge: (local: ByteArray, remote: ByteArray) -> ByteArray): CloudSaveRead = CloudSaveRead.Failed
 
-    override suspend fun writeCloudSave(data: ByteArray, merge: (local: ByteArray, remote: ByteArray) -> ByteArray) = Unit
+    override suspend fun writeCloudSave(data: ByteArray, merge: (local: ByteArray, remote: ByteArray) -> ByteArray): ByteArray? = null
 
     override val canShowAchievementsUi: Boolean = false
 

@@ -438,11 +438,7 @@ object AchievementEngine {
 
         fun anyHuman(predicate: (PlayerState) -> Boolean) = humans.any(predicate)
 
-        // Counter-driven: earned the moment the running total reaches the target.
-        for (achievement in Achievement.entries) {
-            val counter = achievement.counter ?: continue
-            award(achievement, counter.progressOf(counters[counter] ?: 0) >= achievement.target)
-        }
+        earned += earnedByProgress(counters, leaderboard)
 
         // A card scored three times over (Third Wind) has its own version of Spotless instead. Nor does one with
         // boxes switched off (Quickfire) - six turns without a zero is nothing like thirteen.
@@ -575,16 +571,36 @@ object AchievementEngine {
         // game - can only be judged once every upper box is actually filled in.
         award(Achievement.EXACT_CHANGE, anyHuman { it.matchesExactUpperLadder() })
 
+        return earned
+    }
+
+    /**
+     * The achievements a running total has reached: a counter at its target, a score band whose every score is on the
+     * Leaderboard, the career points and every mode played. Judged at a game's end, and again whenever the cloud save
+     * adds another device's totals to this one's ([evaluateProgress]).
+     */
+    private fun earnedByProgress(counters: Map<AchievementCounter, Int>, leaderboard: LeaderboardTotals): Set<Achievement> = buildSet {
+        for (achievement in Achievement.entries) {
+            val counter = achievement.counter ?: continue
+            if (counter.progressOf(counters[counter] ?: 0) >= achievement.target) add(achievement)
+        }
         // Score collection: every single score in the band has to have been recorded at least once.
         for (achievement in Achievement.entries) {
             val band = achievement.scoreBand ?: continue
-            award(achievement, band.all { it in leaderboard.distinctScores })
+            if (band.all { it in leaderboard.distinctScores }) add(achievement)
         }
-        award(Achievement.PROFESSIONAL_ROLLER, leaderboard.totalPoints >= Achievement.PROFESSIONAL_ROLLER.target)
-        award(Achievement.GRAND_TOUR, leaderboard.modesPlayed.containsAll(GameMode.entries))
-
-        return earned
+        if (leaderboard.totalPoints >= Achievement.PROFESSIONAL_ROLLER.target) add(Achievement.PROFESSIONAL_ROLLER)
+        if (leaderboard.modesPlayed.containsAll(GameMode.entries)) add(Achievement.GRAND_TOUR)
     }
+
+    /**
+     * The achievements [before]'s counters and the [leaderboard] have reached, with no game played: for once the cloud
+     * save has merged another device's totals in, which can carry one past a target that neither device reached alone.
+     * Counters are untouched, and nothing is a progress step.
+     */
+    fun evaluateProgress(before: AchievementsState, leaderboard: LeaderboardTotals, now: Long): AchievementUpdate =
+        update(earnedByProgress(before.counters, leaderboard), before.counters, before, now, leaderboard, leaderboard)
+            .copy(counters = emptyMap(), progressed = emptyList())
 
     /**
      * Turns a set of satisfied achievements into the delta to store and announce: drops the ones

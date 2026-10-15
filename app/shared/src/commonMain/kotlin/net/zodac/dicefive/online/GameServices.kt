@@ -42,10 +42,17 @@ interface GameServices {
      */
     suspend fun submitScore(leaderboardKey: String, score: Long): Boolean
 
-    suspend fun readCloudSave(): ByteArray?
+    /**
+     * The account's cloud save ([CloudSaveCodec.SNAPSHOT_NAME]). Where the service holds two copies that conflict (one
+     * written offline, say), it settles them with [merge] first.
+     */
+    suspend fun readCloudSave(merge: (local: ByteArray, remote: ByteArray) -> ByteArray): CloudSaveRead
 
-    /** Saves [data], calling [merge] with the local and the remote copy if the service finds they conflict. */
-    suspend fun writeCloudSave(data: ByteArray, merge: (local: ByteArray, remote: ByteArray) -> ByteArray)
+    /**
+     * Saves [data] as the account's cloud save, merged by [merge] with whatever the service holds by then, so a save
+     * another device wrote since it was read isn't lost. The bytes the service took, or null if it took none.
+     */
+    suspend fun writeCloudSave(data: ByteArray, merge: (local: ByteArray, remote: ByteArray) -> ByteArray): ByteArray?
 
     /** Whether the service's own achievements screen can be opened (signed in, and the platform has one). */
     val canShowAchievementsUi: Boolean
@@ -57,6 +64,22 @@ interface GameServices {
 
     /** Opens the service's leaderboard for [leaderboardKey] ([net.zodac.dicefive.model.GameMode.onlineLeaderboardKey]), or all of them if null. */
     fun showLeaderboardUi(leaderboardKey: String?)
+}
+
+/** What [GameServices.readCloudSave] found. */
+sealed interface CloudSaveRead {
+
+    data class Found(val bytes: ByteArray) : CloudSaveRead {
+        override fun equals(other: Any?): Boolean = other is Found && bytes.contentEquals(other.bytes)
+
+        override fun hashCode(): Int = bytes.contentHashCode()
+    }
+
+    /** The account has no cloud save yet. */
+    data object Empty : CloudSaveRead
+
+    /** The service couldn't be asked: offline, or not set up for saves. */
+    data object Failed : CloudSaveRead
 }
 
 /** Where a [GameServices] is in signing in. */

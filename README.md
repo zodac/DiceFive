@@ -54,7 +54,8 @@ Unlock over 90 styles as you earn achievements, most in several colours:
 
 DiceFive is for Android 8.0 and up, in English, Spanish and Arabic. It's coming to Google Play, and from version 1.0
 each release's APK is also attached to this repository's [Releases](https://github.com/zodac/DiceFive/releases) page.
-It needs no account and no internet connection, and your games stay on your device - see the
+It needs no account and no internet connection, and your games stay on your device unless you sign in to Google Play
+Games, which saves your progress to your account for your other devices - see the
 [privacy policy](https://zodac.github.io/DiceFive/privacy-policy).
 
 ---

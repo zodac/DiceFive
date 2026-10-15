@@ -18,7 +18,7 @@ import net.zodac.dicefive.model.GameMode
 private class FakeScoreDao : ScoreDao {
     private val entries = mutableListOf<ScoreEntry>()
     fun rows(): List<ScoreEntry> = entries.toList()
-    private val dismissed = mutableSetOf<String>()
+    private val dismissed = mutableMapOf<String, Long>()
     private var nextId = 1L
 
     override suspend fun insert(entry: ScoreEntry) {
@@ -59,8 +59,8 @@ private class FakeScoreDao : ScoreDao {
             .sortedWith(compareBy<ScoreEntry>({ it.playerName.lowercase() }, { it.playerName }).thenByDescending { it.timestampEpochMillis })
             .map { PlayerGame(it.playerName, it.timestampEpochMillis, it.won, it.score, it.fiveOfAKindCount) }
 
-    override suspend fun dismissPlayer(playerName: String) {
-        dismissed += playerName
+    override suspend fun dismissPlayer(playerName: String, atEpochMillis: Long) {
+        dismissed[playerName] = atEpochMillis
     }
 
     override suspend fun clearDismissal(playerName: String) {
@@ -73,6 +73,30 @@ private class FakeScoreDao : ScoreDao {
 
     override suspend fun clearAllDismissals() {
         dismissed.clear()
+    }
+
+    override suspend fun allScores(): List<ScoreEntry> = rows()
+
+    override suspend fun allDismissals(): List<DismissedPlayerStats> = dismissed.map { (name, at) -> DismissedPlayerStats(name, at) }
+
+    override suspend fun insertMissing(entries: List<ScoreEntry>) {
+        for (entry in entries) if (this.entries.none { it.uuid == entry.uuid }) insert(entry)
+    }
+
+    override suspend fun putDismissals(dismissals: List<DismissedPlayerStats>) {
+        for (dismissal in dismissals) dismissed[dismissal.playerName] = dismissal.dismissedAtEpochMillis
+    }
+
+    override suspend fun deleteScoresThrough(epochMillis: Long) {
+        entries.removeAll { it.timestampEpochMillis <= epochMillis }
+    }
+
+    override suspend fun deleteDismissalsThrough(epochMillis: Long) {
+        dismissed.entries.removeAll { it.value <= epochMillis }
+    }
+
+    override suspend fun deleteUndoneDismissals() {
+        dismissed.entries.removeAll { (name, at) -> entries.any { it.playerName.equals(name, ignoreCase = true) && it.timestampEpochMillis > at } }
     }
 }
 

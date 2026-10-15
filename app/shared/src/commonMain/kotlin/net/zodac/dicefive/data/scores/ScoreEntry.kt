@@ -1,7 +1,9 @@
 package net.zodac.dicefive.data.scores
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlin.uuid.Uuid
 import net.zodac.dicefive.game.TieBreakStats
 import net.zodac.dicefive.model.GameMode
 
@@ -10,7 +12,7 @@ import net.zodac.dicefive.model.GameMode
  * tie-break house-rule stats the Leaderboard orders equal scores by (see
  * [net.zodac.dicefive.game.TieBreak]). Every column but [won] is always set.
  */
-@Entity(tableName = "scores")
+@Entity(tableName = "scores", indices = [Index(value = ["uuid"], unique = true)])
 data class ScoreEntry(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val playerName: String,
@@ -60,6 +62,12 @@ data class ScoreEntry(
      * this is what decides whether the row may be submitted to one, and whether its mode's Leaderboard card lists it.
      */
     val playedUnmodified: Boolean = true,
+    /**
+     * This game's row everywhere it's copied: [id] is only this device's, so the cloud save
+     * ([net.zodac.dicefive.online.CloudSave]) joins devices' rows by this instead. Random, from the device that
+     * recorded it; rows from before it existed were given one by the version 2 migration.
+     */
+    val uuid: String = newScoreUuid(),
 ) {
 
     /** The mode [gameModeId] names, or null for an id this build doesn't know (a mode since removed). */
@@ -78,3 +86,6 @@ data class ScoreEntry(
         fourOfAKind = fourOfAKindScore,
     )
 }
+
+/** A new [ScoreEntry.uuid]: 32 lowercase hex digits. */
+fun newScoreUuid(): String = Uuid.random().toHexString()

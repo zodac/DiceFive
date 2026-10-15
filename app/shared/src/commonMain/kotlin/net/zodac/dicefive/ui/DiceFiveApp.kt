@@ -8,11 +8,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import net.zodac.dicefive.app.AppContainer
@@ -24,8 +31,10 @@ import net.zodac.dicefive.navigation.DiceFiveNavHost
 import net.zodac.dicefive.navigation.Screen
 import net.zodac.dicefive.online.GameServices
 import net.zodac.dicefive.online.GameServicesState
+import net.zodac.dicefive.online.LocalCloudSave
 import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.online.NoGameServices
+import net.zodac.dicefive.online.LocalOnlineSyncStatus
 import net.zodac.dicefive.online.OnlineSync
 import net.zodac.dicefive.online.OnlineSyncRequests
 import net.zodac.dicefive.platform.LocalPlatformServices
@@ -46,6 +55,7 @@ import net.zodac.dicefive.ui.theme.DiceFiveTheme
  * The whole app, on whatever platform hosts it: each platform's entry point builds its
  * [AppContainer] and [PlatformServices] (and, where the platform has one, its [GameServices]) and hands them in here, and everything below is shared.
  */
+@OptIn(FlowPreview::class)
 @Composable
 fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameServices: GameServices = NoGameServices) {
     // Held here, above the NavHost, so the menu's drifting dice carry on unbroken across every screen off it.
@@ -60,8 +70,9 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameService
     val animationLevel = if (systemReduceMotion) AnimationLevel.OFF else savedLevel
     val reduceMotion = !animationLevel.gameplayMotion
     val leaveConfirmation = remember { LeaveGameConfirmation() }
-    // Achievements are mirrored with the online service on signing in (and at each launch once signed in), and after
-    // every recorded change; requests made while one runs fold into the next.
+    // Achievements, scores and the cloud save are synced with the online service on signing in (and at each launch once
+    // signed in), after every recorded change, a few seconds after a synced setting changes (a Styles pick), on leaving
+    // the game screen, on going to the background and on coming back; requests made while one runs fold into the next.
     val onlineSync = remember(container, gameServices) {
         OnlineSync(
             gameServices,
@@ -69,18 +80,42 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameService
             container.onlineSettingsRepository,
             container.scoreRepository::leaderboardTotals,
             container.scoreRepository::bestUnpostedScore,
+            LocalCloudSave(
+                container.achievementsRepository,
+                container.scoreRepository,
+                container.settingsRepository,
+                container.inProgressGameRepository,
+                container.onlineSettingsRepository,
+            ),
         )
     }
     LaunchedEffect(onlineSync) {
-        val signedIn = gameServices.state.map { it is GameServicesState.SignedIn }.distinctUntilChanged().filter { it }.map { }
-        merge(signedIn, OnlineSyncRequests.requests).conflate().collect { onlineSync.reconcile() }
+        // Only a sign-in's sync shows its progress on the Settings card; the ones after it are quiet. All of this runs
+        // on the one main thread, so the flag needs no lock.
+        var signInPending = false
+        val signedIn = gameServices.state.map { it is GameServicesState.SignedIn }.distinctUntilChanged().filter { it }.map { signInPending = true }
+        merge(signedIn, OnlineSyncRequests.requests).conflate().collect {
+            val showProgress = signInPending
+            signInPending = false
+            onlineSync.reconcile(showProgress)
+        }
     }
+    LaunchedEffect(onlineSync) {
+        gameServices.state.collect { if (it !is GameServicesState.SignedIn) onlineSync.forgetSignInSync() }
+    }
+    LaunchedEffect(container) {
+        container.settingsRepository.syncedChanges.debounce(SETTINGS_SYNC_DELAY).collect { OnlineSyncRequests.request() }
+    }
+    // Put one device down and pick another up: the first saves, the second reads.
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { OnlineSyncRequests.request() }
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { OnlineSyncRequests.request() }
     CompositionLocalProvider(
         LocalReduceMotion provides reduceMotion,
         LocalAnimationLevel provides animationLevel,
         LocalAppContainer provides container,
         LocalPlatformServices provides platform,
         LocalGameServices provides gameServices,
+        LocalOnlineSyncStatus provides onlineSync.status,
         LocalDriftState provides driftState,
         LocalLeaveGameConfirmation provides leaveConfirmation,
     ) {
@@ -92,6 +127,11 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameService
                     // long press, handled above the NavHost, can navigate the same controller the
                     // NavHost itself renders from.
                     val navController = rememberNavController()
+                    // A game left part-way through is saved as it was left, for another device's Continue.
+                    LaunchedEffect(navController) {
+                        navController.currentBackStackEntryFlow.map { it.destination.route }.leaving(Screen.PLAY_GAME)
+                            .collect { OnlineSyncRequests.request() }
+                    }
                     // Above the NavHost, not inside it: the burst of banners at the end of a game
                     // has to survive the move from the board to the results screen and on to the
                     // menu, which a per-destination overlay wouldn't.
@@ -127,3 +167,15 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameService
         }
     }
 }
+
+/** Emits each time these routes move off [route] to another. */
+internal fun Flow<String?>.leaving(route: String): Flow<Unit> = flow {
+    var previous: String? = null
+    distinctUntilChanged().collect { current ->
+        if (previous == route) emit(Unit)
+        previous = current
+    }
+}
+
+/** How long synced settings are left unchanged before they're saved to the cloud: a run of Styles picks saves once. */
+private val SETTINGS_SYNC_DELAY = 5.seconds

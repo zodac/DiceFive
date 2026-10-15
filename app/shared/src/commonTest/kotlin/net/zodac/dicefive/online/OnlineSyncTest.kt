@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.achievements.CloudAchievements
+import net.zodac.dicefive.data.scores.CloudScores
 import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.model.Achievement
@@ -62,8 +64,65 @@ private class SyncServices(account: String?, var remote: Set<String>? = emptySet
     val posted = mutableListOf<Pair<String, Long>>()
     var takesScores = true
     override suspend fun submitScore(leaderboardKey: String, score: Long): Boolean =
-        takesScores.also { if (it) posted += leaderboardKey to score }
+        takesScores.also {
+            seen("submitScore")
+            if (it) posted += leaderboardKey to score
+        }
+
+    /** The sync's progress, read at each call made of the service: what the Settings card would show then. */
+    var syncProgress: (() -> SyncProgress?)? = null
+    val progressSeen = mutableListOf<Pair<String, SyncProgress?>>()
+    private fun seen(call: String) {
+        syncProgress?.let { progressSeen += call to it() }
+    }
+
+    /** The account's cloud save as the service would answer a read of it. */
+    var cloud: CloudSaveRead = CloudSaveRead.Empty
+    var cloudReads = 0
+    val cloudWrites = mutableListOf<ByteArray>()
+    /** Another device's save, committed after this one's read and before its write. */
+    var writtenMeanwhile: ByteArray? = null
+    var merge: ((ByteArray, ByteArray) -> ByteArray)? = null
+    override suspend fun readCloudSave(merge: (local: ByteArray, remote: ByteArray) -> ByteArray): CloudSaveRead {
+        cloudReads++
+        seen("readCloudSave")
+        this.merge = merge
+        return cloud
+    }
+    override suspend fun writeCloudSave(data: ByteArray, merge: (local: ByteArray, remote: ByteArray) -> ByteArray): ByteArray? {
+        seen("writeCloudSave")
+        if (cloud == CloudSaveRead.Failed) return null
+        val written = writtenMeanwhile?.let { merge(data, it) } ?: data
+        cloudWrites += written
+        cloud = CloudSaveRead.Found(written)
+        return written
+    }
+    /** The save last written, decoded. */
+    val saved: CloudSave? get() = cloudWrites.lastOrNull()?.let(CloudSaveCodec::decode)
 }
+
+/** This device's side of the cloud save, in memory: merged in by the same rules the real stores follow. */
+private class SyncCloudSave(var local: CloudSave = CloudSave()) : CloudSaveStore {
+    var wipes = 0
+    override suspend fun snapshot(): CloudSave = local
+    /** Each part merged in alone, in the order it was asked for. */
+    val merged = mutableListOf<String>()
+    private fun mergeIn(part: String, save: CloudSave) {
+        merged += part
+        local = CloudSaveMerge.merge(local, save).copy(version = CloudSaveCodec.VERSION)
+    }
+    override suspend fun mergeSettings(save: CloudSave) = mergeIn("settings", CloudSave(settings = save.settings))
+    override suspend fun mergeGame(save: CloudSave) = mergeIn("game", CloudSave(inProgressGame = save.inProgressGame))
+    override suspend fun mergeAchievements(save: CloudSave) = mergeIn("achievements", CloudSave(achievements = save.achievements))
+    override suspend fun mergeScores(save: CloudSave) =
+        mergeIn("scores", CloudSave(scoresResetAtEpochMillis = save.scoresResetAtEpochMillis, scores = save.scores))
+    override suspend fun wipe() {
+        wipes++
+        local = CloudSave(achievements = local.achievements)
+    }
+}
+
+private fun found(save: CloudSave) = CloudSaveRead.Found(CloudSaveCodec.encode(save))
 
 /** Player 1's postable games, as (mode, score, played at); the filtering by rules and ceiling is `ScoreDao`'s, tested against Room. */
 private class SyncScores(vararg games: Triple<GameMode, Int, Long>) {
@@ -84,7 +143,8 @@ class OnlineSyncTest {
         settings: OnlineSettingsRepository,
         totals: LeaderboardTotals = LeaderboardTotals(),
         scores: SyncScores = SyncScores(),
-    ) = OnlineSync(services, store, settings, { totals }, scores::best, now = { now })
+        cloudSave: CloudSaveStore? = null,
+    ) = OnlineSync(services, store, settings, { totals }, scores::best, cloudSave, now = { now })
 
     private fun state(vararg unlocked: Achievement, counters: Map<AchievementCounter, Int> = emptyMap()) =
         AchievementsState(unlocked.associateWith { 5L }, counters)
@@ -296,5 +356,249 @@ class OnlineSyncTest {
         val blocked = SyncServices("ann")
         sync(blocked, SyncStore(state()), settings, scores = scores).reconcile()
         assertTrue(blocked.posted.isEmpty())
+    }
+
+    private fun scores(vararg uuids: String) = CloudScores(rows = uuids.mapIndexed { index, uuid -> cloudRow(uuid, at = 10L + index) })
+
+    @Test
+    fun `the cloud save is read - merged in here - and the union written back - then Last saved is now`() = runTest {
+        val settings = OnlineSettingsRepository(SyncPreferences())
+        val services = SyncServices("ann").apply { cloud = found(CloudSave(scores = scores("tablet"))) }
+        val local = SyncCloudSave(CloudSave(scores = scores("phone")))
+        sync(services, SyncStore(state()), settings, cloudSave = local).reconcile()
+        assertEquals(setOf("phone", "tablet"), local.local.scores.rows.map { it.uuid }.toSet())
+        assertEquals(setOf("phone", "tablet"), services.saved?.scores?.rows?.map { it.uuid }?.toSet())
+        assertEquals(now, settings.cloudSavedAt("ann").first())
+    }
+
+    @Test
+    fun `a save that already holds everything here isn't written again - but counts as saved`() = runTest {
+        val settings = OnlineSettingsRepository(SyncPreferences())
+        val services = SyncServices("ann").apply { cloud = found(CloudSave(scores = scores("phone"))) }
+        sync(services, SyncStore(state()), settings, cloudSave = SyncCloudSave(CloudSave(scores = scores("phone")))).reconcile()
+        assertTrue(services.cloudWrites.isEmpty())
+        assertEquals(now, settings.cloudSavedAt("ann").first())
+    }
+
+    @Test
+    fun `an account with no save yet is given this device's`() = runTest {
+        val services = SyncServices("ann").apply { cloud = CloudSaveRead.Empty }
+        sync(services, SyncStore(state()), OnlineSettingsRepository(SyncPreferences()), cloudSave = SyncCloudSave(CloudSave(scores = scores("phone")))).reconcile()
+        assertEquals(listOf("phone"), services.saved?.scores?.rows?.map { it.uuid })
+    }
+
+    @Test
+    fun `a save that can't be read isn't written - nor marked saved - but achievements and scores still go up`() = runTest {
+        val settings = OnlineSettingsRepository(SyncPreferences())
+        val services = SyncServices("ann").apply { cloud = CloudSaveRead.Failed }
+        sync(services, SyncStore(state(Achievement.FIVE_X)), settings, cloudSave = SyncCloudSave(CloudSave(scores = scores("phone")))).reconcile()
+        assertTrue(services.cloudWrites.isEmpty())
+        assertEquals(null, settings.cloudSavedAt("ann").first())
+        assertEquals(listOf(Achievement.FIVE_X.id), services.unlocked)
+    }
+
+    @Test
+    fun `another device's save written meanwhile is merged in here too`() = runTest {
+        val services = SyncServices("ann").apply {
+            cloud = CloudSaveRead.Empty
+            writtenMeanwhile = CloudSaveCodec.encode(CloudSave(scores = scores("tablet")))
+        }
+        val local = SyncCloudSave(CloudSave(scores = scores("phone")))
+        sync(services, SyncStore(state()), OnlineSettingsRepository(SyncPreferences()), cloudSave = local).reconcile()
+        assertEquals(setOf("phone", "tablet"), local.local.scores.rows.map { it.uuid }.toSet())
+    }
+
+    @Test
+    fun `a different account wipes this device's save data and restores its own`() = runTest {
+        val settings = OnlineSettingsRepository(SyncPreferences())
+        val local = SyncCloudSave(CloudSave(scores = scores("ann's game")))
+        sync(SyncServices("ann"), SyncStore(state()), settings, cloudSave = local).reconcile()
+
+        val bob = SyncServices("bob").apply { cloud = found(CloudSave(scores = scores("bob's game"))) }
+        sync(bob, SyncStore(state()), settings, cloudSave = local).reconcile()
+        assertEquals(1, local.wipes)
+        assertEquals(listOf("bob's game"), local.local.scores.rows.map { it.uuid })
+        // Bob's save gets nothing of Ann's.
+        assertTrue(bob.cloudWrites.isEmpty())
+    }
+
+    @Test
+    fun `a different account whose save can't be read wipes nothing - and isn't recorded as synced`() = runTest {
+        val settings = OnlineSettingsRepository(SyncPreferences())
+        val store = SyncStore(state(Achievement.FIVE_X))
+        val local = SyncCloudSave(CloudSave(scores = scores("ann's game")))
+        sync(SyncServices("ann", remote = setOf(Achievement.FIVE_X.id)), store, settings, cloudSave = local).reconcile()
+
+        val bob = SyncServices("bob").apply { cloud = CloudSaveRead.Failed }
+        assertEquals(0, sync(bob, store, settings, cloudSave = local).reconcile())
+        assertEquals(0, local.wipes)
+        assertTrue(store.mutableState.value.isUnlocked(Achievement.FIVE_X))
+        assertEquals("ann", settings.syncedAccount.first())
+        assertTrue(bob.posted.isEmpty() && bob.unlocked.isEmpty())
+    }
+
+    @Test
+    fun `a newer app's save is merged in here - and never written over`() = runTest {
+        val settings = OnlineSettingsRepository(SyncPreferences())
+        val newer = CloudSave(version = CloudSaveCodec.VERSION + 1, scores = scores("tablet"))
+        val services = SyncServices("ann").apply { cloud = found(newer) }
+        val local = SyncCloudSave(CloudSave(scores = scores("phone")))
+        sync(services, SyncStore(state()), settings, cloudSave = local).reconcile()
+        assertEquals(setOf("phone", "tablet"), local.local.scores.rows.map { it.uuid }.toSet())
+        assertTrue(services.cloudWrites.isEmpty())
+        assertEquals(null, settings.cloudSavedAt("ann").first())
+        // Settling a conflict keeps the newer app's copy whole, too.
+        val newerBytes = CloudSaveCodec.encode(newer)
+        assertTrue(services.merge!!(CloudSaveCodec.encode(CloudSave(scores = scores("phone"))), newerBytes).contentEquals(newerBytes))
+    }
+
+    @Test
+    fun `two copies in conflict are settled as their union - and an unreadable one gives way`() = runTest {
+        val services = SyncServices("ann")
+        sync(services, SyncStore(state()), OnlineSettingsRepository(SyncPreferences()), cloudSave = SyncCloudSave()).reconcile()
+        val merge = services.merge!!
+        val phone = CloudSaveCodec.encode(CloudSave(scores = scores("phone")))
+        val tablet = CloudSaveCodec.encode(CloudSave(scores = scores("tablet")))
+        assertEquals(setOf("phone", "tablet"), CloudSaveCodec.decode(merge(phone, tablet))?.scores?.rows?.map { it.uuid }?.toSet())
+        assertTrue(merge(phone, "garbage".encodeToByteArray()).contentEquals(phone))
+        assertTrue(merge("garbage".encodeToByteArray(), tablet).contentEquals(tablet))
+    }
+
+    @Test
+    fun `once superuser mode has been used here - the cloud save is never read or written`() = runTest {
+        val settings = OnlineSettingsRepository(SyncPreferences()).apply { blockMirroring() }
+        val services = SyncServices("ann").apply { cloud = found(CloudSave(achievements = CloudAchievements(unlockedAt = mapOf("FIVE_X" to 1L)))) }
+        sync(services, SyncStore(state()), settings, cloudSave = SyncCloudSave()).reconcile()
+        assertEquals(0, services.cloudReads)
+        assertTrue(services.cloudWrites.isEmpty())
+    }
+
+    @Test
+    fun `an achievement the merged totals have reached is unlocked quietly - and sent to the service`() = runTest {
+        val services = SyncServices("ann").apply { cloud = found(CloudSave(scores = scores("tablet"))) }
+        val store = SyncStore(state(counters = mapOf(AchievementCounter.GAMES_PLAYED to Achievement.CENTURION.target)))
+        sync(services, store, OnlineSettingsRepository(SyncPreferences()), cloudSave = SyncCloudSave()).reconcile()
+        assertEquals(now, store.mutableState.value.unlockedAt[Achievement.CENTURION])
+        assertTrue(Achievement.CENTURION.id in services.unlocked)
+    }
+
+    @Test
+    fun `the service unreachable is reported - and cleared once a sync gets through or on signing out`() = runTest {
+        val settings = OnlineSettingsRepository(SyncPreferences())
+        val services = SyncServices("ann").apply { cloud = CloudSaveRead.Failed }
+        val sync = sync(services, SyncStore(state()), settings, cloudSave = SyncCloudSave())
+        sync.reconcile()
+        assertTrue(sync.unreachable.value)
+        services.cloud = CloudSaveRead.Empty
+        sync.reconcile()
+        assertFalse(sync.unreachable.value)
+        services.remote = null
+        sync.reconcile()
+        assertTrue(sync.unreachable.value)
+        services.mutableState.value = GameServicesState.SignedOut
+        sync.reconcile()
+        assertFalse(sync.unreachable.value)
+    }
+
+    @Test
+    fun `a save the service wouldn't take is reported as unreachable`() = runTest {
+        val services = object : GameServices by SyncServices("ann") {
+            override suspend fun readCloudSave(merge: (local: ByteArray, remote: ByteArray) -> ByteArray): CloudSaveRead = CloudSaveRead.Empty
+            override suspend fun writeCloudSave(data: ByteArray, merge: (local: ByteArray, remote: ByteArray) -> ByteArray): ByteArray? = null
+        }
+        val sync = OnlineSync(services, SyncStore(state()), OnlineSettingsRepository(SyncPreferences()), { LeaderboardTotals() }, SyncScores()::best, SyncCloudSave(CloudSave(scores = scores("phone"))), now = { now })
+        sync.reconcile()
+        assertTrue(sync.unreachable.value)
+    }
+
+    @Test
+    fun `a sync says which step it is on - of how many - and nothing once it ends`() = runTest {
+        val services = SyncServices("ann").apply { cloud = found(CloudSave(scores = scores("tablet"))) }
+        val scores = SyncScores(Triple(GameMode.STANDARD, 240, 20L))
+        // This device has a game the save lacks, so there is something to upload.
+        val sync = sync(services, SyncStore(state()), OnlineSettingsRepository(SyncPreferences()), scores = scores, cloudSave = SyncCloudSave(CloudSave(scores = scores("phone"))))
+        services.syncProgress = { sync.progress.value }
+        sync.reconcile(showProgress = true)
+        assertEquals<List<Pair<String, SyncProgress?>>>(
+            listOf(
+                "readCloudSave" to SyncProgress(SyncStep.DOWNLOADING, 1, 7),
+                "writeCloudSave" to SyncProgress(SyncStep.UPLOADING, 6, 7),
+                "submitScore" to SyncProgress(SyncStep.LEADERBOARDS, 7, 7),
+            ),
+            services.progressSeen,
+        )
+        assertEquals(null, sync.progress.value)
+    }
+
+    @Test
+    fun `with no cloud save - a sync has only its own four steps`() = runTest {
+        val services = SyncServices("ann")
+        val sync = sync(services, SyncStore(state()), OnlineSettingsRepository(SyncPreferences()), scores = SyncScores(Triple(GameMode.STANDARD, 240, 20L)))
+        services.syncProgress = { sync.progress.value }
+        sync.reconcile(showProgress = true)
+        assertEquals<List<Pair<String, SyncProgress?>>>(listOf("submitScore" to SyncProgress(SyncStep.LEADERBOARDS, 4, 4)), services.progressSeen)
+    }
+
+    @Test
+    fun `signed out - no sync is shown`() = runTest {
+        val sync = sync(SyncServices(account = null), SyncStore(state()), OnlineSettingsRepository(SyncPreferences()), cloudSave = SyncCloudSave())
+        sync.reconcile()
+        assertEquals(null, sync.progress.value)
+    }
+
+    @Test
+    fun `a quiet sync - not a sign-in's - shows no progress at all`() = runTest {
+        val services = SyncServices("ann").apply { cloud = found(CloudSave(scores = scores("tablet"))) }
+        val sync = sync(services, SyncStore(state()), OnlineSettingsRepository(SyncPreferences()), scores = SyncScores(Triple(GameMode.STANDARD, 240, 20L)), cloudSave = SyncCloudSave())
+        services.syncProgress = { sync.progress.value }
+        sync.reconcile()
+        assertTrue(services.progressSeen.all { it.second == null })
+    }
+
+    @Test
+    fun `the save is merged settings first - then the game in progress - achievements - and scores`() = runTest {
+        val local = SyncCloudSave()
+        val services = SyncServices("ann").apply { cloud = found(CloudSave(scores = scores("tablet"))) }
+        sync(services, SyncStore(state()), OnlineSettingsRepository(SyncPreferences()), cloudSave = local).reconcile()
+        assertEquals(listOf("settings", "game", "achievements", "scores"), local.merged)
+    }
+
+    @Test
+    fun `another account's wipe comes before any of its save is merged in`() = runTest {
+        val settings = OnlineSettingsRepository(SyncPreferences())
+        val local = SyncCloudSave(CloudSave(scores = scores("ann's game")))
+        sync(SyncServices("ann"), SyncStore(state()), settings, cloudSave = local).reconcile()
+        local.merged.clear()
+        val bob = SyncServices("bob").apply { cloud = found(CloudSave(scores = scores("bob's game"))) }
+        sync(bob, SyncStore(state()), settings, cloudSave = SyncCloudSaveOrder(local)).reconcile()
+        assertEquals(listOf("wipe", "settings", "game", "achievements", "scores"), local.merged)
+    }
+
+    @Test
+    fun `a sign-in's sync marks its account synced when it ends - even when it couldn't get through - a quiet one doesn't`() = runTest {
+        val services = SyncServices("ann", remote = null)
+        val sync = sync(services, SyncStore(state()), OnlineSettingsRepository(SyncPreferences()), cloudSave = SyncCloudSave())
+        sync.reconcile()
+        assertEquals(null, sync.signInSynced.value)
+        sync.reconcile(showProgress = true)
+        assertEquals("ann", sync.signInSynced.value)
+        sync.forgetSignInSync()
+        assertEquals(null, sync.signInSynced.value)
+    }
+
+    @Test
+    fun `a sign-in's sync on an install that used superuser mode still counts as done`() = runTest {
+        val settings = OnlineSettingsRepository(SyncPreferences()).apply { blockMirroring() }
+        val sync = sync(SyncServices("ann"), SyncStore(state()), settings, cloudSave = SyncCloudSave())
+        sync.reconcile(showProgress = true)
+        assertEquals("ann", sync.signInSynced.value)
+    }
+}
+
+/** [inner], noting its wipe in [SyncCloudSave.merged] too, so its place in the order shows. */
+private class SyncCloudSaveOrder(private val inner: SyncCloudSave) : CloudSaveStore by inner {
+    override suspend fun wipe() {
+        inner.merged += "wipe"
+        inner.wipe()
     }
 }

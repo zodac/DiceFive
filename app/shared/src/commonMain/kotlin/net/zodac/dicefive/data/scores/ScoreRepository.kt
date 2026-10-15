@@ -21,6 +21,9 @@ data class PlayerResult(
     val isPrimaryPlayer: Boolean,
 )
 
+/** The scores part of the cloud save: every row, and when each dismissed Statistics card was dismissed, by name. */
+data class CloudScores(val rows: List<ScoreEntry> = emptyList(), val dismissedAt: Map<String, Long> = emptyMap())
+
 class ScoreRepository(private val scoreDao: ScoreDao) {
 
     /**
@@ -107,7 +110,21 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
      * Leaderboard keeps their full history. Playing another game under the same name un-hides them
      * again, in [recordScore].
      */
-    suspend fun dismissPlayerStatistics(playerName: String) = scoreDao.dismissPlayer(playerName)
+    suspend fun dismissPlayerStatistics(playerName: String, atEpochMillis: Long = nowEpochMillis()) =
+        scoreDao.dismissPlayer(playerName, atEpochMillis)
+
+    /** Every recorded row (each [ScoreEntry.id] 0: it is only this device's) and dismissal, for the cloud save. */
+    suspend fun cloudScores(): CloudScores = CloudScores(
+        rows = scoreDao.allScores().map { it.copy(id = 0) },
+        dismissedAt = scoreDao.allDismissals().associate { it.playerName to it.dismissedAtEpochMillis },
+    )
+
+    /** Merges [scores] into this device's, dropping everything a reset at [resetAtEpochMillis] cleared - see [ScoreDao.mergeCloud]. */
+    suspend fun mergeCloud(resetAtEpochMillis: Long, scores: CloudScores) = scoreDao.mergeCloud(
+        resetAtEpochMillis,
+        scores.rows,
+        scores.dismissedAt.map { (name, at) -> DismissedPlayerStats(name, at) },
+    )
 
     /**
      * [playerName]'s own highest score on the leaderboard, or null if they haven't recorded one.

@@ -238,11 +238,17 @@ import org.jetbrains.compose.resources.StringResource
  *
  * An [isFlags] counter stores a set of flags, one bit each, rather than a total: its progress is how
  * many are set ([progressOf]), and a game adds its flags with a bitwise or.
+ *
+ * [cloudMerge] is how the cloud save combines devices' values of it.
  */
-enum class AchievementCounter(override val id: String, val isFlags: Boolean = false) : StoredId {
+enum class AchievementCounter(
+    override val id: String,
+    val isFlags: Boolean = false,
+    val cloudMerge: CounterMerge = if (isFlags) CounterMerge.FLAGS else CounterMerge.SUM,
+) : StoredId {
     GAMES_PLAYED("GAMES_PLAYED"),
     GAMES_WON("GAMES_WON"),
-    WIN_STREAK("WIN_STREAK"),
+    WIN_STREAK("WIN_STREAK", cloudMerge = CounterMerge.LATEST),
     SCORED_5X("SCORED_5X"),
     DICE_ROLLED("DICE_ROLLED"),
 
@@ -252,6 +258,18 @@ enum class AchievementCounter(override val id: String, val isFlags: Boolean = fa
 
     /** How far [stored] - this counter's stored value - counts towards an achievement's target. */
     fun progressOf(stored: Int): Int = if (isFlags) stored.countOneBits() else stored
+}
+
+/** How the cloud save combines one [AchievementCounter] from several devices. */
+enum class CounterMerge {
+    /** Each device's own share, added up: games played on two phones count on both. */
+    SUM,
+
+    /** Every flag any device has set. */
+    FLAGS,
+
+    /** The value from the device that finished a game most recently: a streak runs on one timeline, not one per device. */
+    LATEST,
 }
 
 /**

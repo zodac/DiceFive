@@ -2,7 +2,7 @@
 
 # Privacy Policy
 
-**Last updated: 2 October 2026**
+**Last updated: 15 October 2026**
 
 This Privacy Policy explains how DiceFive ("the App") handles information when you use the App.
 
@@ -13,8 +13,9 @@ DiceFive is a dice game and does not use advertising or analytics services.
 The App does not directly collect or require you to provide personal information such as your name,
 email address, postal address, telephone number, or payment information.
 
-The App lets you type in names for the players in a game. These names are stored only on your device
-(see section 4) and are not sent to us.
+The App lets you type in names for the players in a game. These names are stored on your device (see
+section 4) and are not sent to us. If you sign in to Google Play Games, they are also kept in your cloud-saved game data
+(see section 3), with your scores, so your other signed-in devices can show them.
 
 The App may use Google Play Games Services to provide features such as player accounts, achievements,
 and other Google Play Games functionality. When you use these features, Google may process information

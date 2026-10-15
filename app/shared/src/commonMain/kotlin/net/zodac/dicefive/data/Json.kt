@@ -1,9 +1,9 @@
 package net.zodac.dicefive.data
 
 /**
- * A minimal JSON reader and writer, for the app's own two small documents: the saved in-progress
- * game (`GameStateJson`) and the licence dialog's collected NOTICE files. Hand-written rather than
- * kotlinx.serialization, which cost ~49KB of the release APK for these two uses - more than every
+ * A minimal JSON reader and writer, for the app's own documents: the saved in-progress game
+ * (`GameStateJson`), the cloud save (`CloudSaveCodec`) and the licence dialog's collected NOTICE files. Hand-written rather than
+ * kotlinx.serialization, which cost ~49KB of the release APK for these uses - more than every
  * other shared-code dependency - while this is a few hundred bytes. It follows RFC 8259 strictly
  * (anything malformed throws [JsonParseException]) but has no streaming, no schema and no
  * reflection: callers walk the [JsonValue] tree themselves.
@@ -18,7 +18,11 @@ internal data class JsonBoolean(val value: Boolean) : JsonValue
 internal data class JsonNumber(val text: String) : JsonValue {
     constructor(value: Int) : this(value.toString())
 
+    constructor(value: Long) : this(value.toString())
+
     fun toInt(): Int = text.toIntOrNull() ?: throw JsonParseException("Not an integer: $text")
+
+    fun toLong(): Long = text.toLongOrNull() ?: throw JsonParseException("Not an integer: $text")
 }
 
 internal data class JsonString(val value: String) : JsonValue
@@ -50,6 +54,8 @@ internal class JsonObjectBuilder {
 
     /** A null [value] is written as JSON `null`. */
     fun put(key: String, value: Int?) = put(key, value?.let(::JsonNumber) ?: JsonNull)
+
+    fun put(key: String, value: Long) = put(key, JsonNumber(value))
 
     fun build(): JsonObject = JsonObject(fields)
 }
