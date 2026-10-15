@@ -2,30 +2,23 @@ package net.zodac.dicefive.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,8 +30,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
@@ -56,8 +47,8 @@ import net.zodac.dicefive.resources.about_privacy_body_online
 import net.zodac.dicefive.resources.about_privacy_heading
 import net.zodac.dicefive.resources.about_privacy_link
 import net.zodac.dicefive.resources.about_title
-import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
-import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.LargeDialog
+import net.zodac.dicefive.ui.common.LargeDialogTitle
 import net.zodac.dicefive.ui.common.parseInlineMarkup
 import net.zodac.dicefive.ui.common.stringResource
 import org.jetbrains.compose.resources.StringResource
@@ -120,49 +111,21 @@ fun AboutDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
     // Null without a service: no Settings card, so nothing to sign in to.
     val serviceName = services.serviceName.takeIf { services.state.collectAsStateWithLifecycle().value != GameServicesState.Unavailable }
 
-    Dialog(
-        onDismissRequest = onDismissRequest,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Surface(
-            modifier = modifier
-                .fillMaxWidth(0.92f)
-                .fillMaxHeight(0.82f)
-                .widthIn(max = CONTENT_MAX_WIDTH),
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = 6.dp,
-        ) {
-            Column(modifier = Modifier.fillMaxSize().padding(top = 4.dp, bottom = 20.dp, start = 20.dp, end = 20.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    IconButton(onClick = onDismissRequest) {
-                        Icon(imageVector = Icons.Filled.Close, contentDescription = stringResource(Res.string.about_close_cd))
-                    }
-                }
+    LargeDialog(onDismissRequest = onDismissRequest, closeContentDescription = stringResource(Res.string.about_close_cd), modifier = modifier) {
+        Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+            LargeDialogTitle(stringResource(Res.string.about_title))
+            Spacer(modifier = Modifier.height(16.dp))
 
-                Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-                    Text(
-                        text = stringResource(Res.string.about_title),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontFamily = SoraFontFamily,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.semantics { heading() },
+            val nameStyle = SpanStyle(fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                for (section in ABOUT_SECTIONS) {
+                    AboutSectionCard(
+                        section = section,
+                        serviceName = serviceName,
+                        nameStyle = nameStyle,
+                        onOpenLink = uriHandler::openUri,
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    val nameStyle = SpanStyle(fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
-
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        for (section in ABOUT_SECTIONS) {
-                            AboutSectionCard(
-                                section = section,
-                                serviceName = serviceName,
-                                nameStyle = nameStyle,
-                                onOpenLink = uriHandler::openUri,
-                            )
-                        }
-                    }
                 }
             }
         }

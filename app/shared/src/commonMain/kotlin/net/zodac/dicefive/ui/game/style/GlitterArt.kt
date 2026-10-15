@@ -47,16 +47,28 @@ internal fun DrawScope.paintGlitter(seed: Int, base: Color, pitch: Float) {
 internal fun DrawScope.drawSparkle(centre: Offset, radius: Float, colour: Color = Color.White, alpha: Float = 1f) {
     if (radius <= 0f || alpha <= 0f) return
     drawSoftSpot(colour.copy(alpha = 0.45f * alpha), centre, radius * 0.7f)
-    val star = Path().apply {
-        val waist = radius * 0.13f
-        moveTo(centre.x, centre.y - radius)
-        quadraticTo(centre.x + waist, centre.y - waist, centre.x + radius, centre.y)
-        quadraticTo(centre.x + waist, centre.y + waist, centre.x, centre.y + radius)
-        quadraticTo(centre.x - waist, centre.y + waist, centre.x - radius, centre.y)
-        quadraticTo(centre.x - waist, centre.y - waist, centre.x, centre.y - radius)
-        close()
+    drawPath(sparkleStar(centre, radius, waist = radius * 0.13f, curved = true), Color.White.copy(alpha = alpha))
+}
+
+/**
+ * A four-pointed star's outline, [radius] from [centre] to each point - up, right, down and left - and [waist] from it
+ * between them: the points joined by curves bowed in towards the waist when [curved], else by straight lines through it.
+ */
+internal fun sparkleStar(centre: Offset, radius: Float, waist: Float, curved: Boolean): Path = Path().apply {
+    val points = listOf(Offset(0f, -radius), Offset(radius, 0f), Offset(0f, radius), Offset(-radius, 0f))
+    val waists = listOf(Offset(waist, -waist), Offset(waist, waist), Offset(-waist, waist), Offset(-waist, -waist))
+    moveTo(centre.x + points[0].x, centre.y + points[0].y)
+    for (i in points.indices) {
+        val bend = centre + waists[i]
+        val next = centre + points[(i + 1) % points.size]
+        if (curved) {
+            quadraticTo(bend.x, bend.y, next.x, next.y)
+        } else {
+            lineTo(bend.x, bend.y)
+            lineTo(next.x, next.y)
+        }
     }
-    drawPath(star, Color.White.copy(alpha = alpha))
+    close()
 }
 
 /**

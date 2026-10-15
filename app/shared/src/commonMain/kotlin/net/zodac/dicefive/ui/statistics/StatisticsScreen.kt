@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.data.scores.PlayerStatistics
+import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_cancel
 import net.zodac.dicefive.resources.stats_average
@@ -259,7 +260,7 @@ fun PlayerStatsCard(player: PlayerStatistics, onLongPress: () -> Unit) {
                 StatRow {
                     StatCell(label = stringResource(Res.string.stats_total_score), value = player.totalScore.grouped(), alignment = Alignment.Start)
                     StatCell(label = stringResource(Res.string.stats_average), value = player.averageScore.grouped())
-                    StatCell(label = "5x", value = player.fiveOfAKindCount.grouped()) // i18n: not translated - the game's mark
+                    StatCell(label = requireNotNull(ScoreCategory.FIVE_OF_A_KIND.mark), value = player.fiveOfAKindCount.grouped())
                     StatCell(label = stringResource(Res.string.stats_solo), value = player.soloGames.grouped(), alignment = Alignment.End)
                 }
             }

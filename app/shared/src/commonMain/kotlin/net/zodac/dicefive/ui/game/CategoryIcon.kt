@@ -88,8 +88,7 @@ fun CategoryIcon(
                 val range = requireNotNull(category.wildcardNumbers)
                 BadgeLabel(stringResource(Res.string.game_badge_range, range.first, range.last), color, labelFontSize * WILDCARD_LABEL_SCALE)
             }
-            ScoreCategory.THREE_OF_A_KIND -> BadgeLabel("3x", color, labelFontSize) // i18n: not translated - the game's mark for the box
-            ScoreCategory.FOUR_OF_A_KIND -> BadgeLabel("4x", color, labelFontSize) // i18n: not translated - the game's mark for the box
+            ScoreCategory.THREE_OF_A_KIND, ScoreCategory.FOUR_OF_A_KIND -> BadgeLabel(requireNotNull(category.mark), color, labelFontSize)
             ScoreCategory.FIVE_OF_A_KIND -> FiveOfAKindIcon(color, labelFontSize, fiveOfAKindBonusCount)
             ScoreCategory.CHANCE -> BadgeLabel("?", color, labelFontSize)
             // A stock glyph rather than a hand-drawn one (a previous roof/body Canvas silhouette
@@ -120,7 +119,7 @@ fun CategoryIcon(
             ScoreCategory.EVENS -> BadgeLabel(stringResource(Res.string.game_badge_evens), color, labelFontSize)
             ScoreCategory.ODDS -> BadgeLabel(stringResource(Res.string.game_badge_odds), color, labelFontSize)
             // A word, like the text badges: there's no picture of an alibi. Smaller than 5x's two characters.
-            ScoreCategory.ALIBI -> BadgeLabel("Alibi", color, labelFontSize * ALIBI_LABEL_SCALE) // i18n: not translated - the game's mark for the box
+            ScoreCategory.ALIBI -> BadgeLabel(requireNotNull(category.mark), color, labelFontSize * ALIBI_LABEL_SCALE)
             else -> Unit
         }
     }
@@ -265,7 +264,7 @@ private fun BadgeLabel(text: String, color: Color, fontSize: TextUnit, modifier:
 @Composable
 private fun FiveOfAKindIcon(color: Color, fontSize: TextUnit, bonusCount: Int) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        BadgeLabel("5x", color, fontSize, modifier = Modifier.align(Alignment.Center)) // i18n: not translated - the game's mark for the box
+        BadgeLabel(requireNotNull(ScoreCategory.FIVE_OF_A_KIND.mark), color, fontSize, modifier = Modifier.align(Alignment.Center))
         if (bonusCount > 0) {
             // Of the tile's height, which the wide 5x tile shares with a square one.
             val basis = minOf(maxHeight, LARGE_TILE_BADGE_BASIS)

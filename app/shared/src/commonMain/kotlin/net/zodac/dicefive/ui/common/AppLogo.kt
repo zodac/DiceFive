@@ -12,7 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,8 +33,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.math.PI
 import kotlin.math.pow
@@ -372,32 +370,18 @@ private const val PULL_SMOOTHING = 0.82f
 @Composable
 private fun DevicePullEffect(onPull: (Offset) -> Unit) {
     val platform = LocalPlatformServices.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnPull = rememberUpdatedState(onPull)
     val accelerometer = remember { platform.createAccelerometer() } ?: return
 
-    DisposableEffect(lifecycleOwner, accelerometer) {
+    LifecycleResumeEffect(accelerometer) {
         var pull: Offset? = null
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> accelerometer.start(PULL_SAMPLES_PER_SECOND) { x, y, _ ->
-                    // Up the screen is -y on it, so the reading's y keeps its sign and x flips.
-                    val reading = Offset(-x, y) / STANDARD_GRAVITY
-                    val smoothed = pull?.let { it + (reading - it) * PULL_SMOOTHING } ?: reading
-                    pull = smoothed
-                    currentOnPull.value(smoothed)
-                }
-                Lifecycle.Event.ON_PAUSE -> {
-                    accelerometer.stop()
-                    pull = null
-                }
-                else -> Unit
-            }
+        accelerometer.start(PULL_SAMPLES_PER_SECOND) { x, y, _ ->
+            // Up the screen is -y on it, so the reading's y keeps its sign and x flips.
+            val reading = Offset(-x, y) / STANDARD_GRAVITY
+            val smoothed = pull?.let { it + (reading - it) * PULL_SMOOTHING } ?: reading
+            pull = smoothed
+            currentOnPull.value(smoothed)
         }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            accelerometer.stop()
-        }
+        onPauseOrDispose { accelerometer.stop() }
     }
 }

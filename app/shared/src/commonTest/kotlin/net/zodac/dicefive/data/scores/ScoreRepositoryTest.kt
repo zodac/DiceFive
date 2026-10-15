@@ -111,20 +111,24 @@ private suspend fun ScoreRepository.record(
     onLeaderboard: Boolean = true,
     gameMode: GameMode = GameMode.STANDARD,
     playedUnmodified: Boolean = true,
-) = recordScore(
-    playerName = playerName,
-    stats = TieBreakStats(
-        score = score,
-        fiveOfAKindCount = fiveOfAKindCount,
-        zeroedCategoryCount = 0,
-        tricolourScoredCount = null,
-        upperSectionTotal = 0,
-        chance = 0,
-        threeOfAKind = 0,
-        fourOfAKind = 0,
+) = recordGame(
+    listOf(
+        PlayerResult(
+            playerName = playerName,
+            stats = TieBreakStats(
+                score = score,
+                fiveOfAKindCount = fiveOfAKindCount,
+                zeroedCategoryCount = 0,
+                tricolourScoredCount = null,
+                upperSectionTotal = 0,
+                chance = 0,
+                threeOfAKind = 0,
+                fourOfAKind = 0,
+            ),
+            won = won,
+            isPrimaryPlayer = isPrimaryPlayer,
+        ),
     ),
-    won = won,
-    isPrimaryPlayer = isPrimaryPlayer,
     onLeaderboard = onLeaderboard,
     gameMode = gameMode,
     timestampEpochMillis = timestampEpochMillis,

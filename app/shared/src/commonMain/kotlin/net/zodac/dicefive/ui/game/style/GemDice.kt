@@ -213,7 +213,7 @@ internal fun DrawScope.drawGem(centre: Offset, radius: Float, gem: Gem, seed: In
     val highlight = listOf(table[table.size - 1], table[0], (table[0] + centre) / 2f, (table[table.size - 1] + centre) / 2f)
     drawPath(polygon(highlight), Color.White.copy(alpha = 0.75f))
     val sparkleAt = centre + Offset(radius * (0.25f + random.nextFloat() * 0.2f), -radius * (0.35f + random.nextFloat() * 0.2f))
-    drawSparkle(sparkleAt, radius * (0.24f + random.nextFloat() * 0.08f))
+    drawGlint(sparkleAt, radius * (0.24f + random.nextFloat() * 0.08f))
 }
 
 // A diamond's fire: flecks of the spectrum split out of white light.
@@ -310,19 +310,8 @@ private fun polygon(points: List<Offset>): Path = Path().apply {
 }
 
 /** A small four-pointed glint of white light. */
-private fun DrawScope.drawSparkle(at: Offset, radius: Float) {
+private fun DrawScope.drawGlint(at: Offset, radius: Float) {
     val waist = radius * 0.22f
-    val star = Path().apply {
-        moveTo(at.x, at.y - radius)
-        lineTo(at.x + waist, at.y - waist)
-        lineTo(at.x + radius, at.y)
-        lineTo(at.x + waist, at.y + waist)
-        lineTo(at.x, at.y + radius)
-        lineTo(at.x - waist, at.y + waist)
-        lineTo(at.x - radius, at.y)
-        lineTo(at.x - waist, at.y - waist)
-        close()
-    }
-    drawPath(star, Color.White.copy(alpha = 0.9f))
+    drawPath(sparkleStar(at, radius, waist, curved = false), Color.White.copy(alpha = 0.9f))
     drawCircle(Color.White, radius = waist, center = at)
 }

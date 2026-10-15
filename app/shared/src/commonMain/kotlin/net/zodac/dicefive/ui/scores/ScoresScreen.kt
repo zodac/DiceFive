@@ -71,6 +71,7 @@ import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.game.TieBreak
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.online.GameServices
 import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
@@ -432,7 +433,7 @@ private fun HeaderRow() {
     ) {
         HeaderCell(text = "#", weight = columns.rank)
         HeaderCell(text = stringResource(Res.string.scores_header_player), weight = columns.player)
-        HeaderCell(text = "5x", weight = columns.fiveOfAKind, align = TextAlign.Center) // i18n: not translated - the game's mark
+        HeaderCell(text = requireNotNull(ScoreCategory.FIVE_OF_A_KIND.mark), weight = columns.fiveOfAKind, align = TextAlign.Center)
         HeaderCell(text = stringResource(Res.string.scores_header_score), weight = columns.score, align = TextAlign.End)
     }
 }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.navigation.AchievementScrollRequests
 import net.zodac.dicefive.resources.achievements_missing_action
 import net.zodac.dicefive.resources.achievements_missing_message
 import net.zodac.dicefive.resources.achievements_missing_modes_action
@@ -90,7 +91,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import net.zodac.dicefive.data.achievements.AchievementScrollRequests
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.AchievementVisibility
@@ -248,7 +248,7 @@ fun AchievementsScreen(
     val listLoaded = state.isLoaded
     LaunchedEffect(listLoaded) {
         if (listLoaded && !restoredScroll) {
-            if (!AchievementScrollRequests.hasPending()) {
+            if (AchievementScrollRequests.pending() == null) {
                 listState.scrollToItem(
                     AchievementsScrollMemory.firstVisibleItemIndex,
                     AchievementsScrollMemory.firstVisibleItemScrollOffset,

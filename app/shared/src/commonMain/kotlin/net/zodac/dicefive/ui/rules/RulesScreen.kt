@@ -327,9 +327,8 @@ import net.zodac.dicefive.ui.game.style.IvoryDiceStyle
 import net.zodac.dicefive.ui.game.style.PIP_FACES
 import net.zodac.dicefive.ui.game.style.numberedLike
 import net.zodac.dicefive.ui.game.style.palette
+import net.zodac.dicefive.ui.game.drawColumnOutline
 import net.zodac.dicefive.ui.game.targetProgress
-import net.zodac.dicefive.ui.theme.GoldAccent
-import net.zodac.dicefive.ui.theme.GoldAccentDim
 import org.jetbrains.compose.resources.StringResource
 
 /** One page of [RulesScreen]. [title] heads the page itself; [tabLabel] is the shorter name its tab
@@ -374,14 +373,14 @@ private data class RulesStep(val number: Int, val text: StringResource, val exam
  * [example] roll scoring it. */
 private data class RulesCategory(val name: RulesName, val description: StringResource, val example: RulesDice) : RulesBlock
 
-/** A [RulesCategory]'s heading: the name of a box (translated), or one of the game's marks ("3x", "5x", "Alibi") as it is. */
+/** A [RulesCategory]'s heading: the name of a box (translated), or one of the game's marks ([ScoreCategory.mark]) as it is. */
 private sealed interface RulesName {
     data class Mark(val text: String) : RulesName
 
     data class Named(val resource: StringResource) : RulesName
 }
 
-private fun mark(text: String): RulesName = RulesName.Mark(text)
+private fun mark(category: ScoreCategory): RulesName = RulesName.Mark(requireNotNull(category.mark))
 
 private fun named(resource: StringResource): RulesName = RulesName.Named(resource)
 
@@ -522,12 +521,12 @@ private val RULES_GROUPS = listOf(
                 tabLabel = Res.string.rules_lower_section_tab,
                 blocks = listOf(
                     text(Res.string.rules_lower_section_1),
-                    RulesCategory(mark("3x"), Res.string.rules_lower_section_2, dice(5, 5, 5, 2, 6, counting = 3, score = points(23))),
-                    RulesCategory(mark("4x"), Res.string.rules_lower_section_3, dice(4, 4, 4, 4, 1, counting = 4, score = points(17))),
+                    RulesCategory(mark(ScoreCategory.THREE_OF_A_KIND), Res.string.rules_lower_section_2, dice(5, 5, 5, 2, 6, counting = 3, score = points(23))),
+                    RulesCategory(mark(ScoreCategory.FOUR_OF_A_KIND), Res.string.rules_lower_section_3, dice(4, 4, 4, 4, 1, counting = 4, score = points(17))),
                     RulesCategory(named(Res.string.score_full_house), Res.string.rules_lower_section_4, dice(3, 3, 3, 6, 6, score = points(25))),
                     RulesCategory(named(Res.string.score_small_straight), Res.string.rules_lower_section_5, dice(2, 3, 4, 5, 2, counting = 4, score = points(30))),
                     RulesCategory(named(Res.string.score_large_straight), Res.string.rules_lower_section_6, dice(1, 2, 3, 4, 5, score = points(40))),
-                    RulesCategory(mark("5x"), Res.string.rules_lower_section_7, dice(6, 6, 6, 6, 6, score = points(50))),
+                    RulesCategory(mark(ScoreCategory.FIVE_OF_A_KIND), Res.string.rules_lower_section_7, dice(6, 6, 6, 6, 6, score = points(50))),
                     RulesCategory(named(Res.string.score_chance), Res.string.rules_lower_section_8, dice(2, 3, 5, 5, 6, score = points(21))),
                 ),
             ),
@@ -674,7 +673,7 @@ private val RULES_GROUPS = listOf(
                         diceCounting(4, 1, 6, 2, 5, counting = setOf(0, 1, 3), score = points(10)).showing(RulesTile.Target(EXAMPLE_TARGET)),
                     ),
                     text(Res.string.rules_hit_list_8),
-                    RulesCategory(mark("Alibi"), Res.string.rules_hit_list_9,
+                    RulesCategory(mark(ScoreCategory.ALIBI), Res.string.rules_hit_list_9,
                         dice(2, 4, 1, 3, 5, counting = 4, score = points(20)).showing(RulesTile.Alibi),
                     ),
                     text(Res.string.rules_hit_list_10),
@@ -1201,7 +1200,7 @@ private fun RulesMatView(mat: RulesMat, modifier: Modifier = Modifier) {
                             modifier = Modifier
                                 .size(columnWidth, columnHeight)
                                 .graphicsLayer { alpha = if (outlined) 1f else EXAMPLE_DIE_FADED_ALPHA }
-                                .drawBehind { drawColumnOutline(dashed = index !in mat.taking, show = outlined) },
+                                .drawBehind { if (outlined) drawColumnOutline(dashed = index !in mat.taking) },
                         ) {
                             IvoryDiceStyle.Die(
                                 value = value,
@@ -1220,23 +1219,6 @@ private fun RulesMatView(mat: RulesMat, modifier: Modifier = Modifier) {
 }
 
 private const val MAT_SLOTS = 5
-
-/** The outline the game draws round a column of the mat that a pressed box would take (solid) or that would have done as well ([dashed]). */
-private fun DrawScope.drawColumnOutline(dashed: Boolean, show: Boolean) {
-    if (!show) return
-    val stroke = Stroke(
-        width = 2.dp.toPx(),
-        pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 4.dp.toPx())) else null,
-    )
-    val inset = stroke.width / 2
-    drawRoundRect(
-        color = if (dashed) GoldAccentDim else GoldAccent,
-        topLeft = Offset(inset, inset),
-        size = Size(size.width - stroke.width, size.height - stroke.width),
-        cornerRadius = CornerRadius(8.dp.toPx()),
-        style = stroke,
-    )
-}
 
 /** The size of each die in a [RulesDiceRow]. */
 private val EXAMPLE_DIE_SIZE = 28.dp

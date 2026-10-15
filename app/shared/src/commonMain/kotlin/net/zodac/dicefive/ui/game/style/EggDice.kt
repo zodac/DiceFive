@@ -210,7 +210,7 @@ class EggDiceStyle(
                     }
                     if (sparkle) {
                         // A four-point sparkle high on its shoulder, fixed in place and swelling and shrinking.
-                        drawSparkle(centre + Offset(-side * 0.135f, -side * 0.23f), side * 0.115f * sparkleScale.value, sparkleScale.value)
+                        drawEggSparkle(centre + Offset(-side * 0.135f, -side * 0.23f), side * 0.115f * sparkleScale.value, sparkleScale.value)
                     } else {
                         // A soft glint high on its shoulder.
                         drawOval(
@@ -264,20 +264,9 @@ private val GoldGlow = Color(0xFFFFF0B0)
 private val GoldEdge = Color(0xFF7A4A00)
 
 /** A four-point star of [radius], pointed up, down, left and right, over a soft glow, at [strength] (0-1). */
-private fun DrawScope.drawSparkle(at: Offset, radius: Float, strength: Float) {
+private fun DrawScope.drawEggSparkle(at: Offset, radius: Float, strength: Float) {
     drawCircle(Brush.radialGradient(0f to Color.White.copy(alpha = 0.55f * strength), 1f to Color.Transparent, center = at, radius = radius * 0.9f), radius * 0.9f, at)
-    val waist = radius * 0.16f
-    drawPath(
-        Path().apply {
-            moveTo(at.x, at.y - radius)
-            quadraticTo(at.x + waist, at.y - waist, at.x + radius, at.y)
-            quadraticTo(at.x + waist, at.y + waist, at.x, at.y + radius)
-            quadraticTo(at.x - waist, at.y + waist, at.x - radius, at.y)
-            quadraticTo(at.x - waist, at.y - waist, at.x, at.y - radius)
-            close()
-        },
-        Color.White.copy(alpha = 0.55f + 0.4f * strength),
-    )
+    drawPath(sparkleStar(at, radius, waist = radius * 0.16f, curved = true), Color.White.copy(alpha = 0.55f + 0.4f * strength))
 }
 
 /** An egg's speckles: (where, relative to its centre, radius and strength), all as fractions of the die. */

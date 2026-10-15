@@ -6,7 +6,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.concurrent.Volatile
 import kotlinx.coroutines.Dispatchers
@@ -113,21 +113,9 @@ fun rememberAppSoundEffects(soundEnabled: Flow<Boolean>): SoundEffects {
 private fun rememberScopedSoundEffects(): SoundEffects {
     val platform = LocalPlatformServices.current
     val soundEffects = remember(platform) { SoundEffects(platform::createSoundPlayer) }
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        // Nothing sounds in the background: a clip under way is held, and carries on when the app is back.
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_PAUSE -> soundEffects.pause()
-                Lifecycle.Event.ON_RESUME -> soundEffects.resume()
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            soundEffects.release()
-        }
-    }
+    // Nothing sounds in the background: a clip under way is held, and carries on when the app is back.
+    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { soundEffects.pause() }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { soundEffects.resume() }
+    DisposableEffect(soundEffects) { onDispose { soundEffects.release() } }
     return soundEffects
 }

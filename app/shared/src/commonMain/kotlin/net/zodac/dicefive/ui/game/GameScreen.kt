@@ -56,8 +56,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.game.ProjectedHand
@@ -145,21 +144,9 @@ fun GameScreen(
     // The game's clocks (turn timer, CPU turns) run only while this screen is in front and resumed. Driven from
     // lifecycle callbacks, not composition: a backgrounded app draws no frames, so nothing would recompose
     // to say it had gone. Leaving composition (another screen opening over the game) pauses it too.
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(viewModel, lifecycleOwner) {
-        viewModel.setForeground(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> viewModel.setForeground(true)
-                Lifecycle.Event.ON_PAUSE -> viewModel.setForeground(false)
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            viewModel.setForeground(false)
-        }
+    LifecycleResumeEffect(viewModel) {
+        viewModel.setForeground(true)
+        onPauseOrDispose { viewModel.setForeground(false) }
     }
 
     // The leave-game confirmation freezes the turn timer and CPU turns while it is up, however it was asked for.

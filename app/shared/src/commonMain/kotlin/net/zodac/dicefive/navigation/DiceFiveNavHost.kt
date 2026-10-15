@@ -125,13 +125,16 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                 val playGraphEntry = remember(backStackEntry) { navController.getBackStackEntry(Screen.PLAY_GRAPH) }
                 val viewModel = viewModel<GameViewModel>(playGraphEntry, factory = GameViewModel.factory(container))
                 val resume = backStackEntry.arguments?.read { getBooleanOrNull("resume") } ?: false
-
-                if (!resume) {
+                val setup = @Composable {
                     GameSetupScreen(
                         viewModel = viewModel,
                         onStartGame = { navController.navigate(Screen.PLAY_GAME) },
                         onBack = { navController.navigateUp() },
                     )
+                }
+
+                if (!resume) {
+                    setup()
                 } else {
                     var resumed by remember { mutableStateOf<Boolean?>(null) }
                     LaunchedEffect(Unit) { resumed = viewModel.resumeGame() }
@@ -145,11 +148,7 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                             LaunchedEffect(Unit) { navController.navigate(Screen.PLAY_GAME) }
                         }
                         // Nothing was actually found to resume (e.g. the save was cleared elsewhere) - fall back to setup.
-                        false -> GameSetupScreen(
-                            viewModel = viewModel,
-                            onStartGame = { navController.navigate(Screen.PLAY_GAME) },
-                            onBack = { navController.navigateUp() },
-                        )
+                        false -> setup()
                         null -> BrandBackdrop(showDice = false) {
                             var slow by remember { mutableStateOf(false) }
                             val lifecycle = LocalLifecycleOwner.current.lifecycle

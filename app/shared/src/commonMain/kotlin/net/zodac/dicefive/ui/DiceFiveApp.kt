@@ -24,11 +24,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.app.LocalAppContainer
-import net.zodac.dicefive.data.achievements.AchievementScrollRequests
-import net.zodac.dicefive.data.achievements.StyleScrollRequests
 import net.zodac.dicefive.data.settings.AnimationLevel
+import net.zodac.dicefive.navigation.AchievementScrollRequest
+import net.zodac.dicefive.navigation.AchievementScrollRequests
 import net.zodac.dicefive.navigation.DiceFiveNavHost
 import net.zodac.dicefive.navigation.Screen
+import net.zodac.dicefive.navigation.StyleScrollRequest
+import net.zodac.dicefive.navigation.StyleScrollRequests
 import net.zodac.dicefive.online.GameServices
 import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalCloudSave
@@ -145,7 +147,7 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameService
                             // The request has to be made before navigating, not after: if the
                             // Achievements screen isn't open yet, its own collector only starts once
                             // it composes, and the request's replay is what lets it still catch this.
-                            AchievementScrollRequests.request(achievement.id, animate = alreadyOnAchievements)
+                            AchievementScrollRequests.request(AchievementScrollRequest(achievement.id, animate = alreadyOnAchievements))
                             if (!alreadyOnAchievements) {
                                 navController.navigate(Screen.ACHIEVEMENTS)
                             }
@@ -153,7 +155,7 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameService
                         onStylesSelected = { styles ->
                             val alreadyOnStyles = navController.currentDestination?.route == Screen.STYLES
                             // Before navigating, for the same reason as the achievement request above.
-                            StyleScrollRequests.request(styles, animate = alreadyOnStyles)
+                            StyleScrollRequests.request(StyleScrollRequest(styles, animate = alreadyOnStyles))
                             if (!alreadyOnStyles) {
                                 navController.navigate(Screen.STYLES)
                             }

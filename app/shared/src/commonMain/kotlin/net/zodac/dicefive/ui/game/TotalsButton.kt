@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.game_totals_alibi_spoken
 import net.zodac.dicefive.resources.game_totals_bonus
@@ -136,7 +137,7 @@ fun D20TotalsButton(
 @Composable
 fun HitListTotalsButton(targetsTotal: Int, alibiTotal: Int, modifier: Modifier = Modifier, minSize: Dp = 48.dp) {
     TotalsButton(
-        lines = listOf(TotalLine(stringResource(Res.string.game_totals_targets), targetsTotal), TotalLine("Alibi", alibiTotal)), // i18n: not translated - the game's mark for the box
+        lines = listOf(TotalLine(stringResource(Res.string.game_totals_targets), targetsTotal), TotalLine(requireNotNull(ScoreCategory.ALIBI.mark), alibiTotal)),
         highlighted = false,
         spokenState = hitListTotalsSpokenState(targetsTotal, alibiTotal),
         modifier = modifier,

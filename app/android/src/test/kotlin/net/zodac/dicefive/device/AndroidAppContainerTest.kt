@@ -14,6 +14,7 @@ import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.data.scores.buildAppDatabase
+import net.zodac.dicefive.data.scores.recordScore
 import net.zodac.dicefive.game.TieBreakStats
 import net.zodac.dicefive.model.GameMode
 import org.junit.Assert.assertEquals

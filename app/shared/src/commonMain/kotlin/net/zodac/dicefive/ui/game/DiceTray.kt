@@ -577,7 +577,11 @@ private fun Modifier.handPreviewMark(preview: ProjectedHand?, index: Int, die: D
     else -> graphicsLayer { alpha = HAND_PREVIEW_FADED_ALPHA }
 }
 
-private fun DrawScope.drawColumnOutline(dashed: Boolean) {
+/**
+ * The outline round a column of the mat that a pressed box would take (solid gold) or that would have done as well
+ * ([dashed], dimmer) - also the Rules page's, which draws the game's own.
+ */
+internal fun DrawScope.drawColumnOutline(dashed: Boolean) {
     val stroke = Stroke(
         width = 2.dp.toPx(),
         pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 4.dp.toPx())) else null,

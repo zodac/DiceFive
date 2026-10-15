@@ -31,6 +31,8 @@ enum class ScoreSection {
  *
  * [number] is the face a numbered box adds up - ONES..SIXES, and D20's twenty (`D20_1`..`D20_20`) - null for every other box.
  * [wildcardNumbers] is the faces a D20 wildcard box adds up - every die showing one of them - null for every other box.
+ * [mark] is the game's own mark for a box whose name it is - on its tile, spoken, and in a table's header - never
+ * translated; null for a box named in words.
  *
  * The [ScoreSection.HIT_LIST] boxes have no rule of their own: what each target calls is drawn when a game
  * starts (see [HitTarget]), so they're scored against the player's [PlayerState.hitList] by `ScoreCalculator`.
@@ -48,6 +50,7 @@ enum class ScoreCategory(
     val featured: Boolean = false,
     val number: Int? = null,
     val wildcardNumbers: IntRange? = null,
+    val mark: String? = null,
 ) : StoredId {
     ONES("ONES", ScoreSection.UPPER, number = 1),
     TWOS("TWOS", ScoreSection.UPPER, number = 2),
@@ -55,12 +58,12 @@ enum class ScoreCategory(
     FOURS("FOURS", ScoreSection.UPPER, number = 4),
     FIVES("FIVES", ScoreSection.UPPER, number = 5),
     SIXES("SIXES", ScoreSection.UPPER, number = 6),
-    THREE_OF_A_KIND("THREE_OF_A_KIND", ScoreSection.LOWER),
-    FOUR_OF_A_KIND("FOUR_OF_A_KIND", ScoreSection.LOWER),
+    THREE_OF_A_KIND("THREE_OF_A_KIND", ScoreSection.LOWER, mark = "3x"), // i18n: not translated - the game's mark for the box
+    FOUR_OF_A_KIND("FOUR_OF_A_KIND", ScoreSection.LOWER, mark = "4x"), // i18n: not translated - the game's mark for the box
     FULL_HOUSE("FULL_HOUSE", ScoreSection.LOWER, fixedScore = 25, jokerFreeFill = true),
     SMALL_STRAIGHT("SMALL_STRAIGHT", ScoreSection.LOWER, fixedScore = 30, jokerFreeFill = true),
     LARGE_STRAIGHT("LARGE_STRAIGHT", ScoreSection.LOWER, fixedScore = 40, jokerFreeFill = true),
-    FIVE_OF_A_KIND("FIVE_OF_A_KIND", ScoreSection.LOWER, fixedScore = 50, featured = true),
+    FIVE_OF_A_KIND("FIVE_OF_A_KIND", ScoreSection.LOWER, fixedScore = 50, featured = true, mark = "5x"), // i18n: not translated - the game's mark for the box
     CHANCE("CHANCE", ScoreSection.LOWER),
 
     REDS("REDS", ScoreSection.COLOUR, fixedScore = 40, matchingColour = DieColour.RED),
@@ -97,7 +100,7 @@ enum class ScoreCategory(
      * Hit List's stand-in for a target: a hit scored here instead of in its target, which stays open for another
      * try. Worth the highest [HitTarget.points] among the open targets the dice hit - never doubled.
      */
-    ALIBI("ALIBI", ScoreSection.HIT_LIST, featured = true),
+    ALIBI("ALIBI", ScoreSection.HIT_LIST, featured = true, mark = "Alibi"), // i18n: not translated - the game's mark for the box
 
     /** D20's numbers: each adds up the dice showing its number, like an upper box - 1 to 10 in the first half, 11 to 20 in the second. */
     D20_1("D20_1", ScoreSection.FIRST_HALF, number = 1),

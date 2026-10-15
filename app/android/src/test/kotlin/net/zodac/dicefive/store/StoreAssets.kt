@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import net.zodac.dicefive.app.AppContainer
+import net.zodac.dicefive.data.scores.recordScore
 import net.zodac.dicefive.game.AiTurnPlayer
 import net.zodac.dicefive.game.GameEngine
 import net.zodac.dicefive.game.toTieBreakStats

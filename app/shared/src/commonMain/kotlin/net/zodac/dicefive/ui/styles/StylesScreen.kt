@@ -75,7 +75,6 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -133,9 +132,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.data.achievements.AchievementsState
-import net.zodac.dicefive.data.achievements.StyleScrollRequest
-import net.zodac.dicefive.data.achievements.StyleScrollRequests
 import net.zodac.dicefive.data.settings.SavedStyles
+import net.zodac.dicefive.navigation.StyleScrollRequest
+import net.zodac.dicefive.navigation.StyleScrollRequests
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_ok
 import net.zodac.dicefive.resources.style_variant_colour
@@ -165,6 +164,7 @@ import net.zodac.dicefive.resources.styles_unlock_count
 import net.zodac.dicefive.resources.styles_unlock_free
 import net.zodac.dicefive.resources.styles_unlock_specific
 import net.zodac.dicefive.ui.common.AppTooltip
+import net.zodac.dicefive.ui.common.ColourDisc
 import net.zodac.dicefive.ui.common.DiceFiveDialog
 import net.zodac.dicefive.ui.common.HorizontalScrollbar
 import net.zodac.dicefive.ui.common.LocalReduceMotion
@@ -1731,24 +1731,13 @@ private fun <T : TableArt> ColourDots(colours: List<StyleColour<T>>, shown: Styl
         for (index in range) {
             val colour = colours[index]
             val moreBeyond = (index == range.first && index > 0) || (index == range.last && index < colours.lastIndex)
-            Swatch(
+            ColourDisc(
                 colour = colour.swatch,
                 size = if (moreBeyond) COLOUR_DOT_SIZE_MORE_BEYOND else COLOUR_DOT_SIZE,
                 ring = if (colour == shown) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
             )
         }
     }
-}
-
-@Composable
-private fun Swatch(colour: Color, size: Dp, ring: Color) {
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(colour)
-            .border(1.dp, ring, CircleShape),
-    )
 }
 
 // A preview has no host to scope a view model to - see .claude/UI.md's ViewModelConstructorInComposable gotcha.

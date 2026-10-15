@@ -1,12 +1,10 @@
 package net.zodac.dicefive.ui.game
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import kotlin.math.sqrt
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.platform.Accelerometer
@@ -170,7 +168,6 @@ internal class ShakeDetector(
 @Composable
 fun ShakeDetectorEffect(enabled: Boolean, onShake: () -> Unit) {
     val platform = LocalPlatformServices.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnShake = rememberUpdatedState(onShake)
     val accelerometer = remember { platform.createAccelerometer() } ?: return
     val detector = remember {
@@ -183,24 +180,11 @@ fun ShakeDetectorEffect(enabled: Boolean, onShake: () -> Unit) {
     }
     if (!enabled) return
 
-    DisposableEffect(lifecycleOwner, accelerometer) {
-        fun stop() {
+    LifecycleResumeEffect(accelerometer) {
+        accelerometer.start(IDLE_SAMPLES_PER_SECOND) { x, y, z -> detector.onSample(x, y, z, nowEpochMillis()) }
+        onPauseOrDispose {
             accelerometer.stop()
             detector.reset()
-        }
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> accelerometer.start(IDLE_SAMPLES_PER_SECOND) { x, y, z ->
-                    detector.onSample(x, y, z, nowEpochMillis())
-                }
-                Lifecycle.Event.ON_PAUSE -> stop()
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            stop()
         }
     }
 }

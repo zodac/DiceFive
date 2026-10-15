@@ -1,22 +1,12 @@
 package net.zodac.dicefive.ui.settings
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -28,11 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.mikepenz.aboutlibraries.Libs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -62,8 +48,9 @@ import net.zodac.dicefive.resources.licences_text
 import net.zodac.dicefive.resources.licences_text_copied
 import net.zodac.dicefive.resources.licences_title
 import net.zodac.dicefive.resources.licences_used_by
-import net.zodac.dicefive.ui.common.CONTENT_MAX_WIDTH
-import net.zodac.dicefive.ui.common.SoraFontFamily
+import net.zodac.dicefive.ui.common.LARGE_DIALOG_MARGIN
+import net.zodac.dicefive.ui.common.LargeDialog
+import net.zodac.dicefive.ui.common.LargeDialogTitle
 import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.spokenList
@@ -203,8 +190,6 @@ internal fun parseLicenseReport(librariesJson: String, noticesJson: String): Lic
     return LicenseReport(groups, notices)
 }
 
-/** The dialog's side and bottom padding, whose right-hand side the scrollbar sits in. */
-private val DIALOG_MARGIN = 20.dp
 
 /**
  * How far the licence document is scrolled, in pixels, for the dialog's [VerticalScrollbar]: the
@@ -239,65 +224,38 @@ fun LicensesDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) 
         value = withContext(Dispatchers.Default) { parseLicenseReport(reports.librariesJson, reports.noticesJson) }
     }
 
-    Dialog(
-        onDismissRequest = onDismissRequest,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Surface(
-            modifier = modifier
-                .fillMaxWidth(0.92f)
-                .fillMaxHeight(0.82f)
-                .widthIn(max = CONTENT_MAX_WIDTH),
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = 6.dp,
+    CompositionLocalProvider(LocalSelectionClearer provides selectionClearer) {
+        LargeDialog(
+            onDismissRequest = onDismissRequest,
+            closeContentDescription = stringResource(Res.string.licences_close_cd),
+            modifier = modifier,
+            contentModifier = Modifier.clearSelectionsOnTap(selectionClearer),
         ) {
-            CompositionLocalProvider(LocalSelectionClearer provides selectionClearer) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clearSelectionsOnTap(selectionClearer)
-                        .padding(top = 4.dp, bottom = DIALOG_MARGIN, start = DIALOG_MARGIN, end = DIALOG_MARGIN),
-                ) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        IconButton(onClick = onDismissRequest) {
-                            Icon(imageVector = Icons.Filled.Close, contentDescription = stringResource(Res.string.licences_close_cd))
-                        }
-                    }
-                    Text(
-                        text = stringResource(Res.string.licences_title),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontFamily = SoraFontFamily,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.semantics { heading() },
-                    )
-                    Text(
-                        text = stringResource(Res.string.licences_intro, stringResource(Res.string.app_name)),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
-                    )
+            LargeDialogTitle(stringResource(Res.string.licences_title))
+            Text(
+                text = stringResource(Res.string.licences_intro, stringResource(Res.string.app_name)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
+            )
 
-                    val loaded = report
-                    if (loaded == null) {
-                        Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    } else {
-                        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                            platform.LicenceDocument(report = loaded, scroll = scroll, modifier = Modifier.fillMaxSize())
-                            // In the dialog's right-hand margin, beside the cards rather than over them -
-                            // the same bar, placed the same way, as the Styles and Rules pages'.
-                            VerticalScrollbar(
-                                position = { scroll.position },
-                                maxPosition = { scroll.maxPosition },
-                                scrollBy = { scroll.scrollBy(it) },
-                                width = DIALOG_MARGIN,
-                                modifier = Modifier.align(Alignment.TopEnd).offset(x = DIALOG_MARGIN),
-                            )
-                        }
-                    }
+            val loaded = report
+            if (loaded == null) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    platform.LicenceDocument(report = loaded, scroll = scroll, modifier = Modifier.fillMaxSize())
+                    // In the dialog's right-hand margin, beside the cards rather than over them -
+                    // the same bar, placed the same way, as the Styles and Rules pages'.
+                    VerticalScrollbar(
+                        position = { scroll.position },
+                        maxPosition = { scroll.maxPosition },
+                        scrollBy = { scroll.scrollBy(it) },
+                        width = LARGE_DIALOG_MARGIN,
+                        modifier = Modifier.align(Alignment.TopEnd).offset(x = LARGE_DIALOG_MARGIN),
+                    )
                 }
             }
         }

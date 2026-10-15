@@ -4,19 +4,29 @@ From the from-scratch source review of 2026-10-14. The fixes in section 1 of tha
 extraction, the single owner for the roll timeline, the `AchievementUnlocker` and the single style-category list are
 being done first. Everything below is still to do. File references are as of the review.
 
+## Decided - do these next
+
+The maintainer's answers of 2026-10-15 to the "Same kind of action, different behaviour" questions below. Visual
+changes go through the `render` skill for review before any APK.
+
+1. **Removing a player from Statistics:** a visible delete button on each card, opening the existing confirmation.
+   Drop the long-press from Statistics; TalkBack gets an ordinary button.
+2. **"Why is this locked?":** one rule everywhere - tap shows the short tooltip, long-press opens the full dialog (as
+   Styles already does). Achievements' reward rows and "missing" rows change to match.
+3. **CPU turns:** keep the CPU's roll sounds, but don't vibrate for a turn the player didn't take. Vibration stays for
+   the player's own rolls and holds.
+4. **Superuser modes:** keep both as they are (debug builds only). No change.
+
 ## Extract into one place
 
 | What | Where it's duplicated | Suggestion |
 |---|---|---|
-| The labels "3x" / "4x" / "5x" / "Alibi" | `BoardSemantics.kt:50-68`, `CategoryIcon.kt:95,127,272`, `TotalsButton.kt:139`, `ScoresScreen.kt:368` | One `ScoreCategory.mark` property. |
-| Large-dialog frame (sizing, close button, title) | `AboutDialog.kt:109-127` and `LicensesDialog.kt:242-270` are near copies | A shared `LargeDialog(title, closeLabel, onDismiss) { ... }`. |
-| The gold title text style | `DiceFiveDialog`, `PageTopBar`, About, Licences, about 25 `fontFamily = SoraFontFamily` uses | Named text styles (`pageTitle`, `dialogTitle`). The theme's comment at `Theme.kt:46-58` gives compileSdk 37 as a blocker for Material 3 1.5, but the app now targets 37. |
-| Column outline drawing | `DiceTray.kt:580` and `RulesScreen.kt:1225` are the same code | Share it. The fade on unused dice also differs: 0.45 in the tray, 0.35 in Rules, though Rules is meant to look like the game. |
-| Edge fades, colour swatches, sparkles | `ScoreGrid.overflowFade` vs `Rules.fadeOffscreenEdges`; `Swatch` in Styles and PlayerColourPicker; `drawSparkle` in Gem and Egg dice | Shared helpers in `ui/common` and `style/`. |
-| Watching the app go to the background | `GameScreen.kt:151`, `Haptics.kt:52`, `rememberScopedSoundEffects` add and remove a lifecycle observer by hand | `LifecycleEventEffect` / `LifecycleResumeEffect` from lifecycle-runtime-compose. |
-| Tap plus long-press with matching TalkBack actions | Statistics, Styles (twice), Achievements each wire the gesture and the accessibility actions by hand | `Modifier.accessibleCombinedClickable(...)`. |
-| Scroll-to-item requests | `AchievementScrollRequests` and `StyleScrollRequests` are the same object with different APIs (`hasPending()` vs `pending()`) | One generic class, moved from `data/` to `navigation/`. |
-| Paging fields | `ModeBoard` and `ScoresUiState` both define `totalPages`, `hasNextPage`, `hasPreviousPage` | `ScoresUiState` holds a `ModeBoard` for the combined board. |
+| The gold title text style | `DiceFiveDialog`, `PageTopBar`, `LargeDialogTitle`, about 20 `fontFamily = SoraFontFamily` uses | Named text styles (`pageTitle`, `dialogTitle`). |
+| Faded dice beside the column outline | The outline is shared (`drawColumnOutline`), but unused dice fade to 0.45 in the tray and 0.35 in Rules, though Rules is meant to look like the game | Pick one (a visible change, so render it first). |
+| Tap plus long-press with matching TalkBack actions | Statistics, Styles (twice), Achievements each wire the gesture and the accessibility actions by hand | `Modifier.accessibleCombinedClickable(...)` - once the long-press rules below are decided. |
+
+Looked at and left: `ScoreGrid.overflowFade` and `Rules.fadeOffscreenEdges` are different effects (a vertical edge
+fade vs a horizontal mask with a clear zone and easing), so one helper would only add switches.
 
 ## GameViewModel
 
@@ -25,27 +35,23 @@ being done first. Everything below is still to do. File references are as of the
 
 ## Same kind of action, different behaviour
 
-- **Long-press means four different things:** Statistics deletes the player (destructive, hidden behind the gesture);
+- (Decided above.) **Long-press means four different things:** Statistics deletes the player (destructive, hidden behind the gesture);
   Styles picks a colour variant or shows the unlock requirement; Achievements does the same as a tap; banners go to
   the achievement or style.
-- **"Show me why this is locked" varies:** Styles - tap shows a tooltip, long-press opens a dialog. Achievements
+- (Decided above.) **"Show me why this is locked" varies:** Styles - tap shows a tooltip, long-press opens a dialog. Achievements
   reward rows - tap and long-press both show the tooltip. Achievements "missing" rows - both open a dialog. Pick one
   rule (e.g. tap = short tooltip, long-press = full dialog) and apply it everywhere.
-- **Destructive actions:** Settings uses visible red rows with a confirmation; Statistics' only way to dismiss a
+- (Decided above.) **Destructive actions:** Settings uses visible red rows with a confirmation; Statistics' only way to dismiss a
   player is the hidden long-press.
 - **Sound vs vibration settings:** sound is set up once for the whole app (`LocalSoundEffects`), vibration once per
   game screen. On/off for both is pushed in by each screen during composition (`GameScreen.kt:366-368`,
   `GameOverScreen.kt:104`). The root already has the sound setting as a flow and can apply it itself.
-- **CPU turns give mixed feedback:** a CPU roll plays the shake sound and vibrates the phone, but CPU holds make no
+- (Decided above.) **CPU turns give mixed feedback:** a CPU roll plays the shake sound and vibrates the phone, but CPU holds make no
   click. Vibrating for an action the player didn't take is worth a deliberate decision.
-- **Missing accessibility details:** `ChoicePicker.kt:128` has no `Role.Button`; the Settings reset row has no click
-  label. Most other tappable rows set both.
 - **About vs Licences:** both long, scrolling dialogs; About has no app scrollbar, Licences does.
 - **Buttons:** the menu uses `FilledTonalButton` for destinations, Game Over uses `OutlinedButton`. If intentional,
   `UI.md` should say so.
-- **State collection:** `OnlineAccountCard.kt:62` uses `collectAsState`; everywhere else uses
-  `collectAsStateWithLifecycle`.
-- **Two debug "superuser" modes**, each with its own entry gesture and toast, inside production ViewModels
+- (Decided above.) **Two debug "superuser" modes**, each with its own entry gesture and toast, inside production ViewModels
   (`GameViewModel`, `AchievementsViewModel`).
 
 ## Layers and platform separation (iOS, Steam/desktop)
@@ -66,8 +72,7 @@ being done first. Everything below is still to do. File references are as of the
   DataStore both run on desktop. An intermediate `jvmMain` shared by Android and desktop avoids copying those. The
   five formatter caches in `Formatting.android.kt` / `Formatting.ios.kt` repeat one pattern; one small cache helper
   per platform would do.
-- **Android names in shared code:** "an Android toast", `MainActivity` in `AchievementEvents`' doc, haptic durations
-  explained by `GameScreen`'s `CUP_SHAKE_MILLIS`.
+- **Android names in shared code:** haptic durations explained by `GameScreen`'s `CUP_SHAKE_MILLIS`.
 - **iOS gaps beyond `IOS_SUPPORT.md`:** `reduceMotion()` isn't implemented (iOS has a system setting);
   `IosSoundPlayer` has no pause/resume, and `release()` only stops playback without freeing anything.
 - **Startup:** `stringsLanguageConfiguration()` calls `runBlocking` on the main thread in `attachBaseContext`
@@ -77,16 +82,11 @@ being done first. Everything below is still to do. File references are as of the
 
 - ViewModels take nullable repositories so they can be built in tests, spreading `?: return` checks. The
   `AchievementStore` interface shows the alternative: required dependencies, fakes in tests.
-- `AppContainer.diceRandom` is a public `var` only the store-asset generator uses; make it a constructor parameter.
-- `DiceFiveNavHost.kt:130-152` builds `GameSetupScreen` with the same arguments in two branches.
-- Rapid next/previous taps on the Leaderboard can let an older page load overwrite a newer one (no cancel of the
-  previous load).
+- `AppContainer.diceRandom` is a public `var` only the store-asset generator uses. Kept: the generator swaps it
+  mid-test on the one process-wide container, so a constructor parameter would only move the `var` into a test hook.
 - The leaderboard tie-break order is written twice, in SQL and as a Kotlin comparator, kept in step by a comment.
 - `material-icons-extended` is frozen at 1.7.3; the app uses about 108 icons from it. Material Symbols vector files
   would get off a dead library and help APK size.
-- `ScoreRepository.recordScore` is only used by tests.
-- Out-of-date doc comments: the `SettingsRepository` class comment, `AchievementEvents` (says the host is in
-  `MainActivity`), the theme's Material 3 version note.
 
 ## Found while doing the first batch
 

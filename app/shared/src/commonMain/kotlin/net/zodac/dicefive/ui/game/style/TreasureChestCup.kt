@@ -1151,7 +1151,7 @@ private fun CupDrawScope.drawFlourishInFront(centre: Offset, t: Float) {
         val a = (angle - 90f) * PI.toFloat() / 180f
         val at = centre + Offset(gx(distance * out * cos(a)), gy(distance * out * sin(a) + 10f * t * t))
         val twinkle = 0.6f + 0.4f * sin(t * 30f + i * 1.7f)
-        drawSparkle(at, gx(sparkleSize * twinkle * (1f - 0.5f * t)), fade)
+        drawChestSparkle(at, gx(sparkleSize * twinkle * (1f - 0.5f * t)), fade)
     }
     // The coins fly once the lid is up, not through it.
     if (t < COIN_LAUNCH) return
@@ -1168,19 +1168,8 @@ private fun CupDrawScope.drawFlourishInFront(centre: Offset, t: Float) {
 private val FlourishCoinGold = Gold(light = Color(0xFFFFE9A3), mid = Color(0xFFE0B03C), dark = Color(0xFF9C7219))
 
 /** A four-pointed sparkle of [radius] at [centre]. */
-private fun CupDrawScope.drawSparkle(centre: Offset, radius: Float, alpha: Float) {
+private fun CupDrawScope.drawChestSparkle(centre: Offset, radius: Float, alpha: Float) {
     val waist = radius * 0.28f
-    val star = Path().apply {
-        moveTo(centre.x, centre.y - radius)
-        lineTo(centre.x + waist, centre.y - waist)
-        lineTo(centre.x + radius, centre.y)
-        lineTo(centre.x + waist, centre.y + waist)
-        lineTo(centre.x, centre.y + radius)
-        lineTo(centre.x - waist, centre.y + waist)
-        lineTo(centre.x - radius, centre.y)
-        lineTo(centre.x - waist, centre.y - waist)
-        close()
-    }
-    drawPath(star, FlourishLight.copy(alpha = alpha))
+    drawPath(sparkleStar(centre, radius, waist, curved = false), FlourishLight.copy(alpha = alpha))
     drawCircle(Color.White.copy(alpha = alpha), radius = waist, center = centre)
 }

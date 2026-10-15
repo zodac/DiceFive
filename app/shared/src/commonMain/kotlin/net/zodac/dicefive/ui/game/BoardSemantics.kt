@@ -47,13 +47,11 @@ internal fun ScoreCategory.spokenName(irish: Boolean): String = when (this) {
     ScoreCategory.FOURS -> stringResource(Res.string.score_fours)
     ScoreCategory.FIVES -> stringResource(Res.string.score_fives)
     ScoreCategory.SIXES -> stringResource(Res.string.score_sixes)
-    ScoreCategory.THREE_OF_A_KIND -> "3x" // i18n: not translated - the game's mark for the box
-    ScoreCategory.FOUR_OF_A_KIND -> "4x" // i18n: not translated - the game's mark for the box
     ScoreCategory.FULL_HOUSE -> stringResource(Res.string.score_full_house)
     ScoreCategory.SMALL_STRAIGHT -> stringResource(Res.string.score_small_straight)
     ScoreCategory.LARGE_STRAIGHT -> stringResource(Res.string.score_large_straight)
-    ScoreCategory.FIVE_OF_A_KIND -> "5x" // i18n: not translated - the game's mark for the box
     ScoreCategory.CHANCE -> stringResource(Res.string.score_chance)
+    ScoreCategory.THREE_OF_A_KIND, ScoreCategory.FOUR_OF_A_KIND, ScoreCategory.FIVE_OF_A_KIND, ScoreCategory.ALIBI -> requireNotNull(mark)
     ScoreCategory.REDS -> stringResource(if (irish) Res.string.score_reds_irish else Res.string.score_reds)
     ScoreCategory.YELLOWS -> stringResource(if (irish) Res.string.score_yellows_irish else Res.string.score_yellows)
     ScoreCategory.BLUES -> stringResource(if (irish) Res.string.score_blues_irish else Res.string.score_blues)
@@ -65,7 +63,6 @@ internal fun ScoreCategory.spokenName(irish: Boolean): String = when (this) {
     ScoreCategory.TARGET_5, ScoreCategory.TARGET_6, ScoreCategory.TARGET_7, ScoreCategory.TARGET_8,
     ScoreCategory.TARGET_9, ScoreCategory.TARGET_10, ScoreCategory.TARGET_11, ScoreCategory.TARGET_12,
     -> stringResource(Res.string.score_target, ScoreCategory.TARGETS.indexOf(this) + 1)
-    ScoreCategory.ALIBI -> "Alibi" // i18n: not translated - the game's mark for the box
     ScoreCategory.D20_1, ScoreCategory.D20_2, ScoreCategory.D20_3, ScoreCategory.D20_4, ScoreCategory.D20_5,
     ScoreCategory.D20_6, ScoreCategory.D20_7, ScoreCategory.D20_8, ScoreCategory.D20_9, ScoreCategory.D20_10,
     ScoreCategory.D20_11, ScoreCategory.D20_12, ScoreCategory.D20_13, ScoreCategory.D20_14, ScoreCategory.D20_15,

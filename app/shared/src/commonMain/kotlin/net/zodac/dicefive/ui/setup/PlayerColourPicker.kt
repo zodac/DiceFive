@@ -1,7 +1,5 @@
 package net.zodac.dicefive.ui.setup
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,6 +36,7 @@ import net.zodac.dicefive.resources.setup_colour_cd
 import net.zodac.dicefive.resources.setup_colour_choose_action
 import net.zodac.dicefive.resources.setup_colour_select_action
 import net.zodac.dicefive.resources.setup_colour_swaps_cd
+import net.zodac.dicefive.ui.common.ColourDisc
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.theme.color
 
@@ -137,14 +136,7 @@ fun PlayerColourPicker(
 /** One colour as a disc, with a tick on it when [checked]; the tick is dark, as every colour here is light. */
 @Composable
 private fun Swatch(colour: PlayerColour, checked: Boolean = false) {
-    Box(
-        modifier = Modifier
-            .size(SWATCH_SIZE)
-            .clip(CircleShape)
-            .background(colour.color)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
+    ColourDisc(colour.color, SWATCH_SIZE, MaterialTheme.colorScheme.outlineVariant) {
         if (checked) {
             Icon(imageVector = Icons.Filled.Check, contentDescription = null, tint = Color.Black.copy(alpha = 0.8f), modifier = Modifier.size(18.dp))
         }
