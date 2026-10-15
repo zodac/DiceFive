@@ -314,6 +314,8 @@
         <item quantity="one">Has conseguido %1$d logro</item>
         <item quantity="other">Has conseguido %1$d logros</item>
     </plurals>
+    <string name="achievements_styles_unlocked_earned_achievement">Has conseguido '%1$s'</string>
+    <string name="achievements_styles_unlocked_earned_achievement_spoken">Has conseguido %1$s</string>
     <string name="achievements_styles_unlocked_with">%1$s: %2$s</string>
     <plurals name="achievements_styles_unlocked_more">
         <item quantity="one">%1$s y %2$d más</item>
@@ -586,6 +588,8 @@
     <string name="settings_animations_low_short">B</string>
     <string name="settings_animations_off">No</string>
     <string name="settings_confirm_leaving">Confirmar al salir de la partida</string>
+    <string name="settings_online_achievements">Ver en %1$s</string>
+    <string name="settings_online_achievements_description">Consulta allí tus logros</string>
     <string name="settings_reset_achievements">Restablecer logros</string>
     <string name="settings_reset_achievements_description">Vuelve a bloquear todos los logros</string>
     <string name="settings_reset_leaderboard">Restablecer clasificación</string>

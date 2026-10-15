@@ -86,14 +86,19 @@ The constants are at the top of `AchievementBannerHost.kt`:
 - **Progress.**
   - Quieter: `surfaceContainerHigh`, one line, and a thin `LinearProgressIndicator`.
   - The count and bar climb from the old value to the new over 700ms.
-- **Styles** (`AchievementEvent.StylesUnlocked`), raised when an achievement count crosses a style lock.
+- **Styles** (`AchievementEvent.StylesUnlocked`), raised when an achievement count crosses a style lock, or when an
+  achievement with styles locked behind it is earned (`StylesEarnedBy`).
   - `tertiaryContainer`, with the style star in a circle. It's the size of an unlock banner.
   - Title "Style(s) Unlocked"; description "Earned 23 achievements: the 'Frosted' dice style", naming two styles and
     counting the rest.
-  - **One update makes at most one.** `announce(update)` (`AchievementAnnouncements.kt`) emits, in order: the unlocks,
-    one styles banner for every count lock crossed (`stylesUnlockedByCount`, from `countedUnlocksBefore` to
-    `countedUnlocksAfter`), then the progress nudges.
-  - A style behind one specific achievement gets no styles banner; its achievement's own banner carries the star.
+  - **Order.** `announce(update)` (`AchievementAnnouncements.kt`) emits each unlock followed by its own styles banner if
+    it has styles behind it (`styleRewards`: "Earned 'Big Fan': 'Glitch' dice and background", or "the hidden
+    'Multicolour' dice colour"); then **at most one** styles banner for every count lock crossed
+    (`stylesUnlockedByCount`, from `countedUnlocksBefore` to `countedUnlocksAfter`); then the progress nudges.
+  - The achievement's own banner keeps its star. The styles banner is what remains when Play Games' pop-up replaces the
+    unlock banner (`PLAY_GAMES.md`, decision 9).
+  - One achievement's styles of one name are named once ("'Starry' dice, mat and background"), so they fit the two
+    lines in Spanish.
   - TalkBack hears every style unlocked (`StylesUnlockedBannerSemanticsTest`).
 
 **Text.**

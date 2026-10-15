@@ -2,11 +2,15 @@ package net.zodac.dicefive.online
 
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.content.edit
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -17,22 +21,22 @@ import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.images.ImageManager
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.PlayGamesSdk
+import com.google.android.gms.games.achievement.Achievement as PlayAchievement
 import com.google.android.gms.tasks.Task
 import java.lang.ref.WeakReference
 import java.security.MessageDigest
+import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.coroutines.resume
 import net.zodac.dicefive.BuildConfig
-import net.zodac.dicefive.device.AndroidAppContainer
+import net.zodac.dicefive.model.Achievement
 
 /**
  * [GameServices] on Google Play Games Services v2 - the only code that imports the Play Games SDK. One per
@@ -40,18 +44,16 @@ import net.zodac.dicefive.device.AndroidAppContainer
  * need one. Present only where [isEnabled]; everywhere else the app gets [NoGameServices].
  *
  * The SDK signs in by itself whenever it starts, and has no sign-out, so it isn't started until the player signs in
- * from Settings ([signIn]). From then on ([OnlineSettingsRepository.signedIn]) it starts with the app and signs in
- * again quietly, until [signOut]. None of the calls throws: a failure leaves the player signed out, and is logged
+ * from Settings ([signIn]). From then on it starts with the app, in `Application.onCreate` as Google requires, and
+ * signs in again quietly, until [signOut]. That choice is kept in SharedPreferences ([START_AT_LAUNCH_KEY]), read
+ * there and then: DataStore's read would start the SDK only after the first Activity, too late for its sign-in. None of the calls throws: a failure leaves the player signed out, and is logged
  * under [LOG_TAG] with Google's status code. Every call has a timeout, bar the two that wait for the player to pick
  * an account.
  *
- * Only the account is wired up so far. Achievements, leaderboards and saved games are later phases of
- * `.claude/PLAY_GAMES.md`, and do nothing until then.
+ * Achievements are mirrored ([OnlineSync] decides what to send), by [playAchievementIds]. Leaderboards and saved
+ * games are later phases of `.claude/PLAY_GAMES.md`, and do nothing until then.
  */
-class PlayGamesServices private constructor(
-    private val application: Application,
-    private val settings: OnlineSettingsRepository,
-) : GameServices {
+class PlayGamesServices private constructor(private val application: Application) : GameServices {
 
     override val serviceName: String = SERVICE_NAME
 
@@ -60,17 +62,17 @@ class PlayGamesServices private constructor(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var activity: WeakReference<ComponentActivity>? = null
+    private val preferences = application.getSharedPreferences(PREFERENCES_FILE, Context.MODE_PRIVATE)
     private var sdkStarted = false
     private var refreshWhenAttached = false
 
     init {
-        scope.launch {
-            if (settings.signedIn.first()) {
-                startSdk()
-                refresh()
-            } else {
-                mutableState.value = GameServicesState.SignedOut
-            }
+        if (preferences.getBoolean(START_AT_LAUNCH_KEY, false)) {
+            startSdk()
+            // Who is signed in is asked once there's an Activity to ask with.
+            refreshWhenAttached = true
+        } else {
+            mutableState.value = GameServicesState.SignedOut
         }
     }
 
@@ -100,13 +102,17 @@ class PlayGamesServices private constructor(
         val result = PlayGames.getGamesSignInClient(activity).signIn().awaitOrNull("signIn", timeoutMillis = null)
         if (result?.isAuthenticated == false) failed("signIn: not authenticated")
         refresh()
-        settings.setSignedIn(mutableState.value is GameServicesState.SignedIn)
+        setStartAtLaunch(mutableState.value is GameServicesState.SignedIn)
     }
 
     /** The SDK stays signed in until the app next starts, but nothing here uses it, and it isn't started again. */
     override suspend fun signOut() {
-        settings.setSignedIn(false)
+        setStartAtLaunch(false)
         mutableState.value = GameServicesState.SignedOut
+    }
+
+    private fun setStartAtLaunch(start: Boolean) {
+        preferences.edit { putBoolean(START_AT_LAUNCH_KEY, start) }
     }
 
     /** Asks whether the player is signed in and, if so, who as. A player who was already shown stays shown meanwhile. */
@@ -159,11 +165,44 @@ class PlayGamesServices private constructor(
         Log.w(LOG_TAG, message, cause)
     }
 
-    override suspend fun unlockedAchievementIds(): Set<String>? = null
+    override fun mirrors(achievementId: String): Boolean = achievementId in playIdsById
 
-    override suspend fun unlock(achievementId: String) = Unit
+    override suspend fun unlockedAchievementIds(): Set<String>? {
+        val activity = signedInActivity() ?: return null
+        val loaded = PlayGames.getAchievementsClient(activity).load(false).awaitOrNull("loadAchievements") ?: return null
+        val buffer = loaded.get() ?: return null
+        return try {
+            buffer.filter { it.state == PlayAchievement.STATE_UNLOCKED }.mapNotNull { idsByPlayId[it.achievementId] }.toSet()
+        } finally {
+            buffer.release()
+        }
+    }
 
-    override suspend fun setProgress(achievementId: String, steps: Int) = Unit
+    /** An incremental achievement is unlocked by filling its steps; Play takes it (offline too) and shows its own pop-up. */
+    override suspend fun unlock(achievementId: String) {
+        val activity = signedInActivity() ?: return
+        val achievement = achievementsById[achievementId] ?: return
+        val playId = playAchievementIds[achievement] ?: return
+        val client = PlayGames.getAchievementsClient(activity)
+        when (val type = achievement.playType) {
+            is PlayAchievementType.Incremental -> client.setSteps(playId, type.steps)
+            PlayAchievementType.Standard -> client.unlock(playId)
+        }
+    }
+
+    /** [steps] is the achievement's own progress, in Play's steps for an incremental one; a standard one has none. */
+    override suspend fun setProgress(achievementId: String, steps: Int) {
+        val activity = signedInActivity() ?: return
+        val achievement = achievementsById[achievementId] ?: return
+        val playId = playAchievementIds[achievement] ?: return
+        val type = achievement.playType as? PlayAchievementType.Incremental ?: return
+        val playSteps = (steps / type.perStep).coerceAtMost(type.steps)
+        if (playSteps > 0) PlayGames.getAchievementsClient(activity).setSteps(playId, playSteps)
+    }
+
+    /** The attached Activity, while signed in: nothing is sent or asked for otherwise. */
+    private fun signedInActivity(): ComponentActivity? =
+        activity?.get()?.takeIf { mutableState.value is GameServicesState.SignedIn }
 
     override suspend fun submitScore(leaderboardKey: String, score: Long) = Unit
 
@@ -171,9 +210,21 @@ class PlayGamesServices private constructor(
 
     override suspend fun writeCloudSave(data: ByteArray, merge: (local: ByteArray, remote: ByteArray) -> ByteArray) = Unit
 
-    override val canShowAchievementsUi: Boolean = false
+    override val canShowAchievementsUi: Boolean
+        get() = signedInActivity() != null
 
-    override fun showAchievementsUi() = Unit
+    /** Play's own achievements screen, which Play needs started for a result (it reads the caller), though none comes back. */
+    override fun showAchievementsUi() {
+        val activity = signedInActivity() ?: return
+        scope.launch {
+            val intent = PlayGames.getAchievementsClient(activity).achievementsIntent.awaitOrNull("getAchievementsIntent") ?: return@launch
+            lateinit var launcher: ActivityResultLauncher<Intent>
+            launcher = activity.activityResultRegistry.register(ACHIEVEMENTS_UI_KEY, ActivityResultContracts.StartActivityForResult()) {
+                launcher.unregister()
+            }
+            launcher.launch(intent)
+        }
+    }
 
     override val canShowLeaderboardUi: Boolean = false
 
@@ -186,6 +237,16 @@ class PlayGamesServices private constructor(
 
         /** Why a call failed, in logcat: `adb logcat -s DiceFivePlayGames`. */
         const val LOG_TAG = "DiceFivePlayGames"
+
+        private val achievementsById = Achievement.entries.associateBy { it.id }
+        private val playIdsById = playAchievementIds.mapKeys { it.key.id }
+        private val idsByPlayId = playAchievementIds.entries.associate { (achievement, playId) -> playId to achievement.id }
+
+        private const val ACHIEVEMENTS_UI_KEY = "play_games_achievements"
+        private const val PREFERENCES_FILE = "play_games"
+
+        /** Whether the player signed in from Settings on this device, and hasn't signed out since. */
+        private const val START_AT_LAUNCH_KEY = "start_at_launch"
 
         private const val PLAY_STORE_PACKAGE = "com.android.vending"
         private const val TIMEOUT_MILLIS = 15_000L
@@ -203,7 +264,7 @@ class PlayGamesServices private constructor(
          */
         fun initialize(application: Application) {
             if (!isEnabled(application)) return
-            instance = PlayGamesServices(application, AndroidAppContainer.get(application).onlineSettingsRepository)
+            instance = PlayGamesServices(application)
         }
 
         /** The service for [activity] to provide, attached to it; [NoGameServices] where [initialize] started none. */

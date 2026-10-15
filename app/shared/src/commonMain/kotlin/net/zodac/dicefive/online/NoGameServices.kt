@@ -14,6 +14,8 @@ object NoGameServices : GameServices {
 
     override suspend fun signOut() = Unit
 
+    override fun mirrors(achievementId: String): Boolean = false
+
     override suspend fun unlockedAchievementIds(): Set<String>? = null
 
     override suspend fun unlock(achievementId: String) = Unit

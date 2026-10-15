@@ -25,6 +25,9 @@ interface GameServices {
     /** Stops using the service on this device until [signIn] again. The account itself is untouched. */
     suspend fun signOut()
 
+    /** Whether the service has the achievement [achievementId] ([net.zodac.dicefive.model.Achievement.id]) at all. */
+    fun mirrors(achievementId: String): Boolean
+
     /** The ids of the achievements the service says are unlocked, or null if it couldn't be asked. */
     suspend fun unlockedAchievementIds(): Set<String>?
 

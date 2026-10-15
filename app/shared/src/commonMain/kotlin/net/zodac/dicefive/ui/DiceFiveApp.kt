@@ -10,6 +10,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.achievements.AchievementScrollRequests
@@ -18,8 +23,11 @@ import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.navigation.DiceFiveNavHost
 import net.zodac.dicefive.navigation.Screen
 import net.zodac.dicefive.online.GameServices
+import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.online.NoGameServices
+import net.zodac.dicefive.online.OnlineSync
+import net.zodac.dicefive.online.OnlineSyncRequests
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
@@ -52,6 +60,15 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameService
     val animationLevel = if (systemReduceMotion) AnimationLevel.OFF else savedLevel
     val reduceMotion = !animationLevel.gameplayMotion
     val leaveConfirmation = remember { LeaveGameConfirmation() }
+    // Achievements are mirrored with the online service on signing in (and at each launch once signed in), and after
+    // every recorded change; requests made while one runs fold into the next.
+    val onlineSync = remember(container, gameServices) {
+        OnlineSync(gameServices, container.achievementsRepository, container.onlineSettingsRepository, container.scoreRepository::leaderboardTotals)
+    }
+    LaunchedEffect(onlineSync) {
+        val signedIn = gameServices.state.map { it is GameServicesState.SignedIn }.distinctUntilChanged().filter { it }.map { }
+        merge(signedIn, OnlineSyncRequests.requests).conflate().collect { onlineSync.reconcile() }
+    }
     CompositionLocalProvider(
         LocalReduceMotion provides reduceMotion,
         LocalAnimationLevel provides animationLevel,
@@ -75,6 +92,8 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameService
                     AchievementBannerHost(
                         modifier = Modifier.fillMaxSize(),
                         isOnGameScreen = { navController.currentDestination?.route == Screen.PLAY_GAME },
+                        // The service shows its own pop-up for an unlock it's sent, so ours would be a second one.
+                        showsUnlock = { !onlineSync.announcesUnlock(it) },
                         onAchievementSelected = { achievement ->
                             val alreadyOnAchievements = navController.currentDestination?.route == Screen.ACHIEVEMENTS
                             // The request has to be made before navigating, not after: if the

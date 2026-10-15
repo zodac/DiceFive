@@ -18,19 +18,31 @@ sealed interface AchievementEvent {
     data class Progressed(val achievement: Achievement, val previous: Int, val current: Int) : AchievementEvent
 
     /**
-     * Earning [achievementCount] achievements met the count lock on [styles] - every style one update
-     * unlocked that way, in one event, so they share one banner. A style locked behind one particular
-     * achievement isn't here: that achievement's own banner already carries its star.
+     * [earnedBy] unlocked [styles], which share one banner: every style one update's count unlocked, or every style
+     * (or hidden colour) behind one particular achievement.
      */
-    data class StylesUnlocked(val styles: List<UnlockedStyle>, val achievementCount: Int) : AchievementEvent {
+    data class StylesUnlocked(val styles: List<UnlockedStyle>, val earnedBy: StylesEarnedBy) : AchievementEvent {
         init {
             require(styles.isNotEmpty()) { "A styles banner needs a style" }
         }
     }
 }
 
-/** A style a [AchievementEvent.StylesUnlocked] names: its [name] and what one of its category is called - "'Frosted' dice". */
-data class UnlockedStyle(val name: StringResource, val categoryNoun: StringResource)
+/** What unlocked the styles on a [AchievementEvent.StylesUnlocked] banner. */
+sealed interface StylesEarnedBy {
+
+    /** Earning [achievementCount] achievements met their count lock. */
+    data class Count(val achievementCount: Int) : StylesEarnedBy
+
+    /** Earning [achievement], which they're locked behind. */
+    data class OneAchievement(val achievement: Achievement) : StylesEarnedBy
+}
+
+/**
+ * A style a [AchievementEvent.StylesUnlocked] names: its [name] and what one of its category is called - "'Frosted'
+ * dice". With [hiddenColours], it's that many hidden colours of the style that were unlocked, not the style itself.
+ */
+data class UnlockedStyle(val name: StringResource, val categoryNoun: StringResource, val hiddenColours: Int = 0)
 
 /**
  * Where unlock banners are announced, and where the banner host listens.

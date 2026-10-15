@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Animation
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MotionPhotosOff
@@ -27,20 +28,22 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.settings.AnimationLevel
+import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.about_title
@@ -55,6 +58,8 @@ import net.zodac.dicefive.resources.settings_animations_medium
 import net.zodac.dicefive.resources.settings_animations_medium_short
 import net.zodac.dicefive.resources.settings_animations_off
 import net.zodac.dicefive.resources.settings_confirm_leaving
+import net.zodac.dicefive.resources.settings_online_achievements
+import net.zodac.dicefive.resources.settings_online_achievements_description
 import net.zodac.dicefive.resources.settings_reset_achievements
 import net.zodac.dicefive.resources.settings_reset_achievements_description
 import net.zodac.dicefive.resources.settings_reset_achievements_message
@@ -68,8 +73,8 @@ import net.zodac.dicefive.resources.settings_sound
 import net.zodac.dicefive.resources.settings_title
 import net.zodac.dicefive.resources.settings_version
 import net.zodac.dicefive.resources.settings_vibration
-import net.zodac.dicefive.ui.common.FittedSegmentedChoiceRow
 import net.zodac.dicefive.ui.common.DiceFiveDialog
+import net.zodac.dicefive.ui.common.FittedSegmentedChoiceRow
 import net.zodac.dicefive.ui.common.FooterPill
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
@@ -97,6 +102,22 @@ internal fun SwitchSetting(icon: ImageVector, label: String, checked: Boolean, o
         modifier = Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
         // The Card already supplies the surface; an opaque ListItem container would paint a
         // second, slightly different one on top of it.
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+    )
+}
+
+/**
+ * A link out to the online service's own achievements screen, in [ResetSetting]'s place and shape while signed in
+ * (resetting would be undone by the service at the next sign-in), but not tinted as destructive. A screen reader hears
+ * one "View in Google Play Games, See your achievements there, button".
+ */
+@Composable
+private fun OnlineAchievementsSetting(serviceName: String, onClick: () -> Unit) {
+    ListItem(
+        leadingContent = { Icon(imageVector = Icons.Filled.EmojiEvents, contentDescription = null) },
+        headlineContent = { SettingLabel(stringResource(Res.string.settings_online_achievements, serviceName)) },
+        supportingContent = { Text(stringResource(Res.string.settings_online_achievements_description)) },
+        modifier = Modifier.clickable(role = Role.Button, onClick = onClick),
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
     )
 }
@@ -240,12 +261,18 @@ fun SettingsScreen(
         }
 
         Card(modifier = Modifier.fillMaxWidth()) {
-            ResetSetting(
-                icon = Icons.Filled.RestartAlt,
-                label = stringResource(Res.string.settings_reset_achievements),
-                description = stringResource(Res.string.settings_reset_achievements_description),
-                onClick = { showResetAchievementsConfirmation = true },
-            )
+            val gameServices = LocalGameServices.current
+            val signedIn = gameServices.state.collectAsState().value is GameServicesState.SignedIn
+            if (signedIn && gameServices.canShowAchievementsUi) {
+                OnlineAchievementsSetting(gameServices.serviceName, onClick = gameServices::showAchievementsUi)
+            } else {
+                ResetSetting(
+                    icon = Icons.Filled.RestartAlt,
+                    label = stringResource(Res.string.settings_reset_achievements),
+                    description = stringResource(Res.string.settings_reset_achievements_description),
+                    onClick = { showResetAchievementsConfirmation = true },
+                )
+            }
             ResetSetting(
                 icon = Icons.Filled.DeleteSweep,
                 label = stringResource(Res.string.settings_reset_leaderboard),

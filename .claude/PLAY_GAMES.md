@@ -3,8 +3,14 @@
 **Status: Phase 1 is done; Phase 2 is in progress.** Phase 1 covers the seam, `GameMode.onlineLeaderboardKey`, the
 `online` DataStore, the Settings card (hidden while the service is unavailable), and `ScoreEntry.playedUnmodified`.
 - Phase 0's minimum is done: the PGS project (APP_ID `308613893005`), the consent screen and an Android credential.
-- Phase 2 so far: the SDK, `DiceFiveApplication`, the `APP_ID` meta-data and `PlayGamesServices` (state, sign-in, name,
-  avatar). Not yet: the account-switch prompt, and a check on a real phone.
+- Phase 2 is done: the SDK, `DiceFiveApplication`, the `APP_ID` meta-data and
+  `PlayGamesServices` (state, sign-in, name, avatar), checked on a real phone.
+- Phase 3 so far: the 110 achievements are drafts in Play Console (imported from `scripts/export-play-console.sh`),
+  `PlayGamesIds.kt` maps them, `OnlineSync` mirrors both ways (each account's apart, never after superuser mode), and
+  our unlock banner stands aside for Play's pop-up while mirroring (only for a first unlock on Play, as Play shows
+  none for one it has). Achievements with styles behind them get a styles
+  banner. The Reset achievements row gives way to "View in Google Play Games"
+  while signed in. Phase 3 is done once checked on a phone and committed.
 - This file is the one source on the subject: where another doc disagrees, follow this one.
 
 > **The work isn't complete while a decision is Deferred.** A deferred decision blocks the phase named in "Decisions".
@@ -28,7 +34,7 @@ One SDK: `com.google.android.gms:play-services-games-v2` (v22.1.0; v1 is frozen)
 |---|---|---|
 | Sign-in | `GamesSignInClient` | **Automatic** whenever the SDK starts. **No sign-out API**, and no way to turn the automatic one off (`isAuthenticated`, `signIn` and `requestServerSideAccess` are all there is, in 22.1.0). Needs `PlayGamesSdk.initialize()` (the docs say in `Application.onCreate()`) and the `APP_ID` meta-data |
 | Player | `PlayersClient.getCurrentPlayer()` | Gamer name, avatar, id |
-| Achievements | `AchievementsClient` | ≤400; **2,000 points** total, ≤200 each, multiples of 5; names ≤100 chars, descriptions ≤500; square icons; revealed/hidden/unlocked; incremental 2-10,000 steps; `setStepsImmediate` only moves forward; offline unlocks sync later. **Published ones can't be reset** (only drafts, by testers) |
+| Achievements | `AchievementsClient` | ≤400; **2,000 points** total, ≤200 each, multiples of 5 (no minimum documented); names ≤100 chars, descriptions ≤500; one square icon each; revealed/hidden/unlocked; incremental 2-10,000 steps; `setStepsImmediate` only moves forward; offline unlocks sync later. **Published ones can't be reset** (only drafts, by testers) |
 | Leaderboards | `LeaderboardsClient` | ≤70; ordering fixed once published; daily/weekly/all-time and public/friends are automatic; optional min/max and tamper protection; ties aren't ranked by our rules. **Can't be reset** |
 | Saved games | `SnapshotsClient` | Named blobs ≤3 MB; enabled in the console; offline commits cached; conflicts come as `isConflict()` and are settled with `resolveConflict` |
 | Sidekick | Added by Play to uploaded bundles | Android 13+, 3 GB+ RAM, a gamer profile, **installed from Play**; enabled per release. Locked achievements show only after 100+ players use the achievements API in 30 days |
@@ -91,6 +97,8 @@ data class OnlineAccount(val displayName: String, val avatar: ImageBitmap?, val 
 - **Sign-in is the player's choice, from Settings only (decided).** Nothing signs in or asks to at launch.
   - The SDK signs in by itself whenever it starts, so it isn't started (`PlayGamesSdk.initialize`) until the player
     taps **Sign in** on the card.
+  - The SDK also starts itself at every launch through its own `PlayGamesInitProvider`, which the app's manifest
+    removes (`tools:node="remove"`; `PlayGamesServicesTest` checks it stays gone).
   - A successful sign-in sets `signed_in` in the `online` store. From then on the SDK starts with the app and signs in
     again quietly.
 - **Sign out (decided)** replaces the old "Use Google Play Games on this device" switch. v2 has no sign-out API, so it
@@ -108,35 +116,34 @@ data class OnlineAccount(val displayName: String, val avatar: ImageBitmap?, val 
   - Per game: long-press the icon > **Choose profile**.
   - Play asks once itself if no default is set.
   - The card names the account and where to change it.
-- **Switching accounts.** The device remembers a salted hash of the last synced player id (in the `online` store).
-  - A different account triggers a prompt: "**Link it to <name>** / **Keep it separate**".
-  - "Separate" signs out.
-
-## 2. Achievements
-
-There are 103 (out of Play's 400). `Achievement.id` is the stable key. Every achievement is `NORMAL` or `HIDDEN`;
-`SECRET` is unused.
-
-| Local | Play |
-|---|---|
-| `NORMAL` / `HIDDEN` | Revealed / Hidden |
-| `SECRET` | not registered (local only) |
-| `ProgressStyle.NONE` | Standard (`unlock`) |
-| `CUMULATIVE`, target ≤10,000 | Incremental, same target (`setSteps`, forward-only and idempotent) |
-| `PROFESSIONAL_ROLLER` (100,000 points) | Incremental, **10,000 steps of 10** |
-| Ledger bands | Incremental, read from the scores table |
-| `STREAK` | Standard (steps can't go back; the local bar stays) |
-
+- **Each account's synced data is kept apart (decided).** The device remembers the account it last synced with
+  (`synced_account` in the `online` store, a salted hash).
+  - The first account to sync, or the same one again, **merges** with the device: progress made signed out goes up
+    (Google's guidance).
+  - A **different** account **wipes** the device's synced data and restores its own. Today that's achievements and
+    their counters (as Reset achievements does); with cloud save (Phase 5), everything in the save. The last account's
+    data is already online and returns when it signs in again. Nothing is wiped until the service has answered.
+  - Signing out wipes nothing: local state carries on, and merges into the next sign-in if it's the same account.
+  - Accepted: anything the last account hadn't yet sent is lost on a switch; local scores (not synced until Phase 5)
+    still count towards the score-band achievements.
+  - No prompt. Sign in always uses Play's default account; changing it happens in Play Games' own settings.
 - **Local → Play** happens always, in reconcile only. That includes achievements earned before linking.
 - **Play → local** happens on sign-in. Play-unlocked but locally locked achievements unlock quietly, with today's time
-  and one "N achievements restored" message. Their styles unlock too. This restores a reinstall even without cloud
+  and **no message (decided)**. Their styles unlock too. This restores a reinstall even without cloud
   save.
 - **Mode guards** need nothing new; the mirror copies only what the engine decided.
-- **Console work, prepared by code.**
-  - **An export task** writes every achievement's id, text (en/es/ar), state, type and steps, under a banned-word
-    guard.
-  - **A Robolectric render task** exports 512x512 icons from `AchievementIcons.kt`. They're reviewed before upload.
-  - **Points** use a tier formula (~19 average; ~300 held back for future modes), checked by a script.
+- **Console work, prepared by code.** `scripts/export-play-console.sh` writes the gitignored `play-console/`:
+  - `achievements-import.zip`, for Achievements > **Import achievements**: `AchievementsMetadata.csv` (English, the
+    default locale), `AchievementsLocalizations.csv` (es-ES, es-419 and ar, which must be added as translations in Play
+    Console first), `AchievementsIconsMappings.csv` and the icons. No header rows, keyed by the English name.
+  - Play's docs say names and descriptions shouldn't hold commas, but quoted (standard CSV) they import fine.
+  - `achievements.csv` (one sheet with a header: id, points, tier, type, steps, state, text) and `icons/<id>.png`
+    (512px: the glyph on the unlock banner's colour), for review.
+  - **Type and state** come from `PlayGamesAchievements.kt` (`playType`, `playHidden`, `onPlay`), which the mirror uses
+    too.
+  - **Points** are by tier (`PlayConsoleAchievements.kt`, test sources): trivial 5, easy 10, medium 15, hard 25, very
+    hard 45, extreme 70 (Historian, Professional Roller), Completionist 100, and every Easter egg 5. That spends all 2,000 (`PlayConsoleExportTest`), so a new
+    achievement needs points freed up first.
   - Everything stays **draft** until ready, because only drafts can be reset.
 
 ## 3. Leaderboards per mode
@@ -216,7 +223,7 @@ No new menu button: the menu is full, and adding one would move existing element
    - No switches. **Cloud save is always on while signed in (decided)**; "Last saved <time>" shows under the header.
    - A quiet error line ("Couldn't reach Google Play Games - will retry").
    - Hidden when `Unavailable`.
-2. **Achievements**: "View in Google Play Games" in the count banner's footer, when signed in.
+2. **Achievements**: "View in Google Play Games" takes Reset achievements' place in Settings while signed in.
 3. **Leaderboard**: a "Global leaderboard" action per mode card. The local tables stay.
 4. **Game Over**: nothing. **Decided: submissions are quiet.**
 5. **First launch**: nothing of ours. Check Play's "Welcome back" pop-up doesn't hide the logo too long.
@@ -232,10 +239,9 @@ No new menu button: the menu is full, and adding one would move existing element
 
 Play's achievements and leaderboards can't be reset once published; cloud save can.
 
-- **Reset achievements (decided: disabled while linked).** Otherwise Play would restore everything at the next sign-in.
-  - The row stays visible, with the text "Your achievements are linked to Google Play Games and can't be reset"
-    (spoken as disabled, with the reason).
-  - To reset, sign out first. The confirmation says Play keeps its copy.
+- **Reset achievements (decided: hidden while signed in).** Play would restore everything at the next sign-in. In its
+  place, the same row shape: **"View in Google Play Games"** ("See your achievements there"), opening Play's own
+  achievements screen. Signed out, the row is back as before.
 - **Reset leaderboard (decided: all devices).** It clears local and cloud copies, with a reset marker. The Play boards
   keep their entries, and the confirmation says so. There's no "this device only" option, because the cloud would
   restore it.
@@ -270,7 +276,6 @@ Game Center work later uses `[iOS]`.
 - **Phase 2: sign-in and the card.**
   - Add `play-services-games-v2`, an `Application` subclass calling `initialize`, the `APP_ID` meta-data, and
     `PlayGamesServices` (state, sign-in, name, avatar).
-  - Add the account-switch prompt.
   - Before committing:
     - record the release APK size before and after, and what R8 kept;
     - check AboutLibraries lists the Play services licence, and add it to `allowedLicenses` with a comment;
@@ -362,22 +367,24 @@ string, a unique icon and an aggregation (LU-GS-GAC).
 | # | Decision | Answer | Needed by |
 |---|---|---|---|
 | 1 | Level Up a goal? | **Decided: no** | - |
-| 2 | Reset achievements while linked | **Decided: disabled, with the reason** | Phase 3 |
+| 2 | Reset achievements while signed in | **Decided: hidden**, "View in Google Play Games" in its place | Phase 3 |
 | 3 | Reset leaderboard when signed in | **Decided: all devices**; Play bests stay | Phase 4/5 |
 | 4 | Submit pre-link bests | **Decided: yes**, once per account per device | Phase 4 |
 | 5 | In-progress game in the cloud | **Decided: yes**, newest wins | Phase 5 |
 | 6 | GitHub builds sign in? | **Decided: Play-only** | Phase 0/2 |
-| 7 | Achievement points | **Deferred**: the tier formula (~300 held back), or set by hand | Phase 3, before publishing |
+| 7 | Achievement points | **Decided: set by hand** from an exported sheet; Easter eggs 0 if Play allows it (the docs give no minimum - test with a draft), so the points come from the normal achievements | Phase 3, before publishing |
 | 8a | Sidekick tab position | **Deferred**: decided on a device | Phase 6 |
 | 8b | Sidekick snooze | **Decided: 300s** | Phase 6 |
-| 9 | Play's unlock pop-up | **Deferred**: suppress if v2 allows (`setViewForPopups` existed in v1), or accept | Phase 3 |
+| 9 | Play's unlock pop-up | **Decided: Play's replaces ours.** While signed in, an achievement mirrored to Play shows no unlock banner of ours (Play's pop-up instead); progress nudges and styles banners stay. Ships with the mirror, never before | Phase 3 |
 | 10 | Commit category | **Decided: `[Play Games]`** | Phase 1 |
-| 11 | Locked icon on Play | **Deferred**: own icon greyed (recommended), or a padlock | Phase 3, with the renders |
+| 11 | Locked icon on Play | **Settled by Play**: one icon per achievement (`iconUrl`), and Play draws its locked look. The maintainer's choice was a padlock, which Play can't do without padlocking the unlocked icon too | - |
 | 12 | Game Over note | **Decided: stay quiet** | Phase 4 |
 | 13 | Sign-in at launch | **Decided: never before the player signs in from Settings**; Sign out replaces the device switch | Phase 2 |
 | 14 | Cloud save switch | **Decided: none**; cloud save is always on while signed in | Phase 2 |
+| 15 | Styles behind one achievement | **Decided: they get a styles banner too** (as count locks do), whether or not signed in, so the reward still shows when Play's pop-up replaces the unlock banner | Phase 3 |
+| 16 | Another account signing in | **Decided: wipe the synced data and restore that account's**; the first account (or the same again) merges; no prompt; nothing wiped on sign-out | Phase 3 |
 
-**Still deferred: 7, 8a, 9, 11.**
+**Still deferred: 8a.**
 
 ## Sources
 

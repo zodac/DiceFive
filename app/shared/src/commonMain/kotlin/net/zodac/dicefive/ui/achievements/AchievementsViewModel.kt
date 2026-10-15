@@ -26,6 +26,7 @@ import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
+import net.zodac.dicefive.online.OnlineSettingsRepository
 
 /** One row on the achievements list. [unlockedAt] is null while it's still locked. */
 data class AchievementItem(
@@ -66,6 +67,8 @@ class AchievementsViewModel(
     private val scoreRepository: ScoreRepository? = null,
     /** Whether this is a debug build - superuser mode never activates without it. */
     private val isDebugBuild: Boolean = false,
+    /** Told when superuser mode activates, so its cheated unlocks are never mirrored online. */
+    private val onlineSettingsRepository: OnlineSettingsRepository? = null,
 ) : ViewModel() {
 
     // Read once: the leaderboard only changes when a game finishes, which can't happen while this
@@ -118,6 +121,7 @@ class AchievementsViewModel(
         if (unlockedCountTapCount >= SUPERUSER_TAP_TARGET) {
             unlockedCountTapCount = 0
             _superuserModeActive.value = true
+            onlineSettingsRepository?.let { viewModelScope.launch { it.blockMirroring() } }
             _toastMessages.trySend("Superuser mode activated!") // i18n: not translated - a debug-build developer toast
         }
     }
@@ -252,6 +256,7 @@ class AchievementsViewModel(
                     achievementsRepository = container.achievementsRepository,
                     scoreRepository = container.scoreRepository,
                     isDebugBuild = container.buildInfo.isDebug,
+                    onlineSettingsRepository = container.onlineSettingsRepository,
                 )
             }
         }

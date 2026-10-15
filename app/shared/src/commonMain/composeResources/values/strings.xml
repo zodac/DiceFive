@@ -395,6 +395,10 @@
         <item quantity="one">Earned %1$d achievement</item>
         <item quantity="other">Earned %1$d achievements</item>
     </plurals>
+    <!-- What unlocked a style locked behind one achievement: %1$s is the achievement's title. -->
+    <string name="achievements_styles_unlocked_earned_achievement">Earned '%1$s'</string>
+    <!-- The same, as TalkBack says it, without the quote marks. -->
+    <string name="achievements_styles_unlocked_earned_achievement_spoken">Earned %1$s</string>
     <!-- The banner's description: %1$s is the line above, %2$s the styles - the one style, the two styles, or the two and how many more. -->
     <string name="achievements_styles_unlocked_with">%1$s: %2$s</string>
     <!-- Chosen by how many more styles there are than the two named. %1$s is the two named, %2$d the rest. -->
@@ -777,6 +781,9 @@
     <string name="settings_animations_low_short">L</string>
     <string name="settings_animations_off">Off</string>
     <string name="settings_confirm_leaving">Confirm leaving game</string>
+    <!-- In Reset achievements' place while signed in: %1$s is the online service ("Google Play Games"). -->
+    <string name="settings_online_achievements">View in %1$s</string>
+    <string name="settings_online_achievements_description">See your achievements there</string>
     <string name="settings_reset_achievements">Reset achievements</string>
     <string name="settings_reset_achievements_description">Lock every achievement again</string>
     <string name="settings_reset_leaderboard">Reset leaderboard</string>

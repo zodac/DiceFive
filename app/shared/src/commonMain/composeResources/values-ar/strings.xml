@@ -347,6 +347,8 @@
         <item quantity="many">تم كسب %1$d إنجازًا</item>
         <item quantity="other">تم كسب %1$d إنجازًا</item>
     </plurals>
+    <string name="achievements_styles_unlocked_earned_achievement">تم كسب «%1$s»</string>
+    <string name="achievements_styles_unlocked_earned_achievement_spoken">تم كسب %1$s</string>
     <string name="achievements_styles_unlocked_with">%1$s: %2$s</string>
     <plurals name="achievements_styles_unlocked_more">
         <item quantity="zero">%1$s و%2$d نمط آخر</item>
@@ -671,6 +673,8 @@
     <string name="settings_animations_low_short">خ</string>
     <string name="settings_animations_off">متوقفة</string>
     <string name="settings_confirm_leaving">تأكيد مغادرة اللعبة</string>
+    <string name="settings_online_achievements">عرض في %1$s</string>
+    <string name="settings_online_achievements_description">اطّلع على إنجازاتك هناك</string>
     <string name="settings_reset_achievements">إعادة ضبط الإنجازات</string>
     <string name="settings_reset_achievements_description">أقفل كل إنجاز من جديد</string>
     <string name="settings_reset_leaderboard">إعادة ضبط لوحة المتصدرين</string>

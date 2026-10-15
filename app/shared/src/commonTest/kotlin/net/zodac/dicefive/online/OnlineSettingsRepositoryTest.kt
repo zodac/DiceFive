@@ -4,7 +4,9 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,12 +23,13 @@ private class OnlinePreferencesStore : DataStore<Preferences> {
 class OnlineSettingsRepositoryTest {
 
     @Test
-    fun signedOutUntilSignedIn() = runTest {
+    fun noAccountSyncedAndMirroringAllowedUntilSet() = runTest {
         val repository = OnlineSettingsRepository(OnlinePreferencesStore())
-        assertFalse(repository.signedIn.first())
-        repository.setSignedIn(true)
-        assertTrue(repository.signedIn.first())
-        repository.setSignedIn(false)
-        assertFalse(repository.signedIn.first())
+        assertNull(repository.syncedAccount.first())
+        assertFalse(repository.mirroringBlocked.first())
+        repository.setSyncedAccount("ann")
+        repository.blockMirroring()
+        assertEquals("ann", repository.syncedAccount.first())
+        assertTrue(repository.mirroringBlocked.first())
     }
 }

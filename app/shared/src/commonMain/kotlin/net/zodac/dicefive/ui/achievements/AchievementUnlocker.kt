@@ -8,6 +8,7 @@ import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.AchievementUpdate
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.online.OnlineSyncRequests
 
 /**
  * The one way an achievement is earned: read [store], decide with [AchievementEngine], record the result, and only
@@ -31,6 +32,7 @@ class AchievementUnlocker(private val store: AchievementStore) {
             if (!update.isEmpty) {
                 store.record(update.unlockedAt(), update.counters)
                 announce(update)
+                OnlineSyncRequests.request()
             }
             update
         }

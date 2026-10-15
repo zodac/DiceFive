@@ -2,6 +2,7 @@ package net.zodac.dicefive.ui.achievements
 
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
@@ -33,22 +34,22 @@ import androidx.compose.material.icons.filled.EmojiPeople
 import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.Filter7
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Filter1
 import androidx.compose.material.icons.filled.Filter3
+import androidx.compose.material.icons.filled.Filter7
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.FormatPaint
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.GpsFixed
-import androidx.compose.material.icons.filled.Grade
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.HeartBroken
 import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.House
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowUp
 import androidx.compose.material.icons.filled.Landslide
@@ -56,6 +57,7 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Looks3
 import androidx.compose.material.icons.filled.Looks6
 import androidx.compose.material.icons.filled.LooksTwo
+import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.MilitaryTech
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.NoMeetingRoom
@@ -67,6 +69,7 @@ import androidx.compose.material.icons.filled.PriorityHigh
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Quiz
+import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Replay
@@ -76,13 +79,13 @@ import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
 import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Spa
-import androidx.compose.material.icons.filled.Stars
-import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material.icons.filled.ThumbUp
@@ -92,12 +95,11 @@ import androidx.compose.material.icons.filled.Upgrade
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.filled.WorkspacePremium
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -109,6 +111,10 @@ import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.graphics.vector.group
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.ic_cowboy_hat
@@ -149,10 +155,6 @@ import net.zodac.dicefive.ui.theme.SunflowerDisc
 import net.zodac.dicefive.ui.theme.SunflowerPetal
 import net.zodac.dicefive.ui.theme.SunflowerPetalShade
 import net.zodac.dicefive.ui.theme.SunflowerSeed
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
 import org.jetbrains.compose.resources.vectorResource
 
 /**
@@ -197,7 +199,7 @@ val Achievement.icon: ImageVector
         Achievement.UPPER_CLASS -> Icons.Filled.ArrowUpward
         Achievement.LOWER_CLASS -> Icons.Filled.ArrowDownward
         Achievement.ENCORE -> Icons.Filled.Repeat
-        Achievement.DICE_WHISPERER -> Icons.Filled.Grade
+        Achievement.DICE_WHISPERER -> Icons.Filled.RecordVoiceOver
         Achievement.HAT_TRICK -> Icons.Filled.Looks3
         // Drawn for this app: every die face, 1 to 6 - the set of numbers it collects.
         Achievement.FULL_SET -> DIE_FACE_SET_ICON
@@ -298,10 +300,10 @@ val Achievement.icon: ImageVector
         Achievement.NICE -> Icons.Filled.ThumbUp
         Achievement.ZERO_TO_HERO -> Icons.Filled.Upgrade
         Achievement.WASTED_FORTUNE -> Icons.Filled.DeleteForever
-        Achievement.SIZE_ISNT_EVERYTHING -> Icons.Filled.PriorityHigh
+        Achievement.SIZE_ISNT_EVERYTHING -> Icons.Filled.Straighten
         Achievement.HOW_DO_YOU_PLAY_THIS_GAME -> Icons.Filled.Quiz
         Achievement.ROCK_BOTTOM -> Icons.Filled.KeyboardDoubleArrowDown
-        Achievement.WHO_MADE_THIS -> Icons.Filled.Groups
+        Achievement.WHO_MADE_THIS -> Icons.Filled.Info
 
         // ---- Collection ---------------------------------------------------------------------------
         // The six score ranges, lowest to highest, count up a die's faces: one pip more for each.

@@ -1,6 +1,9 @@
 package net.zodac.dicefive.online
 
+import android.content.Context
+import android.content.pm.PackageManager
 import androidx.activity.ComponentActivity
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -41,6 +44,13 @@ class PlayGamesServicesTest {
         val services = PlayGamesServices.attach(activity)
         assertSame(NoGameServices, services)
         assertEquals(GameServicesState.Unavailable, services.state.value)
+    }
+
+    @Test
+    fun `the SDK can't start itself at launch - only once the player signs in`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val providers = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PROVIDERS).providers.orEmpty()
+        assertFalse(providers.joinToString { it.name }, providers.any { it.name.endsWith("PlayGamesInitProvider") })
     }
 
     @Test

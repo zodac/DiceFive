@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.runTest
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.achievements.StylesEarnedBy
 import net.zodac.dicefive.data.achievements.UnlockedStyle
 import net.zodac.dicefive.data.achievements.countsTowardStyleLocks
 import net.zodac.dicefive.game.AchievementEngine
@@ -29,6 +30,7 @@ import net.zodac.dicefive.resources.style_noun_mat
 import net.zodac.dicefive.ui.game.style.StyleCatalogs
 import net.zodac.dicefive.ui.game.style.StyleReward
 import net.zodac.dicefive.ui.game.style.StyleUnlock
+import net.zodac.dicefive.ui.game.style.styleRewards
 import net.zodac.dicefive.ui.game.style.stylesUnlockedByCount
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -103,12 +105,37 @@ class StylesUnlockedBannerTest {
         val styleBanners = events.filterIsInstance<AchievementEvent.StylesUnlocked>()
         assertEquals(1, styleBanners.size, "$events")
         assertEquals(expectedStyles.map { UnlockedStyle(it.styleName, it.categoryNoun) }, styleBanners.single().styles)
-        assertEquals(30, styleBanners.single().achievementCount)
+        assertEquals(StylesEarnedBy.Count(30), styleBanners.single().earnedBy)
         assertEquals(AchievementEvent.StylesUnlocked::class, events.last { it !is AchievementEvent.Progressed }::class)
         assertEquals(10, events.count { it is AchievementEvent.Unlocked })
+    }
 
-        // Even for an achievement that unlocks a style itself.
+    @Test
+    fun `an achievement with styles behind it is followed by their own banner - before the count's and the progress`() {
         val ownStyle = AchievementEngine.unlockNow(setOf(Achievement.THE_SOLUTION), stateWith(0), 0L)
-        assertEquals(listOf<AchievementEvent>(AchievementEvent.Unlocked(Achievement.THE_SOLUTION)), events { announce(ownStyle) })
+        assertEquals(
+            listOf(
+                AchievementEvent.Unlocked(Achievement.THE_SOLUTION),
+                AchievementEvent.StylesUnlocked(
+                    listOf(UnlockedStyle(Res.string.style_family_maths, Res.string.style_noun_dice)),
+                    StylesEarnedBy.OneAchievement(Achievement.THE_SOLUTION),
+                ),
+            ),
+            events { announce(ownStyle) },
+        )
+
+        // With a count crossed too (Garden dice at 95): the achievement's banner, its styles, then the count's styles.
+        val crossing = AchievementEngine.unlockNow(setOf(countedAchievements[94], Achievement.BIG_FAN), stateWith(94), 0L)
+        val banners = events { announce(crossing) }.filter { it !is AchievementEvent.Progressed }
+        val bigFan = banners.indexOf(AchievementEvent.Unlocked(Achievement.BIG_FAN))
+        val ownBanner = banners[bigFan + 1] as AchievementEvent.StylesUnlocked
+        assertEquals(StylesEarnedBy.OneAchievement(Achievement.BIG_FAN), ownBanner.earnedBy)
+        assertEquals(2, ownBanner.styles.size)
+        assertTrue((banners.last() as AchievementEvent.StylesUnlocked).earnedBy is StylesEarnedBy.Count, "$banners")
+
+        // An achievement with no style behind it gets no styles banner of its own.
+        val plainAchievement = countedAchievements.first { it.styleRewards.isEmpty() }
+        val plain = AchievementEngine.unlockNow(setOf(plainAchievement), stateWith(0), 0L)
+        assertTrue(events { announce(plain) }.none { it is AchievementEvent.StylesUnlocked && it.earnedBy is StylesEarnedBy.OneAchievement })
     }
 }
