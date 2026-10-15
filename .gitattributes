@@ -1,0 +1,12 @@
+# Normalise text to LF in the repo and the working tree, on every platform.
+* text=auto eol=lf
+
+# Binary files: never diffed, merged or line-ending converted.
+*.bin binary
+*.ogg binary
+*.webp binary
+*.png binary
+*.ttf binary
+*.otf binary
+*.jar binary
+*.keystore binary
