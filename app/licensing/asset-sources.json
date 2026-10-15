@@ -89,6 +89,12 @@
     "copyright": "Copyright 2026 zodac.net",
     "license": "LicenseRef-DiceFive-AllRightsReserved"
   },
+  "app/android/src/main/res/xml/sidekick_config.xml": {
+    "description": "Play Games Sidekick config: the tab's default position and the first-session snooze",
+    "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01B2fBbenxLkeAc4xpD93yyf",
+    "copyright": "Copyright 2026 zodac.net",
+    "license": "LicenseRef-DiceFive-AllRightsReserved"
+  },
   "app/shared/src/commonMain/composeResources/drawable/ic_cowboy_hat.xml": {
     "description": "Comeback Kid achievement icon",
     "source": "Created for DiceFive in Claude Code session https://claude.ai/code/session_01LdEuMcqQiztgmfaK6BjQ6y (commit e8aba36)",

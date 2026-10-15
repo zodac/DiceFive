@@ -103,7 +103,8 @@ The sole holder can relicense later.
 ## In-repo build changes
 
 - **App Bundle**: done. `release.yml` builds `bundleRelease` beside the APK (from 1.0.0, or `force_apk`) and attaches
-  `DiceFive-<version>.aab`. Uploading to Play is by hand.
+  `DiceFive-<version>.aab`. Uploading to Play is by hand, with "Sidekick is on by default" ticked (`PLAY_GAMES.md`,
+  Phase 6).
 - **`INTERNET` permission**: not declared yet. Play Games, cloud save, ads and billing need it (SDK manifests merge it;
   ads may want it declared).
 - **Signing**: done. Play App Signing holds the app key. The upload key backs the `RELEASE_KEY*` secrets (alias

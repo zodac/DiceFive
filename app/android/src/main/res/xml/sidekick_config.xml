@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Play Games Sidekick, which Play adds to bundles uploaded with "Sidekick on by default" (PLAY_GAMES.md, section 5).
+     Positions are physical edges, the same in RTL. Top-right in both orientations: Play's middle-right default covers
+     the totals button and the cup. A player's own drag of the tab outranks these. -->
+<deku-config>
+    <default-entrypoint-position orientation="portrait" value="TOP_RIGHT" />
+    <default-entrypoint-position orientation="landscape" value="TOP_RIGHT" />
+
+    <!-- Hidden for the first 5 minutes of a player's first session. -->
+    <snooze duration_seconds="300" />
+</deku-config>

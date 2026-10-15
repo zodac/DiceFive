@@ -1,6 +1,6 @@
 # DiceFive: Google Play Games Services v2 - plan
 
-**Status: Phases 1-5 are done; Phase 6 (Sidekick and release) is next.** Phase 1 covers the seam, `GameMode.onlineLeaderboardKey`, the
+**Status: Phases 1-5 are done; Phase 6 (Sidekick and release) is under way: the config is built, the console steps remain.** Phase 1 covers the seam, `GameMode.onlineLeaderboardKey`, the
 `online` DataStore, the Settings card (hidden while the service is unavailable), and `ScoreEntry.playedUnmodified`.
 - Phase 0's minimum is done: the PGS project (APP_ID `308613893005`), the consent screen and an Android credential.
 - Phase 2 is done: the SDK, `DiceFiveApplication`, the `APP_ID` meta-data and
@@ -18,6 +18,9 @@
 - Phase 5 is done: Room v2 (`uuid`), stamped settings and in-progress writes, per-install counter shares,
   `CloudSave`/`CloudSaveMerge`/`CloudSaveCodec`/`LocalCloudSave`, the Snapshots transport, "Last saved", the retry line,
   and the sign-in sync's progress on the Settings card. Checked by the maintainer on real devices.
+- Phase 6's code is done: `res/xml/sidekick_config.xml` (top-right in both orientations, 300s snooze), pointed at
+  from the manifest and pinned by `SidekickConfigTest`. The bundle upload is by hand. Publishing, the closed test and
+  the rollout are the maintainer's, in Play Console.
 - This file is the one source on the subject: where another doc disagrees, follow this one.
 
 > **The work isn't complete while a decision is Deferred.** A deferred decision blocks the phase named in "Decisions".
@@ -246,9 +249,13 @@ tools. We don't build it.
   - PGS achievements.
   - Players on Android 13+ with 3 GB+ RAM and a Play install. It never appears in sideloads.
 - **What we control** (`com.google.android.finsky.deku.OVERLAY_CONFIG` → `res/xml/sidekick_config.xml`).
-  - **Tab position: deferred, decided on a device.** The middle-right default covers the scorecard and tray, so
-    `TOP_RIGHT` or `TOP_LEFT` is likely.
-  - **Snooze: decided, 300s.**
+  - **Tab position: decided, `TOP_RIGHT` in portrait and landscape** (from renders of all six positions on phone and
+    7-inch tablet). The middle-right default sits on the Σ totals button (portrait) or the cup (landscape), and
+    `TOP_LEFT` on the back arrow. Top-right covers only the far end of the last player's header card, which is no
+    control. The positions are physical edges, the same in Arabic. A player's own drag outranks them.
+  - **Snooze: decided, 300s.** It hides the tab for that long in a player's first session; Play caps it at 30 minutes.
+  - Both are in `res/xml/sidekick_config.xml`, read through the `OVERLAY_CONFIG` meta-data, and pinned by
+    `SidekickConfigTest`.
 - **Recommendation: enable it.**
   - Stage the rollout at 5%, comparing crashes, ANRs and engagement.
   - Check frame cost on a 3-4 GB device against the 60fps floor.
@@ -353,9 +360,20 @@ Game Center work later uses `[iOS]`.
   - The sign-in sync's progress on the card, with Sign in held disabled until it ends, and the gold gamer name.
   - Checked by the maintainer across devices. Saved Games is on in Play Console (Phase 0, step 5).
 - **Phase 6: Sidekick and release.**
-  - `sidekick_config.xml`, and the bundle upload path.
-  - Publish the achievements and boards.
-  - A closed test, then a 5% rollout watching vitals, and the frame cost with the overlay open.
+  - `sidekick_config.xml`: **done** (section 5).
+  - **The bundle upload path (decided: by hand).** CI doesn't upload to Play, and has no Play credentials.
+    1. Get a signed `.aab`. `release.yml` attaches `DiceFive-<version>.aab` to the GitHub release from 1.0.0, or
+       before it with the `force_apk` input on a manual run.
+    2. In Play Console, create an internal or closed testing release and upload it.
+    3. Tick **Sidekick is on by default** on that release (or set it once for every new bundle: Testing > Advanced
+       settings > Play Games Sidekick).
+    4. Install from Play's testing link on an Android 13+ phone with 3 GB+ RAM. A sideloaded APK never shows Sidekick.
+  - **On that install, check** (the maintainer's): the tab sits top-right in both orientations and covers no control,
+    TalkBack can still reach the header and back arrow, Play's "Welcome back" pop-up doesn't hide the logo too long,
+    and the frame rate holds 60fps with the overlay open on a 3-4 GB device.
+  - **Publish the achievements and boards** in Play Console (the maintainer's). Their ids, points and board ordering
+    are permanent from then on (Risks). Settle decision 7's points first.
+  - A closed test, then a 5% rollout watching crashes, ANRs and engagement against the release before.
 - **Later: iOS.** `GameCenterServices`: `authenticateHandler`, `GKAchievement` (`percentComplete`, `isHidden`),
   `GKLeaderboard` per key, and the shared blob.
   - Game Center **can** reset achievements, so reset rules become `GameServices` properties (`canResetAchievements`),
@@ -428,7 +446,7 @@ string, a unique icon and an aggregation (LU-GS-GAC).
 | 5 | In-progress game in the cloud | **Decided: yes**, newest wins | Phase 5 |
 | 6 | GitHub builds sign in? | **Decided: Play-only** | Phase 0/2 |
 | 7 | Achievement points | **Decided: set by hand** from an exported sheet; Easter eggs 0 if Play allows it (the docs give no minimum - test with a draft), so the points come from the normal achievements | Phase 3, before publishing |
-| 8a | Sidekick tab position | **Deferred**: decided on a device | Phase 6 |
+| 8a | Sidekick tab position | **Decided: `TOP_RIGHT`** in portrait and landscape, from renders; checked on a Play install in the closed test | Phase 6 |
 | 8b | Sidekick snooze | **Decided: 300s** | Phase 6 |
 | 9 | Play's unlock pop-up | **Decided: Play's replaces ours.** While signed in, an achievement mirrored to Play shows no unlock banner of ours (Play's pop-up instead); progress nudges and styles banners stay. Ships with the mirror, never before | Phase 3 |
 | 10 | Commit category | **Decided: `[Play Games]`** | Phase 1 |
@@ -441,7 +459,7 @@ string, a unique icon and an aggregation (LU-GS-GAC).
 | 17 | First-link Combine prompt | **Decided: none.** Every sync merges (a different account wipes and restores, per 16) | Phase 5 |
 | 18 | Reset achievements while signed out | **Decided: doesn't travel.** No marker; the same account's next sync restores unlocks and counters | Phase 5 |
 
-**Still deferred: 8a.**
+**Nothing is deferred.**
 
 ## Sources
 
