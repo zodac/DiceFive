@@ -237,8 +237,8 @@ if wants video; then
         scene_dirs+=("${scene}")
     done
 
-    # The closing card: the feature graphic's scene, held still.
-    ffmpeg -loglevel error -y -loop 1 -framerate "${FPS}" -i "${RAW}/video-end-card.png" -t 3 \
+    # The closing card: the feature graphic's scene, with its dice moving (frames recorded by the generator).
+    ffmpeg -loglevel error -y -framerate "${FPS}" -i "${RAW}/video-end-card/%05d.png" \
         -vf "scale=${VIDEO_W}:${VIDEO_H}:flags=lanczos,format=yuv420p" -c:v libx264 -preset slow -crf 12 "${video_work}/end.mp4"
     segments+=("${video_work}/end.mp4")
     scene_dirs+=("")

@@ -41,12 +41,12 @@ video.
 - **Staged games**: `Scenes` in the same file.
   - Each is a real game, played by the CPU up to the moment shown. A seed search finds one that fits, and only the
     rolls shown are dealt (`DealtRandom`).
-  - The dressed table is `Scenes.SHOWPIECE`. Every style it names must be unlocked by the seed, or the app silently
+  - The dressed table is `Scenes.SHOWPIECE` (default dice, as Tricolour's recolouring looks odd on others, and the Greek frame); the game screenshots use `Scenes.PIXEL_TABLE` (Pixel frame), and the video's game scene the default frame - three frames across the listing. Every style it names must be unlocked by the seed, or the app silently
     draws the default.
 - **The video**: `promo video frames` (a `FrameRecorder` per scene, with `hold(ms)` and `tap(node)`). The script lays
-  frames on captions, joins them with fades, and ends on `StoreArtGeneratorTest`'s `video end card`.
+  frames on captions, joins them with fades, and ends on `StoreArtGeneratorTest`'s `video end card`, recorded as frames with the dice swaying so googly eyes, glitch and RGB move.
 - **The icon** is the launcher icon itself, cropped roughly as a launcher shows it. **The feature graphic** is
-  `BannerScene` (`StoreArtGeneratorTest.kt`): the `AppLogo` and a spread of unlockable dice (`TOSSES`).
+  `BannerScene` (`StoreArtGeneratorTest.kt`): the `AppLogo` and a spread of unlockable dice (`TOSSES`: strawberry cake, googly eyes, glitch, RGB wave, baubles, meadow, Japanese white/red, blue d20).
 - **The history** is `StoreState.seed` (`StoreAssets.kt`): about 36 games over two months for Sam, Jo, Alex and the CPU
   Ada, with every counted achievement except a deliberately locked few.
 

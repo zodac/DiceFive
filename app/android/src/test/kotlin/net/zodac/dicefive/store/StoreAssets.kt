@@ -11,9 +11,11 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -322,6 +324,28 @@ internal class FrameRecorder(private val compose: ComposeTestRule, private val d
     /** Records [millis] of whatever the screen is doing. */
     fun hold(millis: Long) {
         repeat(((millis + FRAME_MILLIS - 1) / FRAME_MILLIS).toInt()) { step() }
+    }
+
+    /**
+     * Scrolls [node] - a vertical scroller - down by [fraction] of what it can still scroll, over [millis], easing in
+     * and out like a flick, while recording.
+     */
+    fun scrollDown(node: SemanticsNodeInteraction, fraction: Float, millis: Long) {
+        val range = node.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange]
+        val total = (range.maxValue() - range.value()) * fraction
+        val frames = ((millis + FRAME_MILLIS - 1) / FRAME_MILLIS).toInt()
+        var done = 0f
+        // A finger dragged up the page a little each frame: the page's own scroll animates, so setting it frame by frame wouldn't get anywhere.
+        node.performTouchInput { down(Offset(width / 2f, height * 0.9f)) }
+        for (i in 1..frames) {
+            val t = i / frames.toFloat()
+            val eased = t * t * (3f - 2f * t)
+            val dy = total * eased - done
+            done += dy
+            node.performTouchInput { moveBy(Offset(0f, -dy)) }
+            step()
+        }
+        node.performTouchInput { up() }
     }
 
     /** Hands the clock back to the test, to move on to the next scene. */

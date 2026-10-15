@@ -94,9 +94,11 @@ class StoreScreensGeneratorTest {
         StoreState.seed(container)
 
         if (GAME in shots) {
+            StoreState.applyStyles(container, Scenes.PIXEL_TABLE)
             resume(Scenes.fourSixes())
             shoot(GAME)
             leaveGame()
+            StoreState.applyStyles(container, StylePicks())
         }
 
         if (MODES in shots) {
@@ -205,6 +207,9 @@ class StoreScreensGeneratorTest {
                 tap(compose.onAllNodes(hasContentDescription("$style,", substring = true))[0])
                 hold(900)
             }
+            // Then down the page, to a glimpse of the other styles below the dice.
+            scrollDown(pageScroller(), fraction = 1f, millis = 1_600)
+            hold(800)
             finish()
         }
         back()
@@ -300,6 +305,15 @@ class StoreScreensGeneratorTest {
         menu()
     }
 
+    /** The page's own vertical scroller - the one with the most to scroll. */
+    private fun pageScroller(): SemanticsNodeInteraction {
+        val scrollers = compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
+        val longest = scrollers.fetchSemanticsNodes().withIndex().maxBy { (_, node) ->
+            node.config[SemanticsProperties.VerticalScrollAxisRange].let { it.maxValue() - it.value() }
+        }.index
+        return scrollers[longest]
+    }
+
     private fun cup(): SemanticsNodeInteraction = compose.onNode(hasContentDescription("Dice cup", substring = true))
 
     /** The one box still open on the player's card - what the staged last turn scores. */
@@ -313,7 +327,10 @@ class StoreScreensGeneratorTest {
 internal object Scenes {
 
     /** A dressed-up table, for the Tricolour scenes: all unlocked by the achievements [StoreState.seed] grants. */
-    val SHOWPIECE = StylePicks(dice = "obsidian_lava", cup = "treasure_oak", background = "planks_walnut", mat = "casino_green", frame = "wreath_laurel")
+    val SHOWPIECE = StylePicks(cup = "treasure_oak", background = "planks_walnut", mat = "casino_green", frame = "greek_key")
+
+    /** The game-over scene's table: the default look with the Pixel frame, so the listing shows three frames in all. */
+    val PIXEL_TABLE = StylePicks(frame = "pixel_retro")
 
     /** The dice the video picks on the Styles screen, by family - the start of a tile's spoken name, "Gems, Ivory". */
     val VIDEO_DICE_PICKS = listOf("Metal", "Obsidian", "Retro", "Cake")

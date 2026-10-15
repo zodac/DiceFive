@@ -2,6 +2,11 @@ package net.zodac.dicefive.store
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,10 +14,15 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
@@ -26,13 +36,19 @@ import net.zodac.dicefive.R
 import net.zodac.dicefive.ui.common.AppLogo
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
+import net.zodac.dicefive.ui.game.style.DieMotion
 import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.game.style.LocalDieIndex
+import net.zodac.dicefive.ui.game.style.LocalDieMotion
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import java.io.File
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * Renders the store listing's still art - the hi-res icon, the feature graphic, and the promo video's closing card -
@@ -77,18 +93,31 @@ class StoreArtGeneratorTest {
     @Test
     @StorePart(StoreAssets.FEATURE)
     @Config(qualifiers = "w1024dp-h500dp-xxhdpi")
-    fun `feature graphic`() = render("feature-graphic.png") { BannerScene(logoDie = 52.dp) }
+    fun `feature graphic`() {
+        compose.mainClock.autoAdvance = false
+        compose.setContent { DiceFiveTheme { BannerScene(logoDie = 52.dp, animated = true) } }
+        // Stopped where the glitch die is at the worst of a burst, so the still shows it glitching.
+        repeat(FEATURE_GLITCH_FRAMES) { compose.mainClock.advanceTimeBy(FRAME_MILLIS) }
+        StoreAssets.save(compose.onRoot().captureToImage().asAndroidBitmap(), File(StoreAssets.outDir, "feature-graphic.png"))
+        compose.mainClock.autoAdvance = true
+    }
 
-    /** The video's last card: 1920x1080, drawn at 3x - the same scene, a little roomier. */
+    /**
+     * The video's last card: 1920x1080, drawn at 3x - the same scene, a little roomier, with the dice moving so the
+     * styles that react to it (googly eyes, glitch, RGB) show. One folder of 60fps frames, like a video scene.
+     */
     @Test
     @StorePart(StoreAssets.VIDEO)
     @Config(qualifiers = "w640dp-h360dp-xxhdpi")
-    fun `video end card`() = render("video-end-card.png") { BannerScene(logoDie = 40.dp) }
-
-    private fun render(name: String, content: @Composable () -> Unit) {
-        compose.setContent { DiceFiveTheme { content() } }
-        compose.waitForIdle()
-        StoreAssets.save(compose.onRoot().captureToImage().asAndroidBitmap(), File(StoreAssets.outDir, name))
+    fun `video end card`() {
+        val dir = File(StoreAssets.outDir, "video-end-card").apply { deleteRecursively(); mkdirs() }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { DiceFiveTheme { BannerScene(logoDie = 40.dp, animated = true) } }
+        repeat(END_CARD_FRAMES) { frame ->
+            compose.mainClock.advanceTimeBy(FRAME_MILLIS)
+            StoreAssets.save(compose.onRoot().captureToImage().asAndroidBitmap(), File(dir, "%05d.png".format(frame)))
+        }
+        compose.mainClock.autoAdvance = true
     }
 
     private companion object {
@@ -96,15 +125,21 @@ class StoreArtGeneratorTest {
         const val SUPERSAMPLE = 4
         const val ADAPTIVE_CANVAS_DP = 108
         const val VISIBLE_DP = 76
+        const val FRAME_MILLIS = 16L
+        const val END_CARD_FRAMES = 188
+
+        /** Frames in, where the glitch die's first burst peaks (die 2 in [TOSSES], from its seeded timing). */
+        const val FEATURE_GLITCH_FRAMES = 52
     }
 }
 
 /**
  * The brand backdrop, the menu's logo in the default dice and cup - no tagline, the logo is the brand - and a
- * handful of the unlockable dice tumbling across the right - a taste of the Styles screen.
+ * handful of the unlockable dice tumbling across the right - a taste of the Styles screen. [animated] lets the googly
+ * pupils slide and the glitch and RGB dice play, the dice themselves staying put.
  */
 @Composable
-private fun BannerScene(logoDie: Dp) {
+private fun BannerScene(logoDie: Dp, animated: Boolean = false) {
     BrandBackdrop(showDice = true) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val w = maxWidth
@@ -117,14 +152,38 @@ private fun BannerScene(logoDie: Dp) {
                 cupStyle = DiceCupStyles.default,
             )
             val die = h * 0.17f
-            for (toss in TOSSES) {
+            val phase = if (animated) {
+                rememberInfiniteTransition(label = "bannerSway").animateFloat(
+                    initialValue = 0f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(tween(SWAY_MILLIS, easing = LinearEasing)),
+                    label = "bannerPhase",
+                ).value
+            } else {
+                0f
+            }
+            TOSSES.forEachIndexed { i, toss ->
+                val style = DiceStyles.byId(toss.style)
+                val motion = remember(style) { style.pupilTravel?.let { DieMotion(seed = i, travel = it) } }
+                // The dice stay where they are. Googly pupils are told the die is being shaken about - a made-up path, a different beat for each die - so they slide as they would in a moving die.
+                if (motion != null) {
+                    val turn = 2f * PI.toFloat() * (phase * SHAKE_BEATS + i / TOSSES.size.toFloat())
+                    val home = Offset(w.value * toss.x, h.value * toss.y) / die.value
+                    SideEffect { motion.moveTo(home + Offset(cos(turn), sin(turn * 1.3f)) * SHAKE_REACH, yawDegrees = 12f * sin(turn)) }
+                }
+                val awake = motion?.awake
+                LaunchedEffect(motion, awake) {
+                    if (motion != null && awake == true) motion.follow()
+                }
                 Box(
                     Modifier
                         .offset(x = w * toss.x - die / 2, y = h * toss.y - die / 2)
                         .size(die)
                         .rotate(toss.angle),
                 ) {
-                    DiceStyles.byId(toss.style).Die(value = toss.value, held = false, modifier = Modifier.fillMaxSize())
+                    CompositionLocalProvider(LocalDieIndex provides i, LocalDieMotion provides motion) {
+                        style.Die(value = toss.value, held = false, modifier = Modifier.fillMaxSize())
+                    }
                 }
             }
         }
@@ -135,11 +194,17 @@ private fun BannerScene(logoDie: Dp) {
 private data class Toss(val style: String, val value: Int, val x: Float, val y: Float, val angle: Float)
 
 private val TOSSES = listOf(
-    Toss("gems_ivory", 5, 0.62f, 0.30f, -14f),
-    Toss("wood_walnut", 6, 0.74f, 0.20f, 11f),
-    Toss("retro_amber", 4, 0.87f, 0.32f, -8f),
-    Toss("obsidian_lava", 3, 0.66f, 0.68f, 18f),
-    Toss("googly_ivory", 2, 0.80f, 0.60f, -20f),
-    Toss("stone_white_marble", 6, 0.92f, 0.76f, 9f),
-    Toss("cake_strawberry", 1, 0.55f, 0.84f, -6f),
+    Toss("cake_strawberry", 5, 0.62f, 0.30f, -14f),
+    Toss("googly_ivory", 6, 0.74f, 0.20f, 11f),
+    Toss("glitch_black", 4, 0.87f, 0.32f, -8f),
+    Toss("rgb_wave", 3, 0.66f, 0.68f, 18f),
+    Toss("christmas_baubles", 2, 0.80f, 0.60f, -20f),
+    Toss("meadow_green", 6, 0.92f, 0.76f, 9f),
+    Toss("world_japanese", 5, 0.55f, 0.84f, -6f),
+    Toss("d20_blue", 6, 0.72f, 0.44f, 7f),
 )
+
+/** One loop of the made-up shaking of the googly dice takes this long, and has [SHAKE_BEATS] beats, each moving [SHAKE_REACH] die sizes. */
+private const val SWAY_MILLIS = 3_000
+private const val SHAKE_BEATS = 4f
+private const val SHAKE_REACH = 0.6f
