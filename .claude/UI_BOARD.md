@@ -47,7 +47,6 @@ indexes), not summed on the 5x tile.
   - Roughly: 11sp at 411dp on every card; Tricolour and Extended about 9-10sp at 360-362dp; Third Wind about 8sp at 360dp and "+" a
     little narrower or at large fonts. (Measured in Robolectric; the phone's Roboto is a little wider.)
 - Spoken with the score ("Scored 30 plus 100 bonus, 24"), and as "plus 100 bonus" on a previewed box.
-- A game saved before this has chips only in `fiveOfAKindBonusCount`; `unplacedFiveOfAKindBonusCount` of them stay on the 5x tile.
 - **Pane split** (`fitBonus`). The cup panel and the grid trade width to make room for the bonus:
   - nothing under the large 5x tile (Standard, Third Wind, Stud, Quickfire): the grid takes what's spare beside the tile, up to
     16dp, so the tile never shrinks;
@@ -81,8 +80,7 @@ indexes), not summed on the 5x tile.
 - **Third Wind: stacked scores** (`StackedScores` in `ScoreGrid.kt`).
   - Each slot is a line beside the tile, in fill order: each filled slot's score, then the preview in the next open slot
     (gold when it's worth picking), then "-" in the rest.
-  - Lines are `labelMedium` beside a grid tile (3 x 16sp fills 48dp) and `bodyMedium` beside 5x, with the bonus line
-    under them (the 5x tile's, for a game saved before bonuses were per box).
+  - Lines are `labelMedium` beside a grid tile (3 x 16sp fills 48dp) and `bodyMedium` beside 5x.
   - The tile greys only once every slot is used.
   - Each `SlotScore` keeps its number laid out under the "-", and `ShownScore` compares by value, so a roll recomposes
     only the preview lines.

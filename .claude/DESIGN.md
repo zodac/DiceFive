@@ -177,8 +177,7 @@ Everything is in app-private storage. **Every stored id is permanent once releas
 will map to Play Games.
 
 - **Scores.**
-  - Room, `dicefive.db`, `AppDatabase` version 2, with each version's schema exported to `app/shared/schemas/`.
-    Version 2 (`MIGRATION_1_2`) added `uuid` and `dismissedAtEpochMillis` for the cloud save.
+  - Room, `dicefive.db`, `AppDatabase` version 1, with each version's schema exported to `app/shared/schemas/`.
   - Tables:
     - `scores` (`ScoreEntry`): name, score, time, `won` (null for a solo game), `isPrimaryPlayer`, the tie-break stats,
       `onLeaderboard`, `gameModeId`, `playedUnmodified` and a unique random `uuid` (a row's id across devices). Every

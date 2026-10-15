@@ -66,7 +66,6 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.resources.Res
-import net.zodac.dicefive.resources.common_bonus_amount
 import net.zodac.dicefive.resources.game_box_disabled_spoken
 import net.zodac.dicefive.resources.game_box_first_five_spoken
 import net.zodac.dicefive.resources.game_box_last_turn_spoken
@@ -334,12 +333,8 @@ internal fun CategoryCell(
     // Whether this roll would earn the chip in whichever box it's scored: a joker always pays it, and only restricts the
     // boxes it can go in, so every legal one previews it.
     val bonusPreview = canPreview && ScoreCalculator.awardsFiveOfAKindBonus(player, dice)
-    // Chips from a game saved before they were tied to a box stay on the 5x tile.
-    val unplacedBonusAmount = if (category == ScoreCategory.FIVE_OF_A_KIND) (player?.unplacedFiveOfAKindBonusCount ?: 0) * chip else 0
     // A one-slot box's bonus: the chip on its score, or the one the roll would add.
     val boxBonus = if (filled != null) bonusSlots.size * chip else if (bonusPreview) chip else 0
-    // The 5x tile's own bonus line (wide, or beside the score).
-    val pendingBonusAmount = unplacedBonusAmount
 
     // One node for a screen reader - the tile's name and the score beside it together, rather than an
     // unlabelled button and a stray number - replacing the tile's own click with the same action.
@@ -349,11 +344,11 @@ internal fun CategoryCell(
     val categoryName = category.spokenName(irish)
     val spokenState = when {
         switchedOff -> stringResource(Res.string.game_box_disabled_spoken)
-        slotCount > 1 -> stackedSpokenState(scores, slotCount, previewScore, bonusSlots, chip, bonusPreview, pendingBonusAmount, lastScored != null)
+        slotCount > 1 -> stackedSpokenState(scores, slotCount, previewScore, bonusSlots, chip, bonusPreview, lastScored != null)
         filled != null -> joinClauses(
             listOfNotNull(
                 stringResource(Res.string.game_slots_scored_spoken, filled.localised()),
-                stringResource(Res.string.game_slots_bonus_spoken, boxBonus + pendingBonusAmount).takeIf { boxBonus + pendingBonusAmount > 0 },
+                stringResource(Res.string.game_slots_bonus_spoken, boxBonus).takeIf { boxBonus > 0 },
                 stringResource(Res.string.game_box_last_turn_spoken).takeIf { lastScored != null },
             ),
         )
@@ -398,8 +393,6 @@ internal fun CategoryCell(
             scored = boxFull,
             disabled = switchedOff,
             fiveOfAKindBonusCount = fiveOfAKindBonusCount,
-            // On the wide tile, which has the room, rather than under the score beside it, which hasn't.
-            fiveOfAKindBonusAmount = if (wide) pendingBonusAmount else 0,
             outlineColor = lastScored?.color,
             target = target,
             matches = matches,
@@ -428,7 +421,6 @@ internal fun CategoryCell(
                 previewScore = previewScore,
                 previewGold = isGoodChoice,
                 lastScoredColor = lastScored?.color,
-                bonusAmount = if (wide) 0 else pendingBonusAmount,
                 bonusSlots = bonusSlots,
                 previewBonus = bonusPreview,
                 chip = chip,
@@ -440,7 +432,7 @@ internal fun CategoryCell(
                 },
                 modifier = scoreModifier,
             )
-        } else if (boxBonus + (if (wide) 0 else pendingBonusAmount) > 0) {
+        } else if (boxBonus > 0) {
             Column(modifier = scoreModifier) {
                 Text(
                     text = (filled ?: previewScore ?: 0).localised(),
@@ -455,7 +447,7 @@ internal fun CategoryCell(
                     overflow = TextOverflow.Visible,
                     softWrap = false,
                 )
-                BonusText(amount = boxBonus + if (wide) 0 else pendingBonusAmount)
+                BonusText(amount = boxBonus)
             }
         } else {
             val style = MaterialTheme.typography.bodyMedium
@@ -549,8 +541,8 @@ internal fun targetProgress(target: HitTarget, matches: List<PlaceMatch>, previe
 /**
  * What a screen reader hears for a box with [slotCount] slots: what's in each filled one - with the joker's bonus said
  * after a slot that has one ([bonusSlots], [chip] each) - what the dice would score in the next ([previewBonus] if a
- * joker, on top), and how many are left open - "Scored 12, 9, would score 15", "Scored 12, 2 open" - then any [legacyBonus]
- * not tied to a slot and whether its last score was the player's last turn.
+ * joker, on top), and how many are left open - "Scored 12, 9, would score 15", "Scored 12, 2 open" - then whether its
+ * last score was the player's last turn.
  */
 @Composable
 internal fun stackedSpokenState(
@@ -560,7 +552,6 @@ internal fun stackedSpokenState(
     bonusSlots: Set<Int>,
     chip: Int,
     previewBonus: Boolean,
-    legacyBonus: Int,
     lastScored: Boolean,
 ): String {
     val stillOpen = slotCount - scores.size - if (previewScore != null) 1 else 0
@@ -578,7 +569,6 @@ internal fun stackedSpokenState(
             previewScore != null -> pluralStringResource(Res.plurals.game_slots_more_open_spoken, stillOpen, stillOpen)
             else -> pluralStringResource(Res.plurals.game_slots_open_spoken, stillOpen, stillOpen)
         },
-        legacyBonus.takeIf { it > 0 }?.let { stringResource(Res.string.game_slots_bonus_spoken, it) },
         scores.lastOrNull()?.takeIf { lastScored }?.let { stringResource(Res.string.game_slots_last_score_spoken, it) },
     )
     return joinClauses(parts).replaceFirstChar { it.uppercase() }
@@ -587,7 +577,7 @@ internal fun stackedSpokenState(
 /**
  * A box's scores, one line per slot, top to bottom in the order they're filled: each filled slot's
  * score, the dice's preview in the next open one (gold when it's worth picking), and a "-" in the
- * rest - each joker's bonus after its slot's score, and any bonus not tied to a slot ([bonusAmount], the 5x tile's) under them. The player's colour marks the last
+ * rest - each joker's bonus after its slot's score. The player's colour marks the last
  * score in the box on another player's scorecard ([lastScoredColor]).
  *
  * Every line is a [SlotScore], laid out once and only shown or hidden after that - a filled line
@@ -609,7 +599,6 @@ private fun StackedScores(
     previewScore: Int?,
     previewGold: Boolean,
     lastScoredColor: Color?,
-    bonusAmount: Int,
     bonusSlots: Set<Int>,
     previewBonus: Boolean,
     chip: Int,
@@ -626,7 +615,7 @@ private fun StackedScores(
     // or the sizes, change - once a turn, not once a frame.
     LaunchedEffect(targetLine, contentHeight, viewportHeight) {
         if (scrollState.maxValue > 0) {
-            scrollState.scrollTo(stackedScrollTarget(contentHeight, viewportHeight, lineCount = slotCount + if (bonusAmount > 0) 1 else 0, targetLine, scrollState.maxValue))
+            scrollState.scrollTo(stackedScrollTarget(contentHeight, viewportHeight, lineCount = slotCount, targetLine, scrollState.maxValue))
         }
     }
     val fadeHeight = with(LocalDensity.current) { STACK_FADE_HEIGHT.toPx() }
@@ -651,17 +640,6 @@ private fun StackedScores(
                     else -> null
                 }
                 SlotScore(shown = shown, style = style)
-            }
-            if (bonusAmount > 0) {
-                Text(
-                    text = stringResource(Res.string.common_bonus_amount, bonusAmount),
-                    color = GoldAccent,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Visible,
-                    softWrap = false,
-                )
             }
         }
     }

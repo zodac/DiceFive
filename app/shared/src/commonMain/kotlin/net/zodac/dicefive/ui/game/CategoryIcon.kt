@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.House
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,7 +33,6 @@ import net.zodac.dicefive.model.PlaceMatch
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.resources.Res
-import net.zodac.dicefive.resources.common_bonus_amount
 import net.zodac.dicefive.resources.game_badge_evens
 import net.zodac.dicefive.resources.game_badge_odds
 import net.zodac.dicefive.resources.game_badge_range
@@ -68,8 +66,6 @@ fun CategoryIcon(
     // Extra 5x beyond the first (see PlayerState.fiveOfAKindBonusCount) - only ever nonzero for
     // ScoreCategory.FIVE_OF_A_KIND, so a corner badge can show the total count once there's more than one.
     fiveOfAKindBonusCount: Int = 0,
-    // The bonus those extra 5x are worth, written at the tile's right end - only for the wide 5x tile, which has the room.
-    fiveOfAKindBonusAmount: Int = 0,
     // The target a Hit List target box calls, and - while there are dice to compare - how each place stands.
     target: HitTarget? = null,
     matches: List<PlaceMatch>? = null,
@@ -94,7 +90,7 @@ fun CategoryIcon(
             }
             ScoreCategory.THREE_OF_A_KIND -> BadgeLabel("3x", color, labelFontSize) // i18n: not translated - the game's mark for the box
             ScoreCategory.FOUR_OF_A_KIND -> BadgeLabel("4x", color, labelFontSize) // i18n: not translated - the game's mark for the box
-            ScoreCategory.FIVE_OF_A_KIND -> FiveOfAKindIcon(color, labelFontSize, fiveOfAKindBonusCount, fiveOfAKindBonusAmount)
+            ScoreCategory.FIVE_OF_A_KIND -> FiveOfAKindIcon(color, labelFontSize, fiveOfAKindBonusCount)
             ScoreCategory.CHANCE -> BadgeLabel("?", color, labelFontSize)
             // A stock glyph rather than a hand-drawn one (a previous roof/body Canvas silhouette
             // read as too tall for the tile). The tile itself is always square (CategoryTile sizes
@@ -267,19 +263,9 @@ private fun BadgeLabel(text: String, color: Color, fontSize: TextUnit, modifier:
  * highlighted/scored does for Small vs Large Straight.
  */
 @Composable
-private fun FiveOfAKindIcon(color: Color, fontSize: TextUnit, bonusCount: Int, bonusAmount: Int) {
+private fun FiveOfAKindIcon(color: Color, fontSize: TextUnit, bonusCount: Int) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         BadgeLabel("5x", color, fontSize, modifier = Modifier.align(Alignment.Center)) // i18n: not translated - the game's mark for the box
-        if (bonusAmount > 0) {
-            Text(
-                text = stringResource(Res.string.common_bonus_amount, bonusAmount),
-                color = GoldAccent,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.labelMedium,
-                maxLines = 1,
-                modifier = Modifier.align(Alignment.CenterEnd).padding(end = 10.dp),
-            )
-        }
         if (bonusCount > 0) {
             // Of the tile's height, which the wide 5x tile shares with a square one.
             val basis = minOf(maxHeight, LARGE_TILE_BADGE_BASIS)

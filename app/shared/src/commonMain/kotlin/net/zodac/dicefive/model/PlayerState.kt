@@ -34,8 +34,7 @@ data class PlayerState(
     val fiveOfAKindBonusCount: Int = 0,
     /**
      * The slots of each box that were scored by a joker, and so carry its bonus chip: slot `n` is the `n`th score in
-     * [scorecard]'s list for that box. A game saved before the chips were tied to a box has none here, with its
-     * chips only in [fiveOfAKindBonusCount] (see [unplacedFiveOfAKindBonusCount]).
+     * [scorecard]'s list for that box.
      */
     val jokerBonusSlots: Map<ScoreCategory, Set<Int>> = emptyMap(),
     /** The dice this player's last completed turn was scored with - value and held/unheld state
@@ -192,10 +191,6 @@ data class PlayerState(
 
     /** The bonus chips on [category]'s slots. */
     fun jokerBonusIn(category: ScoreCategory): Int = jokerBonusSlots[category].orEmpty().size * gameMode.fiveOfAKindBonusAmount
-
-    /** The chips in [fiveOfAKindBonusCount] not tied to a box - only in a game saved before they were. */
-    val unplacedFiveOfAKindBonusCount: Int
-        get() = (fiveOfAKindBonusCount - jokerBonusSlots.values.sumOf { it.size }).coerceAtLeast(0)
 
     /**
      * Whether the 5x box is full and at least one of its slots holds its full score - what makes

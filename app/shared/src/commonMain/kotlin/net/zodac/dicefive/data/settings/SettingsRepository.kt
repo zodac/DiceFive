@@ -34,8 +34,8 @@ import net.zodac.dicefive.model.TurnTimer
  * Every setting but the Animations level and the Styles page fit goes in the cloud save ([SYNCED_KEYS]): those two are
  * about this device - what it can draw, and its screen. Each
  * synced key is stamped with when its value last changed ([stampKey]), and the cloud save keeps whichever device set
- * it last. A value set before stamps existed is stamped 0: it loses to any later change, but beats a device that never
- * set one, so it travels at the first sync.
+ * it last. A Styles pick Reset achievements unstamps ([unstampStylePicks]) is stamped 0: it loses to any later change,
+ * but beats a device that never set one.
  */
 class SettingsRepository(
     private val dataStore: DataStore<Preferences>,

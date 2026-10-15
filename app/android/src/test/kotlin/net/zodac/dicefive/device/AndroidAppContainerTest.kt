@@ -2,7 +2,6 @@ package net.zodac.dicefive.device
 
 import android.content.Context
 import android.database.sqlite.SQLiteConstraintException
-import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -172,51 +171,6 @@ class AndroidAppContainerTest {
             // A mode's Leaderboard card lists the same games: every player's, but none played with a modifier on.
             assertEquals(listOf(211, 205, 150, 120, 100), scores.pageForMode(GameMode.QUICKFIRE, pageIndex = 0).map { it.score })
             assertEquals(5, scores.totalCountForMode(GameMode.QUICKFIRE))
-        } finally {
-            database.close()
-        }
-    }
-
-    @Test
-    fun `a version 1 database migrates - every score gets its own uuid - and every dismissal is dated`() = runTest {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val file = context.getDatabasePath("migration-test.db").apply {
-            parentFile?.mkdirs()
-            delete()
-        }
-        // Version 1 exactly as app/shared/schemas/.../1.json has it.
-        SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
-            db.execSQL(
-                "CREATE TABLE IF NOT EXISTS `scores` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `playerName` TEXT NOT NULL, " +
-                    "`score` INTEGER NOT NULL, `timestampEpochMillis` INTEGER NOT NULL, `won` INTEGER, `isPrimaryPlayer` INTEGER NOT NULL, " +
-                    "`fiveOfAKindCount` INTEGER NOT NULL, `zeroedCategoryCount` INTEGER NOT NULL, `upperSectionTotal` INTEGER NOT NULL, " +
-                    "`chanceScore` INTEGER NOT NULL, `threeOfAKindScore` INTEGER NOT NULL, `fourOfAKindScore` INTEGER NOT NULL, " +
-                    "`onLeaderboard` INTEGER NOT NULL, `gameModeId` TEXT NOT NULL, `playedUnmodified` INTEGER NOT NULL)",
-            )
-            db.execSQL("CREATE TABLE IF NOT EXISTS `dismissed_player_stats` (`playerName` TEXT NOT NULL, PRIMARY KEY(`playerName`))")
-            db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
-            db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2f79253ce3ae92e97b31c5d7971e5e2b')")
-            for (score in listOf(150, 200)) {
-                db.execSQL(
-                    "INSERT INTO scores (playerName, score, timestampEpochMillis, won, isPrimaryPlayer, fiveOfAKindCount, zeroedCategoryCount, " +
-                        "upperSectionTotal, chanceScore, threeOfAKindScore, fourOfAKindScore, onLeaderboard, gameModeId, playedUnmodified) " +
-                        "VALUES ('Alice', $score, 1000, NULL, 1, 0, 0, 0, 0, 0, 0, 1, 'STANDARD', 1)",
-                )
-            }
-            db.execSQL("INSERT INTO dismissed_player_stats (playerName) VALUES ('Alice')")
-            db.version = 1
-        }
-        val before = System.currentTimeMillis()
-        val database = Room.databaseBuilder<AppDatabase>(context, file.absolutePath).buildAppDatabase()
-        try {
-            val dao = database.scoreDao()
-            val rows = dao.allScores()
-            assertEquals(listOf(150, 200), rows.map { it.score }.sorted())
-            assertEquals(2, rows.map { it.uuid }.toSet().size)
-            assertTrue(rows.all { it.uuid.matches(Regex("[0-9a-f]{32}")) })
-            // Dated to the migration (to the second), so the games before it don't undo it.
-            assertTrue(dao.allDismissals().single().dismissedAtEpochMillis >= before / 1000 * 1000)
-            assertEquals(emptyList<String>(), dao.playerGames().map { it.playerName })
         } finally {
             database.close()
         }

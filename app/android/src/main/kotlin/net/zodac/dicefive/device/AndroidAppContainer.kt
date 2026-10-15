@@ -34,7 +34,7 @@ object AndroidAppContainer {
             context = appContext,
             name = appContext.getDatabasePath(AppDatabase.FILE_NAME).absolutePath,
         ).buildAppDatabase()
-        // The directory the androidx preferencesDataStore delegate always used.
+        // One file per PreferencesFile, in filesDir/datastore.
         fun dataStore(file: PreferencesFile) =
             createPreferencesDataStore(appContext.filesDir.resolve("datastore/${file.fileName}").absolutePath)
 

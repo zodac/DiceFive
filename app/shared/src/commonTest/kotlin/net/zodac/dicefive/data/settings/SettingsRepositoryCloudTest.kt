@@ -138,13 +138,13 @@ class SettingsRepositoryCloudTest {
     }
 
     @Test
-    fun `a setting chosen before stamps existed travels at the first sync - and still loses to a later change`() = runTest {
-        // Sound turned off on another device before this update: in the save, unstamped.
-        repository.mergeCloud(mapOf("sound_enabled" to Stamped(SettingValue.Flag(false), 0L)))
-        assertEquals(false, repository.soundEnabled.first())
-        // Turned back on here since: this change wins.
-        repository.setSoundEnabled(true)
-        repository.mergeCloud(mapOf("sound_enabled" to Stamped(SettingValue.Flag(false), 0L)))
-        assertEquals(true, repository.soundEnabled.first())
+    fun `an unstamped pick travels to a device that never set one - and still loses to a later change`() = runTest {
+        // A pick another device's Reset achievements unstamped: in the save, stamped 0.
+        repository.mergeCloud(mapOf("dice_style_id" to Stamped(SettingValue.Text("ocean"), 0L)))
+        assertEquals("ocean", repository.diceStyleId.first())
+        // Picked again here since: this change wins.
+        repository.setDiceStyleId("gold")
+        repository.mergeCloud(mapOf("dice_style_id" to Stamped(SettingValue.Text("ocean"), 0L)))
+        assertEquals("gold", repository.diceStyleId.first())
     }
 }

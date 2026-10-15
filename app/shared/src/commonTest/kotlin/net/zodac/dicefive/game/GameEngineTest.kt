@@ -550,7 +550,6 @@ class GameEngineTest {
         assertEquals(mapOf(ScoreCategory.SIXES to setOf(0)), afterSixes.jokerBonusSlots)
         assertEquals(1, afterSixes.fiveOfAKindBonusCount)
         assertEquals(100, afterSixes.jokerBonusIn(ScoreCategory.SIXES))
-        assertEquals(0, afterSixes.unplacedFiveOfAKindBonusCount)
 
         // With the 6s full, the next joker goes in a lower box: it carries its chip, and the 6s keep theirs.
         val afterHouse = GameEngine.commitScore(rolled(standard) { afterSixes }, ScoreCategory.FULL_HOUSE).players.single()
@@ -580,9 +579,5 @@ class GameEngineTest {
         assertEquals(30, ScoreCalculator.scoreFor(player, ScoreCategory.THREE_OF_A_KIND, sixes))
         val threeX = GameEngine.commitScore(rolled(thirdWind) { player }, ScoreCategory.THREE_OF_A_KIND).players.single()
         assertEquals(setOf(0), threeX.jokerBonusSlots[ScoreCategory.THREE_OF_A_KIND])
-
-        // Chips from a game saved before they were tied to a box are counted but not placed.
-        val legacy = PlayerState(name = "Old", type = PlayerType.HUMAN, fiveOfAKindBonusCount = 3, jokerBonusSlots = mapOf(ScoreCategory.SIXES to setOf(0)))
-        assertEquals(2, legacy.unplacedFiveOfAKindBonusCount)
     }
 }

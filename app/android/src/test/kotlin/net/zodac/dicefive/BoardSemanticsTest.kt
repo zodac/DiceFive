@@ -209,14 +209,6 @@ class BoardSemanticsTest {
         compose.onNodeWithContentDescription("Full House").assert(hasStateDescription("Scored 0, 25, 1 open, last turn's score 25"))
         compose.onNodeWithContentDescription("Threes").assert(hasStateDescription("3 open"))
 
-        // The 5x box of a Third Wind card adds its bonus - and the last turn's score comes last.
-        showReadOnly(
-            PlayerState(name = "Robo", type = PlayerType.AI, gameMode = GameMode.THIRD_WIND).let {
-                it.copy(scorecard = it.scorecard + (ScoreCategory.FIVE_OF_A_KIND to listOf(50, 0, 50)), fiveOfAKindBonusCount = 2, lastScoredCategory = ScoreCategory.FIVE_OF_A_KIND)
-            },
-        )
-        compose.onNode(hasStateDescription("Scored 50, 0, 50, plus 200 bonus, last turn's score 50")).assertExists()
-
         // A joker's bonus is said with the score it's on - one slot, or each of several - and not again on the 5x box.
         showReadOnly(
             PlayerState(name = "Robo", type = PlayerType.AI, gameMode = GameMode.THIRD_WIND).let {

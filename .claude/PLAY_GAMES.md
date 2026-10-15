@@ -96,9 +96,9 @@ Always on while signed in, with no switch and no prompt. Every sync merges; noth
 |---|---|
 | Achievement unlocks | Union, earliest time |
 | Achievement counters | `CounterMerge`: `SUM` keeps one share per install (`counter_share_id`, new on each reset) and adds them; `FLAGS` union; win streak `LATEST` |
-| Scores | Union by `ScoreEntry.uuid` (Room v2), less any at or before `scores_reset_at` |
+| Scores | Union by `ScoreEntry.uuid`, less any at or before `scores_reset_at` |
 | Dismissed stats cards | Union, later kept; dropped once a later game under the name is in the save |
-| Style picks, New Game setup, sound, vibration, confirm-leaving | Last writer wins per key (`synced_at:<key>`); one set before stamps existed beats one never set |
+| Style picks, New Game setup, sound, vibration, confirm-leaving | Last writer wins per key (`synced_at:<key>`); an unstamped one (a pick after Reset achievements) beats one never set |
 | In-progress game | Newest wins (`saved_at`); one this app can't read is never taken |
 | Animations level, Styles page fit | Not saved: they're about the device |
 

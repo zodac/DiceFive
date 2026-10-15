@@ -65,7 +65,7 @@ data class ScoreEntry(
     /**
      * This game's row everywhere it's copied: [id] is only this device's, so the cloud save
      * ([net.zodac.dicefive.online.CloudSave]) joins devices' rows by this instead. Random, from the device that
-     * recorded it; rows from before it existed were given one by the version 2 migration.
+     * recorded it.
      */
     val uuid: String = newScoreUuid(),
 ) {

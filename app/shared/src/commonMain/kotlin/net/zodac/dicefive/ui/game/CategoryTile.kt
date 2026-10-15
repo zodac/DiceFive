@@ -114,8 +114,6 @@ fun CategoryTile(
     /** Switched off for this game (see [net.zodac.dicefive.model.PlayerState.disabledCategories]): drawn as an empty, dashed outline with a slash through it. */
     disabled: Boolean = false,
     fiveOfAKindBonusCount: Int = 0,
-    /** The 5x bonus so far, written on a [wide] tile - 0 for none. */
-    fiveOfAKindBonusAmount: Int = 0,
     /** A solid outline in this colour in place of the usual border - the box a player last scored in (see [LastScoredHighlight]). */
     outlineColor: Color? = null,
     /** The target a Hit List target box calls, drawn in place of a glyph - and with [matches], how the dice stand against it. */
@@ -204,7 +202,6 @@ fun CategoryTile(
             },
             dimmed = scored || disabled,
             fiveOfAKindBonusCount = fiveOfAKindBonusCount,
-            fiveOfAKindBonusAmount = fiveOfAKindBonusAmount,
             target = target,
             matches = matches,
         )

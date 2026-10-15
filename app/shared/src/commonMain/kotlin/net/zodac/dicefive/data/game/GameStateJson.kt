@@ -216,7 +216,7 @@ object GameStateJson {
             hitList = hitList,
             scorecard = scorecard,
             fiveOfAKindBonusCount = obj.getInt("fiveOfAKindBonusCount"),
-            // Left out by encode until a joker has scored; also absent from a game saved before the chips were tied to a box.
+            // Left out by encode until a joker has scored.
             jokerBonusSlots = decodeJokerBonusSlots(obj["jokerBonusSlots"] as? JsonObject, categories),
             // Left out by encode for a player with no finished turn yet - no last roll to show.
             lastRoll = if ("lastRoll" in obj) obj.getObjectList("lastRoll").map(::decodeDie) else null,
@@ -225,7 +225,7 @@ object GameStateJson {
                 ?.let { id -> categories.firstOrNull { it.id == id } },
             rollCount = obj.getInt("rollCount"),
             storedRolls = if ("storedRolls" in obj) obj.getInt("storedRolls") else 0,
-            // Left out until the player's first hold, and by a save from before it was kept.
+            // Left out by encode until the player's first hold.
             diceHeld = if ("diceHeld" in obj) obj.getInt("diceHeld") else 0,
             rollsModified = rollsModified,
             // Left out unless set: that player's flash is still to come.

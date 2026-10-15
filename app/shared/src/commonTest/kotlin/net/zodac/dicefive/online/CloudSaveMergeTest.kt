@@ -163,11 +163,11 @@ class CloudSaveMergeTest {
     }
 
     @Test
-    fun `a setting chosen before stamps existed beats one never chosen - but not a later one`() {
-        val chosenEarlier = CloudSave(settings = mapOf("vibration_enabled" to Stamped(SettingValue.Flag(false), 0L)))
-        val neverChosen = CloudSave(settings = mapOf("vibration_enabled" to Stamped<SettingValue?>(null, 0L)))
-        assertEquals(chosenEarlier.settings, merge(chosenEarlier, neverChosen).settings)
-        val later = CloudSave(settings = mapOf("vibration_enabled" to Stamped(SettingValue.Flag(true), 5L)))
-        assertEquals(later.settings, merge(chosenEarlier, later).settings)
+    fun `an unstamped setting beats one never chosen - but not a later one`() {
+        val unstamped = CloudSave(settings = mapOf("dice_style_id" to Stamped(SettingValue.Text("ocean"), 0L)))
+        val neverChosen = CloudSave(settings = mapOf("dice_style_id" to Stamped<SettingValue?>(null, 0L)))
+        assertEquals(unstamped.settings, merge(unstamped, neverChosen).settings)
+        val later = CloudSave(settings = mapOf("dice_style_id" to Stamped(SettingValue.Text("gold"), 5L)))
+        assertEquals(later.settings, merge(unstamped, later).settings)
     }
 }

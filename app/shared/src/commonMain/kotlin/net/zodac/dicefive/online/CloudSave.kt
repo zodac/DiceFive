@@ -36,7 +36,7 @@ data class CloudSave(
  *   grows, so the larger of two copies is the newer. Flags are a union; a streak comes from the latest game.
  * - Scores are a union by [net.zodac.dicefive.data.scores.ScoreEntry.uuid], less any from before the latest leaderboard
  *   reset. A dismissed Statistics card stays dismissed until a later game under its name, played anywhere.
- * - Each setting, and the game in progress, is whichever was set last; one set before stamps existed beats one never set.
+ * - Each setting, and the game in progress, is whichever was set last; an unstamped one beats one never set.
  */
 object CloudSaveMerge {
 

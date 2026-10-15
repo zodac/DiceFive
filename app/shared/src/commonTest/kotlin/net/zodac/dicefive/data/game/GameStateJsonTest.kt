@@ -81,10 +81,10 @@ class GameStateJsonTest {
         assertEquals(null, decoded.scoresIn(ScoreCategory.CHANCE).singleOrNull())
         roundTripped(GameState(players = listOf(human.copy(scorecard = GameMode.STANDARD.categories.associateWith { listOf(10) })), isGameOver = true))
 
-        // The boxes a joker scored in - and a game saved before they were recorded, which has none.
+        // The boxes a joker scored in - and none, before a joker has scored.
         val jokers = mapOf(ScoreCategory.SIXES to setOf(0, 2), ScoreCategory.FULL_HOUSE to setOf(0))
         assertEquals(jokers, roundTripped(GameState(players = listOf(human.copy(fiveOfAKindBonusCount = 3, jokerBonusSlots = jokers)))).players.single().jokerBonusSlots)
-        assertEquals(emptyMap(), roundTripped(GameState(players = listOf(human.copy(fiveOfAKindBonusCount = 3)))).players.single().jokerBonusSlots)
+        assertEquals(emptyMap(), roundTripped(GameState(players = listOf(human))).players.single().jokerBonusSlots)
 
         // Each player's last roll (held state included), last scored box, roll count, colour and first-5x flash.
         val lastRoll = List(5) { Die(value = it % 6 + 1, isHeld = it % 2 == 0) }
