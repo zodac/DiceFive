@@ -23,7 +23,7 @@ import net.zodac.dicefive.ui.common.delayWhileResumed
 private const val HOLD_VOLUME = 0.35f
 
 /**
- * The dice sound effects - the cup being shaken, the dice landing once a roll resolves, a die
+ * The dice sound effects - the cup being shaken, the dice landing once a roll resolves (and a golden egg's cluck), a die
  * being held or unheld, and the end-of-game celebration fanfare - played through the platform's
  * [SoundPlayer]. [release] tears the player down when nothing needs it any more - see
  * [rememberAppSoundEffects], which owns that lifecycle for the whole app.
@@ -54,9 +54,8 @@ class SoundEffects(createPlayer: () -> SoundPlayer) {
         playerCreated = true
     }
 
-    fun playShake() = playSound(SoundEffect.CUP_SHAKE, 1f)
-
-    fun playRoll() = playSound(SoundEffect.MAT_LANDING, 1f)
+    /** A roll's shake or landing clip - see [shakeSound] and [landingSounds]. */
+    fun playRollSound(effect: SoundEffect) = playSound(effect, 1f)
 
     fun playHold() = playSound(SoundEffect.HOLD, HOLD_VOLUME)
 

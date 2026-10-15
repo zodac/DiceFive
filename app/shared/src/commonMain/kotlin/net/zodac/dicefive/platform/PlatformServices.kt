@@ -80,7 +80,10 @@ val LocalPlatformServices = staticCompositionLocalOf<PlatformServices> {
 /** Every sound the game makes. Each platform maps these to its own copy of the clips. */
 enum class SoundEffect {
     CUP_SHAKE,
+    CUP_SHAKE_CHICKEN,
+    EMPTY_CUP_SHAKE,
     MAT_LANDING,
+    EGG_LAY,
     HOLD,
     UNHOLD,
     CELEBRATION,

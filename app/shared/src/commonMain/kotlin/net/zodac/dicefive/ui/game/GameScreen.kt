@@ -80,6 +80,7 @@ import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
+import net.zodac.dicefive.ui.game.style.ChickenDiceCupStyle
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.LocalOnRabbitSeen
@@ -359,18 +360,22 @@ private fun InProgressGame(
     // off), and the landing sound plays the instant it goes false again, whichever side started
     // it - mirroring the cup/tray's own rolling pose above. previousRolling starts false in step
     // with isRolling, so mounting this screen mid-turn (already settled) doesn't fire a landing
-    // sound with no shake before it.
+    // sound with no shake before it. Which clips play is shakeSound's and landingSounds' choice,
+    // from the dice as the shake started (shakenDice) and as they landed.
     val soundEffects = rememberSoundEffects()
     soundEffects.enabled = soundEnabled
     val haptics = rememberDiceHaptics()
     haptics.enabled = vibrationEnabled
+    val chickenCup = LocalGameVisualTheme.current.diceCupStyle is ChickenDiceCupStyle
     var previousRolling by remember { mutableStateOf(false) }
+    var shakenDice by remember { mutableStateOf(state.dice) }
     LaunchedEffect(isRolling) {
         if (isRolling && !previousRolling) {
-            soundEffects.playShake()
+            shakenDice = state.dice
+            soundEffects.playRollSound(shakeSound(state.dice, chickenCup))
             haptics.playShakeBuzz()
         } else if (!isRolling && previousRolling) {
-            soundEffects.playRoll()
+            landingSounds(shakenDice, state.dice).forEach(soundEffects::playRollSound)
         }
         previousRolling = isRolling
     }

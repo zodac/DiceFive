@@ -600,7 +600,7 @@ object DiceStyles : StyleCatalog<DiceStyle>(
                 // Each egg's pips are the other's shell colour.
                 colour(Res.string.style_colour_white, EggDiceStyle("egg_white", EggWhiteShell, Color(0xFFD9D2C3), EggBrownShell)),
                 colour(Res.string.style_colour_brown, EggDiceStyle("egg_brown", EggBrownShell, Color(0xFFA8683F), EggWhiteShell)),
-                // The golden egg that rolls one time in a thousand with the Chicken cup, kept for good.
+                // The golden egg that rolls one time in 500 with the Chicken cup, kept for good.
                 colour(Res.string.style_colour_gold, GoldenEggDiceStyle).copy(secretAchievement = Achievement.EGGCELLENT_DISCOVERY),
             ),
             unlock = AchievementCount(50),

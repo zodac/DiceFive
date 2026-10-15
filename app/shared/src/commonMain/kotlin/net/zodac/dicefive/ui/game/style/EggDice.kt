@@ -243,7 +243,7 @@ class EggDiceStyle(
 /**
  * The golden egg: a polished 24-carat shell, speckled in dark gold, with black pips, in the same shape as the other eggs.
  * The Egg style's secret colour once Eggcellent Discovery is earned - and the rare die
- * that rolls golden, one in a thousand, while the Egg dice and the Chicken cup are both picked.
+ * that rolls golden, one in 500, while the Egg dice (any other colour) and the Chicken cup are both picked.
  */
 val GoldenEggDiceStyle = EggDiceStyle("egg_gold", Color(0xFFD9A420), Color(0xFF6E4400), Color(0xFF111111), metallic = true, speckleColour = Color(0xFF8A5A00))
 

@@ -321,7 +321,8 @@ screen) of `StyleColour`s.
   - The Top Hat's rabbit peeks out after a quiet spell.
   - The Flowerpot grows a sunflower over the current player's rolls. It blooms only for one who uses every roll of
     every turn in a three-roll mode.
-  - Egg dice with the Chicken cup roll a golden egg one time in 1000.
+  - Egg dice (any colour but gold) with the Chicken cup roll a golden egg one time in 500, earned or not, in any
+    mode or modifier except D20 (its dice are drawn as D20s).
   - Naming player 1 "Ireland" or "Éire" turns Tricolour green, white and orange.
   - The menu logo's dice roll when tapped, and its googly pupils follow the phone.
   - Seven quick taps on the Settings version pill (each within 1.5s) earn Are You A Developer?, which unlocks the
@@ -333,6 +334,11 @@ screen) of `StyleColour`s.
 
 - **Clips.** `cup_shake`, `mat_landing`, `hold`, `unhold` (at 0.35 volume), and `celebration` (a multiplayer game won
   by a human, with gold fireworks).
+  - The Chicken cup shakes with `cup_shake_chicken` instead of `cup_shake`. A golden egg landing adds
+    `chicken_egg_lay` after `mat_landing`.
+  - A roll with every die held (What Was The Point Of That?) shakes with `empty_cup_shake` and lands with no
+    `mat_landing`.
+  - The choice is `shakeSound`/`landingSounds` (`ui/game/RollSounds.kt`).
   - The sources are `app/android/src/main/rawAudioSource/*.ogg`.
   - They're peak-normalised to -0.8 dBFS by ffmpeg at build time (`NormalizeOggAudioTask`): never `res/raw/`, never
     hand-adjusted.

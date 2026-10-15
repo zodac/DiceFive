@@ -25,9 +25,11 @@ import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.ChickenDiceCupStyle
+import net.zodac.dicefive.ui.game.style.PIP_FACES
 
 /** In-memory preferences, so a real [SettingsRepository] can back the table's settings. */
 private class TablePreferencesStore : DataStore<Preferences> {
@@ -100,20 +102,28 @@ class GameTableSettingsTest {
         assertEquals("googly_ivory", locked.tableSettings.value?.visualTheme?.diceStyle?.id)
     }
 
-    /** Every one-in-a-thousand draw comes up, and every other draw is the lowest it can be. */
+    /** Every golden egg draw comes up, and every other draw is the lowest it can be. */
     private object GoldenEveryTime : Random() {
         override fun nextBits(bitCount: Int): Int = 0
-        override fun nextInt(until: Int): Int = if (until == 1000) 0 else 1
+        override fun nextInt(until: Int): Int = if (until == GameViewModel.GOLDEN_EGG_ONE_IN) 0 else 1
     }
 
-    private suspend fun kotlinx.coroutines.test.TestScope.firstRoll(diceId: String, cupId: String): Pair<GameViewModel, TableAchievementStore> {
+    /** The first roll of a solo game with [diceId] and [cupId] picked; every other achievement is earned, and Eggcellent
+     * Discovery too when [eggcellentEarned] (at time 0, so a fresh unlock would show as a later time). */
+    private suspend fun kotlinx.coroutines.test.TestScope.firstRoll(
+        diceId: String,
+        cupId: String,
+        eggcellentEarned: Boolean = false,
+        gameMode: GameMode = GameMode.STANDARD,
+    ): Pair<GameViewModel, TableAchievementStore> {
         val settings = SettingsRepository(TablePreferencesStore())
         settings.setDiceStyleId(diceId)
         settings.setDiceCupStyleId(cupId)
         val achievements = TableAchievementStore()
-        achievements.record(Achievement.entries.filter { it != Achievement.EGGCELLENT_DISCOVERY }.associateWith { 0L }, emptyMap())
+        achievements.record(Achievement.entries.filter { eggcellentEarned || it != Achievement.EGGCELLENT_DISCOVERY }.associateWith { 0L }, emptyMap())
         val viewModel = GameViewModel(settingsRepository = settings, achievementsRepository = achievements, random = GoldenEveryTime)
         viewModel.setPlayerCount(1)
+        viewModel.setGameMode(gameMode)
         viewModel.startGame()
         advanceUntilIdle()
         viewModel.rollDice()
@@ -133,5 +143,36 @@ class GameTableSettingsTest {
             assertTrue(viewModel.game.value!!.dice.none { it.isGolden }, "$dice with $cup rolled a golden die")
             assertFalse(store.current().isUnlocked(Achievement.EGGCELLENT_DISCOVERY))
         }
+    }
+
+    @Test
+    fun `a golden egg keeps rolling once Eggcellent Discovery is earned - and never earns it again`() = runTest {
+        for (dice in listOf("egg_white", "egg_brown")) {
+            val (viewModel, achievements) = firstRoll(dice, "chicken_brown", eggcellentEarned = true)
+            assertTrue(viewModel.game.value!!.dice.all { it.isGolden }, "$dice rolled no golden egg")
+            assertEquals(0L, achievements.current().unlockedAt[Achievement.EGGCELLENT_DISCOVERY], "$dice unlocked it again")
+        }
+    }
+
+    @Test
+    fun `the Golden Egg dice it unlocks never roll a golden egg`() = runTest {
+        val (viewModel, _) = firstRoll("egg_gold", "chicken_brown", eggcellentEarned = true)
+        assertEquals("egg_gold", viewModel.tableSettings.value?.visualTheme?.diceStyle?.id)
+        assertTrue(viewModel.game.value!!.dice.none { it.isGolden })
+    }
+
+    @Test
+    fun `a golden egg rolls in every mode whose dice the Egg art can draw - never in one drawn as D20s`() = runTest {
+        for (mode in GameMode.entries) {
+            val (viewModel, _) = firstRoll("egg_white", "chicken_brown", gameMode = mode)
+            assertEquals(mode, viewModel.game.value!!.gameMode)
+            assertEquals(mode.dieValues.last <= PIP_FACES, viewModel.game.value!!.dice.all { it.isGolden }, "${mode.id} golden eggs")
+        }
+        assertTrue(GameMode.entries.any { it.dieValues.last > PIP_FACES })
+    }
+
+    @Test
+    fun `a golden egg is one in 500 per die`() {
+        assertEquals(500, GameViewModel.GOLDEN_EGG_ONE_IN)
     }
 }

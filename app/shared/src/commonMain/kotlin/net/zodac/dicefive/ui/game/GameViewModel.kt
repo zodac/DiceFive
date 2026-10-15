@@ -71,6 +71,8 @@ import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.EggDiceStyle
 import net.zodac.dicefive.ui.game.style.GameVisualTheme
+import net.zodac.dicefive.ui.game.style.GoldenEggDiceStyle
+import net.zodac.dicefive.ui.game.style.PIP_FACES
 import net.zodac.dicefive.ui.game.style.ScoreFrames
 import net.zodac.dicefive.ui.game.style.StyleCategory
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
@@ -759,7 +761,7 @@ class GameViewModel(
      */
     private fun performRoll(state: GameState, checkForAiTurn: Boolean = true): GameState {
         // The golden egg: a human's roll only, with the Egg dice and the Chicken cup both in use.
-        val goldenOneIn = GOLDEN_EGG_ONE_IN.takeIf { state.currentPlayer?.type == PlayerType.HUMAN && showsGoldenEggs() }
+        val goldenOneIn = GOLDEN_EGG_ONE_IN.takeIf { state.currentPlayer?.type == PlayerType.HUMAN && showsGoldenEggs(state) }
         val rolled = GameEngine.rollDice(state, random, goldenOneIn)
         setUndoSnapshot(null)
         applyGameState(rolled, checkForAiTurn)
@@ -770,10 +772,16 @@ class GameViewModel(
         return rolled
     }
 
-    /** Whether the table is set up for [Achievement.EGGCELLENT_DISCOVERY]: the Egg dice and the Chicken cup picked. */
-    private fun showsGoldenEggs(): Boolean {
+    /**
+     * Whether the table is set up for [Achievement.EGGCELLENT_DISCOVERY]: the Egg dice in any colour but gold, and the
+     * Chicken cup, picked. Earned or not, so the golden egg keeps turning up after it. Any mode or modifier, except one
+     * whose dice have more faces than the Egg art (D20's), where the table draws a D20 instead.
+     */
+    private fun showsGoldenEggs(state: GameState): Boolean {
         val theme = tableSettings.value?.visualTheme ?: return false
-        return theme.diceStyle is EggDiceStyle && theme.diceCupStyle is ChickenDiceCupStyle
+        val dice = theme.diceStyle
+        return dice is EggDiceStyle && dice.id != GoldenEggDiceStyle.id && theme.diceCupStyle is ChickenDiceCupStyle &&
+            state.gameMode.dieValues.last <= PIP_FACES
     }
 
     private fun onHumanAction(undoable: Boolean = true, transform: (GameState) -> GameState) {
@@ -1307,7 +1315,7 @@ class GameViewModel(
 
     companion object {
         /** The odds, one in this many per die rolled, of a golden egg - see [Achievement.EGGCELLENT_DISCOVERY]. */
-        private const val GOLDEN_EGG_ONE_IN = 1000
+        internal const val GOLDEN_EGG_ONE_IN = 500
 
         /** The AI's pause, dice settled, before it scores. Its rolls shake for CUP_SHAKE_MILLIS, same as a tap's. */
         private const val AI_STEP_DELAY_MS = 250L

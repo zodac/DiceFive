@@ -16,7 +16,8 @@ import net.zodac.dicefive.platform.SoundPlayer
 internal class AndroidSoundPlayer(context: Context) : SoundPlayer {
 
     private val pool = SoundPool.Builder()
-        .setMaxStreams(2)
+        // Three at once: the Chicken cup's shake runs past the dice landing, where the mat and a golden egg's cluck both start.
+        .setMaxStreams(3)
         .setAudioAttributes(
             AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_GAME)
@@ -28,7 +29,10 @@ internal class AndroidSoundPlayer(context: Context) : SoundPlayer {
     private val soundIds: Map<SoundEffect, Int> = SoundEffect.entries.associateWith { effect ->
         val resId = when (effect) {
             SoundEffect.CUP_SHAKE -> R.raw.cup_shake
+            SoundEffect.CUP_SHAKE_CHICKEN -> R.raw.cup_shake_chicken
+            SoundEffect.EMPTY_CUP_SHAKE -> R.raw.empty_cup_shake
             SoundEffect.MAT_LANDING -> R.raw.mat_landing
+            SoundEffect.EGG_LAY -> R.raw.chicken_egg_lay
             SoundEffect.HOLD -> R.raw.hold
             SoundEffect.UNHOLD -> R.raw.unhold
             SoundEffect.CELEBRATION -> R.raw.celebration

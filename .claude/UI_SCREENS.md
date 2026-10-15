@@ -132,7 +132,9 @@ A lock is on the style (`StyleFamily.unlock`), not the colour: once it's met, al
   - the Flowerpot's plant-stage pots (Greenfingers);
   - the Top Hat with its rabbit always out (The Magician's Secret);
   - the gold Egg dice (Eggcellent Discovery).
-- **The golden egg.** With Egg dice and the Chicken cup, each human-rolled die has a 1-in-1000 chance of landing golden.
+- **The golden egg.** With Egg dice (any colour but gold) and the Chicken cup, even once earned, each human-rolled
+  die has a 1-in-500 chance of landing golden (`GOLDEN_EGG_ONE_IN`). Any mode or modifier except D20, whose dice are
+  drawn as D20s.
   - The roll: `Die.isGolden`, set by `GameEngine.rollDice(goldenOneIn = ...)` from `performRoll`. It's saved with the
     game and drawn as `GoldenEggDiceStyle`.
   - Only player 1 earns it, and only once the dice have landed.

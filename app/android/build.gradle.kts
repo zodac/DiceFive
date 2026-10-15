@@ -414,8 +414,8 @@ aboutLibraries {
             // changes - all in its libraries/ entry. Neither places any condition on the app itself.
             // (Never CC-BY-SA - adaptations must stay under it - nor anything NC, which rules out ads
             // and Pro; neither is allowed here.)
-            "CC0-1.0" to listOf("freesound-588198", "freesound-695731", "freesound-185986", "freesound-596051"),
-            "CC-BY-4.0" to listOf("freesound-140147"),
+            "CC0-1.0" to listOf("freesound-588198", "freesound-695731", "freesound-185986", "freesound-596051", "freesound-456803"),
+            "CC-BY-4.0" to listOf("freesound-140147", "freesound-446043"),
             // Google's own terms for the Play services SDKs (Play Games Services and what it pulls in): proprietary,
             // free to ship in an app, with no condition on the app's own licence. Allowed for these artifacts only.
             "ASDKL" to listOf(

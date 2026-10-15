@@ -96,7 +96,10 @@ private class IosSoundPlayer : SoundPlayer {
     private val SoundEffect.clipName: String
         get() = when (this) {
             SoundEffect.CUP_SHAKE -> "cup_shake"
+            SoundEffect.CUP_SHAKE_CHICKEN -> "cup_shake_chicken"
+            SoundEffect.EMPTY_CUP_SHAKE -> "empty_cup_shake"
             SoundEffect.MAT_LANDING -> "mat_landing"
+            SoundEffect.EGG_LAY -> "chicken_egg_lay"
             SoundEffect.HOLD -> "hold"
             SoundEffect.UNHOLD -> "unhold"
             SoundEffect.CELEBRATION -> "celebration"

@@ -79,7 +79,7 @@ class SoundEffectsTest {
         compose.mainClock.advanceTimeBy(2_000L)
         compose.waitUntil(timeoutMillis = 5_000L) { platform.playersBuilt.get() == 1 }
 
-        first.playShake()
+        first.playRollSound(SoundEffect.CUP_SHAKE)
         second.playCelebration()
         assertEquals(1, platform.playersBuilt.get())
         assertEquals(listOf(SoundEffect.CUP_SHAKE, SoundEffect.CELEBRATION), platform.played)
