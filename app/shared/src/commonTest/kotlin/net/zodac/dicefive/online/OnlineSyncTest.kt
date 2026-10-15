@@ -14,9 +14,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
+import net.zodac.dicefive.model.GameMode
 
 private class SyncPreferences : DataStore<Preferences> {
     private val state = MutableStateFlow(emptyPreferences())
@@ -56,14 +58,33 @@ private class SyncServices(account: String?, var remote: Set<String>? = emptySet
     override suspend fun setProgress(achievementId: String, steps: Int) {
         progress[achievementId] = steps
     }
+    /** Every score the service took, by leaderboard key; while [takesScores] is false it takes none. */
+    val posted = mutableListOf<Pair<String, Long>>()
+    var takesScores = true
+    override suspend fun submitScore(leaderboardKey: String, score: Long): Boolean =
+        takesScores.also { if (it) posted += leaderboardKey to score }
+}
+
+/** Player 1's postable games, as (mode, score, played at); the filtering by rules and ceiling is `ScoreDao`'s, tested against Room. */
+private class SyncScores(vararg games: Triple<GameMode, Int, Long>) {
+    val games = games.toMutableList()
+    fun best(mode: GameMode, after: Long): UnpostedScore? =
+        games.filter { it.first == mode && it.third > after }.takeIf { it.isNotEmpty() }?.let { played ->
+            UnpostedScore(played.maxOf { it.second }, played.maxOf { it.third })
+        }
 }
 
 class OnlineSyncTest {
 
     private val now = 1_000L
 
-    private fun sync(services: SyncServices, store: SyncStore, settings: OnlineSettingsRepository, totals: LeaderboardTotals = LeaderboardTotals()) =
-        OnlineSync(services, store, settings, { totals }, now = { now })
+    private fun sync(
+        services: SyncServices,
+        store: SyncStore,
+        settings: OnlineSettingsRepository,
+        totals: LeaderboardTotals = LeaderboardTotals(),
+        scores: SyncScores = SyncScores(),
+    ) = OnlineSync(services, store, settings, { totals }, scores::best, now = { now })
 
     private fun state(vararg unlocked: Achievement, counters: Map<AchievementCounter, Int> = emptyMap()) =
         AchievementsState(unlocked.associateWith { 5L }, counters)
@@ -194,5 +215,86 @@ class OnlineSyncTest {
         services.remote = emptySet()
         sync.reconcile()
         assertEquals(listOf(Achievement.FIVE_X.id), services.unlocked)
+    }
+
+    @Test
+    fun `an account's first sync gets this device's best score in each mode played - and only those modes`() = runTest {
+        val services = SyncServices("ann")
+        val scores = SyncScores(
+            Triple(GameMode.STANDARD, 180, 10L),
+            Triple(GameMode.STANDARD, 240, 20L),
+            Triple(GameMode.STANDARD, 200, 30L),
+            Triple(GameMode.QUICKFIRE, 90, 15L),
+        )
+        sync(services, SyncStore(state()), OnlineSettingsRepository(SyncPreferences()), scores = scores).reconcile()
+        assertEquals(listOf("standard" to 240L, "quickfire" to 90L), services.posted)
+    }
+
+    @Test
+    fun `after that - only newer games are sent - each one's score even below the best`() = runTest {
+        val services = SyncServices("ann")
+        val scores = SyncScores(Triple(GameMode.STANDARD, 240, 20L))
+        val sync = sync(services, SyncStore(state()), OnlineSettingsRepository(SyncPreferences()), scores = scores)
+        sync.reconcile()
+        sync.reconcile()
+        assertEquals(listOf("standard" to 240L), services.posted)
+
+        // The service keeps each player's best itself; a lower score still counts on today's and this week's boards.
+        scores.games += Triple(GameMode.STANDARD, 150, 40L)
+        sync.reconcile()
+        assertEquals(listOf("standard" to 240L, "standard" to 150L), services.posted)
+    }
+
+    @Test
+    fun `games played signed out are sent on signing in - the best of them`() = runTest {
+        val settings = OnlineSettingsRepository(SyncPreferences())
+        val scores = SyncScores(Triple(GameMode.D20, 300, 20L))
+        val store = SyncStore(state())
+        sync(SyncServices("ann"), store, settings, scores = scores).reconcile()
+
+        scores.games += listOf(Triple(GameMode.D20, 310, 40L), Triple(GameMode.D20, 350, 50L), Triple(GameMode.D20, 320, 60L))
+        val again = SyncServices("ann")
+        sync(again, store, settings, scores = scores).reconcile()
+        assertEquals(listOf("d20" to 350L), again.posted)
+    }
+
+    @Test
+    fun `a score the service didn't take is sent again next time`() = runTest {
+        val services = SyncServices("ann").apply { takesScores = false }
+        val scores = SyncScores(Triple(GameMode.HIT_LIST, 400, 20L))
+        val sync = sync(services, SyncStore(state()), OnlineSettingsRepository(SyncPreferences()), scores = scores)
+        sync.reconcile()
+        services.takesScores = true
+        sync.reconcile()
+        assertEquals(listOf("hit_list" to 400L), services.posted)
+    }
+
+    @Test
+    fun `each account gets this device's best once - another signing in gets them too`() = runTest {
+        val settings = OnlineSettingsRepository(SyncPreferences())
+        val scores = SyncScores(Triple(GameMode.TRICOLOUR, 500, 20L))
+        val store = SyncStore(state())
+        sync(SyncServices("ann"), store, settings, scores = scores).reconcile()
+        val bob = SyncServices("bob")
+        sync(bob, store, settings, scores = scores).reconcile()
+        assertEquals(listOf("tricolour" to 500L), bob.posted)
+
+        // Ann again: nothing new for her.
+        val annAgain = SyncServices("ann")
+        sync(annAgain, store, settings, scores = scores).reconcile()
+        assertTrue(annAgain.posted.isEmpty())
+    }
+
+    @Test
+    fun `no score is sent signed out - or once superuser mode has been used here`() = runTest {
+        val scores = SyncScores(Triple(GameMode.STANDARD, 240, 20L))
+        val signedOut = SyncServices(account = null)
+        sync(signedOut, SyncStore(state()), OnlineSettingsRepository(SyncPreferences()), scores = scores).reconcile()
+        assertTrue(signedOut.posted.isEmpty())
+
+        val settings = OnlineSettingsRepository(SyncPreferences()).apply { blockMirroring() }
+        val blocked = SyncServices("ann")
+        sync(blocked, SyncStore(state()), settings, scores = scores).reconcile()
+        assertTrue(blocked.posted.isEmpty())
     }
 }

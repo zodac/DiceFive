@@ -794,6 +794,7 @@
     <string name="settings_reset_achievements_message">Every achievement will be locked again and all progress towards them lost. This can't be undone. Your scores and settings are not affected.</string>
     <string name="settings_reset_leaderboard_title">Reset Leaderboard?</string>
     <string name="settings_reset_leaderboard_message">Every recorded score will be deleted, clearing the Leaderboard screen - and Statistics with it, since it's calculated from the same scores. This can't be undone. Achievements and settings are not affected, though any achievement progress measured against the leaderboard will start over.</string>
+    <string name="settings_reset_leaderboard_online_note">Scores already sent to %1$s stay there.</string>
 
     <!-- Style names (ui/game/style/StyleCatalog.kt): what each style, and each colour of it, is called on the Styles screen. Short: they sit under a small tile. -->
     <string name="style_family_art_deco">Art Deco</string>
@@ -1075,6 +1076,8 @@
     <string name="scores_view_combined">Combined</string>
     <string name="scores_view_game_mode">Game Mode</string>
     <string name="scores_empty">No scores yet - play a game!</string>
+    <string name="scores_global">Global</string>
+    <string name="scores_global_cd">Global leaderboard for %1$s on %2$s</string>
     <!-- Column headings of the table ("#", "5x" and the score). -->
     <string name="scores_header_player">Player</string>
     <string name="scores_header_score">Score</string>

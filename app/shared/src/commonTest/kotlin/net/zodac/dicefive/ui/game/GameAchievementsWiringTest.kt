@@ -30,6 +30,7 @@ import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.data.scores.PlayerGame
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreEntry
+import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Achievement
@@ -102,6 +103,9 @@ private class ScriptedDice(private val values: List<Int>) : Random() {
     override fun nextInt(from: Int, until: Int): Int = values[index++ % values.size]
 }
 
+/** More turns than any game here lasts, so a helper playing one out can't loop for ever. */
+private const val MAX_TURNS_PLAYED = 200
+
 /** Enough of [ScoreDao] for the leaderboard read/write that `finishGame` sequences around. */
 private class FakeScoreDao : ScoreDao {
     private val entries = mutableListOf<ScoreEntry>()
@@ -117,15 +121,15 @@ private class FakeScoreDao : ScoreDao {
     override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> =
         leaderboard.sortedByDescending { it.score }.drop(offset).take(limit)
 
-    private fun forMode(gameModeId: String, includeOffBoard: Boolean) =
-        entries.filter { (it.onLeaderboard || includeOffBoard) && it.gameModeId == gameModeId }
+    private fun forMode(gameModeId: String) =
+        entries.filter { it.playedUnmodified && it.gameModeId == gameModeId }
 
-    override suspend fun pagedScoresForMode(gameModeId: String, includeOffBoard: Boolean, limit: Int, offset: Int): List<ScoreEntry> =
-        forMode(gameModeId, includeOffBoard).sortedByDescending { it.score }.drop(offset).take(limit)
+    override suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int): List<ScoreEntry> =
+        forMode(gameModeId).sortedByDescending { it.score }.drop(offset).take(limit)
 
     override suspend fun count(): Int = leaderboard.size
 
-    override suspend fun countForMode(gameModeId: String, includeOffBoard: Boolean): Int = forMode(gameModeId, includeOffBoard).size
+    override suspend fun countForMode(gameModeId: String): Int = forMode(gameModeId).size
 
     override suspend fun bestScoreForPlayer(playerName: String): Int? =
         leaderboard.filter { it.playerName == playerName }.maxOfOrNull { it.score }
@@ -136,6 +140,7 @@ private class FakeScoreDao : ScoreDao {
         entries.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
 
     override suspend fun primaryPlayerGameModeIds(): List<String> = entries.filter { it.isPrimaryPlayer }.map { it.gameModeId }.distinct()
+    override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
 
     override suspend fun playerGames(): List<PlayerGame> = emptyList()
 
@@ -234,6 +239,40 @@ class GameAchievementsWiringTest {
     }
 
     // ---- A finished game -------------------------------------------------------------------------
+
+    /** Plays every box of the game's own card (Extended Scores' too) to the end: roll once, then take the first open one. */
+    private fun GameViewModel.playEveryBox() {
+        repeat(MAX_TURNS_PLAYED) {
+            val state = game.value ?: return
+            if (state.isGameOver) return
+            rollDice()
+            val player = state.currentPlayer ?: return
+            commitScore(state.gameMode.categoriesWith(state.extendedScores).first { player.isOpen(it) })
+        }
+    }
+
+    @Test
+    fun `a finished game with any modifier on is recorded as modified - off the board and its mode's card - and one with none as not`() = runTest {
+        val modifiers: List<Pair<String, GameViewModel.() -> Unit>> = listOf(
+            "none" to {},
+            "turn timer" to { setTurnTimer(TurnTimer.SECONDS_120) },
+            "rolls per turn" to { setRollsPerTurn(2) },
+            "stored rolls" to { setStoredRolls(true) },
+            "extended scores" to { setExtendedScores(true) },
+            "unlucky dice" to { setUnluckyDiceEnabled(true) },
+        )
+        for ((name, modifier) in modifiers) {
+            val dao = FakeScoreDao()
+            val table = started(scoreRepository = ScoreRepository(dao), setUp = modifier)
+            table.viewModel.playEveryBox()
+            advanceUntilIdle()
+            val row = dao.recorded().single()
+            val unmodified = name == "none"
+            assertEquals(unmodified, row.playedUnmodified, name)
+            assertEquals(unmodified, row.onLeaderboard, name)
+            assertEquals(if (unmodified) 1 else 0, ScoreRepository(dao).totalCountForMode(GameMode.STANDARD), name)
+        }
+    }
 
     @Test
     fun `finishing a game records its achievements and counters - solo - between two humans or against an AI`() = runTest {

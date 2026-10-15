@@ -26,6 +26,7 @@ import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.data.achievements.AchievementEvent
 import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.device.AndroidAppContainer
@@ -144,6 +145,7 @@ class AchievementsTextTest {
         val modesPlayed = listOf(GameMode.STANDARD, GameMode.STUD, GameMode.THIRD_WIND)
         val dao = object : ScoreDao by RowsDao(emptyList()) {
             override suspend fun primaryPlayerGameModeIds(): List<String> = modesPlayed.map { it.id }
+            override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
         }
         val viewModel = AchievementsViewModel(scoreRepository = ScoreRepository(dao))
         showcase.show {

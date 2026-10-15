@@ -42,7 +42,10 @@ private class AchievementsUiServices(state: GameServicesState) : GameServices by
     }
 }
 
-/** While signed in, Reset achievements (which the service would undo) gives its place to a link to the service's achievements. */
+/**
+ * While signed in, Reset achievements (which the service would undo) gives its place to a link to the service's
+ * achievements, and Reset leaderboard's confirmation says the service's boards keep their scores.
+ */
 @RunWith(AndroidJUnit4::class)
 @Config(qualifiers = "w360dp-h800dp")
 class OnlineAchievementsRowTest {
@@ -81,5 +84,28 @@ class OnlineAchievementsRowTest {
         show(AchievementsUiServices(GameServicesState.SignedOut))
         compose.onNodeWithText("Reset achievements").assertExists()
         compose.onNodeWithText("View in Test Games").assertDoesNotExist()
+    }
+
+    private val resetMessage = "Every recorded score will be deleted, clearing the Leaderboard screen - and Statistics with it, since it's " +
+        "calculated from the same scores. This can't be undone. Achievements and settings are not affected, though any achievement " +
+        "progress measured against the leaderboard will start over."
+
+    private fun resetLeaderboardMessage(services: GameServices): String {
+        show(services)
+        compose.onNodeWithText("Reset leaderboard").performScrollTo().performClick()
+        compose.waitForIdle()
+        return compose.onNodeWithText("Every recorded score", substring = true).fetchSemanticsNode()
+            .config[SemanticsProperties.Text].joinToString("") { it.text }
+    }
+
+    @Test
+    fun `signed in - Reset leaderboard's confirmation says the service's boards keep their scores`() {
+        val message = resetLeaderboardMessage(AchievementsUiServices(GameServicesState.SignedIn(OnlineAccount("Ann", null, "k"))))
+        assertEquals("$resetMessage Scores already sent to Test Games stay there.", message)
+    }
+
+    @Test
+    fun `signed out - Reset leaderboard's confirmation as before`() {
+        assertEquals(resetMessage, resetLeaderboardMessage(AchievementsUiServices(GameServicesState.SignedOut)))
     }
 }

@@ -1,9 +1,12 @@
 package net.zodac.dicefive
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -14,15 +17,23 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.longClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.io.File
+import kotlinx.coroutines.flow.MutableStateFlow
 import net.zodac.dicefive.data.scores.PlayerGame
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreEntry
+import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.online.GameServices
+import net.zodac.dicefive.online.GameServicesState
+import net.zodac.dicefive.online.LocalGameServices
+import net.zodac.dicefive.online.NoGameServices
+import net.zodac.dicefive.online.OnlineAccount
 import net.zodac.dicefive.ui.scores.ScoresScreen
 import net.zodac.dicefive.ui.scores.ScoresViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -30,19 +41,20 @@ import org.junit.runner.RunWith
 
 /** Rows held in memory, ordered by score, for a Leaderboard to read. */
 internal class RowsDao(private val rows: List<ScoreEntry>) : ScoreDao {
-    private fun ordered(modeId: String?, includeOffBoard: Boolean = false) =
-        rows.filter { (it.onLeaderboard || includeOffBoard) && (modeId == null || it.gameModeId == modeId) }.sortedByDescending { it.score }
+    private fun ordered(modeId: String?) =
+        rows.filter { if (modeId == null) it.onLeaderboard else it.playedUnmodified && it.gameModeId == modeId }.sortedByDescending { it.score }
 
     override suspend fun insert(entry: ScoreEntry) = Unit
     override suspend fun pagedScores(limit: Int, offset: Int) = ordered(null).drop(offset).take(limit)
-    override suspend fun pagedScoresForMode(gameModeId: String, includeOffBoard: Boolean, limit: Int, offset: Int) =
-        ordered(gameModeId, includeOffBoard).drop(offset).take(limit)
+    override suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int) =
+        ordered(gameModeId).drop(offset).take(limit)
     override suspend fun count() = ordered(null).size
-    override suspend fun countForMode(gameModeId: String, includeOffBoard: Boolean) = ordered(gameModeId, includeOffBoard).size
+    override suspend fun countForMode(gameModeId: String) = ordered(gameModeId).size
     override suspend fun bestScoreForPlayer(playerName: String): Int? = null
     override suspend fun distinctScores(): List<Int> = emptyList()
     override suspend fun primaryPlayerTotalPoints(): Int? = null
     override suspend fun primaryPlayerGameModeIds(): List<String> = emptyList()
+    override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
     override suspend fun playerGames(): List<PlayerGame> = emptyList()
     override suspend fun dismissPlayer(playerName: String) = Unit
     override suspend fun clearDismissal(playerName: String) = Unit
@@ -56,6 +68,17 @@ internal fun rowOf(id: Long, score: Int, mode: GameMode) = ScoreEntry(
     threeOfAKindScore = 0, fourOfAKindScore = 0, gameModeId = mode.id,
 )
 
+/** Signed in to a service with leaderboards, recording which one is opened. */
+private class LeaderboardServices : GameServices by NoGameServices {
+    override val serviceName = "Google Play Games"
+    override val state = MutableStateFlow<GameServicesState>(GameServicesState.SignedIn(OnlineAccount("Ann", null, "ann")))
+    override val canShowLeaderboardUi = true
+    val opened = mutableListOf<String?>()
+    override fun showLeaderboardUi(leaderboardKey: String?) {
+        opened += leaderboardKey
+    }
+}
+
 /**
  * The Leaderboard's Combined / Game Mode switch: what each view shows, and what a screen reader hears for a
  * row (the mode and date a long press shows). How the cards look is for a render; this pins the structure.
@@ -68,9 +91,13 @@ class ScoresScreenTest {
 
     private val showcase = Showcase(compose)
 
-    private fun show(rows: List<ScoreEntry>) {
+    private fun show(rows: List<ScoreEntry>, services: GameServices = NoGameServices) {
         val viewModel = ScoresViewModel(ScoreRepository(RowsDao(rows)))
-        showcase.show { DiceFiveTheme { ScoresScreen(viewModel = viewModel, onBack = {}) } }
+        showcase.show {
+            CompositionLocalProvider(LocalGameServices provides services) {
+                DiceFiveTheme { ScoresScreen(viewModel = viewModel, onBack = {}) }
+            }
+        }
     }
 
     private val someRows = listOf(rowOf(1, 300, GameMode.STANDARD), rowOf(2, 250, GameMode.TRICOLOUR), rowOf(3, 200, GameMode.STANDARD))
@@ -121,5 +148,27 @@ class ScoresScreenTest {
         compose.onNodeWithText("Next").performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Page 2 of 2").assertExists()
+    }
+
+    @Test
+    fun signedInEachModeCardOpensItsGlobalLeaderboardWithoutMovingAnythingOnIt() {
+        // Signed out (or with no service): no button, and where the card's header row sits.
+        show(someRows)
+        compose.onNodeWithText("Game Mode").performClick()
+        compose.waitForIdle()
+        compose.onAllNodes(hasContentDescription("Global leaderboard", substring = true)).assertCountEquals(0)
+        val headerTop = compose.onAllNodesWithText("Player")[0].fetchSemanticsNode().boundsInRoot.top
+
+        val services = LeaderboardServices()
+        show(someRows, services)
+        compose.onNodeWithText("Game Mode").performClick()
+        compose.waitForIdle()
+        val button = compose.onNode(hasContentDescription("Global leaderboard for Standard on Google Play Games"))
+        assertEquals(Role.Button, button.fetchSemanticsNode().config.getOrNull(SemanticsProperties.Role))
+        compose.onNode(hasContentDescription("Global leaderboard for Tricolour on Google Play Games")).assertExists()
+        assertEquals(headerTop, compose.onAllNodesWithText("Player")[0].fetchSemanticsNode().boundsInRoot.top)
+
+        button.performClick()
+        assertEquals(listOf<String?>("standard"), services.opened)
     }
 }

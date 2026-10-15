@@ -52,28 +52,28 @@ interface ScoreDao {
     suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry>
 
     /**
-     * [pagedScores] for one game mode's own Leaderboard card - the same ordering, [gameModeId] rows only.
-     * [includeOffBoard] also takes the rows [ScoreEntry.onLeaderboard] leaves off the Combined table: true for
-     * a mode that never counts on it (its card is the only place its scores are listed), false for one that
-     * does, where an off-board row is a game with modifiers on and stays out of the card as it does the table.
+     * [pagedScores] for one game mode's own Leaderboard card - the same ordering, [gameModeId] rows only, and only
+     * games played under the mode's own rules ([ScoreEntry.playedUnmodified]), as its online leaderboard takes. For a
+     * mode on the Combined table that's the same rows as [ScoreEntry.onLeaderboard]; for one that never counts there,
+     * its card is the only place its scores are listed.
      */
     @Query(
         """
         SELECT * FROM scores
-        WHERE (onLeaderboard = 1 OR :includeOffBoard) AND gameModeId = :gameModeId
+        WHERE playedUnmodified = 1 AND gameModeId = :gameModeId
         ORDER BY $LEADERBOARD_ORDER
         LIMIT :limit OFFSET :offset
         """,
     )
-    suspend fun pagedScoresForMode(gameModeId: String, includeOffBoard: Boolean, limit: Int, offset: Int): List<ScoreEntry>
+    suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int): List<ScoreEntry>
 
     /** How many rows the Leaderboard shows - see [ScoreEntry.onLeaderboard]. */
     @Query("SELECT COUNT(*) FROM scores WHERE onLeaderboard = 1")
     suspend fun count(): Int
 
     /** How many rows one game mode's Leaderboard card lists - see [pagedScoresForMode]. */
-    @Query("SELECT COUNT(*) FROM scores WHERE (onLeaderboard = 1 OR :includeOffBoard) AND gameModeId = :gameModeId")
-    suspend fun countForMode(gameModeId: String, includeOffBoard: Boolean): Int
+    @Query("SELECT COUNT(*) FROM scores WHERE playedUnmodified = 1 AND gameModeId = :gameModeId")
+    suspend fun countForMode(gameModeId: String): Int
 
     /** One player's best score, by name - null if that name has never recorded one. Used for the
      * "New Personal Best" achievement, which is player 1's own best, not the leaderboard's overall
@@ -93,6 +93,22 @@ interface ScoreDao {
     /** The [ScoreEntry.gameModeId] of every mode the primary player has a recorded game in, on the Leaderboard or not. */
     @Query("SELECT DISTINCT gameModeId FROM scores WHERE isPrimaryPlayer = 1")
     suspend fun primaryPlayerGameModeIds(): List<String>
+
+    /**
+     * The primary player's best score in [gameModeId] from the games played after [afterEpochMillis], and when the newest
+     * of those was played - what an online leaderboard is sent next. Only games played under the mode's own rules
+     * ([ScoreEntry.playedUnmodified]), and none over [maxScore], the most the mode allows. Null when there are none.
+     */
+    @Query(
+        """
+        SELECT MAX(score) AS score, MAX(timestampEpochMillis) AS playedEpochMillis
+        FROM scores
+        WHERE isPrimaryPlayer = 1 AND playedUnmodified = 1 AND gameModeId = :gameModeId
+            AND timestampEpochMillis > :afterEpochMillis AND score <= :maxScore
+        GROUP BY gameModeId
+        """,
+    )
+    suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore?
 
     /**
      * Every recorded game, grouped by player name alphabetically and most recent first within each

@@ -1,6 +1,7 @@
 package net.zodac.dicefive.online
 
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.model.GameMode
 
 /**
  * Each achievement's id on Play Games, from Play Console's Achievements > Get resources (matched by English name).
@@ -118,4 +119,19 @@ internal val playAchievementIds: Map<Achievement, String> = mapOf(
     Achievement.SHAKEN_NOT_TAPPED to "CgkIjZfJ1v0IEAIQOw",
     Achievement.THE_MAGICIANS_SECRET to "CgkIjZfJ1v0IEAIQXg",
     Achievement.THE_SOLUTION to "CgkIjZfJ1v0IEAIQBg",
+)
+
+/**
+ * Each mode's leaderboard id on Play Games ([net.zodac.dicefive.model.GameMode.onlineLeaderboardKey]'s board), from Play
+ * Console's Leaderboards > Get resources. A new mode's board is made there first (`scripts/export-play-console.sh`), then
+ * its id is added here; `PlayGamesIdsTest` fails until every mode is mapped.
+ */
+internal val playLeaderboardIds: Map<GameMode, String> = mapOf(
+    GameMode.STANDARD to "CgkIjZfJ1v0IEAIQcA",
+    GameMode.TRICOLOUR to "CgkIjZfJ1v0IEAIQcQ",
+    GameMode.THIRD_WIND to "CgkIjZfJ1v0IEAIQcg",
+    GameMode.STUD to "CgkIjZfJ1v0IEAIQcw",
+    GameMode.D20 to "CgkIjZfJ1v0IEAIQdA",
+    GameMode.HIT_LIST to "CgkIjZfJ1v0IEAIQdQ",
+    GameMode.QUICKFIRE to "CgkIjZfJ1v0IEAIQdg",
 )

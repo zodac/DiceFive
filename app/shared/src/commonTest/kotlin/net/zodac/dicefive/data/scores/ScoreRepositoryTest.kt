@@ -17,6 +17,7 @@ import net.zodac.dicefive.model.GameMode
  */
 private class FakeScoreDao : ScoreDao {
     private val entries = mutableListOf<ScoreEntry>()
+    fun rows(): List<ScoreEntry> = entries.toList()
     private val dismissed = mutableSetOf<String>()
     private var nextId = 1L
 
@@ -31,15 +32,15 @@ private class FakeScoreDao : ScoreDao {
     override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> =
         leaderboard.sortedByDescending { it.score }.drop(offset).take(limit)
 
-    private fun forMode(gameModeId: String, includeOffBoard: Boolean) =
-        entries.filter { (it.onLeaderboard || includeOffBoard) && it.gameModeId == gameModeId }
+    private fun forMode(gameModeId: String) =
+        entries.filter { it.playedUnmodified && it.gameModeId == gameModeId }
 
-    override suspend fun pagedScoresForMode(gameModeId: String, includeOffBoard: Boolean, limit: Int, offset: Int): List<ScoreEntry> =
-        forMode(gameModeId, includeOffBoard).sortedByDescending { it.score }.drop(offset).take(limit)
+    override suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int): List<ScoreEntry> =
+        forMode(gameModeId).sortedByDescending { it.score }.drop(offset).take(limit)
 
     override suspend fun count(): Int = leaderboard.size
 
-    override suspend fun countForMode(gameModeId: String, includeOffBoard: Boolean): Int = forMode(gameModeId, includeOffBoard).size
+    override suspend fun countForMode(gameModeId: String): Int = forMode(gameModeId).size
 
     override suspend fun bestScoreForPlayer(playerName: String): Int? =
         leaderboard.filter { it.playerName == playerName }.maxOfOrNull { it.score }
@@ -50,6 +51,7 @@ private class FakeScoreDao : ScoreDao {
         entries.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
 
     override suspend fun primaryPlayerGameModeIds(): List<String> = entries.filter { it.isPrimaryPlayer }.map { it.gameModeId }.distinct()
+    override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
 
     override suspend fun playerGames(): List<PlayerGame> =
         entries.filter { it.playerName !in dismissed }
@@ -84,6 +86,7 @@ private suspend fun ScoreRepository.record(
     fiveOfAKindCount: Int = 0,
     onLeaderboard: Boolean = true,
     gameMode: GameMode = GameMode.STANDARD,
+    playedUnmodified: Boolean = true,
 ) = recordScore(
     playerName = playerName,
     stats = TieBreakStats(
@@ -101,6 +104,7 @@ private suspend fun ScoreRepository.record(
     onLeaderboard = onLeaderboard,
     gameMode = gameMode,
     timestampEpochMillis = timestampEpochMillis,
+    playedUnmodified = playedUnmodified,
 )
 
 private fun tieBreakStats(score: Int) = TieBreakStats(
@@ -142,12 +146,17 @@ class ScoreRepositoryTest {
         assertEquals(2, secondPage.size)
         assertTrue(firstPage.none { entry -> entry.score in secondPage.map { it.score } })
 
-        // A mode's page and count hold only that mode's scores - and only those on the Leaderboard.
+        // A mode's page and count hold only that mode's scores - and only those played with no modifier on.
         val modes = ScoreRepository(FakeScoreDao())
         modes.record("Alice", 150, gameMode = GameMode.STANDARD)
         modes.record("Bob", 300, gameMode = GameMode.TRICOLOUR)
         modes.record("Carol", 220, gameMode = GameMode.TRICOLOUR)
-        modes.record("Dave", 400, gameMode = GameMode.TRICOLOUR, onLeaderboard = false)
+        modes.record("Dave", 400, gameMode = GameMode.TRICOLOUR, onLeaderboard = false, playedUnmodified = false)
+        // The same for a mode off the Combined board, whose every game is off it: its card lists only the unmodified ones.
+        modes.record("Erin", 120, gameMode = GameMode.QUICKFIRE, onLeaderboard = false)
+        modes.record("Finn", 180, gameMode = GameMode.QUICKFIRE, onLeaderboard = false, playedUnmodified = false)
+        assertEquals(listOf("Erin"), modes.pageForMode(GameMode.QUICKFIRE, pageIndex = 0).map { it.playerName })
+        assertEquals(1, modes.totalCountForMode(GameMode.QUICKFIRE))
         assertEquals(listOf("Bob", "Carol"), modes.pageForMode(GameMode.TRICOLOUR, pageIndex = 0).map { it.playerName })
         assertEquals(2, modes.totalCountForMode(GameMode.TRICOLOUR))
         assertEquals(listOf("Alice"), modes.pageForMode(GameMode.STANDARD, pageIndex = 0).map { it.playerName })
@@ -218,17 +227,18 @@ class ScoreRepositoryTest {
             playedUnmodified = false,
             timestampEpochMillis = 1_000L,
         )
-        val rows = repository.pageForMode(GameMode.THIRD_WIND, pageIndex = 0)
+        val rows = dao.rows()
         assertEquals(listOf("Alice" to 200, "Bob" to 150), rows.map { it.playerName to it.score })
         assertEquals(listOf(true, false), rows.map { it.won })
         assertEquals(listOf(true, false), rows.map { it.isPrimaryPlayer })
         assertTrue(rows.all { it.timestampEpochMillis == 1_000L && !it.onLeaderboard && !it.playedUnmodified })
-        // Off the Combined board, as the game's mode says.
+        // Off the Combined board, as the game's mode says, and off its own card, as a modifier was on.
         assertEquals(0, repository.totalCount())
+        assertEquals(0, repository.totalCountForMode(GameMode.THIRD_WIND))
 
         // A game with no human players records nothing.
         repository.recordGame(emptyList())
-        assertEquals(2, repository.totalCountForMode(GameMode.THIRD_WIND))
+        assertEquals(2, dao.rows().size)
     }
 
     @Test

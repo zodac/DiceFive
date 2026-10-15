@@ -3,6 +3,7 @@ package net.zodac.dicefive.ui.scores
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
@@ -28,8 +29,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -52,9 +55,12 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -65,10 +71,15 @@ import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.game.TieBreak
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.online.GameServices
+import net.zodac.dicefive.online.GameServicesState
+import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_page_of
 import net.zodac.dicefive.resources.common_tied_rank
 import net.zodac.dicefive.resources.scores_empty
+import net.zodac.dicefive.resources.scores_global
+import net.zodac.dicefive.resources.scores_global_cd
 import net.zodac.dicefive.resources.scores_header_player
 import net.zodac.dicefive.resources.scores_header_score
 import net.zodac.dicefive.resources.scores_next
@@ -107,6 +118,15 @@ private val PODIUM_ROW_GAP = 4.dp
 
 /** How many scores a game mode's card shows before the rest scroll. */
 private const val MODE_CARD_VISIBLE_ROWS = 10
+
+/** Either side of a mode card's title. */
+private val TITLE_HORIZONTAL_PADDING = 12.dp
+
+private val GLOBAL_ICON_SIZE = 18.dp
+private val GLOBAL_ICON_GAP = 6.dp
+
+/** A labelled Global button's width besides its label: the icon, the gap, and a text button's 12dp either side. */
+private val GLOBAL_BUTTON_CHROME_WIDTH = GLOBAL_ICON_SIZE + GLOBAL_ICON_GAP + 24.dp
 
 /** The padding above and below an ordinary (non-podium) row's text. */
 private val PLAIN_ROW_VERTICAL_PADDING = 3.dp
@@ -257,6 +277,9 @@ private fun ColumnScope.GameModeLeaderboard(state: ScoresUiState, viewModel: Sco
         if (state.modeBoardsLoaded) NoScoresCard()
         return
     }
+    val services = LocalGameServices.current
+    // Each card opens its mode's board on the service while signed in to one.
+    val online = services.state.collectAsStateWithLifecycle().value is GameServicesState.SignedIn && services.canShowLeaderboardUi
     val pageScroll = rememberScrollState()
     Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
         Column(modifier = Modifier.verticalScroll(pageScroll), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -266,6 +289,7 @@ private fun ColumnScope.GameModeLeaderboard(state: ScoresUiState, viewModel: Sco
                     board = board,
                     onPrevious = { viewModel.previousModePage(mode) },
                     onNext = { viewModel.nextModePage(mode) },
+                    onlineServices = services.takeIf { online },
                 )
             }
         }
@@ -278,17 +302,31 @@ private fun ColumnScope.GameModeLeaderboard(state: ScoresUiState, viewModel: Sco
 }
 
 @Composable
-private fun ModeCard(mode: GameMode, board: ModeBoard, onPrevious: () -> Unit, onNext: () -> Unit) {
+private fun ModeCard(mode: GameMode, board: ModeBoard, onPrevious: () -> Unit, onNext: () -> Unit, onlineServices: GameServices? = null) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(8.dp)) {
-            Text(
-                text = stringResource(mode.displayName),
-                style = MaterialTheme.typography.titleMedium,
-                fontFamily = SoraFontFamily,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp).semantics { heading() },
-            )
+            val title = stringResource(mode.displayName)
+            val titleStyle = MaterialTheme.typography.titleMedium.copy(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold)
+            BoxWithConstraints {
+                // The button's label goes before the title does: where both won't fit on the line, it's the icon alone.
+                val measurer = rememberTextMeasurer()
+                val label = stringResource(Res.string.scores_global)
+                val labelStyle = MaterialTheme.typography.labelLarge
+                val fitsLabel = with(LocalDensity.current) {
+                    val titleWidth = measurer.measure(title, titleStyle).size.width.toDp() + TITLE_HORIZONTAL_PADDING * 2
+                    val buttonWidth = measurer.measure(label, labelStyle).size.width.toDp() + GLOBAL_BUTTON_CHROME_WIDTH
+                    titleWidth + buttonWidth <= maxWidth
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = title,
+                        style = titleStyle,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f).padding(horizontal = TITLE_HORIZONTAL_PADDING, vertical = 4.dp).semantics { heading() },
+                    )
+                    if (onlineServices != null) GlobalLeaderboardButton(mode, onlineServices, label.takeIf { fitsLabel })
+                }
+            }
             HeaderRow()
             Spacer(modifier = Modifier.height(4.dp))
             val listState = rememberLazyListState()
@@ -328,6 +366,34 @@ private fun ModeCard(mode: GameMode, board: ModeBoard, onPrevious: () -> Unit, o
                 LazyListScrollbar(listState = listState)
             }
         }
+    }
+}
+
+/**
+ * Opens [mode]'s leaderboard on the service: the globe and [label], or the globe alone where [label] is null. It takes
+ * no height of its own: the title sets the row's, and the button is centred on it, spilling into the card's padding,
+ * so a card is the same size signed in or out.
+ */
+@Composable
+private fun GlobalLeaderboardButton(mode: GameMode, services: GameServices, label: String?) {
+    val description = stringResource(Res.string.scores_global_cd, stringResource(mode.displayName), services.serviceName)
+    val onClick = { services.showLeaderboardUi(mode.onlineLeaderboardKey) }
+    val modifier = Modifier
+        .layout { measurable, constraints ->
+            val placeable = measurable.measure(constraints.copy(minHeight = 0))
+            layout(placeable.width, 0) { placeable.place(0, -placeable.height / 2) }
+        }
+        .semantics { contentDescription = description }
+    if (label == null) {
+        IconButton(onClick = onClick, modifier = modifier) {
+            Icon(imageVector = Icons.Filled.Public, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        }
+        return
+    }
+    TextButton(onClick = onClick, modifier = modifier) {
+        Icon(imageVector = Icons.Filled.Public, contentDescription = null, modifier = Modifier.size(GLOBAL_ICON_SIZE))
+        Spacer(modifier = Modifier.size(GLOBAL_ICON_GAP))
+        Text(label, maxLines = 1)
     }
 }
 

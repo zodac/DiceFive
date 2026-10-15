@@ -83,20 +83,15 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
     suspend fun totalCount(): Int = scoreDao.count()
 
     /**
-     * One page of [gameMode]'s own Leaderboard card, in the same order as [page]. A mode that doesn't count on
-     * the Combined board ([GameMode.countsOnLeaderboard]) is listed here in full; its scores stay off [page],
-     * [totalCount] and everything measured against the board (a personal best, the score achievements).
+     * One page of [gameMode]'s own Leaderboard card, in the same order as [page]: its games played with no modifier
+     * on ([ScoreDao.pagedScoresForMode]). A mode that doesn't count on the Combined board
+     * ([GameMode.countsOnLeaderboard]) is listed only here; its scores stay off [page], [totalCount] and everything
+     * measured against the board (a personal best, the score achievements).
      */
     suspend fun pageForMode(gameMode: GameMode, pageIndex: Int, pageSize: Int = SCORES_PAGE_SIZE): List<ScoreEntry> =
-        scoreDao.pagedScoresForMode(
-            gameMode.id,
-            includeOffBoard = !gameMode.countsOnLeaderboard,
-            limit = pageSize,
-            offset = pageIndex * pageSize,
-        )
+        scoreDao.pagedScoresForMode(gameMode.id, limit = pageSize, offset = pageIndex * pageSize)
 
-    suspend fun totalCountForMode(gameMode: GameMode): Int =
-        scoreDao.countForMode(gameMode.id, includeOffBoard = !gameMode.countsOnLeaderboard)
+    suspend fun totalCountForMode(gameMode: GameMode): Int = scoreDao.countForMode(gameMode.id)
 
     /**
      * Wipes every recorded score, which necessarily empties the Statistics screen too - it's
@@ -137,6 +132,13 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
     /** Every mode the primary player has a recorded game in - see [ScoreDao.primaryPlayerGameModeIds]. An id this build
      * doesn't know (a mode since removed) is left out. */
     suspend fun primaryPlayerModesPlayed(): Set<GameMode> = scoreDao.primaryPlayerGameModeIds().mapNotNull(GameMode::fromId).toSet()
+
+    /**
+     * The primary player's best score in [gameMode] from the games played after [afterEpochMillis] under its own rules,
+     * for its online leaderboard - see [ScoreDao.bestUnpostedScore]. Null when there are none.
+     */
+    suspend fun bestUnpostedScore(gameMode: GameMode, afterEpochMillis: Long): UnpostedScore? =
+        scoreDao.bestUnpostedScore(gameMode.id, afterEpochMillis, gameMode.maxPossibleScore)
 
     /** Every leaderboard-derived figure in one go, for the achievements measured against the board. */
     suspend fun leaderboardTotals(): LeaderboardTotals =

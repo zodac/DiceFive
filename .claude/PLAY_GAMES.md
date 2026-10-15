@@ -1,16 +1,20 @@
 # DiceFive: Google Play Games Services v2 - plan
 
-**Status: Phase 1 is done; Phase 2 is in progress.** Phase 1 covers the seam, `GameMode.onlineLeaderboardKey`, the
+**Status: Phases 1-4 are done; Phase 5 (cloud save) is next.** Phase 1 covers the seam, `GameMode.onlineLeaderboardKey`, the
 `online` DataStore, the Settings card (hidden while the service is unavailable), and `ScoreEntry.playedUnmodified`.
 - Phase 0's minimum is done: the PGS project (APP_ID `308613893005`), the consent screen and an Android credential.
 - Phase 2 is done: the SDK, `DiceFiveApplication`, the `APP_ID` meta-data and
   `PlayGamesServices` (state, sign-in, name, avatar), checked on a real phone.
-- Phase 3 so far: the 110 achievements are drafts in Play Console (imported from `scripts/export-play-console.sh`),
+- Phase 3 is done: the 110 achievements are drafts in Play Console (imported from `scripts/export-play-console.sh`),
   `PlayGamesIds.kt` maps them, `OnlineSync` mirrors both ways (each account's apart, never after superuser mode), and
   our unlock banner stands aside for Play's pop-up while mirroring (only for a first unlock on Play, as Play shows
   none for one it has). Achievements with styles behind them get a styles
   banner. The Reset achievements row gives way to "View in Google Play Games"
-  while signed in. Phase 3 is done once checked on a phone and committed.
+  while signed in. Checked on a real phone.
+- Phase 4 is done: the 7 boards are drafts in Play Console, mapped in `PlayGamesIds.kt` (`playLeaderboardIds`).
+  `OnlineSync.reconcile` posts each mode's best unposted score (per account, a high-water mark of when the newest
+  posted game was played, moved only once Play takes it), each Game Mode card has a Global button, and the Reset
+  leaderboard confirmation says Play keeps its scores. Checked on a real phone.
 - This file is the one source on the subject: where another doc disagrees, follow this one.
 
 > **The work isn't complete while a decision is Deferred.** A deferred decision blocks the phase named in "Decisions".
@@ -152,6 +156,12 @@ data class OnlineAccount(val displayName: String, val avatar: ImageBitmap?, val 
 
 - **Submitted**: seat 1's final score, **only under the mode's own rules** (no modifiers, so no timer; the same test as
   `countsOnLeaderboard`). Off-Combined modes still get their own board.
+- **How (built).** Not a queue: each `OnlineSync.reconcile` (on sign-in, at launch, and after every game, which always
+  records an achievement update) sends each mode the best score from the games played since the newest one that
+  account last took from this device (`scores_posted:<account>:<key>` in the `online` store,
+  `ScoreDao.bestUnpostedScore`). So a first link sends the backlog, games played signed out or offline go up at the
+  next sync (the best of them), and a send Play didn't confirm (`submitScoreImmediate`) is retried. Rows over
+  `maxPossibleScore` are skipped. Superuser mode blocks scores as it does achievements (its dice can be set by hand).
 - **Ordering**: larger is better, 0 to `maxPossibleScore`, with tamper protection on.
 - **Ties** are ordered by submission time on Play. Our tie-break stays local; the online button's description can say
   so in a line.
@@ -164,7 +174,14 @@ data class OnlineAccount(val displayName: String, val avatar: ImageBitmap?, val 
   - skipping any row over `maxPossibleScore`.
 
   Appearing on that day's and week's boards is accepted.
-- **A new mode** adds a console board and an `onlineLeaderboardKey` (`OnlineLeaderboardKeyTest` fails without one).
+- **Made by hand in Play Console** (it has no import for leaderboards), from `scripts/export-play-console.sh`'s
+  `leaderboards.csv` (list order, limits, ordering, tamper protection, and the name in en/es/ar; es-ES and es-419 share
+  the Spanish) and `leaderboard-icons/<key>.png`.
+  - **Icons** (512px, `PlayConsoleLeaderboards.kt`, test sources: Play Console only, never shown in the game): a
+    glyph per mode in the achievements' gold on their tile, bar Tricolour's dice in red, yellow and blue.
+    `PlayConsoleLeaderboardsExportTest` checks each mode has one of its own.
+  - An icon can be changed at any time; only the ordering is fixed once published.
+- **A new mode** adds a console board, an icon and an `onlineLeaderboardKey` (`OnlineLeaderboardKeyTest` fails without one).
 - **Viewing** uses Play's own screen (`getLeaderboardIntent`), opened from each mode card.
 
 ## 4. Cloud save
@@ -281,15 +298,15 @@ Game Center work later uses `[iOS]`.
     - check AboutLibraries lists the Play services licence, and add it to `allowedLicenses` with a comment;
     - update the privacy policy and the "Fully offline" line.
   - Verify on a real phone.
-- **Phase 3: the achievements mirror.**
+- **Phase 3: the achievements mirror. Done.**
   - `OnlineSync`: reconcile, restore, and the superuser guard.
   - The mapping table and its test: every non-`SECRET` achievement mapped, steps ≤10,000, Professional Roller scaled.
   - The export and icon tasks, with renders reviewed before upload.
   - The Reset achievements row, and "View in Google Play Games".
   - Achievements stay in draft.
-- **Phase 4: leaderboards.**
-  - Create 7 boards (limits from `maxPossibleScore`, tamper protection on).
-  - Submit from `finishGame`, plus the backlog on first link.
+- **Phase 4: leaderboards. Done.**
+  - Create 7 boards (limits from `maxPossibleScore`, tamper protection on), from the exported sheet and icons.
+  - Submit after each game, plus the backlog on first link (built as `OnlineSync`'s high-water mark; section 3).
   - The "Global leaderboard" actions, the new step in `GAME_MODES.md`'s checklist, and the Reset leaderboard wording.
 - **Phase 5: cloud save.**
   - Room v2 (`uuid`, a migration and the exported schema), timestamped settings writes, and per-device counters.

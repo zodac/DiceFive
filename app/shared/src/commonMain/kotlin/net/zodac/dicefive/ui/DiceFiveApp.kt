@@ -63,7 +63,13 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameService
     // Achievements are mirrored with the online service on signing in (and at each launch once signed in), and after
     // every recorded change; requests made while one runs fold into the next.
     val onlineSync = remember(container, gameServices) {
-        OnlineSync(gameServices, container.achievementsRepository, container.onlineSettingsRepository, container.scoreRepository::leaderboardTotals)
+        OnlineSync(
+            gameServices,
+            container.achievementsRepository,
+            container.onlineSettingsRepository,
+            container.scoreRepository::leaderboardTotals,
+            container.scoreRepository::bestUnpostedScore,
+        )
     }
     LaunchedEffect(onlineSync) {
         val signedIn = gameServices.state.map { it is GameServicesState.SignedIn }.distinctUntilChanged().filter { it }.map { }

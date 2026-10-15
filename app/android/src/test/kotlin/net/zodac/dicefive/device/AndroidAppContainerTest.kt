@@ -10,8 +10,11 @@ import kotlinx.coroutines.test.runTest
 import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.PlayerResult
 import net.zodac.dicefive.data.scores.ScoreEntry
+import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.data.scores.buildAppDatabase
 import net.zodac.dicefive.game.TieBreakStats
+import net.zodac.dicefive.model.GameMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -121,6 +124,52 @@ class AndroidAppContainerTest {
             val failure = runCatching { dao.insertGame(listOf(row, row.copy(playerName = "Bob"))) }.exceptionOrNull()
             assertTrue("$failure", failure is SQLiteConstraintException)
             assertEquals(0, dao.count())
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `an online leaderboard is sent player 1's best unmodified score after a time - and a mode's card lists only unmodified games`() = runTest {
+        val database = Room.inMemoryDatabaseBuilder<AppDatabase>(ApplicationProvider.getApplicationContext<Context>()).buildAppDatabase()
+        try {
+            val dao = database.scoreDao()
+            fun row(score: Int, at: Long, primary: Boolean = true, unmodified: Boolean = true, mode: GameMode = GameMode.QUICKFIRE) = ScoreEntry(
+                playerName = "Alice",
+                score = score,
+                timestampEpochMillis = at,
+                won = null,
+                isPrimaryPlayer = primary,
+                fiveOfAKindCount = 0,
+                zeroedCategoryCount = 0,
+                upperSectionTotal = 0,
+                chanceScore = 0,
+                threeOfAKindScore = 0,
+                fourOfAKindScore = 0,
+                onLeaderboard = false,
+                gameModeId = mode.id,
+                playedUnmodified = unmodified,
+            )
+            dao.insertGame(
+                listOf(
+                    row(100, at = 10),
+                    row(150, at = 20),
+                    row(120, at = 30),
+                    row(205, at = 40, primary = false),
+                    row(206, at = 50, unmodified = false),
+                    row(GameMode.QUICKFIRE.maxPossibleScore + 1, at = 60),
+                    row(1_000, at = 70, mode = GameMode.STANDARD),
+                ),
+            )
+            val scores = ScoreRepository(dao)
+            assertEquals(UnpostedScore(150, 30), scores.bestUnpostedScore(GameMode.QUICKFIRE, Long.MIN_VALUE))
+            assertEquals(UnpostedScore(120, 30), scores.bestUnpostedScore(GameMode.QUICKFIRE, 20))
+            assertEquals(null, scores.bestUnpostedScore(GameMode.QUICKFIRE, 30))
+            assertEquals(null, scores.bestUnpostedScore(GameMode.D20, Long.MIN_VALUE))
+
+            // A mode's Leaderboard card lists the same games: every player's, but none played with a modifier on.
+            assertEquals(listOf(211, 205, 150, 120, 100), scores.pageForMode(GameMode.QUICKFIRE, pageIndex = 0).map { it.score })
+            assertEquals(5, scores.totalCountForMode(GameMode.QUICKFIRE))
         } finally {
             database.close()
         }

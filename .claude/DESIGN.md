@@ -203,7 +203,8 @@ will map to Play Games.
 - **Leaderboard** (`ScoresScreen`). A switch picks one of two views; details are in `UI_SCREENS.md`.
   - **Combined**: every on-board score, score-descending, 50 a page, 1st-3rd in gold/silver/bronze, "=" only for a true
     tie.
-  - **Game Mode**: one card per mode, each ranked and paged on its own, no medals.
+  - **Game Mode**: one card per mode, each ranked and paged on its own, no medals. Only games with no modifier on
+    (`playedUnmodified`), the same ones its online leaderboard takes.
   - Rows show rank, name, 5x count and score. A long press shows the date (and the mode on Combined), which is also the
     row's spoken state.
 - **Statistics** (`StatisticsScreen`). One card per distinct human *name*; a rename starts a new player.

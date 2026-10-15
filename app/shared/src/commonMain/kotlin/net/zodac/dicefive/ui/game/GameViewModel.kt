@@ -981,6 +981,8 @@ class GameViewModel(
             val previousLeaderboard = orNullOnFailure { scoreRepository?.leaderboardTotals() }
                 ?: LeaderboardTotals()
             orNullOnFailure { persistHumanScores(state) }
+            // Always records something (Games Played counts every game), so it also asks for the online sync that
+            // posts this game's score - after the rows above are written.
             recordEndOfGameAchievements(state, previousBestScore, previousLeaderboard)
         }
     }

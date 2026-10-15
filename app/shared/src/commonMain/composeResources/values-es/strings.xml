@@ -599,6 +599,7 @@
     <string name="settings_reset_achievements_message">Todos los logros volverán a bloquearse y se perderá todo el progreso hacia ellos. No se puede deshacer. Tus puntuaciones y ajustes no se ven afectados.</string>
     <string name="settings_reset_leaderboard_title">¿Restablecer la clasificación?</string>
     <string name="settings_reset_leaderboard_message">Se borrará cada puntuación registrada, lo que vaciará la pantalla de clasificación y también las estadísticas, ya que se calculan a partir de las mismas puntuaciones. No se puede deshacer. Los logros y los ajustes no se ven afectados, aunque cualquier progreso de logros medido con la clasificación volverá a empezar.</string>
+    <string name="settings_reset_leaderboard_online_note">Las puntuaciones ya enviadas a %1$s se quedan allí.</string>
     <string name="style_family_art_deco">Art déco</string>
     <string name="style_family_bestagon">Bestagon</string>
     <string name="style_family_bestagons">Bestagons</string>
@@ -846,6 +847,8 @@
     <string name="scores_view_combined">Combinada</string>
     <string name="scores_view_game_mode">Modo de juego</string>
     <string name="scores_empty">Aún no hay puntuaciones: ¡juega una partida!</string>
+    <string name="scores_global">Global</string>
+    <string name="scores_global_cd">Clasificación global de %1$s en %2$s</string>
     <string name="scores_header_player">Jugador</string>
     <string name="scores_header_score">Puntos</string>
     <string name="scores_previous">Anterior</string>

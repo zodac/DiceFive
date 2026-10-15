@@ -22,7 +22,7 @@ object NoGameServices : GameServices {
 
     override suspend fun setProgress(achievementId: String, steps: Int) = Unit
 
-    override suspend fun submitScore(leaderboardKey: String, score: Long) = Unit
+    override suspend fun submitScore(leaderboardKey: String, score: Long): Boolean = false
 
     override suspend fun readCloudSave(): ByteArray? = null
 

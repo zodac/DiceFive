@@ -114,8 +114,8 @@ class PlayConsoleExportTest {
 
     @Test
     fun `export the sheet and icons for Play Console`() {
-        assumeTrue("Only with -PexportPlayConsole", System.getProperty("dicefive.exportPlayConsole").toBoolean())
-        val dir = File(System.getProperty("dicefive.playConsoleDir").orEmpty().ifBlank { "../../play-console" })
+        assumeTrue("Only with -PexportPlayConsole", exportingPlayConsole)
+        val dir = playConsoleDir()
         val icons = dir.resolve("icons").apply { deleteRecursively(); mkdirs() }
         writeSheet(dir.resolve("achievements.csv"))
 
@@ -141,7 +141,6 @@ class PlayConsoleExportTest {
         val text = LOCALES.associateWith(::stringsOf)
         fun name(achievement: Achievement, locale: Locale) = text.getValue(locale).getValue(achievement.title.key)
         fun description(achievement: Achievement, locale: Locale) = text.getValue(locale).getValue(achievement.description.key)
-        fun lines(rows: List<List<String>>) = rows.joinToString("\n", postfix = "\n") { row -> row.joinToString(",") { csv(it) } }
 
         val metadata = onPlay.mapIndexed { index, achievement ->
             val type = achievement.playType
@@ -168,9 +167,9 @@ class PlayConsoleExportTest {
                 zip.write(bytes)
                 zip.closeEntry()
             }
-            add("AchievementsMetadata.csv", lines(metadata).toByteArray())
-            add("AchievementsLocalizations.csv", lines(localizations).toByteArray())
-            add("AchievementsIconsMappings.csv", lines(iconMappings).toByteArray())
+            add("AchievementsMetadata.csv", csvLines(metadata).toByteArray())
+            add("AchievementsLocalizations.csv", csvLines(localizations).toByteArray())
+            add("AchievementsIconsMappings.csv", csvLines(iconMappings).toByteArray())
             onPlay.forEach { add("${it.id}.png", icons.resolve("${it.id}.png").readBytes()) }
         }
     }
@@ -194,20 +193,10 @@ class PlayConsoleExportTest {
                 "icons/${achievement.id}.png",
             ) + LOCALES.flatMap { listOf(text.getValue(it).getValue(achievement.title.key), text.getValue(it).getValue(achievement.description.key)) }
         }
-        file.writeText((listOf(header) + rows).joinToString("\n", postfix = "\n") { row -> row.joinToString(",") { csv(it) } })
-    }
-
-    private fun csv(value: String) = if (value.any { it == ',' || it == '"' || it == '\n' }) "\"${value.replace("\"", "\"\"")}\"" else value
-
-    /** The app's languages: [folder] holds the text, and [playCodes] are the Play Console translations it fills (none for English, the default). */
-    private enum class Locale(val code: String, val folder: String, val playCodes: List<String>) {
-        ENGLISH("en", "values", emptyList()),
-        SPANISH("es", "values-es", listOf("es-ES", "es-419")),
-        ARABIC("ar", "values-ar", listOf("ar")),
+        file.writeText(csvLines(listOf(header) + rows))
     }
 
     private companion object {
-        val LOCALES = Locale.entries
         const val MIN_POINTS = 5
         const val MAX_POINTS_EACH = 200
         const val MAX_POINTS_TOTAL = 2_000
@@ -221,16 +210,5 @@ class PlayConsoleExportTest {
         /** Big enough to tell any two glyphs apart, small enough to draw all 110 on every run. */
         const val CHECK_SIZE = 64
         const val ICON_TAG = "play-icon"
-
-        private val stringEntry = Regex("""<string name="([^"]+)"[^>]*>(.*?)</string>""", RegexOption.DOT_MATCHES_ALL)
-
-        /** A locale's plain strings, unescaped as Android reads them. Their banned words are StringChecks' to catch. */
-        fun stringsOf(locale: Locale): Map<String, String> =
-            stringEntry.findAll(File("../shared/src/commonMain/composeResources/${locale.folder}/strings.xml").readText())
-                .associate { it.groupValues[1] to unescape(it.groupValues[2]) }
-
-        private fun unescape(text: String): String = text
-            .replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&apos;", "'").replace("&amp;", "&")
-            .replace("\\'", "'").replace("\\\"", "\"").replace("\\n", "\n")
     }
 }

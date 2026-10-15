@@ -50,8 +50,8 @@ import net.zodac.dicefive.model.Achievement
  * under [LOG_TAG] with Google's status code. Every call has a timeout, bar the two that wait for the player to pick
  * an account.
  *
- * Achievements are mirrored ([OnlineSync] decides what to send), by [playAchievementIds]. Leaderboards and saved
- * games are later phases of `.claude/PLAY_GAMES.md`, and do nothing until then.
+ * Achievements are mirrored and scores posted ([OnlineSync] decides what to send), by [playAchievementIds] and
+ * [playLeaderboardIds]. Saved games are a later phase of `.claude/PLAY_GAMES.md`, and do nothing until then.
  */
 class PlayGamesServices private constructor(private val application: Application) : GameServices {
 
@@ -204,7 +204,12 @@ class PlayGamesServices private constructor(private val application: Application
     private fun signedInActivity(): ComponentActivity? =
         activity?.get()?.takeIf { mutableState.value is GameServicesState.SignedIn }
 
-    override suspend fun submitScore(leaderboardKey: String, score: Long) = Unit
+    /** Waits for Play to take the score, so one that didn't reach it is sent again by the next [OnlineSync.reconcile]. */
+    override suspend fun submitScore(leaderboardKey: String, score: Long): Boolean {
+        val activity = signedInActivity() ?: return false
+        val playId = playLeaderboardIdsByKey[leaderboardKey] ?: return false
+        return PlayGames.getLeaderboardsClient(activity).submitScoreImmediate(playId, score).awaitOrNull("submitScore") != null
+    }
 
     override suspend fun readCloudSave(): ByteArray? = null
 
@@ -213,22 +218,41 @@ class PlayGamesServices private constructor(private val application: Application
     override val canShowAchievementsUi: Boolean
         get() = signedInActivity() != null
 
-    /** Play's own achievements screen, which Play needs started for a result (it reads the caller), though none comes back. */
+    /** Play's own achievements screen. */
     override fun showAchievementsUi() {
         val activity = signedInActivity() ?: return
         scope.launch {
             val intent = PlayGames.getAchievementsClient(activity).achievementsIntent.awaitOrNull("getAchievementsIntent") ?: return@launch
-            lateinit var launcher: ActivityResultLauncher<Intent>
-            launcher = activity.activityResultRegistry.register(ACHIEVEMENTS_UI_KEY, ActivityResultContracts.StartActivityForResult()) {
-                launcher.unregister()
-            }
-            launcher.launch(intent)
+            launchPlayScreen(activity, ACHIEVEMENTS_UI_KEY, intent)
         }
     }
 
-    override val canShowLeaderboardUi: Boolean = false
+    override val canShowLeaderboardUi: Boolean
+        get() = signedInActivity() != null
 
-    override fun showLeaderboardUi(leaderboardKey: String?) = Unit
+    /** Play's own screen for one mode's leaderboard, or its list of them all. */
+    override fun showLeaderboardUi(leaderboardKey: String?) {
+        val activity = signedInActivity() ?: return
+        val client = PlayGames.getLeaderboardsClient(activity)
+        val task = if (leaderboardKey == null) {
+            client.allLeaderboardsIntent
+        } else {
+            client.getLeaderboardIntent(playLeaderboardIdsByKey[leaderboardKey] ?: return)
+        }
+        scope.launch {
+            val intent = task.awaitOrNull("getLeaderboardIntent") ?: return@launch
+            launchPlayScreen(activity, LEADERBOARD_UI_KEY, intent)
+        }
+    }
+
+    /** Opens one of Play's own screens, which Play needs started for a result (it reads the caller), though none comes back. */
+    private fun launchPlayScreen(activity: ComponentActivity, key: String, intent: Intent) {
+        lateinit var launcher: ActivityResultLauncher<Intent>
+        launcher = activity.activityResultRegistry.register(key, ActivityResultContracts.StartActivityForResult()) {
+            launcher.unregister()
+        }
+        launcher.launch(intent)
+    }
 
     companion object {
 
@@ -242,7 +266,10 @@ class PlayGamesServices private constructor(private val application: Application
         private val playIdsById = playAchievementIds.mapKeys { it.key.id }
         private val idsByPlayId = playAchievementIds.entries.associate { (achievement, playId) -> playId to achievement.id }
 
+        private val playLeaderboardIdsByKey = playLeaderboardIds.mapKeys { it.key.onlineLeaderboardKey }
+
         private const val ACHIEVEMENTS_UI_KEY = "play_games_achievements"
+        private const val LEADERBOARD_UI_KEY = "play_games_leaderboard"
         private const val PREFERENCES_FILE = "play_games"
 
         /** Whether the player signed in from Settings on this device, and hasn't signed out since. */

@@ -57,7 +57,7 @@ data class ScoreEntry(
      * Whether the game ran under its mode's own rules, with no modifier (not even the turn timer) -
      * [net.zodac.dicefive.model.GameState.hasModifiers] false. [onLeaderboard] can't say so for a mode that is always off the Combined
      * board (it's false whether or not a modifier was on), and an online leaderboard compares like with like, so
-     * this is what decides whether the row may be submitted to one.
+     * this is what decides whether the row may be submitted to one, and whether its mode's Leaderboard card lists it.
      */
     val playedUnmodified: Boolean = true,
 ) {

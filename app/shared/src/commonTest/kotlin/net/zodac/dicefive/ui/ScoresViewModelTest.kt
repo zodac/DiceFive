@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreEntry
+import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.scores.PlayerGame
 import net.zodac.dicefive.model.GameMode
@@ -27,21 +28,22 @@ import kotlin.test.BeforeTest
 private class ListScoreDao(private val rows: List<ScoreEntry>) : ScoreDao {
     var modeReads = 0
 
-    private fun ordered(modeId: String?, includeOffBoard: Boolean = false) =
-        rows.filter { (it.onLeaderboard || includeOffBoard) && (modeId == null || it.gameModeId == modeId) }.sortedByDescending { it.score }
+    private fun ordered(modeId: String?) =
+        rows.filter { if (modeId == null) it.onLeaderboard else it.playedUnmodified && it.gameModeId == modeId }.sortedByDescending { it.score }
 
     override suspend fun insert(entry: ScoreEntry) = Unit
     override suspend fun pagedScores(limit: Int, offset: Int) = ordered(null).drop(offset).take(limit)
-    override suspend fun pagedScoresForMode(gameModeId: String, includeOffBoard: Boolean, limit: Int, offset: Int): List<ScoreEntry> {
+    override suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int): List<ScoreEntry> {
         modeReads++
-        return ordered(gameModeId, includeOffBoard).drop(offset).take(limit)
+        return ordered(gameModeId).drop(offset).take(limit)
     }
     override suspend fun count() = ordered(null).size
-    override suspend fun countForMode(gameModeId: String, includeOffBoard: Boolean) = ordered(gameModeId, includeOffBoard).size
+    override suspend fun countForMode(gameModeId: String) = ordered(gameModeId).size
     override suspend fun bestScoreForPlayer(playerName: String): Int? = null
     override suspend fun distinctScores(): List<Int> = emptyList()
     override suspend fun primaryPlayerTotalPoints(): Int? = null
     override suspend fun primaryPlayerGameModeIds(): List<String> = emptyList()
+    override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
     override suspend fun playerGames(): List<PlayerGame> = emptyList()
     override suspend fun dismissPlayer(playerName: String) = Unit
     override suspend fun clearDismissal(playerName: String) = Unit
@@ -106,15 +108,16 @@ class ScoresViewModelTest {
 
         // A mode that stays off the combined board still has a card.
         val quickfire = entry(1, 90, GameMode.QUICKFIRE).copy(onLeaderboard = false)
-        val modifiers = entry(2, 300, GameMode.STANDARD).copy(onLeaderboard = false)
-        val offBoard = ScoresViewModel(ScoreRepository(ListScoreDao(listOf(quickfire, modifiers, entry(3, 200, GameMode.STANDARD)))))
+        val modifiers = entry(2, 300, GameMode.STANDARD).copy(onLeaderboard = false, playedUnmodified = false)
+        val quickfireModifiers = entry(4, 120, GameMode.QUICKFIRE).copy(onLeaderboard = false, playedUnmodified = false)
+        val offBoard = ScoresViewModel(ScoreRepository(ListScoreDao(listOf(quickfire, modifiers, entry(3, 200, GameMode.STANDARD), quickfireModifiers))))
         offBoard.selectView(LeaderboardView.GAME_MODE)
         advanceUntilIdle()
         val state = offBoard.uiState.value
         // Not on the combined table, nor counted in it...
         assertEquals(listOf(3L), state.entries.map { it.id })
         assertEquals(1, state.totalCount)
-        // ...but listed on its own card; a Standard game with modifiers (off-board in a mode that counts) is not.
+        // ...but listed on its own card; a game with modifiers on is on no card, whichever its mode.
         assertEquals(listOf(1L), state.modeBoards.getValue(GameMode.QUICKFIRE).entries.map { it.id })
         assertEquals(listOf(3L), state.modeBoards.getValue(GameMode.STANDARD).entries.map { it.id })
         assertEquals(0, state.modeBoards.getValue(GameMode.STUD).totalCount)

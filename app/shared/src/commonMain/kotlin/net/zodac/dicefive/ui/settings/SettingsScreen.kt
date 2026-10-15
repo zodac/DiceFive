@@ -68,6 +68,7 @@ import net.zodac.dicefive.resources.settings_reset_confirm
 import net.zodac.dicefive.resources.settings_reset_leaderboard
 import net.zodac.dicefive.resources.settings_reset_leaderboard_description
 import net.zodac.dicefive.resources.settings_reset_leaderboard_message
+import net.zodac.dicefive.resources.settings_reset_leaderboard_online_note
 import net.zodac.dicefive.resources.settings_reset_leaderboard_title
 import net.zodac.dicefive.resources.settings_sound
 import net.zodac.dicefive.resources.settings_title
@@ -339,10 +340,14 @@ fun SettingsScreen(
     }
 
     if (showResetLeaderboardConfirmation) {
+        // The service's leaderboards can't be reset: say so while signed in to one.
+        val gameServices = LocalGameServices.current
+        val signedIn = gameServices.state.collectAsStateWithLifecycle().value is GameServicesState.SignedIn
+        val message = stringResource(Res.string.settings_reset_leaderboard_message)
         DiceFiveDialog(
             icon = Icons.Filled.RestartAlt,
             title = stringResource(Res.string.settings_reset_leaderboard_title),
-            message = stringResource(Res.string.settings_reset_leaderboard_message),
+            message = if (signedIn) "$message ${stringResource(Res.string.settings_reset_leaderboard_online_note, gameServices.serviceName)}" else message,
             confirmLabel = stringResource(Res.string.settings_reset_confirm),
             onConfirm = {
                 viewModel.resetLeaderboard()

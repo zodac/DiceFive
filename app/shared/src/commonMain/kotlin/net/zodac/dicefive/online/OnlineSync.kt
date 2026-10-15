@@ -11,10 +11,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.zodac.dicefive.data.achievements.AchievementStore
+import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.ProgressStyle
 
 /**
@@ -31,13 +33,21 @@ import net.zodac.dicefive.model.ProgressStyle
  *   achievements and their progress wiped, as Reset achievements does, then its own restored. The last account's are
  *   already on the service, and come back when it signs in again.
  *
- * Never once superuser mode has been used here ([OnlineSettingsRepository.mirroringBlocked]).
+ * Then each mode's leaderboard is sent player 1's best score from the games played under its own rules since the last
+ * one it took from this device ([OnlineSettingsRepository.scoresPostedThrough], per account): an account's first sync
+ * sends this device's best so far; after that, each newer game's score, or the best of several played while signed out.
+ * One the service didn't take is sent again next time.
+ *
+ * Never once superuser mode has been used here ([OnlineSettingsRepository.mirroringBlocked]): its dice can be set by
+ * hand, so neither its unlocks nor its scores are fair.
  */
 class OnlineSync(
     private val services: GameServices,
     private val store: AchievementStore,
     private val settings: OnlineSettingsRepository,
     private val leaderboardTotals: suspend () -> LeaderboardTotals,
+    /** Player 1's best score in a mode from the games played after a time, as `ScoreRepository.bestUnpostedScore`. */
+    private val unpostedScore: suspend (GameMode, afterEpochMillis: Long) -> UnpostedScore?,
     private val now: () -> Long = ::nowEpochMillis,
 ) {
 
@@ -63,7 +73,10 @@ class OnlineSync(
         mirroring.value && services.state.value is GameServicesState.SignedIn && services.mirrors(achievement.id) &&
             achievement.id !in remoteUnlocked
 
-    /** Compares this device's achievements with the service's and sends or records the difference. Returns how many were restored here. */
+    /**
+     * Compares this device's achievements with the service's and sends or records the difference, then sends the
+     * leaderboards their new scores. Returns how many achievements were restored here.
+     */
     suspend fun reconcile(): Int = lock.withLock {
         val account = (services.state.value as? GameServicesState.SignedIn)?.account
         if (account == null || settings.mirroringBlocked.first()) {
@@ -96,13 +109,22 @@ class OnlineSync(
                 }
             }
         }
+        postScores(account.accountKey)
         restored.size
+    }
+
+    private suspend fun postScores(accountKey: String) {
+        for (mode in GameMode.entries) {
+            val key = mode.onlineLeaderboardKey
+            val best = unpostedScore(mode, settings.scoresPostedThrough(accountKey, key) ?: Long.MIN_VALUE) ?: continue
+            if (services.submitScore(key, best.score.toLong())) settings.setScoresPostedThrough(accountKey, key, best.playedEpochMillis)
+        }
     }
 }
 
 /**
- * Where a change to the achievements asks for a [OnlineSync.reconcile]: every recorded update raises one, and
- * `DiceFiveApp` reconciles in turn. Requests made while one runs fold into a single next run.
+ * Where a change asks for a [OnlineSync.reconcile]: every recorded achievement update and every finished game raises
+ * one, and `DiceFiveApp` reconciles in turn. Requests made while one runs fold into a single next run.
  */
 object OnlineSyncRequests {
 

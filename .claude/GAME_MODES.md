@@ -84,6 +84,9 @@ has changed something there.
   through the engine.
   - A rule that changes what "perfect" means (no 5x possible, say) may need `perfectGame` taught about it.
 - Doc comments state the rule. **Don't write a guessed rationale**; it reads as fact later.
+- **Its online leaderboard** (`PLAY_GAMES.md`, section 3): a new `onlineLeaderboardKey`, an icon in
+  `PlayConsoleLeaderboards.kt`, a board made by hand in Play Console from `scripts/export-play-console.sh`'s
+  `leaderboards.csv`, and its id in `playLeaderboardIds` (`PlayGamesIdsTest` fails without it).
 
 ### Rules page (`ui/rules/RulesScreen.kt`)
 
@@ -233,7 +236,9 @@ Locked dice (`Die.isUnlucky`) can't be held and don't score, in every mode.
 ### Off the Leaderboard
 
 `countsOnLeaderboard = false` records `ScoreEntry.onLeaderboard = false`. The Combined table, a personal best and the
-score bands skip those rows; the Game Mode view, Statistics and career points don't.
+score bands skip those rows; the Game Mode view, Statistics and career points don't. A game with any modifier on is on
+no card and no online board, whatever its mode (`ScoreEntry.playedUnmodified`), but Statistics and career points
+still count it.
 
 - **Fakes.** The fake DAOs in `ScoreRepositoryTest` and `GameAchievementsWiringTest` mirror the real filters, so **a
   new filter goes in both fakes**. `AndroidAppContainerTest` runs the real database.

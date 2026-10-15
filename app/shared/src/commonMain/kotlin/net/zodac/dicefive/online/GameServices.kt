@@ -36,7 +36,11 @@ interface GameServices {
     /** Forward-only and idempotent: [steps] lower than the service already holds changes nothing. */
     suspend fun setProgress(achievementId: String, steps: Int)
 
-    suspend fun submitScore(leaderboardKey: String, score: Long)
+    /**
+     * Posts [score] to the leaderboard for [leaderboardKey] ([net.zodac.dicefive.model.GameMode.onlineLeaderboardKey]).
+     * True once the service has taken it; false if it couldn't be sent, or the service has no such board.
+     */
+    suspend fun submitScore(leaderboardKey: String, score: Long): Boolean
 
     suspend fun readCloudSave(): ByteArray?
 
@@ -48,6 +52,7 @@ interface GameServices {
 
     fun showAchievementsUi()
 
+    /** Whether the service's own leaderboard screen can be opened (signed in, and the platform has one). */
     val canShowLeaderboardUi: Boolean
 
     /** Opens the service's leaderboard for [leaderboardKey] ([net.zodac.dicefive.model.GameMode.onlineLeaderboardKey]), or all of them if null. */

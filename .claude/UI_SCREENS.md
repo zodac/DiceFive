@@ -205,13 +205,19 @@ time.
 
 A `SegmentedChoiceRow` (Combined | Game Mode) at the top, always shown.
 - **`CombinedLeaderboard`** is one table with the podium. Its card is as tall as its rows.
-- **`GameModeLeaderboard`** is a card per mode with a score, in a scrolling page, with **no podium colours**.
+- **`GameModeLeaderboard`** is a card per mode with a score, in a scrolling page, with **no podium colours**. A card
+  lists only games played with no modifier on (`playedUnmodified`), as the Combined table and online boards do.
   - A card is capped at ten rows (`modeCardListHeight`, from `bodyMedium`'s line height) and scrolls inside. Its
     Previous/Next are the list's last item.
   - A card keeps the rest of a drag or fling once it reaches its end (`KeepScrollInside`). A card too short to scroll
     passes the swipe to the page.
   - The page's scrollbar is in the 20dp side margin.
 - **TalkBack.** Card titles are headings, and a row's `stateDescription` carries what its long press shows.
+- **Global** (signed in to a service): a text button with a globe on each card's title row, opening the mode's board
+  on the service (`GlobalLeaderboardButton`). It takes **no height**: the title sets the row's, and the button is
+  centred on it, spilling into the card's padding, so cards don't move on signing in. Where the title and the label
+  won't share the line (large fonts, narrow phones) it's the globe alone, never a wrapped title. TalkBack hears
+  "Global leaderboard for <mode> on <service>", a button. Only cards with a local score exist, so only those have it.
 - Rows use `OnDemandTooltip`, because a `TooltipBox` per row cost real first-frame time.
 - **`ScoresWarmUp`.** 2s after the menu settles, it draws both views once from a made-up board
   (`ScoresViewModel(initialState = ...)`, no database), the same way as `StylesWarmUp` (`ScoresWarmUpTest`). The lag

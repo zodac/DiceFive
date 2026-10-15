@@ -27,6 +27,7 @@ import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.PlayerGame
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreEntry
+import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.data.settings.SettingsRepository
@@ -55,14 +56,15 @@ private class GatedEmptyScoreDao : ScoreDao {
 
     override suspend fun insert(entry: ScoreEntry) = Unit
     override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> = gate.await().let { emptyList() }
-    override suspend fun pagedScoresForMode(gameModeId: String, includeOffBoard: Boolean, limit: Int, offset: Int): List<ScoreEntry> =
+    override suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int): List<ScoreEntry> =
         gate.await().let { emptyList() }
     override suspend fun count(): Int = gate.await().let { 0 }
-    override suspend fun countForMode(gameModeId: String, includeOffBoard: Boolean): Int = gate.await().let { 0 }
+    override suspend fun countForMode(gameModeId: String): Int = gate.await().let { 0 }
     override suspend fun bestScoreForPlayer(playerName: String): Int? = gate.await().let { null }
     override suspend fun distinctScores(): List<Int> = gate.await().let { emptyList() }
     override suspend fun primaryPlayerTotalPoints(): Int? = gate.await().let { null }
     override suspend fun primaryPlayerGameModeIds(): List<String> = gate.await().let { emptyList() }
+    override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
     override suspend fun playerGames(): List<PlayerGame> = gate.await().let { emptyList() }
     override suspend fun dismissPlayer(playerName: String) = Unit
     override suspend fun clearDismissal(playerName: String) = Unit

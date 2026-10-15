@@ -684,6 +684,7 @@
     <string name="settings_reset_achievements_message">سيُقفل كل إنجاز من جديد ويضيع كل التقدّم نحوها. لا يمكن التراجع عن هذا. لن تتأثر نتائجك ولا إعداداتك.</string>
     <string name="settings_reset_leaderboard_title">إعادة ضبط لوحة المتصدرين؟</string>
     <string name="settings_reset_leaderboard_message">ستُحذف كل نتيجة مسجّلة، فتُفرَّغ شاشة لوحة المتصدرين، ومعها الإحصائيات لأنها تُحسب من النتائج نفسها. لا يمكن التراجع عن هذا. لن تتأثر الإنجازات ولا الإعدادات، لكن أي تقدّم في الإنجازات يُقاس بلوحة المتصدرين سيبدأ من جديد.</string>
+    <string name="settings_reset_leaderboard_online_note">تبقى النتائج المُرسلة إلى %1$s هناك.</string>
     <string name="style_family_art_deco">آرت ديكو</string>
     <string name="style_family_bestagon">بيستاغون</string>
     <string name="style_family_bestagons">بيستاغونات</string>
@@ -935,6 +936,8 @@
     <string name="scores_view_combined">الكل معًا</string>
     <string name="scores_view_game_mode">نمط اللعب</string>
     <string name="scores_empty">لا توجد نتائج بعد، العب لعبة!</string>
+    <string name="scores_global">عالمية</string>
+    <string name="scores_global_cd">لوحة المتصدرين العالمية لوضع %1$s على %2$s</string>
     <string name="scores_header_player">اللاعب</string>
     <string name="scores_header_score">النتيجة</string>
     <string name="scores_previous">السابق</string>
