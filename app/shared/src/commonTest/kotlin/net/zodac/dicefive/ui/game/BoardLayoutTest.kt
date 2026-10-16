@@ -62,17 +62,17 @@ class BoardLayoutTest {
         assertEquals(0, d20.featuredRows)
         assertTrue(d20.leftRows.isEmpty())
         assertTrue(d20.sideRows.isEmpty())
-        with(ScoreCategory) {
-            assertEquals(
-                listOf(
-                    listOf(D20_WILD_LOW, D20_1, D20_2, D20_3, D20_4, D20_5, D20_6),
-                    listOf(D20_7, D20_8, D20_9, D20_10, null, null, null),
-                    listOf(D20_WILD_HIGH, D20_11, D20_12, D20_13, null, null, null),
-                    listOf(D20_14, D20_15, D20_16, D20_17, D20_18, D20_19, D20_20),
-                ),
-                d20.columns,
-            )
-        }
+        fun numbers(range: IntRange) = range.map { ScoreCategory.D20_NUMBERS[it - 1] }
+        val empty = List(3) { null }
+        assertEquals(
+            listOf(
+                listOf(ScoreCategory.D20_WILD_LOW) + numbers(1..6),
+                numbers(7..10) + empty,
+                listOf(ScoreCategory.D20_WILD_HIGH) + numbers(11..13) + empty,
+                numbers(14..20),
+            ),
+            d20.columns,
+        )
         assertEquals(4, d20.cupFirstRow)
         assertEquals(2, d20.rowCount - 1 - d20.cupFirstRow)
     }
