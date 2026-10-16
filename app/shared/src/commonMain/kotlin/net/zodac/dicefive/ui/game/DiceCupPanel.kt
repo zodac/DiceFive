@@ -239,14 +239,17 @@ fun DiceCupPanel(
     }
 }
 
-/** The Totals button with Undo beside it (when [cup] has it), at the right: the last thing in the panel. */
+/**
+ * The Totals button with Undo beside it (when [cup] has it), at the right: the last thing in the panel. Centred instead
+ * ([centred]) under a cup centred on the board.
+ */
 @Composable
-private fun PanelButtons(layout: BoardLayout, player: PlayerState?, cup: CupPanelState?, rows: Int, modifier: Modifier = Modifier) {
+internal fun PanelButtons(layout: BoardLayout, player: PlayerState?, cup: CupPanelState?, rows: Int, modifier: Modifier = Modifier, centred: Boolean = false) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         // Both buttons at the right, Totals just left of Undo - Undo where it always was.
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, if (centred) Alignment.CenterHorizontally else Alignment.End),
     ) {
         // Clearance from the score grid's rightmost column - which can render a 2-digit score
         // past its own column's edge - comes from GameBoard's inter-panel gap and weight split,

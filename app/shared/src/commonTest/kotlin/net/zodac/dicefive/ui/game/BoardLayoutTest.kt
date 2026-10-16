@@ -54,25 +54,36 @@ class BoardLayoutTest {
         assertEquals(6, hitList.rowCount)
         assertEquals(2, hitList.featuredRows)
 
-        // D20 has no featured box: its twenty-two boxes fill seven rows by half - 1st half down column 1 then 3, 2nd half down
-        // column 2 then 4, each half's wildcard last - the last four rows of each in the right pane, over a cup of two rows.
+        // D20 has no featured box: its twenty-two boxes fill four columns of seven rows, a half to each side, each half's
+        // wildcard at its top - the inner two columns four boxes deep, over a cup of two rows and the buttons.
         val d20 = layout(GameMode.D20, extended = false)
         assertNull(d20.featured)
         assertEquals(7, d20.rowCount)
         assertEquals(0, d20.featuredRows)
-        assertEquals(listOf(ScoreCategory.D20_1, ScoreCategory.D20_11), d20.leftRows.first())
-        assertEquals(listOf(ScoreCategory.D20_7, ScoreCategory.D20_17), d20.leftRows.last())
-        assertEquals(
-            listOf(
-                listOf(ScoreCategory.D20_8, ScoreCategory.D20_18),
-                listOf(ScoreCategory.D20_9, ScoreCategory.D20_19),
-                listOf(ScoreCategory.D20_10, ScoreCategory.D20_20),
-                listOf(ScoreCategory.D20_WILD_LOW, ScoreCategory.D20_WILD_HIGH),
-            ),
-            d20.sideRows,
-        )
+        assertTrue(d20.leftRows.isEmpty())
+        assertTrue(d20.sideRows.isEmpty())
+        with(ScoreCategory) {
+            assertEquals(
+                listOf(
+                    listOf(D20_WILD_LOW, D20_1, D20_2, D20_3, D20_4, D20_5, D20_6),
+                    listOf(D20_7, D20_8, D20_9, D20_10, null, null, null),
+                    listOf(D20_WILD_HIGH, D20_11, D20_12, D20_13, null, null, null),
+                    listOf(D20_14, D20_15, D20_16, D20_17, D20_18, D20_19, D20_20),
+                ),
+                d20.columns,
+            )
+        }
         assertEquals(4, d20.cupFirstRow)
         assertEquals(2, d20.rowCount - 1 - d20.cupFirstRow)
+    }
+
+    @Test
+    fun `a board laid out by columns is tall enough for the whole cup over the rows above its buttons`() {
+        val d20 = boardLayout(GameMode.D20.categories)
+        val height = scoreBoardHeight(GameMode.D20.categories, BOARD_PADDING)
+        val rowHeight = (height - BOARD_PADDING * 2 - GRID_ROW_SPACING * (d20.rowCount - 1)) / d20.rowCount
+        val cupRows = d20.rowCount - 1 - d20.cupFirstRow
+        assertTrue(rowHeight * cupRows + GRID_ROW_SPACING * (cupRows - 1) >= CUP_SIZE, "$height")
     }
 
     @Test
@@ -80,8 +91,7 @@ class BoardLayoutTest {
         for (mode in GameMode.entries) for (extended in listOf(false, true)) {
             val categories = mode.categoriesWith(extended)
             val layout = boardLayout(categories)
-            val placed = layout.leftRows.flatten() + layout.sideRows.flatten()
-            assertEquals(categories.filter { it != layout.featured }.sorted(), placed.sorted(), "${mode.id} $extended")
+            assertEquals(categories.filter { it != layout.featured }.sorted(), layout.placed.sorted(), "${mode.id} $extended")
             assertTrue(layout.rowCount - 1 - layout.cupFirstRow >= 2, "$mode extended=$extended")
         }
     }

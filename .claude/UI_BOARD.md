@@ -16,6 +16,7 @@ on a device.
     Two Pair;
   - the cup is laid over rows 4-5;
   - Totals and Undo are in the last row.
+- D20 is the exception: four columns, not two panes (see **Per-mode cards**).
 - **Contention.** Extended Scores wins the place under 5x. Tricolour's colours then go after the lower section, two to
   a row (eight rows).
 
@@ -56,10 +57,12 @@ indexes), not summed on the 5x tile.
 
 ### Per-mode cards
 
-- **D20.** No featured box, seven rows of compact tiles.
-  - Numbers 1-7 run down column 1 beside 11-17 in column 2.
-  - 8-10 then the `1-10` wildcard, and 18-20 then the `11-20` wildcard, fill the right pane's four top rows, over a
-    two-row cup (a little smaller than `CUP_SIZE`, never squashed).
+- **D20.** No featured box, seven rows of compact tiles, laid out by column (`BoardLayout.columns`, drawn by
+  `ColumnBoard`), so each half keeps to its own side.
+  - Column 1: the `1-10` wildcard then 1-6; column 2: 7-10. Column 3: the `11-20` wildcard then 11-13; column 4: 14-20.
+  - The cup is centred under columns 2-3 over rows 5-6, with Totals and Undo centred under it in row 7. The board
+    grows (about 407dp) so those two rows hold the whole `CUP_SIZE`.
+  - Each column is a traversal group, so TalkBack reads a half's boxes in order, then the cup and buttons.
   - Tiles are number badges: 1st half sky blue (`TileSky*`), 2nd half indigo (`TileIndigo*`). The colour repeats the
     number, so it needs no spoken twin.
   - The Totals popup shows each half against its target ("95 / 138", gold once reached, wildcard included) plus the

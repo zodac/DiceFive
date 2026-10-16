@@ -113,7 +113,10 @@ private fun ScoreBoardRow(
         }
         val shift = fit.paneShift
         CompositionLocalProvider(LocalBonusFontSize provides fit.fontSize) {
-            Row(modifier = Modifier.fillMaxSize()) {
+            // D20's card: four columns, with the cup centred under the inner two.
+            if (layout.columns != null) {
+                ColumnBoard(layout, player, dice, canScore, showPreview, available, onScoreCategory, cup, pane, BOARD_PANE_GAP, showCup)
+            } else Row(modifier = Modifier.fillMaxSize()) {
                 ScoreGrid(
                     categories = categories,
                     player = player,
