@@ -25,6 +25,9 @@ on a device.
 - More than six rows switches every tile to `COMPACT_TILE_SIZE` (40dp from 48) and grows the board
   (`scoreBoardHeight`, 390dp for eight rows). The cup keeps `CUP_SIZE` (it needs rows 4-6; Totals/Undo move below it).
 - Standard and Tricolour are six rows, 380dp.
+- **A text mark is always one line** (`BadgeLabel`). Where a large font would wrap it, it's measured and shrunk to fit
+  the tile less 3dp each side, down to 6sp (D20's "11-20" is about 7.8sp at 200% on a compact tile). Marks that fit
+  keep their size (`BadgeLabelFitTest`).
 
 **The featured box.**
 - **With nothing under it**, 5x is a large square over rows 1-2 (`squareSize`, 16dp corners, score and bonus beside

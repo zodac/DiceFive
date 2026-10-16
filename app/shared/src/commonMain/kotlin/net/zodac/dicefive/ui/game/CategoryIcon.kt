@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.House
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -24,10 +25,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import net.zodac.dicefive.model.HitTarget
 import net.zodac.dicefive.model.PlaceMatch
 import net.zodac.dicefive.model.PlayerState
@@ -243,14 +247,40 @@ private fun HouseIcon(color: Color, shadowed: Boolean = false) {
     )
 }
 
+/** Kept clear between a badge's mark and its tile's edge. */
+private val BADGE_LABEL_INSET = 3.dp
+
+/** The smallest a badge's mark shrinks to - see [BadgeLabel]. */
+private val BADGE_LABEL_MIN_SIZE = 6.sp
+
+/** How much a badge's mark shrinks a step once it's been scaled to fit. */
+private const val BADGE_LABEL_SHRINK_STEP = 0.96f
+
+/**
+ * A text mark: one line at [fontSize], shrunk in proportion to fit its tile less [BADGE_LABEL_INSET] each side where a large
+ * font would otherwise wrap it (D20's "11-20"), never below [BADGE_LABEL_MIN_SIZE]. Measured, not `autoSize`: that took a
+ * line broken at the hyphen and clipped to one ("1-1") as fitting.
+ */
 @Composable
 private fun BadgeLabel(text: String, color: Color, fontSize: TextUnit, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        color = color,
-        style = TextStyle(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold, fontSize = fontSize, textAlign = TextAlign.Center),
-        modifier = modifier,
-    )
+    val style = TextStyle(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold, fontSize = fontSize, textAlign = TextAlign.Center)
+    val measurer = rememberTextMeasurer()
+    BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
+        val room = constraints.maxWidth - with(LocalDensity.current) { (BADGE_LABEL_INSET * 2).roundToPx() }
+        val shown = remember(text, style, room) {
+            if (!fontSize.isSp || constraints.maxWidth == Constraints.Infinity) return@remember style
+            fun width(at: TextStyle) = measurer.measure(text, at, softWrap = false, maxLines = 1).size.width
+            val full = width(style)
+            if (full <= room) return@remember style
+            // In proportion first, then down a step at a time: a line's width doesn't scale exactly with its size.
+            var size = maxOf(fontSize.value * room / full, BADGE_LABEL_MIN_SIZE.value)
+            while (size > BADGE_LABEL_MIN_SIZE.value && width(style.copy(fontSize = size.sp)) > room) {
+                size = maxOf(size * BADGE_LABEL_SHRINK_STEP, BADGE_LABEL_MIN_SIZE.value)
+            }
+            style.copy(fontSize = size.sp)
+        }
+        Text(text = text, color = color, style = shown, maxLines = 1)
+    }
 }
 
 /**
