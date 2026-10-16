@@ -79,7 +79,7 @@
 #             (the -trixie tag matches this base's glibc exactly).
 FROM eclipse-temurin:25.0.4.1_1-jdk AS jdk
 FROM maven:3.10.0-eclipse-temurin-25 AS maven
-FROM node:26.10.0-trixie AS node
+FROM node:26.12.0-trixie AS node
 
 # ── Runtime base ─────────────────────────────────────────────────────────────
 FROM debian:13.7
@@ -166,7 +166,7 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -yqq --no-install-recommends \
         ca-certificates="20250419" \
-        curl="8.14.1-2+deb13u5" \
+        curl="8.14.1-2+deb13u7" \
         gnupg="2.4.7-21+deb13u1" \
         libatomic1="14.2.0-19"
 # END DEBIAN PACKAGES
@@ -197,10 +197,10 @@ RUN install -m 0755 -d /etc/apt/keyrings \
 # BEGIN DEBIAN PACKAGES
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -yqq --no-install-recommends \
-        docker-ce="5:29.8.2-1~debian.13~trixie" \
-        docker-ce-cli="5:29.8.2-1~debian.13~trixie" \
-        containerd.io="2.3.6-1~debian.13~trixie" \
-        docker-buildx-plugin="0.37.1-1~debian.13~trixie" \
+        docker-ce="5:29.9.1-1~debian.13~trixie" \
+        docker-ce-cli="5:29.9.1-1~debian.13~trixie" \
+        containerd.io="2.4.2-2~debian.13~trixie" \
+        docker-buildx-plugin="0.38.0-1~debian.13~trixie" \
         docker-compose-plugin="5.6.0-1~debian.13~trixie"
 # END DEBIAN PACKAGES
 
@@ -307,7 +307,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,t
         imagemagick="8:7.1.1.43+dfsg1-1+deb13u12" \
         iproute2="6.15.0-1" \
         jq="1.7.1-6+deb13u4" \
-        librsvg2-bin="2.60.0+dfsg-1" \
+        librsvg2-bin="2.60.0+dfsg-1+deb13u1" \
         lsof="4.99.4+dfsg-2" \
         optipng="0.7.8+ds-1+b1" \
         python3="3.13.5-1" \
@@ -434,7 +434,7 @@ RUN runuser -u dev -- env HOME=/home/dev bash -c \
 # BINARY itself stays out of the image (persisted in the ms-playwright volume via
 # setup.sh) to avoid baking ~150MB of Chromium into every layer.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    npx --yes playwright@1.64.0 install-deps chromium
+    npx --yes playwright@1.64.1 install-deps chromium
 
 # ── Claude Code CLI into a dev-owned npm prefix ──────────────────────────────
 # Installing `-g` into npm's default /usr prefix makes the package and the

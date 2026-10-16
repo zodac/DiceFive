@@ -129,7 +129,8 @@ app/
 
 - **A macOS job** for the build and `iosSimulatorArm64Test`, plus TestFlight if wanted. The Linux jobs already compile
   iOS, with `~/.konan` cached.
-- **`update_dependency_versions.sh`** bumps the entries generically. Watch the JetBrains/androidx pairing.
+- **`update_dependency_versions.sh`** bumps the entries generically, except those marked `# @update` in
+  `libs.versions.toml`: the JetBrains Compose entries match the Compose BOM, and sqlite follows Room.
 - **Commits** go under a new `[iOS]` category. Add it to the `commit` skill's table in the same commit.
 
 ## Open decisions

@@ -711,6 +711,10 @@ dependencies {
     implementation(libs.androidx.datastore.preferences.core)
     // Google Play Games Services v2: sign-in, achievements, leaderboards and saved games (online/PlayGamesServices).
     implementation(libs.play.services.games.v2)
+    constraints {
+        // play-services-base asks for androidx.fragment 1.1.0, which Play Console flags as an outdated SDK.
+        implementation(libs.androidx.fragment)
+    }
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

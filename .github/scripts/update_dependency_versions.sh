@@ -6,7 +6,9 @@
 #                 - The Gradle version catalog (gradle/libs.versions.toml): every [versions] entry -
 #                   AGP, Kotlin, KSP, AndroidX, the Compose BOM, test libraries - to its latest final
 #                   release, majors included, but only to a version this project can actually build
-#                   against (see "Android compatibility" below)
+#                   against (see "Android compatibility" below); except an entry marked
+#                   `# @update hold` (never changed) or `# @update follows|matches` (set to the version
+#                   another entry calls for - see section 9, "Pinned and paired entries")
 #                 - The Gradle wrapper (gradle/wrapper/gradle-wrapper.properties), majors included
 #                 - Plugin versions declared in settings.gradle.kts (`id("…") version "…"`), majors included
 #               Every Gradle-side bump is then proven by the build at the end: one that breaks it is
@@ -396,6 +398,13 @@ print_update_summary() {
         IFS='|' read -r kind key old new <<< "${change}"
         now=$(current_gradle_version "${kind}" "${key}")
         [[ -n "${now}" && "${now}" != "${old}" ]] && lines+=("${key}: ${old} → ${now}")
+    done
+    # Followed entries move with their leaders, so they are not in GRADLE_CHANGES.
+    for key in "${CATALOG_REFS[@]}"; do
+        case "${CATALOG_RULE[${key}]:-}" in follows|matches) ;; *) continue ;; esac
+        old="${CATALOG_INITIAL[${key}]}"
+        now="${CATALOG_VERSION[${key}]}"
+        [[ "${now}" != "${old}" ]] && lines+=("${key}: ${old} → ${now} (${CATALOG_RULE[${key}]} ${CATALOG_LEADER[${key}]})")
     done
     lines+=("${UPDATE_SUMMARY[@]}")
 
@@ -1144,7 +1153,7 @@ set_gradle_version() {
     case "${kind}" in
         wrapper) set_wrapper_version "${version}" ;;
         plugin)  set_settings_plugin_version "${key}" "${version}" ;;
-        catalog) set_catalog_version "${key}" "${version}" ;;
+        catalog) set_catalog_version "${key}" "${version}" && sync_catalog_followers quiet ;;
         *) return 1 ;;
     esac
 }
@@ -1246,21 +1255,56 @@ update_settings_plugins() {
 # The catalog is parsed as it is written here: one-line inline tables with group/name (or module) and
 # version.ref for libraries, id and version.ref for plugins. A library with an inline `version = "…"`
 # instead of a version.ref is not bumped.
+#
+# Pinned and paired entries: a `# @update …` comment line among those directly above a [versions] entry
+# takes it out of the newest-first walk, because its version is set by something else:
+#   # @update hold
+#       never changed by this script (say why in the comment beside it).
+#   # @update follows <ref>: <group:name> -> <group:name>
+#       the version the first artifact, at <ref>'s version, depends on for the second. For a library
+#       that another one already brings in and that must stay at the version it brings: declaring it
+#       then adds nothing (okio: whatever DataStore uses).
+#   # @update matches <ref>: <group:name> -> <group:name>
+#       the newest version of the first artifact (this entry's) whose Android build depends on the
+#       second at the version <ref> sets for it - managed by <ref> when that is a BOM, otherwise <ref>'s
+#       own version. For a JetBrains Multiplatform artifact that wraps an androidx one (Compose UI and
+#       the Compose BOM must agree on androidx Compose UI).
+# A followed entry moves only with its leader: a leader candidate that leaves a follower with no version
+# is rejected like any other that does not fit; followers are set once the leaders are, and again
+# whenever verify_build takes a leader back or steps it down; and verify_version_sync fails the run if
+# one has drifted from its leader anyway (a hand edit, say).
 
 declare -a CATALOG_REFS=()
 declare -A CATALOG_VERSION=()     # ref -> current version
 declare -A CATALOG_COORDS=()      # ref -> space-separated group:name (plugins as their marker artifact)
 declare -A CATALOG_IS_PLUGIN=()   # ref -> "true" if any user is a plugin
 declare -a CATALOG_UNVERSIONED=() # group:name of libraries with no version (taken from a BOM)
+declare -A CATALOG_RULE=()        # ref -> "hold", "follows" or "matches" (its `# @update` line)
+declare -A CATALOG_LEADER=()      # ref -> the ref it follows or matches
+declare -A CATALOG_RULE_FROM=()   # ref -> the rule's first group:name
+declare -A CATALOG_RULE_TO=()     # ref -> the rule's second group:name
+declare -A CATALOG_INITIAL=()     # ref -> its version before this run, for the summary of followed entries
+CATALOG_PARSED=false
 
 parse_version_catalog() {
-    local section="" line
+    [[ "${CATALOG_PARSED}" == "true" ]] && return 0
+    CATALOG_PARSED=true
+    local section="" line rule=""
     while IFS= read -r line || [[ -n "${line}" ]]; do
+        if [[ "${line}" =~ ^[[:space:]]*#[[:space:]]*@update[[:space:]]+(.*[^[:space:]])[[:space:]]*$ ]]; then
+            rule="${BASH_REMATCH[1]}"
+            continue
+        fi
         line="${line%%#*}"
         [[ -z "${line//[[:space:]]/}" ]] && continue
         if [[ "${line}" =~ ^[[:space:]]*\[([a-z-]+)\] ]]; then
             section="${BASH_REMATCH[1]}"
             continue
+        fi
+        if [[ -n "${rule}" && "${section}" != "versions" ]]; then
+            # Only a [versions] entry can be held or followed; a stray rule would otherwise be ignored.
+            err "'# @update ${rule}' is in [${section}] - it belongs above a [versions] entry"
+            exit 1
         fi
 
         local key="" group="" name="" id="" ref=""
@@ -1272,7 +1316,10 @@ parse_version_catalog() {
                 if [[ "${line}" =~ ^[[:space:]]*([A-Za-z0-9_.-]+)[[:space:]]*=[[:space:]]*\"([^\"]+)\" ]]; then
                     CATALOG_REFS+=("${BASH_REMATCH[1]}")
                     CATALOG_VERSION["${BASH_REMATCH[1]}"]="${BASH_REMATCH[2]}"
+                    CATALOG_INITIAL["${BASH_REMATCH[1]}"]="${BASH_REMATCH[2]}"
+                    [[ -n "${rule}" ]] && parse_catalog_rule "${BASH_REMATCH[1]}" "${rule}"
                 fi
+                rule=""
                 ;;
             libraries)
                 [[ "${line}" =~ group[[:space:]]*=[[:space:]]*\"([^\"]+)\" ]] && group="${BASH_REMATCH[1]}"
@@ -1301,6 +1348,143 @@ parse_version_catalog() {
             *) ;;
         esac
     done < "${VERSION_CATALOG}"
+
+    local ref leader
+    for ref in "${CATALOG_REFS[@]}"; do
+        leader="${CATALOG_LEADER[${ref}]:-}"
+        [[ -z "${leader}" || -n "${CATALOG_VERSION[${leader}]:-}" ]] && continue
+        err "${ref}: its '# @update' rule names '${leader}', which is not a [versions] entry"
+        exit 1
+    done
+}
+
+# Reads one `# @update …` rule (see above) into CATALOG_RULE and friends. A rule that does not parse
+# fails the run: ignoring it would leave its entry free to be bumped past what it is tied to.
+parse_catalog_rule() {
+    local ref="${1}" rule="${2}"
+    local artifact='[A-Za-z0-9_.-]+:[A-Za-z0-9_.-]+'
+    if [[ "${rule}" == "hold" ]]; then
+        CATALOG_RULE["${ref}"]="hold"
+    elif [[ "${rule}" =~ ^(follows|matches)[[:space:]]+([A-Za-z0-9_.-]+):[[:space:]]*(${artifact})[[:space:]]*-\>[[:space:]]*(${artifact})$ ]]; then
+        CATALOG_RULE["${ref}"]="${BASH_REMATCH[1]}"
+        CATALOG_LEADER["${ref}"]="${BASH_REMATCH[2]}"
+        CATALOG_RULE_FROM["${ref}"]="${BASH_REMATCH[3]}"
+        CATALOG_RULE_TO["${ref}"]="${BASH_REMATCH[4]}"
+    else
+        err "${ref}: cannot read '# @update ${rule}' (expected 'hold', 'follows <ref>: <group:name> -> <group:name>' or 'matches <ref>: <group:name> -> <group:name>')"
+        exit 1
+    fi
+}
+
+# Echoes the version of ${4} (group:name) that ${1}:${2}:${3} depends on; empty if it does not or
+# cannot be read. Read from the Gradle module metadata (any variant - a Multiplatform artifact may only
+# name it in its common one), following a redirect to an `-android` sibling, which is where a
+# JetBrains artifact names the androidx one it wraps; from the POM for an artifact without metadata.
+artifact_dependency_version() {
+    local group="${1}" name="${2}" version="${3}" target="${4}"
+    local module pom found="" target_at
+    if module=$(maven_fetch "${group}" "${name}" "${version}" module); then
+        found=$(jq -r --arg g "${target%%:*}" --arg n "${target#*:}" '
+                    first(.variants[]?.dependencies[]? | select(.group == $g and .module == $n)
+                          | .version | (.strictly // .requires // .prefers) // empty) // empty' "${module}" 2>/dev/null) || found=""
+        if [[ -z "${found}" ]]; then
+            target_at=$(jq -r 'first(.variants[]? | .["available-at"]? // empty
+                               | select(.module | endswith("-android"))
+                               | "\(.group) \(.module) \(.version)") // empty' "${module}" 2>/dev/null) || target_at=""
+            if [[ -n "${target_at}" ]]; then
+                local at_group at_name at_version
+                read -r at_group at_name at_version <<< "${target_at}"
+                found=$(artifact_dependency_version "${at_group}" "${at_name}" "${at_version}" "${target}")
+            fi
+        fi
+    elif pom=$(maven_fetch "${group}" "${name}" "${version}" pom); then
+        found=$(awk -v g="${target%%:*}" -v n="${target#*:}" '
+            /<dependency>/   { dg = ""; dn = ""; dv = "" }
+            /<groupId>/      { v = $0; gsub(/.*<groupId>|<\/groupId>.*/, "", v); dg = v }
+            /<artifactId>/   { v = $0; gsub(/.*<artifactId>|<\/artifactId>.*/, "", v); dn = v }
+            /<version>/      { v = $0; gsub(/.*<version>|<\/version>.*/, "", v); dv = v }
+            /<\/dependency>/ { if (dg == g && dn == n) { print dv; exit } }
+        ' "${pom}")
+    fi
+    echo "${found}"
+}
+
+# Echoes the version ${1} (a catalog ref), at version ${2}, sets for ${3} (group:name): what it manages
+# for it when one of its artifacts is a BOM, otherwise its own version.
+catalog_sets_version() {
+    local ref="${1}" version="${2}" target="${3}" coord
+    for coord in ${CATALOG_COORDS[${ref}]:-}; do
+        if [[ "${coord#*:}" == *bom* ]]; then
+            bom_managed_version "${coord%%:*}" "${coord#*:}" "${version}" "${target%%:*}" "${target#*:}"
+            return 0
+        fi
+    done
+    echo "${version}"
+}
+
+# Echoes the version followed entry ${1} should be at, with its leader at ${2} (default: the leader's
+# current version); empty if there is none.
+catalog_follower_version() {
+    local ref="${1}"
+    local leader="${CATALOG_LEADER[${ref}]}"
+    local leader_version="${2:-${CATALOG_VERSION[${leader}]:-}}"
+    local from="${CATALOG_RULE_FROM[${ref}]}" to="${CATALOG_RULE_TO[${ref}]}"
+    [[ -n "${leader_version}" ]] || return 0
+
+    case "${CATALOG_RULE[${ref}]}" in
+        follows)
+            artifact_dependency_version "${from%%:*}" "${from#*:}" "${leader_version}" "${to}"
+            ;;
+        matches)
+            local wanted candidate wraps
+            wanted=$(catalog_sets_version "${leader}" "${leader_version}" "${to}")
+            [[ -n "${wanted}" ]] || return 0
+            # Newest first. The androidx version a wrapper names only ever rises with the wrapper's, so
+            # once one names an older version than wanted, no older wrapper can name it.
+            while IFS= read -r candidate; do
+                [[ -n "${candidate}" ]] || continue
+                wraps=$(artifact_dependency_version "${from%%:*}" "${from#*:}" "${candidate}" "${to}")
+                [[ -n "${wraps}" ]] || continue
+                if [[ "${wraps}" == "${wanted}" ]]; then
+                    echo "${candidate}"
+                    return 0
+                fi
+                version_gt "${wanted}" "${wraps}" && return 0
+            done < <(maven_versions "${from}" | filter_stable_versions | sort -V -r)
+            ;;
+        *) ;;
+    esac
+}
+
+# Returns 0 if every entry following or matching ${1} has a version to go with ${1} at ${2}; otherwise
+# prints which one has none and returns 1.
+catalog_followers_fit() {
+    local leader="${1}" version="${2}" ref
+    for ref in "${CATALOG_REFS[@]}"; do
+        [[ "${CATALOG_LEADER[${ref}]:-}" == "${leader}" ]] || continue
+        if [[ -z "$(catalog_follower_version "${ref}" "${version}")" ]]; then
+            echo "no ${ref} goes with it (${CATALOG_RULE[${ref}]} ${leader}: ${CATALOG_RULE_FROM[${ref}]} -> ${CATALOG_RULE_TO[${ref}]})"
+            return 1
+        fi
+    done
+    return 0
+}
+
+# Sets every followed entry to the version its leader now calls for. ${1}=quiet prints only changes.
+sync_catalog_followers() {
+    local quiet="${1:-}" ref want
+    for ref in "${CATALOG_REFS[@]}"; do
+        case "${CATALOG_RULE[${ref}]:-}" in follows|matches) ;; *) continue ;; esac
+        want=$(catalog_follower_version "${ref}")
+        if [[ -z "${want}" ]]; then
+            warn "${ref}: no version found to go with ${CATALOG_LEADER[${ref}]} ${CATALOG_VERSION[${CATALOG_LEADER[${ref}]}]:-}, left at ${CATALOG_VERSION[${ref}]}"
+        elif [[ "${want}" != "${CATALOG_VERSION[${ref}]}" ]]; then
+            echo "  ${ref}: ${CATALOG_VERSION[${ref}]} → ${want} (${CATALOG_RULE[${ref}]} ${CATALOG_LEADER[${ref}]})"
+            set_catalog_version "${ref}" "${want}"
+        elif [[ "${quiet}" != "quiet" ]]; then
+            echo "  ${ref}=${want} (${CATALOG_RULE[${ref}]} ${CATALOG_LEADER[${ref}]})"
+        fi
+    done
 }
 
 # The AGP version currently in the catalog (as updated so far this run).
@@ -1362,6 +1546,11 @@ catalog_candidate_fits() {
             done
         fi
     done
+
+    if ! reason=$(catalog_followers_fit "${ref}" "${candidate}"); then
+        echo "${reason}"
+        return 1
+    fi
     return 0
 }
 
@@ -1386,6 +1575,11 @@ update_version_catalog() {
     for ref in "${CATALOG_REFS[@]}"; do
         local current="${CATALOG_VERSION[${ref}]}"
         local coords="${CATALOG_COORDS[${ref}]:-}"
+        case "${CATALOG_RULE[${ref}]:-}" in
+            hold)            echo "  ${ref}=${current} (held)"; continue ;;
+            follows|matches) continue ;;  # set by sync_catalog_followers, once every leader is
+            *) ;;
+        esac
         if [[ -z "${coords}" ]]; then
             warn "${ref}: not used by any library or plugin, skipping"
             continue
@@ -1422,6 +1616,10 @@ update_version_catalog() {
         set_catalog_version "${ref}" "${chosen}"
         record_gradle_change catalog "${ref}" "${current}" "${chosen}" <<< "${candidate_versions}"
     done
+
+    # Not recorded as Gradle changes of their own: verify_build takes back and steps down leaders only,
+    # and every follower moves with its leader (set_gradle_version).
+    sync_catalog_followers
 
     ok "Version catalog processed"
 }
@@ -1731,6 +1929,8 @@ update_actionlint() {
 #     one is lower, so a stale pin still "works" - which is exactly why it needs a check)
 #   - NDK: app ndkVersion, and `ndk;X` / `ndk/X` in sandbox/Dockerfile (a mismatch only warns, at
 #     release time, and ships an App Bundle without native symbols)
+#   - Followed version catalog entries (`# @update follows|matches`): each at the version its leader
+#     calls for
 # The workflows are scanned too, so a pin re-added to one is held to the same value - but they are meant
 # to pin none of these: they read the JDK from the toolchain and the SDK packages from
 # app/android/build.gradle.kts at run time, so that the monthly update (pushing with GITHUB_TOKEN, which may not
@@ -1823,6 +2023,23 @@ verify_version_sync() {
     v=$(grep -oP 'EMULATOR_API:-\K[0-9.]+' "${SANDBOX_EMULATOR_SCRIPT}" | head -1 || true)
     entries+=("${v} (${SANDBOX_EMULATOR_SCRIPT} fallback)")
     check_group "Emulator API" "${entries[@]}"
+
+    # ── Followed catalog entries (see "Pinned and paired entries" in section 9) ──
+    local ref leader
+    parse_version_catalog
+    for ref in "${CATALOG_REFS[@]}"; do
+        case "${CATALOG_RULE[${ref}]:-}" in follows|matches) ;; *) continue ;; esac
+        leader="${CATALOG_LEADER[${ref}]}"
+        v=$(catalog_follower_version "${ref}")
+        if [[ -z "${v}" ]]; then
+            err "${ref}: could not work out the version ${leader} ${CATALOG_VERSION[${leader}]:-} calls for"
+            SYNC_FAILED=1
+            continue
+        fi
+        check_group "${ref} (${CATALOG_RULE[${ref}]} ${leader})" \
+            "${CATALOG_VERSION[${ref}]} (${VERSION_CATALOG} ${ref})" \
+            "${v} (what ${leader} ${CATALOG_VERSION[${leader}]:-} calls for)"
+    done
 
     check_emulator_image
 }

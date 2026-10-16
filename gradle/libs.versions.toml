@@ -1,6 +1,6 @@
 [versions]
 agp = "9.4.1"
-kotlin = "2.4.20"
+kotlin = "2.4.21"
 ksp = "2.3.12"
 coreKtx = "1.19.1"
 activityCompose = "1.13.0"
@@ -8,7 +8,9 @@ composeBom = "2026.09.00"
 # Compose Multiplatform (the shared UI). On Android each JetBrains artifact resolves to the androidx
 # one it wraps, so these track the Compose BOM above: CMP 1.12.x is androidx Compose UI 1.12.x, and
 # JetBrains' material3 1.9.x is androidx material3 1.4.x. JetBrains' icons stopped at 1.7.3.
-composeMultiplatform = "1.12.1"
+# @update matches composeBom: org.jetbrains.compose.ui:ui -> androidx.compose.ui:ui
+composeMultiplatform = "1.12.2"
+# @update matches composeBom: org.jetbrains.compose.material3:material3 -> androidx.compose.material3:material3
 composeMultiplatformMaterial3 = "1.9.0"
 composeMultiplatformMaterialIcons = "1.7.3"
 jetbrainsLifecycle = "2.11.0"
@@ -17,22 +19,27 @@ jetbrainsNavigationEvent = "1.1.0"
 navigationCompose = "2.10.2"
 room = "2.8.5"
 # Room's own SQLite interfaces are this version - the bundled driver (iOS) matches it.
-sqlite = "2.7.1"
+# @update follows room: androidx.room:room-runtime -> androidx.sqlite:sqlite
+sqlite = "2.6.2"
 datastore = "1.2.1"
 # DataStore's own file layer, already in the APK through it; the cloud save gzips with it too. Keep it at the
 # version DataStore resolves to, so declaring it adds nothing.
+# @update follows datastore: androidx.datastore:datastore-core-okio -> com.squareup.okio:okio
 okio = "3.9.1"
 junit = "4.13.2"
 androidxJunit = "1.3.0"
 espresso = "3.7.0"
 coroutines = "1.11.0"
 orgJson = "20260814"
-aboutLibraries = "15.2.0"
+aboutLibraries = "15.3.0"
 robolectric = "4.17"
 baselineProfile = "1.5.0"
 uiautomator = "2.4.0"
 profileinstaller = "1.4.1"
 playGames = "22.1.0"
+# Not used by the app: Play Games' play-services-base still asks for fragment 1.1.0, which Play Console reports as
+# outdated, so the Android module raises it to this through a constraint.
+fragment = "1.9.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -58,6 +65,7 @@ robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "
 androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
 androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
 androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "baselineProfile" }
+androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 play-services-games-v2 = { group = "com.google.android.gms", name = "play-services-games-v2", version.ref = "playGames" }
 aboutlibraries-core = { group = "com.mikepenz", name = "aboutlibraries-core", version.ref = "aboutLibraries" }
 
