@@ -16,8 +16,8 @@ internal val LOCALES = Locale.entries
 /** Whether to write the exports: with `-PexportPlayConsole`, which `scripts/export-play-console.sh` passes. */
 internal val exportingPlayConsole: Boolean get() = System.getProperty("dicefive.exportPlayConsole").toBoolean()
 
-/** The gitignored `play-console/` folder at the repo root, where the exports go. */
-internal fun playConsoleDir(): File = File(System.getProperty("dicefive.playConsoleDir").orEmpty().ifBlank { "../../play-console" })
+/** The gitignored `assets/play-console/` folder at the repo root, where the exports go. */
+internal fun playConsoleDir(): File = File(System.getProperty("dicefive.playConsoleDir").orEmpty().ifBlank { "../../assets/play-console" })
 
 private val stringEntry = Regex("""<string name="([^"]+)"[^>]*>(.*?)</string>""", RegexOption.DOT_MATCHES_ALL)
 

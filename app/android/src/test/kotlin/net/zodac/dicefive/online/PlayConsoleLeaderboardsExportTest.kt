@@ -35,7 +35,7 @@ import org.robolectric.annotation.Config
  * Play Console's side of the leaderboards, one per [GameMode] in New Game order, which are made there by hand (it has
  * no import for them): the rules each keeps to there, checked on every run, and (with `-PexportPlayConsole`, which
  * `scripts/export-play-console.sh` passes) the sheet to make them from and their icons, written to the gitignored
- * `play-console/` folder.
+ * `assets/play-console/` folder.
  */
 @RunWith(AndroidJUnit4::class)
 @Config(qualifiers = "w600dp-h900dp-mdpi")

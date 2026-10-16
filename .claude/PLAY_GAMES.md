@@ -148,7 +148,7 @@ Play's overlay: an edge tab that slides out achievements, streaks, offers and re
     builds signed by hand).
   A build whose key has no credential fails sign-in with Google's `DEVELOPER_ERROR`, which only logcat shows (its
   `PlayGamesServices[SignInAuthenticator]` lines print the build's SHA-1); the app sees only "not authenticated".
-- **Sheets**: `scripts/export-play-console.sh` writes the gitignored `play-console/`:
+- **Sheets**: `scripts/export-play-console.sh` writes the gitignored `assets/play-console/`:
   - `achievements-import.zip` for Achievements > Import achievements (metadata, es-ES/es-419/ar localisations, icon
     mappings, icons; no header rows, keyed by English name). Add the translations in Play Console first.
   - `achievements.csv` and `icons/<id>.png` (512px) for review.

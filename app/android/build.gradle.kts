@@ -245,9 +245,9 @@ tasks.withType<Test>().configureEach {
     // A generator run always runs: its output is outside Gradle's view, so an up-to-date skip would leave it stale.
     if (providers.gradleProperty("generateStoreAssets").isPresent) outputs.upToDateWhen { false }
     // `-PexportPlayConsole` makes PlayConsoleExportTest write the achievements sheet and icons for Play Console to the
-    // gitignored play-console/ folder (scripts/export-play-console.sh).
+    // gitignored assets/play-console/ folder (scripts/export-play-console.sh).
     systemProperty("dicefive.exportPlayConsole", providers.gradleProperty("exportPlayConsole").isPresent)
-    systemProperty("dicefive.playConsoleDir", rootProject.file("play-console").absolutePath)
+    systemProperty("dicefive.playConsoleDir", rootProject.file("assets/play-console").absolutePath)
     if (providers.gradleProperty("exportPlayConsole").isPresent) outputs.upToDateWhen { false }
 }
 

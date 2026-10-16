@@ -38,7 +38,7 @@ import org.robolectric.annotation.Config
 /**
  * Play Console's side of the achievements: the rules every one must keep to there, checked on every run, and (with
  * `-PexportPlayConsole`, which `scripts/export-play-console.sh` passes) the sheet and icons to enter them from,
- * written to the gitignored `play-console/` folder.
+ * written to the gitignored `assets/play-console/` folder.
  */
 @RunWith(AndroidJUnit4::class)
 @Config(qualifiers = "w600dp-h900dp-mdpi")
