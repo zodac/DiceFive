@@ -1,11 +1,15 @@
 package net.zodac.dicefive.ui.game
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import net.zodac.dicefive.platform.HapticEffect
 import net.zodac.dicefive.platform.HapticsPlayer
+import kotlinx.coroutines.flow.Flow
 import net.zodac.dicefive.platform.LocalPlatformServices
 
 /** Short vibrations fired alongside [SoundEffects] in [GameScreen]: one tick for a die being held
@@ -18,8 +22,8 @@ class DiceHaptics(createPlayer: () -> HapticsPlayer) {
     private val player by lazy(createPlayer)
     private var playerCreated = false
 
-    /** Set from the Settings screen's "Vibration" switch - see [SoundEffects.enabled] for why
-     * this is a plain var rather than gating at the call site. */
+    /** Follows the Settings screen's "Vibration" switch, set once by [rememberAppHaptics] - see [SoundEffects.enabled]
+     * for why this is a plain var rather than gating at the call site. */
     var enabled: Boolean = true
 
     fun playHoldTick() {
@@ -41,9 +45,26 @@ class DiceHaptics(createPlayer: () -> HapticsPlayer) {
     }
 }
 
+/** The app's one [DiceHaptics] - see [rememberAppHaptics] - or null outside the app (a lone screen in a test). */
+val LocalDiceHaptics = staticCompositionLocalOf<DiceHaptics?> { null }
+
+/** The [DiceHaptics] every screen vibrates through: the app's one ([LocalDiceHaptics]), or else one of its own. */
+@Composable
+fun rememberDiceHaptics(): DiceHaptics = LocalDiceHaptics.current ?: rememberScopedDiceHaptics()
+
+/** The app's one [DiceHaptics], for [LocalDiceHaptics]. It follows [vibrationEnabled] from then on, so no screen sets it. */
+@Composable
+fun rememberAppHaptics(vibrationEnabled: Flow<Boolean>): DiceHaptics {
+    val haptics = rememberScopedDiceHaptics()
+    // Still until the setting has been read.
+    val enabled by vibrationEnabled.collectAsState(initial = false)
+    haptics.enabled = enabled
+    return haptics
+}
+
 /** A [DiceHaptics] scoped to the current composition. */
 @Composable
-fun rememberDiceHaptics(): DiceHaptics {
+private fun rememberScopedDiceHaptics(): DiceHaptics {
     val platform = LocalPlatformServices.current
     val haptics = remember { DiceHaptics(platform::createHapticsPlayer) }
     LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { haptics.cancel() }

@@ -15,15 +15,15 @@ mode changes, decide:
 - **Count the thing, not its proxy.** Bonus chips equal "2nd/3rd 5x" only while the 5x box has one slot;
   `fiveOfAKindCount` counts the 5x themselves.
 
-| Family | Achievements | Ask |
-|---|---|---|
-| Roll count | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Time To Let It Go, Pointless Roll, Greenfingers, Probability? Never Heard of Her | Does "one roll used" or "every roll used" become automatic or impossible? |
-| First roll | House Call, Straight Away, I Can Count! | Is every roll now a first roll, or none? |
-| Holds | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues, Hands Off! (Standard only) | Can dice still be held? |
-| Timer | The timeout guards on low or zeroed cards (`GAME_MODES.md`) | Always or never a timer? |
-| Card contents | How Do You Play This Game?, Spotless, Bonus Round, Upper/Lower Class, Exact Change, the 5x ones | Is each box still there, and do totals mean the same? |
-| Score thresholds | Solid Round ... Dice Deity, Cold Dice, Low Rolls, Ton!, Nice, Rock Bottom, the score bands | Trivial or impossible at this ceiling? |
-| Dice look | Fresh Coat Of Paint, Luck of the Irish | Does the mode draw the player's dice style? |
+| Family           | Achievements                                                                                                                                                        | Ask                                                                       |
+|------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| Roll count       | Impatient, Naturally Gifted, Almost Famous, Natural 5x, The Dice Hate Me, Déjà Vu, Time To Let It Go, Pointless Roll, Greenfingers, Probability? Never Heard of Her | Does "one roll used" or "every roll used" become automatic or impossible? |
+| First roll       | House Call, Straight Away, I Can Count!                                                                                                                             | Is every roll now a first roll, or none?                                  |
+| Holds            | A Cunning Strategy, Decisions Decisions, Time Wasting, Commitment Issues, Hands Off! (Standard only)                                                                | Can dice still be held?                                                   |
+| Timer            | The timeout guards on low or zeroed cards (`GAME_MODES.md`)                                                                                                         | Always or never a timer?                                                  |
+| Card contents    | How Do You Play This Game?, Spotless, Bonus Round, Upper/Lower Class, Exact Change, the 5x ones                                                                     | Is each box still there, and do totals mean the same?                     |
+| Score thresholds | Solid Round ... Dice Deity, Cold Dice, Low Rolls, Ton!, Nice, Rock Bottom, the score bands                                                                          | Trivial or impossible at this ceiling?                                    |
+| Dice look        | Fresh Coat Of Paint, Luck of the Irish                                                                                                                              | Does the mode draw the player's dice style?                               |
 
 The roll helpers `rollsRemainingAfterFirst`/`AfterSecond` are `rollsPerTurn - 1`/`- 2`. With fewer than three rolls
 they reach 0 or below, so read each comparison against them.
@@ -45,14 +45,14 @@ The draw is always three upper and three lower boxes. A short game with small to
 
 **Guarded** (each test fails without its guard):
 
-| Achievement | Why |
-|---|---|
-| Spotless | Six turns without a zero, not thirteen |
-| Cold Dice, Low Rolls, Rock Bottom | The ceiling is 210, so a low total is normal |
-| How Do You Play This Game? | Fewer boxes to zero |
-| Solid Round ... Dice Deity | A total over a different card measures nothing |
-| Upper Class, Lower Class | Section totals over different boxes |
-| Bonus Round | The threshold shrinks with the boxes (18 with only 1s-3s left) |
+| Achievement                       | Why                                                            |
+|-----------------------------------|----------------------------------------------------------------|
+| Spotless                          | Six turns without a zero, not thirteen                         |
+| Cold Dice, Low Rolls, Rock Bottom | The ceiling is 210, so a low total is normal                   |
+| How Do You Play This Game?        | Fewer boxes to zero                                            |
+| Solid Round ... Dice Deity        | A total over a different card measures nothing                 |
+| Upper Class, Lower Class          | Section totals over different boxes                            |
+| Bonus Round                       | The threshold shrinks with the boxes (18 with only 1s-3s left) |
 
 **Can't be earned**:
 - every 5x achievement that needs the box (First 5x, Encore, Hat Trick, Scratched, Twice in a Lifetime);
@@ -95,17 +95,17 @@ A roll isn't a hand, so:
 **Guarded** (`!scoresHeldDiceOnly` / `scoresRolledHand`, plus `singleScoreCard` and Zero To Hero's own condition; Twice
 in a Lifetime is guarded in `GameViewModel`):
 
-| Achievement | Why |
-|---|---|
-| House Call, Straight Away | Seven dice hold these far more often, and nothing is held yet |
-| Natural 5x | Same, on a reroll |
-| The Dice Hate Me | Judged on the roll, which isn't what scores |
-| Almost Famous | A 5x among seven never shows as one, so it was always true |
+| Achievement                                                | Why                                                                            |
+|------------------------------------------------------------|--------------------------------------------------------------------------------|
+| House Call, Straight Away                                  | Seven dice hold these far more often, and nothing is held yet                  |
+| Natural 5x                                                 | Same, on a reroll                                                              |
+| The Dice Hate Me                                           | Judged on the roll, which isn't what scores                                    |
+| Almost Famous                                              | A 5x among seven never shows as one, so it was always true                     |
 | First 5x, Encore, Hat Trick, Twice in a Lifetime, Total 5x | The best five of seven makes 5x easy; Stud's 5x don't count toward `SCORED_5X` |
-| Both Straights, Chance 30, Six Appeal | Routine with the best five of seven |
-| Bonus Round, Upper/Lower Class, Solid Round ... Dice Deity | Totals run well above Standard's |
-| Spotless, Zero To Hero | Zeros are rare |
-| New Personal Best | Off the Leaderboard |
+| Both Straights, Chance 30, Six Appeal                      | Routine with the best five of seven                                            |
+| Bonus Round, Upper/Lower Class, Solid Round ... Dice Deity | Totals run well above Standard's                                               |
+| Spotless, Zero To Hero                                     | Zeros are rare                                                                 |
+| New Personal Best                                          | Off the Leaderboard                                                            |
 
 **Can't be earned**:
 - I Can Count! and Product Placement (seven dice never equal a five-dice sequence);
@@ -133,13 +133,13 @@ The mode's own: Lucky Seven (all seven showing one number).
 
 **Guarded** (`scoresPerCategory == 1` or `countsOnLeaderboard`):
 
-| Achievement | Why |
-|---|---|
-| Solid Round ... Dice Deity | Totals triple (Hard averages over 700) |
-| Upper Class, Lower Class | Pass as a matter of course over 18/21 slots |
-| New Personal Best | Read off the Leaderboard |
-| Zero To Hero | Three zeros in 39 turns is normal |
-| Spotless | Replaced by Third Time's The Charm |
+| Achievement                | Why                                         |
+|----------------------------|---------------------------------------------|
+| Solid Round ... Dice Deity | Totals triple (Hard averages over 700)      |
+| Upper Class, Lower Class   | Pass as a matter of course over 18/21 slots |
+| New Personal Best          | Read off the Leaderboard                    |
+| Zero To Hero               | Three zeros in 39 turns is normal           |
+| Spotless                   | Replaced by Third Time's The Charm          |
 
 **Can't be earned**: Rock Bottom (the minimum is 15), and the score bands.
 
@@ -160,12 +160,12 @@ of 5.
 
 **Guarded** (`hasHitList` / `hasStandardTotals`):
 
-| Achievement | Why |
-|---|---|
+| Achievement                | Why                                    |
+|----------------------------|----------------------------------------|
 | Solid Round ... Dice Deity | Different card; 200 is an average game |
-| Cold Dice, Low Rolls | Under 100 is an ordinary run of misses |
-| Zero To Hero | Misses are normal |
-| Spotless | Partials leave under one zero a game |
+| Cold Dice, Low Rolls       | Under 100 is an ordinary run of misses |
+| Zero To Hero               | Misses are normal                      |
+| Spotless                   | Partials leave under one zero a game   |
 
 **Can't be earned**:
 - the 5x ones, Upper/Lower Class, Bonus Round, Exact Change, Six Appeal, Taking A Chance and Both Straights;

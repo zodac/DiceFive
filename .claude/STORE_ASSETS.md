@@ -5,15 +5,15 @@ the `store-assets` skill. The rest of the Play submission is in `PUBLISHING.md`.
 
 ## Output (`assets/<VERSION>/`, gitignored)
 
-| File | Play's requirement |
-|---|---|
-| `icon-512.png` | 512x512, 32-bit PNG, ≤1MB |
-| `feature-graphic-1024x500.png` | 1024x500, JPEG or 24-bit PNG (no alpha) |
-| `phone/phone-1-game.png` ... `phone-5-achievements.png` | 1440x2560 |
-| `tablet-7/tablet-7-1-game.png` ... `tablet-7-4-achievements.png` | 1440x2560 |
-| `promo-video-1080p60.mp4` | ~25s, 1920x1080, 60fps, H.264; the app's sounds over music (AAC) |
-| `video-credits.txt` | not uploaded: credits for the YouTube description |
-| `contact-sheet.png` | not uploaded: every still, for review |
+| File                                                             | Play's requirement                                               |
+|------------------------------------------------------------------|------------------------------------------------------------------|
+| `icon-512.png`                                                   | 512x512, 32-bit PNG, ≤1MB                                        |
+| `feature-graphic-1024x500.png`                                   | 1024x500, JPEG or 24-bit PNG (no alpha)                          |
+| `phone/phone-1-game.png` ... `phone-5-achievements.png`          | 1440x2560                                                        |
+| `tablet-7/tablet-7-1-game.png` ... `tablet-7-4-achievements.png` | 1440x2560                                                        |
+| `promo-video-1080p60.mp4`                                        | ~25s, 1920x1080, 60fps, H.264; the app's sounds over music (AAC) |
+| `video-credits.txt`                                              | not uploaded: credits for the YouTube description                |
+| `contact-sheet.png`                                              | not uploaded: every still, for review                            |
 
 - **File names** start with the device, so the two folders can't be mixed up in an upload.
 - **`assets/full-description.txt`** is the hand-written listing text. It's the only tracked file under `assets/`

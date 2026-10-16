@@ -19,10 +19,10 @@ its own art and doesn't use colour roles.
 
 ## Two visual systems, deliberately separate
 
-| | App chrome | Game board (`ui/game/`) |
-|---|---|---|
-| Colours from | `MaterialTheme.colorScheme` roles | fixed values in `Color.kt`'s game-table block |
-| Swapped by | nothing: one dark scheme, `Theme.kt` | `ui/game/style/GameVisualTheme` |
+|              | App chrome                           | Game board (`ui/game/`)                       |
+|--------------|--------------------------------------|-----------------------------------------------|
+| Colours from | `MaterialTheme.colorScheme` roles    | fixed values in `Color.kt`'s game-table block |
+| Swapped by   | nothing: one dark scheme, `Theme.kt` | `ui/game/style/GameVisualTheme`               |
 
 - **Keep them apart.** Don't move the board onto colour roles, and don't hardcode chrome colours to match the board.
 - **Where fixed colours live.** Classic styles' colours are named constants in `Color.kt`. Every other style's palette
@@ -34,13 +34,13 @@ its own art and doesn't use colour roles.
 `ui/theme/Color.kt` holds M3 tonal palettes: one hue at fixed chroma per palette, and each role one tone from one
 palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other pairs reliable.
 
-| Role | Seed | What it is |
-|---|---|---|
-| primary | `#FFC14D` | the board's "press this" gold |
-| secondary | `#1E4B86` | the table's felt blue |
-| tertiary | `#1B5E20` | the original brand green |
-| neutral / neutral variant | the blue at very low chroma | cool greys |
-| error | M3 baseline red | |
+| Role                      | Seed                        | What it is                    |
+|---------------------------|-----------------------------|-------------------------------|
+| primary                   | `#FFC14D`                   | the board's "press this" gold |
+| secondary                 | `#1E4B86`                   | the table's felt blue         |
+| tertiary                  | `#1B5E20`                   | the original brand green      |
+| neutral / neutral variant | the blue at very low chroma | cool greys                    |
+| error                     | M3 baseline red             |                               |
 
 - **Never nudge single values by hand.** Change a seed and regenerate the whole set (Material Theme Builder or the M3
   tonal maths).
@@ -78,19 +78,19 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
 
 ## Shared chrome (`ui/common/`)
 
-| File | What it is |
-|---|---|
-| `BrandBackdrop.kt` | The app's one scenery, built from colour roles: a surface gradient, a `primary` spotlight and a faint dice watermark. `showDice = false` drops the dice (the game screen). |
-| `ScreenScaffold.kt` | The frame for every non-menu page: backdrop plus a transparent M3 top app bar with a back arrow and a bold `primary` title. Its content fades in over `PAGE_CONTENT_FADE_IN_MILLIS` (100ms), so late-arriving content eases in. Takes an optional `footer` (`FooterPill`), floated with the content padded by its height, and `horizontalPadding` (24dp default; the scorecard review uses 16). `PageTopBar` is its bar on its own (the results page). |
-| `DiceFiveDialog.kt` | The one dialog shape. Its title is Sora, bold, `primary`, `headlineSmall`, as are `PickerDialog`, About and Licences. New dialogs match. |
-| `AppLogo.kt` | The wordmark under a fan of dice and a cup, drawn live in the player's picks. |
-| `FooterPill.kt` | The gold pill over a page's bottom (Rules' "2 of 6", Settings' version). Spoken forms and live regions go on its `modifier`. |
-| `Scrollbar.kt` | `LazyListScrollbar` (over a `LazyColumn`), `VerticalScrollbar` (a draggable bar in a page margin) and `HorizontalScrollbar` (under a `Row` or `LazyRow`). See "Scrollbars". |
-| `SegmentedChoiceRow.kt` | The one segmented row, generic over the option type. No checkmark icon (`icon = {}`; it crowded labels out). Takes `enabled` and optional per-option glyphs (the timer's "None" is a crossed-out timer, spoken "No timer"). |
-| `ChoicePicker.kt` | `ChoicePicker` and `ModifierPicker`. All styling lives in `PickerField`, `PickerDialog` and `PickerRowText`. |
-| `AppTooltip.kt` | Every tooltip (`AppTooltip`, `OnDemandTooltip`). See the gotchas. |
-| `ShrinkThenWrapText.kt` | Shrinks a label to 12sp at most, then wraps it. Used for tab names, banner titles and Settings labels. |
-| `ForegroundDelay.kt`, `ReduceMotion.kt` | See "Nothing runs in the background" and "Reduced motion". |
+| File                                    | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+|-----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `BrandBackdrop.kt`                      | The app's one scenery, built from colour roles: a surface gradient, a `primary` spotlight and a faint dice watermark. `showDice = false` drops the dice (the game screen).                                                                                                                                                                                                                                                                             |
+| `ScreenScaffold.kt`                     | The frame for every non-menu page: backdrop plus a transparent M3 top app bar with a back arrow and a bold `primary` title. Its content fades in over `PAGE_CONTENT_FADE_IN_MILLIS` (100ms), so late-arriving content eases in. Takes an optional `footer` (`FooterPill`), floated with the content padded by its height, and `horizontalPadding` (24dp default; the scorecard review uses 16). `PageTopBar` is its bar on its own (the results page). |
+| `DiceFiveDialog.kt`                     | The one dialog shape. Its title is Sora, bold, `primary`, `headlineSmall`, as are `PickerDialog`, About and Licences. New dialogs match.                                                                                                                                                                                                                                                                                                               |
+| `AppLogo.kt`                            | The wordmark under a fan of dice and a cup, drawn live in the player's picks.                                                                                                                                                                                                                                                                                                                                                                          |
+| `FooterPill.kt`                         | The gold pill over a page's bottom (Rules' "2 of 6", Settings' version). Spoken forms and live regions go on its `modifier`.                                                                                                                                                                                                                                                                                                                           |
+| `Scrollbar.kt`                          | `LazyListScrollbar` (over a `LazyColumn`), `VerticalScrollbar` (a draggable bar in a page margin) and `HorizontalScrollbar` (under a `Row` or `LazyRow`). See "Scrollbars".                                                                                                                                                                                                                                                                            |
+| `SegmentedChoiceRow.kt`                 | The one segmented row, generic over the option type. No checkmark icon (`icon = {}`; it crowded labels out). Takes `enabled` and optional per-option glyphs (the timer's "None" is a crossed-out timer, spoken "No timer").                                                                                                                                                                                                                            |
+| `ChoicePicker.kt`                       | `ChoicePicker` and `ModifierPicker`. All styling lives in `PickerField`, `PickerDialog` and `PickerRowText`.                                                                                                                                                                                                                                                                                                                                           |
+| `AppTooltip.kt`                         | Every tooltip (`AppTooltip`, `OnDemandTooltip`). See the gotchas.                                                                                                                                                                                                                                                                                                                                                                                      |
+| `ShrinkThenWrapText.kt`                 | Shrinks a label to 12sp at most, then wraps it. Used for tab names, banner titles and Settings labels.                                                                                                                                                                                                                                                                                                                                                 |
+| `ForegroundDelay.kt`, `ReduceMotion.kt` | See "Nothing runs in the background" and "Reduced motion".                                                                                                                                                                                                                                                                                                                                                                                             |
 
 ### PageColumn, insets, page actions
 
@@ -172,8 +172,12 @@ are the patterns). Real TalkBack speech can't be checked here, so the report say
 
 - **All semantics are added, never drawn differently.** `ui/game/BoardSemantics.kt` holds the board's spoken names.
   The board itself is in `UI_BOARD.md`.
+- **A tap plus a long press is `Modifier.accessibleCombinedClickable`** (`ui/common`), never a hand-wired
+  `combinedClickable` with its own semantics. It names both actions for TalkBack, takes `screenReaderClick` where
+  TalkBack's activate differs from a tap, and `clearSemantics` for a tile that speaks for itself
+  (`AccessibleCombinedClickableTest`).
 - **`clearAndSetSemantics` only overrides what's inside it**, so put it *before* `clickable`/`combinedClickable` in
-  the chain. Otherwise the clickable's `onClick` leaks through (`ScreenReaderSemanticsTest`).
+  the chain. Otherwise the clickable's `onClick` leaks through (`ScreenReaderSemanticsTest`). The helper above does.
 - **"Why is this locked?" is one rule everywhere**: a tap shows a short tooltip, a long press opens the full dialog,
   and TalkBack's one action opens that dialog (a tooltip isn't announced). Styles and Achievements both do this.
 - **Raw gestures that shouldn't be buttons** use `detectTapGestures`, so TalkBack isn't handed an unnamed button. The
@@ -256,12 +260,12 @@ in Settings, between the switches and the resets.
 - It has no description, by the maintainer's choice.
 - It isn't inside a `ListItem`, whose intrinsic measuring throws on `BoxWithConstraints`.
 
-| Level | Ambient decoration | Gameplay motion | Score tile pulse | Frames |
-|---|---|---|---|---|
-| **High** (default) | moves | plays | pulses | the screen's rate |
-| **Medium** | still | plays | pulses | ≤60 |
-| **Low** | still | dice flick through faces in place (`simpleDiceRoll`) | steady | ≤30 |
-| **Off** | still | none (`LocalReduceMotion`) | steady | ≤30 |
+| Level              | Ambient decoration | Gameplay motion                                      | Score tile pulse | Frames            |
+|--------------------|--------------------|------------------------------------------------------|------------------|-------------------|
+| **High** (default) | moves              | plays                                                | pulses           | the screen's rate |
+| **Medium**         | still              | plays                                                | pulses           | ≤60               |
+| **Low**            | still              | dice flick through faces in place (`simpleDiceRoll`) | steady           | ≤30               |
+| **Off**            | still              | none (`LocalReduceMotion`)                           | steady           | ≤30               |
 
 **Ambient decoration** is anything that keeps an idle screen redrawing:
 - the menu's drift, `FloatingDiceBackground`, `TwinkleClock`/`rememberArtSeconds` art, the RGB Halo's rings,

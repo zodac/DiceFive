@@ -57,17 +57,17 @@ The working method and the drawing techniques. Elsewhere:
 A theme often shows up in more than one category (Stone dice and mat and background; Circuit mat and background). Paint it
 once, in a function every category calls, rather than copying it. Already shared:
 
-| Painter | What | Used by |
-|---|---|---|
-| `paintFlagstones` (`ThemedMats.kt`) | Flags in running bond, three textured and the rest stamped | Stone mat, Stone background |
-| `paintCircuitBoard` | Traces, pads and chips; `strength` fades it for a background | Circuit mat, Circuit background |
-| `paintPolkaDots` | Dots on a half-stepped grid | Gift Wrap mat, Gift Wrap background |
-| `paintBricks`, `paintMarble`, `paintStone`, `paintPebbledHide`, `paintGlitter` | Textures | Dice, mats, backgrounds and cups of that name |
-| `drawGingham`, `drawStars`, `drawSparkle` | Patterns | Gingham mat and background; Starry mat and background; Glitter art |
-| `drawSoftSpot` (`Patterns.kt`) | A glow fading to `Color.Transparent` | Every soft glow of the two-stop kind |
-| `Path.fourPointStar` | The hollow-sided star | Starry mat, background and dice |
-| `hexagonPoints`, `polygonPath`, `smoothPath` | Outlines | Bestagon art, Honeycomb, Wireframe, Meadow |
-| `insetOutline` | A rounded outline inset from the edge | Leather mat, Leather background |
+| Painter                                                                        | What                                                         | Used by                                                            |
+|--------------------------------------------------------------------------------|--------------------------------------------------------------|--------------------------------------------------------------------|
+| `paintFlagstones` (`ThemedMats.kt`)                                            | Flags in running bond, three textured and the rest stamped   | Stone mat, Stone background                                        |
+| `paintCircuitBoard`                                                            | Traces, pads and chips; `strength` fades it for a background | Circuit mat, Circuit background                                    |
+| `paintPolkaDots`                                                               | Dots on a half-stepped grid                                  | Gift Wrap mat, Gift Wrap background                                |
+| `paintBricks`, `paintMarble`, `paintStone`, `paintPebbledHide`, `paintGlitter` | Textures                                                     | Dice, mats, backgrounds and cups of that name                      |
+| `drawGingham`, `drawStars`, `drawSparkle`                                      | Patterns                                                     | Gingham mat and background; Starry mat and background; Glitter art |
+| `drawSoftSpot` (`Patterns.kt`)                                                 | A glow fading to `Color.Transparent`                         | Every soft glow of the two-stop kind                               |
+| `Path.fourPointStar`                                                           | The hollow-sided star                                        | Starry mat, background and dice                                    |
+| `hexagonPoints`, `polygonPath`, `smoothPath`                                   | Outlines                                                     | Bestagon art, Honeycomb, Wireframe, Meadow                         |
+| `insetOutline`                                                                 | A rounded outline inset from the edge                        | Leather mat, Leather background                                    |
 
 - **Extract without changing a pixel.** Render every dice, cup, mat and background before and after (the `render`
   skill's snapshot approach, one PNG per style) and compare the files byte for byte. Rendering is deterministic, so any

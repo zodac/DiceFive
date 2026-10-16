@@ -44,11 +44,11 @@ import java.time.Duration
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
-import net.zodac.dicefive.ui.settings.ComponentKind
-import net.zodac.dicefive.ui.settings.LicenceScroll
-import net.zodac.dicefive.ui.settings.LicenseGroup
-import net.zodac.dicefive.ui.settings.LicenseReport
-import net.zodac.dicefive.ui.settings.LicensedComponent
+import net.zodac.dicefive.platform.ComponentKind
+import net.zodac.dicefive.platform.LicenceScroll
+import net.zodac.dicefive.platform.LicenseGroup
+import net.zodac.dicefive.platform.LicenseReport
+import net.zodac.dicefive.platform.LicensedComponent
 import net.zodac.dicefive.ui.settings.LicensesDialog
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.hamcrest.Matchers.containsString

@@ -33,19 +33,16 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import net.zodac.dicefive.platform.LicenceScroll
+import net.zodac.dicefive.platform.LicenseReport
+import net.zodac.dicefive.platform.LicensedComponent
+import net.zodac.dicefive.platform.SelectionClearer
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.licences_hide_text
 import net.zodac.dicefive.resources.licences_notices_subtitle
 import net.zodac.dicefive.resources.licences_notices_title
 import net.zodac.dicefive.resources.licences_show_text
 import net.zodac.dicefive.ui.common.stringResource
-
-/** A [SelectionClearer] with nothing to clear - each [ComposeLicenceDocument] section keeps its own selection. */
-internal object NoSelectionClearer : SelectionClearer {
-    override fun clearAll() = Unit
-
-    override fun consumeDismissedTap(): Boolean = false
-}
 
 /**
  * The licence report in plain Compose: one card per licence - its name, what uses it, a "Show

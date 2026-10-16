@@ -15,10 +15,10 @@ import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.platform.SoundEffect
 import net.zodac.dicefive.platform.SoundPlayer
 import net.zodac.dicefive.ui.settings.ComposeLicenceDocument
-import net.zodac.dicefive.ui.settings.LicenceScroll
-import net.zodac.dicefive.ui.settings.LicenseReport
-import net.zodac.dicefive.ui.settings.NoSelectionClearer
-import net.zodac.dicefive.ui.settings.SelectionClearer
+import net.zodac.dicefive.platform.LicenceScroll
+import net.zodac.dicefive.platform.LicenseReport
+import net.zodac.dicefive.platform.NoSelectionClearer
+import net.zodac.dicefive.platform.SelectionClearer
 import platform.AVFAudio.AVAudioPlayer
 import platform.CoreMotion.CMMotionManager
 import platform.Foundation.NSBundle

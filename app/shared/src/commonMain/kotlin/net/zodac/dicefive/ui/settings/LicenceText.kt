@@ -2,12 +2,12 @@ package net.zodac.dicefive.ui.settings
 
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.buildAnnotatedString
+import net.zodac.dicefive.platform.SelectionClearer
 
 /** The annotation tag marking a URL's span in text built by [linkifyUrls]. */
 const val URL_TAG = "url"
@@ -30,23 +30,6 @@ fun linkifyUrls(text: String): AnnotatedString = buildAnnotatedString {
     }
     append(text, cursor, text.length)
 }
-
-/**
- * Drops whatever text is selected in one Licences dialog when a tap lands anywhere in it - the way
- * selection behaves in a browser. Each platform's licence document supplies its own (it's the one
- * that knows what "selected" means for its text view); the dialog provides it via
- * [LocalSelectionClearer] and wires the taps with [clearSelectionsOnTap].
- */
-interface SelectionClearer {
-
-    fun clearAll()
-
-    /** Whether the tap in progress was used up dismissing a selection (and resets it) - so that
-     * same tap doesn't also follow a link. */
-    fun consumeDismissedTap(): Boolean
-}
-
-val LocalSelectionClearer = staticCompositionLocalOf<SelectionClearer?> { null }
 
 /**
  * Calls [SelectionClearer.clearAll] for every tap anywhere in this element. Watches on the Initial

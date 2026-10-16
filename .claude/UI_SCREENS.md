@@ -49,15 +49,15 @@ an empty `LazyColumn` clamps to the top. Reuse this approach for any list that m
 
 The constants are at the top of `AchievementBannerHost.kt`:
 
-| | Value | Why |
-|---|---|---|
-| Position | bottom-anchored stack; the oldest banner in front, each newer one peeking 14dp above | keeps the board clear |
-| Fade in | 180ms on joining the stack | every banner in a burst shows at once |
-| Hold | 4s (5s on screen with the fades) | readable without lingering |
-| Fade out | 820ms | a snap mid-burst reads as a glitch |
-| Stagger | 300ms | deals like cards |
-| Cap | 4 on screen | the rest **wait** (the collector suspends on `snapshotFlow { banners.size }`), none dropped |
-| Swipe | 15% of the width, either way; leaves in 180ms | |
+|          | Value                                                                                | Why                                                                                         |
+|----------|--------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| Position | bottom-anchored stack; the oldest banner in front, each newer one peeking 14dp above | keeps the board clear                                                                       |
+| Fade in  | 180ms on joining the stack                                                           | every banner in a burst shows at once                                                       |
+| Hold     | 4s (5s on screen with the fades)                                                     | readable without lingering                                                                  |
+| Fade out | 820ms                                                                                | a snap mid-burst reads as a glitch                                                          |
+| Stagger  | 300ms                                                                                | deals like cards                                                                            |
+| Cap      | 4 on screen                                                                          | the rest **wait** (the collector suspends on `snapshotFlow { banners.size }`), none dropped |
+| Swipe    | 15% of the width, either way; leaves in 180ms                                        |                                                                                             |
 
 **Interaction.**
 - Only the front banner is interactive and counting down. A promoted one starts a full hold.

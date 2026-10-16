@@ -113,6 +113,7 @@ import net.zodac.dicefive.resources.achievements_unlocked_at
 import net.zodac.dicefive.resources.achievements_locked_only
 import net.zodac.dicefive.resources.achievements_category_count
 import net.zodac.dicefive.resources.achievements_unlocked_count
+import net.zodac.dicefive.ui.common.accessibleCombinedClickable
 import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.AppTooltipState
 import net.zodac.dicefive.ui.common.DiceFiveDialog
@@ -566,20 +567,14 @@ private fun AchievementRow(
                 .then(
                     if (tipMessage != null) {
                         // A tooltip isn't announced, so a screen reader's one action is the dialog, which says the same and more.
-                        Modifier
-                            .semantics(mergeDescendants = true) {
-                                onClick(label = detailsLabel) {
-                                    showDetails = true
-                                    true
-                                }
-                            }
-                            .combinedClickable(
-                                onClickLabel = detailsLabel,
-                                onLongClickLabel = detailsLabel,
-                                role = Role.Button,
-                                onLongClick = { showDetails = true },
-                                onClick = { scope.launch { tooltipState.show() } },
-                            )
+                        Modifier.accessibleCombinedClickable(
+                            onClick = { scope.launch { tooltipState.show() } },
+                            onClickLabel = detailsLabel,
+                            onLongClick = { showDetails = true },
+                            onLongClickLabel = detailsLabel,
+                            role = Role.Button,
+                            screenReaderClick = { showDetails = true },
+                        )
                     } else {
                         Modifier
                     },

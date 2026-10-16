@@ -73,14 +73,14 @@ All numbers here are Standard's. Each comes from the game's `GameMode`.
 **Maximum scores.** These are `GameMode.maxPossibleScore`, each with its derivation as a doc comment.
 `GameModeTest` locks each one by playing the perfect game through the engine.
 
-| Mode | Maximum |
-|---|---|
-| Standard, Stud | 1575 |
-| Tricolour | 2120 |
-| Third Wind | 4725 |
-| D20 | 1350 |
-| Hit List | 785 |
-| Quickfire | 210 |
+| Mode           | Maximum |
+|----------------|---------|
+| Standard, Stud | 1575    |
+| Tricolour      | 2120    |
+| Third Wind     | 4725    |
+| D20            | 1350    |
+| Hit List       | 785     |
+| Quickfire      | 210     |
 
 The Leaderboard pads scores to the digit width of `HIGHEST_POSSIBLE_SCORE` (4 digits).
 
@@ -112,15 +112,15 @@ The first criterion that differs decides it. If all match, it's a true tie with 
 `if (mode == X)`.** A box's own scoring is fixed (`ScoreCategory`); a mode only chooses which boxes are on its card.
 `GAME_MODES.md` covers adding or changing a mode.
 
-| Mode | Rules beyond Standard | Leaderboard |
-|---|---|---|
-| Standard | The official rules. | Yes |
-| Tricolour | Dice also land red, yellow or blue. Four colour boxes: Reds/Yellows/Blues (40 for all five that colour) and Coloured House (25, a joker free-fill like Full House). | Yes |
-| Third Wind | Every box scored three times (39 turns). One upper bonus, tripled (189 earns 105). The joker starts once the 5x box's three slots are used with a 50 among them. | No |
-| Stud | Seven dice rolled, five hold slots; only the held hand scores. A box can be scored with fewer held, and `HandCompletion` completes the hand. | No |
-| D20 | Twenty-sided dice, five rolls. A box per number 1-20 plus a wildcard per half. A 75 bonus per half (at 138 and 388). No 5x, no lower section, no Extended Scores. Always drawn in a D20 style. | No |
-| Hit List | Twelve targets drawn per game plus the Alibi. Hits, exact hits (double) and partial hits. No Extended Scores. | No |
-| Quickfire | 5x plus three random upper and three random lower boxes are off each game: six turns. The upper bonus threshold scales to the upper boxes left. | No |
+| Mode       | Rules beyond Standard                                                                                                                                                                          | Leaderboard |
+|------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| Standard   | The official rules.                                                                                                                                                                            | Yes         |
+| Tricolour  | Dice also land red, yellow or blue. Four colour boxes: Reds/Yellows/Blues (40 for all five that colour) and Coloured House (25, a joker free-fill like Full House).                            | Yes         |
+| Third Wind | Every box scored three times (39 turns). One upper bonus, tripled (189 earns 105). The joker starts once the 5x box's three slots are used with a 50 among them.                               | No          |
+| Stud       | Seven dice rolled, five hold slots; only the held hand scores. A box can be scored with fewer held, and `HandCompletion` completes the hand.                                                   | No          |
+| D20        | Twenty-sided dice, five rolls. A box per number 1-20 plus a wildcard per half. A 75 bonus per half (at 138 and 388). No 5x, no lower section, no Extended Scores. Always drawn in a D20 style. | No          |
+| Hit List   | Twelve targets drawn per game plus the Alibi. Hits, exact hits (double) and partial hits. No Extended Scores.                                                                                  | No          |
+| Quickfire  | 5x plus three random upper and three random lower boxes are off each game: six turns. The upper bonus threshold scales to the upper boxes left.                                                | No          |
 
 A mode off the Leaderboard still records its games for Statistics and career points. The Leaderboard's Game Mode view
 lists it on its own card.
@@ -353,8 +353,10 @@ screen) of `StyleColour`s.
   - The app has one player (`rememberAppSoundEffects`, provided at `DiceFiveApp` as `LocalSoundEffects`). With sound
     on it loads its clips off the main thread a second after launch; otherwise on its first sound. It's held in the
     background and released with the app, so a sound started on one screen carries on to the next.
+  - The app follows the Settings switch itself; no screen passes the setting in.
 - **Haptics.** A tick on hold or unhold, and a buzz for the shake. Settings switches sound and vibration off
-  separately. Only the player's own rolls and holds vibrate: a CPU's roll still plays its sounds but never buzzes.
+  separately. Vibration is wired like sound: one `DiceHaptics` (`rememberAppHaptics`, `LocalDiceHaptics`) that follows
+  the switch. Only the player's own rolls and holds vibrate: a CPU's roll still plays its sounds but never buzzes.
 - **The roll.**
   - As the cup shakes, unheld dice are swept into it.
   - On landing they're thrown up their own columns, bounce off the far wall, and tumble to rest on their results. A

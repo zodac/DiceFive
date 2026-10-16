@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.util.concurrent.atomic.AtomicInteger
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.MutableStateFlow
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
@@ -53,11 +53,11 @@ class SoundEffectsTest {
     private val appShown = mutableStateOf(true)
 
     /** The app's [SoundEffects] with sound [on], and what two screens under it are given. */
-    private fun showApp(platform: CountingPlatform, on: Boolean): List<SoundEffects> {
+    private fun showApp(platform: CountingPlatform, on: Boolean, setting: MutableStateFlow<Boolean> = MutableStateFlow(on)): List<SoundEffects> {
         val seen = mutableListOf<SoundEffects>()
         compose.setContent {
             if (appShown.value) CompositionLocalProvider(LocalPlatformServices provides platform) {
-                val app = rememberAppSoundEffects(flowOf(on))
+                val app = rememberAppSoundEffects(setting)
                 CompositionLocalProvider(LocalSoundEffects provides app) {
                     seen += app
                     seen += rememberSoundEffects()
@@ -91,13 +91,20 @@ class SoundEffectsTest {
     }
 
     @Test
-    fun `with sound off nothing is built until a sound plays`() {
+    fun `with sound off nothing is built or played until it is switched on`() {
         val platform = CountingPlatform()
-        val (app) = showApp(platform, on = false)
+        val setting = MutableStateFlow(false)
+        val (app) = showApp(platform, on = false, setting = setting)
         compose.mainClock.advanceTimeBy(2_000L)
         compose.waitForIdle()
         assertEquals(0, platform.playersBuilt.get())
 
+        app.playHold()
+        assertEquals(0, platform.playersBuilt.get())
+        assertEquals(emptyList<SoundEffect>(), platform.played)
+
+        setting.value = true
+        compose.waitForIdle()
         app.playHold()
         assertEquals(1, platform.playersBuilt.get())
         assertEquals(listOf(SoundEffect.HOLD), platform.played)

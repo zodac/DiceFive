@@ -37,7 +37,7 @@ class GameOverTextTest {
         )
         showcase.show {
             CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
-                DiceFiveTheme { GameOverScreen(state = state, onBackToMenu = {}, onPlayAgain = {}, onReviewScorecards = {}, soundEnabled = false) }
+                DiceFiveTheme { GameOverScreen(state = state, onBackToMenu = {}, onPlayAgain = {}, onReviewScorecards = {}) }
             }
         }
     }

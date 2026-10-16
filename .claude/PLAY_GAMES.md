@@ -9,14 +9,14 @@ follow this one.
 
 One SDK: `com.google.android.gms:play-services-games-v2` (v22.1.0; v1 is frozen).
 
-| Feature | API | Limits that shape the design |
-|---|---|---|
-| Sign-in | `GamesSignInClient` | Automatic whenever the SDK starts. **No sign-out API**. Needs `PlayGamesSdk.initialize()` and the `APP_ID` meta-data |
-| Player | `PlayersClient` | Gamer name, avatar, id |
-| Achievements | `AchievementsClient` | ≤400; **2,000 points** total, ≤200 each, multiples of 5; one icon each (Play draws the locked look); incremental 2-10,000 steps, forward only. **Published ones can't be reset** (drafts can, by testers) |
-| Leaderboards | `LeaderboardsClient` | ≤70; ordering fixed once published; daily/weekly/all-time automatic; ties by submission time. **Can't be reset** |
-| Saved games | `SnapshotsClient` | Named blobs ≤3 MB; conflicts settled by `resolveConflict` |
-| Sidekick | Added by Play to uploaded bundles | Android 13+, 3 GB+ RAM, **installed from Play**; enabled per release. Locked achievements show only after 100+ players in 30 days |
+| Feature      | API                               | Limits that shape the design                                                                                                                                                                              |
+|--------------|-----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Sign-in      | `GamesSignInClient`               | Automatic whenever the SDK starts. **No sign-out API**. Needs `PlayGamesSdk.initialize()` and the `APP_ID` meta-data                                                                                      |
+| Player       | `PlayersClient`                   | Gamer name, avatar, id                                                                                                                                                                                    |
+| Achievements | `AchievementsClient`              | ≤400; **2,000 points** total, ≤200 each, multiples of 5; one icon each (Play draws the locked look); incremental 2-10,000 steps, forward only. **Published ones can't be reset** (drafts can, by testers) |
+| Leaderboards | `LeaderboardsClient`              | ≤70; ordering fixed once published; daily/weekly/all-time automatic; ties by submission time. **Can't be reset**                                                                                          |
+| Saved games  | `SnapshotsClient`                 | Named blobs ≤3 MB; conflicts settled by `resolveConflict`                                                                                                                                                 |
+| Sidekick     | Added by Play to uploaded bundles | Android 13+, 3 GB+ RAM, **installed from Play**; enabled per release. Locked achievements show only after 100+ players in 30 days                                                                         |
 
 - **Cost.** The release APK grew 5.49 MB to 5.83 MB (+346 KB; ~+143 KB compressed), with **no new permission**: v2
   talks to the Play services app, so `INTERNET` isn't merged in.
@@ -95,15 +95,15 @@ app/android/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchievements,
 One snapshot, `dicefive-progress` (`CloudSaveCodec.SNAPSHOT_NAME`, permanent): versioned JSON, gzipped (okio).
 Always on while signed in, with no switch and no prompt. Every sync merges; nothing is picked or thrown away.
 
-| Data | Merge |
-|---|---|
-| Achievement unlocks | Union, earliest time |
-| Achievement counters | `CounterMerge`: `SUM` keeps one share per install (`counter_share_id`, new on each reset) and adds them; `FLAGS` union; win streak `LATEST` |
-| Scores | Union by `ScoreEntry.uuid`, less any at or before `scores_reset_at` |
-| Dismissed stats cards | Union, later kept; dropped once a later game under the name is in the save |
-| Style picks, New Game setup, sound, vibration, confirm-leaving | Last writer wins per key (`synced_at:<key>`); an unstamped one (a pick after Reset achievements) beats one never set |
-| In-progress game | Newest wins (`saved_at`); one this app can't read is never taken |
-| Animations level, Styles page fit | Not saved: they're about the device |
+| Data                                                           | Merge                                                                                                                                       |
+|----------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| Achievement unlocks                                            | Union, earliest time                                                                                                                        |
+| Achievement counters                                           | `CounterMerge`: `SUM` keeps one share per install (`counter_share_id`, new on each reset) and adds them; `FLAGS` union; win streak `LATEST` |
+| Scores                                                         | Union by `ScoreEntry.uuid`, less any at or before `scores_reset_at`                                                                         |
+| Dismissed stats cards                                          | Union, later kept; dropped once a later game under the name is in the save                                                                  |
+| Style picks, New Game setup, sound, vibration, confirm-leaving | Last writer wins per key (`synced_at:<key>`); an unstamped one (a pick after Reset achievements) beats one never set                        |
+| In-progress game                                               | Newest wins (`saved_at`); one this app can't read is never taken                                                                            |
+| Animations level, Styles page fit                              | Not saved: they're about the device                                                                                                         |
 
 - **Ids, not enums**, so an older app carries a newer one's achievements, counters and settings through a merge.
 - **Versions.** Fields are only added within a `version`. An app reads a newer version's known fields but never writes

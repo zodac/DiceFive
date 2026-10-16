@@ -183,7 +183,7 @@ open class TextFitTest {
             listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = "Ana"), PlayerConfig(slot = 2, type = PlayerType.HUMAN, name = "Luis")),
             GameMode.STANDARD,
         )
-        content { GameOverScreen(state = finished, onBackToMenu = {}, onPlayAgain = {}, onReviewScorecards = {}, soundEnabled = false) }
+        content { GameOverScreen(state = finished, onBackToMenu = {}, onPlayAgain = {}, onReviewScorecards = {}) }
         check("Results")
 
         content { AchievementBannerHost(isOnGameScreen = { false }, onAchievementSelected = {}, onStylesSelected = {}) { Box(Modifier.fillMaxSize()) } }

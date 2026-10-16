@@ -49,7 +49,9 @@ import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.game.LeaveGameConfirmation
 import net.zodac.dicefive.ui.game.LeaveGameConfirmationDialog
 import net.zodac.dicefive.ui.game.LocalLeaveGameConfirmation
+import net.zodac.dicefive.ui.game.LocalDiceHaptics
 import net.zodac.dicefive.ui.game.LocalSoundEffects
+import net.zodac.dicefive.ui.game.rememberAppHaptics
 import net.zodac.dicefive.ui.game.rememberAppSoundEffects
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
@@ -122,7 +124,10 @@ fun DiceFiveApp(container: AppContainer, platform: PlatformServices, gameService
         LocalLeaveGameConfirmation provides leaveConfirmation,
     ) {
         // Inside the provider above, for the platform it creates its player from.
-        CompositionLocalProvider(LocalSoundEffects provides rememberAppSoundEffects(container.settingsRepository.soundEnabled)) {
+        CompositionLocalProvider(
+            LocalSoundEffects provides rememberAppSoundEffects(container.settingsRepository.soundEnabled),
+            LocalDiceHaptics provides rememberAppHaptics(container.settingsRepository.vibrationEnabled),
+        ) {
             DiceFiveTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     // Hoisted out of DiceFiveNavHost (which otherwise creates its own) so a banner

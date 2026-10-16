@@ -44,10 +44,10 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.viewinterop.AndroidView
 import java.util.WeakHashMap
 import net.zodac.dicefive.ui.settings.LicenceLabels
-import net.zodac.dicefive.ui.settings.LicenceScroll
-import net.zodac.dicefive.ui.settings.LicenseReport
-import net.zodac.dicefive.ui.settings.LocalSelectionClearer
-import net.zodac.dicefive.ui.settings.SelectionClearer
+import net.zodac.dicefive.platform.LicenceScroll
+import net.zodac.dicefive.platform.LicenseReport
+import net.zodac.dicefive.platform.LocalSelectionClearer
+import net.zodac.dicefive.platform.SelectionClearer
 import net.zodac.dicefive.ui.settings.URL_TAG
 import net.zodac.dicefive.ui.settings.licenceLabels
 import net.zodac.dicefive.ui.settings.linkifyUrls

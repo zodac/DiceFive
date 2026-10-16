@@ -206,7 +206,6 @@ fun GameScreen(
                     onPlayAgain = viewModel::startGame,
                     onReviewScorecards = { reviewingScorecards = true },
                     modifier = modifier,
-                    soundEnabled = soundEnabled,
                     celebrate = !celebrated,
                     onCelebrated = { celebrated = true },
                 )
@@ -258,8 +257,6 @@ fun GameScreen(
                             claimFiveOfAKindFlash = viewModel::claimFiveOfAKindFlash,
                             onTapCupWithNoRollsLeft = viewModel::tapCupWithNoRollsLeft,
                             onShakeRollDetected = viewModel::onShakeRollDetected,
-                            soundEnabled = soundEnabled,
-                            vibrationEnabled = vibrationEnabled,
                             cupShakeMillis = cupShakeMillis,
                         )
                     }
@@ -288,8 +285,6 @@ private fun InProgressGame(
     claimFiveOfAKindFlash: (Int) -> Boolean,
     onTapCupWithNoRollsLeft: () -> Unit,
     onShakeRollDetected: () -> Unit,
-    soundEnabled: Boolean,
-    vibrationEnabled: Boolean,
     cupShakeMillis: Long,
 ) {
     val currentPlayer = state.currentPlayer
@@ -350,9 +345,7 @@ private fun InProgressGame(
     // sound with no shake before it. Which clips play is shakeSound's and landingSounds' choice,
     // from the dice as the shake started (shakenDice) and as they landed.
     val soundEffects = rememberSoundEffects()
-    soundEffects.enabled = soundEnabled
     val haptics = rememberDiceHaptics()
-    haptics.enabled = vibrationEnabled
     val chickenCup = LocalGameVisualTheme.current.diceCupStyle is ChickenDiceCupStyle
     var previousRolling by remember { mutableStateOf(false) }
     var shakenDice by remember { mutableStateOf(state.dice) }

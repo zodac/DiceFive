@@ -5,11 +5,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import net.zodac.dicefive.ui.settings.ComponentKind
+import net.zodac.dicefive.platform.ComponentKind
 import net.zodac.dicefive.ui.settings.LicenceLabels
-import net.zodac.dicefive.ui.settings.LicenseGroup
-import net.zodac.dicefive.ui.settings.LicenseReport
-import net.zodac.dicefive.ui.settings.LicensedComponent
+import net.zodac.dicefive.platform.LicenseGroup
+import net.zodac.dicefive.platform.LicenseReport
+import net.zodac.dicefive.platform.LicensedComponent
 import net.zodac.dicefive.ui.settings.licenceLabels
 import org.junit.Assert.assertEquals
 import org.junit.Rule

@@ -8,7 +8,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -163,6 +162,7 @@ import net.zodac.dicefive.resources.styles_unlock_any
 import net.zodac.dicefive.resources.styles_unlock_count
 import net.zodac.dicefive.resources.styles_unlock_free
 import net.zodac.dicefive.resources.styles_unlock_specific
+import net.zodac.dicefive.ui.common.accessibleCombinedClickable
 import net.zodac.dicefive.ui.common.AppTooltip
 import net.zodac.dicefive.ui.common.ColourDisc
 import net.zodac.dicefive.ui.common.DiceFiveDialog
@@ -1392,29 +1392,19 @@ private fun <T : TableArt> StyleFamilyTile(
                 modifier = Modifier
                     // One radio button in a row of them: the style (and the colour showing, if it has
                     // several), whether it's the pick, and the colour chooser as an action, so neither
-                    // the check badge nor the colour dots is a stop of its own. Ahead of the click handling,
-                    // not behind it: semantics cleared only apply to what sits further in.
-                    .clearAndSetSemantics {
-                        contentDescription = shownDescription
-                        role = Role.RadioButton
-                        selected = picked != null
-                        collectionItemInfo = CollectionItemInfo(rowIndex = 0, rowSpan = 1, columnIndex = position, columnSpan = 1)
-                        onClick(label = selectLabel) {
-                            select(shown.style.id)
-                            true
-                        }
-                        if (hasColours) {
-                            onLongClick(label = chooseVariantLabel) {
-                                choosingColour = true
-                                true
-                            }
-                        }
-                    }
-                    .combinedClickable(
+                    // the check badge nor the colour dots is a stop of its own.
+                    .accessibleCombinedClickable(
                         onClick = { select(shown.style.id) },
+                        onClickLabel = selectLabel,
                         onLongClick = if (hasColours) ({ choosingColour = true }) else null,
                         onLongClickLabel = if (hasColours) chooseVariantLabel else null,
-                    ),
+                        role = Role.RadioButton,
+                        clearSemantics = true,
+                    ) {
+                        contentDescription = shownDescription
+                        selected = picked != null
+                        collectionItemInfo = CollectionItemInfo(rowIndex = 0, rowSpan = 1, columnIndex = position, columnSpan = 1)
+                    },
             ) {
                 if (hasColours) {
                     ColourDots(
@@ -1451,21 +1441,7 @@ private fun <T : TableArt> StyleFamilyTile(
                             preview = preview,
                             modifier = Modifier
                                 // No visible name - but a screen reader still needs to say which is which.
-                                .clearAndSetSemantics {
-                                    contentDescription = colourDescription
-                                    role = Role.RadioButton
-                                    selected = colour.style.id == selectedId
-                                    onClick(label = if (available) selectLabel else showUnlockLabel) {
-                                        if (available) {
-                                            select(colour.style.id)
-                                            choosingColour = false
-                                        } else {
-                                            lockedVariantRequirement = lockedRequirement
-                                        }
-                                        true
-                                    }
-                                }
-                                .combinedClickable(
+                                .accessibleCombinedClickable(
                                     onClick = {
                                         if (available) {
                                             select(colour.style.id)
@@ -1474,10 +1450,14 @@ private fun <T : TableArt> StyleFamilyTile(
                                             lockedVariantRequirement = lockedRequirement
                                         }
                                     },
-                                    onLongClick = if (!available) {
-                                        { lockedVariantRequirement = lockedRequirement }
-                                    } else null,
-                                ),
+                                    onClickLabel = if (available) selectLabel else showUnlockLabel,
+                                    onLongClick = if (!available) ({ lockedVariantRequirement = lockedRequirement }) else null,
+                                    role = Role.RadioButton,
+                                    clearSemantics = true,
+                                ) {
+                                    contentDescription = colourDescription
+                                    selected = colour.style.id == selectedId
+                                },
                         ) {
                             if (!available) {
                                 Box(
@@ -1556,21 +1536,19 @@ private fun <T : TableArt> LockedStyleFamilyTile(
                 modifier = Modifier
                     // A tap shows the short requirement and a long press the dialog. A tooltip isn't announced, so
                     // a screen reader's one action is the dialog, which says the same and more.
-                    .clearAndSetSemantics {
-                        contentDescription = familyName
-                        stateDescription = lockedText
-                        role = Role.Button
-                        collectionItemInfo = CollectionItemInfo(rowIndex = 0, rowSpan = 1, columnIndex = position, columnSpan = 1)
-                        onClick(label = showUnlockLabel) {
-                            showingRequirement = true
-                            true
-                        }
-                    }
-                    .combinedClickable(
+                    .accessibleCombinedClickable(
                         onClick = { scope.launch { tooltipState.show() } },
+                        onClickLabel = showUnlockLabel,
                         onLongClick = { showingRequirement = true },
                         onLongClickLabel = showUnlockLabel,
-                    ),
+                        role = Role.Button,
+                        screenReaderClick = { showingRequirement = true },
+                        clearSemantics = true,
+                    ) {
+                        contentDescription = familyName
+                        stateDescription = lockedText
+                        collectionItemInfo = CollectionItemInfo(rowIndex = 0, rowSpan = 1, columnIndex = position, columnSpan = 1)
+                    },
             ) {
                 // Translucent, so the style still shows through - the lock says "not yet", not "hidden".
                 Box(

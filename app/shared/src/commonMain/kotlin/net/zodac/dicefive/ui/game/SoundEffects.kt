@@ -2,6 +2,8 @@ package net.zodac.dicefive.ui.game
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -37,8 +39,8 @@ class SoundEffects(createPlayer: () -> SoundPlayer) {
     @Volatile
     private var playerCreated = false
 
-    /** Set from the Settings screen's "Sound effects" switch - every play call below returns
-     * before touching the player while this is false, since the setting can flip mid-session
+    /** Follows the Settings screen's "Sound effects" switch, set once by [rememberAppSoundEffects] - every play
+     * call below returns before touching the player while this is false, since the setting can flip mid-session
      * without recreating this instance. */
     var enabled: Boolean = true
 
@@ -94,11 +96,14 @@ fun rememberSoundEffects(): SoundEffects = LocalSoundEffects.current ?: remember
 /**
  * The app's one [SoundEffects], for [LocalSoundEffects]: loaded off the main thread a moment after
  * launch when [soundEnabled] says sound is on (otherwise on its first sound), held while the app is in the
- * background and released when the app leaves composition.
+ * background and released when the app leaves composition. It follows [soundEnabled] from then on, so no screen sets it.
  */
 @Composable
 fun rememberAppSoundEffects(soundEnabled: Flow<Boolean>): SoundEffects {
     val soundEffects = rememberScopedSoundEffects()
+    // Silent until the setting has been read.
+    val enabled by soundEnabled.collectAsState(initial = false)
+    soundEffects.enabled = enabled
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(soundEffects) {
         lifecycle.delayWhileResumed(SOUND_LOAD_DELAY_MILLIS)

@@ -5,9 +5,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import net.zodac.dicefive.ui.settings.LicenceScroll
-import net.zodac.dicefive.ui.settings.LicenseReport
-import net.zodac.dicefive.ui.settings.SelectionClearer
 
 /**
  * What the shared game and UI need from the device underneath them - sound, vibration, the

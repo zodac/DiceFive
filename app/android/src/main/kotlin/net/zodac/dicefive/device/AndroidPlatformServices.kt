@@ -21,9 +21,9 @@ import net.zodac.dicefive.platform.HapticsPlayer
 import net.zodac.dicefive.platform.LicenceReports
 import net.zodac.dicefive.platform.PlatformServices
 import net.zodac.dicefive.platform.SoundPlayer
-import net.zodac.dicefive.ui.settings.LicenceScroll
-import net.zodac.dicefive.ui.settings.LicenseReport
-import net.zodac.dicefive.ui.settings.SelectionClearer
+import net.zodac.dicefive.platform.LicenceScroll
+import net.zodac.dicefive.platform.LicenseReport
+import net.zodac.dicefive.platform.SelectionClearer
 
 /**
  * [PlatformServices] for Android. Holds the application context, never an Activity's: sound

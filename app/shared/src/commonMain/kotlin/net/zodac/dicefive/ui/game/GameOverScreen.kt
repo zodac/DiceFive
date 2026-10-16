@@ -83,7 +83,6 @@ fun GameOverScreen(
     onPlayAgain: () -> Unit,
     onReviewScorecards: () -> Unit,
     modifier: Modifier = Modifier,
-    soundEnabled: Boolean = true,
     celebrate: Boolean = true,
     onCelebrated: () -> Unit = {},
 ) {
@@ -101,7 +100,6 @@ fun GameOverScreen(
     // must not cut this showing's own fireworks short.
     val celebrateNow = remember { celebrate }
     val soundEffects = rememberSoundEffects()
-    soundEffects.enabled = soundEnabled
     // Fires once when this screen is first composed for a finished game, not on every recomposition.
     // [celebrate] is false when returning from the scorecard review, which has already played it.
     LaunchedEffect(Unit) {

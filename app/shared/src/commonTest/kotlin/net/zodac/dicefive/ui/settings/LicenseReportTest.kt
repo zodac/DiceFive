@@ -4,6 +4,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import net.zodac.dicefive.platform.ComponentKind
+import net.zodac.dicefive.platform.ThirdPartyNotice
 
 class LicenseReportTest {
 
