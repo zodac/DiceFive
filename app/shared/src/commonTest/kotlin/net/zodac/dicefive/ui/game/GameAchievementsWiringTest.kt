@@ -419,7 +419,7 @@ class GameAchievementsWiringTest {
 
         // It waits for the dice to land before it pops.
         val tossing = started(CountingDice(1..5))
-        tossing.viewModel.diceTossMillis = 1_000L
+        tossing.viewModel.setPacing(GamePacing(diceTossMillis = 1_000L))
         tossing.viewModel.rollDice()
         advanceTimeBy(999L)
         runCurrent()

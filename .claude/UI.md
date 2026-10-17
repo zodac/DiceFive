@@ -310,7 +310,7 @@ Examples:
   roll is in it, then is simply tipped;
 - page and banner fades are off: a banner burst is all there at once, and a progress count doesn't climb;
 - scores appear rather than count up, and there are no fireworks;
-- **game pacing**: scoring doesn't wait for a toss, and neither does the CPU (`GameViewModel.diceAnimated`), which also
+- **game pacing**: scoring doesn't wait for a toss, and neither does the CPU (`GamePacing.diceAnimated`), which also
   drops `RELEASE_GAP_MS`;
 - **loading**: the Styles page builds every on-screen tile in its first frame, and continuing a game shows only the
   plain backdrop (a spinner after `RESUME_SPINNER_DELAY_MILLIS`).
@@ -321,7 +321,7 @@ Examples:
   shrinks to 100ms (not 0, so `isRolling` is seen changing).
 - **Never shorten the window without re-checking the clips and `SHAKE_HAPTIC_MILLIS`.**
 - The CPU's following pauses (`ROLL_GAP_MS`, `AI_STEP_DELAY_MS`, `AI_REACTION_DELAY_MS`) never change. Only its
-  animation waits go: `diceTossMillis`, `RELEASE_GAP_MS`, and the one-die-at-a-time hold steps (`AI_HOLD_STEP_MS`,
+  animation waits go: `GamePacing.diceTossMillis`, `RELEASE_GAP_MS`, and the one-die-at-a-time hold steps (`AI_HOLD_STEP_MS`,
   `AI_RELEASE_TO_HOLD_GAP_MS`; holds then land together via `changeHolds`).
 - The Game Over fanfare and hold ticks follow their own settings.
 

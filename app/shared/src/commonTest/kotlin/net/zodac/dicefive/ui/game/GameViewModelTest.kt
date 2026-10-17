@@ -331,11 +331,11 @@ class GameViewModelTest {
 
         // A shorter shake window shortens only the shake: the pause before scoring is there so a player can follow the
         // CPU, not to wait for an animation, so it stays.
-        assertEquals(REDUCED_MOTION_CUP_SHAKE_MILLIS + DICE_TOSS_MILLIS + aiStepDelayMs, cpuTurnMillis { cupShakeMillis = REDUCED_MOTION_CUP_SHAKE_MILLIS }.first)
+        assertEquals(REDUCED_MOTION_CUP_SHAKE_MILLIS + DICE_TOSS_MILLIS + aiStepDelayMs, cpuTurnMillis { setPacing(GamePacing(cupShakeMillis = REDUCED_MOTION_CUP_SHAKE_MILLIS)) }.first)
 
         // With the dice not animated there's no toss to wait out: just the shake and the pause before scoring.
-        val (still, stillDice) = cpuTurnMillis { diceAnimated = false }
-        assertEquals(0L, stillDice.diceTossMillis)
+        assertEquals(0L, GamePacing(diceAnimated = false).diceTossMillis)
+        val (still, _) = cpuTurnMillis { setPacing(GamePacing(diceAnimated = false)) }
         assertEquals(CUP_SHAKE_MILLIS + aiStepDelayMs, still)
     }
 

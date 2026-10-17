@@ -181,10 +181,9 @@ fun GameScreen(
     val reduceMotion = LocalReduceMotion.current
     // One length for a human's tap and a CPU's roll, kept in step with the shake sound and buzz - see cupShakeMillis.
     val cupShakeMillis = cupShakeMillis(reduceMotion, soundEnabled, vibrationEnabled)
-    SideEffect { viewModel.cupShakeMillis = cupShakeMillis }
     // Under reduced motion, or the Low level's simple roll, the dice snap to their result, so a CPU has no toss to wait for.
     val simpleRoll = LocalAnimationLevel.current.simpleDiceRoll
-    SideEffect { viewModel.diceAnimated = !reduceMotion && !simpleRoll }
+    SideEffect { viewModel.setPacing(GamePacing(cupShakeMillis = cupShakeMillis, diceAnimated = !reduceMotion && !simpleRoll)) }
     CompositionLocalProvider(
         LocalGameVisualTheme provides tableSettings.visualTheme,
         LocalIrishTricolour provides currentState.isLuckOfTheIrish,

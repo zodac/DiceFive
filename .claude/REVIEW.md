@@ -50,9 +50,3 @@ fade vs a horizontal mask with a clear zone and easing), so one helper would onl
 - The leaderboard tie-break order is written twice, in SQL and as a Kotlin comparator, kept in step by a comment.
 - `material-icons-extended` is frozen at 1.7.3; the app uses about 108 icons from it. Material Symbols vector files
   would get off a dead library and help APK size.
-
-## Found while doing the first batch
-
-- **The view model's timing fields are still public** (`cupShakeMillis`, `diceAnimated`, `diceTossMillis`), written by
-  the screen and set by tests. The screen could pass these in rather than writing them into the view model; the
-  tests that set them (`GameViewModelTest`, `AiReleasePacingTest`, `GameAchievementsWiringTest`) would change with it.

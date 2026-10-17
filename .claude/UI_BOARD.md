@@ -155,7 +155,7 @@ A human's roll (a finger on the cup, or a shake) goes through `GameScreen.onCupT
 sound and haptics, then `GameViewModel.rollDice`.
 - A CPU's roll shakes the same (`aiRolling`) and lands through the same `performRoll`.
 - No roll starts while another is in hand (`rollInHand`, from the shake until the dice settle). In that window the cup
-  ignores taps and is `disabled()` to TalkBack, and the CPU waits out `diceTossMillis`.
+  ignores taps and is `disabled()` to TalkBack, and the CPU waits out `GamePacing.diceTossMillis`.
 - **Don't add another way to roll.** See `GAME_MODES.md`, "Turn flow".
 
 ## Tablets and landscape

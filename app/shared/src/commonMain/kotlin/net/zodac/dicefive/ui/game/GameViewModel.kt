@@ -185,29 +185,16 @@ class GameViewModel(
     val game: StateFlow<GameState?> = _game.asStateFlow()
 
     /**
-     * How long a CPU's roll waits before landing - a human's tap waits the same, in `GameScreen`. Set by
-     * the screen from `cupShakeMillis`, which shortens it only when reduced motion is on and there is no
-     * sound or vibration to keep in step with; the full [CUP_SHAKE_MILLIS] otherwise.
+     * The waits a CPU's turn keeps for the screen's animations - see [GamePacing]. Set by the screen; read by
+     * the game loop on another thread, hence volatile.
      */
     @Volatile
-    var cupShakeMillis: Long = CUP_SHAKE_MILLIS
+    private var pacing = GamePacing()
 
-    /**
-     * Whether the screen animates the dice - tossing them onto the mat, dropping a released one back onto it.
-     * False under reduced motion (the player's "Animations" at Off, or the system's), where they just snap to
-     * where they end up, so a CPU has nothing to wait for. Set by the screen.
-     */
-    @Volatile
-    var diceAnimated: Boolean = true
-
-    /**
-     * How long a CPU waits after a roll lands for the dice to finish tossing onto the mat before it holds,
-     * rerolls or scores - `DICE_TOSS_MILLIS`, or 0 when the dice aren't animated ([diceAnimated]).
-     * Settable so a test can pin it.
-     */
-    @Volatile
-    var diceTossMillis: Long = DICE_TOSS_MILLIS.toLong()
-        get() = if (diceAnimated) field else 0L
+    /** Replaces the CPU's waits with [pacing], as the screen's motion and sound settings change. */
+    fun setPacing(pacing: GamePacing) {
+        this.pacing = pacing
+    }
 
     /** Whether the game is in front of the player - see [setForeground]. */
     private val foreground = MutableStateFlow(true)
@@ -575,7 +562,7 @@ class GameViewModel(
     }
 
     /**
-     * A human's cup tap or phone shake: the cup shakes for [cupShakeMillis] - the same wait a CPU's roll takes, and
+     * A human's cup tap or phone shake: the cup shakes for [GamePacing.cupShakeMillis] - the same wait a CPU's roll takes, and
      * paused the same way (see [setForeground]) - then [rollDice]. Ignored unless it's a human's turn with a roll left
      * and no shake already under way. The shake belongs to the turn it started in: one whose turn is scored first (the
      * turn timer, an undo) is dropped rather than rolling for the next player.
@@ -586,7 +573,7 @@ class GameViewModel(
         tapRollJob = viewModelScope.launch {
             _tapRolling.value = true
             try {
-                pausableDelay(cupShakeMillis)
+                pausableDelay(pacing.cupShakeMillis)
                 rollDice()
             } finally {
                 _tapRolling.value = false
@@ -635,7 +622,7 @@ class GameViewModel(
         heldBackRollUnlocks = null
         if (earned.isEmpty() && !bloomed) return
         viewModelScope.launch {
-            pausableDelay(diceTossMillis)
+            pausableDelay(pacing.diceTossMillis)
             unlockAchievements(earned)
             if (bloomed) checkInProgressAchievements()
         }
@@ -1177,11 +1164,11 @@ class GameViewModel(
 
     /**
      * The CPU's hold changes: every release, then every new hold. One die at a time while the dice are animated
-     * ([toggleHoldsOneByOne]), as a hand would; with them not animated ([diceAnimated] off) that stepping is just
+     * ([toggleHoldsOneByOne]), as a hand would; with them not animated ([GamePacing.diceAnimated] off) that stepping is just
      * motion, so every change lands at once, published together. Returns the state with all of them made.
      */
     private suspend fun changeHolds(state: GameState, toRelease: List<Int>, toHold: List<Int>): GameState {
-        if (!diceAnimated) {
+        if (!pacing.diceAnimated) {
             val current = (toRelease + toHold).fold(state, GameEngine::toggleHold)
             if (current !== state) applyGameState(current, checkForAiTurn = false)
             return current
@@ -1225,7 +1212,7 @@ class GameViewModel(
                     // comment) is published.
                     _aiRolling.value = true
                     try {
-                        pausableDelay(cupShakeMillis)
+                        pausableDelay(pacing.cupShakeMillis)
                         current = performRoll(current, checkForAiTurn = false)
                     } finally {
                         _aiRolling.value = false
@@ -1238,7 +1225,7 @@ class GameViewModel(
                     // The roll is published but the dice are still tossing onto the mat: let them settle
                     // before holding, rerolling or scoring, as a human has to. The hold choice above is
                     // already being worked out meanwhile, so the toss covers up to its own length of thinking.
-                    pausableDelay(diceTossMillis)
+                    pausableDelay(pacing.diceTossMillis)
                     if (holdsChoice == null) break
 
                     // Deliberately outside the block above: choosing what to hold happens once
@@ -1284,7 +1271,7 @@ class GameViewModel(
                     // every loose die off the mat - so after only ROLL_GAP_MS it would be gone again
                     // almost as soon as it landed, reading as a die vanishing rather than being released.
                     // With the dice not animated, a released die is simply back on the mat: nothing to watch land.
-                    pausableDelay(if (releasedAny && diceAnimated) RELEASE_GAP_MS else ROLL_GAP_MS)
+                    pausableDelay(if (releasedAny && pacing.diceAnimated) RELEASE_GAP_MS else ROLL_GAP_MS)
                 }
                 // Where only held dice score, the CPU picks out its hand now it's done rolling - held as a
                 // human would, so the hand it scores is the one in its slots.
