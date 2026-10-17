@@ -1,5 +1,6 @@
 package net.zodac.dicefive.data.scores
 
+import androidx.room.RoomRawQuery
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -28,6 +29,8 @@ private class FakeScoreDao : ScoreDao {
     // As the real queries do, only Leaderboard rows (ScoreEntry.onLeaderboard) are paged, counted,
     // best or collected; career points and Statistics count every row.
     private val leaderboard get() = entries.filter { it.onLeaderboard }
+
+    override suspend fun rawPagedScores(query: RoomRawQuery): List<ScoreEntry> = error("Only the real DAO runs the SQL")
 
     override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> =
         leaderboard.sortedByDescending { it.score }.drop(offset).take(limit)

@@ -4,17 +4,30 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.RawQuery
+import androidx.room.RoomRawQuery
 import androidx.room.Transaction
+import net.zodac.dicefive.game.TieBreak
+import net.zodac.dicefive.game.TieBreakCriterion
 
-/** The Leaderboard's row order - see [ScoreDao.pagedScores]. Shared by every query that pages it. */
-private const val LEADERBOARD_ORDER = """
-            score DESC,
-            fiveOfAKindCount ASC,
-            zeroedCategoryCount DESC,
-            upperSectionTotal ASC,
-            chanceScore ASC,
-            threeOfAKindScore ASC,
-            fourOfAKindScore ASC"""
+/**
+ * The Leaderboard's row order as an `ORDER BY` body: score, then [TieBreak.leaderboardOrder]'s criteria, each in the
+ * direction the live ranking uses. Shared by every query that pages the Leaderboard - see [ScoreDao.pagedScores].
+ */
+internal val LEADERBOARD_ORDER: String = (
+    listOf("score DESC") + TieBreak.leaderboardOrder.map { "${it.criterion.column()} ${if (it.lowerIsBetter) "ASC" else "DESC"}" }
+    ).joinToString(", ")
+
+/** The [ScoreEntry] column that stores this criterion. There is none for the tricolour count, which the Leaderboard leaves out. */
+private fun TieBreakCriterion.column(): String = when (this) {
+    TieBreakCriterion.FIVE_OF_A_KIND_COUNT -> "fiveOfAKindCount"
+    TieBreakCriterion.ZEROED_CATEGORIES -> "zeroedCategoryCount"
+    TieBreakCriterion.UPPER_SECTION_TOTAL -> "upperSectionTotal"
+    TieBreakCriterion.CHANCE -> "chanceScore"
+    TieBreakCriterion.THREE_OF_A_KIND -> "threeOfAKindScore"
+    TieBreakCriterion.FOUR_OF_A_KIND -> "fourOfAKindScore"
+    TieBreakCriterion.TRICOLOUR_SCORED_COUNT -> error("The Leaderboard has no tricolour column")
+}
 
 @Dao
 interface ScoreDao {
@@ -37,20 +50,14 @@ interface ScoreDao {
     /**
      * Ties on [ScoreEntry.score] are broken by the same house rule `GameOverScreen` applies within
      * a single game (see [net.zodac.dicefive.game.TieBreak]) - fewest 5x, most zeroed categories,
-     * lowest upper section, Chance, 3x, then 4x. Keep this in
-     * step with [TieBreak.leaderboardComparator][net.zodac.dicefive.game.TieBreak.leaderboardComparator],
-     * which `ScoresScreen` uses to decide which adjacent rows are a true tie (an equal `=` rank)
-     * versus one this ordering has already broken.
+     * lowest upper section, Chance, 3x, then 4x - the order is built from
+     * [TieBreak.leaderboardOrder], as [TieBreak.leaderboardComparator] is, and
+     * `AndroidAppContainerTest` checks the column mapping against it. `ScoresScreen` uses the comparator to decide
+     * which adjacent rows are a true tie (an equal `=` rank) versus one this ordering has already broken.
      */
-    @Query(
-        """
-        SELECT * FROM scores
-        WHERE onLeaderboard = 1
-        ORDER BY $LEADERBOARD_ORDER
-        LIMIT :limit OFFSET :offset
-        """,
+    suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> = rawPagedScores(
+        pageQuery("onLeaderboard = 1", limit, offset),
     )
-    suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry>
 
     /**
      * [pagedScores] for one game mode's own Leaderboard card - the same ordering, [gameModeId] rows only, and only
@@ -58,15 +65,13 @@ interface ScoreDao {
      * mode on the Combined table that's the same rows as [ScoreEntry.onLeaderboard]; for one that never counts there,
      * its card is the only place its scores are listed.
      */
-    @Query(
-        """
-        SELECT * FROM scores
-        WHERE playedUnmodified = 1 AND gameModeId = :gameModeId
-        ORDER BY $LEADERBOARD_ORDER
-        LIMIT :limit OFFSET :offset
-        """,
+    suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int): List<ScoreEntry> = rawPagedScores(
+        pageQuery("playedUnmodified = 1 AND gameModeId = ?", limit, offset, gameModeId),
     )
-    suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int): List<ScoreEntry>
+
+    /** Runs a [pageQuery]. An `@Query` needs a constant string, so the queries that use [LEADERBOARD_ORDER] are built in code. */
+    @RawQuery
+    suspend fun rawPagedScores(query: RoomRawQuery): List<ScoreEntry>
 
     /** How many rows the Leaderboard shows - see [ScoreEntry.onLeaderboard]. */
     @Query("SELECT COUNT(*) FROM scores WHERE onLeaderboard = 1")
@@ -196,4 +201,14 @@ interface ScoreDao {
         )
         deleteUndoneDismissals()
     }
+}
+
+/** A page of Leaderboard rows matching [where] in [LEADERBOARD_ORDER], with [gameModeId] bound to its one `?` if it has one. */
+private fun pageQuery(where: String, limit: Int, offset: Int, gameModeId: String? = null) = RoomRawQuery(
+    "SELECT * FROM scores WHERE $where ORDER BY $LEADERBOARD_ORDER LIMIT ? OFFSET ?",
+) { statement ->
+    var index = 1
+    if (gameModeId != null) statement.bindText(index++, gameModeId)
+    statement.bindLong(index++, limit.toLong())
+    statement.bindLong(index, offset.toLong())
 }

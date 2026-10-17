@@ -102,6 +102,9 @@ private val LEADERBOARD_CRITERIA = LIVE_GAME_CRITERIA.filterNot { it.id == TieBr
  */
 data class RankedPlayer(val player: PlayerState, val originalIndex: Int, val rank: Int, val tieBreakReason: TieBreakCriterion?)
 
+/** One tie-break criterion in a ranking order, and which way it ranks. */
+data class OrderTerm(val criterion: TieBreakCriterion, val lowerIsBetter: Boolean)
+
 object TieBreak {
 
     /**
@@ -113,9 +116,15 @@ object TieBreak {
 
     /**
      * Leaderboard rows, best first - the same criteria minus the tricolour one. Mirrors
-     * `ScoreDao.pagedScores`'s own `ORDER BY`; keep the two in step.
+     * `ScoreDao.pagedScores`'s own `ORDER BY`, which is built from [leaderboardOrder].
      */
     val leaderboardComparator: Comparator<TieBreakStats> = comparator(LEADERBOARD_CRITERIA)
+
+    /**
+     * The tie-break criteria [leaderboardComparator] applies after the score, in order, each with whether a lower
+     * value ranks higher. `ScoreDao`'s `ORDER BY` is built from this, so the stored order cannot differ from it.
+     */
+    val leaderboardOrder: List<OrderTerm> = LEADERBOARD_CRITERIA.map { OrderTerm(it.id, it.lowerIsBetter) }
 
     /**
      * The first criterion that separates [a] and [b], or null if they're a true tie (every

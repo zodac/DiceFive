@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui.settings
 
+import androidx.room.RoomRawQuery
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
@@ -54,6 +55,7 @@ private class ResetFakePreferences : DataStore<Preferences> {
 /** No scores, and every write ignored. */
 private object EmptyScoreDao : ScoreDao {
     override suspend fun insert(entry: ScoreEntry) = Unit
+    override suspend fun rawPagedScores(query: RoomRawQuery): List<ScoreEntry> = error("Only the real DAO runs the SQL")
     override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> = emptyList()
     override suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int): List<ScoreEntry> = emptyList()
     override suspend fun count(): Int = 0

@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui
 
+import androidx.room.RoomRawQuery
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -37,6 +38,7 @@ private class ListScoreDao(private val rows: List<ScoreEntry>) : ScoreDao {
         rows.filter { if (modeId == null) it.onLeaderboard else it.playedUnmodified && it.gameModeId == modeId }.sortedByDescending { it.score }
 
     override suspend fun insert(entry: ScoreEntry) = Unit
+    override suspend fun rawPagedScores(query: RoomRawQuery): List<ScoreEntry> = error("Only the real DAO runs the SQL")
     override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> {
         pageDelays[offset]?.let { delay(it) }
         return ordered(null).drop(offset).take(limit)

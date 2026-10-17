@@ -15,6 +15,7 @@ import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.data.scores.buildAppDatabase
 import net.zodac.dicefive.data.scores.recordScore
+import net.zodac.dicefive.game.TieBreak
 import net.zodac.dicefive.game.TieBreakStats
 import net.zodac.dicefive.model.GameMode
 import org.junit.Assert.assertEquals
@@ -82,6 +83,34 @@ class AndroidAppContainerTest {
         // Settings are written to and read back from their preferences file.
         container.settingsRepository.setPlayerName(slot = 1, name = "Tester")
         assertEquals("Tester", container.settingsRepository.playerNameFor(1).first())
+    }
+
+    @Test
+    fun `the SQL leaderboard order matches TieBreak's leaderboard comparator on every criterion`() = runTest {
+        val scores = container.scoreRepository
+        // Every combination of a low and a high value in each of the seven criteria, so each one decides some pair.
+        val all = (0 until 128).map { bits ->
+            fun pick(bit: Int) = (bits shr bit) and 1
+            TieBreakStats(
+                score = 100 + pick(0),
+                fiveOfAKindCount = pick(1),
+                zeroedCategoryCount = pick(2),
+                tricolourScoredCount = null,
+                upperSectionTotal = pick(3),
+                chance = pick(4),
+                threeOfAKind = pick(5),
+                fourOfAKind = pick(6),
+            )
+        }
+        // Stored out of order, so the order read back is the query's.
+        for (stats in all.reversed()) {
+            scores.recordScore("P", stats, won = null, isPrimaryPlayer = false)
+        }
+
+        val fromSql = scores.page(0, pageSize = all.size).map {
+            TieBreakStats(it.score, it.fiveOfAKindCount, it.zeroedCategoryCount, null, it.upperSectionTotal, it.chanceScore, it.threeOfAKindScore, it.fourOfAKindScore)
+        }
+        assertEquals(all.sortedWith(TieBreak.leaderboardComparator), fromSql)
     }
 
     @Test

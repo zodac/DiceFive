@@ -471,8 +471,8 @@ private data class RankedEntry(val entry: ScoreEntry, val rank: Int, val isTrueT
 
 /**
  * Assigns each of this page's [entries] its rank, sharing one only for a true tie - the same
- * house-rule ordering `ScoreDao.pagedScores`'s `ORDER BY` already sorted them by (keep the two in
- * step; see [TieBreak.leaderboardComparator]'s doc comment). A tie split across a page boundary
+ * house-rule ordering `ScoreDao.pagedScores`'s `ORDER BY` already sorted them by (built from
+ * [TieBreak.leaderboardOrder]). A tie split across a page boundary
  * isn't caught here - each page only ever compares against its own rows.
  */
 private fun rankEntries(entries: List<ScoreEntry>, pageIndex: Int): List<RankedEntry> {

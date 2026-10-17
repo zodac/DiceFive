@@ -1,5 +1,6 @@
 package net.zodac.dicefive
 
+import androidx.room.RoomRawQuery
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -46,6 +47,7 @@ internal class RowsDao(private val rows: List<ScoreEntry>) : ScoreDao {
         rows.filter { if (modeId == null) it.onLeaderboard else it.playedUnmodified && it.gameModeId == modeId }.sortedByDescending { it.score }
 
     override suspend fun insert(entry: ScoreEntry) = Unit
+    override suspend fun rawPagedScores(query: RoomRawQuery): List<ScoreEntry> = error("Only the real DAO runs the SQL")
     override suspend fun pagedScores(limit: Int, offset: Int) = ordered(null).drop(offset).take(limit)
     override suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int) =
         ordered(gameModeId).drop(offset).take(limit)

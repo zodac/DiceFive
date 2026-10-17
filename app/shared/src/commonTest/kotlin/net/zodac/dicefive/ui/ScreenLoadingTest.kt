@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui
 
+import androidx.room.RoomRawQuery
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -56,6 +57,7 @@ private class GatedEmptyScoreDao : ScoreDao {
     val gate = CompletableDeferred<Unit>()
 
     override suspend fun insert(entry: ScoreEntry) = Unit
+    override suspend fun rawPagedScores(query: RoomRawQuery): List<ScoreEntry> = error("Only the real DAO runs the SQL")
     override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> = gate.await().let { emptyList() }
     override suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int): List<ScoreEntry> =
         gate.await().let { emptyList() }

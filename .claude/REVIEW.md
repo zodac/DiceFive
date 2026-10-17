@@ -37,6 +37,5 @@ fade vs a horizontal mask with a clear zone and easing), so one helper would onl
   `AchievementStore` interface shows the alternative: required dependencies, fakes in tests.
 - `AppContainer.diceRandom` is a public `var` only the store-asset generator uses. Kept: the generator swaps it
   mid-test on the one process-wide container, so a constructor parameter would only move the `var` into a test hook.
-- The leaderboard tie-break order is written twice, in SQL and as a Kotlin comparator, kept in step by a comment.
 - `material-icons-extended` is frozen at 1.7.3; the app uses about 108 icons from it. Material Symbols vector files
   would get off a dead library and help APK size.
