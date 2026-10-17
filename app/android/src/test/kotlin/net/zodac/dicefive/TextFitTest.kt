@@ -160,7 +160,7 @@ open class TextFitTest {
         content { StatisticsScreen(viewModel = statistics, onBack = {}) }
         check("Statistics")
 
-        val achievements = AchievementsViewModel()
+        val achievements = achievementsViewModel()
         content { AchievementsScreen(viewModel = achievements, onBack = {}) }
         check("Achievements")
 

@@ -1,6 +1,5 @@
 package net.zodac.dicefive.data.scores
 
-import androidx.room.RoomRawQuery
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -8,100 +7,6 @@ import kotlinx.coroutines.test.runTest
 import net.zodac.dicefive.game.TieBreakStats
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.model.GameMode
-
-/**
- * Hand-written in-memory double for [ScoreDao] - lets [ScoreRepository]'s
- * pagination logic be verified without a Room/SQLite runtime, which would
- * otherwise need Robolectric or an on-device instrumented test (neither
- * available in this sandbox; see .claude/DESIGN.md's Verification section).
- * The DAO's own `@Query` SQL is deliberately simple (ORDER BY/LIMIT/OFFSET).
- */
-private class FakeScoreDao : ScoreDao {
-    private val entries = mutableListOf<ScoreEntry>()
-    fun rows(): List<ScoreEntry> = entries.toList()
-    private val dismissed = mutableMapOf<String, Long>()
-    private var nextId = 1L
-
-    override suspend fun insert(entry: ScoreEntry) {
-        entries += entry.copy(id = nextId++)
-    }
-
-    // As the real queries do, only Leaderboard rows (ScoreEntry.onLeaderboard) are paged, counted,
-    // best or collected; career points and Statistics count every row.
-    private val leaderboard get() = entries.filter { it.onLeaderboard }
-
-    override suspend fun rawPagedScores(query: RoomRawQuery): List<ScoreEntry> = error("Only the real DAO runs the SQL")
-
-    override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> =
-        leaderboard.sortedByDescending { it.score }.drop(offset).take(limit)
-
-    private fun forMode(gameModeId: String) =
-        entries.filter { it.playedUnmodified && it.gameModeId == gameModeId }
-
-    override suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int): List<ScoreEntry> =
-        forMode(gameModeId).sortedByDescending { it.score }.drop(offset).take(limit)
-
-    override suspend fun count(): Int = leaderboard.size
-
-    override suspend fun countForMode(gameModeId: String): Int = forMode(gameModeId).size
-
-    override suspend fun bestScoreForPlayer(playerName: String): Int? =
-        leaderboard.filter { it.playerName == playerName }.maxOfOrNull { it.score }
-
-    override suspend fun distinctScores(): List<Int> = leaderboard.map { it.score }.distinct()
-
-    override suspend fun primaryPlayerTotalPoints(): Int? =
-        entries.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
-
-    override suspend fun primaryPlayerGameModeIds(): List<String> = entries.filter { it.isPrimaryPlayer }.map { it.gameModeId }.distinct()
-    override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
-
-    override suspend fun playerGames(): List<PlayerGame> =
-        entries.filter { it.playerName !in dismissed }
-            // SQLite's COLLATE NOCASE (for the names used here), then the exact name, then newest first.
-            .sortedWith(compareBy<ScoreEntry>({ it.playerName.lowercase() }, { it.playerName }).thenByDescending { it.timestampEpochMillis })
-            .map { PlayerGame(it.playerName, it.timestampEpochMillis, it.won, it.score, it.fiveOfAKindCount) }
-
-    override suspend fun dismissPlayer(playerName: String, atEpochMillis: Long) {
-        dismissed[playerName] = atEpochMillis
-    }
-
-    override suspend fun clearDismissal(playerName: String) {
-        dismissed -= playerName
-    }
-
-    override suspend fun clearAllScores() {
-        entries.clear()
-    }
-
-    override suspend fun clearAllDismissals() {
-        dismissed.clear()
-    }
-
-    override suspend fun allScores(): List<ScoreEntry> = rows()
-
-    override suspend fun allDismissals(): List<DismissedPlayerStats> = dismissed.map { (name, at) -> DismissedPlayerStats(name, at) }
-
-    override suspend fun insertMissing(entries: List<ScoreEntry>) {
-        for (entry in entries) if (this.entries.none { it.uuid == entry.uuid }) insert(entry)
-    }
-
-    override suspend fun putDismissals(dismissals: List<DismissedPlayerStats>) {
-        for (dismissal in dismissals) dismissed[dismissal.playerName] = dismissal.dismissedAtEpochMillis
-    }
-
-    override suspend fun deleteScoresThrough(epochMillis: Long) {
-        entries.removeAll { it.timestampEpochMillis <= epochMillis }
-    }
-
-    override suspend fun deleteDismissalsThrough(epochMillis: Long) {
-        dismissed.entries.removeAll { it.value <= epochMillis }
-    }
-
-    override suspend fun deleteUndoneDismissals() {
-        dismissed.entries.removeAll { (name, at) -> entries.any { it.playerName.equals(name, ignoreCase = true) && it.timestampEpochMillis > at } }
-    }
-}
 
 /** Records a score for a test that doesn't care about its tie-break stats - all zero bar the score. */
 private suspend fun ScoreRepository.record(
@@ -153,7 +58,7 @@ class ScoreRepositoryTest {
 
     @Test
     fun `the Leaderboard - every score recorded - highest first - paged - by mode - with each name's best - until it's reset`() = runTest {
-        val repository = ScoreRepository(FakeScoreDao())
+        val repository = ScoreRepository(InMemoryScoreDao())
         repository.record("Alice", 150)
         repository.record("Bob", 300)
         repository.record("Carol", 220)
@@ -178,7 +83,7 @@ class ScoreRepositoryTest {
         assertTrue(firstPage.none { entry -> entry.score in secondPage.map { it.score } })
 
         // A mode's page and count hold only that mode's scores - and only those played with no modifier on.
-        val modes = ScoreRepository(FakeScoreDao())
+        val modes = ScoreRepository(InMemoryScoreDao())
         modes.record("Alice", 150, gameMode = GameMode.STANDARD)
         modes.record("Bob", 300, gameMode = GameMode.TRICOLOUR)
         modes.record("Carol", 220, gameMode = GameMode.TRICOLOUR)
@@ -198,7 +103,7 @@ class ScoreRepositoryTest {
 
     @Test
     fun `Statistics - each name's games - best - totals - average - wins and losses - and win streaks with solo games neutral`() = runTest {
-        val repository = ScoreRepository(FakeScoreDao())
+        val repository = ScoreRepository(InMemoryScoreDao())
         repository.record("Alice", 150, timestampEpochMillis = 1_000L)
         repository.record("Alice", 300, timestampEpochMillis = 2_000L)
         repository.record("Bob", 220, timestampEpochMillis = 1_500L)
@@ -210,7 +115,7 @@ class ScoreRepositoryTest {
         assertEquals(1_000L, alice.firstPlayedEpochMillis)
 
         // Totals of score and 5x, solo games counted, and the average rounded to the nearest whole number - a half up.
-        val totals = ScoreRepository(FakeScoreDao())
+        val totals = ScoreRepository(InMemoryScoreDao())
         totals.record("Alice", 100, won = true, fiveOfAKindCount = 1, timestampEpochMillis = 1_000L)
         totals.record("Alice", 201, won = null, fiveOfAKindCount = 2, timestampEpochMillis = 2_000L)
         totals.record("Alice", 100, won = null, timestampEpochMillis = 3_000L)
@@ -220,7 +125,7 @@ class ScoreRepositoryTest {
         assertEquals(2, totalled.soloGames)
         // 401 / 3 = 133.67.
         assertEquals(134, totalled.averageScore)
-        val half = ScoreRepository(FakeScoreDao())
+        val half = ScoreRepository(InMemoryScoreDao())
         half.record("Alice", 100, timestampEpochMillis = 1_000L)
         half.record("Alice", 101, timestampEpochMillis = 2_000L)
         assertEquals(101, half.playerStatistics().single().averageScore)
@@ -228,7 +133,7 @@ class ScoreRepositoryTest {
         // Wins and losses from the recorded outcomes - and the streaks, oldest to newest: a solo (null) game is neutral,
         // not a break; the best streak is the longest run anywhere in the history, not just the current one.
         suspend fun outcomes(vararg won: Boolean?): PlayerStatistics {
-            val history = ScoreRepository(FakeScoreDao())
+            val history = ScoreRepository(InMemoryScoreDao())
             won.forEachIndexed { index, outcome -> history.record("Alice", 100, won = outcome, timestampEpochMillis = 1_000L * (index + 1)) }
             return history.playerStatistics().single()
         }
@@ -246,7 +151,7 @@ class ScoreRepositoryTest {
 
     @Test
     fun `a game records every human player's row - each with the game's mode - time - and whether it counts on the board`() = runTest {
-        val dao = FakeScoreDao()
+        val dao = InMemoryScoreDao()
         val repository = ScoreRepository(dao)
         repository.recordGame(
             listOf(
@@ -274,7 +179,7 @@ class ScoreRepositoryTest {
 
     @Test
     fun `dismissing a player hides their Statistics without touching their scores - until they record another`() = runTest {
-        val repository = ScoreRepository(FakeScoreDao())
+        val repository = ScoreRepository(InMemoryScoreDao())
         repository.record("Alice", 150)
         repository.record("Bob", 300)
 
@@ -289,9 +194,9 @@ class ScoreRepositoryTest {
 
     @Test
     fun `career points sum only the primary player's rows - off the Leaderboard too - and are zero with nothing recorded`() = runTest {
-        assertEquals(0, ScoreRepository(FakeScoreDao()).primaryPlayerTotalPoints())
+        assertEquals(0, ScoreRepository(InMemoryScoreDao()).primaryPlayerTotalPoints())
 
-        val repository = ScoreRepository(FakeScoreDao())
+        val repository = ScoreRepository(InMemoryScoreDao())
         repository.record("Alice", 150, isPrimaryPlayer = true)
         // A second human seat in the same local game - must not count towards Alice's career points.
         repository.record("Bob", 300, isPrimaryPlayer = false)
@@ -299,7 +204,7 @@ class ScoreRepositoryTest {
         assertEquals(400, repository.primaryPlayerTotalPoints())
 
         // A game off the Leaderboard still counts in Statistics and career points.
-        val offBoard = ScoreRepository(FakeScoreDao())
+        val offBoard = ScoreRepository(InMemoryScoreDao())
         offBoard.record("Alice", 200, isPrimaryPlayer = true)
         offBoard.record("Alice", 750, isPrimaryPlayer = true, onLeaderboard = false)
         assertEquals(1, offBoard.totalCount())

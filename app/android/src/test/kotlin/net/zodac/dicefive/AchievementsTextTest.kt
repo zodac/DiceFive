@@ -69,7 +69,7 @@ class AchievementsTextTest {
 
     @Test
     fun `the page is titled - counts what is unlocked - hides a description as three question marks - and each banner says what it is`() {
-        val viewModel = AchievementsViewModel()
+        val viewModel = achievementsViewModel()
         showcase.show {
             CompositionLocalProvider(
                 LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
@@ -121,7 +121,7 @@ class AchievementsTextTest {
             override suspend fun resetAll() = Unit
             override suspend fun forceLock(achievement: Achievement) = Unit
         }
-        val viewModel = AchievementsViewModel(achievementsRepository = store)
+        val viewModel = achievementsViewModel(store = store)
         showcase.show {
             CompositionLocalProvider(
                 LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
@@ -159,7 +159,7 @@ class AchievementsTextTest {
             override suspend fun primaryPlayerGameModeIds(): List<String> = modesPlayed.map { it.id }
             override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
         }
-        val viewModel = AchievementsViewModel(scoreRepository = ScoreRepository(dao))
+        val viewModel = achievementsViewModel(scores = ScoreRepository(dao))
         showcase.show {
             CompositionLocalProvider(
                 LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
@@ -187,7 +187,7 @@ class AchievementsTextTest {
 
     @Test
     fun `a row that unlocks a style shows its tooltip on a tap - and the same words in a dialog on a long press`() {
-        val viewModel = AchievementsViewModel()
+        val viewModel = achievementsViewModel()
         showcase.show {
             CompositionLocalProvider(
                 LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),

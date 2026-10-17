@@ -23,6 +23,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.achievements.InMemoryAchievementStore
 import net.zodac.dicefive.data.scores.DismissedPlayerStats
 import net.zodac.dicefive.data.scores.PlayerGame
@@ -32,6 +33,7 @@ import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.data.settings.SettingsRepository
+import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
 import net.zodac.dicefive.ui.scores.ScoresViewModel
 import net.zodac.dicefive.ui.settings.SettingsToggles
@@ -128,7 +130,7 @@ class ScreenLoadingTest {
         val statistics = StatisticsViewModel(ScoreRepository(statisticsDao))
         // Achievements wait for the leaderboard as well as the unlocks before showing.
         val achievementsDao = GatedEmptyScoreDao()
-        val achievements = AchievementsViewModel(achievementsRepository = InMemoryAchievementStore(), scoreRepository = ScoreRepository(achievementsDao))
+        val achievements = AchievementsViewModel(achievementsRepository = InMemoryAchievementStore(), scoreRepository = ScoreRepository(achievementsDao), onlineSettingsRepository = OnlineSettingsRepository(InMemoryPreferences()))
         backgroundScope.launch(testDispatcher) { achievements.uiState.collect {} }
         advanceUntilIdle()
         assertFalse(scores.uiState.value.isLoaded)

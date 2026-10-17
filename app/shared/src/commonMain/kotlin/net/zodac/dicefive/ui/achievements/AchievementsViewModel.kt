@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -58,23 +57,22 @@ data class AchievementsUiState(
 )
 
 /**
- * Both repositories are nullable so this stays constructible/testable without a Context - see
- * [factory]. [scoreRepository] is here for the score-collection achievements, whose progress is
- * measured against the leaderboard itself rather than a stored counter.
+ * [scoreRepository] is here for the score-collection achievements, whose progress is measured against
+ * the leaderboard itself rather than a stored counter.
  */
 class AchievementsViewModel(
-    private val achievementsRepository: AchievementStore? = null,
-    private val scoreRepository: ScoreRepository? = null,
+    private val achievementsRepository: AchievementStore,
+    scoreRepository: ScoreRepository,
     /** Whether this is a debug build - superuser mode never activates without it. */
     private val isDebugBuild: Boolean = false,
     /** Told when superuser mode activates, so its cheated unlocks are never mirrored online. */
-    private val onlineSettingsRepository: OnlineSettingsRepository? = null,
+    private val onlineSettingsRepository: OnlineSettingsRepository,
 ) : ViewModel() {
 
     // Read once: the leaderboard only changes when a game finishes, which can't happen while this
     // screen is open. Null until read, so the list isn't drawn with the score-collection
     // achievements' progress at zero for a frame before it jumps to the real figure.
-    private val leaderboard = MutableStateFlow(if (scoreRepository == null) LeaderboardTotals() else null)
+    private val leaderboard = MutableStateFlow<LeaderboardTotals?>(null)
 
     // ---- Superuser mode (debug-only) -----------------------------------------------------------
     // A hidden tester's cheat: tap the unlocked-count banner SUPERUSER_TAP_TARGET times to enter
@@ -94,14 +92,14 @@ class AchievementsViewModel(
     // corrupt a shared counter or seed the leaderboard with fake rows.
     private val superuserProgressOverride = MutableStateFlow<Map<Achievement, Int>>(emptyMap())
 
-    private val achievementUnlocker = achievementsRepository?.let(::AchievementUnlocker)
+    private val achievementUnlocker = AchievementUnlocker(achievementsRepository)
 
     private val _toastMessages = Channel<String>(Channel.BUFFERED)
     val toastMessages: Flow<String> = _toastMessages.receiveAsFlow()
 
     val uiState: StateFlow<AchievementsUiState> =
         combine(
-            achievementsRepository?.state ?: flowOf(AchievementsState()),
+            achievementsRepository.state,
             leaderboard,
             superuserProgressOverride,
         ) { state, board, progressOverride ->
@@ -109,9 +107,7 @@ class AchievementsViewModel(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), AchievementsUiState())
 
     init {
-        scoreRepository?.let { repository ->
-            viewModelScope.launch { leaderboard.value = repository.leaderboardTotals() }
-        }
+        viewModelScope.launch { leaderboard.value = scoreRepository.leaderboardTotals() }
     }
 
     /** The unlocked-count banner's tap-5-times entry point into superuser mode. */
@@ -121,7 +117,7 @@ class AchievementsViewModel(
         if (unlockedCountTapCount >= SUPERUSER_TAP_TARGET) {
             unlockedCountTapCount = 0
             _superuserModeActive.value = true
-            onlineSettingsRepository?.let { viewModelScope.launch { it.blockMirroring() } }
+            viewModelScope.launch { onlineSettingsRepository.blockMirroring() }
             _toastMessages.trySend("Superuser mode activated!") // i18n: not translated - a debug-build developer toast
         }
     }
@@ -140,11 +136,10 @@ class AchievementsViewModel(
      */
     fun onSuperuserLongPressTick(achievement: Achievement, tickCount: Int) {
         if (!isDebugBuild || !_superuserModeActive.value) return
-        val repository = achievementsRepository ?: return
         viewModelScope.launch {
-            val before = repository.current()
+            val before = achievementsRepository.current()
             when {
-                before.isUnlocked(achievement) -> if (tickCount == 1) forceLock(repository, achievement)
+                before.isUnlocked(achievement) -> if (tickCount == 1) forceLock(achievement)
                 !achievement.hasProgressBar -> if (tickCount == 1) forceUnlock(achievement)
                 tickCount >= SUPERUSER_FORCE_UNLOCK_TICKS -> forceUnlock(achievement)
                 else -> bumpProgress(achievement, before)
@@ -164,26 +159,25 @@ class AchievementsViewModel(
      */
     fun onBannerLongPress() {
         if (!isDebugBuild || !_superuserModeActive.value) return
-        val repository = achievementsRepository ?: return
         viewModelScope.launch {
-            val before = repository.current()
+            val before = achievementsRepository.current()
             val locked = Achievement.entries.filterNot(before::isUnlocked)
             if (locked.isNotEmpty()) {
-                achievementUnlocker?.unlock(locked.toSet())
+                achievementUnlocker.unlock(locked.toSet())
             } else {
-                Achievement.entries.forEach { repository.forceLock(it) }
+                Achievement.entries.forEach { achievementsRepository.forceLock(it) }
             }
             superuserProgressOverride.value = emptyMap()
         }
     }
 
-    private suspend fun forceLock(repository: AchievementStore, achievement: Achievement) {
-        repository.forceLock(achievement)
+    private suspend fun forceLock(achievement: Achievement) {
+        achievementsRepository.forceLock(achievement)
         superuserProgressOverride.value -= achievement
     }
 
     private suspend fun forceUnlock(achievement: Achievement) {
-        if (achievementUnlocker?.unlock(setOf(achievement))?.isEmpty != false) return
+        if (achievementUnlocker.unlock(setOf(achievement)).isEmpty) return
         superuserProgressOverride.value -= achievement
     }
 

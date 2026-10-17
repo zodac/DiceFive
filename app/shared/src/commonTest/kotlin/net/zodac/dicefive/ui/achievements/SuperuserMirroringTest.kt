@@ -14,6 +14,9 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.data.InMemoryPreferences
+import net.zodac.dicefive.data.achievements.InMemoryAchievementStore
+import net.zodac.dicefive.data.scores.InMemoryScoreDao
+import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.online.OnlineSettingsRepository
 
 /** Superuser mode's cheated unlocks must never reach the online service: entering it blocks mirroring for good. */
@@ -28,7 +31,7 @@ class SuperuserMirroringTest {
 
     private fun blockedAfter(taps: Int, isDebugBuild: Boolean): Boolean {
         val settings = OnlineSettingsRepository(InMemoryPreferences())
-        val viewModel = AchievementsViewModel(isDebugBuild = isDebugBuild, onlineSettingsRepository = settings)
+        val viewModel = AchievementsViewModel(InMemoryAchievementStore(), ScoreRepository(InMemoryScoreDao()), isDebugBuild = isDebugBuild, onlineSettingsRepository = settings)
         var blocked = false
         runTest {
             repeat(taps) { viewModel.onUnlockedCountTapped() }
