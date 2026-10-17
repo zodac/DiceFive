@@ -1,9 +1,11 @@
 package net.zodac.dicefive.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -22,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.heading
@@ -47,8 +50,10 @@ import net.zodac.dicefive.resources.about_privacy_body_online
 import net.zodac.dicefive.resources.about_privacy_heading
 import net.zodac.dicefive.resources.about_privacy_link
 import net.zodac.dicefive.resources.about_title
+import net.zodac.dicefive.ui.common.LARGE_DIALOG_MARGIN
 import net.zodac.dicefive.ui.common.LargeDialog
 import net.zodac.dicefive.ui.common.LargeDialogTitle
+import net.zodac.dicefive.ui.common.VerticalScrollbar
 import net.zodac.dicefive.ui.common.parseInlineMarkup
 import net.zodac.dicefive.ui.common.stringResource
 import org.jetbrains.compose.resources.StringResource
@@ -112,22 +117,31 @@ fun AboutDialog(onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
     val serviceName = services.serviceName.takeIf { services.state.collectAsStateWithLifecycle().value != GameServicesState.Unavailable }
 
     LargeDialog(onDismissRequest = onDismissRequest, closeContentDescription = stringResource(Res.string.about_close_cd), modifier = modifier) {
-        Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-            LargeDialogTitle(stringResource(Res.string.about_title))
-            Spacer(modifier = Modifier.height(16.dp))
+        val scroll = rememberScrollState()
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxSize().verticalScroll(scroll)) {
+                LargeDialogTitle(stringResource(Res.string.about_title))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            val nameStyle = SpanStyle(fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                val nameStyle = SpanStyle(fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
 
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                for (section in ABOUT_SECTIONS) {
-                    AboutSectionCard(
-                        section = section,
-                        serviceName = serviceName,
-                        nameStyle = nameStyle,
-                        onOpenLink = uriHandler::openUri,
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    for (section in ABOUT_SECTIONS) {
+                        AboutSectionCard(
+                            section = section,
+                            serviceName = serviceName,
+                            nameStyle = nameStyle,
+                            onOpenLink = uriHandler::openUri,
+                        )
+                    }
                 }
             }
+            // In the dialog's right-hand margin, beside the cards rather than over them - as in LicensesDialog.
+            VerticalScrollbar(
+                scrollState = scroll,
+                width = LARGE_DIALOG_MARGIN,
+                modifier = Modifier.align(Alignment.TopEnd).offset(x = LARGE_DIALOG_MARGIN),
+            )
         }
     }
 }

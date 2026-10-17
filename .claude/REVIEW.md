@@ -13,10 +13,6 @@ fade vs a horizontal mask with a clear zone and easing), so one helper would onl
 - The setup form (setup state, its restore in `init`, `persistGameConfig`, `persistHumanNames`) could be its own
   ViewModel; it doesn't need the game loop.
 
-## Same kind of action, different behaviour
-
-- **About vs Licences:** both long, scrolling dialogs; About has no app scrollbar, Licences does.
-
 ## Layers and platform separation (iOS, Steam/desktop)
 
 - **The data layer reaches into UI concerns:** `AchievementEvents` / `UnlockedStyle` carry Compose

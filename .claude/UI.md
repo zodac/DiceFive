@@ -331,7 +331,7 @@ Examples:
 ## Scrollbars
 
 - **Every scrolling thing uses the app's own bars**, never a styled platform scrollbar.
-  - Plain scrolling pages (Styles, each Rules page) put a `VerticalScrollbar` in the right margin. The Rules pages share
+  - Plain scrolling pages (Styles, each Rules page) and the About dialog put a `VerticalScrollbar` in the right margin. The Rules pages share
     one beside the pager.
   - The Licences list on Android passes pixel position, max and `scrollBy` (`LicenceScroll`), with the platform
     scrollbar off.
