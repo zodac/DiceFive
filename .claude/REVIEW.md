@@ -16,8 +16,6 @@ fade vs a horizontal mask with a clear zone and easing), so one helper would onl
 ## Same kind of action, different behaviour
 
 - **About vs Licences:** both long, scrolling dialogs; About has no app scrollbar, Licences does.
-- **Buttons:** the menu uses `FilledTonalButton` for destinations, Game Over uses `OutlinedButton`. If intentional,
-  `UI.md` should say so.
 
 ## Layers and platform separation (iOS, Steam/desktop)
 

@@ -112,6 +112,8 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
 - **Collect flows** with `collectAsStateWithLifecycle`, never `collectAsState`. A `Flow` needs `initialValue =`.
 - **Use stock M3 components**, themed by the scheme. No hand-built buttons.
 - **One filled button per screen**, tonal for the rest (the menu: filled Play, tonal destinations).
+  - Game Over is the one exception: filled Play Again, with outlined Main Menu and Review Scorecards. They are exits
+    from a results screen over the table art, not destinations, and the outline keeps them quieter than the tonal fill.
 - **The menu's Play button splits when a game is saved** (`MenuScreen.PlayButton`).
   - It becomes New Game | Continue: the same 56dp pill cut by a 2dp gap, each half a stock `Button` with straight
     inner edges. Both halves stay filled `primary`, because neither is destructive.
