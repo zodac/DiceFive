@@ -38,6 +38,7 @@ import net.zodac.dicefive.ui.achievements.AchievementsViewModel
 import net.zodac.dicefive.ui.scores.ScoresViewModel
 import net.zodac.dicefive.ui.settings.SettingsToggles
 import net.zodac.dicefive.ui.settings.SettingsViewModel
+import net.zodac.dicefive.ui.settings.settingsViewModel
 import net.zodac.dicefive.ui.statistics.StatisticsViewModel
 
 /** In-memory preferences, so a real [SettingsRepository] can hold the saved switches. */
@@ -101,13 +102,11 @@ class ScreenLoadingTest {
     }
 
     @Test
-    fun `settings switches arrive together with their saved values and never as defaults - or straight away with none saved`() = runTest(testDispatcher) {
-        assertEquals(SettingsToggles(), SettingsViewModel().toggles.value)
-
+    fun `settings switches arrive together with their saved values and never as defaults`() = runTest(testDispatcher) {
         val repository = SettingsRepository(LoadingPreferencesStore())
         repository.setSoundEnabled(false)
         repository.setAnimationLevel(AnimationLevel.LOW)
-        val viewModel = SettingsViewModel(settingsRepository = repository)
+        val viewModel = settingsViewModel(settings = repository)
         assertNull(viewModel.toggles.value)
 
         val shown = mutableListOf<SettingsToggles>()

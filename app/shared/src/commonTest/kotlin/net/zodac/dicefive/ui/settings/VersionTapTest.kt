@@ -27,7 +27,7 @@ class VersionTapTest {
     /** Whether taps on the version number at each of [times] earn Are You A Developer?. */
     private fun earnedBy(vararg times: Long): Boolean {
         val store = InMemoryAchievementStore()
-        val viewModel = SettingsViewModel(achievementsRepository = store)
+        val viewModel = settingsViewModel(achievements = store)
         var earned = false
         runTest {
             times.forEach { viewModel.onVersionTapped(it) }

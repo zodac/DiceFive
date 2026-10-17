@@ -55,7 +55,7 @@ class OnlineAchievementsRowTest {
     val compose = createComposeRule()
 
     private fun show(services: GameServices) {
-        val viewModel = SettingsViewModel(settingsRepository = SettingsRepository(InMemoryPreferences()))
+        val viewModel = settingsViewModel()
         compose.setContent {
             CompositionLocalProvider(
                 LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),

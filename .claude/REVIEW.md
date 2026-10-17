@@ -33,11 +33,10 @@ fade vs a horizontal mask with a clear zone and easing), so one helper would onl
 
 ## Smaller best-practice items
 
-- Most ViewModels still take nullable repositories so they can be built in tests, spreading `?: return` checks. The
-  `AchievementStore` interface shows the alternative: required dependencies, fakes in tests. `StatisticsViewModel` is
-  done. Left as is on purpose: `ScoresViewModel`, whose `ScoresWarmUp` draws from a made-up board with no repository.
-  The shared test fakes are in place (`InMemoryAchievementStore`, `InMemoryPreferences` in `commonTest`), so the rest
-  (Menu, Styles, Achievements, Settings, Game; 9-37 test sites each) can go required, one ViewModel per commit.
+- `StylesViewModel` and `GameViewModel` still take nullable repositories. Each is built with none by a `@Preview` in
+  production code (`StylesScreenPreview`, `GameScreenPreview`), and `ScoresViewModel` by `ScoresWarmUp`, which draws
+  from a made-up board. Required repositories would mean dropping those previews or shipping in-memory fakes in
+  `commonMain`. Menu, Statistics, Achievements and Settings take theirs required.
 - `AppContainer.diceRandom` is a public `var` only the store-asset generator uses. Kept: the generator swaps it
   mid-test on the one process-wide container, so a constructor parameter would only move the `var` into a test hook.
 - `material-icons-extended` is frozen at 1.7.3; the app uses about 108 icons from it. Material Symbols vector files

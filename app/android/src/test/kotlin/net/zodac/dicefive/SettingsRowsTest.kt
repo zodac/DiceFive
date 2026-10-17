@@ -60,7 +60,7 @@ class SettingsRowsTest {
 
     @Test
     fun `every setting is named - an on-off one a single toggle - Animations four levels - each reset a button row confirming what it will do`() {
-        val viewModel = SettingsViewModel(settingsRepository = SettingsRepository(InMemoryPreferences()))
+        val viewModel = settingsViewModel()
         compose.setContent {
             // Only for the version line at the foot of the page.
             CompositionLocalProvider(LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext())) {

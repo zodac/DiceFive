@@ -33,60 +33,49 @@ data class SettingsToggles(
     val confirmBeforeLeavingGame: Boolean = true,
 )
 
-/** All repositories are nullable so this stays constructible/testable without a Context - see [factory]. */
 class SettingsViewModel(
-    private val settingsRepository: SettingsRepository? = null,
-    private val achievementsRepository: AchievementStore? = null,
-    private val scoreRepository: ScoreRepository? = null,
-    private val onlineSettingsRepository: OnlineSettingsRepository? = null,
+    private val settingsRepository: SettingsRepository,
+    private val achievementsRepository: AchievementStore,
+    private val scoreRepository: ScoreRepository,
+    private val onlineSettingsRepository: OnlineSettingsRepository,
     private val now: () -> Long = ::nowEpochMillis,
 ) : ViewModel() {
 
     /**
      * Null until every setting's saved value has loaded - all four together, so the screen never
      * draws a setting in its default position for a frame before flipping it to the player's own.
-     * With no repository, straight to the defaults.
      */
-    val toggles: StateFlow<SettingsToggles?> = if (settingsRepository == null) {
-        MutableStateFlow(SettingsToggles())
-    } else {
-        combine(
-            settingsRepository.soundEnabled,
-            settingsRepository.vibrationEnabled,
-            settingsRepository.animationLevel,
-            settingsRepository.confirmBeforeLeavingGame,
-            ::SettingsToggles,
-        ).stateIn(viewModelScope, SharingStarted.Eagerly, null)
-    }
+    val toggles: StateFlow<SettingsToggles?> = combine(
+        settingsRepository.soundEnabled,
+        settingsRepository.vibrationEnabled,
+        settingsRepository.animationLevel,
+        settingsRepository.confirmBeforeLeavingGame,
+        ::SettingsToggles,
+    ).stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     fun setConfirmBeforeLeavingGame(confirm: Boolean) {
-        val repository = settingsRepository ?: return
-        viewModelScope.launch { repository.setConfirmBeforeLeavingGame(confirm) }
+        viewModelScope.launch { settingsRepository.setConfirmBeforeLeavingGame(confirm) }
     }
 
     fun setSoundEnabled(enabled: Boolean) {
-        val repository = settingsRepository ?: return
-        viewModelScope.launch { repository.setSoundEnabled(enabled) }
+        viewModelScope.launch { settingsRepository.setSoundEnabled(enabled) }
     }
 
     fun setVibrationEnabled(enabled: Boolean) {
-        val repository = settingsRepository ?: return
-        viewModelScope.launch { repository.setVibrationEnabled(enabled) }
+        viewModelScope.launch { settingsRepository.setVibrationEnabled(enabled) }
     }
 
     fun setAnimationLevel(level: AnimationLevel) {
-        val repository = settingsRepository ?: return
-        viewModelScope.launch { repository.setAnimationLevel(level) }
+        viewModelScope.launch { settingsRepository.setAnimationLevel(level) }
     }
 
-    private val achievementUnlocker = achievementsRepository?.let(::AchievementUnlocker)
+    private val achievementUnlocker = AchievementUnlocker(achievementsRepository)
 
     /** Backs the one achievement this screen itself can earn - opening the About dialog
      * ("Who Made This?"). Same fire-and-check-once pattern as
      * [net.zodac.dicefive.ui.menu.MenuViewModel.onDiceTapped]. */
     fun onAboutViewed() {
-        val unlocker = achievementUnlocker ?: return
-        viewModelScope.launch { unlocker.unlock(setOf(Achievement.WHO_MADE_THIS)) }
+        viewModelScope.launch { achievementUnlocker.unlock(setOf(Achievement.WHO_MADE_THIS)) }
     }
 
     private var versionTaps = 0
@@ -102,8 +91,7 @@ class SettingsViewModel(
         lastVersionTapMillis = nowMillis
         if (versionTaps < VERSION_TAP_TARGET) return
         versionTaps = 0
-        val unlocker = achievementUnlocker ?: return
-        viewModelScope.launch { unlocker.unlock(setOf(Achievement.ARE_YOU_A_DEVELOPER)) }
+        viewModelScope.launch { achievementUnlocker.unlock(setOf(Achievement.ARE_YOU_A_DEVELOPER)) }
     }
 
     /**
@@ -117,10 +105,9 @@ class SettingsViewModel(
      * achievements back, and the picks with them ([SettingsRepository.unstampStylePicks]).
      */
     fun resetAchievements() {
-        val repository = achievementsRepository ?: return
         viewModelScope.launch {
-            repository.resetAll()
-            settingsRepository?.let { resetLockedStylePicks(it) }
+            achievementsRepository.resetAll()
+            resetLockedStylePicks(settingsRepository)
         }
     }
 
@@ -143,10 +130,9 @@ class SettingsViewModel(
      * from before it ([OnlineSettingsRepository.scoresResetAt]). The online service's own leaderboards keep theirs.
      */
     fun resetLeaderboard() {
-        val repository = scoreRepository ?: return
         viewModelScope.launch {
-            onlineSettingsRepository?.setScoresResetAt(now())
-            repository.resetLeaderboard()
+            onlineSettingsRepository.setScoresResetAt(now())
+            scoreRepository.resetLeaderboard()
             OnlineSyncRequests.request()
         }
     }

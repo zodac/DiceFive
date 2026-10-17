@@ -145,7 +145,7 @@ open class TextFitTest {
         content { MenuScreen(hasInProgressGame = true, onContinue = {}, onNewGame = {}, onScores = {}, onStatistics = {}, onAchievements = {}, onStyles = {}, onRules = {}, onSettings = {}) }
         check("Menu")
 
-        val settings = SettingsViewModel(settingsRepository = net.zodac.dicefive.data.settings.SettingsRepository(InMemoryPreferences()))
+        val settings = settingsViewModel()
         content { SettingsScreen(viewModel = settings, onBack = {}) }
         check("Settings")
 
