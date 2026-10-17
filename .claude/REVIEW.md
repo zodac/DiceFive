@@ -31,9 +31,6 @@ fade vs a horizontal mask with a clear zone and easing), so one helper would onl
 - **App-wide pieces live under `ui/game`:** `SoundEffects`, `LeaveGameConfirmation` and the sound wiring are provided
   at the root. The style catalog (ids, unlock rules) is used by game logic and ViewModels but lives in
   `ui/game/style`. Consider a UI-free style registry in `model/`, with the drawing code registered from `ui/`.
-- **Building the app container is copied per platform.** `AndroidAppContainer` and `IosAppContainer` build the same
-  four DataStores and the database. Add a common `AppContainer.create(dataDir, databaseBuilder, buildInfo)`; a
-  Steam/desktop build would otherwise be the third copy.
 - **No shared JVM source set.** The Android `Diacritics` and `PlayerName` actuals are plain `java.text`, and Room and
   DataStore both run on desktop. An intermediate `jvmMain` shared by Android and desktop avoids copying those. The
   five formatter caches in `Formatting.android.kt` / `Formatting.ios.kt` repeat one pattern; one small cache helper

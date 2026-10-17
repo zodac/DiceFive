@@ -10,10 +10,15 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import androidx.room.RoomDatabase
+import net.zodac.dicefive.data.PreferencesFile
 import net.zodac.dicefive.data.achievements.AchievementsRepository
+import net.zodac.dicefive.data.createPreferencesDataStore
 import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.data.orNullOnFailure
+import net.zodac.dicefive.data.scores.AppDatabase
 import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.data.scores.buildAppDatabase
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.savedStylesFlow
@@ -64,6 +69,25 @@ class AppContainer(
     // estimating. StandardPerfectPlayTableTest keeps the bundled one whole and current.
     private suspend fun loadStandardPerfectPlayTable(): StandardPerfectPlayTable? =
         orNullOnFailure { StandardPerfectPlayTable.decode(Res.readBytes(StandardPerfectPlayTable.RESOURCE_PATH)) }
+
+    companion object {
+        /**
+         * Builds the container every platform shares: the scores database from the platform's
+         * [databaseBuilder] (its driver and path), and one DataStore per [PreferencesFile] in [dataDir].
+         */
+        fun create(dataDir: String, databaseBuilder: RoomDatabase.Builder<AppDatabase>, buildInfo: BuildInfo): AppContainer {
+            fun dataStore(file: PreferencesFile) = createPreferencesDataStore("$dataDir/${file.fileName}")
+
+            return AppContainer(
+                scoreRepository = ScoreRepository(databaseBuilder.buildAppDatabase().scoreDao()),
+                settingsRepository = SettingsRepository(dataStore(PreferencesFile.SETTINGS)),
+                achievementsRepository = AchievementsRepository(dataStore(PreferencesFile.ACHIEVEMENTS)),
+                inProgressGameRepository = InProgressGameRepository(dataStore(PreferencesFile.IN_PROGRESS_GAME)),
+                onlineSettingsRepository = OnlineSettingsRepository(dataStore(PreferencesFile.ONLINE)),
+                buildInfo = buildInfo,
+            )
+        }
+    }
 }
 
 val LocalAppContainer = staticCompositionLocalOf<AppContainer> {

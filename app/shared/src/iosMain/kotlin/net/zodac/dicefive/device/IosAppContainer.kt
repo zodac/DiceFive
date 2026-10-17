@@ -3,12 +3,6 @@ package net.zodac.dicefive.device
 import kotlin.experimental.ExperimentalNativeApi
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.app.BuildInfo
-import net.zodac.dicefive.data.PreferencesFile
-import net.zodac.dicefive.data.achievements.AchievementsRepository
-import net.zodac.dicefive.data.game.InProgressGameRepository
-import net.zodac.dicefive.data.scores.ScoreRepository
-import net.zodac.dicefive.data.settings.SettingsRepository
-import net.zodac.dicefive.online.OnlineSettingsRepository
 import platform.Foundation.NSBundle
 
 /**
@@ -20,12 +14,9 @@ internal object IosAppContainer {
 
     @OptIn(ExperimentalNativeApi::class)
     val instance: AppContainer by lazy {
-        AppContainer(
-            scoreRepository = ScoreRepository(createIosAppDatabase().scoreDao()),
-            settingsRepository = SettingsRepository(createIosPreferencesDataStore(PreferencesFile.SETTINGS)),
-            achievementsRepository = AchievementsRepository(createIosPreferencesDataStore(PreferencesFile.ACHIEVEMENTS)),
-            inProgressGameRepository = InProgressGameRepository(createIosPreferencesDataStore(PreferencesFile.IN_PROGRESS_GAME)),
-            onlineSettingsRepository = OnlineSettingsRepository(createIosPreferencesDataStore(PreferencesFile.ONLINE)),
+        AppContainer.create(
+            dataDir = appDataDirectory,
+            databaseBuilder = iosAppDatabaseBuilder(),
             buildInfo = BuildInfo(
                 versionName = NSBundle.mainBundle.objectForInfoDictionaryKey("CFBundleShortVersionString") as? String ?: "?",
                 isDebug = Platform.isDebugBinary,

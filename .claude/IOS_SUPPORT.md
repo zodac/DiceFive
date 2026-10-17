@@ -60,8 +60,9 @@ app/
 - **Text.** `expect fun stripDiacritics` (iOS: `stringByFoldingWithOptions(NSDiacriticInsensitiveSearch)`).
 - **Persistence.**
   - Room KMP: `@ConstructedBy(AppDatabaseConstructor)`, KSP per target. Android uses framework SQLite; iOS uses
-    `BundledSQLiteDriver` (`createIosAppDatabase`, in Application Support).
-  - DataStore: `createPreferencesDataStore(path)` with the `PreferencesFile` names.
+    `BundledSQLiteDriver` (`iosAppDatabaseBuilder`, in Application Support).
+  - DataStore: `createPreferencesDataStore(path)` with the `PreferencesFile` names; `AppContainer.create(dataDir,
+    databaseBuilder, buildInfo)` builds the container for every platform.
   - Tests: `AndroidAppContainerTest`.
 - **UI.**
   - On Android, the CMP artifacts resolve to androidx, so it's the same Compose.
