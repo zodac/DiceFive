@@ -156,7 +156,7 @@ open class TextFitTest {
         content { ScoresScreen(viewModel = scores, onBack = {}) }
         check("Leaderboard")
 
-        val statistics = StatisticsViewModel()
+        val statistics = StatisticsViewModel(ScoreRepository(RowsDao(emptyList())))
         content { StatisticsScreen(viewModel = statistics, onBack = {}) }
         check("Statistics")
 

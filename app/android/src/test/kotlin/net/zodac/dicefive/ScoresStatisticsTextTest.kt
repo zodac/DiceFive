@@ -41,7 +41,7 @@ class ScoresStatisticsTextTest {
         showScores(listOf(rowOf(1, 300, GameMode.STANDARD)))
         listOf("#", "Player", "5x", "Score").forEach { compose.onAllNodesWithText(it).assertCountEquals(1) }
 
-        val viewModel = StatisticsViewModel()
+        val viewModel = StatisticsViewModel(ScoreRepository(RowsDao(emptyList())))
         showcase.show { DiceFiveTheme { StatisticsScreen(viewModel = viewModel, onBack = {}) } }
         compose.onNodeWithText("Statistics").assertExists()
         compose.onNodeWithText("No stats yet - play a game!").assertExists()

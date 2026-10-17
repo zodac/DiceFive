@@ -21,10 +21,9 @@ data class StatisticsUiState(
     val isLoaded: Boolean = false,
 )
 
-/** [scoreRepository] is nullable so this stays constructible/testable without a Context - see [factory]. */
-class StatisticsViewModel(private val scoreRepository: ScoreRepository? = null) : ViewModel() {
+class StatisticsViewModel(private val scoreRepository: ScoreRepository) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(StatisticsUiState(isLoaded = scoreRepository == null))
+    private val _uiState = MutableStateFlow(StatisticsUiState())
     val uiState: StateFlow<StatisticsUiState> = _uiState.asStateFlow()
 
     init {
@@ -32,18 +31,16 @@ class StatisticsViewModel(private val scoreRepository: ScoreRepository? = null) 
     }
 
     private fun load() {
-        val repository = scoreRepository ?: return
         viewModelScope.launch {
-            val players = repository.playerStatistics()
+            val players = scoreRepository.playerStatistics()
             _uiState.update { it.copy(players = players, isLoaded = true) }
         }
     }
 
     /** Hides [playerName]'s card from this screen - their leaderboard history is untouched. */
     fun dismissPlayer(playerName: String) {
-        val repository = scoreRepository ?: return
         viewModelScope.launch {
-            repository.dismissPlayerStatistics(playerName)
+            scoreRepository.dismissPlayerStatistics(playerName)
             load()
         }
     }
