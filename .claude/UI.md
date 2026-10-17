@@ -51,7 +51,8 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
 - **No dynamic colour.** The navy-and-gold table is the identity. `dynamicDarkColorScheme` is a two-line change if
   it's ever wanted (deferred).
 - **No typography or shape overrides**, and no `Type.kt`. Make per-use changes at the call site
-  (`style = MaterialTheme.typography.titleMedium`).
+  (`style = MaterialTheme.typography.titleMedium`). The one exception is the gold titles: `pageTitleStyle` and
+  `dialogTitleStyle` (`AppLogo.kt`) are the page and dialog title styles.
 - **Sora (`SoraFontFamily`, `AppLogo.kt`) is for brand marks, never body text.**
   - It's used on:
     - the wordmark, and page and dialog titles;

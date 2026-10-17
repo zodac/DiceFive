@@ -44,7 +44,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.resources.Res
@@ -177,9 +176,7 @@ fun PageTopBar(title: String, onBack: (() -> Unit)?, modifier: Modifier = Modifi
         title = {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontFamily = SoraFontFamily,
-                fontWeight = FontWeight.Bold,
+                style = pageTitleStyle,
                 modifier = Modifier.semantics { heading() },
             )
         },

@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -86,6 +87,20 @@ import org.jetbrains.compose.resources.stringResource
 internal val SoraFontFamily: FontFamily
     @Composable
     get() = FontFamily(Font(Res.font.sora, weight = FontWeight.Bold))
+
+/** The title style of a page's top bar: [SoraFontFamily], bold, `titleLarge` size. Its gold comes from the bar's colours. */
+internal val pageTitleStyle: TextStyle
+    @Composable
+    get() = MaterialTheme.typography.titleLarge.copy(fontFamily = SoraFontFamily, fontWeight = FontWeight.Bold)
+
+/** The title style of a dialog: [SoraFontFamily], bold, `headlineSmall` size, in the gold `primary`. */
+internal val dialogTitleStyle: TextStyle
+    @Composable
+    get() = MaterialTheme.typography.headlineSmall.copy(
+        fontFamily = SoraFontFamily,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+    )
 
 /** Whether `sora.ttf` has a glyph for this character - printable ASCII or Latin-1, as cut (see [SoraFontFamily]). */
 internal fun Char.isInSoraFont(): Boolean = this in ' '..'~' || this in '\u00A0'..'\u00FF'

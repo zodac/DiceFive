@@ -5,10 +5,6 @@ From the from-scratch source review of 2026-10-14. What was done is in the git h
 
 ## Extract into one place
 
-| What                      | Where it's duplicated                                                                           | Suggestion                                      |
-|---------------------------|-------------------------------------------------------------------------------------------------|-------------------------------------------------|
-| The gold title text style | `DiceFiveDialog`, `PageTopBar`, `LargeDialogTitle`, about 20 `fontFamily = SoraFontFamily` uses | Named text styles (`pageTitle`, `dialogTitle`). |
-
 Looked at and left: `ScoreGrid.overflowFade` and `Rules.fadeOffscreenEdges` are different effects (a vertical edge
 fade vs a horizontal mask with a clear zone and easing), so one helper would only add switches.
 
