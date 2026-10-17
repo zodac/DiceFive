@@ -2,19 +2,16 @@ package net.zodac.dicefive.data.settings
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.achievements.AchievementsRepository
 import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.model.Achievement
@@ -29,16 +26,6 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.UnluckyDice
-
-/** In-memory preferences. */
-private class InMemoryPreferences : DataStore<Preferences> {
-
-    private val _data = MutableStateFlow(emptyPreferences())
-    override val data: Flow<Preferences> = _data
-
-    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
-        transform(_data.value).also { _data.value = it }
-}
 
 /** Every value [flow] emits from now on, collected in the background. */
 private fun <T> TestScope.emissions(flow: Flow<T>): List<T> =

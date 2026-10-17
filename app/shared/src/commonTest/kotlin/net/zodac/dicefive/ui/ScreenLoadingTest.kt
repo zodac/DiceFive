@@ -23,8 +23,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import net.zodac.dicefive.data.achievements.AchievementStore
-import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.achievements.InMemoryAchievementStore
 import net.zodac.dicefive.data.scores.DismissedPlayerStats
 import net.zodac.dicefive.data.scores.PlayerGame
 import net.zodac.dicefive.data.scores.ScoreDao
@@ -33,8 +32,6 @@ import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.data.settings.SettingsRepository
-import net.zodac.dicefive.model.Achievement
-import net.zodac.dicefive.model.AchievementCounter
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
 import net.zodac.dicefive.ui.scores.ScoresViewModel
 import net.zodac.dicefive.ui.settings.SettingsToggles
@@ -80,17 +77,6 @@ private class GatedEmptyScoreDao : ScoreDao {
     override suspend fun deleteScoresThrough(epochMillis: Long) = Unit
     override suspend fun deleteDismissalsThrough(epochMillis: Long) = Unit
     override suspend fun deleteUndoneDismissals() = Unit
-}
-
-private class LoadingAchievementStore : AchievementStore {
-
-    private val _state = MutableStateFlow(AchievementsState())
-    override val state: Flow<AchievementsState> = _state
-
-    override suspend fun current(): AchievementsState = _state.value
-    override suspend fun record(unlockedAt: Map<Achievement, Long>, counters: Map<AchievementCounter, Int>) = Unit
-    override suspend fun resetAll() = Unit
-    override suspend fun forceLock(achievement: Achievement) = Unit
 }
 
 /**
@@ -142,7 +128,7 @@ class ScreenLoadingTest {
         val statistics = StatisticsViewModel(ScoreRepository(statisticsDao))
         // Achievements wait for the leaderboard as well as the unlocks before showing.
         val achievementsDao = GatedEmptyScoreDao()
-        val achievements = AchievementsViewModel(achievementsRepository = LoadingAchievementStore(), scoreRepository = ScoreRepository(achievementsDao))
+        val achievements = AchievementsViewModel(achievementsRepository = InMemoryAchievementStore(), scoreRepository = ScoreRepository(achievementsDao))
         backgroundScope.launch(testDispatcher) { achievements.uiState.collect {} }
         advanceUntilIdle()
         assertFalse(scores.uiState.value.isLoaded)

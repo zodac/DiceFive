@@ -8,59 +8,22 @@ import kotlin.random.Random
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.emptyPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import net.zodac.dicefive.data.achievements.AchievementStore
-import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.InMemoryPreferences
+import net.zodac.dicefive.data.achievements.InMemoryAchievementStore
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Achievement
-import net.zodac.dicefive.model.AchievementCounter
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.ChickenDiceCupStyle
 import net.zodac.dicefive.ui.game.style.PIP_FACES
-
-/** In-memory preferences, so a real [SettingsRepository] can back the table's settings. */
-private class TablePreferencesStore : DataStore<Preferences> {
-
-    private val _data = MutableStateFlow(emptyPreferences())
-    override val data: Flow<Preferences> = _data
-
-    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
-        transform(_data.value).also { _data.value = it }
-}
-
-/** Just enough of an [AchievementStore] to set which achievements are unlocked. */
-private class TableAchievementStore : AchievementStore {
-
-    private val _state = MutableStateFlow(AchievementsState())
-    override val state: Flow<AchievementsState> = _state
-
-    override suspend fun current(): AchievementsState = _state.value
-
-    override suspend fun record(unlockedAt: Map<Achievement, Long>, counters: Map<AchievementCounter, Int>) {
-        _state.value = _state.value.copy(unlockedAt = _state.value.unlockedAt + unlockedAt)
-    }
-
-    override suspend fun resetAll() {
-        _state.value = AchievementsState()
-    }
-
-    override suspend fun forceLock(achievement: Achievement) {
-        _state.value = _state.value.copy(unlockedAt = _state.value.unlockedAt - achievement)
-    }
-}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GameTableSettingsTest {
@@ -82,17 +45,17 @@ class GameTableSettingsTest {
         // With no repository the table is the defaults straight away.
         assertEquals(TableSettings(), GameViewModel().tableSettings.value)
 
-        val settings = SettingsRepository(TablePreferencesStore())
+        val settings = SettingsRepository(InMemoryPreferences())
         settings.setDiceStyleId("classic_oak")
         settings.setSoundEnabled(false)
-        val viewModel = GameViewModel(settingsRepository = settings, achievementsRepository = TableAchievementStore())
+        val viewModel = GameViewModel(settingsRepository = settings, achievementsRepository = InMemoryAchievementStore())
         assertNull(viewModel.tableSettings.value)
         advanceUntilIdle()
         assertEquals("classic_oak", viewModel.tableSettings.value?.visualTheme?.diceStyle?.id)
         assertEquals(false, viewModel.tableSettings.value?.soundEnabled)
 
-        val lockedSettings = SettingsRepository(TablePreferencesStore())
-        val achievements = TableAchievementStore()
+        val lockedSettings = SettingsRepository(InMemoryPreferences())
+        val achievements = InMemoryAchievementStore()
         lockedSettings.setDiceStyleId("googly_ivory")
         val locked = GameViewModel(settingsRepository = lockedSettings, achievementsRepository = achievements)
         advanceUntilIdle()
@@ -115,11 +78,11 @@ class GameTableSettingsTest {
         cupId: String,
         eggcellentEarned: Boolean = false,
         gameMode: GameMode = GameMode.STANDARD,
-    ): Pair<GameViewModel, TableAchievementStore> {
-        val settings = SettingsRepository(TablePreferencesStore())
+    ): Pair<GameViewModel, InMemoryAchievementStore> {
+        val settings = SettingsRepository(InMemoryPreferences())
         settings.setDiceStyleId(diceId)
         settings.setDiceCupStyleId(cupId)
-        val achievements = TableAchievementStore()
+        val achievements = InMemoryAchievementStore()
         achievements.record(Achievement.entries.filter { eggcellentEarned || it != Achievement.EGGCELLENT_DISCOVERY }.associateWith { 0L }, emptyMap())
         val viewModel = GameViewModel(settingsRepository = settings, achievementsRepository = achievements, random = GoldenEveryTime)
         viewModel.setPlayerCount(1)

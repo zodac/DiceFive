@@ -8,11 +8,9 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.emptyPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
@@ -23,6 +21,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
@@ -33,18 +32,8 @@ import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnTimer
 import net.zodac.dicefive.model.UnluckyDice
 
-/** In-memory preferences, so a real [SettingsRepository] can hold the saved setup. */
-private class FakePreferencesStore : DataStore<Preferences> {
-
-    private val _data = MutableStateFlow(emptyPreferences())
-    override val data: Flow<Preferences> = _data
-
-    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
-        transform(_data.value).also { _data.value = it }
-}
-
-/** [FakePreferencesStore], counting the reads of it that finish: a `first()`, not a flow held open. */
-private class CountingReadsStore(private val store: FakePreferencesStore = FakePreferencesStore()) : DataStore<Preferences> by store {
+/** [InMemoryPreferences], counting the reads of it that finish: a `first()`, not a flow held open. */
+private class CountingReadsStore(private val store: InMemoryPreferences = InMemoryPreferences()) : DataStore<Preferences> by store {
     var finishedReads = 0
     override val data: Flow<Preferences> = store.data.onCompletion { finishedReads++ }
 }
@@ -76,7 +65,7 @@ class GameSetupRestoreTest {
     fun `saved setup is published in one update and only then flagged restored - with nothing saved the form is shown at once`() = runTest(testDispatcher) {
         assertTrue(GameViewModel(aiDispatcher = testDispatcher).setupRestored.value)
 
-        val repository = SettingsRepository(FakePreferencesStore())
+        val repository = SettingsRepository(InMemoryPreferences())
         repository.setPlayerCount(3)
         repository.setPlayerName(1, "Alexandra the Great")
         repository.setPlayerType(2, PlayerType.AI)
@@ -136,7 +125,7 @@ class GameSetupRestoreTest {
         assertEquals(PlayerColour.PINK, colours[2])
         assertEquals(4, colours.toSet().size)
 
-        val repository = SettingsRepository(FakePreferencesStore())
+        val repository = SettingsRepository(InMemoryPreferences())
         val first = restored(repository)
         first.setPlayerColour(2, PlayerColour.LIME)
         first.startGame()
@@ -147,14 +136,14 @@ class GameSetupRestoreTest {
         assertEquals(4, second.setup.value.playerSlots.map { it.colour }.toSet().size)
 
         // Saved colours that clash are dropped for the defaults.
-        val clashing = SettingsRepository(FakePreferencesStore())
+        val clashing = SettingsRepository(InMemoryPreferences())
         for (slot in 1..4) clashing.setPlayerColour(slot, PlayerColour.RED)
         assertEquals(defaults, restored(clashing).setup.value.playerSlots.map { it.colour })
     }
 
     @Test
     fun `every modifier is remembered between games - its value kept while it's off`() = runTest(testDispatcher) {
-        val repository = SettingsRepository(FakePreferencesStore())
+        val repository = SettingsRepository(InMemoryPreferences())
         val first = restored(repository)
         assertFalse(first.setup.value.extendedScores)
         assertFalse(first.setup.value.unluckyDiceEnabled)
@@ -237,7 +226,7 @@ class GameSetupRestoreTest {
         viewModel.startGame { slot -> "Joueur $slot" }
         assertEquals(listOf("Joueur 1", "Wolfgang"), checkNotNull(viewModel.game.value).players.take(2).map { it.name })
 
-        val repository = SettingsRepository(FakePreferencesStore())
+        val repository = SettingsRepository(InMemoryPreferences())
         repository.setPlayerName(1, "")
         repository.setPlayerName(2, "Wolfgang")
         repository.setPlayerName(3, "Player 4")

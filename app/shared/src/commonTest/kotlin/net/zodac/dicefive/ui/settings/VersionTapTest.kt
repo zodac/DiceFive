@@ -7,28 +7,13 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import net.zodac.dicefive.data.achievements.AchievementStore
-import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.achievements.InMemoryAchievementStore
 import net.zodac.dicefive.model.Achievement
-import net.zodac.dicefive.model.AchievementCounter
-
-private class VersionTapStore : AchievementStore {
-    private val _state = MutableStateFlow(AchievementsState())
-    override val state: Flow<AchievementsState> = _state
-    override suspend fun current(): AchievementsState = _state.value
-    override suspend fun record(unlockedAt: Map<Achievement, Long>, counters: Map<AchievementCounter, Int>) {
-        _state.value = _state.value.copy(unlockedAt = _state.value.unlockedAt + unlockedAt)
-    }
-    override suspend fun resetAll() = Unit
-    override suspend fun forceLock(achievement: Achievement) = Unit
-}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class VersionTapTest {
@@ -41,7 +26,7 @@ class VersionTapTest {
 
     /** Whether taps on the version number at each of [times] earn Are You A Developer?. */
     private fun earnedBy(vararg times: Long): Boolean {
-        val store = VersionTapStore()
+        val store = InMemoryAchievementStore()
         val viewModel = SettingsViewModel(achievementsRepository = store)
         var earned = false
         runTest {

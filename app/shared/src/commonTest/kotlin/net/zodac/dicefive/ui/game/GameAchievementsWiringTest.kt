@@ -10,12 +10,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.emptyPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -25,8 +21,9 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.achievements.AchievementStore
-import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.achievements.InMemoryAchievementStore
 import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.data.scores.DismissedPlayerStats
 import net.zodac.dicefive.data.scores.PlayerGame
@@ -42,42 +39,6 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.model.TurnTimer
-
-/** In-memory [AchievementStore], so the whole game -> unlock path runs with no Context. */
-private class FakeAchievementStore : AchievementStore {
-
-    private val _state = MutableStateFlow(AchievementsState())
-    override val state: Flow<AchievementsState> = _state
-
-    override suspend fun current(): AchievementsState = _state.value
-
-    override suspend fun record(unlockedAt: Map<Achievement, Long>, counters: Map<AchievementCounter, Int>) {
-        _state.value = AchievementsState(
-            unlockedAt = _state.value.unlockedAt + unlockedAt.filterKeys { it !in _state.value.unlockedAt },
-            counters = _state.value.counters + counters,
-        )
-    }
-
-    override suspend fun resetAll() {
-        _state.value = AchievementsState()
-    }
-
-    override suspend fun forceLock(achievement: Achievement) {
-        _state.value = _state.value.copy(unlockedAt = _state.value.unlockedAt - achievement)
-    }
-
-    val unlocked: Set<Achievement> get() = _state.value.unlockedAt.keys
-}
-
-/** In-memory preferences, for a saved game a second view model can resume. */
-private class InMemoryPreferences : DataStore<Preferences> {
-
-    private val _data = MutableStateFlow(emptyPreferences())
-    override val data: Flow<Preferences> = _data
-
-    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
-        transform(_data.value).also { _data.value = it }
-}
 
 /** Dice that always land on [value], so a test can deal itself a known hand. */
 private class LoadedDice(private val value: Int) : Random() {
@@ -191,7 +152,7 @@ class GameAchievementsWiringTest {
     }
 
     /** A started game and the store its achievements are recorded in. */
-    private class Table(val viewModel: GameViewModel, val store: FakeAchievementStore) {
+    private class Table(val viewModel: GameViewModel, val store: InMemoryAchievementStore) {
         val unlocked: Set<Achievement> get() = store.unlocked
     }
 
@@ -203,7 +164,7 @@ class GameAchievementsWiringTest {
         scoreRepository: ScoreRepository? = null,
         setUp: GameViewModel.() -> Unit = {},
     ): Table {
-        val store = FakeAchievementStore()
+        val store = InMemoryAchievementStore()
         val viewModel = GameViewModel(
             aiDispatcher = testDispatcher,
             scoreRepository = scoreRepository,
@@ -877,7 +838,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `an undo is kept when the game is left and resumed - Continue is the same game`() = runTest(testDispatcher) {
         val saves = InProgressGameRepository(InMemoryPreferences(), backgroundScope)
-        val store = FakeAchievementStore()
+        val store = InMemoryAchievementStore()
         fun table() = GameViewModel(
             aiDispatcher = testDispatcher,
             inProgressGameRepository = saves,
@@ -903,7 +864,7 @@ class GameAchievementsWiringTest {
     @Test
     fun `a new game started in the small hours is Rolling The Midnight Dice - one resumed then is not`() = runTest(testDispatcher) {
         val saves = InProgressGameRepository(InMemoryPreferences(), backgroundScope)
-        val store = FakeAchievementStore()
+        val store = InMemoryAchievementStore()
         fun table(hour: Int) = GameViewModel(
             aiDispatcher = testDispatcher,
             inProgressGameRepository = saves,
