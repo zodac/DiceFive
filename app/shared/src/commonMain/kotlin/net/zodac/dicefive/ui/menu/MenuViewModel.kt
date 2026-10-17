@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -28,26 +27,25 @@ data class LogoStyles(val dice: DiceStyle, val cup: DiceCupStyle)
 
 /**
  * Backs the menu: the one achievement it can earn itself - tapping its own logo dice ("Not Those
- * Dice!") - and the styles its logo is drawn in. Nullable repositories for the same reason every
- * other screen's view model's are: constructible with no Context, e.g. from a plain preview.
+ * Dice!") - and the styles its logo is drawn in.
  */
 class MenuViewModel(
-    private val achievementsRepository: AchievementStore? = null,
-    settingsRepository: SettingsRepository? = null,
+    achievementsRepository: AchievementStore,
+    settingsRepository: SettingsRepository,
     /** The app's own copy of the saved picks ([AppContainer.savedStyles]); without one, they're read from [settingsRepository]. */
     savedStyles: StateFlow<SavedStyles?>? = null,
 ) : ViewModel() {
 
     /**
      * Null until the saved picks have loaded, so the logo never shows the defaults for a frame
-     * before switching to a player's own; with no repository, straight to the defaults.
+     * before switching to a player's own.
      */
-    val logoStyles: StateFlow<LogoStyles?> = when {
-        savedStyles != null -> savedStyles.map { it?.let(::logoStylesOf) }
+    val logoStyles: StateFlow<LogoStyles?> = if (savedStyles != null) {
+        savedStyles.map { it?.let(::logoStylesOf) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, savedStyles.value?.let(::logoStylesOf))
-        settingsRepository != null -> savedStylesFlow(settingsRepository, achievementsRepository).map(::logoStylesOf)
+    } else {
+        savedStylesFlow(settingsRepository, achievementsRepository).map(::logoStylesOf)
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
-        else -> MutableStateFlow(LogoStyles(DiceStyles.default, DiceCupStyles.default))
     }
 
     private fun logoStylesOf(saved: SavedStyles): LogoStyles = LogoStyles(
@@ -55,11 +53,10 @@ class MenuViewModel(
         DiceCupStyles.unlockedById(saved.diceCupStyleId, saved.achievements),
     )
 
-    private val achievementUnlocker = achievementsRepository?.let(::AchievementUnlocker)
+    private val achievementUnlocker = AchievementUnlocker(achievementsRepository)
 
     fun onDiceTapped() {
-        val unlocker = achievementUnlocker ?: return
-        viewModelScope.launch { unlocker.unlock(setOf(Achievement.NOT_THOSE_DICE)) }
+        viewModelScope.launch { achievementUnlocker.unlock(setOf(Achievement.NOT_THOSE_DICE)) }
     }
 
     companion object {

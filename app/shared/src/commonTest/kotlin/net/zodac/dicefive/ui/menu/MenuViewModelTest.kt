@@ -39,32 +39,27 @@ class MenuViewModelTest {
     }
 
     @Test
-    fun `tapping the logo dice unlocks Not Those Dice - and with no repository is a no-op rather than a crash`() = runTest {
+    fun `tapping the logo dice unlocks Not Those Dice`() = runTest {
         val store = InMemoryAchievementStore()
-        val viewModel = MenuViewModel(store)
+        val viewModel = MenuViewModel(store, SettingsRepository(InMemoryPreferences()))
         viewModel.onDiceTapped()
         advanceUntilIdle()
         assertTrue(Achievement.NOT_THOSE_DICE in store.unlocked, "NOT_THOSE_DICE should pop, got ${store.unlocked}")
-
-        MenuViewModel(achievementsRepository = null).onDiceTapped()
     }
 
     @Test
     fun `the logo follows the player's unlocked dice and cup picks - never flashing the defaults while they load`() = runTest {
-        // The defaults when there is no repository.
-        assertEquals(LogoStyles(DiceStyles.default, DiceCupStyles.default), MenuViewModel(settingsRepository = null).logoStyles.value)
-
         // No styles until the saved picks load - never a flash of the defaults.
         val saved = SettingsRepository(InMemoryPreferences())
         saved.setDiceStyleId("classic_oak")
-        val loading = MenuViewModel(settingsRepository = saved)
+        val loading = MenuViewModel(InMemoryAchievementStore(), saved)
         assertNull(loading.logoStyles.value)
         advanceUntilIdle()
         assertEquals("classic_oak", loading.logoStyles.value?.dice?.id)
 
         // There from the start when the app's copy of the picks has already loaded - and following it.
         val loaded = MutableStateFlow<SavedStyles?>(SavedStyles("classic_oak", "classic_black", "classic_navy", "classic_blue", AchievementsState()))
-        val preloaded = MenuViewModel(settingsRepository = SettingsRepository(InMemoryPreferences()), savedStyles = loaded)
+        val preloaded = MenuViewModel(InMemoryAchievementStore(), SettingsRepository(InMemoryPreferences()), savedStyles = loaded)
         assertEquals("classic_oak", preloaded.logoStyles.value?.dice?.id)
         assertEquals("classic_black", preloaded.logoStyles.value?.cup?.id)
         loaded.value = loaded.value?.copy(diceStyleId = "classic_ivory")
@@ -73,7 +68,7 @@ class MenuViewModelTest {
 
         // It follows the player's dice and cup picks.
         val settings = SettingsRepository(InMemoryPreferences())
-        val following = MenuViewModel(settingsRepository = settings)
+        val following = MenuViewModel(InMemoryAchievementStore(), settings)
         advanceUntilIdle()
         assertEquals(LogoStyles(DiceStyles.default, DiceCupStyles.default), following.logoStyles.value)
         settings.setDiceStyleId("classic_oak")
