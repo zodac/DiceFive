@@ -73,7 +73,7 @@ class StringsLanguageTest {
     fun `a Persian phone lays the English app out left to right - its back arrow on the left - and dates it with an English month`() {
         assertEquals(LayoutDirection.Ltr, layoutDirection())
 
-        val viewModel = GameViewModel()
+        val viewModel = gameViewModel()
         showcase.show { DiceFiveTheme { GameSetupScreen(viewModel = viewModel, onStartGame = {}, onBack = {}) } }
         val back = compose.onNodeWithContentDescription("Back").fetchSemanticsNode().boundsInRoot
         val width = compose.onRoot().fetchSemanticsNode().boundsInRoot.width

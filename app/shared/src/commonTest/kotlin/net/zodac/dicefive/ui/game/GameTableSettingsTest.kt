@@ -42,13 +42,10 @@ class GameTableSettingsTest {
 
     @Test
     fun `the table has no settings until they load - never a flash of the defaults - and draws a locked pick as the default until it unlocks`() = runTest {
-        // With no repository the table is the defaults straight away.
-        assertEquals(TableSettings(), GameViewModel().tableSettings.value)
-
         val settings = SettingsRepository(InMemoryPreferences())
         settings.setDiceStyleId("classic_oak")
         settings.setSoundEnabled(false)
-        val viewModel = GameViewModel(settingsRepository = settings, achievementsRepository = InMemoryAchievementStore())
+        val viewModel = gameViewModel(settingsRepository = settings, achievementsRepository = InMemoryAchievementStore())
         assertNull(viewModel.tableSettings.value)
         advanceUntilIdle()
         assertEquals("classic_oak", viewModel.tableSettings.value?.visualTheme?.diceStyle?.id)
@@ -57,7 +54,7 @@ class GameTableSettingsTest {
         val lockedSettings = SettingsRepository(InMemoryPreferences())
         val achievements = InMemoryAchievementStore()
         lockedSettings.setDiceStyleId("googly_ivory")
-        val locked = GameViewModel(settingsRepository = lockedSettings, achievementsRepository = achievements)
+        val locked = gameViewModel(settingsRepository = lockedSettings, achievementsRepository = achievements)
         advanceUntilIdle()
         assertEquals(DiceStyles.default, locked.tableSettings.value?.visualTheme?.diceStyle)
         achievements.record(Achievement.entries.associateWith { 0L }, emptyMap())
@@ -84,7 +81,7 @@ class GameTableSettingsTest {
         settings.setDiceCupStyleId(cupId)
         val achievements = InMemoryAchievementStore()
         achievements.record(Achievement.entries.filter { eggcellentEarned || it != Achievement.EGGCELLENT_DISCOVERY }.associateWith { 0L }, emptyMap())
-        val viewModel = GameViewModel(settingsRepository = settings, achievementsRepository = achievements, random = GoldenEveryTime)
+        val viewModel = gameViewModel(settingsRepository = settings, achievementsRepository = achievements, random = GoldenEveryTime)
         viewModel.setPlayerCount(1)
         viewModel.setGameMode(gameMode)
         viewModel.startGame()

@@ -27,6 +27,7 @@ import net.zodac.dicefive.data.achievements.InMemoryAchievementStore
 import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.data.scores.DismissedPlayerStats
 import net.zodac.dicefive.data.scores.PlayerGame
+import net.zodac.dicefive.data.scores.InMemoryScoreDao
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.data.scores.UnpostedScore
@@ -161,11 +162,11 @@ class GameAchievementsWiringTest {
         dice: Random = Random.Default,
         players: Int = 1,
         isDebugBuild: Boolean = false,
-        scoreRepository: ScoreRepository? = null,
+        scoreRepository: ScoreRepository = ScoreRepository(InMemoryScoreDao()),
         setUp: GameViewModel.() -> Unit = {},
     ): Table {
         val store = InMemoryAchievementStore()
-        val viewModel = GameViewModel(
+        val viewModel = gameViewModel(
             aiDispatcher = testDispatcher,
             scoreRepository = scoreRepository,
             achievementsRepository = store,
@@ -839,7 +840,7 @@ class GameAchievementsWiringTest {
     fun `an undo is kept when the game is left and resumed - Continue is the same game`() = runTest(testDispatcher) {
         val saves = InProgressGameRepository(InMemoryPreferences(), backgroundScope)
         val store = InMemoryAchievementStore()
-        fun table() = GameViewModel(
+        fun table() = gameViewModel(
             aiDispatcher = testDispatcher,
             inProgressGameRepository = saves,
             achievementsRepository = store,
@@ -865,7 +866,7 @@ class GameAchievementsWiringTest {
     fun `a new game started in the small hours is Rolling The Midnight Dice - one resumed then is not`() = runTest(testDispatcher) {
         val saves = InProgressGameRepository(InMemoryPreferences(), backgroundScope)
         val store = InMemoryAchievementStore()
-        fun table(hour: Int) = GameViewModel(
+        fun table(hour: Int) = gameViewModel(
             aiDispatcher = testDispatcher,
             inProgressGameRepository = saves,
             settingsRepository = SettingsRepository(InMemoryPreferences()),

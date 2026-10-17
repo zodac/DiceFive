@@ -123,14 +123,14 @@ open class TextFitTest {
         val broken = mutableMapOf<String, List<String>>()
         fun check(screen: String) = brokenWords().takeIf { it.isNotEmpty() }?.let { broken[screen] = it }
 
-        val setup = GameViewModel()
+        val setup = gameViewModel()
         setup.setPlayerCount(4)
         setup.setPlayerType(2, PlayerType.AI)
         content { GameSetupScreen(viewModel = setup, onStartGame = {}, onBack = {}) }
         check("New game")
 
         // The modifiers, with every one switched on.
-        val modifiers = GameViewModel()
+        val modifiers = gameViewModel()
         modifiers.setTurnTimer(net.zodac.dicefive.model.TurnTimer.SECONDS_30)
         modifiers.setRollsPerTurn(3)
         modifiers.setStoredRolls(true)
@@ -171,7 +171,7 @@ open class TextFitTest {
         compose.mainClock.advanceTimeBy(5_000)
         check("Styles")
 
-        val game = GameViewModel()
+        val game = gameViewModel()
         game.setPlayerCount(2)
         game.setPlayerType(2, PlayerType.AI)
         game.startGame()

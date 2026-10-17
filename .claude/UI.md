@@ -394,8 +394,8 @@ Examples:
   - `TooltipBox`'s anchor merges its content and drops the role, so put `Role.Button` on the tooltip's modifier too.
   - For long lists of rarely-pressed rows, use `OnDemandTooltip`: a plain gesture plus a "Show details" action until
     first use.
-- **`ViewModelConstructorInComposable`** fires on `@Preview`s that build a view model. It's suppressed on that
-  preview.
+- **No `@Preview`s that build a view model.** Every view model but `ScoresViewModel` takes its repositories as
+  required, and the app ships no fakes, so a preview can't make one. Use the `render` skill instead.
 - **The launcher icon's safe zone is a floor, not a guarantee.** The spec's 66dp circle passed on paper, but a device
   still cropped the dice.
   - Keep the baked-in margin (everything inside one `<group scaleX="0.8" scaleY="0.8" pivotX="54" pivotY="54">`), and

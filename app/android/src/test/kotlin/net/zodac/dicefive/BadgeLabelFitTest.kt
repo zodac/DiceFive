@@ -38,7 +38,7 @@ class BadgeLabelFitTest {
     private val showcase = Showcase(compose)
 
     private fun showD20(fontScale: Float) {
-        val viewModel = GameViewModel()
+        val viewModel = gameViewModel()
         viewModel.setPlayerCount(1)
         viewModel.setGameMode(GameMode.D20)
         viewModel.startGame()

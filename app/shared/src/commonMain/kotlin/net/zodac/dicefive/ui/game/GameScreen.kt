@@ -51,7 +51,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -66,7 +65,6 @@ import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.isLuckOfTheIrish
 import net.zodac.dicefive.platform.LocalPlatformServices
-import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_back_cd
 import net.zodac.dicefive.resources.game_timer_left
@@ -83,7 +81,6 @@ import net.zodac.dicefive.ui.game.style.ChickenDiceCupStyle
 import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.game.style.LocalOnRabbitSeen
-import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /** How long the cup shakes before the roll result is revealed - purely a presentation delay. Shared
  * by every roll: a tap here, and an AI's in [GameViewModel]. */
@@ -643,19 +640,4 @@ private fun rememberFlashColor(mutedColor: Color): Color {
         label = "turnTimerFlashColor", // i18n: not translated - an animation label, not shown
     )
     return flashColor
-}
-
-// The lint check exists because a real screen must scope its view model to the host, not build one
-// per composition - but a @Preview has no host to scope to, and GameViewModel is deliberately
-// constructible with no repositories for exactly this (and for unit tests). Preview-only.
-@Suppress("ViewModelConstructorInComposable")
-@Preview(showBackground = true)
-@Composable
-private fun GameScreenPreview() {
-    val viewModel = GameViewModel().apply { startGame() }
-    CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
-        DiceFiveTheme {
-            GameScreen(viewModel = viewModel)
-        }
-    }
 }

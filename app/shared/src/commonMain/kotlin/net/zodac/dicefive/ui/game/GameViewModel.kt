@@ -146,16 +146,13 @@ data class GameSetupState(
  * scoped to the "play" nav graph so [net.zodac.dicefive.ui.setup.GameSetupScreen]
  * and [GameScreen] share one instance across navigation.
  *
- * Every repository is optional so this class stays constructible (and
- * testable) on a plain JVM with no Android `Context` - [factory] supplies
- * the real ones. When absent, remembered names, score history, game
- * resumption and achievements are silently skipped.
+ * [factory] supplies the real repositories; tests pass in-memory ones.
  */
 class GameViewModel(
-    private val scoreRepository: ScoreRepository? = null,
-    private val settingsRepository: SettingsRepository? = null,
-    private val inProgressGameRepository: InProgressGameRepository? = null,
-    private val achievementsRepository: AchievementStore? = null,
+    private val scoreRepository: ScoreRepository,
+    private val settingsRepository: SettingsRepository,
+    private val inProgressGameRepository: InProgressGameRepository,
+    private val achievementsRepository: AchievementStore,
     /** The dice. Injectable for the same reason [GameEngine.rollDice] takes one: so a test can deal a known hand. */
     private val random: Random = Random.Default,
     /** Where [AiTurnPlayer]'s (Hard, specifically) exhaustive-search hold/category choices run -
@@ -175,10 +172,9 @@ class GameViewModel(
     private val _setup = MutableStateFlow(GameSetupState())
     val setup: StateFlow<GameSetupState> = _setup.asStateFlow()
 
-    /** Whether [setup] holds the player's saved choices yet - immediately true with no
-     * [settingsRepository] to restore from. Until then the setup screen shows no form, rather
+    /** Whether [setup] holds the player's saved choices yet. Until then the setup screen shows no form, rather
      * than the defaults it would otherwise draw and then switch away from. */
-    private val _setupRestored = MutableStateFlow(settingsRepository == null)
+    private val _setupRestored = MutableStateFlow(false)
     val setupRestored: StateFlow<Boolean> = _setupRestored.asStateFlow()
 
     private val _game = MutableStateFlow<GameState?>(null)
@@ -233,7 +229,7 @@ class GameViewModel(
         val state = _game.value ?: return
         val remaining = _turnSecondsRemaining.value ?: return
         if (state.isGameOver) return
-        inProgressGameRepository?.save(savedCopy(state).copy(turnSecondsLeft = remaining))
+        inProgressGameRepository.save(savedCopy(state).copy(turnSecondsLeft = remaining))
     }
 
     /** Seconds [resumeGame] found left on the saved turn, for the next timer start to use. */
@@ -273,7 +269,7 @@ class GameViewModel(
     private val _canUndo = MutableStateFlow(false)
     val canUndo: StateFlow<Boolean> = _canUndo.asStateFlow()
 
-    val confirmBeforeLeavingGame: StateFlow<Boolean> = (settingsRepository?.confirmBeforeLeavingGame ?: flowOf(true))
+    val confirmBeforeLeavingGame: StateFlow<Boolean> = settingsRepository.confirmBeforeLeavingGame
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     /**
@@ -282,11 +278,9 @@ class GameViewModel(
      * sound, vibration and roll settings. Null until they've all loaded, so the board is never
      * drawn in the defaults for a frame before switching to the player's own; this view model is
      * scoped to the whole "play" graph and loads them eagerly, so by the time the board shows
-     * they're normally long since in. With no repository, straight to the defaults.
+     * they're normally long since in.
      */
-    val tableSettings: StateFlow<TableSettings?> = if (settingsRepository == null) {
-        MutableStateFlow(TableSettings())
-    } else {
+    val tableSettings: StateFlow<TableSettings?> = run {
         val visualTheme = savedStylesFlow(settingsRepository, achievementsRepository).map { saved ->
             GameVisualTheme(
                 diceStyle = DiceStyles.unlockedById(saved.diceStyleId, saved.achievements),
@@ -326,7 +320,7 @@ class GameViewModel(
     private val tracker = AchievementTracker()
 
     /** Earns achievements one read-decide-write at a time - see [AchievementUnlocker]. */
-    private val achievementUnlocker = achievementsRepository?.let(::AchievementUnlocker)
+    private val achievementUnlocker = AchievementUnlocker(achievementsRepository)
 
     /**
      * Whether this is the first 5x the player in [playerIndex]'s seat has had this game: true once per seat, then false.
@@ -344,53 +338,51 @@ class GameViewModel(
     }
 
     init {
-        settingsRepository?.let { repository ->
-            viewModelScope.launch {
-                // Built up off to the side and published in one update, then flagged restored: the
-                // setup screen holds its form back until [setupRestored], so it never draws the
-                // defaults (Standard mode, 2 players) for the frames this read takes and then
-                // visibly switches to the saved choices. Every setting comes from the one read.
-                val saved = repository.snapshot()
-                var restored = _setup.value
-                // Restored first: every restored name is capped to whatever length fits *this*
-                // player count's tabs, so that cap has to be known before any name is restored,
-                // not applied against the default count of 2.
-                saved.playerCount?.let { savedCount ->
-                    restored = restored.copy(
-                        playerCount = savedCount.coerceIn(GameSetupState.MIN_PLAYERS, GameSetupState.MAX_PLAYERS),
-                    )
-                }
-                val cap = GameSetupState.maxPlayerNameLength(restored.playerCount)
-                val slots = restored.playerSlots.map { slot ->
-                    // Capped on the way in, so a name saved at a player count with wider tabs is trimmed
-                    // rather than reappearing over-long.
-                    val savedName = saved.playerNameFor(slot.slot)
-                    var updated = slot.copy(name = (savedName ?: slot.name).takeNameWidth(cap))
-                    // Slot 1 is always Human, so its type and difficulty are never saved/restored.
-                    if (slot.slot >= 2) {
-                        saved.playerTypeFor(slot.slot)?.let { updated = updated.copy(type = it) }
-                        saved.playerDifficultyFor(slot.slot)?.let { updated = updated.copy(difficulty = it) }
-                    }
-                    updated
-                }
-                // A saved set that isn't four different colours (never written by this app, but a hand-edited
-                // or partly written store could) is dropped for the defaults, so no two players ever match.
-                val colours = slots.map { slot -> saved.playerColourFor(slot.slot) }
-                val restoredColours = colours.takeIf { saved -> saved.none { it == null } && saved.toSet().size == saved.size }
+        viewModelScope.launch {
+            // Built up off to the side and published in one update, then flagged restored: the
+            // setup screen holds its form back until [setupRestored], so it never draws the
+            // defaults (Standard mode, 2 players) for the frames this read takes and then
+            // visibly switches to the saved choices. Every setting comes from the one read.
+            val saved = settingsRepository.snapshot()
+            var restored = _setup.value
+            // Restored first: every restored name is capped to whatever length fits *this*
+            // player count's tabs, so that cap has to be known before any name is restored,
+            // not applied against the default count of 2.
+            saved.playerCount?.let { savedCount ->
                 restored = restored.copy(
-                    playerSlots = if (restoredColours == null) slots else slots.mapIndexed { i, slot -> slot.copy(colour = restoredColours[i]!!) },
-                    turnTimer = saved.turnTimer,
-                    turnTimerLength = saved.turnTimerLength,
-                    rollModifiers = saved.rollModifiers,
-                    rollsPerTurnLength = saved.rollsPerTurnLength,
-                    extendedScores = saved.extendedScores,
-                    unluckyDiceEnabled = saved.unluckyDiceEnabled,
-                    unluckyDice = saved.unluckyDice,
-                    gameMode = saved.gameMode,
+                    playerCount = savedCount.coerceIn(GameSetupState.MIN_PLAYERS, GameSetupState.MAX_PLAYERS),
                 )
-                _setup.value = restored
-                _setupRestored.value = true
             }
+            val cap = GameSetupState.maxPlayerNameLength(restored.playerCount)
+            val slots = restored.playerSlots.map { slot ->
+                // Capped on the way in, so a name saved at a player count with wider tabs is trimmed
+                // rather than reappearing over-long.
+                val savedName = saved.playerNameFor(slot.slot)
+                var updated = slot.copy(name = (savedName ?: slot.name).takeNameWidth(cap))
+                // Slot 1 is always Human, so its type and difficulty are never saved/restored.
+                if (slot.slot >= 2) {
+                    saved.playerTypeFor(slot.slot)?.let { updated = updated.copy(type = it) }
+                    saved.playerDifficultyFor(slot.slot)?.let { updated = updated.copy(difficulty = it) }
+                }
+                updated
+            }
+            // A saved set that isn't four different colours (never written by this app, but a hand-edited
+            // or partly written store could) is dropped for the defaults, so no two players ever match.
+            val colours = slots.map { slot -> saved.playerColourFor(slot.slot) }
+            val restoredColours = colours.takeIf { saved -> saved.none { it == null } && saved.toSet().size == saved.size }
+            restored = restored.copy(
+                playerSlots = if (restoredColours == null) slots else slots.mapIndexed { i, slot -> slot.copy(colour = restoredColours[i]!!) },
+                turnTimer = saved.turnTimer,
+                turnTimerLength = saved.turnTimerLength,
+                rollModifiers = saved.rollModifiers,
+                rollsPerTurnLength = saved.rollsPerTurnLength,
+                extendedScores = saved.extendedScores,
+                unluckyDiceEnabled = saved.unluckyDiceEnabled,
+                unluckyDice = saved.unluckyDice,
+                gameMode = saved.gameMode,
+            )
+            _setup.value = restored
+            _setupRestored.value = true
         }
     }
 
@@ -531,8 +523,7 @@ class GameViewModel(
 
     /** Loads a previously in-progress game, if any. Returns whether one was found and resumed. */
     suspend fun resumeGame(): Boolean {
-        val repository = inProgressGameRepository ?: return false
-        val loaded = repository.load() ?: return false
+        val loaded = inProgressGameRepository.load() ?: return false
         beginGame(
             loaded.copy(turnSecondsLeft = null, undoneCategory = null),
             resumedSecondsLeft = loaded.turnSecondsLeft,
@@ -963,9 +954,9 @@ class GameViewModel(
             // count as beating YOUR best, now that achievements are player 1's alone.
             val playerOneName = state.players.firstOrNull()?.takeIf { it.type == PlayerType.HUMAN }?.name
             val previousBestScore = playerOneName?.let { name ->
-                orNullOnFailure { scoreRepository?.bestScoreForPlayer(name) }
+                orNullOnFailure { scoreRepository.bestScoreForPlayer(name) }
             }
-            val previousLeaderboard = orNullOnFailure { scoreRepository?.leaderboardTotals() }
+            val previousLeaderboard = orNullOnFailure { scoreRepository.leaderboardTotals() }
                 ?: LeaderboardTotals()
             orNullOnFailure { persistHumanScores(state) }
             // Always records something (Games Played counts every game), so it also asks for the online sync that
@@ -986,9 +977,6 @@ class GameViewModel(
      * function, not a new method here.
      */
     private fun checkGameStartAchievements(startedAtLocalHour: Int?) {
-        val unlocker = achievementUnlocker ?: return
-        val repository = achievementsRepository ?: return
-        val settings = settingsRepository ?: return
         viewModelScope.launch {
             val game = _game.value
             val players = game?.players.orEmpty()
@@ -1000,9 +988,9 @@ class GameViewModel(
             val hasZodacAsPlayerTwo = players.size == 2 && playerTwo?.type == PlayerType.HUMAN && playerTwo.name == ZODAC_PLAYER_NAME
             val isLuckOfTheIrish = game?.isLuckOfTheIrish == true
             // A pick whose style is still locked can't count, since the default is drawn in its place.
-            val achievements = repository.current()
+            val achievements = achievementsRepository.current()
             val playedNonDefaultStyle = StyleCategory.entries.any { category ->
-                category.catalog.unlockedById(category.savedId(settings).first(), achievements).id != category.catalog.default.id
+                category.catalog.unlockedById(category.savedId(settingsRepository).first(), achievements).id != category.catalog.default.id
             }
             val context = GameStartContext(
                 playedNonDefaultStyle = playedNonDefaultStyle,
@@ -1011,7 +999,7 @@ class GameViewModel(
                 gameMode = gameMode,
                 startedAtLocalHour = startedAtLocalHour,
             )
-            unlocker.apply { state -> AchievementEngine.evaluateAtGameStart(context, state, nowEpochMillis()) }
+            achievementUnlocker.apply { state -> AchievementEngine.evaluateAtGameStart(context, state, nowEpochMillis()) }
         }
     }
 
@@ -1024,12 +1012,11 @@ class GameViewModel(
      * running both would race to unlock the same achievement and pop it twice.
      */
     private fun checkInProgressAchievements() {
-        val unlocker = achievementUnlocker ?: return
         val state = _game.value ?: return
         if (state.isGameOver) return
 
         viewModelScope.launch {
-            unlocker.apply { stored -> AchievementEngine.evaluateInProgress(state, stored, nowEpochMillis(), tracker.timedOutZeroes) }
+            achievementUnlocker.apply { stored -> AchievementEngine.evaluateInProgress(state, stored, nowEpochMillis(), tracker.timedOutZeroes) }
         }
     }
 
@@ -1038,19 +1025,17 @@ class GameViewModel(
         previousBestScore: Int?,
         previousLeaderboard: LeaderboardTotals,
     ) {
-        val unlocker = achievementUnlocker ?: return
         val context = tracker.endOfGameContext(previousBestScore, previousLeaderboard)
-        unlocker.apply { stored -> AchievementEngine.evaluate(state, context, stored, nowEpochMillis()) }
+        achievementUnlocker.apply { stored -> AchievementEngine.evaluate(state, context, stored, nowEpochMillis()) }
     }
 
     private fun unlockAchievements(achievements: Set<Achievement>) {
-        val unlocker = achievementUnlocker ?: return
         if (achievements.isEmpty()) return
         heldBackRollUnlocks?.let {
             it += achievements
             return
         }
-        viewModelScope.launch { unlocker.unlock(achievements) }
+        viewModelScope.launch { achievementUnlocker.unlock(achievements) }
     }
 
     /** Whether player 1 finished [state] with the top score - "One More Time" reads this off the
@@ -1062,34 +1047,32 @@ class GameViewModel(
     }
 
     private fun persistHumanNames(slots: List<PlayerSetupSlot>) {
-        val repository = settingsRepository ?: return
         viewModelScope.launch {
             for (slot in slots) {
                 if (slot.type == PlayerType.HUMAN) {
-                    repository.setPlayerName(slot.slot, slot.name.trim())
+                    settingsRepository.setPlayerName(slot.slot, slot.name.trim())
                 }
             }
         }
     }
 
     private fun persistGameConfig(setup: GameSetupState) {
-        val repository = settingsRepository ?: return
         val slots = setup.playerSlots.take(setup.playerCount)
         viewModelScope.launch {
-            repository.setPlayerCount(setup.playerCount)
-            repository.setTurnTimer(setup.turnTimer)
-            repository.setTurnTimerLength(setup.turnTimerLength)
-            repository.setRollModifiers(setup.rollModifiers, setup.rollsPerTurnLength)
-            repository.setExtendedScores(setup.extendedScores)
-            repository.setUnluckyDice(setup.unluckyDiceEnabled, setup.unluckyDice)
-            repository.setGameMode(setup.gameMode)
+            settingsRepository.setPlayerCount(setup.playerCount)
+            settingsRepository.setTurnTimer(setup.turnTimer)
+            settingsRepository.setTurnTimerLength(setup.turnTimerLength)
+            settingsRepository.setRollModifiers(setup.rollModifiers, setup.rollsPerTurnLength)
+            settingsRepository.setExtendedScores(setup.extendedScores)
+            settingsRepository.setUnluckyDice(setup.unluckyDiceEnabled, setup.unluckyDice)
+            settingsRepository.setGameMode(setup.gameMode)
             // All four, not just the shown ones: they're kept distinct together (see setPlayerColour).
-            for (slot in setup.playerSlots) repository.setPlayerColour(slot.slot, slot.colour)
+            for (slot in setup.playerSlots) settingsRepository.setPlayerColour(slot.slot, slot.colour)
             for (slot in slots) {
                 // Slot 1 is always Human, so its type and difficulty aren't worth persisting.
                 if (slot.slot == 1) continue
-                repository.setPlayerType(slot.slot, slot.type)
-                if (slot.type == PlayerType.AI) repository.setPlayerDifficulty(slot.slot, slot.difficulty)
+                settingsRepository.setPlayerType(slot.slot, slot.type)
+                if (slot.type == PlayerType.AI) settingsRepository.setPlayerDifficulty(slot.slot, slot.difficulty)
             }
         }
     }
@@ -1097,7 +1080,6 @@ class GameViewModel(
     // Suspending rather than launching its own coroutine: finishGame sequences this against the
     // leaderboard read that has to happen before it.
     private suspend fun persistHumanScores(state: GameState) {
-        val repository = scoreRepository ?: return
         // A solo game has nobody to beat, so it's recorded with no outcome at all - the same
         // "doesn't count toward win/loss" treatment AchievementEngine gives the WIN_STREAK counter.
         val multiplayer = state.players.size > 1
@@ -1115,7 +1097,7 @@ class GameViewModel(
             )
         }
         // Every human's row in one write.
-        repository.recordGame(
+        scoreRepository.recordGame(
             results,
             onLeaderboard = state.countsOnLeaderboard,
             gameMode = state.gameMode,
@@ -1125,8 +1107,7 @@ class GameViewModel(
 
     // Queued and conflated by the repository - see InProgressGameRepository.
     private fun persistInProgressGame(state: GameState) {
-        val repository = inProgressGameRepository ?: return
-        if (state.isGameOver) repository.clear() else repository.save(savedCopy(state))
+        if (state.isGameOver) inProgressGameRepository.clear() else inProgressGameRepository.save(savedCopy(state))
     }
 
     /** [state] as it's saved: with the box an undo took back, which the live game doesn't carry - see [GameState.undoneCategory]. */

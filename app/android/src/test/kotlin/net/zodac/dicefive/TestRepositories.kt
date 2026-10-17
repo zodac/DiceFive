@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
+import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
@@ -12,6 +13,7 @@ import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
 import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
+import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.settings.SettingsViewModel
 import net.zodac.dicefive.ui.styles.StylesViewModel
 
@@ -44,4 +46,12 @@ internal fun stylesViewModel(saved: StateFlow<SavedStyles?>? = null) = StylesVie
     SettingsRepository(InMemoryPreferences()),
     InMemoryAchievementStore(),
     saved,
+)
+
+/** A game view model over in-memory repositories. */
+internal fun gameViewModel() = GameViewModel(
+    ScoreRepository(RowsDao(emptyList())),
+    SettingsRepository(InMemoryPreferences()),
+    InProgressGameRepository(InMemoryPreferences()),
+    InMemoryAchievementStore(),
 )

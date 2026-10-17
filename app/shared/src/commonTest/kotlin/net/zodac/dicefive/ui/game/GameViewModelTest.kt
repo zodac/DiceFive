@@ -56,7 +56,7 @@ class GameViewModelTest {
         isDebugBuild: Boolean = false,
         setUp: GameViewModel.() -> Unit = {},
     ): GameViewModel {
-        val viewModel = GameViewModel(aiDispatcher = aiDispatcher, random = random, isDebugBuild = isDebugBuild)
+        val viewModel = gameViewModel(aiDispatcher = aiDispatcher, random = random, isDebugBuild = isDebugBuild)
         viewModel.setPlayerCount(players)
         for (slot in cpus) {
             viewModel.setPlayerType(slot, PlayerType.AI)
@@ -83,7 +83,7 @@ class GameViewModelTest {
 
     @Test
     fun `startGame plays the players and mode picked on the setup form - and nothing happens before it`() {
-        val untouched = GameViewModel(aiDispatcher = testDispatcher)
+        val untouched = gameViewModel(aiDispatcher = testDispatcher)
         untouched.rollDice()
         assertNull(untouched.game.value)
 
@@ -150,7 +150,7 @@ class GameViewModelTest {
         assertFalse(againstCpu.canUndo.value, "undo is unavailable once an AI player has acted")
 
         // resumeGame returns false when no repository is configured.
-        val noRepository = GameViewModel(aiDispatcher = testDispatcher)
+        val noRepository = gameViewModel(aiDispatcher = testDispatcher)
         assertFalse(noRepository.resumeGame())
         assertNull(noRepository.game.value)
     }
@@ -279,7 +279,7 @@ class GameViewModelTest {
             Triple(Difficulty.HARD, GameMode.QUICKFIRE, false),
         )) {
             var asked = 0
-            val viewModel = GameViewModel(aiDispatcher = testDispatcher, standardPerfectPlay = { asked++; null })
+            val viewModel = gameViewModel(aiDispatcher = testDispatcher, standardPerfectPlay = { asked++; null })
             viewModel.setPlayerCount(2)
             viewModel.setPlayerType(2, PlayerType.AI)
             viewModel.setPlayerDifficulty(2, difficulty)

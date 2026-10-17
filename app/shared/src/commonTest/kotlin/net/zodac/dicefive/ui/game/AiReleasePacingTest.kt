@@ -50,7 +50,7 @@ class AiReleasePacingTest {
 
     @Test
     fun `a die the CPU releases rests on the mat before the next shake starts`() = runTest(testDispatcher) {
-        val viewModel = GameViewModel(
+        val viewModel = gameViewModel(
             aiDispatcher = testDispatcher,
             random = ScriptedRolls(
                 listOf(
@@ -94,7 +94,7 @@ class AiReleasePacingTest {
      * during the CPU's turn: when, which die, and which way.
      */
     private fun TestScope.cpuHoldChanges(diceAnimated: Boolean): List<Triple<Long, Int, Boolean>> {
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher, random = ScriptedRolls(PAIR_THEN_STRAIGHT))
+        val viewModel = gameViewModel(aiDispatcher = testDispatcher, random = ScriptedRolls(PAIR_THEN_STRAIGHT))
         viewModel.setPacing(GamePacing(diceAnimated = diceAnimated))
         viewModel.setPlayerCount(2)
         viewModel.setPlayerType(2, PlayerType.AI)

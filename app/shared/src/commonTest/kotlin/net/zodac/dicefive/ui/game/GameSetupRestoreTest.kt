@@ -56,15 +56,13 @@ class GameSetupRestoreTest {
 
     /** A form over [repository] that has finished restoring what it saved. */
     private fun TestScope.restored(repository: SettingsRepository): GameViewModel {
-        val viewModel = GameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
+        val viewModel = gameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
         advanceUntilIdle()
         return viewModel
     }
 
     @Test
-    fun `saved setup is published in one update and only then flagged restored - with nothing saved the form is shown at once`() = runTest(testDispatcher) {
-        assertTrue(GameViewModel(aiDispatcher = testDispatcher).setupRestored.value)
-
+    fun `saved setup is published in one update and only then flagged restored`() = runTest(testDispatcher) {
         val repository = SettingsRepository(InMemoryPreferences())
         repository.setPlayerCount(3)
         repository.setPlayerName(1, "Alexandra the Great")
@@ -73,7 +71,7 @@ class GameSetupRestoreTest {
         repository.setTurnTimer(TurnTimer.SECONDS_60)
         repository.setGameMode(GameMode.TRICOLOUR)
 
-        val viewModel = GameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
+        val viewModel = gameViewModel(settingsRepository = repository, aiDispatcher = testDispatcher)
         assertFalse(viewModel.setupRestored.value)
 
         // Every state the form could be drawn with once it's shown - there must be exactly one.
@@ -114,7 +112,7 @@ class GameSetupRestoreTest {
     @Test
     fun `each seat has its own colour - a taken one swaps - and they're remembered and carried into the game unless they clash`() = runTest(testDispatcher) {
         val defaults = listOf(PlayerColour.CYAN, PlayerColour.GREEN, PlayerColour.PURPLE, PlayerColour.AMBER)
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        val viewModel = gameViewModel(aiDispatcher = testDispatcher)
         assertEquals(defaults, viewModel.setup.value.playerSlots.map { it.colour })
 
         // Picking a colour another player has swaps the two; a free one just replaces.
@@ -174,7 +172,7 @@ class GameSetupRestoreTest {
 
     @Test
     fun `a game starts with the modifiers chosen - in every mode that allows them`() = runTest(testDispatcher) {
-        val rolls = GameViewModel(aiDispatcher = testDispatcher)
+        val rolls = gameViewModel(aiDispatcher = testDispatcher)
         rolls.setRollsPerTurn(5)
         rolls.setStoredRolls(true)
         rolls.startGame()
@@ -183,7 +181,7 @@ class GameSetupRestoreTest {
         assertEquals(5, game.rollsRemaining)
 
         for (mode in GameMode.entries) {
-            val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+            val viewModel = gameViewModel(aiDispatcher = testDispatcher)
             viewModel.setGameMode(mode)
             viewModel.setExtendedScores(true)
             viewModel.setUnluckyDiceEnabled(true)
@@ -197,7 +195,7 @@ class GameSetupRestoreTest {
         }
 
         // Hit List starts without Extended Scores - and keeps the switch on for the next mode.
-        val hitList = GameViewModel(aiDispatcher = testDispatcher)
+        val hitList = gameViewModel(aiDispatcher = testDispatcher)
         hitList.setExtendedScores(true)
         hitList.setGameMode(GameMode.HIT_LIST)
         hitList.startGame()
@@ -208,7 +206,7 @@ class GameSetupRestoreTest {
         assertTrue(checkNotNull(hitList.game.value).extendedScores)
 
         // Unlucky Dice's settings are kept while it is switched off, and a game starts without it.
-        val unlucky = GameViewModel(aiDispatcher = testDispatcher)
+        val unlucky = gameViewModel(aiDispatcher = testDispatcher)
         unlucky.setUnluckyOdds(50)
         unlucky.setUnluckyDiceEnabled(true)
         unlucky.setUnluckyDiceEnabled(false)
@@ -219,7 +217,7 @@ class GameSetupRestoreTest {
 
     @Test
     fun `a name left blank is its seat's default in the player's language - and is saved blank`() = runTest(testDispatcher) {
-        val viewModel = GameViewModel(aiDispatcher = testDispatcher)
+        val viewModel = gameViewModel(aiDispatcher = testDispatcher)
         viewModel.setPlayerCount(3)
         viewModel.setPlayerName(2, "Wolfgang")
         assertEquals(listOf("", "Wolfgang", ""), viewModel.setup.value.playerSlots.take(3).map { it.name })

@@ -31,7 +31,7 @@ class SetupTextTest {
 
     private val showcase = Showcase(compose)
 
-    private fun show(viewModel: GameViewModel = GameViewModel()) = showcase.show {
+    private fun show(viewModel: GameViewModel = gameViewModel()) = showcase.show {
         CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
             DiceFiveTheme { GameSetupScreen(viewModel = viewModel, onStartGame = {}, onBack = {}) }
         }
@@ -39,7 +39,7 @@ class SetupTextTest {
 
     @Test
     fun `the form's words - its title and sections - a seat's default as a hint - a clash with it - and the seat chips and difficulties`() {
-        val viewModel = GameViewModel()
+        val viewModel = gameViewModel()
         show(viewModel)
         listOf("New Game", "Players", "Game Mode", "Modifiers", "Start Game").forEach { compose.onAllNodesWithText(it).assertCountEquals(1) }
 
@@ -52,7 +52,7 @@ class SetupTextTest {
         compose.onNodeWithContentDescription("Player 1 name").assertExists()
 
         // A seat's default clashes with another seat that typed the same words.
-        val clash = GameViewModel()
+        val clash = gameViewModel()
         clash.setPlayerCount(3)
         clash.setPlayerType(2, PlayerType.HUMAN)
         clash.setPlayerType(3, PlayerType.HUMAN)
@@ -61,7 +61,7 @@ class SetupTextTest {
         compose.onNodeWithText("Names must be unique").assertExists()
 
         // The seat chips and a computer player's difficulties are named.
-        val cpu = GameViewModel()
+        val cpu = gameViewModel()
         cpu.setPlayerType(2, PlayerType.AI)
         show(cpu)
         compose.onNodeWithText("CPU").assertExists()

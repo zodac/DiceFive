@@ -72,7 +72,7 @@ class GameScreenHapticsTest {
 
     @Test
     fun `the player's own roll buzzes the phone once`() {
-        val viewModel = GameViewModel()
+        val viewModel = gameViewModel()
         viewModel.setPlayerCount(1)
         show(viewModel)
         tapCup()
@@ -82,7 +82,7 @@ class GameScreenHapticsTest {
 
     @Test
     fun `a CPU's roll does not buzz the phone - only the player's own did`() {
-        val viewModel = GameViewModel()
+        val viewModel = gameViewModel()
         viewModel.setPlayerCount(2)
         viewModel.setPlayerType(2, PlayerType.AI)
         show(viewModel)
