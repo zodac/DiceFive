@@ -21,7 +21,6 @@ import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 import net.zodac.dicefive.ui.styles.StylesScreen
-import net.zodac.dicefive.ui.styles.StylesViewModel
 import net.zodac.dicefive.ui.styles.StylesWarmUp
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
@@ -49,7 +48,7 @@ class StylesPageFitTest {
         val saved = MutableStateFlow<SavedStyles?>(
             SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements),
         )
-        val viewModel = StylesViewModel(savedStyles = saved)
+        val viewModel = stylesViewModel(saved)
         var open by mutableStateOf(false)
         compose.setContent {
             DiceFiveTheme {

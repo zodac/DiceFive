@@ -18,7 +18,6 @@ import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 import net.zodac.dicefive.ui.styles.StylesScreen
-import net.zodac.dicefive.ui.styles.StylesViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.performScrollTo
@@ -41,7 +40,7 @@ class StylesTextTest {
         val saved = MutableStateFlow<SavedStyles?>(
             SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements),
         )
-        val viewModel = StylesViewModel(savedStyles = saved)
+        val viewModel = stylesViewModel(saved)
         showcase.show { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
         compose.mainClock.advanceTimeBy(10_000)
         compose.waitForIdle()

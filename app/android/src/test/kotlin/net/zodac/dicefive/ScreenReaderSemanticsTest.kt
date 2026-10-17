@@ -16,7 +16,6 @@ import net.zodac.dicefive.ui.game.TurnTimerBadge
 import net.zodac.dicefive.ui.game.UndoButton
 import net.zodac.dicefive.ui.statistics.PlayerStatsCard
 import net.zodac.dicefive.ui.styles.StylesScreen
-import net.zodac.dicefive.ui.styles.StylesViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -60,7 +59,7 @@ class ScreenReaderSemanticsTest {
 
     @Test
     fun `a style tile is a radio button saying its place in the row - the picked one selected - a locked one saying how to unlock it`() {
-        val viewModel = StylesViewModel()
+        val viewModel = stylesViewModel()
         compose.setContent { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
 
         val radios = compose.onAllNodes(hasRole(Role.RadioButton)).fetchSemanticsNodes()

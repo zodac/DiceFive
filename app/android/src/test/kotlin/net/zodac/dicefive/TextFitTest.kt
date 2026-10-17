@@ -47,7 +47,6 @@ import net.zodac.dicefive.ui.setup.GameSetupScreen
 import net.zodac.dicefive.ui.statistics.StatisticsScreen
 import net.zodac.dicefive.ui.statistics.StatisticsViewModel
 import net.zodac.dicefive.ui.styles.StylesScreen
-import net.zodac.dicefive.ui.styles.StylesViewModel
 import net.zodac.dicefive.ui.game.style.DiceCupStyles
 import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
@@ -167,7 +166,7 @@ open class TextFitTest {
         val saved = MutableStateFlow<SavedStyles?>(
             SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, AchievementsState()),
         )
-        val styles = StylesViewModel(savedStyles = saved)
+        val styles = stylesViewModel(saved)
         content { StylesScreen(viewModel = styles, onBack = {}) }
         compose.mainClock.advanceTimeBy(5_000)
         check("Styles")

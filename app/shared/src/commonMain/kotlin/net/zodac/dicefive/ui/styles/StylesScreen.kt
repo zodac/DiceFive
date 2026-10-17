@@ -110,7 +110,6 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
@@ -1715,15 +1714,5 @@ private fun <T : TableArt> ColourDots(colours: List<StyleColour<T>>, shown: Styl
                 ring = if (colour == shown) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
             )
         }
-    }
-}
-
-// A preview has no host to scope a view model to - see .claude/UI.md's ViewModelConstructorInComposable gotcha.
-@Suppress("ViewModelConstructorInComposable")
-@Preview(showBackground = true)
-@Composable
-private fun StylesScreenPreview() {
-    DiceFiveTheme {
-        StylesScreen(viewModel = StylesViewModel(), onBack = {})
     }
 }

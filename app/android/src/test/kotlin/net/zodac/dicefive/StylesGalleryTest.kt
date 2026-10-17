@@ -30,7 +30,6 @@ import net.zodac.dicefive.ui.game.style.DiceMats
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.TableBackgrounds
 import net.zodac.dicefive.ui.styles.StylesScreen
-import net.zodac.dicefive.ui.styles.StylesViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -59,7 +58,7 @@ class StylesGalleryTest {
         saved = MutableStateFlow(
             SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements),
         )
-        val viewModel = StylesViewModel(savedStyles = saved)
+        val viewModel = stylesViewModel(saved)
         compose.setContent { DiceFiveTheme { StylesScreen(viewModel = viewModel, onBack = {}) } }
         // Long enough for every row to build every tile.
         compose.mainClock.advanceTimeBy(10_000)

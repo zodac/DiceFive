@@ -5,27 +5,20 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.AppContainer
 import net.zodac.dicefive.data.achievements.AchievementStore
-import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.savedStylesFlow
-import net.zodac.dicefive.ui.game.style.DiceCupStyles
-import net.zodac.dicefive.ui.game.style.DiceMats
-import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.ui.game.style.StyleCategory
-import net.zodac.dicefive.ui.game.style.TableBackgrounds
 
-/** Nullable so this stays constructible/testable without a Context - see [factory], mirroring `SettingsViewModel`. */
 class StylesViewModel(
-    private val settingsRepository: SettingsRepository? = null,
-    achievementsRepository: AchievementStore? = null,
+    private val settingsRepository: SettingsRepository,
+    achievementsRepository: AchievementStore,
     /** The app's own copy of the saved picks ([AppContainer.savedStyles]); without one, they're read from [settingsRepository]. */
     savedStyles: StateFlow<SavedStyles?>? = null,
 ) : ViewModel() {
@@ -36,19 +29,12 @@ class StylesViewModel(
      * since until then every pick would look like the default and every style locked. From the app's
      * copy, that's normally already done before this screen is opened.
      */
-    val savedStyles: StateFlow<SavedStyles?> = when {
-        savedStyles != null -> savedStyles
-        settingsRepository != null -> savedStylesFlow(settingsRepository, achievementsRepository)
-            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
-        else -> MutableStateFlow(
-            SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, AchievementsState()),
-        )
-    }
+    val savedStyles: StateFlow<SavedStyles?> = savedStyles
+        ?: savedStylesFlow(settingsRepository, achievementsRepository).stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /** Saves [id] as [category]'s pick. */
     fun setStyleId(category: StyleCategory, id: String) {
-        val repository = settingsRepository ?: return
-        viewModelScope.launch { category.saveId(repository, id) }
+        viewModelScope.launch { category.saveId(settingsRepository, id) }
     }
 
     companion object {

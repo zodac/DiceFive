@@ -2,15 +2,18 @@ package net.zodac.dicefive
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.ScoreRepository
+import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
 import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
 import net.zodac.dicefive.ui.settings.SettingsViewModel
+import net.zodac.dicefive.ui.styles.StylesViewModel
 
 /** An [AchievementStore] kept in memory, starting as [initial]. The `:app:shared` tests have their own; this module can't see them. */
 internal class InMemoryAchievementStore(initial: AchievementsState = AchievementsState()) : AchievementStore {
@@ -34,4 +37,11 @@ internal fun settingsViewModel(settings: SettingsRepository = SettingsRepository
     InMemoryAchievementStore(),
     ScoreRepository(RowsDao(emptyList())),
     OnlineSettingsRepository(InMemoryPreferences()),
+)
+
+/** A Styles view model over in-memory repositories; [saved] stands in for the app's own copy of the picks, as the container passes it. */
+internal fun stylesViewModel(saved: StateFlow<SavedStyles?>? = null) = StylesViewModel(
+    SettingsRepository(InMemoryPreferences()),
+    InMemoryAchievementStore(),
+    saved,
 )
