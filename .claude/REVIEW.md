@@ -33,10 +33,6 @@ fade vs a horizontal mask with a clear zone and easing), so one helper would onl
 
 ## Smaller best-practice items
 
-- **Check again:** `ScoresViewModel` is the last one with a nullable repository, kept only for `ScoresWarmUp`, which
-  draws from a made-up board and must not read the database. Revisit it: a small source interface that the warm-up
-  implements (and `ScoreRepository` too) would let it go required. Every other view model takes its repositories as
-  required; the `StylesScreenPreview` and `GameScreenPreview` were dropped to allow that.
 - `AppContainer.diceRandom` is a public `var` only the store-asset generator uses. Kept: the generator swaps it
   mid-test on the one process-wide container, so a constructor parameter would only move the `var` into a test hook.
 - `material-icons-extended` is frozen at 1.7.3; the app uses about 108 icons from it. Material Symbols vector files

@@ -24,7 +24,18 @@ data class PlayerResult(
 /** The scores part of the cloud save: every row, and when each dismissed Statistics card was dismissed, by name. */
 data class CloudScores(val rows: List<ScoreEntry> = emptyList(), val dismissedAt: Map<String, Long> = emptyMap())
 
-class ScoreRepository(private val scoreDao: ScoreDao) {
+/** What the Leaderboard screen reads: the Combined table and each game mode's card, a page at a time. */
+interface LeaderboardSource {
+    suspend fun page(pageIndex: Int, pageSize: Int = SCORES_PAGE_SIZE): List<ScoreEntry>
+
+    suspend fun totalCount(): Int
+
+    suspend fun pageForMode(gameMode: GameMode, pageIndex: Int, pageSize: Int = SCORES_PAGE_SIZE): List<ScoreEntry>
+
+    suspend fun totalCountForMode(gameMode: GameMode): Int
+}
+
+class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
 
     /**
      * Records one finished game's human players ([results]) in a single write: all of them or none. With each, whether
@@ -62,10 +73,10 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
         )
     }
 
-    suspend fun page(pageIndex: Int, pageSize: Int = SCORES_PAGE_SIZE): List<ScoreEntry> =
+    override suspend fun page(pageIndex: Int, pageSize: Int): List<ScoreEntry> =
         scoreDao.pagedScores(limit = pageSize, offset = pageIndex * pageSize)
 
-    suspend fun totalCount(): Int = scoreDao.count()
+    override suspend fun totalCount(): Int = scoreDao.count()
 
     /**
      * One page of [gameMode]'s own Leaderboard card, in the same order as [page]: its games played with no modifier
@@ -73,10 +84,10 @@ class ScoreRepository(private val scoreDao: ScoreDao) {
      * ([GameMode.countsOnLeaderboard]) is listed only here; its scores stay off [page], [totalCount] and everything
      * measured against the board (a personal best, the score achievements).
      */
-    suspend fun pageForMode(gameMode: GameMode, pageIndex: Int, pageSize: Int = SCORES_PAGE_SIZE): List<ScoreEntry> =
+    override suspend fun pageForMode(gameMode: GameMode, pageIndex: Int, pageSize: Int): List<ScoreEntry> =
         scoreDao.pagedScoresForMode(gameMode.id, limit = pageSize, offset = pageIndex * pageSize)
 
-    suspend fun totalCountForMode(gameMode: GameMode): Int = scoreDao.countForMode(gameMode.id)
+    override suspend fun totalCountForMode(gameMode: GameMode): Int = scoreDao.countForMode(gameMode.id)
 
     /**
      * Wipes every recorded score, which necessarily empties the Statistics screen too - it's

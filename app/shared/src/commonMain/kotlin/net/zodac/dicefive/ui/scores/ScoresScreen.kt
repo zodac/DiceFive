@@ -67,6 +67,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import net.zodac.dicefive.data.scores.LeaderboardSource
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.game.TieBreak
@@ -647,13 +648,13 @@ private const val SCORES_WARM_UP_FRAMES = 8
  * and running the page's first-time code (the switch, the table, the lists, their scrollbars) lands on the
  * frame the page opens on. Placed on the menu under its opaque backdrop, in a 1dp clipped box, once the menu
  * has settled - the same idea as the Styles page's warm-up. It reads nothing from the database: the page is
- * drawn from a made-up board, through a view model that has no repository.
+ * drawn from a made-up board, through a view model that reads a fixed board instead.
  */
 @Composable
 fun ScoresWarmUp(width: Dp, modifier: Modifier = Modifier) {
     if (scoresWarmedUp) return
     var warming by remember { mutableStateOf(false) }
-    val viewModel = remember { ScoresViewModel(initialState = warmUpState()) }
+    val viewModel = remember { ScoresViewModel(WarmUpBoard) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(Unit) {
         lifecycle.delayWhileResumed(SCORES_WARM_UP_DELAY_MILLIS)
@@ -676,8 +677,8 @@ fun ScoresWarmUp(width: Dp, modifier: Modifier = Modifier) {
 }
 
 /** A board of a few made-up scores, on the table and on two cards. */
-private fun warmUpState(): ScoresUiState {
-    fun entry(id: Long, score: Int, mode: GameMode) = ScoreEntry(
+private object WarmUpBoard : LeaderboardSource {
+    private fun entry(id: Long, score: Int, mode: GameMode) = ScoreEntry(
         id = id,
         playerName = "Player $id", // i18n: not translated - made-up warm-up data, never shown
         score = score,
@@ -692,9 +693,22 @@ private fun warmUpState(): ScoresUiState {
         fourOfAKindScore = 0,
         gameModeId = mode.id,
     )
-    val standard = listOf(entry(1, 250, GameMode.STANDARD), entry(2, 200, GameMode.STANDARD))
-    val boards = LEADERBOARD_MODES.associateWith { LeaderboardPage() } +
-        (GameMode.STANDARD to LeaderboardPage(entries = standard, totalCount = standard.size)) +
-        (GameMode.TRICOLOUR to LeaderboardPage(entries = listOf(entry(3, 180, GameMode.TRICOLOUR)), totalCount = 1))
-    return ScoresUiState(combined = LeaderboardPage(entries = standard, totalCount = standard.size), isLoaded = true, modeBoards = boards)
+
+    private val standard = listOf(entry(1, 250, GameMode.STANDARD), entry(2, 200, GameMode.STANDARD))
+    private val tricolour = listOf(entry(3, 180, GameMode.TRICOLOUR))
+
+    private fun forMode(gameMode: GameMode): List<ScoreEntry> = when (gameMode) {
+        GameMode.STANDARD -> standard
+        GameMode.TRICOLOUR -> tricolour
+        else -> emptyList()
+    }
+
+    override suspend fun page(pageIndex: Int, pageSize: Int): List<ScoreEntry> = if (pageIndex == 0) standard else emptyList()
+
+    override suspend fun totalCount(): Int = standard.size
+
+    override suspend fun pageForMode(gameMode: GameMode, pageIndex: Int, pageSize: Int): List<ScoreEntry> =
+        if (pageIndex == 0) forMode(gameMode) else emptyList()
+
+    override suspend fun totalCountForMode(gameMode: GameMode): Int = forMode(gameMode).size
 }

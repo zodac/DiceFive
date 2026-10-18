@@ -12,9 +12,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.AppContainer
+import net.zodac.dicefive.data.scores.LeaderboardSource
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreEntry
-import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.scores_view_combined
@@ -62,16 +62,10 @@ data class ScoresUiState(
     val modeBoardsLoaded: Boolean get() = modeBoards.keys.containsAll(LEADERBOARD_MODES)
 }
 
-/**
- * [scoreRepository] is nullable so this stays constructible/testable without a Context - see [factory]. [initialState]
- * starts it somewhere other than empty: [ScoresWarmUp] draws the screen from a made-up one, with no repository to read.
- */
-class ScoresViewModel(
-    private val scoreRepository: ScoreRepository? = null,
-    initialState: ScoresUiState? = null,
-) : ViewModel() {
+/** Reads its boards from [source]: the score repository, or [ScoresWarmUp]'s made-up board. */
+class ScoresViewModel(private val source: LeaderboardSource) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(initialState ?: ScoresUiState(isLoaded = scoreRepository == null))
+    private val _uiState = MutableStateFlow(ScoresUiState())
     val uiState: StateFlow<ScoresUiState> = _uiState.asStateFlow()
 
     /**
@@ -112,20 +106,18 @@ class ScoresViewModel(
     }
 
     private fun loadPage(pageIndex: Int) {
-        val repository = scoreRepository ?: return
         load(null) {
-            val board = LeaderboardPage(entries = repository.page(pageIndex), pageIndex = pageIndex, totalCount = repository.totalCount())
+            val board = LeaderboardPage(entries = source.page(pageIndex), pageIndex = pageIndex, totalCount = source.totalCount())
             _uiState.update { it.copy(combined = board, isLoaded = true) }
         }
     }
 
     private fun loadModePage(mode: GameMode, pageIndex: Int) {
-        val repository = scoreRepository ?: return
         load(mode) {
             val board = LeaderboardPage(
-                entries = repository.pageForMode(mode, pageIndex),
+                entries = source.pageForMode(mode, pageIndex),
                 pageIndex = pageIndex,
-                totalCount = repository.totalCountForMode(mode),
+                totalCount = source.totalCountForMode(mode),
             )
             _uiState.update { it.copy(modeBoards = it.modeBoards + (mode to board)) }
         }
