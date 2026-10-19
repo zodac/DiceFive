@@ -1207,7 +1207,6 @@
     <string name="stats_spoken_first_played">First played %1$s.</string>
     <string name="stats_spoken_record">Played %1$d, won %2$d, lost %3$d.</string>
     <string name="stats_spoken_streaks">Win streak %1$d, best win streak %2$d.</string>
-    <string name="stats_spoken_scores">Total score %1$s. Average score %2$s.</string>
     <plurals name="stats_spoken_fives">
         <item quantity="one">%1$d 5x scored.</item>
         <item quantity="other">%1$d 5x scored.</item>
@@ -1218,19 +1217,50 @@
         <item quantity="other">%1$d solo games played.</item>
     </plurals>
     <string name="stats_first_played">First played</string>
-    <!-- %1$s is a game mode's name, %2$d how many games were played in it. -->
-    <string name="stats_spoken_mode">%1$s %2$d.</string>
-    <string name="stats_spoken_modes">Games played by mode.</string>
-    <!-- Labels under each number on an opened card. -->
-    <string name="stats_played">Played</string>
-    <string name="stats_won">Won</string>
-    <string name="stats_lost">Lost</string>
-    <string name="stats_streak">Streak</string>
     <string name="stats_best">Best</string>
-    <string name="stats_total_score">Total score</string>
+    <!-- A score with its unit, as the card's best score and Overview's average show it: %1$s is the number, thousands-separated ("1,287pts"). The same short form as rules_points_short. -->
+    <string name="stats_points">%1$spts</string>
     <string name="stats_average">Average</string>
     <string name="stats_solo">Solo</string>
-    <string name="stats_modes">Games played by mode</string>
+    <!-- The switch on an opened card: the player's overall stats, or a table of them by game mode. -->
+    <string name="stats_overview">Overview</string>
+    <string name="stats_by_mode">By mode</string>
+    <!-- Labels under the three big numbers on Overview. -->
+    <string name="stats_games">Games</string>
+    <string name="stats_win_rate">Win rate</string>
+    <!-- A win rate: %1$d is a whole percentage of the games against someone that were won. -->
+    <string name="stats_win_rate_value">%1$d%</string>
+    <!-- Shown for a win rate when every game was solo, so there's none. -->
+    <string name="stats_no_win_rate">-</string>
+    <!-- The key under the won/lost/solo bar on Overview: one each, chosen by its count (%1$d). -->
+    <plurals name="stats_record_won">
+        <item quantity="one">%1$d won</item>
+        <item quantity="other">%1$d won</item>
+    </plurals>
+    <plurals name="stats_record_lost">
+        <item quantity="one">%1$d lost</item>
+        <item quantity="other">%1$d lost</item>
+    </plurals>
+    <plurals name="stats_record_solo">
+        <item quantity="one">%1$d solo</item>
+        <item quantity="other">%1$d solo</item>
+    </plurals>
+    <!-- Overview's detail lines: a label, then its value. -->
+    <string name="stats_win_streak">Win streak</string>
+    <!-- %1$d is the current win streak, %2$d the longest. -->
+    <string name="stats_win_streak_value">%1$d (best %2$d)</string>
+    <string name="stats_fives_scored">5x scored</string>
+    <!-- The By mode table's column headings; the rows under Win are win rates, under Best each mode's best score. -->
+    <string name="stats_mode">Mode</string>
+    <string name="stats_win">Win</string>
+    <!-- Spoken, after stats_spoken_record: %1$d is a whole percentage. -->
+    <string name="stats_spoken_win_rate">Win rate %1$d%.</string>
+    <string name="stats_spoken_average">Average score %1$s.</string>
+    <!-- A By mode row read aloud, after stats_spoken_best with the mode's name: chosen by the games in it (%1$d). -->
+    <plurals name="stats_spoken_games">
+        <item quantity="one">%1$d game played.</item>
+        <item quantity="other">%1$d games played.</item>
+    </plurals>
 
     <!-- Achievements (ui/achievements/*) -->
     <string name="achievements_title">Achievements</string>

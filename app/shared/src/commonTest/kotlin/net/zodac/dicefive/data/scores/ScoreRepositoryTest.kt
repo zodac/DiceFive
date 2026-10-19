@@ -102,15 +102,49 @@ class ScoreRepositoryTest {
     }
 
     @Test
-    fun `Statistics - games played in each mode - in mode order - none for a mode never played`() = runTest {
+    fun `Statistics - each mode's games - wins - losses - solo games and best - in mode order - none for a mode never played`() = runTest {
         val repository = ScoreRepository(InMemoryScoreDao())
-        repository.record("Alice", 100, gameMode = GameMode.TRICOLOUR, timestampEpochMillis = 1_000L)
-        repository.record("Alice", 100, gameMode = GameMode.STANDARD, timestampEpochMillis = 2_000L)
-        repository.record("Alice", 100, gameMode = GameMode.TRICOLOUR, timestampEpochMillis = 3_000L)
+        repository.record("Alice", 120, won = true, gameMode = GameMode.TRICOLOUR, timestampEpochMillis = 1_000L)
+        repository.record("Alice", 100, won = null, gameMode = GameMode.STANDARD, timestampEpochMillis = 2_000L)
+        repository.record("Alice", 180, won = false, gameMode = GameMode.TRICOLOUR, timestampEpochMillis = 3_000L)
+        repository.record("Alice", 90, won = null, gameMode = GameMode.TRICOLOUR, timestampEpochMillis = 4_000L)
         val alice = repository.playerStatistics().single()
-        assertEquals(mapOf(GameMode.STANDARD to 1, GameMode.TRICOLOUR to 2), alice.gamesByMode)
-        assertEquals(listOf(GameMode.STANDARD, GameMode.TRICOLOUR), alice.gamesByMode.keys.toList())
-        assertEquals(alice.gamesPlayed, alice.gamesByMode.values.sum())
+        assertEquals(
+            listOf(
+                ModeStatistics(GameMode.STANDARD, gamesPlayed = 1, gamesWon = 0, gamesLost = 0, soloGames = 1, maxScore = 100),
+                ModeStatistics(GameMode.TRICOLOUR, gamesPlayed = 3, gamesWon = 1, gamesLost = 1, soloGames = 1, maxScore = 180),
+            ),
+            alice.modes,
+        )
+        assertEquals(alice.gamesPlayed, alice.modes.sumOf { it.gamesPlayed })
+        // Solo games aren't in a win rate; with nothing but solo games there's none.
+        assertEquals(listOf(null, 50), alice.modes.map { it.winRatePercent })
+    }
+
+    @Test
+    fun `a win rate is the games against someone that were won - a whole percentage rounded half up`() {
+        assertEquals(null, winRatePercent(won = 0, lost = 0))
+        assertEquals(0, winRatePercent(won = 0, lost = 3))
+        assertEquals(100, winRatePercent(won = 2, lost = 0))
+        // 1 / 3 = 33.3%, 2 / 3 = 66.7%, 1 / 8 = 12.5%.
+        assertEquals(33, winRatePercent(won = 1, lost = 2))
+        assertEquals(67, winRatePercent(won = 2, lost = 1))
+        assertEquals(13, winRatePercent(won = 1, lost = 7))
+        // A player's: 97 won and 81 lost is 54.49%, their 36 solo games left out.
+        val player = PlayerStatistics(
+            playerName = "Ann",
+            firstPlayedEpochMillis = 0L,
+            gamesPlayed = 214,
+            gamesWon = 97,
+            gamesLost = 81,
+            currentWinStreak = 0,
+            bestWinStreak = 0,
+            maxScore = 0,
+            totalScore = 0,
+            fiveOfAKindCount = 0,
+            soloGames = 36,
+        )
+        assertEquals(54, player.winRatePercent)
     }
 
     @Test

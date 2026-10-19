@@ -177,7 +177,21 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
                 totalScore = games.sumOf { it.score },
                 fiveOfAKindCount = games.sumOf { it.fiveOfAKindCount },
                 soloGames = games.count { it.won == null },
-                gamesByMode = GameMode.entries.associateWith { mode -> games.count { it.gameModeId == mode.id } }.filterValues { it > 0 },
+                modes = GameMode.entries.mapNotNull { mode ->
+                    val inMode = games.filter { it.gameModeId == mode.id }
+                    if (inMode.isEmpty()) {
+                        null
+                    } else {
+                        ModeStatistics(
+                            gameMode = mode,
+                            gamesPlayed = inMode.size,
+                            gamesWon = inMode.count { it.won == true },
+                            gamesLost = inMode.count { it.won == false },
+                            soloGames = inMode.count { it.won == null },
+                            maxScore = inMode.maxOf { it.score },
+                        )
+                    }
+                },
             )
         }
 

@@ -22,13 +22,42 @@ data class PlayerStatistics(
     val fiveOfAKindCount: Int,
     /** Games with nobody to beat - the ones recorded with a null outcome, so counted in [gamesPlayed] only. */
     val soloGames: Int,
-    /** Games played in each mode, in [GameMode.entries] order; a mode never played is absent. */
-    val gamesByMode: Map<GameMode, Int> = emptyMap(),
+    /** The same player's games split by mode, in [GameMode.entries] order; a mode never played is absent. */
+    val modes: List<ModeStatistics> = emptyList(),
 ) {
 
     /** [totalScore] over [gamesPlayed], rounded half up to a whole number; 0 for a player with no games. */
     val averageScore: Int
         get() = if (gamesPlayed == 0) 0 else ((totalScore.toLong() * 2 + gamesPlayed) / (gamesPlayed * 2L)).toInt()
+
+    /** See [winRatePercent]. */
+    val winRatePercent: Int?
+        get() = winRatePercent(gamesWon, gamesLost)
+}
+
+/** One player's games in one [gameMode]: the Statistics card's By mode row. */
+data class ModeStatistics(
+    val gameMode: GameMode,
+    /** Every game in the mode, solo ones included. */
+    val gamesPlayed: Int,
+    val gamesWon: Int,
+    val gamesLost: Int,
+    val soloGames: Int,
+    val maxScore: Int,
+) {
+
+    /** See [winRatePercent]. */
+    val winRatePercent: Int?
+        get() = winRatePercent(gamesWon, gamesLost)
+}
+
+/**
+ * The share of the games with someone to beat that were won, as a whole percentage rounded half up. Solo games aren't
+ * in it. Null when every game was solo, so there's no rate to give.
+ */
+internal fun winRatePercent(won: Int, lost: Int): Int? {
+    val decided = won + lost
+    return if (decided == 0) null else ((won * 200L + decided) / (decided * 2L)).toInt()
 }
 
 /**

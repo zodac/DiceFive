@@ -1,6 +1,7 @@
 package net.zodac.dicefive.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerColour
 
 // ---------------------------------------------------------------------------------------------
@@ -244,6 +245,23 @@ val PlayerColour.color: Color
         PlayerColour.RED -> Color(0xFFF2675F)
         PlayerColour.BLUE -> Color(0xFF6C9CFF)
         PlayerColour.LIME -> Color(0xFFD2E55C)
+    }
+
+/**
+ * Each [GameMode]'s own colour: the one place a mode is turned into a [Color], so anything marking a mode (the
+ * Statistics card's By mode table and its share bar, for now) shows the same one. Standard, the main mode, takes the
+ * brand gold ([Primary]); the rest are light tones that read on the dark page, clear of each other, of the gold and of
+ * red (`error`, a loss). A new mode needs one (the `when` won't compile without it): keep it that way.
+ */
+val GameMode.color: Color
+    get() = when (this) {
+        GameMode.STANDARD -> Primary
+        GameMode.TRICOLOUR -> Color(0xFF94D78F)
+        GameMode.THIRD_WIND -> Color(0xFFB6C6F2)
+        GameMode.STUD -> Color(0xFFE8A0BF)
+        GameMode.D20 -> Color(0xFF7FD1D9)
+        GameMode.HIT_LIST -> Color(0xFFD4E157)
+        GameMode.QUICKFIRE -> Color(0xFFC9A0F0)
     }
 
 // Leaderboard podium accents for 2nd/3rd place - a fixed silver/bronze pairing, same "not a

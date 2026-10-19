@@ -6,12 +6,18 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import net.zodac.dicefive.data.scores.ModeStatistics
 import net.zodac.dicefive.data.scores.PlayerStatistics
+import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.ui.game.TurnTimerBadge
 import net.zodac.dicefive.ui.game.UndoButton
 import net.zodac.dicefive.ui.statistics.PlayerStatsCard
@@ -51,6 +57,10 @@ class ScreenReaderSemanticsTest {
         totalScore = 1_001,
         fiveOfAKindCount = 4,
         soloGames = 2,
+        modes = listOf(
+            ModeStatistics(GameMode.STANDARD, gamesPlayed = 3, gamesWon = 2, gamesLost = 1, soloGames = 0, maxScore = 250),
+            ModeStatistics(GameMode.QUICKFIRE, gamesPlayed = 2, gamesWon = 0, gamesLost = 0, soloGames = 2, maxScore = 1_180),
+        ),
     )
 
     private fun hasRole(role: Role) = SemanticsMatcher.expectValue(SemanticsProperties.Role, role)
@@ -81,41 +91,53 @@ class ScreenReaderSemanticsTest {
     }
 
     @Test
-    fun `a stats card is collapsed to name and best score - its tap opening the rest - one solo game said as game`() {
+    fun `a stats card is collapsed to name and best score - its header opening Overview and By mode - each a stop or two in words`() {
         var deleted = 0
         showcase.show { DiceFiveTheme { PlayerStatsCard(player = player, onDelete = { deleted++ }) } }
 
-        val node = statsCard()
-        var config = node.fetchSemanticsNode().config
+        var config = statsCard().fetchSemanticsNode().config
         assertEquals("Ann. Best score 250.", config[SemanticsProperties.ContentDescription].single())
         assertEquals("Collapsed", config[SemanticsProperties.StateDescription])
         assertEquals("Show details", config[SemanticsActions.OnClick].label)
+        // The best score is drawn in points; it's spoken as "Best score".
+        compose.onNodeWithText("250pts", useUnmergedTree = true).assertExists()
         // The long press is gone: deleting is a button of its own, not a hidden gesture or a custom action.
         assertFalse(SemanticsActions.OnLongClick in config)
         assertFalse(SemanticsActions.CustomActions in config)
 
-        node.performSemanticsAction(SemanticsActions.OnClick)
+        statsCard().performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
         config = statsCard().fetchSemanticsNode().config
-        val spoken = config[SemanticsProperties.ContentDescription].single()
+        assertEquals("Ann. Best score 250.", config[SemanticsProperties.ContentDescription].single())
         assertEquals("Expanded", config[SemanticsProperties.StateDescription])
         assertEquals("Hide details", config[SemanticsActions.OnClick].label)
-        assertTrue(spoken.contains("Played 5, won 3, lost 2"))
-        assertTrue(spoken.contains("Total score 1,001. Average score 200."))
-        assertTrue(spoken.contains("4 5x scored. 2 solo games played."))
+
+        // Overview: the numbers and the won/lost/solo split, then the rest.
+        compose.onNodeWithContentDescription("Played 5, won 3, lost 2. 2 solo games played. Win rate 60%. Average score 200.").assertExists()
+        val details = compose.onNodeWithContentDescription("Win streak 1", substring = true).fetchSemanticsNode()
+            .config[SemanticsProperties.ContentDescription].single()
+        assertTrue(details, details.startsWith("Win streak 1, best win streak 2. 4 5x scored. First played "))
+
+        // By mode: a stop per mode, the win rate left out with nothing but solo games; the headings and bar are silent.
+        compose.onNodeWithText("By mode").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithContentDescription("Standard. Best score 250. 3 games played. Win rate 67%. 0 solo games played.").assertExists()
+        compose.onNodeWithContentDescription("Quickfire. Best score 1,180. 2 games played. 2 solo games played.").assertExists()
+        compose.onAllNodesWithText("Mode").assertCountEquals(0)
+        compose.onAllNodesWithText("Games").assertCountEquals(0)
 
         val delete = compose.onNodeWithContentDescription("Delete Ann's stats")
         assertEquals(Role.Button, delete.fetchSemanticsNode().config[SemanticsProperties.Role])
         delete.performSemanticsAction(SemanticsActions.OnClick)
         assertEquals(1, deleted)
 
-        // One solo game is said as game - not games.
-        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player.copy(soloGames = 1), onDelete = {}) } }
+        // One solo game is said as game - not games - and only solo games leave no win rate.
+        showcase.show { DiceFiveTheme { PlayerStatsCard(player = player.copy(gamesWon = 0, gamesLost = 0, soloGames = 1), onDelete = {}) } }
         statsCard().performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
-        val one = statsCard().fetchSemanticsNode().config[SemanticsProperties.ContentDescription].single()
-        assertTrue(one, one.contains("1 solo game played."))
-        assertTrue(one, !one.contains("1 solo games"))
+        compose.onNodeWithContentDescription("Played 5, won 0, lost 0. 1 solo game played. Average score 200.").assertExists()
+        // The dash in its place is drawn, not spoken.
+        compose.onNodeWithText("-", useUnmergedTree = true).assertExists()
     }
 
     @Test

@@ -1036,7 +1036,6 @@
     <string name="stats_spoken_first_played">أول لعب %1$s.</string>
     <string name="stats_spoken_record">لعب %1$d، فاز %2$d، خسر %3$d.</string>
     <string name="stats_spoken_streaks">سلسلة الفوز %1$d، أفضل سلسلة فوز %2$d.</string>
-    <string name="stats_spoken_scores">مجموع النقاط %1$s. متوسط النقاط %2$s.</string>
     <plurals name="stats_spoken_fives">
         <item quantity="zero">عدد مرات تسجيل 5x: %1$d.</item>
         <item quantity="one">عدد مرات تسجيل 5x: %1$d.</item>
@@ -1054,17 +1053,55 @@
         <item quantity="other">لُعبت %1$d لعبة فردية.</item>
     </plurals>
     <string name="stats_first_played">أول لعب</string>
-    <string name="stats_spoken_mode">%1$s %2$d.</string>
-    <string name="stats_spoken_modes">الألعاب التي لُعبت حسب النمط.</string>
-    <string name="stats_played">لُعبت</string>
-    <string name="stats_won">فاز</string>
-    <string name="stats_lost">خسر</string>
-    <string name="stats_streak">السلسلة</string>
     <string name="stats_best">الأفضل</string>
-    <string name="stats_total_score">مجموع النقاط</string>
+    <string name="stats_points">%1$s\u00A0نقطة</string>
     <string name="stats_average">المتوسط</string>
     <string name="stats_solo">فردي</string>
-    <string name="stats_modes">الألعاب التي لُعبت حسب النمط</string>
+    <string name="stats_overview">نظرة عامة</string>
+    <string name="stats_by_mode">حسب النمط</string>
+    <string name="stats_games">الألعاب</string>
+    <string name="stats_win_rate">نسبة الفوز</string>
+    <string name="stats_win_rate_value">%1$d٪</string>
+    <string name="stats_no_win_rate">-</string>
+    <plurals name="stats_record_won">
+        <item quantity="zero">فوز: %1$d</item>
+        <item quantity="one">فوز: %1$d</item>
+        <item quantity="two">فوز: %1$d</item>
+        <item quantity="few">فوز: %1$d</item>
+        <item quantity="many">فوز: %1$d</item>
+        <item quantity="other">فوز: %1$d</item>
+    </plurals>
+    <plurals name="stats_record_lost">
+        <item quantity="zero">خسارة: %1$d</item>
+        <item quantity="one">خسارة: %1$d</item>
+        <item quantity="two">خسارة: %1$d</item>
+        <item quantity="few">خسارة: %1$d</item>
+        <item quantity="many">خسارة: %1$d</item>
+        <item quantity="other">خسارة: %1$d</item>
+    </plurals>
+    <plurals name="stats_record_solo">
+        <item quantity="zero">فردي: %1$d</item>
+        <item quantity="one">فردي: %1$d</item>
+        <item quantity="two">فردي: %1$d</item>
+        <item quantity="few">فردي: %1$d</item>
+        <item quantity="many">فردي: %1$d</item>
+        <item quantity="other">فردي: %1$d</item>
+    </plurals>
+    <string name="stats_win_streak">سلسلة الفوز</string>
+    <string name="stats_win_streak_value">%1$d (الأفضل %2$d)</string>
+    <string name="stats_fives_scored">مرات تسجيل 5x</string>
+    <string name="stats_mode">النمط</string>
+    <string name="stats_win">الفوز</string>
+    <string name="stats_spoken_win_rate">نسبة الفوز %1$d٪.</string>
+    <string name="stats_spoken_average">متوسط النقاط %1$s.</string>
+    <plurals name="stats_spoken_games">
+        <item quantity="zero">لُعبت %1$d لعبة.</item>
+        <item quantity="one">لُعبت %1$d لعبة.</item>
+        <item quantity="two">لُعبت لعبتان (%1$d).</item>
+        <item quantity="few">لُعبت %1$d ألعاب.</item>
+        <item quantity="many">لُعبت %1$d لعبة.</item>
+        <item quantity="other">لُعبت %1$d لعبة.</item>
+    </plurals>
     <string name="achievements_title">الإنجازات</string>
     <string name="achievements_unlocked_count">%1$d من %2$d مفتوحة</string>
     <!-- Digits and "/" form one left-to-right run, so the total is written first to read "earned of total" from the right. -->

@@ -71,8 +71,8 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
 - **`primary` is the one brand accent and means "gold".** Examples: the Statistics max, the scrollbar thumbs, the
   backdrop spotlight, page titles. Use it as a text or icon tint for emphasis, not `primaryContainer` as a fill, which
   would be a second accent. For gold as a background, copy an existing use (a filled button, the unlock banner).
-- **Fixed non-role colours only where M3 has no role**: the board palette, `PlayerColour`, and the Leaderboard's
-  `Silver` and `Bronze` (1st reuses `primary`). Never use one to dodge picking the right existing role.
+- **Fixed non-role colours only where M3 has no role**: the board palette, `PlayerColour`, the mode colours ("Mode
+  colours"), and the Leaderboard's `Silver` and `Bronze` (1st reuses `primary`). Never use one to dodge picking the right existing role.
 - **M3 Expressive is deferred.** `MaterialExpressiveTheme` is internal in material3 1.4.x. The public API (with
   `MotionScheme` and `ButtonGroup`) is only in the 1.5.0 pre-releases, and alpha libraries stay out of releases.
   Revisit when 1.5.0 is stable.
@@ -373,6 +373,28 @@ Examples:
 - **Persisted** per slot (`player_colour_N`, falling back to the defaults if not distinct) and in a saved game.
 - **TalkBack**: "Player 2 colour, Pink", action "Choose colour". Choices are radio buttons, and a taken one says
   "swaps with player 1" (`PlayerColourPickerTest`).
+
+## Mode colours
+
+**Every game mode has one expected colour**, turned into a `Color` only in `GameMode.color` (`ui/theme/Color.kt`).
+Anything that marks a mode by colour uses it; today that's only the Statistics card's By mode table and its share bar.
+
+| Mode        | Colour                   |
+|-------------|--------------------------|
+| Standard    | `primary` (brand gold)   |
+| Tricolour   | `#94D78F` green          |
+| Third Wind  | `#B6C6F2` periwinkle     |
+| 7 Dice Stud | `#E8A0BF` pink           |
+| D20         | `#7FD1D9` cyan           |
+| Hit List    | `#D4E157` lime           |
+| Quickfire   | `#C9A0F0` violet         |
+
+- Standard is the main mode, so it takes the brand gold.
+- The rest are light tones that read on the dark page. Each stays clear of the others, of the gold and of red
+  (`error`, a loss on the Statistics card).
+- A new mode needs one: the `when` won't compile without it. `GameModeColourTest` checks they're distinct, Standard's
+  is `Primary` and none is `Error`.
+- Colour is never the only signal: the mode's name is always beside it.
 
 ## Gotchas
 

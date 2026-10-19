@@ -59,13 +59,13 @@ class StringsLanguageTest {
     private fun statsCard(name: String) =
         compose.onNode(hasContentDescription(name, substring = true) and SemanticsMatcher.keyIsDefined(SemanticsProperties.StateDescription))
 
-    /** What the stats card says, opened. */
+    /** What the stats card says, opened on its Overview: every stop's words, in order. */
     private fun openedCard(player: PlayerStatistics): String {
         showcase.show { DiceFiveTheme { PlayerStatsCard(player = player, onDelete = {}) } }
         statsCard(player.playerName).performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
-        return statsCard(player.playerName).fetchSemanticsNode()
-            .config[SemanticsProperties.ContentDescription].single()
+        return compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription)).fetchSemanticsNodes()
+            .joinToString(" ") { it.config[SemanticsProperties.ContentDescription].joinToString(" ") }
     }
 
     @Test

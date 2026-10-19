@@ -947,7 +947,6 @@
     <string name="stats_spoken_first_played">Primera partida: %1$s.</string>
     <string name="stats_spoken_record">Jugadas %1$d, ganadas %2$d, perdidas %3$d.</string>
     <string name="stats_spoken_streaks">Racha de victorias %1$d, mejor racha de victorias %2$d.</string>
-    <string name="stats_spoken_scores">Puntuación total %1$s. Puntuación media %2$s.</string>
     <plurals name="stats_spoken_fives">
         <item quantity="one">%1$d 5x anotado.</item>
         <item quantity="other">%1$d 5x anotados.</item>
@@ -957,17 +956,39 @@
         <item quantity="other">%1$d partidas en solitario jugadas.</item>
     </plurals>
     <string name="stats_first_played">Primera partida</string>
-    <string name="stats_spoken_mode">%1$s %2$d.</string>
-    <string name="stats_spoken_modes">Partidas jugadas por modo.</string>
-    <string name="stats_played">Jugadas</string>
-    <string name="stats_won">Ganadas</string>
-    <string name="stats_lost">Perdidas</string>
-    <string name="stats_streak">Racha</string>
     <string name="stats_best">Mejor</string>
-    <string name="stats_total_score">Puntos totales</string>
+    <string name="stats_points">%1$s\u00A0pts</string>
     <string name="stats_average">Media</string>
     <string name="stats_solo">Solitario</string>
-    <string name="stats_modes">Partidas jugadas por modo</string>
+    <string name="stats_overview">Resumen</string>
+    <string name="stats_by_mode">Por modo</string>
+    <string name="stats_games">Partidas</string>
+    <string name="stats_win_rate">Victorias</string>
+    <string name="stats_win_rate_value">%1$d\u00A0%</string>
+    <string name="stats_no_win_rate">-</string>
+    <plurals name="stats_record_won">
+        <item quantity="one">%1$d ganada</item>
+        <item quantity="other">%1$d ganadas</item>
+    </plurals>
+    <plurals name="stats_record_lost">
+        <item quantity="one">%1$d perdida</item>
+        <item quantity="other">%1$d perdidas</item>
+    </plurals>
+    <plurals name="stats_record_solo">
+        <item quantity="one">%1$d en solitario</item>
+        <item quantity="other">%1$d en solitario</item>
+    </plurals>
+    <string name="stats_win_streak">Racha de victorias</string>
+    <string name="stats_win_streak_value">%1$d (mejor %2$d)</string>
+    <string name="stats_fives_scored">5x anotados</string>
+    <string name="stats_mode">Modo</string>
+    <string name="stats_win">Vict.</string>
+    <string name="stats_spoken_win_rate">Porcentaje de victorias: %1$d\u00A0%.</string>
+    <string name="stats_spoken_average">Puntuación media %1$s.</string>
+    <plurals name="stats_spoken_games">
+        <item quantity="one">%1$d partida jugada.</item>
+        <item quantity="other">%1$d partidas jugadas.</item>
+    </plurals>
     <string name="achievements_title">Logros</string>
     <string name="achievements_unlocked_count">%1$d de %2$d desbloqueados</string>
     <string name="achievements_category_count">%1$d/%2$d</string>

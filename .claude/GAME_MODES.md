@@ -84,6 +84,7 @@ has changed something there.
   through the engine.
   - A rule that changes what "perfect" means (no 5x possible, say) may need `perfectGame` taught about it.
 - Doc comments state the rule. **Don't write a guessed rationale**; it reads as fact later.
+- **Its colour** in `GameMode.color` (`ui/theme/Color.kt`), added to the table in `UI.md` ("Mode colours").
 - **Its online leaderboard** (`PLAY_GAMES.md`, "Leaderboards"): a new `onlineLeaderboardKey`, an icon in
   `PlayConsoleLeaderboards.kt`, a board made by hand in Play Console from `scripts/export-play-console.sh`'s
   `leaderboards.csv`, and its id in `playLeaderboardIds` (`PlayGamesIdsTest` fails without it).

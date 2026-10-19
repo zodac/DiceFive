@@ -50,8 +50,8 @@ Unlock over 90 styles as you earn achievements, most in several colours:
 ## Track every game
 
 - **Leaderboard** of your highest scores, with the date and number of 5x in each game
-- **Statistics** for each player, including games played, won and lost, best and average scores, and current and best
-  win streaks
+- **Statistics** for each player, including games played, win rate, best and average scores, and current and best
+  win streaks, overall and for each game mode
 
 ## Get it
 
