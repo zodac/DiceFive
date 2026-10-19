@@ -1,5 +1,8 @@
 package net.zodac.dicefive.ui.game
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,6 +29,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
@@ -67,6 +71,7 @@ import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
+import net.zodac.dicefive.ui.common.scorePulse
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
@@ -93,6 +98,7 @@ fun TotalsButton(
     minSize: Dp = 48.dp,
     upperTarget: Int? = null,
     enabled: Boolean = true,
+    flourish: Boolean = false,
 ) {
     TotalsButton(
         lines = listOf(
@@ -101,10 +107,12 @@ fun TotalsButton(
             TotalLine(stringResource(Res.string.game_totals_lower), lowerTotal),
         ),
         highlighted = upperBonus > 0,
+        earned = if (upperBonus > 0) 1 else 0,
         spokenState = totalsSpokenState(upperTotal, upperBonus, lowerTotal, upperTarget),
         modifier = modifier,
         minSize = minSize,
         enabled = enabled,
+        flourish = flourish,
     )
 }
 
@@ -123,6 +131,7 @@ fun D20TotalsButton(
     modifier: Modifier = Modifier,
     minSize: Dp = 48.dp,
     enabled: Boolean = true,
+    flourish: Boolean = false,
 ) {
     val firstEarned = firstHalf >= firstTarget
     val secondEarned = secondHalf >= secondTarget
@@ -133,11 +142,13 @@ fun D20TotalsButton(
             TotalLine(stringResource(Res.string.game_totals_bonus), bonus, gold = bonus > 0),
         ),
         highlighted = firstEarned && secondEarned,
+        earned = listOf(firstEarned, secondEarned).count { it },
         litHalves = setOfNotNull(IconHalf.TOP.takeIf { firstEarned }, IconHalf.BOTTOM.takeIf { secondEarned }),
         spokenState = d20TotalsSpokenState(firstHalf, secondHalf, firstTarget, secondTarget, bonus),
         modifier = modifier,
         minSize = minSize,
         enabled = enabled,
+        flourish = flourish,
     )
 }
 
@@ -150,6 +161,7 @@ fun HitListTotalsButton(targetsTotal: Int, alibiTotal: Int, modifier: Modifier =
     TotalsButton(
         lines = listOf(TotalLine(stringResource(Res.string.game_totals_targets), targetsTotal), TotalLine(requireNotNull(ScoreCategory.ALIBI.mark), alibiTotal)),
         highlighted = false,
+        earned = 0,
         spokenState = hitListTotalsSpokenState(targetsTotal, alibiTotal),
         modifier = modifier,
         minSize = minSize,
@@ -185,19 +197,34 @@ private fun TotalsTable(lines: List<TotalLine>) {
 
 private val TOTALS_COLUMN_GAP = 16.dp
 
+/** How big the button swells, at the middle of its [BONUS_POP_MILLIS], when a bonus is earned. */
+private const val BONUS_POP_SCALE = 1.5f
+
+/** How long the pop lasts: half growing to [BONUS_POP_SCALE], half shrinking back. */
+private const val BONUS_POP_MILLIS = 1000
+
+/** Whether the bonuses earned going from [previous] to [now] gained one, which is when the button pops. */
+internal fun bonusJustEarned(previous: Int, now: Int): Boolean = now > previous
+
 /** One line of a [TotalsButton]'s tooltip: [label] and [value] - out of [target], when it has one - in gold when [gold]. */
 private class TotalLine(val label: String, val value: Int, val gold: Boolean = false, val target: Int? = null)
 
-/** The button itself: [lines] in its tooltip, its glyph gold while [highlighted], and [spokenState] what TalkBack hears. Does nothing unless [enabled]. */
+/**
+ * The button itself: [lines] in its tooltip, its glyph gold while [highlighted], and [spokenState] what TalkBack hears.
+ * Does nothing unless [enabled]. With [flourish] (a solo game, where the board stays up to be seen), it pops once each time
+ * [earned] (the bonuses earned so far) rises while it's on screen.
+ */
 @Composable
 private fun TotalsButton(
     lines: List<TotalLine>,
     highlighted: Boolean,
+    earned: Int,
     spokenState: String,
     modifier: Modifier,
     minSize: Dp,
     litHalves: Set<IconHalf> = emptySet(),
     enabled: Boolean = true,
+    flourish: Boolean = false,
 ) {
     val tooltipState = rememberAppTooltipState(persistent = true)
     val scope = rememberCoroutineScope()
@@ -220,6 +247,19 @@ private fun TotalsButton(
     // straight to the cup, as well as closing them; the roll closes them if that tap didn't.
     // A CPU's turn leaves them shut: closed if they were open as it began.
     LaunchedEffect(enabled) { if (!enabled) tooltipState.dismiss() }
+    // A flourish for a bonus just earned: not on first composition, nor when one is undone.
+    val pop = remember { Animatable(1f) }
+    // Medium and High only: Low and Off (and reduced motion) never pop.
+    val popAllowed = scorePulse
+    var shownEarned by remember { mutableStateOf(earned) }
+    LaunchedEffect(earned) {
+        val rose = bonusJustEarned(shownEarned, earned)
+        shownEarned = earned
+        if (rose && flourish && popAllowed) {
+            pop.animateTo(BONUS_POP_SCALE, tween(BONUS_POP_MILLIS / 2, easing = FastOutSlowInEasing))
+            pop.animateTo(1f, tween(BONUS_POP_MILLIS / 2, easing = FastOutSlowInEasing))
+        }
+    }
     if (tutorial != null) {
         LaunchedEffect(tutorial.rolling) { if (tutorial.rolling) tooltipState.dismiss() }
         // A jump to another turn closes them too: they only stay up for the step straight after opening them.
@@ -238,6 +278,10 @@ private fun TotalsButton(
     ) {
         Box(
             modifier = Modifier
+                .graphicsLayer {
+                    scaleX = pop.value
+                    scaleY = pop.value
+                }
                 // Before the clip, which would cut off an outline drawn round the button.
                 .then(if (tutorial?.opensTotals == true) Modifier.tutorialOutline(tutorial.pulse, cornerRadius = 10.dp) else Modifier)
                 // Before clickable, so its own click semantics don't leak through - see UI.md.

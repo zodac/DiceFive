@@ -118,6 +118,10 @@ indexes), not summed on the 5x tile.
 - The Upper line is shown against its threshold ("45 / 63", spoken "Upper 45 of 63") wherever the card has an upper
   bonus.
 - The glyph turns gold once the bonus is earned.
+- **Earning a bonus pops the button** (scale to 1.5 and back over 1s: full size exactly halfway, the same time shrinking, eased), once for the upper bonus and once for
+  each D20 half (`bonusJustEarned`). Solo games only (`flourish`, from `showUndo`): with more players the board moves on
+  to the next player and the pop would go unseen. Not on first composition (a resumed game), not when an undo takes one away, and not
+  below the Medium Animations level (`scorePulse`, so Low, Off and reduced motion never pop). Purely visual: TalkBack hears the same state.
 - TalkBack hears the totals as the button's state ("Upper 61, no bonus yet, lower 91"), and "Show totals" as its
   action.
 

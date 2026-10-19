@@ -260,6 +260,9 @@ internal fun PanelButtons(layout: BoardLayout, player: PlayerState?, cup: CupPan
         val buttonSize = gridTileSize(rows)
         // Shut during a CPU's turn on the live board; a look at another player's card (cup == null) stays open.
         val totalsEnabled = cup == null || player?.type != PlayerType.AI
+        // Only a solo game keeps the board in view when a bonus is earned (the others move to the next player), and only
+        // a solo game has Undo.
+        val flourish = cup?.showUndo == true
         if (layout.featured == null) {
             val bonuses = (player?.gameMode ?: GameMode.D20).sectionBonuses
             D20TotalsButton(
@@ -270,6 +273,7 @@ internal fun PanelButtons(layout: BoardLayout, player: PlayerState?, cup: CupPan
                 bonus = player?.sectionBonusTotal ?: 0,
                 minSize = buttonSize,
                 enabled = totalsEnabled,
+                flourish = flourish,
             )
         } else if (layout.featured == ScoreCategory.ALIBI) {
             val alibiTotal = player?.scoresIn(ScoreCategory.ALIBI)?.sum() ?: 0
@@ -284,6 +288,7 @@ internal fun PanelButtons(layout: BoardLayout, player: PlayerState?, cup: CupPan
                 lowerTotal = lowerTotal,
                 minSize = buttonSize,
                 enabled = totalsEnabled,
+                flourish = flourish,
                 // Out of what earns the bonus, where the card has one to earn (Quickfire's can have none).
                 upperTarget = player?.takeIf { it.hasUpperBonus }?.upperBonusThreshold,
             )
