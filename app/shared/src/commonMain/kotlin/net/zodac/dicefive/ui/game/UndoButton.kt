@@ -35,9 +35,13 @@ import net.zodac.dicefive.ui.theme.TileTealTop
 fun UndoButton(enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, minSize: Dp = 48.dp) {
     val shape = RoundedCornerShape(10.dp)
     val iconColor = TileIconColor.copy(alpha = if (enabled) 1f else 0.35f)
+    // In the tutorial, outlined at the step that asks for it.
+    val tutorial = LocalTutorialGuide.current
 
     Box(
         modifier = modifier
+            // Before the clip, which would cut off an outline drawn round the button.
+            .then(if (tutorial?.undoes == true) Modifier.tutorialOutline(tutorial.pulse, cornerRadius = 10.dp) else Modifier)
             // M3's 48dp minimum touch target, wherever the board has the room for it.
             .sizeIn(minWidth = minSize, minHeight = minSize)
             .clip(shape)

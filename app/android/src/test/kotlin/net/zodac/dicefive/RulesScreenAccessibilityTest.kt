@@ -33,7 +33,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.rules.RulesScreen
-import net.zodac.dicefive.ui.rules.RulesStart
 import net.zodac.dicefive.ui.rules.resetRulesPageMemory
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
@@ -46,7 +45,7 @@ import org.robolectric.annotation.Config
 /**
  * The Rules page row scrolls, and nothing on screen says how far - so it's the semantics that tell a
  * TalkBack user there are more tabs than the ones in view, as "Tab, 1 of 6" rather than just "Tab".
- * The group row above it says the same of its own four.
+ * The group row above it says the same of its own three.
  */
 @RunWith(AndroidJUnit4::class)
 class RulesScreenAccessibilityTest {
@@ -67,21 +66,6 @@ class RulesScreenAccessibilityTest {
         CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
             DiceFiveTheme { RulesScreen(onBack = {}) }
         }
-    }
-
-    @Test
-    fun `opened for the tutorial - the Tutorial group and its Standard page are selected - its title heads the page`() {
-        showcase.show {
-            resetRulesPageMemory()
-            CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
-                DiceFiveTheme { RulesScreen(onBack = {}, start = RulesStart.STANDARD_TUTORIAL) }
-            }
-        }
-        compose.onNode(isTab and hasText("Tutorial")).assertIsSelected()
-        compose.onNode(isTab and hasText("Standard")).assertIsSelected()
-        compose.onNode(isHeading and hasText("Standard Tutorial")).assertIsDisplayed()
-        // The rules remember the page they were left on: back to the first, for the tests after this one.
-        resetRulesPageMemory()
     }
 
     /** Each tab row (the tab's nearest collection - not the pager below them, which is one of its own) and its tabs, in order. */
@@ -107,10 +91,11 @@ class RulesScreenAccessibilityTest {
     @Test
     fun theTabRowsSayHowManyTabsEachHasAndWhereEachTabIsAndEveryPageCanBeReachedByTabSwipeOrChevron() {
         showRules()
-        // The edge chevrons are not extra TalkBack stops: every clickable node is a tab or the app bar's back arrow - the
-        // chevrons only repeat what the tabs (and their "1 of 6") already give TalkBack, so they're kept out of it.
+        // The edge chevrons are not extra TalkBack stops: every clickable node is a tab, the app bar's back arrow or How to
+        // Play's Start Tutorial - the chevrons only repeat what the tabs (and their "1 of 6") already give TalkBack, so
+        // they're kept out of it.
         val tabs = compose.onAllNodes(isTab).fetchSemanticsNodes().size
-        assertEquals(tabs + 1, compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.OnClick)).fetchSemanticsNodes().size)
+        assertEquals(tabs + 2, compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.OnClick)).fetchSemanticsNodes().size)
 
         // The footer says which page, and is announced when it changes.
         compose.onNodeWithText("1 of 5").assertIsDisplayed()
@@ -131,7 +116,7 @@ class RulesScreenAccessibilityTest {
         val rows = tabRows()
         assertEquals(2, rows.size)
         rows.forEach { (row, rowTabs) -> assertEquals(rowTabs.size, row.config[SemanticsProperties.CollectionInfo].columnCount) }
-        assertEquals(listOf(4, 6), rows.values.map { it.size })
+        assertEquals(listOf(3, 6), rows.values.map { it.size })
 
         // Tapping the end chevron scrolls the tabs. It has no semantics node of its own, so it's tapped where it sits: over
         // the page row's end.

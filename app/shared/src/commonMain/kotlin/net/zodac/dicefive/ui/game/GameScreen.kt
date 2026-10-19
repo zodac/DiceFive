@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -59,6 +60,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.zodac.dicefive.game.ProjectedHand
+import net.zodac.dicefive.game.TutorialStep
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
@@ -70,6 +72,8 @@ import net.zodac.dicefive.resources.common_back_cd
 import net.zodac.dicefive.resources.game_timer_left
 import net.zodac.dicefive.resources.game_timer_left_cd
 import net.zodac.dicefive.resources.game_timer_running_out_cd
+import net.zodac.dicefive.resources.game_tutorial_coach_name
+import net.zodac.dicefive.resources.game_tutorial_turn
 import net.zodac.dicefive.ui.common.BackHandler
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LocalAnimationLevel
@@ -110,8 +114,12 @@ fun GameScreen(
     viewModel: GameViewModel,
     modifier: Modifier = Modifier,
     onBackToMenu: () -> Unit = {},
+    // The tutorial's Game Over offers a game of the player's own in place of Play Again.
+    onNewGame: () -> Unit = {},
 ) {
     val state by viewModel.game.collectAsStateWithLifecycle()
+    val tutorialStep by viewModel.tutorialStep.collectAsStateWithLifecycle()
+    val tutorialTurn by viewModel.tutorialTurn.collectAsStateWithLifecycle()
     val canUndo by viewModel.canUndo.collectAsStateWithLifecycle()
     val confirmBeforeLeaving by viewModel.confirmBeforeLeavingGame.collectAsStateWithLifecycle()
     val superuserModeActive by viewModel.superuserModeActive.collectAsStateWithLifecycle()
@@ -161,9 +169,10 @@ fun GameScreen(
     // Redirect system back to Menu (default nav behavior would land on the setup form instead).
     // While reviewing scorecards, back returns to the results instead - ScorecardReviewScreen
     // installs its own BackHandler for that, which composes later and so wins over this one.
+    // The tutorial always asks while it's running, whatever the setting: it isn't saved, so leaving loses the place in it.
     val leaveGame = {
-        if (!currentState.isGameOver && confirmBeforeLeaving) {
-            leaveConfirmation.request(onBackToMenu)
+        if (!currentState.isGameOver && (confirmBeforeLeaving || viewModel.isTutorial)) {
+            leaveConfirmation.request(tutorial = viewModel.isTutorial, onLeave = onBackToMenu)
         } else {
             onBackToMenu()
         }
@@ -181,8 +190,16 @@ fun GameScreen(
     // Under reduced motion, or the Low level's simple roll, the dice snap to their result, so a CPU has no toss to wait for.
     val simpleRoll = LocalAnimationLevel.current.simpleDiceRoll
     SideEffect { viewModel.setPacing(GamePacing(cupShakeMillis = cupShakeMillis, diceAnimated = !reduceMotion && !simpleRoll)) }
+    // In the tutorial, what its step points the board's pieces to - and nothing at all in a real game.
+    val tutorialPulse = if (viewModel.isTutorial) rememberTutorialPulse() else null
+    val tutorialRolling by viewModel.tapRolling.collectAsStateWithLifecycle()
+    val tutorialGuide = tutorialPulse?.let { pulse ->
+        remember(tutorialStep, tutorialRolling) { TutorialGuide(tutorialStep, pulse, viewModel::tutorialTotalsOpened, tutorialRolling) }
+    }
+    val coachName = stringResource(Res.string.game_tutorial_coach_name)
     CompositionLocalProvider(
         LocalGameVisualTheme provides tableSettings.visualTheme,
+        LocalTutorialGuide provides tutorialGuide,
         LocalIrishTricolour provides currentState.isLuckOfTheIrish,
         LocalOnRabbitSeen provides viewModel::onRabbitSeen,
     ) {
@@ -199,7 +216,8 @@ fun GameScreen(
                 GameOverScreen(
                     state = currentState,
                     onBackToMenu = onBackToMenu,
-                    onPlayAgain = viewModel::startGame,
+                    onPlayAgain = { if (viewModel.isTutorial) onNewGame() else viewModel.startGame() },
+                    tutorialFinished = viewModel.isTutorial,
                     onReviewScorecards = { reviewingScorecards = true },
                     modifier = modifier,
                     celebrate = !celebrated,
@@ -254,6 +272,22 @@ fun GameScreen(
                             onTapCupWithNoRollsLeft = viewModel::tapCupWithNoRollsLeft,
                             onShakeRollDetected = viewModel::onShakeRollDetected,
                             cupShakeMillis = cupShakeMillis,
+                            coach = tutorialStep?.let { step ->
+                                { cardModifier ->
+                                    BoxWithConstraints(modifier = cardModifier) {
+                                        val height = coachCardHeight(viewModel.tutorialSteps, maxWidth)
+                                        val turn = stringResource(Res.string.game_tutorial_turn, tutorialTurn, viewModel.tutorialTurns)
+                                        CoachCard(
+                                            step = step,
+                                            coachName = coachName,
+                                            turn = turn,
+                                            onBack = { viewModel.jumpToTutorialTurn(-1) }.takeIf { viewModel.canJumpBack },
+                                            onForward = { viewModel.jumpToTutorialTurn(1) }.takeIf { viewModel.canJumpForward },
+                                            modifier = Modifier.height(height),
+                                        )
+                                    }
+                                }
+                            },
                         )
                     }
                 }
@@ -282,15 +316,19 @@ private fun InProgressGame(
     onTapCupWithNoRollsLeft: () -> Unit,
     onShakeRollDetected: () -> Unit,
     cupShakeMillis: Long,
+    // The tutorial's coach card, in place of the player tabs: null in a real game.
+    coach: (@Composable (Modifier) -> Unit)? = null,
 ) {
     val currentPlayer = state.currentPlayer
     val isHumanTurn = currentPlayer?.type == PlayerType.HUMAN
-    val canRoll = isHumanTurn && state.rollsRemaining > 0
+    // In the tutorial, the dice roll and hold only at the steps that ask for it.
+    val tutorial = LocalTutorialGuide.current
+    val canRoll = isHumanTurn && state.rollsRemaining > 0 && (tutorial == null || tutorial.rolls)
     // No rollsRemaining condition here (see GameEngine.toggleHold): holding still has no effect on
     // a roll that won't happen after the last one, but disabling the dice entirely once it hits 0
     // looked like the tray had broken, and it blocked superuser cycling right when it's most
     // likely to be used - right after seeing the final roll.
-    val canHold = isHumanTurn && state.phase == TurnPhase.ROLLED
+    val canHold = isHumanTurn && state.phase == TurnPhase.ROLLED && (tutorial == null || tutorial.step is TutorialStep.Hold)
 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     // The cup/tray don't care whether the shake was kicked off by a human tap or a CPU's turn - both are timed by the
@@ -424,14 +462,18 @@ private fun InProgressGame(
         IconButton(onClick = onBack, modifier = Modifier.offset(y = BACK_ARROW_TOP - GAME_PADDING)) {
             Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back_cd))
         }
-        PlayerHeaderBar(
-            players = state.players,
-            currentPlayerIndex = state.currentPlayerIndex,
-            viewedPlayerIndex = viewedPlayerIndex,
-            enabled = isHumanTurn,
-            onPlayerTap = onPlayerTap,
-            modifier = Modifier.weight(1f),
-        )
+        if (coach != null) {
+            coach(Modifier.weight(1f))
+        } else {
+            PlayerHeaderBar(
+                players = state.players,
+                currentPlayerIndex = state.currentPlayerIndex,
+                viewedPlayerIndex = viewedPlayerIndex,
+                enabled = isHumanTurn,
+                onPlayerTap = onPlayerTap,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 
     RunningTurnTimer(turnSecondsRemaining)

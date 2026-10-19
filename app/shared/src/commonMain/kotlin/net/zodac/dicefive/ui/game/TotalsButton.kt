@@ -17,6 +17,11 @@ import androidx.compose.material.icons.filled.Functions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -36,6 +42,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.model.ScoreCategory
+import net.zodac.dicefive.game.TutorialStep
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.game_totals_alibi_spoken
 import net.zodac.dicefive.resources.game_totals_bonus
@@ -192,19 +199,51 @@ private fun TotalsButton(
     val showTotalsLabel = stringResource(Res.string.game_totals_show_action)
     val color = if (highlighted) GoldAccent else TileIconColor
     val shape = RoundedCornerShape(10.dp)
+    // In the tutorial, the button only opens the totals at the step that asks for them - outlined then - and opening
+    // them moves it on.
+    val tutorial = LocalTutorialGuide.current
+    val opens = tutorial == null || tutorial.opensTotals
+    val toggle = {
+        // Before the toggle: a persistent tooltip's show() only returns once it's dismissed.
+        tutorial?.onTotalsOpened()
+        scope.launch { tooltipState.toggle() }
+    }
     // The tooltip's own anchor merges this button into one TalkBack node of its own, which keeps the
     // name, state and actions but not the role - so the role goes on that node too.
-    AppTooltip(body = { TotalsTable(lines) }, state = tooltipState, modifier = modifier.semantics { role = Role.Button }) {
+    // In the tutorial the totals stay up while the card talks about them, and the tap on the cup that carries on goes
+    // straight to the cup, as well as closing them; the roll closes them if that tap didn't.
+    if (tutorial != null) {
+        LaunchedEffect(tutorial.rolling) { if (tutorial.rolling) tooltipState.dismiss() }
+        // A jump to another turn closes them too: they only stay up for the step straight after opening them.
+        var previousStep by remember { mutableStateOf(tutorial.step) }
+        LaunchedEffect(tutorial.step) {
+            if (previousStep !is TutorialStep.OpenTotals) tooltipState.dismiss()
+            previousStep = tutorial.step
+        }
+    }
+    AppTooltip(
+        body = { TotalsTable(lines) },
+        state = tooltipState,
+        enabled = opens,
+        focusable = tutorial == null,
+        modifier = modifier.semantics { role = Role.Button },
+    ) {
         Box(
             modifier = Modifier
+                // Before the clip, which would cut off an outline drawn round the button.
+                .then(if (tutorial?.opensTotals == true) Modifier.tutorialOutline(tutorial.pulse, cornerRadius = 10.dp) else Modifier)
                 // Before clickable, so its own click semantics don't leak through - see UI.md.
                 .clearAndSetSemantics {
                     contentDescription = totalsName
                     stateDescription = spokenState
                     role = Role.Button
-                    onClick(label = showTotalsLabel) {
-                        scope.launch { tooltipState.toggle() }
-                        true
+                    if (opens) {
+                        onClick(label = showTotalsLabel) {
+                            toggle()
+                            true
+                        }
+                    } else {
+                        disabled()
                     }
                 }
                 // M3's 48dp minimum touch target, which the glyph alone (when a large font drops the label) is short of.
@@ -212,7 +251,7 @@ private fun TotalsButton(
                 .clip(shape)
                 .background(Brush.linearGradient(listOf(TileTealTop, TileTealBottom)))
                 .border(1.dp, TileTealBorder, shape)
-                .clickable(role = Role.Button) { scope.launch { tooltipState.toggle() } }
+                .clickable(enabled = opens, role = Role.Button) { toggle() }
                 .padding(horizontal = 6.dp, vertical = 6.dp),
             contentAlignment = Alignment.Center,
         ) {

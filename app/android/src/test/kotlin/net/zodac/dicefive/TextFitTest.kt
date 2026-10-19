@@ -199,7 +199,7 @@ open class TextFitTest {
         content { RulesScreen(onBack = {}) }
         val isTab = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
         // The top row's tabs (the groups) come first, then the row of the showing group's pages.
-        val groups = 4
+        val groups = 3
         val broken = mutableMapOf<String, List<String>>()
         for (group in 0 until groups) {
             compose.onAllNodes(isTab)[group].performClick()

@@ -347,7 +347,10 @@ internal fun CategoryCell(
     // ever makes sense for the human at the controls, but the gold "worth picking" glow and the
     // number preview are just information about the dice that already landed - an AI's own roll
     // is exactly as previewable as a human's, it's just never the human tapping it in.
-    val isLegalChoice = player != null && canScore && category in available
+    // In the tutorial, only the box its step scores in takes a tap - outlined, so the player can find it.
+    val tutorial = LocalTutorialGuide.current
+    val tutorialBox = tutorial?.scores(category) == true
+    val isLegalChoice = player != null && canScore && category in available && (tutorial == null || tutorialBox)
     val canPreview = player != null && showPreview && category in available
     val previewScore = if (canPreview) ScoreCalculator.scoreFor(player, category, dice) else null
     val isGoodChoice = previewScore != null && previewScore > 0
@@ -416,7 +419,7 @@ internal fun CategoryCell(
     val tile = @Composable { tileModifier: Modifier ->
         CategoryTile(
             category = category,
-            modifier = tileModifier,
+            modifier = tutorial?.takeIf { tutorialBox }?.let { tileModifier.tutorialOutline(it.pulse) } ?: tileModifier,
             highlighted = tileLit,
             flashing = flashing,
             wide = wide,

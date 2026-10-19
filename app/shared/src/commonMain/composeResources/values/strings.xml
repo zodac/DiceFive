@@ -41,6 +41,9 @@
     <!-- Leave game confirmation (ui/game/LeaveGameConfirmation.kt) -->
     <string name="game_leave_title">Leave game?</string>
     <string name="game_leave_message">Your progress is saved - you can continue this game later.</string>
+    <!-- The same dialog when leaving the tutorial before it ends: it asks whatever the "confirm before leaving" setting says, with its own title and message, and the same buttons. -->
+    <string name="game_leave_tutorial_title">Leave the tutorial?</string>
+    <string name="game_leave_tutorial_message">It isn't saved: you'll start again from the beginning next time.</string>
     <string name="game_leave_confirm">Leave</string>
     <string name="game_leave_dismiss">Cancel</string>
 
@@ -684,6 +687,9 @@
     <string name="gameover_review">Review Scorecards</string>
     <string name="gameover_main_menu">Main Menu</string>
     <string name="gameover_play_again">Play Again</string>
+    <string name="gameover_tutorial_done">You've finished the tutorial! Start a game of your own whenever you're ready.</string>
+    <string name="gameover_tutorial_close">Done</string>
+    <string name="gameover_tutorial_new_game">New Game</string>
     <!-- The winner's card: the trophy icon's name for TalkBack, and the label under their name. -->
     <string name="gameover_winner">Winner</string>
     <!-- A place shared with another player ("=2"), on the results and Leaderboard pages. The "=" is read as "equals" if spoken, so it is only drawn. -->
@@ -697,6 +703,62 @@
     <string name="tiebreak_chance">Won on a lower Chance score</string>
     <string name="tiebreak_three_of_a_kind">Won on a lower 3x</string>
     <string name="tiebreak_four_of_a_kind">Won on a lower 4x</string>
+
+    <!-- The tutorial's coach card (ui/game/CoachCard.kt): game_tutorial_<step>, one per TutorialMessage, in the order the guided game shows them. Markup as the Rules pages': `backticks` for a box's name (gold), **bold** for a number. The dice and scores they name are the script's (game/Tutorial.kt). -->
+    <!-- Who the tutorial's card speaks as, above what it says. -->
+    <string name="game_tutorial_coach_name">Coach</string>
+    <!-- Beside game_tutorial_coach_name on the card: which of the tutorial's turns it is. -->
+    <string name="game_tutorial_turn">Turn %1$d of %2$d</string>
+    <!-- The coach card's back and forward, to the start of the previous or next turn - played as if the right moves were made. -->
+    <string name="game_tutorial_previous_turn_cd">Previous turn</string>
+    <string name="game_tutorial_next_turn_cd">Next turn</string>
+    <string name="game_tutorial_welcome">Welcome! Roll the five dice up to **3** times a turn, then score them in one box of your scorecard. After **13** turns every box is filled, and their total is your score. Tap the cup to start.</string>
+    <string name="game_tutorial_hold_sixes">Three 6s! Tap each 6 to hold it. Held dice stay put when you roll again.</string>
+    <string name="game_tutorial_roll_again">Now tap the cup to roll the other two dice.</string>
+    <string name="game_tutorial_hold_fourth_six">Another 6! Hold it too.</string>
+    <string name="game_tutorial_roll_last">This is your last roll of the turn. Go for the fifth 6!</string>
+    <string name="game_tutorial_score_five_x">All five dice match: a `5x`, worth **50** points! Tap the `5x` box to score it.</string>
+    <string name="game_tutorial_roll_new_turn">A new turn. Tap the cup to roll.</string>
+    <string name="game_tutorial_roll_other_dice">Roll the other dice.</string>
+    <string name="game_tutorial_roll_last_try">Your last roll this turn.</string>
+    <string name="game_tutorial_hold_it_too">Another one! Hold it too.</string>
+    <string name="game_tutorial_hold_chase_straight">2, 3, 4 and 6 only need a 5 for a `Large Straight`. Hold them and roll for it.</string>
+    <string name="game_tutorial_roll_for_five">Roll for the 5.</string>
+    <string name="game_tutorial_roll_for_five_again">No 5. You have one roll left, so try again.</string>
+    <string name="game_tutorial_score_chance">No straight this time. `Chance` scores the total of any dice, a safety net for turns like this: **18** points.</string>
+    <string name="game_tutorial_hold_run">2, 3 and 4 start a run. Hold one of each; the spare 4 and 2 don't help, so roll those.</string>
+    <string name="game_tutorial_hold_run_five">A 5! Hold it too: one more in the run makes a `Large Straight`.</string>
+    <string name="game_tutorial_roll_for_run_end">Your last roll: a 1 or a 6 finishes the run.</string>
+    <string name="game_tutorial_score_large_straight">A 6! Five dice in a row is a `Large Straight`, worth **40** points. Score it.</string>
+    <string name="game_tutorial_hold_threes">Each upper box counts one number: `Threes` adds up the 3s. Hold the 3 and roll for more.</string>
+    <string name="game_tutorial_score_threes">Three 3s make **9** in `Threes`. **63** in the upper section earns a bonus later: that's three of each number, on average.</string>
+    <string name="game_tutorial_hold_straight_again">2, 3 and 5: a 4 would make a `Small Straight`. Hold them; the 6s don't help, so roll those.</string>
+    <string name="game_tutorial_roll_for_four">Roll for the 4.</string>
+    <string name="game_tutorial_roll_for_four_again">No 4. You have one roll left.</string>
+    <string name="game_tutorial_score_zero">Still no straight, and `Chance` is used. Take a **0** in `Small Straight` rather than spoil an upper box you need for the bonus.</string>
+    <string name="game_tutorial_score_fours_early">Three 4s on the first roll. You don't have to use every roll: score `Fours` now for **12**.</string>
+    <string name="game_tutorial_hold_fives">Two 5s. Hold them.</string>
+    <string name="game_tutorial_score_fives_mistake">Four 5s and a 6. Tap `Fives` to score them there.</string>
+    <string name="game_tutorial_undo_mistake">Actually, there's a better box for these: `Fives` only counts the 5s, **20**, while `4x` scores all five dice. Tap Undo to take back your last score. Undo is only in solo games.</string>
+    <string name="game_tutorial_score_four_x">Four 5s! `4x` scores the total of all five dice, the 6 too: **26** points.</string>
+    <string name="game_tutorial_hold_twos">A 2. Hold it and roll for more.</string>
+    <string name="game_tutorial_score_twos">Three 2s make **6** in `Twos`. Score it.</string>
+    <string name="game_tutorial_hold_full_house_start">Two 3s. A `Full House` is three of one number and two of another. Hold the 3s.</string>
+    <string name="game_tutorial_hold_full_house_pair">Three 3s! Hold the third, and the 2 for a pair.</string>
+    <string name="game_tutorial_score_full_house">Three 3s and two 2s: a `Full House`, worth **25** points. Score it.</string>
+    <string name="game_tutorial_hold_five">A 5, and `Fives` is still open. Hold it and roll for more.</string>
+    <string name="game_tutorial_score_fives">Three 5s: score `Fives` for **15**. `3x` would take them too, but `Fives` keeps your upper section on course for the bonus.</string>
+    <string name="game_tutorial_open_totals">Tap the totals button to see how your scorecard is doing.</string>
+    <string name="game_tutorial_upper_progress">Your upper section has **42** points. Reach **63** for a **35**-point bonus: that's **21** more, and three 1s and three 6s make exactly that, so aim for those. Tap the cup to roll.</string>
+    <string name="game_tutorial_hold_ones">Two 1s. Hold them.</string>
+    <string name="game_tutorial_score_joker">Five 1s: a second `5x`! It earns a **100**-point bonus, and scores in its matching box, `Ones`: **5** points.</string>
+    <string name="game_tutorial_hold_six">A 6. Hold it and roll for `Sixes`.</string>
+    <string name="game_tutorial_score_sixes">Three 6s: score `Sixes` for **18**. That takes your upper section past **63**.</string>
+    <string name="game_tutorial_open_totals_bonus">Tap the totals button again.</string>
+    <string name="game_tutorial_bonus_earned">**65** in your upper section earns the **35**-point bonus. **63** is what three of each number scores, so aim for an average of three of each. Tap the cup to roll.</string>
+    <string name="game_tutorial_hold_fours_three_x">Two 4s. Your last box is `3x`, which needs three of one number. Hold the 4s.</string>
+    <string name="game_tutorial_hold_high_dice">No third 4 yet, but `3x` adds up all five dice, so the 6 and 5 are worth keeping. Hold them and roll the 2.</string>
+    <string name="game_tutorial_score_three_x">Three 4s: `3x` scores the total of all five dice, **23** points. That's your last box.</string>
 
     <!-- New Game setup (ui/setup/*) -->
     <!-- The name a human player gets when they type none, and what the empty name field shows as a hint. %1$d is the seat, 1 to 4. Not used for names the player has typed. -->
@@ -1195,7 +1257,7 @@
     <!-- A progress banner read aloud: the title, then how far along. -->
     <string name="achievements_banner_progress_spoken">%1$s: %2$s of %3$s</string>
 
-    <!-- Rules pages (ui/rules/RulesScreen.kt): one page per idea, in order, in four groups (rules_group_*): the rules, the game modes, the modifiers, then the tutorials. Body text may use markup: `backticks` for the name of a scoring category (gold, monospace), *italics* for the name of a section, mode or setting, **bold** for a number of points or a count. "Npts" is the short form of points (see rules_points_short). -->
+    <!-- Rules pages (ui/rules/RulesScreen.kt): one page per idea, in order, in three groups (rules_group_*): the rules, the game modes, then the modifiers. Body text may use markup: `backticks` for the name of a scoring category (gold, monospace), *italics* for the name of a section, mode or setting, **bold** for a number of points or a count. "Npts" is the short form of points (see rules_points_short). -->
     <string name="rules_how_to_play_title">How to Play %1$s</string>
     <!-- A tab: keep it short. -->
     <string name="rules_how_to_play_tab">How to Play</string>
@@ -1203,6 +1265,9 @@
     <string name="rules_how_to_play_2">You may hold any dice you want after a roll, then roll the remaining dice.</string>
     <string name="rules_how_to_play_3">Once you're happy with the roll (or you've rolled three times), score it in any open category on your scorecard.</string>
     <string name="rules_how_to_play_4">The game ends once every category is filled.</string>
+    <string name="rules_how_to_play_tutorial">Want to see it played? The tutorial takes you through a whole game, one step at a time. Nothing in it counts: no scores, achievements or saved game.</string>
+    <!-- The button under rules_how_to_play_tutorial that starts it. -->
+    <string name="rules_tutorial_start">Start Tutorial</string>
     <string name="rules_upper_section_title">Scoring: Upper Section</string>
     <!-- A tab: keep it short. -->
     <string name="rules_upper_section_tab">Upper Section</string>
@@ -1360,21 +1425,15 @@
     <string name="rules_unlucky_dice_2">Here the last **5** is locked, so it can't be held or scored. Only the other three **5**s score in *Fives*; with the locked one it would have been **20pts**. The **2** doesn't count, as usual.</string>
     <string name="rules_unlucky_dice_3">You may configure the percentage chance each rolled die has of being locked, from **10%** to **50%**, and the maximum number of dice that can be locked on one roll, from **1** to **5**.</string>
     <string name="rules_unlucky_dice_4">Locked dice make a bad turn easier, so with *Unlucky Dice* on, certain achievements (like for winning with multiple zero categories, etc.) can't be earned.</string>
-    <string name="rules_tutorial_standard_title">Standard Tutorial</string>
-    <!-- A tab: keep it short. -->
-    <string name="rules_tutorial_standard_tab">Standard</string>
-    <string name="rules_tutorial_standard_1">Play a guided game of *Standard* against the CPU. The dice are set for you, so each turn shows one part of the rules as it comes up.</string>
-    <string name="rules_tutorial_standard_2">The tutorial is coming soon.</string>
 
     <!-- Rules screen: everything else (ui/rules/RulesScreen.kt) -->
     <string name="rules_title">Rules</string>
     <!-- The pill at the foot: which page of its group (rules_group_*) is showing. Spoken as rules_page_in_group_spoken. -->
     <string name="rules_page_count">%1$d of %2$d</string>
-    <!-- The four groups of pages, in the top tab row: the rules themselves, the game modes, the modifiers and the tutorials. Keep them short. -->
+    <!-- The three groups of pages, in the top tab row: the rules themselves, the game modes, and the modifiers. Keep them short. -->
     <string name="rules_group_gameplay">Gameplay</string>
     <string name="rules_group_modes">Modes</string>
     <string name="rules_group_modifiers">Modifiers</string>
-    <string name="rules_group_tutorial">Tutorial</string>
     <!-- The footer read aloud: the group of pages (rules_group_*), then which of its pages is showing. -->
     <string name="rules_page_in_group_spoken">%1$s, page %2$d of %3$d</string>
     <!-- The number of a step in a list. -->

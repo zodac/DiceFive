@@ -274,7 +274,7 @@ fun AchievementBannerHost(
                                             is AchievementEvent.StylesUnlocked -> ({ onStylesSelected(event.styles) })
                                         }
                                         if (isOnGameScreen() && hasInProgressGame && confirmBeforeLeavingGame) {
-                                            leaveConfirmation.request(open)
+                                            leaveConfirmation.request(onLeave = open)
                                         } else {
                                             open()
                                         }

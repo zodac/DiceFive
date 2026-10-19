@@ -33,18 +33,21 @@ import androidx.navigation.navArgument
 import androidx.savedstate.read
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.LocalAppContainer
+import net.zodac.dicefive.game.TutorialScript
+import net.zodac.dicefive.resources.Res
+import net.zodac.dicefive.resources.common_default_player_name
 import net.zodac.dicefive.ui.achievements.AchievementsScreen
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LocalDriftState
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.delayWhileResumed
+import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.game.GameScreen
 import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.menu.MenuScreen
 import net.zodac.dicefive.ui.menu.MenuViewModel
 import net.zodac.dicefive.ui.rules.RulesScreen
-import net.zodac.dicefive.ui.rules.RulesStart
 import net.zodac.dicefive.ui.scores.ScoresScreen
 import net.zodac.dicefive.ui.scores.ScoresWarmUp
 import net.zodac.dicefive.ui.scores.ScoresViewModel
@@ -130,7 +133,7 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                     GameSetupScreen(
                         viewModel = viewModel,
                         onStartGame = { navController.navigate(Screen.PLAY_GAME) },
-                        onTutorial = { navController.navigate(Screen.RULES_TUTORIAL) },
+                        onTutorial = { navController.navigate(Screen.TUTORIAL) },
                         onBack = { navController.navigateUp() },
                     )
                 }
@@ -221,10 +224,22 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
             )
         }
         composable(Screen.RULES) {
-            RulesScreen(onBack = { navController.navigateUp() })
+            RulesScreen(onBack = { navController.navigateUp() }, onStartTutorial = { navController.navigate(Screen.TUTORIAL) })
         }
-        composable(Screen.RULES_TUTORIAL) {
-            RulesScreen(onBack = { navController.navigateUp() }, start = RulesStart.STANDARD_TUTORIAL)
+        // The guided game, from How to Play or the New Game form, on a view model of its own: the play graph's game - the one
+        // Continue resumes - is never touched. Done goes back to wherever it was started from.
+        composable(Screen.TUTORIAL) {
+            val tutorialViewModel = viewModel<GameViewModel>(factory = GameViewModel.tutorialFactory(container, TutorialScript.STANDARD))
+            val defaultName = stringResource(Res.string.common_default_player_name, 1)
+            // From its first step each time it's opened - and again if Android ended the app while it was in the background.
+            LaunchedEffect(tutorialViewModel) {
+                if (tutorialViewModel.game.value == null) tutorialViewModel.startTutorial(defaultName)
+            }
+            GameScreen(
+                viewModel = tutorialViewModel,
+                onBackToMenu = { navController.navigateUp() },
+                onNewGame = { navController.navigate(Screen.PLAY_GRAPH) { popUpTo(Screen.MENU) } },
+            )
         }
     }
 }

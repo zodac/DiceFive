@@ -110,6 +110,7 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 | `.claude/UI_SCREENS.md` | Achievements list and banners, Styles screen and locks, Leaderboard views, menu logo and backdrop |
 | `.claude/GAME_MODES.md` | Adding or changing a game mode or modifier: the mode-is-data rule, field map, checklist, turn flow, tests |
 | `.claude/GAME_MODES_AUDIT.md` | Which achievements each mode or modifier blocks or guards, and how to audit a new one |
+| `.claude/TUTORIAL.md` | The guided tutorial: its script, steps, coach card, gates and tests, and how to add one for another mode |
 | `.claude/I18N.md` | Adding or moving any player-visible or spoken string, or a formatter or platform text API |
 | `.claude/I18N_LANGUAGES.md` | Translating: shipped languages, glossaries, adding a language |
 | `.claude/STYLE_ART.md` | Creating or reworking dice, cups, mats, backgrounds or frames |

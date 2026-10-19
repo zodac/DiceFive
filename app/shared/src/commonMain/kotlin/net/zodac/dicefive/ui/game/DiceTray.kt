@@ -261,6 +261,8 @@ private fun DiceColumns(
         val lockedText = stringResource(Res.string.game_die_locked_spoken)
         val holdLabel = stringResource(Res.string.game_die_hold_action)
         val releaseLabel = stringResource(Res.string.game_die_release_action)
+        // In the tutorial, only the dice its step holds take a tap, each outlined until it's held.
+        val tutorial = LocalTutorialGuide.current
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -283,7 +285,7 @@ private fun DiceColumns(
                     Modifier.semantics {
                         contentDescription = dieName
                         stateDescription = if (die.isHeld) heldText else if (die.isUnlucky) lockedText else notHeldText
-                        if (enabled && !die.isUnlucky) {
+                        if (enabled && !die.isUnlucky && (tutorial == null || (tutorial.holds(index) && !die.isHeld))) {
                             onClick(label = if (die.isHeld) releaseLabel else holdLabel) {
                                 onToggleHold(index)
                                 true
@@ -301,7 +303,9 @@ private fun DiceColumns(
                     seed = index,
                     diceStyles = diceStyles,
                     mat = mat,
-                    modifier = Modifier.weight(1f).then(dieSemantics),
+                    modifier = Modifier.weight(1f).then(dieSemantics).then(
+                        if (tutorial != null && showDice && tutorial.holds(index) && !die.isHeld) Modifier.tutorialOutline(tutorial.pulse) else Modifier,
+                    ),
                 )
             }
         }

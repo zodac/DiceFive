@@ -61,6 +61,7 @@ fun rememberAppTooltipState(persistent: Boolean = false): AppTooltipState {
  * By default a long press shows it ([enabled] false switches that off). Pass [state] to show it from
  * something else too, such as a tap: `state.show()` in a coroutine. Give the content a matching action
  * for a screen reader - a tooltip isn't announced, so it can't be the only way to reach what it says.
+ * With [focusable] false, a tap outside it reaches what's under it (as well as closing it) instead of only closing it.
  */
 // rememberPlainTooltipPositionProvider is deprecated in favour of rememberTooltipPositionProvider,
 // which doesn't exist yet in material3 1.4.0 - it arrives with the 1.5.0 line. Swap it over then.
@@ -72,6 +73,7 @@ fun AppTooltip(
     modifier: Modifier = Modifier,
     state: AppTooltipState = rememberAppTooltipState(),
     enabled: Boolean = true,
+    focusable: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     TooltipBox(
@@ -92,6 +94,7 @@ fun AppTooltip(
         },
         state = state.state,
         modifier = modifier,
+        focusable = focusable,
         enableUserInput = enabled,
         content = content,
     )

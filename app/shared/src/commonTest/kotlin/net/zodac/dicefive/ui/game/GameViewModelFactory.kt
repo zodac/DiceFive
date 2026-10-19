@@ -11,6 +11,7 @@ import net.zodac.dicefive.data.scores.InMemoryScoreDao
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.game.StandardPerfectPlayTable
+import net.zodac.dicefive.game.TutorialScript
 import net.zodac.dicefive.game.localHourOfDay
 import net.zodac.dicefive.game.nowEpochMillis
 
@@ -25,6 +26,7 @@ fun gameViewModel(
     isDebugBuild: Boolean = false,
     standardPerfectPlay: (suspend () -> StandardPerfectPlayTable?)? = null,
     localHour: () -> Int = { localHourOfDay(nowEpochMillis()) },
+    tutorial: TutorialScript? = null,
 ) = GameViewModel(
     scoreRepository,
     settingsRepository,
@@ -35,4 +37,5 @@ fun gameViewModel(
     isDebugBuild,
     standardPerfectPlay,
     localHour,
+    tutorial,
 )

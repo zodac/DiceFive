@@ -60,8 +60,8 @@ class RulesTabIndicatorTest {
 
     private fun checkIndicatorUnderEachTab() {
         showRules()
-        // The page row's tabs, after the top row's four groups.
-        val groups = 4
+        // The page row's tabs, after the top row's three groups.
+        val groups = 3
         for (index in 0..2) {
             compose.tapTab(compose.onAllNodes(isTab)[groups + index])
             compose.waitForIdle()
@@ -76,9 +76,9 @@ class RulesTabIndicatorTest {
     private fun checkSwipedToTabComesIntoView(rtl: Boolean) {
         showRules()
         // The page row's last tab in the first group, off its end at 360dp, then swiped to page by page.
-        val pages = compose.onAllNodes(isTab).fetchSemanticsNodes().size - 4
-        val lastTab = compose.onAllNodes(isTab)[4 + pages - 1]
-        val row = compose.onNode(hasAnyChild(isTab and hasText(compose.onAllNodes(isTab)[4].fetchSemanticsNode().config[SemanticsProperties.Text].joinToString())))
+        val pages = compose.onAllNodes(isTab).fetchSemanticsNodes().size - 3
+        val lastTab = compose.onAllNodes(isTab)[3 + pages - 1]
+        val row = compose.onNode(hasAnyChild(isTab and hasText(compose.onAllNodes(isTab)[3].fetchSemanticsNode().config[SemanticsProperties.Text].joinToString())))
         repeat(pages - 1) {
             // The page showing - its neighbours may be composed too, off screen.
             val shownPages = compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange) and hasAnyChild(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)))
@@ -96,7 +96,7 @@ class RulesTabIndicatorTest {
     /** A tap snaps the pages but slides the indicator through the tabs in between, ending under the tapped one. */
     private fun checkTapSlidesTheIndicator() {
         showRules()
-        val groups = 4
+        val groups = 3
         val start = compose.onNodeWithTag("rulesTabIndicator").fetchSemanticsNode().boundsInRoot.center.x
         compose.mainClock.autoAdvance = false
         compose.tapTab(compose.onAllNodes(isTab)[groups + 2])

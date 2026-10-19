@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
@@ -53,6 +54,9 @@ import net.zodac.dicefive.resources.gameover_main_menu
 import net.zodac.dicefive.resources.gameover_play_again
 import net.zodac.dicefive.resources.gameover_review
 import net.zodac.dicefive.resources.gameover_title
+import net.zodac.dicefive.resources.gameover_tutorial_close
+import net.zodac.dicefive.resources.gameover_tutorial_done
+import net.zodac.dicefive.resources.gameover_tutorial_new_game
 import net.zodac.dicefive.resources.gameover_winner
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LocalReduceMotion
@@ -85,6 +89,9 @@ fun GameOverScreen(
     modifier: Modifier = Modifier,
     celebrate: Boolean = true,
     onCelebrated: () -> Unit = {},
+    // The end of the tutorial: a word to say so, and its two ways out are Done, back to where it was started
+    // ([onBackToMenu]), or a new game of the player's own ([onPlayAgain]).
+    tutorialFinished: Boolean = false,
 ) {
     val ranked = TieBreak.rank(state.players)
     // A tie on raw score is now almost always broken by the house rule (see game/TieBreak.kt) -
@@ -153,6 +160,17 @@ fun GameOverScreen(
                 // They now just follow directly after the score list instead.
                 Spacer(modifier = Modifier.height(20.dp))
 
+                if (tutorialFinished) {
+                    Text(
+                        text = stringResource(Res.string.gameover_tutorial_done),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
                 // A full-width third action rather than squeezing into the row below - "review the
                 // board" is a detour on the way to one of the two real exits from this screen, not a
                 // third option of equal weight with them.
@@ -173,13 +191,13 @@ fun GameOverScreen(
                         onClick = onBackToMenu,
                         modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                     ) {
-                        Text(text = stringResource(Res.string.gameover_main_menu), style = MaterialTheme.typography.titleMedium)
+                        Text(text = stringResource(if (tutorialFinished) Res.string.gameover_tutorial_close else Res.string.gameover_main_menu), style = MaterialTheme.typography.titleMedium)
                     }
                     Button(
                         onClick = onPlayAgain,
                         modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                     ) {
-                        Text(text = stringResource(Res.string.gameover_play_again), style = MaterialTheme.typography.titleMedium)
+                        Text(text = stringResource(if (tutorialFinished) Res.string.gameover_tutorial_new_game else Res.string.gameover_play_again), style = MaterialTheme.typography.titleMedium)
                     }
                 }
 

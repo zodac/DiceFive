@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,6 +31,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Button
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -43,6 +45,7 @@ import androidx.compose.material3.TabPosition
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -52,6 +55,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -147,7 +151,6 @@ import net.zodac.dicefive.resources.rules_extended_scores_title
 import net.zodac.dicefive.resources.rules_group_gameplay
 import net.zodac.dicefive.resources.rules_group_modes
 import net.zodac.dicefive.resources.rules_group_modifiers
-import net.zodac.dicefive.resources.rules_group_tutorial
 import net.zodac.dicefive.resources.rules_d20_1
 import net.zodac.dicefive.resources.rules_d20_2
 import net.zodac.dicefive.resources.rules_d20_3
@@ -182,6 +185,7 @@ import net.zodac.dicefive.resources.rules_how_to_play_3
 import net.zodac.dicefive.resources.rules_how_to_play_4
 import net.zodac.dicefive.resources.rules_how_to_play_tab
 import net.zodac.dicefive.resources.rules_how_to_play_title
+import net.zodac.dicefive.resources.rules_how_to_play_tutorial
 import net.zodac.dicefive.resources.rules_lower_section_1
 import net.zodac.dicefive.resources.rules_lower_section_2
 import net.zodac.dicefive.resources.rules_lower_section_3
@@ -280,10 +284,7 @@ import net.zodac.dicefive.resources.rules_turn_timer_1
 import net.zodac.dicefive.resources.rules_turn_timer_2
 import net.zodac.dicefive.resources.rules_turn_timer_tab
 import net.zodac.dicefive.resources.rules_turn_timer_title
-import net.zodac.dicefive.resources.rules_tutorial_standard_1
-import net.zodac.dicefive.resources.rules_tutorial_standard_2
-import net.zodac.dicefive.resources.rules_tutorial_standard_tab
-import net.zodac.dicefive.resources.rules_tutorial_standard_title
+import net.zodac.dicefive.resources.rules_tutorial_start
 import net.zodac.dicefive.resources.rules_unlucky_dice_1
 import net.zodac.dicefive.resources.rules_unlucky_dice_2
 import net.zodac.dicefive.resources.rules_unlucky_dice_3
@@ -356,6 +357,12 @@ private sealed interface RulesBlock
 /** The default cup with a handful of dice tipped out beside it - a picture for a page with no
  * example rolls of its own, so it doesn't look empty. */
 private data object RulesIllustration : RulesBlock
+
+/** The button that starts the guided game - see [LocalStartTutorial]. */
+private data object RulesTutorialStart : RulesBlock
+
+/** What [RulesTutorialStart] does: provided by [RulesScreen], from the caller's `onStartTutorial`. */
+private val LocalStartTutorial = staticCompositionLocalOf<() -> Unit> { {} }
 
 /** The game's own turn timer badge, stopped at [TURN_TIMER_EXAMPLE_SECONDS] so it flashes as it
  * does when a turn is running out. */
@@ -483,17 +490,6 @@ private val EXAMPLE_TARGET = HitTarget(listOf(4, 1, 3, 2, null), points = 20)
 private fun colouredDice(vararg dice: Pair<Int, DieColour>, counting: Int = dice.size, score: RulesScore): RulesDice =
     RulesDice(dice.mapIndexed { index, (value, colour) -> ExampleDie(value, counts = index < counting, colour = colour) }, score)
 
-/** Where [RulesStart.STANDARD_TUTORIAL] opens the rules. */
-private val STANDARD_TUTORIAL_PAGE = RulesPage(
-    title = Res.string.rules_tutorial_standard_title,
-    tabLabel = Res.string.rules_tutorial_standard_tab,
-    blocks = listOf(
-        text(Res.string.rules_tutorial_standard_1),
-        text(Res.string.rules_tutorial_standard_2),
-        RulesIllustration,
-    ),
-)
-
 /**
  * The rules explained in the player's own words, not the rulebook's - one page per idea, swiped
  * (or picked from the tab rows) rather than scrolled past as one long page, so each (upper section,
@@ -501,7 +497,7 @@ private val STANDARD_TUTORIAL_PAGE = RulesPage(
  * one per modifier) gets its own moment rather than blurring into the next.
  *
  * Grouped as the top tab row shows them: the rules themselves, then the game modes, then the
- * modifiers - each of those two opening on an overview of what they are - then the tutorials, a page per mode. A new mode or modifier
+ * modifiers - each of the last two opening on an overview of what they are. How to Play starts the tutorial. A new mode or modifier
  * is a page in its group (and a mode that counts on the Leaderboard is named in `rules_modes_3`).
  *
  * Kept in step with the actual rules engine: `ScoreCategory`'s fixed values (25/30/40/50/100),
@@ -521,6 +517,8 @@ private val RULES_GROUPS = listOf(
                     text(Res.string.rules_how_to_play_2),
                     text(Res.string.rules_how_to_play_3),
                     text(Res.string.rules_how_to_play_4),
+                    text(Res.string.rules_how_to_play_tutorial),
+                    RulesTutorialStart,
                     RulesIllustration,
                 ),
             ),
@@ -780,10 +778,6 @@ private val RULES_GROUPS = listOf(
             ),
         ),
     ),
-    RulesGroup(
-        label = Res.string.rules_group_tutorial,
-        pages = listOf(STANDARD_TUTORIAL_PAGE),
-    ),
 )
 
 /** Every page, group after group - the order the pager swipes through them in. */
@@ -816,15 +810,6 @@ private object RulesPageMemory {
     var lastPage = 0
 }
 
-/** Which page [RulesScreen] opens on. */
-enum class RulesStart {
-    /** Wherever the rules were last left - the first page the first time. */
-    LAST_PAGE,
-
-    /** The Standard tutorial's page, in the Tutorial group. */
-    STANDARD_TUTORIAL,
-}
-
 /** Forgets the remembered page, so the rules open on the first again - tests start from there. */
 fun resetRulesPageMemory() {
     RulesPageMemory.lastPage = 0
@@ -832,7 +817,7 @@ fun resetRulesPageMemory() {
 
 /**
  * The Rules page: two rows of tabs over a [HorizontalPager] of every [RulesPage]. The top row picks
- * one of [RULES_GROUPS] - the rules themselves, the game modes, the modifiers or the tutorials - and the row under
+ * one of [RULES_GROUPS] - the rules themselves, the game modes or the modifiers - and the row under
  * it has a tab per page of that group, so any group is a tap away from any page (Material's primary
  * and secondary tabs). The pager runs through every page, group after group: a swipe past a group's
  * last page carries on into the next group, and the top row follows. A tab snaps straight to its page
@@ -851,12 +836,8 @@ fun resetRulesPageMemory() {
  * semantics so TalkBack says "Tab, 1 of 3" and "Tab, 1 of 6", the spoken form of the same hint.
  */
 @Composable
-fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier, start: RulesStart = RulesStart.LAST_PAGE) {
-    val initialPage = when (start) {
-        RulesStart.LAST_PAGE -> RulesPageMemory.lastPage.coerceIn(0, RULES_PAGES.size - 1)
-        RulesStart.STANDARD_TUTORIAL -> RULES_PAGES.indexOf(STANDARD_TUTORIAL_PAGE)
-    }
-    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { RULES_PAGES.size })
+fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier, onStartTutorial: () -> Unit = {}) {
+    val pagerState = rememberPagerState(initialPage = RulesPageMemory.lastPage.coerceIn(0, RULES_PAGES.size - 1), pageCount = { RULES_PAGES.size })
     // Remembered for the app's run, so the rules reopen where they were left.
     LaunchedEffect(pagerState) { snapshotFlow { pagerState.currentPage }.collect { RulesPageMemory.lastPage = it } }
     val coroutineScope = rememberCoroutineScope()
@@ -898,8 +879,10 @@ fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier, start: RulesS
                         modifier = Modifier.semantics { heading() },
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    for (block in rulesPage.blocks.take(shownBlocks)) {
-                        RulesBlockView(block)
+                    CompositionLocalProvider(LocalStartTutorial provides onStartTutorial) {
+                        for (block in rulesPage.blocks.take(shownBlocks)) {
+                            RulesBlockView(block)
+                        }
                     }
                 }
             }
@@ -1134,6 +1117,12 @@ private fun RulesBlockView(block: RulesBlock) {
     when (block) {
         is RulesText -> RulesBodyText(block.text, modifier = Modifier.padding(bottom = BLOCK_GAP))
         RulesIllustration -> RulesIllustrationView(modifier = Modifier.padding(top = 24.dp, bottom = BLOCK_GAP))
+        RulesTutorialStart -> Button(
+            onClick = LocalStartTutorial.current,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(bottom = BLOCK_GAP),
+        ) {
+            Text(text = stringResource(Res.string.rules_tutorial_start), style = MaterialTheme.typography.titleMedium)
+        }
         // One TalkBack stop describing the example, in place of the badge's own live region - which
         // would announce "time running out" as if a turn on this page really were.
         RulesTurnTimer -> {

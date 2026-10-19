@@ -23,7 +23,7 @@ NavHost(start = "menu")
     "play/setup"   GameSetupScreen (optional `resume` argument resumes the saved game)
     "play/game"    GameScreen, then GameOverScreen and the scorecard review
   "scores"  ScoresScreen (the Leaderboard)   "statistics"  "achievements"  "styles"  "rules"
-  "rules/tutorial"  RulesScreen opened on the Tutorial group's Standard page (a placeholder for now), from the New Game form
+  "tutorial"     GameScreen on a GameViewModel of its own, playing TutorialScript.STANDARD (Rules' How to Play page, or New Game)
   "settings"     SettingsScreen (About and Licences open from its footer)
 ```
 
@@ -42,13 +42,37 @@ NavHost(start = "menu")
 - **Remembered.** The mode, the modifiers and everything on the form are saved for next time in `SettingsRepository`.
 - **Locked until a first game is finished.** Until any game reaches its end (any mode, solo or not, won or lost; a
   game left unfinished doesn't count), the Game Mode and Modifiers cards show only their titles over "Finish a game to
-  unlock game modes" / "... modifiers" (no picker), and the form plays Standard with no modifiers. A "New to the game? Play the tutorial" button
+  unlock game modes" / "... modifiers" (no picker), and the form plays Standard with no modifiers. A "New to the game? Play the tutorial" button, which starts it,
   sits above Start Game, only while locked.
   - The flag is `first_game_completed` (`SettingsRepository.firstGameCompleted`). It's synced, only ever set, and no
     reset clears it. The tutorial game won't set it.
   - It costs nothing once unlocked. It comes in the setup form's single settings read (`GameSetupState.modesUnlocked`),
     and it's written once, at the first game over.
   - While locked, the saved mode and modifier picks are neither restored nor overwritten.
+
+## The tutorial
+
+How it's built, its scripting rules and how to add one for another mode: `TUTORIAL.md`.
+
+- **What it is.** A guided solo game of Standard (`game/Tutorial.kt`, `TutorialScript.STANDARD`): every roll's dice
+  and every move are fixed, so it plays the same each time and ends on 382. Its 13 turns show holding and rerolling to a
+  5x, Chance for a missed straight, a Large Straight, the upper section, a zero for the next missed straight, scoring
+  on the first roll, 4x adding all five dice (first scored in Fives, taken back with Undo, which the card says is
+  solo-only), a Full House, the totals, a joker (+100), the upper bonus and 3x. Every turn but the first-roll one (Fours)
+  takes all three rolls to get there (`TutorialScriptTest`).
+- **How it plays.** It's the real game screen and engine. `GameViewModel(tutorial = ...)` takes each roll's dice from
+  the script (`TutorialDice`) and moves on step by step (`tutorialStep`, shown after a roll once its dice have settled): only the step's move is taken (a roll, the
+  dice to hold, the box to score, Undo, or the totals; there are no words-only steps, so a card that explains says to roll), and `LocalTutorialGuide` outlines that control in pulsing gold
+  (steady under reduced motion) and switches the rest off for TalkBack.
+- **The coach card** (`CoachCard`) takes the player tabs' place: "Coach" and "Turn 3 of 13" over the step's words. It's
+  held at the height the longest step needs at the standard font size, so nothing moves between steps; at a larger font
+  the words scroll inside it. The name and words are a polite live region, read out as each step arrives; the turn is a
+  node of its own. The totals button only takes a tap at the steps that ask for it; its pop-up then stays up while the
+  card explains it, but isn't focusable, so the one tap on the cup rolls (and the roll closes it).
+- **Nothing is kept.** No saved game (Continue stays on the player's own), scores, achievements, counters, settings or
+  first-game unlock; no cheat or golden egg, and Undo only at its step. `TutorialGameTest` plays it through against counting stores.
+- **Leaving** always asks ("Leave the tutorial?"), whatever the confirm-before-leaving setting. Its Game Over offers
+  Done (back where it was started) or New Game.
 
 ## The turn and the rules
 

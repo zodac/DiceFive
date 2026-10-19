@@ -44,10 +44,14 @@ import net.zodac.dicefive.game.GameStartContext
 import net.zodac.dicefive.game.HandCompletion
 import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.game.StandardPerfectPlayTable
+import net.zodac.dicefive.game.TutorialDice
+import net.zodac.dicefive.game.TutorialScript
+import net.zodac.dicefive.game.TutorialStep
 import net.zodac.dicefive.game.localHourOfDay
 import net.zodac.dicefive.game.nowEpochMillis
 import net.zodac.dicefive.game.toTieBreakStats
 import net.zodac.dicefive.model.Achievement
+import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.GameState
@@ -152,7 +156,7 @@ data class GameSetupState(
  * scoped to the "play" nav graph so [net.zodac.dicefive.ui.setup.GameSetupScreen]
  * and [GameScreen] share one instance across navigation.
  *
- * [factory] supplies the real repositories; tests pass in-memory ones.
+ * [factory] supplies the real repositories; tests pass in-memory ones. [tutorialFactory] builds one for the guided game.
  */
 class GameViewModel(
     private val scoreRepository: ScoreRepository,
@@ -173,6 +177,11 @@ class GameViewModel(
     private val standardPerfectPlay: (suspend () -> StandardPerfectPlayTable?)? = null,
     /** The hour (0-23) on the phone's clock now. Injectable so a test can start a game at any time of day. */
     private val localHour: () -> Int = { localHourOfDay(nowEpochMillis()) },
+    /**
+     * Set for the guided game ([startTutorial]), played solo: every roll and move is the script's, and nothing is kept -
+     * no saved game, scores, achievements or settings.
+     */
+    private val tutorial: TutorialScript? = null,
 ) : ViewModel() {
 
     private val _setup = MutableStateFlow(GameSetupState())
@@ -234,7 +243,7 @@ class GameViewModel(
     private fun saveTurnTimerProgress() {
         val state = _game.value ?: return
         val remaining = _turnSecondsRemaining.value ?: return
-        if (state.isGameOver) return
+        if (state.isGameOver || tutorial != null) return
         inProgressGameRepository.save(savedCopy(state).copy(turnSecondsLeft = remaining))
     }
 
@@ -275,8 +284,121 @@ class GameViewModel(
     private val _canUndo = MutableStateFlow(false)
     val canUndo: StateFlow<Boolean> = _canUndo.asStateFlow()
 
-    val confirmBeforeLeavingGame: StateFlow<Boolean> = settingsRepository.confirmBeforeLeavingGame
-        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    // The tutorial keeps nothing, so there's nothing to lose by leaving it.
+    val confirmBeforeLeavingGame: StateFlow<Boolean> = if (tutorial != null) {
+        MutableStateFlow(false)
+    } else {
+        settingsRepository.confirmBeforeLeavingGame.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    }
+
+    /** Whether this is the guided game - see [tutorial]. */
+    val isTutorial: Boolean
+        get() = tutorial != null
+
+    /** Every step of [tutorial]'s guided game - none outside one. */
+    val tutorialSteps: List<TutorialStep>
+        get() = tutorial?.steps.orEmpty()
+
+    /** How far through [tutorial]'s steps the guided game is. */
+    private var tutorialIndex = 0
+
+    private val _tutorialStep = MutableStateFlow(tutorial?.steps?.firstOrNull())
+
+    private val _tutorialTurn = MutableStateFlow(1)
+
+    /** Which of [tutorial]'s turns [tutorialStep] is part of, from 1 - see [TutorialScript.turnOf]. */
+    val tutorialTurn: StateFlow<Int> = _tutorialTurn.asStateFlow()
+
+    /** How many turns [tutorial] has. */
+    val tutorialTurns: Int
+        get() = tutorial?.turns ?: 0
+
+    /**
+     * The guided game's step, for the coach card and the board - null outside a tutorial, and once its last step is done.
+     * After a roll it's the step after once the dice have settled; what the player may do moves on as the roll lands.
+     */
+    val tutorialStep: StateFlow<TutorialStep?> = _tutorialStep.asStateFlow()
+
+    private val currentTutorialStep: TutorialStep?
+        get() = tutorial?.steps?.getOrNull(tutorialIndex)
+
+    /** The guided game as it began, for [jumpToTutorialTurn] to replay from. */
+    private var tutorialStart: GameState? = null
+
+    /**
+     * The coach card's back (-1) and forward (+1): to the start of the previous or next turn - or, going back from part
+     * way through a turn, to the start of this one. The game is rebuilt as if every step before it had been played
+     * ([TutorialScript.replay]); a roll still shaking or landing is dropped.
+     */
+    fun jumpToTutorialTurn(direction: Int) {
+        val script = tutorial ?: return
+        val start = tutorialStart ?: return
+        val starts = script.turnStarts
+        val current = starts.indexOfLast { it <= tutorialIndex }
+        val target = when {
+            direction < 0 && tutorialIndex > starts[current] -> starts[current]
+            direction < 0 -> starts.getOrNull(current - 1) ?: return
+            else -> starts.getOrNull(current + 1) ?: return
+        }
+        tapRollJob?.cancel()
+        _tapRolling.value = false
+        tutorialStepJob?.cancel()
+        tutorialIndex = target
+        showTutorialStep(target)
+        setUndoSnapshot(null)
+        applyGameState(script.replay(start, target), checkForAiTurn = false)
+    }
+
+    /** Whether [jumpToTutorialTurn] can go back: anywhere but the very start. */
+    val canJumpBack: Boolean
+        get() = tutorial != null && tutorialIndex > 0
+
+    /** Whether [jumpToTutorialTurn] can go forward: before the last turn. */
+    val canJumpForward: Boolean
+        get() = tutorial?.let { script -> script.turnStarts.any { it > tutorialIndex } } == true
+
+    /** Showing the next step once a roll's dice have settled - see [tutorialStep]. */
+    private var tutorialStepJob: Job? = null
+
+    /** On to the next step, shown after [shownAfterMillis]. */
+    private fun advanceTutorial(shownAfterMillis: Long = 0L) {
+        tutorialIndex++
+        val index = tutorialIndex
+        tutorialStepJob?.cancel()
+        if (shownAfterMillis <= 0L) {
+            showTutorialStep(index)
+        } else {
+            tutorialStepJob = viewModelScope.launch {
+                pausableDelay(shownAfterMillis)
+                showTutorialStep(index)
+            }
+        }
+    }
+
+    private fun showTutorialStep(index: Int) {
+        val script = tutorial ?: return
+        _tutorialStep.value = script.steps.getOrNull(index)
+        _tutorialTurn.value = script.turnOf(index).coerceAtMost(script.turns)
+    }
+
+    /** The totals were opened: moves on from a step that asked for them. */
+    fun tutorialTotalsOpened() {
+        if (currentTutorialStep is TutorialStep.OpenTotals) advanceTutorial()
+    }
+
+    /** Starts [tutorial]'s guided game from its first step: player 1 alone, under their saved name ([defaultName] without one). */
+    fun startTutorial(defaultName: String) {
+        val script = tutorial ?: return
+        viewModelScope.launch {
+            val cap = GameSetupState.maxPlayerNameLength(1)
+            val name = sanitizePlayerName(settingsRepository.snapshot().playerNameFor(1).orEmpty()).trim().ifBlank { defaultName }.takeNameWidth(cap)
+            tutorialIndex = 0
+            showTutorialStep(0)
+            val start = GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.HUMAN, name = name)), script.gameMode)
+            tutorialStart = start
+            beginGame(start)
+        }
+    }
 
     /**
      * The table's art - each saved Styles pick resolved through its catalog's unlockedById, so an
@@ -570,6 +692,7 @@ class GameViewModel(
     fun shakeAndRoll() {
         val state = _game.value ?: return
         if (state.currentPlayer?.type != PlayerType.HUMAN || state.rollsRemaining <= 0 || tapRollJob?.isActive == true) return
+        if (tutorial != null && currentTutorialStep !is TutorialStep.Roll) return
         tapRollJob = viewModelScope.launch {
             _tapRolling.value = true
             try {
@@ -633,6 +756,10 @@ class GameViewModel(
     fun toggleHold(dieIndex: Int) {
         // A die locked by Unlucky Dice can't be held, and a tap on it is no hold-or-release to track.
         if (_game.value?.dice?.getOrNull(dieIndex)?.isUnlucky == true) return
+        if (tutorial != null) {
+            holdForTutorial(dieIndex)
+            return
+        }
         trackSuperuserSequence(dieIndex)
         val state = _game.value
         val wasHeld = state?.dice?.getOrNull(dieIndex)?.isHeld == true
@@ -643,6 +770,14 @@ class GameViewModel(
         onHumanAction(undoable = false) { GameEngine.toggleHold(it, dieIndex) }
 
         if (isPlayerOneTurn) _game.value?.let { unlockAchievements(tracker.onHold(dieIndex, wasHeld, it)) }
+    }
+
+    /** A hold in the tutorial: only one of the step's dice, never a release, and on once they're all held. */
+    private fun holdForTutorial(dieIndex: Int) {
+        val step = currentTutorialStep as? TutorialStep.Hold ?: return
+        if (dieIndex !in step.dice || _game.value?.dice?.getOrNull(dieIndex)?.isHeld != false) return
+        onHumanAction(undoable = false) { GameEngine.toggleHold(it, dieIndex) }
+        if (step.dice.all { _game.value?.dice?.getOrNull(it)?.isHeld == true }) advanceTutorial()
     }
 
     /** One cycle step (see [GameEngine.cycleDieValue]), called once per second while a held die is
@@ -667,6 +802,10 @@ class GameViewModel(
     // pick.
     fun commitScore(category: ScoreCategory) {
         val state = _game.value ?: return
+        if (tutorial != null) {
+            if ((currentTutorialStep as? TutorialStep.Score)?.category != category || state.currentPlayer?.type != PlayerType.HUMAN) return
+            advanceTutorial()
+        }
         if (state.hasFullHand) {
             finishCommit(category, undoTo = state)
             return
@@ -705,6 +844,10 @@ class GameViewModel(
     /** Reverts just the most recent human move, if there is one to undo. Cancels any pending AI turn it would have triggered. */
     fun undo() {
         val snapshot = undoSnapshot ?: return
+        if (tutorial != null) {
+            if (currentTutorialStep !is TutorialStep.Undo) return
+            advanceTutorial()
+        }
         tracker.onUndo()
         aiTurnJob?.cancel()
         aiTurnJob = null
@@ -748,8 +891,11 @@ class GameViewModel(
      */
     private fun performRoll(state: GameState, checkForAiTurn: Boolean = true): GameState {
         // The golden egg: a human's roll only, with the Egg dice and the Chicken cup both in use.
-        val goldenOneIn = GOLDEN_EGG_ONE_IN.takeIf { state.currentPlayer?.type == PlayerType.HUMAN && showsGoldenEggs(state) }
-        val rolled = GameEngine.rollDice(state, random, goldenOneIn)
+        val goldenOneIn = GOLDEN_EGG_ONE_IN.takeIf { state.currentPlayer?.type == PlayerType.HUMAN && showsGoldenEggs(state) && tutorial == null }
+        val step = currentTutorialStep
+        val scripted = (step as? TutorialStep.Roll)?.let { TutorialDice(it.dice, state.dice.map(Die::isHeld)) }
+        val rolled = GameEngine.rollDice(state, scripted ?: random, goldenOneIn)
+        if (step is TutorialStep.Roll) advanceTutorial(shownAfterMillis = pacing.diceTossMillis)
         setUndoSnapshot(null)
         applyGameState(rolled, checkForAiTurn)
         // Only player 1 - "You" - earns it, once a golden die has landed (held back with the rest of the roll's unlocks).
@@ -779,8 +925,9 @@ class GameViewModel(
     }
 
     private fun setUndoSnapshot(snapshot: GameState?) {
-        undoSnapshot = snapshot
-        _canUndo.value = snapshot != null
+        // In the tutorial, only a score its next step takes back with Undo.
+        undoSnapshot = snapshot.takeIf { tutorial == null || currentTutorialStep is TutorialStep.Undo }
+        _canUndo.value = undoSnapshot != null
     }
 
     /**
@@ -953,6 +1100,8 @@ class GameViewModel(
      * before this game's own rows were added to it.
      */
     private fun finishGame(state: GameState) {
+        // The tutorial is played for practice: it records nothing, and doesn't count as a first game.
+        if (tutorial != null) return
         // Written once: every game after the first finds the modes already unlocked.
         if (!_setup.value.modesUnlocked) {
             _setup.update { it.copy(modesUnlocked = true) }
@@ -991,6 +1140,7 @@ class GameViewModel(
      * function, not a new method here.
      */
     private fun checkGameStartAchievements(startedAtLocalHour: Int?) {
+        if (tutorial != null) return
         viewModelScope.launch {
             val game = _game.value
             val players = game?.players.orEmpty()
@@ -1027,7 +1177,7 @@ class GameViewModel(
      */
     private fun checkInProgressAchievements() {
         val state = _game.value ?: return
-        if (state.isGameOver) return
+        if (state.isGameOver || tutorial != null) return
 
         viewModelScope.launch {
             achievementUnlocker.apply { stored -> AchievementEngine.evaluateInProgress(state, stored, nowEpochMillis(), tracker.timedOutZeroes) }
@@ -1044,7 +1194,8 @@ class GameViewModel(
     }
 
     private fun unlockAchievements(achievements: Set<Achievement>) {
-        if (achievements.isEmpty()) return
+        // Nothing in the tutorial earns an achievement: the dice are the script's.
+        if (achievements.isEmpty() || tutorial != null) return
         heldBackRollUnlocks?.let {
             it += achievements
             return
@@ -1124,6 +1275,8 @@ class GameViewModel(
 
     // Queued and conflated by the repository - see InProgressGameRepository.
     private fun persistInProgressGame(state: GameState) {
+        // The tutorial is never saved: Continue stays on the player's own game.
+        if (tutorial != null) return
         if (state.isGameOver) inProgressGameRepository.clear() else inProgressGameRepository.save(savedCopy(state))
     }
 
@@ -1340,6 +1493,19 @@ class GameViewModel(
                     random = container.diceRandom,
                     isDebugBuild = container.buildInfo.isDebug,
                     standardPerfectPlay = container::standardPerfectPlayTable,
+                )
+            }
+        }
+
+        /** Builds a [GameViewModel] for [script]'s guided game: it reads the player's name and table, and writes nothing. */
+        fun tutorialFactory(container: AppContainer, script: TutorialScript): ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                GameViewModel(
+                    scoreRepository = container.scoreRepository,
+                    settingsRepository = container.settingsRepository,
+                    inProgressGameRepository = container.inProgressGameRepository,
+                    achievementsRepository = container.achievementsRepository,
+                    tutorial = script,
                 )
             }
         }

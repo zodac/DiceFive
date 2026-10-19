@@ -308,6 +308,9 @@ internal fun DiceCup(
     // Resolved here, in composition: the semantics block below can't read resources itself.
     val rollLabel = stringResource(Res.string.game_cup_roll_action)
     val cupDescription = cup?.let { pluralStringResource(Res.plurals.game_cup_cd, it.rollsRemaining, it.rollsRemaining) }
+    // In the tutorial the cup only rolls at a step that asks it to, outlined then.
+    val tutorial = LocalTutorialGuide.current
+    val tutorialHeld = tutorial != null && !tutorial.rolls
     Box(
         modifier = modifier
             // The cup itself rotates (shake + tilt) via graphicsLayer, which only affects
@@ -341,7 +344,7 @@ internal fun DiceCup(
                         .clearAndSetSemantics {
                             contentDescription = cupDescription.orEmpty()
                             role = Role.Button
-                            if (cup.rollInHand) disabled()
+                            if (cup.rollInHand || tutorialHeld) disabled()
                             onClick(label = rollLabel) {
                                 cup.onCupTap()
                                 true
@@ -350,7 +353,9 @@ internal fun DiceCup(
                 } else {
                     Modifier
                 },
-            ),
+            )
+            // Gone from the tap on: the next step's outline shows once the roll's dice have settled.
+            .then(if (cup != null && tutorial != null && tutorial.rolls && !cup.rollInHand) Modifier.tutorialOutline(tutorial.pulse) else Modifier),
     ) {
         if (cup != null) {
             Row(

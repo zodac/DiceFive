@@ -9,6 +9,9 @@ before your boxes run out.
 Play solo to beat your best score, pass the phone around with up to four players, or fill the empty seats with
 computer opponents on Easy, Medium or Hard.
 
+New to the rules? A guided tutorial walks you through a game of Standard, step by step. The other modes and the house
+rules open up once you've finished your first game.
+
 ## Seven ways to play
 
 - **Standard** - the classic rules: 13 boxes, three rolls a turn, a 35-point upper bonus and 100-point bonuses for
