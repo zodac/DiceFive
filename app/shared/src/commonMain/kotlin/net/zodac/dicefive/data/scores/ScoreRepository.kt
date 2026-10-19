@@ -177,6 +177,7 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
                 totalScore = games.sumOf { it.score },
                 fiveOfAKindCount = games.sumOf { it.fiveOfAKindCount },
                 soloGames = games.count { it.won == null },
+                gamesByMode = GameMode.entries.associateWith { mode -> games.count { it.gameModeId == mode.id } }.filterValues { it > 0 },
             )
         }
 

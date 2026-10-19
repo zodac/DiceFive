@@ -53,7 +53,7 @@ class InMemoryScoreDao : ScoreDao {
         entries.filter { it.playerName !in dismissed }
             // SQLite's COLLATE NOCASE (for the names used here), then the exact name, then newest first.
             .sortedWith(compareBy<ScoreEntry>({ it.playerName.lowercase() }, { it.playerName }).thenByDescending { it.timestampEpochMillis })
-            .map { PlayerGame(it.playerName, it.timestampEpochMillis, it.won, it.score, it.fiveOfAKindCount) }
+            .map { PlayerGame(it.playerName, it.timestampEpochMillis, it.won, it.score, it.fiveOfAKindCount, it.gameModeId) }
 
     override suspend fun dismissPlayer(playerName: String, atEpochMillis: Long) {
         dismissed[playerName] = atEpochMillis

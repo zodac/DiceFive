@@ -249,7 +249,7 @@ will map to Play Games.
     row's spoken state.
 - **Statistics** (`StatisticsScreen`). One card per distinct human *name*; a rename starts a new player.
   - It shows best score, first played, played/won/lost, current and best win streak, total and average, 5x scored and
-    solo games.
+    solo games, then the games played in each mode (only modes played, in mode order; they add up to played).
   - Every recorded game counts. A solo game's outcome is null: it isn't a win or a loss, and it doesn't break a
     streak.
   - Each card has a delete button (top end, open or closed) that dismisses it after a confirmation; the scores stay.

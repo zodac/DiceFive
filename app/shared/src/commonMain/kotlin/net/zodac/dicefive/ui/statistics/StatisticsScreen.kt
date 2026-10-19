@@ -63,12 +63,15 @@ import net.zodac.dicefive.resources.stats_expanded_spoken
 import net.zodac.dicefive.resources.stats_first_played
 import net.zodac.dicefive.resources.stats_hide_action
 import net.zodac.dicefive.resources.stats_lost
+import net.zodac.dicefive.resources.stats_modes
 import net.zodac.dicefive.resources.stats_played
 import net.zodac.dicefive.resources.stats_show_action
 import net.zodac.dicefive.resources.stats_solo
 import net.zodac.dicefive.resources.stats_spoken_best
 import net.zodac.dicefive.resources.stats_spoken_first_played
 import net.zodac.dicefive.resources.stats_spoken_fives
+import net.zodac.dicefive.resources.stats_spoken_mode
+import net.zodac.dicefive.resources.stats_spoken_modes
 import net.zodac.dicefive.resources.stats_spoken_record
 import net.zodac.dicefive.resources.stats_spoken_scores
 import net.zodac.dicefive.resources.stats_spoken_solo
@@ -167,6 +170,12 @@ fun PlayerStatsCard(player: PlayerStatistics, onDelete: () -> Unit) {
         sentences += stringResource(Res.string.stats_spoken_scores, player.totalScore.grouped(), player.averageScore.grouped())
         sentences += pluralStringResource(Res.plurals.stats_spoken_fives, player.fiveOfAKindCount, player.fiveOfAKindCount)
         sentences += pluralStringResource(Res.plurals.stats_spoken_solo, player.soloGames, player.soloGames)
+        if (player.gamesByMode.isNotEmpty()) {
+            sentences += stringResource(Res.string.stats_spoken_modes)
+            player.gamesByMode.forEach { (mode, count) ->
+                sentences += stringResource(Res.string.stats_spoken_mode, stringResource(mode.displayName), count)
+            }
+        }
     }
     val spoken = joinSentences(sentences)
     val toggleLabel = stringResource(if (expanded) Res.string.stats_hide_action else Res.string.stats_show_action)
@@ -257,6 +266,31 @@ fun PlayerStatsCard(player: PlayerStatistics, onDelete: () -> Unit) {
                         StatCell(label = stringResource(Res.string.stats_average), value = player.averageScore.grouped())
                         StatCell(label = requireNotNull(ScoreCategory.FIVE_OF_A_KIND.mark), value = player.fiveOfAKindCount.grouped())
                         StatCell(label = stringResource(Res.string.stats_solo), value = player.soloGames.grouped(), alignment = Alignment.End)
+                    }
+
+                    if (player.gamesByMode.isNotEmpty()) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                        Text(
+                            text = stringResource(Res.string.stats_modes),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        player.gamesByMode.forEach { (mode, count) ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = stringResource(mode.displayName),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(
+                                    text = count.grouped(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.End,
+                                )
+                            }
+                        }
                     }
                 }
             }

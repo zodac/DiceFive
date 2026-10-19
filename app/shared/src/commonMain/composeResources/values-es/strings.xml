@@ -957,6 +957,8 @@
         <item quantity="other">%1$d partidas en solitario jugadas.</item>
     </plurals>
     <string name="stats_first_played">Primera partida</string>
+    <string name="stats_spoken_mode">%1$s %2$d.</string>
+    <string name="stats_spoken_modes">Partidas jugadas por modo.</string>
     <string name="stats_played">Jugadas</string>
     <string name="stats_won">Ganadas</string>
     <string name="stats_lost">Perdidas</string>
@@ -965,6 +967,7 @@
     <string name="stats_total_score">Puntos totales</string>
     <string name="stats_average">Media</string>
     <string name="stats_solo">Solitario</string>
+    <string name="stats_modes">Partidas jugadas por modo</string>
     <string name="achievements_title">Logros</string>
     <string name="achievements_unlocked_count">%1$d de %2$d desbloqueados</string>
     <string name="achievements_category_count">%1$d/%2$d</string>

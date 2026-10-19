@@ -102,6 +102,18 @@ class ScoreRepositoryTest {
     }
 
     @Test
+    fun `Statistics - games played in each mode - in mode order - none for a mode never played`() = runTest {
+        val repository = ScoreRepository(InMemoryScoreDao())
+        repository.record("Alice", 100, gameMode = GameMode.TRICOLOUR, timestampEpochMillis = 1_000L)
+        repository.record("Alice", 100, gameMode = GameMode.STANDARD, timestampEpochMillis = 2_000L)
+        repository.record("Alice", 100, gameMode = GameMode.TRICOLOUR, timestampEpochMillis = 3_000L)
+        val alice = repository.playerStatistics().single()
+        assertEquals(mapOf(GameMode.STANDARD to 1, GameMode.TRICOLOUR to 2), alice.gamesByMode)
+        assertEquals(listOf(GameMode.STANDARD, GameMode.TRICOLOUR), alice.gamesByMode.keys.toList())
+        assertEquals(alice.gamesPlayed, alice.gamesByMode.values.sum())
+    }
+
+    @Test
     fun `Statistics - each name's games - best - totals - average - wins and losses - and win streaks with solo games neutral`() = runTest {
         val repository = ScoreRepository(InMemoryScoreDao())
         repository.record("Alice", 150, timestampEpochMillis = 1_000L)

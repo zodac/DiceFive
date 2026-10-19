@@ -1,5 +1,7 @@
 package net.zodac.dicefive.data.scores
 
+import net.zodac.dicefive.model.GameMode
+
 /**
  * One player's aggregate stats across every game recorded for them - the Statistics screen's row
  * shape. "Player" here means a distinct `playerName`, not a stable identity: renaming a player
@@ -20,6 +22,8 @@ data class PlayerStatistics(
     val fiveOfAKindCount: Int,
     /** Games with nobody to beat - the ones recorded with a null outcome, so counted in [gamesPlayed] only. */
     val soloGames: Int,
+    /** Games played in each mode, in [GameMode.entries] order; a mode never played is absent. */
+    val gamesByMode: Map<GameMode, Int> = emptyMap(),
 ) {
 
     /** [totalScore] over [gamesPlayed], rounded half up to a whole number; 0 for a player with no games. */
@@ -39,4 +43,5 @@ data class PlayerGame(
     val won: Boolean?,
     val score: Int,
     val fiveOfAKindCount: Int,
+    val gameModeId: String,
 )

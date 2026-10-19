@@ -1218,6 +1218,9 @@
         <item quantity="other">%1$d solo games played.</item>
     </plurals>
     <string name="stats_first_played">First played</string>
+    <!-- %1$s is a game mode's name, %2$d how many games were played in it. -->
+    <string name="stats_spoken_mode">%1$s %2$d.</string>
+    <string name="stats_spoken_modes">Games played by mode.</string>
     <!-- Labels under each number on an opened card. -->
     <string name="stats_played">Played</string>
     <string name="stats_won">Won</string>
@@ -1227,6 +1230,7 @@
     <string name="stats_total_score">Total score</string>
     <string name="stats_average">Average</string>
     <string name="stats_solo">Solo</string>
+    <string name="stats_modes">Games played by mode</string>
 
     <!-- Achievements (ui/achievements/*) -->
     <string name="achievements_title">Achievements</string>
