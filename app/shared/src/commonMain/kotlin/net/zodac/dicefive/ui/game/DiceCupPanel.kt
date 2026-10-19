@@ -52,6 +52,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerState
+import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.resources.Res
@@ -257,6 +258,8 @@ internal fun PanelButtons(layout: BoardLayout, player: PlayerState?, cup: CupPan
         // protection instead of just this one.
         // As big as a tile in the same row.
         val buttonSize = gridTileSize(rows)
+        // Shut during a CPU's turn on the live board; a look at another player's card (cup == null) stays open.
+        val totalsEnabled = cup == null || player?.type != PlayerType.AI
         if (layout.featured == null) {
             val bonuses = (player?.gameMode ?: GameMode.D20).sectionBonuses
             D20TotalsButton(
@@ -266,10 +269,11 @@ internal fun PanelButtons(layout: BoardLayout, player: PlayerState?, cup: CupPan
                 secondTarget = bonuses.first { it.section == ScoreSection.SECOND_HALF }.threshold,
                 bonus = player?.sectionBonusTotal ?: 0,
                 minSize = buttonSize,
+                enabled = totalsEnabled,
             )
         } else if (layout.featured == ScoreCategory.ALIBI) {
             val alibiTotal = player?.scoresIn(ScoreCategory.ALIBI)?.sum() ?: 0
-            HitListTotalsButton(targetsTotal = (player?.hitListSectionTotal ?: 0) - alibiTotal, alibiTotal = alibiTotal, minSize = buttonSize)
+            HitListTotalsButton(targetsTotal = (player?.hitListSectionTotal ?: 0) - alibiTotal, alibiTotal = alibiTotal, minSize = buttonSize, enabled = totalsEnabled)
         } else {
             val upperTotal = player?.upperSectionTotal ?: 0
             val upperBonus = player?.upperSectionBonus ?: 0
@@ -279,6 +283,7 @@ internal fun PanelButtons(layout: BoardLayout, player: PlayerState?, cup: CupPan
                 upperBonus = upperBonus,
                 lowerTotal = lowerTotal,
                 minSize = buttonSize,
+                enabled = totalsEnabled,
                 // Out of what earns the bonus, where the card has one to earn (Quickfire's can have none).
                 upperTarget = player?.takeIf { it.hasUpperBonus }?.upperBonusThreshold,
             )

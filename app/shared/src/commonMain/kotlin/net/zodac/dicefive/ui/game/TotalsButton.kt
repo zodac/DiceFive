@@ -92,6 +92,7 @@ fun TotalsButton(
     modifier: Modifier = Modifier,
     minSize: Dp = 48.dp,
     upperTarget: Int? = null,
+    enabled: Boolean = true,
 ) {
     TotalsButton(
         lines = listOf(
@@ -103,6 +104,7 @@ fun TotalsButton(
         spokenState = totalsSpokenState(upperTotal, upperBonus, lowerTotal, upperTarget),
         modifier = modifier,
         minSize = minSize,
+        enabled = enabled,
     )
 }
 
@@ -120,6 +122,7 @@ fun D20TotalsButton(
     bonus: Int,
     modifier: Modifier = Modifier,
     minSize: Dp = 48.dp,
+    enabled: Boolean = true,
 ) {
     val firstEarned = firstHalf >= firstTarget
     val secondEarned = secondHalf >= secondTarget
@@ -134,6 +137,7 @@ fun D20TotalsButton(
         spokenState = d20TotalsSpokenState(firstHalf, secondHalf, firstTarget, secondTarget, bonus),
         modifier = modifier,
         minSize = minSize,
+        enabled = enabled,
     )
 }
 
@@ -142,13 +146,14 @@ fun D20TotalsButton(
  * bonus to show.
  */
 @Composable
-fun HitListTotalsButton(targetsTotal: Int, alibiTotal: Int, modifier: Modifier = Modifier, minSize: Dp = 48.dp) {
+fun HitListTotalsButton(targetsTotal: Int, alibiTotal: Int, modifier: Modifier = Modifier, minSize: Dp = 48.dp, enabled: Boolean = true) {
     TotalsButton(
         lines = listOf(TotalLine(stringResource(Res.string.game_totals_targets), targetsTotal), TotalLine(requireNotNull(ScoreCategory.ALIBI.mark), alibiTotal)),
         highlighted = false,
         spokenState = hitListTotalsSpokenState(targetsTotal, alibiTotal),
         modifier = modifier,
         minSize = minSize,
+        enabled = enabled,
     )
 }
 
@@ -183,7 +188,7 @@ private val TOTALS_COLUMN_GAP = 16.dp
 /** One line of a [TotalsButton]'s tooltip: [label] and [value] - out of [target], when it has one - in gold when [gold]. */
 private class TotalLine(val label: String, val value: Int, val gold: Boolean = false, val target: Int? = null)
 
-/** The button itself: [lines] in its tooltip, its glyph gold while [highlighted], and [spokenState] what TalkBack hears. */
+/** The button itself: [lines] in its tooltip, its glyph gold while [highlighted], and [spokenState] what TalkBack hears. Does nothing unless [enabled]. */
 @Composable
 private fun TotalsButton(
     lines: List<TotalLine>,
@@ -192,6 +197,7 @@ private fun TotalsButton(
     modifier: Modifier,
     minSize: Dp,
     litHalves: Set<IconHalf> = emptySet(),
+    enabled: Boolean = true,
 ) {
     val tooltipState = rememberAppTooltipState(persistent = true)
     val scope = rememberCoroutineScope()
@@ -202,7 +208,7 @@ private fun TotalsButton(
     // In the tutorial, the button only opens the totals at the step that asks for them - outlined then - and opening
     // them moves it on.
     val tutorial = LocalTutorialGuide.current
-    val opens = tutorial == null || tutorial.opensTotals
+    val opens = enabled && (tutorial == null || tutorial.opensTotals)
     val toggle = {
         // Before the toggle: a persistent tooltip's show() only returns once it's dismissed.
         tutorial?.onTotalsOpened()
@@ -212,6 +218,8 @@ private fun TotalsButton(
     // name, state and actions but not the role - so the role goes on that node too.
     // In the tutorial the totals stay up while the card talks about them, and the tap on the cup that carries on goes
     // straight to the cup, as well as closing them; the roll closes them if that tap didn't.
+    // A CPU's turn leaves them shut: closed if they were open as it began.
+    LaunchedEffect(enabled) { if (!enabled) tooltipState.dismiss() }
     if (tutorial != null) {
         LaunchedEffect(tutorial.rolling) { if (tutorial.rolling) tooltipState.dismiss() }
         // A jump to another turn closes them too: they only stay up for the step straight after opening them.

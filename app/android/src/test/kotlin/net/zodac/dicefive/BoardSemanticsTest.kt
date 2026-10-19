@@ -298,6 +298,14 @@ class BoardSemanticsTest {
     }
 
     @Test
+    fun `the Totals button is disabled and opens nothing while it is not enabled, as in a CPU's turn`() {
+        showcase.show { DiceFiveTheme { TotalsButton(upperTotal = 70, upperBonus = 35, lowerTotal = 140, enabled = false) } }
+        compose.onNodeWithContentDescription("Totals").assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Disabled)).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Lower").assertDoesNotExist()
+    }
+
+    @Test
     fun `the Totals buttons say every total - the bonus earned or not - and a tap shows them with thousands grouped`() {
         showcase.show { DiceFiveTheme { TotalsButton(upperTotal = 70, upperBonus = 35, lowerTotal = 140) } }
         compose.onNodeWithContentDescription("Totals")
