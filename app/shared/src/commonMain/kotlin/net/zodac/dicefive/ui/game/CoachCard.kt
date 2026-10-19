@@ -2,6 +2,8 @@ package net.zodac.dicefive.ui.game
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,8 +11,10 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -20,11 +24,13 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -129,7 +135,7 @@ internal fun CoachCard(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(scroll)
-                        .padding(end = SCROLLBAR_WIDTH, top = CARD_PADDING_VERTICAL, bottom = CARD_PADDING_VERTICAL)
+                        .padding(vertical = CARD_PADDING_VERTICAL)
                         // The name and the words: one node, read out as each step arrives.
                         .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
                 ) {
@@ -152,8 +158,9 @@ internal fun CoachCard(
                     }
                     Text(text = styled, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                 }
-                VerticalScrollbar(scroll, width = SCROLLBAR_WIDTH, modifier = Modifier.align(Alignment.CenterEnd))
             }
+            // Takes room beside the words only while they scroll (a larger font); at the standard size it draws nothing.
+            VerticalScrollbar(scroll, width = SCROLLBAR_WIDTH, modifier = Modifier.fillMaxHeight())
             TurnArrow(back = false, onClick = onForward)
         }
     }
@@ -166,18 +173,29 @@ internal fun CoachCard(
 @Composable
 private fun TurnArrow(back: Boolean, onClick: (() -> Unit)?) {
     val label = stringResource(if (back) Res.string.game_tutorial_previous_turn_cd else Res.string.game_tutorial_next_turn_cd)
+    val interactions = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
             .width(ARROW_WIDTH)
             .fillMaxHeight()
-            .clickable(enabled = onClick != null, role = Role.Button) { onClick?.invoke() },
+            // The whole strip takes the tap, but shows it as an icon button does: the pressed state layer and ripple
+            // on a circle round the arrow (below), not the strip's full height.
+            .clickable(interactionSource = interactions, indication = null, enabled = onClick != null, role = Role.Button) { onClick?.invoke() },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = if (back) Icons.AutoMirrored.Filled.KeyboardArrowLeft else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = label,
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = if (onClick != null) 1f else DISABLED_ARROW_ALPHA),
-        )
+        Box(
+            modifier = Modifier
+                .size(ARROW_STATE_LAYER)
+                .clip(CircleShape)
+                .indication(interactions, ripple()),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = if (back) Icons.AutoMirrored.Filled.KeyboardArrowLeft else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = label,
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = if (onClick != null) 1f else DISABLED_ARROW_ALPHA),
+            )
+        }
     }
 }
 
@@ -194,7 +212,7 @@ internal fun coachCardHeight(steps: List<TutorialStep>, width: Dp): Dp {
     val texts = steps.map { stringResource(it.message.resource) }
     return remember(texts, width, density, body, label) {
         with(density) {
-            val textWidth = (width - ARROW_WIDTH * 2 - SCROLLBAR_WIDTH).coerceAtLeast(1.dp).roundToPx()
+            val textWidth = (width - ARROW_WIDTH * 2).coerceAtLeast(1.dp).roundToPx()
             val labelHeight = measurer.measure("Coach", label, density = density).size.height.toDp() // i18n: not translated - measured for its line height, not shown
             texts.maxOf { text ->
                 val words = measurer.measure(parseInlineMarkup(text), body, constraints = Constraints(maxWidth = textWidth), density = density).size.height.toDp()
@@ -206,10 +224,12 @@ internal fun coachCardHeight(steps: List<TutorialStep>, width: Dp): Dp {
 
 // The back and forward strips at the card's edges: M3's 48dp minimum touch target across.
 private val ARROW_WIDTH = 48.dp
+// M3's icon button state layer: a 40dp circle round the glyph.
+private val ARROW_STATE_LAYER = 40.dp
 private val CARD_PADDING_VERTICAL = 8.dp
 private const val DISABLED_ARROW_ALPHA = 0.3f
 private val CARD_BORDER = 1.dp
-// Room beside the words for the scrollbar, when they scroll.
+// The scrollbar beside the words, when they scroll.
 private val SCROLLBAR_WIDTH = 10.dp
 
 /** The string each [TutorialMessage] is written in: `game_tutorial_` and its name. */
