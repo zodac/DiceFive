@@ -56,6 +56,18 @@ class SettingsRepositoryCloudTest {
     }
 
     @Test
+    fun `a first finished game travels in the save - so a reinstall signed in to the same account stays unlocked`() = runTest {
+        repository.setFirstGameCompleted()
+        val save = repository.cloudSettings()
+        assertEquals(Stamped<SettingValue?>(SettingValue.Flag(true), 100L), save["first_game_completed"])
+
+        val reinstalled = SettingsRepository(CloudSettingsPreferences(), now = { clock })
+        assertEquals(false, reinstalled.firstGameCompleted.first())
+        reinstalled.mergeCloud(save)
+        assertEquals(true, reinstalled.firstGameCompleted.first())
+    }
+
+    @Test
     fun `a removed setting stays in the save as unset - so the removal travels`() = runTest {
         repository.setRollModifiers(RollModifiers(rollsPerTurn = 4), rollsPerTurnLength = 4)
         clock = 200L

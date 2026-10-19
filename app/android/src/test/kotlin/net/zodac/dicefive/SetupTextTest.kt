@@ -33,7 +33,7 @@ class SetupTextTest {
 
     private fun show(viewModel: GameViewModel = gameViewModel()) = showcase.show {
         CompositionLocalProvider(LocalPlatformServices provides SilentPlatformServices) {
-            DiceFiveTheme { GameSetupScreen(viewModel = viewModel, onStartGame = {}, onBack = {}) }
+            DiceFiveTheme { GameSetupScreen(viewModel = viewModel, onStartGame = {}, onTutorial = {}, onBack = {}) }
         }
     }
 

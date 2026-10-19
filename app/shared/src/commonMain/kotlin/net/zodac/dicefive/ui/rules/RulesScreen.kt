@@ -147,6 +147,7 @@ import net.zodac.dicefive.resources.rules_extended_scores_title
 import net.zodac.dicefive.resources.rules_group_gameplay
 import net.zodac.dicefive.resources.rules_group_modes
 import net.zodac.dicefive.resources.rules_group_modifiers
+import net.zodac.dicefive.resources.rules_group_tutorial
 import net.zodac.dicefive.resources.rules_d20_1
 import net.zodac.dicefive.resources.rules_d20_2
 import net.zodac.dicefive.resources.rules_d20_3
@@ -279,6 +280,10 @@ import net.zodac.dicefive.resources.rules_turn_timer_1
 import net.zodac.dicefive.resources.rules_turn_timer_2
 import net.zodac.dicefive.resources.rules_turn_timer_tab
 import net.zodac.dicefive.resources.rules_turn_timer_title
+import net.zodac.dicefive.resources.rules_tutorial_standard_1
+import net.zodac.dicefive.resources.rules_tutorial_standard_2
+import net.zodac.dicefive.resources.rules_tutorial_standard_tab
+import net.zodac.dicefive.resources.rules_tutorial_standard_title
 import net.zodac.dicefive.resources.rules_unlucky_dice_1
 import net.zodac.dicefive.resources.rules_unlucky_dice_2
 import net.zodac.dicefive.resources.rules_unlucky_dice_3
@@ -478,6 +483,17 @@ private val EXAMPLE_TARGET = HitTarget(listOf(4, 1, 3, 2, null), points = 20)
 private fun colouredDice(vararg dice: Pair<Int, DieColour>, counting: Int = dice.size, score: RulesScore): RulesDice =
     RulesDice(dice.mapIndexed { index, (value, colour) -> ExampleDie(value, counts = index < counting, colour = colour) }, score)
 
+/** Where [RulesStart.STANDARD_TUTORIAL] opens the rules. */
+private val STANDARD_TUTORIAL_PAGE = RulesPage(
+    title = Res.string.rules_tutorial_standard_title,
+    tabLabel = Res.string.rules_tutorial_standard_tab,
+    blocks = listOf(
+        text(Res.string.rules_tutorial_standard_1),
+        text(Res.string.rules_tutorial_standard_2),
+        RulesIllustration,
+    ),
+)
+
 /**
  * The rules explained in the player's own words, not the rulebook's - one page per idea, swiped
  * (or picked from the tab rows) rather than scrolled past as one long page, so each (upper section,
@@ -485,7 +501,7 @@ private fun colouredDice(vararg dice: Pair<Int, DieColour>, counting: Int = dice
  * one per modifier) gets its own moment rather than blurring into the next.
  *
  * Grouped as the top tab row shows them: the rules themselves, then the game modes, then the
- * modifiers - each of the last two opening on an overview of what they are. A new mode or modifier
+ * modifiers - each of those two opening on an overview of what they are - then the tutorials, a page per mode. A new mode or modifier
  * is a page in its group (and a mode that counts on the Leaderboard is named in `rules_modes_3`).
  *
  * Kept in step with the actual rules engine: `ScoreCategory`'s fixed values (25/30/40/50/100),
@@ -764,6 +780,10 @@ private val RULES_GROUPS = listOf(
             ),
         ),
     ),
+    RulesGroup(
+        label = Res.string.rules_group_tutorial,
+        pages = listOf(STANDARD_TUTORIAL_PAGE),
+    ),
 )
 
 /** Every page, group after group - the order the pager swipes through them in. */
@@ -796,6 +816,15 @@ private object RulesPageMemory {
     var lastPage = 0
 }
 
+/** Which page [RulesScreen] opens on. */
+enum class RulesStart {
+    /** Wherever the rules were last left - the first page the first time. */
+    LAST_PAGE,
+
+    /** The Standard tutorial's page, in the Tutorial group. */
+    STANDARD_TUTORIAL,
+}
+
 /** Forgets the remembered page, so the rules open on the first again - tests start from there. */
 fun resetRulesPageMemory() {
     RulesPageMemory.lastPage = 0
@@ -803,7 +832,7 @@ fun resetRulesPageMemory() {
 
 /**
  * The Rules page: two rows of tabs over a [HorizontalPager] of every [RulesPage]. The top row picks
- * one of [RULES_GROUPS] - the rules themselves, the game modes or the modifiers - and the row under
+ * one of [RULES_GROUPS] - the rules themselves, the game modes, the modifiers or the tutorials - and the row under
  * it has a tab per page of that group, so any group is a tap away from any page (Material's primary
  * and secondary tabs). The pager runs through every page, group after group: a swipe past a group's
  * last page carries on into the next group, and the top row follows. A tab snaps straight to its page
@@ -822,8 +851,12 @@ fun resetRulesPageMemory() {
  * semantics so TalkBack says "Tab, 1 of 3" and "Tab, 1 of 6", the spoken form of the same hint.
  */
 @Composable
-fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
-    val pagerState = rememberPagerState(initialPage = RulesPageMemory.lastPage.coerceIn(0, RULES_PAGES.size - 1), pageCount = { RULES_PAGES.size })
+fun RulesScreen(onBack: () -> Unit, modifier: Modifier = Modifier, start: RulesStart = RulesStart.LAST_PAGE) {
+    val initialPage = when (start) {
+        RulesStart.LAST_PAGE -> RulesPageMemory.lastPage.coerceIn(0, RULES_PAGES.size - 1)
+        RulesStart.STANDARD_TUTORIAL -> RULES_PAGES.indexOf(STANDARD_TUTORIAL_PAGE)
+    }
+    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { RULES_PAGES.size })
     // Remembered for the app's run, so the rules reopen where they were left.
     LaunchedEffect(pagerState) { snapshotFlow { pagerState.currentPage }.collect { RulesPageMemory.lastPage = it } }
     val coroutineScope = rememberCoroutineScope()

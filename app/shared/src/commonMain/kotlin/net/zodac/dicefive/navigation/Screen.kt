@@ -15,6 +15,7 @@ object Screen {
     const val SETTINGS = "settings"
     const val STYLES = "styles"
     const val RULES = "rules"
+    const val RULES_TUTORIAL = "rules/tutorial"
 
     fun playSetup(resume: Boolean) = "$PLAY_SETUP?resume=$resume"
 }

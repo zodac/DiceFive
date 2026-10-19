@@ -74,7 +74,7 @@ class StringsLanguageTest {
         assertEquals(LayoutDirection.Ltr, layoutDirection())
 
         val viewModel = gameViewModel()
-        showcase.show { DiceFiveTheme { GameSetupScreen(viewModel = viewModel, onStartGame = {}, onBack = {}) } }
+        showcase.show { DiceFiveTheme { GameSetupScreen(viewModel = viewModel, onStartGame = {}, onTutorial = {}, onBack = {}) } }
         val back = compose.onNodeWithContentDescription("Back").fetchSemanticsNode().boundsInRoot
         val width = compose.onRoot().fetchSemanticsNode().boundsInRoot.width
         assertTrue("Back arrow at $back on a screen $width wide", back.right < width / 2)

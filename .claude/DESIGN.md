@@ -23,6 +23,7 @@ NavHost(start = "menu")
     "play/setup"   GameSetupScreen (optional `resume` argument resumes the saved game)
     "play/game"    GameScreen, then GameOverScreen and the scorecard review
   "scores"  ScoresScreen (the Leaderboard)   "statistics"  "achievements"  "styles"  "rules"
+  "rules/tutorial"  RulesScreen opened on the Tutorial group's Standard page (a placeholder for now), from the New Game form
   "settings"     SettingsScreen (About and Licences open from its footer)
 ```
 
@@ -39,6 +40,15 @@ NavHost(start = "menu")
   - Names are capped by width per player count (`maxPlayerNameLength` 14/12/10/8; see `UI_BOARD.md`).
 - **Colours.** Each player picks a distinct colour (`PlayerColour`).
 - **Remembered.** The mode, the modifiers and everything on the form are saved for next time in `SettingsRepository`.
+- **Locked until a first game is finished.** Until any game reaches its end (any mode, solo or not, won or lost; a
+  game left unfinished doesn't count), the Game Mode and Modifiers cards show only their titles over "Finish a game to
+  unlock game modes" / "... modifiers" (no picker), and the form plays Standard with no modifiers. A "New to the game? Play the tutorial" button
+  sits above Start Game, only while locked.
+  - The flag is `first_game_completed` (`SettingsRepository.firstGameCompleted`). It's synced, only ever set, and no
+    reset clears it. The tutorial game won't set it.
+  - It costs nothing once unlocked. It comes in the setup form's single settings read (`GameSetupState.modesUnlocked`),
+    and it's written once, at the first game over.
+  - While locked, the saved mode and modifier picks are neither restored nor overwritten.
 
 ## The turn and the rules
 

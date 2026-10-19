@@ -708,6 +708,11 @@
     <string name="setup_modifiers">Modifiers</string>
     <!-- Under the form, and said by TalkBack on each name field that clashes. -->
     <string name="setup_names_unique">Names must be unique</string>
+    <!-- Shown in place of the Game Mode and the Modifiers pickers until a first game is finished. -->
+    <string name="setup_modes_locked">Finish a game to unlock game modes</string>
+    <string name="setup_modifiers_locked">Finish a game to unlock modifiers</string>
+    <!-- The button above Start Game, shown only while the modes are locked: opens the tutorial. -->
+    <string name="setup_tutorial_prompt">New to the game? Play the tutorial</string>
     <!-- TalkBack's name for a player's name field. %1$d is the seat. -->
     <string name="setup_player_name_cd">Player %1$d name</string>
     <!-- The chip that switches a seat between a person ("User") and the computer ("CPU", common_cpu_cd). -->
@@ -1190,7 +1195,7 @@
     <!-- A progress banner read aloud: the title, then how far along. -->
     <string name="achievements_banner_progress_spoken">%1$s: %2$s of %3$s</string>
 
-    <!-- Rules pages (ui/rules/RulesScreen.kt): one page per idea, in order, in three groups (rules_group_*): the rules, the game modes, then the modifiers. Body text may use markup: `backticks` for the name of a scoring category (gold, monospace), *italics* for the name of a section, mode or setting, **bold** for a number of points or a count. "Npts" is the short form of points (see rules_points_short). -->
+    <!-- Rules pages (ui/rules/RulesScreen.kt): one page per idea, in order, in four groups (rules_group_*): the rules, the game modes, the modifiers, then the tutorials. Body text may use markup: `backticks` for the name of a scoring category (gold, monospace), *italics* for the name of a section, mode or setting, **bold** for a number of points or a count. "Npts" is the short form of points (see rules_points_short). -->
     <string name="rules_how_to_play_title">How to Play %1$s</string>
     <!-- A tab: keep it short. -->
     <string name="rules_how_to_play_tab">How to Play</string>
@@ -1355,15 +1360,21 @@
     <string name="rules_unlucky_dice_2">Here the last **5** is locked, so it can't be held or scored. Only the other three **5**s score in *Fives*; with the locked one it would have been **20pts**. The **2** doesn't count, as usual.</string>
     <string name="rules_unlucky_dice_3">You may configure the percentage chance each rolled die has of being locked, from **10%** to **50%**, and the maximum number of dice that can be locked on one roll, from **1** to **5**.</string>
     <string name="rules_unlucky_dice_4">Locked dice make a bad turn easier, so with *Unlucky Dice* on, certain achievements (like for winning with multiple zero categories, etc.) can't be earned.</string>
+    <string name="rules_tutorial_standard_title">Standard Tutorial</string>
+    <!-- A tab: keep it short. -->
+    <string name="rules_tutorial_standard_tab">Standard</string>
+    <string name="rules_tutorial_standard_1">Play a guided game of *Standard* against the CPU. The dice are set for you, so each turn shows one part of the rules as it comes up.</string>
+    <string name="rules_tutorial_standard_2">The tutorial is coming soon.</string>
 
     <!-- Rules screen: everything else (ui/rules/RulesScreen.kt) -->
     <string name="rules_title">Rules</string>
     <!-- The pill at the foot: which page of its group (rules_group_*) is showing. Spoken as rules_page_in_group_spoken. -->
     <string name="rules_page_count">%1$d of %2$d</string>
-    <!-- The three groups of pages, in the top tab row: the rules themselves, the game modes, and the modifiers. Keep them short. -->
+    <!-- The four groups of pages, in the top tab row: the rules themselves, the game modes, the modifiers and the tutorials. Keep them short. -->
     <string name="rules_group_gameplay">Gameplay</string>
     <string name="rules_group_modes">Modes</string>
     <string name="rules_group_modifiers">Modifiers</string>
+    <string name="rules_group_tutorial">Tutorial</string>
     <!-- The footer read aloud: the group of pages (rules_group_*), then which of its pages is showing. -->
     <string name="rules_page_in_group_spoken">%1$s, page %2$d of %3$d</string>
     <!-- The number of a step in a list. -->

@@ -31,7 +31,8 @@ import net.zodac.dicefive.model.TurnTimer
  *   CPU difficulty and colour (1-4, slot 1 always Human), the player count, the game mode, the turn timer and every
  *   modifier;
  * - the Styles picks (as ids) and the Styles page's fitted size;
- * - sound, vibration, the Animations level and whether leaving a game in progress asks first.
+ * - sound, vibration, the Animations level and whether leaving a game in progress asks first;
+ * - whether a game has ever been finished here, which unlocks the New Game form's game modes and modifiers.
  *
  * Every setting but the Animations level and the Styles page fit goes in the cloud save ([SYNCED_KEYS]): those two are
  * about this device - what it can draw, and its screen. Each synced key is stamped with when its value last changed
@@ -158,6 +159,8 @@ class SettingsRepository(
             )
 
         val gameMode: GameMode get() = prefs[GAME_MODE_KEY]?.let { GameMode.fromId(it) } ?: GameMode.default
+
+        val firstGameCompleted: Boolean get() = prefs[FIRST_GAME_COMPLETED_KEY] ?: false
     }
 
     fun playerNameFor(slot: Int): Flow<String?> = readSnapshot { it.playerNameFor(slot) }
@@ -256,6 +259,13 @@ class SettingsRepository(
         edit { it[GAME_MODE_KEY] = gameMode.id }
     }
 
+    /** Whether a game has been played to its end, won or lost. Only ever set, never cleared - not even by a reset. */
+    val firstGameCompleted: Flow<Boolean> = readSnapshot { it.firstGameCompleted }
+
+    suspend fun setFirstGameCompleted() {
+        edit { it[FIRST_GAME_COMPLETED_KEY] = true }
+    }
+
     val confirmBeforeLeavingGame: Flow<Boolean> =
         read { prefs -> prefs[CONFIRM_BEFORE_LEAVING_GAME_KEY] ?: true }
 
@@ -343,6 +353,7 @@ class SettingsRepository(
         val UNLUCKY_ODDS_KEY = intPreferencesKey("unlucky_dice_odds")
         val UNLUCKY_MAX_DICE_KEY = intPreferencesKey("unlucky_dice_max")
         val GAME_MODE_KEY = stringPreferencesKey("game_mode")
+        val FIRST_GAME_COMPLETED_KEY = booleanPreferencesKey("first_game_completed")
         val DICE_STYLE_ID_KEY = stringPreferencesKey("dice_style_id")
         val DICE_CUP_STYLE_ID_KEY = stringPreferencesKey("dice_cup_style_id")
         val TABLE_BACKGROUND_ID_KEY = stringPreferencesKey("table_background_id")
@@ -367,6 +378,7 @@ class SettingsRepository(
         )
         private val SYNCED_BOOLEAN_KEYS: List<Preferences.Key<Boolean>> = listOf(
             STORED_ROLLS_KEY, EXTENDED_SCORES_KEY, UNLUCKY_DICE_KEY, SOUND_ENABLED_KEY, VIBRATION_ENABLED_KEY, CONFIRM_BEFORE_LEAVING_GAME_KEY,
+            FIRST_GAME_COMPLETED_KEY,
         )
 
         /**

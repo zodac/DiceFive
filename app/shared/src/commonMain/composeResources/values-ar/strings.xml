@@ -617,6 +617,9 @@
     <string name="setup_game_mode">نمط اللعب</string>
     <string name="setup_modifiers">المعدّلات</string>
     <string name="setup_names_unique">يجب ألا تتكرر الأسماء</string>
+    <string name="setup_modes_locked">أنهِ لعبة لفتح أنماط اللعب</string>
+    <string name="setup_modifiers_locked">أنهِ لعبة لفتح المعدّلات</string>
+    <string name="setup_tutorial_prompt">جديد في اللعبة؟ العب الدرس التعليمي</string>
     <string name="setup_player_name_cd">اسم اللاعب %1$d</string>
     <string name="setup_type_user">مستخدم</string>
     <string name="setup_difficulty_easy">سهل</string>
@@ -1167,11 +1170,16 @@
     <string name="rules_unlucky_dice_2">هنا الحجر **٥** الأخير مقيَّد، فلا يمكن تثبيته ولا تسجيله. فقط الأحجار **٥** الثلاثة الأخرى تُسجَّل في *الخماسيات*؛ ومع المقيَّد كانت ستكون **٢٠ نقطة**. أما **٢** فلا يُحتسب، كالمعتاد.</string>
     <string name="rules_unlucky_dice_3">اضبط احتمال تقييد كل حجر مرمي، من **١٠٪** إلى **٥٠٪**، وأقصى عدد من الأحجار يمكن تقييده في رمية واحدة، من **١** إلى **٥**.</string>
     <string name="rules_unlucky_dice_4">النرد المقيَّد يجعل الدور السيئ أسهل، فمع تشغيل *النرد سيئ الحظ* لا يمكن كسب بعض الإنجازات (مثل إنجاز الفوز مع عدة فئات مسجَّلة بصفر وغيره).</string>
+    <string name="rules_tutorial_standard_title">الدرس التعليمي: القياسي</string>
+    <string name="rules_tutorial_standard_tab">القياسي</string>
+    <string name="rules_tutorial_standard_1">العب لعبة موجَّهة في النمط *القياسي* ضد الحاسوب. النرد مُعدّ لك مسبقًا، فيعرض كل دور جزءًا من القواعد في وقته.</string>
+    <string name="rules_tutorial_standard_2">الدرس التعليمي قادم قريبًا.</string>
     <string name="rules_title">القواعد</string>
     <string name="rules_page_count">%1$d من %2$d</string>
     <string name="rules_group_gameplay">اللعب</string>
     <string name="rules_group_modes">الأنماط</string>
     <string name="rules_group_modifiers">المعدّلات</string>
+    <string name="rules_group_tutorial">الدرس التعليمي</string>
     <string name="rules_page_in_group_spoken">%1$s، الصفحة %2$d من %3$d</string>
     <string name="rules_step_number">%1$d.</string>
     <string name="rules_example_equals">= %1$s</string>

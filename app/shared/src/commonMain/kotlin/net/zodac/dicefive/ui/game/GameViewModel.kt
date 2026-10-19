@@ -107,6 +107,12 @@ data class GameSetupState(
     val unluckyDiceEnabled: Boolean = false,
     /** The Unlucky Dice odds and cap the modifier returns to when switched back on. */
     val unluckyDice: UnluckyDice = UnluckyDice(),
+    /**
+     * Whether the game mode and modifiers can be changed: only once a game has been finished
+     * ([SettingsRepository.firstGameCompleted]). Until then the form plays Standard with no modifiers, and the saved
+     * picks are neither restored nor overwritten.
+     */
+    val modesUnlocked: Boolean = false,
 ) {
     /** What a game started now plays with: the Unlucky Dice settings, or null with the modifier off. */
     val activeUnluckyDice: UnluckyDice?
@@ -372,6 +378,9 @@ class GameViewModel(
             val restoredColours = colours.takeIf { saved -> saved.none { it == null } && saved.toSet().size == saved.size }
             restored = restored.copy(
                 playerSlots = if (restoredColours == null) slots else slots.mapIndexed { i, slot -> slot.copy(colour = restoredColours[i]!!) },
+                modesUnlocked = saved.firstGameCompleted,
+            )
+            if (restored.modesUnlocked) restored = restored.copy(
                 turnTimer = saved.turnTimer,
                 turnTimerLength = saved.turnTimerLength,
                 rollModifiers = saved.rollModifiers,
@@ -944,6 +953,11 @@ class GameViewModel(
      * before this game's own rows were added to it.
      */
     private fun finishGame(state: GameState) {
+        // Written once: every game after the first finds the modes already unlocked.
+        if (!_setup.value.modesUnlocked) {
+            _setup.update { it.copy(modesUnlocked = true) }
+            viewModelScope.launch { settingsRepository.setFirstGameCompleted() }
+        }
         viewModelScope.launch {
             // Guarded so a leaderboard problem costs only the leaderboard: before this, a throw
             // from either call took the achievement evaluation down with it, silently.
@@ -1060,12 +1074,15 @@ class GameViewModel(
         val slots = setup.playerSlots.take(setup.playerCount)
         viewModelScope.launch {
             settingsRepository.setPlayerCount(setup.playerCount)
-            settingsRepository.setTurnTimer(setup.turnTimer)
-            settingsRepository.setTurnTimerLength(setup.turnTimerLength)
-            settingsRepository.setRollModifiers(setup.rollModifiers, setup.rollsPerTurnLength)
-            settingsRepository.setExtendedScores(setup.extendedScores)
-            settingsRepository.setUnluckyDice(setup.unluckyDiceEnabled, setup.unluckyDice)
-            settingsRepository.setGameMode(setup.gameMode)
+            // Locked, the form shows the defaults rather than the saved picks, which are kept for when it unlocks.
+            if (setup.modesUnlocked) {
+                settingsRepository.setTurnTimer(setup.turnTimer)
+                settingsRepository.setTurnTimerLength(setup.turnTimerLength)
+                settingsRepository.setRollModifiers(setup.rollModifiers, setup.rollsPerTurnLength)
+                settingsRepository.setExtendedScores(setup.extendedScores)
+                settingsRepository.setUnluckyDice(setup.unluckyDiceEnabled, setup.unluckyDice)
+                settingsRepository.setGameMode(setup.gameMode)
+            }
             // All four, not just the shown ones: they're kept distinct together (see setPlayerColour).
             for (slot in setup.playerSlots) settingsRepository.setPlayerColour(slot.slot, slot.colour)
             for (slot in slots) {

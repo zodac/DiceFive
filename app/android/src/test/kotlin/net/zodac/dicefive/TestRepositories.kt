@@ -3,6 +3,7 @@ package net.zodac.dicefive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.runBlocking
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.game.InProgressGameRepository
@@ -48,10 +49,10 @@ internal fun stylesViewModel(saved: StateFlow<SavedStyles?>? = null) = StylesVie
     saved,
 )
 
-/** A game view model over in-memory repositories. */
-internal fun gameViewModel() = GameViewModel(
+/** A game view model over in-memory repositories: a first game already finished, so the form's modes are unlocked, unless [modesUnlocked] is false. */
+internal fun gameViewModel(modesUnlocked: Boolean = true) = GameViewModel(
     ScoreRepository(RowsDao(emptyList())),
-    SettingsRepository(InMemoryPreferences()),
+    SettingsRepository(InMemoryPreferences()).also { if (modesUnlocked) runBlocking { it.setFirstGameCompleted() } },
     InProgressGameRepository(InMemoryPreferences()),
     InMemoryAchievementStore(),
 )

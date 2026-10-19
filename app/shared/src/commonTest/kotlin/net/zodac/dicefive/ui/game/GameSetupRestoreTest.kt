@@ -64,6 +64,7 @@ class GameSetupRestoreTest {
     @Test
     fun `saved setup is published in one update and only then flagged restored`() = runTest(testDispatcher) {
         val repository = SettingsRepository(InMemoryPreferences())
+        repository.setFirstGameCompleted()
         repository.setPlayerCount(3)
         repository.setPlayerName(1, "Alexandra the Great")
         repository.setPlayerType(2, PlayerType.AI)
@@ -98,6 +99,7 @@ class GameSetupRestoreTest {
     fun `the saved setup is restored from one read of the settings`() = runTest(testDispatcher) {
         val store = CountingReadsStore()
         val repository = SettingsRepository(store)
+        repository.setFirstGameCompleted()
         repository.setPlayerCount(4)
         repository.setGameMode(GameMode.TRICOLOUR)
         store.finishedReads = 0
@@ -142,6 +144,7 @@ class GameSetupRestoreTest {
     @Test
     fun `every modifier is remembered between games - its value kept while it's off`() = runTest(testDispatcher) {
         val repository = SettingsRepository(InMemoryPreferences())
+        repository.setFirstGameCompleted()
         val first = restored(repository)
         assertFalse(first.setup.value.extendedScores)
         assertFalse(first.setup.value.unluckyDiceEnabled)

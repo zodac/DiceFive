@@ -532,6 +532,9 @@
     <string name="setup_game_mode">Modo de juego</string>
     <string name="setup_modifiers">Modificadores</string>
     <string name="setup_names_unique">Los nombres deben ser únicos</string>
+    <string name="setup_modes_locked">Termina una partida para desbloquear los modos de juego</string>
+    <string name="setup_modifiers_locked">Termina una partida para desbloquear los modificadores</string>
+    <string name="setup_tutorial_prompt">¿Eres nuevo? Juega el tutorial</string>
     <string name="setup_player_name_cd">Nombre del jugador %1$d</string>
     <string name="setup_type_user">Usuario</string>
     <string name="setup_difficulty_easy">Fácil</string>
@@ -1069,11 +1072,16 @@
     <string name="rules_unlucky_dice_2">Aquí el último **5** está encadenado, así que no se puede conservar ni anotar. Solo los otros tres **5** puntúan en *Cincos*; con el encadenado habrían sido **20 pts**. El **2** no cuenta, como de costumbre.</string>
     <string name="rules_unlucky_dice_3">Configura la probabilidad que tiene cada dado tirado de quedar encadenado, de **10%** a **50%**, y el número máximo de dados que se pueden encadenar en una tirada, de **1** a **5**.</string>
     <string name="rules_unlucky_dice_4">Los dados encadenados facilitan un mal turno, así que con *Dados malditos* activados, no se pueden conseguir ciertos logros (como el de ganar con varias categorías a cero, etc.).</string>
+    <string name="rules_tutorial_standard_title">Tutorial de Estándar</string>
+    <string name="rules_tutorial_standard_tab">Estándar</string>
+    <string name="rules_tutorial_standard_1">Juega una partida guiada de *Estándar* contra la CPU. Los dados ya están preparados, así que cada turno enseña una parte de las reglas cuando llega.</string>
+    <string name="rules_tutorial_standard_2">El tutorial llegará pronto.</string>
     <string name="rules_title">Reglas</string>
     <string name="rules_page_count">%1$d de %2$d</string>
     <string name="rules_group_gameplay">Juego</string>
     <string name="rules_group_modes">Modos</string>
     <string name="rules_group_modifiers">Modificadores</string>
+    <string name="rules_group_tutorial">Tutorial</string>
     <string name="rules_page_in_group_spoken">%1$s, página %2$d de %3$d</string>
     <string name="rules_step_number">%1$d.</string>
     <string name="rules_example_equals">= %1$s</string>

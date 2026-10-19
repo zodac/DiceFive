@@ -17,10 +17,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,10 +37,12 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -64,7 +68,9 @@ import net.zodac.dicefive.resources.setup_extended_title
 import net.zodac.dicefive.resources.setup_game_mode
 import net.zodac.dicefive.resources.setup_modifiers
 import net.zodac.dicefive.resources.setup_modifiers_active_note
+import net.zodac.dicefive.resources.setup_modes_locked
 import net.zodac.dicefive.resources.setup_modifiers_description
+import net.zodac.dicefive.resources.setup_modifiers_locked
 import net.zodac.dicefive.resources.setup_names_unique
 import net.zodac.dicefive.resources.setup_player_name_cd
 import net.zodac.dicefive.resources.setup_players
@@ -86,6 +92,7 @@ import net.zodac.dicefive.resources.setup_timer_none
 import net.zodac.dicefive.resources.setup_timer_seconds
 import net.zodac.dicefive.resources.setup_timer_title
 import net.zodac.dicefive.resources.setup_timer_unit
+import net.zodac.dicefive.resources.setup_tutorial_prompt
 import net.zodac.dicefive.resources.setup_title
 import net.zodac.dicefive.resources.setup_type_user
 import net.zodac.dicefive.resources.setup_unlucky_description
@@ -134,6 +141,7 @@ private const val STACKED_PLAYER_ROW_FONT_SCALE = 1.05f
 fun GameSetupScreen(
     viewModel: GameViewModel,
     onStartGame: () -> Unit,
+    onTutorial: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -171,6 +179,19 @@ fun GameSetupScreen(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.error,
             )
+        }
+
+        // Offered, never required, and only until a first game is finished.
+        if (!setup.modesUnlocked) {
+            OutlinedButton(
+                onClick = {
+                    focusManager.clearFocus()
+                    onTutorial()
+                },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            ) {
+                Text(text = stringResource(Res.string.setup_tutorial_prompt), textAlign = TextAlign.Center)
+            }
         }
 
         Button(
@@ -242,6 +263,14 @@ private fun SetupForm(
         }
     }
 
+    // Until a first game is finished each card holds a note in place of its picker, and the form plays Standard with no
+    // modifiers.
+    if (!setup.modesUnlocked) {
+        LockedSetupCard(title = stringResource(Res.string.setup_game_mode), note = stringResource(Res.string.setup_modes_locked))
+        LockedSetupCard(title = stringResource(Res.string.setup_modifiers), note = stringResource(Res.string.setup_modifiers_locked))
+        return
+    }
+
     SetupCard(title = stringResource(Res.string.setup_game_mode)) {
         GameModeSelector(selected = setup.gameMode, onSelect = viewModel::setGameMode)
     }
@@ -267,15 +296,23 @@ private fun SetupForm(
  * [title] is optional: a section whose contents already label themselves (the player rows) doesn't
  * need a heading repeating it. [rowSpacing] is tightened further still for the player list, where
  * up to four rows (plus their dividers) need to fit on screen at once alongside every other card.
+ * With [enabled] false the card is darker and its title takes Material's disabled text colour.
  */
 @Composable
 private fun SetupCard(
     modifier: Modifier = Modifier,
     title: String? = null,
     rowSpacing: Dp = 6.dp,
+    enabled: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Card(modifier = modifier.fillMaxWidth()) {
+    val colours = CardDefaults.cardColors()
+    Card(
+        // Disabled, the card sits back: a darker surface than the others, rather than Material's disabled fill, which is
+        // lighter than this theme's cards and so read as raised.
+        colors = if (enabled) colours else colours.copy(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        modifier = modifier.fillMaxWidth(),
+    ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(rowSpacing),
@@ -284,11 +321,30 @@ private fun SetupCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else disabledContentColour(),
                 )
             }
             content()
         }
+    }
+}
+
+/** Material's disabled text colour: `onSurface` at 38%. */
+@Composable
+private fun disabledContentColour() = MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_CONTENT_ALPHA)
+
+private const val DISABLED_CONTENT_ALPHA = 0.38f
+
+/** A [SetupCard] whose picker is locked, greyed out: its [title] over a [note] saying so, read as one by a screen reader. */
+@Composable
+private fun LockedSetupCard(title: String, note: String) {
+    SetupCard(title = title, enabled = false, modifier = Modifier.semantics(mergeDescendants = true) {}) {
+        Text(
+            text = note,
+            style = MaterialTheme.typography.bodyMedium,
+            fontStyle = FontStyle.Italic,
+            color = disabledContentColour(),
+        )
     }
 }
 

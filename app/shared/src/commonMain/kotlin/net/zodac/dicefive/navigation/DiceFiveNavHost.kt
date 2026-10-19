@@ -44,6 +44,7 @@ import net.zodac.dicefive.ui.game.GameViewModel
 import net.zodac.dicefive.ui.menu.MenuScreen
 import net.zodac.dicefive.ui.menu.MenuViewModel
 import net.zodac.dicefive.ui.rules.RulesScreen
+import net.zodac.dicefive.ui.rules.RulesStart
 import net.zodac.dicefive.ui.scores.ScoresScreen
 import net.zodac.dicefive.ui.scores.ScoresWarmUp
 import net.zodac.dicefive.ui.scores.ScoresViewModel
@@ -129,6 +130,7 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
                     GameSetupScreen(
                         viewModel = viewModel,
                         onStartGame = { navController.navigate(Screen.PLAY_GAME) },
+                        onTutorial = { navController.navigate(Screen.RULES_TUTORIAL) },
                         onBack = { navController.navigateUp() },
                     )
                 }
@@ -220,6 +222,9 @@ fun DiceFiveNavHost(navController: NavHostController = rememberNavController()) 
         }
         composable(Screen.RULES) {
             RulesScreen(onBack = { navController.navigateUp() })
+        }
+        composable(Screen.RULES_TUTORIAL) {
+            RulesScreen(onBack = { navController.navigateUp() }, start = RulesStart.STANDARD_TUTORIAL)
         }
     }
 }

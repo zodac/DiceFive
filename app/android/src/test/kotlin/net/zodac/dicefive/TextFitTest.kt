@@ -126,7 +126,7 @@ open class TextFitTest {
         val setup = gameViewModel()
         setup.setPlayerCount(4)
         setup.setPlayerType(2, PlayerType.AI)
-        content { GameSetupScreen(viewModel = setup, onStartGame = {}, onBack = {}) }
+        content { GameSetupScreen(viewModel = setup, onStartGame = {}, onTutorial = {}, onBack = {}) }
         check("New game")
 
         // The modifiers, with every one switched on.
@@ -136,7 +136,7 @@ open class TextFitTest {
         modifiers.setStoredRolls(true)
         modifiers.setUnluckyDiceEnabled(true)
         modifiers.setExtendedScores(true)
-        content { GameSetupScreen(viewModel = modifiers, onStartGame = {}, onBack = {}) }
+        content { GameSetupScreen(viewModel = modifiers, onStartGame = {}, onTutorial = {}, onBack = {}) }
         compose.onNodeWithText(fiveModifiersEnabled).performClick()
         compose.waitForIdle()
         check("Modifiers")
@@ -199,7 +199,7 @@ open class TextFitTest {
         content { RulesScreen(onBack = {}) }
         val isTab = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
         // The top row's tabs (the groups) come first, then the row of the showing group's pages.
-        val groups = 3
+        val groups = 4
         val broken = mutableMapOf<String, List<String>>()
         for (group in 0 until groups) {
             compose.onAllNodes(isTab)[group].performClick()
