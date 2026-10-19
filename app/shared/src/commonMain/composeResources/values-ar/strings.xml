@@ -716,6 +716,15 @@
     <string name="setup_colour_swaps_cd">%1$s، يتبادل مع اللاعب %2$d</string>
     <string name="settings_title">الإعدادات</string>
     <string name="settings_version">الإصدار %1$s</string>
+    <string name="settings_already_developer">أنت مطوّر بالفعل!</string>
+    <plurals name="settings_steps_from_developer">
+        <item quantity="zero">أنت على بُعد %1$d خطوة من أن تصبح مطوّرًا</item>
+        <item quantity="one">أنت على بُعد %1$d خطوة من أن تصبح مطوّرًا</item>
+        <item quantity="two">أنت على بُعد خطوتين (%1$d) من أن تصبح مطوّرًا</item>
+        <item quantity="few">أنت على بُعد %1$d خطوات من أن تصبح مطوّرًا</item>
+        <item quantity="many">أنت على بُعد %1$d خطوة من أن تصبح مطوّرًا</item>
+        <item quantity="other">أنت على بُعد %1$d خطوة من أن تصبح مطوّرًا</item>
+    </plurals>
     <string name="online_signed_out">لم يتم تسجيل الدخول</string>
     <string name="online_signing_in">جارٍ تسجيل الدخول...</string>
     <string name="online_signed_in_cd">%1$s، تم تسجيل الدخول باسم %2$s</string>

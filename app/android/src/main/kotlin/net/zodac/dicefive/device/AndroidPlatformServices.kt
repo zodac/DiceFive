@@ -62,8 +62,12 @@ class AndroidPlatformServices(context: Context) : PlatformServices {
         CappedFrameClock.maxFramesPerSecond = maxFramesPerSecond
     }
 
+    private var transientMessage: Toast? = null
+
+    /** Replaces the one still showing, so a run of messages (the version taps) doesn't queue up behind each other. */
     override fun showTransientMessage(message: String) {
-        Toast.makeText(appContext, message, Toast.LENGTH_SHORT).show()
+        transientMessage?.cancel()
+        transientMessage = Toast.makeText(appContext, message, Toast.LENGTH_SHORT).also { it.show() }
     }
 
     /** Both generated into res/raw by the build - see the "Open-source licenses" section of app/android/build.gradle.kts. */

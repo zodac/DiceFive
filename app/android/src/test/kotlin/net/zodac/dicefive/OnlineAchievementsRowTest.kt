@@ -24,6 +24,8 @@ import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.online.NoGameServices
 import net.zodac.dicefive.online.OnlineAccount
+import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.settings.SettingsScreen
 import net.zodac.dicefive.ui.settings.SettingsViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
@@ -60,6 +62,7 @@ class OnlineAchievementsRowTest {
             CompositionLocalProvider(
                 LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
                 LocalGameServices provides services,
+                LocalPlatformServices provides SilentPlatformServices,
             ) {
                 DiceFiveTheme { SettingsScreen(viewModel = viewModel, onBack = {}) }
             }

@@ -28,6 +28,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +48,7 @@ import net.zodac.dicefive.data.settings.AnimationLevel
 import net.zodac.dicefive.online.GameServicesState
 import net.zodac.dicefive.online.LocalGameServices
 import net.zodac.dicefive.online.LocalOnlineSyncStatus
+import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.about_title
 import net.zodac.dicefive.resources.common_cancel
@@ -75,6 +77,8 @@ import net.zodac.dicefive.resources.settings_reset_leaderboard_message
 import net.zodac.dicefive.resources.settings_reset_leaderboard_online_note
 import net.zodac.dicefive.resources.settings_reset_leaderboard_title
 import net.zodac.dicefive.resources.settings_sound
+import net.zodac.dicefive.resources.settings_already_developer
+import net.zodac.dicefive.resources.settings_steps_from_developer
 import net.zodac.dicefive.resources.settings_title
 import net.zodac.dicefive.resources.settings_version
 import net.zodac.dicefive.resources.settings_vibration
@@ -83,6 +87,7 @@ import net.zodac.dicefive.ui.common.FittedSegmentedChoiceRow
 import net.zodac.dicefive.ui.common.FooterPill
 import net.zodac.dicefive.ui.common.ScreenScaffold
 import net.zodac.dicefive.ui.common.ShrinkThenWrapText
+import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
 
 /** A setting's label: bodyLarge on one line when it fits, stepped down to [MIN_READABLE_FONT_SIZE] on a
@@ -223,6 +228,14 @@ fun SettingsScreen(
     var showResetLeaderboardConfirmation by rememberSaveable { mutableStateOf(false) }
     var showLicenses by rememberSaveable { mutableStateOf(false) }
     var showAbout by rememberSaveable { mutableStateOf(false) }
+
+    val platform = LocalPlatformServices.current
+    val alreadyDeveloper = stringResource(Res.string.settings_already_developer)
+    // Index 0 is steps-away 1: resolved in composition, as the plural form and numerals need it.
+    val stepsAway = (1 until SettingsViewModel.VERSION_TAP_TARGET).map { pluralStringResource(Res.plurals.settings_steps_from_developer, it, it) }
+    LaunchedEffect(viewModel) {
+        viewModel.versionTapMessages.collect { steps -> platform.showTransientMessage(if (steps == 0) alreadyDeveloper else stepsAway[steps - 1]) }
+    }
 
     ScreenScaffold(
         title = stringResource(Res.string.settings_title),

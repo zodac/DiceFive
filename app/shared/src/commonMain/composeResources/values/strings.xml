@@ -830,6 +830,13 @@
     <string name="settings_title">Settings</string>
     <!-- The footer. %1$s is the app's version number. -->
     <string name="settings_version">Version %1$s</string>
+    <!-- A toast when the version number is tapped again and again by a player who has already earned the achievement for it. -->
+    <string name="settings_already_developer">You're already a developer!</string>
+    <!-- A toast on each repeated tap of the version number before the achievement is earned. %1$d is how many more taps it needs. -->
+    <plurals name="settings_steps_from_developer">
+        <item quantity="one">You are now %1$d step away from being a developer</item>
+        <item quantity="other">You are now %1$d steps away from being a developer</item>
+    </plurals>
     <!-- The online game service card on Settings (ui/settings/OnlineAccountCard.kt). %1$s is the service's own name, or the account's gamer name. -->
     <string name="online_signed_out">Not signed in</string>
     <string name="online_signing_in">Signing in...</string>

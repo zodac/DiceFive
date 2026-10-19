@@ -28,6 +28,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.device.AndroidAppContainer
+import net.zodac.dicefive.platform.LocalPlatformServices
+import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.settings.SettingsScreen
 import net.zodac.dicefive.ui.settings.SettingsViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
@@ -63,7 +65,10 @@ class SettingsRowsTest {
         val viewModel = settingsViewModel()
         compose.setContent {
             // Only for the version line at the foot of the page.
-            CompositionLocalProvider(LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext())) {
+            CompositionLocalProvider(
+                LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
+                LocalPlatformServices provides SilentPlatformServices,
+            ) {
                 DiceFiveTheme { SettingsScreen(viewModel = viewModel, onBack = {}) }
             }
         }
