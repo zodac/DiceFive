@@ -29,7 +29,7 @@ sandbox/emulator.sh stop                # ALWAYS stop when done: it holds ~4GB R
 
 ```sh
 sandbox/emulator.sh start
-./gradlew -q assembleDebug && adb install -r app/android/build/outputs/apk/debug/*.apk
+./gradlew -q assembleDebug -PdevStamp && adb install -r "$(ls -t app/android/build/outputs/apk/debug/*.apk | head -1)"
 adb shell monkey -p net.zodac.dicefive -c android.intent.category.LAUNCHER 1
 sandbox/emulator.sh screenshot <scratchpad>/screen.png
 ```

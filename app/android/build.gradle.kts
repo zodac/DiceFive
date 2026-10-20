@@ -207,15 +207,29 @@ kotlin {
 }
 
 // Ad hoc debug builds are handed straight to testers (not distributed via Play, and not tied to
-// the VERSION-file release flow release/CI uses), so give every debug build its own
-// always-increasing versionCode. Otherwise two debug builds sharing one VERSION-derived versionCode
-// (the common case: nothing bumped VERSION between them) are logged by Android as the "same"
-// version but signed identically, and re-signing per build is what actually determines whether an
-// install-over-existing succeeds - the versionCode/name below just makes each one unambiguous.
-// Computed once at script-eval time (not inside onVariants) so the output-filename block below can
-// reuse the exact same string without reading it back off the variant.
-val debugVersionCode = (System.currentTimeMillis() / 60_000L).toInt()
-val debugVersionName = "$appVersionName-dev$debugVersionCode"
+// the VERSION-file release flow release/CI uses), so a debug APK built to install gets its own
+// always-increasing versionCode: the minute it was built. Otherwise two debug builds sharing one VERSION-derived
+// versionCode (the common case: nothing bumped VERSION between them) are logged by Android as the "same" version but
+// signed identically, and re-signing per build is what actually determines whether an install-over-existing succeeds -
+// the versionCode/name below just makes each one unambiguous.
+//
+// Only with `-PdevStamp` (the debug-apk and emulator skills pass it). Without it a debug build keeps VERSION's
+// versionCode and "<version>-dev", so BuildConfig and the manifest stay the same from one build to the next and a test
+// or lint run is up to date rather than recompiling the app and re-running every test each new minute.
+//
+// The minute is read when a build runs, through a ValueSource wired in lazily: a value worked out while the script is
+// evaluated would be stored in the configuration cache and handed to every later build unchanged. The output-filename
+// block below reuses the same provider, so the name and the versionCode always agree.
+abstract class MinutesSinceEpoch : ValueSource<Int, ValueSourceParameters.None> {
+    override fun obtain(): Int = (System.currentTimeMillis() / 60_000L).toInt()
+}
+// Each lambda captures only a local value: the configuration cache can't store one holding the script or a variant.
+val debugVersionCode: Provider<Int> = appVersionCode.let { code ->
+    if (providers.gradleProperty("devStamp").isPresent) providers.of(MinutesSinceEpoch::class) {} else providers.provider { code }
+}
+val debugVersionName: Provider<String> = appVersionName.let { name ->
+    if (providers.gradleProperty("devStamp").isPresent) debugVersionCode.map { "$name-dev$it" } else providers.provider { "$name-dev" }
+}
 
 androidComponents {
     // Release dex stored uncompressed in the APK (the default only from minSdk 28): Android then runs
@@ -361,10 +375,12 @@ androidComponents {
 // AGP upgrade moves it, this is the line that stops compiling.
 androidComponents {
     onVariants { variant ->
-        val versionLabel = if (variant.buildType == "debug") debugVersionName else appVersionName
+        val releaseName = appVersionName
+        val versionLabel = if (variant.buildType == "debug") debugVersionName else providers.provider { releaseName }
         val unsignedSuffix = if (variant.buildType == "release" && !hasReleaseSigningConfig) "-unsigned" else ""
+        val suffix = "-${variant.buildType}$unsignedSuffix.apk"
         variant.outputs.filterIsInstance<VariantOutputImpl>().forEach { output ->
-            output.outputFileName.set("DiceFive-$versionLabel-${variant.buildType}$unsignedSuffix.apk")
+            output.outputFileName.set(versionLabel.map { "DiceFive-$it$suffix" })
         }
     }
 }

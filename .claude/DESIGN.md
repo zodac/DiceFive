@@ -480,8 +480,11 @@ screen) of `StyleColour`s.
   - `VERSION` is the single source: `versionName` is its contents, and `versionCode` is
     `major*10000 + minor*100 + patch`.
   - `scripts/set-version.sh` writes it, and `scripts/bump-patch-version.sh` bumps the patch.
-  - Debug builds take a wall-clock `versionCode` and the repo's `app/android/debug.keystore`. Every debug APK therefore
-    installs over another and shares one SHA-1 (which Play Games testing registers).
+  - Debug builds are signed with the repo's `app/android/debug.keystore`, so every debug APK shares one SHA-1 (which
+    Play Games testing registers). Built with `-PdevStamp`, one also takes the minute it was built as its `versionCode`
+    (`<version>-dev<minute>`), so each installs over the last. Without it, a debug build keeps `VERSION`'s, so test
+    and lint runs stay up to date. The minute is read through a `ValueSource` when the build runs, never while the
+    script is evaluated, or the configuration cache would hand every build the same one.
 - **On every push to `main` that changes what ships**, `.github/workflows/release.yml` runs:
   - parallel jobs: Android tests, shared tests with the iOS compile, lint, the Baseline Profile (generated fresh on an
     emulator; see `EMULATOR.md`), and the APK plus App Bundle (from 1.0.0, or with `force_apk`);

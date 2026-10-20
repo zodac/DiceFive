@@ -5,7 +5,8 @@ description: Build the debug APK and send it to the user. Use once a requested c
 
 # Build and send the debug APK
 
-1. `./gradlew -q assembleDebug` from `/work`. The build needs `ffmpeg` on PATH, because it normalises the sound clips.
+1. `./gradlew -q assembleDebug -PdevStamp` from `/work`. The build needs `ffmpeg` on PATH, because it normalises the sound
+   clips.
 2. Find the file: `ls -t app/android/build/outputs/apk/debug/*.apk | head -1`.
 3. Send it with the `SendUserFile` tool (load it via ToolSearch `select:SendUserFile` if it's deferred).
 4. In the report, say what to check by hand on the device, including what TalkBack should say for changed UI. Name
@@ -13,5 +14,9 @@ description: Build the debug APK and send it to the user. Use once a requested c
 
 Notes:
 - Visual work: get renders agreed first (`render` skill), then send the APK.
-- Don't touch `VERSION` to make an APK installable. Each debug build gets a wall-clock `versionCode` and is signed
-  with the repo's `app/android/debug.keystore`, so every debug APK installs over the last.
+- Don't touch `VERSION` to make an APK installable. `-PdevStamp` gives the build the minute it was made as its
+  `versionCode` (and `<version>-dev<minute>` as its name and file name), and it is signed with the repo's
+  `app/android/debug.keystore`, so every stamped APK installs over the last.
+- Never send an APK built without `-PdevStamp`. It keeps `VERSION`'s `versionCode`, so it won't install over a
+  stamped one, and its name doesn't say which build it is. Plain builds stay unstamped so test and lint runs remain
+  up to date.
