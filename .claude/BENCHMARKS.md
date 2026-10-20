@@ -121,6 +121,17 @@ Profile).
 
 ## Tried and dropped
 
+- **Moving `stringsLanguageConfiguration()`'s `runBlocking` off `attachBaseContext`** (2026-10-20, measured only).
+  Sandbox emulator, debug build: 8-71ms on a cold start (most runs 10-35ms). About 2-4ms is coroutines' first load and
+  nearly all the rest Compose resources' first read; a second call takes 0.2ms. The first screen would pay that first
+  read anyway, so moving it wouldn't shorten start-up.
+- **Replacing `material-icons-extended` (frozen at 1.7.3, 118 icons used) with Material Symbols** (2026-10-20). As
+  vector drawables in `composeResources/drawable/`, R8'd dex fell 45 KB but the 118 XML files added 36 KB compressed
+  plus ~27 KB of zip headers: the release APK grew 13.9 KB (download +10.9 KB). Path strings in Kotlin were estimated
+  ~30 KB smaller (0.5% of the APK), not worth restyling every icon. The library is plain path code with almost no API
+  to break. Symbols also redraws some glyphs (`whatshot` became a trend arrow; its flame, `mode_heat`, matches
+  `local_fire_department`, which `PlayConsoleExportTest` rejects).
+
 - **Reading the toss in layout and drawing, not composition** (2026-10). Built, verified and discarded.
   - **The idea.** A tossed die's pose was read in composition, so each moving die (`Moving`) and its `TossedCube`
     recomposed every frame. Reading the pose only where the die and its shadow are placed and drawn, with the cube

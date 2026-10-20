@@ -139,3 +139,6 @@ app/
 
 - **Mac access**: a local Mac, or macOS CI runners only?
 - **Licences page on iOS**: keep `ComposeLicenceDocument`, or use a native `UITextView`?
+- **A shared `jvmMain`, with a desktop target only.** The Android `Diacritics` and `PlayerName` actuals are plain
+  `java.text`, and Room and DataStore both run on desktop, so an intermediate `jvmMain` shared by Android and desktop
+  would avoid copying them. With Android as its only consumer it shares nothing, so it waits for the desktop target.

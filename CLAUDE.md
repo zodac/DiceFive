@@ -120,7 +120,6 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 | `.claude/PUBLISHING.md` | Play Store submission checklist, the app's licence and third-party licence scope |
 | `.claude/PLAY_GAMES.md` | Anything touching Google Play Games Services: sign-in, achievement mirror, leaderboards, cloud save, Sidekick |
 | `.claude/IOS_SUPPORT.md` | Module layout and platform seams, KMP gotchas, what the iOS app still needs |
-| `.claude/REVIEW.md` | Choosing cleanup work: the open items from the source review (shared helpers, layering, small best-practice fixes) |
 
 ## Pending
 

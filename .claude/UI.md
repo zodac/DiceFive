@@ -434,6 +434,8 @@ Anything that marks a mode by colour uses it; today that's only the Statistics c
     clicks skip the problem.
 - **An edge fade isn't a "there's more" hint on its own**, because it only shows when content happens to be under it.
   Pair it with something always there (the Rules chevrons).
+- **`ScoreGrid.overflowFade` and `Rules.fadeOffscreenEdges` stay separate.** One is a vertical edge fade, the other a
+  horizontal mask with a clear zone and easing; a shared helper would only add switches.
 - **`Modifier.align` needs the Box to be the actual parent.** In a `Scaffold` body it's accepted and silently ignored.
   Use a real `Box(contentAlignment = ...)`.
 - **`padding` before `size` shrinks the node.** Use `offset` to move without resizing.
