@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
@@ -251,7 +252,7 @@ private fun TotalsButton(
     val pop = remember { Animatable(1f) }
     // Medium and High only: Low and Off (and reduced motion) never pop.
     val popAllowed = scorePulse
-    var shownEarned by remember { mutableStateOf(earned) }
+    var shownEarned by remember { mutableIntStateOf(earned) }
     LaunchedEffect(earned) {
         val rose = bonusJustEarned(shownEarned, earned)
         shownEarned = earned

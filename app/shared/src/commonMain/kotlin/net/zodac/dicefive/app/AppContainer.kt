@@ -1,5 +1,6 @@
 package net.zodac.dicefive.app
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.staticCompositionLocalOf
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
@@ -53,6 +54,7 @@ class AppContainer(
      * The dice every game rolls ([net.zodac.dicefive.ui.game.GameViewModel]'s random). Replaced only by the store-asset
      * generator, to deal the rolls its promo video shows - see `.claude/STORE_ASSETS.md`.
      */
+    @set:VisibleForTesting
     var diceRandom: Random = Random.Default
 
     private val standardPerfectPlay = scope.async(start = CoroutineStart.LAZY) { loadStandardPerfectPlayTable() }

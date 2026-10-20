@@ -21,7 +21,10 @@ anyway, so moving it off the main thread wouldn't shorten start-up.
 
 ## Smaller best-practice items
 
-- `AppContainer.diceRandom` is a public `var` only the store-asset generator uses. Kept: the generator swaps it
-  mid-test on the one process-wide container, so a constructor parameter would only move the `var` into a test hook.
-- `material-icons-extended` is frozen at 1.7.3; the app uses about 108 icons from it. Material Symbols vector files
-  would get off a dead library and help APK size.
+Looked at and left: `material-icons-extended`, frozen at 1.7.3 (the app uses 118 icons from it). Tried on 2026-10-20
+as Material Symbols vector drawables in `composeResources/drawable/`: R8'd dex fell 45 KB, but the 118 XML files
+added 36 KB compressed plus about 27 KB of zip headers, so the release APK grew 13.9 KB (download +10.9 KB). Path
+strings in Kotlin were estimated at about 30 KB smaller (0.5% of the APK), not worth restyling every icon for. The
+library's icons are plain path code with almost no API to break, so staying on it is low risk. Symbols also
+redraws some glyphs (`whatshot` became a trend arrow; its flame, `mode_heat`, matches `local_fire_department`, which
+`PlayConsoleExportTest` rejects).
