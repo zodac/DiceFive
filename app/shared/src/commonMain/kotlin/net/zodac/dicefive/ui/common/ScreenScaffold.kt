@@ -11,14 +11,18 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -46,12 +50,14 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.common_back_cd
+import net.zodac.dicefive.ui.game.landscapeGameContentWidth
 
 /** How long a page's content takes to fade in once it's opened - see [ScreenScaffold]. */
 const val PAGE_CONTENT_FADE_IN_MILLIS = 100
@@ -62,8 +68,28 @@ val CONTENT_MAX_WIDTH = 460.dp
 /** The gap between [TwoPanes]' panes. */
 private val PANE_GAP = 24.dp
 
-/** Widest a [wide][ScreenScaffold] page's content gets in landscape: two panes of [CONTENT_MAX_WIDTH] and the gap. */
+/** The least a [wide][ScreenScaffold] page's column may take in landscape: two panes of [CONTENT_MAX_WIDTH] and the gap. */
 val WIDE_CONTENT_MAX_WIDTH = CONTENT_MAX_WIDTH * 2 + PANE_GAP
+
+/**
+ * A [wide][ScreenScaffold] landscape page's column, its side [padding] included: [WIDE_CONTENT_MAX_WIDTH], or wider where
+ * the game screen's content is drawn wider on this screen, so the two take the same width.
+ */
+@Composable
+fun wideColumnMaxWidth(padding: Dp): Dp {
+    val density = LocalDensity.current
+    val layoutDirection = LocalLayoutDirection.current
+    val window = LocalWindowInfo.current.containerSize
+    // The game's room: the window less the insets it keeps clear (the top, and the sides' cutout or navigation buttons).
+    val insets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+    val gameWidth = with(density) {
+        landscapeGameContentWidth(
+            width = (window.width - insets.getLeft(density, layoutDirection) - insets.getRight(density, layoutDirection)).toDp(),
+            screenHeight = (window.height - insets.getTop(density)).toDp(),
+        )
+    }
+    return maxOf(WIDE_CONTENT_MAX_WIDTH, gameWidth + padding * 2)
+}
 
 /** Whether the page is wider than it's tall - provided by [ScreenScaffold] and [PageColumn] for the page's content. */
 val LocalLandscapePage = compositionLocalOf { false }
@@ -117,10 +143,12 @@ fun TwoPanes(
  * [horizontalPadding] is a [scrollable] page's side margin - narrower only where the page shows
  * the game board's own pieces (the scorecard review), which are sized for the game screen's margin.
  *
- * [wide] lets the content take up to [WIDE_CONTENT_MAX_WIDTH] in landscape, for a page that splits into [TwoPanes] there;
+ * [wide] lets the content take up to [wideColumnMaxWidth] in landscape, for a page that splits into [TwoPanes] there;
  * any other keeps [CONTENT_MAX_WIDTH], a readable line, either way.
  *
- * [actions] sit at the app bar's end - where a landscape page moves controls that would otherwise take a row of its height.
+ * [startActions] sit after the back arrow and [actions] at the app bar's end - where a landscape page moves controls that
+ * would otherwise take a row of its height. In landscape the app bar spans the content's column, not the screen, so its
+ * arrow lines up with the content's start edge (see [PageTopBar]).
  * The whole page, app bar included, sees [LocalLandscapePage].
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -133,6 +161,7 @@ fun ScreenScaffold(
     driftingDice: Boolean = true,
     horizontalPadding: Dp = PAGE_HORIZONTAL_PADDING,
     wide: Boolean = false,
+    startActions: @Composable RowScope.() -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -142,7 +171,19 @@ fun ScreenScaffold(
                 // The backdrop is already drawn behind; the Scaffold only supplies structure, insets
                 // and the app bar, so it must not paint its own opaque container over the top.
                 containerColor = Color.Transparent,
-                topBar = { PageTopBar(title = title, onBack = onBack, actions = actions) },
+                topBar = {
+                    val padding = if (scrollable) horizontalPadding else FIXED_PAGE_HORIZONTAL_PADDING
+                    PageTopBar(
+                        title = title,
+                        onBack = onBack,
+                        startActions = startActions,
+                        actions = actions,
+                        contentColumn = ContentColumn(
+                            maxWidth = if (wide && LocalLandscapePage.current) wideColumnMaxWidth(padding) else CONTENT_MAX_WIDTH,
+                            padding = padding,
+                        ),
+                    )
+                },
             ) { innerPadding ->
                 // The page's content eases in rather than appearing at once - whatever part of it is a
                 // frame or two late (a loaded list, a Styles row centring on its pick) fades in with the
@@ -180,8 +221,10 @@ fun ScreenScaffold(
                             Column(
                                 modifier = Modifier
                                     .fillMaxHeight()
-                                    .widthIn(max = if (LocalLandscapePage.current && wide) WIDE_CONTENT_MAX_WIDTH else CONTENT_MAX_WIDTH)
-                                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                                    .widthIn(
+                                        max = if (LocalLandscapePage.current && wide) wideColumnMaxWidth(FIXED_PAGE_HORIZONTAL_PADDING) else CONTENT_MAX_WIDTH,
+                                    )
+                                    .padding(horizontal = FIXED_PAGE_HORIZONTAL_PADDING, vertical = 8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(16.dp),
                                 content = content,
@@ -203,41 +246,93 @@ fun LandscapePage(content: @Composable () -> Unit) {
 }
 
 /**
+ * The back arrow on every page: the app bar's, and the game screen's beside its player tabs. Placed so the arrow itself
+ * lines up with the content's start edge, its 48dp target reaching [BACK_ARROW_OUTSET] past it.
+ */
+@Composable
+fun BackArrow(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    IconButton(onClick = onBack, modifier = modifier) {
+        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back_cd))
+    }
+}
+
+/** How far a [BackArrow]'s 48dp target reaches past the content's start edge: the gap around its 24dp arrow. */
+val BACK_ARROW_OUTSET = 12.dp
+
+/** A page's content column: up to [maxWidth] wide, centred, with [padding] inside each side. */
+data class ContentColumn(val maxWidth: Dp, val padding: Dp)
+
+/**
  * [ScreenScaffold]'s app bar on its own, for a page that can't take the whole scaffold but still
  * wants its title where every other page's is (the results screen, whose fireworks go between the
- * backdrop and the page). With no [onBack] there's no back arrow, and the title stays centred. [actions] go at its end.
+ * backdrop and the page). With no [onBack] there's no back arrow, and the title stays centred. [startActions] follow the
+ * back arrow and [actions] go at its end.
+ *
+ * Given its page's [contentColumn], a landscape bar spans that column rather than the screen, with its [BackArrow] lined
+ * up on the content's start edge as the game screen's is. Without one, or in portrait, it spans the screen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PageTopBar(title: String, onBack: (() -> Unit)?, modifier: Modifier = Modifier, actions: @Composable RowScope.() -> Unit = {}) {
-    CenterAlignedTopAppBar(
-        title = {
-            Text(
-                text = title,
-                style = pageTitleStyle,
-                modifier = Modifier.semantics { heading() },
-            )
-        },
-        navigationIcon = {
-            if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back_cd))
+fun PageTopBar(
+    title: String,
+    onBack: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    contentColumn: ContentColumn? = null,
+    startActions: @Composable RowScope.() -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {},
+) {
+    val landscape = LocalLandscapePage.current
+    val bar = @Composable { barModifier: Modifier, windowInsets: WindowInsets ->
+        CenterAlignedTopAppBar(
+            title = {
+                Text(
+                    text = title,
+                    style = pageTitleStyle,
+                    modifier = Modifier.semantics { heading() },
+                )
+            },
+            navigationIcon = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (onBack != null) BackArrow(onBack = onBack)
+                    startActions()
                 }
-            }
-        },
-        actions = actions,
-        // Shorter in landscape, where a page's height is what's short.
-        expandedHeight = if (LocalLandscapePage.current) LANDSCAPE_APP_BAR_HEIGHT else TopAppBarDefaults.TopAppBarExpandedHeight,
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent,
-            titleContentColor = MaterialTheme.colorScheme.primary,
-        ),
-        modifier = modifier,
-    )
+            },
+            actions = actions,
+            // Shorter in landscape, where a page's height is what's short.
+            expandedHeight = if (landscape) LANDSCAPE_APP_BAR_HEIGHT else TopAppBarDefaults.TopAppBarExpandedHeight,
+            windowInsets = windowInsets,
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent,
+                titleContentColor = MaterialTheme.colorScheme.primary,
+            ),
+            modifier = barModifier,
+        )
+    }
+    if (landscape && contentColumn != null) {
+        // Centred in the same room as the content (inside the side insets), and as wide as its column.
+        Box(
+            modifier = modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            val edge = (contentColumn.padding - BACK_ARROW_OUTSET - APP_BAR_EDGE_INSET).coerceAtLeast(0.dp)
+            bar(
+                Modifier.widthIn(max = contentColumn.maxWidth).padding(horizontal = edge),
+                WindowInsets.systemBars.only(WindowInsetsSides.Top),
+            )
+        }
+    } else {
+        bar(modifier, TopAppBarDefaults.windowInsets)
+    }
 }
 
 /** [PageTopBar]'s height on a landscape page: an icon button's. */
 private val LANDSCAPE_APP_BAR_HEIGHT = 48.dp
+
+/** Where an M3 app bar starts its navigation icon, and ends its actions, from its own edge. */
+private val APP_BAR_EDGE_INSET = 4.dp
+
+/** The side padding inside a [ScreenScaffold] page's column when it isn't [scrollable][ScreenScaffold]. */
+private val FIXED_PAGE_HORIZONTAL_PADDING = 20.dp
 
 /** A [PageColumn]'s side margin, unless the page asks for another. */
 private val PAGE_HORIZONTAL_PADDING = 24.dp
@@ -261,7 +356,7 @@ fun PageColumn(
     // well would inset it twice.
     contentPadding: PaddingValues = WindowInsets.systemBars.asPaddingValues(),
     verticalArrangement: Arrangement.Vertical = Arrangement.Top,
-    // Up to WIDE_CONTENT_MAX_WIDTH in landscape - see ScreenScaffold's.
+    // Up to wideColumnMaxWidth in landscape - see ScreenScaffold's.
     wide: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -283,7 +378,7 @@ fun PageColumn(
             CompositionLocalProvider(LocalLandscapePage provides landscape) {
                 Column(
                     modifier = Modifier
-                        .widthIn(max = if (landscape && wide) WIDE_CONTENT_MAX_WIDTH else CONTENT_MAX_WIDTH)
+                        .widthIn(max = if (landscape && wide) wideColumnMaxWidth(horizontalPadding) else CONTENT_MAX_WIDTH)
                         .heightIn(min = viewportHeight)
                         .padding(horizontal = horizontalPadding, vertical = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,

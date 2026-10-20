@@ -82,7 +82,7 @@ palette per M3's mapping. That's what makes `primary`/`onPrimary` and the other 
 | File                                    | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 |-----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `BrandBackdrop.kt`                      | The app's one scenery, built from colour roles: a surface gradient, a `primary` spotlight and a faint dice watermark. `showDice = false` drops the dice (the game screen).                                                                                                                                                                                                                                                                             |
-| `ScreenScaffold.kt`                     | The frame for every non-menu page: backdrop plus a transparent M3 top app bar with a back arrow and a bold `primary` title. Its content fades in over `PAGE_CONTENT_FADE_IN_MILLIS` (100ms), so late-arriving content eases in. Takes `horizontalPadding` (24dp default; the scorecard review uses 16), `wide` (see "Landscape pages") and app bar `actions`. `PageTopBar` is its bar on its own (the results page), 48dp tall in landscape. |
+| `ScreenScaffold.kt`                     | The frame for every non-menu page: backdrop plus a transparent M3 top app bar with a back arrow and a bold `primary` title. Its content fades in over `PAGE_CONTENT_FADE_IN_MILLIS` (100ms), so late-arriving content eases in. Takes `horizontalPadding` (24dp default; the scorecard review uses 16), `wide` (see "Landscape pages") and app bar `startActions` (after the arrow) and `actions` (at the end). `PageTopBar` is its bar on its own (the results page), 48dp tall in landscape. `BackArrow` is every page's back arrow, the game screen's included. |
 | `DiceFiveDialog.kt`                     | The one dialog shape. Its title is Sora, bold, `primary`, `headlineSmall`, as are `PickerDialog`, About and Licences. New dialogs match.                                                                                                                                                                                                                                                                                                               |
 | `AppLogo.kt`                            | The wordmark under a fan of dice and a cup, drawn live in the player's picks.                                                                                                                                                                                                                                                                                                                                                                          |
 | `FooterPill.kt`                         | The gold pill: over Rules' pages ("2 of 6"), and the last thing on the Settings page (its version). Spoken forms and live regions go on its `modifier`.                                                                                                                                                                                                                                                                                                                           |
@@ -332,16 +332,23 @@ Examples:
 
 - **`LocalLandscapePage`** says a page is wider than it's tall: `ScreenScaffold` provides it for the whole page (app bar
   included), `PageColumn` for its content, `LandscapePage` for anything else (the results page).
-- **Opt-in width.** A `wide` page's content may take `WIDE_CONTENT_MAX_WIDTH` (two 460dp panes) in landscape; any other
-  keeps `CONTENT_MAX_WIDTH`, a readable line. Portrait is never changed.
+- **Opt-in width.** A `wide` page's column may take `wideColumnMaxWidth` in landscape; any other keeps
+  `CONTENT_MAX_WIDTH`, a readable line. Portrait is never changed.
+  - That's `WIDE_CONTENT_MAX_WIDTH` (two 460dp panes), or wider where a Standard game's content is drawn wider on the
+    screen (`landscapeGameContentWidth`, tablets), so the pages and the game share one width there.
+  - A phone on its side draws the game smaller, bound by its height. Pages keep their own width there.
+- **The back arrow lines up with the content's start edge**, its 48dp target reaching `BACK_ARROW_OUTSET` (12dp) past
+  it: the game screen's beside the board, and a landscape app bar's, which spans the page's content column
+  (`ContentColumn`), not the screen. Its title centres on that column and its `actions` end level with the content.
+  Portrait app bars span the screen.
 - **`TwoPanes`** lays two groups side by side in landscape and stacks them in portrait, in the same reading order.
 - What each page does in landscape:
   - Menu: the logo beside the buttons, Play then the rest two to a row.
   - New Game: players on the left, mode, modifiers and Start on the right, each side scrolling; its cards are tighter.
   - Settings: switches, resets and About on the left; Animations and Orientation, then Licences, on the right. The
     version is the last thing on the page in either orientation, at its foot (not pinned).
-  - Achievements: two cards to a row (a tooltip row's card sized by the `Box` around it), the count and Locked only in
-    the app bar. Positions count rows of two (`flatIndexOf`, `indexOfKey`), and the scroll position is remembered by key.
+  - Achievements: two cards to a row (a tooltip row's card sized by the `Box` around it), the count after the back arrow
+    and Locked only at the app bar's end. Positions count rows of two (`flatIndexOf`, `indexOfKey`), and the scroll position is remembered by key.
   - Leaderboard: the view switch and Combined's page controls share a row over a 640dp table; mode cards two to a row.
   - Statistics and Styles: two cards to a row. Rules: the group and page tabs share a row, text at most 640dp wide.
   - Game Over: the results beside the buttons.

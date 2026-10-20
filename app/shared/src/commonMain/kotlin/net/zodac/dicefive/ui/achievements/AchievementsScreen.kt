@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui.achievements
 
+import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import androidx.compose.runtime.SideEffect
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -369,7 +370,7 @@ fun AchievementsScreen(
     }
 
     // The unlocked count, and the switch to show only what's still locked: a row of their own over the list, or [compact] in the
-    // app bar's end on a landscape page, where the list wants the height.
+    // app bar either side of the title on a landscape page, where the list wants the height.
     val unlockedCount = @Composable { countModifier: Modifier, compact: Boolean ->
         // No ripple, and no other visual change on tap or long press: this is the hidden entry
         // point into superuser mode (see the class doc above), and a ripple here would be an open
@@ -427,12 +428,13 @@ fun AchievementsScreen(
         onBack = onBack,
         modifier = modifier,
         wide = true,
+        // In landscape the count follows the back arrow and the switch ends level with the list's end edge, either side of the title.
+        startActions = {
+            if (LocalLandscapePage.current && state.isLoaded) unlockedCount(Modifier.padding(start = 8.dp), true)
+        },
         actions = {
             if (LocalLandscapePage.current && state.isLoaded) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(end = 8.dp)) {
-                    unlockedCount(Modifier, true)
-                    lockedOnlySwitch()
-                }
+                Box(modifier = Modifier.padding(end = BACK_ARROW_OUTSET)) { lockedOnlySwitch() }
             }
         },
     ) {

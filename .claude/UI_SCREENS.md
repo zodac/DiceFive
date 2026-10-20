@@ -10,8 +10,8 @@ alphabetical order.
 - **Unlocking doesn't move a row.** It's highlighted in place, with its own icon and a raised `secondaryContainer`
   card, so a ladder reads as a ladder.
 - **Never split the list** into locked and unlocked parts, add a "hide unlocked" filter, or sort it alphabetically.
-- The unlocked/total count sits centred above the list - in the app bar's end, with Locked only, in landscape, where the
-  list has two cards to a row (see `UI.md`, "Landscape pages").
+- The unlocked/total count sits centred above the list. In landscape, where the list has two cards to a row, it moves
+  into the app bar after the back arrow, with Locked only at the bar's end (see `UI.md`, "Landscape pages").
 
 **Category headers** are `stickyHeader`s styled as a plain `Card`. A bare `Surface` has square corners.
 - Up and down arrows jump to the previous or next header (`animateScrollToItem`). The arrow with nowhere to go is

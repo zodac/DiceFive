@@ -28,10 +28,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -76,12 +72,13 @@ import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.isLuckOfTheIrish
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.resources.Res
-import net.zodac.dicefive.resources.common_back_cd
 import net.zodac.dicefive.resources.game_timer_left
 import net.zodac.dicefive.resources.game_timer_left_cd
 import net.zodac.dicefive.resources.game_timer_running_out_cd
 import net.zodac.dicefive.resources.game_tutorial_coach_name
 import net.zodac.dicefive.resources.game_tutorial_turn
+import net.zodac.dicefive.ui.common.BACK_ARROW_OUTSET
+import net.zodac.dicefive.ui.common.BackArrow
 import net.zodac.dicefive.ui.common.BackHandler
 import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.VerticalScrollbar
@@ -112,9 +109,6 @@ private const val TURN_TIMER_FLASH_SECONDS = 5
 private const val TURN_TIMER_FLASH_PERIOD_MILLIS = 300
 
 private val GAME_PADDING = 16.dp
-
-/** Where the back arrow's 48dp target starts from the screen edge - the same as ScreenScaffold's app bar. */
-private val BACK_ARROW_INSET = 4.dp
 
 /** Where the back arrow's 48dp target starts below the status bar - the same as ScreenScaffold's app bar. */
 private val BACK_ARROW_TOP = 8.dp
@@ -590,10 +584,10 @@ private fun InProgressGame(
     ShakeDetectorEffect(enabled = isHumanTurn && viewedPlayer == null, onShake = onShakeDetected)
 
     // The back arrow shares the tabs' row, so the row is no taller and nothing below it moves. It is pulled
-    // out over the screen's 16dp padding so the arrow sits where ScreenScaffold's does (4dp from the edge).
+    // out into the screen's padding so the arrow lines up with the board's edge, as every page's BackArrow does.
     Row(
         modifier = Modifier.layout { measurable, constraints ->
-            val extra = (GAME_PADDING - BACK_ARROW_INSET).roundToPx()
+            val extra = BACK_ARROW_OUTSET.roundToPx()
             val placeable = measurable.measure(constraints.offset(horizontal = extra))
             layout(placeable.width - extra, placeable.height) { placeable.place(-extra, 0) }
         },
@@ -601,9 +595,7 @@ private fun InProgressGame(
     ) {
         // Lifted so its centre is ScreenScaffold's 32dp below the status bar: the screen's top padding
         // puts this row at 16dp, and a bar's 48dp button sits 8dp down in it. Drawn only - the row's height is unchanged.
-        IconButton(onClick = onBack, modifier = Modifier.offset(y = BACK_ARROW_TOP - GAME_PADDING)) {
-            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back_cd))
-        }
+        BackArrow(onBack = onBack, modifier = Modifier.offset(y = BACK_ARROW_TOP - GAME_PADDING))
         if (coach != null) {
             coach(Modifier.weight(1f))
         } else {
@@ -778,6 +770,13 @@ internal data class GameLayout(
  * header at 1x (the coach card on a small phone), the tray's mat is first made shallower ([GameLayout.scatterHeight]), as far
  * as [MIN_SCATTER_HEIGHT], to make the room.
  */
+/**
+ * How wide a Standard game's content (inside its padding) is drawn on a landscape [width] x [screenHeight] screen, the
+ * room [GamePage] has: a wide page's content is as wide where that's wider (see `wideColumnMaxWidth`).
+ */
+fun landscapeGameContentWidth(width: Dp, screenHeight: Dp): Dp =
+    (LANDSCAPE_WIDTH - GAME_PADDING * 2) * gameLayout(width, screenHeight, GameMode.STANDARD.categories).scale
+
 internal fun gameLayout(width: Dp, screenHeight: Dp, categories: List<ScoreCategory>, headerHeight: Dp? = null): GameLayout {
     // A little short of the screen: drawn scaled, the pieces' sizes round to whole pixels, and a game that only just fits
     // otherwise came out a pixel or two too tall, and scrolled.
@@ -825,7 +824,7 @@ internal fun gameLayout(width: Dp, screenHeight: Dp, categories: List<ScoreCateg
 @Composable
 private fun coachHeaderHeight(steps: List<TutorialStep>, screenWidth: Dp, landscape: Boolean): Dp {
     val layoutWidth = if (landscape) LANDSCAPE_WIDTH else minOf(screenWidth, REFERENCE_WIDTH)
-    val cardWidth = layoutWidth - GAME_PADDING * 2 + (GAME_PADDING - BACK_ARROW_INSET) - BACK_ARROW_SIZE
+    val cardWidth = layoutWidth - GAME_PADDING * 2 + BACK_ARROW_OUTSET - BACK_ARROW_SIZE
     return maxOf(coachCardHeight(steps, cardWidth), BACK_ARROW_SIZE)
 }
 
