@@ -11,9 +11,8 @@ fade vs a horizontal mask with a clear zone and easing), so one helper would onl
 ## Layers and platform separation (iOS, Steam/desktop)
 
 - **No shared JVM source set.** The Android `Diacritics` and `PlayerName` actuals are plain `java.text`, and Room and
-  DataStore both run on desktop. An intermediate `jvmMain` shared by Android and desktop avoids copying those. The
-  five formatter caches in `Formatting.android.kt` / `Formatting.ios.kt` repeat one pattern; one small cache helper
-  per platform would do.
+  DataStore both run on desktop. An intermediate `jvmMain` shared by Android and desktop avoids copying those. Worth
+  doing with the desktop target, not before.
 
 Looked at and left: `stringsLanguageConfiguration()`'s `runBlocking` in `attachBaseContext`. Measured on the sandbox
 emulator (debug build, 2026-10-20): 8-71ms on a cold start (most runs 10-35ms), of which about 2-4ms is coroutines' first load and nearly
