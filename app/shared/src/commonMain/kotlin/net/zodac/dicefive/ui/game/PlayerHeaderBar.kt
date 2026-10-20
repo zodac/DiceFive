@@ -43,6 +43,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -241,14 +242,26 @@ private fun PlayerTab(
         }
         return
     }
+    // A compact name's line is shorter than a full-size one's; the row keeps the height this name would take at full
+    // size, so the tabs (and the board under them) sit at the same height whatever the number of players. The place row
+    // keeps a place label's height at either size, so a tab doesn't grow the moment the first score puts someone ahead.
+    // Measured rather than taken from the styles' line heights, which a line of text can outgrow.
+    val measurer = rememberTextMeasurer()
+    val type = MaterialTheme.typography
+    val density = LocalDensity.current
+    val nameRowHeight = remember(name, type, density) {
+        with(density) { measurer.measure(name, type.labelLarge.copy(fontWeight = FontWeight.Bold), maxLines = 1).size.height.toDp() }
+    }
+    val placeRowHeight = remember(type, density) {
+        with(density) { listOf(type.labelMedium, type.labelSmall).maxOf { measurer.measure("0", it, maxLines = 1).size.height }.toDp() }
+    }
     Column(modifier = tabModifier, horizontalAlignment = Alignment.CenterHorizontally) {
         // Dropped a little below the tab's top, out of the way of the corner ornaments most frames draw there.
-        nameRow(Modifier.padding(top = NAME_TOP_DROP))
+        nameRow(Modifier.padding(top = NAME_TOP_DROP).heightIn(min = nameRowHeight))
         scoreText(MaterialTheme.typography.headlineSmall)
-        // Whose turn it is (the dot) and the player's place. Its height is always kept (also solo, so a border clears the dot), so
-        // the tabs don't grow the moment the first score puts someone ahead.
+        // Whose turn it is (the dot) and the player's place. Its height is always kept (also solo, so a border clears the dot).
         Row(
-            modifier = Modifier.padding(top = 2.dp).heightIn(min = PLACE_ROW_HEIGHT),
+            modifier = Modifier.padding(top = 2.dp).heightIn(min = placeRowHeight),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
@@ -265,9 +278,6 @@ private fun PlayerTab(
 private const val BASE_SIDE_PADDING_DP = 2f
 private const val SIDE_PADDING_DP_PER_FONT_SCALE = 25f
 private const val MAX_SIDE_PADDING_DP = 10f
-
-/** Room for a place label under a score - so the tab's height doesn't change when one first appears. */
-private val PLACE_ROW_HEIGHT = 16.dp
 
 /** Compose's built-in `Modifier.border` has no dash-pattern option, so the "viewed player" ring
  * draws its own rounded-rect stroke instead of reusing the active player's solid one. */
