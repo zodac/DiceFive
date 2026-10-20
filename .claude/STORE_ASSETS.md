@@ -5,15 +5,15 @@ the `store-assets` skill. The rest of the Play submission is in `PUBLISHING.md`.
 
 ## Output (`assets/<VERSION>/`, gitignored)
 
-| File                                                             | Play's requirement                                               |
-|------------------------------------------------------------------|------------------------------------------------------------------|
-| `icon-512.png`                                                   | 512x512, 32-bit PNG, ≤1MB                                        |
-| `feature-graphic-1024x500.png`                                   | 1024x500, JPEG or 24-bit PNG (no alpha)                          |
-| `phone/phone-1-game.png` ... `phone-5-achievements.png`          | 1440x2560                                                        |
-| `tablet-7/tablet-7-1-game.png` ... `tablet-7-4-achievements.png` | 1440x2560                                                        |
-| `promo-video-1080p60.mp4`                                        | ~25s, 1920x1080, 60fps, H.264; the app's sounds over music (AAC) |
-| `video-credits.txt`                                              | not uploaded: credits for the YouTube description                |
-| `contact-sheet.png`                                              | not uploaded: every still, for review                            |
+| File                                                                | Play's requirement                                               |
+|---------------------------------------------------------------------|------------------------------------------------------------------|
+| `icon-512.png`                                                      | 512x512, 32-bit PNG, ≤1MB                                        |
+| `feature-graphic-1024x500.png`                                      | 1024x500, JPEG or 24-bit PNG (no alpha)                          |
+| `phone/phone-1-game.png` ... `phone-5-achievements.png`             | 1440x2560                                                        |
+| `tablet-10/tablet-10-1-game.png` ... `tablet-10-4-achievements.png` | 2560x1440 (landscape)                                            |
+| `promo-video-1080p60.mp4`                                           | ~25s, 1920x1080, 60fps, H.264; the app's sounds over music (AAC) |
+| `video-credits.txt`                                                 | not uploaded: credits for the YouTube description                |
+| `contact-sheet.png`                                                 | not uploaded: every still, for review                            |
 
 - **File names** start with the device, so the two folders can't be mixed up in an upload.
 - **`assets/full-description.txt`** is the hand-written listing text. It's the only tracked file under `assets/`
@@ -22,12 +22,14 @@ the `store-assets` skill. The rest of the Play submission is in `PUBLISHING.md`.
 **Why this many.** Play accepts 2-8 screenshots per device. A listing is considered for featuring only with **4+ at
 1080px or more**, and most people see only the first two or three.
 - **Phone, 5**: game, Tricolour at a dressed table, the Styles dice, results, achievements.
-- **7-inch, 4**: game, styles, results, achievements.
-- **10-inch: none**, by the maintainer's choice. To add it, copy the tablet test with `w800dp-h1280dp-xhdpi` into a
-  `tablet-10` folder and add it to the script.
+- **10-inch, 4**: game, styles (the Dice and Dice Cup galleries open side by side), results, achievements, in
+  landscape (`w1280dp-h800dp-land-xhdpi`), where the game screen lays its board out wide.
+- **7-inch: none**, by the maintainer's choice.
+- **The phone is 9:16** (`w412dp-h732dp`), about the game screen's own height: a taller phone leaves empty space
+  under the dice. The video uses the same phone.
 - **One ~25s video**, per Play's advice.
-- **Captions** are part of the screenshot: a one-line headline on brand navy above the screen, at exactly 9:16. That
-  also makes a 20:9 phone screen uploadable.
+- **Captions** are part of the screenshot: a one-line headline on brand navy above the screen, at exactly 9:16 for the
+  phone and 16:9 for the tablet.
 
 **The feature graphic** keeps the logo left of centre, because Play overlays a play button in the middle when there's a
 video.

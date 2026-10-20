@@ -33,7 +33,7 @@ import java.io.File
 import kotlin.random.Random
 
 /**
- * Renders the store listing's screenshots (phone and 7-inch tablet) and the promo video's frames from the real app,
+ * Renders the store listing's screenshots (phone and 10-inch tablet) and the promo video's frames from the real app,
  * driven through its own screens. A generator, not a check - see [StoreAssets.onlyWhenAsked] and
  * `.claude/STORE_ASSETS.md`.
  */
@@ -48,6 +48,10 @@ class StoreScreensGeneratorTest {
         const val ACHIEVEMENTS = "achievements"
         val PHONE_SHOTS = setOf(GAME, MODES, STYLES, GAME_OVER, ACHIEVEMENTS)
         val TABLET_SHOTS = setOf(GAME, STYLES, GAME_OVER, ACHIEVEMENTS)
+
+        /** The Styles categories opened as galleries for the styles shot - side by side in landscape. */
+        val PHONE_GALLERIES = listOf("Dice")
+        val TABLET_GALLERIES = listOf("Dice", "Dice Cup")
 
         init {
             // The test's own clock has to drive the app - see MainActivity.useCappedFrameClock.
@@ -71,20 +75,22 @@ class StoreScreensGeneratorTest {
 
     @Test
     @StorePart(StoreAssets.PHONE)
-    @Config(qualifiers = "w412dp-h915dp-xxhdpi")
-    fun `phone screenshots`() = screenshots("phone", PHONE_SHOTS)
+    // 9:16, about as tall as the game screen: a taller phone leaves empty space under the dice.
+    @Config(qualifiers = "w412dp-h732dp-xxhdpi")
+    fun `phone screenshots`() = screenshots("phone", PHONE_SHOTS, PHONE_GALLERIES)
 
     @Test
     @StorePart(StoreAssets.TABLET)
-    @Config(qualifiers = "w600dp-h960dp-xhdpi")
-    fun `7-inch tablet screenshots`() = screenshots("tablet-7", TABLET_SHOTS)
+    // Landscape, where a tablet's game screen lays the board out wide.
+    @Config(qualifiers = "w1280dp-h800dp-land-xhdpi")
+    fun `10-inch tablet screenshots`() = screenshots("tablet-10", TABLET_SHOTS, TABLET_GALLERIES)
 
     /**
      * Play takes 2 to 8 screenshots per device type, and only considers a listing for featuring with at least 4 at
      * 1080px or more; most people see only the first two or three. So: a few strong ones, not all eight - phone gets
-     * 5, the 7-inch tablet the 4 that featuring asks for. Names are listing order, and the script captions each.
+     * 5, the 10-inch tablet the 4 that featuring asks for. Names are listing order, and the script captions each.
      */
-    private fun screenshots(device: String, shots: Set<String>) {
+    private fun screenshots(device: String, shots: Set<String>, galleries: List<String>) {
         val dir = File(StoreAssets.outDir, device).apply { deleteRecursively(); mkdirs() }
         var number = 0
         fun shoot(name: String) {
@@ -112,7 +118,7 @@ class StoreScreensGeneratorTest {
         if (STYLES in shots) {
             openFromMenu("Styles")
             compose.waitUntil(5_000) { exists(hasContentDescription("Dice gallery")) }
-            compose.onNode(hasContentDescription("Dice gallery")).performClick()
+            for (category in galleries) compose.onNode(hasContentDescription("$category gallery")).performClick()
             shoot(STYLES)
             back()
         }
@@ -149,9 +155,9 @@ class StoreScreensGeneratorTest {
      */
     @Test
     @StorePart(StoreAssets.VIDEO)
-    // A little shorter than the screenshots' phone: in a 16:9 frame the screen's height is what limits it, and a tall
-    // phone leaves empty space under the dice - this one fills more of the frame with the game.
-    @Config(qualifiers = "w412dp-h800dp-xhdpi", shadows = [RecordingSoundPool::class])
+    // The screenshots' 9:16 phone: in a 16:9 frame the screen's height is what limits it, and a taller phone leaves
+    // empty space under the dice.
+    @Config(qualifiers = "w412dp-h732dp-xhdpi", shadows = [RecordingSoundPool::class])
     fun `promo video frames`() {
         val root = File(StoreAssets.outDir, "video").apply { deleteRecursively(); mkdirs() }
         StoreState.seed(container, forVideo = true)

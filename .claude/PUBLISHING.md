@@ -74,11 +74,12 @@ until the player signs in.
 
   The full tagline (`README.md`'s first line, 120 chars) doesn't fit. Keep both true when ads or Pro ship, and declare
   ads.
-- **Full description**: `assets/full-description.txt`, about 2500 of 4000 characters. Keep its counts and lists true:
+- **Full description**: `assets/full-description.txt`, about 3000 of 4000 characters. Keep its counts and lists true:
   - the modes under "Seven ways to play" (and that heading's count);
   - the modifiers under "House rules";
   - "Over 100 achievements" (103 today, 8 of them Easter eggs);
-  - "over 90 styles", and its examples.
+  - "over 90 styles", and its examples;
+  - what "Google Play Games" says sign-in brings (`PLAY_GAMES.md`).
 - **The banned-word rule applies.** Play also rejects listings that lean on another product's trademark. Use 3x/4x/5x.
 - **Open-source notices are done in-app** (Settings > Licences, generated with a copyleft guard).
   - The build strips each AndroidX `META-INF/androidx/**/LICENSE.txt`, which is fine because the dialog ships the

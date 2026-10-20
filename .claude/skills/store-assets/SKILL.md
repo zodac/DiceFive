@@ -1,6 +1,6 @@
 ---
 name: store-assets
-description: Generate, review and upload the Play Store listing graphics (hi-res icon, feature graphic, phone and 7-inch tablet screenshots, promo video) with scripts/generate-store-assets.sh. Details and traps in .claude/STORE_ASSETS.md.
+description: Generate, review and upload the Play Store listing graphics (hi-res icon, feature graphic, phone and 10-inch tablet screenshots, promo video) with scripts/generate-store-assets.sh. Details and traps in .claude/STORE_ASSETS.md.
 ---
 
 # Store listing assets

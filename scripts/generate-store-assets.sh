@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Makes the Google Play store listing's assets from the real app: the hi-res icon, the feature graphic, captioned
-# phone and 7-inch tablet screenshots, and a promo video - into assets/<version>/, which is gitignored. See
+# phone and 10-inch tablet screenshots, and a promo video - into assets/<version>/, which is gitignored. See
 # .claude/STORE_ASSETS.md.
 #
 #   scripts/generate-store-assets.sh                     # everything (about 10 minutes, most of it the video)
@@ -147,27 +147,24 @@ fi
 
 # ---- Screenshots ----------------------------------------------------------------------------------------------------
 
-# Every screenshot is 1440x2560 (9:16): Play's own featuring size, and room for a tall phone's 20:9 screen under the
-# headline without breaking Play's 2:1 limit.
-SHOT_W=1440
-SHOT_H=2560
-
+# Phone screenshots are 1440x2560 (9:16) and tablet ones 2560x1440 (16:9, landscape): Play's own featuring size, with
+# the screen under the headline.
 screenshots() {
-    local device="$1"
+    local device="$1" shot_w="$2" shot_h="$3"
     local dir="${OUT}/${device}"
     rm -rf "${dir}"
     mkdir -p "${dir}"
-    backdrop "${SHOT_W}" "${SHOT_H}" "${WORK}/shot-backdrop.png"
-    local band=$(( SHOT_H * 15 / 100 ))
+    backdrop "${shot_w}" "${shot_h}" "${WORK}/shot-backdrop.png"
+    local band=$(( shot_h * 15 / 100 ))
     # Named for the device as well as the screen ("phone-1-game.png"), so files from different folders can't be mixed up.
     for raw in "${RAW}/${device}"/*.png; do
         local name key text
         name="$(basename "${raw}" .png)"
         key="${name#*-}"
         text="$(caption_for "${key}")"
-        framed_screen "${raw}" $(( SHOT_W * 84 / 100 )) $(( SHOT_H - band - SHOT_H * 3 / 100 )) "${WORK}/screen.png"
+        framed_screen "${raw}" $(( shot_w * 84 / 100 )) $(( shot_h - band - shot_h * 3 / 100 )) "${WORK}/screen.png"
         magick "${WORK}/shot-backdrop.png" \
-            \( -background none -fill "${GOLD}" -font "${FONT}" -size "$(( SHOT_W * 86 / 100 ))x$(( band * 70 / 100 ))" \
+            \( -background none -fill "${GOLD}" -font "${FONT}" -size "$(( shot_w * 86 / 100 ))x$(( band * 70 / 100 ))" \
                -gravity center caption:"${text}" \) -gravity north -geometry "+0+$(( band * 18 / 100 ))" -composite \
             "${WORK}/screen.png" -gravity north -geometry "+0+${band}" -composite \
             -alpha off -strip PNG24:"${dir}/${device}-${name}.png"
@@ -176,11 +173,11 @@ screenshots() {
 
 if wants phone; then
     echo "==> Phone screenshots"
-    screenshots phone
+    screenshots phone 1440 2560
 fi
 if wants tablet; then
-    echo "==> 7-inch tablet screenshots"
-    screenshots tablet-7
+    echo "==> 10-inch tablet screenshots"
+    screenshots tablet-10 2560 1440
 fi
 
 # ---- Video ----------------------------------------------------------------------------------------------------------
@@ -356,7 +353,7 @@ check_image() {
 }
 [[ -f "${OUT}/icon-512.png" ]] && check_image "${OUT}/icon-512.png" icon
 [[ -f "${OUT}/feature-graphic-1024x500.png" ]] && check_image "${OUT}/feature-graphic-1024x500.png" feature
-for device in phone tablet-7; do
+for device in phone tablet-10; do
     [[ -d "${OUT}/${device}" ]] || continue
     count=$(find "${OUT}/${device}" -maxdepth 1 -name '*.png' | wc -l)
     (( count >= 2 && count <= 8 )) || problem "${device}: ${count} screenshots, Play takes 2-8"
@@ -370,14 +367,25 @@ fi
 
 # ---- A contact sheet to review it all at a glance -------------------------------------------------------------------
 
-sheet_inputs=()
-for device in phone tablet-7; do
-    [[ -d "${OUT}/${device}" ]] && sheet_inputs+=("${OUT}/${device}"/*.png)
-done
-[[ -f "${OUT}/feature-graphic-1024x500.png" ]] && sheet_inputs+=("${OUT}/feature-graphic-1024x500.png")
-[[ -f "${OUT}/icon-512.png" ]] && sheet_inputs+=("${OUT}/icon-512.png")
-if [[ ${#sheet_inputs[@]} -gt 0 ]]; then
-    magick montage "${sheet_inputs[@]}" -tile 6x -geometry 360x640+12+12 -background '#222' "${OUT}/contact-sheet.png"
+# A row each: the phone's portrait shots, the tablet's landscape ones, then the feature graphic and icon.
+sheet_rows=()
+if [[ -d "${OUT}/phone" ]]; then
+    magick montage "${OUT}/phone"/*.png -tile 6x -geometry 360x640+12+12 -background '#222' "${WORK}/sheet-phone.png"
+    sheet_rows+=("${WORK}/sheet-phone.png")
+fi
+if [[ -d "${OUT}/tablet-10" ]]; then
+    magick montage "${OUT}/tablet-10"/*.png -tile 4x -geometry 528x297+12+12 -background '#222' "${WORK}/sheet-tablet.png"
+    sheet_rows+=("${WORK}/sheet-tablet.png")
+fi
+art=()
+[[ -f "${OUT}/feature-graphic-1024x500.png" ]] && art+=("${OUT}/feature-graphic-1024x500.png")
+[[ -f "${OUT}/icon-512.png" ]] && art+=("${OUT}/icon-512.png")
+if [[ ${#art[@]} -gt 0 ]]; then
+    magick montage "${art[@]}" -tile 2x -geometry 640x312+12+12 -background '#222' "${WORK}/sheet-art.png"
+    sheet_rows+=("${WORK}/sheet-art.png")
+fi
+if [[ ${#sheet_rows[@]} -gt 0 ]]; then
+    magick "${sheet_rows[@]}" -background '#222' -gravity west -append "${OUT}/contact-sheet.png"
 fi
 
 echo
