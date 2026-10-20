@@ -173,9 +173,10 @@ android {
         // Any other warning fails lint too, for the same reason: nothing is left to pile up unread. Fix it,
         // or suppress it where it occurs with a comment saying why (CLAUDE.md's working agreements).
         warningsAsErrors = true
-        // The exception: "a newer version of a library exists" goes off the day a release is published,
-        // failing CI with no change on our side. update-dependencies.yml is what tracks new versions.
-        disable += "GradleDependency"
+        // The exceptions: "a newer version of a library exists" (GradleDependency) and "of Gradle or AGP"
+        // (AndroidGradlePluginVersion) go off the day a release is published, failing CI with no change on our
+        // side. update-dependencies.yml is what tracks new versions.
+        disable += setOf("GradleDependency", "AndroidGradlePluginVersion")
         // Most of the app's code - the game, its UI, its storage - lives in :app:shared, which has no
         // lint run of its own for its main code. Checking dependencies makes this module's lintDebug
         // (the one CI runs) analyse it too, under these same rules.

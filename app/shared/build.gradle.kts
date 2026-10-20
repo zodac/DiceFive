@@ -56,7 +56,7 @@ kotlin {
         lint {
             error += setOf("Deprecated", "ObsoleteSdkInt")
             warningsAsErrors = true
-            disable += "GradleDependency"
+            disable += setOf("GradleDependency", "AndroidGradlePluginVersion")
         }
     }
 
