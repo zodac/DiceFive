@@ -1276,7 +1276,6 @@ class GameViewModel(
         // Every human's row in one write.
         scoreRepository.recordGame(
             results,
-            onLeaderboard = state.countsOnLeaderboard,
             gameMode = state.gameMode,
             playedUnmodified = !state.hasModifiers,
         )

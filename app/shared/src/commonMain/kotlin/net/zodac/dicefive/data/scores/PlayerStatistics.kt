@@ -68,6 +68,8 @@ internal fun winRatePercent(won: Int, lost: Int): Int? {
  */
 data class PlayerGame(
     val playerName: String,
+    /** [playerName]'s [ScoreEntry.playerKey]: the games of one player, however the name was cased, share it. */
+    val playerKey: String,
     val timestampEpochMillis: Long,
     val won: Boolean?,
     val score: Int,

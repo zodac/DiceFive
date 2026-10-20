@@ -272,7 +272,7 @@ private fun ColumnScope.CombinedLeaderboard(state: ScoresUiState, viewModel: Sco
                     // right, scrollbar or not.
                     contentPadding = PaddingValues(horizontal = 12.dp),
                 ) {
-                    itemsIndexed(ranked, key = { _, ranked -> ranked.entry.id }) { index, rankedEntry ->
+                    itemsIndexed(ranked, key = { _, ranked -> ranked.entry.uuid.toHexString() }) { index, rankedEntry ->
                         ScoreRow(
                             rank = rankedEntry.rank,
                             isTrueTie = rankedEntry.isTrueTie,
@@ -385,7 +385,7 @@ private fun ModeCard(mode: GameMode, board: LeaderboardPage, onPrevious: () -> U
                     modifier = Modifier.fillMaxWidth(),
                     contentPadding = PaddingValues(horizontal = 12.dp),
                 ) {
-                    itemsIndexed(ranked, key = { _, ranked -> ranked.entry.id }) { index, rankedEntry ->
+                    itemsIndexed(ranked, key = { _, ranked -> ranked.entry.uuid.toHexString() }) { index, rankedEntry ->
                         ScoreRow(
                             rank = rankedEntry.rank,
                             isTrueTie = rankedEntry.isTrueTie,
@@ -722,7 +722,6 @@ fun ScoresWarmUp(width: Dp, modifier: Modifier = Modifier) {
 /** A board of a few made-up scores, on the table and on two cards. */
 private object WarmUpBoard : LeaderboardSource {
     private fun entry(id: Long, score: Int, mode: GameMode) = ScoreEntry(
-        id = id,
         playerName = "Player $id", // i18n: not translated - made-up warm-up data, never shown
         score = score,
         timestampEpochMillis = 0L,

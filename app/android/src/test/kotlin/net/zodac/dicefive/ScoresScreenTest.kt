@@ -72,7 +72,7 @@ internal class RowsDao(private val rows: List<ScoreEntry>) : ScoreDao {
 }
 
 internal fun rowOf(id: Long, score: Int, mode: GameMode) = ScoreEntry(
-    id = id, playerName = "Player$id", score = score, timestampEpochMillis = 1_000L * id, won = null, isPrimaryPlayer = false,
+    playerName = "Player$id", score = score, timestampEpochMillis = 1_000L * id, won = null, isPrimaryPlayer = false,
     fiveOfAKindCount = 0, zeroedCategoryCount = 0, upperSectionTotal = 0, chanceScore = 0,
     threeOfAKindScore = 0, fourOfAKindScore = 0, gameModeId = mode.id,
 )
@@ -136,7 +136,7 @@ class ScoresScreenTest {
     @Test
     fun gameModeShowsACardOnlyForModesWithScoresEachRowDatedAndItsPageControlsAtTheEndOfItsOwnScroll() {
         // Quickfire never counts on the combined table, yet gets its card; Stud has no score, so no card.
-        show(someRows + rowOf(4, 90, GameMode.QUICKFIRE).copy(onLeaderboard = false))
+        show(someRows + rowOf(4, 90, GameMode.QUICKFIRE))
         compose.onNodeWithText("Game Mode").performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Standard").assertExists()

@@ -2,13 +2,20 @@ package net.zodac.dicefive.online
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.uuid.Uuid
 import net.zodac.dicefive.data.Stamped
 import net.zodac.dicefive.data.achievements.CloudAchievements
 import net.zodac.dicefive.data.scores.CloudScores
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.data.settings.SettingValue
 
-/** A game's row in the save, at [at], by [name]. */
+/** A readable stand-in for a row's uuid: [label]'s bytes (16 at most), padded with zeros. */
+internal fun testUuid(label: String): Uuid = Uuid.fromByteArray(label.encodeToByteArray().copyOf(Uuid.SIZE_BYTES))
+
+/** The label [testUuid] made this row's uuid from. */
+internal val ScoreEntry.uuidLabel: String get() = uuid.toByteArray().decodeToString().trimEnd('\u0000')
+
+/** A game's row in the save, at [at], by [name], its uuid made from [uuid] by [testUuid]. */
 internal fun cloudRow(uuid: String, at: Long, name: String = "Ann", score: Int = 200) = ScoreEntry(
     playerName = name,
     score = score,
@@ -21,7 +28,7 @@ internal fun cloudRow(uuid: String, at: Long, name: String = "Ann", score: Int =
     chanceScore = 0,
     threeOfAKindScore = 0,
     fourOfAKindScore = 0,
-    uuid = uuid,
+    uuid = testUuid(uuid),
 )
 
 class CloudSaveMergeTest {
@@ -83,7 +90,7 @@ class CloudSaveMergeTest {
             CloudSave(scores = CloudScores(rows = listOf(cloudRow("b", at = 20), cloudRow("a", at = 10)))),
             CloudSave(scores = CloudScores(rows = listOf(cloudRow("c", at = 30), cloudRow("a", at = 10)))),
         )
-        assertEquals(listOf("a", "b", "c"), merged.scores.rows.map { it.uuid })
+        assertEquals(listOf("a", "b", "c"), merged.scores.rows.map { it.uuidLabel })
     }
 
     @Test
@@ -94,7 +101,7 @@ class CloudSaveMergeTest {
         )
         val merged = merge(reset, older)
         assertEquals(25, merged.scoresResetAtEpochMillis)
-        assertEquals(listOf("after", "new"), merged.scores.rows.map { it.uuid })
+        assertEquals(listOf("after", "new"), merged.scores.rows.map { it.uuidLabel })
         assertEquals(emptyMap(), merged.scores.dismissedAt)
     }
 

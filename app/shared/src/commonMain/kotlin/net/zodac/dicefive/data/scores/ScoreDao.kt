@@ -7,12 +7,16 @@ import androidx.room.Query
 import androidx.room.RawQuery
 import androidx.room.RoomRawQuery
 import androidx.room.Transaction
+import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.game.TieBreak
 import net.zodac.dicefive.game.TieBreakCriterion
+import net.zodac.dicefive.model.GameMode
 
 /**
  * The Leaderboard's row order as an `ORDER BY` body: score, then [TieBreak.leaderboardOrder]'s criteria, each in the
- * direction the live ranking uses. Shared by every query that pages the Leaderboard - see [ScoreDao.pagedScores].
+ * direction the live ranking uses. Shared by every query that pages the Leaderboard - see [ScoreDao.pagedScores]. The
+ * `scores` indices `index_scores_leaderboard_order` and `index_scores_mode_order` hold rows in this order, so a page is
+ * read straight from one; `ScoreQueryPlanTest` fails if the two drift apart.
  */
 internal val LEADERBOARD_ORDER: String = (
     listOf("score DESC") + TieBreak.leaderboardOrder.map { "${it.criterion.column()} ${if (it.lowerIsBetter) "ASC" else "DESC"}" }
@@ -91,6 +95,18 @@ interface ScoreDao {
     @Query("SELECT DISTINCT score FROM scores WHERE onLeaderboard = 1")
     suspend fun distinctScores(): List<Int>
 
+    /**
+     * Every leaderboard-derived figure the achievements are measured against, read in one transaction so the three agree
+     * with each other: [distinctScores], [primaryPlayerTotalPoints] (0 when nothing is recorded) and the modes of
+     * [primaryPlayerGameModeIds] this build knows.
+     */
+    @Transaction
+    suspend fun leaderboardTotals(): LeaderboardTotals = LeaderboardTotals(
+        distinctScores = distinctScores().toSet(),
+        totalPoints = primaryPlayerTotalPoints() ?: 0,
+        modesPlayed = primaryPlayerGameModeIds().mapNotNull(GameMode::fromId).toSet(),
+    )
+
     /** Every point the primary player alone has ever scored, added up - see
      * [ScoreEntry.isPrimaryPlayer]. Null when nothing has been recorded yet - SUM over no rows. */
     @Query("SELECT SUM(score) FROM scores WHERE isPrimaryPlayer = 1")
@@ -125,7 +141,7 @@ interface ScoreDao {
      */
     @Query(
         """
-        SELECT playerName, timestampEpochMillis, won, score, fiveOfAKindCount, gameModeId
+        SELECT playerName, playerKey, timestampEpochMillis, won, score, fiveOfAKindCount, gameModeId
         FROM scores
         WHERE playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
         ORDER BY playerKey ASC, timestampEpochMillis DESC
@@ -147,6 +163,13 @@ interface ScoreDao {
     /** Wipes every per-player Statistics dismissal, so `clearAllScores` starts from a clean slate. */
     @Query("DELETE FROM dismissed_player_stats")
     suspend fun clearAllDismissals()
+
+    /** Wipes every score and every dismissal in one transaction: both go, or neither does. */
+    @Transaction
+    suspend fun clearAll() {
+        clearAllScores()
+        clearAllDismissals()
+    }
 
     /** Every recorded row, for the cloud save. */
     @Query("SELECT * FROM scores")
@@ -193,7 +216,7 @@ interface ScoreDao {
             deleteScoresThrough(resetAtEpochMillis)
             deleteDismissalsThrough(resetAtEpochMillis)
         }
-        insertMissing(entries.filter { it.timestampEpochMillis > resetAtEpochMillis }.map { it.copy(id = 0) })
+        insertMissing(entries.filter { it.timestampEpochMillis > resetAtEpochMillis })
         val local = allDismissals().associate { it.playerKey to it.dismissedAtEpochMillis }
         putDismissals(
             dismissals.groupBy { it.playerKey }.values.map { forPlayer -> forPlayer.maxBy { it.dismissedAtEpochMillis } }
@@ -203,9 +226,13 @@ interface ScoreDao {
     }
 }
 
-/** A page of Leaderboard rows matching [where] in [LEADERBOARD_ORDER], with [gameModeId] bound to its one `?` if it has one. */
+/**
+ * A page of Leaderboard rows matching [where] in [LEADERBOARD_ORDER], with [gameModeId] bound to its one `?` if it has one.
+ * Rows equal on every criterion follow in `rowid` order, the order the index already keeps them in, so the order is total
+ * and a row is never on two pages, or on none.
+ */
 private fun pageQuery(where: String, limit: Int, offset: Int, gameModeId: String? = null) = RoomRawQuery(
-    "SELECT * FROM scores WHERE $where ORDER BY $LEADERBOARD_ORDER LIMIT ? OFFSET ?",
+    "SELECT * FROM scores WHERE $where ORDER BY $LEADERBOARD_ORDER, rowid LIMIT ? OFFSET ?",
 ) { statement ->
     var index = 1
     if (gameModeId != null) statement.bindText(index++, gameModeId)

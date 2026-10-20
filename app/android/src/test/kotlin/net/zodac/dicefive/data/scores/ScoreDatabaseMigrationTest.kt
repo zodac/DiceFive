@@ -6,10 +6,13 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.io.File
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
+import net.zodac.dicefive.model.GameMode
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -45,11 +48,20 @@ class ScoreDatabaseMigrationTest {
         }
     }
 
-    private fun SQLiteDatabase.score(playerName: String, score: Int, atEpochMillis: Long) = execSQL(
+    /** A version 1 row: every tie-break stat 0, its uuid [atEpochMillis] as 32 hex digits unless [uuid] is given. */
+    private fun SQLiteDatabase.score(
+        playerName: String,
+        score: Int,
+        atEpochMillis: Long,
+        uuid: String = atEpochMillis.toString().padStart(32, '0'),
+        gameMode: GameMode = GameMode.STANDARD,
+        onLeaderboard: Boolean = true,
+        playedUnmodified: Boolean = true,
+    ) = execSQL(
         "INSERT INTO scores (playerName, score, timestampEpochMillis, won, isPrimaryPlayer, fiveOfAKindCount, zeroedCategoryCount, " +
             "upperSectionTotal, chanceScore, threeOfAKindScore, fourOfAKindScore, onLeaderboard, gameModeId, playedUnmodified, uuid) " +
-            "VALUES (?, ?, ?, NULL, 1, 0, 0, 0, 0, 0, 0, 1, 'standard', 1, ?)",
-        arrayOf<Any>(playerName, score, atEpochMillis, "uuid-$atEpochMillis"),
+            "VALUES (?, ?, ?, NULL, 1, 0, 0, 0, 0, 0, 0, ?, ?, ?, ?)",
+        arrayOf<Any>(playerName, score, atEpochMillis, if (onLeaderboard) 1 else 0, gameMode.id, if (playedUnmodified) 1 else 0, uuid),
     )
 
     @Test
@@ -70,6 +82,35 @@ class ScoreDatabaseMigrationTest {
             // The later dismissal is kept, under the spelling it was made with, and still hides both spellings' games.
             assertEquals(listOf(DismissedPlayerStats("ÁNGEL", 2_500L)), dao.allDismissals())
             assertEquals(listOf("Bob"), dao.playerGames().map { it.playerName })
+        } finally {
+            database.close()
+            SQLiteDatabase.deleteDatabase(file)
+        }
+    }
+
+    @Test
+    fun `version 1 opens as version 2 - each uuid kept as its bytes - and whether a row is on the Leaderboard worked out again`() = runTest {
+        createAt(1) {
+            score("Ann", 150, 1_000)
+            // A uuid this app never wrote: the score is kept, under a new one.
+            score("Ann", 150, 2_000, uuid = "not-a-uuid")
+            // Recorded as on the board, though Quickfire never is, and the other way round for an unmodified Standard game.
+            score("Ann", 300, 3_000, gameMode = GameMode.QUICKFIRE, onLeaderboard = true)
+            score("Ann", 120, 4_000, onLeaderboard = false)
+            score("Ann", 400, 5_000, onLeaderboard = true, playedUnmodified = false)
+        }
+        val database = Room.databaseBuilder<AppDatabase>(context, file.absolutePath).buildAppDatabase()
+        try {
+            val dao = database.scoreDao()
+            val rows = dao.allScores().associateBy { it.timestampEpochMillis }
+            assertEquals(Uuid.parseHex("1000".padStart(32, '0')), rows.getValue(1_000).uuid)
+            assertNotEquals(rows.getValue(1_000).uuid, rows.getValue(2_000).uuid)
+            assertEquals(
+                mapOf(1_000L to true, 2_000L to true, 3_000L to false, 4_000L to true, 5_000L to false),
+                rows.mapValues { (_, row) -> row.onLeaderboard },
+            )
+            // The two equal on every criterion are listed in the order they were recorded.
+            assertEquals(listOf(1_000L, 2_000L, 4_000L), dao.pagedScores(limit = 50, offset = 0).filter { it.score <= 150 }.map { it.timestampEpochMillis })
         } finally {
             database.close()
             SQLiteDatabase.deleteDatabase(file)

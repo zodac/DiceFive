@@ -68,7 +68,7 @@ private class ListScoreDao(private val rows: List<ScoreEntry>) : ScoreDao {
 }
 
 private fun entry(id: Long, score: Int, mode: GameMode) = ScoreEntry(
-    id = id, playerName = "P$id", score = score, timestampEpochMillis = id, won = null, isPrimaryPlayer = false,
+    playerName = "P$id", score = score, timestampEpochMillis = id, won = null, isPrimaryPlayer = false,
     fiveOfAKindCount = 0, zeroedCategoryCount = 0, upperSectionTotal = 0, chanceScore = 0,
     threeOfAKindScore = 0, fourOfAKindScore = 0, gameModeId = mode.id,
 )
@@ -123,19 +123,19 @@ class ScoresViewModelTest {
         assertEquals(0, paging.uiState.value.modeBoards.getValue(GameMode.TRICOLOUR).pageIndex)
 
         // A mode that stays off the combined board still has a card.
-        val quickfire = entry(1, 90, GameMode.QUICKFIRE).copy(onLeaderboard = false)
-        val modifiers = entry(2, 300, GameMode.STANDARD).copy(onLeaderboard = false, playedUnmodified = false)
-        val quickfireModifiers = entry(4, 120, GameMode.QUICKFIRE).copy(onLeaderboard = false, playedUnmodified = false)
+        val quickfire = entry(1, 90, GameMode.QUICKFIRE)
+        val modifiers = entry(2, 300, GameMode.STANDARD).copy(playedUnmodified = false)
+        val quickfireModifiers = entry(4, 120, GameMode.QUICKFIRE).copy(playedUnmodified = false)
         val offBoard = ScoresViewModel(ScoreRepository(ListScoreDao(listOf(quickfire, modifiers, entry(3, 200, GameMode.STANDARD), quickfireModifiers))))
         offBoard.selectView(LeaderboardView.GAME_MODE)
         advanceUntilIdle()
         val state = offBoard.uiState.value
         // Not on the combined table, nor counted in it...
-        assertEquals(listOf(3L), state.combined.entries.map { it.id })
+        assertEquals(listOf(3L), state.combined.entries.map { it.timestampEpochMillis })
         assertEquals(1, state.combined.totalCount)
         // ...but listed on its own card; a game with modifiers on is on no card, whichever its mode.
-        assertEquals(listOf(1L), state.modeBoards.getValue(GameMode.QUICKFIRE).entries.map { it.id })
-        assertEquals(listOf(3L), state.modeBoards.getValue(GameMode.STANDARD).entries.map { it.id })
+        assertEquals(listOf(1L), state.modeBoards.getValue(GameMode.QUICKFIRE).entries.map { it.timestampEpochMillis })
+        assertEquals(listOf(3L), state.modeBoards.getValue(GameMode.STANDARD).entries.map { it.timestampEpochMillis })
         assertEquals(0, state.modeBoards.getValue(GameMode.STUD).totalCount)
         assertTrue(state.modeBoardsLoaded)
     }

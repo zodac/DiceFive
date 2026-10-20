@@ -342,8 +342,8 @@ class OnlineSyncTest {
         val services = SyncServices("ann").apply { cloud = found(CloudSave(scores = scores("tablet"))) }
         val local = SyncCloudSave(CloudSave(scores = scores("phone")))
         sync(services, InMemoryAchievementStore(state()), settings, cloudSave = local).reconcile()
-        assertEquals(setOf("phone", "tablet"), local.local.scores.rows.map { it.uuid }.toSet())
-        assertEquals(setOf("phone", "tablet"), services.saved?.scores?.rows?.map { it.uuid }?.toSet())
+        assertEquals(setOf("phone", "tablet"), local.local.scores.rows.map { it.uuidLabel }.toSet())
+        assertEquals(setOf("phone", "tablet"), services.saved?.scores?.rows?.map { it.uuidLabel }?.toSet())
         assertEquals(now, settings.cloudSavedAt("ann").first())
     }
 
@@ -360,7 +360,7 @@ class OnlineSyncTest {
     fun `an account with no save yet is given this device's`() = runTest {
         val services = SyncServices("ann").apply { cloud = CloudSaveRead.Empty }
         sync(services, InMemoryAchievementStore(state()), OnlineSettingsRepository(InMemoryPreferences()), cloudSave = SyncCloudSave(CloudSave(scores = scores("phone")))).reconcile()
-        assertEquals(listOf("phone"), services.saved?.scores?.rows?.map { it.uuid })
+        assertEquals(listOf("phone"), services.saved?.scores?.rows?.map { it.uuidLabel })
     }
 
     @Test
@@ -381,7 +381,7 @@ class OnlineSyncTest {
         }
         val local = SyncCloudSave(CloudSave(scores = scores("phone")))
         sync(services, InMemoryAchievementStore(state()), OnlineSettingsRepository(InMemoryPreferences()), cloudSave = local).reconcile()
-        assertEquals(setOf("phone", "tablet"), local.local.scores.rows.map { it.uuid }.toSet())
+        assertEquals(setOf("phone", "tablet"), local.local.scores.rows.map { it.uuidLabel }.toSet())
     }
 
     @Test
@@ -393,7 +393,7 @@ class OnlineSyncTest {
         val bob = SyncServices("bob").apply { cloud = found(CloudSave(scores = scores("bob's game"))) }
         sync(bob, InMemoryAchievementStore(state()), settings, cloudSave = local).reconcile()
         assertEquals(1, local.wipes)
-        assertEquals(listOf("bob's game"), local.local.scores.rows.map { it.uuid })
+        assertEquals(listOf("bob's game"), local.local.scores.rows.map { it.uuidLabel })
         // Bob's save gets nothing of Ann's.
         assertTrue(bob.cloudWrites.isEmpty())
     }
@@ -420,7 +420,7 @@ class OnlineSyncTest {
         val services = SyncServices("ann").apply { cloud = found(newer) }
         val local = SyncCloudSave(CloudSave(scores = scores("phone")))
         sync(services, InMemoryAchievementStore(state()), settings, cloudSave = local).reconcile()
-        assertEquals(setOf("phone", "tablet"), local.local.scores.rows.map { it.uuid }.toSet())
+        assertEquals(setOf("phone", "tablet"), local.local.scores.rows.map { it.uuidLabel }.toSet())
         assertTrue(services.cloudWrites.isEmpty())
         assertEquals(null, settings.cloudSavedAt("ann").first())
         // Settling a conflict keeps the newer app's copy whole, too.
@@ -435,7 +435,7 @@ class OnlineSyncTest {
         val merge = services.merge!!
         val phone = CloudSaveCodec.encode(CloudSave(scores = scores("phone")))
         val tablet = CloudSaveCodec.encode(CloudSave(scores = scores("tablet")))
-        assertEquals(setOf("phone", "tablet"), CloudSaveCodec.decode(merge(phone, tablet))?.scores?.rows?.map { it.uuid }?.toSet())
+        assertEquals(setOf("phone", "tablet"), CloudSaveCodec.decode(merge(phone, tablet))?.scores?.rows?.map { it.uuidLabel }?.toSet())
         assertTrue(merge(phone, "garbage".encodeToByteArray()).contentEquals(phone))
         assertTrue(merge("garbage".encodeToByteArray(), tablet).contentEquals(tablet))
     }

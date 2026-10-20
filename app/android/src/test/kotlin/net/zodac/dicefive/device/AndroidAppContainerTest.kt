@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteConstraintException
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import net.zodac.dicefive.data.scores.AppDatabase
@@ -155,9 +156,8 @@ class AndroidAppContainerTest {
         val database = Room.inMemoryDatabaseBuilder<AppDatabase>(ApplicationProvider.getApplicationContext<Context>()).buildAppDatabase()
         try {
             val dao = database.scoreDao()
-            // The second row reuses the first's id, so it can't be inserted.
+            // The second row reuses the first's uuid, so it can't be inserted.
             val row = ScoreEntry(
-                id = 7,
                 playerName = "Alice",
                 score = 200,
                 timestampEpochMillis = 0L,
@@ -195,7 +195,6 @@ class AndroidAppContainerTest {
                 chanceScore = 0,
                 threeOfAKindScore = 0,
                 fourOfAKindScore = 0,
-                onLeaderboard = false,
                 gameModeId = mode.id,
                 playedUnmodified = unmodified,
             )
@@ -235,18 +234,31 @@ class AndroidAppContainerTest {
             scores.dismissPlayerStatistics("Carol", atEpochMillis = 40)
             scores.dismissPlayerStatistics("Dave", atEpochMillis = 40)
             val local = scores.cloudScores()
-            assertTrue(local.rows.all { it.id == 0L })
 
             val tablet = listOf(
                 local.rows.first { it.score == 120 },
-                local.rows.first().copy(uuid = "tablet-old", score = 90, timestampEpochMillis = 15),
-                local.rows.first().copy(uuid = "tablet-new", score = 300, timestampEpochMillis = 50, playerName = "carol"),
+                local.rows.first().copy(uuid = Uuid.random(), score = 90, timestampEpochMillis = 15),
+                local.rows.first().copy(uuid = Uuid.random(), score = 300, timestampEpochMillis = 50, playerName = "carol"),
             )
             scores.mergeCloud(resetAtEpochMillis = 20, CloudScores(rows = tablet, dismissedAt = mapOf("Bob" to 60L, "Dave" to 35L)))
             // The game at 10 and the tablet's at 15 were reset; the shared one at 30 isn't doubled.
             assertEquals(listOf(300, 120), scores.page(0).map { it.score })
             // Carol played after her dismissal; Dave's later dismissal here is kept over the tablet's.
             assertEquals(mapOf("Bob" to 60L, "Dave" to 40L), scores.cloudScores().dismissedAt)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `rows equal on every Leaderboard criterion are paged in the order recorded - none twice and none missed`() = runTest {
+        val database = Room.inMemoryDatabaseBuilder<AppDatabase>(ApplicationProvider.getApplicationContext<Context>()).buildAppDatabase()
+        try {
+            val scores = ScoreRepository(database.scoreDao())
+            for (at in 1L..5L) scores.recordScore("Player $at", stats(score = 200), won = null, isPrimaryPlayer = false, timestampEpochMillis = at)
+            val pages = (0..2).map { pageIndex -> scores.page(pageIndex, pageSize = 2).map { it.timestampEpochMillis } }
+            assertEquals(listOf(listOf(1L, 2L), listOf(3L, 4L), listOf(5L)), pages)
+            assertEquals(listOf(1L, 2L, 3L, 4L, 5L), (0..2).flatMap { scores.pageForMode(GameMode.STANDARD, it, pageSize = 2) }.map { it.timestampEpochMillis })
         } finally {
             database.close()
         }

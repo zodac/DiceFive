@@ -2,7 +2,10 @@ package net.zodac.dicefive.data.scores
 
 import androidx.room.Entity
 import androidx.room.Index
+import androidx.room.Index.Order.ASC
+import androidx.room.Index.Order.DESC
 import androidx.room.PrimaryKey
+import androidx.room.TypeConverter
 import kotlin.uuid.Uuid
 import net.zodac.dicefive.game.TieBreakStats
 import net.zodac.dicefive.model.GameMode
@@ -11,15 +14,44 @@ import net.zodac.dicefive.model.playerNameKey
 /**
  * One finished game's final score for a human player - AI scores are never recorded - with the
  * tie-break house-rule stats the Leaderboard orders equal scores by (see
- * [net.zodac.dicefive.game.TieBreak]). Every column but [won] is always set. Indexed by [playerKey] first, so a player's
- * best is read from the index alone.
+ * [net.zodac.dicefive.game.TieBreak]). Every column but [won] is always set, and [uuid] is the primary key.
+ *
+ * Every query [ScoreDao] runs while the app is in use is answered from an index, never by reading the whole table or
+ * sorting it; `ScoreQueryPlanTest` holds each one to that.
  */
 @Entity(
     tableName = "scores",
-    indices = [Index(value = ["uuid"], unique = true), Index(value = ["playerKey", "onLeaderboard", "score"])],
+    indices = [
+        // The Combined table's order: LEADERBOARD_ORDER under its filter, so a page is read in order, never sorted.
+        Index(
+            name = "index_scores_leaderboard_order",
+            value = [
+                "onLeaderboard", "score", "fiveOfAKindCount", "zeroedCategoryCount", "upperSectionTotal", "chanceScore", "threeOfAKindScore",
+                "fourOfAKindScore",
+            ],
+            orders = [ASC, DESC, ASC, DESC, ASC, ASC, ASC, ASC],
+        ),
+        // Each mode's card: the same order under its own filter.
+        Index(
+            name = "index_scores_mode_order",
+            value = [
+                "gameModeId", "playedUnmodified", "score", "fiveOfAKindCount", "zeroedCategoryCount", "upperSectionTotal", "chanceScore",
+                "threeOfAKindScore", "fourOfAKindScore",
+            ],
+            orders = [ASC, ASC, DESC, ASC, DESC, ASC, ASC, ASC, ASC],
+        ),
+        // A player's best, from the index alone.
+        Index(value = ["playerKey", "onLeaderboard", "score"]),
+        // Player 1's career points, modes played and unposted bests, from the index alone.
+        Index(name = "index_scores_primary_player", value = ["isPrimaryPlayer", "gameModeId", "playedUnmodified", "timestampEpochMillis", "score"]),
+    ],
 )
 data class ScoreEntry(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    /**
+     * This game's row everywhere it's copied - on this device, in the cloud save ([net.zodac.dicefive.online.CloudSave])
+     * and on every device that merges it. Random, from the device that recorded it; stored as its 16 bytes.
+     */
+    @PrimaryKey val uuid: Uuid = Uuid.random(),
     val playerName: String,
     val score: Int,
     val timestampEpochMillis: Long,
@@ -52,12 +84,6 @@ data class ScoreEntry(
     val chanceScore: Int,
     val threeOfAKindScore: Int,
     val fourOfAKindScore: Int,
-    /**
-     * Whether this game's mode puts its scores on the Leaderboard ([net.zodac.dicefive.model.GameMode.countsOnLeaderboard]).
-     * A row that doesn't is still a game played - Statistics and career points count it - but the
-     * Leaderboard, a personal best and the score-collection achievements leave it out.
-     */
-    val onLeaderboard: Boolean = true,
     /** The [GameMode.id] this game was played in, for the Leaderboard's per-mode cards and the mode its long-press names. */
     val gameModeId: String = GameMode.STANDARD.id,
     /**
@@ -67,12 +93,6 @@ data class ScoreEntry(
      * this is what decides whether the row may be submitted to one, and whether its mode's Leaderboard card lists it.
      */
     val playedUnmodified: Boolean = true,
-    /**
-     * This game's row everywhere it's copied: [id] is only this device's, so the cloud save
-     * ([net.zodac.dicefive.online.CloudSave]) joins devices' rows by this instead. Random, from the device that
-     * recorded it.
-     */
-    val uuid: String = newScoreUuid(),
 ) {
 
     /**
@@ -81,6 +101,16 @@ data class ScoreEntry(
      * that name's key), never copied between devices, and left out of equality. Settable only for Room to read it back.
      */
     var playerKey: String = playerNameKey(playerName)
+        internal set
+
+    /**
+     * Whether this row is on the Combined Leaderboard: its mode counts there ([GameMode.countsOnLeaderboard]) and it was
+     * [playedUnmodified], as [net.zodac.dicefive.model.GameState.countsOnLeaderboard] decides for a game. A row that
+     * isn't is still a game played - Statistics and career points count it - but the Leaderboard, a personal best and the
+     * score-collection achievements leave it out. Derived as [playerKey] is, so it can't disagree with the columns it
+     * comes from; a mode this build doesn't know is off the board. Settable only for Room to read it back.
+     */
+    var onLeaderboard: Boolean = GameMode.fromId(gameModeId)?.countsOnLeaderboard == true && playedUnmodified
         internal set
 
     /** The mode [gameModeId] names, or null for an id this build doesn't know (a mode since removed). */
@@ -100,5 +130,11 @@ data class ScoreEntry(
     )
 }
 
-/** A new [ScoreEntry.uuid]: 32 lowercase hex digits. */
-fun newScoreUuid(): String = Uuid.random().toHexString()
+/** How Room stores a [ScoreEntry.uuid]: its 16 bytes, half the size of its 32 hex digits. */
+class UuidConverters {
+    @TypeConverter
+    fun toBytes(uuid: Uuid): ByteArray = uuid.toByteArray()
+
+    @TypeConverter
+    fun fromBytes(bytes: ByteArray): Uuid = Uuid.fromByteArray(bytes)
+}

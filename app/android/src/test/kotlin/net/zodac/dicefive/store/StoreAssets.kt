@@ -235,7 +235,6 @@ internal object StoreState {
                     player.toTieBreakStats(),
                     won = if (finished.players.size > 1) player.totalScore == top else null,
                     isPrimaryPlayer = index == 0,
-                    onLeaderboard = finished.countsOnLeaderboard,
                     gameMode = mode,
                     playedUnmodified = true,
                     timestampEpochMillis = when_,

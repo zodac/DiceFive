@@ -2,16 +2,16 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "9f5d78d9441010633e258c86de7d18a8",
+    "identityHash": "bf1737dcc6ba2266f5ea963464d13223",
     "entities": [
       {
         "tableName": "scores",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `playerName` TEXT NOT NULL, `score` INTEGER NOT NULL, `timestampEpochMillis` INTEGER NOT NULL, `won` INTEGER, `isPrimaryPlayer` INTEGER NOT NULL, `fiveOfAKindCount` INTEGER NOT NULL, `zeroedCategoryCount` INTEGER NOT NULL, `upperSectionTotal` INTEGER NOT NULL, `chanceScore` INTEGER NOT NULL, `threeOfAKindScore` INTEGER NOT NULL, `fourOfAKindScore` INTEGER NOT NULL, `onLeaderboard` INTEGER NOT NULL, `gameModeId` TEXT NOT NULL, `playedUnmodified` INTEGER NOT NULL, `uuid` TEXT NOT NULL, `playerKey` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uuid` BLOB NOT NULL, `playerName` TEXT NOT NULL, `score` INTEGER NOT NULL, `timestampEpochMillis` INTEGER NOT NULL, `won` INTEGER, `isPrimaryPlayer` INTEGER NOT NULL, `fiveOfAKindCount` INTEGER NOT NULL, `zeroedCategoryCount` INTEGER NOT NULL, `upperSectionTotal` INTEGER NOT NULL, `chanceScore` INTEGER NOT NULL, `threeOfAKindScore` INTEGER NOT NULL, `fourOfAKindScore` INTEGER NOT NULL, `gameModeId` TEXT NOT NULL, `playedUnmodified` INTEGER NOT NULL, `playerKey` TEXT NOT NULL, `onLeaderboard` INTEGER NOT NULL, PRIMARY KEY(`uuid`))",
         "fields": [
           {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "INTEGER",
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "BLOB",
             "notNull": true
           },
           {
@@ -80,12 +80,6 @@
             "notNull": true
           },
           {
-            "fieldPath": "onLeaderboard",
-            "columnName": "onLeaderboard",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
             "fieldPath": "gameModeId",
             "columnName": "gameModeId",
             "affinity": "TEXT",
@@ -98,33 +92,76 @@
             "notNull": true
           },
           {
-            "fieldPath": "uuid",
-            "columnName": "uuid",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
             "fieldPath": "playerKey",
             "columnName": "playerKey",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "onLeaderboard",
+            "columnName": "onLeaderboard",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
-          "autoGenerate": true,
+          "autoGenerate": false,
           "columnNames": [
-            "id"
+            "uuid"
           ]
         },
         "indices": [
           {
-            "name": "index_scores_uuid",
-            "unique": true,
+            "name": "index_scores_leaderboard_order",
+            "unique": false,
             "columnNames": [
-              "uuid"
+              "onLeaderboard",
+              "score",
+              "fiveOfAKindCount",
+              "zeroedCategoryCount",
+              "upperSectionTotal",
+              "chanceScore",
+              "threeOfAKindScore",
+              "fourOfAKindScore"
             ],
-            "orders": [],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_scores_uuid` ON `${TABLE_NAME}` (`uuid`)"
+            "orders": [
+              "ASC",
+              "DESC",
+              "ASC",
+              "DESC",
+              "ASC",
+              "ASC",
+              "ASC",
+              "ASC"
+            ],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scores_leaderboard_order` ON `${TABLE_NAME}` (`onLeaderboard` ASC, `score` DESC, `fiveOfAKindCount` ASC, `zeroedCategoryCount` DESC, `upperSectionTotal` ASC, `chanceScore` ASC, `threeOfAKindScore` ASC, `fourOfAKindScore` ASC)"
+          },
+          {
+            "name": "index_scores_mode_order",
+            "unique": false,
+            "columnNames": [
+              "gameModeId",
+              "playedUnmodified",
+              "score",
+              "fiveOfAKindCount",
+              "zeroedCategoryCount",
+              "upperSectionTotal",
+              "chanceScore",
+              "threeOfAKindScore",
+              "fourOfAKindScore"
+            ],
+            "orders": [
+              "ASC",
+              "ASC",
+              "DESC",
+              "ASC",
+              "DESC",
+              "ASC",
+              "ASC",
+              "ASC",
+              "ASC"
+            ],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scores_mode_order` ON `${TABLE_NAME}` (`gameModeId` ASC, `playedUnmodified` ASC, `score` DESC, `fiveOfAKindCount` ASC, `zeroedCategoryCount` DESC, `upperSectionTotal` ASC, `chanceScore` ASC, `threeOfAKindScore` ASC, `fourOfAKindScore` ASC)"
           },
           {
             "name": "index_scores_playerKey_onLeaderboard_score",
@@ -136,6 +173,19 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_scores_playerKey_onLeaderboard_score` ON `${TABLE_NAME}` (`playerKey`, `onLeaderboard`, `score`)"
+          },
+          {
+            "name": "index_scores_primary_player",
+            "unique": false,
+            "columnNames": [
+              "isPrimaryPlayer",
+              "gameModeId",
+              "playedUnmodified",
+              "timestampEpochMillis",
+              "score"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scores_primary_player` ON `${TABLE_NAME}` (`isPrimaryPlayer`, `gameModeId`, `playedUnmodified`, `timestampEpochMillis`, `score`)"
           }
         ]
       },
@@ -172,7 +222,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9f5d78d9441010633e258c86de7d18a8')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bf1737dcc6ba2266f5ea963464d13223')"
     ]
   }
 }

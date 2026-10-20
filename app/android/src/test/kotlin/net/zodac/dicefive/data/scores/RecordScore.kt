@@ -10,13 +10,11 @@ suspend fun ScoreRepository.recordScore(
     stats: TieBreakStats,
     won: Boolean?,
     isPrimaryPlayer: Boolean,
-    onLeaderboard: Boolean = true,
     gameMode: GameMode = GameMode.STANDARD,
     playedUnmodified: Boolean = true,
     timestampEpochMillis: Long = nowEpochMillis(),
 ) = recordGame(
     listOf(PlayerResult(playerName, stats, won, isPrimaryPlayer)),
-    onLeaderboard = onLeaderboard,
     gameMode = gameMode,
     playedUnmodified = playedUnmodified,
     timestampEpochMillis = timestampEpochMillis,

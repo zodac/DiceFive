@@ -34,6 +34,7 @@ import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.device.AndroidAppContainer
+import net.zodac.dicefive.game.LeaderboardTotals
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
 import net.zodac.dicefive.model.AchievementCounter
@@ -149,7 +150,7 @@ class AchievementsTextTest {
     fun `Grand Tour opens a list of every mode by name - the ones finished read as finished`() {
         val modesPlayed = listOf(GameMode.STANDARD, GameMode.STUD, GameMode.THIRD_WIND)
         val dao = object : ScoreDao by RowsDao(emptyList()) {
-            override suspend fun primaryPlayerGameModeIds(): List<String> = modesPlayed.map { it.id }
+            override suspend fun leaderboardTotals() = LeaderboardTotals(modesPlayed = modesPlayed.toSet())
             override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
         }
         val viewModel = achievementsViewModel(scores = ScoreRepository(dao))

@@ -16,7 +16,6 @@ private suspend fun ScoreRepository.record(
     isPrimaryPlayer: Boolean = false,
     timestampEpochMillis: Long = nowEpochMillis(),
     fiveOfAKindCount: Int = 0,
-    onLeaderboard: Boolean = true,
     gameMode: GameMode = GameMode.STANDARD,
     playedUnmodified: Boolean = true,
 ) = recordGame(
@@ -37,7 +36,6 @@ private suspend fun ScoreRepository.record(
             isPrimaryPlayer = isPrimaryPlayer,
         ),
     ),
-    onLeaderboard = onLeaderboard,
     gameMode = gameMode,
     timestampEpochMillis = timestampEpochMillis,
     playedUnmodified = playedUnmodified,
@@ -87,10 +85,10 @@ class ScoreRepositoryTest {
         modes.record("Alice", 150, gameMode = GameMode.STANDARD)
         modes.record("Bob", 300, gameMode = GameMode.TRICOLOUR)
         modes.record("Carol", 220, gameMode = GameMode.TRICOLOUR)
-        modes.record("Dave", 400, gameMode = GameMode.TRICOLOUR, onLeaderboard = false, playedUnmodified = false)
+        modes.record("Dave", 400, gameMode = GameMode.TRICOLOUR, playedUnmodified = false)
         // The same for a mode off the Combined board, whose every game is off it: its card lists only the unmodified ones.
-        modes.record("Erin", 120, gameMode = GameMode.QUICKFIRE, onLeaderboard = false)
-        modes.record("Finn", 180, gameMode = GameMode.QUICKFIRE, onLeaderboard = false, playedUnmodified = false)
+        modes.record("Erin", 120, gameMode = GameMode.QUICKFIRE)
+        modes.record("Finn", 180, gameMode = GameMode.QUICKFIRE, playedUnmodified = false)
         assertEquals(listOf("Erin"), modes.pageForMode(GameMode.QUICKFIRE, pageIndex = 0).map { it.playerName })
         assertEquals(1, modes.totalCountForMode(GameMode.QUICKFIRE))
         assertEquals(listOf("Bob", "Carol"), modes.pageForMode(GameMode.TRICOLOUR, pageIndex = 0).map { it.playerName })
@@ -204,7 +202,6 @@ class ScoreRepositoryTest {
                 PlayerResult("Alice", tieBreakStats(score = 200), won = true, isPrimaryPlayer = true),
                 PlayerResult("Bob", tieBreakStats(score = 150), won = false, isPrimaryPlayer = false),
             ),
-            onLeaderboard = false,
             gameMode = GameMode.THIRD_WIND,
             playedUnmodified = false,
             timestampEpochMillis = 1_000L,
@@ -252,7 +249,7 @@ class ScoreRepositoryTest {
         // A game off the Leaderboard still counts in Statistics and career points.
         val offBoard = ScoreRepository(InMemoryScoreDao())
         offBoard.record("Alice", 200, isPrimaryPlayer = true)
-        offBoard.record("Alice", 750, isPrimaryPlayer = true, onLeaderboard = false)
+        offBoard.record("Alice", 750, isPrimaryPlayer = true, playedUnmodified = false)
         assertEquals(1, offBoard.totalCount())
         assertEquals(listOf(200), offBoard.page(0).map { it.score })
         assertEquals(200, offBoard.bestScoreForPlayer("Alice"))

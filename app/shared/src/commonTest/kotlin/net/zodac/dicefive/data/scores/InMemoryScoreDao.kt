@@ -14,10 +14,8 @@ class InMemoryScoreDao : ScoreDao {
     fun rows(): List<ScoreEntry> = entries.toList()
     /** By [DismissedPlayerStats.playerKey], as the real table is. */
     private val dismissed = mutableMapOf<String, DismissedPlayerStats>()
-    private var nextId = 1L
-
     override suspend fun insert(entry: ScoreEntry) {
-        entries += entry.copy(id = nextId++)
+        entries += entry
     }
 
     // As the real queries do, only Leaderboard rows (ScoreEntry.onLeaderboard) are paged, counted,
@@ -53,7 +51,7 @@ class InMemoryScoreDao : ScoreDao {
     override suspend fun playerGames(): List<PlayerGame> =
         entries.filter { it.playerKey !in dismissed }
             .sortedWith(compareBy<ScoreEntry> { it.playerKey }.thenByDescending { it.timestampEpochMillis })
-            .map { PlayerGame(it.playerName, it.timestampEpochMillis, it.won, it.score, it.fiveOfAKindCount, it.gameModeId) }
+            .map { PlayerGame(it.playerName, it.playerKey, it.timestampEpochMillis, it.won, it.score, it.fiveOfAKindCount, it.gameModeId) }
 
     override suspend fun clearDismissal(playerKey: String) {
         dismissed -= playerKey

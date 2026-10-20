@@ -214,12 +214,29 @@ will map to Play Games.
   - Room, `dicefive.db`, `AppDatabase` version 2, with each version's schema exported to `app/shared/schemas/`.
   - Tables:
     - `scores` (`ScoreEntry`): name, score, time, `won` (null for a solo game), `isPrimaryPlayer`, the tie-break stats,
-      `onLeaderboard`, `gameModeId`, `playedUnmodified`, a unique random `uuid` (a row's id across devices) and
-      `playerKey`. Every column but `won` is NOT NULL.
+      `gameModeId`, `playedUnmodified`, `onLeaderboard`, `playerKey` and a random `uuid`. Every column but `won` is NOT
+      NULL.
     - `dismissed_player_stats`: name, when it was dismissed, and `playerKey` (the primary key: one dismissal a player).
+  - **`uuid` is the primary key**, a row's id on every device and in the cloud save. It is a `kotlin.uuid.Uuid`, stored
+    as its 16 bytes (`UuidConverters`) and written to the cloud save as 32 hex digits. There is no device-local id.
   - **Names are matched by `playerKey`**, never by `playerName` or `COLLATE NOCASE` (SQLite folds only ASCII case, so
     "Ángel" and "ángel" would be two players). It is `playerNameKey(playerName)`, derived in the entity, so a copy with
-    another name gets that name's key; it is indexed with `onLeaderboard` and `score` for the personal best.
+    another name gets that name's key.
+  - **`onLeaderboard` is derived too**: the mode's `countsOnLeaderboard` and `playedUnmodified`, so it can't disagree with
+    them. The cloud save still writes it, as format 1's readers require it, but it is worked out again on reading.
+  - **Every read made while the app is in use comes from an index**, never a scan or a sort of the table; Statistics
+    (`playerGames`) and the cloud save (`allScores`) read every row by design. `ScoreQueryPlanTest` checks each read's
+    query plan against the real SQLite. The indices:
+    - `index_scores_leaderboard_order` and `index_scores_mode_order` hold the Combined table and each mode's card in
+      `LEADERBOARD_ORDER`, with the same ASC/DESC per column, so a page is read in order. Room's annotation can't be built
+      from `TieBreak.leaderboardOrder`, so a change to the tie-break order must change both (`ScoreQueryPlanTest` fails
+      until it does).
+    - `playerKey, onLeaderboard, score`: a player's best.
+    - `index_scores_primary_player`: player 1's career points and modes played.
+  - **Leaderboard order is total.** Rows equal on every criterion follow in `rowid` (recording) order, so `LIMIT/OFFSET`
+    pages never repeat or skip a row.
+  - **Multi-statement reads and writes are one transaction**: a game's rows (`insertGame`), a reset (`clearAll`), the
+    achievements' figures (`leaderboardTotals`) and the cloud merge (`mergeCloud`).
   - Every schema change needs a version bump and a migration in `MIGRATIONS` (`data/scores/Migrations.kt`), tested by
     `ScoreDatabaseMigrationTest` from the exported schema it migrates from. There is **deliberately no destructive
     fallback**: a missing migration must fail loudly, never wipe scores. A change to `playerNameKey` changes stored

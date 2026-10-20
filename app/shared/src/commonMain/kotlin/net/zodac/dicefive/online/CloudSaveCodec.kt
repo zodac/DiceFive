@@ -1,5 +1,6 @@
 package net.zodac.dicefive.online
 
+import kotlin.uuid.Uuid
 import net.zodac.dicefive.data.JsonArray
 import net.zodac.dicefive.data.JsonBoolean
 import net.zodac.dicefive.data.JsonNull
@@ -103,9 +104,9 @@ object CloudSaveCodec {
         put("latest", JsonObject(achievements.latestCounters.mapValues { (_, stamped) -> stamped(stamped) { JsonNumber(it) } }))
     }
 
-    // One object per game, with ScoreEntry's own field names but for its device-local id.
+    // One object per game, with ScoreEntry's own field names; the uuid as its 32 hex digits.
     private fun encodeRow(row: ScoreEntry): JsonObject = buildJsonObject {
-        put("uuid", row.uuid)
+        put("uuid", row.uuid.toHexString())
         put("playerName", row.playerName)
         put("score", row.score)
         put("timestampEpochMillis", row.timestampEpochMillis)
@@ -117,13 +118,14 @@ object CloudSaveCodec {
         put("chanceScore", row.chanceScore)
         put("threeOfAKindScore", row.threeOfAKindScore)
         put("fourOfAKindScore", row.fourOfAKindScore)
+        // Derived from the mode and playedUnmodified on reading, but still written: format 1's readers require it.
         put("onLeaderboard", row.onLeaderboard)
         put("gameModeId", row.gameModeId)
         put("playedUnmodified", row.playedUnmodified)
     }
 
     private fun decodeRow(row: JsonObject): ScoreEntry = ScoreEntry(
-        uuid = row.string("uuid"),
+        uuid = Uuid.parseHex(row.string("uuid")),
         playerName = row.string("playerName"),
         score = row.int("score"),
         timestampEpochMillis = (row["timestampEpochMillis"] as JsonNumber).toLong(),
@@ -135,7 +137,6 @@ object CloudSaveCodec {
         chanceScore = row.int("chanceScore"),
         threeOfAKindScore = row.int("threeOfAKindScore"),
         fourOfAKindScore = row.int("fourOfAKindScore"),
-        onLeaderboard = row.boolean("onLeaderboard"),
         gameModeId = row.string("gameModeId"),
         playedUnmodified = row.boolean("playedUnmodified"),
     )

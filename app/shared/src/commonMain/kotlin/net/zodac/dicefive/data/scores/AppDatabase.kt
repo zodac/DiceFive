@@ -4,6 +4,7 @@ import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
+import androidx.room.TypeConverters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 
@@ -22,6 +23,7 @@ import kotlinx.coroutines.IO
     exportSchema = true,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
+@TypeConverters(UuidConverters::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun scoreDao(): ScoreDao

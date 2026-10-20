@@ -38,14 +38,13 @@ interface LeaderboardSource {
 class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
 
     /**
-     * Records one finished game's human players ([results]) in a single write: all of them or none. With each, whether
-     * the game's mode puts it on the Leaderboard ([ScoreEntry.onLeaderboard]), which [gameMode] it was played in, and
-     * whether it ran under that mode's own rules ([ScoreEntry.playedUnmodified]). A player dismissed from the Statistics
+     * Records one finished game's human players ([results]) in a single write: all of them or none. With each, which
+     * [gameMode] it was played in, and whether it ran under that mode's own rules ([ScoreEntry.playedUnmodified]); the two
+     * decide whether it is on the Leaderboard ([ScoreEntry.onLeaderboard]). A player dismissed from the Statistics
      * screen is shown there again.
      */
     suspend fun recordGame(
         results: List<PlayerResult>,
-        onLeaderboard: Boolean = true,
         gameMode: GameMode = GameMode.STANDARD,
         playedUnmodified: Boolean = true,
         timestampEpochMillis: Long = nowEpochMillis(),
@@ -65,7 +64,6 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
                     chanceScore = result.stats.chance,
                     threeOfAKindScore = result.stats.threeOfAKind,
                     fourOfAKindScore = result.stats.fourOfAKind,
-                    onLeaderboard = onLeaderboard,
                     gameModeId = gameMode.id,
                     playedUnmodified = playedUnmodified,
                 )
@@ -93,10 +91,7 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
      * Wipes every recorded score, which necessarily empties the Statistics screen too - it's
      * computed from these same rows (see [playerStatistics]) - so nothing is left to dismiss either.
      */
-    suspend fun resetLeaderboard() {
-        scoreDao.clearAllScores()
-        scoreDao.clearAllDismissals()
-    }
+    suspend fun resetLeaderboard() = scoreDao.clearAll()
 
     /**
      * Hides [playerName] from the Statistics screen without touching their recorded scores - the
@@ -106,9 +101,9 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
     suspend fun dismissPlayerStatistics(playerName: String, atEpochMillis: Long = nowEpochMillis()) =
         scoreDao.dismissPlayer(playerName, atEpochMillis)
 
-    /** Every recorded row (each [ScoreEntry.id] 0: it is only this device's) and dismissal, for the cloud save. */
+    /** Every recorded row and dismissal, for the cloud save. */
     suspend fun cloudScores(): CloudScores = CloudScores(
-        rows = scoreDao.allScores().map { it.copy(id = 0) },
+        rows = scoreDao.allScores(),
         dismissedAt = scoreDao.allDismissals().associate { it.playerName to it.dismissedAtEpochMillis },
     )
 
@@ -139,10 +134,6 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
      * [ScoreEntry.isPrimaryPlayer]. Zero when the board is empty. */
     suspend fun primaryPlayerTotalPoints(): Int = scoreDao.primaryPlayerTotalPoints() ?: 0
 
-    /** Every mode the primary player has a recorded game in - see [ScoreDao.primaryPlayerGameModeIds]. An id this build
-     * doesn't know (a mode since removed) is left out. */
-    suspend fun primaryPlayerModesPlayed(): Set<GameMode> = scoreDao.primaryPlayerGameModeIds().mapNotNull(GameMode::fromId).toSet()
-
     /**
      * The primary player's best score in [gameMode] from the games played after [afterEpochMillis] under its own rules,
      * for its online leaderboard - see [ScoreDao.bestUnpostedScore]. Null when there are none.
@@ -150,9 +141,8 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
     suspend fun bestUnpostedScore(gameMode: GameMode, afterEpochMillis: Long): UnpostedScore? =
         scoreDao.bestUnpostedScore(gameMode.id, afterEpochMillis, gameMode.maxPossibleScore)
 
-    /** Every leaderboard-derived figure in one go, for the achievements measured against the board. */
-    suspend fun leaderboardTotals(): LeaderboardTotals =
-        LeaderboardTotals(distinctScores = distinctScores(), totalPoints = primaryPlayerTotalPoints(), modesPlayed = primaryPlayerModesPlayed())
+    /** Every leaderboard-derived figure in one consistent read, for the achievements measured against the board - see [ScoreDao.leaderboardTotals]. */
+    suspend fun leaderboardTotals(): LeaderboardTotals = scoreDao.leaderboardTotals()
 
     /**
      * Per-player aggregate stats for the Statistics screen - see [PlayerStatistics]. One query for
@@ -160,9 +150,8 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
      * folded here: `groupBy` keeps that order, both across players and within each one's games.
      */
     suspend fun playerStatistics(): List<PlayerStatistics> =
-        scoreDao.playerGames().groupBy { playerNameKey(it.playerName) }.values.map { variants ->
+        scoreDao.playerGames().groupBy { it.playerKey }.values.map { games ->
             // Names differing only by case are one player; show the spelling they used most recently.
-            val games = variants.sortedByDescending { it.timestampEpochMillis }
             val playerName = games.first().playerName
             val streaks = winStreaks(games.map { it.won })
             PlayerStatistics(
