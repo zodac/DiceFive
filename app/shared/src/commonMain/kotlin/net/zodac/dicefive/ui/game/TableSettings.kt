@@ -1,6 +1,6 @@
 package net.zodac.dicefive.ui.game
 
-import net.zodac.dicefive.ui.game.style.GameVisualTheme
+import net.zodac.dicefive.ui.style.GameVisualTheme
 
 /**
  * Everything about how the table looks and feels that comes from the player's saved Styles picks

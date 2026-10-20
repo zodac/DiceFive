@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.onSizeChanged
-import net.zodac.dicefive.ui.game.style.drawPips
+import net.zodac.dicefive.ui.style.drawPips
 
 /**
  * One scattered watermark die: position and size as fractions of the screen, so the motif scales

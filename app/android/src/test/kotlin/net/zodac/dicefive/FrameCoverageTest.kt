@@ -25,10 +25,10 @@ import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.ui.game.PlayerHeaderBar
-import net.zodac.dicefive.ui.game.style.GameVisualTheme
-import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
-import net.zodac.dicefive.ui.game.style.ScoreFrame
-import net.zodac.dicefive.ui.game.style.ScoreFrames
+import net.zodac.dicefive.ui.style.GameVisualTheme
+import net.zodac.dicefive.ui.style.LocalGameVisualTheme
+import net.zodac.dicefive.ui.style.ScoreFrame
+import net.zodac.dicefive.ui.style.ScoreFrames
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

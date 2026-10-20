@@ -15,7 +15,7 @@ import net.zodac.dicefive.app.LocalAppContainer
 import net.zodac.dicefive.ui.achievements.AchievementEvent
 import net.zodac.dicefive.ui.achievements.AchievementEvents
 import net.zodac.dicefive.ui.achievements.StylesEarnedBy
-import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.style.DiceStyles
 import net.zodac.dicefive.device.AndroidAppContainer
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
 import net.zodac.dicefive.ui.common.LocalReduceMotion

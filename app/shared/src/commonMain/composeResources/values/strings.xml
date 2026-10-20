@@ -903,7 +903,7 @@
     <string name="settings_reset_leaderboard_message">Every recorded score will be deleted, clearing the Leaderboard screen - and Statistics with it, since it's calculated from the same scores. This can't be undone. Achievements and settings are not affected, though any achievement progress measured against the leaderboard will start over.</string>
     <string name="settings_reset_leaderboard_online_note">Scores already sent to %1$s stay there.</string>
 
-    <!-- Style names (ui/game/style/StyleCatalog.kt): what each style, and each colour of it, is called on the Styles screen. Short: they sit under a small tile. -->
+    <!-- Style names (ui/style/StyleCatalog.kt): what each style, and each colour of it, is called on the Styles screen. Short: they sit under a small tile. -->
     <string name="style_family_art_deco">Art Deco</string>
     <string name="style_family_bestagon">Bestagon</string>
     <string name="style_family_bestagons">Bestagons</string>
@@ -1106,7 +1106,7 @@
     <string name="style_colour_wicker">Wicker</string>
     <string name="style_colour_yellow">Yellow</string>
 
-    <!-- What one style of a category is called in a sentence ("the 'Frosted' dice style"), and what a family's variants are called (ui/game/style/StyleCatalog.kt). -->
+    <!-- What one style of a category is called in a sentence ("the 'Frosted' dice style"), and what a family's variants are called (ui/style/StyleCatalog.kt). -->
     <string name="style_noun_dice">dice</string>
     <string name="style_noun_dice_cup">dice cup</string>
     <string name="style_noun_background">background</string>
@@ -1117,7 +1117,7 @@
     <!-- ...but the frames differ in shape. -->
     <string name="style_variant_design">design</string>
 
-    <!-- Style rewards (ui/game/style/StyleUnlock.kt, ui/achievements) -->
+    <!-- Style rewards (ui/style/StyleUnlock.kt, ui/achievements) -->
     <!-- What an achievement unlocks, in a sentence: "the 'Irish' dice style". %1$s is the style, %2$s its category (dice, mat...). -->
     <string name="styles_reward_style">the '%1$s' %2$s style</string>
     <!-- Chosen by how many hidden colours the achievement unlocks (the count isn't shown). -->

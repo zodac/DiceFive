@@ -41,8 +41,8 @@ import net.zodac.dicefive.ui.common.BrandBackdrop
 import net.zodac.dicefive.ui.common.LocalLandscapePage
 import net.zodac.dicefive.ui.common.PageColumn
 import net.zodac.dicefive.ui.common.stringResource
-import net.zodac.dicefive.ui.game.style.DiceCupStyles
-import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.style.DiceCupStyles
+import net.zodac.dicefive.ui.style.DiceStyles
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 
 /**

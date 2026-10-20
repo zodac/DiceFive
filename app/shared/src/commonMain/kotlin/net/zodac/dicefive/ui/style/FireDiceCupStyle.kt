@@ -1,0 +1,28 @@
+package net.zodac.dicefive.ui.style
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import net.zodac.dicefive.ui.theme.FireCupLitFace
+import net.zodac.dicefive.ui.theme.FireCupMidFace
+import net.zodac.dicefive.ui.theme.FireCupShadeFace
+import net.zodac.dicefive.ui.theme.FireCupShadow
+import net.zodac.dicefive.ui.theme.FlameOrange
+
+/** The Faceted cup in Red [DiceCupStyle]: [FacetedDiceCupStyle]'s shape in reds with orange edges. */
+object FireDiceCupStyle : DiceCupStyle {
+    override val id: String = "faceted_red"
+
+    @Composable
+    override fun Cup(rolling: Boolean, tilted: Boolean, modifier: Modifier) {
+        CupCanvas(rolling, tilted, modifier) {
+            drawFacetedCup(
+                shadeFace = FireCupShadeFace,
+                litFace = FireCupLitFace,
+                midFace = FireCupMidFace,
+                edge = FlameOrange,
+                interior = FireCupShadow,
+                shadow = FireCupShadow,
+            )
+        }
+    }
+}

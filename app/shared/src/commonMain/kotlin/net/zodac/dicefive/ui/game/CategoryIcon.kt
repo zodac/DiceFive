@@ -44,9 +44,9 @@ import net.zodac.dicefive.resources.ic_stairs
 import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.stringResource
-import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
-import net.zodac.dicefive.ui.game.style.PipFace
-import net.zodac.dicefive.ui.game.style.palette
+import net.zodac.dicefive.ui.style.LocalIrishTricolour
+import net.zodac.dicefive.ui.style.PipFace
+import net.zodac.dicefive.ui.style.palette
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 import org.jetbrains.compose.resources.painterResource

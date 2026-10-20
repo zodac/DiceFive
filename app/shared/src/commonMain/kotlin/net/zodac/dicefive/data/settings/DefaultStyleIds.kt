@@ -2,7 +2,7 @@ package net.zodac.dicefive.data.settings
 
 /**
  * The id of each Styles category's default - what [SettingsRepository] reads before a pick is saved. The default
- * styles themselves (each catalog's first, in `ui.game.style`) take their ids from here, so the two can't disagree.
+ * styles themselves (each catalog's first, in `ui.style`) take their ids from here, so the two can't disagree.
  * Stored ids: permanent once released.
  */
 object DefaultStyleIds {

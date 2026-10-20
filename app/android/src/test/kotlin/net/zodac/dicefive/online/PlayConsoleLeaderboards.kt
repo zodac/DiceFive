@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.unit.dp
 import net.zodac.dicefive.model.GameMode
-import net.zodac.dicefive.ui.game.style.pipLayout
+import net.zodac.dicefive.ui.style.pipLayout
 import net.zodac.dicefive.ui.theme.OnPrimaryContainer
 import net.zodac.dicefive.ui.theme.TricolourBlueSwatch
 import net.zodac.dicefive.ui.theme.TricolourRedSwatch

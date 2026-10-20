@@ -13,10 +13,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.model.Achievement
-import net.zodac.dicefive.ui.game.style.DiceCupStyles
-import net.zodac.dicefive.ui.game.style.DiceMats
-import net.zodac.dicefive.ui.game.style.DiceStyles
-import net.zodac.dicefive.ui.game.style.TableBackgrounds
+import net.zodac.dicefive.ui.style.DiceCupStyles
+import net.zodac.dicefive.ui.style.DiceMats
+import net.zodac.dicefive.ui.style.DiceStyles
+import net.zodac.dicefive.ui.style.TableBackgrounds
 import net.zodac.dicefive.ui.styles.StylesScreen
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals

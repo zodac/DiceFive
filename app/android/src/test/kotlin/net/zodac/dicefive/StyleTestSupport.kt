@@ -2,9 +2,9 @@ package net.zodac.dicefive
 
 import java.io.File
 import net.zodac.dicefive.ui.achievements.UnlockedStyle
-import net.zodac.dicefive.ui.game.style.StyleCatalog
-import net.zodac.dicefive.ui.game.style.StyleFamily
-import net.zodac.dicefive.ui.game.style.TableArt
+import net.zodac.dicefive.ui.style.StyleCatalog
+import net.zodac.dicefive.ui.style.StyleFamily
+import net.zodac.dicefive.ui.style.TableArt
 import org.jetbrains.compose.resources.StringResource
 
 /**

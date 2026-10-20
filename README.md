@@ -111,12 +111,12 @@ app/shared/src/commonMain/kotlin/net/zodac/dicefive/    everything platform-neut
     menu/           MenuScreen (Play/Achievements/Styles/Leaderboard/Statistics/Rules/Settings)
     setup/          GameSetupScreen (players, game mode, modifiers)
     game/           GameScreen + GameViewModel, the board, dice tray and cup, Game Over
-    game/style/     the table art: every dice, cup, mat, background and frame style
     scores/         ScoresScreen + ScoresViewModel (the Leaderboard)
     statistics/     StatisticsScreen + StatisticsViewModel
     achievements/   AchievementsScreen + AchievementsViewModel, AchievementBannerHost and the
                     AchievementEvents it shows
     styles/         StylesScreen (pick and preview the table art)
+    style/          the table art: every dice, cup, mat, background and frame style
     rules/          RulesScreen
     settings/       SettingsScreen + SettingsViewModel, About, Licences
     theme/          Compose theme (colour)

@@ -332,11 +332,11 @@ import net.zodac.dicefive.ui.game.CategoryTile
 import net.zodac.dicefive.ui.game.FADED_DIE_ALPHA
 import net.zodac.dicefive.ui.game.LockedChains
 import net.zodac.dicefive.ui.game.TurnTimerBadge
-import net.zodac.dicefive.ui.game.style.ClassicGoldDiceCupStyle
-import net.zodac.dicefive.ui.game.style.IvoryDiceStyle
-import net.zodac.dicefive.ui.game.style.PIP_FACES
-import net.zodac.dicefive.ui.game.style.numberedLike
-import net.zodac.dicefive.ui.game.style.palette
+import net.zodac.dicefive.ui.style.ClassicGoldDiceCupStyle
+import net.zodac.dicefive.ui.style.IvoryDiceStyle
+import net.zodac.dicefive.ui.style.PIP_FACES
+import net.zodac.dicefive.ui.style.numberedLike
+import net.zodac.dicefive.ui.style.palette
 import net.zodac.dicefive.ui.game.drawColumnOutline
 import net.zodac.dicefive.ui.game.targetProgress
 import org.jetbrains.compose.resources.StringResource

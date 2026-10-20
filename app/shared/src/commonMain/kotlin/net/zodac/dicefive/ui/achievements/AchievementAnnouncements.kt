@@ -19,8 +19,8 @@ import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.spokenList
 import net.zodac.dicefive.ui.common.stringResource
-import net.zodac.dicefive.ui.game.style.styleRewards
-import net.zodac.dicefive.ui.game.style.stylesUnlockedByCount
+import net.zodac.dicefive.ui.style.styleRewards
+import net.zodac.dicefive.ui.style.stylesUnlockedByCount
 
 /**
  * Puts everything a recorded [update] earned up as banners: each unlock, followed by a styles banner for whatever

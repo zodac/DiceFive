@@ -18,11 +18,11 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.ui.common.LocalReduceMotion
-import net.zodac.dicefive.ui.game.style.DiceCupStyle
-import net.zodac.dicefive.ui.game.style.DiceCupStyles
-import net.zodac.dicefive.ui.game.style.LocalCupActivity
-import net.zodac.dicefive.ui.game.style.TreasureChestDiceCupStyle
-import net.zodac.dicefive.ui.game.style.isHoardPaintedForTest
+import net.zodac.dicefive.ui.style.DiceCupStyle
+import net.zodac.dicefive.ui.style.DiceCupStyles
+import net.zodac.dicefive.ui.style.LocalCupActivity
+import net.zodac.dicefive.ui.style.TreasureChestDiceCupStyle
+import net.zodac.dicefive.ui.style.isHoardPaintedForTest
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test

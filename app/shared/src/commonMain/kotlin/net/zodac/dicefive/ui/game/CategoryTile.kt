@@ -54,8 +54,8 @@ import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.ui.common.LocalReduceMotion
 import net.zodac.dicefive.ui.common.scorePulse
-import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
-import net.zodac.dicefive.ui.game.style.palette
+import net.zodac.dicefive.ui.style.LocalIrishTricolour
+import net.zodac.dicefive.ui.style.palette
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileHighlightBottom
 import net.zodac.dicefive.ui.theme.TileHighlightTop

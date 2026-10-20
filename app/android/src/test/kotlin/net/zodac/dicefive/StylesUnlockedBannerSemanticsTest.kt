@@ -22,10 +22,10 @@ import net.zodac.dicefive.ui.achievements.AchievementEvent
 import net.zodac.dicefive.ui.achievements.AchievementEvents
 import net.zodac.dicefive.ui.achievements.StylesEarnedBy
 import net.zodac.dicefive.ui.achievements.UnlockedStyle
-import net.zodac.dicefive.ui.game.style.DiceMats
-import net.zodac.dicefive.ui.game.style.DiceStyles
-import net.zodac.dicefive.ui.game.style.TableBackgrounds
-import net.zodac.dicefive.ui.game.style.styleRewards
+import net.zodac.dicefive.ui.style.DiceMats
+import net.zodac.dicefive.ui.style.DiceStyles
+import net.zodac.dicefive.ui.style.TableBackgrounds
+import net.zodac.dicefive.ui.style.styleRewards
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Rule
 import org.junit.Test

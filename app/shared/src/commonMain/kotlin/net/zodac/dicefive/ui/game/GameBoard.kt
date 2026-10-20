@@ -51,8 +51,8 @@ import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.TurnPhase
 import net.zodac.dicefive.model.flowerpotStage
 import net.zodac.dicefive.ui.common.delayWhileResumed
-import net.zodac.dicefive.ui.game.style.FlowerpotGrowth
-import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
+import net.zodac.dicefive.ui.style.FlowerpotGrowth
+import net.zodac.dicefive.ui.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.color
 
 /** Inset of the score-grid + cup section's content. Its height is fixed per game mode (see

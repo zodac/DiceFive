@@ -35,11 +35,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.R
 import net.zodac.dicefive.ui.common.AppLogo
 import net.zodac.dicefive.ui.common.BrandBackdrop
-import net.zodac.dicefive.ui.game.style.DiceCupStyles
-import net.zodac.dicefive.ui.game.style.DieMotion
-import net.zodac.dicefive.ui.game.style.DiceStyles
-import net.zodac.dicefive.ui.game.style.LocalDieIndex
-import net.zodac.dicefive.ui.game.style.LocalDieMotion
+import net.zodac.dicefive.ui.style.DiceCupStyles
+import net.zodac.dicefive.ui.style.DieMotion
+import net.zodac.dicefive.ui.style.DiceStyles
+import net.zodac.dicefive.ui.style.LocalDieIndex
+import net.zodac.dicefive.ui.style.LocalDieMotion
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Rule
 import org.junit.Test

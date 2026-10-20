@@ -303,7 +303,7 @@ class SettingsRepository(
         edit { it[SCREEN_ORIENTATION_KEY] = orientation.id }
     }
 
-    // Style ids, not the ui.game.style types themselves - this is the data layer, and resolving an
+    // Style ids, not the ui.style types themselves - this is the data layer, and resolving an
     // id to a concrete DiceStyle/DiceCupStyle/TableBackground is the Styles screen's job (via its
     // catalog). The defaults are DefaultStyleIds, which the default styles themselves are given.
     val diceStyleId: Flow<String> = read { prefs -> prefs[DICE_STYLE_ID_KEY] ?: DefaultStyleIds.DICE }

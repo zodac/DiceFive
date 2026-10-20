@@ -1,0 +1,557 @@
+package net.zodac.dicefive.ui.style
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.random.Random
+import net.zodac.dicefive.ui.theme.GoldAccent
+import net.zodac.dicefive.ui.theme.IrishGreenSwatch
+import net.zodac.dicefive.ui.theme.IrishOrangeSwatch
+import net.zodac.dicefive.ui.theme.IrishWhiteDiceBottom
+import net.zodac.dicefive.ui.theme.IrishWhitePipColor
+import net.zodac.dicefive.ui.theme.IrishWhiteSwatch
+import net.zodac.dicefive.ui.theme.TricolourBlueSwatch
+import net.zodac.dicefive.ui.theme.TricolourRedSwatch
+import net.zodac.dicefive.ui.theme.TricolourYellowSwatch
+
+/**
+ * Which physical die is being drawn - its position in the tray - so a style meant to look natural
+ * (marble, frosted glass) can give every die its own pattern rather than stamping out identical
+ * copies. 0 wherever there's only ever one die at a time, like the Styles screen's previews.
+ */
+val LocalDieIndex = compositionLocalOf { 0 }
+
+/**
+ * How long the die being drawn has been tumbling across the mat mid-toss, in milliseconds, or null
+ * when it isn't. Only a style that [DiceStyle.tumblesItself] (the D20, a real solid) reads it,
+ * turning through orientations as it goes - from the toss's own clock rather than one of its own,
+ * so its ground shadow ([DiceStyle.shadowShape], handed the same time) turns with it.
+ */
+val LocalDieTumbleMillis = compositionLocalOf<Float?> { null }
+
+/**
+ * Whether a die draws its own drop shadow. Off for dice lying on the mat, where the tray casts one
+ * consistent ground shadow for every die instead, from a single light, following it as it's thrown
+ * and tumbles - a die's own shadow can't follow it through a 3D tumble, so it would pop in only once
+ * the die settled.
+ */
+val LocalDieCastsShadow = compositionLocalOf { true }
+
+/** A die's usual drop shadow round [shape] - unless something else is casting it one ([LocalDieCastsShadow]). */
+@Composable
+internal fun Modifier.dieShadow(shape: Shape): Modifier =
+    if (LocalDieCastsShadow.current) shadow(elevation = 4.dp, shape = shape, clip = false) else this
+
+/** A seed for [value]'s face on the die at [LocalDieIndex]: different for every face of every die. */
+@Composable
+internal fun naturalPatternSeed(value: Int, styleSeed: Int = 0): Int = LocalDieIndex.current * 97 + value * 13 + styleSeed
+
+/** How rounded a [StyledDie]'s corners are unless a style says otherwise, as a percentage of its size. */
+internal const val STYLED_DIE_CORNER_PERCENT = 22
+
+/** How a die shows its value. [CUSTOM] leaves it to the die's own pip painter. */
+internal enum class PipShape { ROUND, SQUARE, NUMERAL, CUSTOM }
+
+/**
+ * The die every non-Classic [DiceStyle] is built from: a rounded square of [face], with [surface]
+ * painted over it (a gloss, a vein, a highlight), a thin [edge] outline - swapped for a thicker
+ * [heldRingColor] ring while held - and its value shown as [pipShape] in [pipColor], laid out across
+ * the die less [pipPadding] all round. The styles differ only in these, so the held ring, shadow and
+ * pip layout behave the same across every one.
+ */
+@Composable
+internal fun StyledDie(
+    value: Int,
+    held: Boolean,
+    modifier: Modifier,
+    face: Brush,
+    edge: Color,
+    pipColor: Color,
+    cornerPercent: Int = STYLED_DIE_CORNER_PERCENT,
+    edgeWidth: Dp = 1.dp,
+    pipPadding: Dp = 6.dp,
+    pipShape: PipShape = PipShape.ROUND,
+    heldRingColor: Color = GoldAccent,
+    customPips: DrawScope.(Int) -> Unit = {},
+    numeral: (Int) -> String = { it.toString() },
+    numeralFont: FontFamily? = null,
+    numeralSize: Float = 0.62f,
+    surface: DrawScope.() -> Unit = {},
+) {
+    val shape = RoundedCornerShape(cornerPercent)
+    Box(
+        modifier = modifier
+            .dieShadow(shape)
+            .clip(shape)
+            .background(face)
+            .drawBehind { surface() }
+            .border(if (held) 2.dp else edgeWidth, if (held) heldRingColor else edge, shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        when (pipShape) {
+            PipShape.ROUND -> PipFace(
+                value = value,
+                color = pipColor,
+                modifier = Modifier.fillMaxSize().padding(pipPadding),
+                pipRadiusFraction = 0.11f,
+            )
+            PipShape.SQUARE -> Canvas(modifier = Modifier.fillMaxSize().padding(pipPadding)) {
+                drawPipPositions(value) { centre ->
+                    val half = size.minDimension * 0.1f
+                    drawRect(pipColor, topLeft = Offset(centre.x - half, centre.y - half), size = Size(half * 2, half * 2))
+                }
+            }
+            PipShape.CUSTOM -> Canvas(modifier = Modifier.fillMaxSize().padding(pipPadding)) { customPips(value) }
+            PipShape.NUMERAL -> BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                // One size for every face of a style, as a fraction of the die's height - set small
+                // enough by numeral systems with longer numerals that their widest one still fits.
+                val fontSize = with(LocalDensity.current) { (maxHeight * numeralSize).toSp() }
+                Text(
+                    text = numeral(value),
+                    color = pipColor,
+                    fontSize = fontSize,
+                    lineHeight = fontSize,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = numeralFont,
+                )
+            }
+        }
+    }
+}
+
+// How rounded a Frosted die's corners are, as a percentage of its size - for drawing it and its shadow alike.
+private const val FROSTED_CORNER_PERCENT = 6
+
+/**
+ * Frosted-glass dice with square corners: a see-through milky tint the mat shows faintly through,
+ * frost that's thicker in some patches than others with a few fine crystalline scratches, a soft
+ * glow round the edges where the glass is thickest, and a diffuse highlight - with tinted, slightly
+ * see-through pips. The frost is different on every face of every die (see [LocalDieIndex]), the
+ * way real frosting never repeats.
+ */
+class FrostedDiceStyle(
+    override val id: String,
+    private val light: Color,
+    private val dark: Color,
+    private val pip: Color,
+    private val heldRing: Color = GoldAccent,
+) : DiceStyle, Swatched {
+    override val swatch: Color = dark
+
+    override fun recoloured(palette: DieColourPalette): DiceStyle =
+        FrostedDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, palette.heldRing)
+
+    override val cornerPercent: Int = FROSTED_CORNER_PERCENT
+
+    @Composable
+    override fun Die(value: Int, held: Boolean, modifier: Modifier) {
+        val seed = naturalPatternSeed(value)
+        StyledDie(
+            value = value,
+            held = held,
+            modifier = modifier,
+            face = Brush.linearGradient(listOf(light.copy(alpha = 0.82f), dark.copy(alpha = 0.72f))),
+            edge = Color.White.copy(alpha = 0.55f),
+            pipColor = pip.copy(alpha = 0.85f),
+            cornerPercent = FROSTED_CORNER_PERCENT,
+            heldRingColor = heldRing,
+        ) {
+            drawCachedSurface(FrostSurface(seed)) { drawFrost(seed) }
+        }
+    }
+}
+
+private data class FrostSurface(val seed: Int)
+
+/**
+ * Frost for one face: uneven patches where it's built up thicker, a fine grain whose density
+ * varies across the face, a few thin crystalline scratches, then the diffuse highlight and the
+ * brighter thick-glass edge. All of it from [seed], so the face looks the same every time it's drawn.
+ */
+private fun DrawScope.drawFrost(seed: Int) {
+    val random = Random(seed)
+    val w = size.width
+    val h = size.height
+    // Patches of heavier frost, each a soft bloom of its own size and strength.
+    val patches = List(2 + random.nextInt(3)) {
+        Triple(Offset(random.nextFloat() * w, random.nextFloat() * h), size.minDimension * (0.2f + random.nextFloat() * 0.35f), 0.12f + random.nextFloat() * 0.2f)
+    }
+    for ((centre, radius, strength) in patches) {
+        drawSoftSpot(Color.White.copy(alpha = strength), centre, radius)
+    }
+    // Grain: denser inside the patches than between them.
+    val speck = 2.dp.toPx()
+    repeat((w * h / (speck * speck) * 1.4f).toInt()) {
+        val at = Offset(random.nextFloat() * w, random.nextFloat() * h)
+        val inPatch = patches.any { (centre, radius, _) -> (at - centre).getDistance() < radius }
+        if (!inPatch && random.nextFloat() < 0.55f) return@repeat
+        drawCircle(
+            Color.White.copy(alpha = (if (inPatch) 0.12f else 0.05f) + random.nextFloat() * 0.12f),
+            radius = speck * (0.15f + random.nextFloat() * 0.25f),
+            center = at,
+        )
+    }
+    // A few fine scratches, each a short straight line at its own angle.
+    repeat(2 + random.nextInt(3)) {
+        val from = Offset(random.nextFloat() * w, random.nextFloat() * h)
+        val angle = random.nextFloat() * 2f * PI.toFloat()
+        val length = size.minDimension * (0.15f + random.nextFloat() * 0.3f)
+        drawLine(
+            Color.White.copy(alpha = 0.18f + random.nextFloat() * 0.15f),
+            from,
+            from + Offset(cos(angle) * length, sin(angle) * length),
+            strokeWidth = 0.6.dp.toPx(),
+        )
+    }
+    // A soft, diffuse highlight rather than a sharp reflection - frosted glass scatters it.
+    val glint = Offset(w * (0.2f + random.nextFloat() * 0.2f), h * (0.2f + random.nextFloat() * 0.15f))
+    drawCircle(
+        Brush.radialGradient(listOf(Color.White.copy(alpha = 0.3f), Color.Transparent), center = glint, radius = size.minDimension * 0.6f),
+        radius = size.minDimension * 0.6f,
+        center = glint,
+    )
+    // The thicker glass at the edges glows a little brighter.
+    val inset = 1.5.dp.toPx()
+    drawRect(
+        Color.White.copy(alpha = 0.3f),
+        topLeft = Offset(inset, inset),
+        size = Size(w - inset * 2, h - inset * 2),
+        style = Stroke(width = 2.dp.toPx()),
+    )
+}
+
+// How rounded a Marble die's corners are, as a percentage of its size - for drawing it and its shadow alike.
+private const val MARBLE_CORNER_PERCENT = 18
+
+private data class CarvedMarblePips(val value: Int, val light: Color, val dark: Color, val pip: Color, val seed: Int)
+
+/**
+ * Polished marble dice, veined across the face like a kitchen countertop - differently on every face
+ * of every die - with their pips carved in, as the other Stone dice's are.
+ */
+class MarbleDiceStyle(
+    override val id: String,
+    private val light: Color,
+    private val dark: Color,
+    private val vein: Color,
+    private val pip: Color,
+    private val seed: Int,
+    private val heldRing: Color = GoldAccent,
+) : DiceStyle, Swatched {
+    override val swatch: Color = light
+
+    // Veins part-way from the stone towards the pips, so they stand out whichever way the pips do.
+    override fun recoloured(palette: DieColourPalette): DiceStyle = MarbleDiceStyle(
+        id, palette.diceTop, palette.diceBottom, lerp(palette.diceBottom, palette.pip, 0.4f), palette.pip, seed, palette.heldRing,
+    )
+
+    override val cornerPercent: Int = MARBLE_CORNER_PERCENT
+
+    @Composable
+    override fun Die(value: Int, held: Boolean, modifier: Modifier) {
+        // Every face of every die veined differently - it's meant to be natural stone.
+        val faceSeed = naturalPatternSeed(value, styleSeed = seed)
+        StyledDie(
+            value = value,
+            held = held,
+            modifier = modifier,
+            face = Brush.linearGradient(listOf(light, dark)),
+            edge = dark,
+            pipColor = pip,
+            cornerPercent = MARBLE_CORNER_PERCENT,
+            pipShape = PipShape.CUSTOM,
+            heldRingColor = heldRing,
+            // Carved into the stone, like the rest of its family's - each face's own chisel work.
+            customPips = { drawCachedSurface(CarvedMarblePips(value, light, dark, pip, faceSeed)) { drawCarvedPips(value, light, dark, pip, faceSeed) } },
+        ) {
+            drawMarble(faceSeed, vein)
+        }
+    }
+}
+
+// How rounded a Metal die's corners are, as a percentage of its size - for drawing it and its shadow alike.
+private const val METAL_CORNER_PERCENT = 20
+
+/**
+ * Metal dice: a diagonal sheen of light and dark bands with dark, engraved pips. [heldRing] is
+ * overridable because a gold die would swallow the usual gold held ring.
+ */
+class MetalDiceStyle(
+    override val id: String,
+    private val sheen: List<Color>,
+    private val pip: Color,
+    private val heldRing: Color = GoldAccent,
+) : DiceStyle, Swatched {
+    override val swatch: Color = sheen[1]
+
+    // The same light-dark-light-dark sheen, its highlights the colour lifted towards white.
+    override fun recoloured(palette: DieColourPalette): DiceStyle = MetalDiceStyle(
+        id,
+        listOf(lerp(palette.diceTop, Color.White, 0.45f), palette.diceTop, lerp(palette.diceTop, Color.White, 0.3f), palette.diceBottom),
+        palette.pip,
+        palette.heldRing,
+    )
+
+    override val cornerPercent: Int = METAL_CORNER_PERCENT
+
+    @Composable
+    override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
+        value = value,
+        held = held,
+        modifier = modifier,
+        face = Brush.linearGradient(sheen),
+        edge = sheen.last(),
+        pipColor = pip,
+        cornerPercent = METAL_CORNER_PERCENT,
+        heldRingColor = heldRing,
+    )
+}
+
+// How rounded a Retro die's corners are, as a percentage of its size - for drawing it and its shadow alike.
+private const val RETRO_CORNER_PERCENT = 6
+
+/** Flat, square-cornered retro dice with square pips and a heavy outline, like an old handheld's screen. */
+class RetroDiceStyle(
+    override val id: String,
+    private val face: Color,
+    private val outline: Color,
+    private val pip: Color,
+    private val heldRing: Color = GoldAccent,
+) : DiceStyle, Swatched {
+    override val swatch: Color = face
+
+    override fun recoloured(palette: DieColourPalette): DiceStyle =
+        RetroDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, palette.heldRing)
+
+    override val cornerPercent: Int = RETRO_CORNER_PERCENT
+
+    @Composable
+    override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
+        value = value,
+        held = held,
+        modifier = modifier,
+        face = Brush.linearGradient(listOf(face, face)),
+        edge = outline,
+        pipColor = pip,
+        cornerPercent = RETRO_CORNER_PERCENT,
+        edgeWidth = 2.dp,
+        pipShape = PipShape.SQUARE,
+        heldRingColor = heldRing,
+    )
+}
+
+/** How a [NumeralDiceStyle] writes a value: as a digit, a Roman numeral, an Eastern Arabic digit, a Japanese numeral, or an English word. */
+enum class NumeralSystem(val write: (Int) -> String, val size: Float, val font: FontFamily? = null) {
+    DIGITS({ it.toString() }, size = 0.62f),
+    // Smaller, so the widest numeral ("III") still fits - and every face at that same size.
+    ROMAN({ listOf("I", "II", "III", "IV", "V", "VI")[it - 1] }, size = 0.4f, font = FontFamily.Serif),
+    EASTERN_ARABIC({ listOf("\u0661", "\u0662", "\u0663", "\u0664", "\u0665", "\u0666")[it - 1] }, size = 0.62f),
+    JAPANESE({ listOf("\u4E00", "\u4E8C", "\u4E09", "\u56DB", "\u4E94", "\u516D")[it - 1] }, size = 0.55f),
+    // The value spelt out in English. Small, so the widest word ("three") fits - a style may set its own size for a wider font.
+    ENGLISH({ listOf("one", "two", "three", "four", "five", "six")[it - 1] }, size = 0.24f),
+    ENGLISH_CAPS({ listOf("ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX")[it - 1] }, size = 0.21f),
+}
+
+/** Dice that show their value as a number instead of pips, written in [system]. */
+class NumeralDiceStyle(
+    override val id: String,
+    private val light: Color,
+    private val dark: Color,
+    private val digit: Color,
+    private val system: NumeralSystem = NumeralSystem.DIGITS,
+    private val heldRing: Color = GoldAccent,
+    private val font: FontFamily? = system.font,
+    private val size: Float = system.size,
+) : DiceStyle, Swatched {
+    override val swatch: Color = light
+
+    override fun recoloured(palette: DieColourPalette): DiceStyle =
+        NumeralDiceStyle(id, palette.diceTop, palette.diceBottom, palette.pip, system, palette.heldRing, font, size)
+
+    override val cornerPercent: Int = STYLED_DIE_CORNER_PERCENT
+
+    @Composable
+    override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
+        value = value,
+        held = held,
+        modifier = modifier,
+        face = Brush.linearGradient(listOf(light, dark)),
+        edge = dark,
+        pipColor = digit,
+        pipShape = PipShape.NUMERAL,
+        numeral = system.write,
+        numeralFont = font,
+        numeralSize = size,
+        heldRingColor = heldRing,
+    )
+}
+
+/**
+ * The dice style a game with more faces than pips can show (D20 mode's twenty) is played with: [base] when it is one of
+ * the D20 styles, and the white D20 otherwise. No other style has true 1-20 art, and the player's own pick is never
+ * touched - another mode still draws it.
+ */
+fun d20Like(base: DiceStyle): DiceStyle = if (base is D20DiceStyle) base else D20WhiteDiceStyle
+
+/** The most faces a die's pips (and most styles' art) can show: a six-sided die's. */
+const val PIP_FACES = 6
+
+/**
+ * [base] as a plain numbered die, in the colour of its material with its number in whichever of black and white reads
+ * on it - what the Rules page draws examples with a number past six in, where a D20 would be too small to read.
+ */
+fun numberedLike(base: DiceStyle): DiceStyle {
+    val light = base.bodyColor
+    val dark = lerp(light, Color.Black, NUMBERED_DIE_SHADE)
+    val digit = if (light.luminance() > NUMBERED_DIE_LIGHT_LUMINANCE) Color(0xFF1A1A1A) else Color.White
+    return NumeralDiceStyle(base.id, light, dark, digit, size = NUMBERED_DIE_TEXT_SIZE)
+}
+
+// How far the lower corner of a numbered die darkens, which of black and white its digits are by the die's brightness,
+// and how big they are: small enough that two digits fit one die's width.
+private const val NUMBERED_DIE_SHADE = 0.3f
+private const val NUMBERED_DIE_LIGHT_LUMINANCE = 0.5f
+private const val NUMBERED_DIE_TEXT_SIZE = 0.5f
+
+/** The corners of the smallest convex outline around [points], in order round it. */
+internal fun convexHull(points: List<Offset>): List<Offset> {
+    val sorted = points.sortedWith(compareBy({ it.x }, { it.y }))
+    fun cross(o: Offset, a: Offset, b: Offset) = (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x)
+    fun half(ordered: List<Offset>): List<Offset> {
+        val chain = mutableListOf<Offset>()
+        for (p in ordered) {
+            while (chain.size >= 2 && cross(chain[chain.size - 2], chain.last(), p) <= 0f) chain.removeAt(chain.size - 1)
+            chain += p
+        }
+        return chain.dropLast(1)
+    }
+    return half(sorted) + half(sorted.asReversed())
+}
+
+/**
+ * A die striped in equal vertical bands of [stripes], first at the left, with [pipColor]
+ * chosen to read on all of them. On a coloured roll it's a plain die of its shape in the roll's
+ * colour - the bands are nothing but colours, so stripes of one colour would just be that
+ * colour anyway.
+ */
+class StripedDiceStyle(
+    override val id: String,
+    private val stripes: List<Color>,
+    private val edge: Color,
+    private val pipColor: Color,
+) : DiceStyle, Swatched {
+    init {
+        require(stripes.size >= 2) { "A striped die needs at least two stripes" }
+    }
+
+    override val swatch: Color = stripes.first()
+    override val bodyColor: Color = edge
+
+    // Hard-edged bands: each colour's stop is repeated at both ends of its slice.
+    private val bands = Brush.horizontalGradient(
+        *stripes.flatMapIndexed { i, colour ->
+            listOf((i.toFloat() / stripes.size) to colour, ((i + 1).toFloat() / stripes.size) to colour)
+        }.toTypedArray(),
+    )
+
+    override val cornerPercent: Int = STYLED_DIE_CORNER_PERCENT
+
+    override fun recoloured(palette: DieColourPalette): DiceStyle = object : DiceStyle {
+        override val id: String = this@StripedDiceStyle.id
+        override val bodyColor: Color = lerp(palette.diceTop, palette.diceBottom, 0.5f)
+
+        override fun recoloured(palette: DieColourPalette): DiceStyle = this@StripedDiceStyle.recoloured(palette)
+
+        override val cornerPercent: Int = STYLED_DIE_CORNER_PERCENT
+
+        @Composable
+        override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
+            value = value,
+            held = held,
+            modifier = modifier,
+            face = Brush.linearGradient(listOf(palette.diceTop, palette.diceBottom)),
+            edge = palette.diceBottom,
+            pipColor = palette.pip,
+            heldRingColor = palette.heldRing,
+        )
+    }
+
+    @Composable
+    override fun Die(value: Int, held: Boolean, modifier: Modifier) = StyledDie(
+        value = value,
+        held = held,
+        modifier = modifier,
+        face = bands,
+        edge = edge,
+        pipColor = pipColor,
+    )
+}
+
+/**
+ * The Irish flag as a die - green, white and orange in equal vertical thirds, green at the hoist -
+ * in the same flag colours Tricolour switches to for Luck of the Irish, with dark pips that read on
+ * all three. The first colour of Multicolour, the secret style that achievement unlocks.
+ */
+val IrishFlagDiceStyle: StripedDiceStyle = StripedDiceStyle(
+    id = "multicolour_irish",
+    stripes = listOf(IrishGreenSwatch, IrishWhiteSwatch, IrishOrangeSwatch),
+    edge = IrishWhiteDiceBottom,
+    pipColor = IrishWhitePipColor,
+)
+
+private val MULTICOLOUR_EDGE = Color(0xFF3A3A3A)
+private val MULTICOLOUR_PIP = Color(0xFF14181F)
+
+/** Tricolour mode's red, yellow and blue as a die - the same shades its coloured dice use. */
+val TricolourStripedDiceStyle: StripedDiceStyle = StripedDiceStyle(
+    id = "multicolour_tricolour",
+    stripes = listOf(TricolourRedSwatch, TricolourYellowSwatch, TricolourBlueSwatch),
+    edge = MULTICOLOUR_EDGE,
+    pipColor = MULTICOLOUR_PIP,
+)
+
+/** The seven colours of the rainbow, red to violet, in shades light enough for the dark pips. */
+val RainbowStripedDiceStyle: StripedDiceStyle = StripedDiceStyle(
+    id = "multicolour_rainbow",
+    stripes = listOf(
+        Color(0xFFEF5350),
+        Color(0xFFFF9800),
+        Color(0xFFFFEE58),
+        Color(0xFF66BB6A),
+        Color(0xFF4FC3F7),
+        Color(0xFF7986CB),
+        Color(0xFFBA68C8),
+    ),
+    edge = MULTICOLOUR_EDGE,
+    pipColor = MULTICOLOUR_PIP,
+)

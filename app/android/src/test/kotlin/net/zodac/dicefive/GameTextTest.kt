@@ -28,7 +28,7 @@ import net.zodac.dicefive.ui.game.ReadOnlyScoreboard
 import net.zodac.dicefive.ui.game.ScoreGrid
 import net.zodac.dicefive.ui.game.ScorecardReviewScreen
 import net.zodac.dicefive.ui.game.TotalsButton
-import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
+import net.zodac.dicefive.ui.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule

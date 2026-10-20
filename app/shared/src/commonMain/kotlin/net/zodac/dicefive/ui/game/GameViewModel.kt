@@ -69,17 +69,17 @@ import net.zodac.dicefive.model.isLuckOfTheIrish
 import net.zodac.dicefive.model.sanitizePlayerName
 import net.zodac.dicefive.model.takeNameWidth
 import net.zodac.dicefive.ui.achievements.AchievementUnlocker
-import net.zodac.dicefive.ui.game.style.ChickenDiceCupStyle
-import net.zodac.dicefive.ui.game.style.DiceCupStyles
-import net.zodac.dicefive.ui.game.style.DiceMats
-import net.zodac.dicefive.ui.game.style.DiceStyles
-import net.zodac.dicefive.ui.game.style.EggDiceStyle
-import net.zodac.dicefive.ui.game.style.GameVisualTheme
-import net.zodac.dicefive.ui.game.style.GoldenEggDiceStyle
-import net.zodac.dicefive.ui.game.style.PIP_FACES
-import net.zodac.dicefive.ui.game.style.ScoreFrames
-import net.zodac.dicefive.ui.game.style.StyleCategory
-import net.zodac.dicefive.ui.game.style.TableBackgrounds
+import net.zodac.dicefive.ui.style.ChickenDiceCupStyle
+import net.zodac.dicefive.ui.style.DiceCupStyles
+import net.zodac.dicefive.ui.style.DiceMats
+import net.zodac.dicefive.ui.style.DiceStyles
+import net.zodac.dicefive.ui.style.EggDiceStyle
+import net.zodac.dicefive.ui.style.GameVisualTheme
+import net.zodac.dicefive.ui.style.GoldenEggDiceStyle
+import net.zodac.dicefive.ui.style.PIP_FACES
+import net.zodac.dicefive.ui.style.ScoreFrames
+import net.zodac.dicefive.ui.style.StyleCategory
+import net.zodac.dicefive.ui.style.TableBackgrounds
 
 /**
  * A configured-but-not-yet-started player slot on the setup screen. Slot 1

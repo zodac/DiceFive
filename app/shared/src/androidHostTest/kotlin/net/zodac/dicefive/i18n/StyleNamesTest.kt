@@ -3,7 +3,7 @@ package net.zodac.dicefive.i18n
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import net.zodac.dicefive.ui.game.style.StyleCatalogs
+import net.zodac.dicefive.ui.style.StyleCatalogs
 import org.jetbrains.compose.resources.StringResource
 
 /**

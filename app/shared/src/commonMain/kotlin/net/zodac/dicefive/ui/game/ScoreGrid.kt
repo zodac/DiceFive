@@ -89,7 +89,7 @@ import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
-import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
+import net.zodac.dicefive.ui.style.LocalIrishTricolour
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.TileIconColor
 

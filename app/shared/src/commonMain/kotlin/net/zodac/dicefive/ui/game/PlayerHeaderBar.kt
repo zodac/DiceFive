@@ -63,7 +63,7 @@ import net.zodac.dicefive.ui.common.joinClauses
 import net.zodac.dicefive.ui.common.localised
 import net.zodac.dicefive.ui.common.ordinal
 import net.zodac.dicefive.ui.common.stringResource
-import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
+import net.zodac.dicefive.ui.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.color
 
 /** How long a score takes to count up: most turns' points rise in [SCORE_RISE_MIN_MILLIS], a bigger
@@ -84,7 +84,7 @@ internal fun scoreRiseMillis(pointsGained: Int): Int =
 /**
  * The top row of player tabs, each on a plain surface panel: name, running total, place in the game so far (see [standings] - none
  * in a solo game, or before anyone has scored a turn), and (for the active player) a frame in their
- * colour - the ring of the Classic frame, or whichever [ScoreFrame][net.zodac.dicefive.ui.game.style.ScoreFrame]
+ * colour - the ring of the Classic frame, or whichever [ScoreFrame][net.zodac.dicefive.ui.style.ScoreFrame]
  * they've picked on the Styles screen - plus a small dot underneath: the only "whose turn is it" indicator, since the scoring grid
  * below always shows just the active player's own card. Tapping a tab shows that player's
  * scorecard read-only in place of the live board (see [PlayerHeaderBar]'s `onPlayerTap`) - the

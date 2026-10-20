@@ -6,7 +6,7 @@ private val IRISH_PLAYER_NAMES = setOf("ireland", "eire")
  * True for "Ireland", "Eire", or "Éire" - case- and accent-insensitive, so "IRELAND", "eire" and
  * "Éire" (however a player's keyboard happens to produce it) all match. [Achievement
  * .LUCK_OF_THE_IRISH]'s trigger, and what [isLuckOfTheIrish] re-skins Tricolour's dice/scorecard
- * colours for - see `ui.game.style.LocalIrishTricolour`.
+ * colours for - see `ui.style.LocalIrishTricolour`.
  */
 fun isIrishPlayerName(name: String): Boolean = stripDiacritics(name.trim()).lowercase() in IRISH_PLAYER_NAMES
 

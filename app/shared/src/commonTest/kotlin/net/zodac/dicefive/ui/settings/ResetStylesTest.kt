@@ -17,7 +17,7 @@ import net.zodac.dicefive.data.Stamped
 import net.zodac.dicefive.data.settings.SettingValue
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.online.OnlineSettingsRepository
-import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.style.DiceStyles
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResetStylesTest {

@@ -131,8 +131,8 @@ import net.zodac.dicefive.ui.common.timestamp
 import net.zodac.dicefive.ui.common.grouped
 import net.zodac.dicefive.ui.common.rememberAppTooltipState
 import net.zodac.dicefive.ui.common.stringResource
-import net.zodac.dicefive.ui.game.style.styleRewards
-import net.zodac.dicefive.ui.game.style.unlocksStyle
+import net.zodac.dicefive.ui.style.styleRewards
+import net.zodac.dicefive.ui.style.unlocksStyle
 import net.zodac.dicefive.ui.theme.GoldAccent
 
 // contentType tags, so hiddenUnderPinnedHeader can tell a category header from a row by the list's

@@ -72,7 +72,7 @@ data class GameStartContext(
     /**
      * Whether any of the four independently swappable table-art styles (dice, dice cup, mat,
      * background) in effect for this game is something other than that category's shipped default
-     * (`ui.game.style`'s per-category `default`) - a single boolean, not a style id, so this pure
+     * (`ui.style`'s per-category `default`) - a single boolean, not a style id, so this pure
      * engine never has to import the UI-layer style catalog just to compare a string.
      * [Achievement.FRESH_COAT_OF_PAINT]'s trigger.
      */

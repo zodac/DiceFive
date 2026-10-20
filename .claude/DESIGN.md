@@ -319,7 +319,7 @@ will map to Play Games.
 
 ## Table art (Styles)
 
-There are five independently saved categories (`ui/game/style/`), bundled as `GameVisualTheme`:
+There are five independently saved categories (`ui/style/`), bundled as `GameVisualTheme`:
 
 - dice (`DiceStyle`)
 - cups (`DiceCupStyle`)

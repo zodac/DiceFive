@@ -17,10 +17,10 @@ import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.savedStylesFlow
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.ui.achievements.AchievementUnlocker
-import net.zodac.dicefive.ui.game.style.DiceCupStyle
-import net.zodac.dicefive.ui.game.style.DiceCupStyles
-import net.zodac.dicefive.ui.game.style.DiceStyle
-import net.zodac.dicefive.ui.game.style.DiceStyles
+import net.zodac.dicefive.ui.style.DiceCupStyle
+import net.zodac.dicefive.ui.style.DiceCupStyles
+import net.zodac.dicefive.ui.style.DiceStyle
+import net.zodac.dicefive.ui.style.DiceStyles
 
 /** The dice and cup the menu's logo is drawn with - the player's own picks from the Styles screen. */
 data class LogoStyles(val dice: DiceStyle, val cup: DiceCupStyle)

@@ -88,23 +88,23 @@ import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.stringResource
 import net.zodac.dicefive.ui.theme.GoldAccent
 import net.zodac.dicefive.ui.theme.GoldAccentDim
-import net.zodac.dicefive.ui.game.style.DiceMat
-import net.zodac.dicefive.ui.game.style.DiceStyle
-import net.zodac.dicefive.ui.game.style.DieMotion
-import net.zodac.dicefive.ui.game.style.EggDiceStyle
-import net.zodac.dicefive.ui.game.style.GoldenEggDiceStyle
-import net.zodac.dicefive.ui.game.style.LocalDieCastsShadow
-import net.zodac.dicefive.ui.game.style.LocalDieIndex
-import net.zodac.dicefive.ui.game.style.LocalDieMotion
-import net.zodac.dicefive.ui.game.style.LocalDieTumbleMillis
-import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
-import net.zodac.dicefive.ui.game.style.LocalIrishTricolour
-import net.zodac.dicefive.ui.game.style.PickUpPath
-import net.zodac.dicefive.ui.game.style.PIP_FACES
-import net.zodac.dicefive.ui.game.style.TossPath
-import net.zodac.dicefive.ui.game.style.d20Like
-import net.zodac.dicefive.ui.game.style.TossPose
-import net.zodac.dicefive.ui.game.style.palette
+import net.zodac.dicefive.ui.style.DiceMat
+import net.zodac.dicefive.ui.style.DiceStyle
+import net.zodac.dicefive.ui.style.DieMotion
+import net.zodac.dicefive.ui.style.EggDiceStyle
+import net.zodac.dicefive.ui.style.GoldenEggDiceStyle
+import net.zodac.dicefive.ui.style.LocalDieCastsShadow
+import net.zodac.dicefive.ui.style.LocalDieIndex
+import net.zodac.dicefive.ui.style.LocalDieMotion
+import net.zodac.dicefive.ui.style.LocalDieTumbleMillis
+import net.zodac.dicefive.ui.style.LocalGameVisualTheme
+import net.zodac.dicefive.ui.style.LocalIrishTricolour
+import net.zodac.dicefive.ui.style.PickUpPath
+import net.zodac.dicefive.ui.style.PIP_FACES
+import net.zodac.dicefive.ui.style.TossPath
+import net.zodac.dicefive.ui.style.d20Like
+import net.zodac.dicefive.ui.style.TossPose
+import net.zodac.dicefive.ui.style.palette
 
 private data class ScatterOffset(val xOffset: Dp, val yOffset: Dp, val rotationDegrees: Float)
 
@@ -169,7 +169,7 @@ private const val CYCLE_INTERVAL_MILLIS = 1_000L
  * toggles that die's hold state, and (once [superuserModeActive]) holding a finger anywhere in an
  * already-held die's column cycles its face - see [columnPresses]. Uses [LocalGameVisualTheme] for
  * both the die art and the mat - in a [gameMode] whose dice carry their own colour, the dice style
- * recoloured in each die's colour (see [net.zodac.dicefive.ui.game.style.DiceStyle.recoloured]).
+ * recoloured in each die's colour (see [net.zodac.dicefive.ui.style.DiceStyle.recoloured]).
  *
  * A [gameMode] that rolls more dice than it holds ([GameMode.scoresHeldDiceOnly]) has fewer slots
  * than columns, so it's laid out differently - see [SlottedDice].

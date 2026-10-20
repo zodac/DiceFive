@@ -120,8 +120,8 @@ import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.ic_cowboy_hat
 import net.zodac.dicefive.resources.ic_stairs
 import net.zodac.dicefive.resources.ic_time_machine_car
-import net.zodac.dicefive.ui.game.style.CUP_VIEW_SQUASH
-import net.zodac.dicefive.ui.game.style.pipLayout
+import net.zodac.dicefive.ui.style.CUP_VIEW_SQUASH
+import net.zodac.dicefive.ui.style.pipLayout
 import net.zodac.dicefive.ui.theme.AchievementDeveloperCyan
 import net.zodac.dicefive.ui.theme.AchievementHeartRed
 import net.zodac.dicefive.ui.theme.AchievementTrophyGold
@@ -344,7 +344,7 @@ val Achievement.icon: ImageVector
 
 /**
  * The star badge on the corner of an achievement's icon square (row and unlock banner) when earning it also
- * unlocks a style ([unlocksStyle][net.zodac.dicefive.ui.game.style.unlocksStyle]) - a cue that there's
+ * unlocks a style ([unlocksStyle][net.zodac.dicefive.ui.style.unlocksStyle]) - a cue that there's
  * something extra waiting on the Styles screen. Drawn over the icon's corner rather than beside the text, so it takes
  * no text width and can't make a title or description wrap. Decorative: what it says is spoken by the
  * row's action ("Show which style this unlocks") and the banner's announcement ("Unlocks a style").
@@ -628,7 +628,7 @@ private const val CIRCLE_CUBIC = 0.5523f
 
 /**
  * The menu logo's fan of five default dice - ivory, [IvoryDiceTop] to [IvoryDiceBottom] corner to
- * corner with [DicePipColor] pips, as [net.zodac.dicefive.ui.game.style.IvoryDiceStyle] draws
+ * corner with [DicePipColor] pips, as [net.zodac.dicefive.ui.style.IvoryDiceStyle] draws
  * them - showing 2-4-5-3-6 on the same arc. Fixed colours, like every Easter Egg's icon.
  */
 @Composable

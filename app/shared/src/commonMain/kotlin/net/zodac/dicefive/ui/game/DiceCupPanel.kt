@@ -64,11 +64,11 @@ import net.zodac.dicefive.ui.common.SoraFontFamily
 import net.zodac.dicefive.ui.common.delayWhileResumed
 import net.zodac.dicefive.ui.common.pluralStringResource
 import net.zodac.dicefive.ui.common.stringResource
-import net.zodac.dicefive.ui.game.style.FlowerpotGrowth
-import net.zodac.dicefive.ui.game.style.LocalCupActivity
-import net.zodac.dicefive.ui.game.style.LocalCupAnimated
-import net.zodac.dicefive.ui.game.style.LocalFlowerpotGrowth
-import net.zodac.dicefive.ui.game.style.LocalGameVisualTheme
+import net.zodac.dicefive.ui.style.FlowerpotGrowth
+import net.zodac.dicefive.ui.style.LocalCupActivity
+import net.zodac.dicefive.ui.style.LocalCupAnimated
+import net.zodac.dicefive.ui.style.LocalFlowerpotGrowth
+import net.zodac.dicefive.ui.style.LocalGameVisualTheme
 import net.zodac.dicefive.ui.theme.TileIconColor
 
 /**

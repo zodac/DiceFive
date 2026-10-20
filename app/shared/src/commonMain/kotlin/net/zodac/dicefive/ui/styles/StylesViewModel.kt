@@ -14,7 +14,7 @@ import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.settings.SavedStyles
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.data.settings.savedStylesFlow
-import net.zodac.dicefive.ui.game.style.StyleCategory
+import net.zodac.dicefive.ui.style.StyleCategory
 
 class StylesViewModel(
     private val settingsRepository: SettingsRepository,
@@ -25,7 +25,7 @@ class StylesViewModel(
 
     /**
      * The five saved picks and what's been earned so far, which decides which styles are unlocked -
-     * see [StyleUnlock][net.zodac.dicefive.ui.game.style.StyleUnlock]. Null until they've loaded,
+     * see [StyleUnlock][net.zodac.dicefive.ui.style.StyleUnlock]. Null until they've loaded,
      * since until then every pick would look like the default and every style locked. From the app's
      * copy, that's normally already done before this screen is opened.
      */

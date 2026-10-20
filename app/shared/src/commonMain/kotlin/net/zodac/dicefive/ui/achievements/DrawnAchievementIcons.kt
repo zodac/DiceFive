@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.unit.dp
-import net.zodac.dicefive.ui.game.style.pipLayout
+import net.zodac.dicefive.ui.style.pipLayout
 
 // Achievement icons drawn for this app where Material has nothing that fits. Each is one colour, as a
 // Material glyph is - the row or banner tints it like any other - with any detail inside (a pip) cut

@@ -23,11 +23,11 @@ import net.zodac.dicefive.resources.style_noun_dice
 import net.zodac.dicefive.resources.style_noun_dice_cup
 import net.zodac.dicefive.resources.style_noun_frame
 import net.zodac.dicefive.resources.style_noun_mat
-import net.zodac.dicefive.ui.game.style.StyleCatalogs
-import net.zodac.dicefive.ui.game.style.StyleReward
-import net.zodac.dicefive.ui.game.style.StyleUnlock
-import net.zodac.dicefive.ui.game.style.styleRewards
-import net.zodac.dicefive.ui.game.style.stylesUnlockedByCount
+import net.zodac.dicefive.ui.style.StyleCatalogs
+import net.zodac.dicefive.ui.style.StyleReward
+import net.zodac.dicefive.ui.style.StyleUnlock
+import net.zodac.dicefive.ui.style.styleRewards
+import net.zodac.dicefive.ui.style.stylesUnlockedByCount
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class StylesUnlockedBannerTest {

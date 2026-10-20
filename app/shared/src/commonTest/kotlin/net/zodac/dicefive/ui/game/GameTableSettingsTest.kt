@@ -20,10 +20,10 @@ import net.zodac.dicefive.data.achievements.InMemoryAchievementStore
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.GameMode
-import net.zodac.dicefive.ui.game.style.DiceCupStyles
-import net.zodac.dicefive.ui.game.style.DiceStyles
-import net.zodac.dicefive.ui.game.style.ChickenDiceCupStyle
-import net.zodac.dicefive.ui.game.style.PIP_FACES
+import net.zodac.dicefive.ui.style.DiceCupStyles
+import net.zodac.dicefive.ui.style.DiceStyles
+import net.zodac.dicefive.ui.style.ChickenDiceCupStyle
+import net.zodac.dicefive.ui.style.PIP_FACES
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GameTableSettingsTest {

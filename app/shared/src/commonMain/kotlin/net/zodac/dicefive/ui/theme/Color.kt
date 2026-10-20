@@ -63,7 +63,7 @@ val OnErrorContainer = Color(0xFFF9DEDC)
 
 // Game-table palette: the tavern felt/parchment look of the in-game board, kept separate from
 // the Material roles above. Referenced by the default GameVisualTheme implementations in
-// ui.game.style, which is the layer to swap out for alternate dice/cup/background art. These are
+// ui.style, which is the layer to swap out for alternate dice/cup/background art. These are
 // deliberately NOT colour roles - the board is a rendered object, not app chrome, and it looks
 // the same whichever theme the app is in.
 val FeltNavyTop = Color(0xFF1C3D66)

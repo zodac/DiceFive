@@ -46,14 +46,14 @@ import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.app_name
 import net.zodac.dicefive.resources.sora
-import net.zodac.dicefive.ui.game.style.CupShape
-import net.zodac.dicefive.ui.game.style.DiceCupStyle
-import net.zodac.dicefive.ui.game.style.DiceCupStyles
-import net.zodac.dicefive.ui.game.style.DiceStyle
-import net.zodac.dicefive.ui.game.style.DiceStyles
-import net.zodac.dicefive.ui.game.style.DieMotion
-import net.zodac.dicefive.ui.game.style.LocalDieIndex
-import net.zodac.dicefive.ui.game.style.LocalDieMotion
+import net.zodac.dicefive.ui.style.CupShape
+import net.zodac.dicefive.ui.style.DiceCupStyle
+import net.zodac.dicefive.ui.style.DiceCupStyles
+import net.zodac.dicefive.ui.style.DiceStyle
+import net.zodac.dicefive.ui.style.DiceStyles
+import net.zodac.dicefive.ui.style.DieMotion
+import net.zodac.dicefive.ui.style.LocalDieIndex
+import net.zodac.dicefive.ui.style.LocalDieMotion
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.stringResource
 

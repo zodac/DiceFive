@@ -27,7 +27,7 @@ import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.online.OnlineSettingsRepository
 import net.zodac.dicefive.online.OnlineSyncRequests
 import net.zodac.dicefive.ui.achievements.AchievementUnlocker
-import net.zodac.dicefive.ui.game.style.StyleCategory
+import net.zodac.dicefive.ui.style.StyleCategory
 
 /** The Settings screen's switches, its animation level and its orientation, as saved. */
 data class SettingsToggles(

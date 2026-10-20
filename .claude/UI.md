@@ -22,7 +22,7 @@ its own art and doesn't use colour roles.
 |              | App chrome                           | Game board (`ui/game/`)                       |
 |--------------|--------------------------------------|-----------------------------------------------|
 | Colours from | `MaterialTheme.colorScheme` roles    | fixed values in `Color.kt`'s game-table block |
-| Swapped by   | nothing: one dark scheme, `Theme.kt` | `ui/game/style/GameVisualTheme`               |
+| Swapped by   | nothing: one dark scheme, `Theme.kt` | `ui/style/GameVisualTheme`               |
 
 - **Keep them apart.** Don't move the board onto colour roles, and don't hardcode chrome colours to match the board.
 - **Where fixed colours live.** Classic styles' colours are named constants in `Color.kt`. Every other style's palette
