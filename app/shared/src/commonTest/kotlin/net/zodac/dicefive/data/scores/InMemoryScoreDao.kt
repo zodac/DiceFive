@@ -68,7 +68,7 @@ class InMemoryScoreDao : ScoreDao {
             }
 
     override suspend fun latestPlayerName(playerKey: String): String =
-        entries.filter { it.playerKey == playerKey }.maxBy { it.timestampEpochMillis }.playerName
+        entries.last { it.playerKey == playerKey && it.timestampEpochMillis == entries.filter { e -> e.playerKey == playerKey }.maxOf { e -> e.timestampEpochMillis } }.playerName
 
     override suspend fun playerOutcomes(playerKey: String): List<Boolean> =
         entries.filter { it.playerKey == playerKey }.sortedByDescending { it.timestampEpochMillis }.mapNotNull { it.won }

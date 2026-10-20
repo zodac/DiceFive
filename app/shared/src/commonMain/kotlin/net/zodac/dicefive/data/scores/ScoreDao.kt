@@ -158,8 +158,19 @@ interface ScoreDao {
     )
     suspend fun playerModeTotals(): List<PlayerModeTotals>
 
-    /** The name [playerKey]'s player recorded their latest game under - the spelling Statistics shows. */
-    @Query("SELECT playerName FROM scores WHERE playerKey = :playerKey ORDER BY timestampEpochMillis DESC LIMIT 1")
+    /**
+     * The name [playerKey]'s player recorded their latest game under - the spelling Statistics shows. Of games played in
+     * the same millisecond, the one recorded last.
+     */
+    @Query(
+        """
+        SELECT playerName FROM scores WHERE rowid = (
+            SELECT MAX(rowid) FROM scores
+            WHERE playerKey = :playerKey
+                AND timestampEpochMillis = (SELECT MAX(timestampEpochMillis) FROM scores WHERE playerKey = :playerKey)
+        )
+        """,
+    )
     suspend fun latestPlayerName(playerKey: String): String
 
     /** Whether [playerKey]'s player won each game with someone to beat, most recent first - what the win streaks walk. */

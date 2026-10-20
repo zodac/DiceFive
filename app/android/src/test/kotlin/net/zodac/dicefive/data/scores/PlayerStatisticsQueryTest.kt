@@ -125,4 +125,25 @@ class PlayerStatisticsQueryTest {
         assertTrue(expected.all { player -> player.modes.sumOf { it.gamesPlayed } < player.gamesPlayed })
         assertEquals(expected, ScoreRepository(dao).playerStatistics())
     }
+
+    @Test
+    fun `of games in the same millisecond - the spelling recorded last is shown`() = runTest {
+        for (name in listOf("Ángel", "ángel", "ÁNGEL")) dao.insertGame(listOf(row(name, at = 10L)))
+        dao.insertGame(listOf(row("Bob", at = 20L), row("bob", at = 20L)))
+        assertEquals(listOf("bob", "ÁNGEL"), ScoreRepository(dao).playerStatistics().map { it.playerName })
+    }
+
+    private fun row(name: String, at: Long) = ScoreEntry(
+        playerName = name,
+        score = 150,
+        timestampEpochMillis = at,
+        won = null,
+        isPrimaryPlayer = false,
+        fiveOfAKindCount = 0,
+        zeroedCategoryCount = 0,
+        upperSectionTotal = 0,
+        chanceScore = 0,
+        threeOfAKindScore = 0,
+        fourOfAKindScore = 0,
+    )
 }
