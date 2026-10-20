@@ -126,7 +126,7 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
      * specifically because only player 1 earns "New Personal Best": someone else's high score on
      * the same device must not count as beating *your* best.
      */
-    suspend fun bestScoreForPlayer(playerName: String): Int? = scoreDao.bestScoreForPlayer(playerName)
+    suspend fun bestScoreForPlayer(playerName: String): Int? = scoreDao.bestScoreForPlayer(playerNameKey(playerName))
 
     /**
      * Every distinct score on the leaderboard. The score-collection achievements are measured

@@ -6,13 +6,18 @@ import androidx.room.PrimaryKey
 import kotlin.uuid.Uuid
 import net.zodac.dicefive.game.TieBreakStats
 import net.zodac.dicefive.model.GameMode
+import net.zodac.dicefive.model.playerNameKey
 
 /**
  * One finished game's final score for a human player - AI scores are never recorded - with the
  * tie-break house-rule stats the Leaderboard orders equal scores by (see
- * [net.zodac.dicefive.game.TieBreak]). Every column but [won] is always set.
+ * [net.zodac.dicefive.game.TieBreak]). Every column but [won] is always set. Indexed by [playerKey] first, so a player's
+ * best is read from the index alone.
  */
-@Entity(tableName = "scores", indices = [Index(value = ["uuid"], unique = true)])
+@Entity(
+    tableName = "scores",
+    indices = [Index(value = ["uuid"], unique = true), Index(value = ["playerKey", "onLeaderboard", "score"])],
+)
 data class ScoreEntry(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val playerName: String,
@@ -69,6 +74,14 @@ data class ScoreEntry(
      */
     val uuid: String = newScoreUuid(),
 ) {
+
+    /**
+     * What every query matches [playerName] by: [playerNameKey], so names differing only by case - in any alphabet, which
+     * SQLite's own `COLLATE NOCASE` can't fold - are one player. Derived from [playerName] (a copy with another name gets
+     * that name's key), never copied between devices, and left out of equality. Settable only for Room to read it back.
+     */
+    var playerKey: String = playerNameKey(playerName)
+        internal set
 
     /** The mode [gameModeId] names, or null for an id this build doesn't know (a mode since removed). */
     val gameMode: GameMode? get() = GameMode.fromId(gameModeId)

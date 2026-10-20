@@ -43,7 +43,7 @@ interface ScoreDao {
     suspend fun insertGame(entries: List<ScoreEntry>) {
         for (entry in entries) {
             insert(entry)
-            clearDismissal(entry.playerName)
+            clearDismissal(entry.playerKey)
         }
     }
 
@@ -81,11 +81,11 @@ interface ScoreDao {
     @Query("SELECT COUNT(*) FROM scores WHERE playedUnmodified = 1 AND gameModeId = :gameModeId")
     suspend fun countForMode(gameModeId: String): Int
 
-    /** One player's best score, by name - null if that name has never recorded one. Used for the
+    /** One player's best score, by [ScoreEntry.playerKey] - null if that name has never recorded one. Used for the
      * "New Personal Best" achievement, which is player 1's own best, not the leaderboard's overall
      * best. Leaderboard rows only - see [ScoreEntry.onLeaderboard]. */
-    @Query("SELECT MAX(score) FROM scores WHERE playerName = :playerName COLLATE NOCASE AND onLeaderboard = 1")
-    suspend fun bestScoreForPlayer(playerName: String): Int?
+    @Query("SELECT MAX(score) FROM scores WHERE playerKey = :playerKey AND onLeaderboard = 1")
+    suspend fun bestScoreForPlayer(playerKey: String): Int?
 
     /** Every score that has ever been recorded on the Leaderboard, once each - what the score-collection achievements count. */
     @Query("SELECT DISTINCT score FROM scores WHERE onLeaderboard = 1")
@@ -121,25 +121,24 @@ interface ScoreDao {
      * player - excluding anyone dismissed from the Statistics screen (see [DismissedPlayerStats]).
      * Their scores are still counted on the Leaderboard; this query backs Statistics only, and counts
      * every game, on the Leaderboard or not (see [ScoreEntry.onLeaderboard]). Names are
-     * compared ignoring case, as the New Game screen does, so "bob" and "Bob" are one player.
+     * compared by [ScoreEntry.playerKey], as the New Game screen compares them, so "bob" and "Bob" are one player.
      */
     @Query(
         """
         SELECT playerName, timestampEpochMillis, won, score, fiveOfAKindCount, gameModeId
         FROM scores
-        WHERE playerName COLLATE NOCASE NOT IN (SELECT playerName FROM dismissed_player_stats)
-        ORDER BY playerName COLLATE NOCASE ASC, timestampEpochMillis DESC
+        WHERE playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
+        ORDER BY playerKey ASC, timestampEpochMillis DESC
         """,
     )
     suspend fun playerGames(): List<PlayerGame>
 
     /** Hides [playerName] from the Statistics screen, as of [atEpochMillis] - see [DismissedPlayerStats]. */
-    @Query("INSERT OR REPLACE INTO dismissed_player_stats (playerName, dismissedAtEpochMillis) VALUES (:playerName, :atEpochMillis)")
-    suspend fun dismissPlayer(playerName: String, atEpochMillis: Long)
+    suspend fun dismissPlayer(playerName: String, atEpochMillis: Long) = putDismissals(listOf(DismissedPlayerStats(playerName, atEpochMillis)))
 
-    /** Un-hides [playerName] from the Statistics screen, if they were dismissed. */
-    @Query("DELETE FROM dismissed_player_stats WHERE playerName = :playerName COLLATE NOCASE")
-    suspend fun clearDismissal(playerName: String)
+    /** Un-hides the player [playerKey] names from the Statistics screen, if they were dismissed. */
+    @Query("DELETE FROM dismissed_player_stats WHERE playerKey = :playerKey")
+    suspend fun clearDismissal(playerKey: String)
 
     /** Wipes every recorded score - the Leaderboard and Statistics screens share this one table. */
     @Query("DELETE FROM scores")
@@ -171,12 +170,12 @@ interface ScoreDao {
     @Query("DELETE FROM dismissed_player_stats WHERE dismissedAtEpochMillis <= :epochMillis")
     suspend fun deleteDismissalsThrough(epochMillis: Long)
 
-    /** Drops each dismissal that a later game under the same name (ignoring case) has undone, wherever it was played. */
+    /** Drops each dismissal that a later game under the same [ScoreEntry.playerKey] has undone, wherever it was played. */
     @Query(
         """
         DELETE FROM dismissed_player_stats WHERE EXISTS (
             SELECT 1 FROM scores
-            WHERE scores.playerName = dismissed_player_stats.playerName COLLATE NOCASE
+            WHERE scores.playerKey = dismissed_player_stats.playerKey
                 AND scores.timestampEpochMillis > dismissed_player_stats.dismissedAtEpochMillis
         )
         """,
@@ -185,7 +184,7 @@ interface ScoreDao {
 
     /**
      * Merges the cloud save's scores into this device's, in one transaction: drops what a reset at [resetAtEpochMillis]
-     * cleared (0: none), adds the [entries] this device lacks, keeps the later of each name's dismissals, then drops any
+     * cleared (0: none), adds the [entries] this device lacks, keeps the later of each player's dismissals, then drops any
      * a later game has undone - the rules [net.zodac.dicefive.online.CloudSaveMerge] merges two saves by.
      */
     @Transaction
@@ -195,9 +194,10 @@ interface ScoreDao {
             deleteDismissalsThrough(resetAtEpochMillis)
         }
         insertMissing(entries.filter { it.timestampEpochMillis > resetAtEpochMillis }.map { it.copy(id = 0) })
-        val local = allDismissals().associate { it.playerName to it.dismissedAtEpochMillis }
+        val local = allDismissals().associate { it.playerKey to it.dismissedAtEpochMillis }
         putDismissals(
-            dismissals.filter { it.dismissedAtEpochMillis > resetAtEpochMillis && it.dismissedAtEpochMillis > (local[it.playerName] ?: Long.MIN_VALUE) },
+            dismissals.groupBy { it.playerKey }.values.map { forPlayer -> forPlayer.maxBy { it.dismissedAtEpochMillis } }
+                .filter { it.dismissedAtEpochMillis > resetAtEpochMillis && it.dismissedAtEpochMillis > (local[it.playerKey] ?: Long.MIN_VALUE) },
         )
         deleteUndoneDismissals()
     }

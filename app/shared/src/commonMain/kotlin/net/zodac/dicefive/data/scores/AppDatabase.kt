@@ -13,12 +13,12 @@ import kotlinx.coroutines.IO
  * [RoomDatabase.Builder] (on Android, the framework's SQLite; on iOS, the bundled driver) and
  * finishes it with [buildAppDatabase].
  *
- * Version 1 is the schema the app is first released with. Every schema change needs a version bump and a
- * migration; the exported schemas in app/shared/schemas/ are what a migration test compares against.
+ * Every schema change needs a version bump and a migration in [MIGRATIONS]; the exported schemas in app/shared/schemas/
+ * are what a migration test compares against.
  */
 @Database(
     entities = [ScoreEntry::class, DismissedPlayerStats::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
@@ -44,5 +44,6 @@ expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase> {
  */
 fun RoomDatabase.Builder<AppDatabase>.buildAppDatabase(): AppDatabase = this
     .setQueryCoroutineContext(Dispatchers.IO)
+    .addMigrations(*MIGRATIONS)
     .build()
 

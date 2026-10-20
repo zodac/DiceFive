@@ -101,10 +101,11 @@ class CloudSaveMergeTest {
     @Test
     fun `a dismissal stands until a later game under the name - played on any device - in any case`() {
         val merged = merge(
-            CloudSave(scores = CloudScores(dismissedAt = mapOf("Bob" to 50L, "Cat" to 50L))),
+            CloudSave(scores = CloudScores(dismissedAt = mapOf("Bob" to 50L, "Cat" to 50L, "ÉLISE" to 50L))),
             CloudSave(
                 scores = CloudScores(
-                    rows = listOf(cloudRow("1", at = 60, name = "bob"), cloudRow("2", at = 40, name = "Cat")),
+                    // Case in any alphabet: "élise" is "ÉLISE".
+                    rows = listOf(cloudRow("1", at = 60, name = "bob"), cloudRow("2", at = 40, name = "Cat"), cloudRow("3", at = 70, name = "élise")),
                     dismissedAt = mapOf("Cat" to 45L),
                 ),
             ),

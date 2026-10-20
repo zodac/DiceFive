@@ -86,6 +86,24 @@ class AndroidAppContainerTest {
     }
 
     @Test
+    fun `names differing only by case in any alphabet are one player - for a personal best - Statistics and a dismissal`() = runTest {
+        val scores = container.scoreRepository
+        scores.recordScore("Ángel", stats(score = 150), won = null, isPrimaryPlayer = true)
+        scores.recordScore("ángel", stats(score = 220), won = null, isPrimaryPlayer = true)
+        // An accent is more than case: another player.
+        scores.recordScore("Angel", stats(score = 300), won = null, isPrimaryPlayer = false)
+
+        assertEquals(220, scores.bestScoreForPlayer("ÁNGEL"))
+        assertEquals(listOf("Angel" to 1, "ángel" to 2), scores.playerStatistics().map { it.playerName to it.gamesPlayed })
+
+        scores.dismissPlayerStatistics("ÁNGEL")
+        assertEquals(listOf("Angel"), scores.playerStatistics().map { it.playerName })
+        // A game under another spelling shows the card again.
+        scores.recordScore("Ángel", stats(score = 100), won = null, isPrimaryPlayer = true)
+        assertEquals(listOf("Angel" to 1, "Ángel" to 3), scores.playerStatistics().map { it.playerName to it.gamesPlayed })
+    }
+
+    @Test
     fun `the SQL leaderboard order matches TieBreak's leaderboard comparator on every criterion`() = runTest {
         val scores = container.scoreRepository
         // Every combination of a low and a high value in each of the seven criteria, so each one decides some pair.

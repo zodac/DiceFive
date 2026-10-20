@@ -5,6 +5,7 @@ import net.zodac.dicefive.data.achievements.CloudAchievements
 import net.zodac.dicefive.data.newerOf
 import net.zodac.dicefive.data.scores.CloudScores
 import net.zodac.dicefive.data.settings.SettingValue
+import net.zodac.dicefive.model.playerNameKey
 
 /**
  * Everything one account keeps in the cloud: the whole of a device's synced progress, or several devices' merged
@@ -47,12 +48,9 @@ object CloudSaveMerge {
             .distinctBy { it.uuid }
             .sortedWith(compareBy({ it.timestampEpochMillis }, { it.uuid }))
         val lastPlayed = HashMap<String, Long>()
-        for (row in rows) {
-            val name = row.playerName.lowercase()
-            lastPlayed[name] = maxOf(lastPlayed[name] ?: Long.MIN_VALUE, row.timestampEpochMillis)
-        }
+        for (row in rows) lastPlayed[row.playerKey] = maxOf(lastPlayed[row.playerKey] ?: Long.MIN_VALUE, row.timestampEpochMillis)
         val dismissedAt = unionBy(a.scores.dismissedAt, b.scores.dismissedAt, ::maxOf)
-            .filter { (name, at) -> at > resetAt && (lastPlayed[name.lowercase()] ?: Long.MIN_VALUE) <= at }
+            .filter { (name, at) -> at > resetAt && (lastPlayed[playerNameKey(name)] ?: Long.MIN_VALUE) <= at }
         return CloudSave(
             // The newer format's: a merge with a newer app's save is still one this app mustn't write.
             version = maxOf(a.version, b.version),

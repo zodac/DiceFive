@@ -97,8 +97,8 @@ private class FakeScoreDao : ScoreDao {
 
     override suspend fun countForMode(gameModeId: String): Int = forMode(gameModeId).size
 
-    override suspend fun bestScoreForPlayer(playerName: String): Int? =
-        leaderboard.filter { it.playerName == playerName }.maxOfOrNull { it.score }
+    override suspend fun bestScoreForPlayer(playerKey: String): Int? =
+        leaderboard.filter { it.playerKey == playerKey }.maxOfOrNull { it.score }
 
     override suspend fun distinctScores(): List<Int> = leaderboard.map { it.score }.distinct()
 
@@ -110,9 +110,8 @@ private class FakeScoreDao : ScoreDao {
 
     override suspend fun playerGames(): List<PlayerGame> = emptyList()
 
-    override suspend fun dismissPlayer(playerName: String, atEpochMillis: Long) = Unit
 
-    override suspend fun clearDismissal(playerName: String) = Unit
+    override suspend fun clearDismissal(playerKey: String) = Unit
 
     override suspend fun clearAllScores() {
         entries.clear()

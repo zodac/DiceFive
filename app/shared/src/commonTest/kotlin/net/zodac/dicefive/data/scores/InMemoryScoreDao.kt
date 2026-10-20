@@ -12,7 +12,8 @@ import androidx.room.RoomRawQuery
 class InMemoryScoreDao : ScoreDao {
     private val entries = mutableListOf<ScoreEntry>()
     fun rows(): List<ScoreEntry> = entries.toList()
-    private val dismissed = mutableMapOf<String, Long>()
+    /** By [DismissedPlayerStats.playerKey], as the real table is. */
+    private val dismissed = mutableMapOf<String, DismissedPlayerStats>()
     private var nextId = 1L
 
     override suspend fun insert(entry: ScoreEntry) {
@@ -38,8 +39,8 @@ class InMemoryScoreDao : ScoreDao {
 
     override suspend fun countForMode(gameModeId: String): Int = forMode(gameModeId).size
 
-    override suspend fun bestScoreForPlayer(playerName: String): Int? =
-        leaderboard.filter { it.playerName == playerName }.maxOfOrNull { it.score }
+    override suspend fun bestScoreForPlayer(playerKey: String): Int? =
+        leaderboard.filter { it.playerKey == playerKey }.maxOfOrNull { it.score }
 
     override suspend fun distinctScores(): List<Int> = leaderboard.map { it.score }.distinct()
 
@@ -50,17 +51,12 @@ class InMemoryScoreDao : ScoreDao {
     override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
 
     override suspend fun playerGames(): List<PlayerGame> =
-        entries.filter { it.playerName !in dismissed }
-            // SQLite's COLLATE NOCASE (for the names used here), then the exact name, then newest first.
-            .sortedWith(compareBy<ScoreEntry>({ it.playerName.lowercase() }, { it.playerName }).thenByDescending { it.timestampEpochMillis })
+        entries.filter { it.playerKey !in dismissed }
+            .sortedWith(compareBy<ScoreEntry> { it.playerKey }.thenByDescending { it.timestampEpochMillis })
             .map { PlayerGame(it.playerName, it.timestampEpochMillis, it.won, it.score, it.fiveOfAKindCount, it.gameModeId) }
 
-    override suspend fun dismissPlayer(playerName: String, atEpochMillis: Long) {
-        dismissed[playerName] = atEpochMillis
-    }
-
-    override suspend fun clearDismissal(playerName: String) {
-        dismissed -= playerName
+    override suspend fun clearDismissal(playerKey: String) {
+        dismissed -= playerKey
     }
 
     override suspend fun clearAllScores() {
@@ -73,14 +69,14 @@ class InMemoryScoreDao : ScoreDao {
 
     override suspend fun allScores(): List<ScoreEntry> = rows()
 
-    override suspend fun allDismissals(): List<DismissedPlayerStats> = dismissed.map { (name, at) -> DismissedPlayerStats(name, at) }
+    override suspend fun allDismissals(): List<DismissedPlayerStats> = dismissed.values.toList()
 
     override suspend fun insertMissing(entries: List<ScoreEntry>) {
         for (entry in entries) if (this.entries.none { it.uuid == entry.uuid }) insert(entry)
     }
 
     override suspend fun putDismissals(dismissals: List<DismissedPlayerStats>) {
-        for (dismissal in dismissals) dismissed[dismissal.playerName] = dismissal.dismissedAtEpochMillis
+        for (dismissal in dismissals) dismissed[dismissal.playerKey] = dismissal
     }
 
     override suspend fun deleteScoresThrough(epochMillis: Long) {
@@ -88,10 +84,10 @@ class InMemoryScoreDao : ScoreDao {
     }
 
     override suspend fun deleteDismissalsThrough(epochMillis: Long) {
-        dismissed.entries.removeAll { it.value <= epochMillis }
+        dismissed.values.removeAll { it.dismissedAtEpochMillis <= epochMillis }
     }
 
     override suspend fun deleteUndoneDismissals() {
-        dismissed.entries.removeAll { (name, at) -> entries.any { it.playerName.equals(name, ignoreCase = true) && it.timestampEpochMillis > at } }
+        dismissed.values.removeAll { dismissal -> entries.any { it.playerKey == dismissal.playerKey && it.timestampEpochMillis > dismissal.dismissedAtEpochMillis } }
     }
 }

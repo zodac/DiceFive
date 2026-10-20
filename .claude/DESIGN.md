@@ -211,14 +211,19 @@ Everything is in app-private storage. **Every stored id is permanent once releas
 will map to Play Games.
 
 - **Scores.**
-  - Room, `dicefive.db`, `AppDatabase` version 1, with each version's schema exported to `app/shared/schemas/`.
+  - Room, `dicefive.db`, `AppDatabase` version 2, with each version's schema exported to `app/shared/schemas/`.
   - Tables:
     - `scores` (`ScoreEntry`): name, score, time, `won` (null for a solo game), `isPrimaryPlayer`, the tie-break stats,
-      `onLeaderboard`, `gameModeId`, `playedUnmodified` and a unique random `uuid` (a row's id across devices). Every
-      column but `won` is NOT NULL.
-    - `dismissed_player_stats`: name and when it was dismissed.
-  - Every schema change needs a version bump and a migration. There is **deliberately no destructive fallback**: a
-    missing migration must fail loudly, never wipe scores.
+      `onLeaderboard`, `gameModeId`, `playedUnmodified`, a unique random `uuid` (a row's id across devices) and
+      `playerKey`. Every column but `won` is NOT NULL.
+    - `dismissed_player_stats`: name, when it was dismissed, and `playerKey` (the primary key: one dismissal a player).
+  - **Names are matched by `playerKey`**, never by `playerName` or `COLLATE NOCASE` (SQLite folds only ASCII case, so
+    "Ángel" and "ángel" would be two players). It is `playerNameKey(playerName)`, derived in the entity, so a copy with
+    another name gets that name's key; it is indexed with `onLeaderboard` and `score` for the personal best.
+  - Every schema change needs a version bump and a migration in `MIGRATIONS` (`data/scores/Migrations.kt`), tested by
+    `ScoreDatabaseMigrationTest` from the exported schema it migrates from. There is **deliberately no destructive
+    fallback**: a missing migration must fail loudly, never wipe scores. A change to `playerNameKey` changes stored
+    keys, so it needs a migration too.
 - **Preferences.** Four DataStore files (`PreferencesFile`), kept apart so a reset can clear one:
   - `settings`. Every key but the Animations level and the Styles page fit is synced
     (`SettingsRepository.SYNCED_KEYS`) and stamped `synced_at:<key>` when it changes.

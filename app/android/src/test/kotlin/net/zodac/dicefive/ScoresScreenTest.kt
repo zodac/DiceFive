@@ -53,14 +53,13 @@ internal class RowsDao(private val rows: List<ScoreEntry>) : ScoreDao {
         ordered(gameModeId).drop(offset).take(limit)
     override suspend fun count() = ordered(null).size
     override suspend fun countForMode(gameModeId: String) = ordered(gameModeId).size
-    override suspend fun bestScoreForPlayer(playerName: String): Int? = null
+    override suspend fun bestScoreForPlayer(playerKey: String): Int? = null
     override suspend fun distinctScores(): List<Int> = emptyList()
     override suspend fun primaryPlayerTotalPoints(): Int? = null
     override suspend fun primaryPlayerGameModeIds(): List<String> = emptyList()
     override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
     override suspend fun playerGames(): List<PlayerGame> = emptyList()
-    override suspend fun dismissPlayer(playerName: String, atEpochMillis: Long) = Unit
-    override suspend fun clearDismissal(playerName: String) = Unit
+    override suspend fun clearDismissal(playerKey: String) = Unit
     override suspend fun clearAllScores() = Unit
     override suspend fun clearAllDismissals() = Unit
     override suspend fun allScores(): List<ScoreEntry> = emptyList()
