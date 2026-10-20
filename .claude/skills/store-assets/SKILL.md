@@ -27,4 +27,4 @@ The script checks every file against Play's rules and exits non-zero on a failur
    `scripts/store-assets/captions.txt` are still true (the counts of modes, achievements and styles). The banned-word
    rule applies to all of them.
 4. Upload in Play Console. The video goes to YouTube first (public or unlisted, ads off, no age restriction, with
-   `video-credits.txt` pasted into its description); Play takes the URL.
+   `video-description.txt` pasted in as its description); Play takes the URL.

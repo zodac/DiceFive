@@ -77,7 +77,7 @@ until the player signs in.
 - **Full description**: `assets/full-description.txt`, about 3000 of 4000 characters. Keep its counts and lists true:
   - the modes under "Seven ways to play" (and that heading's count);
   - the modifiers under "House rules";
-  - "Over 100 achievements" (103 today, 8 of them Easter eggs);
+  - "Over 100 achievements" (110 today: 100 count towards completion, plus 10 Easter eggs);
   - "over 90 styles", and its examples;
   - what "Google Play Games" says sign-in brings (`PLAY_GAMES.md`).
 - **The banned-word rule applies.** Play also rejects listings that lean on another product's trademark. Use 3x/4x/5x.

@@ -70,7 +70,8 @@ GOLD="#F2C46A"
 # maintainer. Not in the repo: fetched once into the ignored assets/music/, and checked against its known checksum.
 DEFAULT_MUSIC_URL="https://opengameart.org/sites/default/files/ruskerdax_-_happy_vibes.mp3"
 DEFAULT_MUSIC_SHA256="0213de5247b59c468cf7484bb9b7482a2b07558c9302ffa7a1ceb1bae05fd112"
-DEFAULT_MUSIC_CREDIT="Happy Vibes by Ruskerdax - https://opengameart.org/node/160228 - CC0 1.0 (no credit required; listed as a courtesy)"
+# CC0 needs no credit; the video's description gives one anyway.
+DEFAULT_MUSIC_CREDIT="Happy Vibes by Ruskerdax (https://opengameart.org/node/160228)"
 MUSIC_CREDIT=""
 if ! ${USE_MUSIC}; then
     MUSIC=""
@@ -296,31 +297,52 @@ if wants video; then
     # H.264 High at 60fps, about 16Mbps: well over what YouTube asks for 1080p60, so its own re-encode has plenty to work from.
     ffmpeg -loglevel error -y "${inputs[@]}" -filter_complex "${filter}" -map '[v]' "${audio[@]}" \
         -c:v libx264 -preset slow -profile:v high -crf 16 -maxrate 24M -bufsize 48M -r "${FPS}" -movflags +faststart \
-        -t "${total}" "${OUT}/promo-video-1080p60.mp4"
+        -t "${total}" "${OUT}/DiceFive-Promo-1080p60.mp4"
 
-    # What the video's description must credit: any clip whose licence asks for it (from the same records the app's
-    # Licences screen is built from), and the music, whose licence only its source knows.
-    python3 - "${ROOT}" "${OUT}/video-credits.txt" "${MUSIC}" "${MUSIC_CREDIT}" "${used_clips[@]}" <<'PY'
-import json, os, sys
+    # The video's YouTube description, pasted as it is: the full description's opening paragraph, the app's Play Store
+    # link, then the credits - any clip whose licence asks for one (from the same records the app's Licences screen is
+    # built from), and the music, whose licence only its source knows.
+    python3 - "${ROOT}" "${OUT}/video-description.txt" "${MUSIC}" "${MUSIC_CREDIT}" "${used_clips[@]}" <<'PY'
+import json, os, re, sys
 root, out, music, music_credit, clips = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sorted(set(sys.argv[5:]))
+
+with open(os.path.join(root, "assets/full-description.txt")) as f:
+    opening = f.read().strip().split("\n\n")[0].strip()
+with open(os.path.join(root, "app/android/build.gradle.kts")) as f:
+    app_id = re.search(r'applicationId\s*=\s*"([^"]+)"', f.read()).group(1)
+
+def credit(description):
+    # A Freesound attribution, "<work> -- <link> -- License: <licence> (<url>). Modified for DiceFive: ...", becomes
+    # "<work> (<link>) -- modified for DiceFive: ...". Anything else is used as it is.
+    match = re.fullmatch(r"(.+?) -- (\S+) -- License: [^()]+\([^()]+\)\.\s*(.*)", description)
+    if not match:
+        return description
+    work, link, note = match.groups()
+    return f"{work} ({link})" + (f" -- {note[0].lower()}{note[1:]}" if note else "")
+
 sources = json.load(open(os.path.join(root, "app/licensing/asset-sources.json")))
-lines = []
+sound_credits = []
 for clip in clips:
     entry = next((v for k, v in sources.items() if k.endswith(f"/rawAudioSource/{clip}.ogg")), None)
     if entry is None or entry["license"] == "CC0-1.0":
         continue
     for library in entry.get("libraries", []):
         record = json.load(open(os.path.join(root, "app/licensing/libraries", f"{library}.json")))
-        line = record["description"]
-        if line not in lines:
-            lines.append(line)
+        line = credit(record["description"])
+        if line not in sound_credits:
+            sound_credits.append(line)
+
+credits = [f"Sound effects - {c}" for c in sound_credits]
+if music_credit:
+    credits.append(f"Music - {music_credit}")
+elif music:
+    credits.append(f"Music - {os.path.basename(music)}: ADD THE CREDIT ITS LICENCE ASKS FOR (title, artist, link)")
+    print(f"  note: {out}: write the music's credit in by hand", file=sys.stderr)
+
 with open(out, "w") as f:
-    f.write("Paste into the video's YouTube description - its licences require the credit.\n\n")
-    f.write("Sound effects:\n" + ("\n".join(f"- {l}" for l in lines) if lines else "- none needed (all CC0)") + "\n")
-    if music_credit:
-        f.write(f"\nMusic: {music_credit}\n")
-    elif music:
-        f.write(f"\nMusic: {os.path.basename(music)} - add the credit its licence asks for (title, artist, licence, link).\n")
+    f.write(f"{opening}\n\nPlay Store link:\nhttps://play.google.com/store/apps/details?id={app_id}\n")
+    if credits:
+        f.write("\nCredits:\n" + "\n".join(credits) + "\n")
 PY
 fi
 
@@ -360,9 +382,9 @@ for device in phone tablet-10; do
     (( count >= 4 )) || echo "  note: ${device}: fewer than 4 screenshots, so not considered for featuring"
     for shot in "${OUT}/${device}"/*.png; do check_image "${shot}" screenshot; done
 done
-if [[ -f "${OUT}/promo-video-1080p60.mp4" ]]; then
+if [[ -f "${OUT}/DiceFive-Promo-1080p60.mp4" ]]; then
     ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate:format=duration \
-        -of default=noprint_wrappers=1 "${OUT}/promo-video-1080p60.mp4" | sed 's/^/  video /'
+        -of default=noprint_wrappers=1 "${OUT}/DiceFive-Promo-1080p60.mp4" | sed 's/^/  video /'
 fi
 
 # ---- A contact sheet to review it all at a glance -------------------------------------------------------------------

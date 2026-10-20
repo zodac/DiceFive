@@ -56,13 +56,13 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 
 ## Rules that always apply
 
-- **Banned words.** "Yahtzee" (a trademark) never appears anywhere: source, comments, identifiers, filenames,
-  resources, `README.md`, anything a player sees.
+- **Banned words.** The trademark in `StringChecks.TRADEMARK` (the original five-dice game's name) never appears
+  anywhere: source, comments, identifiers, filenames, resources, docs (this file included), anything a player sees.
   - Five matching dice are **"5x"** to players and `FIVE_OF_A_KIND`/`fiveOfAKind` in code. Say "the rules" or "a
     five-dice scorecard game" generically.
   - Players (the app and the store listing) also never see "three/four/five of a kind", spaced or hyphenated. Use
     **3x/4x/5x**.
-  - Only exceptions: these `.claude/` docs, and the one guard pattern in `StringChecks`
+  - Only exception: the one guard pattern in `StringChecks`
     (`app/shared/src/androidHostTest/…/i18n/`).
 - **Fix every build warning and error**: compiler, lint, tests, Gradle. That includes ones that were there before you
   started.

@@ -17,7 +17,11 @@ plugins {
 // Single source of truth for the app version - bump the root VERSION file to release a new one.
 val appVersionName = rootProject.file("VERSION").readText().trim()
 val appVersionCode = appVersionName.split(".").map { it.toInt() }
-    .let { (major, minor, patch) -> major * 10_000 + minor * 100 + patch }
+    .let { (major, minor, patch) ->
+        // Two digits each for minor and patch, so a part of 100 or more would collide with the next minor/major
+        require(minor < 100 && patch < 100) { "VERSION $appVersionName: minor and patch must each be below 100" }
+        major * 10_000 + minor * 100 + patch
+    }
 
 // Single source of truth for the Java version: `toolchainVersion` in gradle/gradle-daemon-jvm.properties
 // (written by `./gradlew updateDaemonJvm --jvm-version=N --jvm-vendor=ADOPTIUM`). Gradle runs itself on
