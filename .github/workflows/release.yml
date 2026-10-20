@@ -102,6 +102,48 @@ jobs:
         with:
           ffmpeg: "true"
 
+      # Robolectric downloads its Android runtime jar (android-all-instrumented, a few hundred MB) from
+      # Maven Central into ~/.m2 as the first test classes start, and nothing else caches ~/.m2. A
+      # dropped download failed whichever classes were starting ("MavenArtifactFetcher ...
+      # FileNotFoundException"), and a re-run passed. So the jar is cached, keyed on what picks it (the
+      # Robolectric version and robolectric.properties' SDK), and on a miss fetched by one small test
+      # before the real run, retried until the jar is there. Restored and saved as separate steps, so a
+      # failing test run still keeps the download.
+      - name: Read what picks Robolectric's runtime
+        id: robolectric
+        run: |
+          echo "version=$(grep -oP '^robolectric = "\K[^"]+' gradle/libs.versions.toml)" >> "$GITHUB_OUTPUT"
+          echo "sdk=$(grep -oP '^sdk=\K[0-9]+' app/android/src/test/resources/robolectric.properties)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Robolectric's runtime
+        id: robolectric-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ steps.robolectric.outputs.version }}-sdk${{ steps.robolectric.outputs.sdk }}
+
+      # Only the download is retried: the test's own result is the real run's to report.
+      - name: Fetch Robolectric's runtime
+        if: steps.robolectric-cache.outputs.cache-hit != 'true'
+        run: |
+          for attempt in 1 2 3; do
+            ./gradlew :app:android:testDebugUnitTest --tests '*ReduceMotionFlagTest' --console=plain || true
+            if compgen -G "$HOME/.m2/repository/org/robolectric/android-all-instrumented/*/*.jar" > /dev/null; then
+              exit 0
+            fi
+            echo "::warning::Robolectric's runtime didn't download (attempt $attempt)"
+            sleep 30
+          done
+          echo "::error::Robolectric's runtime couldn't be downloaded"
+          exit 1
+
+      - name: Save Robolectric's runtime
+        if: steps.robolectric-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: ${{ steps.robolectric-cache.outputs.cache-primary-key }}
+
       - name: Run app unit tests
         run: ./gradlew :app:android:testDebugUnitTest --console=plain
 
