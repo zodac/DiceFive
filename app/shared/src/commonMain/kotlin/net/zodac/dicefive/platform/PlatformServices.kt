@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import net.zodac.dicefive.data.settings.ScreenOrientation
+import net.zodac.dicefive.ui.game.CUP_SHAKE_MILLIS
 
 /**
  * What the shared game and UI need from the device underneath them - sound, vibration, the
@@ -105,13 +106,15 @@ interface SoundPlayer {
 }
 
 /** Every vibration the game makes - named for what it accompanies, so each platform can pick the
- * closest thing its own haptics offer rather than all of them sharing one duration/amplitude. */
-enum class HapticEffect {
-    /** A die being held or unheld. */
-    HOLD_TICK,
+ * closest thing its own haptics offer rather than all of them sharing one amplitude. [millis] is how
+ * long it lasts on a platform that times its own vibrations; one with fixed taps ignores it. */
+enum class HapticEffect(val millis: Long) {
+    /** A die being held or unheld: slightly shorter than the hold/unhold sound clips, so the buzz
+     * resolves just before the click finishes. */
+    HOLD_TICK(150L),
 
-    /** The dice cup being shaken. */
-    SHAKE_BUZZ,
+    /** The dice cup being shaken: 20% shorter than [CUP_SHAKE_MILLIS], so it ends before the shake does. */
+    SHAKE_BUZZ(CUP_SHAKE_MILLIS * 4 / 5),
 }
 
 interface HapticsPlayer {

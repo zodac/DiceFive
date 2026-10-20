@@ -1,5 +1,6 @@
 package net.zodac.dicefive.ui.game
 
+import net.zodac.dicefive.platform.HapticEffect
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -17,5 +18,11 @@ class CupShakeTest {
             assertEquals(expected, cupShakeMillis(reduceMotion = reduceMotion, soundEnabled = sound, vibrationEnabled = vibration), "reduce motion $reduceMotion, sound $sound, vibration $vibration")
         }
         assertTrue(REDUCED_MOTION_CUP_SHAKE_MILLIS in 1 until CUP_SHAKE_MILLIS)
+    }
+
+    @Test
+    fun `the shake buzz is 20 percent shorter than the shake`() {
+        assertEquals(336L, HapticEffect.SHAKE_BUZZ.millis)
+        assertEquals(CUP_SHAKE_MILLIS * 4 / 5, HapticEffect.SHAKE_BUZZ.millis)
     }
 }
