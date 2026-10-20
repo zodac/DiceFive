@@ -160,8 +160,8 @@ Play's overlay: an edge tab that slides out achievements, streaks, offers and re
 
 The code is done. The rest is the maintainer's, in Play Console:
 1. **Publish** the achievements and boards. From then on their ids, points and ordering are permanent.
-2. **Upload a signed `.aab` by hand** (CI has no Play credentials). Take it from the GitHub release (from 1.0.0, or a
-   manual run with `force_apk`), put it on an internal or closed track, and tick **Sidekick is on by default**.
+2. **Upload a signed `.aab` by hand** (CI has no Play credentials). Take it from the GitHub release, put it on an
+   internal or closed track, and tick **Sidekick is on by default**.
 3. **Check on a Play install** (Android 13+, 3 GB+): the tab sits top-right in both orientations over no control;
    TalkBack still reaches the back arrow and header; Play's sign-in pop-up doesn't hide the logo long (its wording, "Hey there" or "Welcome back", is Play's own, not
    ours); 60fps

@@ -487,10 +487,9 @@ screen) of `StyleColour`s.
     script is evaluated, or the configuration cache would hand every build the same one.
 - **On every push to `main` that changes what ships**, `.github/workflows/release.yml` runs:
   - parallel jobs: Android tests, shared tests with the iOS compile, lint, the Baseline Profile (generated fresh on an
-    emulator; see `EMULATOR.md`), and the APK plus App Bundle (from 1.0.0, or with `force_apk`);
+    emulator; see `EMULATOR.md`), and the APK plus App Bundle;
   - then a `release` job that publishes GitHub release `v<VERSION>` once every check has passed, with
-    `DiceFive-<version>.apk`, `.aab` and `-mapping.txt` (one R8 run, one mapping). Before 1.0.0 the release is a
-    pre-release with no files;
+    `DiceFive-<version>.apk`, `.aab` and `-mapping.txt` (one R8 run, one mapping);
   - then a commit that bumps the patch and empties `RELEASE_NOTES.md` (`[Release] Bump version to X [skip ci]`).
 - **Release description.** `RELEASE_NOTES.md` (the maintainer's), then "## Changes since X" from
   `scripts/release-changelog.sh`, grouped by each commit's `[Category]`.

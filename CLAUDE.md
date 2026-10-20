@@ -26,7 +26,7 @@ scorecard, and outscore friends or AI. Fully offline, unless you sign in to Goog
 |---|---|
 | Repo | `github.com/zodac/DiceFive`, default branch `main`. Every push to `main` that changes what ships cuts a GitHub release (`DESIGN.md`, "Release pipeline") |
 | Package | `net.zodac.dicefive` (Android `applicationId`, Kotlin root package) |
-| Version | `VERSION` (single source; pre-1.0 now). Never hand-edit for a debug install |
+| Version | `VERSION` (single source; released from 1.0.0). Never hand-edit for a debug install |
 | Platforms | Android minSdk 26, targetSdk/compileSdk 37 (`app/android/build.gradle.kts`); iOS compiles but no app yet |
 | Stack | Kotlin Multiplatform, Compose Multiplatform, Material 3 (dark only), Navigation Compose, MVVM (`ViewModel` + `StateFlow`), Room (scores), DataStore (everything else) |
 | Versions | `gradle/libs.versions.toml`, bumped monthly by CI (an entry tied to another is marked `# @update`); sandbox pins in `sandbox/Dockerfile` |

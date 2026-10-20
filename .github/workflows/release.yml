@@ -17,17 +17,13 @@ name: Release
 # .githooks/commit-msg). The bump commit afterwards also empties RELEASE_NOTES.md, ready for the
 # next release's notes.
 #
-# Versions below 1.0.0 are pre-1.0 milestones, not real releases: they're
-# marked as GitHub pre-releases and get no build assets - just a version bump
-# recorded as a tagged release. Signing/building only happens once VERSION
-# reaches 1.0.0, unless the force_apk dispatch input below overrides that.
-# The assets are the signed APK (for sideloading), the signed App Bundle (.aab)
+# Every release attaches its build assets: the signed APK (for sideloading), the signed App Bundle (.aab)
 # for Google Play, and R8's mapping.txt for reading obfuscated stack traces.
 # Both are signed with the RELEASE_KEY* secrets' key, which is the app's
 # Play App Signing upload key - Play re-signs the bundle with its own key.
 #
 # The checks run side by side, each on a runner of its own - the app's Robolectric tests, the shared
-# module's tests with its iOS compile, lint, and (once there's an APK to ship) the Baseline Profile,
+# module's tests with its iOS compile, lint, and the Baseline Profile,
 # which stops itself if a check fails. The signed APK is built with that profile once it and every check
 # have passed, and the release itself is made only once all of that has. Each job sets itself up
 # through .github/actions/build-setup.
@@ -57,11 +53,6 @@ on:
   # (e.g. a red unit-test run) and left main sitting on an unreleased
   # VERSION with nothing to re-trigger it.
   workflow_dispatch:
-    inputs:
-      force_apk:
-        description: "Build and attach the APK, App Bundle and mapping even if VERSION is still below 1.0.0 (release stays marked as a pre-release)"
-        type: boolean
-        default: false
 
 permissions:
   contents: write
@@ -76,7 +67,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       name: ${{ steps.version.outputs.name }}
-      stable: ${{ steps.version.outputs.stable }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -85,10 +75,7 @@ jobs:
         id: version
         run: |
           version="$(tr -d '[:space:]' < VERSION)"
-          major="${version%%.*}"
-          if [ "$major" -ge 1 ]; then stable=true; else stable=false; fi
           echo "name=$version" >> "$GITHUB_OUTPUT"
-          echo "stable=$stable" >> "$GITHUB_OUTPUT"
 
   # app:android's unit tests - Robolectric, so the slowest of the checks.
   android-tests:
@@ -202,7 +189,6 @@ jobs:
   # watches them and stops itself when one does - see watch_checks.sh.
   baseline-profile:
     needs: version
-    if: needs.version.outputs.stable == 'true' || inputs.force_apk == true
     runs-on: ubuntu-latest
     timeout-minutes: 210
     permissions:
@@ -365,13 +351,11 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # The signed release APK and App Bundle, built with the Baseline Profile generated above - only from 1.0.0
-  # on, unless force_apk asks for them sooner, and only once the profile and every check have passed
-  # (there's no use for a build that won't be released). Handed to the release job as an artifact, with
-  # the mapping.txt their shared R8 run wrote.
+  # The signed release APK and App Bundle, built with the Baseline Profile generated above - only once the
+  # profile and every check have passed (there's no use for a build that won't be released). Handed to the
+  # release job as an artifact, with the mapping.txt their shared R8 run wrote.
   apk:
     needs: [version, android-tests, shared-tests, lint, baseline-profile]
-    if: needs.version.outputs.stable == 'true' || inputs.force_apk == true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -426,19 +410,9 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  # Made only once every job it needs has succeeded (Actions' default), so a release always has its APK.
   release:
     needs: [version, android-tests, shared-tests, lint, baseline-profile, apk]
-    # Every check must have passed; the profile and APK jobs may have been skipped (a pre-1.0 release has
-    # none), but not have failed. The profile is checked as well as the APK: a failed profile job makes
-    # the apk job skip, not fail, which on its own would let a release out without its APK.
-    if: >-
-      !cancelled() &&
-      needs.version.result == 'success' &&
-      needs.android-tests.result == 'success' &&
-      needs.shared-tests.result == 'success' &&
-      needs.lint.result == 'success' &&
-      (needs.baseline-profile.result == 'success' || needs.baseline-profile.result == 'skipped') &&
-      (needs.apk.result == 'success' || needs.apk.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       # Full history and tags: the release description lists every commit since the previous
@@ -449,7 +423,6 @@ jobs:
           fetch-depth: 0
 
       - name: Fetch the release files
-        if: needs.apk.result == 'success'
         uses: actions/download-artifact@v8
         with:
           name: release-files
@@ -478,8 +451,7 @@ jobs:
         with:
           tag_name: v${{ needs.version.outputs.name }}
           name: DiceFive v${{ needs.version.outputs.name }}
-          prerelease: ${{ needs.version.outputs.stable != 'true' }}
-          files: ${{ needs.apk.result == 'success' && 'release-files/*' || '' }}
+          files: release-files/*
           body_path: ${{ steps.notes.outputs.path }}
 
       # Only reached once everything above has succeeded, so a failed build
