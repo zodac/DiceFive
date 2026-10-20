@@ -5,17 +5,25 @@ description: Run this project's tests, lint and build gates (all or one class), 
 
 # Running the tests and gates
 
-Run from `/work`. Warnings fail the build (`allWarningsAsErrors`, lint `warningsAsErrors`), so `-q` hides nothing
-that matters. Chain with `&&` so a failure stops what follows.
+Run from `/work`. Compiler and lint warnings fail the build (`allWarningsAsErrors`, lint `warningsAsErrors`), but
+Gradle's own warnings (deprecations, the manifest merger, plugins) don't, and `-q` hides them. Chain with `&&` so a
+failure stops what follows.
 
 ## The full gate (before a commit)
 
 ```sh
-./gradlew -q testDebugUnitTest lint assembleDebug compileDebugAndroidTestKotlin
+./gradlew testDebugUnitTest lint assembleDebug compileDebugAndroidTestKotlin :app:android:assembleRelease --console=plain 2>&1 \
+  | grep -v -E '^> Task|^$'
 ```
 
-The root `testDebugUnitTest` runs both test suites and compiles `app/shared` for iOS (both targets plus the iOS test
-code). It is the only task that catches Kotlin/Native-only failures, such as a `commonTest` name with a comma.
+- The root `testDebugUnitTest` runs both test suites and compiles `app/shared` for iOS (both targets plus the iOS
+  test code). It is the only task that catches Kotlin/Native-only failures, such as a `commonTest` name with a comma.
+- `:app:android:assembleRelease` is the release job's build: R8, and the release lint (`lintVitalRelease`), which
+  `lint` doesn't run. Without the signing secrets it builds unsigned, which is fine here.
+- No `-q`, so Gradle's warnings show. Read what's left after the task lines. Known and left (third-party, already
+  on their newest versions): AGP's `Configuration.setVisible` deprecation, the AboutLibraries plugin's
+  "resolved during configuration time" lines, and the manifest merger's `PlayGamesInitProvider` note from
+  `mergeDebugUnitTestManifest`. Anything else is new: fix it.
 
 ## While iterating
 
