@@ -16,6 +16,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.util.concurrent.TimeUnit
+import kotlin.random.Random
 import net.zodac.dicefive.data.game.InProgressGameRepository
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
@@ -62,6 +63,8 @@ class TutorialScreenTest {
             SettingsRepository(InMemoryPreferences()),
             InProgressGameRepository(InMemoryPreferences()),
             InMemoryAchievementStore(),
+            random = Random(1),
+            localHour = { TEST_LOCAL_HOUR },
             tutorial = TutorialScript.STANDARD,
         )
         viewModel.startTutorial("Player 1")

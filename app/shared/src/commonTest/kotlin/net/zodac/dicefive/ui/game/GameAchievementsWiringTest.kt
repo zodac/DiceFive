@@ -1,6 +1,5 @@
 package net.zodac.dicefive.ui.game
 
-import androidx.room.RoomRawQuery
 import kotlin.random.Random
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -21,16 +20,14 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import net.zodac.dicefive.LoadedDice
+import net.zodac.dicefive.ScriptedDice
 import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.achievements.AchievementStore
 import net.zodac.dicefive.data.achievements.InMemoryAchievementStore
 import net.zodac.dicefive.data.game.InProgressGameRepository
-import net.zodac.dicefive.data.scores.DismissedPlayerStats
-import net.zodac.dicefive.data.scores.PlayerGame
 import net.zodac.dicefive.data.scores.InMemoryScoreDao
 import net.zodac.dicefive.data.scores.ScoreDao
-import net.zodac.dicefive.data.scores.ScoreEntry
-import net.zodac.dicefive.data.scores.UnpostedScore
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SettingsRepository
 import net.zodac.dicefive.model.Achievement
@@ -41,94 +38,8 @@ import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.ScoreSection
 import net.zodac.dicefive.model.TurnTimer
 
-/** Dice that always land on [value], so a test can deal itself a known hand. */
-private class LoadedDice(private val value: Int) : Random() {
-    override fun nextBits(bitCount: Int): Int = 0
-    override fun nextInt(from: Int, until: Int): Int = value
-}
-
-/** Dice that land on [values] in order, cycling - five dice rolled once give exactly that hand. */
-private class CountingDice(values: IntRange) : Random() {
-    private val sequence = values.toList()
-    private var index = 0
-
-    override fun nextBits(bitCount: Int): Int = 0
-    override fun nextInt(from: Int, until: Int): Int = sequence[index++ % sequence.size]
-}
-
-/** Dice that land on an exact, explicit [values] script in order, cycling once exhausted - for
- * tests that need to control several different rolls (not just one repeated hand) precisely,
- * e.g. a roll with holds where only some dice are re-rolled. A `values` sized to a whole multiple
- * of 5 with nothing held never actually needs to cycle; it's there so a short script can't run out. */
-private class ScriptedDice(private val values: List<Int>) : Random() {
-    private var index = 0
-
-    override fun nextBits(bitCount: Int): Int = 0
-    override fun nextInt(from: Int, until: Int): Int = values[index++ % values.size]
-}
-
 /** More turns than any game here lasts, so a helper playing one out can't loop for ever. */
 private const val MAX_TURNS_PLAYED = 200
-
-/** Enough of [ScoreDao] for the leaderboard read/write that `finishGame` sequences around. */
-private class FakeScoreDao : ScoreDao {
-    private val entries = mutableListOf<ScoreEntry>()
-
-    override suspend fun insert(entry: ScoreEntry) {
-        entries += entry
-    }
-
-    // As the real queries do, only Leaderboard rows (ScoreEntry.onLeaderboard) are paged, counted,
-    // best or collected; career points count every row.
-    private val leaderboard get() = entries.filter { it.onLeaderboard }
-
-    override suspend fun rawPagedScores(query: RoomRawQuery): List<ScoreEntry> = error("Only the real DAO runs the SQL")
-
-    override suspend fun pagedScores(limit: Int, offset: Int): List<ScoreEntry> =
-        leaderboard.sortedByDescending { it.score }.drop(offset).take(limit)
-
-    private fun forMode(gameModeId: String) =
-        entries.filter { it.playedUnmodified && it.gameModeId == gameModeId }
-
-    override suspend fun pagedScoresForMode(gameModeId: String, limit: Int, offset: Int): List<ScoreEntry> =
-        forMode(gameModeId).sortedByDescending { it.score }.drop(offset).take(limit)
-
-    override suspend fun count(): Int = leaderboard.size
-
-    override suspend fun countForMode(gameModeId: String): Int = forMode(gameModeId).size
-
-    override suspend fun bestScoreForPlayer(playerKey: String): Int? =
-        leaderboard.filter { it.playerKey == playerKey }.maxOfOrNull { it.score }
-
-    override suspend fun distinctScores(): List<Int> = leaderboard.map { it.score }.distinct()
-
-    override suspend fun primaryPlayerTotalPoints(): Int? =
-        entries.filter { it.isPrimaryPlayer }.takeIf { it.isNotEmpty() }?.sumOf { it.score }
-
-    override suspend fun primaryPlayerGameModeIds(): List<String> = entries.filter { it.isPrimaryPlayer }.map { it.gameModeId }.distinct()
-    override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
-
-    override suspend fun playerGames(): List<PlayerGame> = emptyList()
-
-
-    override suspend fun clearDismissal(playerKey: String) = Unit
-
-    override suspend fun clearAllScores() {
-        entries.clear()
-    }
-
-    override suspend fun clearAllDismissals() = Unit
-    override suspend fun allScores(): List<ScoreEntry> = emptyList()
-    override suspend fun allDismissals(): List<DismissedPlayerStats> = emptyList()
-    override suspend fun insertMissing(entries: List<ScoreEntry>) = Unit
-    override suspend fun putDismissals(dismissals: List<DismissedPlayerStats>) = Unit
-    override suspend fun deleteScoresThrough(epochMillis: Long) = Unit
-    override suspend fun deleteDismissalsThrough(epochMillis: Long) = Unit
-    override suspend fun deleteUndoneDismissals() = Unit
-
-    /** For tests that need to inspect what was actually recorded, not just Score repository totals. */
-    fun recorded(): List<ScoreEntry> = entries.toList()
-}
 
 /**
  * Covers the wiring between a finished game and a stored unlock, which `AchievementEngineTest`
@@ -158,7 +69,7 @@ class GameAchievementsWiringTest {
 
     /** A game of [players] dealt [dice], set up by [setUp] and started, recording into a fresh store. */
     private fun started(
-        dice: Random = Random.Default,
+        dice: Random = Random(1),
         players: Int = 1,
         isDebugBuild: Boolean = false,
         scoreRepository: ScoreRepository = ScoreRepository(InMemoryScoreDao()),
@@ -234,11 +145,11 @@ class GameAchievementsWiringTest {
             "unlucky dice" to { setUnluckyDiceEnabled(true) },
         )
         for ((name, modifier) in modifiers) {
-            val dao = FakeScoreDao()
+            val dao = InMemoryScoreDao()
             val table = started(scoreRepository = ScoreRepository(dao), setUp = modifier)
             table.viewModel.playEveryBox()
             advanceUntilIdle()
-            val row = dao.recorded().single()
+            val row = dao.rows().single()
             val unmodified = name == "none"
             assertEquals(unmodified, row.playedUnmodified, name)
             assertEquals(unmodified, row.onLeaderboard, name)
@@ -250,7 +161,7 @@ class GameAchievementsWiringTest {
     fun `finishing a game records its achievements and counters - solo - between two humans or against an AI`() = runTest {
         // With a real score repository in play, finishGame actually suspends on the leaderboard read before it ever
         // reaches the achievement evaluation - which a null repository never does.
-        val dao = FakeScoreDao()
+        val dao = InMemoryScoreDao()
         val solo = started(scoreRepository = ScoreRepository(dao))
         solo.viewModel.playToCompletion()
         advanceUntilIdle()
@@ -311,8 +222,8 @@ class GameAchievementsWiringTest {
 
     @Test
     fun `each recorded score carries its outcome - 5x count - primary-player flag and whether it's on the Leaderboard`() = runTest {
-        fun finished(players: Int = 1, dice: Random = Random.Default, mode: GameMode = GameMode.STANDARD): Pair<GameViewModel, FakeScoreDao> {
-            val dao = FakeScoreDao()
+        fun finished(players: Int = 1, dice: Random = Random(1), mode: GameMode = GameMode.STANDARD): Pair<GameViewModel, InMemoryScoreDao> {
+            val dao = InMemoryScoreDao()
             val table = started(dice, players, scoreRepository = ScoreRepository(dao)) { setGameMode(mode) }
             table.viewModel.playToCompletion()
             advanceUntilIdle()
@@ -321,15 +232,15 @@ class GameAchievementsWiringTest {
 
         // A solo game records no win outcome - there's nobody to beat - and goes on the Leaderboard.
         val (_, solo) = finished()
-        assertEquals(null, solo.recorded().single().won)
-        assertTrue(solo.recorded().single().onLeaderboard)
+        assertEquals(null, solo.rows().single().won)
+        assertTrue(solo.rows().single().onLeaderboard)
 
         // A two-human game records each player's win outcome against the top score - and only player 1's row is
         // flagged as the primary player.
         val (twoHumans, twoHumansDao) = finished(players = 2)
         val finalState = twoHumans.game.value!!
-        assertEquals(finalState.players.associate { it.name to (it.totalScore == finalState.topScore) }, twoHumansDao.recorded().associate { it.playerName to it.won })
-        val flagged = twoHumansDao.recorded().associate { it.playerName to it.isPrimaryPlayer }
+        assertEquals(finalState.players.associate { it.name to (it.totalScore == finalState.topScore) }, twoHumansDao.rows().associate { it.playerName to it.won })
+        val flagged = twoHumansDao.rows().associate { it.playerName to it.isPrimaryPlayer }
         assertTrue(flagged.getValue(finalState.players[0].name), "player 1's own row should be flagged")
         assertEquals(1, flagged.values.count { it }, "no other row should be flagged as the primary player")
 
@@ -337,12 +248,12 @@ class GameAchievementsWiringTest {
         val (sixes, sixesDao) = finished(dice = LoadedDice(6))
         val player = sixes.game.value!!.players.single()
         assertTrue(player.fiveOfAKindCount > 0, "a game of nothing but 6s should score at least one 5x")
-        assertEquals(player.fiveOfAKindCount, sixesDao.recorded().single().fiveOfAKindCount)
+        assertEquals(player.fiveOfAKindCount, sixesDao.rows().single().fiveOfAKindCount)
 
         // A Third Wind game is recorded for Statistics but kept off the Leaderboard.
         val (thirdWind, thirdWindDao) = finished(mode = GameMode.THIRD_WIND)
         assertTrue(thirdWind.game.value?.isGameOver == true, "all 39 turns should finish the game")
-        val row = thirdWindDao.recorded().single()
+        val row = thirdWindDao.rows().single()
         val repository = ScoreRepository(thirdWindDao)
         assertFalse(row.onLeaderboard)
         assertEquals(thirdWind.game.value!!.players.single().totalScore, row.score)
@@ -376,13 +287,13 @@ class GameAchievementsWiringTest {
     @Test
     fun `a feat rolled straight out of the cup pops once the dice land - and only while its box is still open`() = runTest {
         // 1-2-3-4-5 on the first throw: a large straight out of the cup - and I Can Count.
-        val straight = unlockedAfter(CountingDice(1..5)) { rollDice() }
+        val straight = unlockedAfter(ScriptedDice((1..5).toList())) { rollDice() }
         assertTrue(Achievement.STRAIGHT_AWAY in straight, "STRAIGHT_AWAY should pop on the roll, got $straight")
         assertTrue(Achievement.I_CAN_COUNT in straight, "I_CAN_COUNT should pop, got $straight")
         assertFalse(Achievement.HOUSE_CALL in straight)
 
         // It waits for the dice to land before it pops.
-        val tossing = started(CountingDice(1..5))
+        val tossing = started(ScriptedDice((1..5).toList()))
         tossing.viewModel.setPacing(GamePacing(diceTossMillis = 1_000L))
         tossing.viewModel.rollDice()
         advanceTimeBy(999L)
@@ -808,7 +719,7 @@ class GameAchievementsWiringTest {
 
     @Test
     fun `odd choices - the small straight over the large is Why Did You Do That - an undo into another box I Didn't Mean That`() = runTest {
-        val small = unlockedAfter(CountingDice(1..5)) {
+        val small = unlockedAfter(ScriptedDice((1..5).toList())) {
             rollDice()
             commitScore(ScoreCategory.SMALL_STRAIGHT)
         }

@@ -31,7 +31,7 @@ class AiTurnPlayerTest {
     )
 
     /** A new solo game of [mode] for a CPU at [difficulty]. */
-    private fun soloGame(difficulty: Difficulty, mode: GameMode = GameMode.STANDARD, random: Random = Random.Default, extendedScores: Boolean = false) =
+    private fun soloGame(difficulty: Difficulty, mode: GameMode = GameMode.STANDARD, random: Random = Random(1), extendedScores: Boolean = false) =
         GameEngine.newGame(listOf(PlayerConfig(slot = 1, type = PlayerType.AI, name = "Bot", difficulty = difficulty)), mode, random = random, extendedScores = extendedScores)
 
     /** A whole solo game of [mode] played by a CPU at [difficulty] off [random]: the finished game and how many turns it took. */
@@ -222,7 +222,9 @@ class AiTurnPlayerTest {
     @Test
     fun `every difficulty plays whole legal D20 games of twenty-two turns - Hard ahead of Medium ahead of Easy - and Hard banks high numbers over low ones`() {
         val averages = Difficulty.entries.associateWith { difficulty ->
-            val games = (1..D20_SEEDED_GAMES).map { seed -> playedOut(difficulty, GameMode.D20, Random(seed)) }
+            // Hard plans each turn in full, a third of a second a game, so it plays fewer: its lead over Medium is ~200 points.
+            val seeded = if (difficulty == Difficulty.HARD) D20_HARD_SEEDED_GAMES else D20_SEEDED_GAMES
+            val games = (1..seeded).map { seed -> playedOut(difficulty, GameMode.D20, Random(seed)) }
             for ((game, turns) in games) {
                 assertEquals(22, turns, "$difficulty")
                 val player = game.players.single()
@@ -308,5 +310,6 @@ class AiTurnPlayerTest {
         const val STUD_HOLD_CASES = 200
         const val STUD_SEEDED_GAMES = 40
         const val D20_SEEDED_GAMES = 30
+        const val D20_HARD_SEEDED_GAMES = 10
     }
 }

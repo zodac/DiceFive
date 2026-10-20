@@ -9,8 +9,9 @@ Many achievements assume three rolls, holding between rolls, no timer, or the St
 mode changes, decide:
 
 - **Can't be earned in this mode.** Leave it: no code. It's still earnable in other modes.
-- **Earned for free in this mode.** **Add a guard** and a test for it. **Prove the test** by removing that one guard
-  and watching it fail. Strip guards one at a time; stripping them all at once proves nothing about each.
+- **Earned for free in this mode.** **Add a guard** and a test for it: a row in `AchievementEngineTest`'s guarded
+  table (each mode and modifier's cards, and the feats each must not earn). **Prove the test** by removing that one
+  guard and watching it fail. Strip guards one at a time; stripping them all at once proves nothing about each.
 - **Easier but not free.** Don't guard it. **Report the "easier" list to the user** rather than deciding alone.
 - **Count the thing, not its proxy.** Bonus chips equal "2nd/3rd 5x" only while the 5x box has one slot;
   `fiveOfAKindCount` counts the 5x themselves.

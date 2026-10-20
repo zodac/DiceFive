@@ -110,6 +110,10 @@ class ScoreFrameClearanceTest {
         assertTrue("Frames too close to the active tab's text (need ${MIN_GAP_DP}dp): $failures", failures.isEmpty())
     }
 
+    /** The pixels of the tab's first [w] columns, read out once: reading them one by one is a native call per pixel. */
+    private fun pixels(bitmap: Bitmap, w: Int): IntArray =
+        IntArray(w * bitmap.height).also { bitmap.getPixels(it, 0, w, 0, 0, w, bitmap.height) }
+
     /** The distance, in pixels, from the frame's nearest pixel to the tab's nearest text pixel - 0 or less if they touch. */
     private fun closestGapPx(plain: Bitmap, framed: Bitmap, w: Int, colour: Color): Float {
         val h = plain.height
@@ -118,16 +122,20 @@ class ScoreFrameClearanceTest {
         val dg = colour.green - panel.green
         val db = colour.blue - panel.blue
         val length2 = dr * dr + dg * dg + db * db
+        fun red(argb: Int) = (argb shr 16 and 0xFF) / 255f
+        fun green(argb: Int) = (argb shr 8 and 0xFF) / 255f
+        fun blue(argb: Int) = (argb and 0xFF) / 255f
         // How far a pixel is pulled from the panel towards the player's colour: 0 on the panel, 1 at full colour.
-        fun pull(c: Color) = ((c.red - panel.red) * dr + (c.green - panel.green) * dg + (c.blue - panel.blue) * db) / length2
+        fun pull(c: Int) = ((red(c) - panel.red) * dr + (green(c) - panel.green) * dg + (blue(c) - panel.blue) * db) / length2
+        val plainPixels = pixels(plain, w)
+        val framedPixels = pixels(framed, w)
         val text = BooleanArray(w * h)
         val frame = BooleanArray(w * h)
-        for (y in 0 until h) for (x in 0 until w) {
-            val before = Color(plain.getPixel(x, y))
-            val after = Color(framed.getPixel(x, y))
-            val i = y * w + x
+        for (i in 0 until w * h) {
+            val before = plainPixels[i]
+            val after = framedPixels[i]
             text[i] = pull(before) > 0.3f
-            val moved = (after.red - before.red).let { it * it } + (after.green - before.green).let { it * it } + (after.blue - before.blue).let { it * it }
+            val moved = (red(after) - red(before)).let { it * it } + (green(after) - green(before)).let { it * it } + (blue(after) - blue(before)).let { it * it }
             // More than a wash: Art Deco tints the whole tab by 16%, which is meant to sit behind the text.
             frame[i] = pull(after) - pull(before) > 0.3f || moved > 0.12f
         }
@@ -135,15 +143,17 @@ class ScoreFrameClearanceTest {
         val distance = IntArray(w * h) { Int.MAX_VALUE }
         val queue = ArrayDeque<Int>()
         for (i in frame.indices) if (frame[i]) { distance[i] = 0; queue.add(i) }
+        fun reach(j: Int, from: Int) {
+            if (distance[j] == Int.MAX_VALUE) { distance[j] = distance[from] + 1; queue.add(j) }
+        }
         while (queue.isNotEmpty()) {
             val i = queue.removeFirst()
             val x = i % w
             val y = i / w
-            for ((nx, ny) in listOf(x - 1 to y, x + 1 to y, x to y - 1, x to y + 1)) {
-                if (nx !in 0 until w || ny !in 0 until h) continue
-                val j = ny * w + nx
-                if (distance[j] == Int.MAX_VALUE) { distance[j] = distance[i] + 1; queue.add(j) }
-            }
+            if (x > 0) reach(i - 1, i)
+            if (x < w - 1) reach(i + 1, i)
+            if (y > 0) reach(i - w, i)
+            if (y < h - 1) reach(i + w, i)
         }
         val closest = text.indices.filter { text[it] }.minOfOrNull { distance[it] } ?: Int.MAX_VALUE
         return closest - 1f

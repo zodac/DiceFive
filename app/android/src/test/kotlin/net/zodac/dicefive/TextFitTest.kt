@@ -32,6 +32,7 @@ import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
 import net.zodac.dicefive.ui.achievements.AchievementsScreen
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
+import net.zodac.dicefive.ui.achievements.resetAchievementsScrollMemory
 import net.zodac.dicefive.ui.game.GameOverScreen
 import net.zodac.dicefive.ui.game.GameScreen
 import net.zodac.dicefive.ui.game.GameViewModel
@@ -159,6 +160,7 @@ open class TextFitTest {
         content { StatisticsScreen(viewModel = statistics, onBack = {}) }
         check("Statistics")
 
+        resetAchievementsScrollMemory()
         val achievements = achievementsViewModel()
         content { AchievementsScreen(viewModel = achievements, onBack = {}) }
         check("Achievements")

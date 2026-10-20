@@ -37,8 +37,12 @@ failure stops what follows.
 
 Failures and `println` output are in `app/android/build/test-results/testDebugUnitTest/TEST-*.xml` and
 `app/shared/build/test-results/testAndroidHostTest/TEST-*.xml`. Grep for `<failure`; output is under `system-out`.
-Add `--rerun` to re-run a test Gradle thinks is up to date. Otherwise it serves the old result, and a scratch render
-keeps the old PNG, so check its timestamp.
+Add `--rerun` to re-run a test Gradle thinks is up to date. Otherwise it serves the old result - from the build cache too
+(`FROM-CACHE`), even for source you put back as it was - and a scratch render keeps the old PNG, so check its timestamp.
+Always `--rerun` when proving a guard can fail.
+
+The Robolectric classes run in two JVMs (`maxParallelForks` in `app/android/build.gradle.kts`), so a test
+can't count on the classes before it in the same JVM. The configuration cache is on (`gradle.properties`).
 
 ## Where tests live
 
@@ -56,11 +60,20 @@ keeps the old PNG, so check its timestamp.
 - **A screen test** (`GameScreen`) needs `LocalPlatformServices provides SilentPlatformServices`. Step both
   `compose.mainClock` and the paused main looper (`ShadowLooper.idleMainLooper`), because the view model's coroutines
   delay on the looper. `GameScreenCupGateTest.waitFor` is the pattern.
-- **View-model tests** run on a `StandardTestDispatcher`, which must also be passed as `aiDispatcher`. Use
-  `advanceTimeBy` + `runCurrent` for timers. In a timed game, `advanceUntilIdle` plays every turn out through timeouts.
+- **View-model tests** run on a `StandardTestDispatcher`, which must also be passed as `aiDispatcher` (`gameViewModel()`
+  requires it). Use `advanceTimeBy` + `runCurrent` for timers. In a timed game, `advanceUntilIdle` plays every turn out
+  through timeouts.
+- **Nothing real by default.** The test `gameViewModel()`s deal seeded dice and read a 2pm clock (`TEST_LOCAL_HOUR` on
+  Android), so no result depends on when it runs - Rolling The Midnight Dice unlocks from midnight to 6am. Pass
+  `localHour` to test the time of day.
 - **Only do what the UI allows.** The engine throws on impossible actions.
-- **Pick dice that tell the rules apart.** Use `LoadedDice`, `ScriptedDice`, `CountingDice` or `FixedValueRandom`,
-  and work out the expected values by hand before asserting.
+- **Pick dice that tell the rules apart.** Use `LoadedDice` or `ScriptedDice` (`commonTest/.../TestDice.kt`), and work
+  out the expected values by hand before asserting. They fail a draw outside the range asked for, so script every draw
+  a roll makes - Unlucky Dice's odds and shuffle too (`AchievementTrackerTest`'s Bad Omen).
+- **Process-wide memories.** A screen that remembers its place for the process (`AchievementsScrollMemory`,
+  `RulesPageMemory`, the Scores warm-up) has a reset; call it before opening that screen.
+- **Fakes.** `InMemoryPreferences`, `InMemoryScoreDao` and `InMemoryAchievementStore` (commonTest) are the shared ones;
+  reuse them rather than writing another. `:app:android` can't see them and keeps its own few (`TestRepositories.kt`).
 - **Prove a guard can fail.** Remove the fix, watch the test fail, then put it back. Do this one guard at a time.
 - **Cached formatters leak between tests in one JVM.** Run a locale test on its own when checking that it can fail.
 - **Semantics-cleared text can't be found.** Use `useUnmergedTree = true`, or say in the report that it is untested.

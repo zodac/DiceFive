@@ -3,11 +3,9 @@ package net.zodac.dicefive
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performScrollToIndex
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.app.LocalAppContainer
@@ -19,6 +17,7 @@ import net.zodac.dicefive.navigation.AchievementScrollRequests
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.achievements.AchievementsScreen
+import net.zodac.dicefive.ui.achievements.resetAchievementsScrollMemory
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -36,6 +35,8 @@ class AchievementsLandscapeTest {
     val compose = createComposeRule()
 
     private fun showAchievements() {
+        // The screen remembers where it was scrolled to for the whole process: start every test at the top.
+        resetAchievementsScrollMemory()
         val viewModel = achievementsViewModel()
         compose.setContent {
             CompositionLocalProvider(
@@ -46,9 +47,6 @@ class AchievementsLandscapeTest {
             }
         }
         compose.waitUntil(10_000) { shows("unlocked") }
-        // The screen remembers where it was scrolled to for the whole process: start every test at the top.
-        compose.onNode(hasScrollAction()).performScrollToIndex(0)
-        compose.waitForIdle()
     }
 
     private fun shows(text: String) = compose.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty()

@@ -1,10 +1,11 @@
 package net.zodac.dicefive.game
 
-import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import net.zodac.dicefive.LoadedDice
+import net.zodac.dicefive.ScriptedDice
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerConfig
@@ -12,12 +13,6 @@ import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.model.UnluckyDice
-
-/** Dice that always land on [value]. */
-private class FixedDice(private val value: Int) : Random() {
-    override fun nextBits(bitCount: Int): Int = 0
-    override fun nextInt(from: Int, until: Int): Int = value
-}
 
 /**
  * [AchievementTracker] on its own, fed the states [GameEngine] makes. `GameAchievementsWiringTest` covers the same
@@ -30,7 +25,7 @@ class AchievementTrackerTest {
 
     /** Player 1's roll of all 3s, reported to [tracker] - the state it lands in. */
     private fun AchievementTracker.roll(state: GameState): GameState =
-        GameEngine.rollDice(state, FixedDice(3)).also { onRoll(state, it) }
+        GameEngine.rollDice(state, LoadedDice(3)).also { onRoll(state, it) }
 
     @Test
     fun `an undo into a different box is I Didn't Mean That - the same box or no undo is not`() {
@@ -136,7 +131,7 @@ class AchievementTrackerTest {
         assertFalse(tracker.endOfGameContext(null, LeaderboardTotals()).playerOneTookExtraRoll)
 
         val allHeld = (0 until 5).fold(first) { state, index -> GameEngine.toggleHold(state, index) }
-        assertTrue(Achievement.WHAT_WAS_THE_POINT_OF_THAT in GameEngine.rollDice(allHeld, FixedDice(3)).let { tracker.onRoll(allHeld, it) })
+        assertTrue(Achievement.WHAT_WAS_THE_POINT_OF_THAT in GameEngine.rollDice(allHeld, LoadedDice(3)).let { tracker.onRoll(allHeld, it) })
         assertTrue(tracker.endOfGameContext(null, LeaderboardTotals()).playerOneTookExtraRoll)
         // The held dice didn't move, so none of them were rolled.
         assertEquals(5, tracker.endOfGameContext(null, LeaderboardTotals()).diceRolledByPlayerOne)
@@ -178,7 +173,7 @@ class AchievementTrackerTest {
             val tracker = AchievementTracker()
             tracker.startGame()
             val start = soloGame().copy(rollModifiers = RollModifiers(rollsPerTurn = 9, storedRolls = stored), rollsRemaining = rolls, turnRolls = rolls)
-            return Achievement.RAINY_DAY_FUND in GameEngine.rollDice(start, FixedDice(3)).let { tracker.onRoll(start, it) }
+            return Achievement.RAINY_DAY_FUND in GameEngine.rollDice(start, LoadedDice(3)).let { tracker.onRoll(start, it) }
         }
         assertTrue(earns(100, stored = true))
         assertFalse(earns(99, stored = true))
@@ -189,7 +184,7 @@ class AchievementTrackerTest {
         tracker.startGame()
         val start = soloGame().copy(rollModifiers = RollModifiers(rollsPerTurn = 9, storedRolls = true), rollsRemaining = 100, turnRolls = 100)
         val first = tracker.roll(start)
-        assertFalse(Achievement.RAINY_DAY_FUND in GameEngine.rollDice(first, FixedDice(3)).let { tracker.onRoll(first, it) })
+        assertFalse(Achievement.RAINY_DAY_FUND in GameEngine.rollDice(first, LoadedDice(3)).let { tracker.onRoll(first, it) })
     }
 
     @Test
@@ -197,9 +192,11 @@ class AchievementTrackerTest {
         fun earns(maxDice: Int): Boolean {
             val tracker = AchievementTracker()
             tracker.startGame()
-            // FixedDice's 3 is under any odds, so as many dice as the cap allows are chained.
+            // Five 3s rolled, each die's odds drawn as 3 (under 50, so all five are chained), then the order the cap
+            // takes them in shuffled by four draws of 0 - so as many dice as the cap allows are chained.
             val start = soloGame().copy(unluckyDice = UnluckyDice(oddsPercent = 50, maxDice = maxDice))
-            return Achievement.BAD_OMEN in GameEngine.rollDice(start, FixedDice(3)).let { tracker.onRoll(start, it) }
+            val dice = ScriptedDice(List(5) { 3 } + List(5) { 3 } + List(4) { 0 })
+            return Achievement.BAD_OMEN in GameEngine.rollDice(start, dice).let { tracker.onRoll(start, it) }
         }
         assertTrue(earns(5))
         assertFalse(earns(4))

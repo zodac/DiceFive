@@ -1,29 +1,18 @@
 package net.zodac.dicefive.data.achievements
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.emptyPreferences
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
+import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.Stamped
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCounter
-
-private class CloudPreferences : DataStore<Preferences> {
-    private val state = MutableStateFlow(emptyPreferences())
-    override val data: Flow<Preferences> = state
-    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
-        transform(state.value).also { state.value = it }
-}
 
 /** The achievements' side of the cloud save: this device's shares out, other devices' merged in, nothing announced. */
 class AchievementsRepositoryCloudTest {
 
     private var clock = 1_000L
-    private val repository = AchievementsRepository(CloudPreferences(), now = { clock })
+    private val repository = AchievementsRepository(InMemoryPreferences(), now = { clock })
 
     /** This file's own share id, as its save names it - the one share not in [others]. */
     private suspend fun ownShare(others: Set<String> = emptySet()): String = (repository.cloudAchievements().deviceCounters.keys - others).single()

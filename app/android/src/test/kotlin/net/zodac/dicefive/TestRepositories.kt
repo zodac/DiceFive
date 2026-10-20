@@ -1,5 +1,6 @@
 package net.zodac.dicefive
 
+import kotlin.random.Random
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,10 +50,18 @@ internal fun stylesViewModel(saved: StateFlow<SavedStyles?>? = null) = StylesVie
     saved,
 )
 
-/** A game view model over in-memory repositories: a first game already finished, so the form's modes are unlocked, unless [modesUnlocked] is false. */
+/**
+ * A game view model over in-memory repositories: a first game already finished, so the form's modes are unlocked, unless
+ * [modesUnlocked] is false. Seeded dice and a 2pm clock ([TEST_LOCAL_HOUR]), so no run depends on when it runs.
+ */
 internal fun gameViewModel(modesUnlocked: Boolean = true) = GameViewModel(
     ScoreRepository(RowsDao(emptyList())),
     SettingsRepository(InMemoryPreferences()).also { if (modesUnlocked) runBlocking { it.setFirstGameCompleted() } },
     InProgressGameRepository(InMemoryPreferences()),
     InMemoryAchievementStore(),
+    random = Random(1),
+    localHour = { TEST_LOCAL_HOUR },
 )
+
+/** The hour a test's game starts at: clear of the hours that earn Rolling The Midnight Dice. */
+internal const val TEST_LOCAL_HOUR = 14

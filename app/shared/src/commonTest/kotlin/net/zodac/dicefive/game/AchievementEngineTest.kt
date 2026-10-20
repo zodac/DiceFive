@@ -915,52 +915,13 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `a Quickfire card earns none of the full-card achievements - Spotless - the low scores - the ladder - the bonus or the sections`() {
-        // A Quickfire card with no zero doesn't unlock Spotless - a full Standard one does.
-        val enabled = GameMode.QUICKFIRE.categories - QUICKFIRE_OFF
-        assertFalse(Achievement.SPOTLESS in unlocked(quickfireGame(quickfirePlayer(total = 100, overrides = enabled.associateWith { 10 }))))
-        assertTrue(Achievement.SPOTLESS in unlocked(finishedGame(player(total = 100, overrides = GameMode.STANDARD.categories.associateWith { 10 }))))
-
-        // A low Quickfire total doesn't unlock Cold Dice or Low Rolls or Rock Bottom - a Standard one does.
-        for ((total, achievements) in listOf(
-            90 to listOf(Achievement.COLD_DICE),
-            15 to listOf(Achievement.COLD_DICE, Achievement.LOW_ROLLS),
-            5 to listOf(Achievement.COLD_DICE, Achievement.LOW_ROLLS, Achievement.ROCK_BOTTOM),
-        )) {
-            val quickfire = unlocked(quickfireGame(quickfirePlayer(total = total)))
-            val standard = unlocked(finishedGame(player(total = total)))
-            for (achievement in achievements) {
-                assertFalse(achievement in quickfire, "$achievement at $total in Quickfire")
-                assertTrue(achievement in standard, "$achievement at $total in Standard")
-            }
-        }
-
-        // Zeroing every Quickfire box but Chance doesn't unlock How Do You Play This Game.
-        assertFalse(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in unlocked(quickfireGame(quickfirePlayer(total = 20))))
-        assertTrue(Achievement.HOW_DO_YOU_PLAY_THIS_GAME in unlocked(finishedGame(player(total = 20))))
-
-        // The score ladder isn't climbed in Quickfire however high the total.
-        assertFalse(Achievement.SOLID_ROUND in unlocked(quickfireGame(quickfirePlayer(total = 210))))
-        assertTrue(Achievement.SOLID_ROUND in unlocked(finishedGame(player(total = 210))))
-
-        // A scaled Quickfire upper bonus doesn't unlock Bonus Round - nor do the section totals unlock Upper or Lower Class.
+    fun `a scaled Quickfire upper bonus doesn't unlock Bonus Round mid-game - a Standard one does`() {
+        // The other full-card feats Quickfire guards are in the guarded table below.
         val onlySixes = GameMode.QUICKFIRE.categories.filter { it != ScoreCategory.SIXES && it.section == ScoreSection.UPPER }.toSet() + ScoreCategory.FIVE_OF_A_KIND
         val bonus = midGamePlayer(mapOf(ScoreCategory.SIXES to 18), gameMode = GameMode.QUICKFIRE).copy(disabledCategories = onlySixes)
         assertEquals(35, bonus.upperSectionBonus)
         assertFalse(Achievement.BONUS_ROUND in unlockedMidGame(bonus))
         assertTrue(Achievement.BONUS_ROUND in unlockedMidGame(midGamePlayer(PlayerState.UPPER_CATEGORIES.associateWith { 3 * (PlayerState.UPPER_CATEGORIES.indexOf(it) + 1) })))
-        val upper = quickfirePlayer(
-            overrides = mapOf(ScoreCategory.SIXES to 30, ScoreCategory.FIVES to 25, ScoreCategory.FOURS to 20, ScoreCategory.THREES to 15),
-            off = setOf(ScoreCategory.FIVE_OF_A_KIND, ScoreCategory.ONES, ScoreCategory.TWOS, ScoreCategory.FULL_HOUSE, ScoreCategory.SMALL_STRAIGHT, ScoreCategory.LARGE_STRAIGHT),
-        )
-        assertEquals(90, upper.upperSectionTotal)
-        assertFalse(Achievement.UPPER_CLASS in unlocked(quickfireGame(upper, off = upper.disabledCategories)))
-        val lower = quickfirePlayer(
-            total = 200,
-            overrides = mapOf(ScoreCategory.THREE_OF_A_KIND to 30, ScoreCategory.FOUR_OF_A_KIND to 30, ScoreCategory.LARGE_STRAIGHT to 40, ScoreCategory.SMALL_STRAIGHT to 30),
-        )
-        assertTrue(lower.lowerSectionTotalExcludingFiveOfAKind >= 150)
-        assertFalse(Achievement.LOWER_CLASS in unlocked(quickfireGame(lower)))
     }
 
     // ---- The turn timer ------------------------------------------------------------------------------
@@ -1013,23 +974,7 @@ class AchievementEngineTest {
             .copy(extendedScores = true)
 
     @Test
-    fun `roll modifiers don't hand out the score ladder - the section thresholds - Spotless - Bonus Round or Impatient`() {
-        val strong = player(total = 520, overrides = GameMode.STANDARD.categories.associateWith { 30 })
-        val plain = unlocked(finishedGame(strong))
-        val modified = unlocked(modifiedGame(strong))
-        for (achievement in listOf(Achievement.SOLID_ROUND, Achievement.SHARPSHOOTER, Achievement.HIGH_ROLLER, Achievement.DICE_DEITY, Achievement.UPPER_CLASS, Achievement.LOWER_CLASS)) {
-            assertTrue(achievement in plain, "$achievement in a plain game")
-            assertFalse(achievement in modified, "$achievement with roll modifiers")
-        }
-
-        val clean = player(total = 250, overrides = GameMode.STANDARD.categories.associateWith { 10 } + mapOf(ScoreCategory.SIXES to 30))
-        assertTrue(Achievement.SPOTLESS in unlocked(finishedGame(clean)))
-        assertFalse(Achievement.SPOTLESS in unlocked(modifiedGame(clean)))
-        assertTrue(Achievement.BONUS_ROUND in unlocked(finishedGame(clean)))
-        assertFalse(Achievement.BONUS_ROUND in unlocked(modifiedGame(clean)))
-
-        // A single roll chosen with Number of Rolls isn't Impatient - nor Naturally Gifted for a win. Quickfire's three
-        // rolls still are.
+    fun `a single roll chosen with Number of Rolls isn't Impatient - nor Naturally Gifted for a win - but Quickfire's three rolls still are`() {
         assertFalse(Achievement.IMPATIENT in unlocked(finishedGame(player()).copy(rollModifiers = RollModifiers(rollsPerTurn = 1))))
         assertTrue(Achievement.IMPATIENT in unlocked(finishedGame(player())))
         val firstRollOnly = GameAchievementContext(playerOneTookExtraRoll = false)
@@ -1043,20 +988,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `Extended Scores and Unlucky Dice don't hand out the score ladder or Zero To Hero - and How Do You Play This Game zeroes their boxes too`() {
-        val strong = player(total = 520, overrides = GameMode.STANDARD.categories.associateWith { 30 })
-        val plain = unlocked(finishedGame(strong))
-        val extended = unlocked(extendedGame(strong))
-        for (achievement in listOf(Achievement.SOLID_ROUND, Achievement.SHARPSHOOTER, Achievement.HIGH_ROLLER, Achievement.DICE_DEITY)) {
-            assertTrue(achievement in plain, "$achievement in a plain game")
-            assertFalse(achievement in extended, "$achievement with Extended Scores")
-        }
-
-        val threeZeroes = player(total = 200, overrides = mapOf(ScoreCategory.ONES to 0, ScoreCategory.TWOS to 0, ScoreCategory.THREES to 0, ScoreCategory.SIXES to 30))
-        assertTrue(Achievement.ZERO_TO_HERO in unlocked(finishedGame(threeZeroes, bot(total = 100))))
-        assertFalse(Achievement.ZERO_TO_HERO in unlocked(extendedGame(threeZeroes, bot(total = 100))))
-        assertFalse(Achievement.ZERO_TO_HERO in unlocked(finishedGame(threeZeroes, bot(total = 100)).copy(unluckyDice = UnluckyDice())))
-
+    fun `How Do You Play This Game needs Extended Scores' boxes zeroed too`() {
         val standardZeroes = player(total = 5)
         val allZeroes = standardZeroes.copy(extendedScores = true, scorecard = standardZeroes.scorecard + ScoreCategory.EXTENDED.associateWith { listOf(0) })
         val withEvens = allZeroes.copy(scorecard = allZeroes.scorecard + (ScoreCategory.EVENS to listOf(12)))
@@ -1099,20 +1031,7 @@ class AchievementEngineTest {
     }
 
     @Test
-    fun `Third Wind's tripled card - no thresholds - Personal Best or Zero To Hero - but its 5x box and Sixes count per slot`() {
-        // 30 in every slot: 540 upper, 870 lower without the 5x box - past every rung in one go.
-        val tripled = unlocked(finishedGame(thirdWindPlayer { _, _ -> 30 }))
-        for (achievement in listOf(Achievement.SOLID_ROUND, Achievement.SHARPSHOOTER, Achievement.HIGH_ROLLER, Achievement.DICE_DEITY, Achievement.UPPER_CLASS, Achievement.LOWER_CLASS)) {
-            assertFalse(achievement in tripled, "$achievement")
-        }
-
-        // It isn't on the Leaderboard, so never a New Personal Best.
-        assertFalse(Achievement.NEW_PERSONAL_BEST in unlocked(finishedGame(thirdWindNoZeroes()), GameAchievementContext(previousBestScore = 100)))
-
-        // Three zeroes over 39 turns is the usual run of things.
-        val threeZeroes = thirdWindPlayer { category, _ -> if (category == ScoreCategory.LARGE_STRAIGHT) 0 else 10 }
-        assertFalse(Achievement.ZERO_TO_HERO in unlocked(finishedGame(threeZeroes, thirdWindPlayer(name = "Bot", type = PlayerType.AI) { _, _ -> 1 })))
-
+    fun `Third Wind's 5x box and Sixes count per slot`() {
         // Three 50s in its 5x box are a Hat Trick with no bonus chip.
         val hatTrick = evaluate(finishedGame(thirdWindPlayer { category, _ -> if (category == ScoreCategory.FIVE_OF_A_KIND) 50 else 10 }))
         assertEquals(3, hatTrick.counters[AchievementCounter.SCORED_5X])
@@ -1127,51 +1046,14 @@ class AchievementEngineTest {
     // ---- Stud: the best five of seven dice score ------------------------------------------------------
 
     @Test
-    fun `Stud's best-of-seven hands earn none of the 5x or section feats that Standard's do`() {
-        val feats = mapOf(
-            ScoreCategory.FIVE_OF_A_KIND to 50, ScoreCategory.SMALL_STRAIGHT to 30, ScoreCategory.LARGE_STRAIGHT to 40, ScoreCategory.CHANCE to 30,
-            ScoreCategory.ONES to 5, ScoreCategory.TWOS to 10, ScoreCategory.THREES to 15, ScoreCategory.FOURS to 20, ScoreCategory.FIVES to 25, ScoreCategory.SIXES to 30,
-            ScoreCategory.THREE_OF_A_KIND to 30, ScoreCategory.FOUR_OF_A_KIND to 30, ScoreCategory.FULL_HOUSE to 25,
-        )
-        val guarded = listOf(
-            Achievement.FIVE_X, Achievement.STRAIGHT_TALKER, Achievement.TAKING_A_CHANCE, Achievement.SIX_APPEAL, Achievement.BONUS_ROUND,
-            Achievement.UPPER_CLASS, Achievement.LOWER_CLASS, Achievement.SOLID_ROUND, Achievement.SHARPSHOOTER,
-        )
-        val standard = unlocked(finishedGame(player(total = 340, overrides = feats)))
-        for (achievement in guarded) assertTrue(achievement in standard, "Standard control: $achievement")
-
-        val stud = unlocked(finishedGame(player(total = 340, overrides = feats, gameMode = GameMode.STUD)))
-        for (achievement in guarded) assertFalse(achievement in stud, "$achievement in Stud")
-        val studMidGame = unlockedMidGame(midGamePlayer(feats, gameMode = GameMode.STUD))
-        for (achievement in guarded) assertFalse(achievement in studMidGame, "$achievement mid-game in Stud")
-    }
-
-    @Test
-    fun `Stud's 5x earn no 5x feat and don't add to Total 5x`() {
+    fun `Stud's 5x don't add to Total 5x`() {
         val bonuses = player(total = 400, fiveOfAKindBonusCount = 2, gameMode = GameMode.STUD)
         val stud = evaluate(finishedGame(bonuses))
         assertEquals(0, stud.counters[AchievementCounter.SCORED_5X])
-        for (achievement in listOf(Achievement.FIVE_X, Achievement.ENCORE, Achievement.HAT_TRICK)) assertFalse(achievement in stud.newlyUnlocked, "$achievement")
 
         val standard = evaluate(finishedGame(player(total = 400, fiveOfAKindBonusCount = 2)))
         assertEquals(2, standard.counters[AchievementCounter.SCORED_5X])
         assertTrue(Achievement.ENCORE in standard.newlyUnlocked)
-    }
-
-    @Test
-    fun `Stud has no Spotless or Zero To Hero and is never a New Personal Best`() {
-        val noZeroes = GameMode.STUD.categories.associateWith { 10 }
-        assertTrue(Achievement.SPOTLESS in unlocked(finishedGame(player(total = 130, overrides = noZeroes))))
-        assertFalse(Achievement.SPOTLESS in unlocked(finishedGame(player(total = 130, overrides = noZeroes, gameMode = GameMode.STUD))))
-
-        val threeZeroes = mapOf(ScoreCategory.ONES to 0, ScoreCategory.TWOS to 0, ScoreCategory.THREES to 0, ScoreCategory.SIXES to 30)
-        val standardHero = unlocked(finishedGame(player(total = 200, overrides = threeZeroes), bot(total = 100)))
-        assertTrue(Achievement.ZERO_TO_HERO in standardHero)
-        val studHero = unlocked(finishedGame(player(total = 200, overrides = threeZeroes, gameMode = GameMode.STUD), bot(total = 100)))
-        assertFalse(Achievement.ZERO_TO_HERO in studHero)
-
-        val context = GameAchievementContext(previousBestScore = 100)
-        assertFalse(Achievement.NEW_PERSONAL_BEST in unlocked(finishedGame(player(total = 400, gameMode = GameMode.STUD)), context))
     }
 
     // ---- Hit List -------------------------------------------------------------------------------------
@@ -1205,23 +1087,6 @@ class AchievementEngineTest {
         assertFalse(earned(mapOf(withAnyPlace to anyTarget.exactPoints)))
         // The Alibi never takes an exact hit's points, whatever it holds.
         assertFalse(earned(mapOf(ScoreCategory.ALIBI to target.points)))
-    }
-
-    @Test
-    fun `a Hit List card earns no ladder rung - low score - Zero To Hero or Spotless - misses and partial hits are its usual run`() {
-        val high = unlocked(finishedGame(hitListPlayer(total = 500)))
-        assertFalse(Achievement.SOLID_ROUND in high)
-        assertFalse(Achievement.DICE_DEITY in high)
-        assertTrue(Achievement.SOLID_ROUND in unlocked(finishedGame(player(total = 200))))
-
-        assertFalse(Achievement.COLD_DICE in unlocked(finishedGame(hitListPlayer(total = 60))))
-        assertFalse(Achievement.LOW_ROLLS in unlocked(finishedGame(hitListPlayer(total = 15))))
-
-        // Every box but the first is a zero: far more than three.
-        assertFalse(Achievement.ZERO_TO_HERO in unlocked(finishedGame(hitListPlayer(total = 200), hitListPlayer(name = "Bot", type = PlayerType.AI, total = 150))))
-
-        assertFalse(Achievement.SPOTLESS in unlocked(finishedGame(hitListPlayer(scores = GameMode.HIT_LIST.categories.associateWith { 5 }))))
-        assertTrue(Achievement.SPOTLESS in unlocked(finishedGame(player(overrides = GameMode.STANDARD.categories.associateWith { 5 }, total = 100))))
     }
 
     // ---- D20 --------------------------------------------------------------------------------------------
@@ -1270,21 +1135,123 @@ class AchievementEngineTest {
         assertFalse(d20Win(finishedGame(player(total = 200), bot(total = 150))))
     }
 
+    // ---- What each mode and modifier guards ------------------------------------------------------------
+
+    /** A card in a mode or with a modifier, what it [unlocked], and the feats it [mustNotEarn] - see .claude/GAME_MODES_AUDIT.md. */
+    private class Guarded(val card: String, val unlocked: Collection<Achievement>, val mustNotEarn: List<Achievement>)
+
     @Test
-    fun `a D20 card earns no ladder rung - low score - Zero To Hero or Spotless - its totals are a different measure`() {
-        // Both halves in: 138 + 388 + 150 = 676, far past every rung of Standard's.
-        val high = unlocked(finishedGame(d20Player(firstHalf = 138, secondHalf = 388)))
-        assertFalse(Achievement.SOLID_ROUND in high)
-        assertFalse(Achievement.DICE_DEITY in high)
+    fun `each mode and modifier earns none of the feats it guards - though a Standard card like it earns every one`() {
+        val ladder = listOf(Achievement.SOLID_ROUND, Achievement.SHARPSHOOTER, Achievement.HIGH_ROLLER, Achievement.DICE_DEITY)
+        val sections = listOf(Achievement.UPPER_CLASS, Achievement.LOWER_CLASS)
+        val noZero = GameMode.STANDARD.categories.associateWith { 10 }
+        val strong = player(total = 520, overrides = GameMode.STANDARD.categories.associateWith { 30 })
+        val clean = player(total = 250, overrides = noZero + (ScoreCategory.SIXES to 30))
+        val threeZeroes = mapOf(ScoreCategory.ONES to 0, ScoreCategory.TWOS to 0, ScoreCategory.THREES to 0, ScoreCategory.SIXES to 30)
+        val previousBest = GameAchievementContext(previousBestScore = 100)
+        // Best-of-seven hands that would be feats on a Standard card.
+        val feats = mapOf(
+            ScoreCategory.FIVE_OF_A_KIND to 50, ScoreCategory.SMALL_STRAIGHT to 30, ScoreCategory.LARGE_STRAIGHT to 40, ScoreCategory.CHANCE to 30,
+            ScoreCategory.ONES to 5, ScoreCategory.TWOS to 10, ScoreCategory.THREES to 15, ScoreCategory.FOURS to 20, ScoreCategory.FIVES to 25, ScoreCategory.SIXES to 30,
+            ScoreCategory.THREE_OF_A_KIND to 30, ScoreCategory.FOUR_OF_A_KIND to 30, ScoreCategory.FULL_HOUSE to 25,
+        )
+        val studFeats = listOf(
+            Achievement.FIVE_X, Achievement.STRAIGHT_TALKER, Achievement.TAKING_A_CHANCE, Achievement.SIX_APPEAL, Achievement.BONUS_ROUND,
+            Achievement.UPPER_CLASS, Achievement.LOWER_CLASS, Achievement.SOLID_ROUND, Achievement.SHARPSHOOTER,
+        )
 
-        val low = unlocked(finishedGame(d20Player(firstHalf = 10, secondHalf = 20)))
-        assertFalse(Achievement.COLD_DICE in low)
-        assertFalse(Achievement.LOW_ROLLS in low)
+        // The Standard cards the guarded ones are measured against: between them, every guarded feat.
+        val earnedInStandard = listOf(
+            unlocked(finishedGame(strong)),
+            unlocked(finishedGame(clean)),
+            unlocked(finishedGame(player(total = 90))),
+            unlocked(finishedGame(player(total = 15))),
+            unlocked(finishedGame(player(total = 5))),
+            unlocked(finishedGame(player(total = 200, overrides = threeZeroes), bot(total = 100))),
+            unlocked(finishedGame(player(total = 400)), previousBest),
+            unlocked(finishedGame(player(total = 340, overrides = feats))),
+            unlocked(finishedGame(player(total = 400, fiveOfAKindBonusCount = 2, overrides = mapOf(ScoreCategory.FIVE_OF_A_KIND to 50)))),
+        ).flatten().toSet()
 
-        val bot = d20Player(name = "Bot", type = PlayerType.AI, firstHalf = 50, secondHalf = 100)
-        assertFalse(Achievement.ZERO_TO_HERO in unlocked(finishedGame(d20Player(firstHalf = 100, secondHalf = 300), bot)))
+        val quickfireOn = GameMode.QUICKFIRE.categories - QUICKFIRE_OFF
+        val quickfireUpper = quickfirePlayer(
+            overrides = mapOf(ScoreCategory.SIXES to 30, ScoreCategory.FIVES to 25, ScoreCategory.FOURS to 20, ScoreCategory.THREES to 15),
+            off = setOf(ScoreCategory.FIVE_OF_A_KIND, ScoreCategory.ONES, ScoreCategory.TWOS, ScoreCategory.FULL_HOUSE, ScoreCategory.SMALL_STRAIGHT, ScoreCategory.LARGE_STRAIGHT),
+        )
+        val quickfireLower = quickfirePlayer(
+            total = 200,
+            overrides = mapOf(ScoreCategory.THREE_OF_A_KIND to 30, ScoreCategory.FOUR_OF_A_KIND to 30, ScoreCategory.LARGE_STRAIGHT to 40, ScoreCategory.SMALL_STRAIGHT to 30),
+        )
+        val thirdWindBot = thirdWindPlayer(name = "Bot", type = PlayerType.AI) { _, _ -> 1 }
+        val hitListBot = hitListPlayer(name = "Bot", type = PlayerType.AI, total = 150)
+        val d20Bot = d20Player(name = "Bot", type = PlayerType.AI, firstHalf = 50, secondHalf = 100)
 
-        assertFalse(Achievement.SPOTLESS in unlocked(finishedGame(d20Player(scores = GameMode.D20.categories.associateWith { 5 }))))
+        val guarded = listOf(
+            // Quickfire: six boxes, a ceiling of 210.
+            Guarded("Quickfire with no zero", unlocked(quickfireGame(quickfirePlayer(total = 100, overrides = quickfireOn.associateWith { 10 }))), listOf(Achievement.SPOTLESS)),
+            Guarded("Quickfire on 90", unlocked(quickfireGame(quickfirePlayer(total = 90))), listOf(Achievement.COLD_DICE)),
+            Guarded("Quickfire on 15", unlocked(quickfireGame(quickfirePlayer(total = 15))), listOf(Achievement.COLD_DICE, Achievement.LOW_ROLLS)),
+            Guarded("Quickfire on 5", unlocked(quickfireGame(quickfirePlayer(total = 5))), listOf(Achievement.COLD_DICE, Achievement.LOW_ROLLS, Achievement.ROCK_BOTTOM)),
+            Guarded("Quickfire zeroed but Chance", unlocked(quickfireGame(quickfirePlayer(total = 20))), listOf(Achievement.HOW_DO_YOU_PLAY_THIS_GAME)),
+            Guarded("Quickfire on 210", unlocked(quickfireGame(quickfirePlayer(total = 210))), listOf(Achievement.SOLID_ROUND)),
+            Guarded("Quickfire's upper boxes on 90", unlocked(quickfireGame(quickfireUpper, off = quickfireUpper.disabledCategories)), listOf(Achievement.UPPER_CLASS)),
+            Guarded("Quickfire's lower boxes on 130", unlocked(quickfireGame(quickfireLower)), listOf(Achievement.LOWER_CLASS)),
+            // Roll modifiers, Extended Scores and Unlucky Dice.
+            Guarded("roll modifiers - a strong card", unlocked(modifiedGame(strong)), ladder + sections),
+            Guarded("roll modifiers - a clean card", unlocked(modifiedGame(clean)), listOf(Achievement.SPOTLESS, Achievement.BONUS_ROUND)),
+            Guarded("Extended Scores - a strong card", unlocked(extendedGame(strong)), ladder),
+            Guarded("Extended Scores - three zeroes in a win", unlocked(extendedGame(player(total = 200, overrides = threeZeroes), bot(total = 100))), listOf(Achievement.ZERO_TO_HERO)),
+            Guarded(
+                "Unlucky Dice - three zeroes in a win",
+                unlocked(finishedGame(player(total = 200, overrides = threeZeroes), bot(total = 100)).copy(unluckyDice = UnluckyDice())),
+                listOf(Achievement.ZERO_TO_HERO),
+            ),
+            // Third Wind: every box three times.
+            Guarded("Third Wind - 30 in every slot", unlocked(finishedGame(thirdWindPlayer { _, _ -> 30 })), ladder + sections),
+            Guarded("Third Wind - no zero", unlocked(finishedGame(thirdWindNoZeroes()), previousBest), listOf(Achievement.SPOTLESS, Achievement.NEW_PERSONAL_BEST)),
+            Guarded(
+                "Third Wind - three zeroes in a win",
+                unlocked(finishedGame(thirdWindPlayer { category, _ -> if (category == ScoreCategory.LARGE_STRAIGHT) 0 else 10 }, thirdWindBot)),
+                listOf(Achievement.ZERO_TO_HERO),
+            ),
+            // Stud: the best five of seven dice.
+            Guarded("Stud - best-of-seven feats", unlocked(finishedGame(player(total = 340, overrides = feats, gameMode = GameMode.STUD))), studFeats),
+            Guarded("Stud - best-of-seven feats mid-game", unlockedMidGame(midGamePlayer(feats, gameMode = GameMode.STUD)), studFeats),
+            Guarded("Stud - no zero", unlocked(finishedGame(player(total = 130, overrides = GameMode.STUD.categories.associateWith { 10 }, gameMode = GameMode.STUD))), listOf(Achievement.SPOTLESS)),
+            Guarded(
+                "Stud - three zeroes in a win",
+                unlocked(finishedGame(player(total = 200, overrides = threeZeroes, gameMode = GameMode.STUD), bot(total = 100))),
+                listOf(Achievement.ZERO_TO_HERO),
+            ),
+            Guarded("Stud on 400", unlocked(finishedGame(player(total = 400, gameMode = GameMode.STUD)), previousBest), listOf(Achievement.NEW_PERSONAL_BEST)),
+            Guarded(
+                "Stud - two 5x bonuses",
+                unlocked(finishedGame(player(total = 400, fiveOfAKindBonusCount = 2, gameMode = GameMode.STUD))),
+                listOf(Achievement.FIVE_X, Achievement.ENCORE, Achievement.HAT_TRICK),
+            ),
+            // Hit List: misses and partial hits are its usual run.
+            Guarded("Hit List on 500", unlocked(finishedGame(hitListPlayer(total = 500))), listOf(Achievement.SOLID_ROUND, Achievement.DICE_DEITY)),
+            Guarded("Hit List on 60", unlocked(finishedGame(hitListPlayer(total = 60))), listOf(Achievement.COLD_DICE)),
+            Guarded("Hit List on 15", unlocked(finishedGame(hitListPlayer(total = 15))), listOf(Achievement.LOW_ROLLS)),
+            Guarded("Hit List - a win with zeroes", unlocked(finishedGame(hitListPlayer(total = 200), hitListBot)), listOf(Achievement.ZERO_TO_HERO)),
+            Guarded("Hit List - no zero", unlocked(finishedGame(hitListPlayer(scores = GameMode.HIT_LIST.categories.associateWith { 5 }))), listOf(Achievement.SPOTLESS)),
+            // D20: its totals are a different measure. Both halves in: 138 + 388 + 150 = 676.
+            Guarded("D20 on 676", unlocked(finishedGame(d20Player(firstHalf = 138, secondHalf = 388))), listOf(Achievement.SOLID_ROUND, Achievement.DICE_DEITY)),
+            Guarded("D20 on 30", unlocked(finishedGame(d20Player(firstHalf = 10, secondHalf = 20))), listOf(Achievement.COLD_DICE, Achievement.LOW_ROLLS)),
+            Guarded("D20 - a win with zeroes", unlocked(finishedGame(d20Player(firstHalf = 100, secondHalf = 300), d20Bot)), listOf(Achievement.ZERO_TO_HERO)),
+            Guarded("D20 - no zero", unlocked(finishedGame(d20Player(scores = GameMode.D20.categories.associateWith { 5 }))), listOf(Achievement.SPOTLESS)),
+        )
+
+        val failures = guarded.flatMap { row ->
+            row.mustNotEarn.mapNotNull { achievement ->
+                when {
+                    achievement !in earnedInStandard -> "$achievement: no Standard card here earns it"
+                    achievement in row.unlocked -> "$achievement: earned by ${row.card}"
+                    else -> null
+                }
+            }
+        }
+        assertTrue(failures.isEmpty(), failures.joinToString("\n"))
     }
 
     private companion object HitListCard {

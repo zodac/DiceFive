@@ -21,6 +21,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import net.zodac.dicefive.LoadedDice
 import net.zodac.dicefive.model.Difficulty
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.PlayerType
@@ -51,7 +52,7 @@ class GameViewModelTest {
         players: Int = 1,
         cpus: List<Int> = emptyList(),
         difficulty: Difficulty = Difficulty.MEDIUM,
-        random: Random = Random.Default,
+        random: Random = Random(1),
         aiDispatcher: CoroutineDispatcher = testDispatcher,
         isDebugBuild: Boolean = false,
         setUp: GameViewModel.() -> Unit = {},
@@ -215,7 +216,7 @@ class GameViewModelTest {
         runCurrent()
         assertEquals(23, timed.turnSecondsRemaining.value)
 
-        val cpu = started(players = 2, cpus = listOf(2), difficulty = Difficulty.HARD, random = FixedValueRandom(6))
+        val cpu = started(players = 2, cpus = listOf(2), difficulty = Difficulty.HARD, random = LoadedDice(6))
         cpu.rollDice()
         cpu.setForeground(false)
         cpu.commitScore(ScoreCategory.CHANCE)
@@ -318,7 +319,7 @@ class GameViewModelTest {
         // scoring; this one takes only 1 shake, the dice's toss and that pause.
         val aiStepDelayMs = 250L // matches GameViewModel.AI_STEP_DELAY_MS, which is private to it
         fun cpuTurnMillis(setUp: GameViewModel.() -> Unit = {}): Pair<Long, GameViewModel> {
-            val viewModel = started(players = 2, cpus = listOf(2), difficulty = Difficulty.HARD, random = FixedValueRandom(6), setUp = setUp)
+            val viewModel = started(players = 2, cpus = listOf(2), difficulty = Difficulty.HARD, random = LoadedDice(6), setUp = setUp)
             viewModel.takeATurn()
             val before = testDispatcher.scheduler.currentTime
             advanceUntilIdle()
@@ -476,8 +477,3 @@ class GameViewModelTest {
     }
 }
 
-/** Dice that always land on [value] - lets a test force a specific roll deterministically. */
-private class FixedValueRandom(private val value: Int) : Random() {
-    override fun nextBits(bitCount: Int): Int = 0
-    override fun nextInt(from: Int, until: Int): Int = value
-}

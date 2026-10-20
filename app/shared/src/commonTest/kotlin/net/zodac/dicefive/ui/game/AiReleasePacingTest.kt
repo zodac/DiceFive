@@ -1,6 +1,5 @@
 package net.zodac.dicefive.ui.game
 
-import kotlin.random.Random
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -17,16 +16,9 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import net.zodac.dicefive.ScriptedDice
 import net.zodac.dicefive.model.PlayerType
 import net.zodac.dicefive.model.ScoreCategory
-
-/** Dice that land on an exact script of [values] in order, cycling once it runs out. */
-private class ScriptedRolls(private val values: List<Int>) : Random() {
-    private var index = 0
-
-    override fun nextBits(bitCount: Int): Int = 0
-    override fun nextInt(from: Int, until: Int): Int = values[index++ % values.size]
-}
 
 /**
  * A CPU's hold changes are paced like a hand's: one die at a time, and a die it lets go of stays on the
@@ -52,7 +44,7 @@ class AiReleasePacingTest {
     fun `a die the CPU releases rests on the mat before the next shake starts`() = runTest(testDispatcher) {
         val viewModel = gameViewModel(
             aiDispatcher = testDispatcher,
-            random = ScriptedRolls(
+            random = ScriptedDice(
                 listOf(
                     1, 1, 1, 1, 1, // The human's roll.
                     6, 6, 1, 3, 2, // The CPU's first: Medium holds the pair of 6s...
@@ -94,7 +86,7 @@ class AiReleasePacingTest {
      * during the CPU's turn: when, which die, and which way.
      */
     private fun TestScope.cpuHoldChanges(diceAnimated: Boolean): List<Triple<Long, Int, Boolean>> {
-        val viewModel = gameViewModel(aiDispatcher = testDispatcher, random = ScriptedRolls(PAIR_THEN_STRAIGHT))
+        val viewModel = gameViewModel(aiDispatcher = testDispatcher, random = ScriptedDice(PAIR_THEN_STRAIGHT))
         viewModel.setPacing(GamePacing(diceAnimated = diceAnimated))
         viewModel.setPlayerCount(2)
         viewModel.setPlayerType(2, PlayerType.AI)

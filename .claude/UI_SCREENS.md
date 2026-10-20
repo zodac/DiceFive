@@ -32,7 +32,9 @@ the header and the last row) lets the final rows reach the middle, so a banner l
 
 **Scroll memory.** The position is kept in a process-lifetime `object` (`AchievementsScrollMemory`), because popping
 the screen discards its ViewModel and anything `rememberSaveable`d. It's restored only after the list has loaded, since
-an empty `LazyColumn` clamps to the top. Reuse this approach for any list that must remember its place.
+an empty `LazyColumn` clamps to the top. The Locked only switch is kept there too. Reuse this approach for any list
+that must remember its place, with a reset for tests (`resetAchievementsScrollMemory`, `resetRulesPageMemory`): every
+Robolectric test shares one process, so a test that opens the screen calls it first.
 
 **Icons** (`ui/achievements/AchievementIcons.kt`) are a `@Composable` `when` over the enum.
 - Bespoke drawables (`ic_stairs`, `ic_cowboy_hat`) are allowed.

@@ -4,8 +4,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
@@ -17,7 +21,6 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
@@ -42,8 +45,10 @@ import net.zodac.dicefive.ui.achievements.AchievementEvent
 import net.zodac.dicefive.ui.achievements.AchievementEvents
 import net.zodac.dicefive.ui.achievements.AchievementsScreen
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
+import net.zodac.dicefive.ui.achievements.resetAchievementsScrollMemory
 import net.zodac.dicefive.ui.theme.DiceFiveTheme
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -57,27 +62,23 @@ class AchievementsTextTest {
 
     private val showcase = Showcase(compose)
 
-    /**
-     * Closes the pop-up and scrolls back to the top: the screen remembers where it was scrolled to for the whole
-     * process, so a test left scrolled down starts the next one there.
-     */
-    private fun leaveListAtTop() {
-        compose.onNodeWithText("Done").performClick()
-        compose.onNode(hasScrollAction()).performScrollToIndex(0)
-        compose.waitForIdle()
+    /** The page remembers where it was scrolled to, and the Locked only switch, for the whole process: every test starts afresh. */
+    @Before
+    fun openAtTheTop() = resetAchievementsScrollMemory()
+
+    private fun showAchievements(viewModel: AchievementsViewModel) = showcase.show {
+        CompositionLocalProvider(
+            LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
+            LocalPlatformServices provides SilentPlatformServices,
+        ) {
+            DiceFiveTheme { AchievementsScreen(viewModel = viewModel, onBack = {}) }
+        }
     }
 
     @Test
     fun `the page is titled - counts what is unlocked - hides a description as three question marks - and each banner says what it is`() {
         val viewModel = achievementsViewModel()
-        showcase.show {
-            CompositionLocalProvider(
-                LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
-                LocalPlatformServices provides SilentPlatformServices,
-            ) {
-                DiceFiveTheme { AchievementsScreen(viewModel = viewModel, onBack = {}) }
-            }
-        }
+        showAchievements(viewModel)
         compose.onNodeWithText("Achievements").assertExists()
         compose.onNodeWithText("0 of ", substring = true).assertExists()
         compose.onNodeWithText(" unlocked", substring = true).assertExists()
@@ -122,14 +123,7 @@ class AchievementsTextTest {
             override suspend fun forceLock(achievement: Achievement) = Unit
         }
         val viewModel = achievementsViewModel(store = store)
-        showcase.show {
-            CompositionLocalProvider(
-                LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
-                LocalPlatformServices provides SilentPlatformServices,
-            ) {
-                DiceFiveTheme { AchievementsScreen(viewModel = viewModel, onBack = {}) }
-            }
-        }
+        showAchievements(viewModel)
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Full Set"))
         // Its action is named for TalkBack. A tap shows the short tip, and a long press - or TalkBack's action - the full list.
         val row = compose.onNode(SemanticsMatcher("clicks to show the missing numbers") { it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label == "Show the missing numbers" })
@@ -149,7 +143,6 @@ class AchievementsTextTest {
         // Each number is shown as "1s" to "6s"; the scored ones are read as scored.
         for (number in listOf(1, 3)) compose.onNodeWithContentDescription("${number}s, scored").assertExists()
         for (number in listOf(2, 4, 5, 6)) compose.onNodeWithContentDescription("${number}s").assertExists()
-        leaveListAtTop()
     }
 
     @Test
@@ -160,14 +153,7 @@ class AchievementsTextTest {
             override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
         }
         val viewModel = achievementsViewModel(scores = ScoreRepository(dao))
-        showcase.show {
-            CompositionLocalProvider(
-                LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
-                LocalPlatformServices provides SilentPlatformServices,
-            ) {
-                DiceFiveTheme { AchievementsScreen(viewModel = viewModel, onBack = {}) }
-            }
-        }
+        showAchievements(viewModel)
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Grand Tour"))
         // Its action is named for TalkBack. A tap shows the short tip, and a long press the full list.
         val row = compose.onNode(SemanticsMatcher("clicks to show the missing modes") { it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label == "Show the missing modes" })
@@ -182,20 +168,12 @@ class AchievementsTextTest {
         // Each mode by its whole name, the finished ones read as finished.
         for (mode in listOf("Standard", "7 Dice Stud", "Third Wind")) compose.onNodeWithContentDescription("$mode, finished").assertExists()
         for (mode in listOf("Tricolour", "Quickfire", "D20", "Hit List")) compose.onNodeWithContentDescription(mode).assertExists()
-        leaveListAtTop()
     }
 
     @Test
     fun `a row that unlocks a style shows its tooltip on a tap - and the same words in a dialog on a long press`() {
         val viewModel = achievementsViewModel()
-        showcase.show {
-            CompositionLocalProvider(
-                LocalAppContainer provides AndroidAppContainer.get(ApplicationProvider.getApplicationContext()),
-                LocalPlatformServices provides SilentPlatformServices,
-            ) {
-                DiceFiveTheme { AchievementsScreen(viewModel = viewModel, onBack = {}) }
-            }
-        }
+        showAchievements(viewModel)
         val reward = SemanticsMatcher("clicks to show which style it unlocks") {
             it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label == "Show which style this unlocks"
         }
@@ -210,7 +188,31 @@ class AchievementsTextTest {
         row.performTouchInput { longClick() }
         compose.waitForIdle()
         compose.onNodeWithText("OK").performClick()
-        compose.onNode(hasScrollAction()).performScrollToIndex(0)
+    }
+
+    @Test
+    fun `Locked only is one switch - it hides what is unlocked - and is still on when the page is opened again`() {
+        val store = InMemoryAchievementStore(AchievementsState(unlockedAt = mapOf(Achievement.THE_JOURNEY_BEGINS to 0L)))
+        showAchievements(achievementsViewModel(store = store))
+        // Its label and switch are one target, read as "Locked only, switch" and whether it's on.
+        val lockedOnly = compose.onNode(hasText("Locked only") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+        lockedOnly.assertIsOff()
+        compose.onNodeWithText("The Journey Begins").assertExists()
+
+        lockedOnly.performClick()
         compose.waitForIdle()
+        lockedOnly.assertIsOn()
+        compose.onNodeWithText("The Journey Begins").assertDoesNotExist()
+        compose.onNodeWithText("Practice Makes Perfect").assertExists()
+
+        // Back to the menu and in again: a new page, as navigation makes one, still showing the locked ones only.
+        showAchievements(achievementsViewModel(store = store))
+        lockedOnly.assertIsOn()
+        compose.onNodeWithText("The Journey Begins").assertDoesNotExist()
+
+        lockedOnly.performClick()
+        compose.waitForIdle()
+        lockedOnly.assertIsOff()
+        compose.onNodeWithText("The Journey Begins").assertExists()
     }
 }

@@ -1,30 +1,19 @@
 package net.zodac.dicefive.data.game
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.emptyPreferences
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.Stamped
 import net.zodac.dicefive.model.Die
 import net.zodac.dicefive.model.GameState
 import net.zodac.dicefive.model.PlayerState
 import net.zodac.dicefive.model.PlayerType
-
-private class CloudGamePreferences : DataStore<Preferences> {
-    private val state = MutableStateFlow(emptyPreferences())
-    override val data: Flow<Preferences> = state
-    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
-        transform(state.value).also { state.value = it }
-}
 
 private fun game(dieValue: Int) = GameState(
     players = listOf(PlayerState(name = "Player 1", type = PlayerType.HUMAN)),
@@ -39,7 +28,7 @@ class InProgressGameRepositoryCloudTest {
 
     @Test
     fun `a save and a clear are each stamped`() = runTest {
-        val repository = InProgressGameRepository(CloudGamePreferences(), backgroundScope, now = { clock })
+        val repository = InProgressGameRepository(InMemoryPreferences(), backgroundScope, now = { clock })
         assertEquals(Stamped<String?>(null, 0), repository.cloudGame())
         repository.save(game(3))
         runCurrent()
@@ -52,7 +41,7 @@ class InProgressGameRepositoryCloudTest {
 
     @Test
     fun `a newer game from the cloud replaces this one - an older one or a clearing older than it doesn't`() = runTest {
-        val repository = InProgressGameRepository(CloudGamePreferences(), backgroundScope, now = { clock })
+        val repository = InProgressGameRepository(InMemoryPreferences(), backgroundScope, now = { clock })
         repository.save(game(3))
         runCurrent()
         repository.mergeCloud(Stamped(GameStateJson.encode(game(5)), 50L))
@@ -68,14 +57,14 @@ class InProgressGameRepositoryCloudTest {
 
     @Test
     fun `a game this app can't read is never taken - so Continue never offers it`() = runTest {
-        val repository = InProgressGameRepository(CloudGamePreferences(), backgroundScope, now = { clock })
+        val repository = InProgressGameRepository(InMemoryPreferences(), backgroundScope, now = { clock })
         repository.mergeCloud(Stamped("{\"from\":\"a newer app\"}", 500L))
         assertFalse(repository.hasInProgressGame.first())
     }
 
     @Test
     fun `wiping forgets the game and its stamp`() = runTest {
-        val repository = InProgressGameRepository(CloudGamePreferences(), backgroundScope, now = { clock })
+        val repository = InProgressGameRepository(InMemoryPreferences(), backgroundScope, now = { clock })
         repository.save(game(3))
         runCurrent()
         repository.wipe()

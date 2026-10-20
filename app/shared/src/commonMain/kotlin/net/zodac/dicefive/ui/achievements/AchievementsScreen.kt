@@ -229,6 +229,13 @@ private object AchievementsScrollMemory {
     var onlyLocked = false
 }
 
+/** Forgets the remembered place and the Locked only switch, so the list opens at the top with every row - tests start from there. */
+fun resetAchievementsScrollMemory() {
+    AchievementsScrollMemory.firstVisibleItemKey = null
+    AchievementsScrollMemory.firstVisibleItemScrollOffset = 0
+    AchievementsScrollMemory.onlyLocked = false
+}
+
 /**
  * Every achievement the app tracks, in one list - grouped by theme and, within a theme,
  * easiest-first, exactly as the catalogue declares them. An unlocked achievement stays in its

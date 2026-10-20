@@ -1,35 +1,24 @@
 package net.zodac.dicefive.data.settings
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.emptyPreferences
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.Stamped
 import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.model.RollModifiers
 import net.zodac.dicefive.ui.game.GameSetupState
-
-private class CloudSettingsPreferences : DataStore<Preferences> {
-    private val state = MutableStateFlow(emptyPreferences())
-    override val data: Flow<Preferences> = state
-    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
-        transform(state.value).also { state.value = it }
-}
 
 /** The settings' side of the cloud save: the New Game setup and Styles picks, each stamped when it changes. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsRepositoryCloudTest {
 
     private var clock = 100L
-    private val repository = SettingsRepository(CloudSettingsPreferences(), now = { clock })
+    private val repository = SettingsRepository(InMemoryPreferences(), now = { clock })
 
     @Test
     fun `settings are stamped when they change - the Animations level - Orientation and page fit aren't in the save`() = runTest {
@@ -62,7 +51,7 @@ class SettingsRepositoryCloudTest {
         val save = repository.cloudSettings()
         assertEquals(Stamped<SettingValue?>(SettingValue.Flag(true), 100L), save["first_game_completed"])
 
-        val reinstalled = SettingsRepository(CloudSettingsPreferences(), now = { clock })
+        val reinstalled = SettingsRepository(InMemoryPreferences(), now = { clock })
         assertEquals(false, reinstalled.firstGameCompleted.first())
         reinstalled.mergeCloud(save)
         assertEquals(true, reinstalled.firstGameCompleted.first())
