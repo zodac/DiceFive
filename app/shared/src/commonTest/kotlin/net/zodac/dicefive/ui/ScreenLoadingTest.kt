@@ -26,7 +26,7 @@ import kotlinx.coroutines.test.setMain
 import net.zodac.dicefive.data.InMemoryPreferences
 import net.zodac.dicefive.data.achievements.InMemoryAchievementStore
 import net.zodac.dicefive.data.scores.DismissedPlayerStats
-import net.zodac.dicefive.data.scores.PlayerGame
+import net.zodac.dicefive.data.scores.PlayerModeTotals
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreEntry
 import net.zodac.dicefive.data.scores.UnpostedScore
@@ -69,7 +69,9 @@ private class GatedEmptyScoreDao : ScoreDao {
     override suspend fun primaryPlayerTotalPoints(): Int? = gate.await().let { null }
     override suspend fun primaryPlayerGameModeIds(): List<String> = gate.await().let { emptyList() }
     override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
-    override suspend fun playerGames(): List<PlayerGame> = gate.await().let { emptyList() }
+    override suspend fun playerModeTotals(): List<PlayerModeTotals> = gate.await().let { emptyList() }
+    override suspend fun latestPlayerName(playerKey: String): String = playerKey
+    override suspend fun playerOutcomes(playerKey: String): List<Boolean> = emptyList()
     override suspend fun clearDismissal(playerKey: String) = Unit
     override suspend fun clearAllScores() = Unit
     override suspend fun clearAllDismissals() = Unit

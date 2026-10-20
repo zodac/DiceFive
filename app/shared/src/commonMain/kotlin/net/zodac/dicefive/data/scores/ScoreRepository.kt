@@ -145,73 +145,65 @@ class ScoreRepository(private val scoreDao: ScoreDao) : LeaderboardSource {
     suspend fun leaderboardTotals(): LeaderboardTotals = scoreDao.leaderboardTotals()
 
     /**
-     * Per-player aggregate stats for the Statistics screen - see [PlayerStatistics]. One query for
-     * every player's games, already in display order and most recent first within each player,
-     * folded here: `groupBy` keeps that order, both across players and within each one's games.
+     * Per-player aggregate stats for the Statistics screen - see [PlayerStatistics]. SQLite adds up each player's games
+     * per mode ([ScoreDao.playerRecords]); here they are added across modes, and the win streaks walked. Players come in
+     * [ScoreEntry.playerKey] order; names differing only by case are one player, shown by the spelling of their latest game.
      */
-    suspend fun playerStatistics(): List<PlayerStatistics> =
-        scoreDao.playerGames().groupBy { it.playerKey }.values.map { games ->
-            // Names differing only by case are one player; show the spelling they used most recently.
-            val playerName = games.first().playerName
-            val streaks = winStreaks(games.map { it.won })
-            PlayerStatistics(
-                playerName = playerName,
-                firstPlayedEpochMillis = games.minOf { it.timestampEpochMillis },
-                gamesPlayed = games.size,
-                gamesWon = games.count { it.won == true },
-                gamesLost = games.count { it.won == false },
-                currentWinStreak = streaks.current,
-                bestWinStreak = streaks.best,
-                maxScore = games.maxOf { it.score },
-                totalScore = games.sumOf { it.score },
-                fiveOfAKindCount = games.sumOf { it.fiveOfAKindCount },
-                soloGames = games.count { it.won == null },
-                modes = GameMode.entries.mapNotNull { mode ->
-                    val inMode = games.filter { it.gameModeId == mode.id }
-                    if (inMode.isEmpty()) {
-                        null
-                    } else {
-                        ModeStatistics(
-                            gameMode = mode,
-                            gamesPlayed = inMode.size,
-                            gamesWon = inMode.count { it.won == true },
-                            gamesLost = inMode.count { it.won == false },
-                            soloGames = inMode.count { it.won == null },
-                            maxScore = inMode.maxOf { it.score },
-                        )
-                    }
-                },
-            )
-        }
+    suspend fun playerStatistics(): List<PlayerStatistics> = scoreDao.playerRecords().map { record ->
+        val modes = record.modes
+        val streaks = winStreaks(record.outcomesMostRecentFirst)
+        PlayerStatistics(
+            playerName = record.playerName,
+            firstPlayedEpochMillis = modes.minOf { it.firstPlayedEpochMillis },
+            gamesPlayed = modes.sumOf { it.gamesPlayed },
+            gamesWon = modes.sumOf { it.gamesWon },
+            gamesLost = modes.sumOf { it.gamesLost },
+            currentWinStreak = streaks.current,
+            bestWinStreak = streaks.best,
+            maxScore = modes.maxOf { it.maxScore },
+            totalScore = modes.sumOf { it.totalScore },
+            fiveOfAKindCount = modes.sumOf { it.fiveOfAKindCount },
+            soloGames = modes.sumOf { it.soloGames },
+            // In mode order; a mode this build doesn't know still counts above, but has no row of its own.
+            modes = GameMode.entries.mapNotNull { mode ->
+                modes.firstOrNull { it.gameModeId == mode.id }?.let { inMode ->
+                    ModeStatistics(
+                        gameMode = mode,
+                        gamesPlayed = inMode.gamesPlayed,
+                        gamesWon = inMode.gamesWon,
+                        gamesLost = inMode.gamesLost,
+                        soloGames = inMode.soloGames,
+                        maxScore = inMode.maxScore,
+                    )
+                }
+            },
+        )
+    }
 
     private data class WinStreaks(val current: Int, val best: Int)
 
     /**
      * Walks [outcomesMostRecentFirst] once to find both streaks. A solo game (recorded with a
      * null outcome - nobody to beat) neither extends nor breaks a run, the same rule the
-     * device-wide WIN_STREAK achievement counter already follows; a loss ends one.
+     * device-wide WIN_STREAK achievement counter already follows, so it isn't in the list; a loss ends one.
      *
      * The *current* streak is only "locked in" by the first loss encountered - after that, later
      * (i.e. older) wins are still counted toward [WinStreaks.best] but can no longer be part of
      * the current one.
      */
-    private fun winStreaks(outcomesMostRecentFirst: List<Boolean?>): WinStreaks {
+    private fun winStreaks(outcomesMostRecentFirst: List<Boolean>): WinStreaks {
         var running = 0
         var best = 0
         var current = 0
         var currentLocked = false
         for (won in outcomesMostRecentFirst) {
-            when (won) {
-                true -> {
-                    running++
-                    if (running > best) best = running
-                    if (!currentLocked) current = running
-                }
-                false -> {
-                    running = 0
-                    currentLocked = true
-                }
-                null -> Unit
+            if (won) {
+                running++
+                if (running > best) best = running
+                if (!currentLocked) current = running
+            } else {
+                running = 0
+                currentLocked = true
             }
         }
         return WinStreaks(current = current, best = best)

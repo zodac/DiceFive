@@ -20,7 +20,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import net.zodac.dicefive.data.scores.DismissedPlayerStats
-import net.zodac.dicefive.data.scores.PlayerGame
+import net.zodac.dicefive.data.scores.PlayerModeTotals
 import net.zodac.dicefive.data.scores.SCORES_PAGE_SIZE
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreEntry
@@ -58,7 +58,9 @@ internal class RowsDao(private val rows: List<ScoreEntry>) : ScoreDao {
     override suspend fun primaryPlayerTotalPoints(): Int? = null
     override suspend fun primaryPlayerGameModeIds(): List<String> = emptyList()
     override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
-    override suspend fun playerGames(): List<PlayerGame> = emptyList()
+    override suspend fun playerModeTotals(): List<PlayerModeTotals> = emptyList()
+    override suspend fun latestPlayerName(playerKey: String): String = playerKey
+    override suspend fun playerOutcomes(playerKey: String): List<Boolean> = emptyList()
     override suspend fun clearDismissal(playerKey: String) = Unit
     override suspend fun clearAllScores() = Unit
     override suspend fun clearAllDismissals() = Unit

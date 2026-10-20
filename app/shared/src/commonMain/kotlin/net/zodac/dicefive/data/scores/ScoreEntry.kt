@@ -44,6 +44,13 @@ import net.zodac.dicefive.model.playerNameKey
         Index(value = ["playerKey", "onLeaderboard", "score"]),
         // Player 1's career points, modes played and unposted bests, from the index alone.
         Index(name = "index_scores_primary_player", value = ["isPrimaryPlayer", "gameModeId", "playedUnmodified", "timestampEpochMillis", "score"]),
+        // Statistics: each player's games added up per mode, read in group order from the index alone.
+        Index(
+            name = "index_scores_player_mode_totals",
+            value = ["playerKey", "gameModeId", "won", "score", "fiveOfAKindCount", "timestampEpochMillis"],
+        ),
+        // Statistics: a player's games newest first - their latest name, and the outcomes the win streaks walk.
+        Index(name = "index_scores_player_history", value = ["playerKey", "timestampEpochMillis", "won"], orders = [ASC, DESC, ASC]),
     ],
 )
 data class ScoreEntry(

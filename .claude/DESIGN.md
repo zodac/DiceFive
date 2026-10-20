@@ -224,15 +224,20 @@ will map to Play Games.
     another name gets that name's key.
   - **`onLeaderboard` is derived too**: the mode's `countsOnLeaderboard` and `playedUnmodified`, so it can't disagree with
     them. The cloud save still writes it, as format 1's readers require it, but it is worked out again on reading.
-  - **Every read made while the app is in use comes from an index**, never a scan or a sort of the table; Statistics
-    (`playerGames`) and the cloud save (`allScores`) read every row by design. `ScoreQueryPlanTest` checks each read's
-    query plan against the real SQLite. The indices:
+  - **Every read made while the app is in use comes from an index**, never a scan or a sort of the table. Statistics
+    (`playerRecords`) adds up every game, so reads a whole index, but never the table; the cloud save (`allScores`) reads
+    every row by design. `ScoreQueryPlanTest` checks each read's query plan against the real SQLite. The indices:
     - `index_scores_leaderboard_order` and `index_scores_mode_order` hold the Combined table and each mode's card in
       `LEADERBOARD_ORDER`, with the same ASC/DESC per column, so a page is read in order. Room's annotation can't be built
       from `TieBreak.leaderboardOrder`, so a change to the tie-break order must change both (`ScoreQueryPlanTest` fails
       until it does).
     - `playerKey, onLeaderboard, score`: a player's best.
     - `index_scores_primary_player`: player 1's career points and modes played.
+    - `index_scores_player_mode_totals` and `index_scores_player_history`: Statistics (below).
+  - **Statistics is added up by SQLite.** `playerRecords` reads each player's games summed per mode (a `GROUP BY` over
+    a covering index), their latest spelling, and only the outcomes of their decided games, newest first, for the win
+    streaks; window functions, which could do the streaks too, need Android 11. `ScoreRepository` adds the modes up
+    and walks the streaks. `PlayerStatisticsQueryTest` checks the result equals walking every game.
   - **Leaderboard order is total.** Rows equal on every criterion follow in `rowid` (recording) order, so `LIMIT/OFFSET`
     pages never repeat or skip a row.
   - **Multi-statement reads and writes are one transaction**: a game's rows (`insertGame`), a reset (`clearAll`), the

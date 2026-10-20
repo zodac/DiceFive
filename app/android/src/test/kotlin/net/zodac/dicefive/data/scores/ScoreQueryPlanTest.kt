@@ -15,8 +15,9 @@ import org.junit.runner.RunWith
 /**
  * Every read [ScoreDao] makes while the app is in use - a Leaderboard page or count, a personal best, the figures the
  * achievements are measured against, an online leaderboard's unposted best - is answered from an index: SQLite's plan for
- * it neither reads the whole `scores` table nor sorts it. Statistics ([ScoreDao.playerGames]) and the cloud save
- * ([ScoreDao.allScores]) read every row by design, so aren't held to it.
+ * it neither reads the whole `scores` table nor sorts it. Statistics ([ScoreDao.playerRecords]) adds up every game by
+ * design, so may read a whole index, but never the table and never with a sort. The cloud save ([ScoreDao.allScores])
+ * reads every row by design, so isn't held to it.
  */
 @RunWith(AndroidJUnit4::class)
 class ScoreQueryPlanTest {
@@ -32,8 +33,11 @@ class ScoreQueryPlanTest {
     @After
     fun close() = database.close()
 
-    /** Runs [read] and fails if any `SELECT` it made would scan or sort `scores`, naming the plan that would. */
-    private fun assertIndexed(name: String, read: suspend ScoreDao.() -> Unit) = runTest {
+    /**
+     * Runs [read] and fails if any `SELECT` it made would scan or sort `scores`, naming the plan that would. With
+     * [wholeIndex], reading every entry of an index that holds all the columns it needs is allowed.
+     */
+    private fun assertIndexed(name: String, wholeIndex: Boolean = false, read: suspend ScoreDao.() -> Unit) = runTest {
         dao.insertGame(
             listOf(
                 row(GameMode.STANDARD, score = 200, primary = true),
@@ -50,7 +54,8 @@ class ScoreQueryPlanTest {
             val plan = database.openHelper.readableDatabase.query("EXPLAIN QUERY PLAN $sql", args.toTypedArray()).use { cursor ->
                 buildList { while (cursor.moveToNext()) add(cursor.getString(cursor.getColumnIndexOrThrow("detail"))) }
             }
-            if (plan.any { it.startsWith("SCAN") || "TEMP B-TREE" in it }) fail("$name reads or sorts the whole table:\n$sql\n${plan.joinToString("\n")}")
+            val scans = plan.filter { it.startsWith("SCAN") && !(wholeIndex && it.startsWith("SCAN scores USING COVERING INDEX")) }
+            if (scans.isNotEmpty() || plan.any { "TEMP B-TREE" in it }) fail("$name reads or sorts the whole table:\n$sql\n${plan.joinToString("\n")}")
         }
     }
 
@@ -95,4 +100,8 @@ class ScoreQueryPlanTest {
     @Test
     fun `an online leaderboard's unposted best comes from an index`() =
         assertIndexed("bestUnpostedScore") { bestUnpostedScore(GameMode.STANDARD.id, afterEpochMillis = 0L, maxScore = 1_575) }
+
+    @Test
+    fun `Statistics adds up each player's games from an index - and reads their latest name and outcomes from another`() =
+        assertIndexed("playerRecords", wholeIndex = true) { playerRecords() }
 }

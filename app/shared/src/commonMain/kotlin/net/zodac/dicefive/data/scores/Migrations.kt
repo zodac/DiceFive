@@ -18,7 +18,7 @@ internal val MIGRATIONS: Array<Migration> = arrayOf(Migration1To2)
  * - [ScoreEntry.uuid] is the primary key, stored as its 16 bytes; the device-local `id` is gone. A uuid that isn't 32 hex
  *   digits (none this app wrote) gets a new random one rather than failing the migration and losing the score.
  * - [ScoreEntry.onLeaderboard] is worked out again from the mode and `playedUnmodified`, as a new row's is.
- * - The indices that serve the Leaderboard's pages, a player's best and player 1's figures are added.
+ * - The indices that serve the Leaderboard's pages, a player's best, player 1's figures and Statistics are added.
  *
  * Rows keep the order they were recorded in, which is the order rows equal on every Leaderboard criterion are listed in.
  * The dismissals are keyed by [DismissedPlayerStats.playerKey] too: dismissals of one player under differently cased
@@ -94,6 +94,13 @@ internal object Migration1To2 : Migration(1, 2) {
         connection.execSQL(
             "CREATE INDEX IF NOT EXISTS `index_scores_primary_player` ON `scores` " +
                 "(`isPrimaryPlayer`, `gameModeId`, `playedUnmodified`, `timestampEpochMillis`, `score`)",
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_scores_player_mode_totals` ON `scores` " +
+                "(`playerKey`, `gameModeId`, `won`, `score`, `fiveOfAKindCount`, `timestampEpochMillis`)",
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_scores_player_history` ON `scores` (`playerKey` ASC, `timestampEpochMillis` DESC, `won` ASC)",
         )
     }
 

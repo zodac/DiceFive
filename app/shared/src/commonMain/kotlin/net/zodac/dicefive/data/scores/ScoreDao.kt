@@ -133,21 +133,38 @@ interface ScoreDao {
     suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore?
 
     /**
-     * Every recorded game, grouped by player name alphabetically and most recent first within each
-     * player - excluding anyone dismissed from the Statistics screen (see [DismissedPlayerStats]).
-     * Their scores are still counted on the Leaderboard; this query backs Statistics only, and counts
-     * every game, on the Leaderboard or not (see [ScoreEntry.onLeaderboard]). Names are
-     * compared by [ScoreEntry.playerKey], as the New Game screen compares them, so "bob" and "Bob" are one player.
+     * What the Statistics screen shows, read in one transaction: a [PlayerRecord] for each player by
+     * [ScoreEntry.playerKey] ("bob" and "Bob" are one player, as the New Game screen compares them), in key order -
+     * excluding anyone dismissed from the Statistics screen (see [DismissedPlayerStats]). Every game counts, on the
+     * Leaderboard or not (see [ScoreEntry.onLeaderboard]). SQLite adds up each player's games per mode; only the
+     * outcomes, which the win streaks need in order, come back a game at a time.
      */
+    @Transaction
+    suspend fun playerRecords(): List<PlayerRecord> = playerModeTotals().groupBy { it.playerKey }.map { (playerKey, modes) ->
+        PlayerRecord(playerName = latestPlayerName(playerKey), modes = modes, outcomesMostRecentFirst = playerOutcomes(playerKey))
+    }
+
+    /** Each Statistics player's games in each mode, added up - see [playerRecords]. In key order, then mode id order. */
     @Query(
         """
-        SELECT playerName, playerKey, timestampEpochMillis, won, score, fiveOfAKindCount, gameModeId
+        SELECT playerKey, gameModeId, COUNT(*) AS gamesPlayed, SUM(won IS 1) AS gamesWon, SUM(won IS 0) AS gamesLost,
+            SUM(won IS NULL) AS soloGames, MAX(score) AS maxScore, SUM(score) AS totalScore,
+            SUM(fiveOfAKindCount) AS fiveOfAKindCount, MIN(timestampEpochMillis) AS firstPlayedEpochMillis
         FROM scores
         WHERE playerKey NOT IN (SELECT playerKey FROM dismissed_player_stats)
-        ORDER BY playerKey ASC, timestampEpochMillis DESC
+        GROUP BY playerKey, gameModeId
+        ORDER BY playerKey ASC, gameModeId ASC
         """,
     )
-    suspend fun playerGames(): List<PlayerGame>
+    suspend fun playerModeTotals(): List<PlayerModeTotals>
+
+    /** The name [playerKey]'s player recorded their latest game under - the spelling Statistics shows. */
+    @Query("SELECT playerName FROM scores WHERE playerKey = :playerKey ORDER BY timestampEpochMillis DESC LIMIT 1")
+    suspend fun latestPlayerName(playerKey: String): String
+
+    /** Whether [playerKey]'s player won each game with someone to beat, most recent first - what the win streaks walk. */
+    @Query("SELECT won FROM scores WHERE playerKey = :playerKey AND won IS NOT NULL ORDER BY timestampEpochMillis DESC")
+    suspend fun playerOutcomes(playerKey: String): List<Boolean>
 
     /** Hides [playerName] from the Statistics screen, as of [atEpochMillis] - see [DismissedPlayerStats]. */
     suspend fun dismissPlayer(playerName: String, atEpochMillis: Long) = putDismissals(listOf(DismissedPlayerStats(playerName, atEpochMillis)))

@@ -48,10 +48,30 @@ class InMemoryScoreDao : ScoreDao {
     override suspend fun primaryPlayerGameModeIds(): List<String> = entries.filter { it.isPrimaryPlayer }.map { it.gameModeId }.distinct()
     override suspend fun bestUnpostedScore(gameModeId: String, afterEpochMillis: Long, maxScore: Int): UnpostedScore? = null
 
-    override suspend fun playerGames(): List<PlayerGame> =
+    override suspend fun playerModeTotals(): List<PlayerModeTotals> =
         entries.filter { it.playerKey !in dismissed }
-            .sortedWith(compareBy<ScoreEntry> { it.playerKey }.thenByDescending { it.timestampEpochMillis })
-            .map { PlayerGame(it.playerName, it.playerKey, it.timestampEpochMillis, it.won, it.score, it.fiveOfAKindCount, it.gameModeId) }
+            .groupBy { it.playerKey to it.gameModeId }
+            .entries.sortedWith(compareBy({ it.key.first }, { it.key.second }))
+            .map { (key, games) ->
+                PlayerModeTotals(
+                    playerKey = key.first,
+                    gameModeId = key.second,
+                    gamesPlayed = games.size,
+                    gamesWon = games.count { it.won == true },
+                    gamesLost = games.count { it.won == false },
+                    soloGames = games.count { it.won == null },
+                    maxScore = games.maxOf { it.score },
+                    totalScore = games.sumOf { it.score },
+                    fiveOfAKindCount = games.sumOf { it.fiveOfAKindCount },
+                    firstPlayedEpochMillis = games.minOf { it.timestampEpochMillis },
+                )
+            }
+
+    override suspend fun latestPlayerName(playerKey: String): String =
+        entries.filter { it.playerKey == playerKey }.maxBy { it.timestampEpochMillis }.playerName
+
+    override suspend fun playerOutcomes(playerKey: String): List<Boolean> =
+        entries.filter { it.playerKey == playerKey }.sortedByDescending { it.timestampEpochMillis }.mapNotNull { it.won }
 
     override suspend fun clearDismissal(playerKey: String) {
         dismissed -= playerKey

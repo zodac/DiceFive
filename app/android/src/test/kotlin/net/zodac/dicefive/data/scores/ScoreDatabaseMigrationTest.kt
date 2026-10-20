@@ -81,7 +81,7 @@ class ScoreDatabaseMigrationTest {
             assertEquals(220, dao.bestScoreForPlayer("ángel"))
             // The later dismissal is kept, under the spelling it was made with, and still hides both spellings' games.
             assertEquals(listOf(DismissedPlayerStats("ÁNGEL", 2_500L)), dao.allDismissals())
-            assertEquals(listOf("Bob"), dao.playerGames().map { it.playerName })
+            assertEquals(listOf("Bob"), dao.playerRecords().map { it.playerName })
         } finally {
             database.close()
             SQLiteDatabase.deleteDatabase(file)

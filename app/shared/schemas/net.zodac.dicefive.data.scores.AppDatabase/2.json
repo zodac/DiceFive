@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "bf1737dcc6ba2266f5ea963464d13223",
+    "identityHash": "7016e1c29eef630803e9088bb184e7a4",
     "entities": [
       {
         "tableName": "scores",
@@ -186,6 +186,35 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_scores_primary_player` ON `${TABLE_NAME}` (`isPrimaryPlayer`, `gameModeId`, `playedUnmodified`, `timestampEpochMillis`, `score`)"
+          },
+          {
+            "name": "index_scores_player_mode_totals",
+            "unique": false,
+            "columnNames": [
+              "playerKey",
+              "gameModeId",
+              "won",
+              "score",
+              "fiveOfAKindCount",
+              "timestampEpochMillis"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scores_player_mode_totals` ON `${TABLE_NAME}` (`playerKey`, `gameModeId`, `won`, `score`, `fiveOfAKindCount`, `timestampEpochMillis`)"
+          },
+          {
+            "name": "index_scores_player_history",
+            "unique": false,
+            "columnNames": [
+              "playerKey",
+              "timestampEpochMillis",
+              "won"
+            ],
+            "orders": [
+              "ASC",
+              "DESC",
+              "ASC"
+            ],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scores_player_history` ON `${TABLE_NAME}` (`playerKey` ASC, `timestampEpochMillis` DESC, `won` ASC)"
           }
         ]
       },
@@ -222,7 +251,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bf1737dcc6ba2266f5ea963464d13223')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7016e1c29eef630803e9088bb184e7a4')"
     ]
   }
 }

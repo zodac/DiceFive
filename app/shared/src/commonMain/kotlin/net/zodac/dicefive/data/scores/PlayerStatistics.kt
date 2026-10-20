@@ -61,18 +61,30 @@ internal fun winRatePercent(won: Int, lost: Int): Int? {
 }
 
 /**
- * [ScoreDao.playerGames]'s projection: one recorded game, just the columns the Statistics screen
- * needs. [ScoreRepository.playerStatistics] folds every player's games into their
- * [PlayerStatistics] in one pass - the win streaks depend on game order, which a `GROUP BY` can't
- * see, so this one query replaces a per-player summary plus a history query for each player.
+ * One player's games in one mode, added up by SQLite - [ScoreDao.playerModeTotals]'s row. [gameModeId] is whatever was
+ * stored, a mode this build no longer knows included.
  */
-data class PlayerGame(
-    val playerName: String,
-    /** [playerName]'s [ScoreEntry.playerKey]: the games of one player, however the name was cased, share it. */
+data class PlayerModeTotals(
+    /** The player's [ScoreEntry.playerKey]: the games of one player, however the name was cased, share it. */
     val playerKey: String,
-    val timestampEpochMillis: Long,
-    val won: Boolean?,
-    val score: Int,
-    val fiveOfAKindCount: Int,
     val gameModeId: String,
+    val gamesPlayed: Int,
+    val gamesWon: Int,
+    val gamesLost: Int,
+    val soloGames: Int,
+    val maxScore: Int,
+    val totalScore: Int,
+    val fiveOfAKindCount: Int,
+    val firstPlayedEpochMillis: Long,
+)
+
+/**
+ * Everything the Statistics screen needs about one player, as [ScoreDao.playerRecords] reads it: the spelling of their
+ * latest game, their games added up per mode, and the outcome of each game with someone to beat, most recent first - the
+ * win streaks depend on game order, which a `GROUP BY` can't see.
+ */
+data class PlayerRecord(
+    val playerName: String,
+    val modes: List<PlayerModeTotals>,
+    val outcomesMostRecentFirst: List<Boolean>,
 )
