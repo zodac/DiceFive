@@ -174,6 +174,7 @@ neighbours) build first, then the rest over the following frames, nearest the pi
 
 **Fit-to-screen scaling** is worked out in the warm-up, never on opening.
 - `StylesWarmUp` lays the page out off screen at full size and, if that scrolls, at `MIN_PAGE_FIT_SCALE` (75%).
+  This is its first step, laid out but not drawn, so the fit is saved within moments of the menu settling.
 - The cards get smaller dp but the same sp, and `fittedPageScale` finds the scale that just fits.
 - The resulting `PageFit` is keyed on window size, density and font scale, and saved with the picks
   (`styles_page_fit`). Opening just reads it.
@@ -200,8 +201,8 @@ tile at once (`GalleryGrid`).
 
 **The warm-up** (`StylesWarmUp`): the first open after launch is slow, because the drawing code runs for the first
 time.
-- 600ms after the menu settles, it draws every tile a few at a time, then each card, then the empty frame, then the
-  whole screen (`ScreenScaffold(driftingDice = false)`).
+- 600ms after the menu settles, it measures the page's fit (above), then draws every tile a few at a time, then each
+  card, then the empty frame, then the whole screen (`ScreenScaffold(driftingDice = false)`).
 - It draws in a 1dp clipped box under the menu backdrop, once per process. Compose doesn't cull clipped content.
 - The screen and the warm-up share `StyleCategorySection`, so new categories are warmed automatically. Keep it that
   way.

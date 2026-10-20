@@ -818,7 +818,10 @@ private fun FramePreview(frame: ScoreFrame, modifier: Modifier = Modifier) {
 }
 
 /**
- * Draws every tile of the Styles screen once, out of sight, so the page's code has already run by the
+ * First measures the Styles page out of sight, without drawing it, and saves the size that fits it to its
+ * screen ([PageFit]) - first, so a page opened soon after a fresh install is already sized.
+ *
+ * Then draws every tile of the Styles screen once, out of sight, so the page's code has already run by the
  * time a player opens it or scrolls a row. Each tile's art is its own drawing code, and the first time
  * any of it runs after a launch it's slow (loading a mat's texture, painting a marble die, compiling
  * a D20's drawing) - slow enough, run all at once, to hold the menu for several frames when the page
@@ -851,22 +854,13 @@ fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier, 
             withFrameNanos { }
             withFrameNanos { }
         }
-        if (!stylesWarmedUp) {
-            for (category in StyleCategory.entries) {
-                for (first in 0 until category.tileCount(picks.achievements) step WARM_UP_TILES_PER_PASS) {
-                    pass(WarmUpPass.Tiles(category, first until first + WARM_UP_TILES_PER_PASS))
-                }
-            }
-            for (category in StyleCategory.entries) pass(WarmUpPass.Card(category))
-            // The screen's frame on its own first, then with the page in it: each its own first-time code.
-            pass(WarmUpPass.Frame)
-        }
-        // The whole page also measures itself, so it can open already sized to fit (PageFit): full size,
-        // then - only if it doesn't fit - at the smallest it may be drawn. Every launch, after the tiles,
-        // so the saved fit follows any change to the page.
+        // First the whole page measures itself, so it can open already sized to fit (PageFit): full size,
+        // then - only if it doesn't fit - at the smallest it may be drawn. Every launch, and before the tiles,
+        // so the saved fit follows any change to the page and is in place within moments of the menu settling.
+        // Laid out but not drawn, so its tiles' first-time drawing is still spread over the passes below.
         suspend fun measured(at: Float): PageMeasure? {
             pageMeasure = null
-            current = WarmUpPass.Page(at)
+            current = WarmUpPass.Page(at, draw = false)
             repeat(WARM_UP_MEASURE_FRAMES) {
                 withFrameNanos { }
                 pageMeasure?.let { return it }
@@ -878,18 +872,30 @@ fun StylesWarmUp(picks: SavedStyles?, width: Dp, modifier: Modifier = Modifier, 
             full == null || full.content <= full.viewport -> full?.content
             else -> measured(MIN_PAGE_FIT_SCALE)?.content
         }
-        stylesWarmedUp = true
         // Full size where it couldn't be measured, so as not to try again for this screen. Saved only when it's
         // changed: normally it's the same each launch, but a new version of the page can change its height.
         val fit = PageFit(fitKey, if (full == null || smallest == null) 1f else fittedPageScale(full.content, smallest, full.viewport))
         if (PageFit.decode(picks.stylesPageFit) != fit) onPageFit(fit.encode())
+        if (!stylesWarmedUp) {
+            for (category in StyleCategory.entries) {
+                for (first in 0 until category.tileCount(picks.achievements) step WARM_UP_TILES_PER_PASS) {
+                    pass(WarmUpPass.Tiles(category, first until first + WARM_UP_TILES_PER_PASS))
+                }
+            }
+            for (category in StyleCategory.entries) pass(WarmUpPass.Card(category))
+            // The screen's frame on its own first, then with the page in it: each its own first-time code.
+            pass(WarmUpPass.Frame)
+            pass(WarmUpPass.Page(fit.scale, draw = true))
+            stylesWarmedUp = true
+        }
         current = null
     }
     val pass = current ?: return
     Box(modifier = modifier.size(1.dp).clipToBounds()) {
         // As big as the page would be, so it lays out as it would there.
         val height = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
-        Column(modifier = Modifier.requiredWidth(width).requiredHeight(height)) {
+        val drawn = if (pass is WarmUpPass.Page && !pass.draw) Modifier.drawWithContent { } else Modifier
+        Column(modifier = Modifier.requiredWidth(width).requiredHeight(height).then(drawn)) {
             // The page's own measurer, so the names laid out here are the ones the page draws.
             CompositionLocalProvider(LocalTileLabelMeasurer provides rememberTileLabelMeasurer()) {
                 when (pass) {
@@ -916,8 +922,8 @@ private sealed interface WarmUpPass {
     data class Tiles(val category: StyleCategory, val tiles: IntRange) : WarmUpPass
     data class Card(val category: StyleCategory) : WarmUpPass
     data object Frame : WarmUpPass
-    /** The whole screen, its cards at [scale] - see [PageFit]. */
-    data class Page(val scale: Float) : WarmUpPass
+    /** The whole screen, its cards at [scale] - see [PageFit] - and only laid out, to be measured, unless [draw]. */
+    data class Page(val scale: Float, val draw: Boolean) : WarmUpPass
 }
 
 // The last measure a warm-up page reported, if any - see StylesWarmUp. Main thread only.

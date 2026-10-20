@@ -42,8 +42,11 @@ class StylesPageFitTest {
 
     private val tiles = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton)
 
-    /** Warms the page up as the menu does, then opens it: the width of its first dice tile, in dp, and where its last tile ends. */
-    private fun openAfterWarmUp(): Pair<Float, Float> {
+    /**
+     * Warms the page up as the menu does for [frames], then opens it: the width of its first dice tile, in dp, and where its last
+     * tile ends.
+     */
+    private fun openAfterWarmUp(frames: Int = 600): Pair<Float, Float> {
         val achievements = AchievementsState(unlockedAt = Achievement.entries.associateWith { 0L })
         val saved = MutableStateFlow<SavedStyles?>(
             SavedStyles(DiceStyles.default.id, DiceCupStyles.default.id, TableBackgrounds.default.id, DiceMats.default.id, achievements),
@@ -64,7 +67,7 @@ class StylesPageFitTest {
             }
         }
         compose.mainClock.autoAdvance = false
-        repeat(600) { compose.mainClock.advanceTimeByFrame() }
+        repeat(frames) { compose.mainClock.advanceTimeByFrame() }
         compose.runOnIdle {
             open = true
             Snapshot.sendApplyNotifications()
@@ -95,5 +98,13 @@ class StylesPageFitTest {
     @Config(qualifiers = "w393dp-h700dp")
     fun `a page too tall to fit even shrunk opens full size and scrolls`() {
         assertEquals(72f, openAfterWarmUp().first, 0.5f)
+    }
+
+    @Test
+    @Config(qualifiers = "w393dp-h820dp")
+    fun `a page opened about a second after the menu, before the tiles are warmed, is already sized to fit`() {
+        // 600ms of waiting, then the measures, then the tiles: these frames end long before the tiles do.
+        val (dieTile, _) = openAfterWarmUp(frames = 60)
+        assertTrue("dice tile $dieTile", dieTile < 72f && dieTile >= 72f * 0.75f)
     }
 }
