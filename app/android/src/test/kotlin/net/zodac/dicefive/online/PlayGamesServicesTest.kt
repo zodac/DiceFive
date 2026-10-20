@@ -55,8 +55,10 @@ class PlayGamesServicesTest {
     @Test
     fun `the SDK can't start itself at launch - only once the player signs in`() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val providers = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PROVIDERS).providers.orEmpty()
-        assertFalse(providers.joinToString { it.name }, providers.any { it.name.endsWith("PlayGamesInitProvider") })
+        val flags = PackageManager.GET_PROVIDERS or PackageManager.MATCH_DISABLED_COMPONENTS
+        val providers = context.packageManager.getPackageInfo(context.packageName, flags).providers.orEmpty()
+        val init = providers.single { it.name == "com.google.android.gms.games.provider.PlayGamesInitProvider" }
+        assertFalse("PlayGamesInitProvider is enabled", init.enabled)
     }
 
     @Test

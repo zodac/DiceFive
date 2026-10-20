@@ -21,9 +21,8 @@ failure stops what follows.
 - `:app:android:assembleRelease` is the release job's build: R8, and the release lint (`lintVitalRelease`), which
   `lint` doesn't run. Without the signing secrets it builds unsigned, which is fine here.
 - No `-q`, so Gradle's warnings show. Read what's left after the task lines. Known and left (third-party, already
-  on their newest versions): AGP's `Configuration.setVisible` deprecation, the AboutLibraries plugin's
-  "resolved during configuration time" lines, and the manifest merger's `PlayGamesInitProvider` note from
-  `mergeDebugUnitTestManifest`. Anything else is new: fix it.
+  on their newest versions): AGP's `Configuration.setVisible` deprecation, and the AboutLibraries plugin's
+  "resolved during configuration time" lines. Anything else is new: fix it.
 
 ## While iterating
 

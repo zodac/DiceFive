@@ -47,7 +47,7 @@ app/android/.../online/  PlayGamesServices, PlayGamesIds, PlayGamesAchievements,
 ## Account and sign-in
 
 - **Only from Settings.** The SDK isn't started (`PlayGamesSdk.initialize`) until the player taps **Sign in**, and its
-  auto-start `PlayGamesInitProvider` is removed in the manifest (`PlayGamesServicesTest`). A sign-in sets `signed_in`
+  auto-start `PlayGamesInitProvider` is disabled in the manifest (`PlayGamesServicesTest`). A sign-in sets `signed_in`
   (the `online` store); from then on the SDK starts with the app and signs in quietly.
 - **A failed sign-in says why** on the card, in red: "Couldn't sign in: " and the first failure's log message
   (`GameServicesState.SignedOut.failure`), untranslated, for a player to report. It goes on the next Sign in tap.
