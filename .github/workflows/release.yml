@@ -148,10 +148,11 @@ jobs:
   # emulator and the journey are explained in .claude/EMULATOR.md; the journey in .claude/DESIGN.md
   # Phase 19.
   #
-  # Timeouts: a lap of the journey is ~2.5 minutes on a 4-core sandbox emulator (the first one ~1.5 more, with its game played to the end), and a hosted runner is at
-  # least three times slower - a 60-minute step timed out with laps still to run. The step stops at 150
+  # Timeouts: a lap of the journey is ~4.5 minutes on a 4-core sandbox emulator when it plays a game to the end (every
+  # lap of a 10-lap run; the first ~0.5 more, with the game that unlocks the modes), and a hosted runner is at
+  # least three times slower - a 60-minute step timed out with laps still to run. The step stops at 190
   # (a boot of up to 15, the benchmark build, 10 laps, room for two retried boots) and fails like a failed
-  # journey, so its report is still uploaded; the job's own 170 is the backstop for a hang anywhere else
+  # journey, so its report is still uploaded; the job's own 210 is the backstop for a hang anywhere else
   # (setup, the cache, an upload). Each lap's start is printed in the step's log, so a slow run shows how
   # far it got.
   #
@@ -161,7 +162,7 @@ jobs:
     needs: version
     if: needs.version.outputs.stable == 'true' || inputs.force_apk == true
     runs-on: ubuntu-latest
-    timeout-minutes: 170
+    timeout-minutes: 210
     permissions:
       contents: read
       actions: read # watch_checks.sh reads this run's jobs
@@ -237,7 +238,7 @@ jobs:
       # The benchmark library logs "Compile iteration (N)" as each lap starts; those lines are echoed here
       # (Gradle prints nothing until the tests end).
       - name: Generate the Baseline Profile
-        timeout-minutes: 150
+        timeout-minutes: 190
         run: |
           # adb for the logcat below: ci_emulator.sh puts platform-tools on its own PATH, not this step's.
           export PATH="$ANDROID_HOME/platform-tools:$PATH"

@@ -190,9 +190,9 @@ private fun MacrobenchmarkScope.openGameSetup() {
 }
 
 /**
- * From the menu, with a game saved: Continue, wait for the board, then back out. The tap is tried
- * again if the board doesn't come: the system drops a touch that lands while the last dialog's dim
- * layer is still fading out over the menu ("Untrusted touch due to occlusion" in logcat).
+ * From the menu, with a game saved: Continue, wait for the board, roll once in landscape, then back out. The tap is
+ * tried again if the board doesn't come: the system drops a touch that lands while the last dialog's dim layer is
+ * still fading out over the menu ("Untrusted touch due to occlusion" in logcat).
  */
 internal fun MacrobenchmarkScope.resumeGame() {
     val board = By.descStartsWith("Dice cup")
@@ -201,11 +201,26 @@ internal fun MacrobenchmarkScope.resumeGame() {
         device.findObject(By.text("Continue"))?.click()
         if (device.wait(Until.hasObject(board), TIMEOUT_MS)) {
             device.waitForIdle()
+            rollInLandscape()
             leaveGame()
             return
         }
     }
     error("Baseline Profile journey: 'the board after Continue' never appeared")
+}
+
+/**
+ * On the board: turned to landscape (the app follows the device unless its Orientation setting says otherwise), a
+ * roll there, then turned back. Each turn recreates the activity, so the board is waited for after both.
+ */
+private fun MacrobenchmarkScope.rollInLandscape() {
+    device.setOrientationLandscape()
+    await(By.descStartsWith("Dice cup"), "the board in landscape")
+    tapDesc("Dice cup", startsWith = true)
+    Thread.sleep(ROLL_SETTLE_MS)
+    device.setOrientationNatural()
+    await(By.descStartsWith("Dice cup"), "the board back in portrait")
+    device.waitForIdle()
 }
 
 /**
@@ -361,22 +376,27 @@ private fun MacrobenchmarkScope.longPressAt(bounds: Rect) {
 }
 
 /**
- * From the menu, with a game saved (see [playATurn]): New Game in a mode other than Standard, a roll, then
+ * From the menu, with a game saved (see [playATurn]): a New Game in each of [OTHER_MODES], with a roll, then
  * out again. Afterwards the mode is put back to Standard, so the next lap's [playATurn] - and anything else
  * that starts a game - gets the mode it expects (the setup remembers the last pick).
  */
 internal fun MacrobenchmarkScope.playAModeGame() {
-    openFromMenu("New Game")
-    chooseMode("Tricolour")
-    tapText("Start Game")
-    tapDesc("Dice cup", startsWith = true)
-    Thread.sleep(ROLL_SETTLE_MS)
-    leaveGame()
+    for (mode in OTHER_MODES) {
+        openFromMenu("New Game")
+        chooseMode(mode)
+        tapText("Start Game")
+        tapDesc("Dice cup", startsWith = true)
+        Thread.sleep(ROLL_SETTLE_MS)
+        leaveGame()
+    }
 
     openFromMenu("New Game")
     chooseMode("Standard")
-    backOutOfSetup(replacedMode = "Tricolour")
+    backOutOfSetup(replacedMode = OTHER_MODES.last())
 }
+
+/** The modes [playAModeGame] plays, each with its own dice, boxes or layout. */
+private val OTHER_MODES = listOf("Tricolour", "D20", "Hit List")
 
 /**
  * Back from the setup once the mode picker's dialog has gone: a back press sent while it closes leaves the
@@ -387,6 +407,27 @@ private fun MacrobenchmarkScope.backOutOfSetup(replacedMode: String) {
     await(By.text("Start Game"), "the setup after choosing a mode")
     device.wait(Until.gone(By.text(replacedMode)), TIMEOUT_MS)
     Thread.sleep(PICKER_CLOSE_MS)
+    back()
+    await(By.text("Settings"), "the menu after leaving the setup")
+}
+
+/**
+ * From the menu: unlocks the setup's game modes and modifiers, which stay locked until a game has been finished (as on
+ * the fresh install CI runs on), by playing one solo game of Standard to the end. The player count is put back to two
+ * afterwards, as the setup remembers it. Does nothing more than look when they are already unlocked.
+ */
+internal fun MacrobenchmarkScope.unlockModes() {
+    openGameSetup()
+    await(By.text("Start Game"), "the setup")
+    if (hasText(MODES_LOCKED)) {
+        tapDesc("1")
+        tapText("Start Game")
+        playToGameOver(rollsPerTurn = STANDARD_ROLLS)
+        tapText("Main Menu")
+        openGameSetup()
+        tapDesc("2")
+        await(By.text("Start Game"), "the setup after the unlocking game")
+    }
     back()
     await(By.text("Settings"), "the menu after leaving the setup")
 }
@@ -405,7 +446,7 @@ internal fun MacrobenchmarkScope.playFinishedGame() {
     setOneRollPerTurn(true)
     chooseMode("Quickfire")
     tapText("Start Game")
-    playToGameOver()
+    playToGameOver(rollsPerTurn = 1)
     // The fireworks are given a moment to start: the profile records the code that ran, not how long they played
     // (they run for GameOverScreen's CELEBRATION_MILLIS, as long as the fanfare).
     Thread.sleep(CELEBRATION_MS)
@@ -476,9 +517,17 @@ private fun MacrobenchmarkScope.rollAndScore() {
         } catch (_: StaleObjectException) {
             // Re-composed between the lookup and the tap - look again.
         }
+        // A box seen can be the CPU's, as it scores the turn before: gone by the tap, it means the user hasn't rolled yet.
         if (device.wait(Until.hasObject(OPEN_BOX), ROLL_WAIT_MS)) {
-            tap("a box to score") { await(OPEN_BOX, "a box to score") }
-            return
+            try {
+                device.findObject(OPEN_BOX)?.let { box ->
+                    box.click()
+                    device.waitForIdle()
+                    return
+                }
+            } catch (_: StaleObjectException) {
+                // Re-composed between the lookup and the tap - roll and look again.
+            }
         }
     }
     error("Baseline Profile journey: rolling never left a box to score")
@@ -487,18 +536,19 @@ private fun MacrobenchmarkScope.rollAndScore() {
 /**
  * Rolls once and scores the first box the roll can fill, turn after turn, for every player, until the Game
  * Over page is up. The boxes are found by name and by being tappable: a disabled or filled one isn't, and
- * which of Quickfire's are disabled is drawn at random.
+ * which of Quickfire's are disabled is drawn at random. [rollsPerTurn] is what the cup holds at a turn's start.
  */
-private fun MacrobenchmarkScope.playToGameOver() = withShortIdleWait {
-    playTurnsToGameOver()
+private fun MacrobenchmarkScope.playToGameOver(rollsPerTurn: Int) = withShortIdleWait {
+    playTurnsToGameOver(By.descStartsWith("Dice cup, $rollsPerTurn roll"))
 }
 
 /** [playToGameOver]'s loop: everything in it waits for what it wants, so the dice's animations needn't be sat out as well. */
-private fun MacrobenchmarkScope.playTurnsToGameOver() {
+private fun MacrobenchmarkScope.playTurnsToGameOver(nextTurn: BySelector) {
     repeat(MAX_TURNS) {
-        // The cup is back at its one roll when it is a user's turn - a CPU's moves go by in between.
+        // The cup is back at its full rolls when it is a user's turn - a CPU's moves go by in between. A box still
+        // open to score says the last score's tap was dropped, and the turn is still the user's.
         val deadline = System.currentTimeMillis() + TURN_WAIT_MS
-        while (!device.hasObject(GAME_OVER) && !device.wait(Until.hasObject(NEXT_TURN), 1_000L)) {
+        while (!device.hasObject(GAME_OVER) && !device.hasObject(OPEN_BOX) && !device.wait(Until.hasObject(nextTurn), 1_000L)) {
             check(System.currentTimeMillis() < deadline) { "Baseline Profile journey: no turn and no Game Over came" }
         }
         if (device.hasObject(GAME_OVER)) return
@@ -516,9 +566,13 @@ private fun MacrobenchmarkScope.chooseMode(mode: String) {
     tapText(mode)
 }
 
-/** A long page of text: the Rules, then the Modes group and one of its pages. */
+/**
+ * A long page of text: the Rules, starting with a few turns of the tutorial from its How to Play page, then the
+ * Modes group and one of its pages.
+ */
 internal fun MacrobenchmarkScope.visitRules() {
     openFromMenu("Rules")
+    playTutorial()
     scrollDown(4)
     tapTopText("Modes")
     tapTopText("Tricolour")
@@ -526,13 +580,42 @@ internal fun MacrobenchmarkScope.visitRules() {
     back()
 }
 
-/** Leaderboard, on its Game Mode table and back on Combined, and Statistics, which only need opening. */
+/**
+ * From the Rules' How to Play page: the tutorial, its first roll and the coach card's forward arrow a few turns on,
+ * then left (it always asks), back to the page.
+ */
+private fun MacrobenchmarkScope.playTutorial() {
+    // The Rules open on the page last shown while the app has been running, so How to Play is asked for.
+    tapTopText("Gameplay")
+    tapTopText("How to Play")
+    val start = By.text("Start Tutorial")
+    // Under the page's text, which a short screen can push below the fold.
+    if (!device.wait(Until.hasObject(start), CLOSE_WAIT_MS)) scrollDown(1)
+    tap("Start Tutorial") { await(start, "Start Tutorial") }
+    tapDesc("Dice cup", startsWith = true)
+    Thread.sleep(ROLL_SETTLE_MS)
+    repeat(TUTORIAL_TURNS) {
+        tapDesc("Next turn")
+        Thread.sleep(ROLL_SETTLE_MS)
+    }
+    back()
+    await(By.text("Leave the tutorial?"), "the tutorial's leave dialog")
+    closeDialog(By.text("Leave"), "the tutorial's leave dialog's Leave button")
+    await(start, "the How to Play page after the tutorial")
+}
+
+/**
+ * Leaderboard, on its Game Mode table and back on Combined, and Statistics, with the first player's card opened on
+ * its By mode view.
+ */
 internal fun MacrobenchmarkScope.visitScoreScreens() {
     openFromMenu("Leaderboard")
     tapDesc("Game Mode")
     tapDesc("Combined")
     back()
     openFromMenu("Statistics")
+    tapDesc("Player 1.", startsWith = true)
+    tapText("By mode")
     back()
 }
 
@@ -579,9 +662,11 @@ internal fun MacrobenchmarkScope.visitStyles() {
 }
 
 private val GAME_OVER = By.text("Game Over")
-private val NEXT_TURN = By.descStartsWith("Dice cup, 1 roll")
+private const val MODES_LOCKED = "Finish a game to unlock game modes"
+private const val STANDARD_ROLLS = 3
+private const val TUTORIAL_TURNS = 3
 private val OPEN_BOX = By.clickable(true).desc(
-    Pattern.compile("Ones|Twos|Threes|Fours|Fives|Sixes|3x|4x|Full House|Small Straight|Large Straight|Chance"),
+    Pattern.compile("Ones|Twos|Threes|Fours|Fives|Sixes|3x|4x|5x|Full House|Small Straight|Large Straight|Chance"),
 )
 private const val SCREEN_TEXT_CHARS = 400
 private const val MAX_TURNS = 14

@@ -74,7 +74,8 @@ if the journey or a profile file changed. The `apk` job builds with the profile 
 - `.github/scripts/watch_checks.sh` stops the job as soon as another release check fails.
 - Only a failed boot or install is retried (twice). A failing journey fails the release at once.
 - Gradle passing with no `baseline-prof.txt` counts as a failed install.
-- Limits: 150 min for the step, 170 for the job. A lap takes ~2 min here and 3x+ that on a runner.
+- Limits: 190 min for the step, 210 for the job. A lap that plays a game to the end (every lap of a 10-lap run) takes
+  ~4.5 min here and 3x+ that on a runner.
 - The `baseline-profile-report` artifact holds the report, a screenshot, the emulator log and every logcat buffer.
 
 **Reproducing a first boot like CI's**: run `.github/scripts/ci_emulator.sh start` with `ANDROID_HOME=/opt/android-sdk`

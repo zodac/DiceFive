@@ -43,8 +43,10 @@ adb uninstall net.zodac.dicefive 2>/dev/null   # a debug build's higher versionC
 sandbox/emulator.sh stop
 ```
 
-- `journeyLaps=1` takes ~1.5 min. The default is up to 15 laps (~20 min). One lap doesn't prove a full run, because
-  timing races can take several laps to show.
+- `journeyLaps=1` takes ~5 min. `journeyLaps=10` (CI's soak of a changed journey) takes ~45 min. The default is up to
+  15 laps (~70 min). One lap doesn't prove a full run, because timing races can take several laps to show.
+- After the uninstall, the first lap starts like CI's fresh install: modes are locked, so it first plays a solo game to
+  the end to unlock them (`unlockModes`).
 - A failing step names itself (`Baseline Profile journey: 'X' never appeared`). The report is at
   `app/baselineprofile/build/reports/androidTests/connected/nonMinifiedRelease/index.html`. Screenshot where it stuck,
   fix `Journeys.kt`, and rerun.
