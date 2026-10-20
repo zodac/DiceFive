@@ -30,8 +30,6 @@ import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.ScoreDao
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.scores.UnpostedScore
-import net.zodac.dicefive.data.achievements.AchievementEvent
-import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.device.AndroidAppContainer
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.model.AchievementCategory
@@ -40,6 +38,8 @@ import net.zodac.dicefive.model.GameMode
 import net.zodac.dicefive.platform.LocalPlatformServices
 import net.zodac.dicefive.platform.SilentPlatformServices
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
+import net.zodac.dicefive.ui.achievements.AchievementEvent
+import net.zodac.dicefive.ui.achievements.AchievementEvents
 import net.zodac.dicefive.ui.achievements.AchievementsScreen
 import net.zodac.dicefive.ui.achievements.AchievementsViewModel
 import net.zodac.dicefive.ui.theme.DiceFiveTheme

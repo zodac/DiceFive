@@ -71,9 +71,6 @@ import kotlin.time.TimeSource
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.app.LocalAppContainer
-import net.zodac.dicefive.data.achievements.AchievementEvent
-import net.zodac.dicefive.data.achievements.AchievementEvents
-import net.zodac.dicefive.data.achievements.UnlockedStyle
 import net.zodac.dicefive.model.Achievement
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.achievements_banner_pause_action

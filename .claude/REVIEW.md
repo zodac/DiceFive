@@ -10,9 +10,6 @@ fade vs a horizontal mask with a clear zone and easing), so one helper would onl
 
 ## Layers and platform separation (iOS, Steam/desktop)
 
-- **The data layer reaches into UI concerns:** `AchievementEvents` / `UnlockedStyle` carry Compose
-  `StringResource`s; the scroll-request singletons are navigation state; `SavedStyles` carries `stylesPageFit` (a
-  layout measurement); `OnlineAccount` holds an `ImageBitmap`.
 - **App-wide pieces live under `ui/game`:** `SoundEffects`, `LeaveGameConfirmation` and the sound wiring are provided
   at the root. The style catalog (ids, unlock rules) is used by game logic and ViewModels but lives in
   `ui/game/style`. Consider a UI-free style registry in `model/`, with the drawing code registered from `ui/`.

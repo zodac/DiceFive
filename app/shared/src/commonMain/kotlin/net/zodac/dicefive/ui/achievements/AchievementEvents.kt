@@ -1,4 +1,4 @@
-package net.zodac.dicefive.data.achievements
+package net.zodac.dicefive.ui.achievements
 
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow

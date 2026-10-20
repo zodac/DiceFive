@@ -1,10 +1,6 @@
 package net.zodac.dicefive.ui.achievements
 
 import androidx.compose.runtime.Composable
-import net.zodac.dicefive.data.achievements.AchievementEvent
-import net.zodac.dicefive.data.achievements.AchievementEvents
-import net.zodac.dicefive.data.achievements.StylesEarnedBy
-import net.zodac.dicefive.data.achievements.UnlockedStyle
 import net.zodac.dicefive.game.AchievementUpdate
 import net.zodac.dicefive.resources.Res
 import net.zodac.dicefive.resources.achievements_styles_unlocked_announce_join

@@ -97,7 +97,7 @@ app/shared/src/commonMain/kotlin/net/zodac/dicefive/    everything platform-neut
                     AiTurnPlayer (and the perfect-play table), AiNameGenerator
   data/
     scores/         Room: ScoreEntry, ScoreDao, AppDatabase, ScoreRepository
-    achievements/   DataStore: AchievementStore/AchievementsRepository, AchievementEvents
+    achievements/   DataStore: AchievementStore/AchievementsRepository
     settings/       DataStore: SettingsRepository, SavedStyles
     game/           DataStore: the in-progress game, as JSON
   online/           the seam for an online game service (not yet connected to one)
@@ -114,7 +114,8 @@ app/shared/src/commonMain/kotlin/net/zodac/dicefive/    everything platform-neut
     game/style/     the table art: every dice, cup, mat, background and frame style
     scores/         ScoresScreen + ScoresViewModel (the Leaderboard)
     statistics/     StatisticsScreen + StatisticsViewModel
-    achievements/   AchievementsScreen + AchievementsViewModel, AchievementBannerHost
+    achievements/   AchievementsScreen + AchievementsViewModel, AchievementBannerHost and the
+                    AchievementEvents it shows
     styles/         StylesScreen (pick and preview the table art)
     rules/          RulesScreen
     settings/       SettingsScreen + SettingsViewModel, About, Licences

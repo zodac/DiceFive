@@ -7,11 +7,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import net.zodac.dicefive.data.achievements.AchievementEvent
-import net.zodac.dicefive.data.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementsState
-import net.zodac.dicefive.data.achievements.StylesEarnedBy
-import net.zodac.dicefive.data.achievements.UnlockedStyle
 import net.zodac.dicefive.data.achievements.countsTowardStyleLocks
 import net.zodac.dicefive.game.AchievementEngine
 import net.zodac.dicefive.model.Achievement

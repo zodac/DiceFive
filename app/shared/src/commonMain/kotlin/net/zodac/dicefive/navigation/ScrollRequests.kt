@@ -4,13 +4,13 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import net.zodac.dicefive.data.achievements.UnlockedStyle
+import net.zodac.dicefive.ui.achievements.UnlockedStyle
 
 /**
  * Where a long-pressed banner asks a list screen to scroll to and flash what it named - see
  * `ui/achievements/AchievementBannerHost`'s long press, and each screen's collector.
  *
- * Replay is 1, not a growing buffer like [net.zodac.dicefive.data.achievements.AchievementEvents]: only the most recent
+ * Replay is 1, not a growing buffer like [net.zodac.dicefive.ui.achievements.AchievementEvents]: only the most recent
  * request matters, and it has to survive the gap between the request being made (before the screen even exists, if
  * it's not already open) and the screen's own collector starting up once it does. [consumePending] clears it after
  * use so it isn't replayed again on a later, unrelated visit to the screen.

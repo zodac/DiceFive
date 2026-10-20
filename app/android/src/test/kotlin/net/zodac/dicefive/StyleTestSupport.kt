@@ -1,7 +1,7 @@
 package net.zodac.dicefive
 
 import java.io.File
-import net.zodac.dicefive.data.achievements.UnlockedStyle
+import net.zodac.dicefive.ui.achievements.UnlockedStyle
 import net.zodac.dicefive.ui.game.style.StyleCatalog
 import net.zodac.dicefive.ui.game.style.StyleFamily
 import net.zodac.dicefive.ui.game.style.TableArt

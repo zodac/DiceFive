@@ -16,8 +16,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.MutableStateFlow
 import net.zodac.dicefive.app.LocalAppContainer
-import net.zodac.dicefive.data.achievements.AchievementEvent
-import net.zodac.dicefive.data.achievements.AchievementEvents
+import net.zodac.dicefive.ui.achievements.AchievementEvent
+import net.zodac.dicefive.ui.achievements.AchievementEvents
 import net.zodac.dicefive.data.achievements.AchievementsState
 import net.zodac.dicefive.data.scores.ScoreRepository
 import net.zodac.dicefive.data.settings.SavedStyles

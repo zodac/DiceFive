@@ -12,9 +12,9 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.zodac.dicefive.app.LocalAppContainer
-import net.zodac.dicefive.data.achievements.AchievementEvent
-import net.zodac.dicefive.data.achievements.AchievementEvents
-import net.zodac.dicefive.data.achievements.StylesEarnedBy
+import net.zodac.dicefive.ui.achievements.AchievementEvent
+import net.zodac.dicefive.ui.achievements.AchievementEvents
+import net.zodac.dicefive.ui.achievements.StylesEarnedBy
 import net.zodac.dicefive.ui.game.style.DiceStyles
 import net.zodac.dicefive.device.AndroidAppContainer
 import net.zodac.dicefive.ui.achievements.AchievementBannerHost
