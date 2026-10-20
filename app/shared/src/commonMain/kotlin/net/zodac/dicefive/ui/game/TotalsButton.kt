@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import kotlinx.coroutines.launch
 import net.zodac.dicefive.model.ScoreCategory
 import net.zodac.dicefive.game.TutorialStep
@@ -270,46 +271,50 @@ private fun TotalsButton(
             previousStep = tutorial.step
         }
     }
-    AppTooltip(
-        body = { TotalsTable(lines) },
-        state = tooltipState,
-        enabled = opens,
-        focusable = tutorial == null,
-        modifier = modifier.semantics { role = Role.Button },
-    ) {
-        Box(
-            modifier = Modifier
-                .graphicsLayer {
-                    scaleX = pop.value
-                    scaleY = pop.value
-                }
-                // Before the clip, which would cut off an outline drawn round the button.
-                .then(if (tutorial?.opensTotals == true) Modifier.tutorialOutline(tutorial.pulse, cornerRadius = 10.dp) else Modifier)
-                // Before clickable, so its own click semantics don't leak through - see UI.md.
-                .clearAndSetSemantics {
-                    contentDescription = totalsName
-                    stateDescription = spokenState
-                    role = Role.Button
-                    if (opens) {
-                        onClick(label = showTotalsLabel) {
-                            toggle()
-                            true
-                        }
-                    } else {
-                        disabled()
-                    }
-                }
-                // M3's 48dp minimum touch target, which the glyph alone (when a large font drops the label) is short of.
-                .sizeIn(minWidth = minSize, minHeight = minSize)
-                .clip(shape)
-                .background(Brush.linearGradient(listOf(TileTealTop, TileTealBottom)))
-                .border(1.dp, TileTealBorder, shape)
-                .clickable(enabled = opens, role = Role.Button) { toggle() }
-                .padding(horizontal = 6.dp, vertical = 6.dp),
-            contentAlignment = Alignment.Center,
+    // Above its siblings, so its pop swells over the Undo button beside it rather than behind it. On a Box of its own:
+    // TooltipBox puts its modifier on an inner anchor, not on the node its parent lays out.
+    Box(modifier = modifier.zIndex(1f)) {
+        AppTooltip(
+            body = { TotalsTable(lines) },
+            state = tooltipState,
+            enabled = opens,
+            focusable = tutorial == null,
+            modifier = Modifier.semantics { role = Role.Button },
         ) {
-            // Decorative: the button's own semantics, above, name it and say the totals.
-            BoardButtonIcon(imageVector = Icons.Filled.Functions, contentDescription = null, tint = color, litHalves = litHalves)
+            Box(
+                modifier = Modifier
+                    .graphicsLayer {
+                        scaleX = pop.value
+                        scaleY = pop.value
+                    }
+                    // Before the clip, which would cut off an outline drawn round the button.
+                    .then(if (tutorial?.opensTotals == true) Modifier.tutorialOutline(tutorial.pulse, cornerRadius = 10.dp) else Modifier)
+                    // Before clickable, so its own click semantics don't leak through - see UI.md.
+                    .clearAndSetSemantics {
+                        contentDescription = totalsName
+                        stateDescription = spokenState
+                        role = Role.Button
+                        if (opens) {
+                            onClick(label = showTotalsLabel) {
+                                toggle()
+                                true
+                            }
+                        } else {
+                            disabled()
+                        }
+                    }
+                    // M3's 48dp minimum touch target, which the glyph alone (when a large font drops the label) is short of.
+                    .sizeIn(minWidth = minSize, minHeight = minSize)
+                    .clip(shape)
+                    .background(Brush.linearGradient(listOf(TileTealTop, TileTealBottom)))
+                    .border(1.dp, TileTealBorder, shape)
+                    .clickable(enabled = opens, role = Role.Button) { toggle() }
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                // Decorative: the button's own semantics, above, name it and say the totals.
+                BoardButtonIcon(imageVector = Icons.Filled.Functions, contentDescription = null, tint = color, litHalves = litHalves)
+            }
         }
     }
 }
