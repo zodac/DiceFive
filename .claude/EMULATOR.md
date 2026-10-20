@@ -76,7 +76,8 @@ if the journey or a profile file changed. The `apk` job builds with the profile 
 - Gradle passing with no `baseline-prof.txt` counts as a failed install.
 - Limits: 190 min for the step, 210 for the job. A lap that plays a game to the end (every lap of a 10-lap run) takes
   ~4.5 min here and 3x+ that on a runner.
-- The `baseline-profile-report` artifact holds the report, a screenshot, the emulator log and every logcat buffer.
+- The `baseline-profile-report` artifact holds the report, the emulator log and every logcat buffer, and the screen and
+  UI hierarchy the journey saved as it failed (`journey-failure-lap<N>.png`/`.xml`, from `captureFailure`).
 
 **Reproducing a first boot like CI's**: run `.github/scripts/ci_emulator.sh start` with `ANDROID_HOME=/opt/android-sdk`
 and an empty `ANDROID_AVD_HOME` and `RUNNER_TEMP`.

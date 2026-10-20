@@ -280,7 +280,8 @@ jobs:
               continue
             fi
             if checks_failed; then exit 1; fi
-            .github/scripts/ci_emulator.sh screenshot "$RUNNER_TEMP/journey-failure.png" || true
+            # No screenshot here: the app was force-stopped as the journey failed, and the journey saved its own
+            # (connected_android_test_additional_output, in the report artifact).
             .github/scripts/ci_emulator.sh logcat "$RUNNER_TEMP/logcat-attempt$attempt.txt" || true
             .github/scripts/ci_emulator.sh stop
             echo "::error::Baseline Profile generation failed - see the baseline-profile-report artifact"
@@ -309,7 +310,7 @@ jobs:
             ${{ runner.temp }}/watch-checks.log
             app/baselineprofile/build/reports/androidTests/
             app/baselineprofile/build/outputs/androidTest-results/
-            ${{ runner.temp }}/journey-failure.png
+            app/baselineprofile/build/outputs/connected_android_test_additional_output/**/journey-failure-*
             ${{ runner.temp }}/emulator-*.log
             ${{ runner.temp }}/logcat-*.txt
           retention-days: 7

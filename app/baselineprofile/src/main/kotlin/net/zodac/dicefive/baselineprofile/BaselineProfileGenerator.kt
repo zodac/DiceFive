@@ -1,5 +1,6 @@
 package net.zodac.dicefive.baselineprofile
 
+import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
@@ -37,6 +38,16 @@ class BaselineProfileGenerator {
         // The journey goes far past startup; the startup profile is StartupProfileGenerator's alone.
         includeInStartupProfile = false,
     ) {
+        val thisLap = ++lap
+        try {
+            journey(first = thisLap == 1)
+        } catch (failure: Throwable) {
+            captureFailure(thisLap)
+            throw failure
+        }
+    }
+
+    private fun MacrobenchmarkScope.journey(first: Boolean) {
         pressHome()
         startActivityAndWait()
 
@@ -47,7 +58,7 @@ class BaselineProfileGenerator {
 
         // A fresh install locks the setup's modes and modifiers until a game is finished, and the steps below pick
         // both. The unlock survives from lap to lap, so only the first looks.
-        if (lap == 0) unlockModes()
+        if (first) unlockModes()
 
         // A game is left saved behind, so the menu then offers Continue - and the next lap of the
         // run, which starts from that state, takes the New Game route instead of Play.
@@ -58,7 +69,7 @@ class BaselineProfileGenerator {
         // A game played to the end - after the saved one has been resumed, as finishing a game clears it. Only on
         // the first lap of a short run: the profile is what every lap touched together, so repeating it adds
         // nothing there. A long run (the one that soaks a changed journey) plays it every lap, to find its races.
-        if (lap++ == 0 || laps > SHORT_RUN_LAPS) playFinishedGame()
+        if (first || laps > SHORT_RUN_LAPS) playFinishedGame()
 
         visitStyles()
         visitAchievements()

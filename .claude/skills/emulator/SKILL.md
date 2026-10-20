@@ -48,8 +48,9 @@ sandbox/emulator.sh stop
 - After the uninstall, the first lap starts like CI's fresh install: modes are locked, so it first plays a solo game to
   the end to unlock them (`unlockModes`).
 - A failing step names itself (`Baseline Profile journey: 'X' never appeared`). The report is at
-  `app/baselineprofile/build/reports/androidTests/connected/nonMinifiedRelease/index.html`. Screenshot where it stuck,
-  fix `Journeys.kt`, and rerun.
+  `app/baselineprofile/build/reports/androidTests/connected/nonMinifiedRelease/index.html`. The screen and UI hierarchy
+  as it failed are saved as `journey-failure-lap<N>.png`/`.xml` under
+  `app/baselineprofile/build/outputs/connected_android_test_additional_output/`. Fix `Journeys.kt`, and rerun.
 - The four benchmark tests show as skipped during `generateBaselineProfile`. That's expected.
 - The generated profile (`app/android/src/release/generated/baselineProfiles/`) is gitignored, because CI generates
   its own.

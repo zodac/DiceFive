@@ -2,6 +2,7 @@ package net.zodac.dicefive.baselineprofile
 
 import android.content.res.Resources
 import android.graphics.Rect
+import java.io.File
 import java.util.regex.Pattern
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.test.platform.app.InstrumentationRegistry
@@ -36,6 +37,24 @@ internal fun intArgument(name: String): Int? =
 internal fun MacrobenchmarkScope.await(selector: BySelector, what: String): UiObject2 =
     device.wait(Until.findObject(selector), TIMEOUT_MS)
         ?: error("Baseline Profile journey: '$what' never appeared (on screen: ${screenText()})")
+
+/**
+ * Saves the screen and its UI hierarchy as a lap fails, while the app still shows where it stuck: the library
+ * force-stops it straight after, so a screenshot taken once Gradle has finished shows only the launcher. Written to
+ * the run's additional test output, which Gradle pulls to `build/outputs/connected_android_test_additional_output`.
+ * The screen is taken with the shell's `screencap`: UiAutomator's own screenshot comes back black on the emulator.
+ * Best effort: a capture that fails must not hide the journey's own failure.
+ */
+internal fun MacrobenchmarkScope.captureFailure(lap: Int) {
+    val dir = InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")?.let(::File) ?: return
+    try {
+        dir.mkdirs()
+        device.executeShellCommand("screencap -p ${File(dir, "journey-failure-lap$lap.png").absolutePath}")
+        device.dumpWindowHierarchy(File(dir, "journey-failure-lap$lap.xml"))
+    } catch (_: Exception) {
+        // Nothing saved - the failure's message still names what was on screen.
+    }
+}
 
 /** The text on screen, for a failure's message: what the journey was looking at instead. */
 private fun MacrobenchmarkScope.screenText(): String =
@@ -377,8 +396,9 @@ private fun MacrobenchmarkScope.longPressAt(bounds: Rect) {
 
 /**
  * From the menu, with a game saved (see [playATurn]): a New Game in each of [OTHER_MODES], with a roll, then
- * out again. Afterwards the mode is put back to Standard, so the next lap's [playATurn] - and anything else
- * that starts a game - gets the mode it expects (the setup remembers the last pick).
+ * out again. Afterwards the mode is put back to Standard and kept ([saveSetup]), so the game [resumeGame] goes back to
+ * is Standard, and the next lap's [playATurn] - and anything else that starts a game - gets the mode it expects (the
+ * setup starts from the last game's picks).
  */
 internal fun MacrobenchmarkScope.playAModeGame() {
     for (mode in OTHER_MODES) {
@@ -392,44 +412,54 @@ internal fun MacrobenchmarkScope.playAModeGame() {
 
     openFromMenu("New Game")
     chooseMode("Standard")
-    backOutOfSetup(replacedMode = OTHER_MODES.last())
+    awaitModePickerClosed(replacedMode = OTHER_MODES.last())
+    saveSetup()
 }
 
 /** The modes [playAModeGame] plays, each with its own dice, boxes or layout. */
 private val OTHER_MODES = listOf("Tricolour", "D20", "Hit List")
 
 /**
- * Back from the setup once the mode picker's dialog has gone: a back press sent while it closes leaves the
- * app (see closeDialog). Its list is the only place the mode just replaced shows ([replacedMode]), so that
+ * Waits for the mode picker's dialog to go after a pick: a tap or back press sent while it closes can be dropped or
+ * leave the app (see closeDialog). Its list is the only place the mode just replaced shows ([replacedMode]), so that
  * going says it has closed; the pause after covers the rest of its fade.
  */
-private fun MacrobenchmarkScope.backOutOfSetup(replacedMode: String) {
+private fun MacrobenchmarkScope.awaitModePickerClosed(replacedMode: String) {
     await(By.text("Start Game"), "the setup after choosing a mode")
     device.wait(Until.gone(By.text(replacedMode)), TIMEOUT_MS)
     Thread.sleep(PICKER_CLOSE_MS)
-    back()
-    await(By.text("Settings"), "the menu after leaving the setup")
+}
+
+/**
+ * Keeps the setup's picks for the next game: the setup saves them only when a game is started, not when it is backed
+ * out of, so a game is started with them and left (saved, for Continue).
+ */
+private fun MacrobenchmarkScope.saveSetup() {
+    tapText("Start Game")
+    await(By.descStartsWith("Dice cup"), "the board after starting a game to keep the setup")
+    leaveGame()
 }
 
 /**
  * From the menu: unlocks the setup's game modes and modifiers, which stay locked until a game has been finished (as on
  * the fresh install CI runs on), by playing one solo game of Standard to the end. The player count is put back to two
- * afterwards, as the setup remembers it. Does nothing more than look when they are already unlocked.
+ * and kept ([saveSetup]) afterwards. Does nothing more than look when they are already unlocked.
  */
 internal fun MacrobenchmarkScope.unlockModes() {
     openGameSetup()
     await(By.text("Start Game"), "the setup")
-    if (hasText(MODES_LOCKED)) {
-        tapDesc("1")
-        tapText("Start Game")
-        playToGameOver(rollsPerTurn = STANDARD_ROLLS)
-        tapText("Main Menu")
-        openGameSetup()
-        tapDesc("2")
-        await(By.text("Start Game"), "the setup after the unlocking game")
+    if (!hasText(MODES_LOCKED)) {
+        back()
+        await(By.text("Settings"), "the menu after leaving the setup")
+        return
     }
-    back()
-    await(By.text("Settings"), "the menu after leaving the setup")
+    tapDesc("1")
+    tapText("Start Game")
+    playToGameOver(rollsPerTurn = STANDARD_ROLLS)
+    tapText("Main Menu")
+    openGameSetup()
+    tapDesc("2")
+    saveSetup()
 }
 
 /**
@@ -465,7 +495,8 @@ internal fun MacrobenchmarkScope.playFinishedGame() {
     tapDesc("2")
     setOneRollPerTurn(false)
     chooseMode("Standard")
-    backOutOfSetup(replacedMode = "Quickfire")
+    awaitModePickerClosed(replacedMode = "Quickfire")
+    saveSetup()
 }
 
 /**
