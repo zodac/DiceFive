@@ -863,6 +863,53 @@ class GameAchievementsWiringTest {
     }
 
     @Test
+    fun `a score left undoable is still undoable on resuming - undone into another box it's I Didn't Mean That`() = runTest(testDispatcher) {
+        val saves = InProgressGameRepository(InMemoryPreferences(), backgroundScope)
+        val store = InMemoryAchievementStore()
+        fun table() = gameViewModel(
+            aiDispatcher = testDispatcher,
+            inProgressGameRepository = saves,
+            achievementsRepository = store,
+            random = LoadedDice(3),
+        )
+
+        val left = table()
+        left.startGame()
+        left.rollDice()
+        val beforeScore = left.game.value
+        left.commitScore(ScoreCategory.THREES)
+        runCurrent()
+
+        val resumed = table()
+        assertTrue(resumed.resumeGame())
+        assertTrue(resumed.canUndo.value, "the score left undoable lost its Undo on resuming")
+        resumed.undo()
+        assertEquals(beforeScore, resumed.game.value, "Undo goes back to the turn as it was before the score")
+        assertFalse(resumed.canUndo.value)
+        resumed.commitScore(ScoreCategory.CHANCE)
+        runCurrent()
+        assertTrue(Achievement.I_DIDNT_MEAN_THAT in store.unlocked, "the undone box was lost on resuming, got ${store.unlocked}")
+    }
+
+    @Test
+    fun `a roll after the score clears its Undo - and a resumed game has none either`() = runTest(testDispatcher) {
+        val saves = InProgressGameRepository(InMemoryPreferences(), backgroundScope)
+        fun table() = gameViewModel(aiDispatcher = testDispatcher, inProgressGameRepository = saves, random = LoadedDice(3))
+
+        val left = table()
+        left.startGame()
+        left.rollDice()
+        left.commitScore(ScoreCategory.THREES)
+        left.rollDice()
+        assertFalse(left.canUndo.value)
+        runCurrent()
+
+        val resumed = table()
+        assertTrue(resumed.resumeGame())
+        assertFalse(resumed.canUndo.value, "an Undo the roll had cleared came back on resuming")
+    }
+
+    @Test
     fun `a new game started in the small hours is Rolling The Midnight Dice - one resumed then is not`() = runTest(testDispatcher) {
         val saves = InProgressGameRepository(InMemoryPreferences(), backgroundScope)
         val store = InMemoryAchievementStore()

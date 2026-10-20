@@ -30,7 +30,14 @@ import net.zodac.dicefive.model.storedIdOf
 /** Hand-rolled (de)serialization for [GameState], used to persist an in-progress game across sessions. */
 object GameStateJson {
 
-    fun encode(state: GameState): String = buildJsonObject {
+    fun encode(state: GameState): String = encodeState(state).toJson()
+
+    fun decode(json: String): GameState {
+        val obj = parseJson(json) as? JsonObject ?: throw JsonParseException("Not a JSON object")
+        return decodeState(obj)
+    }
+
+    private fun encodeState(state: GameState): JsonObject = buildJsonObject {
         put("gameMode", state.gameMode.id)
         put("turnTimer", state.turnTimer.name)
         put("currentPlayerIndex", state.currentPlayerIndex)
@@ -53,12 +60,12 @@ object GameStateJson {
         put("isGameOver", state.isGameOver)
         put("turnSecondsLeft", state.turnSecondsLeft)
         state.undoneCategory?.let { put("undoneCategory", it.id) }
+        state.undoSnapshot?.let { put("undoSnapshot", encodeState(it)) }
         put("dice", JsonArray(state.dice.map(::encodeDie)))
         put("players", JsonArray(state.players.map(::encodePlayer)))
-    }.toJson()
+    }
 
-    fun decode(json: String): GameState {
-        val obj = parseJson(json) as? JsonObject ?: throw JsonParseException("Not a JSON object")
+    private fun decodeState(obj: JsonObject): GameState {
         val gameMode = decodeGameMode(obj)
         val rollModifiers = RollModifiers(
             rollsPerTurn = (obj["rollsPerTurnModifier"] as? JsonNumber)?.toInt(),
@@ -85,6 +92,8 @@ object GameStateJson {
             turnSecondsLeft = (obj["turnSecondsLeft"] as? JsonNumber)?.toInt(),
             // Left out by encode with nothing undone. One nothing recognises is dropped, not failed on: it only decides an achievement.
             undoneCategory = obj.optString("undoneCategory").takeIf { it.isNotEmpty() }?.let { storedIdOf<ScoreCategory>(it) },
+            // Left out by encode with nothing to undo. One that can't be read is dropped, not failed on: it only costs the undo.
+            undoSnapshot = (obj["undoSnapshot"] as? JsonObject)?.let { runCatching { decodeState(it) }.getOrNull() },
             dice = obj.getObjectList("dice").map(::decodeDie),
             players = obj.getObjectList("players").map { decodePlayer(it, gameMode, extendedScores, disabledCategories, hitList, rollModifiers.isActive) },
         )

@@ -67,6 +67,10 @@ class GameStateJsonTest {
         // A box an undo took back, for a resumed game's I Didn't Mean That.
         assertEquals(ScoreCategory.THREES, roundTripped(GameState(players = listOf(human), undoneCategory = ScoreCategory.THREES)).undoneCategory)
 
+        // What Undo goes back to - a game of its own, mid-turn - for a resumed game's Undo.
+        val beforeScore = GameState(players = listOf(human), dice = List(5) { Die(value = 3, isHeld = it < 2) }, rollsRemaining = 1, phase = TurnPhase.ROLLED)
+        assertEquals(beforeScore, roundTripped(GameState(players = listOf(human), undoSnapshot = beforeScore)).undoSnapshot)
+
         // A partially filled scorecard - zero scores included - and a finished game.
         val partial = GameMode.STANDARD.categories.associateWith { category ->
             when (category) {
@@ -230,7 +234,7 @@ class GameStateJsonTest {
 
         // A plain game writes no Extended Scores, Unlucky Dice, switched-off boxes or Hit List - and loads with none.
         val written = GameStateJson.encode(plain)
-        for (field in listOf("extendedScores", "unluckyOdds", "isUnlucky", "isGolden", "disabledCategories", "hitList", "undoneCategory")) {
+        for (field in listOf("extendedScores", "unluckyOdds", "isUnlucky", "isGolden", "disabledCategories", "hitList", "undoneCategory", "undoSnapshot")) {
             assertFalse(field in written, "$field written")
         }
         val loaded = GameStateJson.decode(written)
@@ -246,6 +250,14 @@ class GameStateJsonTest {
             .replace(Regex(""""undoneCategory"\s*:\s*"THREES""""), """"undoneCategory":"NOT_A_BOX"""")
         assertTrue("NOT_A_BOX" in unknownUndo)
         assertEquals(null, GameStateJson.decode(unknownUndo).undoneCategory)
+
+        // Nor does an Undo that can't be read back: the game loads, with nothing to undo.
+        val unreadableUndo = GameStateJson.encode(plain.copy(undoSnapshot = plain))
+            .replace(Regex(""""undoSnapshot"\s*:\s*\{\s*"gameMode"\s*:\s*"standard""""), """"undoSnapshot":{"gameMode":"NOT_A_MODE"""")
+        assertTrue("NOT_A_MODE" in unreadableUndo)
+        val withoutUndo = GameStateJson.decode(unreadableUndo)
+        assertEquals(null, withoutUndo.undoSnapshot)
+        assertEquals(plain, withoutUndo)
     }
 
     @Test

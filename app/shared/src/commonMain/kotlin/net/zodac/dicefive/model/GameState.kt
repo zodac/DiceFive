@@ -34,6 +34,9 @@ data class GameState(
      * `AchievementTracker`'s I Didn't Mean That); null everywhere else. Only ever set on the saved copy, never on the
      * live game. */
     val undoneCategory: ScoreCategory? = null,
+    /** The game as it was before the last score, which Undo goes back to, so a resumed game can still take it back;
+     * null when there's nothing to undo. Only ever set on the saved copy, never on the live game. */
+    val undoSnapshot: GameState? = null,
 ) {
 
     /** Rolls a turn allows before any stored rolls: the Number of Rolls modifier's, else the mode's. */

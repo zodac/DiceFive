@@ -656,25 +656,34 @@ class GameViewModel(
     suspend fun resumeGame(): Boolean {
         val loaded = inProgressGameRepository.load() ?: return false
         beginGame(
-            loaded.copy(turnSecondsLeft = null, undoneCategory = null),
+            loaded.copy(turnSecondsLeft = null, undoneCategory = null, undoSnapshot = null),
             resumedSecondsLeft = loaded.turnSecondsLeft,
             resumedUndo = loaded.undoneCategory,
+            resumedUndoSnapshot = loaded.undoSnapshot,
         )
         unlockAchievements(setOf(Achievement.LETS_FINISH_THIS))
         return true
     }
 
     /**
-     * Puts [state] on the table as a game starting or resuming, with nothing to undo, no cheat active and nothing
-     * tracked towards an achievement yet - [resumedSecondsLeft] is what a resumed turn's timer starts from, and
-     * [resumedUndo] the box an undo in it took back, and [startedAtLocalHour] the hour on the phone's clock a new game
-     * started at (null for one resumed). A new game's achievements are checked straight away: "Full Table" is settled
-     * the moment four seats are taken.
+     * Puts [state] on the table as a game starting or resuming, with no cheat active and nothing tracked towards an
+     * achievement yet - [resumedSecondsLeft] is what a resumed turn's timer starts from, [resumedUndo] the box an undo
+     * in it took back, [resumedUndoSnapshot] what its Undo goes back to (nothing to undo otherwise), and
+     * [startedAtLocalHour] the hour on the phone's clock a new game started at (null for one resumed). A new game's
+     * achievements are checked straight away: "Full Table" is settled the moment four seats are taken.
      */
-    private fun beginGame(state: GameState, resumedSecondsLeft: Int? = null, resumedUndo: ScoreCategory? = null, startedAtLocalHour: Int? = null) {
-        setUndoSnapshot(null)
+    private fun beginGame(
+        state: GameState,
+        resumedSecondsLeft: Int? = null,
+        resumedUndo: ScoreCategory? = null,
+        resumedUndoSnapshot: GameState? = null,
+        startedAtLocalHour: Int? = null,
+    ) {
+        // Before the state goes on the table, which saves it with whatever there is to undo.
+        setUndoSnapshot(resumedUndoSnapshot)
         resetSuperuserMode()
-        tracker.startGame(resumedUndo)
+        // The box an undo would take back is the one the last score went in.
+        tracker.startGame(resumedUndo, resumedLastCommitted = resumedUndoSnapshot?.let { state.players.getOrNull(it.currentPlayerIndex)?.lastScoredCategory })
         this.resumedSecondsLeft = resumedSecondsLeft
         applyGameState(state)
         this.resumedSecondsLeft = null
@@ -1280,8 +1289,9 @@ class GameViewModel(
         if (state.isGameOver) inProgressGameRepository.clear() else inProgressGameRepository.save(savedCopy(state))
     }
 
-    /** [state] as it's saved: with the box an undo took back, which the live game doesn't carry - see [GameState.undoneCategory]. */
-    private fun savedCopy(state: GameState): GameState = state.copy(undoneCategory = tracker.undoneCategory)
+    /** [state] as it's saved: with the box an undo took back and what Undo goes back to, which the live game doesn't carry -
+     * see [GameState.undoneCategory] and [GameState.undoSnapshot]. */
+    private fun savedCopy(state: GameState): GameState = state.copy(undoneCategory = tracker.undoneCategory, undoSnapshot = undoSnapshot)
 
     private var aiTurnJob: Job? = null
 

@@ -17,8 +17,8 @@ import net.zodac.dicefive.model.heldIndices
  * caller to persist and announce.
  *
  * The caller reports only player 1's own turns, except where an event says otherwise. A resumed game starts its
- * counts from zero ([startGame]): the dice rolled before the app was closed are simply not counted. Only an undo
- * carries over, saved with the game ([undoneCategory]).
+ * counts from zero ([startGame]): the dice rolled before the app was closed are simply not counted. Only undo carries
+ * over, saved with the game: a box an undo took back ([undoneCategory]), and the box of a score Undo can still take back.
  */
 class AchievementTracker {
 
@@ -91,11 +91,13 @@ class AchievementTracker {
 
     /**
      * Forgets everything, for a game starting or resuming - except, for a resumed game, the box an undo in it took back
-     * ([resumedUndo], from the saved game - see [undoneCategory]): it's the same game, so I Didn't Mean That still counts.
+     * ([resumedUndo], from the saved game - see [undoneCategory]) and the box of the score its Undo can still take back
+     * ([resumedLastCommitted]): it's the same game, so I Didn't Mean That still counts.
      */
-    fun startGame(resumedUndo: ScoreCategory? = null) {
+    fun startGame(resumedUndo: ScoreCategory? = null, resumedLastCommitted: ScoreCategory? = null) {
         forgetUndo()
         pendingUndoneCategory = resumedUndo
+        lastCommittedCategory = resumedLastCommitted
         diceRolledByPlayerOne = 0
         trailedIntoFinalRound = false
         ledIntoFinalRound = false

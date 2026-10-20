@@ -98,8 +98,8 @@ All numbers here are Standard's. Each comes from the game's `GameMode`.
   - Running out before the first roll forfeits the turn as a zero in the first open box, with no roll
     (`GameEngine.forfeitTurn`).
   - CPUs time out the same way.
-- **Undo** exists in solo games only. It steps back one human roll, hold or score. Any CPU move clears it, and a
-  finished game has none.
+- **Undo** exists in solo games only. It takes back the last score; a roll or hold clears it (they aren't undoable),
+  as does any CPU move, and a finished game has none. It's saved with the game, so a resumed game can still undo.
 - **The end.** The game ends when every card is full. **Human** totals are recorded; CPU scores never are. The results
   screen shows the ranking with tie-break captions.
 - `DiceScoring`, `ScoreCalculator` and `GameEngine` are pure, with no platform dependencies.
@@ -235,6 +235,8 @@ will map to Play Games.
   - An undecodable save is treated as nothing to resume: a missing required field, an unknown mode, or a mode's draw
     missing.
   - Fields a modifier adds are left out when it's off.
+  - What Undo goes back to is saved as a nested game (`undoSnapshot`), and the box an undo took back as
+    `undoneCategory`. One that can't be read only loses the undo; the game still loads.
 - **Style picks.** Five ids (dice, cup, mat, background, frame) in `settings`. An id nothing recognises draws the
   default.
 

@@ -88,6 +88,21 @@ class AchievementTrackerTest {
     }
 
     @Test
+    fun `a resumed game whose last score Undo can still take back - undone into another box is I Didn't Mean That`() {
+        val resumed = AchievementTracker()
+        resumed.startGame(resumedLastCommitted = ScoreCategory.THREES)
+        resumed.onUndo()
+        assertEquals(ScoreCategory.THREES, resumed.undoneCategory)
+        assertEquals(setOf(Achievement.I_DIDNT_MEAN_THAT), resumed.onCommitted(ScoreCategory.CHANCE, byPlayerOne = true))
+
+        // Undone back into the same box is no change of mind.
+        val same = AchievementTracker()
+        same.startGame(resumedLastCommitted = ScoreCategory.THREES)
+        same.onUndo()
+        assertEquals(emptySet(), same.onCommitted(ScoreCategory.THREES, byPlayerOne = true))
+    }
+
+    @Test
     fun `another seat's score clears an undo - and earns nothing itself`() {
         val tracker = AchievementTracker()
         tracker.startGame()
