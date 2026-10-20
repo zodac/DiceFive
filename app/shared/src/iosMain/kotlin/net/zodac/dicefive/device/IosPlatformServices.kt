@@ -4,9 +4,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import net.zodac.dicefive.platform.Accelerometer
 import net.zodac.dicefive.platform.HapticEffect
 import net.zodac.dicefive.platform.HapticsPlayer
@@ -22,8 +26,11 @@ import net.zodac.dicefive.platform.SelectionClearer
 import platform.AVFAudio.AVAudioPlayer
 import platform.CoreMotion.CMMotionManager
 import platform.Foundation.NSBundle
+import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
 import platform.Foundation.NSURL
+import platform.UIKit.UIAccessibilityIsReduceMotionEnabled
+import platform.UIKit.UIAccessibilityReduceMotionStatusDidChangeNotification
 import platform.UIKit.UIImpactFeedbackGenerator
 import platform.UIKit.UIImpactFeedbackStyle
 
@@ -47,6 +54,18 @@ class IosPlatformServices : PlatformServices {
     override fun createHapticsPlayer(): HapticsPlayer = IosHapticsPlayer()
 
     override fun createAccelerometer(): Accelerometer? = IosAccelerometer().takeIf { it.isAvailable }
+
+    /** Settings > Accessibility > Motion > Reduce Motion. Watched, so flipping it with the app open takes effect without a restart. */
+    override fun reduceMotion(): Flow<Boolean> = callbackFlow {
+        val center = NSNotificationCenter.defaultCenter
+        val observer = center.addObserverForName(
+            name = UIAccessibilityReduceMotionStatusDidChangeNotification,
+            `object` = null,
+            queue = NSOperationQueue.mainQueue,
+        ) { _ -> trySend(UIAccessibilityIsReduceMotionEnabled()) }
+        trySend(UIAccessibilityIsReduceMotionEnabled())
+        awaitClose { center.removeObserver(observer) }
+    }.distinctUntilChanged()
 
     override fun showTransientMessage(message: String) {
         _transientMessage.value = message
@@ -75,12 +94,16 @@ class IosPlatformServices : PlatformServices {
 @OptIn(ExperimentalForeignApi::class)
 private class IosSoundPlayer : SoundPlayer {
 
-    private val players: Map<SoundEffect, AVAudioPlayer> = SoundEffect.entries.mapNotNull { effect ->
+    /** Emptied by [release], so nothing plays after it and the players can be freed. */
+    private var players: Map<SoundEffect, AVAudioPlayer> = SoundEffect.entries.mapNotNull { effect ->
         val path = NSBundle.mainBundle.pathForResource(effect.clipName, ofType = "m4a") ?: return@mapNotNull null
         val player = AVAudioPlayer(contentsOfURL = NSURL.fileURLWithPath(path), error = null)
         player.prepareToPlay()
         effect to player
     }.toMap()
+
+    /** The clips [pause] held mid-play, for [resume] to carry on. */
+    private var paused: List<AVAudioPlayer> = emptyList()
 
     override fun play(effect: SoundEffect, volume: Float) {
         val player = players[effect] ?: return
@@ -89,8 +112,20 @@ private class IosSoundPlayer : SoundPlayer {
         player.play()
     }
 
+    override fun pause() {
+        paused = players.values.filter { it.playing }
+        paused.forEach { it.pause() }
+    }
+
+    override fun resume() {
+        paused.forEach { it.play() }
+        paused = emptyList()
+    }
+
     override fun release() {
         players.values.forEach { it.stop() }
+        players = emptyMap()
+        paused = emptyList()
     }
 
     private val SoundEffect.clipName: String

@@ -28,6 +28,7 @@ commit**, and tell the user so they can rename it before it spreads.
 | `[Gameplay]`     | The in-game screen - dice, cup, scorecard, player tabs - and rules      |
 | `[Game Over]`    | The end-of-game results page and its celebration                        |
 | `[Icon]`         | The app's launcher icon                                                 |
+| `[iOS]`          | iOS-only work - `iosMain`, the iOS app and its platform services        |
 | `[Leaderboard]`  | The Leaderboard (scores) screen and the score records behind it         |
 | `[Performance]`  | Start-up, loading, storage and frame cost across the app                |
 | `[Play Games]`   | Google Play Games Services - sign-in, online sync, cloud save, Sidekick |
@@ -37,5 +38,4 @@ commit**, and tell the user so they can rename it before it spreads.
 | `[Styles]`       | The Styles screen and the table art - dice, cups, mats, backgrounds     |
 | `[UI]`           | App-wide layout and navigation - main menu, shared chrome, dialogs      |
 
-Planned: `[iOS]` for iOS-only work (add it here with the first such commit). A change that applies to every mode goes
-under its own area (`[Gameplay]`, `[Achievements]`), not `[Game Mode]`.
+A change that applies to every mode goes under its own area (`[Gameplay]`, `[Achievements]`), not `[Game Mode]`.

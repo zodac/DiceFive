@@ -14,8 +14,6 @@ fade vs a horizontal mask with a clear zone and easing), so one helper would onl
   DataStore both run on desktop. An intermediate `jvmMain` shared by Android and desktop avoids copying those. The
   five formatter caches in `Formatting.android.kt` / `Formatting.ios.kt` repeat one pattern; one small cache helper
   per platform would do.
-- **iOS gaps beyond `IOS_SUPPORT.md`:** `reduceMotion()` isn't implemented (iOS has a system setting);
-  `IosSoundPlayer` has no pause/resume, and `release()` only stops playback without freeing anything.
 - **Startup:** `stringsLanguageConfiguration()` calls `runBlocking` on the main thread in `attachBaseContext`
   (`StringsLanguage.android.kt:41`). Worth measuring.
 

@@ -121,10 +121,11 @@ app/
 - **Tests.** `./gradlew :app:shared:iosSimulatorArm64Test` on a Mac. It's the first real check of `stripDiacritics` and
   of Room and DataStore on iOS.
 - **Haptics.** `IosHapticsPlayer`'s impact styles are a first guess.
-- **Reduce Motion.** Implement `reduceMotion()` from `UIAccessibilityIsReduceMotionEnabled()`, re-emitting on
-  `UIAccessibilityReduceMotionStatusDidChangeNotification`. `capFrameRate` does nothing on iOS yet.
-- **Background.** `SoundPlayer.pause`/`resume` and `HapticsPlayer.cancel` do nothing (use `AVAudioPlayer.pause()`), and
-  `TransientMessageHost` uses a plain `delay`.
+- **Reduce Motion.** `reduceMotion()` follows `UIAccessibilityIsReduceMotionEnabled()` and its change notification,
+  unchecked on a device. `capFrameRate` does nothing on iOS yet.
+- **Background.** `IosSoundPlayer` pauses and resumes the clips that were playing, unchecked on a device.
+  `HapticsPlayer.cancel` does nothing: an impact tap has no length to cut short. `TransientMessageHost` uses a plain
+  `delay`.
 
 ## CI and release
 
@@ -132,7 +133,7 @@ app/
   iOS, with `~/.konan` cached.
 - **`update_dependency_versions.sh`** bumps the entries generically, except those marked `# @update` in
   `libs.versions.toml`: the JetBrains Compose entries match the Compose BOM, and sqlite follows Room.
-- **Commits** go under a new `[iOS]` category. Add it to the `commit` skill's table in the same commit.
+- **Commits** go under the `[iOS]` category.
 
 ## Open decisions
 
