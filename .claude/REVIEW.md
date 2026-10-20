@@ -14,8 +14,11 @@ fade vs a horizontal mask with a clear zone and easing), so one helper would onl
   DataStore both run on desktop. An intermediate `jvmMain` shared by Android and desktop avoids copying those. The
   five formatter caches in `Formatting.android.kt` / `Formatting.ios.kt` repeat one pattern; one small cache helper
   per platform would do.
-- **Startup:** `stringsLanguageConfiguration()` calls `runBlocking` on the main thread in `attachBaseContext`
-  (`StringsLanguage.android.kt:41`). Worth measuring.
+
+Looked at and left: `stringsLanguageConfiguration()`'s `runBlocking` in `attachBaseContext`. Measured on the sandbox
+emulator (debug build, 2026-10-20): 8-71ms on a cold start (most runs 10-35ms), of which about 2-4ms is coroutines' first load and nearly
+all the rest Compose resources' first read; a second call takes 0.2ms. The first screen would pay that first read
+anyway, so moving it off the main thread wouldn't shorten start-up.
 
 ## Smaller best-practice items
 
